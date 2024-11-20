@@ -687,24 +687,18 @@ def load_commands() -> None:
     if pwndbg.dbg.is_gdblib_available():
         import pwndbg.commands.ai
         import pwndbg.commands.argv
-        import pwndbg.commands.aslr
-        import pwndbg.commands.asm
         import pwndbg.commands.attachp
-        import pwndbg.commands.auxv
         import pwndbg.commands.binder
         import pwndbg.commands.binja
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
         import pwndbg.commands.dt
-        import pwndbg.commands.gdt
-        import pwndbg.commands.ghidra
         import pwndbg.commands.godbg
         import pwndbg.commands.got
         import pwndbg.commands.got_tracking
         import pwndbg.commands.heap_tracking
         import pwndbg.commands.ida
         import pwndbg.commands.ignore
-        import pwndbg.commands.integration
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.kbase
         import pwndbg.commands.kchecksec
@@ -713,15 +707,10 @@ def load_commands() -> None:
         import pwndbg.commands.killthreads
         import pwndbg.commands.klookup
         import pwndbg.commands.kversion
-        import pwndbg.commands.linkmap
-        import pwndbg.commands.memoize
         import pwndbg.commands.onegadget
         import pwndbg.commands.pcplist
         import pwndbg.commands.peda
-        import pwndbg.commands.plist
-        import pwndbg.commands.radare2
         import pwndbg.commands.reload
-        import pwndbg.commands.rizin
         import pwndbg.commands.rop
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
@@ -729,9 +718,11 @@ def load_commands() -> None:
         import pwndbg.commands.slab
         import pwndbg.commands.start
         import pwndbg.commands.tips
-        import pwndbg.commands.tls
         import pwndbg.commands.version
 
+    import pwndbg.commands.aslr
+    import pwndbg.commands.asm
+    import pwndbg.commands.auxv
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
@@ -744,10 +735,15 @@ def load_commands() -> None:
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
     import pwndbg.commands.flags
+    import pwndbg.commands.gdt
+    import pwndbg.commands.ghidra
     import pwndbg.commands.heap
     import pwndbg.commands.hex2ptr
     import pwndbg.commands.hexdump
+    import pwndbg.commands.integration
     import pwndbg.commands.leakfind
+    import pwndbg.commands.linkmap
+    import pwndbg.commands.memoize
     import pwndbg.commands.misc
     import pwndbg.commands.mmap
     import pwndbg.commands.mprotect
@@ -759,11 +755,14 @@ def load_commands() -> None:
     import pwndbg.commands.plist
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
+    import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
+    import pwndbg.commands.rizin
     import pwndbg.commands.search
     import pwndbg.commands.sigreturn
     import pwndbg.commands.spray
     import pwndbg.commands.telescope
+    import pwndbg.commands.tls
     import pwndbg.commands.valist
     import pwndbg.commands.vmmap
     import pwndbg.commands.windbg
