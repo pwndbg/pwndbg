@@ -35,7 +35,7 @@ jobs:
 
     - name: Build pwndbg
       run: |
-        nix build '.#pwndbg' --accept-flake-config -o result
+        nix build '.#pwndbg-dev' --accept-flake-config -o result
 
     # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
     - name: Setup
