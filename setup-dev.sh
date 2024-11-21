@@ -29,7 +29,6 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-
 hook_script_path=".git/hooks/pre-push"
 hook_script=$(
     cat << 'EOF'
