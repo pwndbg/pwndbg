@@ -4,10 +4,10 @@ import argparse
 import concurrent.futures
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
-import shutil
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import List
@@ -299,7 +299,7 @@ def main():
         args.serial = True
 
     if args.nix:
-        gdbinit_path = ''
+        gdbinit_path = ""
         gdb_path = os.path.join(root_dir, "result/bin/pwndbg")
         if not os.path.exists(gdb_path):
             print("ERROR: No nix-compatible pwndbg found. Run nix build .#pwndbg-dev")
