@@ -132,6 +132,13 @@ install_apt() {
         gcc-mips-linux-gnu \
         gcc-mips64-linux-gnuabi64
 
+    # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
+    if uname -m | grep -q x86_64; then
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
+        sudo apt-get install -y libc6-dbg:i386 libgcc-s1:i386
+    fi
+
     if [[ "$1" != "" ]]; then
         sudo apt install shfmt
     fi
