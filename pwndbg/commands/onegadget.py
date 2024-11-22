@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import shutil
 
+import pwndbg.aglib.onegadget
 import pwndbg.color.message as M
 import pwndbg.commands
-import pwndbg.gdblib.onegadget
 import pwndbg.glibc
 from pwndbg.commands import CommandCategory
 
@@ -38,10 +38,10 @@ def onegadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool 
     print(f"Using libc: {M.hint(path)}")
     print()
 
-    gadgets_count = pwndbg.gdblib.onegadget.find_gadgets(show_unsat, no_unknown, verbose)
+    gadgets_count = pwndbg.aglib.onegadget.find_gadgets(show_unsat, no_unknown, verbose)
     for result, count in gadgets_count.items():
         print(f"Found {M.hint(count)} {result} gadgets.")
-    if not gadgets_count[pwndbg.gdblib.onegadget.SAT] and not show_unsat:
+    if not gadgets_count[pwndbg.aglib.onegadget.SAT] and not show_unsat:
         print(
             M.warn(
                 "No valid gadgets found, you might want to run with --show-unsat again to check unsatisfiable gadgets.\n"

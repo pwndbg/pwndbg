@@ -715,7 +715,6 @@ def load_commands() -> None:
         import pwndbg.commands.kversion
         import pwndbg.commands.linkmap
         import pwndbg.commands.memoize
-        import pwndbg.commands.onegadget
         import pwndbg.commands.pcplist
         import pwndbg.commands.peda
         import pwndbg.commands.plist
@@ -753,6 +752,7 @@ def load_commands() -> None:
     import pwndbg.commands.mprotect
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
+    import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.patch
     import pwndbg.commands.pie

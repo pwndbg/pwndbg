@@ -10,14 +10,14 @@ from typing import Any
 from typing import Dict
 from typing import Tuple
 
-import gdb
 from tabulate import tabulate
 
 import pwndbg.aglib.arch
+import pwndbg.aglib.file
+import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
 import pwndbg.color.message as M
-import pwndbg.gdblib.file
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.vmmap
+import pwndbg.dbg
 import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.tempfile
@@ -36,12 +36,12 @@ CAST_PATTERN = re.compile(r"^\([s|u]\d+\)")
 XMM_SHIFT = " >> "
 CONSTRAINT_SEPARATOR = " || "
 CAST_DEREF_MAPPING = {
-    "(u16)": pwndbg.gdblib.memory.u16,
-    "(s16)": pwndbg.gdblib.memory.s16,
-    "(u32)": pwndbg.gdblib.memory.u32,
-    "(s32)": pwndbg.gdblib.memory.s32,
-    "(u64)": pwndbg.gdblib.memory.u64,
-    "(s64)": pwndbg.gdblib.memory.s64,
+    "(u16)": pwndbg.aglib.memory.u16,
+    "(s16)": pwndbg.aglib.memory.s16,
+    "(u32)": pwndbg.aglib.memory.u32,
+    "(s32)": pwndbg.aglib.memory.s32,
+    "(u64)": pwndbg.aglib.memory.u64,
+    "(s64)": pwndbg.aglib.memory.s64,
 }
 CAST_MAPPING = {
     "(u16)": lambda x: ctypes.c_uint16(x).value,
@@ -128,7 +128,7 @@ class Lambda:
 
     @property
     def gdb_expr(self) -> str:
-        # TODO: Don't use gdb.parse_and_eval here, directly fetching the value with `pwndbg.gdblib.memory` would be better(?)
+        # TODO: Don't use gdb.parse_and_eval here, directly fetching the value with `pwndbg.aglib.memory` would be better(?)
         obj = self.obj
         if isinstance(obj, str):
             if obj.startswith("xmm"):
@@ -269,9 +269,7 @@ def run_onegadget() -> str:
     """
     Run onegadget and return the output
     """
-    libc_path = pwndbg.gdblib.file.get_file(
-        pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
-    )
+    libc_path = pwndbg.aglib.file.get_file(pwndbg.glibc.get_libc_filename_from_info_sharedlibrary())
     # We need cache because onegadget might be slow
     cache_file = os.path.join(ONEGADGET_CACHEDIR, compute_file_hash(libc_path))
     if os.path.exists(cache_file):
@@ -300,6 +298,7 @@ def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
     lambda_expr = Lambda.parse(expr)
     if not isinstance(lambda_expr, Lambda):
         return lambda_expr, expr, None
+
     gdb_expr = lambda_expr.gdb_expr
     try:
         if cast:
@@ -307,13 +306,17 @@ def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
                 # Remove the first *, we use cast to handle it instead of unsigned long
                 gdb_expr = gdb_expr.lstrip("*")
                 # Now gdb_expr is a pointer, we need dereference it with cast
-                result = CAST_DEREF_MAPPING[cast](int(gdb.parse_and_eval(gdb_expr)))
+                addr = int(pwndbg.dbg.selected_inferior().evaluate_expression(gdb_expr))
+                result = CAST_DEREF_MAPPING[cast](addr)
             else:
-                result = CAST_MAPPING[cast](int(gdb.parse_and_eval(gdb_expr)))
+                addr = int(pwndbg.dbg.selected_inferior().evaluate_expression(gdb_expr))
+                result = CAST_MAPPING[cast](addr)
         else:
-            result = int(gdb.parse_and_eval(gdb_expr))
+            addr = int(pwndbg.dbg.selected_inferior().evaluate_expression(gdb_expr))
+            result = addr
+
         return result, f"{cast}{lambda_expr.color_str}", None
-    except gdb.error as e:
+    except pwndbg.dbg_mod.Error as e:
         return None, f"{cast}{lambda_expr.color_str}", str(e)
 
 
@@ -352,14 +355,14 @@ def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
             if n > 1:
                 return UNKNOWN, output_msg
             return SAT, output_msg
-        page = pwndbg.gdblib.vmmap.find(result)
+        page = pwndbg.aglib.vmmap.find(result)
         if page is None or not page.read:
             output_msg += (
                 f"argv[{n}] = {color_str} = {result:#x}, {color_str} is not a valid address\n"
             )
             return UNSAT, output_msg
         if n > 0:
-            output_msg += f"argv[{n}] = {color_str} = {result:#x} -> {bytes(pwndbg.gdblib.memory.string(result))!r}\n"
+            output_msg += f"argv[{n}] = {color_str} = {result:#x} -> {bytes(pwndbg.aglib.memory.string(result))!r}\n"
         else:
             output_msg += (
                 f"argv[{n}] = {color_str} = {result:#x}, {color_str} is a readable address\n"
@@ -384,8 +387,8 @@ def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
     n = 0
     while True:
         try:
-            argv_n = pwndbg.gdblib.memory.pvoid(argv + n * pwndbg.aglib.arch.ptrsize)
-        except gdb.MemoryError:
+            argv_n = pwndbg.aglib.memory.pvoid(argv + n * pwndbg.aglib.arch.ptrsize)
+        except pwndbg.dbg_mod.Error:
             output_msg += f"&argv[{n}] = {argv + n * pwndbg.aglib.arch.ptrsize:#x}, {argv + n * pwndbg.aglib.arch.ptrsize:#x} is a invalid address\n"
             return UNSAT, output_msg
         if argv_n == 0:
@@ -396,11 +399,11 @@ def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
                 # {whatever_but_readable, NULL} is always a valid argv
                 output_msg += f"argv[{n}] is NULL, {color_str} is a valid argv\n"
             return SAT, output_msg
-        page = pwndbg.gdblib.vmmap.find(argv_n)
+        page = pwndbg.aglib.vmmap.find(argv_n)
         if page is None or not page.read:
             output_msg += f"argv[{n}] = {argv_n:#x}, {argv_n:#x} is a invalid address\n"
             return UNSAT, output_msg
-        output_msg += f"argv[{n}] = {argv_n:#x} -> {bytes(pwndbg.gdblib.memory.string(argv_n))!r}\n"
+        output_msg += f"argv[{n}] = {argv_n:#x} -> {bytes(pwndbg.aglib.memory.string(argv_n))!r}\n"
         n += 1
 
 
@@ -433,14 +436,14 @@ def check_envp(expr: str) -> Tuple[bool, str]:
     n = 0
     while True:
         try:
-            envp_n = pwndbg.gdblib.memory.pvoid(envp + n * pwndbg.aglib.arch.ptrsize)
-        except gdb.MemoryError:
+            envp_n = pwndbg.aglib.memory.pvoid(envp + n * pwndbg.aglib.arch.ptrsize)
+        except pwndbg.dbg_mod.Error:
             output_msg += f"&envp[{n}] = {envp + n * pwndbg.aglib.arch.ptrsize:#x}, {envp + n * pwndbg.aglib.arch.ptrsize:#x} is a invalid address\n"
             return False, output_msg
         if envp_n == 0:
             output_msg += f"envp[{n}] is NULL, {color_str} is a valid envp\n"
             return True, output_msg
-        page = pwndbg.gdblib.vmmap.find(envp_n)
+        page = pwndbg.aglib.vmmap.find(envp_n)
         if page is None or not page.read:
             output_msg += f"envp[{n}] = {envp_n:#x}, {envp_n:#x} is a invalid address\n"
             return False, output_msg
@@ -481,7 +484,7 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
         for expr in exprs.split(", "):
             result, color_str, err = parse_expression(expr)
             if err is None:
-                page = pwndbg.gdblib.vmmap.find(result)
+                page = pwndbg.aglib.vmmap.find(result)
                 passed = page is not None and page.write
                 output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}writable\n"
             else:
@@ -493,7 +496,7 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
         expr = WRITABLE_COLON_PATTERN.match(constraint).group(1)
         result, color_str, err = parse_expression(expr)
         if err is None:
-            page = pwndbg.gdblib.vmmap.find(result)
+            page = pwndbg.aglib.vmmap.find(result)
             passed = page is not None and page.write
             output_msg += (
                 f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}writable\n"

@@ -32,7 +32,6 @@ def load_gdblib() -> None:
     import pwndbg.gdblib.hooks
     import pwndbg.gdblib.kernel
     import pwndbg.gdblib.memory
-    import pwndbg.gdblib.onegadget
     import pwndbg.gdblib.prompt
     import pwndbg.gdblib.regs as regs_mod
     import pwndbg.gdblib.symbol
