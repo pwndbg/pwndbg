@@ -136,6 +136,13 @@ class Lambda:
                 # https://github.com/david942j/one_gadget/blob/65ce1dade70bf89e7496346ccf452ce5b2d139b3/lib/one_gadget/emulators/x86.rb#L242-L248
                 # So we can hardcode the shifting :p
                 # TODO: Handle xmm register in a better way
+
+                # TODO: In LLDB this syntax is invalid:
+                # error: <user expression 62>:1:23: illegal vector component name 'v'
+                #     1 | ((unsigned long)($xmm0.v2_int64[1]))
+                #       |                       ^~~~~~~~~
+                #  while parsing (u64)xmm0 >> 64 for argv[1]
+
                 bits = pwndbg.aglib.arch.ptrsize * 8
                 if XMM_SHIFT in obj:
                     obj = obj.replace(XMM_SHIFT + str(bits), f".v{128 // bits}_int{bits}[1]")
@@ -317,6 +324,12 @@ def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
 
         return result, f"{cast}{lambda_expr.color_str}", None
     except pwndbg.dbg_mod.Error as e:
+        error_message = (
+            f"Pwndbg encountered an issue while evaluating the expression: {cast}{lambda_expr.color_str}\n"
+            f"Error details: {str(e)}\n"
+            f"Consider creating an issue in the pwndbg repository."
+        )
+        print(M.warn(error_message))
         return None, f"{cast}{lambda_expr.color_str}", str(e)
 
 
@@ -380,7 +393,7 @@ def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
     argv, color_str, err = parse_expression(expr)
     if err is not None:
         # We don't have to print the error message here, it should be printed already
-        return UNSAT, output_msg
+        return UNSAT, f"{err} while parsing {color_str}\n"
 
     output_msg += f"Assume argv = {color_str} = {argv:#x}, checking the content of argv\n"
 
@@ -424,10 +437,11 @@ def check_envp(expr: str) -> Tuple[bool, str]:
     if expr.startswith("{"):
         # Note: we don't have to handle this case for now, but might need to implement it in the future
         return False, output_msg
+
     envp, color_str, err = parse_expression(expr)
     if err is not None:
         # we don't have to print the error message here, it should be printed already
-        return False, output_msg
+        return False, f"{err} while parsing {color_str}\n"
 
     output_msg += f"Assume envp = {color_str} = {envp:#x}, checking the content of envp\n"
 
@@ -533,9 +547,12 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
     elif IS_GOT_ADDRESS_PATTERN.match(constraint):
         expr = IS_GOT_ADDRESS_PATTERN.match(constraint).group(1)
         result, color_str, err = parse_expression(expr)
-        got_plt_address = pwndbg.glibc.get_section_address_by_name(".got.plt")
-        passed = result == got_plt_address
-        output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_plt_address:#x}) of libc\n"
+        if err is None:
+            got_plt_address = pwndbg.glibc.get_section_address_by_name(".got.plt")
+            passed = result == got_plt_address
+            output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_plt_address:#x}) of libc\n"
+        else:
+            output_msg += f"{err} while parsing {color_str}\n"
     else:
         raise ValueError(f"Unsupported constraint: {constraint}")
 
