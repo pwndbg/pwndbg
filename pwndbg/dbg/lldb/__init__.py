@@ -4,6 +4,7 @@ import bisect
 import collections
 import os
 import random
+import shlex
 import sys
 from typing import Any
 from typing import Awaitable
@@ -1556,7 +1557,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def lex_args(self, command_line: str) -> List[str]:
-        return command_line.split()
+        return shlex.split(command_line)
 
     def _any_inferior(self) -> LLDBProcess | None:
         """
