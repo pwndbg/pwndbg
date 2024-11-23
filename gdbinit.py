@@ -29,12 +29,14 @@ def hash_file(file_path: str | Path) -> str:
     return file_hash.hexdigest()
 
 
-def run_poetry_install(poetry_path: os.PathLike[str], dev: bool = False) -> Tuple[str, str, int]:
+def run_poetry_install(
+    poetry_path: os.PathLike[str], src_root: Path, dev: bool = False
+) -> Tuple[str, str, int]:
     command: List[str] = [str(poetry_path), "install"]
     if dev:
         command.extend(("--with", "dev"))
     logging.debug(f"Updating deps with command: {' '.join(command)}")
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = subprocess.run(command, capture_output=True, text=True, cwd=src_root)
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
@@ -83,7 +85,7 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
             return
 
         dev_mode = is_dev_mode(venv_path)
-        stdout, stderr, return_code = run_poetry_install(poetry_path, dev=dev_mode)
+        stdout, stderr, return_code = run_poetry_install(poetry_path, src_root, dev=dev_mode)
         if return_code == 0:
             poetry_lock_hash_path.write_text(current_hash)
 

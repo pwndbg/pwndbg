@@ -15,6 +15,65 @@ on:
       - '!docs/**'
       - '!*.md'
 jobs:
+  tests-using-nix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        type: [qemu-user-tests, qemu-tests, tests]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    env:
+      TMPDIR: /tmp
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
+    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+
+    - name: Install dependencies
+      run: |
+        ./setup-dev.sh --install-only
+
+    - name: Build pwndbg
+      run: |
+        nix build '.#pwndbg-dev' --accept-flake-config -o result
+
+    # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
+    - name: Setup
+      run: |
+        sudo sysctl -w kernel.yama.ptrace_scope=0
+        mkdir .cov
+
+    - name: Run tests
+      if: matrix.type == 'tests'
+      run: |
+        ./tests.sh --nix --cov
+
+    - name: Run qemu-user-tests
+      if: matrix.type == 'qemu-user-tests'
+      run: |
+        ./qemu-tests.sh --nix --cov
+
+    - name: Set up cache for QEMU images
+      if: matrix.type == 'qemu-tests'
+      id: qemu-cache
+      uses: actions/cache@v3
+      with:
+        path: ./tests/qemu-tests/images
+        key: ${{ matrix.os }}-cache-qemu-images
+
+    - name: Download QEMU images
+      if: matrix.type == 'qemu-tests'
+      run: |
+        ./tests/qemu-tests/download_images.sh
+
+    - name: Run qemu-tests
+      if: matrix.type == 'qemu-tests'
+      working-directory: ./tests/qemu-tests
+      run: |
+        ./tests.sh --nix --cov
+
   tests:
     strategy:
       fail-fast: false

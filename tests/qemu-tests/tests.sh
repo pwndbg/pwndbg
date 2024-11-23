@@ -24,10 +24,11 @@ EOF
 fi
 
 help_and_exit() {
-    echo "Usage: ./tests.sh [-p|--pdb] [-c|--cov] [--gdb-port=<port>] [-Q|--preserve-qemu-image] [<test-name-filter>]"
+    echo "Usage: ./tests.sh [-p|--pdb] [-c|--cov] [--nix] [--gdb-port=<port>] [-Q|--preserve-qemu-image] [<test-name-filter>]"
     echo "  -p,  --pdb                  enable pdb (Python debugger) post mortem debugger on failed tests"
     echo "  -c,  --cov                  enable codecov"
     echo "  -v,  --verbose              display all test output instead of just failing test output"
+    echo "  --nix                       run tests using built for nix environment"
     echo "  --gdb-port=<port>           specify debug port for gdb/QEMU (Default: 1234)"
     echo "  --collect-only              only show the output of test collection, don't run any tests"
     echo "  -Q,  --preserve-qemu-image  don't kill QEMU image after failed tests"
@@ -54,6 +55,7 @@ VERBOSE=0
 COLLECT_ONLY=0
 PRESERVE_QEMU_IMAGE=0
 GDB_PORT=1234
+RUN_IN_NIX=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -67,6 +69,9 @@ while [[ $# -gt 0 ]]; do
             ;;
         -v | --verbose)
             VERBOSE=1
+            ;;
+        --nix)
+            RUN_IN_NIX=1
             ;;
         --collect-only)
             COLLECT_ONLY=1
@@ -106,18 +111,29 @@ else
     fi
 fi
 
-gdb_load_pwndbg=(--command "$GDB_INIT_PATH" -ex "set exception-verbose on")
 run_gdb() {
     local arch="$1"
     shift
 
-    if [[ "${arch}" == x86_64 ]]; then
-        GDB=gdb
+    if [ $RUN_IN_NIX -eq 1 ]; then
+        gdb_load_pwndbg=()
+
+        GDB="$ROOT_DIR/result/bin/pwndbg"
+        if [ ! -x "$GDB" ]; then
+            echo "ERROR: No nix-compatible pwndbg found. Run nix build .#pwndbg-dev"
+            exit 1
+        fi
     else
-        GDB=gdb-multiarch
+        gdb_load_pwndbg=(--command "$GDB_INIT_PATH")
+
+        if [[ "${arch}" == x86_64 ]]; then
+            GDB=gdb
+        else
+            GDB=gdb-multiarch
+        fi
     fi
 
-    $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" "$@" -ex "quit" 2> /dev/null
+    $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
     return $?
 }
 
