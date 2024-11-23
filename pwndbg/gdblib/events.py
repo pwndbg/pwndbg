@@ -122,11 +122,11 @@ def unpause(event_registry) -> None:
 
 
 def connect(
-    func: Callable[P, T],
+    func: Callable[[], T],
     event_handler: Any,
     name: str = "",
     priority: HandlerPriority = HandlerPriority.LOW,
-) -> Callable[P, T]:
+) -> Callable[[], T]:
     if debug:
         print("Connecting", func.__name__, event_handler)
 
