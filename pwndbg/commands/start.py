@@ -24,6 +24,10 @@ if pwndbg.dbg.is_gdblib_available():
 
 def breakpoint_at_entry():
     addr = int(pwndbg.aglib.elf.entry())
+    if not addr:
+        print(M.error("No entry address found for the binary."))
+        return
+
     proc = pwndbg.dbg.selected_inferior()
     bp = proc.break_at(BreakpointLocation(addr), internal=True)
 
