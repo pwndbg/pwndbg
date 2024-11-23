@@ -19,6 +19,7 @@ from typing_extensions import ParamSpec
 import pwndbg.aglib.heap
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
+import pwndbg.aglib.regs
 import pwndbg.exception
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
@@ -31,7 +32,6 @@ from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
 # TODO: Replace these with uses of the Debugger API.
 if pwndbg.dbg.is_gdblib_available():
     import pwndbg.gdblib.kernel
-    import pwndbg.gdblib.regs
 
 log = logging.getLogger(__name__)
 
@@ -233,7 +233,7 @@ def fix(
         # no debugger-agnostic architecture functions. Those will come later.
         #
         # TODO: Port architecutre functions and `pwndbg.gdblib.regs.fix` to debugger-agnostic API and remove this.
-        arg = pwndbg.gdblib.regs.fix(arg)
+        arg = pwndbg.aglib.regs.fix(arg)
         return target.evaluate_expression(arg)
     except Exception as e:
         ex = e
@@ -711,7 +711,6 @@ def load_commands() -> None:
         import pwndbg.commands.pcplist
         import pwndbg.commands.peda
         import pwndbg.commands.reload
-        import pwndbg.commands.rop
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
         import pwndbg.commands.shell
@@ -758,6 +757,7 @@ def load_commands() -> None:
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
     import pwndbg.commands.rizin
+    import pwndbg.commands.rop
     import pwndbg.commands.search
     import pwndbg.commands.sigreturn
     import pwndbg.commands.spray

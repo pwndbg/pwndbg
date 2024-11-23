@@ -125,7 +125,7 @@ module = [
 disable_error_code = ["index", "name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
-module = ["capstone.*", "unicorn.*", "pwnlib.*", "elftools.*", "ipdb.*", "r2pipe", "rzpipe", "rich.*", "pt_gdb", "lldb.*", "gnureadline"]
+module = ["capstone.*", "unicorn.*", "pwnlib.*", "ropgadget.*", "elftools.*", "ipdb.*", "r2pipe", "rzpipe", "rich.*", "pt_gdb", "lldb.*", "gnureadline"]
 ignore_missing_imports = true
 
 [tool.isort]

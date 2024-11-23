@@ -14,10 +14,6 @@ let
     ]
     ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
       python3.pkgs.ropper # ref: https://github.com/pwndbg/pwndbg/blob/2023.07.17/pwndbg/commands/ropper.py#L30
-      python3.pkgs.ropgadget # ref: https://github.com/pwndbg/pwndbg/blob/2023.07.17/pwndbg/commands/rop.py#L34
-    ]
-    ++ pkgs.lib.optionals isLLDB [
-      python3.pkgs.gnureadline
     ]
   );
 
