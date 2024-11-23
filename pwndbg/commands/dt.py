@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import argparse
 
-import gdb
-
+import pwndbg
+import pwndbg.aglib.dt
+import pwndbg.aglib.vmmap
 import pwndbg.color
 import pwndbg.commands
-import pwndbg.gdblib.dt
-import pwndbg.gdblib.vmmap
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
@@ -24,7 +23,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser)
-def dt(typename: str, address: int | gdb.Value | None = None) -> None:
+def dt(typename: str, address: int | pwndbg.dbg_mod.Value | None = None) -> None:
     """
     Dump out information on a type (e.g. ucontext_t).
 
@@ -32,4 +31,5 @@ def dt(typename: str, address: int | gdb.Value | None = None) -> None:
     """
     if address is not None:
         address = pwndbg.commands.fix(str(address))
-    print(pwndbg.gdblib.dt.dt(typename, addr=address))
+
+    print(pwndbg.aglib.dt.dt(typename, addr=address))

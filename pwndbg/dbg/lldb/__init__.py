@@ -328,6 +328,10 @@ class LLDBType(pwndbg.dbg_mod.Type):
         return self.inner == other.inner
 
     @property
+    def name(self) -> str:
+        return self.inner.name
+
+    @property
     @override
     def sizeof(self) -> int:
         return self.inner.GetByteSize()

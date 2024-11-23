@@ -916,6 +916,11 @@ class GDBType(pwndbg.dbg_mod.Type):
 
     @property
     @override
+    def name(self) -> str:
+        return str(self.inner)
+
+    @property
+    @override
     def sizeof(self) -> int:
         return self.inner.sizeof
 

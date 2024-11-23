@@ -4,76 +4,34 @@ Prints structures in a manner similar to Windbg's "dt" command.
 
 from __future__ import annotations
 
-import re
 from typing import List
 
-import gdb
+import pwndbg
+import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
+import pwndbg.dbg
 
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.typeinfo
 
+def _field_to_human(
+    f: pwndbg.dbg_mod.TypeField | pwndbg.dbg_mod.Value | pwndbg.dbg_mod.Type,
+) -> str:
+    if isinstance(f, pwndbg.dbg_mod.TypeField):
+        t = f.type
+    elif isinstance(f, pwndbg.dbg_mod.Type):
+        t = f
+    elif isinstance(f, pwndbg.dbg_mod.Value):
+        t = f.type
+    else:
+        raise NotImplementedError("unknown type")
 
-def get_type(v: gdb.Value) -> str:
-    t = v.type
-    while not t.name:
-        if t.code == gdb.TYPE_CODE_PTR:
-            t = t.target()
     return t.name
 
 
-def get_typename(t: gdb.Type) -> str:
-    return str(t)
-
-
-def get_arrsize(f: gdb.Value) -> int:
-    t = f.type
-    if t.code != gdb.TYPE_CODE_ARRAY:
-        return 0
-    t2 = t.target()
-    return int(t.sizeof / t2.sizeof)
-
-
-def get_field_by_name(obj: gdb.Value, field: str) -> gdb.Value:
-    # Dereference once
-    if obj.type.code == gdb.TYPE_CODE_PTR:
-        obj = obj.dereference()
-    for f in re.split(r"(->|\.|\[\d+\])", field):
-        if not f:
-            continue
-        if f == "->":
-            obj = obj.dereference()
-        elif f == ".":
-            pass
-        elif f.startswith("["):
-            n = int(f.strip("[]"))
-            obj = obj.cast(obj.dereference().type.pointer())
-            obj += n
-            obj = obj.dereference()
-        else:
-            obj = obj[f]
-    return obj
-
-
-def happy(typename: str) -> str:
-    prefix = ""
-    if "unsigned" in typename:
-        prefix = "u"
-        typename = typename.replace("unsigned ", "")
-    return (
-        prefix
-        + {
-            "char": "char",
-            "short int": "short",
-            "long int": "long",
-            "int": "int",
-            "long long": "longlong",
-            "float": "float",
-            "double": "double",
-        }[typename]
-    )
-
-
-def dt(name: str = "", addr: int | gdb.Value | None = None, obj: gdb.Value | None = None) -> str:
+def dt(
+    name: str = "",
+    addr: int | pwndbg.dbg_mod.Value | None = None,
+    obj: pwndbg.dbg_mod.Value | None = None,
+) -> str:
     """
     Dump out a structure type Windbg style.
     """
@@ -83,26 +41,30 @@ def dt(name: str = "", addr: int | gdb.Value | None = None, obj: gdb.Value | Non
 
     if obj and not name:
         t = obj.type
-        while t.code == (gdb.TYPE_CODE_PTR):
+        while t.code == pwndbg.dbg_mod.TypeCode.POINTER:
             t = t.target()
             obj = obj.dereference()
         name = str(t)
 
     # Lookup the type name specified by the user
     else:
-        t = pwndbg.gdblib.typeinfo.load(name)
+        t = pwndbg.aglib.typeinfo.load(name)
 
     if not t:
         return ""
 
     # If it's not a struct (e.g. int or char*), bail
-    if t.code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_TYPEDEF, gdb.TYPE_CODE_UNION):
-        raise Exception(f"Not a structure: {t}")
+    if t.code not in (
+        pwndbg.dbg_mod.TypeCode.STRUCT,
+        pwndbg.dbg_mod.TypeCode.TYPEDEF,
+        pwndbg.dbg_mod.TypeCode.UNION,
+    ):
+        return f"Not a structure: {t}"
 
     # If an address was specified, create a Value of the
     # specified type at that address.
     if addr is not None:
-        obj = pwndbg.gdblib.memory.get_typed_pointer_value(t, addr)
+        obj = pwndbg.aglib.memory.get_typed_pointer_value(t, addr)
 
     # Header, optionally include the name
     header = name
@@ -110,31 +72,43 @@ def dt(name: str = "", addr: int | gdb.Value | None = None, obj: gdb.Value | Non
         header = f"{header} @ {hex(int(obj.address))}"
     rv.append(header)
 
-    if t.strip_typedefs().code == gdb.TYPE_CODE_ARRAY:
+    if t.strip_typedefs().code == pwndbg.dbg_mod.TypeCode.ARRAY:
         return "Arrays not supported yet"
-    if t.strip_typedefs().code not in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_UNION):
-        t = {name: obj or gdb.Value(0).cast(t)}
 
-    for name, field in t.items():
+    if t.strip_typedefs().code not in (
+        pwndbg.dbg_mod.TypeCode.STRUCT,
+        pwndbg.dbg_mod.TypeCode.UNION,
+    ):
+        newobj = obj
+        if not newobj:
+            newobj = pwndbg.dbg.selected_inferior().create_value(0, t)
+
+        iter_fields = [(field.name, field) for field in newobj.type.fields()]
+    else:
+        iter_fields = [(field.name, field) for field in t.fields()]
+
+    for field_name, field in iter_fields:
         # Offset into the parent structure
-        o = getattr(field, "bitpos", 0) // 8
-        b = getattr(field, "bitpos", 0) % 8
-        extra = str(field.type)
+        offset = field.bitpos // 8
+        bitpos = field.bitpos % 8
         ftype = field.type.strip_typedefs()
+        extra = _field_to_human(field)
 
-        if obj and obj.type.strip_typedefs().code in (gdb.TYPE_CODE_STRUCT, gdb.TYPE_CODE_UNION):
-            v = obj[name]
-
-            if ftype.code == gdb.TYPE_CODE_INT:
-                v = hex(int(v))
-            if (
-                ftype.code in (gdb.TYPE_CODE_PTR, gdb.TYPE_CODE_ARRAY)
-                and ftype.target() == pwndbg.gdblib.typeinfo.uchar
+        if obj and obj.type.strip_typedefs().code in (
+            pwndbg.dbg_mod.TypeCode.STRUCT,
+            pwndbg.dbg_mod.TypeCode.UNION,
+        ):
+            obj_value = obj[field_name]
+            if ftype.code == pwndbg.dbg_mod.TypeCode.INT:
+                extra = hex(int(obj_value))
+            elif (
+                ftype.code in (pwndbg.dbg_mod.TypeCode.POINTER, pwndbg.dbg_mod.TypeCode.ARRAY)
+                and ftype.target() == pwndbg.aglib.typeinfo.uchar
             ):
-                data = pwndbg.gdblib.memory.read(int(v.address), ftype.sizeof)
-                v = " ".join("%02x" % b for b in data)
-
-            extra = v
+                data = pwndbg.aglib.memory.read(int(obj_value.address), ftype.sizeof)
+                extra = " ".join("%02x" % b for b in data)
+            else:
+                extra = obj_value.value_to_human_readable()
 
         # Adjust trailing lines in 'extra' to line up
         # This is necessary when there are nested structures.
@@ -147,18 +121,18 @@ def dt(name: str = "", addr: int | gdb.Value | None = None, obj: gdb.Value | Non
                 extra_lines.append(35 * " " + line)
         extra = "\n".join(extra_lines)
 
-        bitpos = "" if not b else (".%i" % b)
+        bitpos_str = "" if not bitpos else (".%i" % bitpos)
 
         if obj:
             line = "    0x%016x +0x%04x%s %-20s : %s" % (
-                int(obj.address) + o,
-                o,
-                bitpos,
-                name,
+                int(obj.address) + offset,
+                offset,
+                bitpos_str,
+                field_name,
                 extra,
             )
         else:
-            line = "    +0x%04x%s %-20s : %s" % (o, bitpos, name, extra)
+            line = "    +0x%04x%s %-20s : %s" % (offset, bitpos_str, field_name, extra)
         rv.append(line)
 
     return "\n".join(rv)

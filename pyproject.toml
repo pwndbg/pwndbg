@@ -90,7 +90,6 @@ module = [
     "pwndbg.commands.reload",
     "pwndbg.commands.version",
     "pwndbg.exception",
-    "pwndbg.gdblib.dt",
     "pwndbg.aglib.dynamic",
     "pwndbg.gdblib.events",
     "pwndbg.gdblib.got",

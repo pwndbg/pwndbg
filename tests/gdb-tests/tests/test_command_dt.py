@@ -22,8 +22,8 @@ def test_command_dt_works_with_address(start_binary):
 
     exp_regex = (
         "struct tcache_perthread_struct @ 0x[0-9a-f]+\n"
-        "    0x[0-9a-f]+ \\+0x0000 counts               : uint16_t \\[64\\]\n"
-        "    0x[0-9a-f]+ \\+0x[0-9a-f]{4} entries              : tcache_entry \\*\\[64\\]\n"
+        "    0x[0-9a-f]+ \\+0x0000 counts               : \\{[0-9]+, [0-9]+ <repeats 63 times>\\}\n"
+        "    0x[0-9a-f]+ \\+0x[0-9a-f]{4} entries              : \\{0x[0-9a-f]+, 0x[0-9a-f]+ <repeats 63 times>\\}\n"
     )
     assert re.match(exp_regex, out)
 

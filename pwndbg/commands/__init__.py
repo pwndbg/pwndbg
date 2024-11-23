@@ -233,7 +233,7 @@ def fix(
         # no debugger-agnostic architecture functions. Those will come later.
         #
         # TODO: Port architecutre functions and `pwndbg.gdblib.regs.fix` to debugger-agnostic API and remove this.
-        arg = pwndbg.gdblib.regs.fix(arg)
+        arg = pwndbg.aglib.regs.fix(arg)
         return target.evaluate_expression(arg)
     except Exception as e:
         ex = e
@@ -692,7 +692,6 @@ def load_commands() -> None:
         import pwndbg.commands.binja
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
-        import pwndbg.commands.dt
         import pwndbg.commands.godbg
         import pwndbg.commands.got
         import pwndbg.commands.got_tracking
@@ -732,6 +731,7 @@ def load_commands() -> None:
     import pwndbg.commands.cyclic
     import pwndbg.commands.dev
     import pwndbg.commands.distance
+    import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
     import pwndbg.commands.flags

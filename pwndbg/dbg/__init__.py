@@ -584,6 +584,16 @@ class Type:
     """
 
     @property
+    def name(self) -> str:
+        """
+        Returns the name of this type, eg:
+        - char [16]
+        - int
+        - char *
+        - void *
+        """
+
+    @property
     def sizeof(self) -> int:
         """
         The size of this type, in bytes.
