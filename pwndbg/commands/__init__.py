@@ -9,6 +9,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Set
 from typing import Tuple
@@ -340,6 +341,32 @@ def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P
                 return None
 
         return _OnlyWithArch
+
+    return decorator
+
+
+def OnlyWithDbg(
+    *dbg_names: Literal["lldb", "gdb"],
+) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
+    """Decorates function to work only with the specified debugger."""
+
+    def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+        @functools.wraps(function)
+        def _OnlyWithDbg(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+            if pwndbg.dbg.is_gdblib_available():
+                if "gdb" in dbg_names:
+                    return function(*a, **kw)
+            else:
+                if "lldb" in dbg_names:
+                    return function(*a, **kw)
+
+            dbg_str = ", ".join(dbg_names)
+            log.error(
+                f"{function.__name__}: This command may only be run on the {dbg_str} debugger(s)"
+            )
+            return None
+
+        return _OnlyWithDbg
 
     return decorator
 
@@ -716,7 +743,6 @@ def load_commands() -> None:
         import pwndbg.commands.segments
         import pwndbg.commands.shell
         import pwndbg.commands.slab
-        import pwndbg.commands.start
         import pwndbg.commands.tips
         import pwndbg.commands.version
 
@@ -761,6 +787,7 @@ def load_commands() -> None:
     import pwndbg.commands.search
     import pwndbg.commands.sigreturn
     import pwndbg.commands.spray
+    import pwndbg.commands.start
     import pwndbg.commands.telescope
     import pwndbg.commands.tls
     import pwndbg.commands.valist

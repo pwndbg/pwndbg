@@ -9,25 +9,29 @@ import argparse
 from argparse import RawTextHelpFormatter
 from shlex import quote
 
-import gdb
-
 import pwndbg
+import pwndbg.aglib.elf
+import pwndbg.aglib.proc
+import pwndbg.color.message as M
 import pwndbg.commands
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.symbol
+import pwndbg.dbg
 from pwndbg.commands import CommandCategory
-from pwndbg.dbg import EventType
+from pwndbg.dbg import BreakpointLocation
 
-break_on_first_instruction = False
+if pwndbg.dbg.is_gdblib_available():
+    import gdb
 
 
-@pwndbg.dbg.event_handler(EventType.START)
-def on_start() -> None:
-    global break_on_first_instruction
-    if break_on_first_instruction:
-        spec = "*%#x" % (int(pwndbg.gdblib.elf.entry()))
-        gdb.Breakpoint(spec, temporary=True)
-        break_on_first_instruction = False
+def breakpoint_at_entry():
+    addr = int(pwndbg.aglib.elf.entry())
+    proc = pwndbg.dbg.selected_inferior()
+    bp = proc.break_at(BreakpointLocation(addr), internal=True)
+
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        await ec.cont(bp)
+        bp.remove()
+
+    proc.dispatch_execution_controller(ctrl)
 
 
 # Starting from 3rd paragraph, the description is
@@ -58,6 +62,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["main", "init"], category=CommandCategory.START)
+@pwndbg.commands.OnlyWithDbg("gdb")
 def start(args=None) -> None:
     if args is None:
         args = []
@@ -66,8 +71,7 @@ def start(args=None) -> None:
     symbols = ["main", "_main", "start", "_start", "init", "_init"]
 
     for symbol in symbols:
-        address = pwndbg.gdblib.symbol.address(symbol)
-
+        address = pwndbg.dbg.selected_inferior().symbol_address_from_name(symbol)
         if not address:
             continue
 
@@ -103,23 +107,37 @@ To start the inferior without using a shell, use "set startup-with-shell off".
 """,
 )
 parser.add_argument(
-    "args", nargs="*", type=str, default=[], help="The arguments to run the binary with."
+    "args", nargs="*", type=str, default=None, help="The arguments to run the binary with."
 )
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
 @pwndbg.commands.OnlyWithFile
-def entry(args=[]) -> None:
-    global break_on_first_instruction
-    break_on_first_instruction = True
-    run = "run " + " ".join(map(quote, args))
-    gdb.execute(run, from_tty=False)
+def entry(args=None) -> None:
+    if args is None:
+        args = []
+
+    if pwndbg.dbg.is_gdblib_available():
+        run = "starti " + " ".join(map(quote, args))
+        gdb.execute(run, from_tty=False)
+    else:
+        # TODO: LLDB, In the future, we should handle `run -s` here to automate setup.
+        # For now, we only support stopping at the entry breakpoint.
+        if not pwndbg.aglib.proc.alive:
+            print(
+                M.error(
+                    "The program is not running. Start the program with `run -s` and then use `entry` to set the breakpoint."
+                )
+            )
+            return
+    breakpoint_at_entry()
 
 
 @pwndbg.commands.ArgparsedCommand(
     "Alias for 'tbreak __libc_start_main; run'.", category=CommandCategory.START
 )
 @pwndbg.commands.OnlyWithFile
+@pwndbg.commands.OnlyWithDbg("gdb")
 def sstart() -> None:
     gdb.Breakpoint("__libc_start_main", temporary=True)
     gdb.execute("run")
