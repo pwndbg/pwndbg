@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import sys
 from collections import defaultdict
+from collections import deque
 from enum import Enum
 from enum import auto
 from functools import partial
 from functools import wraps
 from typing import Any
 from typing import Callable
+from typing import Deque
 from typing import Dict
 from typing import List
 from typing import Set
@@ -73,6 +75,48 @@ class StartEvent:
 
 
 gdb.events.start = StartEvent()
+
+
+def _is_safe_event():
+    # Workaround to fix bug in gdbserver: https://github.com/pwndbg/pwndbg/issues/2576
+    try:
+        gdb.selected_frame()
+    except gdb.error as e:
+        if "Remote 'g' packet reply is too long" in str(e):
+            return False
+    return True
+
+
+class _DelayedEventHandler:
+    def __init__(self, func: Callable[[], Any]):
+        self.func = func
+
+    def __call__(self):
+        self.func()
+
+
+def wrap_safe_event_handler(func: Callable[[], T]) -> Callable[[], T]:
+    """
+    Wraps an event handler to ensure it is only executed when the event is safe.
+    Invalid events are queued and executed later when safe.
+
+    Note: Avoid using `gdb.post_event` because of another bug in gdbserver
+    where the `gdb.newest_frame` function may not work properly.
+
+    Workaround to fix bug in gdbserver: https://github.com/pwndbg/pwndbg/issues/2576
+    """
+    queued_invalid_events: Deque[Callable[[], T]] = deque()
+
+    @wraps(func)
+    def _inner():
+        if not _is_safe_event():
+            queued_invalid_events.append(func)
+        else:
+            while queued_invalid_events:
+                queued_invalid_events.popleft()()
+            func()
+
+    return _inner
 
 
 class HandlerPriority(Enum):
@@ -177,7 +221,7 @@ def cont(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
 
 
 def new_objfile(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
-    return connect(func, gdb.events.new_objfile, "obj", **kwargs)
+    return connect(wrap_safe_event_handler(func), gdb.events.new_objfile, "obj", **kwargs)
 
 
 def stop(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
