@@ -77,12 +77,20 @@ class StartEvent:
 gdb.events.start = StartEvent()
 
 
-def _is_safe_event():
-    # Workaround to fix bug in gdbserver: https://github.com/pwndbg/pwndbg/issues/2576
+def _is_safe_event_packet():
     try:
         gdb.selected_frame()
     except gdb.error as e:
         if "Remote 'g' packet reply is too long" in str(e):
+            return False
+    return True
+
+
+def _is_safe_event_thread():
+    try:
+        gdb.newest_frame()
+    except gdb.error as e:
+        if "Selected thread is running" in str(e):
             return False
     return True
 
@@ -95,7 +103,7 @@ class _DelayedEventHandler:
         self.func()
 
 
-def wrap_safe_event_handler(func: Callable[[], T]) -> Callable[[], T]:
+def wrap_safe_event_handler(event_handler: Callable[P, T]) -> Callable[P, T]:
     """
     Wraps an event handler to ensure it is only executed when the event is safe.
     Invalid events are queued and executed later when safe.
@@ -105,18 +113,31 @@ def wrap_safe_event_handler(func: Callable[[], T]) -> Callable[[], T]:
 
     Workaround to fix bug in gdbserver: https://github.com/pwndbg/pwndbg/issues/2576
     """
-    queued_invalid_events: Deque[Callable[[], T]] = deque()
+    queued_invalid_events: Deque[Callable[..., Any]] = deque()
 
-    @wraps(func)
-    def _inner():
-        if not _is_safe_event():
-            queued_invalid_events.append(func)
+    def _loop_until_thread_ok():
+        if not queued_invalid_events:
+            return
+
+        if not _is_safe_event_thread():
+            gdb.post_event(_DelayedEventHandler(_loop_until_thread_ok))
+            return
+
+        while queued_invalid_events:
+            queued_invalid_events.popleft()()
+
+    @wraps(event_handler)
+    def _inner_handler(*a: P.args, **kw: P.kwargs):
+        if not _is_safe_event_packet():
+            queued_invalid_events.append(lambda: event_handler(*a, **kw))
+
+            gdb.post_event(_DelayedEventHandler(_loop_until_thread_ok))
         else:
             while queued_invalid_events:
                 queued_invalid_events.popleft()()
-            func()
+            event_handler(*a, **kw)
 
-    return _inner
+    return _inner_handler
 
 
 class HandlerPriority(Enum):
@@ -207,6 +228,10 @@ def connect(
     registered[event_handler].setdefault(priority, []).append(caller)
     if event_handler not in connected:
         handle = partial(invoke_event, event_handler)
+
+        if event_handler == gdb.events.new_objfile:
+            handle = wrap_safe_event_handler(handle)
+
         event_handler.connect(handle)
         connected[event_handler] = handle
     return func
@@ -221,7 +246,7 @@ def cont(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
 
 
 def new_objfile(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
-    return connect(wrap_safe_event_handler(func), gdb.events.new_objfile, "obj", **kwargs)
+    return connect(func, gdb.events.new_objfile, "obj", **kwargs)
 
 
 def stop(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
