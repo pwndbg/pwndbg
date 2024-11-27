@@ -15,6 +15,7 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+import unicorn as U
 from typing_extensions import ParamSpec
 
 import pwndbg
@@ -865,11 +866,26 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     if cs is not None and cs.syntax != syntax:
         pwndbg.lib.cache.clear_caches()
 
-    result = pwndbg.aglib.nearpc.nearpc(
+    get_nearpc = lambda: pwndbg.aglib.nearpc.nearpc(
         lines=disasm_lines // 2,
         emulate=bool(not pwndbg.config.emulate == "off"),
         use_cache=True,
     )
+
+    if pwndbg.config.emulate == "off":
+        result = get_nearpc()
+    else:
+        try:
+            result = get_nearpc()
+        except U.UcError as e:
+            print(
+                message.warn(
+                    f"Warning: Emulation context disabled due to a Unicorn error: \n{str(e)}\n"
+                    "If you want to enable it again, use `set emulate on`."
+                )
+            )
+            pwndbg.config.emulate.value = "off"
+            result = get_nearpc()
 
     # Note: we must fetch emulate value again after disasm since
     # we check if we can actually use emulation in `can_run_first_emulate`
