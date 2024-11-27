@@ -46,7 +46,8 @@ class CommandCategory(str, Enum):
     START = "Start"
     NEXT = "Step/Next/Continue"
     CONTEXT = "Context"
-    HEAP = "Heap"
+    PTMALLOC2 = "GLibc ptmalloc2 Heap"
+    JEMALLOC = "jemalloc Heap"
     BREAKPOINT = "Breakpoint"
     MEMORY = "Memory"
     STACK = "Stack"
@@ -695,7 +696,7 @@ def load_commands() -> None:
         import pwndbg.commands.godbg
         import pwndbg.commands.got
         import pwndbg.commands.got_tracking
-        import pwndbg.commands.heap_tracking
+        import pwndbg.commands.ptmalloc2_tracking
         import pwndbg.commands.ida
         import pwndbg.commands.ignore
         import pwndbg.commands.ipython_interactive
@@ -735,10 +736,10 @@ def load_commands() -> None:
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
     import pwndbg.commands.ghidra
-    import pwndbg.commands.heap
     import pwndbg.commands.hex2ptr
     import pwndbg.commands.hexdump
     import pwndbg.commands.integration
+    import pwndbg.commands.jemalloc
     import pwndbg.commands.leakfind
     import pwndbg.commands.linkmap
     import pwndbg.commands.memoize
@@ -754,6 +755,7 @@ def load_commands() -> None:
     import pwndbg.commands.plist
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
+    import pwndbg.commands.ptmalloc2
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
     import pwndbg.commands.rizin

@@ -42,7 +42,7 @@ from pwndbg.commands import CommandCategory
 if pwndbg.dbg.is_gdblib_available():
     import gdb
 
-    import pwndbg.gdblib.heap_tracking
+    import pwndbg.gdblib.ptmalloc2_tracking
     import pwndbg.gdblib.symbol
     import pwndbg.ghidra
 
@@ -761,14 +761,16 @@ def context_regs(target=sys.stdout, with_banner=True, width=None):
 
 @serve_context_history
 def context_heap_tracker(target=sys.stdout, with_banner=True, width=None):
-    if not pwndbg.gdblib.heap_tracking.is_enabled():
+    if not pwndbg.gdblib.ptmalloc2_tracking.is_enabled():
         return []
 
     banner = [pwndbg.ui.banner("heap tracker", target=target, width=width, extra="")]
 
-    if pwndbg.gdblib.heap_tracking.last_issue is not None:
-        info = [f"Detected the following potential issue: {pwndbg.gdblib.heap_tracking.last_issue}"]
-        pwndbg.gdblib.heap_tracking.last_issue = None
+    if pwndbg.gdblib.ptmalloc2_tracking.last_issue is not None:
+        info = [
+            f"Detected the following potential issue: {pwndbg.gdblib.ptmalloc2_tracking.last_issue}"
+        ]
+        pwndbg.gdblib.ptmalloc2_tracking.last_issue = None
     else:
         info = ["Nothing to report."]
 

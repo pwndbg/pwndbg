@@ -4,7 +4,7 @@ import argparse
 
 import pwndbg.chain
 import pwndbg.commands
-import pwndbg.gdblib.heap_tracking
+import pwndbg.gdblib.ptmalloc2_tracking
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -51,14 +51,16 @@ toggle_break.set_defaults(mode="toggle-break")
 def track_heap(mode=None, use_hardware_breakpoints=False):
     if mode == "enable":
         # Enable the tracker.
-        pwndbg.gdblib.heap_tracking.install()
+        pwndbg.gdblib.ptmalloc2_tracking.install()
     elif mode == "disable":
         # Disable the tracker.
-        pwndbg.gdblib.heap_tracking.uninstall()
+        pwndbg.gdblib.ptmalloc2_tracking.uninstall()
     elif mode == "toggle-break":
         # Delegate to the report function.
-        pwndbg.gdblib.heap_tracking.stop_on_error = not pwndbg.gdblib.heap_tracking.stop_on_error
-        if pwndbg.gdblib.heap_tracking.stop_on_error:
+        pwndbg.gdblib.ptmalloc2_tracking.stop_on_error = (
+            not pwndbg.gdblib.ptmalloc2_tracking.stop_on_error
+        )
+        if pwndbg.gdblib.ptmalloc2_tracking.stop_on_error:
             print("The program will stop when the heap tracker detects an error")
         else:
             print("The heap tracker will only print a message when it detects an error")
