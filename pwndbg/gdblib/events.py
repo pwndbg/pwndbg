@@ -95,14 +95,6 @@ def _is_safe_event_thread():
     return True
 
 
-class _DelayedEventHandler:
-    def __init__(self, func: Callable[[], Any]):
-        self.func = func
-
-    def __call__(self):
-        self.func()
-
-
 def wrap_safe_event_handler(event_handler: Callable[P, T]) -> Callable[P, T]:
     """
     Wraps an event handler to ensure it is only executed when the event is safe.
@@ -120,7 +112,7 @@ def wrap_safe_event_handler(event_handler: Callable[P, T]) -> Callable[P, T]:
             return
 
         if not _is_safe_event_thread():
-            gdb.post_event(_DelayedEventHandler(_loop_until_thread_ok))
+            gdb.post_event(_loop_until_thread_ok)
             return
 
         while queued_invalid_events:
@@ -131,7 +123,7 @@ def wrap_safe_event_handler(event_handler: Callable[P, T]) -> Callable[P, T]:
         if not _is_safe_event_packet():
             queued_invalid_events.append(lambda: event_handler(*a, **kw))
 
-            gdb.post_event(_DelayedEventHandler(_loop_until_thread_ok))
+            gdb.post_event(_loop_until_thread_ok)
         else:
             while queued_invalid_events:
                 queued_invalid_events.popleft()()
