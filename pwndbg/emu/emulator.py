@@ -286,6 +286,16 @@ class Emulator:
         reg = self.get_reg_enum(name)
 
         if reg:
+            if self.arch == "aarch64":
+                # Workaround for an issue from upstream: https://github.com/pwndbg/pwndbg/issues/2548
+                # Remove this after upgrading to unicorn > 2.1.1
+                if reg == U.arm64_const.UC_ARM64_REG_WSP:
+                    return self.uc.reg_read(U.arm64_const.UC_ARM64_REG_SP) & 0xFFFFFFFF
+                elif reg == U.arm64_const.UC_ARM64_REG_XZR:
+                    return 0
+                elif reg == U.arm64_const.UC_ARM64_REG_WZR:
+                    return 0
+
             return self.uc.reg_read(reg)
 
         return None
