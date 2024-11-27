@@ -210,6 +210,6 @@ class Config:
             raise AttributeError(f"'Config' object has no attribute '{name}'")
 
     def __setattr__(self, attr, val):
-        if attr in ('params', 'triggers'):
+        if attr in ("params", "triggers"):
             return super().__setattr__(attr, val)
-        raise AttributeError('Use config.<param>.value to set value of a parameter')
+        raise AttributeError("Use config.<param>.value to set value of a parameter")
