@@ -255,6 +255,8 @@ class module(ModuleType):
         Requires ptrace'ing the child directory if i386."""
 
         if pwndbg.aglib.arch.name == "x86-64":
+            if not register_exists(regname):
+                return 0
             reg_value = get_register(regname)
             return int(reg_value) if reg_value is not None else 0
 
