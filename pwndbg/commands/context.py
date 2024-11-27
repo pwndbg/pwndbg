@@ -14,6 +14,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import TypeVar
 
 import unicorn as U
 from typing_extensions import ParamSpec
@@ -49,6 +50,7 @@ if pwndbg.dbg.is_gdblib_available():
 
 log = logging.getLogger(__name__)
 
+T = TypeVar("T")
 P = ParamSpec("P")
 
 theme.add_param("backtrace-prefix", "►", "prefix for current backtrace label")
@@ -854,6 +856,20 @@ disasm_lines = pwndbg.config.add_param(
 )
 
 
+def try_emulate_if_bug_disable(handler: Callable[[], T]) -> T:
+    try:
+        return handler()
+    except U.UcError as e:
+        print(
+            message.warn(
+                f"Warning: Emulation context disabled due to a Unicorn error: \n{str(e)}\n"
+                "If you want to enable it again, use `set emulate on`."
+            )
+        )
+        pwndbg.config.emulate.value = "off"
+        return handler()
+
+
 @serve_context_history
 def context_disasm(target=sys.stdout, with_banner=True, width=None):
     flavor = pwndbg.dbg.x86_disassembly_flavor()
@@ -866,26 +882,13 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     if cs is not None and cs.syntax != syntax:
         pwndbg.lib.cache.clear_caches()
 
-    get_nearpc = lambda: pwndbg.aglib.nearpc.nearpc(
-        lines=disasm_lines // 2,
-        emulate=bool(not pwndbg.config.emulate == "off"),
-        use_cache=True,
+    result = try_emulate_if_bug_disable(
+        lambda: pwndbg.aglib.nearpc.nearpc(
+            lines=disasm_lines // 2,
+            emulate=bool(not pwndbg.config.emulate == "off"),
+            use_cache=True,
+        )
     )
-
-    if pwndbg.config.emulate == "off":
-        result = get_nearpc()
-    else:
-        try:
-            result = get_nearpc()
-        except U.UcError as e:
-            print(
-                message.warn(
-                    f"Warning: Emulation context disabled due to a Unicorn error: \n{str(e)}\n"
-                    "If you want to enable it again, use `set emulate on`."
-                )
-            )
-            pwndbg.config.emulate.value = "off"
-            result = get_nearpc()
 
     # Note: we must fetch emulate value again after disasm since
     # we check if we can actually use emulation in `can_run_first_emulate`
