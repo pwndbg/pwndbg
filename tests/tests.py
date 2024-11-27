@@ -167,12 +167,13 @@ def run_test(
 
 class TestStats:
     def __init__(self):
-        self.ftests = 0
-        self.ptests = 0
-        self.stests = 0
+        self.fail_tests = 0
+        self.pass_tests = 0
+        self.skip_tests = 0
+        self.fail_tests_names = []
 
     def handle_test_result(self, test_result: TEST_RETURN_TYPE, args, test_dir_path):
-        (process, _, duration) = test_result
+        (process, test_case, duration) = test_result
         content = process.stdout
 
         # Extract the test name and result using regex
@@ -184,11 +185,12 @@ class TestStats:
         (_, testname) = testname.split("::")
 
         if "FAIL" in result:
-            self.ftests += 1
+            self.fail_tests += 1
+            self.fail_tests_names.append(test_case)
         elif "PASS" in result:
-            self.ptests += 1
+            self.pass_tests += 1
         elif "SKIP" in result:
-            self.stests += 1
+            self.skip_tests += 1
         print(f"{testname:<70} {result} {duration:.2f}s")
 
         # Only show the output of failed tests unless the verbose flag was used
@@ -205,13 +207,12 @@ def run_tests_and_print_stats(
     test_dir_path: str,
 ):
     start = time.time()
-    test_results: List[TEST_RETURN_TYPE] = []
     stats = TestStats()
 
     if args.serial:
-        test_results = [
-            run_test(test, args, gdb_path, gdbinit_path, reserve_port()) for test in tests_list
-        ]
+        for test in tests_list:
+            result = run_test(test, args, gdb_path, gdbinit_path, reserve_port())
+            stats.handle_test_result(result, args, test_dir_path)
     else:
         print("")
         print("Running tests in parallel")
@@ -226,25 +227,18 @@ def run_tests_and_print_stats(
     end = time.time()
     seconds = int(end - start)
     print(f"Tests completed in {seconds} seconds")
-
-    failed_tests = [(process, _) for (process, _) in test_results if process.returncode != 0]
-    num_tests_failed = stats.ftests
-    num_tests_passed = stats.ptests
-    num_tests_skipped = stats.stests
-
     print("")
     print("*********************************")
     print("********* TESTS SUMMARY *********")
     print("*********************************")
-    print(f"Tests Passed: {num_tests_passed}")
-    print(f"Tests Skipped: {num_tests_skipped}")
-    print(f"Tests Failed: {num_tests_failed}")
+    print(f"Tests Passed: {stats.pass_tests}")
+    print(f"Tests Skipped: {stats.skip_tests}")
+    print(f"Tests Failed: {stats.fail_tests}")
 
-    if num_tests_failed != 0:
-        print("")
-        print(
-            f"Failing tests: {' '.join([failed_test_name for _, failed_test_name in failed_tests])}"
-        )
+    if stats.fail_tests != 0:
+        print("\nFailing tests:")
+        for test_case in stats.fail_tests_names:
+            print(f"- {test_case}")
         exit(1)
 
 
