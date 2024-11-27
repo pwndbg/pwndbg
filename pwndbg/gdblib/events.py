@@ -16,7 +16,6 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
-from typing import Set
 from typing import TypeVar
 
 import gdb
@@ -102,13 +101,6 @@ registered: Dict[Any, Dict[HandlerPriority, List[Callable[..., Any]]]] = {
 # This is a map from event to the actual handler connected to GDB
 connected = {}
 
-
-# When performing remote debugging, gdbserver is very noisy about which
-# objects are loaded.  This greatly slows down the debugging session.
-# In order to combat this, we keep track of which objfiles have been loaded
-# this session, and only emit objfile events for each *new* file.
-objfile_cache: Dict[str, Set[str]] = {}
-
 # Keys are gdb.events.*
 paused = defaultdict(bool)
 
@@ -137,18 +129,6 @@ def connect(
 
         if debug:
             sys.stdout.write(f"{name!r} {func.__module__}.{func.__name__} {a!r}\n")
-
-        if a and isinstance(a[0], gdb.NewObjFileEvent):
-            objfile = a[0].new_objfile
-            handler = f"{func.__module__}.{func.__name__}"
-            path = objfile.filename
-            dispatched = objfile_cache.get(path, set())
-
-            if handler in dispatched:
-                return None
-
-            dispatched.add(handler)
-            objfile_cache[path] = dispatched
 
         try:
             # Don't pass the event along to the decorated function.
@@ -253,9 +233,3 @@ def _start_exit() -> None:
 @stop
 def _start_stop() -> None:
     gdb.events.start.on_stop()
-
-
-@exit
-def _reset_objfiles() -> None:
-    global objfile_cache
-    objfile_cache = {}
