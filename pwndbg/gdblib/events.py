@@ -120,14 +120,14 @@ def wrap_safe_event_handler(event_handler: Callable[P, T]) -> Callable[P, T]:
 
     @wraps(event_handler)
     def _inner_handler(*a: P.args, **kw: P.kwargs):
-        if not _is_safe_event_packet():
-            queued_invalid_events.append(lambda: event_handler(*a, **kw))
-
-            gdb.post_event(_loop_until_thread_ok)
-        else:
+        if _is_safe_event_packet():
             while queued_invalid_events:
                 queued_invalid_events.popleft()()
             event_handler(*a, **kw)
+            return
+
+        queued_invalid_events.append(lambda: event_handler(*a, **kw))
+        gdb.post_event(_loop_until_thread_ok)
 
     return _inner_handler
 
