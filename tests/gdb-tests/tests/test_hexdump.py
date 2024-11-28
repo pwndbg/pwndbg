@@ -13,7 +13,7 @@ BINARY = tests.binaries.get("reference-binary.out")
 
 
 def run_tests(stack, use_big_endian, expected):
-    pwndbg.config.hexdump_group_use_big_endian = use_big_endian
+    pwndbg.config.hexdump_group_use_big_endian.value = use_big_endian
 
     # Put some data onto the stack
     pwndbg.aglib.memory.write(stack, cyclic(0x100))
@@ -35,7 +35,7 @@ def run_tests(stack, use_big_endian, expected):
 
 def test_hexdump(start_binary):
     start_binary(BINARY)
-    pwndbg.config.hexdump_group_width = -1
+    pwndbg.config.hexdump_group_width.value = -1
 
     # TODO: Setting theme options with Python isn't working
     gdb.execute("set hexdump-byte-separator")

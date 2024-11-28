@@ -89,7 +89,7 @@ Here's a small snippet of the actual test:
 ```python
 def test_hexdump(start_binary):
     start_binary(BINARY)
-    pwndbg.config.hexdump_group_width = -1
+    pwndbg.config.hexdump_group_width.value = -1
 
     gdb.execute("set hexdump-byte-separator")
     stack_addr = pwndbg.aglib.regs.rsp - 0x100
