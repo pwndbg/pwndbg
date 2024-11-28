@@ -1000,7 +1000,15 @@ class DisassemblyAssistant:
             left, right = instruction.operands
             # If we already used emulation, use the result, otherwise take the source operand before_value
             result = left.after_value or right.before_value
-            if result is not None:
+
+            # Some instructions may produce negative values.
+            # A negative value is not a valid address, so we skip it because the address is invalid.
+            # Example: instruction: `mov    rax, 0xffffffffffffffa8` (-0x58)
+            # operands = [
+            #    ['RAX': Symbol: None, Before: 0x178bfbff, After: None, type=CS_OP_REG, size=8, access=CS_AC_WRITE]],
+            #    ['-0x58': Symbol: None, Before: -0x58, After: None, type=CS_OP_IMM, size=8, access=CS_AC_INVALID]],
+            # ]
+            if result is not None and result >= 0:
                 TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
                 telescope_addresses = self._telescope(
