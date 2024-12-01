@@ -69,7 +69,7 @@ Each test is a Python function that runs inside of an isolated GDB session.
 Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning of each test, 
 GDB will attach to a [`binary`](tests/gdb-tests/conftest.py) or connect to a [`QEMU instance`](tests/qemu-tests/conftest.py). 
 Each test runs some commands and uses Python `assert` statements to verify correctness. 
-We can access `pwndbg` library code like `pwndbg.gdblib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
+We can access `pwndbg` library code like `pwndbg.aglib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
 
 We can take a look at [`tests/gdb-tests/tests/test_symbol.py`](tests/gdb-tests/tests/test_symbol.py) for an example of a
 simple test. Looking at a simplified version of the top-level code, we have this:

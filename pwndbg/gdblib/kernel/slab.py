@@ -6,8 +6,9 @@ from typing import Set
 
 import gdb
 
+import pwndbg
+from pwndbg.aglib import memory
 from pwndbg.gdblib import kernel
-from pwndbg.gdblib import memory
 from pwndbg.gdblib.kernel.macros import compound_head
 from pwndbg.gdblib.kernel.macros import for_each_entry
 from pwndbg.gdblib.kernel.macros import swab
@@ -337,11 +338,17 @@ def find_containing_slab_cache(addr: int) -> SlabCache | None:
         # address is out of range
         return None
 
-    page_type = gdb.lookup_type("struct page")
-    page = memory.get_typed_pointer_value(page_type, kernel.virt_to_page(addr))
-    head_page = compound_head(page)
+    page = memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
+    head_page = compound_head(dbg_value_to_gdb(page))
 
     slab_type = gdb.lookup_type(f"struct {slab_struct_type()}")
     slab = head_page.cast(slab_type)
 
     return SlabCache(slab["slab_cache"])
+
+
+def dbg_value_to_gdb(d: pwndbg.dbg_mod.Value) -> gdb.Value:
+    from pwndbg.dbg.gdb import GDBValue
+
+    assert isinstance(d, GDBValue)
+    return d.inner

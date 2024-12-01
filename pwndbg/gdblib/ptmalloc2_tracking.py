@@ -56,6 +56,10 @@ from sortedcontainers import SortedDict
 
 import pwndbg.aglib.heap
 import pwndbg.aglib.heap.ptmalloc
+import pwndbg.aglib.memory
+import pwndbg.aglib.proc
+import pwndbg.aglib.typeinfo
+import pwndbg.aglib.vmmap
 import pwndbg.gdblib
 import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
@@ -364,8 +368,8 @@ def get_chunk(address, requested_size):
     """
     Reads a chunk from a given address.
     """
-    ty = pwndbg.gdblib.typeinfo.ppvoid
-    size = int(pwndbg.gdblib.memory.get_typed_pointer_value(ty, address - ty.sizeof))
+    ty = pwndbg.aglib.typeinfo.ppvoid
+    size = int(pwndbg.aglib.memory.get_typed_pointer_value(ty, address - ty.sizeof))
 
     # GLibc bakes the chunk flags in the lowest 3 bits of the size value,
     # so, we separate them here.
@@ -528,9 +532,9 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
 
 def in_program_code_stack() -> bool:
-    exe = pwndbg.gdblib.proc.exe
+    exe = pwndbg.aglib.proc.exe
     binary_exec_page_ranges = tuple(
-        (p.start, p.end) for p in pwndbg.gdblib.vmmap.get() if p.objfile == exe and p.execute
+        (p.start, p.end) for p in pwndbg.aglib.vmmap.get() if p.objfile == exe and p.execute
     )
 
     frame = gdb.newest_frame()

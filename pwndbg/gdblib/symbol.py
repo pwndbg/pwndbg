@@ -13,14 +13,7 @@ import re
 import gdb
 
 import pwndbg.aglib.arch
-import pwndbg.gdblib.android
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.file
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.qemu
-import pwndbg.gdblib.remote
-import pwndbg.gdblib.stack
-import pwndbg.gdblib.vmmap
+import pwndbg.aglib.stack
 import pwndbg.integration
 import pwndbg.lib.cache
 
@@ -86,7 +79,7 @@ def get(address: int | gdb.Value, gdb_only: bool = False) -> str:
 
     Empty string if no symbol
     """
-    # Note: we do not return "" on `address < pwndbg.gdblib.memory.MMAP_MIN_ADDR`
+    # Note: we do not return "" on `address < pwndbg.aglib.memory.MMAP_MIN_ADDR`
     # because this may be used to find out the symbol name on PIE binaries that weren't started yet
     # and then their symbol addresses can be found by GDB on their (non-rebased) offsets
 

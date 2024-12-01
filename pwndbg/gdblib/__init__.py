@@ -9,7 +9,7 @@ from pwndbg.gdblib import config as config_mod
 
 regs = None
 
-__all__ = ["ctypes", "memory", "typeinfo"]
+__all__ = ()
 
 # Export parsed GDB version
 gdb_version = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
@@ -22,24 +22,12 @@ def load_gdblib() -> None:
     """
     # pylint: disable=import-outside-toplevel
     import pwndbg.gdblib.abi
-    import pwndbg.gdblib.android
     import pwndbg.gdblib.argv
     import pwndbg.gdblib.bpoint
-    import pwndbg.gdblib.ctypes
-    import pwndbg.gdblib.elf
     import pwndbg.gdblib.functions
     import pwndbg.gdblib.got
     import pwndbg.gdblib.hooks
     import pwndbg.gdblib.kernel
-    import pwndbg.gdblib.memory
     import pwndbg.gdblib.prompt
-    import pwndbg.gdblib.regs as regs_mod
     import pwndbg.gdblib.symbol
     import pwndbg.gdblib.tui
-    import pwndbg.gdblib.typeinfo
-    import pwndbg.gdblib.vmmap
-
-    # This is necessary so that mypy understands the actual type of the regs module
-    regs_: regs_mod.module = regs_mod
-    global regs
-    regs = regs_

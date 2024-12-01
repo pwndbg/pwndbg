@@ -21,7 +21,6 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.gdblib
 import pwndbg.gdblib.events
-import pwndbg.gdblib.remote
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
@@ -363,16 +362,17 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
+        # TODO: potrzebny ten vmmap tutaj? nie mozna uzyc aglib.vmmap?
         import pwndbg.gdblib.vmmap
         from pwndbg.gdblib import gdb_version
 
         pages = pwndbg.gdblib.vmmap.get()
-        qemu = pwndbg.gdblib.qemu.is_qemu() and not pwndbg.gdblib.qemu.exec_file_supported()
+        qemu = pwndbg.aglib.qemu.is_qemu() and not pwndbg.aglib.qemu.exec_file_supported()
 
         # Only GDB versions >=12 report permission info in info proc mappings.
         # On older versions, we fallback on "rwx".
         # See https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
-        reliable_perms = not (pwndbg.gdblib.qemu.is_qemu_usermode() and gdb_version[0] < 12)
+        reliable_perms = not (pwndbg.aglib.qemu.is_qemu_usermode() and gdb_version[0] < 12)
 
         return GDBMemoryMap(reliable_perms, qemu, pages)
 
@@ -509,7 +509,13 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def is_remote(self) -> bool:
-        return pwndbg.gdblib.remote.is_remote()
+        # Example:
+        # pwndbg> maintenance print target-stack
+        # The current target stack is:
+        #   - remote (Remote serial target in gdb-specific protocol)
+        #   - exec (Local exec file)
+        #   - None (None)
+        return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
     @override
     def send_remote(self, packet: str) -> str:

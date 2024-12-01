@@ -26,10 +26,11 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib.arch
+import pwndbg.aglib.elf
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.vmmap
 import pwndbg.decorators
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
 import pwndbg.integration
 import pwndbg.lib.cache
 import pwndbg.lib.funcparser
@@ -177,7 +178,7 @@ def can_connect() -> bool:
 
 
 def l2r(addr: int) -> int:
-    exe = pwndbg.gdblib.elf.exe()
+    exe = pwndbg.aglib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
     result = (addr - int(exe.address) + base()) & pwndbg.aglib.arch.ptrmask
@@ -185,7 +186,7 @@ def l2r(addr: int) -> int:
 
 
 def r2l(addr: int) -> int:
-    exe = pwndbg.gdblib.elf.exe()
+    exe = pwndbg.aglib.elf.exe()
     if not exe:
         raise Exception("Can't find EXE base")
     result = (addr - base() + int(exe.address)) & pwndbg.aglib.arch.ptrmask
@@ -301,7 +302,7 @@ def UpdateBreakpoints() -> None:
         _breakpoints.remove(bp)
 
     for addr in want - current:
-        if not pwndbg.gdblib.memory.peek(addr):
+        if not pwndbg.aglib.memory.peek(addr):
             continue
 
         bp = gdb.Breakpoint("*" + hex(int(addr)))
@@ -321,7 +322,7 @@ colored_pc = None
 @withIDA
 def Auto_Color_PC() -> None:
     global colored_pc
-    colored_pc = pwndbg.gdblib.regs.pc
+    colored_pc = pwndbg.aglib.regs.pc
     SetColor(colored_pc, 0x7F7FFF)
 
 
@@ -545,9 +546,9 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
     @withIDA
     def get_symbol(self, addr: int) -> str | None:
-        exe = pwndbg.gdblib.elf.exe()
+        exe = pwndbg.aglib.elf.exe()
         if exe:
-            exe_map = pwndbg.gdblib.vmmap.find(exe.address)
+            exe_map = pwndbg.aglib.vmmap.find(exe.address)
             if exe_map and addr in exe_map:
                 return Name(addr) or GetFuncOffset(addr) or None
         return None

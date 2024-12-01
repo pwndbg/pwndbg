@@ -13,9 +13,11 @@ from typing import TypeVar
 import gdb
 from typing_extensions import ParamSpec
 
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.typeinfo
+import pwndbg.aglib.vmmap
 import pwndbg.color.message as M
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
 import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
@@ -38,7 +40,7 @@ def BIT(shift: int):
 def has_debug_syms() -> bool:
     # Check for an arbitrary type and symbol name that are not likely to change
     return (
-        pwndbg.gdblib.typeinfo.load("struct file") is not None
+        pwndbg.aglib.typeinfo.load("struct file") is not None
         and pwndbg.gdblib.symbol.address("linux_banner") is not None
     )
 
@@ -92,7 +94,7 @@ def get_first_kernel_ro():
     """Returns the first kernel mapping which contains the linux_banner"""
     base = kbase()
 
-    for mapping in pwndbg.gdblib.vmmap.get():
+    for mapping in pwndbg.aglib.vmmap.get():
         if mapping.vaddr < base:
             continue
 
@@ -123,7 +125,7 @@ def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
 
     config_size = config_end - config_start
 
-    compressed_config = pwndbg.gdblib.memory.read(config_start, config_size)
+    compressed_config = pwndbg.aglib.memory.read(config_start, config_size)
     return pwndbg.lib.kernel.kconfig.Kconfig(compressed_config)
 
 
@@ -140,8 +142,8 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
 @requires_debug_syms(default="")
 @pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
-    cmdline_addr = pwndbg.gdblib.memory.pvoid(pwndbg.gdblib.symbol.address("saved_command_line"))
-    return pwndbg.gdblib.memory.string(cmdline_addr).decode("ascii")
+    cmdline_addr = pwndbg.aglib.memory.pvoid(pwndbg.gdblib.symbol.address("saved_command_line"))
+    return pwndbg.aglib.memory.string(cmdline_addr).decode("ascii")
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -152,7 +154,7 @@ def kversion() -> str:
         mapping = get_first_kernel_ro()
         version_addr = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))[0]
 
-    return pwndbg.gdblib.memory.string(version_addr).decode("ascii").strip()
+    return pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -181,11 +183,11 @@ def kbase() -> int | None:
     if arch_name == "x86-64":
         address = get_idt_entries()[0].offset
     elif arch_name == "aarch64":
-        address = pwndbg.gdblib.regs.vbar
+        address = pwndbg.aglib.regs.vbar
     else:
         return None
 
-    mappings = pwndbg.gdblib.vmmap.get()
+    mappings = pwndbg.aglib.vmmap.get()
     for mapping in mappings:
         # TODO: Check alignment
 
@@ -207,8 +209,8 @@ def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.
     """
-    base = pwndbg.gdblib.regs.idt
-    limit = pwndbg.gdblib.regs.idt_limit
+    base = pwndbg.aglib.regs.idt
+    limit = pwndbg.aglib.regs.idt_limit
 
     size = pwndbg.aglib.arch.ptrsize * 2
     num_entries = (limit + 1) // size
@@ -218,7 +220,7 @@ def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
     # TODO: read the entire IDT in one call?
     for i in range(num_entries):
         entry_addr = base + i * size
-        entry = pwndbg.lib.kernel.structs.IDTEntry(pwndbg.gdblib.memory.read(entry_addr, size))
+        entry = pwndbg.lib.kernel.structs.IDTEntry(pwndbg.aglib.memory.read(entry_addr, size))
         entries.append(entry)
 
     return entries
@@ -313,7 +315,7 @@ class x86Ops(ArchOps):
 
     @staticmethod
     def paging_enabled() -> bool:
-        return int(pwndbg.gdblib.regs.cr0) & BIT(31) != 0
+        return int(pwndbg.aglib.regs.cr0) & BIT(31) != 0
 
 
 class i386Ops(x86Ops):
@@ -387,7 +389,7 @@ class x86_64Ops(x86Ops):
             cpu = gdb.selected_thread().num - 1
 
         per_cpu_offset = pwndbg.gdblib.symbol.address("__per_cpu_offset")
-        offset = pwndbg.gdblib.memory.u(per_cpu_offset + (cpu * 8))
+        offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
         return gdb.Value(per_cpu_addr).cast(addr.type)
 
@@ -438,7 +440,7 @@ class Aarch64Ops(ArchOps):
         self.VA_BITS = int(kconfig()["ARM64_VA_BITS"])
         self.PAGE_SHIFT = int(kconfig()["CONFIG_ARM64_PAGE_SHIFT"])
 
-        self.PHYS_OFFSET = pwndbg.gdblib.memory.u(pwndbg.gdblib.symbol.address("memstart_addr"))
+        self.PHYS_OFFSET = pwndbg.aglib.memory.u(pwndbg.gdblib.symbol.address("memstart_addr"))
         self.PAGE_OFFSET = (-1 << self.VA_BITS) + 2**64
 
         VA_BITS_MIN = 48 if self.VA_BITS > 48 else self.VA_BITS
@@ -462,7 +464,7 @@ class Aarch64Ops(ArchOps):
             cpu = gdb.selected_thread().num - 1
 
         per_cpu_offset = pwndbg.gdblib.symbol.address("__per_cpu_offset")
-        offset = pwndbg.gdblib.memory.u(per_cpu_offset + (cpu * 8))
+        offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
         return gdb.Value(per_cpu_addr).cast(addr.type)
 
@@ -490,7 +492,7 @@ class Aarch64Ops(ArchOps):
 
     @staticmethod
     def paging_enabled() -> bool:
-        return int(pwndbg.gdblib.regs.SCTLR) & BIT(0) != 0
+        return int(pwndbg.aglib.regs.SCTLR) & BIT(0) != 0
 
 
 _arch_ops: ArchOps = None

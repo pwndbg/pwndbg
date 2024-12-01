@@ -114,18 +114,18 @@ class module(ModuleType):
         """
         Dump .data section of current process's ELF file
         """
-        import pwndbg.gdblib.elf
+        import pwndbg.aglib.elf
 
-        return pwndbg.gdblib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
+        return pwndbg.aglib.elf.dump_section_by_name(self.exe, ".data", try_local_path=True)
 
     @pwndbg.lib.cache.cache_until("start", "objfile")
     def dump_relocations_by_section_name(self, section_name: str) -> Tuple[Relocation, ...] | None:
         """
         Dump relocations of a section by section name of current process's ELF file
         """
-        import pwndbg.gdblib.elf
+        import pwndbg.aglib.elf
 
-        return pwndbg.gdblib.elf.dump_relocations_by_section_name(
+        return pwndbg.aglib.elf.dump_relocations_by_section_name(
             self.exe, section_name, try_local_path=True
         )
 

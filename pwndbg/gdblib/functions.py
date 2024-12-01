@@ -13,8 +13,9 @@ from typing import List
 
 import gdb
 
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.proc
+import pwndbg.aglib.elf
+import pwndbg.aglib.proc
+import pwndbg.aglib.vmmap
 from pwndbg.lib.common import hex2ptr_common
 
 functions: List[_GdbFunction] = []
@@ -38,7 +39,7 @@ class _GdbFunction(gdb.Function):
         functools.update_wrapper(self, func)
 
     def invoke(self, *args: gdb.Value) -> Any:
-        if self.only_when_running and not pwndbg.gdblib.proc.alive:
+        if self.only_when_running and not pwndbg.aglib.proc.alive:
             # Returning empty string is a workaround that we can't stop e.g. `break *$rebase(offset)`
             # Thx to that, gdb will print out 'evaluation of this expression requires the target program to be active'
             return ""
@@ -52,7 +53,7 @@ class _GdbFunction(gdb.Function):
 @GdbFunction(only_when_running=True)
 def rebase(addr: gdb.Value | int) -> int:
     """Return rebased address."""
-    base = pwndbg.gdblib.elf.exe().address
+    base = pwndbg.aglib.elf.exe().address
     return base + int(addr)
 
 
@@ -64,7 +65,7 @@ def base(name_pattern: gdb.Value | str) -> int:
     else:
         name = name_pattern
 
-    for p in pwndbg.gdblib.vmmap.get():
+    for p in pwndbg.aglib.vmmap.get():
         if name in p.objfile:
             return p.vaddr
     raise ValueError(f"No mapping named {name}")

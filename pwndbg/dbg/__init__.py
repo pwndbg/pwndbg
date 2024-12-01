@@ -719,7 +719,7 @@ class Value:
         raise NotImplementedError()
 
     # The intent of this function has a great deal of overlap with that of
-    # `pwndbg.gdblib.memory.string()`. It probably makes sense to take this
+    # `pwndbg.aglib.memory.string()`. It probably makes sense to take this
     # functionality out of the debugger API.
     #
     # TODO: Move to single, common string function.

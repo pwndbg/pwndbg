@@ -11,6 +11,8 @@ from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.aglib.arch
+import pwndbg.aglib.elf
+import pwndbg.aglib.file
 import pwndbg.color.memory as M
 import pwndbg.commands
 from pwndbg.color import cyan
@@ -20,7 +22,6 @@ from pwndbg.commands import CommandCategory
 from pwndbg.lib.memory import Page
 
 if pwndbg.dbg.is_gdblib_available():
-    import pwndbg.gdblib.elf
     import pwndbg.gdblib.vmmap
 
 integer_types = (int, pwndbg.dbg_mod.Value)
@@ -296,9 +297,9 @@ if pwndbg.dbg.is_gdblib_available():
     @pwndbg.commands.OnlyWhenRunning
     def vmmap_add(start, size, flags, offset) -> None:
         page_flags = {
-            "r": pwndbg.gdblib.elf.PF_R,
-            "w": pwndbg.gdblib.elf.PF_W,
-            "x": pwndbg.gdblib.elf.PF_X,
+            "r": pwndbg.aglib.elf.PF_R,
+            "w": pwndbg.aglib.elf.PF_W,
+            "x": pwndbg.aglib.elf.PF_X,
         }
         perm = 0
         for flag in flags:
@@ -351,7 +352,7 @@ if pwndbg.dbg.is_gdblib_available():
     @pwndbg.commands.OnlyWhenRunning
     def vmmap_load(filename) -> None:
         if filename is None:
-            filename = pwndbg.gdblib.file.get_proc_exe_file()
+            filename = pwndbg.aglib.file.get_proc_exe_file()
 
         print(f'Load "{filename}" ...')
 
@@ -377,11 +378,11 @@ if pwndbg.dbg.is_gdblib_available():
                     continue
 
                 # Guess the segment flags from section flags
-                flags = pwndbg.gdblib.elf.PF_R
+                flags = pwndbg.aglib.elf.PF_R
                 if sh_flags & SH_FLAGS.SHF_WRITE:
-                    flags |= pwndbg.gdblib.elf.PF_W
+                    flags |= pwndbg.aglib.elf.PF_W
                 if sh_flags & SH_FLAGS.SHF_EXECINSTR:
-                    flags |= pwndbg.gdblib.elf.PF_X
+                    flags |= pwndbg.aglib.elf.PF_X
 
                 page = pwndbg.lib.memory.Page(vaddr, memsz, flags, offset, filename)
                 pages.append(page)

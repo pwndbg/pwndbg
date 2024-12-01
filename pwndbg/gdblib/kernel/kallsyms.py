@@ -9,6 +9,7 @@ from pwnlib.util.packing import u32
 from pwnlib.util.packing import u64
 
 import pwndbg.aglib
+import pwndbg.aglib.memory
 import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.gdblib.kernel
@@ -43,7 +44,7 @@ class Kallsyms:
 
         mapping = pwndbg.gdblib.kernel.get_first_kernel_ro()
         self.r_base = mapping.vaddr
-        self.kernel_ro_mem = pwndbg.gdblib.memory.read(mapping.vaddr, mapping.memsz)
+        self.kernel_ro_mem = pwndbg.aglib.memory.read(mapping.vaddr, mapping.memsz)
 
         self.kernel_version = pwndbg.gdblib.kernel.krelease()
         self.is_offsets = False

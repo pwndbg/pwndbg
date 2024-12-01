@@ -3,14 +3,12 @@ from __future__ import annotations
 import gdb
 
 import pwndbg
+import pwndbg.aglib.file
+import pwndbg.aglib.memory
+import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
-import pwndbg.gdblib.file
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.next
-import pwndbg.gdblib.tls
-import pwndbg.gdblib.typeinfo
 from pwndbg.aglib import arch_mod as arch_mod_aglib
 from pwndbg.dbg import EventType
 
@@ -33,7 +31,6 @@ def update_typeinfo() -> None:
         else:
             restore_lang = "rust"
 
-    pwndbg.gdblib.typeinfo.update()
     pwndbg.aglib.typeinfo.update()
 
     # Rust workaround part 2
@@ -56,20 +53,16 @@ def reset_config() -> None:
 @pwndbg.dbg.event_handler(EventType.START)
 def on_start() -> None:
     pwndbg.gdblib.abi.update()
-    pwndbg.gdblib.memory.update_min_addr()
     pwndbg.aglib.memory.update_min_addr()
 
 
 @pwndbg.dbg.event_handler(EventType.EXIT)
 def on_exit() -> None:
-    pwndbg.gdblib.file.reset_remote_files()
     pwndbg.aglib.file.reset_remote_files()
-    pwndbg.gdblib.next.clear_temp_breaks()
 
 
 @pwndbg.dbg.event_handler(EventType.STOP)
 def on_stop() -> None:
-    pwndbg.gdblib.strings.update_length()
     pwndbg.aglib.strings.update_length()
 
 

@@ -383,7 +383,7 @@ def test_arm_stack_pointer_check(qemu_assembly_run):
         "   0x10000004 <_start+4>     mov    r1, #3                  R1 => 3\n"
         "   0x10000008 <_start+8>     add    r2, r0, r1              R2 => 7 (4 + 3)\n"
         "   0x1000000c <_start+12>    sub    r3, r2, #2              R3 => 5 (7 - 2)\n"
-        f"   0x10000010 <_start+16>    str    r3, [sp, #-4]!          [{hex(pwndbg.gdblib.regs.sp - 4)}] <= 5\n"
+        f"   0x10000010 <_start+16>    str    r3, [sp, #-4]!          [{hex(pwndbg.aglib.regs.sp - 4)}] <= 5\n"
         "   0x10000014 <_start+20>    pop    {r4}\n"
         "   0x10000018 <_start+24>    mul    r4, r2, r1              R4 => 21 (7 * 3)\n"
         "   0x1000001c <_start+28>    add    r4, r4, #1              R4 => 22 (0x15 + 0x1)\n"

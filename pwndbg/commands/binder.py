@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 from typing import Any
+from typing import Iterator
 from typing import Optional
 
 import gdb
@@ -74,7 +75,7 @@ name_to_code = {v: k for k, v in code_to_name.items()}
 
 
 # TODO: merge with for_each_entry?
-def for_each_hlist_entry(head, typename, field):
+def for_each_hlist_entry(head: pwndbg.dbg_mod.Value, typename, field) -> Iterator[gdb.Value]:
     addr = head["first"]
     while addr != 0:
         yield container_of(addr, typename, field)
@@ -84,9 +85,7 @@ def for_each_hlist_entry(head, typename, field):
 class BinderVisitor:
     def __init__(self, procs_addr):
         self.indent = IndentContextManager()
-        self.addr = pwndbg.gdblib.memory.get_typed_pointer_value(
-            gdb.lookup_type("struct hlist_head"), procs_addr
-        )
+        self.addr = pwndbg.aglib.memory.get_typed_pointer_value("struct hlist_head", procs_addr)
 
     def _format_indent(self, text: str) -> str:
         return "    " * self.indent.indent + text
@@ -224,9 +223,9 @@ class BinderVisitor:
             print(self.format_proc(proc))
             print()
 
-    def format_proc(self, proc, only_heading=False):
+    def format_proc(self, proc: gdb.Value, only_heading=False):
         res = []
-        res.append(self._format_heading("binder_proc", "PID %s" % proc["pid"], proc))
+        res.append(self._format_heading("binder_proc", "PID %s" % proc["pid"], int(proc)))
 
         if only_heading:
             return "\n".join(res)

@@ -5,10 +5,22 @@ import argparse
 import gdb
 
 import pwndbg.aglib.arch
+import pwndbg.aglib.typeinfo
 import pwndbg.commands
+import pwndbg.commands.telescope
 import pwndbg.gdblib.argv
-import pwndbg.gdblib.typeinfo
 from pwndbg.commands import CommandCategory
+
+
+def dbg_value_to_gdb(d: pwndbg.dbg_mod.Value) -> gdb.Value:
+    from pwndbg.dbg.gdb import GDBValue
+
+    assert isinstance(d, GDBValue)
+    return d.inner
+
+
+def gdb_none_value() -> gdb.Value:
+    return dbg_value_to_gdb(pwndbg.dbg.selected_inferior().create_value(0))
 
 
 @pwndbg.commands.ArgparsedCommand(
@@ -75,12 +87,11 @@ class argv_function(gdb.Function):
         number = int(number_value)
 
         if number > pwndbg.gdblib.argv.argc:
-            return gdb.Value(0)
+            return gdb_none_value()
 
-        ppchar = pwndbg.gdblib.typeinfo.pchar.pointer()
-        value = gdb.Value(pwndbg.gdblib.argv.argv)
-        argv = value.cast(ppchar)
-        return (argv + number).dereference()
+        ppchar = pwndbg.aglib.typeinfo.pchar.pointer()
+        argv = pwndbg.dbg.selected_inferior().create_value(pwndbg.gdblib.argv.argv, ppchar)
+        return dbg_value_to_gdb((argv + number).dereference())
 
 
 argv_function()
@@ -98,12 +109,11 @@ class envp_function(gdb.Function):
         number = int(number_value)
 
         if number > pwndbg.gdblib.argv.envc:
-            return pwndbg.gdblib.typeinfo.void.optimized_out()
+            return gdb_none_value()
 
-        ppchar = pwndbg.gdblib.typeinfo.pchar.pointer()
-        value = gdb.Value(pwndbg.gdblib.argv.envp)
-        envp = value.cast(ppchar)
-        return (envp + number).dereference()
+        ppchar = pwndbg.aglib.typeinfo.pchar.pointer()
+        envp = pwndbg.dbg.selected_inferior().create_value(pwndbg.gdblib.argv.envp, ppchar)
+        return dbg_value_to_gdb((envp + number).dereference())
 
 
 envp_function()
@@ -137,17 +147,16 @@ class environ_function(gdb.Function):
         if not name:
             raise gdb.GdbError("No environment variable name provided")
         name += "="
-        ppchar = pwndbg.gdblib.typeinfo.pchar.pointer()
-        value = gdb.Value(pwndbg.gdblib.argv.envp)
-        envp = value.cast(ppchar)
+        ppchar = pwndbg.aglib.typeinfo.pchar.pointer()
+        envp = pwndbg.dbg.selected_inferior().create_value(pwndbg.gdblib.argv.envp, ppchar)
 
         for i in range(pwndbg.gdblib.argv.envc):
             ptr = (envp + i).dereference()
             sz = ptr.string()
             if sz.startswith(name):
-                return ptr
+                return dbg_value_to_gdb(ptr)
 
-        return pwndbg.gdblib.typeinfo.void.optimized_out()
+        return gdb_none_value()
 
 
 environ_function()

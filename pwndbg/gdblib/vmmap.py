@@ -17,20 +17,18 @@ from typing import Tuple
 import gdb
 
 import pwndbg
+import pwndbg.aglib.elf
+import pwndbg.aglib.file
+import pwndbg.aglib.memory
+import pwndbg.aglib.proc
+import pwndbg.aglib.qemu
+import pwndbg.aglib.regs
+import pwndbg.aglib.stack
 import pwndbg.auxv
 import pwndbg.color.message as M
 import pwndbg.gdblib.abi
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.file
 import pwndbg.gdblib.info
 import pwndbg.gdblib.kernel
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.proc
-import pwndbg.gdblib.qemu
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.remote
-import pwndbg.gdblib.stack
-import pwndbg.gdblib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
@@ -102,14 +100,14 @@ def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     mappings are available.
     """
     # Note: debugging a coredump does still show proc.alive == True
-    if not pwndbg.gdblib.proc.alive:
+    if not pwndbg.aglib.proc.alive:
         return ()
 
     if is_corefile():
         return tuple(coredump_maps())
 
     proc_maps = None
-    if pwndbg.gdblib.qemu.is_qemu_usermode():
+    if pwndbg.aglib.qemu.is_qemu_usermode():
         # On Qemu < 8.1 info proc maps are not supported. In that case we callback on proc_tid_maps
         proc_maps = info_proc_maps()
 
@@ -137,7 +135,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         return proc_maps
 
     pages: List[pwndbg.lib.memory.Page] = []
-    if pwndbg.gdblib.qemu.is_qemu_kernel() and pwndbg.aglib.arch.current in (
+    if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.arch.current in (
         "i386",
         "x86-64",
         "aarch64",
@@ -173,11 +171,11 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         if pages:
             pages.extend(info_sharedlibrary())
         else:
-            if pwndbg.gdblib.qemu.is_qemu():
+            if pwndbg.aglib.qemu.is_qemu():
                 return (pwndbg.lib.memory.Page(0, pwndbg.aglib.arch.ptrmask, 7, 0, "[qemu]"),)
             pages.extend(info_files())
 
-        pages.extend(pwndbg.gdblib.stack.get().values())
+        pages.extend(pwndbg.aglib.stack.get().values())
         inside_no_proc_maps_search = False
 
     pages.extend(explored_pages)
@@ -243,23 +241,23 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
 
     address_maybe = pwndbg.lib.memory.page_align(address_maybe)
 
-    flags = 4 if pwndbg.gdblib.memory.peek(address_maybe) else 0
+    flags = 4 if pwndbg.aglib.memory.peek(address_maybe) else 0
 
     if not flags:
         return None
 
-    if pwndbg.gdblib.memory.poke(address_maybe):
+    if pwndbg.aglib.memory.poke(address_maybe):
         flags |= 2
     # It's really hard to check for executability, so we just make some guesses:
     # If it's in the same page as the stack pointer, try to check the NX bit
     # If it's in the same page as the instruction pointer, assume it's executable
     # Otherwise, just say it's not executable
-    if address_maybe == pwndbg.lib.memory.page_align(pwndbg.gdblib.regs.pc):
+    if address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.pc):
         flags |= 1
-    # TODO: could maybe make this check look at the stacks in pwndbg.gdblib.stack.get() but that might have issues
+    # TODO: could maybe make this check look at the stacks in pwndbg.aglib.stack.get() but that might have issues
     elif (
-        address_maybe == pwndbg.lib.memory.page_align(pwndbg.gdblib.regs.sp)
-        and pwndbg.gdblib.stack.is_executable()
+        address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.sp)
+        and pwndbg.aglib.stack.is_executable()
     ):
         flags |= 1
 
@@ -278,8 +276,8 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
 # Automatically ensure that all registers are explored on each stop
 # @pwndbg.dbg.event_handler(EventType.STOP)
 def explore_registers() -> None:
-    for regname in pwndbg.gdblib.regs.common:
-        find(pwndbg.gdblib.regs[regname])
+    for regname in pwndbg.aglib.regs.common:
+        find(pwndbg.aglib.regs[regname])
 
 
 # @pwndbg.dbg.event_handler(EventType.EXIT)
@@ -509,7 +507,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
 
     # If we debug remotely a qemu-user or qemu-system target,
     # there is no point of hitting things further
-    if pwndbg.gdblib.qemu.is_qemu():
+    if pwndbg.aglib.qemu.is_qemu():
         return None
 
     # Example /proc/$tid/maps
@@ -533,7 +531,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
     # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
 
-    tid = pwndbg.gdblib.proc.tid
+    tid = pwndbg.aglib.proc.tid
     locations = [
         f"/proc/{tid}/maps",
         f"/proc/{tid}/map",
@@ -542,7 +540,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
 
     for location in locations:
         try:
-            data = pwndbg.gdblib.file.get(location).decode()
+            data = pwndbg.aglib.file.get(location).decode()
             break
         except (OSError, gdb.error):
             continue
@@ -751,7 +749,7 @@ def info_sharedlibrary() -> Tuple[pwndbg.lib.memory.Page, ...]:
         text = int(tokens[0], 16)
         obj = tokens[-1]
 
-        pages.extend(pwndbg.gdblib.elf.map(text, obj))
+        pages.extend(pwndbg.aglib.elf.map(text, obj))
 
     return tuple(sorted(pages))
 
@@ -807,7 +805,7 @@ def info_files() -> Tuple[pwndbg.lib.memory.Page, ...]:
         if objfile not in seen_files:
             seen_files.add(objfile)
 
-        pages.extend(pwndbg.gdblib.elf.map(vaddr, objfile))
+        pages.extend(pwndbg.aglib.elf.map(vaddr, objfile))
 
     return tuple(pages)
 
@@ -841,16 +839,16 @@ def info_auxv(skip_exe: bool = False) -> Tuple[pwndbg.lib.memory.Page, ...]:
         for addr in [entry, phdr]:
             if not addr:
                 continue
-            new_pages = pwndbg.gdblib.elf.map(addr, exe_name)
+            new_pages = pwndbg.aglib.elf.map(addr, exe_name)
             if new_pages:
                 pages.extend(new_pages)
                 break
 
     if base:
-        pages.extend(pwndbg.gdblib.elf.map(base, "[linker]"))
+        pages.extend(pwndbg.aglib.elf.map(base, "[linker]"))
 
     if vdso:
-        pages.extend(pwndbg.gdblib.elf.map(vdso, "[vdso]"))
+        pages.extend(pwndbg.aglib.elf.map(vdso, "[vdso]"))
 
     return tuple(sorted(pages))
 
@@ -860,44 +858,9 @@ def find_boundaries(addr: int, name: str = "", min: int = 0) -> pwndbg.lib.memor
     Given a single address, find all contiguous pages
     which are mapped.
     """
-    start = pwndbg.gdblib.memory.find_lower_boundary(addr)
-    end = pwndbg.gdblib.memory.find_upper_boundary(addr)
+    start = pwndbg.aglib.memory.find_lower_boundary(addr)
+    end = pwndbg.aglib.memory.find_upper_boundary(addr)
 
     start = max(start, min)
 
     return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)
-
-
-def check_aslr() -> Tuple[bool | None, str]:
-    """
-    Detects the ASLR status. Returns True, False or None.
-
-    None is returned when we can't detect ASLR.
-    """
-    # QEMU does not support this concept.
-    if pwndbg.gdblib.qemu.is_qemu():
-        return None, "Could not detect ASLR on QEMU targets"
-
-    # Systemwide ASLR is disabled
-    try:
-        data = pwndbg.gdblib.file.get("/proc/sys/kernel/randomize_va_space")
-        if b"0" in data:
-            return False, "kernel.randomize_va_space == 0"
-    except Exception:
-        print("Could not check ASLR: can't read randomize_va_space")
-
-    # Check the personality of the process
-    if pwndbg.gdblib.proc.alive:
-        try:
-            data = pwndbg.gdblib.file.get("/proc/%i/personality" % pwndbg.gdblib.proc.tid)
-            personality = int(data, 16)
-            return (personality & 0x40000 == 0), "read status from process' personality"
-        except Exception:
-            print("Could not check ASLR: can't read process' personality")
-
-    # Just go with whatever GDB says it did.
-    #
-    # This should usually be identical to the above, but we may not have
-    # access to procfs.
-    output = gdb.execute("show disable-randomization", to_string=True)
-    return ("is off." in output), "show disable-randomization"

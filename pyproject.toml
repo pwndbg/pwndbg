@@ -65,7 +65,7 @@ disable_error_code = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["pwndbg.gdblib.elf", "pwndbg.aglib.elf"]
+module = ["pwndbg.aglib.elf"]
 disable_error_code = ["name-defined"]
 
 [[tool.mypy.overrides]]
@@ -83,7 +83,6 @@ module = [
     "pwndbg.gdblib.events",
     "pwndbg.gdblib.got",
     "pwndbg.gdblib.ptmalloc2_tracking",
-    "pwndbg.gdblib.stack",
     "pwndbg.aglib.heap.*",
     "pwndbg.hexdump",
     "pwndbg.ui",
@@ -99,8 +98,6 @@ disable_error_code = ["attr-defined", "index"]
 module = [
     "pwndbg.aglib.nearpc",
     "pwndbg.aglib.typeinfo",
-    "pwndbg.gdblib.nearpc",
-    "pwndbg.gdblib.typeinfo",
 ]
 disable_error_code = ["name-defined", "attr-defined"]
 

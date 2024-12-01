@@ -209,7 +209,7 @@ def dump_section_by_name(
     """
     Dump the content of a section from an ELF file, return the start address, size and content.
     """
-    # TODO: We should have some cache mechanism or something at `pndbg.gdblib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
 
     with open(local_path, "rb") as f:
@@ -224,7 +224,7 @@ def dump_relocations_by_section_name(
     """
     Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
     """
-    # TODO: We should have some cache mechanism or something at `pndbg.gdblib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
 
     with open(local_path, "rb") as f:
@@ -389,11 +389,11 @@ def map(pointer: int, objfile: str = "") -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     Example:
 
-        >>> pwndbg.gdblib.elf.load(pwndbg.gdblib.regs.pc)
+        >>> pwndbg.aglib.elf.load(pwndbg.aglib.regs.pc)
         [Page('400000-4ef000 r-xp 0'),
          Page('6ef000-6f0000 r--p ef000'),
          Page('6f0000-6ff000 rw-p f0000')]
-        >>> pwndbg.gdblib.elf.load(0x7ffff77a2000)
+        >>> pwndbg.aglib.elf.load(0x7ffff77a2000)
         [Page('7ffff75e7000-7ffff77a2000 r-xp 0x1bb000 0'),
          Page('7ffff77a2000-7ffff79a2000 ---p 0x200000 1bb000'),
          Page('7ffff79a2000-7ffff79a6000 r--p 0x4000 1bb000'),

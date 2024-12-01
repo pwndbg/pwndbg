@@ -22,11 +22,11 @@ import gdb
 
 import pwndbg
 import pwndbg.aglib.arch
+import pwndbg.aglib.elf
+import pwndbg.aglib.file
+import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.color.memory
-import pwndbg.gdblib.elf
-import pwndbg.gdblib.file
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.proc
 import pwndbg.gdblib.symbol
 import pwndbg.hexdump
 import pwndbg.lib.cache
@@ -234,10 +234,10 @@ def emit_warning(msg: str):
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_elf() -> pwndbg.gdblib.elf.ELFInfo | None:
+def get_elf() -> pwndbg.aglib.elf.ELFInfo | None:
     try:
-        return pwndbg.gdblib.elf.get_elf_info_rebased(
-            pwndbg.gdblib.file.get_proc_exe_file(), pwndbg.gdblib.proc.binary_base_addr
+        return pwndbg.aglib.elf.get_elf_info_rebased(
+            pwndbg.aglib.file.get_proc_exe_file(), pwndbg.aglib.proc.binary_base_addr
         )
     except OSError:
         return None
@@ -248,9 +248,9 @@ def read_buildversion(addr: int) -> str:
     Reads a Go runtime.buildVersion string to extract the version.
     """
     word = word_size()
-    version_ptr = load_uint(pwndbg.gdblib.memory.read(addr, word))
-    version_len = load_uint(pwndbg.gdblib.memory.read(addr + word, word))
-    return "" if version_len == 0 else pwndbg.gdblib.memory.read(version_ptr, version_len).decode()
+    version_ptr = load_uint(pwndbg.aglib.memory.read(addr, word))
+    version_len = load_uint(pwndbg.aglib.memory.read(addr + word, word))
+    return "" if version_len == 0 else pwndbg.aglib.memory.read(version_ptr, version_len).decode()
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -277,8 +277,8 @@ def get_go_version() -> Tuple[int, ...] | None:
         if buildinfo is None:
             return None
         # check for flags & flagsVersionInl
-        if (pwndbg.gdblib.memory.read(buildinfo + 15, 1)[0] & 2) != 2:
-            buildversion_addr = load_uint(pwndbg.gdblib.memory.read(buildinfo + 16, word_size()))
+        if (pwndbg.aglib.memory.read(buildinfo + 15, 1)[0] & 2) != 2:
+            buildversion_addr = load_uint(pwndbg.aglib.memory.read(buildinfo + 16, word_size()))
             version_string = read_buildversion(buildversion_addr)
         else:
             version_string = read_varint_str(buildinfo + 32).decode()
@@ -364,18 +364,18 @@ def read_varint_str(addr: int) -> bytes:
     orig_addr = addr
     strlen = 0
     while True:
-        b = pwndbg.gdblib.memory.read(addr, 1)[0]
+        b = pwndbg.aglib.memory.read(addr, 1)[0]
         strlen = (strlen << 7) | (b & 0x7F)
         if b == 0x80 or strlen > 0x1000:
             # we're probably not actually reading a varint str and should just return some bytes to avoid infinite looping
-            return pwndbg.gdblib.memory.read(orig_addr, 16)
+            return pwndbg.aglib.memory.read(orig_addr, 16)
         addr += 1
         if not (b & 0x80):
             break
-    # pwndbg.gdblib.memory.read doesn't support 0-length reads
+    # pwndbg.aglib.memory.read doesn't support 0-length reads
     if strlen == 0:
         return b""
-    return pwndbg.gdblib.memory.read(addr, strlen)
+    return pwndbg.aglib.memory.read(addr, strlen)
 
 
 def read_type_name(addr: int) -> bytes:
@@ -389,10 +389,10 @@ def read_type_name(addr: int) -> bytes:
     vers = get_go_version()
     if vers is not None and vers < (1, 17):
         # reverse the bytestring because Go uses big endian
-        strlen = load_uint(pwndbg.gdblib.memory.read(addr + 1, 2), "big")
+        strlen = load_uint(pwndbg.aglib.memory.read(addr + 1, 2), "big")
         if strlen == 0:
             return b""
-        return pwndbg.gdblib.memory.read(addr + 3, strlen)
+        return pwndbg.aglib.memory.read(addr + 3, strlen)
     return read_varint_str(addr + 1)
 
 
@@ -543,7 +543,7 @@ def _inner_decode_runtime_type(
             ("PtrToThis", 4, 4),  # TypeOff (alias for int32)
         ]
     )
-    load = lambda off, sz: load_uint(pwndbg.gdblib.memory.read(addr + off, sz))
+    load = lambda off, sz: load_uint(pwndbg.aglib.memory.read(addr + off, sz))
     type_start = get_type_start(addr)
     tflag = load(offsets["TFlag"], 1)
     if type_start is None:
@@ -625,8 +625,8 @@ def _inner_decode_runtime_type(
                 methods_ptr = load(offsets["$size"] + word, word)
                 for i in range(methods_count):
                     base = methods_ptr + i * 8
-                    meth_name_off = load_uint(pwndbg.gdblib.memory.read(base, 4))
-                    inner_off = load_uint(pwndbg.gdblib.memory.read(base + 4, 4))
+                    meth_name_off = load_uint(pwndbg.aglib.memory.read(base, 4))
+                    inner_off = load_uint(pwndbg.aglib.memory.read(base + 4, 4))
                     bmeth_name = read_type_name(type_start + meth_name_off)
                     inner_ty_ptr = type_start + inner_off
                     (inner_meta, _) = _inner_decode_runtime_type(inner_ty_ptr, cache)
@@ -676,14 +676,14 @@ def _inner_decode_runtime_type(
                 offset_shift = 0
             for i in range(fields_count):
                 base = fields_ptr + i * word * 3
-                bfield_name = read_type_name(load_uint(pwndbg.gdblib.memory.read(base, word)))
+                bfield_name = read_type_name(load_uint(pwndbg.aglib.memory.read(base, word)))
                 try:
                     field_name = bfield_name.decode()
                 except UnicodeDecodeError:
                     field_name = repr(bytes(bfield_name))
-                field_ty_ptr = load_uint(pwndbg.gdblib.memory.read(base + word, word))
+                field_ty_ptr = load_uint(pwndbg.aglib.memory.read(base + word, word))
                 field_off = (
-                    load_uint(pwndbg.gdblib.memory.read(base + word * 2, word)) >> offset_shift
+                    load_uint(pwndbg.aglib.memory.read(base + word * 2, word)) >> offset_shift
                 )
                 (field_meta, field_ty) = _inner_decode_runtime_type(field_ty_ptr, cache)
                 if field_ty is None:
@@ -724,7 +724,7 @@ class BasicType(Type):
     extra_meta: List[str] = dataclasses.field(default_factory=list)
 
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
-        val = pwndbg.gdblib.memory.read(addr, self.size())
+        val = pwndbg.aglib.memory.read(addr, self.size())
         ty = self.name
         if ty == "byte":
             ty = "uint8"
@@ -736,7 +736,7 @@ class BasicType(Type):
                 iface_ptr = load_uint(val[:word])
                 if iface_ptr == 0:
                     return "nil"
-                ty_ptr = load_uint(pwndbg.gdblib.memory.read(iface_ptr + word, word))
+                ty_ptr = load_uint(pwndbg.aglib.memory.read(iface_ptr + word, word))
             else:
                 ty_ptr = load_uint(val[:word])
             if ty_ptr == 0:
@@ -744,7 +744,7 @@ class BasicType(Type):
             meta, parsed_inner = decode_runtime_type(ty_ptr)
             data_ptr = addr + word
             if not meta.direct_iface:
-                data_ptr = load_uint(pwndbg.gdblib.memory.read(data_ptr, word))
+                data_ptr = load_uint(pwndbg.aglib.memory.read(data_ptr, word))
             prefix = fmt.fmt_debug(f"(ty @ {ty_ptr:#x}, data @ {data_ptr:#x}) ")
             if data_ptr == 0:
                 return f"{prefix}({meta.name}) nil"
@@ -757,7 +757,7 @@ class BasicType(Type):
         if ty == "funcptr":
             word = word_size()
             closure_addr = load_uint(val)
-            f = load_uint(pwndbg.gdblib.memory.read(closure_addr, word))
+            f = load_uint(pwndbg.aglib.memory.read(closure_addr, word))
             return fmt.fmt_debug(f"(closure @ {closure_addr}) ") + fmt.fmt_ptr(f)
         if ty.startswith("int") or ty.startswith("uint"):
             if ty.startswith("int"):
@@ -783,11 +783,11 @@ class BasicType(Type):
             word = word_size()
             ptr = load_uint(val[:word])
             strlen = load_uint(val[word:])
-            # pwndbg.gdblib.memory.read doesn't support 0-length reads
+            # pwndbg.aglib.memory.read doesn't support 0-length reads
             if strlen == 0:
                 data = b""
             else:
-                data = pwndbg.gdblib.memory.read(ptr, strlen)
+                data = pwndbg.aglib.memory.read(ptr, strlen)
             return fmt.fmt_debug(f"(str @ {ptr:#x}, len = {strlen}) ") + fmt.fmt_bytes(data)
         raise ValueError(f"Could not dump type {ty}.")
 
@@ -836,7 +836,7 @@ class SliceType(Type):
 
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         word = word_size()
-        val = pwndbg.gdblib.memory.read(addr, word * 3)
+        val = pwndbg.aglib.memory.read(addr, word * 3)
         ptr = load_uint(val[:word])
         slice_len = load_uint(val[word : word * 2])
         ret = []
@@ -874,7 +874,7 @@ class PointerType(Type):
 
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         word = word_size()
-        ptr = load_uint(pwndbg.gdblib.memory.read(addr, word))
+        ptr = load_uint(pwndbg.aglib.memory.read(addr, word))
         if ptr == 0:
             return "nil"
         inner = self.inner.dump(ptr, fmt)
@@ -987,7 +987,7 @@ class MapType(Type):
         bucket_count = 8  # taken from src/internal/abi/map.go commit 1b4f1dc
         word = word_size()
         offsets = self.field_offsets()
-        val = pwndbg.gdblib.memory.read(addr, offsets["$size"])
+        val = pwndbg.aglib.memory.read(addr, offsets["$size"])
         load = lambda off, sz: load_uint(val[off : off + sz])
         num_buckets = 1 << load(offsets["B"], 1)
         num_oldbuckets = num_buckets >> 1
@@ -1010,11 +1010,11 @@ class MapType(Type):
             bucket_ptr = bucket_base + bucket_size * i
             if oldbucket_base and i < num_oldbuckets:
                 oldbucket_ptr = oldbucket_base + bucket_size * i
-                oldbucket = pwndbg.gdblib.memory.read(oldbucket_ptr, bucket_size)
+                oldbucket = pwndbg.aglib.memory.read(oldbucket_ptr, bucket_size)
                 if not (1 < oldbucket[tophash_start] < 5):  # !evacuated(bucket)
                     bucket_ptr = oldbucket_ptr
             while bucket_ptr:
-                bucket = pwndbg.gdblib.memory.read(bucket_ptr, bucket_size)
+                bucket = pwndbg.aglib.memory.read(bucket_ptr, bucket_size)
                 for j in range(bucket_count):
                     if bucket[tophash_start + j] > 1:  # !isEmpty(bucket.tophash[j])
                         key_ptr = bucket_ptr + keys_start + j * keysize

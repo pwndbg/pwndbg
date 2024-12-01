@@ -21,12 +21,12 @@ import gdb
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.dynamic
+import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.color.message as message
 import pwndbg.gdblib.bpoint
-import pwndbg.gdblib.memory
 import pwndbg.gdblib.shellcode
-import pwndbg.gdblib.typeinfo
-import pwndbg.gdblib.vmmap
+import pwndbg.lib.memory
 
 
 class RelocTypes:
@@ -110,7 +110,7 @@ IRELATIVE_SLOTS = {
 }
 
 
-def is_mmap_error(ptr):
+def is_mmap_error(ptr: int):
     """
     Checks whether the return value of an mmap of indicates an error.
     """
@@ -258,7 +258,7 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
         # tracker will use.
         objfile = self.tracker.link_map_entry.name()
         if objfile == b"":
-            objfile = pwndbg.gdblib.proc.exe
+            objfile = pwndbg.aglib.proc.exe
         self.tracker.obj_display_name = display_name(objfile, basename=True)
 
         self.tracker.sym_display_name = display_name(
@@ -272,7 +272,7 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
     def should_stop(self) -> bool:
         # Read the new branch target, and update the redirection target of the
         # tracker accordingly.
-        new_target = pwndbg.gdblib.memory.pvoid(self.entry)
+        new_target = pwndbg.aglib.memory.pvoid(self.entry)
         if new_target == self.tracker.trapped_address:
             # The write to this range from within GDB that we do at the end of
             # this function can cause this watchpoint to trigger again.
@@ -366,7 +366,7 @@ def _update_watchpoints() -> None:
     for obj in pwndbg.aglib.dynamic.link_map():
         name = obj.name()
         if name == b"":
-            name = pwndbg.gdblib.proc.exe
+            name = pwndbg.aglib.proc.exe
 
         try:
             dynamic = pwndbg.aglib.dynamic.DynamicSegment(obj.dynamic(), obj.load_bias())

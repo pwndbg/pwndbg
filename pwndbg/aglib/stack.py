@@ -16,6 +16,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
+import pwndbg.lib.memory
 from pwndbg.dbg import EventType
 
 

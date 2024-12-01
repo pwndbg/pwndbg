@@ -10,7 +10,6 @@ import pwndbg.aglib.disasm.arch
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.bpoint
-import pwndbg.gdblib.next
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 
 

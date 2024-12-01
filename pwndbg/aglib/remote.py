@@ -24,7 +24,7 @@ def is_debug_probe() -> bool:
     try:
         help_output = inferior.send_monitor("help")
         if "Quit GDBserver\n" in help_output:
-            # We can't use the `monitor` command directly when using normal GDBserver because it can cause GDBserver somehow show an additional newline in the end and fail to show the context because `pwndbg.gdblib.proc.thread_is_stopped` is False when running `gdb.prompt_hook`.
+            # We can't use the `monitor` command directly when using normal GDBserver because it can cause GDBserver somehow show an additional newline in the end and fail to show the context because `pwndbg.aglib.proc.thread_is_stopped` is False when running `gdb.prompt_hook`.
             # To avoid this issue, we can check the output of `monitor help` to determine if we're using GDBserver.
             # The output on normal GDBserver looks like this:
             # pwndbg> monitor help

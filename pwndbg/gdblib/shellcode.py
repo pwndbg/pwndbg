@@ -14,10 +14,11 @@ import pwnlib.shellcraft
 
 import pwndbg
 import pwndbg.aglib.arch
-import pwndbg.gdblib.memory
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.vmmap
 import pwndbg.gdblib.prompt
-import pwndbg.gdblib.regs
-import pwndbg.gdblib.vmmap
+import pwndbg.lib.regs
 
 
 def _get_syscall_return_value():
@@ -27,7 +28,7 @@ def _get_syscall_return_value():
     """
 
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.current]
-    return pwndbg.gdblib.regs[register_set.retval]
+    return pwndbg.aglib.regs[register_set.retval]
 
 
 def exec_syscall(
@@ -81,7 +82,7 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.current]
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
-    registers = {reg: pwndbg.gdblib.regs[reg] for reg in preserve_set}
+    registers = {reg: pwndbg.aglib.regs[reg] for reg in preserve_set}
     starting_address = registers[register_set.pc]
 
     # Make sure the blob fits in the rest of the space we have in this page.
@@ -90,7 +91,7 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
     # all of the pages currently mapped as executable for this. There is no
     # technical limitation stopping us from doing that, but seeing as doing it
     # is harder to make sure it works correctly, we don't (for now, at least).
-    page = pwndbg.gdblib.vmmap.find(starting_address)
+    page = pwndbg.aglib.vmmap.find(starting_address)
     assert page is not None
 
     clearance = page.end - len(blob) - 1
@@ -102,8 +103,8 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
         )
 
     # Swap the code in the range with our shellcode.
-    existing_code = pwndbg.gdblib.memory.read(starting_address, len(blob))
-    pwndbg.gdblib.memory.write(starting_address, blob)
+    existing_code = pwndbg.aglib.memory.read(starting_address, len(blob))
+    pwndbg.aglib.memory.write(starting_address, blob)
 
     # Disable breakpoints.
     #
@@ -135,7 +136,7 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
         bp.enabled = True
 
     # Make sure we're in the right place.
-    assert pwndbg.gdblib.regs.pc == target_address
+    assert pwndbg.aglib.regs.pc == target_address
 
     # Give the caller a chance to collect information from the environment
     # before any of the context gets restored.
@@ -145,10 +146,10 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
 
     # Restore the code and the program counter and, if requested, the rest of
     # the registers.
-    pwndbg.gdblib.memory.write(starting_address, existing_code)
-    setattr(pwndbg.gdblib.regs, register_set.pc, starting_address)
+    pwndbg.aglib.memory.write(starting_address, existing_code)
+    setattr(pwndbg.aglib.regs, register_set.pc, starting_address)
     if restore_context:
         for reg, val in registers.items():
-            setattr(pwndbg.gdblib.regs, reg, val)
+            setattr(pwndbg.aglib.regs, reg, val)
 
     return captured

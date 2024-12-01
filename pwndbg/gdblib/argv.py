@@ -4,9 +4,9 @@ import gdb
 
 import pwndbg
 import pwndbg.aglib.arch
+import pwndbg.aglib.memory
+import pwndbg.aglib.regs
 import pwndbg.gdblib.abi
-import pwndbg.gdblib.memory
-import pwndbg.gdblib.regs
 from pwndbg.dbg import EventType
 
 #: Total number of arguments
@@ -32,12 +32,12 @@ def update() -> None:
 
     pwndbg.aglib.arch_mod.update()  # :-(
 
-    sp = pwndbg.gdblib.regs.sp
+    sp = pwndbg.aglib.regs.sp
     ptrsize = pwndbg.aglib.arch.ptrsize
     ptrbits = 8 * ptrsize
 
     try:
-        argc = pwndbg.gdblib.memory.u(sp, ptrbits)
+        argc = pwndbg.aglib.memory.u(sp, ptrbits)
     except Exception:
         return
 
@@ -45,7 +45,7 @@ def update() -> None:
 
     argv = sp
 
-    while pwndbg.gdblib.memory.u(sp, ptrbits):
+    while pwndbg.aglib.memory.u(sp, ptrbits):
         sp += ptrsize
 
     sp += ptrsize
@@ -54,7 +54,7 @@ def update() -> None:
 
     envc = 0
     try:
-        while pwndbg.gdblib.memory.u(sp, ptrbits):
+        while pwndbg.aglib.memory.u(sp, ptrbits):
             sp += ptrsize
             envc += 1
     except gdb.MemoryError:
