@@ -28,6 +28,7 @@ import pwndbg
 import pwndbg.aglib.heap
 import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.aglib.tls
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap

@@ -72,6 +72,14 @@ def show_hint() -> None:
 
 
 def thread_is_stopped() -> bool:
+    """
+    This detects whether selected thread is stopped.
+    It is not stopped in situations when gdb is executing commands
+    that are attached to a breakpoint by `command` command.
+
+    For more info see issue #229 ( https://github.com/pwndbg/pwndbg/issues/299 )
+    :return: Whether gdb executes commands attached to bp with `command` command.
+    """
     t = gdb.selected_thread()
     if not t:
         return False
@@ -87,7 +95,7 @@ def prompt_hook(*a: Any) -> None:
         pwndbg.gdblib.events.after_reload(start=cur is None)
         cur = new
 
-    if pwndbg.aglib.proc.alive and thread_is_stopped() and not context_shown:
+    if not context_shown and pwndbg.aglib.proc.alive and thread_is_stopped():
         pwndbg.commands.context.selected_history_index = None
         pwndbg.commands.context.context()
         context_shown = True
