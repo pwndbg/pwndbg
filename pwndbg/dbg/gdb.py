@@ -362,7 +362,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
-        # TODO: potrzebny ten vmmap tutaj? nie mozna uzyc aglib.vmmap?
         import pwndbg.gdblib.vmmap
         from pwndbg.gdblib import gdb_version
 

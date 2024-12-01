@@ -29,7 +29,7 @@ pid: int
 tid: int
 thread_id: int
 alive: bool
-thread_is_stopped: bool
+# thread_is_stopped: bool
 stopped_with_signal: bool
 exe: str | None
 binary_base_addr: int
