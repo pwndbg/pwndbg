@@ -71,6 +71,13 @@ def show_hint() -> None:
         print(message.prompt("pwndbg: ") + message.system(line))
 
 
+def thread_is_stopped() -> bool:
+    t = gdb.selected_thread()
+    if not t:
+        return False
+    return t.is_stopped()
+
+
 def prompt_hook(*a: Any) -> None:
     global cur, context_shown, last_alive_state
 
@@ -80,8 +87,7 @@ def prompt_hook(*a: Any) -> None:
         pwndbg.gdblib.events.after_reload(start=cur is None)
         cur = new
 
-    is_stopped = gdb.selected_thread().is_stopped()
-    if pwndbg.aglib.proc.alive and is_stopped and not context_shown:
+    if pwndbg.aglib.proc.alive and thread_is_stopped() and not context_shown:
         pwndbg.commands.context.selected_history_index = None
         pwndbg.commands.context.context()
         context_shown = True
