@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from typing import Iterator
+
 import gdb
 
 import pwndbg
 from pwndbg.dbg import EventType
 from pwndbg.gdblib.kernel.macros import container_of
 
-rb_root_type = None
-rb_node_type = None
+rb_root_type: gdb.Type = None
+rb_node_type: gdb.Type = None
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
@@ -20,55 +22,57 @@ def init():
         pass
 
 
-def for_each_rb_entry(root, typename, fieldname):
+def for_each_rb_entry(root: gdb.Value, typename: str, fieldname: str) -> Iterator[gdb.Value]:
     node = rb_first(root)
-    while node is not None and node != 0:
-        yield container_of(node, typename, fieldname)
+    node_addr = int(node or 0)
+    while node_addr != 0:
+        yield container_of(node_addr, typename, fieldname)
         node = rb_next(node)
+        node_addr = int(node or 0)
 
 
-def rb_first(root):
+def rb_first(root: gdb.Value) -> gdb.Value | None:
     if root.type == rb_root_type:
         node = root.address.cast(rb_root_type.pointer())
     elif root.type != rb_root_type.pointer():
         raise gdb.GdbError("Must be struct rb_root not {}".format(root.type))
 
     node = root["rb_node"]
-    if node == 0:
+    if int(node) == 0:
         return None
 
-    while node["rb_left"]:
+    while int(node["rb_left"]):
         node = node["rb_left"]
 
     return node
 
 
-def rb_last(root):
+def rb_last(root: gdb.Value) -> gdb.Value | None:
     if root.type == rb_root_type:
         node = root.address.cast(rb_root_type.pointer())
     elif root.type != rb_root_type.pointer():
         raise gdb.GdbError("Must be struct rb_root not {}".format(root.type))
 
     node = root["rb_node"]
-    if node == 0:
+    if int(node) == 0:
         return None
 
-    while node["rb_right"]:
+    while int(node["rb_right"]):
         node = node["rb_right"]
 
     return node
 
 
-def rb_parent(node):
-    parent = gdb.Value(node["__rb_parent_color"] & ~3)
+def rb_parent(node: gdb.Value) -> gdb.Value:
+    parent = gdb.Value(int(node["__rb_parent_color"]) & ~3)
     return parent.cast(rb_node_type.pointer())
 
 
-def rb_empty_node(node):
-    return node["__rb_parent_color"] == node.address
+def rb_empty_node(node: gdb.Value) -> bool:
+    return int(node["__rb_parent_color"]) == int(node.address)
 
 
-def rb_next(node):
+def rb_next(node: gdb.Value) -> gdb.Value | None:
     if node.type == rb_node_type:
         node = node.address.cast(rb_node_type.pointer())
     elif node.type != rb_node_type.pointer():
@@ -77,21 +81,21 @@ def rb_next(node):
     if rb_empty_node(node):
         return None
 
-    if node["rb_right"]:
+    if int(node["rb_right"]):
         node = node["rb_right"]
-        while node["rb_left"]:
+        while int(node["rb_left"]):
             node = node["rb_left"]
         return node
 
     parent = rb_parent(node)
-    while parent and node == parent["rb_right"]:
+    while int(parent) and int(node) == int(parent["rb_right"]):
         node = parent
         parent = rb_parent(node)
 
     return parent
 
 
-def rb_prev(node):
+def rb_prev(node: gdb.Value) -> gdb.Value | None:
     if node.type == rb_node_type:
         node = node.address.cast(rb_node_type.pointer())
     elif node.type != rb_node_type.pointer():
@@ -100,14 +104,14 @@ def rb_prev(node):
     if rb_empty_node(node):
         return None
 
-    if node["rb_left"]:
+    if int(node["rb_left"]):
         node = node["rb_left"]
-        while node["rb_right"]:
+        while int(node["rb_right"]):
             node = node["rb_right"]
         return node.dereference()
 
     parent = rb_parent(node)
-    while parent and node == parent["rb_left"].dereference():
+    while int(parent) and int(node) == int(parent["rb_left"].dereference()):
         node = parent
         parent = rb_parent(node)
 

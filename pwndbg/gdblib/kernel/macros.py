@@ -1,28 +1,33 @@
 from __future__ import annotations
 
+from typing import Iterator
+
 import gdb
 
 
-def offset_of(typename: str, fieldname: str):
+def offset_of(typename: str, fieldname: str) -> int:
     ptr_type = gdb.lookup_type(typename).pointer()
     dummy = gdb.Value(0).cast(ptr_type)
     return int(dummy[fieldname].address)
 
 
-def container_of(ptr, typename: str, fieldname: str):
+def container_of(ptr: int, typename: str, fieldname: str) -> gdb.Value:
     ptr_type = gdb.lookup_type(typename).pointer()
     obj_addr = int(ptr) - offset_of(typename, fieldname)
     return gdb.Value(obj_addr).cast(ptr_type)
 
 
-def for_each_entry(head, typename: str, field):
+def for_each_entry(head: gdb.Value, typename: str, field: str) -> Iterator[gdb.Value]:
+    head_addr = int(head.address)
     addr = head["next"]
-    while addr != head.address:
-        yield container_of(addr, typename, field)
+    addr_int = int(addr)
+    while addr_int != head_addr:
+        yield container_of(addr_int, typename, field)
         addr = addr.dereference()["next"]
+        addr_int = int(addr)
 
 
-def swab(x):
+def swab(x: int) -> int:
     return int(
         ((x & 0x00000000000000FF) << 56)
         | ((x & 0x000000000000FF00) << 40)

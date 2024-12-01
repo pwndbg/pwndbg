@@ -5,6 +5,7 @@ import logging
 
 import gdb
 
+import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
@@ -19,7 +20,7 @@ parser.add_argument("zone", type=int, nargs="?", help="")
 # parser.add_argument("list_num", type=int, help="")
 
 
-def print_zone(zone, list_num=None) -> None:
+def print_zone(zone: int, list_num=None) -> None:
     print(f"Zone {zone}")
     pageset_addr = per_cpu(
         gdb.lookup_global_symbol("contig_page_data").value()["node_zones"][zone]["pageset"]
@@ -33,7 +34,7 @@ def print_zone(zone, list_num=None) -> None:
         print(f"pcp.lists[{i}]:")
 
         count = 0
-        for e in for_each_entry(pcp["lists"][i], "struct page", "lru"):
+        for e in for_each_entry(dbg_value_to_gdb(pcp["lists"][i]), "struct page", "lru"):
             count += 1
             print(e)
 
@@ -45,11 +46,18 @@ def print_zone(zone, list_num=None) -> None:
         print("")
 
 
+def dbg_value_to_gdb(d: pwndbg.dbg_mod.Value) -> gdb.Value:
+    from pwndbg.dbg.gdb import GDBValue
+
+    assert isinstance(d, GDBValue)
+    return d.inner
+
+
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def pcplist(zone=None, list_num=None) -> None:
+def pcplist(zone: int = None, list_num: int = None) -> None:
     log.warning("This command is a work in progress and may not work as expected.")
     if zone:
         print_zone(zone, list_num)

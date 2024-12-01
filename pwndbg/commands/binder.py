@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import argparse
 import logging
-from typing import Any
 from typing import Iterator
+from typing import List
 from typing import Optional
+from typing import Tuple
 
 import gdb
 
@@ -77,9 +78,11 @@ name_to_code = {v: k for k, v in code_to_name.items()}
 # TODO: merge with for_each_entry?
 def for_each_hlist_entry(head: pwndbg.dbg_mod.Value, typename, field) -> Iterator[gdb.Value]:
     addr = head["first"]
-    while addr != 0:
-        yield container_of(addr, typename, field)
+    addr_int = int(addr)
+    while addr_int != 0:
+        yield container_of(addr_int, typename, field)
         addr = addr.dereference()["next"]
+        addr_int = int(addr)
 
 
 class BinderVisitor:
@@ -90,14 +93,16 @@ class BinderVisitor:
     def _format_indent(self, text: str) -> str:
         return "    " * self.indent.indent + text
 
-    def _format_heading(self, typename: str, fields, addr: int):
-        hex_addr = hex(int(addr))
+    def _format_heading(self, typename: str, fields: str, addr: int) -> str:
+        hex_addr = hex(addr)
         return self._format_indent(
             f"{fieldnamec(typename)} {fieldvaluec(fields)} ({addrc(hex_addr)})"
         )
 
     # TODO: do this in a cleaner, object-oriented way
-    def _format_field(self, field: Optional[str] = None, value: Any = "", only_heading=True):
+    def _format_field(
+        self, field: Optional[str] = None, value: gdb.Value | str = "", only_heading: bool = True
+    ) -> str:
         if isinstance(value, gdb.Value):
             t = value.type
             if t.code == name_to_code["TYPE_CODE_TYPEDEF"]:
@@ -157,11 +162,11 @@ class BinderVisitor:
         output = ""
         if field:
             output += fieldnamec(field) + ": "
-        output += fieldvaluec(value)
+        output += fieldvaluec(str(value))
 
         return self._format_indent(output)
 
-    def format_rb_tree(self, field, value):
+    def format_rb_tree(self, field: str, value: gdb.Value) -> Tuple[str, int]:
         res = []
 
         node_type = node_types[field]
@@ -183,7 +188,7 @@ class BinderVisitor:
         # Prepend a newline so the list starts on the line after the field name
         return "\n" + "\n".join(res), len(res)
 
-    def format_list(self, field, value, typename):
+    def format_list(self, field: str, value: gdb.Value, typename: str) -> Tuple[str, int]:
         res = []
 
         node_type = node_types[field]
@@ -212,7 +217,7 @@ class BinderVisitor:
         # Prepend a newline so the list starts on the line after the field name
         return "\n" + "\n".join(res), len(res)
 
-    def _format_fields(self, obj, fields, only_heading=True):
+    def _format_fields(self, obj: gdb.Value, fields: List[str], only_heading: bool = True) -> str:
         res = []
         for field in fields:
             res.append(self._format_field(field, obj[field], only_heading=only_heading))
@@ -246,9 +251,9 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_thread(self, thread, only_heading=False):
+    def format_thread(self, thread: gdb.Value, only_heading: bool = False) -> str:
         res = []
-        res.append(self._format_heading("binder_thread", "PID %s" % thread["pid"], thread))
+        res.append(self._format_heading("binder_thread", "PID %s" % thread["pid"], int(thread)))
 
         if only_heading:
             return "\n".join(res)
@@ -263,11 +268,11 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_transaction(self, transaction, only_heading=False):
+    def format_transaction(self, transaction: gdb.Value, only_heading: bool = False) -> str:
         res = []
         res.append(
             self._format_heading(
-                "binder_transaction", "ID %d" % transaction["debug_id"], transaction
+                "binder_transaction", "ID %s" % str(transaction["debug_id"]), int(transaction)
             )
         )
 
@@ -297,9 +302,9 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_node(self, node):
+    def format_node(self, node: gdb.Value) -> str:
         res = []
-        res.append(self._format_heading("binder_node", "", node))
+        res.append(self._format_heading("binder_node", "", int(node)))
         with self.indent:
             fields = [
                 "lock",
@@ -313,9 +318,9 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_ref(self, ref, only_heading=False):
+    def format_ref(self, ref: gdb.Value, only_heading: bool = False):
         res = []
-        res.append(self._format_heading("binder_ref", "HANDLE %s" % ref["data"]["desc"], ref))
+        res.append(self._format_heading("binder_ref", "HANDLE %s" % ref["data"]["desc"], int(ref)))
 
         if only_heading:
             return "\n".join(res)
@@ -326,22 +331,22 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_work(self, work):
+    def format_work(self, work: gdb.Value):
         res = []
-        res.append(self._format_heading("binder_work", work["type"], work.address))
+        res.append(self._format_heading("binder_work", str(work["type"]), int(work.address)))
 
         t = int(work["type"])
         # TODO: Create enum
         if t == 1:
-            obj = container_of(work.address, "struct binder_transaction", "work")
+            obj = container_of(int(work.address), "struct binder_transaction", "work")
         elif t in [2, 3]:
             return "\n".join(res)  # These are just binder_work objects
         elif t == 4:
-            obj = container_of(work.address, "struct binder_error", "work")
+            obj = container_of(int(work.address), "struct binder_error", "work")
         elif t == 5:
-            obj = container_of(work.address, "struct binder_node", "work")
+            obj = container_of(int(work.address), "struct binder_node", "work")
         elif t in [6, 7, 8]:
-            obj = container_of(work.address, "struct binder_ref_death", "work")
+            obj = container_of(int(work.address), "struct binder_ref_death", "work")
         else:
             assert False
 
@@ -350,7 +355,7 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def print_object(self, obj):
+    def print_object(self, obj: gdb.Value):
         # TODO: type
         print(obj)
 
