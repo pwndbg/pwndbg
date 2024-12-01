@@ -26,14 +26,15 @@ fieldvaluec = C.yellow
 typenamec = C.red
 
 
-def for_each_transaction(addr, field):
+def for_each_transaction(addr: gdb.Value, field: str) -> Iterator[gdb.Value]:
     typename = "struct binder_transaction"
-
-    while addr != 0:
+    addr_int = int(addr)
+    while addr_int != 0:
         transaction = gdb.Value(addr).cast(gdb.lookup_type(typename).pointer())
         yield transaction
 
         addr = transaction[field]
+        addr_int = int(addr)
 
 
 # TODO: pull this out from the slab command so we can reuse it
