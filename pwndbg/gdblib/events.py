@@ -94,7 +94,10 @@ def _is_safe_event_thread():
     return True
 
 
-def wrap_safe_event_handler(event_handler: Callable[P, T]) -> Callable[P, T]:
+queued_invalid_events: Deque[Callable[..., Any]] = deque()
+
+
+def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> Callable[P, T]:
     """
     Wraps an event handler to ensure it is only executed when the event is safe.
     Invalid events are queued and executed later when safe.
@@ -102,11 +105,13 @@ def wrap_safe_event_handler(event_handler: Callable[P, T]) -> Callable[P, T]:
     Note: Avoid using `gdb.post_event` because of another bug in gdbserver
     where the `gdb.newest_frame` function may not work properly.
 
-    Workaround to fix bug in gdbserver: https://github.com/pwndbg/pwndbg/issues/2576
+    Workaround to fix bug in gdbserver (gdb.events.new_objfile): https://github.com/pwndbg/pwndbg/issues/2576
+    Workaround to fix bug in gdb (gdb.events.stop): https://github.com/pwndbg/pwndbg/issues/425
     """
-    queued_invalid_events: Deque[Callable[..., Any]] = deque()
 
     def _loop_until_thread_ok():
+        global queued_invalid_events
+
         if not queued_invalid_events:
             return
 
@@ -119,14 +124,34 @@ def wrap_safe_event_handler(event_handler: Callable[P, T]) -> Callable[P, T]:
 
     @wraps(event_handler)
     def _inner_handler(*a: P.args, **kw: P.kwargs):
-        if _is_safe_event_packet():
+        global queued_invalid_events
+
+        # Implement our custom event gdb.events.start!
+        if event_type == gdb.events.new_objfile:
+            queued_invalid_events.append(lambda: gdb.events.start.on_new_objfile())
+        elif event_type == gdb.events.exited:
+            gdb.events.start.on_exited()
+        elif event_type == gdb.events.stop:
+            gdb.post_event(gdb.events.start.on_stop)
+
+        # Workaround to bugs in GDB...
+        if event_type == gdb.events.new_objfile and not _is_safe_event_packet():
+            # Workaround to issue with gdbserver - Remote 'g' packet reply is too long
+            # https://github.com/pwndbg/pwndbg/issues/2576
+            queued_invalid_events.append(lambda: event_handler(*a, **kw))
+            gdb.post_event(_loop_until_thread_ok)
+            return
+        elif event_type == gdb.events.stop:
+            # Workaround to issue with gdb `commands \n continue \n end` - Selected thread is running
+            # https://github.com/pwndbg/pwndbg/issues/425
+            queued_invalid_events.append(lambda: event_handler(*a, **kw))
+            gdb.post_event(_loop_until_thread_ok)
+            return
+        else:
+            # events safe to execute!
             while queued_invalid_events:
                 queued_invalid_events.popleft()()
             event_handler(*a, **kw)
-            return
-
-        queued_invalid_events.append(lambda: event_handler(*a, **kw))
-        gdb.post_event(_loop_until_thread_ok)
 
     return _inner_handler
 
@@ -200,9 +225,7 @@ def connect(
     registered[event_handler].setdefault(priority, []).append(caller)
     if event_handler not in connected:
         handle = partial(invoke_event, event_handler)
-
-        if event_handler == gdb.events.new_objfile:
-            handle = wrap_safe_event_handler(handle)
+        handle = wrap_safe_event_handler(handle, event_handler)
 
         event_handler.connect(handle)
         connected[event_handler] = handle
@@ -279,18 +302,3 @@ def after_reload(start: bool = True) -> None:
 def on_reload() -> None:
     for functions in registered.values():
         functions.clear()
-
-
-@new_objfile
-def _start_newobjfile() -> None:
-    gdb.events.start.on_new_objfile()
-
-
-@exit
-def _start_exit() -> None:
-    gdb.events.start.on_exited()
-
-
-@stop
-def _start_stop() -> None:
-    gdb.events.start.on_stop()
