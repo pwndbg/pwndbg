@@ -116,6 +116,10 @@ def poke(address: int) -> bool:
     if c is None:
         return False
     try:
+        # Suspending mem_changed event during poke speeds up things when vmmaps are explored
+        # (e.g. when stepping through remote processes run with QEMU)
+        # The suspension prevents the clearing of the disasm instruction cache
+        # by `aglib.disasm.clear_on_reg_mem_change`
         pwndbg.dbg.suspend_events(EventType.MEMORY_CHANGED)
         write(address, c)
     except Exception:
