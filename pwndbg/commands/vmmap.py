@@ -182,6 +182,9 @@ parser.add_argument(
     "-B", "--lines-before", type=int, help="Number of pages to display before result", default=1
 )
 parser.add_argument(
+    "-C", "--context", type=int, help="Number of pages to display around the result"
+)
+parser.add_argument(
     "--gaps",
     action="store_true",
     help="Display unmapped memory gap information in the memory map.",
@@ -193,13 +196,22 @@ parser.add_argument(
 )
 @pwndbg.commands.OnlyWhenRunning
 def vmmap(
-    gdbval_or_str=None, writable=False, executable=False, lines_after=1, lines_before=1, gaps=False
+    gdbval_or_str=None,
+    writable=False,
+    executable=False,
+    lines_after=1,
+    lines_before=1,
+    context=None,
+    gaps=False,
 ) -> None:
     lookaround_lines_limit = 64
 
     # Implement a sane limit
-    lines_after = min(lookaround_lines_limit, lines_after)
-    lines_before = min(lookaround_lines_limit, lines_before)
+    if context is not None:
+        lines_after = lines_before = min(lookaround_lines_limit, context)
+    else:
+        lines_after = min(lookaround_lines_limit, lines_after)
+        lines_before = min(lookaround_lines_limit, lines_before)
 
     # All displayed pages, including lines after and lines before
     vmmap = pwndbg.dbg.selected_inferior().vmmap()
