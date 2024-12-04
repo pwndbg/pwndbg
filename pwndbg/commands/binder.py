@@ -13,10 +13,10 @@ import pwndbg.aglib.memory
 import pwndbg.color as C
 import pwndbg.commands
 import pwndbg.dbg
+from pwndbg.aglib.kernel.macros import container_of
+from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.aglib.kernel.rbtree import for_each_rb_entry
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib.kernel.macros import container_of
-from pwndbg.gdblib.kernel.macros import for_each_entry
-from pwndbg.gdblib.kernel.rbtree import for_each_rb_entry
 
 log = logging.getLogger(__name__)
 

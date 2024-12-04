@@ -19,6 +19,11 @@ def update_typeinfo() -> None:
     pwndbg.aglib.arch_mod.update()
 
 
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
+def reset_config() -> None:
+    pwndbg.aglib.kernel._kconfig = None
+
+
 @pwndbg.dbg.event_handler(EventType.START)
 def on_start() -> None:
     pwndbg.aglib.memory.update_min_addr()

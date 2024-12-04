@@ -447,7 +447,7 @@ class Aarch64Ops(ArchOps):
         PAGE_END = (-1 << (VA_BITS_MIN - 1)) + 2**64
         VMEMMAP_SIZE = (PAGE_END - self.PAGE_OFFSET) >> (self.PAGE_SHIFT - self.STRUCT_PAGE_SHIFT)
 
-        if pwndbg.gdblib.kernel.krelease() >= (5, 11):
+        if pwndbg.aglib.kernel.krelease() >= (5, 11):
             # Linux 5.11 changed the calculation for VMEMMAP_START
             # https://elixir.bootlin.com/linux/v5.11/source/arch/arm64/include/asm/memory.h#L53
             self.VMEMMAP_SHIFT = self.PAGE_SHIFT - self.STRUCT_PAGE_SHIFT

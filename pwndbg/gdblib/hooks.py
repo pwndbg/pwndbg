@@ -47,7 +47,7 @@ def update_arch() -> None:
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def reset_config() -> None:
-    pwndbg.gdblib.kernel._kconfig = None
+    pwndbg.aglib.kernel._kconfig = None
 
 
 @pwndbg.dbg.event_handler(EventType.START)
@@ -56,14 +56,14 @@ def on_start() -> None:
     pwndbg.aglib.memory.update_min_addr()
 
 
-@pwndbg.dbg.event_handler(EventType.EXIT)
-def on_exit() -> None:
-    pwndbg.aglib.file.reset_remote_files()
-
-
 @pwndbg.dbg.event_handler(EventType.STOP)
 def on_stop() -> None:
     pwndbg.aglib.strings.update_length()
+
+
+@pwndbg.dbg.event_handler(EventType.EXIT)
+def on_exit() -> None:
+    pwndbg.aglib.file.reset_remote_files()
 
 
 import pwndbg.lib.cache

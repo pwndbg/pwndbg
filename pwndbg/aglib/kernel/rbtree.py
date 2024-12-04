@@ -5,8 +5,8 @@ from typing import Iterator
 import gdb
 
 import pwndbg
+from pwndbg.aglib.kernel.macros import container_of
 from pwndbg.dbg import EventType
-from pwndbg.gdblib.kernel.macros import container_of
 
 rb_root_type: gdb.Type = None
 rb_node_type: gdb.Type = None

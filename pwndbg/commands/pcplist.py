@@ -8,9 +8,9 @@ import gdb
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.commands
+from pwndbg.aglib.kernel import per_cpu
+from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib.kernel import per_cpu
-from pwndbg.gdblib.kernel.macros import for_each_entry
 
 log = logging.getLogger(__name__)
 

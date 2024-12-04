@@ -7,11 +7,11 @@ from typing import Set
 import gdb
 
 import pwndbg
+from pwndbg.aglib import kernel
 from pwndbg.aglib import memory
-from pwndbg.gdblib import kernel
-from pwndbg.gdblib.kernel.macros import compound_head
-from pwndbg.gdblib.kernel.macros import for_each_entry
-from pwndbg.gdblib.kernel.macros import swab
+from pwndbg.aglib.kernel.macros import compound_head
+from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.aglib.kernel.macros import swab
 
 
 def caches() -> Generator[SlabCache, None, None]:

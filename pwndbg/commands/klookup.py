@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.kernel.kallsyms
 import pwndbg.commands
-import pwndbg.gdblib.kernel.kallsyms
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -16,7 +16,7 @@ parser.add_argument("symbol", type=str, help="Address or symbol name to lookup")
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def klookup(symbol: str) -> None:
-    ksyms = pwndbg.gdblib.kernel.kallsyms.get()
+    ksyms = pwndbg.aglib.kernel.kallsyms.get()
     try:
         symbol_addr = int(symbol)
         for k, v in ksyms.items():

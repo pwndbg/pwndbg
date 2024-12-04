@@ -19,6 +19,7 @@ import gdb
 import pwndbg
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
+import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
@@ -28,7 +29,6 @@ import pwndbg.auxv
 import pwndbg.color.message as M
 import pwndbg.gdblib.abi
 import pwndbg.gdblib.info
-import pwndbg.gdblib.kernel
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
@@ -602,7 +602,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
         return tuple(retpages)
 
     # If paging is not enabled, we shouldn't attempt to parse page tables
-    if not pwndbg.gdblib.kernel.paging_enabled():
+    if not pwndbg.aglib.kernel.paging_enabled():
         return tuple(retpages)
 
     pages = p.pt.arch_backend.parse_tables(p.pt.cache, p.pt.parser.parse_args(""))

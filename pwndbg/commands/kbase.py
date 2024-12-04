@@ -4,10 +4,10 @@ import argparse
 
 import gdb
 
+import pwndbg.aglib.kernel
 import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.dbg
-import pwndbg.gdblib.kernel
 from pwndbg import config
 from pwndbg.commands import CommandCategory
 
@@ -24,7 +24,7 @@ def kbase(rebase=False) -> None:
         print(M.error("kbase does not work when kernel-vmmap is set to none"))
         return
 
-    base = pwndbg.gdblib.kernel.kbase()
+    base = pwndbg.aglib.kernel.kbase()
 
     if base is None:
         print(M.error("Unable to locate the kernel base"))

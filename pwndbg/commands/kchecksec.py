@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 from typing import NamedTuple
 
+import pwndbg.aglib.kernel
 import pwndbg.color.message as M
 import pwndbg.commands
-import pwndbg.gdblib.kernel
 from pwndbg.commands import CommandCategory
 
 
@@ -107,7 +107,7 @@ parser = argparse.ArgumentParser(description="Checks for kernel hardening config
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kchecksec() -> None:
-    kconfig = pwndbg.gdblib.kernel.kconfig()
+    kconfig = pwndbg.aglib.kernel.kconfig()
 
     if not kconfig:
         print(
