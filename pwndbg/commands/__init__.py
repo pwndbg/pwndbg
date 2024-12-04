@@ -290,6 +290,7 @@ def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, Optional[T]]:
             msg += ' Try "help target" or "continue".'
 
         log.error(msg)
+        return None
 
     return _OnlyWhenLocal
 
