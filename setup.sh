@@ -161,7 +161,7 @@ if linux; then
                 install_pacman
             else
                 echo "\"$distro\" is not supported and your distro don't have a package manager that we support currently."
-                exit
+                exit 2
             fi
             ;;
     esac
@@ -169,7 +169,7 @@ fi
 
 if ! hash gdb; then
     echo "Could not find gdb in $PATH"
-    exit
+    exit 3
 fi
 
 # Find the Python version used by GDB.
@@ -186,7 +186,7 @@ if [[ -z "$is_supported" ]]; then
     echo "Your system has unsupported python version. Please use older pwndbg release:"
     echo "'git checkout 2024.08.29' - python3.8, python3.9"
     echo "'git checkout 2023.07.17' - python3.6, python3.7"
-    exit
+    exit 4
 fi
 
 # Install Poetry
