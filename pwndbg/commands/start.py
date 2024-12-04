@@ -67,6 +67,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, aliases=["main", "init"], category=CommandCategory.START)
 @pwndbg.commands.OnlyWithDbg("gdb")
+@pwndbg.commands.OnlyWhenLocal
 def start(args=None) -> None:
     if args is None:
         args = []
@@ -117,6 +118,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
 @pwndbg.commands.OnlyWithFile
+@pwndbg.commands.OnlyWhenLocal
 def entry(args=None) -> None:
     if args is None:
         args = []
@@ -142,6 +144,7 @@ def entry(args=None) -> None:
 )
 @pwndbg.commands.OnlyWithFile
 @pwndbg.commands.OnlyWithDbg("gdb")
+@pwndbg.commands.OnlyWhenLocal
 def sstart() -> None:
     gdb.Breakpoint("__libc_start_main", temporary=True)
     gdb.execute("run")
