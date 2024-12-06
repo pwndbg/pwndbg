@@ -4,24 +4,28 @@ from typing import Generator
 from typing import List
 from typing import Set
 
-import gdb
-
 import pwndbg
+import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 from pwndbg.aglib import kernel
-from pwndbg.aglib import memory
 from pwndbg.aglib.kernel.macros import compound_head
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.aglib.kernel.macros import swab
 
 
 def caches() -> Generator[SlabCache, None, None]:
-    slab_caches = gdb.lookup_global_symbol("slab_caches").value()
+    slab_caches = pwndbg.aglib.symbol.lookup_global_symbol("slab_caches")
+    if not slab_caches:
+        return
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         yield SlabCache(slab_cache)
 
 
 def get_cache(target_name: str) -> SlabCache | None:
-    slab_caches = gdb.lookup_global_symbol("slab_caches").value()
+    slab_caches = pwndbg.aglib.symbol.lookup_global_symbol("slab_caches")
+    if not slab_caches:
+        return None
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         if target_name == slab_cache["name"].string():
             return SlabCache(slab_cache)
@@ -30,11 +34,9 @@ def get_cache(target_name: str) -> SlabCache | None:
 
 def slab_struct_type() -> str:
     # In Linux kernel version 5.17 a slab struct was introduced instead of the previous page struct
-    try:
-        gdb.lookup_type("struct slab")
+    if pwndbg.aglib.typeinfo.load("struct slab") is not None:
         return "slab"
-    except gdb.error:
-        return "page"
+    return "page"
 
 
 OO_SHIFT = 16
@@ -83,7 +85,7 @@ class Freelist:
         while current_object:
             addr = int(current_object)
             yield current_object
-            current_object = memory.pvoid(addr + self.offset)
+            current_object = pwndbg.aglib.memory.pvoid(addr + self.offset)
             if self.random:
                 current_object ^= self.random ^ swab(addr + self.offset)
 
@@ -102,7 +104,7 @@ class Freelist:
 
 
 class SlabCache:
-    def __init__(self, slab_cache: gdb.Value) -> None:
+    def __init__(self, slab_cache: pwndbg.dbg_mod.Value) -> None:
         self._slab_cache = slab_cache
 
     @property
@@ -122,7 +124,7 @@ class SlabCache:
         if not kernel.kconfig():
             try:
                 return int(self._slab_cache["random"])
-            except gdb.error:
+            except pwndbg.dbg_mod.Error:
                 return 0
 
         return (
@@ -148,7 +150,7 @@ class SlabCache:
     @property
     def cpu_cache(self) -> CpuCache:
         """returns cpu cache associated to current thread"""
-        cpu = gdb.selected_thread().num - 1
+        cpu = pwndbg.dbg.selected_thread().index() - 1
         cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
         return CpuCache(cpu_cache, self, cpu)
 
@@ -187,7 +189,7 @@ class SlabCache:
 
 
 class CpuCache:
-    def __init__(self, cpu_cache: gdb.Value, slab_cache: SlabCache, cpu: int) -> None:
+    def __init__(self, cpu_cache: pwndbg.dbg_mod.Value, slab_cache: SlabCache, cpu: int) -> None:
         self._cpu_cache = cpu_cache
         self.slab_cache = slab_cache
         self.cpu = cpu
@@ -224,7 +226,7 @@ class CpuCache:
 
 
 class NodeCache:
-    def __init__(self, node_cache: gdb.Value, slab_cache: SlabCache, node: int) -> None:
+    def __init__(self, node_cache: pwndbg.dbg_mod.Value, slab_cache: SlabCache, node: int) -> None:
         self._node_cache = node_cache
         self.slab_cache = slab_cache
         self.node = node
@@ -246,7 +248,7 @@ class NodeCache:
 class Slab:
     def __init__(
         self,
-        slab: gdb.Value,
+        slab: pwndbg.dbg_mod.Value,
         cpu_cache: CpuCache | None,
         slab_cache: SlabCache,
         is_partial: bool = False,
@@ -299,7 +301,7 @@ class Slab:
             return 0
         try:
             return int(self._slab["pobjects"])
-        except gdb.error:
+        except pwndbg.dbg_mod.Error:
             # calculate approx obj count in half-full slabs (as done in kernel)
             # Note, this is a very bad approximation and could/should probably
             # be replaced by a more accurate method
@@ -328,7 +330,9 @@ class Slab:
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
     """Find the slab cache associated with the provided address."""
     min_pfn = 0
-    max_pfn = int(gdb.lookup_global_symbol("max_pfn").value())
+    max_pfn = pwndbg.aglib.symbol.lookup_global_symbol_value("max_pfn")
+    assert max_pfn is not None, "Symbol max_pfn not found"
+
     page_size = kernel.page_size()
 
     start_addr = kernel.pfn_to_virt(min_pfn)
@@ -338,17 +342,11 @@ def find_containing_slab_cache(addr: int) -> SlabCache | None:
         # address is out of range
         return None
 
-    page = memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
-    head_page = compound_head(dbg_value_to_gdb(page))
+    page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
+    head_page = compound_head(page)
 
-    slab_type = gdb.lookup_type(f"struct {slab_struct_type()}")
+    slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
+    assert slab_type is not None, "Symbol slab not found"
+
     slab = head_page.cast(slab_type)
-
     return SlabCache(slab["slab_cache"])
-
-
-def dbg_value_to_gdb(d: pwndbg.dbg_mod.Value) -> gdb.Value:
-    from pwndbg.dbg.gdb import GDBValue
-
-    assert isinstance(d, GDBValue)
-    return d.inner

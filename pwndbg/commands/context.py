@@ -24,6 +24,7 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.regs
+import pwndbg.aglib.symbol
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
@@ -1195,7 +1196,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
             pc = gdb.selected_frame().pc()
 
             pc_colored = M.get(pc)
-            symbol = pwndbg.gdblib.symbol.get(pc)
+            symbol = pwndbg.aglib.symbol.resolve_addr(int(pc))
 
             line += f"{pc_colored}"
             if symbol:

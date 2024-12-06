@@ -4,6 +4,7 @@ import gdb
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.stack
+import pwndbg.aglib.symbol
 import pwndbg.dbg
 import tests
 
@@ -102,7 +103,7 @@ def test_fetch_struct_as_dictionary(start_binary):
         "outer_z": 5,
     }
 
-    struct_address = pwndbg.dbg.selected_inferior().symbol_address_from_name("outer")
+    struct_address = pwndbg.aglib.symbol.lookup_symbol_addr("outer")
     assert struct_address is not None
 
     result = pwndbg.aglib.memory.fetch_struct_as_dictionary("outer_struct", struct_address)
@@ -126,7 +127,7 @@ def test_fetch_struct_as_dictionary_include_filter(start_binary):
         "anonymous_nested": 100,
     }
 
-    struct_address = pwndbg.dbg.selected_inferior().symbol_address_from_name("outer")
+    struct_address = pwndbg.aglib.symbol.lookup_symbol_addr("outer")
     assert struct_address is not None
 
     result = pwndbg.aglib.memory.fetch_struct_as_dictionary(
@@ -155,7 +156,7 @@ def test_fetch_struct_as_dictionary_exclude_filter(start_binary):
         "anonymous_nested": 100,
     }
 
-    struct_address = pwndbg.dbg.selected_inferior().symbol_address_from_name("outer")
+    struct_address = pwndbg.aglib.symbol.lookup_symbol_addr("outer")
     assert struct_address is not None
 
     result = pwndbg.aglib.memory.fetch_struct_as_dictionary(

@@ -18,16 +18,14 @@ from typing import Set
 from typing import Tuple
 from typing import cast
 
-import gdb
-
 import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.symbol
 import pwndbg.color.memory
-import pwndbg.gdblib.symbol
 import pwndbg.hexdump
 import pwndbg.lib.cache
 from pwndbg.color import generateColorFunction
@@ -262,7 +260,7 @@ def get_go_version() -> Tuple[int, ...] | None:
     at which point it's probably best to assume latest version.
     """
     # if a runtime.buildVersion symbol exists, prefer that
-    buildversion_addr = pwndbg.gdblib.symbol.address("runtime.buildVersion")
+    buildversion_addr = pwndbg.aglib.symbol.lookup_symbol_addr("runtime.buildVersion")
     if buildversion_addr is not None:
         version_string = read_buildversion(buildversion_addr)
     else:
@@ -294,9 +292,8 @@ def get_go_version() -> Tuple[int, ...] | None:
 def _get_moduledata_types() -> Tuple[Tuple[int, int], ...] | None:
     ret = []
     try:
-        sym = gdb.lookup_symbol("runtime.firstmoduledata")[0]
-        if sym is not None:
-            md = sym.value()
+        md = pwndbg.aglib.symbol.lookup_symbol("runtime.firstmoduledata")
+        if md:
             while True:
                 start = int(md["types"])
                 end = int(md["etypes"])
@@ -309,7 +306,7 @@ def _get_moduledata_types() -> Tuple[Tuple[int, int], ...] | None:
             emit_warning(
                 "Warning: Could not find `runtime.firstmoduledata` symbol, so a heuristic is used instead"
             )
-    except gdb.error as e:
+    except pwndbg.dbg_mod.Error as e:
         emit_warning(
             f"Warning: Exception '{e}' occurred while trying to parse `runtime.firstmoduledata`, so a heuristic is used instead"
         )
@@ -319,7 +316,9 @@ def _get_moduledata_types() -> Tuple[Tuple[int, int], ...] | None:
 @pwndbg.lib.cache.cache_until("objfile")
 def _guess_moduledata_types() -> int | None:
     # the type:* symbol can indicate type start
-    type_start = pwndbg.gdblib.symbol.address("type:*")
+
+    # TODO: sprawdzic czy to regex, czy co
+    type_start = pwndbg.aglib.symbol.lookup_symbol_addr("type:*")
     if type_start is not None:
         return type_start
     # otherwise, just assume that types are at the start of .rodata if there aren't any debug symbols

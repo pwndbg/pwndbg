@@ -8,12 +8,13 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 
 
 def __call_pthread_self() -> int:
     """Get the address of TLS by calling pthread_self()."""
-    if pwndbg.dbg.selected_inferior().symbol_address_from_name("pthread_self") is None:
+    if pwndbg.aglib.symbol.lookup_global_symbol("pthread_self") is None:
         return 0
     try:
         return int(

@@ -60,10 +60,9 @@ def test_symbol_duplicated_symbols_issue_1610():
     assert out[2] == ""
 
     # Make sure to clear cache!
-    if pwndbg.dbg.is_gdblib_available():
-        from pwndbg.gdblib.symbol import get as symbol_get
-
-        symbol_get.cache.clear()
+    # TODO: clear cache
+    # from pwndbg.aglib.symbol import lookup_symbol_value
+    # lookup_symbol_value.cache.clear()
 
     # Real test assert - this should not crash!
     assert pwndbg.dbg.selected_inferior().symbol_name_at_address(main_addr) == "main"

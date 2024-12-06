@@ -7,9 +7,8 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
-import gdb
-
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.color as C
 import pwndbg.commands
 import pwndbg.dbg
@@ -26,11 +25,11 @@ fieldvaluec = C.yellow
 typenamec = C.red
 
 
-def for_each_transaction(addr: gdb.Value, field: str) -> Iterator[gdb.Value]:
+def for_each_transaction(addr: pwndbg.dbg_mod.Value, field: str) -> Iterator[pwndbg.dbg_mod.Value]:
     typename = "struct binder_transaction"
     addr_int = int(addr)
     while addr_int != 0:
-        transaction = gdb.Value(addr).cast(gdb.lookup_type(typename).pointer())
+        transaction = pwndbg.aglib.memory.get_typed_pointer(typename, addr)
         yield transaction
 
         addr = transaction[field]
@@ -71,13 +70,8 @@ rb_node_field_names = {
     "refs_by_node": "rb_node_node",
 }
 
-codenames = [x for x in dir(gdb) if "TYPE_CODE_" in x]
-code_to_name = {getattr(gdb, name): name for name in codenames}
-name_to_code = {v: k for k, v in code_to_name.items()}
-
-
 # TODO: merge with for_each_entry?
-def for_each_hlist_entry(head: pwndbg.dbg_mod.Value, typename, field) -> Iterator[gdb.Value]:
+def for_each_hlist_entry(head: pwndbg.dbg_mod.Value, typename, field) -> Iterator[pwndbg.dbg_mod.Value]:
     addr = head["first"]
     addr_int = int(addr)
     while addr_int != 0:
@@ -102,11 +96,11 @@ class BinderVisitor:
 
     # TODO: do this in a cleaner, object-oriented way
     def _format_field(
-        self, field: Optional[str] = None, value: gdb.Value | str = "", only_heading: bool = True
+        self, field: Optional[str] = None, value: pwndbg.dbg_mod.Value | str = "", only_heading: bool = True
     ) -> str:
-        if isinstance(value, gdb.Value):
+        if isinstance(value, pwndbg.dbg_mod.Value):
             t = value.type
-            if t.code == name_to_code["TYPE_CODE_TYPEDEF"]:
+            if t.code == pwndbg.dbg_mod.TypeCode.TYPEDEF:
                 real_type = t.strip_typedefs()
 
                 # We only want to replace the typedef with the real type if the
@@ -114,11 +108,9 @@ class BinderVisitor:
                 if real_type.name is not None:
                     t = real_type
 
-            if t.code == name_to_code["TYPE_CODE_INT"]:
+            if t.code == pwndbg.dbg_mod.TypeCode.INT:
                 value = int(value)
-            elif t.code == name_to_code["TYPE_CODE_BOOL"]:
-                value = True if value else False
-            elif t.code == name_to_code["TYPE_CODE_PTR"]:
+            elif t.code == pwndbg.dbg_mod.TypeCode.POINTER:
                 typename = t.target().name
                 if int(value) == 0:
                     value = "NULL"
@@ -140,7 +132,7 @@ class BinderVisitor:
                         value = "\n" + "\n".join(["    " + line for line in value.split("\n")])
                 else:
                     print(f"Warning: no formatter for pointer type {typename}")
-            elif t.code in [name_to_code["TYPE_CODE_STRUCT"], name_to_code["TYPE_CODE_TYPEDEF"]]:
+            elif t.code in [pwndbg.dbg_mod.TypeCode.STRUCT, pwndbg.dbg_mod.TypeCode.TYPEDEF]:
                 typename = t.name
                 if typename == "spinlock":
                     value = self.format_spinlock(value).strip()
@@ -167,7 +159,7 @@ class BinderVisitor:
 
         return self._format_indent(output)
 
-    def format_rb_tree(self, field: str, value: gdb.Value) -> Tuple[str, int]:
+    def format_rb_tree(self, field: str, value: pwndbg.dbg_mod.Value) -> Tuple[str, int]:
         res = []
 
         node_type = node_types[field]
@@ -189,7 +181,7 @@ class BinderVisitor:
         # Prepend a newline so the list starts on the line after the field name
         return "\n" + "\n".join(res), len(res)
 
-    def format_list(self, field: str, value: gdb.Value, typename: str) -> Tuple[str, int]:
+    def format_list(self, field: str, value: pwndbg.dbg_mod.Value, typename: str) -> Tuple[str, int]:
         res = []
 
         node_type = node_types[field]
@@ -218,7 +210,7 @@ class BinderVisitor:
         # Prepend a newline so the list starts on the line after the field name
         return "\n" + "\n".join(res), len(res)
 
-    def _format_fields(self, obj: gdb.Value, fields: List[str], only_heading: bool = True) -> str:
+    def _format_fields(self, obj: pwndbg.dbg_mod.Value, fields: List[str], only_heading: bool = True) -> str:
         res = []
         for field in fields:
             res.append(self._format_field(field, obj[field], only_heading=only_heading))
@@ -229,7 +221,7 @@ class BinderVisitor:
             print(self.format_proc(proc))
             print()
 
-    def format_proc(self, proc: gdb.Value, only_heading=False):
+    def format_proc(self, proc: pwndbg.dbg_mod.Value, only_heading=False):
         res = []
         res.append(self._format_heading("binder_proc", "PID %s" % proc["pid"], int(proc)))
 
@@ -252,7 +244,7 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_thread(self, thread: gdb.Value, only_heading: bool = False) -> str:
+    def format_thread(self, thread: pwndbg.dbg_mod.Value, only_heading: bool = False) -> str:
         res = []
         res.append(self._format_heading("binder_thread", "PID %s" % thread["pid"], int(thread)))
 
@@ -269,7 +261,7 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_transaction(self, transaction: gdb.Value, only_heading: bool = False) -> str:
+    def format_transaction(self, transaction: pwndbg.dbg_mod.Value, only_heading: bool = False) -> str:
         res = []
         res.append(
             self._format_heading(
@@ -303,7 +295,7 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_node(self, node: gdb.Value) -> str:
+    def format_node(self, node: pwndbg.dbg_mod.Value) -> str:
         res = []
         res.append(self._format_heading("binder_node", "", int(node)))
         with self.indent:
@@ -319,7 +311,7 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_ref(self, ref: gdb.Value, only_heading: bool = False):
+    def format_ref(self, ref: pwndbg.dbg_mod.Value, only_heading: bool = False) -> str:
         res = []
         res.append(self._format_heading("binder_ref", "HANDLE %s" % ref["data"]["desc"], int(ref)))
 
@@ -332,7 +324,7 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_work(self, work: gdb.Value):
+    def format_work(self, work: pwndbg.dbg_mod.Value) -> str:
         res = []
         res.append(self._format_heading("binder_work", str(work["type"]), int(work.address)))
 
@@ -356,11 +348,11 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def print_object(self, obj: gdb.Value):
+    def print_object(self, obj: pwndbg.dbg_mod.Value):
         # TODO: type
         print(obj)
 
-    def format_spinlock(self, lock: gdb.Value) -> str:
+    def format_spinlock(self, lock: pwndbg.dbg_mod.Value) -> str:
         raw_lock = lock["rlock"]["raw_lock"]
         val = pwndbg.aglib.memory.ushort(int(raw_lock.address))
         locked = val & 0xFF
@@ -378,6 +370,8 @@ parser = argparse.ArgumentParser(description="Show Android Binder information")
 @pwndbg.commands.OnlyWhenPagingEnabled
 def binder():
     log.warning("This command is a work in progress and may not work as expected.")
-    procs_addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("binder_procs")
+    procs_addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("binder_procs")
+    assert procs_addr is not None, "Symbol binder_procs not exists"
+
     bv = BinderVisitor(procs_addr)
     bv.visit()

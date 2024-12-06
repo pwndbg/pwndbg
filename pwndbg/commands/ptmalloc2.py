@@ -13,6 +13,7 @@ import pwndbg
 import pwndbg.aglib.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
@@ -1195,7 +1196,7 @@ def try_free(addr: str | int) -> None:
     addr = int(addr)
 
     # check hook
-    free_hook = pwndbg.dbg.selected_inferior().symbol_address_from_name("__free_hook")
+    free_hook = pwndbg.aglib.symbol.lookup_global_symbol_addr("__free_hook")
     if free_hook is not None:
         if pwndbg.aglib.memory.pvoid(free_hook) != 0:
             print(message.success("__libc_free: will execute __free_hook"))

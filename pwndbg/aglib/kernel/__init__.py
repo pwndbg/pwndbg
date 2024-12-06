@@ -10,15 +10,13 @@ from typing import List
 from typing import Tuple
 from typing import TypeVar
 
-import gdb
 from typing_extensions import ParamSpec
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as M
-import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
@@ -41,7 +39,7 @@ def has_debug_syms() -> bool:
     # Check for an arbitrary type and symbol name that are not likely to change
     return (
         pwndbg.aglib.typeinfo.load("struct file") is not None
-        and pwndbg.gdblib.symbol.address("linux_banner") is not None
+        and pwndbg.aglib.symbol.lookup_global_symbol_addr("linux_banner") is not None
     )
 
 
@@ -87,7 +85,9 @@ def requires_debug_syms(default: D = None) -> Callable[[Callable[P, T]], Callabl
 @requires_debug_syms(default=1)
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
-    return int(gdb.lookup_global_symbol("nr_cpu_ids").value())
+    val = pwndbg.aglib.symbol.lookup_global_symbol_value("nr_cpu_ids")
+    assert val is not None, "Symbol nr_cpu_ids not exists"
+    return val
 
 
 def get_first_kernel_ro():
@@ -108,8 +108,8 @@ def get_first_kernel_ro():
 
 def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
     if has_debug_syms():
-        config_start = pwndbg.gdblib.symbol.address("kernel_config_data")
-        config_end = pwndbg.gdblib.symbol.address("kernel_config_data_end")
+        config_start = pwndbg.aglib.symbol.lookup_global_symbol_addr("kernel_config_data")
+        config_end = pwndbg.aglib.symbol.lookup_global_symbol_addr("kernel_config_data_end")
     else:
         mapping = get_first_kernel_ro()
         results = list(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]))
@@ -142,14 +142,18 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
 @requires_debug_syms(default="")
 @pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
-    cmdline_addr = pwndbg.aglib.memory.pvoid(pwndbg.gdblib.symbol.address("saved_command_line"))
+    addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("saved_command_line")
+    assert addr is not None, "Symbol saved_command_line not exists"
+
+    cmdline_addr = pwndbg.aglib.memory.pvoid(addr)
     return pwndbg.aglib.memory.string(cmdline_addr).decode("ascii")
 
 
 @pwndbg.lib.cache.cache_until("start")
 def kversion() -> str:
     if has_debug_syms():
-        version_addr = pwndbg.gdblib.symbol.address("linux_banner")
+        version_addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("linux_banner")
+        assert version_addr is not None, "Symbol linux_banner not exists"
     else:
         mapping = get_first_kernel_ro()
         version_addr = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))[0]
@@ -239,7 +243,7 @@ class ArchOps(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def per_cpu(self, addr: gdb.Value, cpu=None):
+    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu=None) -> pwndbg.dbg_mod.Value:
         raise NotImplementedError()
 
     @abstractmethod
@@ -341,7 +345,7 @@ class i386Ops(x86Ops):
     def virt_to_phys(self, virt: int) -> int:
         return (virt - self.page_offset) % (1 << 32)
 
-    def per_cpu(self, addr: gdb.Value, cpu: int | None = None):
+    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
         raise NotImplementedError()
 
     def pfn_to_page(self, pfn: int) -> int:
@@ -364,7 +368,7 @@ class x86_64Ops(x86Ops):
             # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/pgtable_64_types.h#L130
             self.VMEMMAP_START = 0xFFFFEA0000000000
 
-        self.STRUCT_PAGE_SIZE = gdb.lookup_type("struct page").sizeof
+        self.STRUCT_PAGE_SIZE = pwndbg.aglib.typeinfo.load("struct page").sizeof
         self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
 
         self.START_KERNEL_map = 0xFFFFFFFF80000000
@@ -384,14 +388,16 @@ class x86_64Ops(x86Ops):
         return 12
 
     @requires_debug_syms()
-    def per_cpu(self, addr: gdb.Value, cpu: int | None = None):
+    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
         if cpu is None:
-            cpu = gdb.selected_thread().num - 1
+            cpu = pwndbg.dbg.selected_thread().index() - 1
 
-        per_cpu_offset = pwndbg.gdblib.symbol.address("__per_cpu_offset")
+        per_cpu_offset = pwndbg.aglib.symbol.lookup_global_symbol_addr("__per_cpu_offset")
+        assert per_cpu_offset is not None, "Symbol __per_cpu_offset not found"
+
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
-        return gdb.Value(per_cpu_addr).cast(addr.type)
+        return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
         if virt < self.START_KERNEL_map:
@@ -411,7 +417,7 @@ class x86_64Ops(x86Ops):
     @staticmethod
     @requires_debug_syms()
     def cpu_feature_capability(feature: int) -> bool:
-        boot_cpu_data = gdb.lookup_global_symbol("boot_cpu_data").value()
+        boot_cpu_data = pwndbg.aglib.symbol.lookup_global_symbol("boot_cpu_data")
         capabilities = boot_cpu_data["x86_capability"]
         return (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
 
@@ -434,13 +440,19 @@ class x86_64Ops(x86Ops):
 class Aarch64Ops(ArchOps):
     @requires_kconfig(default={})
     def __init__(self) -> None:
-        self.STRUCT_PAGE_SIZE = gdb.lookup_type("struct page").sizeof
+        page_type = pwndbg.aglib.typeinfo.load("struct page")
+        assert page_type is not None, "Type 'struct page' not exists"
+
+        self.STRUCT_PAGE_SIZE = page_type.sizeof
         self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
 
         self.VA_BITS = int(kconfig()["ARM64_VA_BITS"])
         self.PAGE_SHIFT = int(kconfig()["CONFIG_ARM64_PAGE_SHIFT"])
 
-        self.PHYS_OFFSET = pwndbg.aglib.memory.u(pwndbg.gdblib.symbol.address("memstart_addr"))
+        addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("memstart_addr")
+        assert addr is not None, "Symbol memstart_addr not exists"
+
+        self.PHYS_OFFSET = pwndbg.aglib.memory.u(addr)
         self.PAGE_OFFSET = (-1 << self.VA_BITS) + 2**64
 
         VA_BITS_MIN = 48 if self.VA_BITS > 48 else self.VA_BITS
@@ -459,14 +471,16 @@ class Aarch64Ops(ArchOps):
         return 1 << self.PAGE_SHIFT
 
     @requires_debug_syms()
-    def per_cpu(self, addr: gdb.Value, cpu: int | None = None):
+    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
         if cpu is None:
-            cpu = gdb.selected_thread().num - 1
+            cpu = pwndbg.dbg.selected_thread().index() - 1
 
-        per_cpu_offset = pwndbg.gdblib.symbol.address("__per_cpu_offset")
+        per_cpu_offset = pwndbg.aglib.symbol.lookup_global_symbol_addr("__per_cpu_offset")
+        assert per_cpu_offset is not None, "Symbol __per_cpu_offset not exists"
+
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
-        return gdb.Value(per_cpu_addr).cast(addr.type)
+        return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
         return virt - self.PAGE_OFFSET
@@ -520,7 +534,7 @@ def page_size() -> int:
         raise NotImplementedError()
 
 
-def per_cpu(addr: gdb.Value, cpu: int | None = None):
+def per_cpu(addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
     ops = arch_ops()
     if ops:
         return ops.per_cpu(addr, cpu)
@@ -642,12 +656,12 @@ def num_numa_nodes() -> int:
     kc = kconfig()
     if kc is None:
         # if no config, we can still try one other way
-        node_states = gdb.lookup_global_symbol("node_states")
+        node_states = pwndbg.aglib.symbol.lookup_global_symbol("node_states")
         if node_states is None:
             return 1
-        node_states = gdb.lookup_global_symbol("node_states").value()
+
         node_mask = node_states[1]["bits"][0]  # 1 means N_ONLINE
-        return bin(node_mask).count("1")
+        return bin(int(node_mask)).count("1")
 
     if "CONFIG_NUMA" not in kc:
         return 1
@@ -656,4 +670,7 @@ def num_numa_nodes() -> int:
     if max_nodes == 1:
         return 1
 
-    return int(gdb.lookup_global_symbol("nr_online_nodes").value())
+    val = pwndbg.aglib.symbol.lookup_global_symbol_value("nr_online_nodes")
+    assert val is not None, "Symbol nr_online_nodes not found"
+
+    return val

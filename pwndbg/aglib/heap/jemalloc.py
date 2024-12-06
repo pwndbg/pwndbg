@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Dict
 
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 
 # adapted from jemalloc source 5.3.0
@@ -208,7 +209,7 @@ class RTree:
 
     @staticmethod
     def get_rtree() -> RTree:
-        addr = pwndbg.dbg.selected_inferior().symbol_address_from_name("je_arena_emap_global")
+        addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("je_arena_emap_global")
         if addr is None:
             raise pwndbg.dbg_mod.Error("Required je_arena_emap_global symbol not found")
         return RTree(addr)

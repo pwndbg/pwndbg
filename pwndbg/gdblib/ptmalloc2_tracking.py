@@ -58,10 +58,9 @@ import pwndbg.aglib.heap
 import pwndbg.aglib.heap.ptmalloc
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
-import pwndbg.gdblib
-import pwndbg.gdblib.symbol
 import pwndbg.lib.cache
 from pwndbg.color import message
 
@@ -98,11 +97,12 @@ def resolve_address(name: str) -> int | None:
     address.
     """
     # If that fails, try to query for it by using the less precise pwndbg API.
-    address = pwndbg.gdblib.symbol.address(name)
+    address = pwndbg.aglib.symbol.lookup_symbol_addr(name)
     if not address:
         # Nothing that we can do here.
         return None
 
+    # TODO: dodanie do lookup_symbol, sprawdzanie do jakiego modulu jest przypisany
     # Try to see if this belongs to libc.
     #
     # This check is, frankly, horrifying, but it's one of the few ways we can

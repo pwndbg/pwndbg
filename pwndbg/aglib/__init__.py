@@ -31,6 +31,7 @@ def load_aglib():
     import pwndbg.aglib.remote
     import pwndbg.aglib.stack
     import pwndbg.aglib.strings
+    import pwndbg.aglib.symbol
     import pwndbg.aglib.typeinfo
     import pwndbg.aglib.vmmap
 

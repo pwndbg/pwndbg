@@ -17,6 +17,7 @@ import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.chain
 import pwndbg.integration
@@ -25,9 +26,6 @@ import pwndbg.lib.funcparser
 import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
-
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
 
 
 def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
@@ -73,11 +71,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     result = []
     name = name or ""
 
-    if pwndbg.dbg.is_gdblib_available():
-        sym = gdb.lookup_symbol(name)
-    else:
-        sym = None
-
+    sym = pwndbg.aglib.symbol.lookup_symbol(name)
     name = name.replace("isoc99_", "")  # __isoc99_sscanf
     name = name.replace("@plt", "")  # getpwiod@plt
 
@@ -93,9 +87,9 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     # Try to extract the data from GDB.
     # Note that this is currently broken, pending acceptance of
     # my patch: https://sourceware.org/ml/gdb-patches/2015-06/msg00268.html
-    if sym and sym[0]:
+    if sym:
         try:
-            n_args_default = len(sym[0].type.fields())
+            n_args_default = len(sym.type.fields())
         except TypeError:
             pass
 

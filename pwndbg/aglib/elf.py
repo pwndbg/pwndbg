@@ -30,6 +30,7 @@ import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
 import pwndbg.lib.elftypes
@@ -267,7 +268,7 @@ def entry() -> int:
     # Try common names
     for name in ["_start", "start", "__start", "main"]:
         try:
-            return inf.symbol_address_from_name(name) or 0
+            return pwndbg.aglib.symbol.lookup_global_symbol_addr(name) or 0
         except pwndbg.dbg_mod.Error:
             pass
 

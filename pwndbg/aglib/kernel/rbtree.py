@@ -2,27 +2,29 @@ from __future__ import annotations
 
 from typing import Iterator
 
-import gdb
-
 import pwndbg
+import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
 from pwndbg.aglib.kernel.macros import container_of
 from pwndbg.dbg import EventType
 
-rb_root_type: gdb.Type = None
-rb_node_type: gdb.Type = None
+rb_root_type: pwndbg.dbg_mod.Type = None
+rb_node_type: pwndbg.dbg_mod.Type = None
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def init():
     global rb_root_type, rb_node_type
     try:
-        rb_root_type = gdb.lookup_type("struct rb_root")
-        rb_node_type = gdb.lookup_type("struct rb_node")
+        rb_root_type = pwndbg.aglib.typeinfo.load("struct rb_root")
+        rb_node_type = pwndbg.aglib.typeinfo.load("struct rb_node")
     except Exception:
         pass
 
 
-def for_each_rb_entry(root: gdb.Value, typename: str, fieldname: str) -> Iterator[gdb.Value]:
+def for_each_rb_entry(
+    root: pwndbg.dbg_mod.Value, typename: str, fieldname: str
+) -> Iterator[pwndbg.dbg_mod.Value]:
     node = rb_first(root)
     node_addr = int(node or 0)
     while node_addr != 0:
@@ -31,11 +33,11 @@ def for_each_rb_entry(root: gdb.Value, typename: str, fieldname: str) -> Iterato
         node_addr = int(node or 0)
 
 
-def rb_first(root: gdb.Value) -> gdb.Value | None:
+def rb_first(root: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
     if root.type == rb_root_type:
         node = root.address.cast(rb_root_type.pointer())
     elif root.type != rb_root_type.pointer():
-        raise gdb.GdbError("Must be struct rb_root not {}".format(root.type))
+        raise pwndbg.dbg_mod.Error("Must be struct rb_root not {}".format(root.type))
 
     node = root["rb_node"]
     if int(node) == 0:
@@ -47,11 +49,11 @@ def rb_first(root: gdb.Value) -> gdb.Value | None:
     return node
 
 
-def rb_last(root: gdb.Value) -> gdb.Value | None:
+def rb_last(root: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
     if root.type == rb_root_type:
         node = root.address.cast(rb_root_type.pointer())
     elif root.type != rb_root_type.pointer():
-        raise gdb.GdbError("Must be struct rb_root not {}".format(root.type))
+        raise pwndbg.dbg_mod.Error("Must be struct rb_root not {}".format(root.type))
 
     node = root["rb_node"]
     if int(node) == 0:
@@ -63,20 +65,20 @@ def rb_last(root: gdb.Value) -> gdb.Value | None:
     return node
 
 
-def rb_parent(node: gdb.Value) -> gdb.Value:
-    parent = gdb.Value(int(node["__rb_parent_color"]) & ~3)
-    return parent.cast(rb_node_type.pointer())
+def rb_parent(node: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
+    val = int(node["__rb_parent_color"]) & ~3
+    return pwndbg.aglib.memory.get_typed_pointer(rb_node_type, val)
 
 
-def rb_empty_node(node: gdb.Value) -> bool:
+def rb_empty_node(node: pwndbg.dbg_mod.Value) -> bool:
     return int(node["__rb_parent_color"]) == int(node.address)
 
 
-def rb_next(node: gdb.Value) -> gdb.Value | None:
+def rb_next(node: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
     if node.type == rb_node_type:
         node = node.address.cast(rb_node_type.pointer())
     elif node.type != rb_node_type.pointer():
-        raise gdb.GdbError("Must be struct rb_node not {}".format(node.type))
+        raise pwndbg.dbg_mod.Error("Must be struct rb_node not {}".format(node.type))
 
     if rb_empty_node(node):
         return None
@@ -95,11 +97,11 @@ def rb_next(node: gdb.Value) -> gdb.Value | None:
     return parent
 
 
-def rb_prev(node: gdb.Value) -> gdb.Value | None:
+def rb_prev(node: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
     if node.type == rb_node_type:
         node = node.address.cast(rb_node_type.pointer())
     elif node.type != rb_node_type.pointer():
-        raise gdb.GdbError("Must be struct rb_node not {}".format(node.type))
+        raise pwndbg.dbg_mod.Error("Must be struct rb_node not {}".format(node.type))
 
     if rb_empty_node(node):
         return None

@@ -12,6 +12,7 @@ from shlex import quote
 import pwndbg
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
+import pwndbg.aglib.symbol
 import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.dbg
@@ -75,7 +76,7 @@ def start(args=None) -> None:
     symbols = ["main", "_main", "start", "_start", "init", "_init"]
 
     for symbol in symbols:
-        address = pwndbg.dbg.selected_inferior().symbol_address_from_name(symbol)
+        address = pwndbg.aglib.symbol.lookup_global_symbol_addr(symbol)
         if not address:
             continue
 

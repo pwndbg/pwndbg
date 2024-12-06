@@ -7,6 +7,7 @@ import gdb
 import pwndbg.aglib.arch
 import pwndbg.aglib.heap
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.dbg
 import tests
 
@@ -59,7 +60,7 @@ def test_find_fake_fast_command(start_binary):
     # A gdb.MemoryError raised here indicates a regression from PR #1145
     gdb.execute("find_fake_fast fake_chunk+0x80")
 
-    target_address = pwndbg.dbg.selected_inferior().symbol_address_from_name("target_address")
+    target_address = pwndbg.aglib.symbol.lookup_symbol_addr("target_address")
     assert target_address is not None
     print(hex(target_address))
 

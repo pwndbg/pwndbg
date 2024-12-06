@@ -29,6 +29,7 @@ import pwndbg.aglib.heap
 import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
@@ -1151,11 +1152,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     @pwndbg.lib.cache.cache_until("objfile", "thread")
     def multithreaded(self) -> bool:
         """Is malloc operating within a multithreaded environment."""
-        si = pwndbg.dbg.selected_inferior()
-        addr = si.symbol_address_from_name("__libc_multiple_threads")
+        addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("__libc_multiple_threads")
         if addr:
             return pwndbg.aglib.memory.s32(addr) > 0
-        return len(si.threads()) > 1
+        return len(pwndbg.dbg.selected_inferior().threads()) > 1
 
     def _request2size(self, req: int) -> int:
         """Corresponds to request2size in glibc malloc.c"""
@@ -1533,8 +1533,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         """
         return (
             pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
-            and pwndbg.dbg.selected_inferior().symbol_address_from_name("global_max_fast")
-            is not None
+            and pwndbg.aglib.symbol.lookup_global_symbol("global_max_fast") is not None
         )
 
 
@@ -1543,7 +1542,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
     @property
     def main_arena(self) -> Arena | None:
-        self._main_arena_addr = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        self._main_arena_addr = pwndbg.aglib.symbol.lookup_global_symbol_addr(
             "main_arena", prefer_static=True
         )
         if self._main_arena_addr is not None:
@@ -1557,7 +1556,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
     @property
     def thread_arena(self) -> Arena | None:
         if self.multithreaded:
-            thread_arena_addr = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+            thread_arena_addr = pwndbg.aglib.symbol.lookup_global_symbol_addr(
                 "thread_arena", prefer_static=True
             )
             if thread_arena_addr:
@@ -1577,9 +1576,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         if self.has_tcache():
             if self.multithreaded:
                 tcache_addr = pwndbg.aglib.memory.pvoid(
-                    pwndbg.dbg.selected_inferior().symbol_address_from_name(
-                        "tcache", prefer_static=True
-                    )
+                    pwndbg.aglib.symbol.lookup_global_symbol_addr("tcache", prefer_static=True)
                 )
                 if tcache_addr == 0:
                     # This thread doesn't have a tcache yet
@@ -1609,9 +1606,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
     @property
     def mp(self) -> pwndbg.dbg_mod.Value | None:
-        self._mp_addr = pwndbg.dbg.selected_inferior().symbol_address_from_name(
-            "mp_", prefer_static=True
-        )
+        self._mp_addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("mp_", prefer_static=True)
         if self._mp_addr is not None and self.malloc_par is not None:
             self._mp = pwndbg.aglib.memory.get_typed_pointer_value(self.malloc_par, self._mp_addr)
 
@@ -1619,7 +1614,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
     @property
     def global_max_fast(self) -> int | None:
-        self._global_max_fast_addr = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        self._global_max_fast_addr = pwndbg.aglib.symbol.lookup_global_symbol_addr(
             "global_max_fast", prefer_static=True
         )
         if self._global_max_fast_addr is not None:
@@ -1698,10 +1693,9 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return sbrk_region
 
     def is_initialized(self) -> bool:
-        si = pwndbg.dbg.selected_inferior()
-        addr = si.symbol_address_from_name("__libc_malloc_initialized")
+        addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("__libc_malloc_initialized")
         if addr is None:
-            addr = si.symbol_address_from_name("__malloc_initialized")
+            addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("__malloc_initialized")
         assert addr is not None, "Could not find __libc_malloc_initialized or __malloc_initialized"
         return pwndbg.aglib.memory.s32(addr) > 0
 
@@ -1741,7 +1735,7 @@ class HeuristicHeap(
     @property
     def main_arena(self) -> Arena | None:
         main_arena_via_config = int(str(pwndbg.config.main_arena), 0)
-        main_arena_via_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        main_arena_via_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
             "main_arena", prefer_static=True
         )
         if main_arena_via_config or main_arena_via_symbol:
@@ -1953,7 +1947,7 @@ class HeuristicHeap(
 
     @property
     def thread_arena(self) -> Arena | None:
-        thread_arena_via_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        thread_arena_via_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
             "thread_arena", prefer_static=True
         )
         if thread_arena_via_symbol:
@@ -2023,7 +2017,7 @@ class HeuristicHeap(
             return None
         tps = self.tcache_perthread_struct
         thread_cache_via_config = int(str(pwndbg.config.tcache), 0)
-        thread_cache_via_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        thread_cache_via_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
             "tcache", prefer_static=True
         )
         if thread_cache_via_config:
@@ -2098,9 +2092,7 @@ class HeuristicHeap(
     @property
     def mp(self) -> "pwndbg.aglib.heap.structs.CStruct2GDB":
         mp_via_config = int(str(pwndbg.config.mp), 0)
-        mp_via_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
-            "mp_", prefer_static=True
-        )
+        mp_via_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr("mp_", prefer_static=True)
         if mp_via_config or mp_via_symbol:
             self._mp_addr = mp_via_symbol
 
@@ -2129,7 +2121,7 @@ class HeuristicHeap(
     @property
     def global_max_fast(self) -> int:
         global_max_fast_via_config = int(str(pwndbg.config.global_max_fast), 0)
-        global_max_fast_via_symbol = pwndbg.dbg.selected_inferior().symbol_address_from_name(
+        global_max_fast_via_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
             "global_max_fast", prefer_static=True
         )
 

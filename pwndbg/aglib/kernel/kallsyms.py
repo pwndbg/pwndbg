@@ -3,6 +3,8 @@ from __future__ import annotations
 from re import match
 from re import search
 from struct import unpack_from
+from typing import Dict
+from typing import Tuple
 
 from pwnlib.util.packing import p16
 from pwnlib.util.packing import u32
@@ -18,7 +20,7 @@ import pwndbg.search
 
 
 @pwndbg.lib.cache.cache_until("start")
-def get():
+def get() -> Dict[str, Tuple[int, str]]:
     ks = Kallsyms()
     return ks.kallsyms
 
@@ -39,7 +41,7 @@ class Kallsyms:
     """
 
     def __init__(self):
-        self.kallsyms = {}
+        self.kallsyms: Dict[str, Tuple[int, str]] = {}
         self.kbase = pwndbg.aglib.kernel.kbase()
 
         mapping = pwndbg.aglib.kernel.get_first_kernel_ro()

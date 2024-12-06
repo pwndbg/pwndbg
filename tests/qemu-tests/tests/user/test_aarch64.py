@@ -6,6 +6,7 @@ from capstone.arm64_const import ARM64_INS_BL
 
 import pwndbg.aglib.disasm
 import pwndbg.aglib.nearpc
+import pwndbg.aglib.symbol
 import pwndbg.dbg
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 
@@ -436,7 +437,7 @@ REFERENCE_BINARY = user.binaries.get("reference-binary.aarch64.out")
 def test_aarch64_reference(qemu_start_binary):
     qemu_start_binary(REFERENCE_BINARY, "aarch64")
     gdb.execute("break break_here")
-    assert pwndbg.dbg.selected_inferior().symbol_address_from_name("main") is not None
+    assert pwndbg.aglib.symbol.lookup_global_symbol("main") is not None
     gdb.execute("continue")
 
     gdb.execute("argv", to_string=True)

@@ -20,6 +20,7 @@ from typing import Set
 from typing import Tuple
 
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.lib.cache
@@ -37,7 +38,7 @@ def _r_debug() -> int | None:
     [2]: https://elixir.bootlin.com/glibc/glibc-2.38/source/elf/dl-debug-symbols.S#L30
     """
 
-    return pwndbg.dbg.selected_inferior().symbol_address_from_name("_r_debug")
+    return pwndbg.aglib.symbol.lookup_global_symbol_addr("_r_debug")
 
 
 def is_dynamic() -> bool:

@@ -32,10 +32,10 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
+import pwndbg.aglib.symbol
 import pwndbg.color
 import pwndbg.color.context as context_color
 import pwndbg.decorators
-import pwndbg.gdblib.symbol
 import pwndbg.integration
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -466,7 +466,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         min_indents = None
         for addr, decomp_toks in sliced:
             addrs.append(hex(addr))
-            syms.append(f"<{pwndbg.gdblib.symbol.get(addr)}>")
+            syms.append(f"<{pwndbg.aglib.symbol.resolve_addr(addr)}>")
             indents = 0
             for _, ty in decomp_toks:
                 if ty == "IndentationToken":

@@ -24,7 +24,6 @@ from pwndbg.aglib.kernel.slab import NodeCache
 from pwndbg.aglib.kernel.slab import Slab
 from pwndbg.aglib.kernel.slab import find_containing_slab_cache
 from pwndbg.commands import CommandCategory
-from pwndbg.gdblib.symbol import parse_and_eval
 
 parser = argparse.ArgumentParser(description="Prints information about the slab allocator")
 subparsers = parser.add_subparsers(dest="command")
