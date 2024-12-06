@@ -290,6 +290,26 @@ class ExecutionController:
         raise NotImplementedError()
 
 
+class SymbolLookupType(Enum):
+    """
+    Lookup symbol type
+    """
+
+    ANY = 1
+    FUNCTION = 2
+    VARIABLE = 3
+
+
+class SymbolLookupContext(Enum):
+    """
+    Lookup context
+    """
+
+    SELECTED_FRAME = 1
+    GLOBAL = 2
+    # TODO: SELECTED_OBJFILE ?? (eg. we want get functions addresses from libc.so.6 only)
+
+
 class Process:
     def threads(self) -> List[Thread]:
         """
@@ -410,9 +430,15 @@ class Process:
         """
         raise NotImplementedError()
 
-    def symbol_address_from_name(self, name: str, prefer_static: bool = False) -> int | None:
+    def lookup_symbol(
+        self,
+        name: str,
+        *,
+        context: SymbolLookupContext = SymbolLookupContext.SELECTED_FRAME,
+        type: SymbolLookupType = SymbolLookupType.ANY,
+    ) -> Value | None:
         """
-        Returns the address of a symbol, given its name. Optionally, the user
+        Returns the value of a symbol, given its name. Optionally, the user
         may specify that they want to prioritize symbols in the static block, if
         supported by the debugger.
         """
