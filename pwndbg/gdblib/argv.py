@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import gdb
-
 import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
@@ -57,5 +55,5 @@ def update() -> None:
         while pwndbg.aglib.memory.u(sp, ptrbits):
             sp += ptrsize
             envc += 1
-    except gdb.MemoryError:
+    except pwndbg.dbg_mod.Error:
         pass
