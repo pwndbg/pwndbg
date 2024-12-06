@@ -54,7 +54,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         if not target:
             return []
 
-        name = pwndbg.dbg.selected_inferior().symbol_name_at_address(target)
+        name = pwndbg.aglib.symbol.resolve_addr(target)
         if not name:
             return []
     elif CS_GRP_INT in instruction.groups:

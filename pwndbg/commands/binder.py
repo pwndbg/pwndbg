@@ -70,8 +70,11 @@ rb_node_field_names = {
     "refs_by_node": "rb_node_node",
 }
 
+
 # TODO: merge with for_each_entry?
-def for_each_hlist_entry(head: pwndbg.dbg_mod.Value, typename, field) -> Iterator[pwndbg.dbg_mod.Value]:
+def for_each_hlist_entry(
+    head: pwndbg.dbg_mod.Value, typename, field
+) -> Iterator[pwndbg.dbg_mod.Value]:
     addr = head["first"]
     addr_int = int(addr)
     while addr_int != 0:
@@ -96,7 +99,10 @@ class BinderVisitor:
 
     # TODO: do this in a cleaner, object-oriented way
     def _format_field(
-        self, field: Optional[str] = None, value: pwndbg.dbg_mod.Value | str = "", only_heading: bool = True
+        self,
+        field: Optional[str] = None,
+        value: pwndbg.dbg_mod.Value | str = "",
+        only_heading: bool = True,
     ) -> str:
         if isinstance(value, pwndbg.dbg_mod.Value):
             t = value.type
@@ -181,7 +187,9 @@ class BinderVisitor:
         # Prepend a newline so the list starts on the line after the field name
         return "\n" + "\n".join(res), len(res)
 
-    def format_list(self, field: str, value: pwndbg.dbg_mod.Value, typename: str) -> Tuple[str, int]:
+    def format_list(
+        self, field: str, value: pwndbg.dbg_mod.Value, typename: str
+    ) -> Tuple[str, int]:
         res = []
 
         node_type = node_types[field]
@@ -210,7 +218,9 @@ class BinderVisitor:
         # Prepend a newline so the list starts on the line after the field name
         return "\n" + "\n".join(res), len(res)
 
-    def _format_fields(self, obj: pwndbg.dbg_mod.Value, fields: List[str], only_heading: bool = True) -> str:
+    def _format_fields(
+        self, obj: pwndbg.dbg_mod.Value, fields: List[str], only_heading: bool = True
+    ) -> str:
         res = []
         for field in fields:
             res.append(self._format_field(field, obj[field], only_heading=only_heading))
@@ -261,7 +271,9 @@ class BinderVisitor:
 
         return "\n".join(res)
 
-    def format_transaction(self, transaction: pwndbg.dbg_mod.Value, only_heading: bool = False) -> str:
+    def format_transaction(
+        self, transaction: pwndbg.dbg_mod.Value, only_heading: bool = False
+    ) -> str:
         res = []
         res.append(
             self._format_heading(

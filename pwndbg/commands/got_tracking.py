@@ -7,6 +7,7 @@ from typing import Dict
 
 import pwndbg.aglib.dynamic
 import pwndbg.aglib.proc
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
 import pwndbg.dbg
@@ -233,7 +234,7 @@ def got_tracking_status(address) -> None:
         print(f"Called {hits} times from stack:")
         for entry in stack:
             print(f"    - {entry:#x} ", end="")
-            symname = pwndbg.dbg.selected_inferior().symbol_name_at_address(entry)
+            symname = pwndbg.aglib.symbol.resolve_addr(entry)
             if symname != "":
                 print(f"<{symname}>", end="")
             print()

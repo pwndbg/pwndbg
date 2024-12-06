@@ -7,6 +7,8 @@ from __future__ import annotations
 
 import gdb
 
+from pwndbg.gdblib import gdb_version
+
 # Symbol lookup only throws exceptions on errors, not if it failed to
 # look up a symbol. We want to raise these errors so we can handle them
 # properly, but there are some we haven't figured out how to fix yet, so
@@ -33,6 +35,20 @@ def address_to_name(address: int) -> str:
     Retrieve the name for the symbol located at `address`
     Empty string if no symbol
     """
+    # We could rewrite this function with gdb.Value+cast:
+    #
+    # In [17]: hex(gdb.parse_and_eval('&\'malloc\''))
+    # Out[17]: '0xf8f7b18065d0'
+    #
+    # In [18]: str(gdb.Value(0xf8f7b18065d0).cast(gdb.lookup_type("void").pointer()))
+    # Out[18]: '0xf8f7b18065d0 <__GI___libc_malloc>'
+    #
+    # pwndbg> info symbol 0xf8f7b18065d0
+    # malloc in section .text of /lib/aarch64-linux-gnu/libc.so.6
+    #
+    # In [19]: str(gdb.Value(0xf8f7b18065d0+0x15).cast(gdb.lookup_type("void").pointer()))
+    # Out[20]: '0xf8f7b18065e5 <__GI___libc_malloc+21>'
+
     # Note: we do not return "" on `address < pwndbg.aglib.memory.MMAP_MIN_ADDR`
     # because this may be used to find out the symbol name on PIE binaries that weren't started yet
     # and then their symbol addresses can be found by GDB on their (non-rebased) offsets
@@ -77,40 +93,21 @@ def address_to_name(address: int) -> str:
 
 
 def symbol_to_address(
-    name: str, global_only: bool = False, static_only: bool = False
-) -> int | None:
-    """
-    Get the address for `symbol`
-
-    In C, this search:
-    - variables
-    - function names
-    - typedef names
-    - enum type values
-
-    Search order scope:
-    - local
-    - global your module
-    - global other module
-    """
-    return _symbol_to_address(name, global_only, static_only)
-
-
-def variable_to_address(
-    name: str, global_only: bool = False, static_only: bool = False
-) -> int | None:
-    """
-    Search only address for variables
-    """
-    return _symbol_to_address(name, global_only, static_only, gdb.SYMBOL_VARIABLES_DOMAIN)
-
-
-def _symbol_to_address(
     name: str,
     global_only: bool = False,
     static_only: bool = False,
     domain: int = gdb.SYMBOL_VAR_DOMAIN,
 ) -> int | None:
+    """
+    Get the address for `symbol`
+
+    gdb.SYMBOL_VAR_DOMAIN search:
+    - variables
+    - function names
+    - typedef names
+    - enum type values
+    """
+
     assert (
         static_only is True and global_only is False
     ), "gdb don't support searching static variables in non global"
@@ -126,55 +123,57 @@ def _symbol_to_address(
         if val := _any_symbol_to_address(name, domain):
             return val
 
-    # fallback, because of bug in gdb for some symbols
-    return _fallback_any_symbol_to_address(name)
+    # fallback, because of bug in gdb for some symbols eg: malloc / __GI___libc_malloc
+    return _fallback_any_symbol_to_address(name, global_only)
 
 
-def _any_global_static_symbol_to_address(
-    name: str, domain: int = gdb.SYMBOL_VAR_DOMAIN
-) -> int | None:
+def _any_global_static_symbol_to_address(name: str, domain: int) -> gdb.Value | None:
     try:
         # gdb.lookup_symbol Search order:
-        # - global in your module (only static)
+        # - global static in your module
+        # - global static in other module
         symbol_obj = gdb.lookup_static_symbol(name, domain=domain)
         if symbol_obj:
-            return int(symbol_obj.value().address)
+            return symbol_obj.value()
     except gdb.error:
         pass
     return None
 
 
-def _any_global_symbol_to_address(name: str, domain: int = gdb.SYMBOL_VAR_DOMAIN) -> int | None:
+def _any_global_symbol_to_address(name: str, domain: int) -> gdb.Value | None:
     try:
         # gdb.lookup_symbol Search order:
-        # - global in other module (without static)
+        # - global in your module
+        # - global in other module
         symbol_obj = gdb.lookup_global_symbol(name, domain=domain)
         if symbol_obj:
-            return int(symbol_obj.value().address)
+            return symbol_obj.value()
     except gdb.error:
         pass
     return None
 
 
-def _any_symbol_to_address(name: str, domain: int = gdb.SYMBOL_VAR_DOMAIN) -> int | None:
+def _any_symbol_to_address(name: str, domain: int) -> gdb.Value | None:
     try:
         # gdb.lookup_symbol Search order:
         # - local scope
         # - global in your module
+        # - global static in your module
         # - global in other module
+        # - global static in other module
         symbol_obj, _ = gdb.lookup_symbol(name, domain=domain)
         if symbol_obj:
             frame = None
             if symbol_obj.needs_frame:
                 frame = gdb.selected_frame()
-            return int(symbol_obj.value(frame).address)
+            return symbol_obj.value(frame)
     except gdb.error as e:
         if all(x not in str(e) for x in skipped_exceptions):
             raise e
     return None
 
 
-def _fallback_any_symbol_to_address(name: str) -> gdb.Value | None:
+def _fallback_any_symbol_to_address(name: str, global_only: bool = False) -> gdb.Value | None:
     try:
         # Unfortunately, `gdb.lookup_symbol` does not seem to handle all
         # symbols, so we need to fallback to using `gdb.parse_and_eval`. See
@@ -188,7 +187,14 @@ def _fallback_any_symbol_to_address(name: str) -> gdb.Value | None:
         # gdb.parse_and_eval Search order:
         # - local scope
         # - global in your module
+        # - global static in your module
         # - global in other module
+        # - global static in other module
+
+        # global_context is only supported in GDB14+
+        if gdb_version[0] >= 14:
+            return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'", global_context=global_only)
+
         return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'")
     except gdb.error:
         return None

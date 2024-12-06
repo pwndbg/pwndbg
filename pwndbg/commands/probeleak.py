@@ -6,6 +6,7 @@ import os
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.elf
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
@@ -153,7 +154,7 @@ def probeleak(
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
             text = f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
 
-            symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(p)
+            symbol = pwndbg.aglib.symbol.resolve_addr(p)
             if symbol:
                 text += f" ({symbol})"
             print(text)

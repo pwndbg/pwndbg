@@ -1082,7 +1082,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
         prefix = f" {c.prefix(prefix)}"
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
-        symbol = c.symbol(pwndbg.dbg.selected_inferior().symbol_name_at_address(int(frame.pc())))
+        symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
         if symbol:
             addrsz = addrsz + " " + symbol
         line = map(str, (prefix, c.frame_label("%s%i" % (backtrace_frame_label, i)), addrsz))

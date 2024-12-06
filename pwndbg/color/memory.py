@@ -24,21 +24,12 @@ c = ColorConfig(
 )
 
 
-def sym_name(address: int) -> str | None:
-    """
-    Retrieves the name of the symbol at the given address, if it exists
-    """
-    import pwndbg
-
-    return pwndbg.dbg.selected_inferior().symbol_name_at_address(address)
-
-
 def get_address_and_symbol(address: int) -> str:
     """
     Convert and colorize address 0x7ffff7fcecd0 to string `0x7ffff7fcecd0 (_dl_fini)`
     If no symbol exists for the address, return colorized address
     """
-    symbol = sym_name(address)
+    symbol = pwndbg.aglib.symbol.resolve_addr(address)
     if symbol:
         symbol = f"{address:#x} ({symbol})"
     else:
@@ -61,7 +52,7 @@ def attempt_colorized_symbol(address: int) -> str | None:
     """
     Convert address to colorized symbol (if symbol is there), else None
     """
-    symbol = sym_name(address)
+    symbol = pwndbg.aglib.symbol.resolve_addr(address)
     if symbol:
         return get(address, symbol)
     else:

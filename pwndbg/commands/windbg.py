@@ -11,6 +11,7 @@ from itertools import chain
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
@@ -456,7 +457,7 @@ def ln(value: int = None) -> None:
     if value is None:
         value = pwndbg.aglib.regs.pc
 
-    x = pwndbg.dbg.selected_inferior().symbol_name_at_address(value)
+    x = pwndbg.aglib.symbol.resolve_addr(value)
     if x:
         result = f"({value:#x})   {x}"
         print(result)

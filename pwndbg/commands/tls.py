@@ -9,6 +9,7 @@ import argparse
 from tabulate import tabulate
 
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
@@ -138,7 +139,7 @@ def threads(num_threads, respect_config) -> None:
             pc = pwndbg.dbg.selected_frame().pc()
 
             pc_colored = M.get(pc)
-            symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(pc)
+            symbol = pwndbg.aglib.symbol.resolve_addr(pc)
 
             row.append(pc_colored)
 

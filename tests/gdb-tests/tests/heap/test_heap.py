@@ -351,7 +351,9 @@ def test_mp_heuristic(start_binary):
     gdb.execute("continue")
 
     # Use the debug symbol to get the address of `mp_`
-    mp_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr("mp_", prefer_static=True)
+    mp_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
+        "mp_", prefer_static=True
+    )
 
     # Check if we can get the address of `mp_` from debug symbols and the struct of `mp_` is correct
     assert pwndbg.aglib.heap.current.mp is not None

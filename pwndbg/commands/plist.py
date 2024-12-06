@@ -4,6 +4,7 @@ import argparse
 from typing import Optional
 
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.dbg
@@ -410,7 +411,7 @@ def plist(
 
             value = pwndbg.aglib.memory.get_typed_pointer_value(target_type, target_address)
 
-            symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(target_address)
+            symbol = pwndbg.aglib.symbol.resolve_addr(target_address)
             symbol = f"<{symbol}>" if symbol else ""
 
             print(f"{target_address:#x} {symbol}: {value.value_to_human_readable()}")

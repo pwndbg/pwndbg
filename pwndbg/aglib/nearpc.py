@@ -8,6 +8,7 @@ import pwndbg
 import pwndbg.aglib.disasm
 import pwndbg.aglib.regs
 import pwndbg.aglib.strings
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color
 import pwndbg.color.context as C
@@ -152,9 +153,7 @@ def nearpc(
 
     # Gather all addresses and symbols for each instruction
     # Ex: <main+43>
-    symbols = [
-        pwndbg.dbg.selected_inferior().symbol_name_at_address(i.address) for i in instructions
-    ]
+    symbols = [pwndbg.aglib.symbol.resolve_addr(i.address) for i in instructions]
     addresses: List[str] = ["%#x" % i.address for i in instructions]
 
     nearpc.next_pc = instructions[-1].address + instructions[-1].size if instructions else 0

@@ -98,7 +98,7 @@ def get_symbols_in_region(start, end, filter_text=""):
     ptr_size = pwndbg.aglib.typeinfo.pvoid.sizeof
     addr = start
     while addr < end:
-        name = pwndbg.dbg.selected_inferior().symbol_name_at_address(addr)
+        name = pwndbg.aglib.symbol.resolve_addr(addr)
         if name and "+" not in name and filter_text in name:
             symbols.append((name, addr))
         addr += ptr_size

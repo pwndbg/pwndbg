@@ -21,6 +21,7 @@ import pwndbg.aglib.disasm
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.strings
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.enhance as E
@@ -384,7 +385,7 @@ class Emulator:
         # Colorize the chain
         rest = []
         for link in chain:
-            symbol = pwndbg.dbg.selected_inferior().symbol_name_at_address(link) or None
+            symbol = pwndbg.aglib.symbol.resolve_addr(link) or None
             if symbol:
                 symbol = f"{link:#x} ({symbol})"
             rest.append(M.get(link, symbol))
