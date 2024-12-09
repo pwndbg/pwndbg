@@ -87,7 +87,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     # Try to extract the data from GDB.
     # Note that this is currently broken, pending acceptance of
     # my patch: https://sourceware.org/ml/gdb-patches/2015-06/msg00268.html
-    if sym is not None and int(sym):
+    if sym:
         try:
             n_args_default = len(sym.type.fields())
         except TypeError:
