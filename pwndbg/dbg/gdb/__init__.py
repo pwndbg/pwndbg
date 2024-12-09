@@ -980,7 +980,7 @@ class GDBType(pwndbg.dbg_mod.Type):
     def fields(self) -> List[pwndbg.dbg_mod.TypeField] | None:
         return [
             pwndbg.dbg_mod.TypeField(
-                field.bitpos,
+                field.bitpos if hasattr(field, "bitpos") else 0,
                 field.name,
                 GDBType(field.type),
                 field.parent_type,

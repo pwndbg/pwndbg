@@ -308,6 +308,8 @@ def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
         return pwndbg.dbg_mod.TypeCode.POINTER
     if c == lldb.eTypeClassArray:
         return pwndbg.dbg_mod.TypeCode.ARRAY
+    if c == lldb.eTypeClassEnumeration:
+        return pwndbg.dbg_mod.TypeCode.ENUM
 
     f = type.GetTypeFlags()
 
@@ -355,6 +357,7 @@ class LLDBType(pwndbg.dbg_mod.Type):
         return self.inner == other.inner
 
     @property
+    @override
     def name(self) -> str:
         return self.inner.name
 
@@ -411,7 +414,7 @@ class LLDBType(pwndbg.dbg_mod.Type):
     def strip_typedefs(self) -> pwndbg.dbg_mod.Type:
         t = self.inner
         while t.IsTypedefType():
-            t = t.GetTypedefedType
+            t = t.GetTypedefedType()
 
         return LLDBType(t)
 

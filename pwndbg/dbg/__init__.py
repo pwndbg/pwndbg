@@ -649,12 +649,14 @@ class Type:
         - char *
         - void *
         """
+        raise NotImplementedError()
 
     @property
     def sizeof(self) -> int:
         """
         The size of this type, in bytes.
         """
+        raise NotImplementedError()
 
     @property
     def alignof(self) -> int:
