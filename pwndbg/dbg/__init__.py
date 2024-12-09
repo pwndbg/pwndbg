@@ -639,6 +639,7 @@ class Type:
     """
     Class representing a type in the context of an inferior process.
     """
+
     @property
     def name_identifier(self) -> str | None:
         """
