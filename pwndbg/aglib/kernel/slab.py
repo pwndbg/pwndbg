@@ -28,7 +28,7 @@ def get_cache(target_name: str) -> SlabCache | None:
     if not slab_caches:
         return None
     slab_caches = slab_caches.dereference()
-    for slab_cache in for_each_entry(slab_caches.dereference(), "struct kmem_cache", "list"):
+    for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         if target_name == slab_cache["name"].string():
             return SlabCache(slab_cache)
     return None
