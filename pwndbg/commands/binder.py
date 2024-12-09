@@ -111,13 +111,13 @@ class BinderVisitor:
 
                 # We only want to replace the typedef with the real type if the
                 # real type is not an anonymous struct
-                if real_type.name is not None:
+                if real_type.name_identifier:
                     t = real_type
 
             if t.code == pwndbg.dbg_mod.TypeCode.INT:
                 value = int(value)
             elif t.code == pwndbg.dbg_mod.TypeCode.POINTER:
-                typename = t.target().name
+                typename = t.target().name_identifier
                 if int(value) == 0:
                     value = "NULL"
                 elif typename == "binder_proc":
@@ -139,7 +139,7 @@ class BinderVisitor:
                 else:
                     print(f"Warning: no formatter for pointer type {typename}")
             elif t.code in [pwndbg.dbg_mod.TypeCode.STRUCT, pwndbg.dbg_mod.TypeCode.TYPEDEF]:
-                typename = t.name
+                typename = t.name_identifier
                 if typename == "spinlock":
                     value = self.format_spinlock(value).strip()
                 elif typename == "atomic_t":

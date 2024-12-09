@@ -24,7 +24,7 @@ def _field_to_human(
     else:
         raise NotImplementedError("unknown type")
 
-    return t.name
+    return t.name_to_human_readable
 
 
 def dt(

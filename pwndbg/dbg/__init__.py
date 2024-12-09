@@ -639,16 +639,38 @@ class Type:
     """
     Class representing a type in the context of an inferior process.
     """
+    @property
+    def name_identifier(self) -> str | None:
+        """
+        Returns the identifier of this type, eg:
+        - someStructName
+        - someEnumName
+        - someTypedefName
+
+        Returns None if the type is anonymous or does not have a name, such as:
+        - Anonymous structs
+        - Anonymous Typedefs
+        - Basic types like char[], void, etc.
+        """
+        raise NotImplementedError()
 
     @property
-    def name(self) -> str:
+    def name_to_human_readable(self) -> str:
         """
-        Returns the name of this type, eg:
+        Returns the human friendly name of this type, eg:
         - char [16]
         - int
         - char *
         - void *
-        - struct fooName
+        - fooStructName
+        - barEnumName
+        - barTypedefName
+
+        This function is not standardized, may return different names in gdb/lldb, eg:
+        gdb: `char [16]` or `char [50]
+        lldb: `char[16]` or `char[]`
+
+        You should not use this function. Only for human eyes.
         """
         raise NotImplementedError()
 

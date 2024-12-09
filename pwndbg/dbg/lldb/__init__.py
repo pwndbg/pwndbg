@@ -357,7 +357,14 @@ class LLDBType(pwndbg.dbg_mod.Type):
 
     @property
     @override
-    def name(self) -> str:
+    def name_identifier(self) -> str | None:
+        if self.inner.IsAnonymousType():
+            return None
+        return self.inner.name
+
+    @property
+    @override
+    def name_to_human_readable(self) -> str:
         return self.inner.name
 
     @property

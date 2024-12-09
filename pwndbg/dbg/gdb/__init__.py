@@ -957,7 +957,17 @@ class GDBType(pwndbg.dbg_mod.Type):
 
     @property
     @override
-    def name(self) -> str:
+    def name_identifier(self) -> str | None:
+        if not self.inner.name:
+            return None
+        return self.inner.name
+
+    @property
+    @override
+    def name_to_human_readable(self) -> str:
+        if self.inner.name:
+            # If named struct/enum/typedef/etc
+            return self.inner.name
         return str(self.inner)
 
     @property
