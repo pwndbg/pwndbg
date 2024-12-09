@@ -1334,9 +1334,13 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 sym_name = sym.GetName()
 
                 cast_type: pwndbg.dbg_mod.Type
-                if addr.function.IsValid():
+                if sym.GetType() == lldb.eSymbolTypeCode:
                     # is function
-                    cast_type = LLDBType(addr.function.type).pointer()
+                    if addr.function.IsValid():
+                        cast_type = LLDBType(addr.function.type).pointer()
+                    else:
+                        # function without type, we cast to pointer
+                        cast_type = pwndbg.aglib.typeinfo.pvoid
                 else:
                     # is variable maybe
 
