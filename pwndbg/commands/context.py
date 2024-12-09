@@ -337,6 +337,8 @@ def serve_context_history(function: Callable[P, List[str]]) -> Callable[P, List[
 
 
 def history_handle_unchanged_contents() -> None:
+    if not context_history:
+        return
     longest_history = max(len(h) for h in context_history.values())
     for section_name, history in context_history.items():
         # Duplicate the last entry if it is the same as the previous one
