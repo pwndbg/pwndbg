@@ -91,6 +91,28 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         self.inner = inner
 
     @override
+    def lookup_symbol(
+        self,
+        name: str,
+        *,
+        type: pwndbg.dbg_mod.SymbolLookupType = pwndbg.dbg_mod.SymbolLookupType.ANY,
+    ) -> pwndbg.dbg_mod.Value | None:
+        from pwndbg.dbg.gdb.symbol import Domain
+        from pwndbg.dbg.gdb.symbol import lookup_frame_symbol
+
+        domain = {
+            pwndbg.dbg_mod.SymbolLookupType.ANY: Domain.ANY,
+            pwndbg.dbg_mod.SymbolLookupType.VARIABLE: Domain.VARIABLE,
+            pwndbg.dbg_mod.SymbolLookupType.FUNCTION: Domain.FUNCTION,
+        }[type]
+        try:
+            if val := lookup_frame_symbol(name, domain=domain):
+                return GDBValue(val)
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.Error(e)
+        return None
+
+    @override
     def evaluate_expression(
         self, expression: str, lock_scheduler: bool = False
     ) -> pwndbg.dbg_mod.Value:
@@ -573,21 +595,35 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def symbol_name_at_address(self, address: int) -> str | None:
-        import pwndbg.gdblib.symbol
+        from pwndbg.dbg.gdb.symbol import resolve_addr
 
-        return pwndbg.gdblib.symbol.get(address) or None
+        return resolve_addr(address) or None
 
     @override
-    def symbol_address_from_name(self, name: str, prefer_static: bool = False) -> int | None:
-        import pwndbg.gdblib.symbol
+    def lookup_symbol(
+        self,
+        name: str,
+        *,
+        prefer_static: bool = False,
+        type: pwndbg.dbg_mod.SymbolLookupType = pwndbg.dbg_mod.SymbolLookupType.ANY,
+        objfile_endswith: str | None = None,
+    ) -> pwndbg.dbg_mod.Value | None:
+        from pwndbg.dbg.gdb.symbol import Domain
+        from pwndbg.dbg.gdb.symbol import lookup_symbol
 
+        domain = {
+            pwndbg.dbg_mod.SymbolLookupType.ANY: Domain.ANY,
+            pwndbg.dbg_mod.SymbolLookupType.VARIABLE: Domain.VARIABLE,
+            pwndbg.dbg_mod.SymbolLookupType.FUNCTION: Domain.FUNCTION,
+        }[type]
         try:
-            static = None
-            if prefer_static:
-                static = pwndbg.gdblib.symbol.static_linkage_symbol_address(name)
-            return static or pwndbg.gdblib.symbol.address(name) or None
-        except gdb.error:
-            raise pwndbg.dbg_mod.Error()
+            if val := lookup_symbol(
+                name, prefer_static=prefer_static, domain=domain, objfile_endswith=objfile_endswith
+            ):
+                return GDBValue(val)
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.Error(e)
+        return None
 
     @override
     def types_with_name(self, name: str) -> Sequence[pwndbg.dbg_mod.Type]:
@@ -1154,7 +1190,9 @@ class GDB(pwndbg.dbg_mod.Debugger):
         except gdb.error:
             pass
 
-        pwndbg.gdblib.tui.setup()
+        from pwndbg.gdblib.tui import setup as tui_setup
+
+        tui_setup()
 
         # Reading Comment file
         from pwndbg.commands import comments
@@ -1166,6 +1204,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
         config_mod.init_params()
 
         prompt.show_hint()
+
+        from pwndbg.dbg.gdb import debug_sym
 
     @override
     def add_command(

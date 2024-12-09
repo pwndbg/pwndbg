@@ -382,7 +382,7 @@ parser = argparse.ArgumentParser(description="Show Android Binder information")
 @pwndbg.commands.OnlyWhenPagingEnabled
 def binder():
     log.warning("This command is a work in progress and may not work as expected.")
-    procs_addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("binder_procs")
+    procs_addr = pwndbg.aglib.symbol.lookup_symbol_addr("binder_procs")
     assert procs_addr is not None, "Symbol binder_procs not exists"
 
     bv = BinderVisitor(procs_addr)

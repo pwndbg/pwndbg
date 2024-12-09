@@ -209,9 +209,11 @@ def slab_list(filter_) -> None:
 def slab_contains(address: str) -> None:
     """prints the slab_cache associated with the provided address"""
 
-    parsed_addr = parse_and_eval(address)
-    if not parsed_addr:
+    try:
+        parsed_addr = pwndbg.dbg.selected_frame().evaluate_expression(address)
+    except pwndbg.dbg_mod.Error as e:
         print(M.error(f"Could not parse '{address}'"))
+        print(M.error(f"Message: {e}"))
         return
 
     addr = int(parsed_addr)

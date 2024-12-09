@@ -268,7 +268,7 @@ def entry() -> int:
     # Try common names
     for name in ["_start", "start", "__start", "main"]:
         try:
-            return pwndbg.aglib.symbol.lookup_global_symbol_addr(name) or 0
+            return pwndbg.aglib.symbol.lookup_symbol_addr(name) or 0
         except pwndbg.dbg_mod.Error:
             pass
 

@@ -39,7 +39,7 @@ def has_debug_syms() -> bool:
     # Check for an arbitrary type and symbol name that are not likely to change
     return (
         pwndbg.aglib.typeinfo.load("struct file") is not None
-        and pwndbg.aglib.symbol.lookup_global_symbol_addr("linux_banner") is not None
+        and pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner") is not None
     )
 
 
@@ -85,7 +85,7 @@ def requires_debug_syms(default: D = None) -> Callable[[Callable[P, T]], Callabl
 @requires_debug_syms(default=1)
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
-    val = pwndbg.aglib.symbol.lookup_global_symbol_value("nr_cpu_ids")
+    val = pwndbg.aglib.symbol.lookup_symbol_value("nr_cpu_ids")
     assert val is not None, "Symbol nr_cpu_ids not exists"
     return val
 
@@ -108,8 +108,8 @@ def get_first_kernel_ro():
 
 def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
     if has_debug_syms():
-        config_start = pwndbg.aglib.symbol.lookup_global_symbol_addr("kernel_config_data")
-        config_end = pwndbg.aglib.symbol.lookup_global_symbol_addr("kernel_config_data_end")
+        config_start = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data")
+        config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
     else:
         mapping = get_first_kernel_ro()
         results = list(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]))
@@ -142,7 +142,7 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
 @requires_debug_syms(default="")
 @pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
-    addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("saved_command_line")
+    addr = pwndbg.aglib.symbol.lookup_symbol_addr("saved_command_line")
     assert addr is not None, "Symbol saved_command_line not exists"
 
     cmdline_addr = pwndbg.aglib.memory.pvoid(addr)
@@ -152,7 +152,7 @@ def kcmdline() -> str:
 @pwndbg.lib.cache.cache_until("start")
 def kversion() -> str:
     if has_debug_syms():
-        version_addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("linux_banner")
+        version_addr = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
         assert version_addr is not None, "Symbol linux_banner not exists"
     else:
         mapping = get_first_kernel_ro()
@@ -392,7 +392,7 @@ class x86_64Ops(x86Ops):
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
 
-        per_cpu_offset = pwndbg.aglib.symbol.lookup_global_symbol_addr("__per_cpu_offset")
+        per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol_addr("__per_cpu_offset")
         assert per_cpu_offset is not None, "Symbol __per_cpu_offset not found"
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
@@ -417,7 +417,7 @@ class x86_64Ops(x86Ops):
     @staticmethod
     @requires_debug_syms()
     def cpu_feature_capability(feature: int) -> bool:
-        boot_cpu_data = pwndbg.aglib.symbol.lookup_global_symbol("boot_cpu_data")
+        boot_cpu_data = pwndbg.aglib.symbol.lookup_symbol("boot_cpu_data")
         capabilities = boot_cpu_data["x86_capability"]
         return (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
 
@@ -449,7 +449,7 @@ class Aarch64Ops(ArchOps):
         self.VA_BITS = int(kconfig()["ARM64_VA_BITS"])
         self.PAGE_SHIFT = int(kconfig()["CONFIG_ARM64_PAGE_SHIFT"])
 
-        addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("memstart_addr")
+        addr = pwndbg.aglib.symbol.lookup_symbol_addr("memstart_addr")
         assert addr is not None, "Symbol memstart_addr not exists"
 
         self.PHYS_OFFSET = pwndbg.aglib.memory.u(addr)
@@ -475,7 +475,7 @@ class Aarch64Ops(ArchOps):
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
 
-        per_cpu_offset = pwndbg.aglib.symbol.lookup_global_symbol_addr("__per_cpu_offset")
+        per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol_addr("__per_cpu_offset")
         assert per_cpu_offset is not None, "Symbol __per_cpu_offset not exists"
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
@@ -656,7 +656,7 @@ def num_numa_nodes() -> int:
     kc = kconfig()
     if kc is None:
         # if no config, we can still try one other way
-        node_states = pwndbg.aglib.symbol.lookup_global_symbol("node_states")
+        node_states = pwndbg.aglib.symbol.lookup_symbol("node_states")
         if node_states is None:
             return 1
 
@@ -670,7 +670,7 @@ def num_numa_nodes() -> int:
     if max_nodes == 1:
         return 1
 
-    val = pwndbg.aglib.symbol.lookup_global_symbol_value("nr_online_nodes")
+    val = pwndbg.aglib.symbol.lookup_symbol_value("nr_online_nodes")
     assert val is not None, "Symbol nr_online_nodes not found"
 
     return val

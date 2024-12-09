@@ -322,7 +322,7 @@ def test_main_arena_heuristic(start_binary):
     gdb.execute("continue")
 
     # Use the debug symbol to get the address of `main_arena`
-    main_arena_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
+    main_arena_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
         "main_arena", prefer_static=True
     )
 
@@ -351,9 +351,7 @@ def test_mp_heuristic(start_binary):
     gdb.execute("continue")
 
     # Use the debug symbol to get the address of `mp_`
-    mp_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
-        "mp_", prefer_static=True
-    )
+    mp_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_symbol_addr("mp_", prefer_static=True)
 
     # Check if we can get the address of `mp_` from debug symbols and the struct of `mp_` is correct
     assert pwndbg.aglib.heap.current.mp is not None
@@ -387,7 +385,7 @@ def test_thread_cache_heuristic(start_binary, is_multi_threaded):
         assert pwndbg.dbg.selected_thread().index() == 2
 
     # Use the debug symbol to find the address of `thread_cache`
-    tcache_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
+    tcache_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
         "tcache", prefer_static=True
     )
     thread_cache_addr_via_debug_symbol = pwndbg.aglib.memory.u(tcache_addr_via_debug_symbol)
@@ -431,7 +429,7 @@ def test_thread_arena_heuristic(start_binary, is_multi_threaded):
         assert pwndbg.dbg.selected_thread().index() == 2
 
     # Use the debug symbol to find the value of `thread_arena`
-    thread_arena_via_debug_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
+    thread_arena_via_debug_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
         "thread_arena", prefer_static=True
     )
     assert thread_arena_via_debug_symbol is not None
@@ -461,7 +459,7 @@ def test_global_max_fast_heuristic(start_binary):
     gdb.execute("continue")
 
     # Use the debug symbol to find the address of `global_max_fast`
-    global_max_fast_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_global_symbol_addr(
+    global_max_fast_addr_via_debug_symbol = pwndbg.aglib.symbol.lookup_symbol_addr(
         "global_max_fast", prefer_static=True
     )
     assert global_max_fast_addr_via_debug_symbol is not None

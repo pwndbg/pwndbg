@@ -39,7 +39,7 @@ def _get_errno() -> int:
     # We can't simply call __errno_location because its .plt.got entry may be uninitialized
     # (e.g. if the binary was just started with `starti` command)
     # So we have to check the got.plt entry first before calling it
-    errno_loc_gotplt = pwndbg.aglib.symbol.lookup_global_symbol_addr("__errno_location@got.plt")
+    errno_loc_gotplt = pwndbg.aglib.symbol.lookup_symbol_addr("__errno_location@got.plt")
     if errno_loc_gotplt is not None:
         page_loaded = pwndbg.aglib.vmmap.find(pwndbg.aglib.memory.pvoid(errno_loc_gotplt))
         if page_loaded is None:

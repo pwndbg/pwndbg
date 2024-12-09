@@ -56,7 +56,8 @@ def compound_head(page: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
     if int(head) & 1:
         return (head - 1).cast(page.type.pointer()).dereference()
 
-    pg_head = pwndbg.aglib.symbol.lookup_global_symbol_value("PG_head")
+    # TODO: PG_head, to enum, enum nie dziala w LLDB
+    pg_head = pwndbg.aglib.symbol.lookup_symbol_value("PG_head")
     assert pg_head is not None, "symbol PG_head not found"
 
     # https://elixir.bootlin.com/linux/v6.2/source/include/linux/page-flags.h#L212

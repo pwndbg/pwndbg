@@ -279,10 +279,10 @@ Pwndbg on top of them.
 Here are some things one may want to do, along with how they can be achieved in the LLDB, GDB, and
 Pwndbg Debugger APIs.
 
-| Action | GDB/ | LLDB | Debugger API[^1] |
-| ------ | --- | ---- | ------------ |
-| Setting a breakpoint at an address | `gdb.Breakpoint("*<address>")` | `lldb.target.BreakpointCreateByAddress(<address>)` | `inf.break_at(BreakpointLocation(<address>))` |
-| Querying for the address of a symbol | `int(gdb.lookup_symbol(<name>).value().address)` | `lldb.target.FindSymbols(<name>).GetContextAtIndex(0).symbol.GetStartAddress().GetLoadAddress(lldb.target)` | `inf.symbol_address_from_name(<name>)` |
+| Action | GDB/ | LLDB | Debugger API[^1]                                      |
+| ------ | --- | ---- |-------------------------------------------------------|
+| Setting a breakpoint at an address | `gdb.Breakpoint("*<address>")` | `lldb.target.BreakpointCreateByAddress(<address>)` | `inf.break_at(BreakpointLocation(<address>))`         |
+| Querying for the address of a symbol | `int(gdb.lookup_symbol(<name>).value().address)` | `lldb.target.FindSymbols(<name>).GetContextAtIndex(0).symbol.GetStartAddress().GetLoadAddress(lldb.target)` | `inf.lookup_symbol(<name>)`                           |
 | Setting a watchpoint at an address | `gdb.Breakpoint(f"(char[{<size>}])*{<address>}", gdb.BP_WATCHPOINT)` | `lldb.target.WatchAddress(<address>, <size>, ...)` | `inf.break_at(WatchpointLocation(<address>, <size>))` |
 
 [^1]: Many functions in the Debugger API are accessed through a `Process` object, which is usually

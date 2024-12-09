@@ -70,7 +70,7 @@ def _get_version() -> Tuple[int, ...] | None:
 
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
     if pwndbg.aglib.heap.current.libc_has_debug_syms():
-        addr = pwndbg.aglib.symbol.lookup_global_symbol_addr("__libc_version")
+        addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version")
         if addr is not None:
             ver = pwndbg.aglib.memory.string(addr)
             return tuple(int(_) for _ in ver.split(b"."))

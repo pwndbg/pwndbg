@@ -20,7 +20,7 @@ parser.add_argument("zone", type=int, nargs="?", help="")
 
 
 def print_zone(zone: int, list_num=None) -> None:
-    contig_value = pwndbg.aglib.symbol.lookup_global_symbol("contig_page_data")
+    contig_value = pwndbg.aglib.symbol.lookup_symbol("contig_page_data")
     if not contig_value:
         print("WARNING: Symbol 'contig_page_data' not found")
         return

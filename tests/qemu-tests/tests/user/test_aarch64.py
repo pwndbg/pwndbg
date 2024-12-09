@@ -437,7 +437,7 @@ REFERENCE_BINARY = user.binaries.get("reference-binary.aarch64.out")
 def test_aarch64_reference(qemu_start_binary):
     qemu_start_binary(REFERENCE_BINARY, "aarch64")
     gdb.execute("break break_here")
-    assert pwndbg.aglib.symbol.lookup_global_symbol("main") is not None
+    assert pwndbg.aglib.symbol.lookup_symbol("main") is not None
     gdb.execute("continue")
 
     gdb.execute("argv", to_string=True)

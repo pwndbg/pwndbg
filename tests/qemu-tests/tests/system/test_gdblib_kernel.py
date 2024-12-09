@@ -58,12 +58,12 @@ def test_gdblib_kernel_kbase():
     # newer arm/arm64 kernels reserve (_stext, _end] and other kernels reserve [_text, _end)
     # https://elixir.bootlin.com/linux/v6.8.4/source/arch/arm64/mm/init.c#L306
     base = pwndbg.aglib.kernel.kbase()
-    assert base == pwndbg.aglib.symbol.lookup_global_symbol_addr(
+    assert base == pwndbg.aglib.symbol.lookup_symbol_addr(
         "_text"
-    ) or base == pwndbg.aglib.symbol.lookup_global_symbol_addr("_stext")
+    ) or base == pwndbg.aglib.symbol.lookup_symbol_addr("_stext")
 
 
 @pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
 def test_gdblib_kernel_kallsyms():
     ks = pwndbg.aglib.kernel.kallsyms.get()
-    assert ks["commit_creds"][0] == pwndbg.aglib.symbol.lookup_global_symbol_addr("commit_creds")
+    assert ks["commit_creds"][0] == pwndbg.aglib.symbol.lookup_symbol_addr("commit_creds")

@@ -76,7 +76,7 @@ def start(args=None) -> None:
     symbols = ["main", "_main", "start", "_start", "init", "_init"]
 
     for symbol in symbols:
-        address = pwndbg.aglib.symbol.lookup_global_symbol_addr(symbol)
+        address = pwndbg.aglib.symbol.lookup_symbol_addr(symbol)
         if not address:
             continue
 

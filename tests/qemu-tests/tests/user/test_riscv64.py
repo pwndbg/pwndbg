@@ -298,7 +298,7 @@ REFERENCE_BINARY = user.binaries.get("reference-binary.riscv64.out")
 def test_riscv64_reference(qemu_start_binary):
     qemu_start_binary(REFERENCE_BINARY, "riscv64")
     gdb.execute("break 4")
-    assert pwndbg.aglib.symbol.lookup_global_symbol("main") is not None
+    assert pwndbg.aglib.symbol.lookup_symbol("main") is not None
     gdb.execute("continue")
 
     gdb.execute("stepuntilasm jalr")

@@ -71,7 +71,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     result = []
     name = name or ""
 
-    sym = pwndbg.aglib.symbol.lookup_symbol(name)
+    sym = pwndbg.aglib.symbol.lookup_frame_symbol(name)
     name = name.replace("isoc99_", "")  # __isoc99_sscanf
     name = name.replace("@plt", "")  # getpwiod@plt
 

@@ -38,7 +38,7 @@ def _r_debug() -> int | None:
     [2]: https://elixir.bootlin.com/glibc/glibc-2.38/source/elf/dl-debug-symbols.S#L30
     """
 
-    return pwndbg.aglib.symbol.lookup_global_symbol_addr("_r_debug")
+    return pwndbg.aglib.symbol.lookup_symbol_addr("_r_debug")
 
 
 def is_dynamic() -> bool:

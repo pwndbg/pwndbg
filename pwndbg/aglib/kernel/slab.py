@@ -15,7 +15,7 @@ from pwndbg.aglib.kernel.macros import swab
 
 
 def caches() -> Generator[SlabCache, None, None]:
-    slab_caches = pwndbg.aglib.symbol.lookup_global_symbol("slab_caches")
+    slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
     if not slab_caches:
         return
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
@@ -23,7 +23,7 @@ def caches() -> Generator[SlabCache, None, None]:
 
 
 def get_cache(target_name: str) -> SlabCache | None:
-    slab_caches = pwndbg.aglib.symbol.lookup_global_symbol("slab_caches")
+    slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
     if not slab_caches:
         return None
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
@@ -330,7 +330,7 @@ class Slab:
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
     """Find the slab cache associated with the provided address."""
     min_pfn = 0
-    max_pfn = pwndbg.aglib.symbol.lookup_global_symbol_value("max_pfn")
+    max_pfn = pwndbg.aglib.symbol.lookup_symbol_value("max_pfn")
     assert max_pfn is not None, "Symbol max_pfn not found"
 
     page_size = kernel.page_size()

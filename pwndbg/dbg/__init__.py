@@ -155,7 +155,44 @@ class Registers:
         raise NotImplementedError()
 
 
+class SymbolLookupType(Enum):
+    """
+    Enum representing types of symbol lookups for filtering symbol searches.
+
+    Attributes:
+    - ANY: Represents searching for any symbol type (default).
+    - FUNCTION: Represents searching specifically for function symbols.
+    - VARIABLE: Represents searching specifically for variable symbols.
+    """
+
+    ANY = 1
+    FUNCTION = 2
+    VARIABLE = 3
+
+
 class Frame:
+    def lookup_symbol(
+        self,
+        name: str,
+        *,
+        type: SymbolLookupType = SymbolLookupType.ANY,
+    ) -> Value | None:
+        """
+        Looks up and returns the value of a symbol in current frame by its name.
+
+        Parameters:
+        - name (str): The name of the symbol to look up.
+        - type (SymbolLookupType, optional): The type of symbol to search for. Defaults
+          to SymbolLookupType.ANY.
+
+        Returns:
+        - pwndbg.dbg_mod.Value | None: The value of the symbol if found, or None if not found.
+
+        Raises:
+        - pwndbg.dbg_mod.Error: If symbol name contains invalid characters
+        """
+        raise NotImplementedError()
+
     def evaluate_expression(self, expression: str, lock_scheduler: bool = False) -> Value:
         """
         Evaluate the given expression in the context of this frame, and
@@ -290,26 +327,6 @@ class ExecutionController:
         raise NotImplementedError()
 
 
-class SymbolLookupType(Enum):
-    """
-    Lookup symbol type
-    """
-
-    ANY = 1
-    FUNCTION = 2
-    VARIABLE = 3
-
-
-class SymbolLookupContext(Enum):
-    """
-    Lookup context
-    """
-
-    SELECTED_FRAME = 1
-    GLOBAL = 2
-    # TODO: SELECTED_OBJFILE ?? (eg. we want get functions addresses from libc.so.6 only)
-
-
 class Process:
     def threads(self) -> List[Thread]:
         """
@@ -434,13 +451,27 @@ class Process:
         self,
         name: str,
         *,
-        context: SymbolLookupContext = SymbolLookupContext.SELECTED_FRAME,
+        prefer_static: bool = False,
         type: SymbolLookupType = SymbolLookupType.ANY,
+        objfile_endswith: str | None = None,
     ) -> Value | None:
         """
-        Returns the value of a symbol, given its name. Optionally, the user
-        may specify that they want to prioritize symbols in the static block, if
-        supported by the debugger.
+        Looks up and returns the value of a symbol by its name.
+
+        Parameters:
+        - name (str): The name of the symbol to look up.
+        - prefer_static (bool, optional): If True, prioritize symbols in the static block,
+          if supported by the debugger. Defaults to False.
+        - type (SymbolLookupType, optional): The type of symbol to search for. Defaults
+          to SymbolLookupType.ANY.
+        - objfile_endswith (str | None, optional): If specified, limits the search to the
+          first object file whose name ends with the provided string.
+
+        Returns:
+        - pwndbg.dbg_mod.Value | None: The value of the symbol if found, or None if not found.
+
+        Raises:
+        - pwndbg.dbg_mod.Error: If no object file matching the `objfile_endswith` pattern is found.
         """
         raise NotImplementedError()
 
