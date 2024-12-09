@@ -190,7 +190,7 @@ class Domain(Enum):
 
 # SYMBOL_FUNCTION_DOMAIN is supported since GDB15+
 if gdb_version[0] < 15:
-    gdb.SYMBOL_FUNCTION_DOMAIN = gdb.SYMBOL_VAR_DOMAIN
+    gdb.SYMBOL_FUNCTION_DOMAIN = gdb.SYMBOL_VAR_DOMAIN  # type: ignore[attr-defined]
 
 DOMAIN_MAPPING = {
     # Gdb supported types:
@@ -204,7 +204,7 @@ DOMAIN_MAPPING = {
     # Note: This queries SYMBOL_VAR_DOMAIN, SYMBOL_TYPE_DOMAIN, and SYMBOL_FUNCTION_DOMAIN.
     Domain.VARIABLE: gdb.SYMBOL_VAR_DOMAIN,
     # Specifically for variables. Requires manual filtering to exclude other types.
-    Domain.FUNCTION: gdb.SYMBOL_FUNCTION_DOMAIN,
+    Domain.FUNCTION: gdb.SYMBOL_FUNCTION_DOMAIN,  # type: ignore[attr-defined]
     # Specifically for functions.
 }
 

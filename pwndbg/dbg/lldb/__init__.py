@@ -384,8 +384,8 @@ class LLDBType(pwndbg.dbg_mod.Type):
     def fields(self) -> List[pwndbg.dbg_mod.TypeField]:
         code = self.inner.GetTypeClass()
         if code == lldb.eTypeClassEnumeration:
-            fields: List[lldb.SBTypeEnumMember] = self.inner.get_enum_members_array()
-            if not fields:
+            fields_enum: List[lldb.SBTypeEnumMember] = self.inner.get_enum_members_array()
+            if not fields_enum:
                 return []
             return [
                 pwndbg.dbg_mod.TypeField(
@@ -398,27 +398,25 @@ class LLDBType(pwndbg.dbg_mod.Type):
                     False,
                     0,
                 )
-                for field in fields
+                for field in fields_enum
             ]
 
         fields: List[lldb.SBTypeMember] = self.inner.get_fields_array()
-        return (
-            [
-                pwndbg.dbg_mod.TypeField(
-                    field.bit_offset,
-                    field.name,
-                    LLDBType(field.type),
-                    self,
-                    0,  # TODO: Handle fields for enum types differently.
-                    False,
-                    False,  # TODO: Handle base class members differently.
-                    field.bitfield_bit_size if field.is_bitfield else field.type.GetByteSize(),
-                )
-                for field in fields
-            ]
-            if len(fields) > 0
-            else []
-        )
+        if not fields:
+            return []
+        return [
+            pwndbg.dbg_mod.TypeField(
+                field.bit_offset,
+                field.name,
+                LLDBType(field.type),
+                self,
+                0,  # TODO: Handle fields for enum types differently.
+                False,
+                False,  # TODO: Handle base class members differently.
+                field.bitfield_bit_size if field.is_bitfield else field.type.GetByteSize(),
+            )
+            for field in fields
+        ]
 
     @override
     def array(self, count: int) -> pwndbg.dbg_mod.Type:
