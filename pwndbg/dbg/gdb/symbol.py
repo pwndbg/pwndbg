@@ -178,15 +178,20 @@ class Domain(Enum):
     FUNCTION = 3
 
     def validate(self, sym: gdb.Symbol) -> bool:
-        if self != Domain.VARIABLE:
-            return True
+        if self == Domain.FUNCTION and gdb_version[0] < 15:
+            return sym.is_function
 
-        # Only for 'VARIABLE' we need manually filter out
-        # We have to check for `is_function`, because TLS variables will return False in `is_variable`
-        if sym.is_function:
-            return False
+        elif self == Domain.VARIABLE:
+            # For 'VARIABLE' we need manually filter out
+            # We have to check for `is_function`, because TLS variables will return False in `is_variable`
+            if sym.is_function:
+                return False
         return True
 
+
+# SYMBOL_FUNCTION_DOMAIN is supported since GDB15+
+if gdb_version[0] < 15:
+    gdb.SYMBOL_FUNCTION_DOMAIN = gdb.SYMBOL_VAR_DOMAIN
 
 DOMAIN_MAPPING = {
     # Gdb supported types:
@@ -200,7 +205,7 @@ DOMAIN_MAPPING = {
     # Note: This queries SYMBOL_VAR_DOMAIN, SYMBOL_TYPE_DOMAIN, and SYMBOL_FUNCTION_DOMAIN.
     Domain.VARIABLE: gdb.SYMBOL_VAR_DOMAIN,
     # Specifically for variables. Requires manual filtering to exclude other types.
-    Domain.FUNCTION: gdb.SYMBOL_FUNCTION_DOMAIN,  # type: ignore[attr-defined]
+    Domain.FUNCTION: gdb.SYMBOL_FUNCTION_DOMAIN,
     # Specifically for functions.
 }
 
