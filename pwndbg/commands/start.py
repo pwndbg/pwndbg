@@ -10,9 +10,9 @@ from argparse import RawTextHelpFormatter
 from shlex import quote
 
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
-import pwndbg.aglib.arch
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.color.message as M
