@@ -51,7 +51,7 @@ def _arr(x: pwndbg.dbg_mod.Value, n: int) -> pwndbg.dbg_mod.Value:
 
 def compound_head(page: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
     """returns the head page of compound pages"""
-    assert page.type.name == "page"
+    assert page.type.name == "struct page"
     # https://elixir.bootlin.com/linux/v6.2/source/include/linux/page-flags.h#L249
     head = page["compound_head"]
     if int(head) & 1:

@@ -648,6 +648,7 @@ class Type:
         - int
         - char *
         - void *
+        - struct fooName
         """
         raise NotImplementedError()
 
