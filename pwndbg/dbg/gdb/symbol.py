@@ -135,10 +135,9 @@ def _frame_any_symbol_to_address(name: str, domain: Domain) -> gdb.Value | None:
         # - global static in other module
         symbol_obj, _ = gdb.lookup_symbol(name, domain=DOMAIN_MAPPING[domain])
         if symbol_obj and domain.validate(symbol_obj):
-            frame = None
             if symbol_obj.needs_frame:
-                frame = gdb.selected_frame()
-            return symbol_obj.value(frame).address
+                return symbol_obj.value(gdb.selected_frame()).address
+            return symbol_obj.value().address
     except gdb.error as e:
         if all(x not in str(e) for x in skipped_exceptions):
             raise e
