@@ -298,7 +298,7 @@ def _get_moduledata_types() -> Tuple[Tuple[int, int], ...] | None:
                 start = int(md["types"])
                 end = int(md["etypes"])
                 ret.append((start, end))
-                if md["next"]:
+                if int(md["next"]):
                     md = md["next"].dereference()
                 else:
                     return tuple(ret)
