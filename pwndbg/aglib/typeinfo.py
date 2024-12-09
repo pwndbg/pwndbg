@@ -42,8 +42,6 @@ ptrdiff: pwndbg.dbg_mod.Type
 size_t: pwndbg.dbg_mod.Type
 ssize_t: pwndbg.dbg_mod.Type
 
-null: pwndbg.dbg_mod.Type
-
 
 def lookup_types(*types: str) -> pwndbg.dbg_mod.Type:
     process = pwndbg.dbg.selected_inferior()
@@ -98,8 +96,6 @@ def update() -> None:
         module.ssize_t = module.int64
     else:
         raise Exception("Pointer size not supported")
-
-    module.null = pwndbg.dbg.selected_inferior().evaluate_expression("0").cast(void)
 
 
 def load(name: str) -> Optional[pwndbg.dbg_mod.Type]:
