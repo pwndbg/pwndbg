@@ -1111,7 +1111,10 @@ class GDBValue(pwndbg.dbg_mod.Value):
             # so we nudge it a little.
             key = self.inner.type.fields()[key]
 
-        return GDBValue(self.inner[key])
+        try:
+            return GDBValue(self.inner[key])
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.Error(e)
 
 
 def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
