@@ -16,12 +16,9 @@ def lookup_symbol_addr(
     type: SymbolLookupType = SymbolLookupType.ANY,
     objfile_endswith: str | None = None,
 ) -> int | None:
-    s = lookup_symbol(
+    addr = lookup_symbol(
         name, type=type, prefer_static=prefer_static, objfile_endswith=objfile_endswith
     )
-    if not s:
-        return None
-    addr = s.address
     if not addr:
         return None
     return int(addr)
@@ -34,12 +31,16 @@ def lookup_symbol_value(
     type: SymbolLookupType = SymbolLookupType.ANY,
     objfile_endswith: str | None = None,
 ) -> int | None:
-    s = lookup_symbol(
+    addr = lookup_symbol(
         name, type=type, prefer_static=prefer_static, objfile_endswith=objfile_endswith
     )
-    if not s:
+    if not addr:
         return None
-    return int(s)
+
+    value = addr.dereference()
+    if not value:
+        return None
+    return int(value)
 
 
 # TODO: cache here?
