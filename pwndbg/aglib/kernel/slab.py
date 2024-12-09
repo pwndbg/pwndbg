@@ -18,6 +18,7 @@ def caches() -> Generator[SlabCache, None, None]:
     slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
     if not slab_caches:
         return
+    slab_caches = slab_caches.dereference()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         yield SlabCache(slab_cache)
 
@@ -26,7 +27,8 @@ def get_cache(target_name: str) -> SlabCache | None:
     slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
     if not slab_caches:
         return None
-    for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
+    slab_caches = slab_caches.dereference()
+    for slab_cache in for_each_entry(slab_caches.dereference(), "struct kmem_cache", "list"):
         if target_name == slab_cache["name"].string():
             return SlabCache(slab_cache)
     return None
