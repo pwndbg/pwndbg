@@ -1170,7 +1170,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     @override
     def symbol_name_at_address(self, address: int) -> str | None:
         addr = lldb.SBAddress(address, self.target)
-        ctx = self.target.ResolveSymbolContextForAddress(addr, lldb.eSymbolContextSymbol)
+
+        # eSymbolContextVariable is potentially expensive to lookup
+        # so it isn’t included in eSymbolContextEverything
+        ctx = self.target.ResolveSymbolContextForAddress(addr, lldb.eSymbolContextEverything)
 
         if not ctx.IsValid() or not ctx.symbol.IsValid():
             return None
