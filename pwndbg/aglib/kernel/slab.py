@@ -16,8 +16,12 @@ from pwndbg.aglib.kernel.macros import swab
 
 def caches() -> Generator[SlabCache, None, None]:
     slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
-    if not slab_caches:
+    if slab_caches is None:
+        # Symbol not found
         return
+    if not int(slab_caches):
+        # null addr
+        return None
     slab_caches = slab_caches.dereference()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         yield SlabCache(slab_cache)
@@ -25,7 +29,11 @@ def caches() -> Generator[SlabCache, None, None]:
 
 def get_cache(target_name: str) -> SlabCache | None:
     slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
-    if not slab_caches:
+    if slab_caches is None:
+        # Symbol not found
+        return None
+    if not int(slab_caches):
+        # null addr
         return None
     slab_caches = slab_caches.dereference()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
