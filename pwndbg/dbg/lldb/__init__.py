@@ -1363,37 +1363,23 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 sym_name = sym.GetName()
 
                 cast_type: pwndbg.dbg_mod.Type
-                if sym.GetType() == lldb.eSymbolTypeCode:
+                if addr.function.IsValid():
                     # is function
-                    if addr.function.IsValid():
-                        cast_type = LLDBType(addr.function.type).pointer()
-                    else:
-                        # function without type, we cast to pointer
-                        cast_type = pwndbg.aglib.typeinfo.pvoid
+                    cast_type = LLDBType(addr.function.type).pointer()
                 else:
                     # is variable maybe
 
                     # LLDB lacks support for types in symbols
                     # So we have manually find types
                     cast_type = variables_types.get((resolved_addr_int, sym_name), None)
-
-                    # guessing type, we can't do better
-                    if cast_type is None:
-                        from pwndbg.aglib.typeinfo import get_type
-
-                        try:
-                            cast_type = get_type(resolved_addr_size)
-                        except KeyError:
-                            pass
-
-                    assert (
-                        cast_type is not None
-                    ), f"Symbol '{sym_name}' (size:{resolved_addr_size:02x}) has unresolved type, should not happen"
-
-                    # Detect if we have proper symbol by size, we can't do better here
-                    assert (
-                        cast_type.sizeof == resolved_addr_size
-                    ), f"Symbol {sym_name} has invalid size (has:{cast_type.sizeof:02x}, needed:{resolved_addr_size:02x}), should not happen"
+                    if cast_type is not None:
+                        # Detect if we have proper symbol by size, we can't do better here
+                        assert (
+                            cast_type.sizeof == resolved_addr_size
+                        ), f"Symbol {sym_name} has invalid size (has:{cast_type.sizeof:02x}, needed:{resolved_addr_size:02x}), should not happen"
+                    else:
+                        # Address without/unknown type, we cast to pointer
+                        cast_type = pwndbg.aglib.typeinfo.pvoid
 
                 sym_type = sym.GetType()
                 if addr.section.name in (".tbss", ".tdata") and sym_type == lldb.eSymbolTypeInvalid:
@@ -1403,9 +1389,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     tls = self._resolve_tls_symbol(sym)
                     if tls:
                         yield sym, cast_type, tls
-                    continue
-
-                if sym_type == lldb.eSymbolTypeInvalid:
                     continue
 
                 if resolved_addr_int == lldb.LLDB_INVALID_ADDRESS:
