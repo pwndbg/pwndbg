@@ -672,7 +672,7 @@ class Type:
         """
         raise NotImplementedError()
 
-    def fields(self) -> List[TypeField] | None:
+    def fields(self) -> List[TypeField]:
         """
         List of all fields in this type, if it is a structured type.
         """

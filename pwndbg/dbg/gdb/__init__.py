@@ -977,7 +977,7 @@ class GDBType(pwndbg.dbg_mod.Type):
         return GDBType.CODE_MAPPING[self.inner.code]
 
     @override
-    def fields(self) -> List[pwndbg.dbg_mod.TypeField] | None:
+    def fields(self) -> List[pwndbg.dbg_mod.TypeField]:
         return [
             pwndbg.dbg_mod.TypeField(
                 field.bitpos if hasattr(field, "bitpos") else 0,

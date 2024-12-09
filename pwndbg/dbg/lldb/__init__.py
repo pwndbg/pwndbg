@@ -381,12 +381,12 @@ class LLDBType(pwndbg.dbg_mod.Type):
         return map_type_code(self.inner)
 
     @override
-    def fields(self) -> List[pwndbg.dbg_mod.TypeField] | None:
+    def fields(self) -> List[pwndbg.dbg_mod.TypeField]:
         code = self.inner.GetTypeClass()
         if code == lldb.eTypeClassEnumeration:
             fields: List[lldb.SBTypeEnumMember] = self.inner.get_enum_members_array()
             if not fields:
-                return None
+                return []
             return [
                 pwndbg.dbg_mod.TypeField(
                     0,
@@ -417,7 +417,7 @@ class LLDBType(pwndbg.dbg_mod.Type):
                 for field in fields
             ]
             if len(fields) > 0
-            else None
+            else []
         )
 
     @override
