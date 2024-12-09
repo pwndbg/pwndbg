@@ -57,11 +57,8 @@ def compound_head(page: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
     if int(head) & 1:
         return (head - 1).cast(page.type.pointer()).dereference()
 
-    pageflags_enum = pwndbg.aglib.typeinfo.load("enum pageflags")
-    assert pageflags_enum is not None, "Type 'enum pageflags' not found"
-
-    pg_head = next((f.enumval for f in pageflags_enum.fields() if f.name == "PG_head"), None)
-    assert pg_head is not None, "Symbol PG_head not found"
+    pg_head = pwndbg.aglib.typeinfo.enum_member("enum pageflags", "PG_head")
+    assert pg_head is not None, "Type 'enum pageflags' not found Or member 'PG_head' not exists"
 
     # https://elixir.bootlin.com/linux/v6.2/source/include/linux/page-flags.h#L212
     if int(page["flags"]) & (1 << pg_head):

@@ -316,8 +316,6 @@ def _get_moduledata_types() -> Tuple[Tuple[int, int], ...] | None:
 @pwndbg.lib.cache.cache_until("objfile")
 def _guess_moduledata_types() -> int | None:
     # the type:* symbol can indicate type start
-
-    # TODO: sprawdzic czy to regex, czy co
     type_start = pwndbg.aglib.symbol.lookup_symbol_addr("type:*")
     if type_start is not None:
         return type_start

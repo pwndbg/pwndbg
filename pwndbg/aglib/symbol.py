@@ -43,8 +43,7 @@ def lookup_symbol_value(
     return int(value)
 
 
-# TODO: cache here?
-# TODO: trzeba pamietac, ze zmianne TLS tez tutaj sa wiec per thread sa inne
+# TODO: cache here? can we cache obj 'Value'?
 def lookup_symbol(
     name: str,
     *,
@@ -58,8 +57,8 @@ def lookup_symbol(
     This function searches for (SymbolLookupType.ANY):
     - Function names
     - Variable names
-    - (gdb only, please don't use) Typedef names
-    - (gdb only, please don't use) Enum values
+    - (gdb only) Typedef names (if you need please use aglib.typeinfo.load)
+    - (gdb only) Enum values (if you need please use aglib.typeinfo.enum_member)
 
     The lookup order is as follows (default):
     1. Global scope within the current module
@@ -72,8 +71,7 @@ def lookup_symbol(
     )
 
 
-# TODO: cache here?
-# TODO: trzeba pamietac, ze zmianne TLS tez tutaj sa wiec per thread sa inne
+# TODO: cache here? can we cache obj 'Value'?
 def lookup_frame_symbol(
     name: str, *, type: SymbolLookupType = SymbolLookupType.ANY
 ) -> pwndbg.dbg_mod.Value | None:
