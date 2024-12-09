@@ -285,7 +285,7 @@ class mock_for_heuristic:
         self.saved_func = pwndbg.dbg.selected_inferior
 
     def __enter__(self):
-        def mock_symbol_address_from_name(original):
+        def mock_lookup_symbol(original):
             def _mock(symbol, *args, **kwargs):
                 if self.mock_all:
                     return None
@@ -299,9 +299,8 @@ class mock_for_heuristic:
         def mock_interior(original):
             def _mock(*args, **kwargs):
                 inst = original(*args, **kwargs)
-                # TODO: mock?
-                inst.symbol_address_from_name = mock_symbol_address_from_name(
-                    inst.symbol_address_from_name
+                inst.lookup_symbol = mock_lookup_symbol(
+                    inst.lookup_symbol
                 )
                 return inst
 
