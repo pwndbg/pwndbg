@@ -299,9 +299,7 @@ class mock_for_heuristic:
         def mock_interior(original):
             def _mock(*args, **kwargs):
                 inst = original(*args, **kwargs)
-                inst.lookup_symbol = mock_lookup_symbol(
-                    inst.lookup_symbol
-                )
+                inst.lookup_symbol = mock_lookup_symbol(inst.lookup_symbol)
                 return inst
 
             return _mock
