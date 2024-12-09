@@ -5,6 +5,7 @@ from typing import Iterator
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 
 
 def offset_of(typename: str, fieldname: str) -> int:
@@ -56,9 +57,11 @@ def compound_head(page: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
     if int(head) & 1:
         return (head - 1).cast(page.type.pointer()).dereference()
 
-    # TODO: PG_head, to enum, enum nie dziala w LLDB
-    pg_head = pwndbg.aglib.symbol.lookup_symbol_value("PG_head")
-    assert pg_head is not None, "symbol PG_head not found"
+    pageflags_enum = pwndbg.aglib.typeinfo.load("enum pageflags")
+    assert pageflags_enum is not None, "Type 'enum pageflags' not found"
+
+    pg_head = next((f.enumval for f in pageflags_enum.fields() if f.name == 'PG_head'), None)
+    assert pg_head is not None, "Symbol PG_head not found"
 
     # https://elixir.bootlin.com/linux/v6.2/source/include/linux/page-flags.h#L212
     if int(page["flags"]) & (1 << pg_head):

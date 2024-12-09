@@ -383,7 +383,26 @@ class LLDBType(pwndbg.dbg_mod.Type):
 
     @override
     def fields(self) -> List[pwndbg.dbg_mod.TypeField] | None:
-        fields = self.inner.get_fields_array()
+        code = self.inner.GetTypeClass()
+        if code == lldb.eTypeClassEnumeration:
+            fields: List[lldb.SBTypeEnumMember] = self.inner.get_enum_members_array()
+            if not fields:
+                return None
+            return [
+                pwndbg.dbg_mod.TypeField(
+                    0,
+                    field.name,
+                    LLDBType(field.type),
+                    self,
+                    field.signed,
+                    False,
+                    False,
+                    0,
+                )
+                for field in fields
+            ]
+
+        fields: List[lldb.SBTypeMember] = self.inner.get_fields_array()
         return (
             [
                 pwndbg.dbg_mod.TypeField(
