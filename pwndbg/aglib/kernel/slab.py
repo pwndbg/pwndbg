@@ -222,7 +222,7 @@ class CpuCache:
     def active_slab(self) -> Slab | None:
         slab_key = slab_struct_type()
         _slab = self._cpu_cache[slab_key]
-        if not _slab:
+        if not int(_slab):
             return None
         return Slab(_slab.dereference(), self, self.slab_cache)
 
@@ -230,10 +230,12 @@ class CpuCache:
     def partial_slabs(self) -> List[Slab]:
         partial_slabs = []
         cur_slab = self._cpu_cache["partial"]
-        while cur_slab:
+        cur_slab_int = int(cur_slab)
+        while cur_slab_int:
             _slab = cur_slab.dereference()
             partial_slabs.append(Slab(_slab, self, self.slab_cache, is_partial=True))
             cur_slab = _slab["next"]
+            cur_slab_int = int(cur_slab)
         return partial_slabs
 
 
