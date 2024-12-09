@@ -21,11 +21,9 @@ def caches() -> Generator[SlabCache, None, None]:
         return
     if not int(slab_caches):
         # null addr
-        return None
+        return
+
     slab_caches = slab_caches.dereference()
-    if not int(slab_caches):
-        # null addr
-        return None
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         yield SlabCache(slab_cache)
 
@@ -38,10 +36,8 @@ def get_cache(target_name: str) -> SlabCache | None:
     if not int(slab_caches):
         # null addr
         return None
+
     slab_caches = slab_caches.dereference()
-    if not int(slab_caches):
-        # null addr
-        return None
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         if target_name == slab_cache["name"].string():
             return SlabCache(slab_cache)
