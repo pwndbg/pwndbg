@@ -21,7 +21,6 @@ from typing import Tuple
 from typing import TypeVar
 
 import lldb
-from lldb import LLDB_INVALID_ADDRESS
 from typing_extensions import override
 
 import pwndbg
