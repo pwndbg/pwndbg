@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.commands
 import pwndbg.aglib.godbg
+import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
