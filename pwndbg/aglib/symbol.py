@@ -99,8 +99,12 @@ def lookup_frame_symbol(
 @pwndbg.lib.cache.cache_until("objfile")
 def resolve_addr(addr: int) -> str | None:
     """
-    Lookup in order:
-    - local scope
-    - global scope
+    Resolves an address to its corresponding symbol name, if available.
+
+    Note:
+    - This function does not resolve TLS (Thread-Local Storage) addresses or addresses with local scope.
+
+    Resolution is performed in the following order:
+    - Global scope symbols.
     """
     return pwndbg.dbg.selected_inferior().symbol_name_at_address(addr)

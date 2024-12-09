@@ -19,9 +19,6 @@ def caches() -> Generator[SlabCache, None, None]:
     if slab_caches is None:
         # Symbol not found
         return
-    if not int(slab_caches):
-        # null addr
-        return
 
     slab_caches = slab_caches.dereference()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
@@ -32,9 +29,6 @@ def get_cache(target_name: str) -> SlabCache | None:
     slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
     if slab_caches is None:
         # Symbol not found
-        return None
-    if not int(slab_caches):
-        # null addr
         return None
 
     slab_caches = slab_caches.dereference()
