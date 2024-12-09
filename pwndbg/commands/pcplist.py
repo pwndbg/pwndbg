@@ -26,6 +26,7 @@ def print_zone(zone: int, list_num=None) -> None:
         return
 
     print(f"Zone {zone}")
+    contig_value = contig_value.dereference()
     pageset_addr = per_cpu(contig_value["node_zones"][zone]["pageset"])
     pageset = pwndbg.aglib.memory.get_typed_pointer_value("struct per_cpu_pageset", pageset_addr)
     pcp = pageset["pcp"]

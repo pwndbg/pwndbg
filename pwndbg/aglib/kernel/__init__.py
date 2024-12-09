@@ -659,7 +659,7 @@ def num_numa_nodes() -> int:
         node_states = pwndbg.aglib.symbol.lookup_symbol("node_states")
         if node_states is None:
             return 1
-
+        node_states = node_states.dereference()
         node_mask = node_states[1]["bits"][0]  # 1 means N_ONLINE
         return bin(int(node_mask)).count("1")
 
