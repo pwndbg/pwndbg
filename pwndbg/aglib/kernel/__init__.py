@@ -418,6 +418,9 @@ class x86_64Ops(x86Ops):
     @requires_debug_syms()
     def cpu_feature_capability(feature: int) -> bool:
         boot_cpu_data = pwndbg.aglib.symbol.lookup_symbol("boot_cpu_data")
+        assert boot_cpu_data is not None, "Symbol boot_cpu_data not exists"
+        boot_cpu_data = boot_cpu_data.dereference()
+
         capabilities = boot_cpu_data["x86_capability"]
         return (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
 
