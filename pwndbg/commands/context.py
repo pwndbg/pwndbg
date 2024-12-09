@@ -312,7 +312,18 @@ def serve_context_history(function: Callable[P, List[str]]) -> Callable[P, List[
         # Add the current section to the history if it is not already there
         current_output = []
         if pwndbg.aglib.proc.alive:
-            current_output = function(*a, **kw)
+            # Do not reevaluate the expressions section because its content is not deterministic.
+            # Instead, reuse the last evaluated expression and rely on the other sections to deselect
+            # the history entry if the output changed.
+            # https://github.com/pwndbg/pwndbg/issues/2579
+            if (
+                section_name == "expressions"
+                and selected_history_index is not None
+                and len(context_history[section_name]) > 0
+            ):
+                current_output = context_history[section_name][-1]
+            else:
+                current_output = function(*a, **kw)
             if (
                 len(context_history[section_name]) == 0
                 or context_history[section_name][-1] != current_output
