@@ -53,7 +53,7 @@ def lookup_symbol(
     objfile_endswith: str | None = None,
 ) -> pwndbg.dbg_mod.Value | None:
     """
-    Returns the address of the given `symbol`, cast to the appropriate symbol type.
+    Returns the address of the given `symbol`, cast-ed to the appropriate symbol type.
 
     This function searches for (SymbolLookupType.ANY):
     - Function names
@@ -61,12 +61,11 @@ def lookup_symbol(
     - (gdb only, please don't use) Typedef names
     - (gdb only, please don't use) Enum values
 
-    The lookup order is as follows:
-    1. Local scope
-    2. Global scope within the current module
-    3. Global static scope within the current module
-    4. Global scope in other modules
-    5. Global static scope in other modules
+    The lookup order is as follows (default):
+    1. Global scope within the current module
+    2. Global static scope within the current module
+    3. Global scope in other modules
+    4. Global static scope in other modules
     """
     return pwndbg.dbg.selected_inferior().lookup_symbol(
         name, type=type, prefer_static=prefer_static, objfile_endswith=objfile_endswith
@@ -79,7 +78,7 @@ def lookup_frame_symbol(
     name: str, *, type: SymbolLookupType = SymbolLookupType.ANY
 ) -> pwndbg.dbg_mod.Value | None:
     """
-    Returns the address of the given `symbol`, cast to the appropriate symbol type.
+    Returns the address of the given `symbol`, cast-ed to the appropriate symbol type.
 
     This function searches for (SymbolLookupType.ANY):
     - Function names
