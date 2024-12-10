@@ -1135,6 +1135,11 @@ def vis_heap_chunks(
 
             cursor += ptr_size
 
+    if printed % 2 != 0:
+        # Alignment whitespace of ("0x" + "00" * ptr_size) length.
+        machine_word_string_length = 2 + (2 * ptr_size)
+        out += "\t" + " " * machine_word_string_length + "\t" + color_func(asc)
+
     print(out)
 
     if reached_mapping_end:

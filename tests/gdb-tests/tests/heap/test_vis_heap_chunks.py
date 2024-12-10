@@ -69,7 +69,7 @@ def test_vis_heap_chunk_command(start_binary):
         expected.append(
             "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
         )
-    expected.append("%#x\t0x0000000000000000" % heap_iter())
+    expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
     assert result == expected
 
     ## This time using `default-visualize-chunk-number` to set `count`, to make sure that the config can work
@@ -92,7 +92,7 @@ def test_vis_heap_chunk_command(start_binary):
     expected2 = expected[:-1] + [
         "%#x\t0x0000000000000000\t0x0000000000000021\t........!......." % heap_iter(0),
         "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter(),
-        "%#x\t0x0000000000000000" % heap_iter(),
+        "%#x\t0x0000000000000000\t                  \t........" % heap_iter(),
     ]
     assert result2 == expected2
 
