@@ -668,8 +668,8 @@ class Type:
         - barTypedefName
 
         This function is not standardized, may return different names in gdb/lldb, eg:
-        gdb: `char [16]` or `char [50]
-        lldb: `char[16]` or `char[]`
+        gdb: `char [16]` or `char [50]` or `struct {...}`
+        lldb: `char[16]` or `char[]`    or `(anonymous struct)`
 
         You should not use this function. Only for human eyes.
         """
