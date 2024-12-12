@@ -27,11 +27,6 @@ skipped_exceptions = (
 )
 
 
-# TODO: implement in aglib
-# address = int(address)
-# return pwndbg.integration.provider.get_symbol(address) or ""
-
-
 def resolve_addr(address: int) -> str:
     """
     Retrieve the name for the symbol located at `address`

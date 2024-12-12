@@ -178,7 +178,7 @@ class Frame:
         type: SymbolLookupType = SymbolLookupType.ANY,
     ) -> Value | None:
         """
-        Looks up and returns the value of a symbol in current frame by its name.
+        Looks up and returns the address of a symbol in current frame by its name.
 
         Parameters:
         - name (str): The name of the symbol to look up.
@@ -456,7 +456,7 @@ class Process:
         objfile_endswith: str | None = None,
     ) -> Value | None:
         """
-        Looks up and returns the value of a symbol by its name.
+        Looks up and returns the address of a symbol by its name.
 
         Parameters:
         - name (str): The name of the symbol to look up.

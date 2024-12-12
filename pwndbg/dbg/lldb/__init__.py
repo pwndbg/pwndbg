@@ -1185,13 +1185,16 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def symbol_name_at_address(self, address: int) -> str | None:
         addr = lldb.SBAddress(address, self.target)
 
-        # eSymbolContextVariable is potentially expensive to lookup
-        # so it isn’t included in eSymbolContextEverything
+        # We are using `lldb.eSymbolContextEverything` because it can find symbols without debug info.
+        # Additional information:
+        # `eSymbolContextVariable` is potentially expensive to look up,
+        # so it is not included in `eSymbolContextEverything`.
         ctx = self.target.ResolveSymbolContextForAddress(addr, lldb.eSymbolContextEverything)
 
         if not ctx.IsValid() or not ctx.symbol.IsValid():
             return None
 
+        # TODO: In GDB, we return something like `main+0x10`, but in LLDB, we do not.
         return ctx.symbol.name
 
     def _resolve_tls_symbol(self, sym: lldb.SBSymbol) -> int | None:

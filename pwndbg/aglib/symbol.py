@@ -5,6 +5,7 @@ vice-versa.
 
 from __future__ import annotations
 
+import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg.dbg import SymbolLookupType
 
@@ -105,4 +106,8 @@ def resolve_addr(addr: int) -> str | None:
     Resolution is performed in the following order:
     - Global scope symbols.
     """
-    return pwndbg.dbg.selected_inferior().symbol_name_at_address(addr)
+    symbol_name = pwndbg.dbg.selected_inferior().symbol_name_at_address(addr)
+    if symbol_name:
+        return symbol_name
+
+    return pwndbg.integration.provider.get_symbol(addr)
