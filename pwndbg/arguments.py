@@ -91,7 +91,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
             target_type = sym.type
 
         if target_type and target_type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            func_args = sym.type.func_arguments()
+            func_args = target_type.func_arguments()
             if func_args is not None:
                 n_args_default = len(func_args)
 
