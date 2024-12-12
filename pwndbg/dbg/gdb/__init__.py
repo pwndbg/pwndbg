@@ -995,7 +995,7 @@ class GDBType(pwndbg.dbg_mod.Type):
         return GDBType.CODE_MAPPING[self.inner.code]
 
     @override
-    def func_arguments(self) -> List[pwndbg.dbg_mod.TypeField] | None:
+    def func_arguments(self) -> List[pwndbg.dbg_mod.Type] | None:
         if self.code != pwndbg.dbg_mod.TypeCode.FUNC:
             raise TypeError("only available for function type")
 
@@ -1008,19 +1008,7 @@ class GDBType(pwndbg.dbg_mod.Type):
         args: List[gdb.Field] = self.inner.fields()
         if not args:
             return []
-        return [
-            pwndbg.dbg_mod.TypeField(
-                0,
-                field.name,
-                GDBType(field.type),
-                self,
-                0,
-                False,
-                False,
-                0,
-            )
-            for field in args
-        ]
+        return [GDBType(arg.type) for arg in args]
 
     @override
     def fields(self) -> List[pwndbg.dbg_mod.TypeField]:

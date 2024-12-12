@@ -390,26 +390,14 @@ class LLDBType(pwndbg.dbg_mod.Type):
         return map_type_code(self.inner)
 
     @override
-    def func_arguments(self) -> List[pwndbg.dbg_mod.TypeField] | None:
+    def func_arguments(self) -> List[pwndbg.dbg_mod.Type] | None:
         if self.code != pwndbg.dbg_mod.TypeCode.FUNC:
             raise TypeError("only available for function type")
 
         args: List[lldb.SBType] = self.inner.GetFunctionArgumentTypes()
         if not args:
             return []
-        return [
-            pwndbg.dbg_mod.TypeField(
-                0,
-                field.name,
-                LLDBType(field.type),
-                self,
-                0,
-                False,
-                False,
-                0,
-            )
-            for field in args
-        ]
+        return [LLDBType(arg) for arg in args]
 
     @override
     def fields(self) -> List[pwndbg.dbg_mod.TypeField]:

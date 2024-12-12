@@ -697,12 +697,12 @@ class Type:
         """
         raise NotImplementedError()
 
-    def func_arguments(self) -> List[TypeField] | None:
+    def func_arguments(self) -> List[Type] | None:
         """
-        Returns a list of function arguments.
+        Returns a list of function arguments type.
 
         Returns:
-            List[TypeField] | None: The function arguments, or None if debug information is missing.
+            List[Type] | None: The function arguments type, or None if debug information is missing.
 
         Raises:
             TypeError: If called on an unsupported type.
