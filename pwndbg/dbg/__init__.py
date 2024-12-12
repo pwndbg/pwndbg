@@ -605,6 +605,7 @@ class TypeCode(Enum):
     UNION = 5
     INT = 6
     ENUM = 7
+    FUNC = 8
 
 
 class TypeField:
@@ -693,6 +694,18 @@ class Type:
     def code(self) -> TypeCode:
         """
         What category of type this object belongs to.
+        """
+        raise NotImplementedError()
+
+    def func_arguments(self) -> List[TypeField] | None:
+        """
+        Returns a list of function arguments.
+
+        Returns:
+            List[TypeField] | None: The function arguments, or None if debug information is missing.
+
+        Raises:
+            TypeError: If called on an unsupported type.
         """
         raise NotImplementedError()
 

@@ -663,7 +663,9 @@ def num_numa_nodes() -> int:
         if node_states is None:
             return 1
         node_states = node_states.dereference()
-        node_mask = node_states[1]["bits"][0]  # 1 means N_ONLINE
+
+        # 1 means aglib.typeinfo.enum_member("enum node_states", "N_ONLINE")
+        node_mask = node_states[1]["bits"][0]
         return bin(int(node_mask)).count("1")
 
     if "CONFIG_NUMA" not in kc:

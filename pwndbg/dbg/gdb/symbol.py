@@ -235,12 +235,13 @@ def lookup_symbol(
             raise gdb.GdbError(f"Objfile '{objfile_endswith}' not found")
 
     for func in order_prefs[prefer_static]:
-        if val := func(objfile, name, domain):
+        if (val := func(objfile, name, domain)) is not None:
             return val
 
     # FIXME: Due to a bug in GDB, some symbols (e.g., malloc / __GI___libc_malloc)
     #   may return WRONG-ADDRESS when queried.
     #   For more details, see: https://github.com/pwndbg/pwndbg/issues/2613
+    #   Can be fixed by using GdbMinimalSymbols: `maint print msymbols`
     return _fallback_any_symbol_to_address(name, global_only=True)
 
 
@@ -253,7 +254,7 @@ def lookup_frame_symbol(
     Get the address for local `symbol` from frame, in most time you don't need it
     """
 
-    if val := _frame_any_symbol_to_address(name, domain):
+    if (val := _frame_any_symbol_to_address(name, domain)) is not None:
         return val
 
     # fallback, because of bug in gdb for some symbols eg: malloc / __GI___libc_malloc

@@ -106,7 +106,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             pwndbg.dbg_mod.SymbolLookupType.FUNCTION: Domain.FUNCTION,
         }[type]
         try:
-            if val := lookup_frame_symbol(name, domain=domain):
+            if (val := lookup_frame_symbol(name, domain=domain)) is not None:
                 return GDBValue(val)
         except gdb.error as e:
             raise pwndbg.dbg_mod.Error(e)
@@ -617,9 +617,14 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             pwndbg.dbg_mod.SymbolLookupType.FUNCTION: Domain.FUNCTION,
         }[type]
         try:
-            if val := lookup_symbol(
-                name, prefer_static=prefer_static, domain=domain, objfile_endswith=objfile_endswith
-            ):
+            if (
+                val := lookup_symbol(
+                    name,
+                    prefer_static=prefer_static,
+                    domain=domain,
+                    objfile_endswith=objfile_endswith,
+                )
+            ) is not None:
                 return GDBValue(val)
         except gdb.error as e:
             raise pwndbg.dbg_mod.Error(e)
@@ -943,6 +948,9 @@ class GDBType(pwndbg.dbg_mod.Type):
         gdb.TYPE_CODE_TYPEDEF: pwndbg.dbg_mod.TypeCode.TYPEDEF,
         gdb.TYPE_CODE_PTR: pwndbg.dbg_mod.TypeCode.POINTER,
         gdb.TYPE_CODE_ARRAY: pwndbg.dbg_mod.TypeCode.ARRAY,
+        gdb.TYPE_CODE_FUNC: pwndbg.dbg_mod.TypeCode.FUNC,
+        # TODO: support `TYPE_CODE_METHOD` differently later?
+        gdb.TYPE_CODE_METHOD: pwndbg.dbg_mod.TypeCode.FUNC,
     }
 
     def __init__(self, inner: gdb.Type):
@@ -985,6 +993,34 @@ class GDBType(pwndbg.dbg_mod.Type):
     def code(self) -> pwndbg.dbg_mod.TypeCode:
         assert self.inner.code in GDBType.CODE_MAPPING, "missing mapping for type code"
         return GDBType.CODE_MAPPING[self.inner.code]
+
+    @override
+    def func_arguments(self) -> List[pwndbg.dbg_mod.TypeField] | None:
+        if self.code != pwndbg.dbg_mod.TypeCode.FUNC:
+            raise TypeError("only available for function type")
+
+        # Type without debug info
+        # https://github.com/bminor/binutils-gdb/blob/c2dbc2929e87557f8bc030f6f010d67b19f99f12/gdb/gdbtypes.c#L6052-L6072
+        is_missing_debug_info = self.inner.name and self.inner.name.endswith(", no debug info>")
+        if is_missing_debug_info:
+            return None
+
+        args: List[gdb.Field] = self.inner.fields()
+        if not args:
+            return []
+        return [
+            pwndbg.dbg_mod.TypeField(
+                0,
+                field.name,
+                GDBType(field.type),
+                self,
+                0,
+                False,
+                False,
+                0,
+            )
+            for field in args
+        ]
 
     @override
     def fields(self) -> List[pwndbg.dbg_mod.TypeField]:
@@ -1053,6 +1089,12 @@ class GDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def dereference(self) -> pwndbg.dbg_mod.Value:
+        if (
+            self.type.code == pwndbg.dbg_mod.TypeCode.POINTER
+            and self.type.target().code == pwndbg.dbg_mod.TypeCode.FUNC
+        ):
+            raise pwndbg.dbg_mod.Error("Dereference to function type is not allowed")
+
         return GDBValue(self.inner.dereference())
 
     @override
@@ -1082,20 +1124,14 @@ class GDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
-        # We let the consumers of this function just pass it a `gdb.Type`.
-        # This keeps us from breaking functionality under GDB until we have
-        # better support for type lookup under LLDB and start porting the
-        # commands that need this to the new API.
-        #
-        # FIXME: Remove sloppy `gdb.Type` exception in `GDBValue.cast()`
-        if isinstance(type, gdb.Type):
-            return GDBValue(self.inner.cast(type))
-
         assert isinstance(type, GDBType)
-        t: GDBType = type
+        type: GDBType = type
+
+        if type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+            raise pwndbg.dbg_mod.Error("Cast to function type is not allowed, use pointer")
 
         try:
-            return GDBValue(self.inner.cast(t.inner))
+            return GDBValue(self.inner.cast(type.inner))
         except gdb.error as e:
             # GDB casts can fail.
             raise pwndbg.dbg_mod.Error(e)

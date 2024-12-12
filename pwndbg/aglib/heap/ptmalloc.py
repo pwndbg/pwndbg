@@ -1533,7 +1533,8 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         """
         return (
             pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
-            and pwndbg.aglib.symbol.lookup_symbol("global_max_fast", prefer_static=True) is not None
+            and pwndbg.aglib.symbol.lookup_symbol_addr("global_max_fast", prefer_static=True)
+            is not None
         )
 
 

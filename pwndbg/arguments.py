@@ -86,9 +86,14 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
     if sym:
         try:
-            n_args_default = len(sym.type.fields())
-        except TypeError:
-            pass
+            target_type = sym.type.target()
+        except Exception:
+            target_type = sym.type
+
+        if target_type and target_type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+            func_args = sym.type.func_arguments()
+            if func_args is not None:
+                n_args_default = len(func_args)
 
     # Try to grab the data out of IDA
     if not func and target:

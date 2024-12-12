@@ -309,6 +309,8 @@ def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
         return pwndbg.dbg_mod.TypeCode.ARRAY
     if c == lldb.eTypeClassEnumeration:
         return pwndbg.dbg_mod.TypeCode.ENUM
+    if c == lldb.eTypeClassFunction:
+        return pwndbg.dbg_mod.TypeCode.FUNC
 
     f = type.GetTypeFlags()
 
@@ -388,9 +390,30 @@ class LLDBType(pwndbg.dbg_mod.Type):
         return map_type_code(self.inner)
 
     @override
+    def func_arguments(self) -> List[pwndbg.dbg_mod.TypeField] | None:
+        if self.code != pwndbg.dbg_mod.TypeCode.FUNC:
+            raise TypeError("only available for function type")
+
+        args: List[lldb.SBType] = self.inner.GetFunctionArgumentTypes()
+        if not args:
+            return []
+        return [
+            pwndbg.dbg_mod.TypeField(
+                0,
+                field.name,
+                LLDBType(field.type),
+                self,
+                0,
+                False,
+                False,
+                0,
+            )
+            for field in args
+        ]
+
+    @override
     def fields(self) -> List[pwndbg.dbg_mod.TypeField]:
-        code = self.inner.GetTypeClass()
-        if code == lldb.eTypeClassEnumeration:
+        if self.code == pwndbg.dbg_mod.TypeCode.ENUM:
             fields_enum: List[lldb.SBTypeEnumMember] = self.inner.get_enum_members_array()
             if not fields_enum:
                 return []
@@ -417,7 +440,7 @@ class LLDBType(pwndbg.dbg_mod.Type):
                 field.name,
                 LLDBType(field.type),
                 self,
-                0,  # TODO: Handle fields for enum types differently.
+                0,
                 False,
                 False,  # TODO: Handle base class members differently.
                 field.bitfield_bit_size if field.is_bitfield else field.type.GetByteSize(),
@@ -561,9 +584,12 @@ class LLDBValue(pwndbg.dbg_mod.Value):
     @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
         assert isinstance(type, LLDBType)
-        t: LLDBType = type
+        type: LLDBType = type
 
-        return LLDBValue(self.inner.Cast(t.inner), self.proc)
+        if type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+            raise pwndbg.dbg_mod.Error("Cast to function type is not allowed, use pointer")
+
+        return LLDBValue(self.inner.Cast(type.inner), self.proc)
 
     def _self_add_sub_int(self, val: int) -> pwndbg.dbg_mod.Value:
         """
@@ -1358,8 +1384,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 if not addr.IsValid():
                     continue
 
-                resolved_addr_int = addr.GetLoadAddress(self.target)
-                resolved_addr_size = sym.GetSize()
+                resolved_addr = addr.GetLoadAddress(self.target)
+                resolved_size = sym.GetSize()
                 sym_name = sym.GetName()
 
                 cast_type: pwndbg.dbg_mod.Type
@@ -1367,18 +1393,26 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     # is function
                     cast_type = LLDBType(addr.function.type).pointer()
                 else:
-                    # is variable maybe
+                    # is variable maybe or others types
 
                     # LLDB lacks support for types in symbols
                     # So we have manually find types
-                    cast_type = variables_types.get((resolved_addr_int, sym_name), None)
+                    cast_type = variables_types.get((resolved_addr, sym_name), None)
                     if cast_type is not None:
                         # Detect if we have proper symbol by size, we can't do better here
                         assert (
-                            cast_type.sizeof == resolved_addr_size
-                        ), f"Symbol {sym_name} has invalid size (has:{cast_type.sizeof:02x}, needed:{resolved_addr_size:02x}), should not happen"
+                            cast_type.sizeof == resolved_size
+                        ), f"Symbol {sym_name} has invalid size (has:{cast_type.sizeof:02x}, needed:{resolved_size:02x}), should not happen"
+
+                        # Cast to pointer, we are returning address at end ;)
+                        cast_type = cast_type.pointer()
                     else:
-                        # Address without/unknown type, we cast to pointer
+                        # Address without/unknown type, we cast to void pointer
+                        # This happens eg:
+                        # - when function don't have debug info
+                        # - variable has missing debug info
+                        # TODO: Should we create a 'pvoidfunc' type.
+                        #   This could be useful for identifying functions without debug info.
                         cast_type = pwndbg.aglib.typeinfo.pvoid
 
                 sym_type = sym.GetType()
@@ -1391,10 +1425,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                         yield sym, cast_type, tls
                     continue
 
-                if resolved_addr_int == lldb.LLDB_INVALID_ADDRESS:
+                if resolved_addr == lldb.LLDB_INVALID_ADDRESS:
                     continue
 
-                yield sym, cast_type, resolved_addr_int
+                yield sym, cast_type, resolved_addr
 
     def types_with_name(self, name: str) -> Sequence[pwndbg.dbg_mod.Type]:
         types = self.target.FindTypes(name)

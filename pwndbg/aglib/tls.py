@@ -19,7 +19,7 @@ def __call_pthread_self() -> int:
     calling pthread_self(). This address can be used to locate the base address
     of the Thread Local Storage (TLS).
     """
-    if pwndbg.aglib.symbol.lookup_symbol("pthread_self") is None:
+    if pwndbg.aglib.symbol.lookup_symbol_addr("pthread_self") is None:
         return 0
     try:
         return int(
