@@ -141,7 +141,9 @@ def main(debugger: lldb.SBDebugger, major: int, minor: int, debug: bool = False)
             print(f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh")
             sys.exit(1)
 
-        update_deps(src_root, venv_path)
+        no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE")
+        if no_auto_update is None:
+            update_deps(src_root, venv_path)
         fixup_paths(src_root, venv_path)
 
     import pwndbg  # noqa: F811
