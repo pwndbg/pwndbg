@@ -23,13 +23,15 @@ let
     else
       throw "Unsupported platform: only darwin and linux are supported";
 in
-pkgs.runCommand "pwndbg-bundler" {
-  nativeBuildInputs = deps ++ [
-    pkgs.nukeReferences
-    pkgs.python3
-  ];
-} ''
-  set -euo pipefail
-  python3 ${./bundle.py} "$out" ${pkgs.lib.escapeShellArgs paths}
-  find $out -empty -type d -delete
-''
+pkgs.runCommand "pwndbg-bundler"
+  {
+    nativeBuildInputs = deps ++ [
+      pkgs.nukeReferences
+      pkgs.python3
+    ];
+  }
+  ''
+    set -euo pipefail
+    python3 ${./bundle.py} "$out" ${pkgs.lib.escapeShellArgs paths}
+    find $out -empty -type d -delete
+  ''
