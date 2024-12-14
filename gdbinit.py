@@ -27,7 +27,7 @@ class GdbRemoveReadlineFinder(importlib.abc.MetaPathFinder):
         return None
 
 
-sys.meta_path.append(GdbRemoveReadlineFinder())
+sys.meta_path.insert(0, GdbRemoveReadlineFinder())
 
 
 def hash_file(file_path: str | Path) -> str:
