@@ -8,6 +8,7 @@ amount of code in the context of the inferior.
 
 from __future__ import annotations
 
+import contextlib
 from asyncio import CancelledError
 
 import pwnlib.asm
@@ -32,10 +33,11 @@ def _get_syscall_return_value():
     """
 
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.current]
+    # FIXME: `retval` is syscall abi? or sysv abi?
     return pwndbg.aglib.regs[register_set.retval]
 
 
-def exec_syscall(
+async def exec_syscall(
     ec: ExecutionController,
     syscall,
     arg0=None,
@@ -44,7 +46,6 @@ def exec_syscall(
     arg3=None,
     arg4=None,
     arg5=None,
-    arg6=None,
     disable_breakpoints=False,
 ):
     """
@@ -56,17 +57,18 @@ def exec_syscall(
     syscall_bin = pwnlib.asm.asm(syscall_asm)
 
     # Run the syscall and pass its return value onward to the caller.
-    return exec_shellcode(
+    async with exec_shellcode(
         ec,
         syscall_bin,
         restore_context=True,
-        capture=_get_syscall_return_value,
         disable_breakpoints=disable_breakpoints,
-    )
+    ):
+        return _get_syscall_return_value()
 
 
+@contextlib.asynccontextmanager
 async def exec_shellcode(
-    ec: ExecutionController, blob, restore_context=True, capture=None, disable_breakpoints=False
+    ec: ExecutionController, blob, restore_context=True, disable_breakpoints=False
 ):
     """
     Tries executing the given blob of machine code in the current context of the
@@ -146,18 +148,15 @@ async def exec_shellcode(
     # Make sure we're in the right place.
     assert pwndbg.aglib.regs.pc == target_address
 
-    # Give the caller a chance to collect information from the environment
-    # before any of the context gets restored.
-    captured = None
-    if capture is not None:
-        captured = capture()
-
-    # Restore the code and the program counter and, if requested, the rest of
-    # the registers.
-    pwndbg.aglib.memory.write(starting_address, existing_code)
-    setattr(pwndbg.aglib.regs, register_set.pc, starting_address)
-    if restore_context:
-        for reg, val in registers.items():
-            setattr(pwndbg.aglib.regs, reg, val)
-
-    return captured
+    try:
+        # Give the caller a chance to collect information from the environment
+        # before any of the context gets restored.
+        yield
+    finally:
+        # Restore the code and the program counter and, if requested, the rest of
+        # the registers.
+        pwndbg.aglib.memory.write(starting_address, existing_code)
+        setattr(pwndbg.aglib.regs, register_set.pc, starting_address)
+        if restore_context:
+            for reg, val in registers.items():
+                setattr(pwndbg.aglib.regs, reg, val)

@@ -781,6 +781,7 @@ def load_commands() -> None:
     import pwndbg.commands.ghidra
     import pwndbg.commands.hex2ptr
     import pwndbg.commands.hexdump
+    import pwndbg.commands.hijack_fd
     import pwndbg.commands.integration
     import pwndbg.commands.jemalloc
     import pwndbg.commands.leakfind
