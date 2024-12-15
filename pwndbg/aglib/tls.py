@@ -60,7 +60,7 @@ def find_address_with_register() -> int:
     elif pwndbg.aglib.arch.current == "i386":
         return int(pwndbg.aglib.regs.gsbase)
     elif pwndbg.aglib.arch.current == "aarch64":
-        # FIXME: cleanup/remove `TPIDR_EL0` register, it was renamed to `tpidr` since GDB14+
+        # FIXME: cleanup/remove `TPIDR_EL0` register, it was renamed to `tpidr` since GDB13+
         return int(pwndbg.aglib.regs.tpidr or pwndbg.aglib.regs.TPIDR_EL0 or 0)
 
     # TODO: is it possible that we can get the address of TLS with register on arm?
