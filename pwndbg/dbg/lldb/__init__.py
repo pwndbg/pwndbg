@@ -503,7 +503,12 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def __int__(self) -> int:
-        return self.inner.signed
+        is_num, is_sign = lldb.is_numeric_type(
+            self.inner.GetType().GetCanonicalType().GetBasicType()
+        )
+        if is_num and not is_sign:
+            return self.inner.GetValueAsUnsigned()
+        return self.inner.GetValueAsSigned()
 
     @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
