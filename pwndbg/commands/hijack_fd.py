@@ -7,9 +7,13 @@ from typing import Literal
 from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
-from typing import TypedDict
 from urllib.parse import ParseResult
 from urllib.parse import urlparse
+
+from pwnlib import asm
+from pwnlib import constants
+from pwnlib import shellcraft
+from pwnlib.util.net import sockaddr
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.shellcode
@@ -20,7 +24,7 @@ import pwndbg.lib.regs
 from pwndbg.commands import CommandCategory
 
 
-class ShellcodeRegs(TypedDict):
+class ShellcodeRegs(NamedTuple):
     newfd: str
     syscall_ret: str
     stack: str
@@ -42,12 +46,7 @@ def get_shellcode_regs() -> ShellcodeRegs:
         newfd_reg is not None
     ), f"architecture {pwndbg.aglib.arch.current} don't have unused register..."
 
-    return {
-        "newfd": newfd_reg,
-        # FIXME: `retval` is syscall abi? or sysv abi?
-        "syscall_ret": register_set.retval,
-        "stack": register_set.stack,
-    }
+    return ShellcodeRegs(newfd_reg, register_set.retval, register_set.stack)
 
 
 def stack_size_alignment(s: int) -> int:
@@ -58,23 +57,19 @@ def stack_size_alignment(s: int) -> int:
 def asm_replace_file(replace_fd: int, filename: str) -> Tuple[int, str]:
     filename = filename.encode() + b"\x00"
 
-    from pwnlib import asm
-    from pwnlib import constants
-    from pwnlib import shellcraft
-
     regs = get_shellcode_regs()
     stack_size = stack_size_alignment(len(filename))
 
     open_asm = (
-        shellcraft.syscall("SYS_open", regs["stack"], "O_CREAT|O_RDWR", 0o666)
+        shellcraft.syscall("SYS_open", regs.stack, "O_CREAT|O_RDWR", 0o666)
         if hasattr(constants, "SYS_open")
-        else shellcraft.syscall("SYS_openat", "AT_FDCWD", regs["stack"], "O_CREAT|O_RDWR", 0o666)
+        else shellcraft.syscall("SYS_openat", "AT_FDCWD", regs.stack, "O_CREAT|O_RDWR", 0o666)
     )
 
     dup_asm = (
-        shellcraft.syscall("SYS_dup2", regs["newfd"], replace_fd)
+        shellcraft.syscall("SYS_dup2", regs.newfd, replace_fd)
         if hasattr(constants, "SYS_dup2")
-        else shellcraft.syscall("SYS_dup3", regs["newfd"], replace_fd, 0)
+        else shellcraft.syscall("SYS_dup3", regs.newfd, replace_fd, 0)
     )
 
     return stack_size, asm.asm(
@@ -82,20 +77,15 @@ def asm_replace_file(replace_fd: int, filename: str) -> Tuple[int, str]:
             [
                 shellcraft.pushstr(filename, False),
                 open_asm,
-                shellcraft.mov(regs["newfd"], regs["syscall_ret"]),
+                shellcraft.mov(regs.newfd, regs.syscall_ret),
                 dup_asm,
-                shellcraft.syscall("SYS_close", regs["newfd"]),
+                shellcraft.syscall("SYS_close", regs.newfd),
             ]
         )
     )
 
 
 def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> Tuple[int, str]:
-    from pwnlib import asm
-    from pwnlib import constants
-    from pwnlib import shellcraft
-    from pwnlib.util.net import sockaddr
-
     sockdata, addr_len, _ = sockaddr(socket_data.address, socket_data.port, socket_data.ip_version)
     socktype = {"tcp": "SOCK_STREAM", "udp": "SOCK_DGRAM"}[socket_data.protocol]
     family = {"ipv4": "AF_INET", "ipv6": "AF_INET6"}[socket_data.ip_version]
@@ -104,20 +94,20 @@ def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> Tuple[int,
     stack_size = stack_size_alignment(len(sockdata))
 
     dup_asm = (
-        shellcraft.syscall("SYS_dup2", regs["newfd"], replace_fd)
+        shellcraft.syscall("SYS_dup2", regs.newfd, replace_fd)
         if hasattr(constants, "SYS_dup2")
-        else shellcraft.syscall("SYS_dup3", regs["newfd"], replace_fd, 0)
+        else shellcraft.syscall("SYS_dup3", regs.newfd, replace_fd, 0)
     )
 
     return stack_size, asm.asm(
         "".join(
             [
                 shellcraft.syscall("SYS_socket", family, socktype, 0),
-                shellcraft.mov(regs["newfd"], regs["syscall_ret"]),
+                shellcraft.mov(regs.newfd, regs.syscall_ret),
                 shellcraft.pushstr(sockdata, False),
-                shellcraft.syscall("SYS_connect", regs["newfd"], regs["stack"], addr_len),
+                shellcraft.syscall("SYS_connect", regs.newfd, regs.stack, addr_len),
                 dup_asm,
-                shellcraft.syscall("SYS_close", regs["newfd"]),
+                shellcraft.syscall("SYS_close", regs.newfd),
             ]
         )
     )
@@ -125,6 +115,10 @@ def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> Tuple[int,
 
 @contextlib.asynccontextmanager
 async def exec_shellcode_with_stack(ec: pwndbg.dbg_mod.ExecutionController, blob, stack_size: int):
+    # This function could be improved, for example:
+    # - Run the shellcode inside an emulator like Unicorn
+    # - Calculate the maximum stack size the shellcode would consume dynamically.
+
     stack_start_diff = pwndbg.aglib.regs.sp
     stack_start = stack_start_diff - stack_size
     original_stack = pwndbg.aglib.memory.read(stack_start, stack_size)
@@ -147,7 +141,7 @@ async def exec_shellcode_with_stack(ec: pwndbg.dbg_mod.ExecutionController, blob
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Replace file descriptors of a debugged process.
+    description="""Replace a file descriptor of a debugged process.
 
 The new file descriptor can point to:
 - a file
@@ -180,10 +174,17 @@ class ParsedSocket(NamedTuple):
 
 def parse_socket(url: str) -> ParsedSocket:
     if "://" in url:
+        # For handling:
+        # - `tcp://[::1]:80`
+        # - `udp://example.com:80`
+        # - `tcp+ipv6://example.com:80`
         parsed = urlparse(url)
     else:
+        # For handling:
+        # - `127.0.0.1:80`
         parsed = ParseResult("", url, "", "", "", "")
 
+    # Handling eg: `tcp+ipv6://example.com:80`
     scheme_info = parsed.scheme.split("+", 1)
 
     selected_protocol: Literal["tcp", "udp"] = "tcp"
@@ -203,10 +204,10 @@ def parse_socket(url: str) -> ParsedSocket:
     if not port:
         raise argparse.ArgumentTypeError("Port is required")
 
-    protocol_ordered = [
+    protocol_ordered = (
         ("ipv4", socket.AF_INET),
         ("ipv6", socket.AF_INET6),
-    ]
+    )
 
     found_ip_protocol: Literal["ipv4", "ipv6"] | None = None
     address_ipv4_or_ipv6: str = ""
@@ -215,6 +216,7 @@ def parse_socket(url: str) -> ParsedSocket:
             continue
 
         try:
+            # Resolve the given domain or IP address to its corresponding IP address
             ips = socket.getaddrinfo(domain_or_ip, None, family_const)
         except socket.gaierror:
             # happen when domain not found
@@ -278,6 +280,6 @@ def hijack_fd(fdnum: int, newfile: PARSED_FILE_ARG) -> None:
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         async with exec_shellcode_with_stack(ec, asm_bin, stack_size):
-            print("Operation probably succeeded. Errors are not captured.")
+            print("Operation succeeded. Errors are not captured.\nYou can verify this with `procinfo` if the file descriptor has been replaced.")
 
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
