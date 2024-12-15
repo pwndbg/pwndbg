@@ -201,6 +201,8 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
     signal.signal(signal.SIGINT, handle_sigint)
 
     show_greeting()
+    last_command = ""
+
     while True:
         # Execute the prompt hook and ask for input.
         dbg._fire_prompt_hook()
@@ -212,6 +214,11 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
                 startup_i += 1
             else:
                 line = input(PROMPT)
+                # If the input is empty (i.e., 'Enter'), use the previous command
+                if line:
+                    last_command = line
+                else:
+                    line = last_command
         except EOFError:
             # Exit the REPL if there's nothing else to run.
             print()
