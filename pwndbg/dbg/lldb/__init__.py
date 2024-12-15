@@ -506,7 +506,6 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         """
         Logic is copied from lldb.value(self.inner).__int__()
         """
-        lldb.value
         is_num, is_sign = lldb.is_numeric_type(
             self.inner.GetType().GetCanonicalType().GetBasicType()
         )
