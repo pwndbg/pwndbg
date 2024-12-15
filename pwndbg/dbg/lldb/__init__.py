@@ -1332,11 +1332,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # We need to map variable types to symbols...
         # This approach may not work correctly if there are multiple global variables with the same <name> and <address>.
         # The same address may occur for TLS symbols, as they have a `0xffffffffffffffff` address.
-        # We are doing this, because `FindGlobalVariables` don't support searching symbols in specific objfile
+        # NOTE: `FindGlobalVariables` returns ONLY variables that have DEBUG INFO.
         variables_types: Dict[Tuple[int, str], LLDBType] = {}
 
         if type in (pwndbg.dbg_mod.SymbolLookupType.VARIABLE, pwndbg.dbg_mod.SymbolLookupType.ANY):
-            variables: lldb.SBValueList = self.target.FindGlobalVariables(name, 0)
+            variables: lldb.SBValueList = (objfile or self.target).FindGlobalVariables(name, 0)
             var: lldb.SBValue
             for var in variables:
                 # LLDB[1] is attempting to resolve a TLS variable, but it fails with the following error:
