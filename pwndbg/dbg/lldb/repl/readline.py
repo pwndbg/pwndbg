@@ -16,20 +16,14 @@ from typing import TypeVar
 import gnureadline as readline
 import lldb
 
+from pwndbg.color import message
 from pwndbg.dbg.lldb import LLDB
 
 P = ParamSpec("P")
 T = TypeVar("T")
 
 
-# PROMPT = message.prompt("pwndbg-lldb> ")
-# For readline-based applications, non-printable escape codes must be
-# wrapped with special markers (\001 and \002). These markers inform
-# readline to ignore the escape sequences when calculating the prompt's width.
-# Without these markers, the prompt may break when navigating command history
-# with the UP arrow key or for long commands.
-PROMPT = "\001\x1b[31m\002\001\x1b[1m\002pwndbg-lldb> \001\x1b[0m\002"
-
+PROMPT = message.readline_escape(message.prompt, "pwndbg-lldb> ")
 HISTORY_FILE = os.path.expanduser("~/.pwndbg_history")
 
 complete_values = lldb.SBStringList()
