@@ -494,6 +494,13 @@ target_create_unsupported = [
 
 
 def _get_target_triple(debugger: lldb.SBDebugger, filepath: str) -> str | None:
+    # The triple is the "architecture-vendor-OS[-ABI]" of the target binary.
+    # Examples:
+    # - "arm--linux-eabi"
+    # - "aarch64--linux"
+    # - "x86_64-apple-macosx11.7.0"
+    # - "arm64-apple-macosx11.7.0"
+    # - "aarch64-pc-windows-msvc"
     target: lldb.SBTarget = debugger.CreateTarget(filepath)
     if not target.IsValid():
         return None
