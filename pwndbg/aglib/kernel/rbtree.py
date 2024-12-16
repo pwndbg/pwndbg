@@ -71,7 +71,7 @@ def rb_parent(node: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value:
 
 
 def rb_empty_node(node: pwndbg.dbg_mod.Value) -> bool:
-    return int(node["__rb_parent_color"]) == int(node.address)
+    return int(node["__rb_parent_color"]) == int(node.address or 0)
 
 
 def rb_next(node: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
