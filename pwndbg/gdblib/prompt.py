@@ -117,12 +117,10 @@ def set_prompt() -> None:
     prompt = "pwndbg> "
 
     if not disable_colors:
-        prompt = "\x02" + prompt + "\x01"  # STX + prompt + SOH
         if pwndbg.aglib.proc.alive:
-            prompt = message.alive_prompt(prompt)
+            prompt = message.readline_escape(message.alive_prompt, prompt)
         else:
-            prompt = message.prompt(prompt)
-        prompt = "\x01" + prompt + "\x02"  # SOH + prompt + STX
+            prompt = message.readline_escape(message.prompt, prompt)
 
     gdb.execute(f"set prompt {prompt}")
 

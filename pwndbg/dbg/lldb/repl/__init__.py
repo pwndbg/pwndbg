@@ -40,7 +40,9 @@ import argparse
 import os
 import re
 import signal
+import sys
 import threading
+from contextlib import contextmanager
 from typing import Any
 from typing import List
 from typing import Tuple
@@ -59,8 +61,8 @@ from pwndbg.dbg.lldb.repl.io import get_io_driver
 from pwndbg.dbg.lldb.repl.proc import EventHandler
 from pwndbg.dbg.lldb.repl.proc import ProcessDriver
 from pwndbg.dbg.lldb.repl.readline import PROMPT
-from pwndbg.dbg.lldb.repl.readline import disable_readline
 from pwndbg.dbg.lldb.repl.readline import enable_readline
+from pwndbg.dbg.lldb.repl.readline import wrap_with_history
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 
@@ -168,6 +170,7 @@ def show_greeting() -> None:
         print(colored_tip)
 
 
+@wrap_with_history
 def run(startup: List[str] | None = None, debug: bool = False) -> None:
     """
     Runs the Pwndbg REPL under LLDB. Optionally enters the commands given in
@@ -200,6 +203,8 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
     signal.signal(signal.SIGINT, handle_sigint)
 
     show_greeting()
+    last_command = ""
+
     while True:
         # Execute the prompt hook and ask for input.
         dbg._fire_prompt_hook()
@@ -211,6 +216,11 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
                 startup_i += 1
             else:
                 line = input(PROMPT)
+                # If the input is empty (i.e., 'Enter'), use the previous command
+                if line:
+                    last_command = line
+                else:
+                    line = last_command
         except EOFError:
             # Exit the REPL if there's nothing else to run.
             print()
@@ -368,6 +378,11 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
 
             continue
 
+        if bits[0] == "ipi":
+            # Spawn IPython shell, easy for debugging
+            run_ipython_shell()
+            continue
+
         # The command hasn't matched any of our filtered commands, just let LLDB
         # handle it normally. Either in the context of the process, if we have
         # one, or just in a general context.
@@ -402,29 +417,6 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
             break
 
 
-def make_pty() -> Tuple[str, int]:
-    """
-    We need to make a pseudo-terminal ourselves if we want the process to handle
-    naturally for the user. Returns a tuple with the filaname and the file
-    descriptor if successful.
-    """
-    import ctypes
-
-    libc = ctypes.CDLL("libc.so.6")
-    pty = libc.posix_openpt(2)
-    if pty <= 0:
-        return None
-
-    libc.ptsname.restype = ctypes.c_char_p
-    name = libc.ptsname(pty)
-
-    if libc.unlockpt(pty) != 0:
-        libc.close(pty)
-        return None
-
-    return name, pty
-
-
 def parse(args: List[str], parser: argparse.ArgumentParser, unsupported: List[str]) -> Any | None:
     """
     Parses a list of string arguments into an object containing the parsed
@@ -449,6 +441,37 @@ def parse(args: List[str], parser: argparse.ArgumentParser, unsupported: List[st
     return args
 
 
+def run_ipython_shell():
+    @contextmanager
+    def switch_to_ipython_env():
+        saved_excepthook = sys.excepthook
+        try:
+            saved_ps = sys.ps1, sys.ps2
+        except AttributeError:
+            saved_ps = None
+        yield
+        # Restore Python's default `ps1`, `ps2`, and `excepthook`
+        # to ensure proper behavior of the LLDB `script` command.
+        if saved_ps is not None:
+            sys.ps1, sys.ps2 = saved_ps
+        else:
+            del sys.ps1
+            del sys.ps2
+        sys.excepthook = saved_excepthook
+
+    def start_ipi():
+        import IPython
+        import jedi  # type: ignore[import-untyped]
+
+        jedi.Interpreter._allow_descriptor_getattr_default = False
+        IPython.embed(
+            colors="neutral", banner1="", confirm_exit=False, simple_prompt=False, user_ns=globals()
+        )
+
+    with switch_to_ipython_env():
+        start_ipi()
+
+
 target_create_ap = argparse.ArgumentParser(add_help=False)
 target_create_ap.add_argument("-S", "--sysroot")
 target_create_ap.add_argument("-a", "--arch")
@@ -461,16 +484,29 @@ target_create_ap.add_argument("-s", "--symfile")
 target_create_ap.add_argument("-v", "--version")
 target_create_ap.add_argument("filename")
 target_create_unsupported = [
-    "sysroot",
-    "arch",
     "build",
     "core",
     "no-dependents",
-    "platform",
     "remote-file",
     "symfile",
     "version",
 ]
+
+
+def _get_target_triple(debugger: lldb.SBDebugger, filepath: str) -> str | None:
+    # The triple is the "architecture-vendor-OS[-ABI]" of the target binary.
+    # Examples:
+    # - "arm--linux-eabi"
+    # - "aarch64--linux"
+    # - "x86_64-apple-macosx11.7.0"
+    # - "arm64-apple-macosx11.7.0"
+    # - "aarch64-pc-windows-msvc"
+    target: lldb.SBTarget = debugger.CreateTarget(filepath)
+    if not target.IsValid():
+        return None
+    triple = target.triple
+    debugger.DeleteTarget(target)
+    return triple
 
 
 def target_create(args: List[str], dbg: LLDB) -> None:
@@ -490,14 +526,39 @@ def target_create(args: List[str], dbg: LLDB) -> None:
         )
         return
 
+    if args.platform and args.platform not in {"qemu-user"}:
+        print(message.error("Pwndbg does currently support platforms: qemu-user"))
+        return
+
+    if args.arch:
+        dbg.debugger.SetDefaultArchitecture(args.arch)
+
+    triple = _get_target_triple(dbg.debugger, args.filename)
+    if not triple:
+        print(message.error(f"could not detect triple for '{args.filename}'"))
+        return
+
+    if args.platform == "qemu-user":
+        arch = triple.split("-")[0]
+        # Without setting it qemu-user don't work ;(
+        dbg._execute_lldb_command(f"settings set platform.plugin.qemu-user.architecture {arch}")
+
+    if args.platform:
+        dbg.debugger.SetCurrentPlatform(args.platform)
+
+    if args.sysroot:
+        dbg.debugger.SetCurrentPlatformSDKRoot(args.sysroot)
+
     # Create the target with the debugger.
-    target = dbg.debugger.CreateTarget(args.filename)
-    if not target.IsValid():
-        print(message.error(f"could not create target for '{args.filename}'"))
+    error = lldb.SBError()
+    target: lldb.SBTarget = dbg.debugger.CreateTarget(
+        args.filename, triple, args.platform, True, error
+    )
+    if not error.success or not target.IsValid():
+        print(message.error(f"could not create target for '{args.filename}': {error.description}"))
         return
 
     dbg.debugger.SetSelectedTarget(target)
-
     print(f"Current executable set to '{args.filename}' ({target.triple.split('-')[0]})")
     return
 
@@ -631,27 +692,26 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
         # The LLDB command line sets the default triple based on the
         # architecture value set in the `target.default-arch` setting. We do the
         # same.
-        result = lldb.SBCommandReturnObject()
-        dbg.debugger.GetCommandInterpreter().HandleCommand(
-            "settings show target.default-arch", result, False
-        )
+        try:
+            result = dbg._execute_lldb_command("settings show target.default-arch")
 
-        arch = ""
-        if result.GetErrorSize() == 0:
             # The result of this command has the following form:
             #
             # (lldb) settings show target.default-arch
             # target.default-arch (arch) = <value>
             #
             # Where <value> may be empty, for no value.
-            arch = result.GetOutput().split("=")[1].strip()
+            arch = result.split("=")[1].strip()
+        except pwndbg.dbg_mod.Error:
+            arch = ""
+
         triple = f"{arch}-unknown-unknown" if len(arch) > 0 else None
 
         target = dbg.debugger.CreateTarget(None, triple, None, True, error)
         if not error.success or not target.IsValid():
             print(
                 message.error(
-                    "error: could not automatically create target for 'process connect': {error.description}"
+                    f"error: could not automatically create target for 'process connect': {error.description}"
                 )
             )
             return
@@ -666,7 +726,7 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
     error = driver.connect(target, io_driver, args.remoteurl, "gdb-remote")
 
     if not error.success:
-        print(message.error("error: could not connect to remote process: {error.description}"))
+        print(message.error(f"error: could not connect to remote process: {error.description}"))
         if created_target:
             # Delete the target we previously created.
             assert dbg.debugger.DeleteTarget(

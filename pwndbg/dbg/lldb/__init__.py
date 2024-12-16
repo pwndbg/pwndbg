@@ -189,16 +189,10 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                     lambda f: thread.SetSelectedFrame(f.idx),
                 ):
                     # Run the command that sets the value of the register.
-                    result = lldb.SBCommandReturnObject()
-                    debugger.GetCommandInterpreter().HandleCommand(
-                        f"register write {name} {val}",
-                        result,
-                        False,
-                    )
-
-                    if result.GetErrorSize() > 0:
-                        error = result.GetError()
-                        print(error)
+                    try:
+                        self.proc.dbg._execute_lldb_command(f"register write {name} {val}")
+                    except pwndbg.dbg_mod.Error as e:
+                        error = str(e)
                         if f"'{name}'" in error and "not found" in error:
                             # Likely "error: Register not found for '{name}'"
                             return False
@@ -567,7 +561,15 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def __int__(self) -> int:
-        return self.inner.signed
+        """
+        Logic is copied from lldb.value(self.inner).__int__()
+        """
+        is_num, is_sign = lldb.is_numeric_type(
+            self.inner.GetType().GetCanonicalType().GetBasicType()
+        )
+        if is_num and not is_sign:
+            return self.inner.GetValueAsUnsigned()
+        return self.inner.GetValueAsSigned()
 
     @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
@@ -1071,17 +1073,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # As of LLDB 18, there isn't a way for us to do this directly, so we
         # have to use the command. The implementation of the command calls into
         # private APIs.
-        result = lldb.SBCommandReturnObject()
-        self.dbg.debugger.GetCommandInterpreter().HandleCommand(
-            f"process plugin packet send {packet}",
-            result,
-            False,
-        )
-        assert (
-            result.GetErrorSize() == 0
-        ), "Remote packet errors shouldn't be reported as LLDB command errors. We probably got something wrong"
-
-        return result.GetOutput()
+        return self.dbg._execute_lldb_command(f"process plugin packet send {packet}")
 
     @override
     def send_monitor(self, cmd: str) -> str:
@@ -1091,17 +1083,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             raise RuntimeError("Called send_monitor() on a local process")
 
         # Same as `send_remote()`.
-        result = lldb.SBCommandReturnObject()
-        self.dbg.debugger.GetCommandInterpreter().HandleCommand(
-            f"process plugin packet monitor {cmd}",
-            result,
-            False,
-        )
-        assert (
-            result.GetErrorSize() == 0
-        ), "Remote monitor errors shouldn't be reported as LLDB command errors. We probably got something wrong"
-
-        return result.GetOutput()
+        return self.dbg._execute_lldb_command(f"process plugin packet monitor {cmd}")
 
     @override
     def download_remote_file(self, remote_path: str, local_path: str) -> None:
@@ -1563,6 +1545,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     @override
     def is_linux(self) -> bool:
         # LLDB will at most tell us if this is a SysV ABI process.
+        # Returns eg:
+        # - 'SysV-arm64'
+        # - 'ABIMacOSX_arm64'
         return self.target.GetABIName().lower().startswith("sysv")
 
     def _resolve_fullpath(self, spec: lldb.SBFileSpec) -> str:
@@ -1687,7 +1672,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         self.suspended_events = {a: False for a in pwndbg.dbg_mod.EventType}
 
-        debugger = args[0]
+        debugger: lldb.SBDebugger = args[0]
         assert (
             debugger.__class__ is lldb.SBDebugger
         ), "lldbinit.py should call setup() with an lldb.SBDebugger object"
@@ -1710,6 +1695,19 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         pwndbg.commands.comments.init()
 
         import pwndbg.dbg.lldb.hooks
+
+    def _execute_lldb_command(self, command: str) -> str:
+        result = lldb.SBCommandReturnObject()
+        self.debugger.GetCommandInterpreter().HandleCommand(
+            command,
+            result,
+            False,
+        )
+        if not result.Succeeded():
+            if result.GetErrorSize() > 0:
+                raise pwndbg.dbg_mod.Error(result.GetError())
+            raise pwndbg.dbg_mod.Error("lldb command failed without error")
+        return result.GetOutput()
 
     @override
     def add_command(
@@ -1949,17 +1947,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         # (lldb) settings show target.x86-disassembly-flavor
         # target.x86-disassembly-flavor (enum) = default
         #
-        result = lldb.SBCommandReturnObject()
-        self.debugger.GetCommandInterpreter().HandleCommand(
-            "settings show target.x86-disassembly-flavor",
-            result,
-            False,
-        )
-        assert (
-            result.GetErrorSize() == 0
-        ), "This should be okay. Is target.x86-disassembly-flavor not a setting in all versions of LLDB?"
-
-        flavor = result.GetOutput().split("=")[1].strip()
+        result = self._execute_lldb_command("settings show target.x86-disassembly-flavor")
+        flavor = result.split("=")[1].strip()
         if flavor == "default":
             flavor = "intel"
 

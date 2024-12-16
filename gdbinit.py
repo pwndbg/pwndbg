@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import cProfile
 import hashlib
+import importlib.abc
 import logging
 import os
 import shutil
@@ -16,6 +17,17 @@ from typing import List
 from typing import Tuple
 
 import gdb
+
+
+# Fix gdb readline bug: https://github.com/pwndbg/pwndbg/issues/2232#issuecomment-2542564965
+class GdbRemoveReadlineFinder(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "readline":
+            raise ImportError("readline module disabled under GDB")
+        return None
+
+
+sys.meta_path.insert(0, GdbRemoveReadlineFinder())
 
 
 def hash_file(file_path: str | Path) -> str:

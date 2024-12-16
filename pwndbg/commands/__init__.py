@@ -272,6 +272,23 @@ def fix_int_reraise(*a, **kw) -> int:
     return fix_int(*a, reraise=True, **kw)
 
 
+def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+    @functools.wraps(function)
+    def _OnlyWhenLocal(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        if not pwndbg.aglib.remote.is_remote():
+            return function(*a, **kw)
+
+        msg = f'The "remote" target does not support "{function.__name__}".'
+
+        if pwndbg.dbg.is_gdblib_available():
+            msg += ' Try "help target" or "continue".'
+
+        log.error(msg)
+        return None
+
+    return _OnlyWhenLocal
+
+
 def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> Optional[T]:
@@ -758,6 +775,7 @@ def load_commands() -> None:
     import pwndbg.commands.godbg
     import pwndbg.commands.hex2ptr
     import pwndbg.commands.hexdump
+    import pwndbg.commands.hijack_fd
     import pwndbg.commands.integration
     import pwndbg.commands.jemalloc
     import pwndbg.commands.leakfind

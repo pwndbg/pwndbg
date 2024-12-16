@@ -28,11 +28,13 @@ let
     lib = pkgs.lib;
   };
 
-  pwndbgVersion = let
-    versionFile = builtins.readFile "${inputs.pwndbg}/pwndbg/lib/version.py";
-    versionMatch = builtins.match ".*\n__version__ = \"([0-9]+.[0-9]+.[0-9]+)\".*" versionFile;
-    version = if versionMatch == null then "unknown" else (builtins.elemAt versionMatch 0);
-  in version;
+  pwndbgVersion =
+    let
+      versionFile = builtins.readFile "${inputs.pwndbg}/pwndbg/lib/version.py";
+      versionMatch = builtins.match ".*\n__version__ = \"([0-9]+.[0-9]+.[0-9]+)\".*" versionFile;
+      version = if versionMatch == null then "unknown" else (builtins.elemAt versionMatch 0);
+    in
+    version;
 
   pwndbg =
     let

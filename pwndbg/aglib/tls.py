@@ -38,8 +38,8 @@ def find_address_with_pthread_self() -> int:
     which serves as the header for TLS and thread-specific metadata.
     """
     if pwndbg.aglib.arch.current not in ("x86-64", "i386", "arm", "aarch64"):
-        # Note: we should support aarch64 if it's possible that TPIDR_EL0 register can not be accessed.
         return 0
+
     result = __call_pthread_self()
     if result <= 0:
         # pthread_self() is not valid
@@ -58,8 +58,6 @@ def find_address_with_pthread_self() -> int:
         if pthread_type is None:
             # Type 'pthread' not found
             return 0
-
-        # sizeof(struct pthread)
         result += pthread_type.sizeof
 
     return result
@@ -76,6 +74,13 @@ def find_address_with_register() -> int:
     elif pwndbg.aglib.arch.current == "i386":
         return int(pwndbg.aglib.regs.gsbase)
     elif pwndbg.aglib.arch.current == "aarch64":
-        return int(pwndbg.aglib.regs.TPIDR_EL0 or 0)
-    # TODO: is it possible that we can get the address of TLS with register on arm?
+        # FIXME: cleanup/remove `TPIDR_EL0` register, it was renamed to `tpidr` since GDB13+
+        return int(pwndbg.aglib.regs.tpidr or pwndbg.aglib.regs.TPIDR_EL0 or 0)
+    elif pwndbg.aglib.arch.current == "arm":
+        # TODO: linux ptrace for 64bit kernel?
+        # In FreeBSD tls is under `tpidruro` register.
+        # In Linux, the `tpidruro` register isn't available via ptrace in the 32-bit
+        # kernel but it is available for an aarch32 program running under an arm64
+        # kernel via the ptrace compat interface.
+        return int(pwndbg.aglib.regs.tpidruro or 0)
     return 0

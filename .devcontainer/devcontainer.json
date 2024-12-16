@@ -10,15 +10,7 @@
         "vscode": {
             "settings": {
                 "docker.languageserver.formatter.ignoreMultilineInstructions": true,
-                "editor.bracketPairColorization.enabled": true,
-                "editor.fontWeight": "bold",
                 "editor.formatOnSave": true,
-                "editor.guides.bracketPairs": "active",
-                "editor.guides.bracketPairsHorizontal": "active",
-                "editor.guides.highlightActiveBracketPair": true,
-                "editor.guides.highlightActiveIndentation": true,
-                "editor.guides.indentation": true,
-                "editor.renderWhitespace": "all",
                 "files.exclude": {
                     "**/.git/**": true,
                     "**/.mypy_cache/**": true,
