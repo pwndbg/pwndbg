@@ -62,6 +62,11 @@ def find_address_with_register() -> int:
     elif pwndbg.aglib.arch.current == "aarch64":
         # FIXME: cleanup/remove `TPIDR_EL0` register, it was renamed to `tpidr` since GDB13+
         return int(pwndbg.aglib.regs.tpidr or pwndbg.aglib.regs.TPIDR_EL0 or 0)
-
-    # TODO: is it possible that we can get the address of TLS with register on arm?
+    elif pwndbg.aglib.arch.current == "arm":
+        # TODO: linux ptrace for 64bit kernel?
+        # In FreeBSD tls is under `tpidruro` register.
+        # In Linux, the `tpidruro` register isn't available via ptrace in the 32-bit
+        # kernel but it is available for an aarch32 program running under an arm64
+        # kernel via the ptrace compat interface.
+        return int(pwndbg.aglib.regs.tpidruro or 0)
     return 0
