@@ -69,7 +69,7 @@ def rb_parent(node: gdb.Value) -> gdb.Value:
 
 
 def rb_empty_node(node: gdb.Value) -> bool:
-    return int(node["__rb_parent_color"]) == int(node.address)
+    return int(node["__rb_parent_color"]) == int(node.address or 0)
 
 
 def rb_next(node: gdb.Value) -> gdb.Value | None:
