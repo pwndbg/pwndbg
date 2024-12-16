@@ -12,7 +12,11 @@ import pwndbg.aglib.vmmap
 
 
 def __call_pthread_self() -> int:
-    """Get the address of TLS by calling pthread_self()."""
+    """
+    Retrieve the address of the `struct pthread_t` for the current thread by
+    calling pthread_self(). This address can be used to locate the base address
+    of the Thread Local Storage (TLS).
+    """
     if pwndbg.dbg.selected_inferior().symbol_address_from_name("pthread_self") is None:
         return 0
     try:
@@ -26,7 +30,11 @@ def __call_pthread_self() -> int:
 
 
 def find_address_with_pthread_self() -> int:
-    """Get the address of TLS with pthread_self()."""
+    """
+    Get the base address of the Thread Local Storage (TLS) for the current thread using
+    the pthread_self() function. The returned address points to the `struct tcbhead_t`,
+    which serves as the header for TLS and thread-specific metadata.
+    """
     if pwndbg.aglib.arch.current not in ("x86-64", "i386", "arm", "aarch64"):
         return 0
 
@@ -54,7 +62,11 @@ def find_address_with_pthread_self() -> int:
 
 
 def find_address_with_register() -> int:
-    """Get the address of TLS with register."""
+    """
+    Get the base address of the Thread Local Storage (TLS) for the current thread using
+    a CPU register. The returned address points to the `struct tcbhead_t`, which is the
+    entry point for TLS and thread-specific metadata.
+    """
     if pwndbg.aglib.arch.current == "x86-64":
         return int(pwndbg.aglib.regs.fsbase)
     elif pwndbg.aglib.arch.current == "i386":
