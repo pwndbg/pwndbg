@@ -484,16 +484,22 @@ target_create_ap.add_argument("-s", "--symfile")
 target_create_ap.add_argument("-v", "--version")
 target_create_ap.add_argument("filename")
 target_create_unsupported = [
-    "sysroot",
-    "arch",
     "build",
     "core",
     "no-dependents",
-    "platform",
     "remote-file",
     "symfile",
     "version",
 ]
+
+
+def _get_target_triple(debugger: lldb.SBDebugger, filepath: str) -> str | None:
+    target: lldb.SBTarget = debugger.CreateTarget(filepath)
+    if not target.IsValid():
+        return None
+    triple = target.triple
+    debugger.DeleteTarget(target)
+    return triple
 
 
 def target_create(args: List[str], dbg: LLDB) -> None:
@@ -513,14 +519,39 @@ def target_create(args: List[str], dbg: LLDB) -> None:
         )
         return
 
+    if args.platform and args.platform not in {"qemu-user"}:
+        print(message.error("Pwndbg does currently support platforms: qemu-user"))
+        return
+
+    if args.arch:
+        dbg.debugger.SetDefaultArchitecture(args.arch)
+
+    triple = _get_target_triple(dbg.debugger, args.filename)
+    if not triple:
+        print(message.error(f"could not detect triple for '{args.filename}'"))
+        return
+
+    if args.platform == "qemu-user":
+        arch = triple.split("-")[0]
+        # Without setting it qemu-user don't work ;(
+        dbg._execute_lldb_command(f"settings set platform.plugin.qemu-user.architecture {arch}")
+
+    if args.platform:
+        dbg.debugger.SetCurrentPlatform(args.platform)
+
+    if args.sysroot:
+        dbg.debugger.SetCurrentPlatformSDKRoot(args.sysroot)
+
     # Create the target with the debugger.
-    target = dbg.debugger.CreateTarget(args.filename)
-    if not target.IsValid():
-        print(message.error(f"could not create target for '{args.filename}'"))
+    error = lldb.SBError()
+    target: lldb.SBTarget = dbg.debugger.CreateTarget(
+        args.filename, triple, args.platform, True, error
+    )
+    if not error.success or not target.IsValid():
+        print(message.error(f"could not create target for '{args.filename}': {error.description}"))
         return
 
     dbg.debugger.SetSelectedTarget(target)
-
     print(f"Current executable set to '{args.filename}' ({target.triple.split('-')[0]})")
     return
 
@@ -654,27 +685,26 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
         # The LLDB command line sets the default triple based on the
         # architecture value set in the `target.default-arch` setting. We do the
         # same.
-        result = lldb.SBCommandReturnObject()
-        dbg.debugger.GetCommandInterpreter().HandleCommand(
-            "settings show target.default-arch", result, False
-        )
+        try:
+            result = dbg._execute_lldb_command("settings show target.default-arch")
 
-        arch = ""
-        if result.GetErrorSize() == 0:
             # The result of this command has the following form:
             #
             # (lldb) settings show target.default-arch
             # target.default-arch (arch) = <value>
             #
             # Where <value> may be empty, for no value.
-            arch = result.GetOutput().split("=")[1].strip()
+            arch = result.split("=")[1].strip()
+        except pwndbg.dbg_mod.Error:
+            arch = ""
+
         triple = f"{arch}-unknown-unknown" if len(arch) > 0 else None
 
         target = dbg.debugger.CreateTarget(None, triple, None, True, error)
         if not error.success or not target.IsValid():
             print(
                 message.error(
-                    "error: could not automatically create target for 'process connect': {error.description}"
+                    f"error: could not automatically create target for 'process connect': {error.description}"
                 )
             )
             return
@@ -689,7 +719,7 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
     error = driver.connect(target, io_driver, args.remoteurl, "gdb-remote")
 
     if not error.success:
-        print(message.error("error: could not connect to remote process: {error.description}"))
+        print(message.error(f"error: could not connect to remote process: {error.description}"))
         if created_target:
             # Delete the target we previously created.
             assert dbg.debugger.DeleteTarget(
