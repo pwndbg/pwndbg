@@ -245,7 +245,7 @@ PARSED_FILE_ARG = Tuple[Optional[ParsedSocket], Optional[str]]
 
 def parse_file_or_socket(s: str) -> PARSED_FILE_ARG:
     # is file
-    if s.startswith("/"):
+    if s.startswith("/") or s.startswith("./"):
         return None, s
     return parse_socket(s), None
 
