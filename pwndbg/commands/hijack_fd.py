@@ -280,6 +280,9 @@ def hijack_fd(fdnum: int, newfile: PARSED_FILE_ARG) -> None:
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         async with exec_shellcode_with_stack(ec, asm_bin, stack_size):
-            print("Operation succeeded. Errors are not captured.\nYou can verify this with `procinfo` if the file descriptor has been replaced.")
+            print(
+                "Operation succeeded. Errors are not captured.\n"
+                "You can verify this with `procinfo` if the file descriptor has been replaced."
+            )
 
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
