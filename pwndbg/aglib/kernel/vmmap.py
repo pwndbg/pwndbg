@@ -109,10 +109,6 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
-    # If paging is not enabled, we shouldn't attempt to parse page tables
-    if not pwndbg.aglib.kernel.paging_enabled():
-        return ()
-
     try:
         machine_backend = QemuMachine()
     except PermissionError:
@@ -142,6 +138,10 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
                 "Run `help show kernel-vmmap` for other options."
             )
         )
+        return ()
+
+    # If paging is not enabled, we shouldn't attempt to parse page tables
+    if not pwndbg.aglib.kernel.paging_enabled():
         return ()
 
     p = PageTableDump(machine_backend, arch_backend)
