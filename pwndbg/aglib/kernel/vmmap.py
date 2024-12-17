@@ -22,6 +22,8 @@ import pwndbg.lib.cache
 import pwndbg.lib.memory
 
 
+# Most of QemuMachine code was copied from:
+# https://github.com/martinradev/gdb-pt-dump/blob/21158ac3f9b36d0e5e0c86193e0ef018fc628e74/pt_gdb/pt_gdb.py#L11-L80
 class QemuMachine(Machine):
     def __init__(self):
         super().__init__()
