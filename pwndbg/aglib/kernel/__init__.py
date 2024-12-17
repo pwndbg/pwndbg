@@ -12,6 +12,7 @@ from typing import TypeVar
 
 from typing_extensions import ParamSpec
 
+import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
@@ -649,6 +650,10 @@ def paging_enabled() -> bool:
         return x86_64Ops.paging_enabled()
     elif arch_name == "aarch64":
         return Aarch64Ops.paging_enabled()
+    elif arch_name == "rv64":
+        # https://starfivetech.com/uploads/u74_core_complex_manual_21G1.pdf
+        # page 41, satp.MODE
+        return int(pwndbg.aglib.regs.satp) & BIT(60) != 0
     else:
         raise NotImplementedError()
 

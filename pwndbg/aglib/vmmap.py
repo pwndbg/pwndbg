@@ -20,9 +20,6 @@ if pwndbg.dbg.is_gdblib_available():
 
 @pwndbg.lib.cache.cache_until("start", "stop")
 def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    if pwndbg.dbg.is_gdblib_available():
-        return pwndbg.gdblib.vmmap.get()
-
     return tuple(pwndbg.dbg.selected_inferior().vmmap().ranges())
 
 

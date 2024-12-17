@@ -116,7 +116,7 @@ module = [
     "r2pipe",
     "rzpipe",
     "rich.*",
-    "pt_gdb",
+    "pt.*",
     "lldb.*",
     "gnureadline",
 ]

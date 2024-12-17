@@ -32,6 +32,8 @@ import pwndbg.gdblib.info
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
+from pwndbg.aglib.kernel.vmmap import kernel_vmmap_via_monitor_info_mem
+from pwndbg.aglib.kernel.vmmap import kernel_vmmap_via_page_tables
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
@@ -578,132 +580,6 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
 
         page = pwndbg.lib.memory.Page(start, size, flags, offset, objfile)
         pages.append(page)
-
-    return tuple(pages)
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    import pt_gdb as pt
-
-    retpages: List[pwndbg.lib.memory.Page] = []
-
-    p = pt.PageTableDumpGdbFrontend()
-    try:
-        p.lazy_init()
-    except Exception:
-        print(
-            M.error(
-                "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
-                "Either change the kernel-vmmap setting, re-run GDB as root, or disable "
-                "`ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`)"
-            )
-        )
-        return tuple(retpages)
-
-    # If paging is not enabled, we shouldn't attempt to parse page tables
-    if not pwndbg.aglib.kernel.paging_enabled():
-        return tuple(retpages)
-
-    pages = p.pt.arch_backend.parse_tables(p.pt.cache, p.pt.parser.parse_args(""))
-
-    for page in pages:
-        start = page.va
-        size = page.page_size
-        flags = 4  # IMPLY ALWAYS READ
-        if page.pwndbg_is_writeable():
-            flags |= 2
-        if page.pwndbg_is_executable():
-            flags |= 1
-        objfile = f"[pt_{hex(start)[2:-3]}]"
-        retpages.append(pwndbg.lib.memory.Page(start, size, flags, 0, objfile))
-    return tuple(retpages)
-
-
-monitor_info_mem_not_warned = True
-
-
-def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    """
-    Returns Linux memory maps information by parsing `monitor info mem` output
-    from QEMU kernel GDB stub.
-    Works only on X86/X64/RISC-V as this is what QEMU supports.
-
-    Consider using the `kernel_vmmap_via_page_tables` method
-    as it is probably more reliable/better.
-
-    See also: https://github.com/pwndbg/pwndbg/pull/685
-    (TODO: revisit with future QEMU versions)
-
-    # Example output from the command:
-    # pwndbg> monitor info mem
-    # ffff903580000000-ffff903580099000 0000000000099000 -rw
-    # ffff903580099000-ffff90358009b000 0000000000002000 -r-
-    # ffff90358009b000-ffff903582200000 0000000002165000 -rw
-    # ffff903582200000-ffff903582803000 0000000000603000 -r-
-    """
-    global monitor_info_mem_not_warned
-    monitor_info_mem = None
-    try:
-        monitor_info_mem = gdb.execute("monitor info mem", to_string=True)
-    finally:
-        # Older versions of QEMU/GDB may throw `gdb.error: "monitor" command
-        # not supported by this target`. Newer versions will not throw, but will
-        # return a string starting with 'unknown command:'. We handle both of
-        # these cases in a `finally` block instead of an `except` block.
-        if monitor_info_mem is None or "unknown command" in monitor_info_mem:
-            # TODO: Find out which other architectures don't support this command
-            if pwndbg.aglib.arch.name == "aarch64":
-                print(
-                    M.error(
-                        f"The {pwndbg.aglib.arch.name} architecture does"
-                        " not support the `monitor info mem` command. Run "
-                        "`help show kernel-vmmap` for other options."
-                    )
-                )
-            return ()  # pylint: disable=lost-exception
-
-    lines = monitor_info_mem.splitlines()
-
-    # Handle disabled PG
-    # This will prevent a crash on abstract architectures
-    if len(lines) == 1 and lines[0] == "PG disabled":
-        return ()
-
-    pages: List[pwndbg.lib.memory.Page] = []
-    for line in lines:
-        dash_idx = line.index("-")
-        space_idx = line.index(" ")
-        rspace_idx = line.rindex(" ")
-
-        start = int(line[:dash_idx], 16)
-        end = int(line[dash_idx + 1 : space_idx], 16)
-        size = int(line[space_idx + 1 : rspace_idx], 16)
-        if end - start != size and monitor_info_mem_not_warned:
-            print(
-                M.warn(
-                    (
-                        "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
-                        "that end-start==size failed. The values are:\n"
-                        "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
-                        "Note that this warning will not show up again in this Pwndbg/GDB session."
-                    )
-                    % (end, start, size, end - start)
-                )
-            )
-            monitor_info_mem_not_warned = False
-        perm = line[rspace_idx + 1 :]
-
-        flags = 0
-        if "r" in perm:
-            flags |= 4
-        if "w" in perm:
-            flags |= 2
-        # QEMU does not expose X/NX bit, see #685
-        # if 'x' in perm: flags |= 1
-        flags |= 1
-
-        pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
     return tuple(pages)
 
