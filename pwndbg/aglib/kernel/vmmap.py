@@ -15,8 +15,10 @@ from pt.pt_riscv64_parse import PT_RiscV64_Backend
 from pt.pt_x86_64_parse import PT_x86_64_Backend
 
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.aglib.kernel
 import pwndbg.aglib.qemu
+import pwndbg.aglib.regs
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
