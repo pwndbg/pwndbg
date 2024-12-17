@@ -653,7 +653,7 @@ def paging_enabled() -> bool:
     elif arch_name == "rv64":
         # https://starfivetech.com/uploads/u74_core_complex_manual_21G1.pdf
         # page 41, satp.MODE, bits: 60,61,62,63
-        return int(pwndbg.aglib.regs.satp) & (BIT(60)|BIT(61)|BIT(62)|BIT(63)) != 0
+        return int(pwndbg.aglib.regs.satp) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
     else:
         raise NotImplementedError()
 
