@@ -124,6 +124,8 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
     arch = pwndbg.aglib.arch.current
     if arch == "aarch64":
         arch_backend = PT_Aarch64_Backend(machine_backend)
+    elif arch == "i386" in arch:
+        arch_backend = PT_x86_64_Backend(machine_backend)
     elif arch == "x86-64" in arch:
         arch_backend = PT_x86_64_Backend(machine_backend)
     elif arch == "rv64":
