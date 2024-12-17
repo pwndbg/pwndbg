@@ -34,13 +34,6 @@ def BIT(shift: int):
     assert 0 <= shift < 64
     return 1 << shift
 
-def extract(value, s, e):
-    return extract_no_shift(value, s, e) >> s
-
-def extract_no_shift(value, s, e):
-    mask = ((1<<(e + 1))-1) & ~((1<<s) - 1)
-    return value & mask
-
 
 @pwndbg.lib.cache.cache_until("objfile")
 def has_debug_syms() -> bool:
@@ -659,8 +652,8 @@ def paging_enabled() -> bool:
         return Aarch64Ops.paging_enabled()
     elif arch_name == "rv64":
         # https://starfivetech.com/uploads/u74_core_complex_manual_21G1.pdf
-        # page 41, satp.MODE
-        return extract(int(pwndbg.aglib.regs.satp), 60, 63) != 0
+        # page 41, satp.MODE, bits: 60,61,62,63
+        return int(pwndbg.aglib.regs.satp) & (BIT(60)|BIT(61)|BIT(62)|BIT(63)) != 0
     else:
         raise NotImplementedError()
 
