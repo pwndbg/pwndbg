@@ -30,8 +30,8 @@ def print_zone(zone: int, list_num=None) -> None:
     pageset_addr = per_cpu(contig_value["node_zones"][zone]["pageset"])
     pageset = pwndbg.aglib.memory.get_typed_pointer_value("struct per_cpu_pageset", pageset_addr)
     pcp = pageset["pcp"]
-    print("count: ", pcp["count"])
-    print("high: ", pcp["high"])
+    print("count: ", int(pcp["count"]))
+    print("high: ", int(pcp["high"]))
     print("")
     for i in range(4):
         print(f"pcp.lists[{i}]:")
@@ -39,7 +39,7 @@ def print_zone(zone: int, list_num=None) -> None:
         count = 0
         for e in for_each_entry(pcp["lists"][i], "struct page", "lru"):
             count += 1
-            print(e)
+            print(int(e))
 
         if count == 0:
             print("EMPTY")

@@ -138,7 +138,7 @@ class BinderVisitor:
                         value = "\n" + "\n".join(["    " + line for line in value.split("\n")])
                 else:
                     print(f"Warning: no formatter for pointer type {typename}")
-            elif t.code in [pwndbg.dbg_mod.TypeCode.STRUCT, pwndbg.dbg_mod.TypeCode.TYPEDEF]:
+            elif t.code in (pwndbg.dbg_mod.TypeCode.STRUCT, pwndbg.dbg_mod.TypeCode.TYPEDEF):
                 typename = t.name_identifier
                 if typename == "spinlock":
                     value = self.format_spinlock(value).strip()

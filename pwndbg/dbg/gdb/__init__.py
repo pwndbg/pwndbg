@@ -991,8 +991,12 @@ class GDBType(pwndbg.dbg_mod.Type):
     @property
     @override
     def code(self) -> pwndbg.dbg_mod.TypeCode:
-        assert self.inner.code in GDBType.CODE_MAPPING, "missing mapping for type code"
-        return GDBType.CODE_MAPPING[self.inner.code]
+        try:
+            assert self.inner.code in GDBType.CODE_MAPPING, "missing mapping for type code"
+            return GDBType.CODE_MAPPING[self.inner.code]
+        except Exception:
+            # TODO: log invalid types
+            return pwndbg.dbg_mod.TypeCode.INVALID
 
     @override
     def func_arguments(self) -> List[pwndbg.dbg_mod.Type] | None:

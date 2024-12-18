@@ -381,7 +381,11 @@ class LLDBType(pwndbg.dbg_mod.Type):
     @property
     @override
     def code(self) -> pwndbg.dbg_mod.TypeCode:
-        return map_type_code(self.inner)
+        try:
+            return map_type_code(self.inner)
+        except Exception:
+            # TODO: log invalid types
+            return pwndbg.dbg_mod.TypeCode.INVALID
 
     @override
     def func_arguments(self) -> List[pwndbg.dbg_mod.Type] | None:

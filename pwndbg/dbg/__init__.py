@@ -598,6 +598,7 @@ class TypeCode(Enum):
     Broad categories of types.
     """
 
+    INVALID = -1
     POINTER = 1
     ARRAY = 2
     STRUCT = 3
