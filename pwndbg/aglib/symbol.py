@@ -106,6 +106,9 @@ def resolve_addr(addr: int) -> str | None:
     Resolution is performed in the following order:
     - Global scope symbols.
     """
+    if addr < 0:
+        return None
+
     symbol_name = pwndbg.dbg.selected_inferior().symbol_name_at_address(addr)
     if symbol_name:
         return symbol_name

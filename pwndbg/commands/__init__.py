@@ -727,7 +727,6 @@ def load_commands() -> None:
         import pwndbg.commands.ai
         import pwndbg.commands.argv
         import pwndbg.commands.attachp
-        import pwndbg.commands.binder
         import pwndbg.commands.binja
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
@@ -737,26 +736,18 @@ def load_commands() -> None:
         import pwndbg.commands.ida
         import pwndbg.commands.ignore
         import pwndbg.commands.ipython_interactive
-        import pwndbg.commands.kbase
-        import pwndbg.commands.kchecksec
-        import pwndbg.commands.kcmdline
-        import pwndbg.commands.kconfig
         import pwndbg.commands.killthreads
-        import pwndbg.commands.klookup
-        import pwndbg.commands.kversion
-        import pwndbg.commands.pcplist
         import pwndbg.commands.peda
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
         import pwndbg.commands.shell
-        import pwndbg.commands.slab
-        import pwndbg.commands.tips
         import pwndbg.commands.version
 
     import pwndbg.commands.aslr
     import pwndbg.commands.asm
     import pwndbg.commands.auxv
+    import pwndbg.commands.binder
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
@@ -778,6 +769,12 @@ def load_commands() -> None:
     import pwndbg.commands.hijack_fd
     import pwndbg.commands.integration
     import pwndbg.commands.jemalloc
+    import pwndbg.commands.kbase
+    import pwndbg.commands.kchecksec
+    import pwndbg.commands.kcmdline
+    import pwndbg.commands.kconfig
+    import pwndbg.commands.klookup
+    import pwndbg.commands.kversion
     import pwndbg.commands.leakfind
     import pwndbg.commands.linkmap
     import pwndbg.commands.memoize
@@ -789,6 +786,7 @@ def load_commands() -> None:
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.patch
+    import pwndbg.commands.pcplist
     import pwndbg.commands.pie
     import pwndbg.commands.plist
     import pwndbg.commands.probeleak
@@ -800,10 +798,12 @@ def load_commands() -> None:
     import pwndbg.commands.rop
     import pwndbg.commands.search
     import pwndbg.commands.sigreturn
+    import pwndbg.commands.slab
     import pwndbg.commands.spray
     import pwndbg.commands.start
     import pwndbg.commands.strings
     import pwndbg.commands.telescope
+    import pwndbg.commands.tips
     import pwndbg.commands.tls
     import pwndbg.commands.valist
     import pwndbg.commands.vmmap

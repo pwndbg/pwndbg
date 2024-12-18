@@ -566,9 +566,11 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def __int__(self) -> int:
-        """
-        Logic is copied from lldb.value(self.inner).__int__()
-        """
+        # use unsigned in every pointer type
+        if self.type.code == pwndbg.dbg_mod.TypeCode.POINTER:
+            return self.inner.GetValueAsUnsigned()
+
+        # Logic is copied from lldb.value(self.inner).__int__()
         is_num, is_sign = lldb.is_numeric_type(
             self.inner.GetType().GetCanonicalType().GetBasicType()
         )
@@ -954,7 +956,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 pass
 
         # Second, try to do a binary search for the limit of the range.
-        def test(s):
+        def test(s: int):
+            # ReadMemory fail when passing size <= 0
+            if s <= 0:
+                return False
+
             b = self.process.ReadMemory(address, s, e)
             return b is not None
 
