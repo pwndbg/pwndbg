@@ -15,11 +15,8 @@ rb_node_type: pwndbg.dbg_mod.Type = None
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def init():
     global rb_root_type, rb_node_type
-    try:
-        rb_root_type = pwndbg.aglib.typeinfo.load("struct rb_root")
-        rb_node_type = pwndbg.aglib.typeinfo.load("struct rb_node")
-    except Exception:
-        pass
+    rb_root_type = pwndbg.aglib.typeinfo.load("struct rb_root")
+    rb_node_type = pwndbg.aglib.typeinfo.load("struct rb_node")
 
 
 def for_each_rb_entry(
