@@ -24,6 +24,7 @@ import lldb
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.color.message as M
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
@@ -1377,9 +1378,12 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     cast_type = variables_types.get((resolved_addr, sym_name), None)
                     if cast_type is not None:
                         # Detect if we have proper symbol by size, we can't do better here
-                        assert (
-                            cast_type.sizeof == resolved_size
-                        ), f"Symbol {sym_name} has invalid size (has:{cast_type.sizeof:02x}, needed:{resolved_size:02x}), should not happen"
+                        if cast_type.sizeof != resolved_size:
+                            print(
+                                M.warn(
+                                    f"WARNING: Symbol {sym_name} has invalid size (has:{cast_type.sizeof:02x}, needed:{resolved_size:02x}), should not happen"
+                                )
+                            )
 
                         # Cast to pointer, we are returning address at end ;)
                         cast_type = cast_type.pointer()
