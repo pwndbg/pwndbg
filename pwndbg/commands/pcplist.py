@@ -39,7 +39,7 @@ def print_zone(zone: int, list_num=None) -> None:
         count = 0
         for e in for_each_entry(pcp["lists"][i], "struct page", "lru"):
             count += 1
-            print(int(e))
+            print(e.value_to_human_readable())
 
         if count == 0:
             print("EMPTY")
