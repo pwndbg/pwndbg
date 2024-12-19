@@ -792,7 +792,7 @@ class Type:
         elif struct_type.code == TypeCode.POINTER:
             struct_type = struct_type.target().strip_typedefs()
 
-        if struct_type.code not in NESTED_TYPES:
+        elif struct_type.code not in NESTED_TYPES:
             return None
 
         # TODO: improve `struct_type in nested_cyclic_types`, really slow
