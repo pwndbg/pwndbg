@@ -789,7 +789,7 @@ class Type:
         if struct_type.code == TypeCode.TYPEDEF:
             struct_type = struct_type.strip_typedefs()
 
-        if struct_type.code == TypeCode.POINTER:
+        elif struct_type.code == TypeCode.POINTER:
             struct_type = struct_type.target().strip_typedefs()
 
         if struct_type.code not in NESTED_TYPES:
