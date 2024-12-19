@@ -31,6 +31,8 @@ from __future__ import annotations
 
 import ctypes
 from typing import Dict
+from typing import Optional
+from typing import Union
 
 import pwndbg.aglib.ctypes
 
@@ -50,41 +52,58 @@ Elf64_Xword = ctypes.c_uint64
 Elf64_Sxword = ctypes.c_int64
 
 
+# Copied from https://elixir.bootlin.com/glibc/glibc-2.40.9000/source/elf/elf.h#L1193
 AT_CONSTANTS: Dict[int, str] = {
-    0: "AT_NULL",  # /* End of vector */
-    1: "AT_IGNORE",  # /* Entry should be ignored */
-    2: "AT_EXECFD",  # /* File descriptor of program */
-    3: "AT_PHDR",  # /* Program headers for program */
-    4: "AT_PHENT",  # /* Size of program header entry */
-    5: "AT_PHNUM",  # /* Number of program headers */
-    6: "AT_PAGESZ",  # /* System page size */
-    7: "AT_BASE",  # /* Base address of interpreter */
-    8: "AT_FLAGS",  # /* Flags */
-    9: "AT_ENTRY",  # /* Entry point of program */
-    10: "AT_NOTELF",  # /* Program is not ELF */
-    11: "AT_UID",  # /* Real uid */
-    12: "AT_EUID",  # /* Effective uid */
-    13: "AT_GID",  # /* Real gid */
-    14: "AT_EGID",  # /* Effective gid */
-    15: "AT_PLATFORM",  # /* String identifying platform */
-    16: "AT_HWCAP",  # /* Machine dependent hints about processor capabilities */
-    17: "AT_CLKTCK",  # /* Frequency of times() */
-    18: "AT_FPUCW",
-    19: "AT_DCACHEBSIZE",
-    20: "AT_ICACHEBSIZE",
-    21: "AT_UCACHEBSIZE",
-    22: "AT_IGNOREPPC",
-    23: "AT_SECURE",
+    0: "AT_NULL",  # End of vector
+    1: "AT_IGNORE",  # Entry should be ignored
+    2: "AT_EXECFD",  # File descriptor of program
+    3: "AT_PHDR",  # Program headers for program
+    4: "AT_PHENT",  # Size of program header entry
+    5: "AT_PHNUM",  # Number of program headers
+    6: "AT_PAGESZ",  # System page size
+    7: "AT_BASE",  # Base address of interpreter
+    8: "AT_FLAGS",  # Flags
+    9: "AT_ENTRY",  # Entry point of program
+    10: "AT_NOTELF",  # Program is not ELF
+    11: "AT_UID",  # Real uid
+    12: "AT_EUID",  # Effective uid
+    13: "AT_GID",  # Real gid
+    14: "AT_EGID",  # Effective gid
+    15: "AT_PLATFORM",  # String identifying platform
+    16: "AT_HWCAP",  # Machine-dependent hints about processor capabilities
+    17: "AT_CLKTCK",  # Frequency of times()
+    18: "AT_FPUCW",  # Used FPU control word
+    19: "AT_DCACHEBSIZE",  # Data cache block size
+    20: "AT_ICACHEBSIZE",  # Instruction cache block size
+    21: "AT_UCACHEBSIZE",  # Unified cache block size
+    22: "AT_IGNOREPPC",  # Entry should be ignored
+    23: "AT_SECURE",  # Boolean, was exec setuid-like?
     24: "AT_BASE_PLATFORM",  # String identifying real platforms
     25: "AT_RANDOM",  # Address of 16 random bytes
+    26: "AT_HWCAP2",  # More machine-dependent hints about processor capabilities
+    27: "AT_RSEQ_FEATURE_SIZE",  # rseq supported feature size
+    28: "AT_RSEQ_ALIGN",  # rseq allocation alignment
+    29: "AT_HWCAP3",  # Extension of AT_HWCAP
+    30: "AT_HWCAP4",  # Extension of AT_HWCAP
     31: "AT_EXECFN",  # Filename of executable
-    32: "AT_SYSINFO",
-    33: "AT_SYSINFO_EHDR",
-    34: "AT_L1I_CACHESHAPE",
-    35: "AT_L1D_CACHESHAPE",
-    36: "AT_L2_CACHESHAPE",
-    37: "AT_L3_CACHESHAPE",
+    32: "AT_SYSINFO",  # Pointer to the global system page used for system calls
+    33: "AT_SYSINFO_EHDR",  # Header for sysinfo
+    34: "AT_L1I_CACHESHAPE",  # Shape of L1 instruction cache
+    35: "AT_L1D_CACHESHAPE",  # Shape of L1 data cache
+    36: "AT_L2_CACHESHAPE",  # Shape of L2 cache
+    37: "AT_L3_CACHESHAPE",  # Shape of L3 cache
+    40: "AT_L1I_CACHESIZE",  # Size of L1 instruction cache
+    41: "AT_L1I_CACHEGEOMETRY",  # Geometry of L1 instruction cache
+    42: "AT_L1D_CACHESIZE",  # Size of L1 data cache
+    43: "AT_L1D_CACHEGEOMETRY",  # Geometry of L1 data cache
+    44: "AT_L2_CACHESIZE",  # Size of L2 cache
+    45: "AT_L2_CACHEGEOMETRY",  # Geometry of L2 cache
+    46: "AT_L3_CACHESIZE",  # Size of L3 cache
+    47: "AT_L3_CACHEGEOMETRY",  # Geometry of L3 cache
+    51: "AT_MINSIGSTKSZ",  # Stack needed for signal delivery
 }
+
+AT_CONSTANT_NAMES = {v: k for k, v in AT_CONSTANTS.items()}
 
 
 class constants:
@@ -318,3 +337,40 @@ class Elf64_Phdr(pwndbg.aglib.ctypes.Structure):
         ("p_memsz", Elf64_Xword),
         ("p_align", Elf64_Xword),
     ]
+
+
+class AUXV(Dict[str, Union[int, str]]):
+    AT_PHDR: Optional[int]
+    AT_BASE: Optional[int]
+    AT_PLATFORM: Optional[str]
+    AT_BASE_PLATFORM: Optional[str]
+    AT_ENTRY: Optional[int]
+    AT_RANDOM: Optional[int]
+    AT_EXECFN: Optional[str]
+    AT_SYSINFO: Optional[int]
+    AT_SYSINFO_EHDR: Optional[int]
+
+    def set(self, const: int, value: int) -> None:
+        name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
+
+        if name in ["AT_EXECFN", "AT_PLATFORM", "AT_BASE_PLATFORM"]:
+            try:
+                value = (
+                    pwndbg.dbg.selected_inferior()
+                    .create_value(value)
+                    .cast(pwndbg.aglib.typeinfo.pchar)
+                    .string()
+                )
+            except Exception:
+                value = "couldnt read AUXV!"
+
+        self[name] = value
+
+    def __getattr__(self, attr: str) -> Optional[Union[int, str]]:
+        if attr in AT_CONSTANT_NAMES:
+            return self.get(attr)
+
+        raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr))
+
+    def __str__(self) -> str:
+        return str({k: v for k, v in self.items() if v is not None})

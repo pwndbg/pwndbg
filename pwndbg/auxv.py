@@ -2,23 +2,38 @@ from __future__ import annotations
 
 import os
 import re
-from typing import Dict
+import struct
 from typing import Optional
-from typing import Union
 
 import pwndbg.aglib.arch
+import pwndbg.aglib.file
 import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
 import pwndbg.aglib.stack
 import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
+import pwndbg.color.message as M
 import pwndbg.lib.cache
+import pwndbg.lib.config
 import pwndbg.lib.memory
+from pwndbg.lib.elftypes import AT_CONSTANT_NAMES
+from pwndbg.lib.elftypes import AUXV
 
 # We use `info.auxv()` when available.
 if pwndbg.dbg.is_gdblib_available():
     import pwndbg.gdblib.info
+
+
+auto_explore = pwndbg.config.add_param(
+    "auto-explore-auxv",
+    "warn",
+    "Enable or disable stack exploration for AUXV information; it may be really slow.",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=["warn", "yes", "no"],
+)
+
 
 example_info_auxv_linux = """
 33   AT_SYSINFO_EHDR      System-supplied DSO's ELF header 0x7ffff7ffa000
@@ -43,84 +58,43 @@ example_info_auxv_linux = """
 """
 
 
-AT_CONSTANTS = {
-    0: "AT_NULL",  # /* End of vector */
-    1: "AT_IGNORE",  # /* Entry should be ignored */
-    2: "AT_EXECFD",  # /* File descriptor of program */
-    3: "AT_PHDR",  # /* Program headers for program */
-    4: "AT_PHENT",  # /* Size of program header entry */
-    5: "AT_PHNUM",  # /* Number of program headers */
-    6: "AT_PAGESZ",  # /* System page size */
-    7: "AT_BASE",  # /* Base address of interpreter */
-    8: "AT_FLAGS",  # /* Flags */
-    9: "AT_ENTRY",  # /* Entry point of program */
-    10: "AT_NOTELF",  # /* Program is not ELF */
-    11: "AT_UID",  # /* Real uid */
-    12: "AT_EUID",  # /* Effective uid */
-    13: "AT_GID",  # /* Real gid */
-    14: "AT_EGID",  # /* Effective gid */
-    15: "AT_PLATFORM",  # /* String identifying platform */
-    16: "AT_HWCAP",  # /* Machine dependent hints about processor capabilities */
-    17: "AT_CLKTCK",  # /* Frequency of times() */
-    18: "AT_FPUCW",
-    19: "AT_DCACHEBSIZE",
-    20: "AT_ICACHEBSIZE",
-    21: "AT_UCACHEBSIZE",
-    22: "AT_IGNOREPPC",
-    23: "AT_SECURE",
-    24: "AT_BASE_PLATFORM",  # String identifying real platforms
-    25: "AT_RANDOM",  # Address of 16 random bytes
-    31: "AT_EXECFN",  # Filename of executable
-    32: "AT_SYSINFO",
-    33: "AT_SYSINFO_EHDR",
-    34: "AT_L1I_CACHESHAPE",
-    35: "AT_L1D_CACHESHAPE",
-    36: "AT_L2_CACHESHAPE",
-    37: "AT_L3_CACHESHAPE",
-}
-
-AT_CONSTANT_NAMES = {v: k for k, v in AT_CONSTANTS.items()}
-
-
-class AUXV(Dict[str, Union[int, str]]):
-    AT_PHDR: Optional[int]
-    AT_BASE: Optional[int]
-    AT_PLATFORM: Optional[str]
-    AT_ENTRY: Optional[int]
-    AT_RANDOM: Optional[int]
-    AT_EXECFN: Optional[str]
-    AT_SYSINFO: Optional[int]
-    AT_SYSINFO_EHDR: Optional[int]
-
-    def set(self, const: int, value: int) -> None:
-        name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
-
-        if name in ["AT_EXECFN", "AT_PLATFORM"]:
-            try:
-                value = (
-                    pwndbg.dbg.selected_inferior()
-                    .create_value(value)
-                    .cast(pwndbg.aglib.typeinfo.pchar)
-                    .string()
-                )
-            except Exception:
-                value = "couldnt read AUXV!"
-
-        self[name] = value
-
-    def __getattr__(self, attr: str) -> Optional[Union[int, str]]:
-        if attr in AT_CONSTANT_NAMES:
-            return self.get(attr)
-
-        raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr))
-
-    def __str__(self) -> str:
-        return str({k: v for k, v in self.items() if v is not None})
-
-
 @pwndbg.lib.cache.cache_until("objfile", "start")
 def get() -> AUXV:
-    return use_info_auxv() or walk_stack() or AUXV()
+    if not pwndbg.dbg.selected_inferior().is_linux() or not pwndbg.aglib.qemu.is_usermode():
+        return AUXV()
+
+    return use_info_auxv() or procfs_auxv() or explore_stack_auxv() or AUXV()
+
+
+def procfs_auxv() -> AUXV | None:
+    if pwndbg.aglib.arch.ptrsize == 8:
+        field_format = "QQ"  # for 64bit system
+    elif pwndbg.aglib.arch.ptrsize == 4:
+        field_format = "II"  # for 32bit system
+    else:
+        assert False
+    field_size = struct.calcsize(field_format)
+
+    data = pwndbg.aglib.file.get(f"/proc/{pwndbg.aglib.proc.tid}/auxv")
+    if not data:
+        return None
+
+    auxv = AUXV()
+    end_type = AT_CONSTANT_NAMES["AT_NULL"]
+    for i in range(0, len(data), field_size):
+        entry = data[i : i + field_size]
+
+        if len(entry) < field_size:
+            break  # Ignore incomplete entry at the end
+
+        a_type, a_val = struct.unpack(field_format, entry)
+
+        # AT_NULL indicates the end of the vector
+        if a_type == end_type:
+            break
+        auxv.set(a_type, a_val)
+
+    return auxv
 
 
 def use_info_auxv() -> Optional[AUXV]:
@@ -144,33 +118,22 @@ def use_info_auxv() -> Optional[AUXV]:
     return auxv
 
 
-def find_stack_boundary(addr: int) -> int:
-    # For real binaries, we can just use pwndbg.aglib.memory.find_upper_boundary
-    # to search forward until we walk off the end of the stack.
-    #
-    # Unfortunately, qemu-user emulation likes to paste the stack right
-    # before binaries in memory.  This means that we walk right past the
-    # stack and to the end of some random ELF.
-    #
-    # In order to mitigate this, we search page-by-page until either:
-    #
-    # 1) We get a page fault, and stop
-    # 2) We find an ELF header, and stop
-    addr = pwndbg.lib.memory.page_align(addr)
-    try:
-        while True:
-            if b"\x7fELF" == pwndbg.aglib.memory.read(addr, 4):
-                break
-            addr += pwndbg.lib.memory.PAGE_SIZE
-    except pwndbg.dbg_mod.Error:
-        pass
-    return addr
+_warn_explore_once = True
 
 
-def walk_stack() -> AUXV | None:
-    if not pwndbg.dbg.selected_inferior().is_linux():
+def explore_stack_auxv() -> AUXV | None:
+    if auto_explore.value == "warn":
+        print(
+            M.warn(
+                "Warning: All methods to detect AUXV have failed.\n"
+                "You can explore AUXV using stack exploration, but it may be very slow.\n"
+                "To explicitly explore, use the command: `auxv_explore`\n"
+                "Alternatively, enable it by default with: `set auto-explore-auxv yes`\n\n"
+                "Note: AUXV is probably not necessary for debugging firmware or embedded systems."
+            )
+        )
         return None
-    if pwndbg.aglib.qemu.is_qemu_kernel():
+    elif auto_explore.value == "no":
         return None
 
     auxv = walk_stack2(0)
@@ -207,7 +170,7 @@ def walk_stack2(offset: int = 0) -> AUXV:
     #    set of known AT_ enums.
     # 5) Vacuum up between the two.
     #
-    end = find_stack_boundary(sp)
+    end = _find_stack_boundary(sp)
     p = pwndbg.dbg.selected_inferior().create_value(end).cast(pwndbg.aglib.typeinfo.ulong.pointer())
 
     p -= offset
@@ -267,6 +230,29 @@ def walk_stack2(offset: int = 0) -> AUXV:
         # If SP is inaccessible or we went past through stack and haven't found AUXV
         # then return an empty AUXV...
         return AUXV()
+
+
+def _find_stack_boundary(addr: int) -> int:
+    # For real binaries, we can just use pwndbg.aglib.memory.find_upper_boundary
+    # to search forward until we walk off the end of the stack.
+    #
+    # Unfortunately, qemu-user emulation likes to paste the stack right
+    # before binaries in memory.  This means that we walk right past the
+    # stack and to the end of some random ELF.
+    #
+    # In order to mitigate this, we search page-by-page until either:
+    #
+    # 1) We get a page fault, and stop
+    # 2) We find an ELF header, and stop
+    addr = pwndbg.lib.memory.page_align(addr)
+    try:
+        while True:
+            if b"\x7fELF" == pwndbg.aglib.memory.read(addr, 4):
+                break
+            addr += pwndbg.lib.memory.PAGE_SIZE
+    except pwndbg.dbg_mod.Error:
+        pass
+    return addr
 
 
 def _get_execfn() -> str | None:
