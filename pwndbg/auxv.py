@@ -60,7 +60,7 @@ example_info_auxv_linux = """
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
 def get() -> AUXV:
-    if not pwndbg.dbg.selected_inferior().is_linux() or not pwndbg.aglib.qemu.is_usermode():
+    if not pwndbg.dbg.selected_inferior().is_linux() or pwndbg.aglib.qemu.is_qemu_kernel():
         return AUXV()
 
     return use_info_auxv() or procfs_auxv() or explore_stack_auxv() or AUXV()
