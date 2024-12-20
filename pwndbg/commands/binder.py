@@ -143,7 +143,7 @@ class BinderVisitor:
                 if typename == "spinlock":
                     value = self.format_spinlock(value).strip()
                 elif typename == "atomic_t":
-                    value = value["counter"]
+                    value = value["counter"].value_to_human_readable()
                 elif typename == "rb_root":
                     assert field is not None
                     value, num_elts = self.format_rb_tree(field, value)
@@ -223,7 +223,7 @@ class BinderVisitor:
     ) -> str:
         res = []
         for field in fields:
-            res.append(self._format_field(field, obj[field].value_to_human_readable(), only_heading=only_heading))
+            res.append(self._format_field(field, obj[field], only_heading=only_heading))
         return "\n".join(res)
 
     def visit(self):
@@ -338,7 +338,7 @@ class BinderVisitor:
 
     def format_work(self, work: pwndbg.dbg_mod.Value) -> str:
         res = []
-        res.append(self._format_heading("binder_work", str(work["type"]), int(work.address)))
+        res.append(self._format_heading("binder_work", work["type"].value_to_human_readable(), int(work.address)))
 
         t = int(work["type"])
         # TODO: Create enum
