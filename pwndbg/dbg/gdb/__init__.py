@@ -1067,7 +1067,10 @@ class GDBValue(pwndbg.dbg_mod.Value):
     @property
     @override
     def address(self) -> pwndbg.dbg_mod.Value | None:
-        return GDBValue(self.inner.address)
+        val = self.inner.address
+        if val is None:
+            return val
+        return GDBValue(val)
 
     @property
     @override
