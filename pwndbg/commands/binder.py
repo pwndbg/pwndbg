@@ -223,7 +223,7 @@ class BinderVisitor:
     ) -> str:
         res = []
         for field in fields:
-            res.append(self._format_field(field, obj[field], only_heading=only_heading))
+            res.append(self._format_field(field, obj[field].value_to_human_readable(), only_heading=only_heading))
         return "\n".join(res)
 
     def visit(self):
