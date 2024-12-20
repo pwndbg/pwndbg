@@ -801,14 +801,12 @@ class Type:
             field_offset_bits = base_offset_bits + field.bitpos
 
             if field.name == field_name:
-                byte_size = pwndbg.aglib.typeinfo.ptrsize
-                if field_offset_bits % byte_size != 0:
+                if field_offset_bits % 8 != 0:
                     # Possible bit-fields, misaligned struct, or unexpected alignment
                     # This case is not supported because it introduces complexities
                     # in handling non-byte-aligned or bit-level field offsets
                     return None
-
-                return field_offset_bits // byte_size
+                return field_offset_bits // 8
 
             nested_offset = field.type._offsetof(
                 field_name,
