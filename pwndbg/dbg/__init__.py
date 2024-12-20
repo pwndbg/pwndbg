@@ -774,7 +774,7 @@ class Type:
         - returns None, If the field does not exist
         """
         if self.code != TypeCode.ENUM:
-            raise ValueError("only enum supported")
+            raise TypeError("only enum supported")
 
         return next((f.enumval for f in self.fields() if f.name == field_name), None)
 
@@ -789,16 +789,12 @@ class Type:
         if struct_type.code == TypeCode.TYPEDEF:
             struct_type = struct_type.strip_typedefs()
 
-        elif struct_type.code == TypeCode.POINTER:
-            struct_type = struct_type.target().strip_typedefs()
-
-        elif struct_type.code not in NESTED_TYPES:
+        if struct_type.code not in NESTED_TYPES:
+            return None
+        elif struct_type in nested_cyclic_types:
             return None
 
-        # TODO: improve `struct_type in nested_cyclic_types`, really slow
-        #  lldb.SBType and gdb.Type dont support Sets
-        if struct_type in nested_cyclic_types:
-            return None
+        # note: lldb.SBType and gdb.Type dont support Sets
         nested_cyclic_types.append(struct_type)
 
         for field in struct_type.fields():
@@ -835,6 +831,8 @@ class Type:
         - offset in bytes if found
         - None if the field doesn't exist or if an unsupported alignment/bit-field is encountered
         """
+        if self.code == TypeCode.POINTER:
+            return self.target()._offsetof(field_name)
         return self._offsetof(field_name)
 
     def __eq__(self, rhs: object) -> bool:
