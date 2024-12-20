@@ -1071,7 +1071,7 @@ class GDBValue(pwndbg.dbg_mod.Value):
     def address(self) -> pwndbg.dbg_mod.Value | None:
         val = self.inner.address
         if val is None:
-            return val
+            return None
         return GDBValue(val)
 
     @property
