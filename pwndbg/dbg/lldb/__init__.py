@@ -307,8 +307,11 @@ def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
     if c == lldb.eTypeClassFunction:
         return pwndbg.dbg_mod.TypeCode.FUNC
 
-    f = type.GetTypeFlags()
+    basic_type = type.GetCanonicalType().GetBasicType()
+    if basic_type == lldb.eBasicTypeBool:
+        return pwndbg.dbg_mod.TypeCode.BOOL
 
+    f = type.GetTypeFlags()
     if f & lldb.eTypeIsInteger != 0:
         return pwndbg.dbg_mod.TypeCode.INT
 
