@@ -995,6 +995,7 @@ class GDBType(pwndbg.dbg_mod.Type):
             assert self.inner.code in GDBType.CODE_MAPPING, "missing mapping for type code"
             return GDBType.CODE_MAPPING[self.inner.code]
         except Exception:
+            print(f'Invalid code {self.inner.code}-{str(self.inner)}')
             # TODO: log invalid types
             return pwndbg.dbg_mod.TypeCode.INVALID
 
