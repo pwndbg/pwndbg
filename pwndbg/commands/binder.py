@@ -233,7 +233,7 @@ class BinderVisitor:
 
     def format_proc(self, proc: pwndbg.dbg_mod.Value, only_heading=False):
         res = []
-        res.append(self._format_heading("binder_proc", "PID %s" % proc["pid"], int(proc)))
+        res.append(self._format_heading("binder_proc", "PID %s" % proc["pid"].value_to_human_readable(), int(proc)))
 
         if only_heading:
             return "\n".join(res)
@@ -256,7 +256,7 @@ class BinderVisitor:
 
     def format_thread(self, thread: pwndbg.dbg_mod.Value, only_heading: bool = False) -> str:
         res = []
-        res.append(self._format_heading("binder_thread", "PID %s" % thread["pid"], int(thread)))
+        res.append(self._format_heading("binder_thread", "PID %s" % thread["pid"].value_to_human_readable(), int(thread)))
 
         if only_heading:
             return "\n".join(res)
@@ -277,7 +277,7 @@ class BinderVisitor:
         res = []
         res.append(
             self._format_heading(
-                "binder_transaction", "ID %s" % str(transaction["debug_id"]), int(transaction)
+                "binder_transaction", "ID %s" % transaction["debug_id"].value_to_human_readable(), int(transaction)
             )
         )
 
@@ -325,7 +325,7 @@ class BinderVisitor:
 
     def format_ref(self, ref: pwndbg.dbg_mod.Value, only_heading: bool = False) -> str:
         res = []
-        res.append(self._format_heading("binder_ref", "HANDLE %s" % ref["data"]["desc"], int(ref)))
+        res.append(self._format_heading("binder_ref", "HANDLE %s" % ref["data"]["desc"].value_to_human_readable(), int(ref)))
 
         if only_heading:
             return "\n".join(res)

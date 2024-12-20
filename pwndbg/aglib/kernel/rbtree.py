@@ -13,6 +13,7 @@ rb_node_type: pwndbg.dbg_mod.Type = None
 
 
 # TODO: fix `NEW_MODULE` probably this event is wrong here
+# TODO: FIXY
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def init():
     global rb_root_type, rb_node_type
