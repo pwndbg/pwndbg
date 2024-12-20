@@ -941,6 +941,7 @@ class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
 
 class GDBType(pwndbg.dbg_mod.Type):
     CODE_MAPPING = {
+        gdb.TYPE_CODE_BOOL: pwndbg.dbg_mod.TypeCode.INT,
         gdb.TYPE_CODE_INT: pwndbg.dbg_mod.TypeCode.INT,
         gdb.TYPE_CODE_UNION: pwndbg.dbg_mod.TypeCode.UNION,
         gdb.TYPE_CODE_STRUCT: pwndbg.dbg_mod.TypeCode.STRUCT,
