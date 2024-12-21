@@ -90,7 +90,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         except pwndbg.dbg_mod.Error as e:
             # This module originally raised this as an OSError.
             raise OSError(e)
-    else:
+    elif pwndbg.aglib.remote.is_remote():
         print(
             message.warn(
                 f"pwndbg.aglib.file.get_file({path}) returns local path as we can't download file from QEMU"
