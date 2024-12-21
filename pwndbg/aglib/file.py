@@ -43,6 +43,16 @@ def get_proc_exe_file() -> str:
     return get_file(pwndbg.aglib.proc.exe, try_local_path=True)
 
 
+def _can_download_remote_file() -> bool:
+    if not pwndbg.aglib.remote.is_remote():
+        return False
+    elif pwndbg.aglib.qemu.is_old_qemu_user():
+        return False
+    elif pwndbg.aglib.qemu.is_qemu_kernel():
+        return False
+    return True
+
+
 def get_file(path: str, try_local_path: bool = False) -> str:
     """
     Downloads the specified file from the system where the current process is
@@ -70,22 +80,22 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     if qemu_root:
         return os.path.join(qemu_root, path)
 
-    elif pwndbg.aglib.remote.is_remote():
-        if not pwndbg.aglib.qemu.is_qemu():
-            if try_local_path and not has_target_prefix and os.path.exists(local_path):
-                return local_path
-            local_path = tempfile.mktemp(dir=remote_files_dir())
-            try:
-                pwndbg.dbg.selected_inferior().download_remote_file(path, local_path)
-            except pwndbg.dbg_mod.Error as e:
-                # This module originally raised this as an OSError.
-                raise OSError(e)
-        else:
-            print(
-                message.warn(
-                    f"pwndbg.aglib.file.get_file({path}) returns local path as we can't download file from QEMU"
-                )
+    elif _can_download_remote_file():
+        if try_local_path and not has_target_prefix and os.path.exists(local_path):
+            return local_path
+
+        local_path = tempfile.mktemp(dir=remote_files_dir())
+        try:
+            pwndbg.dbg.selected_inferior().download_remote_file(path, local_path)
+        except pwndbg.dbg_mod.Error as e:
+            # This module originally raised this as an OSError.
+            raise OSError(e)
+    else:
+        print(
+            message.warn(
+                f"pwndbg.aglib.file.get_file({path}) returns local path as we can't download file from QEMU"
             )
+        )
 
     return local_path
 
