@@ -25,6 +25,9 @@ def update() -> None:
     if not pwndbg.dbg.selected_inferior().is_linux():
         return None
 
+    # FIXME: consider implementing priorities in `pwndbg.dbg.event_handler`,
+    pwndbg.aglib.arch_mod.update()  # :-(
+
     global argc_numbers
     global argv_ptr
     global envp_ptr
