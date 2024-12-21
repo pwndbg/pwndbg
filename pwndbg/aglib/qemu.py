@@ -6,8 +6,6 @@ from __future__ import annotations
 
 import os
 
-import psutil
-
 import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.lib.cache
@@ -93,31 +91,3 @@ def root() -> str | None:
     pwndbg.dbg.set_sysroot(binfmt_root)
 
     return binfmt_root
-
-
-@pwndbg.lib.cache.cache_until("start")
-def pid() -> int:
-    """Find the PID of the qemu usermode binary which we are
-    talking to.
-    """
-    # Find all inodes in our process which are connections.
-    targets = {c.raddr for c in psutil.Process().connections()}
-
-    # No targets? :(
-    if not targets:
-        return 0
-
-    for process in psutil.process_iter():
-        if not process.name().startswith("qemu"):
-            continue
-
-        try:
-            connections = process.connections()
-        except Exception:
-            continue
-
-        for c in connections:
-            if c.laddr in targets:
-                return process.pid
-
-    return 0
