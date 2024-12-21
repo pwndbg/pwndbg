@@ -7,6 +7,7 @@ regs = None
 
 
 def load_aglib():
+    import pwndbg.aglib.argv
     import pwndbg.aglib.ctypes
     import pwndbg.aglib.disasm
     import pwndbg.aglib.disasm.aarch64

@@ -7,7 +7,6 @@ import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
-import pwndbg.gdblib.abi
 import pwndbg.gdblib.events
 from pwndbg.aglib import arch_mod as arch_mod_aglib
 from pwndbg.dbg import EventType
@@ -52,7 +51,6 @@ def reset_config() -> None:
 
 @pwndbg.dbg.event_handler(EventType.START)
 def on_start() -> None:
-    pwndbg.gdblib.abi.update()
     pwndbg.aglib.memory.update_min_addr()
 
 
@@ -101,7 +99,6 @@ def init() -> None:
     """
     update_arch()
     update_typeinfo()
-    pwndbg.gdblib.abi.update()
 
 
 init()

@@ -725,7 +725,6 @@ def load_commands() -> None:
 
     if pwndbg.dbg.is_gdblib_available():
         import pwndbg.commands.ai
-        import pwndbg.commands.argv
         import pwndbg.commands.attachp
         import pwndbg.commands.binja
         import pwndbg.commands.branch
@@ -744,6 +743,7 @@ def load_commands() -> None:
         import pwndbg.commands.shell
         import pwndbg.commands.version
 
+    import pwndbg.commands.argv
     import pwndbg.commands.aslr
     import pwndbg.commands.asm
     import pwndbg.commands.auxv

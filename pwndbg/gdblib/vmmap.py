@@ -27,7 +27,6 @@ import pwndbg.aglib.regs
 import pwndbg.aglib.stack
 import pwndbg.auxv
 import pwndbg.color.message as M
-import pwndbg.gdblib.abi
 import pwndbg.gdblib.info
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -225,7 +224,6 @@ def find(
     return None
 
 
-@pwndbg.gdblib.abi.LinuxOnly()
 def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
     """
     Given a potential address, check to see what permissions it has.
@@ -240,6 +238,8 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
 
         Also assumes the entire contiguous section has the same permission.
     """
+    if not pwndbg.dbg.selected_inferior().is_linux():
+        return None
 
     address_maybe = pwndbg.lib.memory.page_align(address_maybe)
 

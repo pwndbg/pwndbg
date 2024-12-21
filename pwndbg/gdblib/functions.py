@@ -13,8 +13,10 @@ from typing import List
 
 import gdb
 
+import pwndbg.aglib.argv
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
+import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 from pwndbg.lib.common import hex2ptr_common
 
@@ -81,3 +83,47 @@ def hex2ptr(hex_string: gdb.Value | str) -> int:
     hex_string = hex_string.replace(" ", "")
     pointer = hex2ptr_common(hex_string)
     return pointer
+
+
+@GdbFunction(only_when_running=True)
+def argv(number_value: gdb.Value) -> gdb.Value:
+    """Evaluate argv on the supplied value."""
+    val = pwndbg.aglib.argv.argv(int(number_value))
+    if val is None:
+        raise gdb.GdbError("Arg not found")
+    return dbg_value_to_gdb(val)
+
+
+@GdbFunction(only_when_running=True)
+def envp(number_value: gdb.Value) -> gdb.Value:
+    """Evaluate envp on the supplied value."""
+    val = pwndbg.aglib.argv.envp(int(number_value))
+    if val is None:
+        raise gdb.GdbError("Environ not found")
+    return dbg_value_to_gdb(val)
+
+
+@GdbFunction(only_when_running=True)
+def argc(*args) -> int:
+    """Evaluates to argc."""
+    return pwndbg.aglib.argv.argc_numbers
+
+
+@GdbFunction(only_when_running=True)
+def environ(name_value: gdb.Value) -> gdb.Value:
+    """Evaluate getenv() on the supplied value."""
+    name = name_value.string()
+    if not name:
+        raise gdb.GdbError("No environment variable name provided")
+
+    val = pwndbg.aglib.argv.environ(name)
+    if val is None:
+        raise gdb.GdbError("Environ not found")
+    return dbg_value_to_gdb(val)
+
+
+def dbg_value_to_gdb(d: pwndbg.dbg_mod.Value) -> gdb.Value:
+    from pwndbg.dbg.gdb import GDBValue
+
+    assert isinstance(d, GDBValue)
+    return d.inner

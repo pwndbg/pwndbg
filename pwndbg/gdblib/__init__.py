@@ -21,8 +21,6 @@ def load_gdblib() -> None:
     Import all gdblib modules that need to run code on import
     """
     # pylint: disable=import-outside-toplevel
-    import pwndbg.gdblib.abi
-    import pwndbg.gdblib.argv
     import pwndbg.gdblib.bpoint
     import pwndbg.gdblib.functions
     import pwndbg.gdblib.got
