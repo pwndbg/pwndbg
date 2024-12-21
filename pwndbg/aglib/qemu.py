@@ -66,7 +66,7 @@ def is_qemu_kernel() -> bool:
 
 def is_old_qemu_user() -> bool:
     # qemu-user <8.1
-    return is_qemu_usermode() and exec_file_supported()
+    return is_qemu_usermode() and not exec_file_supported()
 
 
 @pwndbg.lib.cache.cache_until("stop")
