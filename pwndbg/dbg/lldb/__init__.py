@@ -652,10 +652,6 @@ class LLDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
         return False
 
     @override
-    def has_reliable_perms(self) -> bool:
-        return True
-
-    @override
     def ranges(self) -> List[pwndbg.lib.memory.Page]:
         return self.pages
 

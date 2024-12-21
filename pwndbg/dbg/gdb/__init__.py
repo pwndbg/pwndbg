@@ -212,18 +212,13 @@ class GDBThread(pwndbg.dbg_mod.Thread):
 
 
 class GDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
-    def __init__(self, reliable_perms: bool, qemu: bool, pages: Sequence[pwndbg.lib.memory.Page]):
-        self.reliable_perms = reliable_perms
+    def __init__(self, qemu: bool, pages: Sequence[pwndbg.lib.memory.Page]):
         self.qemu = qemu
         self.pages = pages
 
     @override
     def is_qemu(self) -> bool:
         return self.qemu
-
-    @override
-    def has_reliable_perms(self) -> bool:
-        return self.reliable_perms
 
     @override
     def ranges(self) -> Sequence[pwndbg.lib.memory.Page]:
@@ -385,17 +380,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
         import pwndbg.gdblib.vmmap
-        from pwndbg.gdblib import gdb_version
+        import pwndbg.aglib.qemu
 
         pages = pwndbg.gdblib.vmmap.get()
-        qemu = pwndbg.aglib.qemu.is_qemu() and not pwndbg.aglib.qemu.exec_file_supported()
+        qemu = pwndbg.aglib.qemu.is_old_qemu_user()
 
-        # Only GDB versions >=12 report permission info in info proc mappings.
-        # On older versions, we fallback on "rwx".
-        # See https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
-        reliable_perms = not (pwndbg.aglib.qemu.is_qemu_usermode() and gdb_version[0] < 12)
-
-        return GDBMemoryMap(reliable_perms, qemu, pages)
+        return GDBMemoryMap(qemu, pages)
 
     @override
     def read_memory(self, address: int, size: int, partial: bool = False) -> bytearray:

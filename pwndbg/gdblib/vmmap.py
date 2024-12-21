@@ -109,7 +109,7 @@ def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
         return tuple(coredump_maps())
 
     proc_maps = None
-    if pwndbg.aglib.qemu.is_qemu_usermode():
+    if pwndbg.aglib.qemu.is_old_qemu_user():
         # On Qemu < 8.1 info proc maps are not supported. In that case we callback on proc_tid_maps
         proc_maps = info_proc_maps()
 

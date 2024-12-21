@@ -292,12 +292,6 @@ class MemoryMap:
         """
         raise NotImplementedError()
 
-    def has_reliable_perms(self) -> bool:
-        """
-        Returns whether the permissions in this memory map are reliable.
-        """
-        raise NotImplementedError()
-
     def ranges(self) -> Sequence[pwndbg.lib.memory.Page]:
         """
         Returns all ranges in this memory map.

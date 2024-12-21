@@ -48,16 +48,10 @@ def OnlyWithArch(
 class module(ModuleType):
     @property
     def pid(self) -> int:
-        # QEMU usermode emulation always returns 42000 for some reason.
-        # In any case, we can't use the info.
-        if pwndbg.aglib.qemu.is_qemu_usermode():
-            return pwndbg.aglib.qemu.pid()
         return pwndbg.dbg.selected_inferior().pid()
 
     @property
     def tid(self) -> int:
-        if pwndbg.aglib.qemu.is_qemu_usermode():
-            return pwndbg.aglib.qemu.pid()
         return pwndbg.dbg.selected_thread().ptid()
 
     @property
