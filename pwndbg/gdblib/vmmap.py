@@ -509,7 +509,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
 
     # If we debug remotely a qemu-system target,
     # there is no point of hitting things further
-    if pwndbg.aglib.qemu.is_qemu_kernel():
+    if pwndbg.aglib.qemu.is_qemu_kernel() or pwndbg.aglib.qemu.is_old_qemu_user():
         return None
 
     # Example /proc/$tid/maps
