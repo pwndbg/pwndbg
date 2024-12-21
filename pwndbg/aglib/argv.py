@@ -26,6 +26,7 @@ def update() -> None:
         return None
 
     # FIXME: consider implementing priorities in `pwndbg.dbg.event_handler`,
+    pwndbg.aglib.typeinfo.update()  # :-(
     pwndbg.aglib.arch_mod.update()  # :-(
 
     global argc_numbers
