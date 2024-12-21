@@ -279,7 +279,9 @@ def vmmap(
         print(M.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
 
     if vmmap.is_qemu():
-        print("\n[QEMU <8.1 target detected - vmmap result might not be accurate; see `help vmmap`]")
+        print(
+            "\n[QEMU <8.1 target detected - vmmap result might not be accurate; see `help vmmap`]"
+        )
 
 
 if pwndbg.dbg.is_gdblib_available():

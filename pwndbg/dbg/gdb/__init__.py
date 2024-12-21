@@ -379,8 +379,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
-        import pwndbg.gdblib.vmmap
         import pwndbg.aglib.qemu
+        import pwndbg.gdblib.vmmap
 
         pages = pwndbg.gdblib.vmmap.get()
         qemu = pwndbg.aglib.qemu.is_old_qemu_user()
