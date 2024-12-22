@@ -106,7 +106,7 @@ def resolve_addr(addr: int) -> str | None:
     Resolution is performed in the following order:
     - Global scope symbols.
     """
-    assert addr > 0, "address must be positive"
+    assert addr >= 0, "address must be positive"
 
     symbol_name = pwndbg.dbg.selected_inferior().symbol_name_at_address(addr)
     if symbol_name:
