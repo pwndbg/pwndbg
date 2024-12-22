@@ -29,6 +29,8 @@ def find(address: int | pwndbg.dbg_mod.Value | None) -> pwndbg.lib.memory.Page |
         return None
 
     address = int(address)
+    if address < 0:
+        return None
 
     for page in get():
         if address in page:
