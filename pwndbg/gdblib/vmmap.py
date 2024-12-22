@@ -67,7 +67,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 auto_explore = pwndbg.config.add_param(
     "auto-explore-pages",
-    "yes",
+    "warn",
     "whether to try to infer page permissions when memory maps missing (can cause errors)",
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["yes", "warn", "no"],
