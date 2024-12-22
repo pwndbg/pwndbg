@@ -316,7 +316,9 @@ class DisassemblyAssistant:
                 # Don't mask immediates - some computations depend on their signed values
                 if op.type is not CS_OP_IMM:
                     op.before_value &= pwndbg.aglib.arch.ptrmask
-                op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
+
+                if op.before_value >= 0:
+                    op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
 
                 op.before_value_resolved = self._resolve_used_value(
                     op.before_value, instruction, op, emu
