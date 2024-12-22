@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import pwndbg.aglib.arch
-import pwndbg.aglib.regs
-import pwndbg.aglib.vmmap
-import pwndbg.aglib.stack
 import pwndbg.aglib.memory
+import pwndbg.aglib.regs
+import pwndbg.aglib.stack
+import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.commands
-from pwndbg.commands.vmmap import print_vmmap_table_header
 from pwndbg.commands import CommandCategory
+from pwndbg.commands.vmmap import print_vmmap_table_header
 
 
 @pwndbg.commands.ArgparsedCommand(
@@ -35,9 +35,7 @@ def retaddr() -> None:
         sp += pwndbg.aglib.arch.ptrsize
 
 
-@pwndbg.commands.ArgparsedCommand(
-    "Explore stack from all threads.", category=CommandCategory.STACK
-)
+@pwndbg.commands.ArgparsedCommand("Explore stack from all threads.", category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
 def stack_explore() -> None:
     old_value = pwndbg.config.auto_explore_stack.value
