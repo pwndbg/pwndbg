@@ -183,11 +183,14 @@ def explore(address_maybe: int, skip_config_guard: bool = False) -> pwndbg.lib.m
             page_start = pwndbg.lib.memory.page_align(address_maybe)
             if page_start not in _warn_cache:
                 _warn_cache.add(page_start)
-                print(
-                    M.warn(
-                        f"Warning: Avoided exploring possible address {address_maybe:#x}. You can explicitly explore it with `vmmap_explore {page_start:#x}`"
+                is_readable_addr = pwndbg.aglib.memory.peek(page_start)
+                if is_readable_addr:
+                    print(
+                        M.warn(
+                            f"Warning: Avoided exploring possible address {address_maybe:#x}.\n"
+                            f"You can explicitly explore it with `vmmap_explore {page_start:#x}`"
+                        )
                     )
-                )
             return None
         elif auto_explore.value == "no":
             return None
@@ -224,13 +227,6 @@ def explore(address_maybe: int, skip_config_guard: bool = False) -> pwndbg.lib.m
     get.cache.clear()  # type: ignore[attr-defined]
 
     return page
-
-
-# Automatically ensure that all registers are explored on each stop
-# @pwndbg.dbg.event_handler(EventType.STOP)
-def explore_registers() -> None:
-    for regname in pwndbg.aglib.regs.common:
-        find(pwndbg.aglib.regs[regname])
 
 
 # @pwndbg.dbg.event_handler(EventType.EXIT)

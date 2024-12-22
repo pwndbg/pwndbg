@@ -109,9 +109,10 @@ def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
                 page = p
                 break
 
-        if page:
-            stacks[thread.index()] = page
+        if not page:
+            # page not found, should we explore `sp` register?
             continue
+        stacks[thread.index()] = page
 
     return stacks
 
