@@ -90,9 +90,6 @@ def is_corefile() -> bool:
     return "Local core dump file:\n" in pwndbg.gdblib.info.target()
 
 
-inside_no_proc_maps_search = False
-
-
 @pwndbg.lib.cache.cache_until("start", "stop")
 def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     """
@@ -149,27 +146,6 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
             pages.extend(kernel_vmmap_via_page_tables())
         elif kernel_vmmap == "monitor":
             pages.extend(kernel_vmmap_via_monitor_info_mem())
-
-    # TODO/FIXME: Add tests for  QEMU-user targets when this is needed
-    global inside_no_proc_maps_search
-    if not pages and not inside_no_proc_maps_search:
-        inside_no_proc_maps_search = True
-        # If debuggee is launched from a symlink the debuggee memory maps will be
-        # labeled with symlink path while in normal scenario the /proc/pid/maps
-        # labels debuggee memory maps with real path (after symlinks).
-        # This is because the exe path in AUXV (and so `info auxv`) is before
-        # following links.
-        pages.extend(info_auxv())
-
-        if pages:
-            pages.extend(info_sharedlibrary())
-        else:
-            if pwndbg.aglib.qemu.is_qemu():
-                return (pwndbg.lib.memory.Page(0, pwndbg.aglib.arch.ptrmask, 7, 0, "[qemu]"),)
-            pages.extend(info_files())
-
-        pages.extend(pwndbg.aglib.stack.get().values())
-        inside_no_proc_maps_search = False
 
     pages.extend(explored_pages)
     pages.extend(custom_pages)

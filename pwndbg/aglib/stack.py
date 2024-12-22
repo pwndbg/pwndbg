@@ -15,9 +15,19 @@ import pwndbg.aglib.elf
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
+import pwndbg.color.message as M
 import pwndbg.lib.cache
+import pwndbg.lib.config
 import pwndbg.lib.memory
 from pwndbg.dbg import EventType
+
+auto_explore = pwndbg.config.add_param(
+    "auto-explore-stack",
+    "warn",
+    "Enable or disable stack exploration; it may be really slow.",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=["warn", "yes", "no"],
+)
 
 
 def find(address: int):
@@ -120,6 +130,19 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     An alternative to this is dumping this functionality completely and this
     will be decided hopefully after a next release.
     """
+    if auto_explore.value == "warn":
+        print(
+            M.warn(
+                "Warning: All methods to detect STACK have failed.\n"
+                "You can explore STACK using exploration, but it may be very slow.\n"
+                "To explicitly explore, use the command: `stack_explore`\n"
+                "Alternatively, enable it by default with: `set auto-explore-stack yes`"
+            )
+        )
+        return {}
+    elif auto_explore.value == "no":
+        return {}
+
     stacks: Dict[int, pwndbg.lib.memory.Page] = {}
 
     for thread in pwndbg.dbg.selected_inferior().threads():
