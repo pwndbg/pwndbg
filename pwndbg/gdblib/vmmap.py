@@ -161,37 +161,6 @@ def clear_warn_cache():
     _warn_cache.clear()
 
 
-@pwndbg.lib.cache.cache_until("stop")
-def find(
-    address: int | gdb.Value | None, *, should_explore: bool | None = None
-) -> pwndbg.lib.memory.Page | None:
-    if address is None:
-        return None
-
-    address = int(address)
-
-    for page in get():
-        if address in page:
-            return page
-
-    if should_explore is None:
-        if auto_explore.value == "warn":
-            page_start = pwndbg.lib.memory.page_align(address)
-            if page_start not in _warn_cache:
-                _warn_cache.add(page_start)
-                print(
-                    M.warn(
-                        f"Warning: Avoided exploring possible address {address:#x}. You can explicitly explore it with `vmmap_explore {page_start:#x}`"
-                    )
-                )
-        elif auto_explore.value == "yes":
-            return explore(address)
-    elif should_explore and not proc_tid_maps():
-        return explore(address)
-
-    return None
-
-
 def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
     """
     Given a potential address, check to see what permissions it has.
@@ -207,6 +176,19 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
         Also assumes the entire contiguous section has the same permission.
     """
     if not pwndbg.dbg.selected_inferior().is_linux():
+        return None
+
+    if auto_explore.value == "warn":
+        page_start = pwndbg.lib.memory.page_align(address_maybe)
+        if page_start not in _warn_cache:
+            _warn_cache.add(page_start)
+            print(
+                M.warn(
+                    f"Warning: Avoided exploring possible address {address_maybe:#x}. You can explicitly explore it with `vmmap_explore {page_start:#x}`"
+                )
+            )
+        return None
+    elif auto_explore.value == "no":
         return None
 
     address_maybe = pwndbg.lib.memory.page_align(address_maybe)
