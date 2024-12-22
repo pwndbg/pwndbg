@@ -153,7 +153,9 @@ def readlink(path: str) -> str:
 
 
 def is_vfile_qemu_user_bug() -> bool:
-    # Bug w qemu-user, ze 'remote get' nie dziala dobrze...
+    # This is a BUG[1] in the gdbstub of QEMU user mode. It should return data encoded in hexadecimal,
+    # but instead, it returns the data as a decimal integer (%d).
+    # [1] https://github.com/qemu/qemu/blob/b14d0649628cbe88ac0ef35fcf58cd1fc22735b8/gdbstub/user-target.c#L322
     return pwndbg.aglib.qemu.is_qemu_usermode()
 
 
