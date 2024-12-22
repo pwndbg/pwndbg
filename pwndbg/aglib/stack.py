@@ -19,7 +19,9 @@ import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
-from pwndbg.dbg import EventType
+
+if pwndbg.dbg.is_gdblib_available():
+    import pwndbg.gdblib.vmmap
 
 auto_explore = pwndbg.config.add_param(
     "auto-explore-stack",
@@ -76,8 +78,7 @@ def current():
     return find(pwndbg.aglib.regs.sp)
 
 
-@pwndbg.dbg.event_handler(EventType.STOP)
-@pwndbg.lib.cache.cache_until("exit")
+@pwndbg.lib.cache.cache_until("start")
 def is_executable() -> bool:
     ehdr = pwndbg.aglib.elf.exe()
 
@@ -163,7 +164,9 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
             start, stop - start, 6 if not is_executable() else 7, 0, f"[stack:{thread.index()}]"
         )
         stacks[thread.index()] = page
-        continue
+
+        if pwndbg.dbg.is_gdblib_available():
+            pwndbg.gdblib.vmmap.add_custom_page(page)
 
     return stacks
 
