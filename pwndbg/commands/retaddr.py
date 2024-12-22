@@ -49,5 +49,5 @@ def stack_explore() -> None:
         pwndbg.config.auto_explore_stack.value = old_value
 
     print_vmmap_table_header()
-    for page in pages:
+    for page in pages.values():
         print(page)
