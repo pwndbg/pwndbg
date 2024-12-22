@@ -452,6 +452,7 @@ def test_aarch64_reference(qemu_start_binary):
     gdb.execute("telescope", to_string=True)
 
     # TODO: Broken
+    gdb.execute("stack_explore", to_string=True)
     gdb.execute("retaddr", to_string=True)
 
     # Broken
