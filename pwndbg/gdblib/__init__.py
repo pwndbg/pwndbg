@@ -14,9 +14,9 @@ __all__ = ()
 # Export parsed GDB version
 gdb_version = tuple(map(int, re.search(r"(\d+)[^\d]+(\d+)", gdb.VERSION).groups()))
 if gdb_version[0] < 12:
-    msg = "Unsupported GDB version, we only support GDB12+"
+    msg = "Unsupported GDB version, pwndbg only support GDB12+"
     print(msg)
-    raise AssertionError(msg)
+    raise RuntimeError(msg)
 
 
 # TODO: should the imports above be moved here?

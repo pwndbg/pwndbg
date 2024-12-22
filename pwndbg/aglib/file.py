@@ -55,7 +55,8 @@ def can_download_remote_file() -> bool:
     # Some[1] gdb servers don't implement vFile packets.
     # [1] - qemu-user <8.1
     # [1] - Rosetta2
-    # WTF: There is no indication in `qSupported` when `vFile` packets is supported
+    # [1] - maybe embedded probe like: `Black Magic Probe V2.3`
+    # WTF: There is no indication in `qSupported` when `vFile` packets are supported
     # Probe and check what it returns
     try:
         vfile_open("", 0, 0)
