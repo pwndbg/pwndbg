@@ -161,7 +161,7 @@ def clear_warn_cache():
     _warn_cache.clear()
 
 
-def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
+def explore(address_maybe: int, skip_config_guard: bool = False) -> pwndbg.lib.memory.Page | None:
     """
     Given a potential address, check to see what permissions it has.
 
@@ -178,18 +178,19 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
     if not pwndbg.dbg.selected_inferior().is_linux():
         return None
 
-    if auto_explore.value == "warn":
-        page_start = pwndbg.lib.memory.page_align(address_maybe)
-        if page_start not in _warn_cache:
-            _warn_cache.add(page_start)
-            print(
-                M.warn(
-                    f"Warning: Avoided exploring possible address {address_maybe:#x}. You can explicitly explore it with `vmmap_explore {page_start:#x}`"
+    if not skip_config_guard:
+        if auto_explore.value == "warn":
+            page_start = pwndbg.lib.memory.page_align(address_maybe)
+            if page_start not in _warn_cache:
+                _warn_cache.add(page_start)
+                print(
+                    M.warn(
+                        f"Warning: Avoided exploring possible address {address_maybe:#x}. You can explicitly explore it with `vmmap_explore {page_start:#x}`"
+                    )
                 )
-            )
-        return None
-    elif auto_explore.value == "no":
-        return None
+            return None
+        elif auto_explore.value == "no":
+            return None
 
     address_maybe = pwndbg.lib.memory.page_align(address_maybe)
 

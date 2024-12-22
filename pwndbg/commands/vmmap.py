@@ -335,7 +335,7 @@ if pwndbg.dbg.is_gdblib_available():
         if not isinstance(address, int):
             print("Address is not a valid integer.")
             return
-        page = pwndbg.gdblib.vmmap.explore(address)
+        page = pwndbg.gdblib.vmmap.explore(address, skip_config_guard=True)
         if page is None:
             print("Exploration failed. Maybe the address isn't readable?")
             return
