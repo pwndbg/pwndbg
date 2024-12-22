@@ -532,7 +532,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def send_remote(self, packet: str) -> bytes:
         conn = self.inner.connection
-        assert isinstance(conn, gdb.RemoteTargetConnection), "Called send_remote() on a local process"
+        assert isinstance(
+            conn, gdb.RemoteTargetConnection
+        ), "Called send_remote() on a local process"
         assert conn.is_valid(), "connection is invalid"
 
         # NOTE: `send_packet` don't handle reading multiple responses
