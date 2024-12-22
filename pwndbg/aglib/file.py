@@ -89,7 +89,6 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         path = path[7:]  # len('target:') == 7
 
     local_path = path
-    # TODO: get_sysroot, only then prefer_local file by default
     if not pwndbg.aglib.remote.is_remote():
         return local_path
 
@@ -110,6 +109,10 @@ def get_file(path: str, try_local_path: bool = False) -> str:
             )
         )
 
+    # TODO: get_sysroot, if nonempty only then get-local-file by default
+    #   GDB is only getting local files when `set sysroot /`
+    #   So we should show warning to user `set sysroot /` and remote debugging will be faster?
+    # TODO: don't fallback to local filesystem
     return local_path
 
 

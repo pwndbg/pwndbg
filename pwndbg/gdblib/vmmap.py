@@ -501,7 +501,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
 
     # If we debug remotely a qemu-system target,
     # there is no point of hitting things further
-    if pwndbg.aglib.qemu.is_qemu_kernel() or pwndbg.aglib.qemu.is_old_qemu_user():
+    if pwndbg.aglib.qemu.is_qemu_kernel():
         return None
 
     # Example /proc/$tid/maps
@@ -527,8 +527,9 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
 
     tid = pwndbg.aglib.proc.tid
     locations = [
+        # Linux distro
         f"/proc/{tid}/maps",
-        f"/proc/{tid}/map",
+        # Freebsd in some cases
         f"/usr/compat/linux/proc/{tid}/maps",
     ]
 
@@ -536,7 +537,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
         try:
             data = pwndbg.aglib.file.get(location).decode()
             break
-        except (OSError, gdb.error):
+        except OSError:
             continue
     else:
         return None
