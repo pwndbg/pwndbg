@@ -6,15 +6,17 @@ debugging a remote process over SSH or similar, where e.g.
 
 from __future__ import annotations
 
-import binascii
 import os
 import shutil
 import tempfile
+from typing import Iterator
+from typing import Tuple
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.remote
-from pwndbg.color import message
+import pwndbg.color.message as M
+import pwndbg.lib.cache
 
 _remote_files_dir = None
 
@@ -43,14 +45,26 @@ def get_proc_exe_file() -> str:
     return get_file(pwndbg.aglib.proc.exe, try_local_path=True)
 
 
-def _can_download_remote_file() -> bool:
+@pwndbg.lib.cache.cache_until("start")
+def can_download_remote_file() -> bool:
     if not pwndbg.aglib.remote.is_remote():
-        return False
-    elif pwndbg.aglib.qemu.is_old_qemu_user():
         return False
     elif pwndbg.aglib.qemu.is_qemu_kernel():
         return False
-    return True
+
+    # Some[1] gdb servers don't implement vFile packets.
+    # [1] - qemu-user <8.1
+    # [1] - Rosetta2
+    # WTF: There is no indication in `qSupported` when `vFile` packets is supported
+    # Probe and check what it returns
+    try:
+        vfile_open("", 0, 0)
+    except OSError:
+        return True
+    except NotImplementedError:
+        return False
+
+    return False
 
 
 def get_file(path: str, try_local_path: bool = False) -> str:
@@ -75,25 +89,23 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         path = path[7:]  # len('target:') == 7
 
     local_path = path
-    qemu_root = pwndbg.aglib.qemu.root()
+    if not pwndbg.aglib.remote.is_remote():
+        return local_path
 
-    if qemu_root:
-        return os.path.join(qemu_root, path)
+    if try_local_path and not has_target_prefix and os.path.exists(local_path):
+        return local_path
 
-    elif _can_download_remote_file():
-        if try_local_path and not has_target_prefix and os.path.exists(local_path):
-            return local_path
-
+    if can_download_remote_file():
         local_path = tempfile.mktemp(dir=remote_files_dir())
         try:
             pwndbg.dbg.selected_inferior().download_remote_file(path, local_path)
         except pwndbg.dbg_mod.Error as e:
             # This module originally raised this as an OSError.
             raise OSError(e)
-    elif pwndbg.aglib.remote.is_remote():
+    else:
         print(
-            message.warn(
-                f"pwndbg.aglib.file.get_file({path}) returns local path as we can't download file from QEMU"
+            M.warn(
+                f"pwndbg.aglib.file.get_file({path}) returns local path as we can't download file"
             )
         )
 
@@ -117,72 +129,132 @@ def get(path: str) -> bytes:
         return b""
 
 
-def readlink(path):
+def readlink(path: str) -> str:
     """readlink(path) -> str
 
     Read the link specified by 'path' on the system being debugged.
 
     Handles local, qemu-usermode, and remote debugging cases.
     """
-    is_qemu = pwndbg.aglib.qemu.is_qemu_usermode()
-
-    if is_qemu:
-        if not os.path.exists(path):
-            # The or "" is needed since .root() may return None
-            # Then we just use the path (it can also be absolute too)
-            path = os.path.join(pwndbg.aglib.qemu.root() or "", path)
-
-    if is_qemu or not pwndbg.aglib.remote.is_remote():
-        try:
-            return os.readlink(path)
-        except Exception:
-            return ""
-
-    #
-    # Hurray unexposed packets!
-    #
-    # The 'vFile:readlink:' packet does exactly what it sounds like,
-    # but there is no API exposed to do this and there is also no
-    # command exposed... so we have to send the packet manually.
-    #
-    cmd = "vFile:readlink:%s"
-
-    # The path must be uppercase hex-encoded and NULL-terminated.
-    path += "\x00"
-    path = binascii.hexlify(path.encode())
-    path = path.upper()
-    path = path.decode()
-
-    result = pwndbg.dbg.selected_inferior().send_remote(cmd % path)
-
-    # sending: "vFile:readlink:2F70726F632F3130303839302F66642F3000"
-    # received: "Fc;pipe:[98420]"
-    # sending: "vFile:readlink:2F70726F632F3130303839302F66642F333300"
-    # received: "F-1,2"
-
-    _, data = result.split("\n", 1)
-
-    # Sanity check
-    expected = 'received: "F'
-    if not data.startswith(expected):
+    if pwndbg.aglib.remote.is_remote():
+        if can_download_remote_file():
+            return vfile_readlink(path).decode("utf-8")
+        # fallback to local path???
         return ""
 
-    # Negative values are errors
-    data = data[len(expected) :]
-    if data[0] == "-":
+    try:
+        return os.readlink(path)
+    except Exception:
         return ""
 
-    # If non-negative, there will be a hex-encoded length followed
-    # by a semicolon.
-    n, data = data.split(";", 1)
 
-    n = int(n, 16)
-    if n < 0:
-        return ""
+def is_vfile_qemu_user_bug() -> bool:
+    # Bug w qemu-user, ze 'remote get' nie dziala dobrze...
+    return pwndbg.aglib.qemu.is_qemu_usermode()
 
-    # The result is quoted by GDB, strip the quote and newline.
-    # I have no idea how well it handles other crazy stuff.
-    ending = '"\n'
-    data = data[: -len(ending)]
 
-    return data
+def _vfile_check_response(response: bytes):
+    if len(response) == 0:
+        raise NotImplementedError("Not supported")
+    if response.startswith(b"F-1,"):
+        errno = int(response[4:].decode(), 10 if is_vfile_qemu_user_bug() else 16)
+        raise OSError(errno, "Error")
+
+
+def vfile_readlink(pathname: str | bytes) -> bytes:
+    """
+    Reads the target of a symbolic link on the remote system.
+
+    :param pathname: The path to the symbolic link (string).
+    :param buffer_size: The size of the buffer to read into (integer).
+    :return: The target of the symbolic link as a string.
+    """
+    if isinstance(pathname, str):
+        pathname = pathname.encode("utf-8")
+    encoded_pathname = pathname.hex()
+
+    packet = f"vFile:readlink:{encoded_pathname}"
+    response = pwndbg.dbg.selected_inferior().send_remote(packet)
+    _vfile_check_response(response)
+
+    parts = response[1:].split(b";", 1)
+    # bytes_read = int(parts[0], 16)
+    target = parts[1]
+    return target
+
+
+def vfile_readfile(filename: str, chunk_size=1000) -> Iterator[bytes]:
+    """
+    Reads the entire content of a file on the remote system.
+
+    :param filename: The path to the file (string).
+    :param chunk_size: The number of bytes to read in each iteration (integer).
+    :return: The complete content of the file as bytes.
+    """
+    fd = None
+    try:
+        # 0 = readonly
+        fd = vfile_open(filename, 0, 0)
+        offset = 0
+
+        while True:
+            bytes_read, data = vfile_pread(fd, chunk_size, offset)
+            if bytes_read == 0:
+                break
+            yield data
+            offset += bytes_read
+    finally:
+        if fd is not None:
+            vfile_close(fd)
+
+
+def vfile_open(filename: str, flags: int, mode: int) -> int:
+    """
+    Opens a file on the remote system and returns the file descriptor.
+
+    :param filename: The path to the file (string).
+    :param flags: Flags passed to the open call (integer, base 16).
+        These correspond to the constant values in the enum `OpenOptions` from LLDB’s `File.h`,
+        not the traditional `open(2)` flags.
+    :param mode: Mode bits for the file (integer, base 16).
+    :return: File descriptor (integer), or raises an exception if an error occurs.
+    """
+    encoded_filename = filename.encode("utf-8").hex()
+    packet = f"vFile:open:{encoded_filename},{flags:08X},{mode:08X}"
+    response = pwndbg.dbg.selected_inferior().send_remote(packet)
+    _vfile_check_response(response)
+
+    file_descriptor = int(response[1:].decode(), 10 if is_vfile_qemu_user_bug() else 16)
+    return file_descriptor
+
+
+def vfile_pread(fd: int, size: int, offset: int) -> Tuple[int, bytes]:
+    """
+    Reads data from a file descriptor.
+
+    :param fd: File descriptor (integer).
+    :param size: Number of bytes to read (integer, base 16).
+    :param offset: Offset in the file to start reading from (integer, base 16).
+    :return: Tuple of (bytes_read, data) where bytes_read is an integer and data is the binary data.
+    """
+    packet = f"vFile:pread:{fd:X},{size:X},{offset:X}"
+    response = pwndbg.dbg.selected_inferior().send_remote(packet)
+    _vfile_check_response(response)
+
+    parts = response[1:].split(b";", 1)
+    bytes_read = int(parts[0].decode(), 16)
+    data = parts[1]
+    return bytes_read, data
+
+
+def vfile_close(fd):
+    """
+    Closes a previously opened file descriptor.
+
+    :param fd: File descriptor (integer).
+    :return: None, or raises an exception if an error occurs.
+    """
+    packet = f"vFile:close:{fd:X}"
+    response = pwndbg.dbg.selected_inferior().send_remote(packet)
+    _vfile_check_response(response)
+    return None

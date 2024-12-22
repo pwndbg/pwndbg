@@ -1071,7 +1071,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return self._is_gdb_remote
 
     @override
-    def send_remote(self, packet: str) -> str:
+    def send_remote(self, packet: str) -> bytes:
         if len(packet) == 0:
             raise pwndbg.dbg_mod.Error("Empty packets are not allowed")
         if not self._is_gdb_remote:
@@ -1080,7 +1080,21 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # As of LLDB 18, there isn't a way for us to do this directly, so we
         # have to use the command. The implementation of the command calls into
         # private APIs.
-        return self.dbg._execute_lldb_command(f"process plugin packet send {packet}")
+
+        # FIXME: `plugin packet send` Don't handle well bytes or nullbytes, because they use `%s` in lldb[1]
+        # [1] https://github.com/llvm/llvm-project/blob/6c42d0d7df55f28084e41b482dd7c25d4e7bcd10/lldb/source/Plugins/Process/gdb-remote/ProcessGDBRemote.cpp#L5660
+        response = self.dbg._execute_lldb_command(f"process plugin packet send {packet}")
+
+        # We need extract response
+        for line in response.split("\n"):
+            if line.startswith("response: "):
+                ret = line[10:]
+                if not ret:
+                    continue
+                return ret.encode()
+
+        # Packets not implemented return empty
+        return b""
 
     @override
     def send_monitor(self, cmd: str) -> str:

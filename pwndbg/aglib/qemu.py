@@ -4,12 +4,9 @@ Determine whether the target is being run under QEMU.
 
 from __future__ import annotations
 
-import os
-
 import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.lib.cache
-from pwndbg.dbg import EventType
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -30,7 +27,7 @@ def is_qemu() -> bool:
     #
     response = inferior.send_remote("Qqemu.sstepbits")
 
-    return "ENABLE=" in response
+    return b"ENABLE=" in response
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -46,7 +43,7 @@ def is_usermode() -> bool:
     #    gdb -nx `which ps` -ex 'target remote :1234'
     response = inferior.send_remote("qOffsets")
 
-    return "Text=" in response
+    return b"Text=" in response
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -74,20 +71,4 @@ def exec_file_supported() -> bool:
     """
     response = pwndbg.dbg.selected_inferior().send_remote("qSupported")
 
-    return "exec-file" in response
-
-
-@pwndbg.dbg.event_handler(EventType.START)
-@pwndbg.lib.cache.cache_until("stop")
-def root() -> str | None:
-    if not is_qemu_usermode():
-        return None
-
-    binfmt_root = f"/etc/qemu-binfmt/{pwndbg.aglib.arch.qemu}/"
-
-    if not os.path.isdir(binfmt_root):
-        return None
-
-    pwndbg.dbg.set_sysroot(binfmt_root)
-
-    return binfmt_root
+    return b"qXfer:exec-file:read" in response

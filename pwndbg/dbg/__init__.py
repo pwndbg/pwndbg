@@ -403,7 +403,7 @@ class Process:
         """
         raise NotImplementedError()
 
-    def send_remote(self, packet: str) -> str:
+    def send_remote(self, packet: str) -> bytes:
         """
         Sends the given packet to the GDB remote debugging protocol server.
         Should only be called if `is_remote()` is true.

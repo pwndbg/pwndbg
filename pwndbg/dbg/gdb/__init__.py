@@ -529,21 +529,31 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return "remote" in gdb.execute("maintenance print target-stack", to_string=True)
 
     @override
-    def send_remote(self, packet: str) -> str:
+    def send_remote(self, packet: str) -> bytes:
+        conn = self.inner.connection
+        if not isinstance(conn, gdb.RemoteTargetConnection):
+            raise RuntimeError("Called send_remote() on a local process")
+        assert conn.is_valid(), "connection is invalid"
+
         try:
-            return gdb.execute(f"maintenance packet {packet}", to_string=True)
+            return conn.send_packet(packet)
         except gdb.error as e:
             raise pwndbg.dbg_mod.Error(e)
 
     @override
     def send_monitor(self, cmd: str) -> str:
-        try:
-            return gdb.execute(f"monitor {cmd}", to_string=True)
-        except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
+        return self.send_remote(f"qRcmd,{bytearray(cmd.encode()).hex()}").decode("utf-8")
 
     @override
     def download_remote_file(self, remote_path: str, local_path: str) -> None:
+        import pwndbg.aglib.file
+
+        if pwndbg.aglib.file.is_vfile_qemu_user_bug():
+            with open(local_path, "wb") as fp:
+                for data in pwndbg.aglib.file.vfile_readfile(remote_path):
+                    fp.write(data)
+            return
+
         try:
             error = gdb.execute(f'remote get "{remote_path}" "{local_path}"', to_string=True)
         except gdb.error as e:

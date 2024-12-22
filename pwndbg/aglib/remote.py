@@ -9,7 +9,7 @@ import pwndbg
 import pwndbg.lib.cache
 
 
-@pwndbg.lib.cache.cache_until("objfile", "start")
+@pwndbg.lib.cache.cache_until("start")
 def is_remote() -> bool:
     return pwndbg.dbg.selected_inferior().is_remote()
 
