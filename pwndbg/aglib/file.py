@@ -89,6 +89,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         path = path[7:]  # len('target:') == 7
 
     local_path = path
+    # TODO: get_sysroot, only then prefer_local file by default
     if not pwndbg.aglib.remote.is_remote():
         return local_path
 
