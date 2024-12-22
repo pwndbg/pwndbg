@@ -544,7 +544,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def send_monitor(self, cmd: str) -> str:
         res = self.send_remote(f"qRcmd,{bytearray(cmd.encode()).hex()}")
-        if not res.startswith(b'O'):
+        if not res.startswith(b"O"):
             raise pwndbg.dbg_mod.Error(f"Monitor error: {res!r}")
         return binascii.unhexlify(res[1:]).decode()
 
