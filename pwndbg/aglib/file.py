@@ -144,7 +144,10 @@ def readlink(path: str) -> str:
         # FIXME: implement `get_sysroot` when remote debugging,
         #  logic should be same as we do in `get_file`
         if can_download_remote_file():
-            return vfile_readlink(path).decode("utf-8")
+            try:
+                return vfile_readlink(path).decode("utf-8")
+            except Exception:
+                return ""
         return ""
 
     try:
