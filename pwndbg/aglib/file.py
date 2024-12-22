@@ -110,7 +110,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         )
 
     # TODO: get_sysroot, if nonempty only then get-local-file by default
-    #   GDB is only getting local files when `set sysroot /`
+    #   GDB is only getting local files when `set sysroot /` in remote debugging
     #   So we should show warning to user `set sysroot /` and remote debugging will be faster?
     # TODO: don't fallback to local filesystem
     return local_path
