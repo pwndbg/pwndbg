@@ -536,7 +536,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         assert conn.is_valid(), "connection is invalid"
 
         try:
-            return conn.send_packet(packet)
+            return conn.send_packet(packet) or b""
         except gdb.error as e:
             raise pwndbg.dbg_mod.Error(e)
 
