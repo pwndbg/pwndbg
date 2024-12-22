@@ -390,6 +390,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def read_memory(self, address: int, size: int, partial: bool = False) -> bytearray:
+        print(f'read_memory @ {address:X} @ {size:d}')
+
         result = b""
         count = max(int(size), 0)
         addr = address
