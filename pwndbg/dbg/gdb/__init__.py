@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import binascii
 import re
 from asyncio import CancelledError
 from contextlib import nullcontext
@@ -542,7 +543,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def send_monitor(self, cmd: str) -> str:
-        return self.send_remote(f"qRcmd,{bytearray(cmd.encode()).hex()}").decode("utf-8")
+        res = self.send_remote(f"qRcmd,{bytearray(cmd.encode()).hex()}")
+        if not res.startswith(b'O'):
+            raise pwndbg.dbg_mod.Error(f"Monitor error: {res!r}")
+        return binascii.unhexlify(res[1:]).decode()
 
     @override
     def download_remote_file(self, remote_path: str, local_path: str) -> None:
