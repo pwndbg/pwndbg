@@ -532,10 +532,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def send_remote(self, packet: str) -> bytes:
         conn = self.inner.connection
-        if not isinstance(conn, gdb.RemoteTargetConnection):
-            raise RuntimeError("Called send_remote() on a local process")
+        assert isinstance(conn, gdb.RemoteTargetConnection), "Called send_remote() on a local process"
         assert conn.is_valid(), "connection is invalid"
 
+        # NOTE: `send_packet` don't handle reading multiple responses
         try:
             return conn.send_packet(packet) or b""
         except gdb.error as e:
@@ -543,10 +543,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def send_monitor(self, cmd: str) -> str:
-        res = self.send_remote(f"qRcmd,{bytearray(cmd.encode()).hex()}")
-        if not res.startswith(b"O"):
-            raise pwndbg.dbg_mod.Error(f"Monitor error: {res!r}")
-        return binascii.unhexlify(res[1:]).decode()
+        try:
+            return gdb.execute(f"monitor {cmd}", to_string=True)
+        except gdb.error as e:
+            raise pwndbg.dbg_mod.Error(e)
 
     @override
     def download_remote_file(self, remote_path: str, local_path: str) -> None:
