@@ -54,6 +54,7 @@ def get(
     """
     if address is None:
         return None
+    assert address >= 0, "address must be positive"
 
     limit = int(limit)
 

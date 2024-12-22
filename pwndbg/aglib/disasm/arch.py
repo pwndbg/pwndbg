@@ -1002,7 +1002,7 @@ class DisassemblyAssistant:
             left, right = instruction.operands
             # If we already used emulation, use the result, otherwise take the source operand before_value
             result = left.after_value or right.before_value
-            if result is not None:
+            if result is not None and result >= 0:
                 TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
                 telescope_addresses = self._telescope(
