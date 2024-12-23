@@ -30,7 +30,7 @@ def update() -> None:
         return None
 
     global _stack_ptr
-    _stack_ptr = pwndbg.aglib.regs.sp
+    _stack_ptr = int(pwndbg.dbg.selected_frame().regs().by_name('sp'))
 
 
 def update_state() -> None:
