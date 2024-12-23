@@ -26,14 +26,18 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def argv(i=None) -> None:
+def argv(i: int = None) -> None:
+    if i is not None:
+        val = pwndbg.aglib.argv.argv(i)
+        if val is None:
+            print('Argv not found')
+            return
+
+        pwndbg.commands.telescope.telescope(int(val.address), 1)
+        return
+
     start = int(pwndbg.aglib.argv.argv(0).address)
     n = pwndbg.aglib.argv.argc() + 1
-
-    if i is not None:
-        n = 1
-        start += pwndbg.aglib.arch.ptrsize * i
-
     pwndbg.commands.telescope.telescope(start, n)
 
 
