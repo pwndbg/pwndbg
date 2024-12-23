@@ -8,16 +8,16 @@ import pwndbg.aglib.typeinfo
 from pwndbg.dbg import EventType
 
 #: Total number of arguments
-argc_numbers: int = None
+_argc_numbers: int = None
 
 #: Pointer to argv on the stack
-argv_ptr: int = None
+_argv_ptr: int = None
 
 #: Pointer to envp on the stack
-envp_ptr: int = None
+_envp_ptr: int = None
 
 #: Total number of environment variables
-envc_numbers: int = None
+_envc_numbers: int = None
 
 # Internal stack ptr
 _stack_ptr: int = None
@@ -34,10 +34,10 @@ def update() -> None:
 
 def update_state() -> None:
     global _stack_ptr
-    global argc_numbers
-    global argv_ptr
-    global envp_ptr
-    global envc_numbers
+    global _argc_numbers
+    global _argv_ptr
+    global _envp_ptr
+    global _envc_numbers
 
     if _stack_ptr is None:
         return None
@@ -49,70 +49,82 @@ def update_state() -> None:
     ptrbits = 8 * ptrsize
 
     try:
-        argc_numbers = pwndbg.aglib.memory.u(sp, ptrbits)
+        _argc_numbers = pwndbg.aglib.memory.u(sp, ptrbits)
     except pwndbg.dbg_mod.Error:
         return None
 
     sp += ptrsize
-    argv_ptr = sp
+    _argv_ptr = sp
 
     while pwndbg.aglib.memory.u(sp, ptrbits):
         sp += ptrsize
 
     sp += ptrsize
-    envp_ptr = sp
+    _envp_ptr = sp
 
-    envc_numbers = 0
+    _envc_numbers = 0
     try:
         while pwndbg.aglib.memory.u(sp, ptrbits):
             sp += ptrsize
-            envc_numbers += 1
+            _envc_numbers += 1
     except pwndbg.dbg_mod.Error:
         pass
+
+
+def argc() -> int:
+    update_state()
+    global _argc_numbers
+    return _argc_numbers
 
 
 def argv(number: int) -> pwndbg.dbg_mod.Value | None:
     update_state()
 
-    global argc_numbers
-    global argv_ptr
+    global _argc_numbers
+    global _argv_ptr
 
-    if number > argc_numbers:
+    if number > _argc_numbers:
         return None
 
     ppchar = pwndbg.aglib.typeinfo.pchar.pointer()
-    argv = pwndbg.dbg.selected_inferior().create_value(argv_ptr, ppchar)
+    argv = pwndbg.dbg.selected_inferior().create_value(_argv_ptr, ppchar)
     return (argv + number).dereference()
+
+
+def envc() -> int:
+    update_state()
+    global _envc_numbers
+    return _envc_numbers
 
 
 def envp(number: int) -> pwndbg.dbg_mod.Value | None:
     update_state()
 
-    global envc_numbers
-    global envp_ptr
+    global _envc_numbers
+    global _envp_ptr
 
-    if number > envc_numbers:
+    if number > _envc_numbers:
         return None
 
     ppchar = pwndbg.aglib.typeinfo.pchar.pointer()
-    envp = pwndbg.dbg.selected_inferior().create_value(envp_ptr, ppchar)
+    envp = pwndbg.dbg.selected_inferior().create_value(_envp_ptr, ppchar)
     return (envp + number).dereference()
 
 
 def environ(name: str) -> pwndbg.dbg_mod.Value | None:
     update_state()
 
-    global envc_numbers
-    global envp_ptr
+    global _envc_numbers
+    global _envp_ptr
 
     if not name:
         return None
 
     name += "="
     ppchar = pwndbg.aglib.typeinfo.pchar.pointer()
-    envp = pwndbg.dbg.selected_inferior().create_value(envp_ptr, ppchar)
+    envp = pwndbg.dbg.selected_inferior().create_value(_envp_ptr, ppchar)
 
-    for i in range(envc_numbers):
+    for i in range(_envc_numbers):
         ptr = (envp + i).dereference()
         sz = ptr.string()
         if sz.startswith(name):

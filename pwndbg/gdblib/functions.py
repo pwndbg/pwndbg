@@ -106,7 +106,7 @@ def envp(number_value: gdb.Value) -> gdb.Value:
 @GdbFunction(only_when_running=True)
 def argc(*args) -> int:
     """Evaluates to argc."""
-    return pwndbg.aglib.argv.argc_numbers
+    return pwndbg.aglib.argv.argc()
 
 
 @GdbFunction(only_when_running=True)

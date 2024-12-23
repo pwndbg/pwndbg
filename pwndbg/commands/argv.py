@@ -15,7 +15,7 @@ from pwndbg.commands import CommandCategory
 )
 @pwndbg.commands.OnlyWhenRunning
 def argc() -> None:
-    print(pwndbg.aglib.argv.argc_numbers)
+    print(pwndbg.aglib.argv.argc())
 
 
 parser = argparse.ArgumentParser(description="Prints out the contents of argv.")
@@ -27,12 +27,12 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def argv(i=None) -> None:
-    start = pwndbg.aglib.argv.argv_ptr
-    n = pwndbg.aglib.argv.argc_numbers + 1
+    start = int(pwndbg.aglib.argv.argv(0).address)
+    n = pwndbg.aglib.argv.argc() + 1
 
     if i is not None:
         n = 1
-        start += (pwndbg.aglib.arch.ptrsize) * i
+        start += pwndbg.aglib.arch.ptrsize * i
 
     pwndbg.commands.telescope.telescope(start, n)
 
@@ -54,10 +54,13 @@ def envp(name: str = None):
     """
     if name is not None:
         val = pwndbg.aglib.argv.environ(name)
-        print(val.value_to_human_readable())
+        if val is None:
+            print('Environ not found')
+            return
+
+        pwndbg.commands.telescope.telescope(int(val.address), 1)
         return
 
-    start = pwndbg.aglib.argv.envp_ptr
-    n = pwndbg.aglib.argv.envc_numbers + 1
-
+    start = int(pwndbg.aglib.argv.envp(0))
+    n = pwndbg.aglib.argv.envc() + 1
     pwndbg.commands.telescope.telescope(start, n)
