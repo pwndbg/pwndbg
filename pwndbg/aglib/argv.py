@@ -31,6 +31,7 @@ def update() -> None:
 
     global _stack_ptr
     _stack_ptr = int(pwndbg.dbg.selected_frame().regs().by_name('sp'))
+    print('_stack_ptr', hex(_stack_ptr))
 
 
 def update_state() -> None:
