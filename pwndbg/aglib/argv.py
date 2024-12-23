@@ -19,28 +19,38 @@ envp_ptr: int = None
 #: Total number of environment variables
 envc_numbers: int = None
 
+# Internal stack ptr
+_stack_ptr: int = None
+
 
 @pwndbg.dbg.event_handler(EventType.START)
 def update() -> None:
     if not pwndbg.dbg.selected_inferior().is_linux():
         return None
 
-    # FIXME: consider implementing priorities in `pwndbg.dbg.event_handler`,
-    pwndbg.aglib.typeinfo.update()  # :-(
-    pwndbg.aglib.arch_mod.update()  # :-(
+    global _stack_ptr
+    _stack_ptr = pwndbg.aglib.regs.sp
 
+
+def update_state() -> None:
+    global _stack_ptr
     global argc_numbers
     global argv_ptr
     global envp_ptr
     global envc_numbers
 
-    sp = pwndbg.aglib.regs.sp
+    if _stack_ptr is None:
+        return None
+
+    sp = _stack_ptr
+    _stack_ptr = None
+
     ptrsize = pwndbg.aglib.arch.ptrsize
     ptrbits = 8 * ptrsize
 
     try:
         argc_numbers = pwndbg.aglib.memory.u(sp, ptrbits)
-    except Exception:
+    except pwndbg.dbg_mod.Error:
         return None
 
     sp += ptrsize
@@ -62,6 +72,8 @@ def update() -> None:
 
 
 def argv(number: int) -> pwndbg.dbg_mod.Value | None:
+    update_state()
+
     global argc_numbers
     global argv_ptr
 
@@ -74,6 +86,8 @@ def argv(number: int) -> pwndbg.dbg_mod.Value | None:
 
 
 def envp(number: int) -> pwndbg.dbg_mod.Value | None:
+    update_state()
+
     global envc_numbers
     global envp_ptr
 
@@ -86,6 +100,8 @@ def envp(number: int) -> pwndbg.dbg_mod.Value | None:
 
 
 def environ(name: str) -> pwndbg.dbg_mod.Value | None:
+    update_state()
+
     global envc_numbers
     global envp_ptr
 
