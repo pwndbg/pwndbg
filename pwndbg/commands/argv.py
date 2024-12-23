@@ -30,7 +30,7 @@ def argv(i: int = None) -> None:
     if i is not None:
         val = pwndbg.aglib.argv.argv(i)
         if val is None:
-            print('Argv not found')
+            print("Argv not found")
             return
 
         pwndbg.commands.telescope.telescope(int(val.address), 1)
@@ -59,7 +59,7 @@ def envp(name: str = None):
     if name is not None:
         val = pwndbg.aglib.argv.environ(name)
         if val is None:
-            print('Environ not found')
+            print("Environ not found")
             return
 
         pwndbg.commands.telescope.telescope(int(val.address), 1)
