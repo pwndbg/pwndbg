@@ -61,6 +61,6 @@ def envp(name: str = None):
         pwndbg.commands.telescope.telescope(int(val.address), 1)
         return
 
-    start = int(pwndbg.aglib.argv.envp(0))
+    start = int(pwndbg.aglib.argv.envp(0).address)
     n = pwndbg.aglib.argv.envc() + 1
     pwndbg.commands.telescope.telescope(start, n)
