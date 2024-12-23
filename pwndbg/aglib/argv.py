@@ -21,6 +21,7 @@ _envc_numbers: int = None
 
 # Internal stack ptr
 _stack_ptr: int = None
+_was_updated = False
 
 
 @pwndbg.dbg.event_handler(EventType.START)
@@ -33,18 +34,18 @@ def update() -> None:
 
 
 def update_state() -> None:
+    global _was_updated
     global _stack_ptr
     global _argc_numbers
     global _argv_ptr
     global _envp_ptr
     global _envc_numbers
 
-    if _stack_ptr is None:
+    if _was_updated:
         return None
+    _was_updated = True
 
     sp = _stack_ptr
-    _stack_ptr = None
-
     ptrsize = pwndbg.aglib.arch.ptrsize
     ptrbits = 8 * ptrsize
 
