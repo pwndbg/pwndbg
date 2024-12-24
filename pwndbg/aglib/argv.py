@@ -30,16 +30,12 @@ def update() -> None:
         return None
 
     global _stack_ptr
+    global _was_updated
     # Captures the current stack pointer (SP) at the time of event START.
     # Note: This won't provide the SP value from the `_start` function
     # when attaching to an already running process, as `_start` has
     # already executed in that case.
     _stack_ptr = int(pwndbg.dbg.selected_frame().regs().by_name("sp"))
-
-
-@pwndbg.dbg.event_handler(EventType.EXIT)
-def cleanup() -> None:
-    global _was_updated
     _was_updated = False
 
 
