@@ -92,7 +92,7 @@ def prompt_hook(*a: Any) -> None:
     new = (gdb.selected_inferior(), gdb.selected_thread())
 
     if cur != new:
-        pwndbg.gdblib.events.after_reload(start=cur is None)
+        pwndbg.gdblib.events.after_reload(fire_start=cur is None)
         cur = new
 
     if not context_shown and pwndbg.aglib.proc.alive and thread_is_stopped():

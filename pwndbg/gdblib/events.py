@@ -360,10 +360,11 @@ def invoke_event(event: Any, *args: Any, **kwargs: Any) -> None:
                 f(*args, **kwargs)
 
 
-def after_reload(start: bool = True) -> None:
+def after_reload(fire_start: bool = True) -> None:
     if gdb.selected_inferior().pid:
         invoke_event(gdb.events.stop)
-        invoke_event(gdb.events.start)
+        if fire_start:
+            invoke_event(gdb.events.start)
         invoke_event(gdb.events.new_objfile)
         invoke_event(gdb.events.before_prompt)
 
