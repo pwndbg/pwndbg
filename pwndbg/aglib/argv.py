@@ -30,9 +30,13 @@ def update() -> None:
         return None
 
     global _stack_ptr
-    if _stack_ptr is not None:
-        return None
     _stack_ptr = int(pwndbg.dbg.selected_frame().regs().by_name("sp"))
+
+
+@pwndbg.dbg.event_handler(EventType.EXIT)
+def cleanup() -> None:
+    global _was_updated
+    _was_updated = False
 
 
 def update_state() -> None:
