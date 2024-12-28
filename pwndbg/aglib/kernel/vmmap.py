@@ -63,7 +63,7 @@ class QemuMachine(Machine):
 
             if len(pids) == 1:
                 return int(pids[0], 10)
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             # If no process with the name `qemu-system` is found, fallback to alternative methods,
             # as the binary name may vary (e.g., `qemu_system`).
             pass
