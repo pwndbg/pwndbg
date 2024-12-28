@@ -30,8 +30,8 @@ import pwndbg.lib.memory
 class QemuMachine(Machine):
     def __init__(self):
         super().__init__()
-        self.pid = QemuMachine.get_qemu_pid()
         self.file = None
+        self.pid = QemuMachine.get_qemu_pid()
         self.file = os.open(f"/proc/{self.pid}/mem", os.O_RDONLY)
 
     def __del__(self):
@@ -57,11 +57,16 @@ class QemuMachine(Machine):
 
     @staticmethod
     def get_qemu_pid():
-        out = subprocess.check_output(["pgrep", "qemu-system"], encoding="utf8")
-        pids = out.strip().split("\n")
+        try:
+            out = subprocess.check_output(["pgrep", "qemu-system"], encoding="utf8")
+            pids = out.strip().split("\n")
 
-        if len(pids) == 1:
-            return int(pids[0], 10)
+            if len(pids) == 1:
+                return int(pids[0], 10)
+        except subprocess.CalledProcessError as e:
+            # If no process with the name `qemu-system` is found, fallback to alternative methods,
+            # as the binary name may vary (e.g., `qemu_system`).
+            pass
 
         # We add a chardev file backend (we dont add a fronted, so it doesn't affect
         # the guest). We can then look through proc to find which process has the file
@@ -75,7 +80,7 @@ class QemuMachine(Machine):
             pwndbg.dbg.selected_inferior().send_monitor(f"chardev-remove {chardev_id}")
 
         if not pid_found:
-            raise Exception("Could not find qemu pid")
+            raise ProcessLookupError("Could not find qemu-system pid")
 
         return int(pid_found, 10)
 
@@ -117,6 +122,15 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
                 "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
                 "Either change the kernel-vmmap setting, re-run GDB as root, or disable "
                 "`ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`)"
+            )
+        )
+        return ()
+    except ProcessLookupError:
+        print(
+            M.error(
+                "Could not find the PID for process named `qemu-system`.\n"
+                "This might happen if pwndbg is running on a different machine than `qemu-system`,\n"
+                "or if the `qemu-system` binary has a different name."
             )
         )
         return ()
