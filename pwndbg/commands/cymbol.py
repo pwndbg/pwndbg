@@ -152,27 +152,26 @@ def add_custom_structure(custom_structure_name: str) -> None:
     # Avoid checking for file existance. Call the decorator wrapper directly.
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
+
 def add_structure_from_header(header_file: str, custom_structure_name: str = None) -> None:
     if not os.path.exists(header_file):
         print(message.error(f"Header file not found: {header_file}"))
         return
-        
+
     if custom_structure_name is None:
         custom_structure_name = os.path.splitext(os.path.basename(header_file))[0]
-        
+
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
-    
+
     if os.path.exists(pwndbg_custom_structure_path):
         option = input(
-            message.notice(
-                f"Structure '{custom_structure_name}' already exists. Overwrite? [y/n] "
-            )
+            message.notice(f"Structure '{custom_structure_name}' already exists. Overwrite? [y/n] ")
         )
         if option != "y":
             return
-            
+
     try:
-        with open(header_file, 'r') as src, open(pwndbg_custom_structure_path, 'w') as f:
+        with open(header_file, "r") as src, open(pwndbg_custom_structure_path, "w") as f:
             content = src.read().strip()
             if not content:
                 print(message.notice("Header file is empty, skipping..."))
@@ -181,8 +180,9 @@ def add_structure_from_header(header_file: str, custom_structure_name: str = Non
     except (IOError, OSError) as e:
         print(message.error(f"Failed to process header file: {e}"))
         return
-        
+
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
+
 
 @OnlyWhenStructFileExists
 def edit_custom_structure(custom_structure_name: str, custom_structure_path: str = "") -> None:
