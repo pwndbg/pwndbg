@@ -489,7 +489,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
         e = log.error
-        w = log.warn
+        w = log.warning
         if (
             isinstance(pwndbg.aglib.heap.current, HeuristicHeap)
             and pwndbg.config.resolve_heap_via_heuristic == "auto"
