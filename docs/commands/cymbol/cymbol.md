@@ -12,7 +12,7 @@ Add, show, load, edit, or delete custom structures in plain C.
 
 
 ```bash
-usage: cymbol [-h] [-a name] [-r name] [-e name] [-l name] [-s name] [-f /absolute/filepath]
+usage: cymbol [-h] [-a name] [-r name] [-e name] [-l name] [-s name] [-f filepath]
 
 ```
 ## Optional Arguments

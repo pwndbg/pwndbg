@@ -269,7 +269,7 @@ parser.add_argument(
 parser.add_argument(
     "-f",
     "--file",
-    metavar="name",
+    metavar="filepath",
     help="Add a new custom structure from header file",
     default=None,
     type=str,
