@@ -154,12 +154,23 @@ def add_custom_structure(custom_structure_name: str) -> None:
 
 
 def add_structure_from_header(header_file: str, custom_structure_name: str = None) -> None:
+    # Resolve the header file's relative path to an absolute path
+    header_file = os.path.abspath(header_file)
+
     if not os.path.exists(header_file):
         print(message.error(f"Header file not found: {header_file}"))
         return
 
-    if custom_structure_name is None:
-        custom_structure_name = os.path.splitext(os.path.basename(header_file))[0]
+    # Properly handle the provided or default name for the custom structure
+    custom_structure_name = (
+        custom_structure_name.strip()
+        if custom_structure_name
+        else os.path.splitext(os.path.basename(header_file))[0]
+    )
+
+    if not custom_structure_name:
+        print(message.error("Invalid structure name provided or generated."))
+        return
 
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
 
