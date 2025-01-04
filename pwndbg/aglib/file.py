@@ -11,6 +11,7 @@ import shutil
 import tempfile
 from typing import Iterator
 from typing import Tuple
+import errno
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
