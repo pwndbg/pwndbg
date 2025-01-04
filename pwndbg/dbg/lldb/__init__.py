@@ -1089,15 +1089,12 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         response = self.dbg._execute_lldb_command(f"process plugin packet send {packet}")
 
         # We need extract response
-        for line in response.split("\n"):
-            if line.startswith("response: "):
-                ret = line[10:]
-                if not ret:
-                    continue
-                return ret.encode()
+        idx = response.index("response: ")
+        if idx == -1:
+            # Packets not implemented return empty
+            return b""
 
-        # Packets not implemented return empty
-        return b""
+        return response[idx + len("response: "):].encode()
 
     @override
     def send_monitor(self, cmd: str) -> str:
