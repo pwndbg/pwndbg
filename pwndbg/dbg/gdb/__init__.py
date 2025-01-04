@@ -394,6 +394,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         count = max(int(size), 0)
         addr = address
 
+        # TODO: remove debug
+        import traceback
+        print(f'read_memory {address:#x} @ {size:#x} @ {traceback.format_stack()}')
+
         try:
             result = gdb.selected_inferior().read_memory(addr, count)
         except gdb.error as e:
