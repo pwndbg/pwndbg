@@ -157,6 +157,7 @@ def explore_stack_auxv() -> AUXV | None:
 
 
 def walk_stack2(offset: int = 0) -> AUXV:
+    # to nie zadziala np. w golang bo golang ma dwa stosy
     sp = pwndbg.aglib.regs.sp
 
     if not sp:

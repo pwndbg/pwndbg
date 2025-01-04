@@ -216,6 +216,7 @@ def explore(address_maybe: int, skip_config_guard: bool = False) -> pwndbg.lib.m
     # TODO: could maybe make this check look at the stacks in pwndbg.aglib.stack.get() but that might have issues
     elif (
         address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.sp)
+    # todo: remov pwndbg.aglib.stack.is_executable bo robi rekurencje
         and pwndbg.aglib.stack.is_executable()
     ):
         flags |= 1
