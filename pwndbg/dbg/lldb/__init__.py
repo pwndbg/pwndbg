@@ -1094,6 +1094,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # Packets not implemented return empty
             return b""
 
+        is_err = response.index("response: \nerror: ") > -1
+        if is_err:
+            return b""
+
         return response[idx + len("response: "):].encode()
 
     @override
