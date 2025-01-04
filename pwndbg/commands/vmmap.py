@@ -319,7 +319,7 @@ if pwndbg.dbg.is_gdblib_available():
                 return
             perm |= flag_val
 
-        page = pwndbg.lib.memory.Page(int(start), int(size), perm, offset)
+        page = pwndbg.lib.memory.Page(start, size, perm, offset)
 
         pwndbg.gdblib.vmmap.add_custom_page(page)
 
