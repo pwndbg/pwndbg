@@ -99,7 +99,7 @@ def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
         try:
             sp = thread.bottom_frame().sp()
         except Exception:
-            # Exception will happen when `sp` is None, and is trying to cast to none
+            # Exception will happen when `sp` is None, and is trying to cast to int(none)
             # This happen when debugging esp32-c3
             continue
 
