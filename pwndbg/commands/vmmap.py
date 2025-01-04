@@ -286,8 +286,8 @@ def vmmap(
 
 if pwndbg.dbg.is_gdblib_available():
     parser = argparse.ArgumentParser(description="Add virtual memory map page.")
-    parser.add_argument("start", help="Starting virtual address")
-    parser.add_argument("size", help="Size of the address space, in bytes")
+    parser.add_argument("start", type=int, help="Starting virtual address")
+    parser.add_argument("size", type=int, help="Size of the address space, in bytes")
     parser.add_argument(
         "flags",
         nargs="?",
@@ -297,6 +297,7 @@ if pwndbg.dbg.is_gdblib_available():
     )
     parser.add_argument(
         "offset",
+        type=int,
         nargs="?",
         default=0,
         help="Offset into the original ELF file that the data is loaded from",
@@ -304,7 +305,7 @@ if pwndbg.dbg.is_gdblib_available():
 
     @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
     @pwndbg.commands.OnlyWhenRunning
-    def vmmap_add(start, size, flags, offset) -> None:
+    def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
         page_flags = {
             "r": pwndbg.aglib.elf.PF_R,
             "w": pwndbg.aglib.elf.PF_W,
@@ -318,7 +319,7 @@ if pwndbg.dbg.is_gdblib_available():
                 return
             perm |= flag_val
 
-        page = pwndbg.lib.memory.Page(start, size, perm, offset)
+        page = pwndbg.lib.memory.Page(int(start), int(size), perm, offset)
 
         pwndbg.gdblib.vmmap.add_custom_page(page)
 
