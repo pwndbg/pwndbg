@@ -96,7 +96,12 @@ def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
     pages = pwndbg.aglib.vmmap.get()
 
     for thread in pwndbg.dbg.selected_inferior().threads():
-        sp = thread.bottom_frame().sp()
+        try:
+            sp = thread.bottom_frame().sp()
+        except Exception:
+            # Exception will happen when `sp` is None, and is trying to cast to none
+            # This happen when debugging esp32-c3
+            continue
 
         # Skip if sp is 0 (it might be 0 if we debug a qemu kernel)
         if not sp:
