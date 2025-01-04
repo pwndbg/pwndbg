@@ -91,6 +91,9 @@ def get_file(path: str, try_local_path: bool = False) -> str:
 
     local_path = path
     if not pwndbg.aglib.remote.is_remote():
+        if not os.path.exists(local_path):
+            raise OSError(f"Path '{local_path}' does not exist", errno.ENOENT)
+
         return local_path
 
     if try_local_path and not has_target_prefix and os.path.exists(local_path):
@@ -114,6 +117,9 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     #   GDB is only getting local files when `set sysroot /` in remote debugging
     #   So we should show warning to user `set sysroot /` and remote debugging will be faster?
     # TODO: don't fallback to local filesystem
+    if not os.path.exists(local_path):
+        raise OSError(f"Path '{local_path}' does not exist", errno.ENOENT)
+
     return local_path
 
 
