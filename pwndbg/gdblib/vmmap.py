@@ -41,14 +41,6 @@ explored_pages: List[pwndbg.lib.memory.Page] = []
 # List of custom pages that can be managed manually by vmmap_* commands family
 custom_pages: List[pwndbg.lib.memory.Page] = []
 
-
-kernel_vmmap_via_pt = pwndbg.config.add_param(
-    "kernel-vmmap-via-page-tables",
-    "deprecated",
-    "the deprecated config of the method get kernel vmmap",
-    help_docstring="Deprecated in favor of `kernel-vmmap`",
-)
-
 kernel_vmmap = pwndbg.config.add_param(
     "kernel-vmmap",
     "page-tables",
@@ -132,16 +124,6 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         "rv32",
         "rv64",
     ):
-        # If kernel_vmmap_via_pt is not set to the default value of "deprecated",
-        # That means the user was explicitly setting it themselves and need to
-        # be warned that the option is deprecated
-        if kernel_vmmap_via_pt != "deprecated":
-            print(
-                M.warn(
-                    "`kernel-vmmap-via-page-tables` is deprecated, please use `kernel-vmmap` instead."
-                )
-            )
-
         if kernel_vmmap == "page-tables":
             pages.extend(kernel_vmmap_via_page_tables())
         elif kernel_vmmap == "monitor":
