@@ -112,7 +112,7 @@ def clear_warn_cache():
     _warn_cache.clear()
 
 
-def explore(address_maybe: int, skip_config_guard: bool = False) -> pwndbg.lib.memory.Page | None:
+def explore(address_maybe: int, objfile_name: str = None, skip_config_guard: bool = False) -> pwndbg.lib.memory.Page | None:
     """
     Given a potential address, check to see what permissions it has.
 
@@ -126,6 +126,9 @@ def explore(address_maybe: int, skip_config_guard: bool = False) -> pwndbg.lib.m
 
         Also assumes the entire contiguous section has the same permission.
     """
+    if objfile_name is None:
+        objfile_name = '<explored>'
+
     if not pwndbg.dbg.selected_inferior().is_linux():
         return None
 
@@ -169,7 +172,7 @@ def explore(address_maybe: int, skip_config_guard: bool = False) -> pwndbg.lib.m
         flags |= 1
 
     page = find_boundaries(address_maybe)
-    page.objfile = "<explored>"
+    page.objfile = objfile_name
     page.flags = flags
 
     explored_pages.append(page)

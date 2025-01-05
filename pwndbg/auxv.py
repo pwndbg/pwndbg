@@ -157,7 +157,8 @@ def explore_stack_auxv() -> AUXV | None:
 
 
 def walk_stack2(offset: int = 0) -> AUXV:
-    # to nie zadziala np. w golang bo golang ma dwa stosy
+    # FIXME: This function doesn't work in Go (Golang), as Golang uses two stacks.
+    # NOTE: This function is intended to work only with real binaries, not those emulated under qemu-user.
     sp = pwndbg.aglib.regs.sp
 
     if not sp:
@@ -175,7 +176,7 @@ def walk_stack2(offset: int = 0) -> AUXV:
     #    set of known AT_ enums.
     # 5) Vacuum up between the two.
     #
-    end = _find_stack_boundary(sp)
+    end = pwndbg.aglib.stack.find_upper_stack_boundary(sp)
     p = pwndbg.dbg.selected_inferior().create_value(end).cast(pwndbg.aglib.typeinfo.ulong.pointer())
 
     p -= offset
@@ -235,29 +236,6 @@ def walk_stack2(offset: int = 0) -> AUXV:
         # If SP is inaccessible or we went past through stack and haven't found AUXV
         # then return an empty AUXV...
         return AUXV()
-
-
-def _find_stack_boundary(addr: int) -> int:
-    # For real binaries, we can just use pwndbg.aglib.memory.find_upper_boundary
-    # to search forward until we walk off the end of the stack.
-    #
-    # Unfortunately, qemu-user emulation likes to paste the stack right
-    # before binaries in memory.  This means that we walk right past the
-    # stack and to the end of some random ELF.
-    #
-    # In order to mitigate this, we search page-by-page until either:
-    #
-    # 1) We get a page fault, and stop
-    # 2) We find an ELF header, and stop
-    addr = pwndbg.lib.memory.page_align(addr)
-    try:
-        while True:
-            if b"\x7fELF" == pwndbg.aglib.memory.read(addr, 4):
-                break
-            addr += pwndbg.lib.memory.PAGE_SIZE
-    except pwndbg.dbg_mod.Error:
-        pass
-    return addr
 
 
 def _get_execfn() -> str | None:

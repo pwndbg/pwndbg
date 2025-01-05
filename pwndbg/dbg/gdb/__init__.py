@@ -3,7 +3,7 @@ from __future__ import annotations
 import binascii
 import re
 from asyncio import CancelledError
-from contextlib import nullcontext
+from contextlib import nullcontext, contextmanager
 from typing import Any
 from typing import Coroutine
 from typing import Generator
@@ -197,10 +197,10 @@ class GDBThread(pwndbg.dbg_mod.Thread):
         self.inner = inner
 
     @override
-    def bottom_frame(self) -> pwndbg.dbg_mod.Frame:
+    @contextmanager
+    def bottom_frame(self) -> Generator[pwndbg.dbg_mod.Frame, None, None]:
         with selection(self.inner, lambda: gdb.selected_thread(), lambda t: t.switch()):
-            value = gdb.newest_frame()
-        return GDBFrame(value)
+            yield GDBFrame(gdb.newest_frame())
 
     @override
     def ptid(self) -> int | None:

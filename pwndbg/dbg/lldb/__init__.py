@@ -7,6 +7,7 @@ import random
 import re
 import shlex
 import sys
+from contextlib import contextmanager
 from typing import Any
 from typing import Awaitable
 from typing import Callable
@@ -269,11 +270,12 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
         self.proc = proc
 
     @override
-    def bottom_frame(self) -> pwndbg.dbg_mod.Frame:
+    @contextlib.contextmanager
+    def bottom_frame(self) -> Generator[pwndbg.dbg_mod.Frame, None, None]:
         if self.inner.GetNumFrames() <= 0:
-            return None
+            raise pwndbg.dbg_mod.Error("no frames")
 
-        return LLDBFrame(self.inner.GetFrameAtIndex(0), self.proc)
+        yield LLDBFrame(self.inner.GetFrameAtIndex(0), self.proc)
 
     @override
     def ptid(self) -> int | None:
@@ -1494,8 +1496,12 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # of ARM. Pwndbg needs that distinction, so we attempt to detect
             # Cortex-M varieties by querying for the presence of the `xpsr`
             # register.
+            def _has_xpsr(thread) -> bool:
+                with thread.bottom_frame() as frame:
+                    return frame.regs().by_name("xpsr") is not None
+
             has_xpsr = [
-                thread.bottom_frame().regs().by_name("xpsr") is not None
+                _has_xpsr(thread)
                 for thread in self.threads()
             ]
             assert (
