@@ -270,7 +270,7 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
         self.proc = proc
 
     @override
-    @contextlib.contextmanager
+    @contextmanager
     def bottom_frame(self) -> Generator[pwndbg.dbg_mod.Frame, None, None]:
         if self.inner.GetNumFrames() <= 0:
             raise pwndbg.dbg_mod.Error("no frames")
