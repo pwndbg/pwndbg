@@ -31,8 +31,7 @@ import pwndbg.gdblib.info
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
-from pwndbg.aglib.kernel.vmmap import kernel_vmmap_via_monitor_info_mem
-from pwndbg.aglib.kernel.vmmap import kernel_vmmap_via_page_tables
+from pwndbg.aglib.kernel.vmmap import kernel_vmmap
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
@@ -40,22 +39,6 @@ explored_pages: List[pwndbg.lib.memory.Page] = []
 
 # List of custom pages that can be managed manually by vmmap_* commands family
 custom_pages: List[pwndbg.lib.memory.Page] = []
-
-kernel_vmmap = pwndbg.config.add_param(
-    "kernel-vmmap",
-    "page-tables",
-    "the method to get vmmap information when debugging via QEMU kernel",
-    help_docstring="""\
-kernel-vmmap can be:
-page-tables    - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
-monitor        - use QEMU's `monitor info mem` to render vmmap
-none           - disable vmmap rendering; useful if rendering is particularly slow
-
-Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
-""",
-    param_class=pwndbg.lib.config.PARAM_ENUM,
-    enum_sequence=["page-tables", "monitor", "none"],
-)
 
 auto_explore = pwndbg.config.add_param(
     "auto-explore-pages",
@@ -114,18 +97,7 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
         return proc_maps
 
     pages: List[pwndbg.lib.memory.Page] = []
-    if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.arch.current in (
-        "i386",
-        "x86-64",
-        "aarch64",
-        "rv32",
-        "rv64",
-    ):
-        if kernel_vmmap == "page-tables":
-            pages.extend(kernel_vmmap_via_page_tables())
-        elif kernel_vmmap == "monitor":
-            pages.extend(kernel_vmmap_via_monitor_info_mem())
-
+    pages.extend(kernel_vmmap())
     pages.extend(explored_pages)
     pages.extend(custom_pages)
     pages.sort()
