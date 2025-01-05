@@ -1106,7 +1106,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # Packets not implemented return empty
             return b""
 
-        return response[idx + len("response: "):].encode()
+        return response[idx + len("\nresponse: "):].encode()
 
     @override
     def send_monitor(self, cmd: str) -> str:
