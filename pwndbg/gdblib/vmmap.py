@@ -82,9 +82,6 @@ def is_corefile() -> bool:
     return "Local core dump file:\n" in pwndbg.gdblib.info.target()
 
 
-inside_no_proc_maps_search = False
-
-
 @pwndbg.lib.cache.cache_until("start", "stop")
 def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     """
