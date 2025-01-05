@@ -10,6 +10,7 @@ import sys
 from contextlib import contextmanager
 from typing import Any
 from typing import Awaitable
+from typing import Iterator
 from typing import Callable
 from typing import Coroutine
 from typing import Dict
@@ -271,7 +272,7 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
 
     @override
     @contextmanager
-    def bottom_frame(self) -> Generator[pwndbg.dbg_mod.Frame, None, None]:
+    def bottom_frame(self) -> Iterator[pwndbg.dbg_mod.Frame]:
         if self.inner.GetNumFrames() <= 0:
             raise pwndbg.dbg_mod.Error("no frames")
 

@@ -5,6 +5,7 @@ import re
 from asyncio import CancelledError
 from contextlib import nullcontext, contextmanager
 from typing import Any
+from typing import Iterator
 from typing import Coroutine
 from typing import Generator
 from typing import List
@@ -198,7 +199,7 @@ class GDBThread(pwndbg.dbg_mod.Thread):
 
     @override
     @contextmanager
-    def bottom_frame(self) -> Generator[pwndbg.dbg_mod.Frame, None, None]:
+    def bottom_frame(self) -> Iterator[pwndbg.dbg_mod.Frame]:
         with selection(self.inner, lambda: gdb.selected_thread(), lambda t: t.switch()):
             yield GDBFrame(gdb.newest_frame())
 

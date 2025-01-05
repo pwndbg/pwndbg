@@ -262,7 +262,7 @@ class Frame:
 
 
 class Thread:
-    def bottom_frame(self) -> Generator[pwndbg.dbg_mod.Frame, None, None]:
+    def bottom_frame(self) -> Iterator[Frame]:
         """
         Frame at the bottom of the call stack for this thread.
         """
