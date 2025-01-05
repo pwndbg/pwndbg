@@ -117,9 +117,6 @@ def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     target, sorted by virtual address ascending.
     """
     proc_maps = get_known_maps()
-    if proc_maps is not None:
-        return proc_maps
-
     # The `proc_maps` is usually a tuple of Page objects but it can also be:
     #   None    - when /proc/$tid/maps does not exist/is not available
     #   tuple() - when the process has no maps yet which happens only during its very early init
