@@ -141,12 +141,6 @@ def explore_stack_auxv() -> AUXV | None:
         return None
 
     auxv = walk_stack2(0)
-
-    if not auxv:
-        # For whatever reason, sometimes the ARM AUXV under qemu-user is
-        # not aligned properly.
-        auxv = walk_stack2(1)
-
     if not auxv.get("AT_EXECFN", None):
         try:
             auxv["AT_EXECFN"] = _get_execfn()
