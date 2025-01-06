@@ -154,9 +154,6 @@ def add_custom_structure(custom_structure_name: str) -> None:
 
 
 def add_structure_from_header(header_file: str, custom_structure_name: str = None) -> None:
-    # Resolve the header file's relative path to an absolute path
-    header_file = os.path.abspath(header_file)
-
     if not os.path.exists(header_file):
         print(message.error(f"Header file not found: {header_file}"))
         return
@@ -192,6 +189,7 @@ def add_structure_from_header(header_file: str, custom_structure_name: str = Non
         print(message.error(f"Failed to process header file: {e}"))
         return
 
+    # Avoid checking for file existance. Call the decorator wrapper directly.
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
 

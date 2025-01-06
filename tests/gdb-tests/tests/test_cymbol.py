@@ -92,35 +92,69 @@ def test_cymbol_header_file(start_binary):
 
     # Define the content of the header file
     header_content = """
-        typedef struct example_struct {
-            int a;
-            char b[16];
-            char* c;
-            void* d;
-        } example_t;
+    #include <stdint.h>
+    typedef struct example_struct_a {
+        int a;
+        char b[16];
+        char* c;
+        void* d;
+    } example_A;
+
+    typedef struct example_struct_b {
+        uint16_t X;
+    } example_B;
+
+    typedef struct example_struct_c {
+        char name[32];
+        int* data;
+        struct example_struct_a* next;
+    } example_C;
     """
 
     # Create a temporary header file
     header_file_path = create_temp_header_file(header_content)
 
-    # Test adding structure from the header file
-    custom_structure_name = "example_t"
+    # Test adding structures from the header file
+    struct_name = "example_t"
 
-    # Call the function to add structure from the header file
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, custom_structure_name)
+    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, struct_name)
+    # Verify each structure has been loaded correctly
+    assert pwndbg.commands.cymbol.loaded_symbols.get(struct_name) is not None
 
-    # Verify that the structure has been loaded correctly
-    assert pwndbg.commands.cymbol.loaded_symbols.get(custom_structure_name) is not None
+    # Check if the structure types match what we expect (on x86-64)
+    expected_outputs = {
+        "example_A": (
+            "example_A\n"
+            "    +0x0000 a                    : int\n"
+            "    +0x0004 b                    : char [16]\n"
+            "    +0x0018 c                    : char *\n"
+            "    +0x0020 d                    : void *"
+        ),
+        "example_B": ("example_B\n    +0x0000 X                    : uint16_t"),
+        "example_C": (
+            "example_C\n"
+            "    +0x0000 name                 : char [32]\n"
+            "    +0x0020 data                 : int *\n"
+            "    +0x0028 next                 : struct example_struct_a *"
+        ),
+    }
 
-    # Check if the structure type matches what we expect (on x86-64)
-    assert (
-        f"{custom_structure_name}\n"
-        "    +0x0000 a                    : int\n"
-        "    +0x0004 b                    : char [16]\n"
-        "    +0x0018 c                    : char *\n"
-        "    +0x0020 d                    : void *"
-    ) == pwndbg.aglib.dt.dt("example_t").strip()
+    # Verify structure definitions
+    for struct_name, expected_output in expected_outputs.items():
+        assert expected_output == pwndbg.aglib.dt.dt(struct_name).strip()
 
-    # Clean up: unload the symbol and remove the temporary header file
-    pwndbg.commands.cymbol.unload_loaded_symbol(custom_structure_name)
+    # Test whether unload_loaded_symbol() works properly.
+    pwndbg.commands.cymbol.unload_loaded_symbol("example_t")
+    # Ensure the symbol is removed from the lookup loaded_symbols dict.
+    assert pwndbg.commands.cymbol.loaded_symbols.get("example_t") is None
+    # Ensure the symbol is no longer present in gdb.
+    check_symbol_existance("example_t")
+
+    # Load the symbol again for the next test case.
+    pwndbg.commands.cymbol.load_custom_structure("example_t")
+
+    # Test whether remove_custom_structure() works properly.
+    pwndbg.commands.cymbol.remove_custom_structure("example_t")
+    check_symbol_existance("example_t")
+    # Clean up temp files
     os.remove(header_file_path)
