@@ -394,7 +394,7 @@ if pwndbg.dbg.is_gdblib_available():
                 if sh_flags & SH_FLAGS.SHF_EXECINSTR:
                     flags |= pwndbg.aglib.elf.PF_X
 
-                page = pwndbg.lib.memory.Page(vaddr, memsz, flags, offset, filename)
+                page = pwndbg.lib.memory.Page(vaddr, memsz, flags, offset, f'[{section.name}] {filename}')
                 pages.append(page)
 
         for page in pages:
