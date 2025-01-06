@@ -139,7 +139,7 @@ def explore_stack_auxv() -> AUXV | None:
     elif auto_explore.value == "no":
         return None
 
-    return walk_stack2(0)
+    return walk_stack2()
 
 
 def walk_stack2(offset: int = 0) -> AUXV:
