@@ -6,12 +6,12 @@ debugging a remote process over SSH or similar, where e.g.
 
 from __future__ import annotations
 
+import errno
 import os
 import shutil
 import tempfile
 from typing import Iterator
 from typing import Tuple
-import errno
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu

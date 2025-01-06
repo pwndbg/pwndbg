@@ -3,11 +3,12 @@ from __future__ import annotations
 import binascii
 import re
 from asyncio import CancelledError
-from contextlib import nullcontext, contextmanager
+from contextlib import contextmanager
+from contextlib import nullcontext
 from typing import Any
-from typing import Iterator
 from typing import Coroutine
 from typing import Generator
+from typing import Iterator
 from typing import List
 from typing import Literal
 from typing import Optional

@@ -10,7 +10,6 @@ import sys
 from contextlib import contextmanager
 from typing import Any
 from typing import Awaitable
-from typing import Iterator
 from typing import Callable
 from typing import Coroutine
 from typing import Dict
@@ -1107,7 +1106,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # Packets not implemented return empty
             return b""
 
-        out = response[idx + len("\nresponse: "):].encode()
+        out = response[idx + len("\nresponse: ") :].encode()
         if out[-1:] == b"\n":
             out = out[:-1]
         return out
@@ -1509,10 +1508,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 with thread.bottom_frame() as frame:
                     return frame.regs().by_name("xpsr") is not None
 
-            has_xpsr = [
-                _has_xpsr(thread)
-                for thread in self.threads()
-            ]
+            has_xpsr = [_has_xpsr(thread) for thread in self.threads()]
             assert (
                 all(has_xpsr) or not any(has_xpsr)
             ), "Either all threads are Cortex-M or none are, Pwndbg doesn't know how to handle other cases"
