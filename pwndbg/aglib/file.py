@@ -93,7 +93,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     local_path = path
     if not pwndbg.aglib.remote.is_remote():
         if not os.path.exists(local_path):
-            raise OSError(f"Path '{local_path}' does not exist", errno.ENOENT)
+            raise OSError(f"File '{local_path}' does not exist", errno.ENOENT)
 
         return local_path
 
@@ -113,6 +113,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
                 f"pwndbg.aglib.file.get_file({path}) returns local path as we can't download file"
             )
         )
+        raise OSError(f"Path '{local_path}' does not exist", errno.ENODEV)
 
     # FIXME: get_sysroot, if nonempty only then get-local-file by default
     #   GDB is only getting local files when `set sysroot /` in remote debugging
