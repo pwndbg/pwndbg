@@ -5,6 +5,7 @@ Command to print the virtual memory map a la /proc/self/maps.
 from __future__ import annotations
 
 import argparse
+import os.path
 from typing import Tuple
 
 from elftools.elf.constants import SH_FLAGS
@@ -365,6 +366,7 @@ if pwndbg.dbg.is_gdblib_available():
             filename = pwndbg.aglib.file.get_proc_exe_file()
 
         print(f'Load "{filename}" ...')
+        file_basename = os.path.basename(filename)
 
         # TODO: Add an argument to let use to choose loading the page information from sections or segments
 
@@ -394,7 +396,9 @@ if pwndbg.dbg.is_gdblib_available():
                 if sh_flags & SH_FLAGS.SHF_EXECINSTR:
                     flags |= pwndbg.aglib.elf.PF_X
 
-                page = pwndbg.lib.memory.Page(vaddr, memsz, flags, offset, f'[{section.name}] {filename}')
+                page = pwndbg.lib.memory.Page(
+                    vaddr, memsz, flags, offset, f"[{section.name}]: {file_basename}"
+                )
                 pages.append(page)
 
         for page in pages:
