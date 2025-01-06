@@ -38,12 +38,12 @@ RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 
 RUN DEBIAN_FRONTEND=noninteractive ./setup.sh
 
-# Cleanup dummy files
-RUN rm README.md && rm -rf pwndbg
-
 # Comment these lines if you won't run the tests.
 ADD ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
+
+# Cleanup dummy files
+RUN rm README.md && rm -rf pwndbg
 
 ADD . /pwndbg/
 
