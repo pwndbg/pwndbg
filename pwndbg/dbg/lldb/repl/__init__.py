@@ -622,13 +622,11 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
     dbg._current_process_is_gdb_remote = False
 
     io_driver = get_io_driver()
-    print(args)
-    print(args.__dict__)
     result = driver.launch(
         dbg.debugger.GetTargetAtIndex(0),
         io_driver,
         [f"{name}={value}" for name, value in os.environ.items()],
-        args.run-args,
+        getattr(args, 'run-args', []),
         os.getcwd(),
     )
 
