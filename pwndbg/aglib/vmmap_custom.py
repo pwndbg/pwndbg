@@ -43,9 +43,7 @@ def get_custom_pages() -> Tuple[pwndbg.lib.memory.Page, ...]:
     Returns a tuple of `Page` objects representing the memory mappings of the
     target, sorted by virtual address ascending.
     """
-    pages: List[pwndbg.lib.memory.Page] = []
-    pages.extend(explored_pages)
-    pages.extend(custom_pages)
+    pages: List[pwndbg.lib.memory.Page] = [*explored_pages, *custom_pages]
     pages.sort()
     return tuple(pages)
 
