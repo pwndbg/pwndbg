@@ -1111,11 +1111,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # Packets not implemented return empty
             return b""
 
-        try:
-            is_err = response.index("\nresponse: \nerror: ") > -1
-        except ValueError:
-            is_err = False
-
+        is_err = response[idx:].startswith("\nerror: ")
         if is_err:
             # Packets not implemented return empty
             return b""
