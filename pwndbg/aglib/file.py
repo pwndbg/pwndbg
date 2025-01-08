@@ -106,8 +106,10 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         except pwndbg.dbg_mod.Error as e:
             # This module originally raised this as an OSError.
             raise OSError(e)
+    else:
+        raise OSError(f"get_file('{local_path}') is not supported for your target", errno.ENODEV)
 
-    raise OSError(f"get_file('{local_path}') is not supported for your target", errno.ENODEV)
+    return local_path
 
 
 def get(path: str) -> bytes:
