@@ -15,13 +15,11 @@ import pwndbg.aglib.elf
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
+import pwndbg.aglib.vmmap_custom
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
-
-if pwndbg.dbg.is_gdblib_available():
-    import pwndbg.gdblib.vmmap
 
 auto_explore = pwndbg.config.add_param(
     "auto-explore-stack",
@@ -32,7 +30,7 @@ auto_explore = pwndbg.config.add_param(
 )
 
 
-def find(address: int):
+def find(address: int) -> pwndbg.lib.memory.Page | None:
     """
     Returns a pwndbg.lib.memory.Page object which corresponds to given address stack
     or None if it does not exist
@@ -71,7 +69,7 @@ def get() -> Dict[int, pwndbg.lib.memory.Page]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def current():
+def current() -> pwndbg.lib.memory.Page | None:
     """
     Returns the bounds for the stack for the current thread.
     """
@@ -81,6 +79,8 @@ def current():
 @pwndbg.lib.cache.cache_until("start")
 def is_executable() -> bool:
     ehdr = pwndbg.aglib.elf.exe()
+    if ehdr is None:
+        return True
 
     for phdr in pwndbg.aglib.elf.iter_phdrs(ehdr):
         # check if type is PT_GNU_STACK
@@ -103,14 +103,8 @@ def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
         if not sp:
             continue
 
-        page = None
-
         # Find the given SP in pages
-        for p in pages:
-            if sp in p:
-                page = p
-                break
-
+        page = next((page for page in pages if sp in page), None)
         if not page:
             # page not found, should we explore `sp` register?
             continue
@@ -147,7 +141,6 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
         return {}
 
     stacks: Dict[int, pwndbg.lib.memory.Page] = {}
-
     for thread in pwndbg.dbg.selected_inferior().threads():
         with thread.bottom_frame() as frame:
             sp = frame.sp()
@@ -157,18 +150,20 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
         if not sp:
             continue
 
-        sp_low = sp & ~(0xFFF)
-        sp_low -= 0x1000
+        start = pwndbg.lib.memory.page_align(sp) - pwndbg.lib.memory.PAGE_SIZE
 
-        start = sp_low
+        page_found = next((page for page in stacks.values() if start in page), None)
+        if page_found:
+            # Skip further exploration of stacks that have already been scanned.
+            stacks[thread.index()] = page_found
+            continue
+
         stop = find_upper_stack_boundary(sp)
         page = pwndbg.lib.memory.Page(
-            start, stop - start, 6 if not is_executable() else 7, 0, f"[stack:{thread.index()}]"
+            start, stop - start, 6 if not is_executable() else 7, 0, "[stack]"
         )
         stacks[thread.index()] = page
-
-        if pwndbg.dbg.is_gdblib_available():
-            pwndbg.gdblib.vmmap.add_custom_page(page)
+        pwndbg.aglib.vmmap_custom.add_custom_page(page)
 
     return stacks
 

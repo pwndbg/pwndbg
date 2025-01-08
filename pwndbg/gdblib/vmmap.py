@@ -8,7 +8,6 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 
 from __future__ import annotations
 
-import bisect
 from typing import List
 from typing import Optional
 from typing import Set
@@ -19,34 +18,13 @@ import gdb
 import pwndbg
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
-import pwndbg.aglib.kernel
-import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.regs
-import pwndbg.aglib.stack
 import pwndbg.auxv
-import pwndbg.color.message as M
 import pwndbg.gdblib.info
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
-from pwndbg.aglib.kernel.vmmap import kernel_vmmap
-
-# List of manually-explored pages which were discovered
-# by analyzing the stack or register context.
-explored_pages: List[pwndbg.lib.memory.Page] = []
-
-# List of custom pages that can be managed manually by vmmap_* commands family
-custom_pages: List[pwndbg.lib.memory.Page] = []
-
-auto_explore = pwndbg.config.add_param(
-    "auto-explore-pages",
-    "warn",
-    "whether to try to infer page permissions when memory maps missing (can cause errors)",
-    param_class=pwndbg.lib.config.PARAM_ENUM,
-    enum_sequence=["yes", "warn", "no"],
-)
 
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
@@ -80,134 +58,6 @@ def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
         return tuple(coredump_maps())
 
     return proc_tid_maps()
-
-
-@pwndbg.lib.cache.cache_until("start", "stop")
-def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    """
-    Returns a tuple of `Page` objects representing the memory mappings of the
-    target, sorted by virtual address ascending.
-    """
-    proc_maps = get_known_maps()
-    # The `proc_maps` is usually a tuple of Page objects but it can also be:
-    #   None    - when /proc/$tid/maps does not exist/is not available
-    #   tuple() - when the process has no maps yet which happens only during its very early init
-    #             (usually when we attach to a process)
-    if proc_maps is not None:
-        return proc_maps
-
-    pages: List[pwndbg.lib.memory.Page] = []
-    pages.extend(kernel_vmmap())
-    pages.extend(explored_pages)
-    pages.extend(custom_pages)
-    pages.sort()
-    return tuple(pages)
-
-
-_warn_cache: Set[int] = set()
-
-
-@pwndbg.gdblib.events.new_objfile
-def clear_warn_cache():
-    _warn_cache.clear()
-
-
-def explore(
-    address_maybe: int, objfile_name: str = None, skip_config_guard: bool = False
-) -> pwndbg.lib.memory.Page | None:
-    """
-    Given a potential address, check to see what permissions it has.
-
-    Returns:
-        Page object
-
-    Note:
-        Adds the Page object to a persistent list of pages which are
-        only reset when the process dies.  This means pages which are
-        added this way will not be removed when unmapped.
-
-        Also assumes the entire contiguous section has the same permission.
-    """
-    if objfile_name is None:
-        objfile_name = "<explored>"
-
-    if not pwndbg.dbg.selected_inferior().is_linux():
-        return None
-
-    if not skip_config_guard:
-        if auto_explore.value == "warn":
-            page_start = pwndbg.lib.memory.page_align(address_maybe)
-            if page_start not in _warn_cache:
-                _warn_cache.add(page_start)
-                is_readable_addr = pwndbg.aglib.memory.peek(page_start)
-                if is_readable_addr:
-                    print(
-                        M.warn(
-                            f"Warning: Avoided exploring possible address {address_maybe:#x}.\n"
-                            f"You can explicitly explore it with `vmmap_explore {page_start:#x}`"
-                        )
-                    )
-            return None
-        elif auto_explore.value == "no":
-            return None
-
-    address_maybe = pwndbg.lib.memory.page_align(address_maybe)
-
-    flags = 4 if pwndbg.aglib.memory.peek(address_maybe) else 0
-
-    if not flags:
-        return None
-
-    if pwndbg.aglib.memory.poke(address_maybe):
-        flags |= 2
-    # It's really hard to check for executability, so we just make some guesses:
-    # If it's in the same page as the stack pointer, try to check the NX bit
-    # If it's in the same page as the instruction pointer, assume it's executable
-    # Otherwise, just say it's not executable
-    if address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.pc):
-        flags |= 1
-    # TODO: could maybe make this check look at the stacks in pwndbg.aglib.stack.get() but that might have issues
-    elif (
-        address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.sp)
-        and pwndbg.aglib.stack.is_executable()
-    ):
-        flags |= 1
-
-    page = find_boundaries(address_maybe)
-    page.objfile = objfile_name
-    page.flags = flags
-
-    explored_pages.append(page)
-
-    # Clear the "get" cache so pages that are explored in the current step are included
-    get.cache.clear()  # type: ignore[attr-defined]
-
-    return page
-
-
-# @pwndbg.dbg.event_handler(EventType.EXIT)
-def clear_explored_pages() -> None:
-    while explored_pages:
-        explored_pages.pop()
-
-
-def add_custom_page(page: pwndbg.lib.memory.Page) -> None:
-    bisect.insort(custom_pages, page)
-
-    # Reset all the cache
-    # We can not reset get() only, since the result may be used by others.
-    # TODO: avoid flush all caches
-    pwndbg.lib.cache.clear_caches()
-
-
-def clear_custom_page() -> None:
-    while custom_pages:
-        custom_pages.pop()
-
-    # Reset all the cache
-    # We can not reset get() only, since the result may be used by others.
-    # TODO: avoid flush all caches
-    pwndbg.lib.cache.clear_caches()
 
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
@@ -631,16 +481,3 @@ def info_auxv(skip_exe: bool = False) -> Tuple[pwndbg.lib.memory.Page, ...]:
         pages.extend(pwndbg.aglib.elf.map(vdso, "[vdso]"))
 
     return tuple(sorted(pages))
-
-
-def find_boundaries(addr: int, name: str = "", min: int = 0) -> pwndbg.lib.memory.Page:
-    """
-    Given a single address, find all contiguous pages
-    which are mapped.
-    """
-    start = pwndbg.aglib.memory.find_lower_boundary(addr)
-    end = pwndbg.aglib.memory.find_upper_boundary(addr)
-
-    start = max(start, min)
-
-    return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)

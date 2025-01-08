@@ -803,8 +803,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         return LLDBValue(value, self)
 
-    @override
-    def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
+    def get_known_pages(self) -> List[pwndbg.lib.memory.Page]:
         regions = self.process.GetMemoryRegions()
 
         pages = []
@@ -871,6 +870,21 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 )
             )
 
+        return pages
+
+    @override
+    def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
+        pages = self.get_known_pages()
+        if pages:
+            return LLDBMemoryMap(pages)
+
+        from pwndbg.aglib.kernel.vmmap import kernel_vmmap
+        from pwndbg.aglib.vmmap_custom import get_custom_pages
+
+        pages: List[pwndbg.lib.memory.Page] = []
+        pages.extend(kernel_vmmap())
+        pages.extend(get_custom_pages())
+        pages.sort()
         return LLDBMemoryMap(pages)
 
     def find_largest_range_len(
