@@ -834,7 +834,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
                 # Try to resolve the name anyway by using SBAddress.
                 file = lldb.SBAddress(region.GetRegionBase(), self.target).GetModule().GetFileSpec()
-                objfile = file.fullpath if file.IsValid() else "<unknown>"
+                objfile = file.fullpath if file.IsValid() else f"[anon_{start >> 12:05x}]"
 
             perms = 0
             if region.IsReadable():

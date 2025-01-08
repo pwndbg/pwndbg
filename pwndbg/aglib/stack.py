@@ -167,7 +167,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
 
         stop = find_upper_stack_boundary(sp)
         page = pwndbg.lib.memory.Page(
-            start, stop - start, 6 if not is_executable() else 7, 0, "[stack]"
+            start, stop - start, 6 if not is_executable() else 7, 0, f"[stack:{thread_idx}]"
         )
         stacks[thread_idx] = page
         pwndbg.aglib.vmmap_custom.add_custom_page(page)

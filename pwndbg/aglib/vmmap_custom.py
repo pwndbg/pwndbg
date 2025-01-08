@@ -106,7 +106,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
         return None
 
     page = find_boundaries(address_maybe)
-    page.objfile = "<explored>"
+    page.objfile = f"<explored_{address_maybe >> 12:05x}>"
     page.flags = flags
 
     explored_pages.append(page)

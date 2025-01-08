@@ -87,7 +87,7 @@ class Page:
 
     @property
     def is_stack(self) -> bool:
-        return self.objfile == "[stack]"
+        return self.objfile.startswith("[stack")
 
     @property
     def is_memory_mapped_file(self) -> bool:
