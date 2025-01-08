@@ -292,7 +292,7 @@ parser.add_argument(
     nargs="?",
     type=str,
     default="",
-    help="Flags set by the ELF file, see PF_X, PF_R, PF_W",
+    help="Flags set by the ELF file (r - read, w - write, x - executable)",
 )
 parser.add_argument(
     "offset",
