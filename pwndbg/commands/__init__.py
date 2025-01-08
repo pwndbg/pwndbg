@@ -650,14 +650,6 @@ class ArgparsedCommand:
         )
 
 
-# We use a 64-bit max value literal here instead of pwndbg.aglib.arch.current
-# as realistically its ok to pull off the biggest possible type here
-# We cache its value type which is 'unsigned long long'
-_mask = 0xFFFFFFFFFFFFFFFF
-_mask_val_type: pwndbg.dbg_mod.Type = None
-_mask_val_proc: pwndbg.dbg_mod.Process = None
-
-
 def sloppy_gdb_parse(s: str) -> int | str:
     """
     This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
@@ -677,21 +669,9 @@ def sloppy_gdb_parse(s: str) -> int | str:
 
     try:
         val = target.evaluate_expression(s)
-        # We can't just return int(val) because GDB may return:
-        # "Python Exception <class 'gdb.error'> Cannot convert value to long."
-        # e.g. for:
-        # pwndbg> pi int(gdb.parse_and_eval('__libc_start_main'))
-        #
-        # Here, the _mask_val.type should be `unsigned long long`
-        global _mask_val_type
-        global _mask_val_proc
-
-        i = pwndbg.dbg.selected_inferior()
-        if not _mask_val_type or _mask_val_proc != i:
-            _mask_val_type = i.create_value(_mask).type
-            _mask_val_proc = i
-
-        return int(val.cast(_mask_val_type))
+        if val.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+            return int(val.address)
+        return int(val)
     except (TypeError, pwndbg.dbg_mod.Error):
         return s
 
