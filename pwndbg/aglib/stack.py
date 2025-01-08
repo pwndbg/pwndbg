@@ -140,7 +140,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     elif auto_explore.value == "no":
         return {}
 
-    stacks: Dict[int, pwndbg.lib.memory.Page] = {}
+    thread_sp = []
     for thread in reversed(pwndbg.dbg.selected_inferior().threads()):
         with thread.bottom_frame() as frame:
             sp = frame.sp()
@@ -149,20 +149,27 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
         # (it might be 0 if we debug a qemu kernel)
         if not sp:
             continue
+        thread_sp.append((sp, thread.index()))
 
+    # Sort by the `sp` register (stack pointer), starting with the smallest value.
+    # This helps prevent scanning the same page multiple times.
+    thread_sp.sort(key=lambda t: t[0])
+
+    stacks: Dict[int, pwndbg.lib.memory.Page] = {}
+    for sp, thread_idx in thread_sp:
         start = pwndbg.lib.memory.page_align(sp) - pwndbg.lib.memory.PAGE_SIZE
 
         page_found = next((page for page in stacks.values() if start in page), None)
         if page_found:
             # Skip further exploration of stacks that have already been scanned.
-            stacks[thread.index()] = page_found
+            stacks[thread_idx] = page_found
             continue
 
         stop = find_upper_stack_boundary(sp)
         page = pwndbg.lib.memory.Page(
             start, stop - start, 6 if not is_executable() else 7, 0, "[stack]"
         )
-        stacks[thread.index()] = page
+        stacks[thread_idx] = page
         pwndbg.aglib.vmmap_custom.add_custom_page(page)
 
     return stacks
