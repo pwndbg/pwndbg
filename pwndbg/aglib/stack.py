@@ -106,7 +106,8 @@ def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
         # Find the given SP in pages
         page = next((page for page in pages if sp in page), None)
         if not page:
-            # page not found, should we explore `sp` register?
+            # TODO: Handle case where the page is not found;
+            #  consider exploring the `sp` register using method `_fetch_via_exploration`?
             continue
         stacks[thread.index()] = page
 
