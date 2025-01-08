@@ -126,10 +126,11 @@ def get_memory_flags(address_maybe: int) -> int | None:
 
     if pwndbg.aglib.memory.poke(address_maybe):
         flags |= 2
+
     # It's really hard to check for executability, so we just make some guesses:
-    # If it's in the same page as the stack pointer, try to check the NX bit
-    # If it's in the same page as the instruction pointer, assume it's executable
-    # Otherwise, just say it's not executable
+    # 1. If it's in the same page as the instruction pointer, assume it's executable.
+    # 2. If it's in the same page as the stack pointer, try to check the NX bit.
+    # 3. Otherwise, just say it's not executable.
     if address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.pc):
         flags |= 1
     # TODO: could maybe make this check look at the stacks in pwndbg.aglib.stack.get() but that might have issues
@@ -138,6 +139,7 @@ def get_memory_flags(address_maybe: int) -> int | None:
         and pwndbg.aglib.stack.is_executable()
     ):
         flags |= 1
+
     return flags
 
 
@@ -150,5 +152,6 @@ def find_boundaries(addr: int, name: str = "", min: int = 0) -> pwndbg.lib.memor
     end = pwndbg.aglib.memory.find_upper_boundary(addr)
 
     start = max(start, min)
+    end = max(end, min)
 
     return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)
