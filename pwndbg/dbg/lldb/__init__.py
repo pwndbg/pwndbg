@@ -1105,18 +1105,19 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         response = self.dbg._execute_lldb_command(f"process plugin packet send {packet}")
 
         # We need extract response
+        size = len("\nresponse: ")
         try:
             idx = response.index("\nresponse: ")
         except ValueError:
             # Packets not implemented return empty
             return b""
 
-        is_err = response[idx:].startswith("\nerror: ")
+        is_err = response[idx + size :].startswith("\nerror: ")
         if is_err:
             # Packets not implemented return empty
             return b""
 
-        out = response[idx + len("\nresponse: ") :].encode()
+        out = response[idx + size :].encode()
         if out[-1:] == b"\n":
             out = out[:-1]
         return out
