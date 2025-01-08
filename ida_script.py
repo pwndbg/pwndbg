@@ -6,6 +6,7 @@ import threading
 import xmlrpc.client as xmlclient
 from xml.sax.saxutils import escape
 from xmlrpc.server import SimpleXMLRPCServer
+#yes, this is a comment
 
 import idaapi
 import idc
@@ -13,7 +14,7 @@ import idc
 # Wait for any processing to get done
 idaapi.auto_wait()
 
-# On Windows with NTFS filesystem a filepath with ':'
+# On Windows with a NTFS filesystem a filepath with ':'
 # is treated as NTFS ADS (Alternative Data Stream)
 # and so saving file with such name fails
 dt = datetime.datetime.now().isoformat().replace(":", "-")
