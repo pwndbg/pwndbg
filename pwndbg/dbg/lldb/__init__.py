@@ -1104,23 +1104,21 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # [1] https://github.com/llvm/llvm-project/blob/6c42d0d7df55f28084e41b482dd7c25d4e7bcd10/lldb/source/Plugins/Process/gdb-remote/ProcessGDBRemote.cpp#L5660
         response = self.dbg._execute_lldb_command(f"process plugin packet send {packet}")
 
-        # We need extract response
-        size = len("\nresponse: ")
         try:
             idx = response.index("\nresponse: ")
         except ValueError:
             # Packets not implemented return empty
             return b""
 
-        is_err = response[idx + size :].startswith("\nerror: ")
-        if is_err:
+        out = response[idx + 11:]  # len("\nresponse: ") == 11
+        if out.startswith("\nerror: "):
             # Packets not implemented return empty
             return b""
 
-        out = response[idx + size :].encode()
-        if out[-1:] == b"\n":
+        if out[-1] == "\n":
             out = out[:-1]
-        return out
+
+        return out.encode()
 
     @override
     def send_monitor(self, cmd: str) -> str:
