@@ -1110,7 +1110,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # Packets not implemented return empty
             return b""
 
-        out = response[idx + 11:]  # len("\nresponse: ") == 11
+        out = response[idx + 11 :]  # len("\nresponse: ") == 11
         if out.startswith("\nerror: "):
             # Packets not implemented return empty
             return b""
