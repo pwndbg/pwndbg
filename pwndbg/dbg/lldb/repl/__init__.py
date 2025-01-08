@@ -626,7 +626,7 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         dbg.debugger.GetTargetAtIndex(0),
         io_driver,
         [f"{name}={value}" for name, value in os.environ.items()],
-        getattr(args, 'run-args', []),
+        getattr(args, "run-args", []),
         os.getcwd(),
     )
 
