@@ -618,12 +618,17 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         print(message.error("error: a process is already being debugged"))
         return
 
+    target: lldb.SBTarget = dbg.debugger.GetTargetAtIndex(0)
     # Make sure the LLDB driver knows that this is a local process.
     dbg._current_process_is_gdb_remote = False
 
+    if target.GetPlatform().GetName() == "qemu-user":
+        # Force qemu-user as remote, pwndbg depends on that, eg: for download procfs files
+        dbg._current_process_is_gdb_remote = True
+
     io_driver = get_io_driver()
     result = driver.launch(
-        dbg.debugger.GetTargetAtIndex(0),
+        target,
         io_driver,
         [f"{name}={value}" for name, value in os.environ.items()],
         getattr(args, "run-args", []),
