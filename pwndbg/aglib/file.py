@@ -16,7 +16,6 @@ from typing import Tuple
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.remote
-import pwndbg.color.message as M
 import pwndbg.lib.cache
 
 _remote_files_dir = None
