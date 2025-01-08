@@ -141,7 +141,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
         return {}
 
     stacks: Dict[int, pwndbg.lib.memory.Page] = {}
-    for thread in pwndbg.dbg.selected_inferior().threads():
+    for thread in reversed(pwndbg.dbg.selected_inferior().threads()):
         with thread.bottom_frame() as frame:
             sp = frame.sp()
 
