@@ -69,7 +69,7 @@ def clear_custom_page() -> None:
     pwndbg.lib.cache.clear_caches()
 
 
-def explore(address_maybe: int, skip_config_guard: bool = False) -> pwndbg.lib.memory.Page | None:
+def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
     """
     Given a potential address, check to see what permissions it has.
 
