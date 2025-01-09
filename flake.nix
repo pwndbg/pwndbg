@@ -32,11 +32,22 @@
         "archlinux"
       ];
 
+      overlayDarwin =
+        final: prev:
+        nixpkgs.lib.optionalAttrs prev.stdenv.isDarwin {
+          gdb = prev.gdb.override {
+            # dynamic version of libiconv use to much of `dlopen`
+            libiconv = prev.pkgsStatic.libiconv;
+          };
+        };
       pkgsBySystem = forAllSystems (
         system:
         import nixpkgs {
           inherit system;
-          overlays = [ poetry2nix.overlays.default ];
+          overlays = [
+            poetry2nix.overlays.default
+            overlayDarwin
+          ];
         }
       );
       pkgUtil = forAllSystems (system: import ./nix/bundle/pkg.nix { pkgs = pkgsBySystem.${system}; });
@@ -73,20 +84,29 @@
       packages = forAllSystems (
         system:
         {
-          pwndbg = import ./nix/pwndbg.nix {
-            pkgs = pkgsBySystem.${system};
-            python3 = pkgsBySystem.${system}.python3;
-            gdb = pkgsBySystem.${system}.gdb;
-            inputs.pwndbg = self;
-          };
           default = self.packages.${system}.pwndbg;
-          pwndbg-dev = import ./nix/pwndbg.nix {
-            pkgs = pkgsBySystem.${system};
-            python3 = pkgsBySystem.${system}.python3;
-            gdb = pkgsBySystem.${system}.gdb;
-            inputs.pwndbg = self;
-            isDev = true;
-          };
+        }
+        // (
+          let
+            systemfix = if (system == "aarch64-darwin") then "x86_64-darwin" else system;
+          in
+          {
+            pwndbg = import ./nix/pwndbg.nix {
+              pkgs = pkgsBySystem.${systemfix};
+              python3 = pkgsBySystem.${systemfix}.python3;
+              gdb = pkgsBySystem.${systemfix}.gdb;
+              inputs.pwndbg = self;
+            };
+            pwndbg-dev = import ./nix/pwndbg.nix {
+              pkgs = pkgsBySystem.${systemfix};
+              python3 = pkgsBySystem.${systemfix}.python3;
+              gdb = pkgsBySystem.${systemfix}.gdb;
+              inputs.pwndbg = self;
+              isDev = true;
+            };
+          }
+        )
+        // {
           pwndbg-lldb = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             python3 = pkgsBySystem.${system}.python3;
