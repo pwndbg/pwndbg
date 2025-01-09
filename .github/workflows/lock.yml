@@ -24,6 +24,7 @@ jobs:
         os: [
           ubuntu-latest,  # x86_64-linux
           # ubuntu-arm,  # aarch64-linux, not public yet
+          macos-13,  # x86_64-darwin
         ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
