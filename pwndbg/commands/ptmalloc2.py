@@ -804,6 +804,12 @@ parser.add_argument(
     default=False,
     help="Does the GLIBC fastbin size field bug affect the candidate size field width?",
 )
+parser.add_argument(
+    "--partial-overwrite",
+    "-p",
+    action="store_true",
+    help="Consider partial overwrite candidates, default behavior only shows word-size overwrites.",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
@@ -815,6 +821,7 @@ def find_fake_fast(
     max_candidate_size: int | None = None,
     align: bool = False,
     glibc_fastbin_bug: bool = False,
+    partial_overwrite: bool = False,
 ) -> None:
     """Find candidate fake fast chunks overlapping the specified address."""
     allocator = pwndbg.aglib.heap.current
