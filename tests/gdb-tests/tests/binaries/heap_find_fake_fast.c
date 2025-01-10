@@ -7,7 +7,7 @@
 #include <sys/mman.h>
 
 // Part of this test requires unmapped virtual memory at a specific alignment.
-#define LIKELY_UNMAPPED_MEMORY_ADDRESS (void*)0x500000000000
+#define LIKELY_UNMAPPED_MEMORY_ADDRESS (void *)0x500000000000
 
 /* GLIBC's HEAP_MAX_SIZE constant, used to align the aforementioned unmapped virtual memory.
  * HEAP_MAX_SIZE is defined at:
@@ -21,7 +21,7 @@
 void break_here(void) {}
 
 // Fake chunk size field for use with issue #1142 test.
-char* fake_chunk = NULL;
+char *fake_chunk = NULL;
 
 // This buffer will contain the fake chunk sizes
 unsigned long buf[64] __attribute__((aligned(0x10)));
@@ -33,26 +33,28 @@ unsigned long target_address;
  * Put the value of `size` at `distance` bytes before the address of
  * `target_address`
  */
-void setup_mem(unsigned long size, unsigned distance) {
+void setup_mem(unsigned long size, unsigned distance)
+{
     memset(buf, 0, sizeof(buf));
     target_address = 0;
 
-    char *chunk_size_addr = (char*)&target_address - distance;
-    *(unsigned long*)chunk_size_addr = size;
+    char *chunk_size_addr = (char *)&target_address - distance;
+    *(unsigned long *)chunk_size_addr = size;
 }
 
-int main(void) {
+int main(void)
+{
     assert((unsigned long)&target_address - (unsigned long)buf == sizeof(buf));
 
     /* Test whether the find_fake_fast command can deal with a fake chunk that has a set
      * NON_MAIN_ARENA flag, but no heap_info struct (the struct would reside in unmapped memory).
      * Issue #1142
      */
-    void* aligned_memory = NULL;
-    for (void* requested_address = LIKELY_UNMAPPED_MEMORY_ADDRESS; requested_address > 0; requested_address -= HEAP_MAX_SIZE)
+    void *aligned_memory = NULL;
+    for (void *requested_address = LIKELY_UNMAPPED_MEMORY_ADDRESS; requested_address > 0; requested_address -= HEAP_MAX_SIZE)
     {
         // Attempt to find unmapped memory aligned to HEAP_MAX_SIZE.
-        void* mmapped_address = mmap(requested_address, 2*getpagesize(), PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+        void *mmapped_address = mmap(requested_address, 2 * getpagesize(), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
         if (mmapped_address == requested_address)
         {
             aligned_memory = mmapped_address;
@@ -60,7 +62,7 @@ int main(void) {
         }
         else
         {
-            munmap(mmapped_address, 2*getpagesize());
+            munmap(mmapped_address, 2 * getpagesize());
         }
     }
     assert(aligned_memory != NULL);
@@ -74,7 +76,7 @@ int main(void) {
     assert(unmapped == 0);
 
     // Initialize malloc so heap commands can run.
-    void* m = malloc(0x18);
+    void *m = malloc(0x18);
 
     // A valid aligned fastbin chunk with no flags set
     setup_mem(0x20, 0x8);
@@ -132,5 +134,10 @@ int main(void) {
     // A fastbin chunk with a size that has top 4 bytes clobbered, due to glibc
     // fastbin size bug, this is still valid
     setup_mem(0xAABBCCDD00000020, 0x8);
+    break_here();
+
+    // A fastbin chunk that overlaps only the first byte of the target address
+    // Used to test the --partial-overwrite option
+    setup_mem(0x8000, 0x80);
     break_here();
 }
