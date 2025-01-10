@@ -793,6 +793,7 @@ def load_commands() -> None:
     import pwndbg.commands.plist
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
+    import pwndbg.commands.profiler
     import pwndbg.commands.ptmalloc2
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
