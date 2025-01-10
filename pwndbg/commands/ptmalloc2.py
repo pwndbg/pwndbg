@@ -874,7 +874,11 @@ def find_fake_fast(
 
     max_candidate_size &= ~(allocator.malloc_align_mask)
 
-    search_start = target_address - max_candidate_size + size_sz
+    if partial_overwrite:
+        search_start = (target_address - max_candidate_size + size_sz) - (size_sz - 1)
+    else:
+        search_start = target_address - max_candidate_size + size_sz
+
     search_end = target_address
 
     if pwndbg.aglib.memory.peek(search_start) is None:
@@ -923,8 +927,14 @@ def find_fake_fast(
                 continue
 
             candidate_address = search_start + i
-            if (candidate_address + size_field) >= (target_address + size_sz):
-                malloc_chunk(candidate_address - size_sz, fake=True)
+
+            if partial_overwrite:
+                if (candidate_address + size_field) > target_address:
+                    malloc_chunk(candidate_address - size_sz, fake=True)
+            else:
+                if (candidate_address + size_field) >= (target_address + size_sz):
+                    malloc_chunk(candidate_address - size_sz, fake=True)
+
         else:
             break
 
