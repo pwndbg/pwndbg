@@ -18,7 +18,6 @@ class Argument(NamedTuple):
     name: str
 
 
-
 class LazyFunctions(Mapping[str, Function]):
     def __init__(self, *args, **kw):
         self._raw_dict = {}
@@ -36,5 +35,6 @@ class LazyFunctions(Mapping[str, Function]):
 
     def __len__(self):
         return len(self._raw_dict)
+
 
 functions = LazyFunctions()

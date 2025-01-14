@@ -5,7 +5,8 @@ from pwndbg.lib.functions import Function
 
 
 def load_functions():
-  return _functions
+    return _functions
+
 
 _functions = {
     "ASN1_BIT_STRING_check": Function(
