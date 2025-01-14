@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import fnmatch
 import os.path
 import re
 from typing import Any
@@ -45,6 +46,45 @@ def check_style() -> None:
         style.revert_default()
 
 
+def _fn_matches(filename, pattern):
+    # faster alternative to the naive regex matching algorithm that pygments uses
+    # most of the regexs are of the form "*.<extension>", which can be converted to a simple string match
+    extension = pattern[2:]
+    if pattern.isascii() and pattern[0] == "*" and pattern[1] == "." and extension.isalnum():
+        # to avoid an extra string copy, we also need to check whether the filename has a '.' before the extension
+        return filename.endswith(extension) and filename[-len(extension) - 1] == "."
+
+    # fall back to slow regex
+    return re.match(fnmatch.translate(pattern), filename)
+
+
+def _pygments_get_lexer_for_filename(filename, code, **options):
+    """
+    A faster alternative to pygment's get_lexer_for_filename only checks the
+    built-in lexers unless a match is not found, in which case it falls back to
+    pygment's get_lexer_for_filename, which also checks for plugin lexers.
+    """
+
+    # fall back to slow method if there are multiple matches
+    one_match = False
+    matched_lexer = ""
+    fn = os.path.basename(filename)
+    for name, _, filenames, _ in pygments.lexers.get_all_lexers(plugins=False):
+        for filename in filenames:
+            if _fn_matches(fn, filename):
+                if one_match:
+                    # already seen one match, this is a second match
+                    one_match = False
+                    break
+                one_match = True
+                matched_lexer = name
+    if one_match:
+        return pygments.lexers.get_lexer_by_name(matched_lexer, **options)
+    else:
+        # either we can't find it or there are multiple matches to choose from
+        return pygments.lexers.guess_lexer_for_filename(filename, code, **options)
+
+
 def syntax_highlight(code: str, filename: str = ".asm") -> str:
     # No syntax highlight if pygment is not installed
     if disable_colors:
@@ -66,7 +106,7 @@ def syntax_highlight(code: str, filename: str = ".asm") -> str:
 
     if not lexer:
         try:
-            lexer = pygments.lexers.guess_lexer_for_filename(filename, code, stripnl=False)
+            lexer = _pygments_get_lexer_for_filename(filename, code, stripnl=False)
         except pygments.util.ClassNotFound:
             # no lexer for this file or invalid style
             pass
