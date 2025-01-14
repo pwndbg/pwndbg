@@ -114,7 +114,7 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: install poetry
-      run: nix profile install nixpkgs#poetry
+      run: nix profile install --inputs-from . nixpkgs#poetry
 
     - name: check poetry.lock
       run: poetry check --lock
