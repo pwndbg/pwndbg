@@ -13,4 +13,4 @@ def test_functions_lookup():
 def test_functions_lookup_does_not_exist():
     no_key = object()
     not_found = object()
-    assert functions.get(no_key, not_found) == not_found
+    assert functions.get(no_key, not_found) is not_found
