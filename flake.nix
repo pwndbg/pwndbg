@@ -36,8 +36,8 @@
         final: prev:
         nixpkgs.lib.optionalAttrs prev.stdenv.isDarwin {
           gdb = prev.gdb.override {
-            # dynamic version of libiconv use to much of `dlopen`
-            libiconv = prev.pkgsStatic.libiconv;
+            # Darwin version of libiconv causes issues with our portable build
+            libiconv = prev.pkgsStatic.libiconvReal;
           };
         };
       pkgsBySystem = forAllSystems (
