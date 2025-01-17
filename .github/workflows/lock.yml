@@ -23,7 +23,7 @@ jobs:
         # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
         os: [
           ubuntu-latest,  # x86_64-linux
-          # ubuntu-arm,  # aarch64-linux, not public yet
+          ubuntu-arm,  # aarch64-linux
           macos-13,  # x86_64-darwin
         ]
     runs-on: ${{ matrix.os }}
@@ -60,7 +60,7 @@ jobs:
         # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
         os: [
           ubuntu-latest,  # x86_64-linux
-          # ubuntu-arm,  # aarch64-linux, not public yet
+          ubuntu-arm,  # aarch64-linux
           macos-13,  # x86_64-darwin
           macos-15,  # aarch64-darwin
         ]
