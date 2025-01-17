@@ -62,7 +62,7 @@ Here's a quick guide to help you decide which one to use:
 | Embedded debugging (ARM Cortex M* or RISC-V/32) | **GDB**, **LLDB**    |
 
 Pwndbg ensures a consistent experience across both, so switching between them is seamless.
-> The LLDB implementation in Pwndbg is still in early-stage and may contain bugs or limitations.
+> The LLDB implementation in Pwndbg is still in early-stage and may contain bugs or limitations.<br/>
 > Known issues are tracked in [GitHub Issues][lldb_tracker]. 
 > 
 > If you encounter any problems, feel free to report them or discuss on our [Discord server][discord].
