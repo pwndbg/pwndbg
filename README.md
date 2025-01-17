@@ -149,6 +149,8 @@ The portable version includes all necessary dependencies and should work without
 
 Download the portable version from the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases) by selecting the desired version.
 
+**Note:** For LLDB, only the tarball version is available.
+
 Make sure to select the correct file for your operating system and architecture:
 - **Linux (x86_64, armv7l, aarch64, riscv64):**
   - `pwndbg_2024.08.29_amd64.tar.xz` (x86_64 for GDB)
