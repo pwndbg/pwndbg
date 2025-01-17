@@ -154,13 +154,13 @@ Download the portable version from the [Pwndbg releases page](https://github.com
 Make sure to select the correct file for your operating system and architecture:
 - **Linux (x86_64, armv7l, aarch64, riscv64):**
   - `pwndbg_2024.08.29_amd64.tar.xz` (x86_64 for GDB)
-  - `pwndbg_2024.08.29_amd64.tar.xz` (armv7l for GDB)
-  - `pwndbg_2024.08.29_amd64.tar.xz` (aarch64 for GDB)
-  - `pwndbg_2024.08.29_amd64.tar.xz` (riscv64 for GDB)
+  - `pwndbg_2024.08.29_armv7.tar.xz` (armv7l for GDB)
+  - `pwndbg_2024.08.29_arm64.tar.xz` (aarch64 for GDB)
+  - `pwndbg_2024.08.29_riscv64.tar.xz` (riscv64 for GDB)
   - `pwndbg-lldb_2024.08.29_amd64.tar.xz` (x86_64 for LLDB)
-  - `pwndbg-lldb_2024.08.29_amd64.tar.xz` (armv7l for LLDB)
-  - `pwndbg-lldb_2024.08.29_amd64.tar.xz` (aarch64 for LLDB)
-  - `pwndbg-lldb_2024.08.29_amd64.tar.xz` (riscv64 for LLDB)
+  - `pwndbg-lldb_2024.08.29_armv7.tar.xz` (armv7l for LLDB)
+  - `pwndbg-lldb_2024.08.29_arm64.tar.xz` (aarch64 for LLDB)
+  - `pwndbg-lldb_2024.08.29_riscv64.tar.xz` (riscv64 for LLDB)
 
 - **macOS (amd64, arm64):**
   - `pwndbg-lldb_2024.08.29_macos_amd64.tar.xz` (macOS, Intel/AMD CPUs, for LLDB)
