@@ -6,10 +6,7 @@ import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.dbg
 import pwndbg.integration
-
-if pwndbg.dbg.is_gdblib_available():
-    import pwndbg.integration.binja
-
+import pwndbg.integration.binja
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
