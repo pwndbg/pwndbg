@@ -4,9 +4,7 @@ import argparse
 
 import pwndbg.aglib.regs
 import pwndbg.commands
-import pwndbg.dbg
 import pwndbg.integration
-import pwndbg.integration.binja
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
