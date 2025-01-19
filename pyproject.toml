@@ -95,6 +95,10 @@ module = ["pwndbg.commands.telescope"]
 disable_error_code = ["attr-defined", "index"]
 
 [[tool.mypy.overrides]]
+module = ["pwndbg.aglib.kernel.nftables"]
+disable_error_code = ["no-redef"]
+
+[[tool.mypy.overrides]]
 module = [
     "pwndbg.aglib.nearpc",
     "pwndbg.aglib.typeinfo",
