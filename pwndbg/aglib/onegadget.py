@@ -324,12 +324,6 @@ def parse_expression(expr: str) -> Tuple[int | None, str, str | None]:
 
         return result, f"{cast}{lambda_expr.color_str}", None
     except pwndbg.dbg_mod.Error as e:
-        error_message = (
-            f"Pwndbg encountered an issue while evaluating the expression: {cast}{lambda_expr.color_str}\n"
-            f"Error details: {str(e)}\n"
-            f"Consider creating an issue in the pwndbg repository."
-        )
-        print(M.warn(error_message))
         return None, f"{cast}{lambda_expr.color_str}", str(e)
 
 
