@@ -17,6 +17,7 @@ from typing import Tuple
 from typing import TypeVar
 
 import gdb
+import gdb.types
 from typing_extensions import Callable
 from typing_extensions import Set
 from typing_extensions import override
