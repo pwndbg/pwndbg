@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import binascii
 import re
 from asyncio import CancelledError
 from contextlib import contextmanager
