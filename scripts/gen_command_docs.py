@@ -145,18 +145,18 @@ pprint(cmd)
 
 
 # use d dict to create index
-mdFile = MdUtils('commands/index.md')
-mdFile.new_header(level=1, title="Commands")
-for k, v in commands.items():
-    mdFile.new_header(level=2, title=f"{k}")
-    items = []
-    for i in v:
-        info = commands_info[i]
-        try:
-            items.append(f' [{info["command_name"]}]({info["module"]}/{i}.md) {info["desc"]}')
-        except Exception as e:
-            print(f"-> {e}")
+# mdFile = MdUtils('commands/index.md')
+# mdFile.new_header(level=1, title="Commands")
+# for k, v in commands.items():
+#     mdFile.new_header(level=2, title=f"{k}")
+#     items = []
+#     for i in v:
+#         info = commands_info[i]
+#         try:
+#             items.append(f' [{info["command_name"]}]({info["module"]}/{i}.md) {info["desc"]}')
+#         except Exception as e:
+#             print(f"-> {e}")
 
-    mdFile.new_list(items=items)
+#     mdFile.new_list(items=items)
 
-mdFile.create_md_file()
+# mdFile.create_md_file()
