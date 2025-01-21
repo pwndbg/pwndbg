@@ -213,7 +213,7 @@ def knft_list_objects(
         print("No nftables table found")
 
 
-parser = argparse.ArgumentParser(description="Dump only flowtables from specific table")
+parser = argparse.ArgumentParser(description="Dump netfilter flowtables from a specific table")
 parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
 parser.add_argument(
     "table_family",
