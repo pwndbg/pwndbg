@@ -184,7 +184,7 @@ def knft_list_sets(
         print("No nftables table found")
 
 
-parser = argparse.ArgumentParser(description="Dump only objects from specific table")
+parser = argparse.ArgumentParser(description="Dump netfilter objects from a specific table")
 parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
 parser.add_argument(
     "table_family",
