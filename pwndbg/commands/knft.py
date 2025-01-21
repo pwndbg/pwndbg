@@ -155,7 +155,7 @@ def knft_list_exprs(
         print("No nftables rule found")
 
 
-parser = argparse.ArgumentParser(description="Dump only sets from specific table")
+parser = argparse.ArgumentParser(description="Dump netfilter sets from a specific table")
 parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
 parser.add_argument(
     "table_family",
