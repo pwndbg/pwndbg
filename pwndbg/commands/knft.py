@@ -219,7 +219,7 @@ parser.add_argument(
     "table_family",
     nargs="?",
     type=parse_nft_family,
-    help="Table family, eg: inet, ip, ip6, netdev, bridge, arp",
+    help="Netfilter table family (inet, ip, ip6, netdev, bridge, arp)",
 )
 parser.add_argument("table_name", nargs="?", type=str, help="Table name")
 
