@@ -53,7 +53,7 @@ def knft_list_tables(nsid: Optional[int] = None):
         table.print(print_nested=False)
 
 
-parser = argparse.ArgumentParser(description="Dump only chains form specific table")
+parser = argparse.ArgumentParser(description="Dump netfilter chains form a specific table")
 parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
 parser.add_argument(
     "table_family",
