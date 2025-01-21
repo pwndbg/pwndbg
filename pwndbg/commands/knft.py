@@ -83,7 +83,7 @@ def knft_list_chains(
         print("No nftables table found")
 
 
-parser = argparse.ArgumentParser(description="Dump only rules form specific chain")
+parser = argparse.ArgumentParser(description="Dump netfilter rules form a specific chain")
 parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
 parser.add_argument(
     "table_family",
