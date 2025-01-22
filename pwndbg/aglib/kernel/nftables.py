@@ -224,8 +224,6 @@ class ChainHook(NftFields):
         return self.get_netdevs()
 
     def is_netdev(self) -> bool:
-        NFPROTO_INET = 1
-        NFPROTO_NETDEV = 5
         NF_INET_INGRESS = 5
         family = self._parent.table.family
         hooknum = self.hooknum
@@ -320,7 +318,6 @@ class Chain(NftFields):
         print()
         print(f"nft_chain @ 0x{int(self._addr):x}")
         self.print_fields()
-        # TODO: hook print
 
         if not print_nested:
             return

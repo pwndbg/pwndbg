@@ -35,7 +35,9 @@ def knft_dump(nsid: Optional[int] = None):
     nft.print()
 
 
-parser = argparse.ArgumentParser(description="Dump netfliter tables from a specific network namespace")
+parser = argparse.ArgumentParser(
+    description="Dump netfliter tables from a specific network namespace"
+)
 parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
 
 
