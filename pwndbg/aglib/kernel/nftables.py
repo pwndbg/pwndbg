@@ -96,8 +96,8 @@ class Expr:
 
         try:
             info = pwndbg.aglib.memory.read(int(self._addr["data"].address), size)
-        except pwndbg.dbg_mod.Error:
-            info = bytearray(b"<memory not available>")
+        except pwndbg.dbg_mod.Error as e:
+            info = bytearray(f"<unavailable: {e}>".encode())
         print(
             {
                 "name": expr["name"].string(),
