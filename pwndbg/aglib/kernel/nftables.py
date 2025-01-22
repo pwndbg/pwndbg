@@ -34,9 +34,7 @@ def catch_error(func):
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except pwndbg.dbg_mod.Error as e:
-            return f"<unavailable: {e}>"
-        except UnicodeDecodeError as e:
+        except (pwndbg.dbg_mod.Error, UnicodeDecodeError) as e:
             return f"<unavailable: {e}>"
 
     return wrapper
