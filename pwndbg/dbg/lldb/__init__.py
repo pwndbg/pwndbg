@@ -1604,6 +1604,22 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return sp
 
     @override
+    def disasm(self, address: int) -> pwndbg.dbg_mod.DisassembledInstruction | None:
+        instructions = self.target.ReadInstructions(lldb.SBAddress(address, self.target), 1)
+        if not instructions.IsValid() or instructions.GetSize() == 0:
+            return None
+
+        instr: lldb.SBInstruction = instructions.GetInstructionAtIndex(0)
+        mnemonic = instr.GetMnemonic(self.target)
+        operands = instr.GetOperands(self.target)
+
+        return {
+            "addr": instr.GetAddress().GetLoadAddress(self.target),
+            "asm": f"{mnemonic} {operands}",
+            "length": instr.GetByteSize(),
+        }
+
+    @override
     def is_linux(self) -> bool:
         # LLDB will at most tell us if this is a SysV ABI process.
         # Returns eg:
