@@ -316,8 +316,9 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
                 continue
             # We don't care about other process commands..
 
-        if (bits[0].startswith("at") and "attach".startswith(bits[0])) or \
-           (bits[0].startswith("_regexp-a") and "_regexp-attach".startswith(bits[0])):
+        if (bits[0].startswith("at") and "attach".startswith(bits[0])) or (
+            bits[0].startswith("_regexp-a") and "_regexp-attach".startswith(bits[0])
+        ):
             # `attach` is an alias for `_regexp-attach`
             # (it is NOT an alias for `process attach` even if it may seem so!)
             attach(driver, relay, bits[1:], dbg)
@@ -686,7 +687,9 @@ process_attach_unsupported = [
 ]
 
 
-def _attach_with_info(driver: ProcessDriver, relay: EventRelay, dbg: LLDB, info: lldb.SBAttachInfo, cont=False):
+def _attach_with_info(
+    driver: ProcessDriver, relay: EventRelay, dbg: LLDB, info: lldb.SBAttachInfo, cont=False
+):
     """
     Attaches to a process based on SBAttachInfo information
     """
@@ -722,7 +725,6 @@ def _attach_with_info(driver: ProcessDriver, relay: EventRelay, dbg: LLDB, info:
     else:
         # Same logic applies here as in `process_launch`.
         dbg._trigger_event(EventType.STOP)
-
 
 
 def process_attach(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
