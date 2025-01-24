@@ -316,6 +316,13 @@ def run(startup: List[str] | None = None, debug: bool = False) -> None:
                 continue
             # We don't care about other process commands..
 
+        if (bits[0].startswith("at") and "attach".startswith(bits[0])) or \
+           (bits[0].startswith("_regexp-a") and "_regexp-attach".startswith(bits[0])):
+            # `attach` is an alias for `_regexp-attach`
+            # (it is NOT an alias for `process attach` even if it may seem so!)
+            attach(driver, relay, bits[1:], dbg)
+            continue
+
         if bits[0].startswith("ta") and "target".startswith(bits[0]):
             if len(bits) > 1 and bits[1].startswith("c") and "create".startswith(bits[1]):
                 # This is `target create`
@@ -679,6 +686,45 @@ process_attach_unsupported = [
 ]
 
 
+def _attach_with_info(driver: ProcessDriver, relay: EventRelay, dbg: LLDB, info: lldb.SBAttachInfo, cont=False):
+    """
+    Attaches to a process based on SBAttachInfo information
+    """
+    targets = dbg.debugger.GetNumTargets()
+    assert targets < 2
+    if targets == 0:
+        print(message.error("error: no target, create one using the 'target create' command"))
+        return
+
+    # TODO/FIXME: This should ask:
+    # 'There is a running process, detach from it and attach?: [Y/n]'
+    if driver.has_process():
+        print(message.error("error: a process is already being debugged"))
+        return
+
+    io_driver = get_io_driver()
+
+    result = driver.attach(
+        dbg.debugger.GetTargetAtIndex(0),
+        io_driver,
+        info,
+    )
+
+    if not result.success:
+        print(message.error(f"Could not attach to process: {result.description}"))
+        return
+
+    # Continue execution if the user has requested it.
+    if cont:
+        # Same logic applies here as in `process_launch`.
+        relay._set_ignore_resumed(1)
+        driver.cont()
+    else:
+        # Same logic applies here as in `process_launch`.
+        dbg._trigger_event(EventType.STOP)
+
+
+
 def process_attach(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
     """
     Attaches to a process with the given arguments.
@@ -687,50 +733,46 @@ def process_attach(driver: ProcessDriver, relay: EventRelay, args: List[str], db
     if not args:
         return
 
-    targets = dbg.debugger.GetNumTargets()
-    assert targets < 2
-    if targets == 0:
-        print(message.error("error: no target, create one using the 'target create' command"))
-        return
-
-    if driver.has_process():
-        print(message.error("error: a process is already being debugged"))
-        return
-
     # The first two arguments - executable name and wait_for_launch - don't
     # matter, we set them later. The third one is required, as it tells LLDB the
     # attach should be asynchronous.
-    params = lldb.SBAttachInfo(None, False, True)
+    info = lldb.SBAttachInfo(None, False, True)
 
     if args.name is not None:
-        params.SetExecutable(args.name)
+        info.SetExecutable(args.name)
     if args.pid is not None:
-        params.SetProcessID(args.pid)
-    params.SetWaitForLaunch(args.waitfor)
-    if getattr(args, "continue"):
-        params.SetResumeCount(1)
-    params.SetIgnoreExisting(not args.include_existing)
+        info.SetProcessID(args.pid)
+    info.SetWaitForLaunch(args.waitfor)
 
-    io_driver = get_io_driver()
-    result = driver.attach(
-        dbg.debugger.GetTargetAtIndex(0),
-        io_driver,
-        params,
-    )
+    do_continue = getattr(args, "continue", False)
+    if do_continue:
+        info.SetResumeCount(1)
+    info.SetIgnoreExisting(not args.include_existing)
 
-    if not result.success:
-        print(message.error(f"Could not attach to process: {result.description}"))
-        return
+    _attach_with_info(driver, relay, dbg, info, cont=do_continue)
 
-    # Continue execution if the user has requested it.
-    if getattr(args, "continue"):
-        # Same logic applies here as in `process_launch`.
-        relay._set_ignore_resumed(1)
 
-        driver.cont()
+def attach(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+    """
+    Attaches to a process with the given name or pid based on regex match.
+    Used for `_regexp-attach <pid|name>` (alias for `attach <pid|name>`)
+    Note: for some reason, `attach` does not really take a regex for process name.
+    """
+    assert len(args) == 1, "Expected 1 argument: <pid> or <name>"
+    arg = args[0]
+
+    # exec name - None, we set it later (or pid)
+    # wait_for_launch - False, since we don't wait
+    # third arg - tell LLDB to attach asynchronously
+    info = lldb.SBAttachInfo(None, False, True)
+
+    # Argument is pid
+    if arg.isdigit():
+        info.SetProcessID(int(arg))
     else:
-        # Same logic applies here as in `process_launch`.
-        dbg._trigger_event(EventType.STOP)
+        info.SetExecutable(arg)
+
+    _attach_with_info(driver, relay, dbg, info)
 
 
 process_connect_ap = argparse.ArgumentParser(add_help=False)
