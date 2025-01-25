@@ -760,7 +760,9 @@ def attach(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB)
     Used for `_regexp-attach <pid|name>` (alias for `attach <pid|name>`)
     Note: for some reason, `attach` does not really take a regex for process name.
     """
-    assert len(args) == 1, "Expected 1 argument: <pid> or <name>"
+    if len(args) != 1:
+        print(message.error("Expected 1 argument: <pid> or <name>"))
+        return
     arg = args[0]
 
     # exec name - None, we set it later (or pid)
