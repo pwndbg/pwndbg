@@ -6,6 +6,7 @@ debugging a remote process over SSH or similar, where e.g.
 
 from __future__ import annotations
 
+import errno
 import os
 import shutil
 import tempfile
@@ -15,7 +16,6 @@ from typing import Tuple
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.remote
-import pwndbg.color.message as M
 import pwndbg.lib.cache
 
 _remote_files_dir = None
@@ -81,16 +81,19 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     Returns:
         The local path to the file
     """
-    assert path.startswith(("/", "./", "../")) or path.startswith(
-        "target:"
-    ), "get_file called with incorrect path"
-
     has_target_prefix = path.startswith("target:")
+    has_good_prefix = path.startswith(("/", "./", "../")) or has_target_prefix
+    if not has_good_prefix:
+        raise OSError("get_file called with incorrect path", errno.ENOENT)
+
     if has_target_prefix:
         path = path[7:]  # len('target:') == 7
 
     local_path = path
     if not pwndbg.aglib.remote.is_remote():
+        if not os.path.exists(local_path):
+            raise OSError(f"File '{local_path}' does not exist", errno.ENOENT)
+
         return local_path
 
     if try_local_path and not has_target_prefix and os.path.exists(local_path):
@@ -104,16 +107,8 @@ def get_file(path: str, try_local_path: bool = False) -> str:
             # This module originally raised this as an OSError.
             raise OSError(e)
     else:
-        print(
-            M.warn(
-                f"pwndbg.aglib.file.get_file({path}) returns local path as we can't download file"
-            )
-        )
+        raise OSError(f"get_file('{local_path}') is not supported for your target", errno.ENODEV)
 
-    # FIXME: get_sysroot, if nonempty only then get-local-file by default
-    #   GDB is only getting local files when `set sysroot /` in remote debugging
-    #   So we should show warning to user `set sysroot /` and remote debugging will be faster?
-    # TODO: don't fallback to local filesystem
     return local_path
 
 

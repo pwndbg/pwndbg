@@ -704,10 +704,8 @@ def compact_regs(regs, width=None, target=sys.stdout):
     min_width = max(1, int(pwndbg.config.show_compact_regs_min_width))
     separation = max(1, int(pwndbg.config.show_compact_regs_separation))
 
-    if width is None:  # auto width. In case of stdout, it's better to use stdin (b/c GdbOutputFile)
-        _height, width = pwndbg.ui.get_window_size(
-            target=target if target != sys.stdout else sys.stdin
-        )
+    if width is None:
+        _height, width = pwndbg.ui.get_window_size(target)
 
     if columns > 0:
         # Adjust the minimum_width (column) according to the

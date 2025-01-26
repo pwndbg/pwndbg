@@ -4,6 +4,7 @@ import argparse
 
 import pwndbg
 import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.color as C
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
@@ -34,7 +35,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithArch(["x86-64"])
+@pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
 def gdt(address, count) -> None:
     address = int(address)
     count = int(count)

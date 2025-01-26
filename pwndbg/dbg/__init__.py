@@ -11,6 +11,7 @@ from typing import Awaitable
 from typing import Callable
 from typing import Coroutine
 from typing import Generator
+from typing import Iterator
 from typing import List
 from typing import Literal
 from typing import Sequence
@@ -262,7 +263,8 @@ class Frame:
 
 
 class Thread:
-    def bottom_frame(self) -> Frame:
+    @contextlib.contextmanager
+    def bottom_frame(self) -> Iterator[Frame]:
         """
         Frame at the bottom of the call stack for this thread.
         """

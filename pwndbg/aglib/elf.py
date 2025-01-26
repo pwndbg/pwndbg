@@ -32,14 +32,12 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
+import pwndbg.auxv
 import pwndbg.lib.cache
 import pwndbg.lib.elftypes
 import pwndbg.lib.memory
 from pwndbg.color import message
 from pwndbg.dbg import EventType
-
-if pwndbg.dbg.is_gdblib_available():
-    import pwndbg.auxv
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -255,10 +253,9 @@ def entry() -> int:
     """
     Return the address of the entry point for the main executable.
     """
-    if pwndbg.dbg.is_gdblib_available():
-        entry = pwndbg.auxv.get().AT_ENTRY
-        if entry:
-            return entry
+    entry = pwndbg.auxv.get().AT_ENTRY
+    if entry:
+        return entry
 
     inf = pwndbg.dbg.selected_inferior()
     entry = inf.main_module_entry()

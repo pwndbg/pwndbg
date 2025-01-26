@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.arch
+import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.commands
 from pwndbg.color import context
@@ -20,7 +21,7 @@ parser.add_argument(
     aliases=["xpsr", "pstate"],
     category=CommandCategory.REGISTER,
 )
-@pwndbg.commands.OnlyWithArch(["arm", "armcm", "aarch64"])
+@pwndbg.aglib.proc.OnlyWithArch(["arm", "armcm", "aarch64"])
 @pwndbg.commands.OnlyWhenRunning
 def cpsr(cpsr_value=None) -> None:
     reg = "xpsr" if pwndbg.aglib.arch.name == "armcm" else "cpsr"

@@ -30,6 +30,7 @@ let
           "/lib/terminfo" # Debian
           "/usr/share/terminfo" # upstream default, probably all FHS-based distros
           "/run/current-system/sw/share/terminfo" # NixOS
+          "$dir/share/terminfo"
         ]
       }
     ''
@@ -38,6 +39,7 @@ let
         pkgs.lib.concatStringsSep ":" [
           # Fix issue Darwin https://github.com/pwndbg/pwndbg/issues/2531
           "/usr/share/terminfo" # upstream default, probably all FHS-based distros
+          "$dir/share/terminfo"
         ]
       }
     ''
@@ -72,34 +74,38 @@ let
     '';
   skipVenv = pkgs.writeScript "pwndbg-skip-venv" "";
 
-  pwndbgGdbBundled = bundler [
-    "${pkgs.lib.getBin gdb}/bin/gdb"
-    "exe/gdb"
+  pwndbgGdbBundled = bundler (
+    # Darwin don't have gdbserver
+    (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
+      "${pkgs.lib.getBin gdb}/bin/gdbserver"
+      "exe/gdbserver"
 
-    "${pkgs.lib.getBin gdb}/bin/gdbserver"
-    "exe/gdbserver"
+      "${wrapperBin "exe/gdbserver"}"
+      "bin/gdbserver"
+    ])
+    ++ [
+      "${pkgs.lib.getBin gdb}/bin/gdb"
+      "exe/gdb"
 
-    "${gdb}/share/gdb/"
-    "share/gdb/"
+      "${gdb}/share/gdb/"
+      "share/gdb/"
 
-    "${pwndbgVenv}/lib/"
-    "lib/"
+      "${pwndbgVenv}/lib/"
+      "lib/"
 
-    "${pwndbg.src}/pwndbg/"
-    "lib/${python3.libPrefix}/site-packages/pwndbg/"
+      "${pwndbg.src}/pwndbg/"
+      "lib/${python3.libPrefix}/site-packages/pwndbg/"
 
-    "${pwndbg.src}/gdbinit.py"
-    "exe/gdbinit.py"
+      "${pwndbg.src}/gdbinit.py"
+      "exe/gdbinit.py"
 
-    "${skipVenv}"
-    "exe/.skip-venv"
+      "${skipVenv}"
+      "exe/.skip-venv"
 
-    "${wrapperBinPwndbgGdbinit}"
-    "bin/pwndbg"
-
-    "${wrapperBin "exe/gdbserver"}"
-    "bin/gdbserver"
-  ];
+      "${wrapperBinPwndbgGdbinit}"
+      "bin/pwndbg"
+    ]
+  );
 
   pwndbgLldbBundled = bundler [
     "${pkgs.lib.getBin lldb}/bin/.lldb-wrapped"
@@ -156,6 +162,9 @@ let
 
         # writable out
         chmod -R +w $out
+
+        # copy extra files
+        cp -rf ${pkgs.lib.getLib pkgs.ncurses}/share/terminfo/ $out/pwndbg/share/
 
         # fix python "subprocess.py" to use "/bin/sh" and not the nix'ed version, otherwise "gdb-pt-dump" is broken
         substituteInPlace $out/pwndbg/lib/${python3.libPrefix}/subprocess.py --replace "'${pkgs.bash}/bin/sh'" "'/bin/sh'"

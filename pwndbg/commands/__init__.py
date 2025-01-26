@@ -332,31 +332,6 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWhenUserspace
 
 
-def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
-    """Decorates function to work only with the specified archictectures."""
-    for arch in arch_names:
-        if arch not in pwndbg.aglib.arch_mod.ARCHS:
-            raise ValueError(
-                f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
-            )
-
-    def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
-        @functools.wraps(function)
-        def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-            if pwndbg.aglib.arch.name in arch_names:
-                return function(*a, **kw)
-            else:
-                arches_str = ", ".join(arch_names)
-                log.error(
-                    f"{function.__name__}: This command may only be run on the {arches_str} architecture(s)"
-                )
-                return None
-
-        return _OnlyWithArch
-
-    return decorator
-
-
 def OnlyWithDbg(
     *dbg_names: Literal["lldb", "gdb"],
 ) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
@@ -650,14 +625,6 @@ class ArgparsedCommand:
         )
 
 
-# We use a 64-bit max value literal here instead of pwndbg.aglib.arch.current
-# as realistically its ok to pull off the biggest possible type here
-# We cache its value type which is 'unsigned long long'
-_mask = 0xFFFFFFFFFFFFFFFF
-_mask_val_type: pwndbg.dbg_mod.Type = None
-_mask_val_proc: pwndbg.dbg_mod.Process = None
-
-
 def sloppy_gdb_parse(s: str) -> int | str:
     """
     This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
@@ -677,21 +644,9 @@ def sloppy_gdb_parse(s: str) -> int | str:
 
     try:
         val = target.evaluate_expression(s)
-        # We can't just return int(val) because GDB may return:
-        # "Python Exception <class 'gdb.error'> Cannot convert value to long."
-        # e.g. for:
-        # pwndbg> pi int(gdb.parse_and_eval('__libc_start_main'))
-        #
-        # Here, the _mask_val.type should be `unsigned long long`
-        global _mask_val_type
-        global _mask_val_proc
-
-        i = pwndbg.dbg.selected_inferior()
-        if not _mask_val_type or _mask_val_proc != i:
-            _mask_val_type = i.create_value(_mask).type
-            _mask_val_proc = i
-
-        return int(val.cast(_mask_val_type))
+        if val.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+            return int(val.address)
+        return int(val)
     except (TypeError, pwndbg.dbg_mod.Error):
         return s
 
@@ -726,7 +681,7 @@ def load_commands() -> None:
     if pwndbg.dbg.is_gdblib_available():
         import pwndbg.commands.ai
         import pwndbg.commands.attachp
-        import pwndbg.commands.binja
+        import pwndbg.commands.binja_functions
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
         import pwndbg.commands.got
@@ -748,6 +703,7 @@ def load_commands() -> None:
     import pwndbg.commands.asm
     import pwndbg.commands.auxv
     import pwndbg.commands.binder
+    import pwndbg.commands.binja
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
@@ -791,6 +747,7 @@ def load_commands() -> None:
     import pwndbg.commands.plist
     import pwndbg.commands.probeleak
     import pwndbg.commands.procinfo
+    import pwndbg.commands.profiler
     import pwndbg.commands.ptmalloc2
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr

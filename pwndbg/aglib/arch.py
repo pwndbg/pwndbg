@@ -7,6 +7,7 @@ import pwnlib
 import pwndbg
 from pwndbg.lib.arch import Arch
 
+# List of architectures - used when determining GDB arch, and in OnlyWithArch
 ARCHS = (
     "x86-64",
     "i386",
@@ -19,10 +20,11 @@ ARCHS = (
     "riscv:rv32",
     "riscv:rv64",
     "riscv",
+    "loongarch64",
 )
 
 
-# mapping between gdb and pwntools arch names
+# mapping between pwndbg and pwntools arch names
 pwnlib_archs_mapping = {
     "x86-64": "amd64",
     "i386": "i386",
@@ -35,6 +37,7 @@ pwnlib_archs_mapping = {
     "armcm": "thumb",
     "rv32": "riscv32",
     "rv64": "riscv64",
+    "loongarch64": "none",
 }
 
 

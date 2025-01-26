@@ -411,6 +411,51 @@ class ProcessDriver:
 
         return error
 
+    def attach(self, target: lldb.SBTarget, io: IODriver, info: lldb.SBAttachInfo) -> lldb.SBError:
+        """
+        Attach to a process and handles startup events. Always stops on first
+        opportunity, and returns immediately after the process has stopped.
+
+        Fires the created() event.
+        """
+        stdin, stdout, stderr = io.stdio()
+        error = lldb.SBError()
+        self.listener = lldb.SBListener("pwndbg.dbg.lldb.repl.proc.ProcessDriver")
+        assert self.listener.IsValid()
+
+        # We are interested in handling certain target events synchronously, so
+        # set them up here, before LLDB has had any chance to do anything to the
+        # process.
+        self.listener.StartListeningForEventClass(
+            target.GetDebugger(),
+            lldb.SBTarget.GetBroadcasterClassName(),
+            lldb.SBTarget.eBroadcastBitModulesLoaded,
+        )
+
+        # Do the launch, proper. We always stop the target, and let the upper
+        # layers deal with the user wanting the program to not stop at entry by
+        # calling `cont()`.
+        info.SetListener(self.listener)
+        self.process = target.Attach(
+            info,
+            error,
+        )
+
+        if not error.success:
+            # Undo any initialization Launch() might've done.
+            self.process = None
+            self.listener = None
+            return error
+
+        assert self.listener.IsValid()
+        assert self.process.IsValid()
+
+        self.io = io
+        self._run_until_next_stop(fire_events=False)
+        self.eh.created()
+
+        return error
+
     def connect(self, target: lldb.SBTarget, io: IODriver, url: str, plugin: str) -> lldb.SBError:
         """
         Connects to a remote proces with the given URL using the plugin with the

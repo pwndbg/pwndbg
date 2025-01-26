@@ -4,6 +4,7 @@ import argparse
 import shutil
 
 import pwndbg.aglib.onegadget
+import pwndbg.aglib.proc
 import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.glibc
@@ -24,7 +25,7 @@ parser.add_argument("-v", "--verbose", help="Show verbose output.", action="stor
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
-@pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64"])
+@pwndbg.aglib.proc.OnlyWithArch(["x86-64", "i386", "aarch64"])
 @pwndbg.commands.OnlyWhenRunning
 def onegadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False) -> None:
     if not shutil.which("one_gadget"):

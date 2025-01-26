@@ -622,6 +622,54 @@ riscv = RegisterSet(
     retval="a0",
 )
 
+# https://docs.kernel.org/arch/loongarch/introduction.html
+loongarch64 = RegisterSet(
+    pc="pc",
+    stack="sp",
+    frame="fp",
+    retaddr=("ra",),
+    gpr=(
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7",
+        "t0",
+        "t1",
+        "t2",
+        "t3",
+        "t4",
+        "t5",
+        "t6",
+        "t7",
+        "t8",
+        "s0",
+        "s1",
+        "s2",
+        "s3",
+        "s4",
+        "s5",
+        "s6",
+        "s7",
+        "s8",
+    ),
+    args=(
+        "a0",
+        "a1",
+        "a2",
+        "a3",
+        "a4",
+        "a5",
+        "a6",
+        "a7",
+    ),
+    # r21 stores "percpu base address", referred to as "u0" in the kernel
+    misc=("tp", "r21"),
+)
+
 reg_sets = {
     "i386": i386,
     "i8086": i386,
@@ -635,4 +683,5 @@ reg_sets = {
     "armcm": armcm,
     "aarch64": aarch64,
     "powerpc": powerpc,
+    "loongarch64": loongarch64,
 }

@@ -146,9 +146,7 @@ def run_test(
             "py import sys;print(sys.path);import coverage;coverage.process_startup();",
         ] + gdb_args
     env = os.environ.copy()
-    env["LC_ALL"] = "C.UTF-8"
-    env["LANG"] = "C.UTF-8"
-    env["LC_CTYPE"] = "C.UTF-8"
+    env["LANG"] = "en_US.UTF-8"
     env["SRC_DIR"] = root_dir
     env["COVERAGE_FILE"] = os.path.join(root_dir, ".cov/coverage")
     env["COVERAGE_PROCESS_START"] = os.path.join(root_dir, "pyproject.toml")

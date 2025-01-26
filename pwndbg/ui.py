@@ -39,10 +39,10 @@ def check_title_position() -> None:
         title_position.revert_default()
 
 
-def banner(title, target=sys.stdin, width=None, extra=""):
+def banner(title, target=sys.stdout, width=None, extra=""):
     title = title.upper()
-    if width is None:  # auto width. In case of stdout, it's better to use stdin (b/c GdbOutputFile)
-        _height, width = get_window_size(target=target if target != sys.stdout else sys.stdin)
+    if width is None:
+        _height, width = get_window_size(target)
     if title:
         title = "{}{}{}{}".format(
             config.banner_title_surrounding_left,
@@ -66,14 +66,16 @@ def addrsz(address) -> str:
     return pwndbg.dbg.addrsz(address)
 
 
-def get_window_size(target=sys.stdin):
+def get_window_size(target=sys.stdout):
     fallback = (int(os.environ.get("LINES", 20)), int(os.environ.get("COLUMNS", 80)))
     if not target.isatty():
         return fallback
-    rows, cols = get_cmd_window_size()
-    if rows is not None and cols is not None:
-        return rows, cols
-    elif os.environ.get("PWNDBG_IN_TEST") is not None:
+    if target in (sys.stdout, sys.stdin):
+        # We can ask the debugger for the window size
+        rows, cols = get_cmd_window_size()
+        if rows is not None and cols is not None:
+            return rows, cols
+    if os.environ.get("PWNDBG_IN_TEST") is not None:
         return fallback
     try:
         # get terminal size and force ret buffer len of 4 bytes for safe unpacking by passing equally long arg

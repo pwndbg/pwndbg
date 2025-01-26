@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
@@ -28,7 +29,7 @@ segment("gsbase")
     "Prints out the FS base address. See also $fsbase.", category=CommandCategory.REGISTER
 )
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithArch(["i386", "x86-64"])
+@pwndbg.aglib.proc.OnlyWithArch(["i386", "x86-64"])
 def fsbase() -> None:
     """
     Prints out the FS base address. See also $fsbase.
@@ -40,7 +41,7 @@ def fsbase() -> None:
     "Prints out the GS base address. See also $gsbase.", category=CommandCategory.REGISTER
 )
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithArch(["i386", "x86-64"])
+@pwndbg.aglib.proc.OnlyWithArch(["i386", "x86-64"])
 def gsbase() -> None:
     """
     Prints out the GS base address. See also $gsbase.

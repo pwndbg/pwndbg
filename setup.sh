@@ -63,7 +63,7 @@ install_emerge() {
 
 install_oma() {
     sudo oma refresh || true
-    sudo oma install -y gdb gdbserver python-3 glib make glibc-dbg curl
+    sudo oma install -y gdb python-3 glib make glibc-dbg curl
 
     if uname -m | grep -q x86_64; then
         sudo oma install -y glibc+32-dbg || true

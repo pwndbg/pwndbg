@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 import struct
 from typing import Optional
@@ -140,23 +139,12 @@ def explore_stack_auxv() -> AUXV | None:
     elif auto_explore.value == "no":
         return None
 
-    auxv = walk_stack2(0)
-
-    if not auxv:
-        # For whatever reason, sometimes the ARM AUXV under qemu-user is
-        # not aligned properly.
-        auxv = walk_stack2(1)
-
-    if not auxv.get("AT_EXECFN", None):
-        try:
-            auxv["AT_EXECFN"] = _get_execfn()
-        except pwndbg.dbg_mod.Error:
-            pass
-
-    return auxv
+    return walk_stack2()
 
 
 def walk_stack2(offset: int = 0) -> AUXV:
+    # FIXME: This function doesn't work with Go (Golang) binaries, as Golang has two stacks.
+    # NOTE: This function is intended to work only with real binaries, not those emulated under qemu-user.
     sp = pwndbg.aglib.regs.sp
 
     if not sp:
@@ -174,7 +162,7 @@ def walk_stack2(offset: int = 0) -> AUXV:
     #    set of known AT_ enums.
     # 5) Vacuum up between the two.
     #
-    end = _find_stack_boundary(sp)
+    end = pwndbg.aglib.stack.find_upper_stack_boundary(sp)
     p = pwndbg.dbg.selected_inferior().create_value(end).cast(pwndbg.aglib.typeinfo.ulong.pointer())
 
     p -= offset
@@ -234,55 +222,3 @@ def walk_stack2(offset: int = 0) -> AUXV:
         # If SP is inaccessible or we went past through stack and haven't found AUXV
         # then return an empty AUXV...
         return AUXV()
-
-
-def _find_stack_boundary(addr: int) -> int:
-    # For real binaries, we can just use pwndbg.aglib.memory.find_upper_boundary
-    # to search forward until we walk off the end of the stack.
-    #
-    # Unfortunately, qemu-user emulation likes to paste the stack right
-    # before binaries in memory.  This means that we walk right past the
-    # stack and to the end of some random ELF.
-    #
-    # In order to mitigate this, we search page-by-page until either:
-    #
-    # 1) We get a page fault, and stop
-    # 2) We find an ELF header, and stop
-    addr = pwndbg.lib.memory.page_align(addr)
-    try:
-        while True:
-            if b"\x7fELF" == pwndbg.aglib.memory.read(addr, 4):
-                break
-            addr += pwndbg.lib.memory.PAGE_SIZE
-    except pwndbg.dbg_mod.Error:
-        pass
-    return addr
-
-
-def _get_execfn() -> str | None:
-    # If the stack is not sane, this won't work
-    if not pwndbg.aglib.memory.peek(pwndbg.aglib.regs.sp):
-        return None
-
-    # QEMU does not put AT_EXECFN in the Auxiliary Vector
-    # on the stack.
-    #
-    # However, it does put it at the very top of the stack.
-    #
-    # 32c:1960|      0x7fffffffefe0 <-- '/home/user/pwndbg/ld....'
-    # 32d:1968|      0x7fffffffefe8 <-- 'er/pwndbg/ld.so'
-    # 32e:1970|      0x7fffffffeff0 <-- 0x6f732e646c2f67 /* 'g/ld.so' */
-    # 32f:1978|      0x7fffffffeff8 <-- 0
-    # 330:1980|      0x7ffffffff000
-    addr = pwndbg.aglib.stack.find_upper_stack_boundary(pwndbg.aglib.regs.sp)
-
-    while pwndbg.aglib.memory.byte(addr - 1) == 0:
-        addr -= 1
-
-    while pwndbg.aglib.memory.byte(addr - 1) != 0:
-        addr -= 1
-
-    v = pwndbg.aglib.strings.get(addr, 1024)
-    if v:
-        return os.path.abspath(v)
-    return None

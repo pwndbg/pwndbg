@@ -7,6 +7,7 @@ import random
 import re
 import shlex
 import sys
+from contextlib import contextmanager
 from typing import Any
 from typing import Awaitable
 from typing import Callable
@@ -269,11 +270,12 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
         self.proc = proc
 
     @override
-    def bottom_frame(self) -> pwndbg.dbg_mod.Frame:
+    @contextmanager
+    def bottom_frame(self) -> Iterator[pwndbg.dbg_mod.Frame]:
         if self.inner.GetNumFrames() <= 0:
-            return None
+            raise pwndbg.dbg_mod.Error("no frames")
 
-        return LLDBFrame(self.inner.GetFrameAtIndex(0), self.proc)
+        yield LLDBFrame(self.inner.GetFrameAtIndex(0), self.proc)
 
     @override
     def ptid(self) -> int | None:
@@ -801,8 +803,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         return LLDBValue(value, self)
 
-    @override
-    def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
+    def get_known_pages(self) -> List[pwndbg.lib.memory.Page]:
         regions = self.process.GetMemoryRegions()
 
         pages = []
@@ -833,7 +834,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
                 # Try to resolve the name anyway by using SBAddress.
                 file = lldb.SBAddress(region.GetRegionBase(), self.target).GetModule().GetFileSpec()
-                objfile = file.fullpath if file.IsValid() else "<unknown>"
+                objfile = file.fullpath if file.IsValid() else f"[anon_{start >> 12:05x}]"
 
             perms = 0
             if region.IsReadable():
@@ -869,6 +870,21 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 )
             )
 
+        return pages
+
+    @override
+    def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
+        pages = self.get_known_pages()
+        if pages:
+            return LLDBMemoryMap(pages)
+
+        from pwndbg.aglib.kernel.vmmap import kernel_vmmap
+        from pwndbg.aglib.vmmap_custom import get_custom_pages
+
+        pages: List[pwndbg.lib.memory.Page] = []
+        pages.extend(kernel_vmmap())
+        pages.extend(get_custom_pages())
+        pages.sort()
         return LLDBMemoryMap(pages)
 
     def find_largest_range_len(
@@ -1088,16 +1104,21 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # [1] https://github.com/llvm/llvm-project/blob/6c42d0d7df55f28084e41b482dd7c25d4e7bcd10/lldb/source/Plugins/Process/gdb-remote/ProcessGDBRemote.cpp#L5660
         response = self.dbg._execute_lldb_command(f"process plugin packet send {packet}")
 
-        # We need extract response
-        for line in response.split("\n"):
-            if line.startswith("response: "):
-                ret = line[10:]
-                if not ret:
-                    continue
-                return ret.encode()
+        try:
+            idx = response.index("\nresponse: ")
+        except ValueError:
+            # Packets not implemented return empty
+            return b""
 
-        # Packets not implemented return empty
-        return b""
+        out = response[idx + 11 :]  # len("\nresponse: ") == 11
+        if out.startswith("\nerror: "):
+            # Packets not implemented return empty
+            return b""
+
+        if out[-1] == "\n":
+            out = out[:-1]
+
+        return out.encode()
 
     @override
     def send_monitor(self, cmd: str) -> str:
@@ -1492,10 +1513,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # of ARM. Pwndbg needs that distinction, so we attempt to detect
             # Cortex-M varieties by querying for the presence of the `xpsr`
             # register.
-            has_xpsr = [
-                thread.bottom_frame().regs().by_name("xpsr") is not None
-                for thread in self.threads()
-            ]
+            def _has_xpsr(thread) -> bool:
+                with thread.bottom_frame() as frame:
+                    return frame.regs().by_name("xpsr") is not None
+
+            has_xpsr = [_has_xpsr(thread) for thread in self.threads()]
             assert (
                 all(has_xpsr) or not any(has_xpsr)
             ), "Either all threads are Cortex-M or none are, Pwndbg doesn't know how to handle other cases"
@@ -1505,6 +1527,12 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         elif name == "arm64":
             # Apple uses a different name for AArch64 than we do.
             name = "aarch64"
+        elif name == "riscv32":
+            # Pwndbg use a different name for riscv32.
+            name = "rv32"
+        elif name == "riscv64":
+            # Pwndbg use a different name for riscv64.
+            name = "rv64"
 
         return LLDBArch(name, ptrsize0, endian)
 
@@ -1574,6 +1602,22 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 self.target.debugger.HandleCommand(f"watchpoint command add -F {path} {bp.GetID()}")
 
         return sp
+
+    @override
+    def disasm(self, address: int) -> pwndbg.dbg_mod.DisassembledInstruction | None:
+        instructions = self.target.ReadInstructions(lldb.SBAddress(address, self.target), 1)
+        if not instructions.IsValid() or instructions.GetSize() == 0:
+            return None
+
+        instr: lldb.SBInstruction = instructions.GetInstructionAtIndex(0)
+        mnemonic = instr.GetMnemonic(self.target)
+        operands = instr.GetOperands(self.target)
+
+        return {
+            "addr": instr.GetAddress().GetLoadAddress(self.target),
+            "asm": f"{mnemonic} {operands}",
+            "length": instr.GetByteSize(),
+        }
 
     @override
     def is_linux(self) -> bool:

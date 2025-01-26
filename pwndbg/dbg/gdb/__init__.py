@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import binascii
 import re
 from asyncio import CancelledError
+from contextlib import contextmanager
 from contextlib import nullcontext
 from typing import Any
 from typing import Coroutine
 from typing import Generator
+from typing import Iterator
 from typing import List
 from typing import Literal
 from typing import Optional
@@ -15,6 +16,7 @@ from typing import Tuple
 from typing import TypeVar
 
 import gdb
+import gdb.types
 from typing_extensions import Callable
 from typing_extensions import Set
 from typing_extensions import override
@@ -197,10 +199,10 @@ class GDBThread(pwndbg.dbg_mod.Thread):
         self.inner = inner
 
     @override
-    def bottom_frame(self) -> pwndbg.dbg_mod.Frame:
+    @contextmanager
+    def bottom_frame(self) -> Iterator[pwndbg.dbg_mod.Frame]:
         with selection(self.inner, lambda: gdb.selected_thread(), lambda t: t.switch()):
-            value = gdb.newest_frame()
-        return GDBFrame(value)
+            yield GDBFrame(gdb.newest_frame())
 
     @override
     def ptid(self) -> int | None:
@@ -381,11 +383,23 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
         import pwndbg.aglib.qemu
-        import pwndbg.gdblib.vmmap
+        from pwndbg.aglib.kernel.vmmap import kernel_vmmap
+        from pwndbg.aglib.vmmap_custom import get_custom_pages
+        from pwndbg.gdblib.vmmap import get_known_maps
 
-        pages = pwndbg.gdblib.vmmap.get()
         qemu = pwndbg.aglib.qemu.is_old_qemu_user()
+        proc_maps = get_known_maps()
+        # The `proc_maps` is usually a tuple of Page objects but it can also be:
+        #   None    - when /proc/$tid/maps does not exist/is not available
+        #   tuple() - when the process has no maps yet which happens only during its very early init
+        #             (usually when we attach to a process)
+        if proc_maps is not None:
+            return GDBMemoryMap(qemu, proc_maps)
 
+        pages: List[pwndbg.lib.memory.Page] = []
+        pages.extend(kernel_vmmap())
+        pages.extend(get_custom_pages())
+        pages.sort()
         return GDBMemoryMap(qemu, pages)
 
     @override
@@ -663,6 +677,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         else:
             arch = gdb.execute("show architecture", to_string=True).strip()
             not_exactly_arch = True
+
+        arch = arch.lower()
 
         # Below, we fix the fetched architecture
         for match in pwndbg.aglib.arch_mod.ARCHS:

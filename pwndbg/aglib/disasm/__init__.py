@@ -23,10 +23,10 @@ import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
 from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
-from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
+from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.disasm.instruction import PwndbgInstructionImpl
 from pwndbg.aglib.disasm.instruction import SplitType
-from pwndbg.aglib.disasm.instruction import make_simple_instruction
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 
@@ -206,13 +206,13 @@ def get_one_instruction(
             return cached
 
     if pwndbg.aglib.arch.current not in CapstoneArch:
-        return make_simple_instruction(address)
+        return ManualPwndbgInstruction(address)
 
     md = get_disassembler(address)
     size = VariableInstructionSizeMax.get(pwndbg.aglib.arch.current, 4)
     data = pwndbg.aglib.memory.read(address, size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
-        pwn_ins = PwndbgInstruction(ins)
+        pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins)
 
         if enhance:
             pwndbg.aglib.disasm.arch.DisassemblyAssistant.enhance(pwn_ins, emu)

@@ -138,9 +138,9 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
     arch = pwndbg.aglib.arch.current
     if arch == "aarch64":
         arch_backend = PT_Aarch64_Backend(machine_backend)
-    elif arch == "i386" in arch:
+    elif arch == "i386":
         arch_backend = PT_x86_64_Backend(machine_backend)
-    elif arch == "x86-64" in arch:
+    elif arch == "x86-64":
         arch_backend = PT_x86_64_Backend(machine_backend)
     elif arch == "rv64":
         arch_backend = PT_RiscV64_Backend(machine_backend)
@@ -269,3 +269,41 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
         pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
     return tuple(pages)
+
+
+kernel_vmmap_mode = pwndbg.config.add_param(
+    "kernel-vmmap",
+    "page-tables",
+    "the method to get vmmap information when debugging via QEMU kernel",
+    help_docstring="""\
+kernel-vmmap can be:
+page-tables    - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
+monitor        - use QEMU's `monitor info mem` to render vmmap
+none           - disable vmmap rendering; useful if rendering is particularly slow
+
+Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
+""",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=["page-tables", "monitor", "none"],
+)
+
+
+def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
+    if not pwndbg.aglib.qemu.is_qemu_kernel():
+        return ()
+
+    if pwndbg.aglib.arch.current not in (
+        "i386",
+        "x86-64",
+        "aarch64",
+        "rv32",
+        "rv64",
+    ):
+        return ()
+
+    if kernel_vmmap_mode == "page-tables":
+        return kernel_vmmap_via_page_tables()
+    elif kernel_vmmap_mode == "monitor":
+        return kernel_vmmap_via_monitor_info_mem()
+
+    return ()

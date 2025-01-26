@@ -10,6 +10,7 @@ import pwnlib.rop.srop
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
@@ -65,7 +66,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser)
 @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
+@pwndbg.aglib.proc.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
 def sigreturn(address: int = None, display_all=False, print_address=False) -> None:
     address = pwndbg.aglib.regs.sp if address is None else address
 

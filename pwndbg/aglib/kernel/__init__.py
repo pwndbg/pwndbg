@@ -21,6 +21,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
+import pwndbg.lib.memory
 import pwndbg.search
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
@@ -91,9 +92,11 @@ def nproc() -> int:
     return val
 
 
-def get_first_kernel_ro():
+def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
     """Returns the first kernel mapping which contains the linux_banner"""
     base = kbase()
+    if base is None:
+        return None
 
     for mapping in pwndbg.aglib.vmmap.get():
         if mapping.vaddr < base:

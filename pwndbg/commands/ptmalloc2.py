@@ -804,6 +804,12 @@ parser.add_argument(
     default=False,
     help="Does the GLIBC fastbin size field bug affect the candidate size field width?",
 )
+parser.add_argument(
+    "--partial-overwrite",
+    "-p",
+    action="store_true",
+    help="Consider partial overwrite candidates, default behavior only shows word-size overwrites.",
+)
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
@@ -815,6 +821,7 @@ def find_fake_fast(
     max_candidate_size: int | None = None,
     align: bool = False,
     glibc_fastbin_bug: bool = False,
+    partial_overwrite: bool = False,
 ) -> None:
     """Find candidate fake fast chunks overlapping the specified address."""
     allocator = pwndbg.aglib.heap.current
@@ -867,7 +874,11 @@ def find_fake_fast(
 
     max_candidate_size &= ~(allocator.malloc_align_mask)
 
-    search_start = target_address - max_candidate_size + size_sz
+    if partial_overwrite:
+        search_start = (target_address - max_candidate_size + size_sz) - (size_sz - 1)
+    else:
+        search_start = target_address - max_candidate_size + size_sz
+
     search_end = target_address
 
     if pwndbg.aglib.memory.peek(search_start) is None:
@@ -916,8 +927,14 @@ def find_fake_fast(
                 continue
 
             candidate_address = search_start + i
-            if (candidate_address + size_field) >= (target_address + size_sz):
-                malloc_chunk(candidate_address - size_sz, fake=True)
+
+            if partial_overwrite:
+                if (candidate_address + size_field) > target_address:
+                    malloc_chunk(candidate_address - size_sz, fake=True)
+            else:
+                if (candidate_address + size_field) >= (target_address + size_sz):
+                    malloc_chunk(candidate_address - size_sz, fake=True)
+
         else:
             break
 
