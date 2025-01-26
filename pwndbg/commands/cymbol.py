@@ -154,10 +154,6 @@ def add_custom_structure(custom_structure_name: str) -> None:
 
 
 def add_structure_from_header(header_file: str, custom_structure_name: str = None) -> None:
-    if not os.path.exists(header_file):
-        print(message.error(f"Header file not found: {header_file}"))
-        return
-
     # Properly handle the provided or default name for the custom structure
     custom_structure_name = (
         custom_structure_name.strip()
