@@ -696,7 +696,7 @@ def load_commands() -> None:
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
         import pwndbg.commands.shell
-        import pwndbg.commands.version
+
 
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
@@ -763,6 +763,7 @@ def load_commands() -> None:
     import pwndbg.commands.tips
     import pwndbg.commands.tls
     import pwndbg.commands.valist
+    import pwndbg.commands.version
     import pwndbg.commands.vmmap
     import pwndbg.commands.windbg
     import pwndbg.commands.xinfo
