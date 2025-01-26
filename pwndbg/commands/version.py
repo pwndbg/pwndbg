@@ -44,6 +44,7 @@ def module_version(module):
 def debugger_version():
     if pwndbg.dbg.is_gdblib_available():
         import gdb
+
         return f"GDB:      {gdb.VERSION}"
     else:
         return f"LLDB:     {'.'.join(map(str, pwndbg.dbg_mod.lldb.LLDB_VERSION))}"
@@ -158,7 +159,7 @@ Show us your Pwndbg and any other relevant versions.
 
     # Commented out for now: do we need this? It seems to be a bloat for GDB.
     # People rarely build custom GDB with fancy options...?
-    #setup += get_debugger_configuration()
+    # setup += get_debugger_configuration()
 
     session_history = get_debugger_session_history()
 
@@ -190,6 +191,7 @@ Show us your Pwndbg and any other relevant versions.
 def get_debugger_configuration():
     if pwndbg.dbg.is_gdblib_available():
         import gdb
+
         gdb_config = gdb.execute("show configuration", to_string=True).split("\n")
         return "\n" + "\n".join(gdb_config)
 
