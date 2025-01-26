@@ -66,6 +66,7 @@ def get_target_arch():
 
     if pwndbg.dbg.is_gdblib_available():
         import gdb
+
         # Note: this are only available if given arch is supported by GDB
         # (e.g., `gdb-multiarch` on Ubuntu)
         if arch_info in ("arm", "armcm", "aarch64"):
@@ -200,6 +201,7 @@ def get_debugger_configuration():
 def get_debugger_session_history():
     if pwndbg.dbg.is_gdblib_available():
         import gdb
+
         # get saved history size (not including current gdb session)
         gdb_history_file = gdb.execute("show history filename", to_string=True)
         gdb_history_file = gdb_history_file[
