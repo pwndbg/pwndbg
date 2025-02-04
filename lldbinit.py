@@ -27,7 +27,6 @@ def hash_file(file_path: str | Path) -> str:
     return file_hash.hexdigest()
 
 
-
 def run_uv_install(
     binary_path: os.PathLike[str], src_root: Path, dev: bool = False
 ) -> Tuple[str, str, int]:
@@ -39,7 +38,7 @@ def run_uv_install(
 
 
 def find_uv(venv_path: Path) -> Path | None:
-    poetry_path = shutil.which("uv", path=venv_path / 'bin')
+    poetry_path = shutil.which("uv", path=venv_path / "bin")
     if poetry_path is not None:
         return Path(poetry_path)
 
