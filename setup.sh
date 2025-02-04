@@ -118,6 +118,12 @@ done
 
 PYTHON=''
 
+if osx; then
+  echo "Not supported on macOS. Please use one of the alternative methods listed at:"
+  echo "https://github.com/pwndbg/pwndbg?tab=readme-ov-file#installing-gdb"
+  exit 1
+fi
+
 if linux; then
     distro=$(grep "^ID=" /etc/os-release | cut -d'=' -f2 | sed -e 's/"//g')
 
@@ -173,12 +179,8 @@ if ! hash gdb; then
 fi
 
 # Find the Python version used by GDB.
-PYVER=$(gdb -batch -q --nx -ex 'pi import platform; print(".".join(platform.python_version_tuple()[:2]))')
-PYTHON+=$(gdb -batch -q --nx -ex 'pi import sys; print(sys.executable)')
-
-if ! osx; then
-    PYTHON+="${PYVER}"
-fi
+PYVER=$(gdb -batch -q --nx -ex 'pi import sysconfig; print(sysconfig.get_config_var("VERSION"))')
+PYTHON=$(gdb -batch -q --nx -ex 'pi import sysconfig; print(sysconfig.get_config_var("EXENAME"))')
 
 # Check python version supported: <3.10, 3.99>
 is_supported=$(echo "$PYVER" | grep -E '3\.(10|11|12|13|14|15|16|17|18|19|[2-9][0-9])' || true)
@@ -189,16 +191,7 @@ if [[ -z "$is_supported" ]]; then
     exit 4
 fi
 
-# Install Poetry
-if ! command -v poetry &> /dev/null; then
-    echo "Poetry not found. Installing Poetry..."
-    curl -sSL https://install.python-poetry.org | python3 -
-    export PATH="$HOME/.local/bin:$PATH"
-else
-    echo "Poetry is already installed."
-fi
-
-# Create the Python virtual environment and install dependencies using poetry
+# Create the Python virtual environment and install dependencies using uv
 if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="./.venv"
 fi
@@ -206,7 +199,12 @@ echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
 
 ${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
 source ${PWNDBG_VENV_PATH}/bin/activate
-poetry install
+
+# Install uv
+pip install uv
+
+# Install dependencies
+uv sync --extra gdb
 
 if [ -z "$UPDATE_MODE" ]; then
     if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
