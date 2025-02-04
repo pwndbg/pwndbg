@@ -46,7 +46,7 @@ def run_uv_install(
 ) -> Tuple[str, str, int]:
     command: List[str] = [str(binary_path), "sync", "--extra", "gdb"]
     if dev:
-        command.extend(("--group", "dev"))
+        command.extend(("--all-groups",))
     logging.debug(f"Updating deps with command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True, cwd=src_root)
     return result.stdout.strip(), result.stderr.strip(), result.returncode
