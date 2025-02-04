@@ -1216,6 +1216,11 @@ dependencies = [
     { name = "unicorn" },
 ]
 
+[package.optional-dependencies]
+lldb = [
+    { name = "gnureadline" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "sortedcontainers-stubs" },
@@ -1241,9 +1246,6 @@ lint = [
     { name = "ruff" },
     { name = "vermin" },
 ]
-lldb = [
-    { name = "gnureadline" },
-]
 tests = [
     { name = "coverage", extra = ["toml"] },
     { name = "pytest" },
@@ -1253,6 +1255,7 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "capstone", specifier = ">=5.0.3,<6" },
+    { name = "gnureadline", marker = "extra == 'lldb'", specifier = ">=8.2.10,<9" },
     { name = "ipython", specifier = ">=8.27.0,<9" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
     { name = "pwntools", specifier = ">=4.14.0,<5" },
@@ -1293,7 +1296,6 @@ lint = [
     { name = "ruff", specifier = ">=0.4.1,<0.5" },
     { name = "vermin", specifier = ">=1.6.0,<2" },
 ]
-lldb = [{ name = "gnureadline", specifier = ">=8.2.10,<9" }]
 tests = [
     { name = "coverage", extras = ["toml"], specifier = ">=7.5.0,<8" },
     { name = "pytest", specifier = "==8.0.2" },
