@@ -27,26 +27,21 @@ def hash_file(file_path: str | Path) -> str:
     return file_hash.hexdigest()
 
 
-def run_poetry_install(
-    poetry_path: os.PathLike[str], src_root: Path, dev: bool = False
+
+def run_uv_install(
+    binary_path: os.PathLike[str], src_root: Path, dev: bool = False
 ) -> Tuple[str, str, int]:
-    command: List[str | os.PathLike[str]] = [poetry_path, "install"]
+    command: List[str] = [str(binary_path), "sync", "--extra", "lldb"]
     if dev:
-        command.extend(("--with", "dev"))
+        command.extend(("--group", "dev"))
     result = subprocess.run(command, capture_output=True, text=True, cwd=src_root)
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
-def find_poetry() -> Path | None:
-    poetry_path = shutil.which("poetry")
+def find_uv(venv_path: Path) -> Path | None:
+    poetry_path = shutil.which("uv", path=venv_path / 'bin')
     if poetry_path is not None:
         return Path(poetry_path)
-
-    # On some systems `poetry` is installed in "~/.local/bin/" but this directory is
-    # not on the $PATH
-    poetry_path = Path("~/.local/bin/poetry").expanduser()
-    if poetry_path.exists():
-        return poetry_path
 
     return None
 
@@ -58,33 +53,37 @@ def is_dev_mode(venv_path: Path) -> bool:
 
 
 def update_deps(src_root: Path, venv_path: Path) -> None:
-    poetry_lock_hash_path = venv_path / "poetry.lock.hash"
+    uv_lock_hash_path = venv_path / "uv.lock.hash"
 
-    current_hash = hash_file(src_root / "poetry.lock")
+    current_hash = hash_file(src_root / "uv.lock")
+
     stored_hash = None
-    if poetry_lock_hash_path.exists():
-        stored_hash = poetry_lock_hash_path.read_text().strip()
+    if uv_lock_hash_path.exists():
+        stored_hash = uv_lock_hash_path.read_text().strip()
 
     # If the hashes don't match, update the dependencies
-    if current_hash != stored_hash:
-        poetry_path = find_poetry()
-        if poetry_path is None:
-            print(
-                "Poetry was not found on the $PATH. Please ensure it is installed and on the path, "
-                "or run `./setup.sh` to manually update Python dependencies."
-            )
-            return
+    if current_hash == stored_hash:
+        return
 
-        dev_mode = is_dev_mode(venv_path)
-        stdout, stderr, return_code = run_poetry_install(poetry_path, src_root, dev=dev_mode)
-        if return_code == 0:
-            poetry_lock_hash_path.write_text(current_hash)
+    print("Detected outdated Pwndbg dependencies (uv.lock). Updating.")
+    uv_path = find_uv(venv_path)
+    if uv_path is None:
+        print(
+            "'uv' was not found on the $PATH. Please ensure it is installed and on the path, "
+            "or run `./setup.sh` to manually update Python dependencies."
+        )
+        return
 
-            # Only print the poetry output if anything was actually updated
-            if "No dependencies to install or update" not in stdout:
-                print(stdout)
-        else:
-            print(stderr, file=sys.stderr)
+    dev_mode = is_dev_mode(venv_path)
+    stdout, stderr, return_code = run_uv_install(uv_path, src_root, dev=dev_mode)
+    if return_code == 0:
+        uv_lock_hash_path.write_text(current_hash)
+
+        # Only print the poetry output if anything was actually updated
+        if "No dependencies to install or update" not in stdout:
+            print(stdout)
+    else:
+        print(stderr, file=sys.stderr)
 
 
 def fixup_paths(src_root: Path, venv_path: Path):
