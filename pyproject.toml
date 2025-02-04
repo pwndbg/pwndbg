@@ -1,5 +1,74 @@
+[project]
+name = "pwndbg"
+version = "2025.01.20"
+description = "Exploit Development and Reverse Engineering with GDB Made Easy"
+authors = [{ name = "Dominik 'disconnect3d' Czarnota", email = "dominik.b.czarnota+dc@gmail.com" }]
+requires-python = "~=3.10"
+readme = "README.md"
+dependencies = [
+    "capstone>=5.0.3,<6",
+    "unicorn>=2.1.1,<3",
+    "pwntools>=4.14.0,<5",
+    "sortedcontainers>=2.4.0,<3",
+    "tabulate>=0.9.0,<0.10",
+    "typing-extensions>=4.12.0,<5",
+    "pycparser~=2.22",
+    "pyelftools>=0.29,<0.30",
+    "pygments>=2.18.0,<3",
+    # Optional? only for 'ipi' command
+    "ipython>=8.27.0,<9",
+    # Optional? only for 'ropgadget' command
+    "ropgadget==7.3",
+    # Optional? only for 'ai' commands
+    "requests>=2.32.3,<3",
+    # Optional? only for pretty print traceback
+    "rich>=13.7.1,<14",
+    # Optional? only for qemu-system vmmap
+    "pt",
+]
+
 [tool.ruff]
 line-length = 100
+
+[dependency-groups]
+dev = [
+    "sortedcontainers-stubs>=2.4.2,<3",
+    "types-pygments>=2.17.0.20240310,<3",
+    "types-requests>=2.31.0.20240406,<3",
+    "types-tabulate>=0.9.0.20240106,<0.10",
+    "types-gdb>=12.1.4.20240704,<13",
+]
+lldb = [
+    # The LLDB REPL requires readline.
+    "gnureadline>=8.2.10,<9"
+]
+gdb = []
+lint = [
+    "isort>=5.13.2,<6",
+    "mypy>=1.10.0,<2",
+    "ruff>=0.4.1,<0.5",
+    "vermin>=1.6.0,<2",
+#    "shfmt-py>=3.7.0,<4",
+]
+tests = [
+    # Newer versions of pytest break CI on GitHub
+    "pytest==8.0.2",
+    "pytest-cov>=4.1.0,<5",
+    "coverage[toml]>=7.5.0,<8",
+#    "tomli>=2.0.1,<3",
+#    "testresources>=2.0.1,<3",
+]
+docs = [
+    "mdutils",
+    "mkdocs",
+    "mkdocs-gen-files",
+    "mkdocs-material",
+    "mkdocs-minify-plugin",
+    "mkdocs-rss-plugin",
+    "mkdocstrings",
+    "mkdocstrings-python",
+    "pymdown-extensions",
+]
 
 [tool.ruff.lint]
 ignore = ["A003", "E402", "E501", "E731", "F405", "F821", "W505"]
@@ -24,6 +93,14 @@ select = [
     # "PTH", # flake8-use-pathlib
 ]
 
+[tool.uv]
+default-groups = [
+    "dev",
+]
+
+[tool.uv.sources]
+pt = { git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e94027f811a15879588de6d5cb" }
+
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = [
     "all",
@@ -40,6 +117,16 @@ builtins-ignorelist = [
     "next",
     "type",
 ]
+
+[tool.hatch.build.targets.sdist]
+include = ["pwndbg"]
+
+[tool.hatch.build.targets.wheel]
+include = ["pwndbg"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
@@ -132,7 +219,6 @@ force_single_line = true
 known_third_party = [
     "capstone",
     "unicorn",
-    "psutil",
     "pycparser",
     "gdb",
     "lldb",
@@ -149,79 +235,3 @@ data_file = ".cov/coverage"
 
 [tool.coverage.report]
 omit = ["ida_script.py", "tests/*"]
-
-[tool.poetry]
-name = "pwndbg"
-description = "Exploit Development and Reverse Engineering with GDB Made Easy"
-version = "2025.01.20"
-authors = ["Dominik 'disconnect3d' Czarnota <dominik.b.czarnota+dc@gmail.com>"]
-readme = "README.md"
-packages = [{ include = "pwndbg" }]
-
-[tool.poetry.dependencies]
-python = "^3.10"
-capstone = "^5.0.3"
-ipython = "^8.27.0"
-# Needed by Capstone due to https://github.com/pwndbg/pwndbg/pull/1946#issuecomment-1921603947
-setuptools = "^70.0.0"
-psutil = "^5.9.8"
-pwntools = "^4.14.0b0"
-pycparser = "^2.22"
-pyelftools = "^0.29"
-pygments = "^2.18.0"
-ropgadget = "7.3"
-sortedcontainers = "^2.4.0"
-tabulate = "^0.9.0"
-typing-extensions = "^4.12.0"
-unicorn = "^2.1.1"
-requests = "^2.32.3"
-pt = { git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e94027f811a15879588de6d5cb" }
-# Newer versions of bcrypt break NIX. Who need bcrypt: pwntools->paramiko->bcrypt
-bcrypt = "4.2.0"
-
-[tool.poetry.group.lldb]
-optional = true
-
-[tool.poetry.group.lldb.dependencies]
-# The LLDB REPL requires readline.
-gnureadline = "^8.2.10"
-
-[tool.poetry.group.dev]
-optional = true
-
-[tool.poetry.group.dev.dependencies]
-coverage = { version = "^7.5.0", extras = ["toml"] }
-isort = "^5.13.2"
-mypy = "^1.10.0"
-# Newer versions of pytest break CI on GitHub
-pytest = "8.0.2"
-pytest-cov = "^4.1.0"
-rich = "^13.7.1"
-ruff = "^0.4.1"
-sortedcontainers-stubs = "^2.4.2"
-testresources = "^2.0.1"
-tomli = "^2.0.1"
-types-gdb = "^12.1.4.20240704"
-types-psutil = "^5.9.5.20240423"
-types-pygments = "^2.17.0.20240310"
-types-requests = "^2.31.0.20240406"
-types-tabulate = "^0.9.0.20240106"
-vermin = "^1.6.0"
-
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-mdutils = "*"
-mkdocs = "*"
-mkdocs-gen-files = "*"
-mkdocs-material = "*"
-mkdocs-minify-plugin = "*"
-mkdocs-rss-plugin = "*"
-mkdocstrings = "*"
-mkdocstrings-python = "*"
-pymdown-extensions = "*"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"

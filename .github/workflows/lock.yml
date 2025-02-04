@@ -104,7 +104,7 @@ jobs:
     - name: check flake.lock
       run: nix flake lock --no-update-lock-file
 
-  lock_poetry:
+  lock_uv:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -113,9 +113,8 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
-    - name: install poetry
-      run: nix profile install --inputs-from . nixpkgs#poetry
+    - name: install uv
+      run: nix profile install --inputs-from . nixpkgs#uv
 
-    - name: check poetry.lock
-      run: poetry check --lock
-
+    - name: check uv.lock
+      run: uv lock --locked
