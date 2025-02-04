@@ -119,9 +119,9 @@ done
 PYTHON=''
 
 if osx; then
-  echo "Not supported on macOS. Please use one of the alternative methods listed at:"
-  echo "https://github.com/pwndbg/pwndbg?tab=readme-ov-file#installing-gdb"
-  exit 1
+    echo "Not supported on macOS. Please use one of the alternative methods listed at:"
+    echo "https://github.com/pwndbg/pwndbg?tab=readme-ov-file#installing-gdb"
+    exit 1
 fi
 
 if linux; then
