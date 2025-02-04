@@ -219,7 +219,7 @@ Want to help with development? Read [CONTRIBUTING](https://github.com/pwndbg/pwn
 ## How to develop?
 To run tests locally you can do this in docker image, after cloning repo run simply
 ```shell
-docker-compose run main ./tests.sh
+docker compose run main ./tests.sh
 ```
 Disclaimer - this won't work on apple silicon macs.
 
