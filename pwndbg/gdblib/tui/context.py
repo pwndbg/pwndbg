@@ -187,9 +187,21 @@ class ContextTUIWindow:
                 char_count += 1
             colored_idx += 1
         return (
-            ansi_escape_before_start
-            + line[colored_start_idx:colored_end_idx]
-            + ansi_escape_after_end
+            (
+                ansi_escape_before_start
+                + line[colored_start_idx:colored_end_idx]
+                + ansi_escape_after_end
+                # Workaround for display bug in GDB TUI ANSI escape sequence translation.
+                # Only resetting the foreground or background colors results in
+                # generating wrong colors in the TUI.
+                # The workaround is to avoid the sequences that only reset the colors
+                # and replace them with a full reset sequence.
+                # It resets other styling attributes like bold too but it's better
+                # than having wrong colors.
+                # https://github.com/pwndbg/pwndbg/issues/2654
+            )
+            .replace("\x1b[39m", "\x1b[0m")
+            .replace("\x1b[49m", "\x1b[0m")
         )
 
 
