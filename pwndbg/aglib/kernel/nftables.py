@@ -118,7 +118,7 @@ class Expr:
     def print(self, print_nested: bool = True):
         expr_name = self.expr_name
         addr = int(self._addr["data"].address)
-        print(f'{expr_name} @ 0x{addr:x}')
+        print(f"{expr_name} @ 0x{addr:x}")
 
         if not print_nested:
             return
