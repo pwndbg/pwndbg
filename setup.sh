@@ -178,9 +178,25 @@ if ! hash gdb; then
     exit 3
 fi
 
-# Find the Python version used by GDB.
+# Find the Python used in compilation by GDB.
 PYVER=$(gdb -batch -q --nx -ex 'pi import sysconfig; print(sysconfig.get_config_var("VERSION"))')
-PYTHON=$(gdb -batch -q --nx -ex 'pi import sysconfig; print(sysconfig.get_config_var("EXENAME"))')
+PYTHON=$(gdb -batch -q --nx -ex 'pi import sysconfig; print(sysconfig.get_config_vars().get("EXENAME", sysconfig.get_config_var("BINDIR")+"/python"+sysconfig.get_config_var("VERSION")+sysconfig.get_config_var("EXE")))')
+
+if [ ! -x "$PYTHON" ]; then
+    echo "Error: '$PYTHON' does not exist or is not executable."
+    echo ""
+    echo "It looks like GDB is using a different Python version than the one installed via the package manager."
+    echo ""
+    echo "Possible solutions:"
+    echo "  1. Try installing 'python-$PYVER' manually using your package manager."
+    echo "     Example (for Debian/Ubuntu/Kali): 'sudo apt install python$PYVER'"
+    echo "     Example (for Fedora/RHEL): 'sudo dnf install python$PYVER'"
+    echo "  2. Check if an alternative Python version is available and update your \$PATH."
+    echo "  3. Verify your GDB configuration and ensure it supports the correct Python version."
+    echo ""
+    echo "After making the necessary changes, rerun ./setup.sh"
+    exit 1
+fi
 
 # Check python version supported: <3.10, 3.99>
 is_supported=$(echo "$PYVER" | grep -E '3\.(10|11|12|13|14|15|16|17|18|19|[2-9][0-9])' || true)
