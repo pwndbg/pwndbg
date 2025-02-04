@@ -75,6 +75,9 @@ fi
 linux() {
     uname | grep -i Linux &> /dev/null
 }
+osx() {
+    uname | grep -iqs Darwin
+}
 
 set_zigpath() {
     if [[ -z "$ZIGPATH" ]]; then
@@ -250,13 +253,19 @@ configure_venv() {
     echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
 
     source "${PWNDBG_VENV_PATH}/bin/activate"
-    ~/.local/bin/poetry install --with dev
+    uv sync --all-groups --extra gdb
 
     # Create a developer marker file
     DEV_MARKER_PATH="${PWNDBG_VENV_PATH}/dev.marker"
     touch "${DEV_MARKER_PATH}"
     echo "Developer marker created at ${DEV_MARKER_PATH}"
 }
+
+if osx; then
+    echo "Not supported on macOS. Please use one of the alternative methods listed at:"
+    echo "https://github.com/pwndbg/pwndbg?tab=readme-ov-file#installing-gdb"
+    exit 1
+fi
 
 if linux; then
     distro=$(
