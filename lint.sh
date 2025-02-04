@@ -38,15 +38,7 @@ fi
 set -o xtrace
 
 LINT_FILES="pwndbg tests *.py"
-LINT_TOOLS="isort ruff vermin mypy"
-
-if ! type ${LINT_TOOLS} &> /dev/null; then
-    PIP_CMD="poetry install --with dev"
-    echo "Missing one of the following tools: ${LINT_TOOLS}"
-    echo "Running '${PIP_CMD}'"
-
-    $PIP_CMD
-fi
+LINT_CMD="uv run --only-group lint"
 
 call_shfmt() {
     local FLAGS=$1
@@ -61,13 +53,13 @@ call_shfmt() {
 }
 
 if [[ $FIX == 1 ]]; then
-    isort ${LINT_FILES}
-    ruff format ${LINT_FILES}
-    ruff check --fix --output-format=full ${LINT_FILES}
+    $LINT_CMD isort ${LINT_FILES}
+    $LINT_CMD ruff format ${LINT_FILES}
+    $LINT_CMD ruff check --fix --output-format=full ${LINT_FILES}
     call_shfmt -w
 else
-    isort --check-only --diff ${LINT_FILES}
-    ruff format --check --diff ${LINT_FILES}
+    $LINT_CMD isort --check-only --diff ${LINT_FILES}
+    $LINT_CMD ruff format --check --diff ${LINT_FILES}
     call_shfmt
 
     if [[ -z "$GITHUB_ACTIONS" ]]; then
@@ -76,13 +68,13 @@ else
         RUFF_OUTPUT_FORMAT=github
     fi
 
-    ruff check --output-format="${RUFF_OUTPUT_FORMAT}" ${LINT_FILES}
+    $LINT_CMD ruff check --output-format="${RUFF_OUTPUT_FORMAT}" ${LINT_FILES}
 fi
 
 # Checking minimum python version
-vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
+$LINT_CMD vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then
-    mypy pwndbg gdbinit.py lldbinit.py pwndbg-lldb.py
+    $LINT_CMD mypy pwndbg gdbinit.py lldbinit.py pwndbg-lldb.py
 fi
