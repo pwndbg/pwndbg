@@ -188,7 +188,7 @@ if [ ! -x "$PYTHON" ]; then
     echo "It looks like GDB is using a different Python version than the one installed via the package manager."
     echo ""
     echo "Possible solutions:"
-    echo "  1. Try installing 'python-$PYVER' manually using your package manager."
+    echo "  1. Try installing 'python$PYVER' manually using your package manager."
     echo "     Example (for Debian/Ubuntu/Kali): 'sudo apt install python$PYVER'"
     echo "     Example (for Fedora/RHEL): 'sudo dnf install python$PYVER'"
     echo "  2. Verify your GDB configuration and ensure it supports the correct Python version."
