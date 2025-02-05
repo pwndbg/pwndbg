@@ -191,8 +191,7 @@ if [ ! -x "$PYTHON" ]; then
     echo "  1. Try installing 'python-$PYVER' manually using your package manager."
     echo "     Example (for Debian/Ubuntu/Kali): 'sudo apt install python$PYVER'"
     echo "     Example (for Fedora/RHEL): 'sudo dnf install python$PYVER'"
-    echo "  2. Check if an alternative Python version is available and update your \$PATH."
-    echo "  3. Verify your GDB configuration and ensure it supports the correct Python version."
+    echo "  2. Verify your GDB configuration and ensure it supports the correct Python version."
     echo ""
     echo "After making the necessary changes, rerun ./setup.sh"
     exit 1
