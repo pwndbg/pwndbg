@@ -78,7 +78,7 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
     if return_code == 0:
         uv_lock_hash_path.write_text(current_hash)
 
-        # Only print the poetry output if anything was actually updated
+        # Only print the uv output if anything was actually updated
         if "No dependencies to install or update" not in stdout:
             print(stdout)
     else:

@@ -13,19 +13,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
 
-      - name: Install poetry
-        run: curl -sSL https://install.python-poetry.org | python3 -
-
-      - name: Install dependencies
-        run: poetry install --with docs
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
       - name: Copy README.md to docs/index.md
         run: cp README.md docs/index.md
 
       - name: Build site
         run: |
-          source .venv/bin/activate
-          mkdocs build
+          uv run --only-group docs mkdocs build
 
   deploy:
     if: github.event_name == 'push' && contains(fromJson('["refs/heads/dev"]'), github.ref)
@@ -36,16 +32,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
 
-      - name: Install poetry
-        run: curl -sSL https://install.python-poetry.org | python3 -
-
-      - name: Install dependencies
-        run: poetry install --with docs
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
       - name: Copy README.md to docs/index.md
         run: cp README.md docs/index.md
 
       - name: Deploy site
         run: |
-          source .venv/bin/activate
-          mkdocs gh-deploy --force
+          uv run --only-group docs mkdocs gh-deploy --force

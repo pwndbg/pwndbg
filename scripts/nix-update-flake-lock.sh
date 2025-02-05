@@ -1,2 +1,2 @@
 #!/bin/sh
-nix --extra-experimental-features nix-command --extra-experimental-features flakes flake update poetry2nix
+nix --extra-experimental-features "nix-command flakes" flake update

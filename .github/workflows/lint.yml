@@ -44,7 +44,7 @@ jobs:
         level: error
         # Change the current directory to run mypy command.
         # mypy command reads setup.cfg or other settings file in this path.
-        execute_command: poetry run mypy
+        execute_command: uv run --only-group lint mypy
         install_types: false
         target: pwndbg
         filter_mode: nofilter
