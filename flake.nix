@@ -137,12 +137,23 @@
             isDev = true;
             isLLDB = true;
           };
-          pwndbg-lldb-riscv64 = import ./nix/pwndbg.nix {
-            pkgs = pkgsBySystem.${system}.pkgsCross.riscv64;
-            python3 = pkgsBySystem.${system}.pkgsCross.riscv64.python3;
-            lldb = pkgsBySystem.${system}.pkgsCross.riscv64.lldb_19;
+          pyenv-sdist = import ./nix/pyenv.nix {
+            pkgs = pkgsBySystem.${system};
+            python3 = pkgsBySystem.${system}.python3;
             inputs = inputs;
-            isLLDB = true;
+            preferWheel = false;
+          };
+          pyenv-wheel = import ./nix/pyenv.nix {
+            pkgs = pkgsBySystem.${system};
+            python3 = pkgsBySystem.${system}.python3;
+            inputs = inputs;
+            preferWheel = true;
+          };
+          pyenv-sdist-riscv64 = import ./nix/pyenv.nix {
+            pkgs = pkgsBySystem.${system}.pkgsCross.riscv64;
+            python3 = pkgsBySystem.${system}.python3;
+            inputs = inputs;
+            preferWheel = false;
           };
         }
         // (portableDrvs system)

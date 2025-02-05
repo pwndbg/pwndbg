@@ -4,6 +4,7 @@
   inputs,
   isDev ? false,
   isLLDB ? false,
+  preferWheel ? false,
   ...
 }:
 let
@@ -12,8 +13,7 @@ let
   workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = "${inputs.self}"; };
 
   pyprojectOverlay = workspace.mkPyprojectOverlay {
-#        sourcePreference = "sdist";
-    sourcePreference = "wheel";
+    sourcePreference = if preferWheel then "wheel" else "sdist";
   };
 
   pkgsNeedSetuptools = [
@@ -114,9 +114,6 @@ let
   isBuildWheel = old: lib.strings.hasSuffix ".whl" old.src.name;
   isBuildSource = old: !(isBuildWheel old);
 
-  pyprojectOverrides0 = final: prev: {
-  };
-
   pyprojectOverrides1 =
     final: prev:
     (genPkgsNeeded pkgsNeedSetuptools [ "setuptools" ] final prev)
@@ -125,7 +122,6 @@ let
     // (genPkgsNeeded pkgsNeedPoetry [ "poetry-core" ] final prev);
 
   pyprojectOverrides2 = final: prev: {
-#    cryptography = final.psutil;
     cryptography =
       if (isBuildWheel prev.cryptography) then
         prev.cryptography
@@ -147,7 +143,7 @@ let
           })
         );
 
-    # https://github.com/ffi/ffi/issues/687#issuecomment-468005152
+    # TODO: check why `cffi` is broken only for macOS
     cffi = prev.cffi.overrideAttrs (old: {
       nativeBuildInputs = old.nativeBuildInputs ++ [ pkgs.pkg-config ];
       buildInputs = (old.buildInputs or [ ]) ++ [ pkgs.libffi ];
@@ -245,19 +241,17 @@ let
     });
   };
 
-  pythonSet =
-    (pkgs.callPackage inputs.pyproject-nix.build.packages {
-      python = python3;
-    }).overrideScope
-      (
-        lib.composeManyExtensions [
-          inputs.pyproject-build-systems.overlays.default
-          pyprojectOverlay
-          pyprojectOverrides0
-          pyprojectOverrides1
-          pyprojectOverrides2
-        ]
-      );
+  overlays = lib.composeManyExtensions [
+    inputs.pyproject-build-systems.overlays.default
+    pyprojectOverlay
+    pyprojectOverrides1
+    pyprojectOverrides2
+  ];
+
+  baseSet = pkgs.callPackage inputs.pyproject-nix.build.packages {
+    python = python3;
+  };
+  pythonSet = baseSet.overrideScope overlays;
 
   pyenv = pythonSet.mkVirtualEnv "pwndbg-env" {
     pwndbg =
