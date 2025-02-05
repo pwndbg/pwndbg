@@ -10,17 +10,33 @@
     ];
   };
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-  inputs.poetry2nix = {
-    url = "github:nix-community/poetry2nix";
-    inputs.nixpkgs.follows = "nixpkgs";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    pyproject-nix = {
+      url = "github:pyproject-nix/pyproject.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    uv2nix = {
+      url = "github:pyproject-nix/uv2nix";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    pyproject-build-systems = {
+      url = "github:pyproject-nix/build-system-pkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.uv2nix.follows = "uv2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
-    {
+    inputs@{
       self,
       nixpkgs,
-      poetry2nix,
+      ...
     }:
     let
       # Self contained packages for: Debian, RHEL-like (yum, rpm), Alpine, Arch packages
@@ -45,7 +61,6 @@
         import nixpkgs {
           inherit system;
           overlays = [
-            poetry2nix.overlays.default
             overlayDarwin
           ];
         }
@@ -95,13 +110,13 @@
               pkgs = pkgsBySystem.${systemfix};
               python3 = pkgsBySystem.${systemfix}.python3;
               gdb = pkgsBySystem.${systemfix}.gdb;
-              inputs.pwndbg = self;
+              inputs = inputs;
             };
             pwndbg-dev = import ./nix/pwndbg.nix {
               pkgs = pkgsBySystem.${systemfix};
               python3 = pkgsBySystem.${systemfix}.python3;
               gdb = pkgsBySystem.${systemfix}.gdb;
-              inputs.pwndbg = self;
+              inputs = inputs;
               isDev = true;
             };
           }
@@ -110,9 +125,23 @@
           pwndbg-lldb = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             python3 = pkgsBySystem.${system}.python3;
-            gdb = pkgsBySystem.${system}.gdb;
-            inputs.pwndbg = self;
+            lldb = pkgsBySystem.${system}.lldb_19;
+            inputs = inputs;
+            isLLDB = true;
+          };
+          pwndbg-lldb-dev = import ./nix/pwndbg.nix {
+            pkgs = pkgsBySystem.${system};
+            python3 = pkgsBySystem.${system}.python3;
+            lldb = pkgsBySystem.${system}.lldb_19;
+            inputs = inputs;
             isDev = true;
+            isLLDB = true;
+          };
+          pwndbg-lldb-riscv64 = import ./nix/pwndbg.nix {
+            pkgs = pkgsBySystem.${system}.pkgsCross.riscv64;
+            python3 = pkgsBySystem.${system}.pkgsCross.riscv64.python3;
+            lldb = pkgsBySystem.${system}.pkgsCross.riscv64.lldb_19;
+            inputs = inputs;
             isLLDB = true;
           };
         }
@@ -125,7 +154,7 @@
         import ./nix/devshell.nix {
           pkgs = pkgsBySystem.${system};
           python3 = pkgsBySystem.${system}.python3;
-          inputs.pwndbg = self;
+          inputs = inputs;
           isLLDB = true;
         }
       );
