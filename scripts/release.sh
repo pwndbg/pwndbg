@@ -8,8 +8,8 @@
 O="--extra-experimental-features nix-command --extra-experimental-features flakes"
 
 nix build $O '.#pwndbg' -o result-pwndbg
-nix build $O '.#rpm' -o dist-rpm
-nix build $O '.#deb' -o dist-deb
-nix build $O '.#apk' -o dist-apk
-nix build $O '.#archlinux' -o dist-archlinux
-nix build $O '.#tarball' -o dist-tarball
+nix build $O '.#pwndbg-gdb-portable-rpm' -o dist-rpm
+nix build $O '.#pwndbg-gdb-portable-deb' -o dist-deb
+nix build $O '.#pwndbg-gdb-portable-apk' -o dist-apk
+nix build $O '.#pwndbg-gdb-portable-archlinux' -o dist-archlinux
+nix build $O '.#pwndbg-gdb-portable-tarball' -o dist-tarball

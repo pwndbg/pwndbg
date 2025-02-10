@@ -19,6 +19,7 @@ let
     "riscv64-linux" = "riscv64";
     "loongarch64-linux" = "loongarch64";
     "powerpc64-linux" = "powerpc64";
+    "powerpc64le-linux" = "powerpc64le";
     "s390x-linux" = "s390x";
     "mipsel-linux" = "mips32el";
     "mips64el-linux" = "mips64el";

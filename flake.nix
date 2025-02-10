@@ -47,11 +47,32 @@
         "apk"
         "archlinux"
       ];
+      crossNames = {
+        "x86_32" = "gnu32";
+        "x86_64" = "gnu64";
+        "arm32" = "armv7l-hf-multiplatform";
+        "arm64" = "aarch64-multiplatform";
+        "riscv64" = "riscv64";
+        "s390x" = "s390x";
+        "mips32el" = "mipsel-linux-gnu"; # broken unicorn - missing libatomic128
+        "mips64el" = "mips64el-linux-gnuabi64"; # only gdb works fine, broken lldb build
+        "ppc64" = "ppc64"; # broken stdenv on nixpkgs-unstable
+        "loong64" = "loongarch64-linux"; # broken stdenv on nixpkgs-unstable
+      };
+      mapKeysWithName =
+        formatfunc: values:
+        (nixpkgs.lib.attrsets.mapAttrs' (
+          name: value: {
+            name = (formatfunc name);
+            value = value;
+          }
+        ))
+          values;
 
       overlayDarwin =
         final: prev:
         nixpkgs.lib.optionalAttrs prev.stdenv.isDarwin {
-          gdb = prev.gdb.override {
+          pwndbg_gdb = prev.pwndbg_gdb.override {
             # Darwin version of libiconv causes issues with our portable build
             libiconv = prev.pkgsStatic.libiconvReal;
           };
@@ -61,7 +82,15 @@
         import nixpkgs {
           inherit system;
           overlays = [
+            (final: prev: {
+              pwndbg_gdb = prev.gdb;
+              pwndbg_lldb = prev.lldb_19;
+            })
             overlayDarwin
+            (final: prev: {
+              pwndbg_gdb = import ./nix/overlay/gdb.nix { prev = prev; };
+              pwndbg_lldb = import ./nix/overlay/lldb.nix { prev = prev; };
+            })
           ];
         }
       );
@@ -81,19 +110,83 @@
         };
       portableDrvs =
         system:
-        forPortables (
-          packager:
-          pkgUtil.${system}.buildPackagePFPM {
-            inherit packager;
-            drv = portableDrv system;
-            config = ./nix/bundle/nfpm.yaml;
-            preremove = ./nix/bundle/preremove.sh;
-          }
+        nixpkgs.lib.optionalAttrs pkgsBySystem.${system}.stdenv.isLinux (
+          mapKeysWithName (name: "pwndbg-gdb-portable-${name}") (
+            forPortables (
+              packager:
+              pkgUtil.${system}.buildPackagePFPM {
+                inherit packager;
+                drv = portableDrv system;
+                config = ./nix/bundle/nfpm.yaml;
+                preremove = ./nix/bundle/preremove.sh;
+              }
+            )
+          )
         );
       tarballDrv = system: {
-        tarball = pkgUtil.${system}.buildPackageTarball { drv = portableDrv system; };
-        tarball-lldb = pkgUtil.${system}.buildPackageTarball { drv = portableDrvLldb system; };
+        "pwndbg-gdb-portable-tarball" = pkgUtil.${system}.buildPackageTarball { drv = portableDrv system; };
+        "pwndbg-lldb-portable-tarball" = pkgUtil.${system}.buildPackageTarball {
+          drv = portableDrvLldb system;
+        };
       };
+      pwndbg_gdb_drvs = (
+        pkgs: {
+          pwndbg = import ./nix/pwndbg.nix {
+            pkgs = pkgs;
+            inputs = inputs;
+          };
+          pwndbg-dev = import ./nix/pwndbg.nix {
+            pkgs = pkgs;
+            inputs = inputs;
+            isDev = true;
+          };
+        }
+      );
+      pwndbg_lldb_drvs = (
+        pkgs: {
+          pwndbg-lldb = import ./nix/pwndbg.nix {
+            pkgs = pkgs;
+            inputs = inputs;
+            isLLDB = true;
+          };
+          pwndbg-lldb-dev = import ./nix/pwndbg.nix {
+            pkgs = pkgs;
+            inputs = inputs;
+            isDev = true;
+            isLLDB = true;
+          };
+        }
+      );
+      tarballCrossDrv =
+        system: cross: attrs:
+        (pkgUtil.${system}.buildPackageTarball {
+          drv = (
+            import ./nix/portable.nix {
+              pkgs = pkgsBySystem.${system}.pkgsCross.${crossNames.${cross}};
+              pwndbg = (
+                import ./nix/pwndbg.nix (
+                  {
+                    pkgs = pkgsBySystem.${system}.pkgsCross.${crossNames.${cross}};
+                    inputs = inputs;
+                  }
+                  // attrs
+                )
+              );
+            }
+          );
+        });
+      crossDrvs =
+        system:
+        nixpkgs.lib.optionalAttrs pkgsBySystem.${system}.stdenv.isLinux (
+          (nixpkgs.lib.attrsets.mapAttrs' (cross: value: {
+            name = "pwndbg-gdb-cross-${cross}-tarball";
+            value = tarballCrossDrv system cross { };
+          }) crossNames)
+          // (nixpkgs.lib.attrsets.mapAttrs' (cross: value: {
+            name = "pwndbg-lldb-cross-${cross}-tarball";
+            value = tarballCrossDrv system cross { isLLDB = true; };
+          }) crossNames)
+        );
     in
     {
       packages = forAllSystems (
@@ -101,70 +194,19 @@
         {
           default = self.packages.${system}.pwndbg;
         }
-        // (
-          let
-            systemfix = if (system == "aarch64-darwin") then "x86_64-darwin" else system;
-          in
-          {
-            pwndbg = import ./nix/pwndbg.nix {
-              pkgs = pkgsBySystem.${systemfix};
-              python3 = pkgsBySystem.${systemfix}.python3;
-              gdb = pkgsBySystem.${systemfix}.gdb;
-              inputs = inputs;
-            };
-            pwndbg-dev = import ./nix/pwndbg.nix {
-              pkgs = pkgsBySystem.${systemfix};
-              python3 = pkgsBySystem.${systemfix}.python3;
-              gdb = pkgsBySystem.${systemfix}.gdb;
-              inputs = inputs;
-              isDev = true;
-            };
-          }
-        )
-        // {
-          pwndbg-lldb = import ./nix/pwndbg.nix {
-            pkgs = pkgsBySystem.${system};
-            python3 = pkgsBySystem.${system}.python3;
-            lldb = pkgsBySystem.${system}.lldb_19;
-            inputs = inputs;
-            isLLDB = true;
-          };
-          pwndbg-lldb-dev = import ./nix/pwndbg.nix {
-            pkgs = pkgsBySystem.${system};
-            python3 = pkgsBySystem.${system}.python3;
-            lldb = pkgsBySystem.${system}.lldb_19;
-            inputs = inputs;
-            isDev = true;
-            isLLDB = true;
-          };
-          pyenv-sdist = import ./nix/pyenv.nix {
-            pkgs = pkgsBySystem.${system};
-            python3 = pkgsBySystem.${system}.python3;
-            inputs = inputs;
-            preferWheel = false;
-          };
-          pyenv-wheel = import ./nix/pyenv.nix {
-            pkgs = pkgsBySystem.${system};
-            python3 = pkgsBySystem.${system}.python3;
-            inputs = inputs;
-            preferWheel = true;
-          };
-          pyenv-sdist-riscv64 = import ./nix/pyenv.nix {
-            pkgs = pkgsBySystem.${system}.pkgsCross.riscv64;
-            python3 = pkgsBySystem.${system}.python3;
-            inputs = inputs;
-            preferWheel = false;
-          };
-        }
+        // (crossDrvs system)
         // (portableDrvs system)
         // (tarballDrv system)
+        // (pwndbg_gdb_drvs (
+          pkgsBySystem.${if (system == "aarch64-darwin") then "x86_64-darwin" else system}
+        ))
+        // (pwndbg_lldb_drvs (pkgsBySystem.${system}))
       );
 
       devShells = forAllSystems (
         system:
         import ./nix/devshell.nix {
           pkgs = pkgsBySystem.${system};
-          python3 = pkgsBySystem.${system}.python3;
           inputs = inputs;
           isLLDB = true;
         }

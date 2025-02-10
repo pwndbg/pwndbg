@@ -163,7 +163,8 @@ let
         meta = {
           name = pwndbg.name;
           version = pwndbg.version;
-          architecture = if isLLDB then lldb.stdenv.targetPlatform.system else gdb.stdenv.targetPlatform.system;
+          architecture =
+            if isLLDB then lldb.stdenv.targetPlatform.system else gdb.stdenv.targetPlatform.system;
         };
       }
       ''
