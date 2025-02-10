@@ -48,20 +48,18 @@ lint = [
     "isort>=5.13.2,<6",
     "ruff>=0.4.1,<0.5",
     "vermin>=1.6.0,<2",
-#    "shfmt-py>=3.7.0,<4",
 ]
 tests = [
     # Newer versions of pytest break CI on GitHub
     "pytest==8.0.2",
     "pytest-cov>=4.1.0,<5",
     "coverage[toml]>=7.5.0,<8",
-#    "tomli>=2.0.1,<3",
-#    "testresources>=2.0.1,<3",
 ]
 docs = [
     "mdutils",
-    # Newer mkdocs is broken with our markdowns?
-    "mkdocs==1.6.1",
+    # Newer mkdocs-autorefs is broken with our markdowns?
+    "mkdocs-autorefs==1.2.0",
+    "mkdocs",
     "mkdocs-gen-files",
     "mkdocs-material",
     "mkdocs-minify-plugin",
