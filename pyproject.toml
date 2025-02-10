@@ -43,8 +43,9 @@ dev = [
     "types-gdb>=12.1.4.20240704,<13",
 ]
 lint = [
+    # Newer mypy has more types to fix. Please fix types in the future.
+    "mypy==1.13.0",
     "isort>=5.13.2,<6",
-    "mypy>=1.10.0,<2",
     "ruff>=0.4.1,<0.5",
     "vermin>=1.6.0,<2",
 #    "shfmt-py>=3.7.0,<4",
@@ -59,7 +60,8 @@ tests = [
 ]
 docs = [
     "mdutils",
-    "mkdocs",
+    # Newer mkdocs is broken with our markdowns?
+    "mkdocs==1.6.1",
     "mkdocs-gen-files",
     "mkdocs-material",
     "mkdocs-minify-plugin",
