@@ -25,7 +25,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        apt install -y shfmt python3 python3-venv
+        sudo apt install -y shfmt python3 python3-venv
         python3 -m venv -- .venv
         ./.venv/bin/pip install uv
         ./.venv/bin/uv sync --group dev --extra gdb --extra lldb
