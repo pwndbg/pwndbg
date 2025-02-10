@@ -10,6 +10,18 @@ let
     "armv7l-linux" = "armv7";
 
     "riscv64-linux" = "riscv64";
+  };
+  portableArchs = {
+    "i686-linux" = "x86_32";
+    "x86_64-linux" = "x86_64";
+    "aarch64-linux" = "arm64";
+    "armv7l-linux" = "armv7";
+    "riscv64-linux" = "riscv64";
+    "loongarch64-linux" = "loongarch64";
+    "powerpc64-linux" = "powerpc64";
+    "s390x-linux" = "s390x";
+    "mipsel-linux" = "mips32el";
+    "mips64el-linux" = "mips64el";
 
     "aarch64-darwin" = "macos_arm64";
     "x86_64-darwin" = "macos_amd64";
@@ -63,7 +75,7 @@ let
         mkdir -p ./dist
         ln -s ${drv} ./result
         export DIST_TAR=$PWD/dist/${drv.meta.name}_${drv.meta.version}_${
-          pfpmArchs.${drv.meta.architecture}
+          portableArchs.${drv.meta.architecture}
         }-portable.tar.xz
 
         pushd ./result

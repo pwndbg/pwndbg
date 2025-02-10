@@ -1,11 +1,12 @@
 {
   pkgs,
-  python3,
   inputs,
-  gdb ? null,
-  lldb ? null,
+  python3 ? pkgs.python3,
+  gdb ? pkgs.pwndbg_gdb,
+  lldb ? pkgs.pwndbg_lldb,
   isDev ? false,
   isLLDB ? false,
+  ...
 }:
 let
   lib = pkgs.lib;
@@ -36,11 +37,15 @@ let
     in
     version;
 
-  pwndbg =
+  pwndbg = pkgs.callPackage (
+    {
+      stdenv,
+      makeWrapper,
+    }:
     let
       pwndbgName = if isLLDB then "pwndbg-lldb" else "pwndbg";
     in
-    pkgs.stdenv.mkDerivation {
+    stdenv.mkDerivation {
       name = pwndbgName;
       version = pwndbgVersion;
 
@@ -62,7 +67,7 @@ let
         )
       );
 
-      nativeBuildInputs = [ pkgs.makeWrapper ];
+      nativeBuildInputs = [ makeWrapper ];
       buildInputs = [ pyEnv ];
 
       installPhase =
@@ -96,7 +101,7 @@ let
               wrapProgram $out/bin/${pwndbgName} \
                 --prefix PATH : ${lib.makeBinPath [ lldb ]} \
             ''
-            + (lib.optionalString (!pkgs.stdenv.isDarwin) ''
+            + (lib.optionalString (!stdenv.isDarwin) ''
               --set LLDB_DEBUGSERVER_PATH ${lib.makeBinPath [ lldb ]}/lldb-server \
             '')
             + ''
@@ -125,6 +130,7 @@ let
         lldb = lldb;
         isLLDB = isLLDB;
       };
-    };
+    }
+  ) { };
 in
 pwndbg

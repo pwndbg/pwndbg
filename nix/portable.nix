@@ -1,30 +1,35 @@
 {
-  pkgs ? import <nixpkgs> { },
-  pwndbg ? import ./pwndbg.nix { },
+  pkgs,
+  pwndbg,
+  ...
 }:
 let
+  pkgsNative = pkgs.pkgsBuildHost;
+  lib = pkgs.lib;
+
   isLLDB = pwndbg.meta.isLLDB;
   lldb = pwndbg.meta.lldb;
   gdb = pwndbg.meta.gdb;
   python3 = pwndbg.meta.python3;
   pwndbgVenv = pwndbg.meta.pwndbgVenv;
 
-  bundler = arg: (pkgs.callPackage ./bundle { } arg);
+  bundler = arg: (pkgsNative.callPackage ./bundle { } arg);
 
-  ldName = pkgs.lib.readFile (
-    pkgs.runCommand "pwndbg-bundle-ld-name-IFD" { nativeBuildInputs = [ pkgs.patchelf ]; } ''
-      echo -n $(basename $(patchelf --print-interpreter "${gdb}/bin/gdb")) > $out
-    ''
+  ldName = lib.readFile (
+    pkgsNative.runCommand "pwndbg-bundle-ld-name-IFD" { nativeBuildInputs = [ pkgsNative.patchelf ]; }
+      ''
+        echo -n $(basename $(patchelf --print-interpreter "${python3}/bin/python3")) > $out
+      ''
   );
   ldLoader = if pkgs.stdenv.isLinux then "\"$dir/lib/${ldName}\"" else "";
 
   commonEnvs =
-    pkgs.lib.optionalString (pkgs.stdenv.isLinux && isLLDB) ''
+    lib.optionalString (pkgs.stdenv.isLinux && isLLDB) ''
       export LLDB_DEBUGSERVER_PATH="$dir/bin/lldb-server"
     ''
-    + pkgs.lib.optionalString pkgs.stdenv.isLinux ''
+    + lib.optionalString pkgs.stdenv.isLinux ''
       export TERMINFO_DIRS=${
-        pkgs.lib.concatStringsSep ":" [
+        lib.concatStringsSep ":" [
           # Fix issue Linux https://github.com/pwndbg/pwndbg/issues/2531
           "/etc/terminfo" # Debian, Fedora, Gentoo
           "/lib/terminfo" # Debian
@@ -34,9 +39,9 @@ let
         ]
       }
     ''
-    + pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
+    + lib.optionalString pkgs.stdenv.isDarwin ''
       export TERMINFO_DIRS=${
-        pkgs.lib.concatStringsSep ":" [
+        lib.concatStringsSep ":" [
           # Fix issue Darwin https://github.com/pwndbg/pwndbg/issues/2531
           "/usr/share/terminfo" # upstream default, probably all FHS-based distros
           "$dir/share/terminfo"
@@ -76,21 +81,24 @@ let
 
   pwndbgGdbBundled = bundler (
     # Darwin don't have gdbserver
-    (pkgs.lib.optionals (!pkgs.stdenv.isDarwin) [
-      "${pkgs.lib.getBin gdb}/bin/gdbserver"
+    (lib.optionals (!pkgs.stdenv.isDarwin) [
+      "${lib.getBin gdb}/bin/gdbserver"
       "exe/gdbserver"
 
       "${wrapperBin "exe/gdbserver"}"
       "bin/gdbserver"
     ])
     ++ [
-      "${pkgs.lib.getBin gdb}/bin/gdb"
+      "${lib.getBin gdb}/bin/gdb"
       "exe/gdb"
 
       "${gdb}/share/gdb/"
       "share/gdb/"
 
       "${pwndbgVenv}/lib/"
+      "lib/"
+
+      "${python3}/lib/"
       "lib/"
 
       "${pwndbg.src}/pwndbg/"
@@ -108,16 +116,19 @@ let
   );
 
   pwndbgLldbBundled = bundler [
-    "${pkgs.lib.getBin lldb}/bin/.lldb-wrapped"
+    "${lib.getBin lldb}/bin/.lldb-wrapped"
     "exe/lldb"
 
-    "${pkgs.lib.getBin lldb}/bin/lldb-server"
+    "${lib.getBin lldb}/bin/lldb-server"
     "exe/lldb-server"
 
-    "${pkgs.lib.getLib lldb}/lib/"
+    "${lib.getLib lldb}/lib/"
     "lib/"
 
     "${pwndbgVenv}/lib/"
+    "lib/"
+
+    "${python3}/lib/"
     "lib/"
 
     "${python3}/bin/python3"
@@ -147,12 +158,12 @@ let
   pwndbgBundled = if isLLDB then pwndbgLldbBundled else pwndbgGdbBundled;
 
   portable =
-    pkgs.runCommand "portable-${pwndbg.name}"
+    pkgsNative.runCommand "portable-${pwndbg.name}"
       {
         meta = {
           name = pwndbg.name;
           version = pwndbg.version;
-          architecture = gdb.stdenv.targetPlatform.system;
+          architecture = if isLLDB then lldb.stdenv.targetPlatform.system else gdb.stdenv.targetPlatform.system;
         };
       }
       ''
@@ -164,13 +175,13 @@ let
         chmod -R +w $out
 
         # copy extra files
-        cp -rf ${pkgs.lib.getLib pkgs.ncurses}/share/terminfo/ $out/pwndbg/share/
+        cp -rf ${lib.getLib pkgs.ncurses}/share/terminfo/ $out/pwndbg/share/
 
         # fix python "subprocess.py" to use "/bin/sh" and not the nix'ed version, otherwise "gdb-pt-dump" is broken
-        substituteInPlace $out/pwndbg/lib/${python3.libPrefix}/subprocess.py --replace "'${pkgs.bash}/bin/sh'" "'/bin/sh'"
+        sed -i 's@/nix/store/.*/bin/sh@/bin/sh@' $out/pwndbg/lib/${python3.libPrefix}/subprocess.py
 
         # build pycache
-        SOURCE_DATE_EPOCH=0 ${python3}/bin/python3 -c "import compileall; compileall.compile_dir('$out', stripdir='$out', force=True);"
+        SOURCE_DATE_EPOCH=0 ${pkgsNative.python3}/bin/python3 -c "import compileall; compileall.compile_dir('$out', stripdir='$out', force=True);"
       '';
 in
 portable
