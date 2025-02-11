@@ -128,27 +128,27 @@
         };
       };
       pwndbg_gdb_drvs = (
-        pkgs: {
+        system: {
           pwndbg = import ./nix/pwndbg.nix {
-            pkgs = pkgs;
+            pkgs = pkgsBySystem.${system};
             inputs = inputs;
           };
           pwndbg-dev = import ./nix/pwndbg.nix {
-            pkgs = pkgs;
+            pkgs = pkgsBySystem.${system};
             inputs = inputs;
             isDev = true;
           };
         }
       );
       pwndbg_lldb_drvs = (
-        pkgs: {
+        system: {
           pwndbg-lldb = import ./nix/pwndbg.nix {
-            pkgs = pkgs;
+            pkgs = pkgsBySystem.${system};
             inputs = inputs;
             isLLDB = true;
           };
           pwndbg-lldb-dev = import ./nix/pwndbg.nix {
-            pkgs = pkgs;
+            pkgs = pkgsBySystem.${system};
             inputs = inputs;
             isDev = true;
             isLLDB = true;
@@ -195,10 +195,8 @@
         // (crossDrvs system)
         // (portableDrvs system)
         // (tarballDrv system)
-        // (pwndbg_gdb_drvs (
-          pkgsBySystem.${if (system == "aarch64-darwin") then "x86_64-darwin" else system}
-        ))
-        // (pwndbg_lldb_drvs (pkgsBySystem.${system}))
+        // (pwndbg_gdb_drvs (if (system == "aarch64-darwin") then "x86_64-darwin" else system))
+        // (pwndbg_lldb_drvs system)
       );
 
       devShells = forAllSystems (
