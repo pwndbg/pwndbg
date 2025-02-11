@@ -54,8 +54,8 @@
         "arm64" = "aarch64-multiplatform";
         "riscv64" = "riscv64";
         "s390x" = "s390x";
-        "ppc64" = "ppc64"; # broken stdenv on nixpkgs-unstable
-        "loong64" = "loongarch64-linux"; # broken stdenv on nixpkgs-unstable
+        "ppc64" = "ppc64";
+        "loong64" = "loongarch64-linux"; # broken stdenv: https://github.com/NixOS/nixpkgs/issues/380901
       };
       mapKeysWithName =
         formatfunc: values:
@@ -84,6 +84,15 @@
               pwndbg_gdb = prev.gdb;
               pwndbg_lldb = prev.lldb_19;
             })
+            (
+              final: prev:
+              nixpkgs.lib.optionalAttrs prev.stdenv.targetPlatform.isPower64 {
+                # ncurses is broken with gcc14+
+                ncurses = prev.ncurses.override {
+                  stdenv = prev.gcc13Stdenv;
+                };
+              }
+            )
             overlayDarwin
             (final: prev: {
               pwndbg_gdb = import ./nix/overlay/gdb.nix { prev = prev; };
