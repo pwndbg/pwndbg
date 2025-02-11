@@ -54,8 +54,6 @@
         "arm64" = "aarch64-multiplatform";
         "riscv64" = "riscv64";
         "s390x" = "s390x";
-        "mips32el" = "mipsel-linux-gnu"; # broken unicorn - missing libatomic128
-        "mips64el" = "mips64el-linux-gnuabi64"; # only gdb works fine, broken lldb build
         "ppc64" = "ppc64"; # broken stdenv on nixpkgs-unstable
         "loong64" = "loongarch64-linux"; # broken stdenv on nixpkgs-unstable
       };
