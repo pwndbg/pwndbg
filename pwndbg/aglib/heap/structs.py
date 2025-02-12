@@ -155,7 +155,7 @@ class CStruct2GDB:
     def __eq__(self, other: Any) -> bool:
         return self.address == int(other)
 
-    def __str__(self) -> str:
+    def value_to_human_readable(self) -> str:
         """
         Returns a string representation of the C struct like `pwndbg.dbg_mod.Value` does.
         """

@@ -292,7 +292,7 @@ def arena(addr: int | None = None) -> None:
             )
         )
 
-    print(arena._gdbValue)  # Breaks encapsulation, find a better way.
+    print(arena._gdbValue.value_to_human_readable())  # Breaks encapsulation, find a better way.
 
 
 parser = argparse.ArgumentParser(description="List this process's arenas.")
@@ -382,13 +382,13 @@ def tcache(addr: int | None = None) -> None:
     if tcache:
         print(
             message.notice(
-                f"tcache is pointing to: {message.hint(hex(tcache.address))} for thread {message.hint(tid)}"
+                f"tcache is pointing to: {message.hint(hex(int(tcache.address)))} for thread {message.hint(tid)}"
             )
         )
     else:
         print_no_tcache_bins_found_error(tid)
     if tcache:
-        print(tcache)
+        print(tcache.value_to_human_readable())
 
 
 parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
