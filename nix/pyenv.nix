@@ -218,16 +218,7 @@ let
               cctools
             ];
 
-          postPatch =
-            ''
-              substituteInPlace ./setup.py \
-                  --replace-fail "import sys" "import sys; sys.argv.extend(('--plat-name', 'any'))" || true
-
-              # See: https://github.com/unicorn-engine/unicorn/issues/2015
-              substituteInPlace ./src/CMakeLists.txt \
-                  --replace-fail 'include(cmake/bundle_static.cmake)' 'include(bundle_static.cmake)' || true
-            ''
-            + lib.optionalString stdenv.hostPlatform.isDarwin ''
+          postPatch = lib.optionalString stdenv.hostPlatform.isDarwin ''
               substituteInPlace ./src/CMakeLists.txt \
                   --replace-fail 'set(CMAKE_C_COMPILER "/usr/bin/cc")' 'set(CMAKE_C_COMPILER "${stdenv.cc}/bin/cc")' || true
             '';
