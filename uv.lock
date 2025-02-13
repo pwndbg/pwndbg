@@ -1170,7 +1170,7 @@ requires-dist = [
     { name = "sortedcontainers", specifier = ">=2.4.0,<3" },
     { name = "tabulate", specifier = ">=0.9.0,<0.10" },
     { name = "typing-extensions", specifier = ">=4.12.0,<5" },
-    { name = "unicorn", specifier = ">=2.1.1,<3" },
+    { name = "unicorn", specifier = ">=2.1.2,<3" },
 ]
 
 [package.metadata.requires-dev]
