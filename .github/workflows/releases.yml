@@ -86,12 +86,13 @@ jobs:
         ]
         attribute: [
           pwndbg-lldb-portable-tarball,
-          pwndbg-gdb-portable-tarball,
         ]
+        include:
+          # gdb is only supported on macos x86_64
+          - os: macos-13  # x86_64-darwin
+            attribute: pwndbg-gdb-portable-tarball
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-    # gdb is only supported on macos x86_64
-    if: ${{ ! (matrix.os == 'macos-13' && matrix.attribute == 'pwndbg-gdb-portable-tarball') }}
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
