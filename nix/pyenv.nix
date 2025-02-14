@@ -204,33 +204,30 @@ let
         pkg-config,
         cctools,
         stdenv,
-        gcc13Stdenv,
       }:
-      (prev.unicorn.override (
-        lib.optionalAttrs stdenv.hostPlatform.is32bit {
+      prev.unicorn.overrideAttrs (
+        old:
+        lib.optionalAttrs ((isBuildSource old)) {
           # On 32bit system failed to build: https://github.com/pwndbg/pwndbg/issues/2588#issuecomment-2659498870
-          stdenv = gcc13Stdenv;
-        }
-      )).overrideAttrs
-        (
-          old:
-          lib.optionalAttrs ((isBuildSource old)) {
-            nativeBuildInputs =
-              old.nativeBuildInputs
-              ++ [
-                cmake
-                pkg-config
-              ]
-              ++ lib.optionals stdenv.hostPlatform.isDarwin [
-                cctools
-              ];
+          # Since GCC-14 `-Wreturn-mismatch` is turned into an error by default.
+          NIX_CFLAGS_COMPILE = lib.optionalString stdenv.hostPlatform.is32bit "-Wno-return-mismatch";
 
-            postPatch = lib.optionalString stdenv.hostPlatform.isDarwin ''
-              substituteInPlace ./src/CMakeLists.txt \
-                  --replace-fail 'set(CMAKE_C_COMPILER "/usr/bin/cc")' 'set(CMAKE_C_COMPILER "${stdenv.cc}/bin/cc")' || true
-            '';
-          }
-        )
+          nativeBuildInputs =
+            old.nativeBuildInputs
+            ++ [
+              cmake
+              pkg-config
+            ]
+            ++ lib.optionals stdenv.hostPlatform.isDarwin [
+              cctools
+            ];
+
+          postPatch = lib.optionalString stdenv.hostPlatform.isDarwin ''
+            substituteInPlace ./src/CMakeLists.txt \
+                --replace-fail 'set(CMAKE_C_COMPILER "/usr/bin/cc")' 'set(CMAKE_C_COMPILER "${stdenv.cc}/bin/cc")' || true
+          '';
+        }
+      )
     ) { };
 
     gnureadline = pkgs.callPackage (
