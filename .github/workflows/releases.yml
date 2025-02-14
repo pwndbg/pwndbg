@@ -1,19 +1,26 @@
-name: Releases
+name: Releases manual
 
-on:
-  push:
-    branches:
-      - dev
-    paths:
-      - '**'
-      - '!mkdocs.yml'
-      - '!docs/**'
-    tags:
-      - '*'
+on: workflow_dispatch
 
 jobs:
-  releases-x86_64:
-    runs-on: ubuntu-latest
+  releases-linux-cross:
+    strategy:
+      fail-fast: false
+      matrix:
+        attribute: [
+          # gdb
+          pwndbg-gdb-cross-arm32-tarball,
+          pwndbg-gdb-cross-riscv64-tarball,
+          pwndbg-gdb-cross-s390x-tarball,
+          pwndbg-gdb-cross-x86_32-tarball,
+
+          # lldb
+          pwndbg-lldb-cross-arm32-tarball,
+          pwndbg-lldb-cross-riscv64-tarball,
+          pwndbg-lldb-cross-s390x-tarball,
+          pwndbg-lldb-cross-x86_32-tarball,
+        ]
+    runs-on: ubuntu-latest  # x86_64-linux
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
@@ -21,19 +28,46 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
-    - name: build pwndbg
-      run: nix build '.#pwndbg' --accept-flake-config -o result-pwndbg
+    - name: build tarball ${{ matrix.attribute }}
+      run: nix build '.#${{ matrix.attribute }}' --accept-flake-config -o dist-tarball
+
+    - name: release
+      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1
+      with:
+        files: |
+          ./dist-tarball/*
+        draft: true
+        token: ${{ secrets.TOKEN }}
+
+  releases-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [
+          ubuntu-latest,  # x86_64-linux
+          ubuntu-24.04-arm,  # aarch64-linux
+        ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
+    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+
+    - name: build tarball-gdb
+      run: nix build '.#pwndbg-gdb-portable-tarball' --accept-flake-config -o dist-tarball-gdb
+    - name: build tarball-lldb
+      run: nix build '.#pwndbg-lldb-portable-tarball' --accept-flake-config -o dist-tarball-lldb
 
     - name: build rpm
-      run: nix build '.#pwndbg-gdb-portable-rpm' -o dist-rpm
+      run: nix build '.#pwndbg-gdb-portable-rpm' --accept-flake-config -o dist-rpm
     - name: build deb
-      run: nix build '.#pwndbg-gdb-portable-deb' -o dist-deb
+      run: nix build '.#pwndbg-gdb-portable-deb' --accept-flake-config -o dist-deb
     - name: build apk
-      run: nix build '.#pwndbg-gdb-portable-apk' -o dist-apk
+      run: nix build '.#pwndbg-gdb-portable-apk' --accept-flake-config -o dist-apk
     - name: build archlinux
-      run: nix build '.#pwndbg-gdb-portable-archlinux' -o dist-archlinux
-    - name: build tarball
-      run: nix build '.#pwndbg-gdb-portable-tarball' -o dist-tarball
+      run: nix build '.#pwndbg-gdb-portable-archlinux' --accept-flake-config -o dist-archlinux
 
     - name: release
       uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1
@@ -43,44 +77,44 @@ jobs:
           ./dist-deb/*
           ./dist-apk/*
           ./dist-archlinux/*
-          ./dist-tarball/*
+          ./dist-tarball-gdb/*
+          ./dist-tarball-lldb/*
         draft: true
         token: ${{ secrets.TOKEN }}
 
-# The action below is commented out because we don't have our own ARM64 runner anymore
-# This waits to be uncommented when GH allows for ARM64 runners for open source projects
-#
-#  releases-arm64:
-#    runs-on: ARM64
-#    timeout-minutes: 60
-#    steps:
-#    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
-#    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
-#      with:
-#        nix_path: nixpkgs=channel:nixos-unstable
-#
-#    - name: build pwndbg
-#      run: nix build '.#pwndbg' --accept-flake-config -o result-pwndbg
-#
-#    - name: build rpm
-#      run: nix build '.#rpm' -o dist-rpm
-#    - name: build deb
-#      run: nix build '.#deb' -o dist-deb
-#    - name: build apk
-#      run: nix build '.#apk' -o dist-apk
-#    - name: build archlinux
-#      run: nix build '.#archlinux' -o dist-archlinux
-#    - name: build tarball
-#      run: nix build '.#tarball' -o dist-tarball
-#
-#    - name: release
-#      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1
-#      with:
-#        files: |
-#          ./dist-rpm/*
-#          ./dist-deb/*
-#          ./dist-apk/*
-#          ./dist-archlinux/*
-#          ./dist-tarball/*
-#        draft: true
-#        token: ${{ secrets.TOKEN }}
+  releases-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [
+          macos-13,  # x86_64-darwin
+          macos-15,  # aarch64-darwin
+        ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
+    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+
+    - name: build tarball-gdb
+      # gdb is only supported on macos x86_64
+      if: matrix.os == 'macos-13'
+      run: nix build '.#pwndbg-gdb-portable-tarball' --accept-flake-config -o dist-tarball-gdb
+
+    - name: build tarball-gdb
+      if: matrix.os != 'macos-13'
+      run: mkdir dist-tarball-gdb
+
+    - name: build tarball-lldb
+      run: nix build '.#pwndbg-lldb-portable-tarball' --accept-flake-config -o dist-tarball-lldb
+
+    - name: release
+      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1
+      with:
+        files: |
+          ./dist-tarball-gdb/*
+          ./dist-tarball-lldb/*
+        draft: true
+        token: ${{ secrets.TOKEN }}
