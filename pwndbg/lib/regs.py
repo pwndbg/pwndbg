@@ -95,6 +95,10 @@ class RegisterSet:
 
         self.all = set(misc) | set(flags) | set(extra_flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}
+        self.all |= {"pc", "sp"}
+
+    def __contains__(self, reg: str) -> bool:
+        return reg in self.all
 
     def __iter__(self) -> Iterator[str]:
         yield from self.all

@@ -156,11 +156,16 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         if val < 0:
             raise RuntimeError("Tried to write a register with a negative value")
 
+        if name not in pwndbg.aglib.regs:
+            return False
+
         # Writing to the PC using the normal register write flow causes the
         # inner object to be automatically invalidated by LLDB, so we have to
         # handle jumps manually using SBFrame::SetPC.
-        if name.lower() in (reg_sets[pwndbg.aglib.arch.name].pc, "pc"):
-            return self.inner.SetPC(val)
+        if name in (reg_sets[pwndbg.aglib.arch.name].pc, "pc"):
+            ret = self.inner.SetPC(val)
+            self.proc.dbg._trigger_event(pwndbg.dbg_mod.EventType.REGISTER_CHANGED)
+            return ret
 
         name = rename_register(name, self.proc)
 
