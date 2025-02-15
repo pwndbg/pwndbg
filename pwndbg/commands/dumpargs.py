@@ -38,7 +38,7 @@ def call_args() -> List[str]:
 
     for arg, value in pwndbg.arguments.get(pwndbg.aglib.disasm.one()):
         code = arg.type != "char"
-        pretty = pwndbg.chain.format(value, code=code)
+        pretty = pwndbg.chain.format(value, code=code, flags=arg.flags)
         results.append("        %-10s %s" % (arg.name + ":", pretty))
 
     return results

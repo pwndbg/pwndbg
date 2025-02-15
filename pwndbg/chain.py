@@ -9,6 +9,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.enhance
 import pwndbg.integration
+from pwndbg.lib.functions import Flag
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
@@ -101,6 +102,7 @@ def format(
     value: int | List[int] | None,
     limit: int = LIMIT,
     code: bool = True,
+    flags: List[Flag] | None = None,
     offset: int = 0,
     hard_stop: int | None = None,
     hard_end: int = 0,
@@ -126,6 +128,9 @@ def format(
     """
     if value is None:
         return "<unavailable>"
+
+    if isinstance(value, int) and flags != None:
+        return _format_flags_value(flags, value)
 
     limit = int(limit)
 
@@ -181,3 +186,13 @@ def format(
         return enhanced
 
     return arrow_right.join(rest) + arrow_left + enhanced
+
+def _format_flags_value(flags: List[Flag], value: int):
+    flag_names : List[str] = []
+    for flag in flags:
+        if (value & flag.value) == flag.value:
+            flag_names.append(flag.name)
+            value = value & ~flag.value
+    if value != 0:
+        flag_names.append(hex(value))
+    return ' | '.join(flag_names)

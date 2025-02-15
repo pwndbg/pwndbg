@@ -11,10 +11,14 @@ class Function(NamedTuple):
     name: str
     args: List[Argument]
 
-
 class Argument(NamedTuple):
     type: str
     derefcnt: int
+    name: str
+    flags: List[Flag] | None = None
+
+class Flag(NamedTuple):
+    value: int
     name: str
 
 
