@@ -256,7 +256,7 @@ parser.add_argument(
 def contextoutput(section, path, clearing, banner="both", width: int = None):
     if not banner:  # synonym for splitmind backwards compatibility
         banner = "none"
-    if banner not in ("both", "top", "bottom", "none"):
+    elif banner not in ("both", "top", "bottom", "none"):
         raise argparse.ArgumentError(banner_arg, f"banner can not be '{banner}'")
 
     outputs[section] = path
@@ -264,8 +264,8 @@ def contextoutput(section, path, clearing, banner="both", width: int = None):
         {
             "clearing": clearing,
             "width": width,
-            "banner_top": banner in ["both", "top"],
-            "banner_bottom": banner in ["both", "bottom"],
+            "banner_top": banner in ("both", "top"),
+            "banner_bottom": banner in ("both", "bottom"),
         }
     )
 
@@ -277,7 +277,7 @@ def resetcontextoutput(section):
         output_settings[section] = {
             k: v
             for k, v in output_settings[section].items()
-            if k not in ["clearing", "width", "banner_top", "banner_bottom"]
+            if k not in ("clearing", "width", "banner_top", "banner_bottom")
         }
 
 
@@ -490,7 +490,7 @@ parser.add_argument(
     type=str,
     default="eval",
     nargs="?",
-    choices=["eval", "execute"],
+    choices=("eval", "execute"),
     help="""Command to be used with the expression.
 - eval: the expression is parsed and evaluated as in the debugged language.
 - execute: the expression is executed as a GDB command.""",
@@ -835,7 +835,7 @@ def get_regs(regs: List[str] = None):
 
         value = pwndbg.aglib.regs[reg]
         if value is None:
-            print(message.warn("Unknown register: %r" % reg))
+            print(message.warn(f"Unknown register: {reg!r}"))
             continue
 
         # Make the register stand out and give a color if changed
@@ -844,7 +844,7 @@ def get_regs(regs: List[str] = None):
             regname = C.register_changed(regname)
 
         # Show a dot next to the register if it changed
-        change_marker = "%s" % C.config_register_changed_marker
+        change_marker = f"{C.config_register_changed_marker}"
         m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
 
         bit_flags = None
@@ -1019,7 +1019,7 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
         bannerline = (
             [pwndbg.ui.banner("Source (code)", target=target, width=width)] if with_banner else []
         )
-        return bannerline + ["In file: %s:%d" % (filename, line)] + formatted_source
+        return bannerline + [f"In file: {filename}:{line}"] + formatted_source
 
     if should_decompile:
         # Will be None if decompilation fails
@@ -1088,17 +1088,15 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
 
     frame = newest_frame
     i = 0
-    bt_prefix = "%s" % pwndbg.config.backtrace_prefix
+    bt_prefix = f"{pwndbg.config.backtrace_prefix}"
     while True:
         prefix = bt_prefix if frame == this_frame else " " * len(bt_prefix)
         prefix = f" {c.prefix(prefix)}"
         addrsz = c.address(pwndbg.ui.addrsz(frame.pc()))
         symbol = c.symbol(pwndbg.aglib.symbol.resolve_addr(int(frame.pc())))
         if symbol:
-            addrsz = addrsz + " " + symbol
-        line = map(str, (prefix, c.frame_label("%s%i" % (backtrace_frame_label, i)), addrsz))
-        line = " ".join(line)
-        result.append(line)
+            addrsz = f"{addrsz} {symbol}"
+        result.append(f"{prefix} {c.frame_label(f'{backtrace_frame_label}{i}')} {addrsz}")
 
         if frame == oldest_frame:
             break
@@ -1237,7 +1235,7 @@ def save_signal(signal) -> None:
     if isinstance(signal, gdb.ExitedEvent):
         # Booooo old gdb
         if hasattr(signal, "exit_code"):
-            result.append(message.exit("Exited: %r" % signal.exit_code))
+            result.append(message.exit(f"Exited: {signal.exit_code}"))
 
     elif isinstance(signal, gdb.SignalEvent):
         msg = f"Program received signal {signal.stop_signal}"
@@ -1247,11 +1245,11 @@ def save_signal(signal) -> None:
             # we can't access $_siginfo, so lets just show current pc
             # see also issue 476
             if _is_rr_present():
-                msg += " (current pc: %#x)" % pwndbg.aglib.regs.pc
+                msg += f" (current pc: {pwndbg.aglib.regs.pc:#x})"
             else:
                 try:
                     si_addr = gdb.parse_and_eval("$_siginfo._sifields._sigfault.si_addr")
-                    msg += " (fault address %#x)" % int(si_addr or 0)
+                    msg += f" (fault address {(si_addr or 0):#x})"
                 except gdb.error:
                     pass
         result.append(message.signal(msg))
