@@ -44,6 +44,7 @@ gdb_architecture_name_fixup_list = (
     "i8086",
     "aarch64",
     "mips",
+    "rs6000",
     "powerpc",
     "sparc",
     "arm",
@@ -730,6 +731,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     match = "rv64"
                 elif match == "iwmmxt" or match == "iwmmxt2" or match == "xscale":
                     match = "arm"
+                elif match == "rs6000":
+                    # The RS/6000 architecture is compatible with the PowerPC common
+                    match = "powerpc"
                 return GDBArch(endian, match, ptrsize)  # type: ignore[arg-type]
 
         if not_exactly_arch:
