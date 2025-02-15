@@ -35,6 +35,6 @@ def test_dump_mmap_args(start_binary):
     assert out[0] == '        addr:      0xcafe0000'
     assert out[1] == '        len:       0x1000'
     assert out[2] == '        prot:      1'
-    assert out[3] == '        flags:     MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED'
+    assert out[3] == '        flags:     0x32 (MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED)'
     assert out[4] == '        fd:        0xffffffff'
     assert out[5] == '        offset:    0'
