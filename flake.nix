@@ -96,6 +96,15 @@
                   };
                 }
             )
+            (
+              final: prev:
+              nixpkgs.lib.optionalAttrs
+                (prev.stdenv.targetPlatform.isPower64 && prev.stdenv.targetPlatform.isLittleEndian)
+                {
+                  # new boost is broken: https://github.com/NixOS/nixpkgs/issues/382179
+                  boost = prev.boost183;
+                }
+            )
             overlayDarwin
             (final: prev: {
               pwndbg_gdb = import ./nix/overlay/gdb.nix { prev = prev; };

@@ -13,6 +13,7 @@ jobs:
           pwndbg-gdb-cross-riscv64-tarball,
           pwndbg-gdb-cross-s390x-tarball,
           pwndbg-gdb-cross-ppc64-tarball,
+          pwndbg-gdb-cross-ppc64le-tarball,
           pwndbg-gdb-cross-x86_32-tarball,
 
           # lldb
@@ -20,10 +21,11 @@ jobs:
           pwndbg-lldb-cross-riscv64-tarball,
           pwndbg-lldb-cross-s390x-tarball,
           pwndbg-lldb-cross-ppc64-tarball,
+          pwndbg-lldb-cross-ppc64le-tarball,
           pwndbg-lldb-cross-x86_32-tarball,
         ]
     runs-on: ubuntu-latest  # x86_64-linux
-    timeout-minutes: 60
+    timeout-minutes: 360
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
