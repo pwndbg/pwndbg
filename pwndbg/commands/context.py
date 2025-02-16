@@ -674,9 +674,7 @@ def context(subcontext=None, enabled=None) -> None:
         with target as out:
             if result_settings[target].get("clearing", config_clear_screen) and lines:
                 clear_screen(out)
-            out.write("\n".join(lines))
-            if out is sys.stdout:
-                out.write("\n")
+            out.writelines(line + "\n" for line in lines)
             out.flush()
 
 
