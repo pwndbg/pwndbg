@@ -37,13 +37,13 @@ def qemu_assembly_run():
     def _start_binary(asm: str, arch: str, *args):
         nonlocal qemu
 
-        # This is defaulting to 32-bit in this case, breaks the compilation
-        if arch == "riscv64":
-            context.bits = 64
-
+        # Clear the context so setting the .arch will also set .bits
+        # https://github.com/Gallopsled/pwntools/issues/2498
+        context.clear()
         context.arch = arch
+
         binary_tmp_path = make_elf_from_assembly(asm)
-        qemu_suffix = pwnlib.qemu.archname(arch=arch)
+        qemu_suffix = pwnlib.qemu.archname()
 
         qemu = subprocess.Popen(
             [
@@ -72,6 +72,11 @@ def qemu_assembly_run():
     qemu.kill()
 
 
+QEMU_CORRECTION_MAP = {
+    "mips": ("mips","/etc/qemu-binfmt/mips/"),
+    "mips64": ("mips64","/etc/qemu-binfmt/mips64/"),
+}
+
 @pytest.fixture
 def qemu_start_binary():
     """
@@ -90,11 +95,13 @@ def qemu_start_binary():
     def _start_binary(path: str, arch: str, *args):
         nonlocal qemu
 
+        qemu_suffix, qemu_libs = QEMU_CORRECTION_MAP.get(arch,(pwnlib.qemu.archname(arch=arch),pwnlib.qemu.ld_prefix(arch=arch)))
+
         qemu = subprocess.Popen(
             [
-                f"qemu-{arch}",
+                f"qemu-{qemu_suffix}",
                 "-L",
-                f"/usr/{arch}-linux-gnu/",
+                qemu_libs,
                 "-g",
                 f"{QEMU_PORT}",
                 f"{path}",
