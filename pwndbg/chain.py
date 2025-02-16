@@ -12,7 +12,6 @@ import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
-from pwndbg.lib.functions import Flag
 
 LIMIT = pwndbg.config.add_param(
     "dereference-limit", 5, "max number of pointers to dereference in a chain"
