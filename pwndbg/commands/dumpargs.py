@@ -9,6 +9,7 @@ import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.commands.telescope
+from pwndbg.lib.functions import format_flags_argument
 
 parser = argparse.ArgumentParser(description="Prints determined arguments for call instruction.")
 parser.add_argument("-f", "--force", action="store_true", help="Force displaying of all arguments.")
@@ -38,7 +39,11 @@ def call_args() -> List[str]:
 
     for arg, value in pwndbg.arguments.get(pwndbg.aglib.disasm.one()):
         code = arg.type != "char"
-        pretty = pwndbg.chain.format(value, code=code, flags=arg.flags)
+        pretty = (
+            pwndbg.chain.format(value, code=code)
+            if not arg.flags
+            else format_flags_argument(arg.flags, value)
+        )
         results.append("        %-10s %s" % (arg.name + ":", pretty))
 
     return results
