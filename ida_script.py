@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime
+import os
 import threading
 import xmlrpc.client as xmlclient
 from xml.sax.saxutils import escape
@@ -48,8 +49,8 @@ xmlclient.Marshaller.dispatch[type(1 << 63)] = create_marshaller("<value><i8>%d<
 xmlclient.Marshaller.dispatch[int] = create_marshaller("<value><i8>%d</i8></value>")
 xmlclient.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
 
-host = "127.0.0.1"
-port = 31337
+host = os.environ.get("PWNDBG_IDA_SERVER_HOST", "127.0.0.1")
+port = int(os.environ.get("PWNDBG_IDA_SERVER_PORT", "31337"))
 
 mutex = threading.Condition()
 

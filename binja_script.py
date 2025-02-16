@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import os
 import sys
 import threading
 import xmlrpc.client
@@ -20,8 +21,8 @@ xmlrpc.client.MAXINT = 10**100
 xmlrpc.client.MININT = -(10**100)
 
 
-host = "127.0.0.1"
-port = 31337
+host = os.environ.get("PWNDBG_BINJA_SERVER_HOST", "127.0.0.1")
+port = int(os.environ.get("PWNDBG_BINJA_SERVER_PORT", "31337"))
 
 logger = binaryninja.log.Logger(0, "pwndbg-integration")
 
