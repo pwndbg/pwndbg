@@ -73,9 +73,10 @@ def qemu_assembly_run():
 
 
 QEMU_CORRECTION_MAP = {
-    "mips": ("mips","/etc/qemu-binfmt/mips/"),
-    "mips64": ("mips64","/etc/qemu-binfmt/mips64/"),
+    "mips": ("mips", "/etc/qemu-binfmt/mips/"),
+    "mips64": ("mips64", "/etc/qemu-binfmt/mips64/"),
 }
+
 
 @pytest.fixture
 def qemu_start_binary():
@@ -95,7 +96,9 @@ def qemu_start_binary():
     def _start_binary(path: str, arch: str, *args):
         nonlocal qemu
 
-        qemu_suffix, qemu_libs = QEMU_CORRECTION_MAP.get(arch,(pwnlib.qemu.archname(arch=arch),pwnlib.qemu.ld_prefix(arch=arch)))
+        qemu_suffix, qemu_libs = QEMU_CORRECTION_MAP.get(
+            arch, (pwnlib.qemu.archname(arch=arch), pwnlib.qemu.ld_prefix(arch=arch))
+        )
 
         qemu = subprocess.Popen(
             [
