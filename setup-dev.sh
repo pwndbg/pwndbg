@@ -150,6 +150,20 @@ install_apt() {
         sudo apt install shfmt
     fi
 
+    # Setup symlinks so QEMU can find cross-arch libraries
+    # This is where QEMU expects to find libraries. Run `qemu-ARCH -h` to find this.
+    # The gcc-* packages installed earlier included these library files.
+    sudo mkdir -p /usr/gnemul/
+    sudo ln -s /usr/aarch64-linux-gnu /usr/gnemul/qemu-aarch64
+    sudo ln -s /usr/arm-linux-gnueabihf /usr/gnemul/qemu-arm
+    sudo ln -s /usr/mips-linux-gnu /usr/gnemul/qemu-mips
+    sudo ln -s /usr/mips64-linux-gnuabi64/ /usr/gnemul/qemu-mips64
+    sudo ln -s /usr/riscv64-linux-gnu/ /usr/gnemul/qemu-riscv64
+    # ln -s /usr/powerpc-linux-gnu/ /usr/gnemul/qemu-ppc
+    # ln -s /usr/powerpc64-linux-gnu/ /usr/gnemul/qemu-ppc64
+    # ln -s /usr/sparc64-linux-gnu/ /usr/gnemul/qemu-sparc64
+    # ln -s /usr/loongarch64-linux-gnu/ /usr/gnemul/qemu-loongarch64
+
     command -v go &> /dev/null || sudo apt-get install -y golang
 
     download_zig_binary

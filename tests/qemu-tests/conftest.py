@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from typing import Literal
 
 import gdb
 import pytest
@@ -72,12 +73,6 @@ def qemu_assembly_run():
     qemu.kill()
 
 
-QEMU_CORRECTION_MAP = {
-    "mips": ("mips", "/etc/qemu-binfmt/mips/"),
-    "mips64": ("mips64", "/etc/qemu-binfmt/mips64/"),
-}
-
-
 @pytest.fixture
 def qemu_start_binary():
     """
@@ -93,12 +88,14 @@ def qemu_start_binary():
         sys.stdout.flush()
         os._exit(1)
 
-    def _start_binary(path: str, arch: str, *args):
+    def _start_binary(path: str, arch: str, endian: Literal["big","little"] | None = None):
         nonlocal qemu
 
-        qemu_suffix, qemu_libs = QEMU_CORRECTION_MAP.get(
-            arch, (pwnlib.qemu.archname(arch=arch), pwnlib.qemu.ld_prefix(arch=arch))
-        )
+        if endian is not None:
+            context.endian = endian
+
+        qemu_suffix = pwnlib.qemu.archname(arch=arch)
+        qemu_libs = pwnlib.qemu.ld_prefix(arch=arch)
 
         qemu = subprocess.Popen(
             [
