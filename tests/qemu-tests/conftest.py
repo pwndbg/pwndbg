@@ -88,7 +88,7 @@ def qemu_start_binary():
         sys.stdout.flush()
         os._exit(1)
 
-    def _start_binary(path: str, arch: str, endian: Literal["big","little"] | None = None):
+    def _start_binary(path: str, arch: str, endian: Literal["big", "little"] | None = None):
         nonlocal qemu
 
         if endian is not None:
