@@ -1247,7 +1247,7 @@ def save_signal(signal) -> None:
             else:
                 try:
                     si_addr = gdb.parse_and_eval("$_siginfo._sifields._sigfault.si_addr")
-                    msg += f" (fault address {(si_addr or 0):#x})"
+                    msg += f" (fault address {(int(si_addr) or 0):#x})"
                 except gdb.error:
                     pass
         result.append(message.signal(msg))
