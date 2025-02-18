@@ -161,7 +161,7 @@ let
     pkgsNative.runCommand "portable-${pwndbg.name}"
       {
         meta = {
-          name = pwndbg.name;
+          name = pwndbg.meta.name;
           version = pwndbg.version;
           architecture =
             if isLLDB then lldb.stdenv.targetPlatform.system else gdb.stdenv.targetPlatform.system;
