@@ -5,6 +5,7 @@ import argparse
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.stack
+import pwndbg.aglib.tls
 import pwndbg.auxv
 import pwndbg.commands
 import pwndbg.commands.telescope
@@ -14,8 +15,25 @@ from pwndbg.commands import CommandCategory
 
 DEFAULT_NUM_CANARIES_TO_DISPLAY = 1
 
+# Architecture-specific TLS canary offsets
+# These offsets are from the TLS base to the canary
+# References:
+# - x86_64: fs:0x28 (https://elixir.bootlin.com/glibc/latest/source/sysdeps/x86_64/nptl/tls.h)
+# - i386: gs:0x14 (https://elixir.bootlin.com/glibc/latest/source/sysdeps/i386/nptl/tls.h)
+# - aarch64: tpidr_el0 + 0x28 (https://elixir.bootlin.com/glibc/latest/source/sysdeps/aarch64/nptl/tls.h)
+TLS_CANARY_OFFSETS = {
+    "x86-64": 0x28,
+    "i386": 0x14,
+    "aarch64": 0x28,
+}
+
 
 def canary_value():
+    """Get the global canary value from AT_RANDOM.
+    
+    Returns:
+        tuple: (canary_value, at_random_addr) or (None, None) if not found
+    """
     at_random = pwndbg.auxv.get().AT_RANDOM
     if at_random is None:
         return None, None
@@ -26,6 +44,36 @@ def canary_value():
     global_canary &= pwndbg.aglib.arch.ptrmask ^ 0xFF
 
     return global_canary, at_random
+
+
+def find_tls_canary_addr():
+    """Find the address of the canary in the Thread Local Storage (TLS).
+    
+    The canary is stored at a fixed offset from the TLS base, which varies by architecture.
+    The TLS base can be accessed through architecture-specific registers:
+    - x86_64: fs register
+    - i386: gs register
+    - aarch64: tpidr_el0 register
+    
+    Returns:
+        int: The virtual address of the canary in TLS, or None if not found/supported
+    """
+    arch = pwndbg.aglib.arch.name
+    
+    # Get TLS base address
+    tls_base = pwndbg.aglib.tls.find_address_with_register()
+    if not tls_base:
+        # Try pthread_self() as fallback
+        tls_base = pwndbg.aglib.tls.find_address_with_pthread_self()
+        if not tls_base:
+            return None
+            
+    # Get architecture-specific offset
+    offset = TLS_CANARY_OFFSETS.get(arch)
+    if offset is None:
+        return None
+        
+    return tls_base + offset
 
 
 parser = argparse.ArgumentParser(description="Print out the current stack canary.")
@@ -40,6 +88,7 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, command_name="canary", category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
 def canary(all) -> None:
+    """Display information about the stack canary, including its location in TLS and any copies found on the stack."""
     global_canary, at_random = canary_value()
 
     if global_canary is None or at_random is None:
@@ -47,8 +96,24 @@ def canary(all) -> None:
         return
 
     print(
-        message.notice("AT_RANDOM = %#x # points to (not masked) global canary value" % at_random)
+        message.notice("AT_RANDOM = %#x # points to global canary seed value" % at_random)
     )
+    
+    # Get and display the TLS canary address
+    tls_addr = find_tls_canary_addr()
+    if tls_addr is not None:
+        print(message.notice("TLS Canary = %#x # address where canary is stored" % tls_addr))
+        
+        # Verify the value at the TLS address matches our computed canary
+        try:
+            tls_canary = pwndbg.aglib.memory.pvoid(tls_addr) & (pwndbg.aglib.arch.ptrmask ^ 0xFF)
+            if tls_canary != global_canary:
+                print(message.warn("Warning: TLS canary value doesn't match global canary!"))
+        except Exception:
+            print(message.warn("Warning: Could not read TLS canary value"))
+    else:
+        print(message.warn("Note: Could not determine TLS canary address for current architecture"))
+    
     print(message.notice("Canary    = 0x%x (may be incorrect on != glibc)" % global_canary))
 
     found_canaries = False
