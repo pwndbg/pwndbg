@@ -20,7 +20,7 @@ jobs:
           pwndbg-lldb-cross-arm32-tarball,
           pwndbg-lldb-cross-riscv64-tarball,
           pwndbg-lldb-cross-s390x-tarball,
-          pwndbg-lldb-cross-ppc64-tarball,
+#          pwndbg-lldb-cross-ppc64-tarball,  # broken lldb compilation
           pwndbg-lldb-cross-ppc64le-tarball,
           pwndbg-lldb-cross-x86_32-tarball,
         ]

@@ -54,8 +54,8 @@
         "arm64" = "aarch64-multiplatform";
         "riscv64" = "riscv64";
         "s390x" = "s390x";
-        "ppc64" = "ppc64";
-        "ppc64le" = "powernv"; # broken gdb ;(
+        "ppc64" = "ppc64"; # broken lldb compilation ;(
+        "ppc64le" = "powernv";
         "loong64" = "loongarch64-linux"; # broken stdenv: https://github.com/NixOS/nixpkgs/issues/380901
       };
       mapKeysWithName =
