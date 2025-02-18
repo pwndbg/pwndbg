@@ -61,12 +61,12 @@ def find_tls_canary_addr():
     arch = pwndbg.aglib.arch.name
     
     # Get TLS base address
-    tls_base = pwndbg.aglib.tls.find_address_with_register()
+    tls_base = (
+        pwndbg.aglib.tls.find_address_with_register()
+        or pwndbg.aglib.tls.find_address_with_pthread_self()
+    )
     if not tls_base:
-        # Try pthread_self() as fallback
-        tls_base = pwndbg.aglib.tls.find_address_with_pthread_self()
-        if not tls_base:
-            return None
+        return None
             
     # Get architecture-specific offset
     offset = TLS_CANARY_OFFSETS.get(arch)
