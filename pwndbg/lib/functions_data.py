@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from pwndbg.lib.functions import Argument
-from pwndbg.lib.functions import Flag
 from pwndbg.lib.functions import Function
+from pwndbg.lib.functions import resolve_constants
 
 
 def load_functions():
@@ -28484,12 +28484,12 @@ _functions = {
                 type="int",
                 derefcnt=0,
                 name="flags",
-                flags=(
-                    Flag(value=0x03, name="MAP_SHARED_VALIDATE"),
-                    Flag(value=0x01, name="MAP_SHARED"),
-                    Flag(value=0x02, name="MAP_PRIVATE"),
-                    Flag(value=0x20, name="MAP_ANONYMOUS"),
-                    Flag(value=0x10, name="MAP_FIXED"),
+                flags=resolve_constants(
+                    "MAP_SHARED_VALIDATE",
+                    "MAP_SHARED",
+                    "MAP_PRIVATE",
+                    "MAP_ANONYMOUS",
+                    "MAP_FIXED",
                 ),
             ),
             Argument(type="int", derefcnt=0, name="fd"),

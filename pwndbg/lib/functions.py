@@ -4,6 +4,9 @@ from collections.abc import Mapping
 from typing import List
 from typing import NamedTuple
 
+from pwnlib import constants
+from pwnlib.constants.constant import Constant
+
 
 class Function(NamedTuple):
     type: str
@@ -16,12 +19,7 @@ class Argument(NamedTuple):
     type: str
     derefcnt: int
     name: str
-    flags: tuple[Flag, ...] | None = None
-
-
-class Flag(NamedTuple):
-    value: int
-    name: str
+    flags: tuple[Constant, ...] | None = None
 
 
 class LazyFunctions(Mapping[str, Function]):
@@ -46,7 +44,16 @@ class LazyFunctions(Mapping[str, Function]):
 functions = LazyFunctions()
 
 
-def format_flags_argument(flags: tuple[Flag, ...], value: int):
+def resolve_constants(*names: str) -> tuple[Constant, ...]:
+    resolved: List[Constant] = []
+    for name in names:
+        constant = getattr(constants, name, None)
+        if constant is not None:
+            resolved.append(constant)
+    return tuple(resolved)
+
+
+def format_flags_argument(flags: tuple[Constant, ...], value: int):
     original_value: int = value
     flag_names: List[str] = []
 
@@ -57,9 +64,9 @@ def format_flags_argument(flags: tuple[Flag, ...], value: int):
     # descending popcount, this loop will output more specific
     # flags.
     for flag in flags:
-        if (value & flag.value) == flag.value:
-            flag_names.append(flag.name)
-            value = value & ~flag.value
+        if (value & int(flag)) == int(flag):
+            flag_names.append(str(flag))
+            value = value & ~int(flag)
 
     # If none of the known flags matched the value, just
     # format the value as a normal hex integer.
