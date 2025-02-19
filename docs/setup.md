@@ -47,34 +47,34 @@ Choose the appropriate version for your system architecture (x86_64, armv7l, aar
 ### Installation on RPM-based Systems (CentOS/Alma/Rocky/RHEL):
 
 ```shell
-dnf install ./pwndbg-2024.08.29.x86_64.rpm
+dnf install ./pwndbg-2025.02.19.x86_64.rpm
 # pwndbg
 ```
 
 ### Installation on DEB-based Systems (Debian/Ubuntu/Kali):
 
 ```shell
-apt install ./pwndbg_2024.08.29_amd64.deb
+apt install ./pwndbg_2025.02.19_amd64.deb
 # pwndbg
 ```
 
 ### Installation on Alpine:
 
 ```shell
-apk add --allow-untrusted ./pwndbg_2024.08.29_x86_64.apk
+apk add --allow-untrusted ./pwndbg_2025.02.19_x86_64.apk
 # pwndbg
 ```
 
 ### Installation on Arch Linux:
 
 ```shell
-pacman -U ./pwndbg-2024.08.29-1-x86_64.pkg.tar.zst
+pacman -U ./pwndbg-2025.02.19-1-x86_64.pkg.tar.zst
 # pwndbg
 ```
 
 ### Generic Linux Installation:
 
 ```shell
-tar -v -xf ./pwndbg_2024.08.29_amd64.tar.xz
+tar -v -xf ./pwndbg_2025.02.19_amd64.tar.xz
 # ./pwndbg/bin/pwndbg
 ```
