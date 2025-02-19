@@ -153,53 +153,53 @@ Download the portable version from the [Pwndbg releases page](https://github.com
 
 Make sure to select the correct file for your operating system and architecture:
 - **Linux (x86_64, armv7l, aarch64, riscv64):**
-  - `pwndbg_2025.02.16_amd64.tar.xz` (x86_64 for GDB)
-  - `pwndbg_2025.02.16_armv7.tar.xz` (armv7l for GDB)
-  - `pwndbg_2025.02.16_arm64.tar.xz` (aarch64 for GDB)
-  - `pwndbg_2025.02.16_riscv64.tar.xz` (riscv64 for GDB)
-  - `pwndbg-lldb_2025.02.16_amd64.tar.xz` (x86_64 for LLDB)
-  - `pwndbg-lldb_2025.02.16_armv7.tar.xz` (armv7l for LLDB)
-  - `pwndbg-lldb_2025.02.16_arm64.tar.xz` (aarch64 for LLDB)
-  - `pwndbg-lldb_2025.02.16_riscv64.tar.xz` (riscv64 for LLDB)
+  - `pwndbg_2025.02.19_amd64.tar.xz` (x86_64 for GDB)
+  - `pwndbg_2025.02.19_armv7.tar.xz` (armv7l for GDB)
+  - `pwndbg_2025.02.19_arm64.tar.xz` (aarch64 for GDB)
+  - `pwndbg_2025.02.19_riscv64.tar.xz` (riscv64 for GDB)
+  - `pwndbg-lldb_2025.02.19_amd64.tar.xz` (x86_64 for LLDB)
+  - `pwndbg-lldb_2025.02.19_armv7.tar.xz` (armv7l for LLDB)
+  - `pwndbg-lldb_2025.02.19_arm64.tar.xz` (aarch64 for LLDB)
+  - `pwndbg-lldb_2025.02.19_riscv64.tar.xz` (riscv64 for LLDB)
 
 - **macOS (amd64, arm64):**
-  - `pwndbg-lldb_2025.02.16_macos_amd64.tar.xz` (macOS, Intel/AMD CPUs, for LLDB)
-  - `pwndbg-lldb_2025.02.16_macos_arm64.tar.xz` (macOS, Apple Silicon/M1/M2/M*, for LLDB)
-  - `pwndbg_2025.02.16_macos_amd64.tar.xz` (macOS, Intel/AMD CPUs for GDB)
-  - `pwndbg_2025.02.16_macos_amd64.tar.xz` (macOS, Apple Silicon/M1/M2/M*, for GDB via **Rosseta emulation**)
+  - `pwndbg-lldb_2025.02.19_macos_amd64.tar.xz` (macOS, Intel/AMD CPUs, for LLDB)
+  - `pwndbg-lldb_2025.02.19_macos_arm64.tar.xz` (macOS, Apple Silicon/M1/M2/M*, for LLDB)
+  - `pwndbg_2025.02.19_macos_amd64.tar.xz` (macOS, Intel/AMD CPUs for GDB)
+  - `pwndbg_2025.02.19_macos_amd64.tar.xz` (macOS, Apple Silicon/M1/M2/M*, for GDB via **Rosseta emulation**)
 
 
 #### Instructions:
 - Portable tarball:
 ```shell
-tar -v -xf ./pwndbg_2025.02.16_amd64.tar.xz
+tar -v -xf ./pwndbg_2025.02.19_amd64.tar.xz
 # ./pwndbg/bin/pwndbg
 # or ./pwndbg/bin/pwndbg-lldb
 ```
 - Installation on RPM-based Systems (CentOS/Alma/Rocky/RHEL):
 ```shell
-dnf install ./pwndbg-2025.02.16.x86_64.rpm
+dnf install ./pwndbg-2025.02.19.x86_64.rpm
 # pwndbg
 # and/or pwndbg-lldb
 ```
 
 - Installation on DEB-based Systems (Debian/Ubuntu/Kali):
 ```shell
-apt install ./pwndbg_2025.02.16_amd64.deb
+apt install ./pwndbg_2025.02.19_amd64.deb
 # pwndbg
 # and/or pwndbg-lldb
 ```
 
 - Installation on Alpine:
 ```shell
-apk add --allow-untrusted ./pwndbg_2025.02.16_x86_64.apk
+apk add --allow-untrusted ./pwndbg_2025.02.19_x86_64.apk
 # pwndbg
 # and/or pwndbg-lldb
 ```
 
 - Installation on Arch Linux:
 ```shell
-pacman -U ./pwndbg-2025.02.16-1-x86_64.pkg.tar.zst
+pacman -U ./pwndbg-2025.02.19-1-x86_64.pkg.tar.zst
 # pwndbg
 # and/or pwndbg-lldb
 ```
