@@ -77,14 +77,14 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
         print(hint(f'No {scope} parameter found with filter "{filter_pattern}"'))
         return
 
-    longest_optname = max(map(len, [v.name for v in values]))
+    longest_optname = max(map(len, (v.name for v in values)))
     longest_value = max(
         # We use `repr` here so the string values will be in quotes
-        map(len, [extend_value_with_default(repr(v.value), repr(v.default)) for v in values])
+        map(len, (extend_value_with_default(repr(v.value), repr(v.default)) for v in values))
     )
 
     header = print_row("Name", "Value", "Default", "Documentation", longest_optname, longest_value)
-    print("-" * (len(header)))
+    print("-" * len(header))
 
     for v in sorted(values):
         if isinstance(v, pwndbg.color.theme.ColorParameter):
