@@ -93,6 +93,10 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
 
             value = generateColorFunction(v.value)(v.value)
             default = generateColorFunction(v.default)(v.default)
+        elif isinstance(v.value, bool):
+            # Display 'on' or 'off' - same as GDB parameter display
+            value = 'on' if v.value else 'off'
+            default = 'on' if v.default else 'off'
         else:
             value = repr(v.value)
             default = repr(v.default)
