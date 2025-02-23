@@ -1591,6 +1591,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
         )
 
     @override
+    @property
+    def debugger_gen_lines(self) -> int:
+        # one line for the "0x000055555556fa8f in main ()"-type message
+        return 1
+
+    @override
     def set_python_diagnostics(self, enabled: bool) -> None:
         if enabled:
             command = "set python print-stack full"

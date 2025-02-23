@@ -1160,6 +1160,14 @@ class Debugger:
         """
         raise NotImplementedError()
 
+    @property
+    def debugger_gen_lines(self) -> int:
+        """
+        How many lines of text does the underlying debugger
+        generate before we print the context.
+        """
+        raise NotImplementedError()
+
     def set_python_diagnostics(self, enabled: bool) -> None:
         """
         Enables or disables Python diagnostic messages for this debugger.
