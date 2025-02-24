@@ -1592,8 +1592,9 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
     @override
     @property
-    def debugger_gen_lines(self) -> int:
-        # one line for the "0x000055555556fa8f in main ()"-type message
+    def pre_ctx_lines(self) -> int:
+        # GDB most often prints one line
+        # as a "0x000055555556fa8f in main ()"-type message
         return 1
 
     @override

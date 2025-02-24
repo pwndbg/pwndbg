@@ -2056,7 +2056,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     @property
-    def debugger_gen_lines(self) -> int:
+    def pre_ctx_lines(self) -> int:
         # We control the REPL, and we don't print any extra lines
         return 0
 

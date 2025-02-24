@@ -1161,10 +1161,13 @@ class Debugger:
         raise NotImplementedError()
 
     @property
-    def debugger_gen_lines(self) -> int:
+    def pre_ctx_lines(self) -> int:
         """
-        How many lines of text does the underlying debugger
-        generate before we print the context.
+        Our prediction on how many lines of text will be printed as
+        a preamble (right after the prompt, and before the context)
+        the next time the context is printed.
+
+        This includes any lines the underlying debugger generates.
         """
         raise NotImplementedError()
 
