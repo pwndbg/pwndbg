@@ -1168,6 +1168,9 @@ class Debugger:
         the next time the context is printed.
 
         This includes any lines the underlying debugger generates.
+
+        The user never sees these lines when context-clear-screen
+        is enabled.
         """
         raise NotImplementedError()
 
