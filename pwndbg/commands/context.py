@@ -97,10 +97,11 @@ config_reserve_lines = pwndbg.config.add_param(
     'when to reserve lines after the prompt to reduce context shake ("never", "if-ctx-fits"(default), "always")',
     help_docstring="""\
 The "if-ctx-fits" setting only reserves lines if the whole context would still fit vertically in the current terminal window. Note that it doesn't take into account line-wrapping due to insufficient terminal width.
-""", # TODO: maybe it could take into account line-wrapping?
+""",  # TODO: maybe it could take into account line-wrapping?
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["never", "if-ctx-fits", "always"],
 )
+
 
 def reserve_lines_maybe(cmd_lines: int) -> None:
     """
@@ -112,7 +113,7 @@ def reserve_lines_maybe(cmd_lines: int) -> None:
     """
     if config_reserve_lines == "never":
         return
-    
+
     # If we are clearing the screen, we already have the maximum number of empty
     # lines below us, no need to scroll.
     if config_reserve_lines == "if-ctx-fits" and config_clear_screen:
@@ -142,7 +143,7 @@ def reserve_lines_maybe(cmd_lines: int) -> None:
             # \x1b[#A  move the cursor up by # lines
             sys.stdout.write(f"\x1b[{needed_empty}S\x1b[{needed_empty}A")
     else:
-        assert(config_reserve_lines == "always")
+        assert config_reserve_lines == "always"
         # Since we are clearing the screen, leftover_lines describes actual empty lines.
         leftover_lines = max(leftover_lines, 0)
         if leftover_lines < needed_empty:
