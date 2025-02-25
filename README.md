@@ -6,18 +6,21 @@
 [![codecov.io](https://codecov.io/github/pwndbg/pwndbg/branch/dev/badge.svg?token=i1cBPFVCav)](https://app.codecov.io/github/pwndbg/pwndbg/tree/dev)
 [![Discord](https://img.shields.io/discord/843809097920413717?label=Discord&style=plastic)](https://discord.gg/x47DssnGwm)
 
-`pwndbg` is a GDB and LLDB plug-in with a focus on features needed by low-level software developers, hardware hackers, 
-reverse-engineers and exploit developers.
+Pwndbg is a GDB and LLDB plugin for low-level debugging, reverse engineering and exploit development.
 
-See [FEATURES.md](https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md) and [CHEATSHEET][CHEATSHEET].
+📖 [FEATURES](https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md)
+
+📜 [CHEATSHEET][CHEATSHEET]
 
 [CHEATSHEET]: https://drive.google.com/file/d/16t9MV8KTFXK7oX_CzXhmDdaVnjT8IYM4/view?usp=drive_link
+
+## ❤️ Community & Contributions
 
 Pwndbg is an open-source project, maintained by [many contributors](https://github.com/pwndbg/pwndbg/graphs/contributors)!
 
 Pwndbg was originally created by [Zach Riggle](https://github.com/zachriggle), who is no longer with us. We want to thank Zach for all of his contributions to Pwndbg and the wider security community.
 
-Want to help with development? Read [CONTRIBUTING](https://github.com/pwndbg/pwndbg/blob/dev/.github/CONTRIBUTING.md) and [join our Discord server][discord]!
+Want to contribute? Read [CONTRIBUTING](https://github.com/pwndbg/pwndbg/blob/dev/.github/CONTRIBUTING.md) guide and join our [Discord](https://discord.gg/x47DssnGwm)!
 
 Please consider supporting the project by [sponsoring](https://github.com/sponsors/pwndbg) it.
 
