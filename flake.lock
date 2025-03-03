@@ -2,11 +2,11 @@
   "nodes": {
     "nixpkgs": {
       "locked": {
-        "lastModified": 1736241350,
-        "narHash": "sha256-CHd7yhaDigUuJyDeX0SADbTM9FXfiWaeNyY34FL1wQU=",
+        "lastModified": 1740916017,
+        "narHash": "sha256-Ze/3XCElkVljFCnBKezLldOz2ZaGp7eozxRqFzACnMI=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "8c9fd3e564728e90829ee7dbac6edc972971cd0f",
+        "rev": "b58e19b11fe72175fd7a9e014a4786a91e99da5f",
         "type": "github"
       },
       "original": {
@@ -29,11 +29,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1737338290,
-        "narHash": "sha256-gnXlfFEHA+/jMH7R+7y3JxrI3WfOjgBhzzJNuFW70UU=",
+        "lastModified": 1740362541,
+        "narHash": "sha256-S8Mno07MspggOv/xIz5g8hB2b/C5HPiX8E+rXzKY+5U=",
         "owner": "pyproject-nix",
         "repo": "build-system-pkgs",
-        "rev": "e1487e5cefda0c7990bdd2e660bee20971680e45",
+        "rev": "e151741c848ba92331af91f4e47640a1fb82be19",
         "type": "github"
       },
       "original": {
@@ -49,11 +49,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1738204167,
-        "narHash": "sha256-J5M2sj3x4ocM93shScT/3Z4XWHZhwwW1NyQK+C+8Mys=",
+        "lastModified": 1740921768,
+        "narHash": "sha256-4d27TdYoJ8B99b4kU7qESB4QVjiV9gPSuP2/MDqjDWo=",
         "owner": "pyproject-nix",
         "repo": "pyproject.nix",
-        "rev": "0d9f4b90cee1b5c5d6c142ef22de1e246e003ccc",
+        "rev": "ca5d23f044943a23cc4274b2d3dea45682dc025f",
         "type": "github"
       },
       "original": {
@@ -80,11 +80,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1738653454,
-        "narHash": "sha256-tAFX8mPZtZ+zVE/+bwPC3U+u5MxjpNP0gG24DG26jVs=",
+        "lastModified": 1740497536,
+        "narHash": "sha256-K+8wsVooqhaqyxuvew3+62mgOfRLJ7whv7woqPU3Ypo=",
         "owner": "pyproject-nix",
         "repo": "uv2nix",
-        "rev": "05b0c148bc53aebc6a906b6d0ac41dde5954cd47",
+        "rev": "d01fd3a141755ad5d5b93dd9fcbd76d6401f5bac",
         "type": "github"
       },
       "original": {

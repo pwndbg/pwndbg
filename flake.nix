@@ -56,7 +56,7 @@
         "s390x" = "s390x";
         "ppc64" = "ppc64"; # broken lldb compilation ;(
         "ppc64le" = "powernv";
-        "loong64" = "loongarch64-linux"; # broken stdenv: https://github.com/NixOS/nixpkgs/issues/380901
+        "loong64" = "loongarch64-linux";
       };
       mapKeysWithName =
         formatfunc: values:
@@ -71,6 +71,15 @@
       overlayDarwin =
         final: prev:
         nixpkgs.lib.optionalAttrs prev.stdenv.isDarwin {
+          # Internally, apple-libffi uses dlopen() to load "/nix/store/<libffi-name>/lib/libffi-trampoline.dylib".
+          # However, to ensure a "portable" build, we want to avoid hardcoded /nix/store paths in binaries.
+          #
+          # This override will use the system-provided "/usr/lib/libffi-trampoline.dylib" instead of nix compiled version.
+          libffi_portable = prev.libffi.overrideAttrs (old: {
+            # https://github.com/NixOS/nixpkgs/blob/05248e665c4ce63c65bc729ef5580e02fd29675b/pkgs/os-specific/darwin/apple-source-releases/libffi/package.nix#L32
+            # Disable patching trampoline
+            postPatch = "";
+          });
           pwndbg_gdb = prev.pwndbg_gdb.override {
             # Darwin version of libiconv causes issues with our portable build
             libiconv = prev.pkgsStatic.libiconvReal;
@@ -84,6 +93,7 @@
             (final: prev: {
               pwndbg_gdb = prev.gdb;
               pwndbg_lldb = prev.lldb_19;
+              libffi_portable = null;
             })
             (
               final: prev:

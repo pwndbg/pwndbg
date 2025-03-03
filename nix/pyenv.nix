@@ -12,7 +12,6 @@ let
   workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = "${inputs.self}"; };
 
   pyprojectOverlay = workspace.mkPyprojectOverlay {
-    # Wheel version may work, but eg. cffi is broken on macOS due to libffi colission(?) libsystem-libffi vs nixpkgs-libffi
     sourcePreference = "sdist";
   };
 
