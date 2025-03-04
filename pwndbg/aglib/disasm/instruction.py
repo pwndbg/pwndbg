@@ -13,19 +13,20 @@ from capstone import CS_AC
 from capstone import CS_GRP
 from capstone import CS_OP
 from capstone import *  # noqa: F403
+from capstone.aarch64 import AARCH64_INS_BL
+from capstone.aarch64 import AARCH64_INS_BLR
+from capstone.aarch64 import AARCH64_INS_BR
 from capstone.arm import ARM_INS_TBB
 from capstone.arm import ARM_INS_TBH
-
-# from capstone.arm64 import ARM64_INS_B
-from capstone.arm64 import ARM64_INS_BL
-from capstone.arm64 import ARM64_INS_BLR
-from capstone.arm64 import ARM64_INS_BR
+from capstone.mips import MIPS_INS_ALIAS_B
+from capstone.mips import MIPS_INS_ALIAS_BAL
 from capstone.mips import MIPS_INS_B
 from capstone.mips import MIPS_INS_BAL
 from capstone.mips import MIPS_INS_BLTZAL
 from capstone.mips import MIPS_INS_J
 from capstone.mips import MIPS_INS_JAL
 from capstone.mips import MIPS_INS_JALR
+from capstone.mips import MIPS_INS_JALR_HB
 from capstone.mips import MIPS_INS_JR
 from capstone.ppc import PPC_INS_B
 from capstone.ppc import PPC_INS_BA
@@ -51,13 +52,23 @@ from pwndbg.dbg import DisassembledInstruction
 # so we don't need to manually specify those for each architecture
 UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     CS_ARCH_X86: {X86_INS_JMP},
-    CS_ARCH_MIPS: {MIPS_INS_J, MIPS_INS_JR, MIPS_INS_JAL, MIPS_INS_JALR, MIPS_INS_BAL, MIPS_INS_B},
+    CS_ARCH_MIPS: {
+        MIPS_INS_J,
+        MIPS_INS_JR,
+        MIPS_INS_JAL,
+        MIPS_INS_JALR,
+        MIPS_INS_JALR_HB,
+        MIPS_INS_BAL,
+        MIPS_INS_ALIAS_BAL,
+        MIPS_INS_B,
+        MIPS_INS_ALIAS_B,
+    },
     CS_ARCH_SPARC: {SPARC_INS_JMP, SPARC_INS_JMPL},
     CS_ARCH_ARM: {
         ARM_INS_TBB,
         ARM_INS_TBH,
     },
-    CS_ARCH_ARM64: {ARM64_INS_BL, ARM64_INS_BLR, ARM64_INS_BR},
+    CS_ARCH_AARCH64: {AARCH64_INS_BL, AARCH64_INS_BLR, AARCH64_INS_BR},
     CS_ARCH_RISCV: {
         RISCV_INS_JAL,
         RISCV_INS_JALR,
@@ -111,7 +122,7 @@ class SplitType(Enum):
 # Only use within the instruction.__repr__ to give a nice output
 CAPSTONE_ARCH_MAPPING_STRING = {
     CS_ARCH_ARM: "arm",
-    CS_ARCH_ARM64: "aarch64",
+    CS_ARCH_AARCH64: "aarch64",
     CS_ARCH_X86: "x86",
     CS_ARCH_PPC: "powerpc",
     CS_ARCH_MIPS: "mips",
@@ -208,9 +219,11 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Groups that apply to all architectures: CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
         """
 
-        self.id: int = cs_insn.id
+        self.id: int = cs_insn.alias_id if cs_insn.is_alias else cs_insn.id
         """
         The underlying Capstone ID for the instruction
+        If it's an alias, use the id of the alias
+
         Examples: X86_INS_JMP, X86_INS_CALL, RISCV_INS_C_JAL
         """
 
@@ -289,8 +302,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         In most cases, we can determine this purely based on the instruction ID, and this field is irrelevent.
         However, in some arches, like Arm, the same instruction can be made conditional by certain instruction attributes.
         Ex:
-            Arm, `bls` instruction. This is encoded as a `b` (Capstone ID 11) under the code, with an additional condition code field.
-            In this case, sometimes a `b` instruction (ID 11) is unconditional (always branches), in other cases it is conditional.
+            Arm, `bls` instruction. This is encoded as a `b` under the code, with an additional condition code field.
+            In this case, sometimes a `b` instruction is unconditional (always branches), in other cases it is conditional.
             We use this field to disambiguate these cases.
 
         True if we manually determine this instruction is a conditional instruction
@@ -301,9 +314,9 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         self.declare_is_unconditional_jump: bool = False
         """
         This field is used to declare that this instruction is an unconditional jump.
-        Most of the type, we depend on Capstone groups to check for jump instructions,
-        but sometimes these are lacking, such as in the case of general-purpose instructions
-        where the PC is the destination register, such as Arm `add`, `sub`, `ldr`, and `pop` instructions.
+        Most of the time, we depend on Capstone groups to check for jump instructions.
+        However, some instructions become branches depending on the operands,
+        such as Arm `add`, `sub`, `ldr`, `pop`, where PC is the destination register
 
         In these cases, we want to forcefully state that this instruction mutates the PC, so we set this attribute to True.
 
@@ -413,6 +426,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         """
         return (
             self.declare_conditional is not False
+            and self.declare_is_unconditional_jump is False
             and bool(self.groups & GENERIC_JUMP_GROUPS)
             and self.id not in UNCONDITIONAL_JUMP_INSTRUCTIONS[self.cs_insn._cs.arch]
         )
@@ -478,6 +492,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
         ID: {self.id}, {self.cs_insn.insn_name()}
+        Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else 'None'}
         Raw asm: {'%-06s %s' % (self.mnemonic, self.op_str)}
         New asm: {self.asm_string}
         Next: {self.next:#x}
@@ -488,7 +503,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Operands: [{operands_str}]
         Conditional jump: {self.is_conditional_jump}. Taken: {self.is_conditional_jump_taken}
         Unconditional jump: {self.is_unconditional_jump}
-        Declare unconditional: {self.declare_conditional}
+        Declare conditional: {self.declare_conditional}
         Declare unconditional jump: {self.declare_is_unconditional_jump}
         Force jump target: {self.force_unconditional_jump_target}
         Can change PC: {self.has_jump_target}

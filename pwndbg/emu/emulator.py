@@ -14,7 +14,6 @@ from typing import Tuple
 
 import capstone as C
 import unicorn as U
-import unicorn.riscv_const
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
@@ -173,7 +172,7 @@ arch_to_SYSCALL = {
     U.UC_ARCH_MIPS: [C.mips_const.MIPS_INS_SYSCALL],
     U.UC_ARCH_SPARC: [C.sparc_const.SPARC_INS_T],
     U.UC_ARCH_ARM: [C.arm_const.ARM_INS_SVC],
-    U.UC_ARCH_ARM64: [C.arm64_const.ARM64_INS_SVC],
+    U.UC_ARCH_ARM64: [C.aarch64_const.AARCH64_INS_SVC],
     U.UC_ARCH_PPC: [C.ppc_const.PPC_INS_SC],
     U.UC_ARCH_RISCV: [C.riscv_const.RISCV_INS_ECALL],
 }
@@ -243,7 +242,8 @@ class Emulator:
         self.last_single_step_result = InstructionExecutedResult(None, None)
 
         # Initialize the register state
-        for reg in self.regs.emulated_regs_order:
+        for emu_reg in self.regs.emulated_regs_order:
+            reg = emu_reg.name
             enum = self.get_reg_enum(reg)
 
             if not reg:
@@ -259,8 +259,9 @@ class Emulator:
                     debug(DEBUG_INIT, "# Could not set register %r", reg)
                 continue
 
-            # All registers are initialized to zero.
-            if value == 0:
+            # Most registers are initialized to zero.
+            # However, some registers (CPSR on AArch64) do not default to zero, so we must explicitly set them to 0
+            if not emu_reg.force_write and value == 0:
                 continue
 
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"

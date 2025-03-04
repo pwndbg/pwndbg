@@ -5,6 +5,7 @@ standardized interface to registers like "sp" and "pc".
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Dict
 from typing import Iterator
 from typing import List
@@ -16,6 +17,16 @@ from typing import Union
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 BitFlags = OrderedDict[str, Union[int, Tuple[int, int]]]
+
+
+@dataclass
+class EmulatedRegister:
+    """
+    Represent a register to write to the Unicorn emulator.
+    """
+
+    name: str
+    force_write: bool
 
 
 class RegisterSet:
@@ -87,11 +98,12 @@ class RegisterSet:
         # we must write the flags register after PC, and the stack pointer after the flags register.
         # Otherwise, the values will be clobbered
         # https://github.com/pwndbg/pwndbg/pull/2337
-        self.emulated_regs_order: List[str] = []
+        self.emulated_regs_order: List[EmulatedRegister] = []
 
         for reg in [pc] + list(flags) + [stack, frame] + list(retaddr) + list(misc) + list(gpr):
             if reg and reg not in self.emulated_regs_order:
-                self.emulated_regs_order.append(reg)
+                emu_reg = EmulatedRegister(reg, True if reg in flags else False)
+                self.emulated_regs_order.append(emu_reg)
 
         self.all = set(misc) | set(flags) | set(extra_flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}

@@ -317,7 +317,11 @@ class DisassemblyAssistant:
                     op.before_value, instruction, op, emu
                 )
 
-                if op.symbol and op.type == CS_OP_IMM and pwndbg.config.disasm_inline_symbols:
+                if (
+                    op.symbol
+                    and op.type in (CS_OP_IMM, CS_OP_MEM)
+                    and pwndbg.config.disasm_inline_symbols
+                ):
                     # Make an inline replacement, so `jmp 0x400122` becomes `jmp function_name`
                     instruction.asm_string = instruction.asm_string.replace(
                         hex(op.before_value), op.symbol

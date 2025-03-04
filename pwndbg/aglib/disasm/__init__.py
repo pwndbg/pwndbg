@@ -37,7 +37,7 @@ if pwndbg.dbg.is_gdblib_available():
 CapstoneArch = {
     "arm": CS_ARCH_ARM,
     "armcm": CS_ARCH_ARM,
-    "aarch64": CS_ARCH_ARM64,
+    "aarch64": CS_ARCH_AARCH64,
     "i386": CS_ARCH_X86,
     "i8086": CS_ARCH_X86,
     "x86-64": CS_ARCH_X86,
