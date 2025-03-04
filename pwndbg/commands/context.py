@@ -674,7 +674,19 @@ def context(subcontext=None, enabled=None) -> None:
         with target as out:
             if result_settings[target].get("clearing", config_clear_screen) and lines:
                 clear_screen(out)
-            out.writelines(line + "\n" for line in lines)
+            # The `if` here essentially checks whether the output is going to
+            # the window where the debugger prompt is. The prompt is
+            # always printed to stdout.
+            if isinstance(target, StdOutput):
+                # We always get a new line after the prompt, so the first line
+                # doesn't need to have a "\n" in front. Furthermore, we need
+                # to reserve a new line before the next prompt is printed.
+                out.writelines(line + "\n" for line in lines)
+            else:
+                # A "\n" after the last line would just take up space in this case.
+                # There will be a redundant preceding empty line when the first
+                # context is printed, but it doesn't really matter.
+                out.writelines("\n" + line for line in lines)
             out.flush()
 
 
