@@ -226,7 +226,7 @@
         // (crossDrvs system)
         // (portableDrvs system)
         // (tarballDrv system)
-        // (pwndbg_gdb_drvs (if (system == "aarch64-darwin") then "x86_64-darwin" else system))
+        // (pwndbg_gdb_drvs system)
         // (pwndbg_lldb_drvs system)
       );
 
