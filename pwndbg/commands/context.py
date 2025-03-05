@@ -979,7 +979,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler_cached.cache.values()), None)
+    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None)
 
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
