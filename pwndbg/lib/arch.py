@@ -48,7 +48,7 @@ PWNLIB_ARCH_MAPPINGS = {
 FMT_LITTLE_ENDIAN = {1: "B", 2: "<H", 4: "<I", 8: "<Q"}
 FMT_BIG_ENDIAN = {1: "B", 2: ">H", 4: ">I", 8: ">Q"}
 
-
+# Unused
 class Arch:
     def __init__(
         self,

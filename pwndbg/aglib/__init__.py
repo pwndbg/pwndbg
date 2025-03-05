@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from pwndbg.aglib import arch as arch_mod
-# from pwndbg.aglib.arch import arch as arch
-
 from pwndbg.aglib.arch import PwndbgArchitecture
+
+# from pwndbg.aglib.arch import arch as arch
 
 regs = None
 
-# arch: PwndbgArchitecture = None
 arch: PwndbgArchitecture = PwndbgArchitecture.get_arch("i386")
+
 
 def load_aglib():
     import pwndbg.aglib.argv
@@ -38,6 +38,7 @@ def load_aglib():
     regs_: regs_mod.module = regs_mod
     global regs
     regs = regs_
+
 
 def set_arch(pwndbg_arch: PwndbgArchitecture):
     global arch
