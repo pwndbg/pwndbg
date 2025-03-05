@@ -15,7 +15,7 @@ TIPS: List[str] = [
     "GDB's `set directories <path>` parameter can be used to debug e.g. glibc sources like the malloc/free functions!",
     "If you have debugging symbols the `info args` command shows current frame's function arguments (use `up` and `down` to switch between frames)",
     'Calling functions like `call (void)puts("hello world")` will run all other target threads for the time the function runs. Use `set scheduler-locking on` to lock the execution to current thread when calling functions',
-    "Use the `pipe <cmd> | <prog>` command to pass output of a GDB/Pwndbg command to a shell program, e.g. `pipe elfsections | grep bss`",
+    "Use the `pipe <cmd> | <prog>` command to pass output of a GDB/Pwndbg command to a shell program, e.g. `pipe elfsections | grep bss`. This can also be shortened to: `| <cmd> | <prog>`",
     # Pwndbg hints
     "If you want Pwndbg to clear screen on each command (but still save previous output in history) use `set context-clear-screen on`",
     "The `set show-flags on` setting will display CPU flags register in the regs context panel",
