@@ -85,10 +85,8 @@ TIPS: List[str] = GDB_TIPS + PWNDBG_TIPS
 def get_tip_of_the_day(debugger_type="gdb") -> str:
     """
     Returns a random tip based on the debugger type.
-    
     Args:
         debugger_type: Type of debugger ('gdb' or 'lldb')
-        
     Returns:
         A random tip appropriate for the given debugger
     """
