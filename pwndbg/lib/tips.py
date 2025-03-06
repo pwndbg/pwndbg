@@ -6,8 +6,8 @@ from typing import List
 
 from pwndbg.color import message
 
-TIPS: List[str] = [
-    # GDB hints
+# GDB specific tips
+GDB_TIPS: List[str] = [
     "GDB's `apropos <topic>` command displays all registered commands that are related to the given <topic>",
     "GDB's `follow-fork-mode` parameter can be used to set whether to trace parent or child after fork() calls. Pwndbg sets it to child by default",
     'Use GDB\'s `dprintf` command to print all calls to given function. E.g. `dprintf malloc, "malloc(%p)\\n", (void*)$rdi` will print all malloc calls',
@@ -16,7 +16,10 @@ TIPS: List[str] = [
     "If you have debugging symbols the `info args` command shows current frame's function arguments (use `up` and `down` to switch between frames)",
     'Calling functions like `call (void)puts("hello world")` will run all other target threads for the time the function runs. Use `set scheduler-locking on` to lock the execution to current thread when calling functions',
     "Use the `pipe <cmd> | <prog>` command to pass output of a GDB/Pwndbg command to a shell program, e.g. `pipe elfsections | grep bss`. This can also be shortened to: `| <cmd> | <prog>`",
-    # Pwndbg hints
+]
+
+# Pwndbg specific tips
+PWNDBG_TIPS: List[str] = [
     "If you want Pwndbg to clear screen on each command (but still save previous output in history) use `set context-clear-screen on`",
     "The `set show-flags on` setting will display CPU flags register in the regs context panel",
     "GDB and Pwndbg parameters can be shown or set with `show <param>` and `set <param> <value>` GDB commands",
@@ -51,9 +54,50 @@ TIPS: List[str] = [
     "Try splitting the context output into multiple TUI windows using `layout pwndbg` (`tui disable` or `ctrl-x + a` to go back to CLI mode)",
 ]
 
+# LLDB specific tips
+LLDB_TIPS: List[str] = [
+    "Use LLDB's `help <command>` to get detailed help on any command",
+    "LLDB's `expr` command lets you evaluate expressions in the current frame context",
+    "Use `frame variable` (or `fr v`) to show all variables in the current frame",
+    "The `watchpoint set` command allows you to stop execution when a variable changes",
+    "Use `process launch --stop-at-entry` to stop at the program entry point",
+    "LLDB's `memory read` (or `m read`) command displays memory contents at a specified address",
+    "Use `thread backtrace all` to see backtraces of all threads",
+    "The `breakpoint set --func-regex <regex>` command sets breakpoints on functions matching a regular expression",
+    "Use `target modules list` to see all loaded modules in your process",
+    "LLDB's `image lookup` command helps find symbols, addresses, and files in the executable and loaded libraries",
+    "Use `command alias` to create custom shortcuts for frequently used commands",
+    "LLDB's `register read` shows the contents of registers in the selected frame",
+    "The `disassemble` command shows assembly instructions for the current function",
+    "Use `thread step-inst` (or `si`) to step one instruction",
+    "LLDB's Python API can be accessed with the `script` command to extend debugging capabilities",
+    "Use `process attach --pid <pid>` to attach to a running process",
+    "The `breakpoint command add` lets you run commands when a breakpoint is hit",
+    "Use `memory find` to search for a value in the process's memory",
+    "LLDB's `settings set` command allows you to customize debugger behavior",
+    "The `platform list` command shows all available platforms for remote debugging",
+]
 
-def get_tip_of_the_day() -> str:
-    return choice(TIPS)
+# Combined tips list for backward compatibility
+TIPS: List[str] = GDB_TIPS + PWNDBG_TIPS
+
+
+def get_tip_of_the_day(debugger_type='gdb') -> str:
+    """
+    Returns a random tip based on the debugger type.
+    
+    Args:
+        debugger_type: Type of debugger ('gdb' or 'lldb')
+        
+    Returns:
+        A random tip appropriate for the given debugger
+    """
+    if debugger_type.lower() == 'lldb':
+        # For LLDB, return LLDB-specific or Pwndbg tips
+        return choice(LLDB_TIPS + PWNDBG_TIPS)
+    else:
+        # For GDB, return GDB-specific or Pwndbg tips
+        return choice(GDB_TIPS + PWNDBG_TIPS)
 
 
 def color_tip(tip: str) -> str:
