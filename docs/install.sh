@@ -70,28 +70,31 @@ while getopts "v:t:u" opt; do
 	esac
 done
 
-## Check if TYPE is empty
-#if [ -z "$TYPE" ]; then
-#	echo "Please choose the type of Pwndbg installation:"
-#	echo "  ${YELLOW}1) ${CYAN}pwndbg-gdb${NC}"
-#	echo "  ${YELLOW}2) ${CYAN}pwndbg-lldb${NC}"
-#
-#	# Read user input
-#	while true; do
-#		read -r -p "Enter the number (1 or 2): " choice
-#		case "$choice" in
-#		1)
-#			TYPE="pwndbg-gdb"
-#			break
-#			;;
-#		2)
-#			TYPE="pwndbg-lldb"
-#			break
-#			;;
-#		*) echoerr "Invalid option. Please enter 1 or 2." ;;
-#		esac
-#	done
-#fi
+# Check if running inside TTY
+if [ -t 0 ]; then
+	# Check if TYPE is empty
+	if [ -z "$TYPE" ]; then
+		echo "Please choose the type of Pwndbg installation:"
+		echo "  ${YELLOW}1) ${CYAN}pwndbg-gdb${NC}"
+		echo "  ${YELLOW}2) ${CYAN}pwndbg-lldb${NC}"
+
+		# Read user input
+		while true; do
+			read -r -p "Enter the number (1 or 2): " choice
+			case "$choice" in
+			1)
+				TYPE="pwndbg-gdb"
+				break
+				;;
+			2)
+				TYPE="pwndbg-lldb"
+				break
+				;;
+			*) echoerr "Invalid option. Please enter 1 or 2." ;;
+			esac
+		done
+	fi
+fi
 
 case "$TYPE" in
 pwndbg-gdb) BINARY_NAME="pwndbg" ;;
