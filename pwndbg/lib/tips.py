@@ -82,7 +82,7 @@ LLDB_TIPS: List[str] = [
 TIPS: List[str] = GDB_TIPS + PWNDBG_TIPS
 
 
-def get_tip_of_the_day(debugger_type='gdb') -> str:
+def get_tip_of_the_day(debugger_type="gdb") -> str:
     """
     Returns a random tip based on the debugger type.
     
@@ -92,7 +92,7 @@ def get_tip_of_the_day(debugger_type='gdb') -> str:
     Returns:
         A random tip appropriate for the given debugger
     """
-    if debugger_type.lower() == 'lldb':
+    if debugger_type.lower() == "lldb":
         # For LLDB, return LLDB-specific or Pwndbg tips
         return choice(LLDB_TIPS + PWNDBG_TIPS)
     else:
