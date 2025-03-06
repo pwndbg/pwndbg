@@ -78,10 +78,6 @@ LLDB_TIPS: List[str] = [
     "The `platform list` command shows all available platforms for remote debugging",
 ]
 
-# Combined tips list for backward compatibility
-TIPS: List[str] = GDB_TIPS + PWNDBG_TIPS
-
-
 def get_tip_of_the_day(debugger_type="gdb") -> str:
     """
     Returns a random tip based on the debugger type.
