@@ -101,6 +101,9 @@ extra:
 extra_css:
   - stylesheets/extra.css
 
+extra_files:
+  - install.sh
+
 # Extensions
 markdown_extensions:
   - abbr
