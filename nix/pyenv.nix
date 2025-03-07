@@ -207,10 +207,6 @@ let
       prev.unicorn.overrideAttrs (
         old:
         lib.optionalAttrs ((isBuildSource old)) {
-          # On 32bit system failed to build: https://github.com/pwndbg/pwndbg/issues/2588#issuecomment-2659498870
-          # Since GCC-14 `-Wreturn-mismatch` is turned into an error by default.
-          NIX_CFLAGS_COMPILE = lib.optionalString stdenv.hostPlatform.is32bit "-Wno-return-mismatch";
-
           nativeBuildInputs =
             old.nativeBuildInputs
             ++ [
