@@ -11,7 +11,7 @@ CC.mips64 = mips64-linux-gnuabi64-gcc
 CC.mips32 = mips-linux-gnu-gcc
 # CC.loongarch64 = loongarch64-linux-gnu-gcc-14
 
-ALL_FLAGS = -g
+ALL_FLAGS = -g -static
 
 CFLAGS.aarch64 = $(ALL_FLAGS)
 CFLAGS.arm = $(ALL_FLAGS)
