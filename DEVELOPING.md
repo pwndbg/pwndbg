@@ -63,6 +63,17 @@ To run these tests, run [`./tests.sh`](./tests.sh). You can filter the tests to 
 
 To invoke cross-architecture tests, use `./qemu-tests.sh`, and to run unit tests, use `./unit-tests.sh`
 
+To run the tests in the same environment as the testing CI/CD, you can use the following Docker command.
+
+```sh
+# General test suite
+docker compose run --rm --build ubuntu24.04-mount ./tests.sh
+# Cross-architecture tests
+docker compose run --rm --build ubuntu24.04-mount ./unit-tests.sh
+```
+
+This comes in handy particularly for cross-architecture tests because the Docker environment has all the cross-compilers installed. The active `pwndbg` directory is mounted, preventing the need for a full rebuild whenever you update the codebase.
+
 ## Writing Tests
 
 Each test is a Python function that runs inside of an isolated GDB session. 
