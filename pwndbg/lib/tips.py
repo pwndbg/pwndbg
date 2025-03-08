@@ -78,20 +78,29 @@ LLDB_TIPS: List[str] = [
     "The `platform list` command shows all available platforms for remote debugging",
 ]
 
-def get_tip_of_the_day(debugger_type="gdb") -> str:
+def get_tip_of_the_day() -> str:
     """
-    Returns a random tip based on the debugger type.
-    Args:
-        debugger_type: Type of debugger ('gdb' or 'lldb')
-    Returns:
-        A random tip appropriate for the given debugger
+    Returns a random tip based on the current debugger type.
     """
-    if debugger_type.lower() == "lldb":
-        # For LLDB, return LLDB-specific or Pwndbg tips
-        return choice(LLDB_TIPS + PWNDBG_TIPS)
-    else:
+    import pwndbg.dbg
+    
+    if pwndbg.dbg.is_gdblib_available():
         # For GDB, return GDB-specific or Pwndbg tips
         return choice(GDB_TIPS + PWNDBG_TIPS)
+    else:
+        # For LLDB, return LLDB-specific or Pwndbg tips
+        return choice(LLDB_TIPS + PWNDBG_TIPS)
+
+def get_all_tips() -> List[str]:
+    """
+    Returns all tips applicable to the current debugger.
+    """
+    import pwndbg.dbg
+    
+    if pwndbg.dbg.is_gdblib_available():
+        return GDB_TIPS + PWNDBG_TIPS
+    else:
+        return LLDB_TIPS + PWNDBG_TIPS
 
 
 def color_tip(tip: str) -> str:
