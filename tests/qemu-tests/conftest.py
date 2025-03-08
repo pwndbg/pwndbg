@@ -72,18 +72,20 @@ def qemu_assembly_run():
 
     qemu.kill()
 
+
 # Map of qemu_suffix to location of library files in default Ubuntu installs of cross-compilers
 CROSS_ARCH_LIBC = {
-    "aarch64":"/usr/aarch64-linux-gnu",
-    "arm":"/usr/arm-linux-gnueabihf",
-    "mips":"/usr/mips-linux-gnu",
-    "mips64":"/usr/mips64-linux-gnuabi64/",
-    "riscv64":"/usr/riscv64-linux-gnu/",
+    "aarch64": "/usr/aarch64-linux-gnu",
+    "arm": "/usr/arm-linux-gnueabihf",
+    "mips": "/usr/mips-linux-gnu",
+    "mips64": "/usr/mips64-linux-gnuabi64/",
+    "riscv64": "/usr/riscv64-linux-gnu/",
     "loongarch64": "/usr/loongarch64-linux-gnu/",
     "ppc": "/usr/powerpc-linux-gnu/",
     "ppc64": "/usr/powerpc64-linux-gnu/",
-    "sparc64": "/usr/sparc64-linux-gnu/"
+    "sparc64": "/usr/sparc64-linux-gnu/",
 }
+
 
 @pytest.fixture
 def qemu_start_binary():
@@ -108,7 +110,7 @@ def qemu_start_binary():
 
         qemu_suffix = pwnlib.qemu.archname(arch=arch)
         # qemu_libs = pwnlib.qemu.ld_prefix(arch=arch)
-        qemu_libs = CROSS_ARCH_LIBC.get(qemu_suffix,f"/usr/gnemul/qemu-{qemu_suffix}")
+        qemu_libs = CROSS_ARCH_LIBC.get(qemu_suffix, f"/usr/gnemul/qemu-{qemu_suffix}")
 
         qemu = subprocess.Popen(
             [
