@@ -74,7 +74,7 @@ docker compose run --rm --build ubuntu24.04-mount ./unit-tests.sh
 
 This comes in handy particularly for cross-architecture tests because the Docker environment has all the cross-compilers installed. The active `pwndbg` directory is mounted, preventing the need for a full rebuild whenever you update the codebase.
 
-Remove the `-mount` if you want the tests to run from a clean slate (no files mounted, meaning all binaries are recompiled each time).
+Remove the `-mount` if you want the tests to run from a clean slate (no files are mounted, meaning all binaries are recompiled each time).
 
 ## Writing Tests
 
