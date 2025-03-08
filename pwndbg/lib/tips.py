@@ -83,7 +83,6 @@ def get_tip_of_the_day() -> str:
     Returns a random tip based on the current debugger type.
     """
     import pwndbg.dbg
-    
     if pwndbg.dbg.is_gdblib_available():
         # For GDB, return GDB-specific or Pwndbg tips
         return choice(GDB_TIPS + PWNDBG_TIPS)
@@ -96,7 +95,6 @@ def get_all_tips() -> List[str]:
     Returns all tips applicable to the current debugger.
     """
     import pwndbg.dbg
-    
     if pwndbg.dbg.is_gdblib_available():
         return GDB_TIPS + PWNDBG_TIPS
     else:
