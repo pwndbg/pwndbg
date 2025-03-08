@@ -69,7 +69,7 @@ To run the tests in the same environment as the testing CI/CD, you can use the f
 # General test suite
 docker compose run --rm --build ubuntu24.04-mount ./tests.sh
 # Cross-architecture tests
-docker compose run --rm --build ubuntu24.04-mount ./unit-tests.sh
+docker compose run --rm --build ubuntu24.04-mount ./qemu-tests.sh
 ```
 
 This comes in handy particularly for cross-architecture tests because the Docker environment has all the cross-compilers installed. The active `pwndbg` directory is mounted, preventing the need for a full rebuild whenever you update the codebase.
