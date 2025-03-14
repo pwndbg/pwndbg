@@ -43,6 +43,12 @@ print_framepointer_offset = pwndbg.config.add_param(
     True,
     "print offset to framepointer for each address, if sufficiently small",
 )
+print_retaddr_in_frame = pwndbg.config.add_param(
+    "telescope-frame-print-retaddr", True, "print one pointer past the stack frame"
+)
+dont_skip_registers = pwndbg.config.add_param(
+    "telescope-dont-skip-registers", True, "don't skip a repeated line if a registers points to it"
+)
 
 offset_separator = theme.add_param(
     "telescope-offset-separator", "│", "offset separator of the telescope command"
@@ -148,6 +154,7 @@ def telescope(
 
         address = sp
         count = int((bp - sp) / ptrsize) + 1
+        count += 1 if print_retaddr_in_frame else 0
 
     # Allow invocation of "telescope a b" to dump all bytes from A to B
     if int(address) <= int(count):
@@ -250,7 +257,11 @@ def telescope(
         # Buffer repeating values.
         if skip_repeating_values:
             value = pwndbg.aglib.memory.pvoid(addr)
-            if last == value and addr != input_address:
+            if (
+                last == value
+                and addr != input_address
+                and (not dont_skip_registers or not regs[addr])
+            ):
                 collapse_buffer.append(line)
                 continue
             collapse_repeating_values()
@@ -270,8 +281,7 @@ def telescope(
 
 def regs_or_frame_offset(addr: int, bp: int | None, regs: Dict[int, str], longest_regs: int) -> str:
     # bp only set if print_framepointer_offset=True
-    # len(regs[addr]) == 1 if no registers pointer to address
-    if bp is None or len(regs[addr]) > 1 or not -0xFFF <= addr - bp <= 0xFFF:
+    if bp is None or regs[addr] or not -0xFFF <= addr - bp <= 0xFFF:
         return " " + T.register(regs[addr].ljust(longest_regs))
     else:
         # If offset to frame pointer as hex fits in hex 3 digits, print it
