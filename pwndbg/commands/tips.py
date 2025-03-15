@@ -18,4 +18,3 @@ def tips(all: bool) -> None:
             print(color_tip(tip))
     else:
         print(color_tip(get_tip_of_the_day()))
-        
