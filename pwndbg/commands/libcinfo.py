@@ -9,7 +9,7 @@ import subprocess
 @pwndbg.commands.OnlyWhenLocal
 def libcinfo():
         """Identifies the libc version used by the binary and provides a link to its sources.
-           This command only works in local debuggin sessions
+           This command only works in local debugging sessions
         """
 
         try:
