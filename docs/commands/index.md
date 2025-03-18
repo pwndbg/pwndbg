@@ -93,7 +93,6 @@
 -  [contextunwatch](context/contextunwatch.md) Removes an expression previously added to be watched.
 -  [contextwatch](context/contextwatch.md)
 -  [regs](context/regs.md) Print out all registers and enhance the information.
--  [xinfo](xinfo/xinfo.md) Shows offsets of the specified address from various useful locations.
 
 ## Register
 
@@ -110,8 +109,6 @@
 -  [mmap](mmap/mmap.md)
 -  [mprotect](mprotect/mprotect.md)
 -  [p2p](p2p/p2p.md) Pointer to pointer chain search. Searches given mapping for all pointers that point to specified mapping.
--  [telescope](p2p/ts.md) Recursively dereferences pointers starting at the specified address.
--  [telescope](peda/xprint.md) Recursively dereferences pointers starting at the specified address.
 -  [probeleak](probeleak/probeleak.md)
 -  [search](search/search.md) Search memory for byte sequences, strings, pointers, and integer values.
 -  [telescope](telescope/telescope.md) Recursively dereferences pointers starting at the specified address.

@@ -48,7 +48,3 @@ def xuntil(target) -> None:
         gdb.execute("continue", from_tty=False)
     else:
         gdb.execute("run", from_tty=False)
-
-
-xinfo = pwndbg.commands.context.context
-xprint = pwndbg.commands.telescope.telescope
