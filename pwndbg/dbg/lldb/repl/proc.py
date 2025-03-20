@@ -560,7 +560,8 @@ class ProcessDriver:
                 # just fine.
                 self.eh.created()
                 break
-            elif (
+
+            if (
                 event is not None
                 and lldb.SBProcess.GetStateFromEvent(event) == lldb.eStateConnected
             ):
