@@ -9,7 +9,7 @@
 #
 
 ARG image=mcr.microsoft.com/devcontainers/base:jammy
-FROM $image
+FROM $image AS base
 
 WORKDIR /pwndbg
 
@@ -44,6 +44,8 @@ RUN ./setup-dev.sh
 
 # Cleanup dummy files
 RUN rm README.md && rm -rf pwndbg
+
+FROM base AS full
 
 ADD . /pwndbg/
 

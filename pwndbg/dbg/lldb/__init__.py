@@ -2054,6 +2054,13 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     def get_cmd_window_size(self) -> Tuple[int, int]:
         return None, None
 
+    @override
+    @property
+    def pre_ctx_lines(self) -> int:
+        # We control the REPL, and we don't print any extra lines
+        return 0
+
+    @override
     def is_gdblib_available(self):
         return False
 

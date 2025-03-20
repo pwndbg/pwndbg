@@ -9,6 +9,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.commands.canary
+import pwndbg.commands.context
 import tests
 
 REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
@@ -555,3 +556,31 @@ def test_context_history_search(start_binary):
     # Search in non-existing section
     search_result = gdb.execute("ctxsearch 'Hello World' nonexistent", to_string=True)
     assert "Section 'nonexistent' not found in context history." in search_result
+
+
+def test_context_output_redirection(start_binary):
+    start_binary(REFERENCE_BINARY)
+
+    # Test CallOutput redirection
+    def receive_output(output):
+        receive_output.context_output = output
+
+    receive_output.context_output = ""
+
+    pwndbg.commands.context.contextoutput(
+        "regs",
+        receive_output,
+        clearing=True,
+        banner="top",
+        width=80,
+    )
+
+    gdb.execute("start")
+
+    out = gdb.execute("ctx", to_string=True)
+    assert "REGISTERS" not in out
+    assert "STACK" in out
+    assert "REGISTERS" in receive_output.context_output
+    assert "STACK" not in receive_output.context_output
+
+    pwndbg.commands.context.resetcontextoutput("regs")

@@ -57,6 +57,7 @@ def qemu_assembly_run():
         os.environ["PWNDBG_IN_TEST"] = "1"
         os.environ["COLUMNS"] = "80"
         gdb.execute("set exception-verbose on")
+        gdb.execute("set context-reserve-lines never")
         gdb.execute("set width 80")
         gdb.execute(f"target remote :{QEMU_PORT}")
 
@@ -103,6 +104,7 @@ def qemu_start_binary():
         os.environ["PWNDBG_IN_TEST"] = "1"
         os.environ["COLUMNS"] = "80"
         gdb.execute("set exception-verbose on")
+        gdb.execute("set context-reserve-lines never")
         gdb.execute("set width 80")
         gdb.execute(f"target remote :{QEMU_PORT}")
 

@@ -1591,6 +1591,13 @@ class GDB(pwndbg.dbg_mod.Debugger):
         )
 
     @override
+    @property
+    def pre_ctx_lines(self) -> int:
+        # GDB most often prints one line
+        # as a "0x000055555556fa8f in main ()"-type message
+        return 1
+
+    @override
     def set_python_diagnostics(self, enabled: bool) -> None:
         if enabled:
             command = "set python print-stack full"

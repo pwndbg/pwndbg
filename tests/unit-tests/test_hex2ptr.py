@@ -18,3 +18,9 @@ def test_hex2ptr_common_invalid_hex():
     # Test for invalid hex characters
     with pytest.raises(ValueError, match="Invalid hex string"):
         hex2ptr_common("zz zz zz")
+
+
+def test_hex2ptr_common_mixed_case():
+    """Test that hex2ptr_common correctly handles mixed case hex strings."""
+    assert hex2ptr_common("aB cD eF 12") == 0x12EFCDAB
+    assert hex2ptr_common("FfFf") == 0xFFFF

@@ -88,11 +88,8 @@ jobs:
         ]
         attribute: [
           pwndbg-lldb-portable-tarball,
+          pwndbg-gdb-portable-tarball,
         ]
-        include:
-          # gdb is only supported on macos x86_64
-          - os: macos-13  # x86_64-darwin
-            attribute: pwndbg-gdb-portable-tarball
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:

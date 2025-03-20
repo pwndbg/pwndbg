@@ -1160,6 +1160,20 @@ class Debugger:
         """
         raise NotImplementedError()
 
+    @property
+    def pre_ctx_lines(self) -> int:
+        """
+        Our prediction on how many lines of text will be printed as
+        a preamble (right after the prompt, and before the context)
+        the next time the context is printed.
+
+        This includes any lines the underlying debugger generates.
+
+        The user never sees these lines when context-clear-screen
+        is enabled.
+        """
+        raise NotImplementedError()
+
     def set_python_diagnostics(self, enabled: bool) -> None:
         """
         Enables or disables Python diagnostic messages for this debugger.

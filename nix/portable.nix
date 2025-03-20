@@ -80,14 +80,19 @@ let
   skipVenv = pkgs.writeScript "pwndbg-skip-venv" "";
 
   pwndbgGdbBundled = bundler (
-    # Darwin don't have gdbserver
-    (lib.optionals (!pkgs.stdenv.isDarwin) [
-      "${lib.getBin gdb}/bin/gdbserver"
-      "exe/gdbserver"
-
-      "${wrapperBin "exe/gdbserver"}"
-      "bin/gdbserver"
+    (lib.optionals (pkgs.libffi_portable != null) [
+      "${lib.getLib pkgs.libffi_portable}/lib/"
+      "lib/"
     ])
+    ++
+      # Darwin don't have gdbserver
+      (lib.optionals (!pkgs.stdenv.isDarwin) [
+        "${lib.getBin gdb}/bin/gdbserver"
+        "exe/gdbserver"
+
+        "${wrapperBin "exe/gdbserver"}"
+        "bin/gdbserver"
+      ])
     ++ [
       "${lib.getBin gdb}/bin/gdb"
       "exe/gdb"
@@ -115,46 +120,52 @@ let
     ]
   );
 
-  pwndbgLldbBundled = bundler [
-    "${lib.getBin lldb}/bin/.lldb-wrapped"
-    "exe/lldb"
+  pwndbgLldbBundled = bundler (
+    (lib.optionals (pkgs.libffi_portable != null) [
+      "${lib.getLib pkgs.libffi_portable}/lib/"
+      "lib/"
+    ])
+    ++ [
+      "${lib.getBin lldb}/bin/.lldb-wrapped"
+      "exe/lldb"
 
-    "${lib.getBin lldb}/bin/lldb-server"
-    "exe/lldb-server"
+      "${lib.getBin lldb}/bin/lldb-server"
+      "exe/lldb-server"
 
-    "${lib.getLib lldb}/lib/"
-    "lib/"
+      "${lib.getLib lldb}/lib/"
+      "lib/"
 
-    "${pwndbgVenv}/lib/"
-    "lib/"
+      "${pwndbgVenv}/lib/"
+      "lib/"
 
-    "${python3}/lib/"
-    "lib/"
+      "${python3}/lib/"
+      "lib/"
 
-    "${python3}/bin/python3"
-    "exe/python3"
+      "${python3}/bin/python3"
+      "exe/python3"
 
-    "${pwndbg.src}/pwndbg/"
-    "lib/${python3.libPrefix}/site-packages/pwndbg/"
+      "${pwndbg.src}/pwndbg/"
+      "lib/${python3.libPrefix}/site-packages/pwndbg/"
 
-    "${pwndbg.src}/lldbinit.py"
-    "exe/lldbinit.py"
+      "${pwndbg.src}/lldbinit.py"
+      "exe/lldbinit.py"
 
-    "${pwndbg.src}/pwndbg-lldb.py"
-    "exe/pwndbg-lldb.py"
+      "${pwndbg.src}/pwndbg-lldb.py"
+      "exe/pwndbg-lldb.py"
 
-    "${skipVenv}"
-    "exe/.skip-venv"
+      "${skipVenv}"
+      "exe/.skip-venv"
 
-    "${wrapperBin "exe/lldb-server"}"
-    "bin/lldb-server"
+      "${wrapperBin "exe/lldb-server"}"
+      "bin/lldb-server"
 
-    "${wrapperBin "exe/lldb"}"
-    "bin/lldb"
+      "${wrapperBin "exe/lldb"}"
+      "bin/lldb"
 
-    "${wrapperBinPy "exe/pwndbg-lldb.py"}"
-    "bin/pwndbg-lldb"
-  ];
+      "${wrapperBinPy "exe/pwndbg-lldb.py"}"
+      "bin/pwndbg-lldb"
+    ]
+  );
   pwndbgBundled = if isLLDB then pwndbgLldbBundled else pwndbgGdbBundled;
 
   portable =
