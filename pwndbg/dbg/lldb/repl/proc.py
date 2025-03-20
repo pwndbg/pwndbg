@@ -559,6 +559,7 @@ class ProcessDriver:
                 # The process has startarted. We can fire off the created event
                 # just fine.
                 self.eh.created()
+                break
             elif (
                 event is not None
                 and lldb.SBProcess.GetStateFromEvent(event) == lldb.eStateConnected
