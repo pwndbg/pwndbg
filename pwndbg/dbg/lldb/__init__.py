@@ -713,8 +713,8 @@ class OneShotAwaitable:
     def __init__(self, value: Any):
         self.value = value
 
-    def __await__(self) -> Generator[Any, Any, None]:
-        yield self.value
+    def __await__(self) -> Generator[Any, Any, Any]:
+        return (yield self.value)
 
 
 class YieldContinue:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from asyncio import CancelledError
+from io import BufferedIOBase
 from typing import Any
 from typing import Coroutine
 from typing import List
@@ -213,7 +214,7 @@ class ProcessDriver:
         self.process.Continue()
         self._run_until_next_stop()
 
-    def run_lldb_command(self, command: str) -> None:
+    def run_lldb_command(self, command: str, target: BufferedIOBase) -> None:
         """
         Runs the given LLDB command and ataches I/O if necessary.
         """
@@ -226,12 +227,12 @@ class ProcessDriver:
             # LLDB can give us strings that may fail to encode.
             out = ret.GetOutput().strip()
             if len(out) > 0:
-                sys.stdout.buffer.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
-                print()
+                target.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
+                target.write(b"\n")
             out = ret.GetError().strip()
             if len(out) > 0:
-                sys.stdout.buffer.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
-                print()
+                target.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
+                target.write(b"\n")
 
             if self.debug:
                 print(f"[-] ProcessDriver: LLDB Command Status: {ret.GetStatus():#x}")
