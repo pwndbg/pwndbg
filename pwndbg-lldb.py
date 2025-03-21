@@ -112,7 +112,7 @@ if __name__ == "__main__":
         print("[-] Launcher: Entering Pwndbg CLI")
 
     def drive(startup: List[str] | None):
-        async def drive(pwndbg: PwndbgController):
+        async def drive(c: PwndbgController):
             if startup is not None:
                 for line in startup:
                     await pwndbg.execute_and_capture(line)
