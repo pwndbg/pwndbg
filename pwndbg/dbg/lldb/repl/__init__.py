@@ -329,7 +329,9 @@ def run(
                     should_continue = exec_repl_command(action._command, output, dbg, driver, relay)
                     last_result = output.getvalue()
             else:
-                should_continue = exec_repl_command(line, sys.stdout.buffer, dbg, driver, relay)
+                should_continue = exec_repl_command(
+                    action._command, sys.stdout.buffer, dbg, driver, relay
+                )
 
             if not should_continue:
                 last_exc = asyncio.CancelledError()
