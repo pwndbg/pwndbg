@@ -3,8 +3,8 @@ from __future__ import annotations
 import os
 import sys
 from asyncio import CancelledError
-from io import BufferedIOBase
 from typing import Any
+from typing import BinaryIO
 from typing import Coroutine
 from typing import List
 
@@ -214,7 +214,7 @@ class ProcessDriver:
         self.process.Continue()
         self._run_until_next_stop()
 
-    def run_lldb_command(self, command: str, target: BufferedIOBase) -> None:
+    def run_lldb_command(self, command: str, target: BinaryIO) -> None:
         """
         Runs the given LLDB command and ataches I/O if necessary.
         """

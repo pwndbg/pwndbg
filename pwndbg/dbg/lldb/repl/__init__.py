@@ -44,10 +44,10 @@ import signal
 import sys
 import threading
 from contextlib import contextmanager
-from io import BufferedIOBase
 from io import BytesIO
 from typing import Any
 from typing import Awaitable
+from typing import BinaryIO
 from typing import Callable
 from typing import Coroutine
 from typing import List
@@ -309,11 +309,10 @@ def run(
                 last_exc = asyncio.CancelledError()
                 continue
 
-            with BytesIO() as output:
-                if not exec_repl_command(line, output, dbg, driver, relay):
-                    last_exc = asyncio.CancelledError()
-                    continue
-                sys.stdout.buffer.write(output.getvalue())
+            if not exec_repl_command(line, sys.stdout.buffer, dbg, driver, relay):
+                last_exc = asyncio.CancelledError()
+                continue
+
         elif isinstance(action, YieldExecDirect):
             if debug:
                 print(
@@ -325,16 +324,12 @@ def run(
             if not action._prompt_silent:
                 print(f"{PROMPT}{action._command}")
 
-            output = BytesIO()
-
-            should_continue = exec_repl_command(action._command, output, dbg, driver, relay)
-
             if action._capture:
-                last_result = output.getvalue()
+                with BytesIO() as output:
+                    should_continue = exec_repl_command(action._command, output, dbg, driver, relay)
+                    last_result = output.getvalue()
             else:
-                sys.stdout.buffer.write(output.getvalue())
-
-            output.close()
+                should_continue = exec_repl_command(line, sys.stdout.buffer, dbg, driver, relay)
 
             if not should_continue:
                 last_exc = asyncio.CancelledError()
@@ -343,7 +338,7 @@ def run(
 
 def exec_repl_command(
     line: str,
-    lldb_out_target: BufferedIOBase,
+    lldb_out_target: BinaryIO,
     dbg: LLDB,
     driver: ProcessDriver,
     relay: EventRelay,
