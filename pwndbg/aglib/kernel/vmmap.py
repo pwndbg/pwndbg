@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
-import sys
 import random
 import string
 import subprocess
+import sys
 import tempfile
 from typing import List
 from typing import Tuple
