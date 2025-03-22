@@ -115,7 +115,7 @@ if __name__ == "__main__":
         async def drive(c: PwndbgController):
             if startup is not None:
                 for line in startup:
-                    await pwndbg.execute_and_capture(line)
+                    await pwndbg.execute(line)
 
             while True:
                 await pwndbg.interactive()
