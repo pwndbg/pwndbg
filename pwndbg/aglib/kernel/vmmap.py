@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import random
 import string
 import subprocess
@@ -112,6 +113,10 @@ class QemuMachine(Machine):
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
+        return ()
+
+    if sys.platform != "linux":
+        # QemuMachine requires access to /proc/{qemu-pid}/mem, which is only available on Linux
         return ()
 
     try:
