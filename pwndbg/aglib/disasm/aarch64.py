@@ -281,7 +281,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def _handle_adrp(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         result_operand, right = instruction.operands
         if result_operand.str and right.before_value is not None:
-            address = right.before_value
+            address = right.before_value & pwndbg.aglib.arch.ptrmask
 
             TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
@@ -348,7 +348,9 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         if len(instruction.operands) > 0:
             # For all AArch64 branches, the target is either an immediate or a register and is the last operand
-            return instruction.operands[-1].before_value
+            if (val := instruction.operands[-1].before_value) is not None:
+                return val & pwndbg.aglib.arch.ptrmask
+            return None
         elif instruction.id == ARM64_INS_RET:
             # If this is a ret WITHOUT an operand, it means we should read from the LR/x30 register
             return super()._read_register_name(instruction, "lr", emu)

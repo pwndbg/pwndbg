@@ -190,6 +190,7 @@ BANNED_INSTRUCTIONS = {
     "mips": {C.mips.MIPS_INS_RDHWR},
     "arm": ARM_BANNED_INSTRUCTIONS,
     "armcm": ARM_BANNED_INSTRUCTIONS,
+    "aarch64": {C.arm64.ARM64_INS_MRS},
 }
 
 # https://github.com/unicorn-engine/unicorn/issues/550

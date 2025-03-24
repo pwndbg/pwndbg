@@ -691,7 +691,7 @@ class DisassemblyAssistant:
         if instruction.target is None:
             instruction.target = instruction.next
 
-        if instruction.has_jump_target:
+        if instruction.has_jump_target and instruction.target >= 0:
             # Only bother doing the symbol lookup if this is a jump
             instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
 
