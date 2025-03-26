@@ -605,11 +605,7 @@ class DisassemblyAssistant:
 
         Elements of the tuple will be None to indicate it's not a syscall
         """
-        try:
-            abi = pwndbg.lib.abi.ABI.syscall()
-        except KeyError:
-            return (None, None)
-        return (pwndbg.aglib.arch.name, abi.syscall_register)
+        return (pwndbg.aglib.arch.name, pwndbg.aglib.arch.syscall_abi.syscall_register)
 
     def _enhance_conditional(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
