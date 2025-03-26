@@ -457,7 +457,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             if stop_addr == 0 and stop_addr < addr:
                 # We could read from the top-portion of memory, but not after wrapping around
                 # Because we are doing a partial read, read until the max address
-                return self.read_memory(addr, pwndbg.aglib.arch.ptrmask - addr)
+                return self.read_memory(addr, pwndbg.aglib.arch.ptrmask - addr + 1)
 
             if stop_addr != addr:
                 return self.read_memory(addr, stop_addr - addr)
