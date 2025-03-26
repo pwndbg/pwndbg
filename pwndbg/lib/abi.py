@@ -35,18 +35,6 @@ class ABI:
         self.arg_alignment = align
         self.stack_minimum = minimum
 
-    @staticmethod
-    def default() -> ABI:
-        return DEFAULT_ABIS[(8 * pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.name, "linux")]
-
-    @staticmethod
-    def syscall() -> SyscallABI:
-        return SYSCALL_ABIS[(8 * pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.name, "linux")]
-
-    @staticmethod
-    def sigreturn() -> SigreturnABI:
-        return SIGRETURN_ABIS[(8 * pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.name, "linux")]
-
 
 class SyscallABI(ABI):
     """

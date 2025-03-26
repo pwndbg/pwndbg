@@ -45,7 +45,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
     if instruction.call_like:
         try:
-            abi = pwndbg.lib.abi.ABI.default()
+            abi = pwndbg.aglib.arch.abi
         except KeyError:
             return []
 
@@ -60,10 +60,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     elif CS_GRP_INT in instruction.groups:
         # Get the syscall number and name
         name = instruction.syscall_name
-        try:
-            abi = pwndbg.lib.abi.ABI.syscall()
-        except KeyError:
-            return []
+        abi = pwndbg.aglib.arch.syscall_abi
         target = None
 
         if name is None:
@@ -116,7 +113,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
 
 def argname(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> str:
-    abi = abi or pwndbg.lib.abi.ABI.default()
+    abi = abi or pwndbg.aglib.arch.abi
     regs = abi.register_arguments
 
     if n < len(regs):
@@ -131,7 +128,7 @@ def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
     instruction.
     Works only for ABIs that use registers for arguments.
     """
-    abi = abi or pwndbg.lib.abi.ABI.default()
+    abi = abi or pwndbg.aglib.arch.abi
     regs = abi.register_arguments
 
     if n < len(regs):
@@ -149,7 +146,7 @@ def arguments(abi: pwndbg.lib.abi.ABI | None = None):
     Yields (arg_name, arg_value) tuples for arguments from a given ABI.
     Works only for ABIs that use registers for arguments.
     """
-    abi = abi or pwndbg.lib.abi.ABI.default()
+    abi = abi or pwndbg.aglib.arch.abi
     regs = abi.register_arguments
 
     for i in range(len(regs)):
