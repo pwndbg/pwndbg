@@ -287,7 +287,7 @@ class MipsArch(PwndbgArchitecture):
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         # TODO - Capstone v6 increased the number of MIPS constants
-        if pwndbg.dbg.is_gdblib_available() and "isa32r6" in self.name_raw:
+        if "isa32r6" in self.name_raw:
             extra = CS_MODE_MIPS32R6
         elif self.ptrsize == 64:
             extra = CS_MODE_MIPS64
