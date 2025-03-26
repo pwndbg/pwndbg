@@ -2,13 +2,13 @@
 
 ARCHS = aarch64 arm riscv64 mips64 mips32
 
-CC.aarch64 = aarch64-linux-gnu-gcc-14
-CC.arm = arm-linux-gnueabihf-gcc-14
-CC.riscv64 = riscv64-linux-gnu-gcc-14
+CC.aarch64 = aarch64-linux-gnu-gcc
+CC.arm = arm-linux-gnueabihf-gcc
+CC.riscv64 = riscv64-linux-gnu-gcc
 # Ubuntu riscv64 cross compiler package doesn't have "--enable-multilib" enabled to allow compiling to 32-bit
 # CC.riscv32 = riscv64-linux-gnu-gcc
-CC.mips64 = mips64-linux-gnuabi64-gcc-14
-CC.mips32 = mips-linux-gnu-gcc-14
+CC.mips64 = mips64-linux-gnuabi64-gcc
+CC.mips32 = mips-linux-gnu-gcc
 # CC.loongarch64 = loongarch64-linux-gnu-gcc
 
 ALL_FLAGS = -g
