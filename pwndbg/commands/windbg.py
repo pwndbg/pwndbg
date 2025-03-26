@@ -414,12 +414,7 @@ if pwndbg.dbg.is_gdblib_available():
 
     @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.WINDBG)
     def bp(where) -> None:
-        """
-        Set a breakpoint at the specified address.
-        """
-        result = pwndbg.commands.fix(where)
-        if result is not None:
-            gdb.execute("break *%#x" % int(result))
+        gdb.execute(f"break *{where:#x}")
 
     @pwndbg.commands.ArgparsedCommand(
         "Print a backtrace (alias 'bt').", category=CommandCategory.WINDBG
