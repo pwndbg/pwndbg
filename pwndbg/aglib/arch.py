@@ -119,10 +119,9 @@ class PwndbgArchitecture(ArchDefinition):
         self.ptrbits: int = self.ptrsize * 8
         self.ptrmask: int = (1 << self.ptrbits) - 1
 
-        # TODO - allow these to be overriden by other means
-
         default_abi_identifer = (self.ptrbits, self.name, "linux")
 
+        # TODO - allow these to be selected by some other means
         self.abi = DEFAULT_ABIS.get(default_abi_identifer)
         self.syscall_abi = SYSCALL_ABIS.get(default_abi_identifer)
         self.sigreturn_abi = SIGRETURN_ABIS.get(default_abi_identifer)
