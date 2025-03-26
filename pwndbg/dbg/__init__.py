@@ -21,6 +21,7 @@ from typing import TypeVar
 
 import pwndbg.lib.memory
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+from pwndbg.lib.arch import ArchDefinition
 
 dbg: Debugger = None
 
@@ -72,33 +73,6 @@ class DisassembledInstruction(TypedDict):
 class DebuggerType(Enum):
     GDB = 1
     LLDB = 2
-
-
-class Arch:
-    """
-    The definition of an architecture.
-    """
-
-    @property
-    def endian(self) -> Literal["little", "big"]:
-        """
-        Wether code in this module is little or big.
-        """
-        raise NotImplementedError()
-
-    @property
-    def name(self) -> PWNDBG_SUPPORTED_ARCHITECTURES_TYPE:
-        """
-        Name of the architecture.
-        """
-        raise NotImplementedError()
-
-    @property
-    def ptrsize(self) -> int:
-        """
-        Length of the pointer in this module.
-        """
-        raise NotImplementedError()
 
 
 class StopPoint:
@@ -506,7 +480,7 @@ class Process:
         """
         raise NotImplementedError()
 
-    def arch(self) -> Arch:
+    def arch(self) -> ArchDefinition:
         """
         The default architecture of this process.
         """

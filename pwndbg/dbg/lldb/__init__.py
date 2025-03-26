@@ -29,7 +29,8 @@ import pwndbg.color.message as M
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
-from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+from pwndbg.lib.arch import ArchDefinition
+from pwndbg.lib.arch import Platform
 from pwndbg.lib.regs import reg_sets
 
 T = TypeVar("T")
@@ -52,33 +53,6 @@ def rename_register(name: str, proc: LLDBProcess) -> str:
 
     # Nothing to change.
     return name
-
-
-class LLDBArch(pwndbg.dbg_mod.Arch):
-    def __init__(
-        self,
-        name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE,
-        ptrsize: int,
-        endian: Literal["little", "big"],
-    ):
-        self._endian = endian
-        self._name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE = name
-        self._ptrsize = ptrsize
-
-    @override
-    @property
-    def endian(self) -> Literal["little", "big"]:
-        return self._endian
-
-    @override
-    @property
-    def name(self) -> PWNDBG_SUPPORTED_ARCHITECTURES_TYPE:
-        return self._name
-
-    @override
-    @property
-    def ptrsize(self) -> int:
-        return self._ptrsize
 
 
 class LLDBRegisters(pwndbg.dbg_mod.Registers):
@@ -1473,7 +1447,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return [LLDBType(types.GetTypeAtIndex(i)) for i in range(types.GetSize())]
 
     @override
-    def arch(self) -> pwndbg.dbg_mod.Arch:
+    def arch(self) -> ArchDefinition:
         endian0 = self.process.GetByteOrder()
         endian1 = self.target.GetByteOrder()
 
@@ -1516,6 +1490,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             raise pwndbg.dbg_mod.Error("Unknown target architecture")
 
         name = names[0]
+        raw_name = name
         if name == "x86_64":
             # GDB and Pwndbg use a different name for x86_64.
             name = "x86-64"
@@ -1545,7 +1520,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # Pwndbg use a different name for riscv64.
             name = "rv64"
 
-        return LLDBArch(name, ptrsize0, endian)
+        return ArchDefinition(
+            name=name, name_raw=raw_name, ptrsize=ptrsize0, endian=endian, platform=Platform.LINUX
+        )
 
     @override
     def break_at(

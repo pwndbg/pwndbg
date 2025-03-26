@@ -5,8 +5,6 @@ from typing import Dict
 from typing import Literal
 from typing import Tuple
 
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
 import pwnlib
 from capstone import CS_ARCH_ARM
 from capstone import CS_ARCH_ARM64
@@ -43,6 +41,8 @@ from pwndbg.lib.abi import SYSCALL_ABIS
 from pwndbg.lib.abi import SyscallABI
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import PWNLIB_ARCH_MAPPINGS
+from pwndbg.lib.arch import ArchDefinition
+from pwndbg.lib.arch import Platform
 
 EndianType = Literal["little", "big"]
 
@@ -50,7 +50,7 @@ FMT_LITTLE_ENDIAN = {1: "B", 2: "<H", 4: "<I", 8: "<Q"}
 FMT_BIG_ENDIAN = {1: "B", 2: ">H", 4: ">I", 8: ">Q"}
 
 
-class PwndbgArchitecture:
+class PwndbgArchitecture(ArchDefinition):
     """
     This class defines the context of the currently debugged architecture as well as other related information of the platform.
 
@@ -60,6 +60,7 @@ class PwndbgArchitecture:
     """
 
     name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+    name_raw: str  # The raw string returned by the debugger
     endian: EndianType
     ptrsize: int
     ptrbits: int
@@ -67,7 +68,7 @@ class PwndbgArchitecture:
     abi: ABI | None
     syscall_abi: SyscallABI | None
     sigreturn_abi: SyscallABI | None
-    # platform
+    platform: Platform
     # environment
 
     registered_architectures: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, PwndbgArchitecture] = {}
@@ -91,19 +92,30 @@ class PwndbgArchitecture:
 
         # We have to set some values by default
         # These will be set again by the code that detects the global architecture
-        self.update(typeinfo.ptrsize, "little")
+        self.update(
+            ArchDefinition(
+                name=name,
+                name_raw=name,
+                ptrsize=typeinfo.ptrsize,
+                endian="little",
+                platform=Platform.LINUX,
+            )
+        )
 
-    def update(self, ptrsize: int, endian: EndianType) -> None:
+    def update(self, arch_definition: ArchDefinition) -> None:
         """
         While debugging a process, certain aspects of the architecture can change.
 
         For example:
         - Some architectures can change endianness dynamically.
         """
-        self.endian: EndianType = endian
+        self.name_raw = arch_definition.name_raw
+        self.platform = arch_definition.platform
+
+        self.endian: EndianType = arch_definition.endian
 
         # Pointer size in bytes
-        self.ptrsize: int = ptrsize
+        self.ptrsize: int = arch_definition.ptrsize
         self.ptrbits: int = self.ptrsize * 8
         self.ptrmask: int = (1 << self.ptrbits) - 1
 
@@ -115,15 +127,8 @@ class PwndbgArchitecture:
         self.syscall_abi = SYSCALL_ABIS.get(default_abi_identifer)
         self.sigreturn_abi = SIGRETURN_ABIS.get(default_abi_identifer)
 
-        self.fmts: Dict[int, str] = FMT_LITTLE_ENDIAN if endian == "little" else FMT_BIG_ENDIAN
+        self.fmts: Dict[int, str] = FMT_LITTLE_ENDIAN if self.endian == "little" else FMT_BIG_ENDIAN
         self.fmt: str = self.fmts[self.ptrsize]
-
-        # if self.name == "arm" and self.endian == "big":
-        #     self.qemu = "armeb"
-        # elif self.name == "mips" and self.endian == "little":
-        #     self.qemu = "mipsel"
-        # else:
-        #     self.qemu = self.name
 
     def pack(self, integer: int) -> bytes:
         return struct.pack(self.fmt, integer & self.ptrmask)
@@ -252,7 +257,7 @@ class SparcArch(PwndbgArchitecture):
         super().__init__("sparc")
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
-        if pwndbg.dbg.is_gdblib_available() and "v9" in gdb.newest_frame().architecture().name():
+        if pwndbg.dbg.is_gdblib_available() and "v9" in self.name_raw:
             mode = CS_MODE_V9
         else:
             # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
@@ -283,10 +288,7 @@ class MipsArch(PwndbgArchitecture):
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         # TODO - Capstone v6 increased the number of MIPS constants
-        if (
-            pwndbg.dbg.is_gdblib_available()
-            and "isa32r6" in gdb.newest_frame().architecture().name()
-        ):
+        if pwndbg.dbg.is_gdblib_available() and "isa32r6" in self.name_raw:
             extra = CS_MODE_MIPS32R6
         elif self.ptrsize == 64:
             extra = CS_MODE_MIPS64
@@ -325,4 +327,4 @@ def update() -> None:
         pwndbg_arch = PwndbgArchitecture.get_arch(a.name)
         pwndbg.aglib.set_arch(pwndbg_arch)
 
-    pwndbg.aglib.arch.update(a.ptrsize, a.endian)
+    pwndbg.aglib.arch.update(a)

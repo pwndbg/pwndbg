@@ -29,7 +29,8 @@ from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
-from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+from pwndbg.lib.arch import ArchDefinition
+from pwndbg.lib.arch import Platform
 from pwndbg.lib.memory import PAGE_MASK
 from pwndbg.lib.memory import PAGE_SIZE
 
@@ -57,37 +58,6 @@ gdb_architecture_name_fixup_list = (
     "loongarch64",
     "s390:64-bit",
 )
-
-
-class GDBArch(pwndbg.dbg_mod.Arch):
-    _endian: Literal["little", "big"]
-    _name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
-    _ptrsize: int
-
-    def __init__(
-        self,
-        endian: Literal["little", "big"],
-        name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE,
-        ptrsize: int,
-    ):
-        self._endian = endian
-        self._name = name
-        self._ptrsize = ptrsize
-
-    @override
-    @property
-    def endian(self) -> Literal["little", "big"]:
-        return self._endian
-
-    @override
-    @property
-    def name(self) -> PWNDBG_SUPPORTED_ARCHITECTURES_TYPE:
-        return self._name
-
-    @override
-    @property
-    def ptrsize(self) -> int:
-        return self._ptrsize
 
 
 def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
@@ -723,7 +693,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             return []
 
     @override
-    def arch(self) -> pwndbg.dbg_mod.Arch:
+    def arch(self) -> ArchDefinition:
         ptrsize = pwndbg.aglib.typeinfo.ptrsize
         not_exactly_arch = False
 
@@ -765,12 +735,24 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     match = "powerpc"
                 elif match == "s390:64-bit":
                     match = "s390x"
-                return GDBArch(endian, match, ptrsize)  # type: ignore[arg-type]
+                return ArchDefinition(
+                    name=match,  # type: ignore[arg-type]
+                    name_raw=arch,
+                    ptrsize=ptrsize,
+                    endian=endian,
+                    platform=Platform.LINUX,
+                )
 
         if not_exactly_arch:
             raise RuntimeError(f"Could not deduce architecture from: {arch}")
 
-        return GDBArch(endian, arch, ptrsize)  # type: ignore[arg-type]
+        return ArchDefinition(
+            name=arch,  # type: ignore[arg-type]
+            name_raw=arch,
+            ptrsize=ptrsize,
+            endian=endian,
+            platform=Platform.LINUX,
+        )
 
     @override
     def break_at(

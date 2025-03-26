@@ -11,12 +11,12 @@ import platform
 from typing import Any
 from typing import List
 
-from pwndbg.lib.arch import Arch
+from pwndbg.lib.arch import ArchDefinition
 
 printed_message = False
 
 
-def which(arch: Arch) -> List[str]:
+def which(arch: ArchDefinition) -> List[str]:
     gcc = _which_binutils("g++", arch)
 
     if gcc is None:
@@ -35,7 +35,7 @@ def which(arch: Arch) -> List[str]:
     return [gcc] + _flags(arch.name)
 
 
-def _which_binutils(util: str, arch: Arch, **kwargs: Any) -> str | None:
+def _which_binutils(util: str, arch: ArchDefinition, **kwargs: Any) -> str | None:
     ###############################
     # Borrowed from pwntools' code
     ###############################
