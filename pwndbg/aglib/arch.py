@@ -5,7 +5,8 @@ from typing import Dict
 from typing import Literal
 from typing import Tuple
 
-import gdb
+if pwndbg.dbg.is_gdblib_available():
+    import gdb
 import pwnlib
 from capstone import CS_ARCH_ARM
 from capstone import CS_ARCH_ARM64
