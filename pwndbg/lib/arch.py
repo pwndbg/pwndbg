@@ -49,12 +49,17 @@ PWNLIB_ARCH_MAPPINGS = {
 # The platform being debugged
 class Platform(Enum):
     LINUX = (auto(),)
-    MACOSX = (auto(),)
+    DARWIN = (auto(),)
     # WINDOWS = auto(),
     # ANDROID = auto(),
     # OPENBSD = auto(),
     # FREEBSD = auto(),
 
+
+PWNLIB_PLATFORM_MAPPINGS: dict[Platform,str] = {
+    Platform.LINUX: "linux",
+    Platform.DARWIN: "darwin",
+}
 
 @dataclass
 class ArchDefinition:
@@ -62,4 +67,4 @@ class ArchDefinition:
     name_raw: str  # The raw string returned by the debugger
     ptrsize: int
     endian: Literal["little", "big"]
-    platform: Platform = Platform.LINUX
+    platform: Platform
