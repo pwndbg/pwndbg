@@ -56,10 +56,11 @@ class Platform(Enum):
     # FREEBSD = auto(),
 
 
-PWNLIB_PLATFORM_MAPPINGS: dict[Platform,str] = {
+PWNLIB_PLATFORM_MAPPINGS: dict[Platform, str] = {
     Platform.LINUX: "linux",
     Platform.DARWIN: "darwin",
 }
+
 
 @dataclass
 class ArchDefinition:
