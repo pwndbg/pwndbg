@@ -8,9 +8,10 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.hexdump
-import pwndbg.exception
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+
+print(pwndbg.color.message.notice("===> LOADING MODIFIED hexdump.py <==="))
 
 pwndbg.config.add_param("hexdump-width", 16, "line width of hexdump command")
 pwndbg.config.add_param("hexdump-bytes", 64, "number of bytes printed by hexdump command")
@@ -30,10 +31,10 @@ pwndbg.config.add_param(
     "hexdump-limit-mb",
     10,
     "the maximum size in megabytes (MB) `hexdump` will read",
-    help_docstring = """Set the maximum size in megabytes (MB) that the `hexdump` command will attempt to read at once.
+    help_docstring="""Set the maximum size in megabytes (MB) that the `hexdump` command will attempt to read at once.
     Prevents GDB crashes due to excessive memory allocation requests.
     Set to 0 for unlimited (use with caution).""",
-    param_class=pwndbg.config.PARAM_ZUINTEGER,
+    param_class=3,
     scope="memory",
 )
 
@@ -96,7 +97,7 @@ def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
         limit_bytes = limit_mb * 1024 * 1024
         if count > limit_bytes:
             # Raise an error with the informative message
-            raise pwndbg.exception.PwndbgError(
+            raise ValueError(
                 f"Hexdump count ({count}) exceeds the current limit of {limit_mb} MB.\n"
                 f"Use 'set hexdump-limit-mb <new_limit_in_mb>' to increase the limit (or set to 0 for unlimited)."
             )
