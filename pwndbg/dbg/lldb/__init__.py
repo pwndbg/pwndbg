@@ -2030,6 +2030,10 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         return True
 
     @override
+    def name(self) -> Literal["lldb", "gdb"]:
+        return "lldb"
+
+    @override
     def x86_disassembly_flavor(self) -> Literal["att", "intel"]:
         # Example:
         # (lldb) settings show target.x86-disassembly-flavor

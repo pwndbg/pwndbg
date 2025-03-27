@@ -93,11 +93,20 @@ def get_terminal_size():
     return f"Terminal width: {width_info}, height: {height_info}\n"
 
 
-@pwndbg.commands.ArgparsedCommand(
-    "Displays Pwndbg and its important deps versions.", category=CommandCategory.PWNDBG
-)
-def version() -> None:
+def version_impl() -> None:
+    """
+    Implementation of the `version` command.
+    """
     print("\n".join(map(message.system, all_versions())))
+
+
+if not pwndbg.dbg.name() == "lldb":
+    # In LLDB, this command is implemented as part of the Pwndbg CLI.
+    @pwndbg.commands.ArgparsedCommand(
+        "Displays Pwndbg and its important deps versions.", category=CommandCategory.PWNDBG
+    )
+    def version() -> None:
+        version_impl()
 
 
 bugreport_parser = argparse.ArgumentParser(description="Generate a bug report.")

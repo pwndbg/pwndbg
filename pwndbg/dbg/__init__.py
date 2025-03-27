@@ -1134,6 +1134,12 @@ class Debugger:
     # removed or replaced as the porting work continues.
     #
 
+    def name(self) -> Literal["lldb", "gdb"]:
+        """
+        The name of the current debugger.
+        """
+        raise NotImplementedError()
+
     # We'd like to be able to gate some imports off during porting. This aids in
     # that.
     def is_gdblib_available(self) -> bool:

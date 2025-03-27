@@ -366,11 +366,17 @@ def exec_repl_command(
         )
         return True
 
+    # Not allowed to have this be a regular command, because of LLDB.
+    if "version".startswith(line) and line.startswith("ve"):
+        pwndbg.commands.version.version_impl()
+        print()
+        # Don't return. We want the LLDB command to also run.
+
     # There are interactive commands that `SBDebugger.HandleCommand` will
     # silently ignore. We have to implement them manually, here.
-    if "quit".startswith(line) and line.startswith("quit"):
+    if "quit".startswith(line) and line.startswith("q"):
         return False
-    if "exit".startswith(line) and line.startswith("exit"):
+    if "exit".startswith(line) and line.startswith("exi"):
         return False
 
     # `script` is a little weird. Unlike with the other commands we're

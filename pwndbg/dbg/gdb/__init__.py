@@ -1550,6 +1550,10 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return False
 
     @override
+    def name(self) -> Literal["gdb", "lldb"]:
+        return "gdb"
+
+    @override
     def x86_disassembly_flavor(self) -> Literal["att", "intel"]:
         try:
             flavor = gdb.execute("show disassembly-flavor", to_string=True).lower().split('"')[1]
