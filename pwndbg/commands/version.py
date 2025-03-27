@@ -100,7 +100,7 @@ def version_impl() -> None:
     print("\n".join(map(message.system, all_versions())))
 
 
-if not pwndbg.dbg.name() == "lldb":
+if pwndbg.dbg.name() != "lldb":
     # In LLDB, this command is implemented as part of the Pwndbg CLI.
     @pwndbg.commands.ArgparsedCommand(
         "Displays Pwndbg and its important deps versions.", category=CommandCategory.PWNDBG
