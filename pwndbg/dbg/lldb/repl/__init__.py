@@ -261,6 +261,7 @@ def run(
     # Set ourselves up to respond to SIGINT by interrupting the process if it is
     # running, and doing nothing otherwise.
     def handle_sigint(_sig, _frame):
+        driver.cancel()
         if driver.has_process():
             driver.interrupt()
             print()

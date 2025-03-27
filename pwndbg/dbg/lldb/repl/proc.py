@@ -71,6 +71,7 @@ class ProcessDriver:
     listener: lldb.SBListener
     debug: bool
     eh: EventHandler
+    cancellation_requested: bool
 
     def __init__(self, event_handler: EventHandler, debug=False):
         self.io = None
@@ -78,6 +79,7 @@ class ProcessDriver:
         self.listener = None
         self.debug = debug
         self.eh = event_handler
+        self.cancellation_requested = False
 
     def has_process(self) -> bool:
         """
@@ -92,7 +94,31 @@ class ProcessDriver:
         """
         return self.process is not None
 
+    def cancel(self) -> None:
+        """
+        Request that a currently ongoing operation be cancelled.
+        """
+        self.cancellation_requested = True
+
+    def _should_cancel(self) -> bool:
+        """
+        Checks whether a cancellation has been requested, and clears cancellation state.
+        """
+        should = self.cancellation_requested
+        self._clear_cancel()
+
+        return should
+
+    def _clear_cancel(self) -> None:
+        """
+        Clears cancellation state.
+        """
+        self.cancellation_requested = False
+
     def interrupt(self) -> None:
+        """
+        Interrupts the currently running process.
+        """
         assert self.has_process(), "called interrupt() on a driver with no process"
         self.process.SendAsyncInterrupt()
 
@@ -287,7 +313,12 @@ class ProcessDriver:
         """
         assert self.has_process(), "called run_coroutine() on a driver with no process"
         exception: Exception | None = None
+        self._clear_cancel()
         while True:
+            if self._should_cancel():
+                # We were requested to cancel the execution controller.
+                exception = CancelledError()
+
             try:
                 if exception is None:
                     step = coroutine.send(None)
