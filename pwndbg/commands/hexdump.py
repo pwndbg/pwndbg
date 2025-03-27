@@ -10,8 +10,7 @@ import pwndbg.commands
 import pwndbg.hexdump
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-
-print(pwndbg.color.message.notice("===> LOADING MODIFIED hexdump.py <==="))
+from pwndbg.lib.config import PARAM_ZUINTEGER
 
 pwndbg.config.add_param("hexdump-width", 16, "line width of hexdump command")
 pwndbg.config.add_param("hexdump-bytes", 64, "number of bytes printed by hexdump command")
@@ -34,7 +33,7 @@ pwndbg.config.add_param(
     help_docstring="""Set the maximum size in megabytes (MB) that the `hexdump` command will attempt to read at once.
     Prevents GDB crashes due to excessive memory allocation requests.
     Set to 0 for unlimited (use with caution).""",
-    param_class=3,
+    param_class=PARAM_ZUINTEGER,
     scope="memory",
 )
 
