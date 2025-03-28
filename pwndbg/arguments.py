@@ -44,9 +44,9 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         return []
 
     if instruction.call_like:
-        try:
-            abi = pwndbg.aglib.arch.abi
-        except KeyError:
+        abi = pwndbg.aglib.arch.abi
+        
+        if abi is None:
             return []
 
         target = instruction.target
@@ -63,7 +63,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         abi = pwndbg.aglib.arch.syscall_abi
         target = None
 
-        if name is None:
+        if name is None or abi is None:
             return []
     else:
         return []
