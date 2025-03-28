@@ -45,7 +45,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
     if instruction.call_like:
         abi = pwndbg.aglib.arch.abi
-        
+
         if abi is None:
             return []
 
