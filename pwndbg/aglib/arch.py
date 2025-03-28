@@ -31,9 +31,6 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.aglib
 from pwndbg.aglib import typeinfo
-
-# Uncommenting this create circular import
-# from pwndbg.aglib.disasm import emulated_arm_mode_cache
 from pwndbg.lib.abi import ABI
 from pwndbg.lib.abi import DEFAULT_ABIS
 from pwndbg.lib.abi import SIGRETURN_ABIS
