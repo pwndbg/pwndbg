@@ -74,8 +74,6 @@ class PwndbgArchitecture(ArchDefinition):
     def get_arch(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> PwndbgArchitecture:
         if name not in PwndbgArchitecture.registered_architectures:
             raise NotImplementedError()
-            # If a custom class has not been registered for the architecture, use base implementation
-            # PwndbgArchitecture.registered_architectures[name] = PwndbgArchitecture(name)
 
         return PwndbgArchitecture.registered_architectures[name]
 
