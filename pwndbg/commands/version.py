@@ -19,6 +19,7 @@ import pwndbg.commands
 import pwndbg.integration
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg import DebuggerType
 
 
 def os_info():
@@ -100,13 +101,14 @@ def version_impl() -> None:
     print("\n".join(map(message.system, all_versions())))
 
 
-if pwndbg.dbg.name() != "lldb":
-    # In LLDB, this command is implemented as part of the Pwndbg CLI.
-    @pwndbg.commands.ArgparsedCommand(
-        "Displays Pwndbg and its important deps versions.", category=CommandCategory.PWNDBG
-    )
-    def version() -> None:
-        version_impl()
+# In LLDB, this command is implemented as part of the Pwndbg CLI.
+@pwndbg.commands.ArgparsedCommand(
+    "Displays Pwndbg and its important deps versions.",
+    exclude_debuggers={DebuggerType.LLDB},
+    category=CommandCategory.PWNDBG,
+)
+def version() -> None:
+    version_impl()
 
 
 bugreport_parser = argparse.ArgumentParser(description="Generate a bug report.")

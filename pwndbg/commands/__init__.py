@@ -74,7 +74,15 @@ if pwndbg.dbg.is_gdblib_available():
 class Command:
     """Generic command wrapper"""
 
-    builtin_override_whitelist: Set[str] = {"up", "down", "search", "pwd", "start", "ignore"}
+    builtin_override_whitelist: Set[str] = {
+        "up",
+        "down",
+        "search",
+        "pwd",
+        "start",
+        "starti",
+        "ignore",
+    }
     history: Dict[int, str] = {}
 
     def __init__(
@@ -359,32 +367,6 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWhenUserspace
 
 
-def OnlyWithDbg(
-    *dbg_names: Literal["lldb", "gdb"],
-) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
-    """Decorates function to work only with the specified debugger."""
-
-    def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
-        @functools.wraps(function)
-        def _OnlyWithDbg(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-            if pwndbg.dbg.is_gdblib_available():
-                if "gdb" in dbg_names:
-                    return function(*a, **kw)
-            else:
-                if "lldb" in dbg_names:
-                    return function(*a, **kw)
-
-            dbg_str = ", ".join(dbg_names)
-            log.error(
-                f"{function.__name__}: This command may only be run on the {dbg_str} debugger(s)"
-            )
-            return None
-
-        return _OnlyWithDbg
-
-    return decorator
-
-
 def OnlyWithKernelDebugSyms(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWithKernelDebugSyms(*a: P.args, **kw: P.kwargs) -> Optional[T]:
@@ -613,6 +595,8 @@ class ArgparsedCommand:
         aliases: List[str] = [],
         command_name: str | None = None,
         category: CommandCategory = CommandCategory.MISC,
+        only_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
+        exclude_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
     ) -> None:
         """
         :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
@@ -624,6 +608,8 @@ class ArgparsedCommand:
         self.aliases = aliases
         self._command_name = command_name
         self.category = category
+        self.only_debuggers = only_debuggers
+        self.exclude_debuggers = exclude_debuggers
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
         for action in self.parser._actions:
@@ -639,6 +625,11 @@ class ArgparsedCommand:
                 action.help += " (default: %(default)s)"
 
     def __call__(self, function: Callable[..., Any]) -> _ArgparsedCommand:
+        if self.only_debuggers is not None and pwndbg.dbg.name() not in self.only_debuggers:
+            return function  # type: ignore[return-value]
+        if self.exclude_debuggers is not None and pwndbg.dbg.name() in self.exclude_debuggers:
+            return function  # type: ignore[return-value]
+
         for alias in self.aliases:
             _ArgparsedCommand(
                 self.parser, function, command_name=alias, is_alias=True, category=self.category

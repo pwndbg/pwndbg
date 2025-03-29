@@ -1550,8 +1550,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return False
 
     @override
-    def name(self) -> Literal["gdb", "lldb"]:
-        return "gdb"
+    def name(self) -> pwndbg.dbg_mod.DebuggerType:
+        return pwndbg.dbg_mod.DebuggerType.GDB
 
     @override
     def x86_disassembly_flavor(self) -> Literal["att", "intel"]:

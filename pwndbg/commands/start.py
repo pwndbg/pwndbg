@@ -6,6 +6,7 @@ entry point.
 from __future__ import annotations
 
 import argparse
+import sys
 from argparse import RawTextHelpFormatter
 from shlex import quote
 
@@ -20,9 +21,26 @@ import pwndbg.commands
 import pwndbg.dbg
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg import BreakpointLocation
+from pwndbg.dbg import DebuggerType
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
+
+
+if sys.platform == "darwin" and pwndbg.dbg.name() == DebuggerType.GDB:
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument("args", nargs="*", type=str, default=None)
+
+    @pwndbg.commands.ArgparsedCommand(parser, aliases=["starti"], category=CommandCategory.START)
+    def run(args=None) -> None:
+        message = (
+            f"{M.error('Cannot run a binary:')} "
+            f"{M.notice('pwndbg-gdb')} does not support native Mach-O binaries on macOS.\n"
+            f"{M.info('Only remote debugging of ELF binaries is supported.')}\n"
+            f"If you want to debug native Mach-O binaries, please use {M.success('pwndbg-lldb')}"
+        )
+        print(message)
+        sys.exit(1)
 
 
 def breakpoint_at_entry():
@@ -73,8 +91,12 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["main", "init"], category=CommandCategory.START)
-@pwndbg.commands.OnlyWithDbg("gdb")
+@pwndbg.commands.ArgparsedCommand(
+    parser,
+    aliases=["main", "init"],
+    only_debuggers={DebuggerType.GDB},
+    category=CommandCategory.START,
+)
 @pwndbg.commands.OnlyWhenLocal
 def start(args=None) -> None:
     if args is None:
@@ -89,7 +111,7 @@ def start(args=None) -> None:
             continue
 
         gdb.Breakpoint(symbol, temporary=True)
-        gdb.execute(run, from_tty=False, to_string=True)
+        gdb.execute(run, from_tty=False)
         return
 
     # Try a breakpoint at the binary entry
@@ -148,10 +170,11 @@ def entry(args=None) -> None:
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Alias for 'tbreak __libc_start_main; run'.", category=CommandCategory.START
+    "Alias for 'tbreak __libc_start_main; run'.",
+    only_debuggers={DebuggerType.GDB},
+    category=CommandCategory.START,
 )
 @pwndbg.commands.OnlyWithFile
-@pwndbg.commands.OnlyWithDbg("gdb")
 @pwndbg.commands.OnlyWhenLocal
 def sstart() -> None:
     gdb.Breakpoint("__libc_start_main", temporary=True)

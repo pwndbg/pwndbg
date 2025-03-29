@@ -69,6 +69,11 @@ class DisassembledInstruction(TypedDict):
     length: int
 
 
+class DebuggerType(Enum):
+    GDB = 1
+    LLDB = 2
+
+
 class Arch:
     """
     The definition of an architecture.
@@ -1134,9 +1139,9 @@ class Debugger:
     # removed or replaced as the porting work continues.
     #
 
-    def name(self) -> Literal["lldb", "gdb"]:
+    def name(self) -> DebuggerType:
         """
-        The name of the current debugger.
+        The type of the current debugger.
         """
         raise NotImplementedError()
 
