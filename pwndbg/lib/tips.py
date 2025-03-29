@@ -92,10 +92,12 @@ def get_all_tips() -> List[str]:
     """
     import pwndbg.dbg
 
-    if pwndbg.dbg.is_gdblib_available():
+    if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
         return GDB_TIPS + PWNDBG_TIPS
-    else:
+    elif pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.LLDB:
         return LLDB_TIPS + PWNDBG_TIPS
+    else:
+        return PWNDBG_TIPS
 
 
 def color_tip(tip: str) -> str:
