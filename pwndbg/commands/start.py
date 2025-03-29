@@ -6,7 +6,6 @@ entry point.
 from __future__ import annotations
 
 import argparse
-import sys
 from argparse import RawTextHelpFormatter
 from shlex import quote
 
@@ -25,22 +24,6 @@ from pwndbg.dbg import DebuggerType
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
-
-
-if sys.platform == "darwin" and pwndbg.dbg.name() == DebuggerType.GDB:
-    parser = argparse.ArgumentParser(description="")
-    parser.add_argument("args", nargs="*", type=str, default=None)
-
-    @pwndbg.commands.ArgparsedCommand(parser, aliases=["starti"], category=CommandCategory.START)
-    def run(args=None) -> None:
-        message = (
-            f"{M.error('Cannot run a binary:')} "
-            f"{M.notice('pwndbg-gdb')} does not support native Mach-O binaries on macOS.\n"
-            f"{M.info('Only remote debugging of ELF binaries is supported.')}\n"
-            f"If you want to debug native Mach-O binaries, please use {M.success('pwndbg-lldb')}"
-        )
-        print(message)
-        sys.exit(1)
 
 
 def breakpoint_at_entry():
