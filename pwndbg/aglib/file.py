@@ -152,11 +152,19 @@ def readlink(path: str) -> str:
         return ""
 
 
+@pwndbg.lib.cache.cache_until("start")
 def is_vfile_qemu_user_bug() -> bool:
     # This is a BUG[1] in the gdbstub of QEMU user mode. It should return data encoded in hexadecimal,
     # but instead, it returns the data as a decimal integer (%d).
     # [1] https://github.com/qemu/qemu/blob/b14d0649628cbe88ac0ef35fcf58cd1fc22735b8/gdbstub/user-target.c#L322
-    return pwndbg.aglib.qemu.is_qemu_usermode()
+    if not pwndbg.aglib.qemu.is_qemu_usermode():
+        return False
+
+    # On a bugged QEMU version, the response is `F-1,36`
+    # On a fixed QEMU version, the response is `F-1,24`
+    # This performs the syscall: `openat(0, "/\01*256", O_RDONLY|0x20) = -1 ENAMETOOLONG (File name too long)`
+    response = pwndbg.dbg.selected_inferior().send_remote("vFile:open:2f" + ("01" * 256))
+    return response == b"F-1,36"
 
 
 def _vfile_check_response(response: bytes):
