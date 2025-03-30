@@ -8,17 +8,7 @@ let
 
   drv =
     if !isCross then
-      prev.pwndbg_gdb.overrideAttrs (
-        old:
-        prev.lib.optionalAttrs (prev.stdenv.targetPlatform.isDarwin && prev.stdenv.targetPlatform.isAarch64)
-          {
-            configureFlags = [
-              "--target=arm-none-eabi"
-            ] ++ old.configureFlags;
-            configurePlatforms = [ ];
-            meta.badPlatforms = [ ];
-          }
-      )
+      prev.pwndbg_gdb
     else
       (prev.pwndbg_gdb.override { pythonSupport = true; }).overrideAttrs (old: {
         patches = (old.patches or [ ]) ++ [
