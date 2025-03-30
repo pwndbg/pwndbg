@@ -140,6 +140,8 @@ AARCH64_EMULATED_ANNOTATIONS = CONDITIONAL_SELECT_INSTRUCTIONS | {
     AARCH64_INS_BICS,
 }
 
+AARCH64_CONSTANT_SHIFTS = {AARCH64_SFT_LSL, AARCH64_SFT_LSR, AARCH64_SFT_ASR, AARCH64_SFT_ROR}
+
 # Parameters to each function: (value, shift_amt, bit_width)
 AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
     AARCH64_SFT_LSL: bit_math.logical_shift_left,
@@ -199,6 +201,8 @@ AARCH64_SHIFT_INSTRUCTIONS = {
     AARCH64_INS_ALIAS_LSR: ">>",
     AARCH64_INS_ASR: ">>s",
     AARCH64_INS_ALIAS_ASR: ">>s",
+    AARCH64_INS_ROR: ">>r",
+    AARCH64_INS_ALIAS_ROR: ">>r",
 }
 
 
@@ -310,8 +314,19 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 AARCH64_MATH_INSTRUCTIONS[instruction.id],
             )
         elif instruction.id in AARCH64_SHIFT_INSTRUCTIONS:
-            # TODO: https://github.com/capstone-engine/capstone/issues/2631
-            pass
+            # AArch64 encoding of shifts forces special attention: https://github.com/capstone-engine/capstone/issues/2631
+            if len(instruction.operands) == 2:
+                if instruction.operands[1].cs_op.shift.type in AARCH64_CONSTANT_SHIFTS:
+                    self._common_binary_op_annotator(
+                        instruction,
+                        emu,
+                        instruction.operands[0],
+                        instruction.operands[1].before_value_no_modifiers,
+                        instruction.operands[1].cs_op.shift.value,
+                        AARCH64_SHIFT_INSTRUCTIONS[instruction.id],
+                    )
+                else:
+                    self._common_generic_register_destination(instruction, emu)
         elif instruction.id in AARCH64_EMULATED_ANNOTATIONS:
             self._common_generic_register_destination(instruction, emu)
         else:
@@ -329,6 +344,12 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             telescope = self._telescope_format_list(addresses, TELESCOPE_DEPTH, emu)
 
             instruction.annotation = register_assign(result_operand.str, telescope)
+
+    @override
+    def _prepare(self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator) -> None:
+        if CS_GRP_INT in instruction.groups:
+            # https://github.com/capstone-engine/capstone/issues/2630
+            instruction.groups.remove(CS_GRP_CALL)
 
     @override
     def _condition(
@@ -496,6 +517,9 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if target is None:
             return None
 
+        # We need this to retain the value of the un-shifted register in some annotations, such as shifts
+        op.before_value_no_modifiers = target
+
         # The shift and sign-extend operations depend on the target bit width.
         # This is sometimes implicit in the target register size, which is always
         # the first operand.
@@ -509,9 +533,12 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             target = AARCH64_EXTEND_MAP[op.cs_op.ext](target) & ((1 << target_bit_width) - 1)
 
         if op.cs_op.shift.type != 0:
-            target = AARCH64_BIT_SHIFT_MAP[op.cs_op.shift.type](
+            target = AARCH64_BIT_SHIFT_MAP.get(op.cs_op.shift.type,lambda *a: None)(
                 target, op.cs_op.shift.value, target_bit_width
-            ) & ((1 << target_bit_width) - 1)
+            )
+
+            if target is not None:
+                target = target & ((1 << target_bit_width) - 1)
 
         return target
 

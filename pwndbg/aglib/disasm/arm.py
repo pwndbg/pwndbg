@@ -83,6 +83,8 @@ ARM_SHIFT_INSTRUCTIONS = {
     ARM_INS_ALIAS_LSR: ">>",
     ARM_INS_LSL: "<<",
     ARM_INS_ALIAS_LSL: "<<",
+    ARM_INS_ROR: ">>r",
+    ARM_INS_ALIAS_ROR: ">>r",
 }
 
 # All of these instructions can write to the PC
@@ -193,29 +195,25 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 ARM_MATH_INSTRUCTIONS[instruction.id],
             )
         elif instruction.id in ARM_SHIFT_INSTRUCTIONS:
-            # TODO: revisit these encodings in Capstone v6
-            # Wait for this to be merged: https://github.com/capstone-engine/capstone/pull/2638
-            if len(instruction.operands) == 2:
+            # The encoding of shifts has changed between past Capstone versions: https://github.com/capstone-engine/capstone/pull/2638
+            # This check avoids a crash
+            if len(instruction.operands) == 3:
                 self._common_binary_op_annotator(
                     instruction,
                     emu,
                     instruction.operands[0],
                     instruction.operands[1].before_value_no_modifiers,
-                    instruction.operands[1].cs_op.shift.value,
-                    ARM_SHIFT_INSTRUCTIONS[instruction.id],
-                )
-            else:
-                # Register shift
-                self._common_binary_op_annotator(
-                    instruction,
-                    emu,
-                    instruction.operands[0],
-                    instruction.operands[1].before_value,
                     instruction.operands[2].before_value,
                     ARM_SHIFT_INSTRUCTIONS[instruction.id],
                 )
         else:
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
+
+    @override
+    def _prepare(self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator) -> None:
+        if CS_GRP_INT in instruction.groups:
+            # https://github.com/capstone-engine/capstone/issues/2630
+            instruction.groups.remove(CS_GRP_CALL)
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
@@ -226,7 +224,8 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 # to indicate that this is an unconditional branch.
                 instruction.declare_is_unconditional_jump = True
 
-        if instruction.cs_insn.cc == ARM_CC_AL:
+        # These condition codes indicate unconditionally/condition is not relevant
+        if instruction.cs_insn.cc in (ARM_CC_AL, ARMCC_UNDEF):
             if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
                 instruction.declare_conditional = False
             return InstructionCondition.UNDETERMINED

@@ -214,6 +214,8 @@ class DisassemblyAssistant:
             pwndbg.aglib.arch.name, generic_assistant
         )
 
+        enhancer._prepare(instruction, emu)
+
         # Don't disable emulation yet, as we can use it to read the syscall register
         enhancer._enhance_syscall(instruction, emu)
 
@@ -258,6 +260,10 @@ class DisassemblyAssistant:
         if DEBUG_ENHANCEMENT:
             print(enhancer.dump(instruction))
             print("Done enhancing")
+
+    # This is run before enhancement - often used to handle edge case behavior
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        return None
 
     # Subclasses for specific architecture should override this
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:

@@ -631,24 +631,47 @@ def test_aarch64_shifts_and_extends_in_memory_operands(qemu_assembly_run):
 
 
 AARCH64_SHIFT_INSTRUCTIONS = """
-mov x0, 7
-mov x1, 563
-mov w14, 0xf0000000
-
-lsl x7, x0, 2
-lsr x8, x1, 2
-asr w3, w1, #2
-ror w4, w14, #2
+MOV x0, #3
+MOV x1, #0xF000
+MOV x2, #0x1234
+LSR x3, x1, #4
+LSR x4, x1, x0
+LSL x5, x4, #4
+LSL x6, x4, x2
+ASR x6, x4, #4
+ASR x6, x4, x0
+ROR x6, x4, #4
+ROR x6, x4, x0
 """
 
 
 def test_aarch64_shift_instructions(qemu_assembly_run):
+    """
+    Test annotations for shift instructions - the format of these has changed between Capstone versions.
+    Special attention is paid to the shift-by-register amount
+    - https://github.com/capstone-engine/capstone/issues/2631
+    """
     qemu_assembly_run(AARCH64_SHIFT_INSTRUCTIONS, "aarch64")
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
-
-    expected = ()
+        
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
+        " ► 0x10000000 <_start>       mov    x0, #3          X0 => 3\n"
+        "   0x10000004 <_start+4>     mov    x1, #0xf000     X1 => 0xf000\n"
+        "   0x10000008 <_start+8>     mov    x2, #0x1234     X2 => 0x1234\n"
+        "   0x1000000c <_start+12>    lsr    x3, x1, #4      X3 => 0xf00 (0xf000 >> 0x4)\n"
+        "   0x10000010 <_start+16>    lsr    x4, x1, x0      X4 => 0x1e00\n"
+        "   0x10000014 <_start+20>    lsl    x5, x4, #4      X5 => 0x1e000 (0x1e00 << 0x4)\n"
+        "   0x10000018 <_start+24>    lsl    x6, x4, x2      X6 => 0xe000000000000000\n"
+        "   0x1000001c <_start+28>    asr    x6, x4, #4      X6 => 0x1e0 (0x1e00 >>s 0x4)\n"
+        "   0x10000020 <_start+32>    asr    x6, x4, x0      X6 => 0x3c0\n"
+        "   0x10000024 <_start+36>    ror    x6, x4, #4      X6 => 0x1e0 (0x1e00 >>r 0x4)\n"
+        "   0x10000028 <_start+40>    ror    x6, x4, x0      X6 => 0x3c0\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
 
     assert dis == expected
 
