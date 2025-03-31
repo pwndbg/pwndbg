@@ -56,10 +56,16 @@ parser.add_argument("--no-truncate", action="store_true", help="dont truncate co
 parser.add_argument("--retry", action="store_true", help="retry until a target is found")
 parser.add_argument("--user", type=str, default=None, help="username or uid to filter by")
 parser.add_argument(
+    "-e",
+    "--exact",
+    action="store_true",
+    help="get the pid only for an exact command name match",
+)
+parser.add_argument(
     "-a",
     "--all",
     action="store_true",
-    help="get pids for all matches (exact and partial cmdline etc)",
+    help="get pids also for partial cmdline matches etc",
 )
 parser.add_argument(
     "target",
@@ -70,7 +76,7 @@ parser.add_argument(
 )
 
 
-def find_pids(target, user, all):
+def find_pids(target, user, exact, all):
     # Note: we can't use `ps -C <target>` because this does not accept process names with spaces
     # so target='a b' would actually match process names 'a' and 'b' here
     # so instead, we will filter by process name or full cmdline later on
@@ -113,6 +119,9 @@ def find_pids(target, user, all):
         elif target in args:
             pids_partial_match_args.append(pid)
 
+    if exact:
+        return pids_exact_match_cmd
+
     if all:
         return pids_exact_match_cmd + pids_partial_match_cmd + pids_partial_match_args
 
@@ -120,7 +129,7 @@ def find_pids(target, user, all):
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
-def attachp(target, no_truncate, retry, all, user=None) -> None:
+def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
     # As a default, the user may want to attach to a binary name taken from currently loaded file name
     if target is None:
         bin_path = pwndbg.dbg.selected_inferior().main_module_name()
@@ -153,7 +162,7 @@ def attachp(target, no_truncate, retry, all, user=None) -> None:
             resolved_target = target
 
         else:
-            pids = find_pids(target, user, all)
+            pids = find_pids(target, user, exact, all)
             if not pids and retry:
                 user_filter = "" if not user else f" and user={user}"
                 print(
@@ -162,7 +171,7 @@ def attachp(target, no_truncate, retry, all, user=None) -> None:
                     )
                 )
                 while not pids:
-                    pids = find_pids(target, user, all)
+                    pids = find_pids(target, user, exact, all)
 
             if not pids:
                 print(message.error(f"Process {target} not found"))
