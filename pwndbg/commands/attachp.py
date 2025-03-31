@@ -119,14 +119,14 @@ def find_pids(target, user, exact, all):
         elif target in args:
             pids_partial_match_args.append(pid)
 
-    if exact:
-        return pids_exact_match_cmd
-
-    if all:
+    if exact and all:
         return pids_exact_match_cmd + pids_partial_match_cmd + pids_partial_match_args
-
-    return pids_exact_match_cmd or pids_partial_match_cmd or pids_partial_match_args
-
+    elif exact:
+        return pids_exact_match_cmd
+    elif all:
+        return pids_exact_match_cmd + pids_partial_match_cmd + pids_partial_match_args
+    else:
+        return pids_exact_match_cmd or pids_partial_match_cmd or pids_partial_match_args
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
 def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
