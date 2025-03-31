@@ -133,8 +133,7 @@ def attachp(target, no_truncate, retry, all, user=None) -> None:
             print(message.error("(could not find the process name to attach to)"))
             return
 
-        target = bin_path.rsplit("/")[-1]
-
+        target = os.path.basename(bin_path)
     try:
         resolved_target = int(target)
     except ValueError:
