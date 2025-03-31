@@ -106,20 +106,17 @@ async def break_next_branch(ec: pwndbg.dbg_mod.ExecutionController, address=None
 
     proc = pwndbg.dbg.selected_inferior()
     if ins:
-        bp = proc.break_at(BreakpointLocation(ins.address), internal=True)
-        await ec.cont(bp)
-        bp.remove()
+        with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+            await ec.cont(bp)
         return ins
 
 
 async def break_next_interrupt(ec: pwndbg.dbg_mod.ExecutionController, address=None):
     ins = next_int(address)
-
     proc = pwndbg.dbg.selected_inferior()
     if ins:
-        bp = proc.break_at(BreakpointLocation(ins.address), internal=True)
-        await ec.cont(bp)
-        bp.remove()
+        with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+            await ec.cont(bp)
         return ins
 
 
@@ -186,9 +183,8 @@ async def break_on_next_matching_instruction(
                 # Only set breakpoints at a different PC location, otherwise we
                 # will continue until we hit a breakpoint that's not related to
                 # this opeeration, or the program halts.
-                bp = proc.break_at(BreakpointLocation(ins.address), internal=True)
-                await ec.cont(bp)
-                bp.remove()
+                with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+                    await ec.cont(bp)
                 return ins
             else:
                 # We don't want to be spinning in place, nudge execution forward
@@ -201,9 +197,8 @@ async def break_on_next_matching_instruction(
             if nb is not None:
                 if nb.address != pwndbg.aglib.regs.pc:
                     # Stop right at the next branch instruction.
-                    bp = proc.break_at(BreakpointLocation(nb.address), internal=True)
-                    await ec.cont(bp)
-                    bp.remove()
+                    with proc.break_at(BreakpointLocation(nb.address), internal=True) as bp:
+                        await ec.cont(bp)
                 else:
                     # Nudge execution so we take the branch we're on top of.
                     pass
@@ -257,6 +252,5 @@ async def break_on_next(ec: pwndbg.dbg_mod.ExecutionController, address=None) ->
     ins = pwndbg.aglib.disasm.one(address)
 
     proc = pwndbg.dbg.selected_inferior()
-    bp = proc.break_at(BreakpointLocation(ins.address + ins.size), internal=True)
-    await ec.cont(bp)
-    bp.remove()
+    with proc.break_at(BreakpointLocation(ins.address + ins.size), internal=True) as bp:
+        await ec.cont(bp)

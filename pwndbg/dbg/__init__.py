@@ -104,6 +104,10 @@ class Arch:
 class StopPoint:
     """
     The handle to either an insalled breakpoint or watchpoint.
+
+    May be used in a `with` statement, in which case the stop point is
+    automatically removed at the end of the statement. This allows for easy
+    implementation of temporary breakpoints.
     """
 
     def remove(self) -> None:
@@ -117,6 +121,15 @@ class StopPoint:
         Enables or disables this breakpoint.
         """
         raise NotImplementedError()
+
+    def __enter__(self) -> StopPoint:
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        """
+        Automatic breakpoint removal.
+        """
+        self.remove()
 
 
 class BreakpointLocation:

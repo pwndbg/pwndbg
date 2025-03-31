@@ -41,8 +41,8 @@ def breakpoint_at_entry():
     bp = proc.break_at(BreakpointLocation(addr), internal=True)
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
-        await ec.cont(bp)
-        bp.remove()
+        with bp:
+            await ec.cont(bp)
 
     proc.dispatch_execution_controller(ctrl)
 
