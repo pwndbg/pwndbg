@@ -63,8 +63,10 @@ parser.add_argument(
 )
 parser.add_argument(
     "target",
+    nargs="?",
+    default=None,
     type=str,
-    help="pid, process name, part of cmdline to be matched or device file to attach to",
+    help="pid, process name, part of cmdline to be matched or device file to attach to (uses current loaded file name if not provided)",
 )
 
 
@@ -119,6 +121,20 @@ def find_pids(target, user, all):
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
 def attachp(target, no_truncate, retry, all, user=None) -> None:
+    # As a default, the user may want to attach to a binary name taken from currently loaded file name
+    if target is None:
+        bin_path = pwndbg.dbg.selected_inferior().main_module_name()
+        if bin_path is None:
+            print(
+                message.error(
+                    "No target name/pid/cmdline provided and no binary loaded in the debugger"
+                )
+            )
+            print(message.error("(could not find the process name to attach to)"))
+            return
+
+        target = bin_path.rsplit("/")[-1]
+
     try:
         resolved_target = int(target)
     except ValueError:
