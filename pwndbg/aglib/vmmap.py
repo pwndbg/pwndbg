@@ -14,6 +14,7 @@ pwndbg.config.add_param(
     param_class=pwndbg.lib.config.PARAM_BOOLEAN,
 )
 
+
 @pwndbg.lib.cache.cache_until("start", "stop")
 def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
     return tuple(pwndbg.dbg.selected_inferior().vmmap().ranges())

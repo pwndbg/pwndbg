@@ -46,9 +46,10 @@ def print_vmmap_table_header() -> None:
     """
     Prints the table header for the vmmap command.
     """
-    prefer_relpaths = 'on' if pwndbg.config.vmmap_prefer_relpaths else 'off'
+    prefer_relpaths = "on" if pwndbg.config.vmmap_prefer_relpaths else "off"
+    width = 2 + 2 * pwndbg.aglib.arch.ptrsize
     print(
-        f"{'Start':>{2 + 2 * pwndbg.aglib.arch.ptrsize}} {'End':>{2 + 2 * pwndbg.aglib.arch.ptrsize}} {'Perm'} {'Size':>8} {'Offset':>6} "
+        f"{'Start':>{width}} {'End':>{width}} {'Perm'} {'Size':>8} {'Offset':>6} "
         f"{'File'} (set vmmap_prefer_relpaths {prefer_relpaths})"
     )
 
