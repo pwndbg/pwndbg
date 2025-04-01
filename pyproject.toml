@@ -57,8 +57,6 @@ tests = [
 ]
 docs = [
     "mdutils",
-    # Newer mkdocs-autorefs is broken with our markdowns?
-    "mkdocs-autorefs==1.2.0",
     "mkdocs",
     "mkdocs-gen-files",
     "mkdocs-material",
@@ -67,6 +65,7 @@ docs = [
     "mkdocstrings",
     "mkdocstrings-python",
     "pymdown-extensions",
+    "mkdocs-api-autonav",
 ]
 
 [tool.ruff]

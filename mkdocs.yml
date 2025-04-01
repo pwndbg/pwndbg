@@ -73,31 +73,61 @@ plugins:
   #     exclude:
   #       - index.md
   #       - docs/commands/**
-  - gen-files:
-      scripts:
-        - scripts/gen_ref_pages.py
-  # - mkdocstrings:
-  #     default_handler: python
-  #     handlers:
-  #       python:
-  #         paths: []
-  #         # load_external_modules: true
-  #         options:
-  #           allow_inspection: true
-  #           show_source: false
-  #           show_bases: true
-  #           docstring_style: google
-  #           docstring_section_style: table
-  #           show_root_full_path: true
-  #           show_if_no_docstring: true
-  #           show_docstring_classes: true
-  #           show_docstring_modules: true
-  #           show_docstring_description: true
-  #           show_docstring_examples: true
-  #           show_docstring_other_parameters: true
-  #           show_docstring_parameters: true
-  #           show_docstring_return: true
-  #           show_docstring_raises: true
+  # - gen-files:
+  #     scripts:
+  #       - scripts/gen_ref_pages.py
+
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          # load_external_modules: true
+          options:
+              allow_inspection: true
+            # show_source: false
+            # show_bases: true
+            # docstring_style: google
+            # docstring_section_style: table
+            # show_root_full_path: true
+            # show_if_no_docstring: true
+            # show_docstring_classes: true
+            # show_docstring_modules: true
+            # show_docstring_description: true
+            # show_docstring_examples: true
+            # show_docstring_other_parameters: true
+            # show_docstring_parameters: true
+            # show_docstring_return: true
+            # show_docstring_raises: true
+              backlinks: tree
+              docstring_options:
+                ignore_init_summary: true
+              docstring_section_style: list
+              # WARN: Enabling this gives very flaky, hard-to-diagnose errors! Don't.
+              # filters: public
+              heading_level: 1
+              inherited_members: true
+              line_length: 88
+              merge_init_into_class: true
+              parameter_headings: true
+              relative_crossrefs: true
+              scoped_crossrefs: true
+              separate_signature: true
+              show_bases: false
+              show_inheritance_diagram: true
+              show_root_heading: true
+              show_root_full_path: false
+              show_signature_annotations: true
+              show_source: false
+              show_symbol_type_heading: true
+              show_symbol_type_toc: true
+              signature_crossrefs: true
+              summary: true
+              unwrap_annotated: true
+  # Generate the whole Source page magically
+  - api-autonav:
+      modules: ['pwndbg']
+      nav_section_title: "Source"
+
   - rss:
       match_path: blog/posts/.*
       date_from_meta:
@@ -123,6 +153,7 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
+  - stylesheets/mkdocstrings.css
 
 extra_files:
   - install.sh
