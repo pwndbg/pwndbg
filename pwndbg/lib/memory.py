@@ -143,7 +143,8 @@ class Page:
     def __str__(self) -> str:
         if pwndbg.config.vmmap_prefer_relpaths:
             rel = relpath(self.objfile)
-            # Files from the /usr (for example libc) should use the absolute paths
+            # Prefer absolute paths for system files (for example libc) since
+            # `os.path.relpath` returns longer relative paths with no clear benefits.
             objfile = self.objfile if rel.startswith("../../") else rel
         else:
             objfile = self.objfile
