@@ -224,26 +224,60 @@ install_jemalloc() {
     # Install jemalloc version 5.3.0
     JEMALLOC_TAR_URL="https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2"
     JEMALLOC_TAR_SHA256="2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa"
-    curl --location --output /tmp/jemalloc-5.3.0.tar.bz2 "${JEMALLOC_TAR_URL}"
-    ACTUAL_SHA256=$(sha256sum /tmp/jemalloc-5.3.0.tar.bz2 | cut -d' ' -f1)
-    if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
-        echo "Jemalloc binary checksum mismatch"
-        echo "Expected: ${JEMALLOC_TAR_SHA256}"
-        echo "Actual: ${ACTUAL_SHA256}"
-        exit 1
+    JEMALLOC_TAR_PATH="/tmp/jemalloc-5.3.0.tar.bz2"
+    JEMALLOC_EXTRACT_PATH="/tmp/jemalloc-5.3.0"
+
+    # Check if jemalloc tarball already exists and has the correct checksum
+    if [ -f "${JEMALLOC_TAR_PATH}" ]; then
+        ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
+        if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
+            echo "Jemalloc tarball exists but has incorrect checksum. Re-downloading..."
+            curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+            ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
+            if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
+                echo "Jemalloc binary checksum mismatch after re-download."
+                echo "Expected: ${JEMALLOC_TAR_SHA256}"
+                echo "Actual: ${ACTUAL_SHA256}"
+                exit 1
+            fi
+        else
+            echo "Jemalloc tarball already exists and has correct checksum. Skipping download."
+        fi
+    else
+        echo "Downloading jemalloc..."
+        curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+        ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
+        if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
+            echo "Jemalloc binary checksum mismatch"
+            echo "Expected: ${JEMALLOC_TAR_SHA256}"
+            echo "Actual: ${ACTUAL_SHA256}"
+            exit 1
+        fi
     fi
 
-    tar -C /tmp -xf /tmp/jemalloc-5.3.0.tar.bz2
+    # Check if jemalloc source code has already been extracted
+    if [ -d "${JEMALLOC_EXTRACT_PATH}" ]; then
+        echo "Jemalloc source code already extracted. Skipping extraction."
+    else
+        echo "Extracting jemalloc..."
+        tar -C /tmp -xf "${JEMALLOC_TAR_PATH}"
+    fi
 
-    # TODO: autoconf needs to be installed with script as well?
+    # Check if jemalloc is already installed
+    if ! command -v jemalloc-config &>/dev/null; then
+        echo "Jemalloc not found in system. Configuring, building, and installing..."
+        pushd "${JEMALLOC_EXTRACT_PATH}"
+        ./configure
+        make
+        sudo make install
+        popd
+    else
+        echo "Jemalloc already installed. Skipping build and install."
+    fi
 
-    pushd /tmp/jemalloc-5.3.0
-    ./configure
-    make
-    sudo make install
-    popd
-    echo "Jemalloc installed"
+    echo "Jemalloc installation complete."
 
+	 # TODO: autoconf needs to be installed with script as well?
 }
 
 configure_venv() {
