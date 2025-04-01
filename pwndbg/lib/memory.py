@@ -141,8 +141,11 @@ class Page:
 
     def __str__(self) -> str:
         from os.path import relpath
-        rel = relpath(self.objfile)
-        objfile = self.objfile if rel.startswith('../../') else rel
+        if pwndbg.config.vmmap_prefer_relpaths:
+            rel = relpath(self.objfile)
+            objfile = self.objfile if rel.startswith('../../') else rel
+        else:
+            objfile = self.objfile
         return f"{self.vaddr:#{2 + 2 * pwndbg.aglib.arch.ptrsize}x} {self.vaddr + self.memsz:#{2 + 2 * pwndbg.aglib.arch.ptrsize}x} {self.permstr} {self.memsz:8x} {self.offset:6x} {objfile or ''}"
 
     def __repr__(self) -> str:
