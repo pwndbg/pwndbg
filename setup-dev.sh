@@ -262,9 +262,7 @@ install_jemalloc() {
         echo "Extracting jemalloc..."
         tar -C /tmp -xf "${JEMALLOC_TAR_PATH}"
     fi
-
-    # TODO: autoconf needs to be installed with script as well?
-    
+ 
     # Check if jemalloc is already installed
     if ! command -v jemalloc-config &> /dev/null; then
         echo "Jemalloc not found in system. Configuring, building, and installing..."
@@ -278,6 +276,8 @@ install_jemalloc() {
     fi
 
     echo "Jemalloc installation complete."
+
+    # TODO: autoconf needs to be installed with script as well?
 }
 
 configure_venv() {
