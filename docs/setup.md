@@ -1,3 +1,9 @@
+---
+hide:
+  - navigation
+---
+
+# Setup
 
 ## Quick start
 Installation from source is straightforward:

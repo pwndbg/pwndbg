@@ -101,7 +101,7 @@ def md_help(filename, parser, name):
 
     mdFile.create_md_file()
 
-commands_info = {} 
+commands_info = {}
 
 cmd = {}
 
@@ -137,7 +137,7 @@ for i in dir(pwndbg.commands):
             }
 
             data = ""
-            
+
             md_help(filename, parser, parser.prog)
 
 pprint(cmd)

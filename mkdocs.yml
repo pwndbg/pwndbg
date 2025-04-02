@@ -8,6 +8,7 @@ site_description: >-
 
 repo_name: pwndbg/pwndbg
 repo_url: https://github.com/pwndbg/pwndbg/
+edit_uri: edit/dev/docs/
 
 theme:
   name: material
@@ -67,23 +68,20 @@ plugins:
       separator: '[\s\u200b\-_,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
   - minify:
       minify_html: true
-  # - git-committers:
-  #     repository: pwndbg/pwndbg
-  #     branch: dev
-  #     exclude:
-  #       - index.md
-  #       - docs/commands/**
-  # - gen-files:
-  #     scripts:
-  #       - scripts/gen_ref_pages.py
-
+  # Used to reference source code from markdown files
   - mkdocstrings:
       default_handler: python
       handlers:
         python:
-          # load_external_modules: true
+# https://mkdocstrings.github.io/python/usage/
+          load_external_modules: false
+          paths: ['pwndbg']
           options:
+# https://mkdocstrings.github.io/python/usage/configuration/general/
               allow_inspection: true
+              extensions:
+# https://mkdocstrings.github.io/griffe/extensions/
+                - griffe_modernized_annotations
             # show_source: false
             # show_bases: true
             # docstring_style: google
@@ -107,7 +105,7 @@ plugins:
               heading_level: 1
               inherited_members: true
               line_length: 88
-              merge_init_into_class: true
+              # merge_init_into_class: true
               parameter_headings: true
               relative_crossrefs: true
               scoped_crossrefs: true
@@ -123,11 +121,10 @@ plugins:
               signature_crossrefs: true
               summary: true
               unwrap_annotated: true
-  # Generate the whole Source page magically
+  # Generate the whole Source page magically (hooks into mkdocstrings)
   - api-autonav:
       modules: ['pwndbg']
       nav_section_title: "Source"
-
   - rss:
       match_path: blog/posts/.*
       date_from_meta:
@@ -136,7 +133,6 @@ plugins:
         - categories
         - tags
 
-# Additional configuration
 extra:
   social:
     - icon: fontawesome/brands/github
