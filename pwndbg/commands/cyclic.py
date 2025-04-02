@@ -100,8 +100,9 @@ parser.add_argument(
     "-n",
     "--length",
     metavar="length",
+    default=4,
     type=int,
-    help="Size of the unique subsequences (defaults to the pointer size for the current arch)",
+    help="Size of the unique subsequences",
 )
 
 parser.add_argument(
@@ -168,7 +169,11 @@ def cyclic_cmd(
         lookup = pwndbg.commands.fix(lookup, sloppy=True)
 
         if isinstance(lookup, (pwndbg.dbg_mod.Value, int)):
-            lookup = int(lookup).to_bytes(length, pwndbg.aglib.arch.endian)
+            try:
+                lookup = int(lookup).to_bytes(length, pwndbg.aglib.arch.endian)
+            except OverflowError:
+                lookup = int(lookup).to_bytes(pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.endian)
+                lookup = lookup[:length]
         elif isinstance(lookup, str):
             lookup = bytes(lookup, "utf-8")
 
