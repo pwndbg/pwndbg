@@ -262,7 +262,7 @@ install_jemalloc() {
         echo "Extracting jemalloc..."
         tar -C /tmp -xf "${JEMALLOC_TAR_PATH}"
     fi
- 
+
     # Check if jemalloc is already installed
     if ! command -v jemalloc-config &> /dev/null; then
         echo "Jemalloc not found in system. Configuring, building, and installing..."
