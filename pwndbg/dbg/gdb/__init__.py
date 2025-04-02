@@ -1550,6 +1550,36 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return False
 
     @override
+    def breakpoint_locations(self) -> List[pwndbg.dbg_mod.BreakpointLocation]:
+        bps = gdb.breakpoints()
+        locations: List[pwndbg.dbg_mod.BreakpointLocation] = []
+        for bp in bps:
+            if (
+                bp.is_valid()
+                and bp.enabled
+                and bp.type in (gdb.BP_BREAKPOINT, gdb.BP_HARDWARE_BREAKPOINT)
+                and bp.visible
+            ):
+                # GDB 13.1+
+                if hasattr(bp, "locations"):
+                    for location in bp.locations:
+                        locations.append(pwndbg.dbg_mod.BreakpointLocation(location.address))
+                else:
+                    # Num     Type           Disp Enb Address            What
+                    # 1       breakpoint     keep y   0x00007ffff7e90840 in __GI___libc_read at ../sysdeps/unix/sysv/linux/read.c:26
+                    bp_locations = gdb.execute(
+                        f"info breakpoint {bp.number}", to_string=True
+                    ).split("\n")
+                    for line in bp_locations:
+                        try:
+                            address = int(line.split()[4], 16)
+                            locations.append(pwndbg.dbg_mod.BreakpointLocation(address))
+                        except (IndexError, ValueError):
+                            # Ignore lines that don't have an address.
+                            pass
+        return locations
+
+    @override
     def name(self) -> pwndbg.dbg_mod.DebuggerType:
         return pwndbg.dbg_mod.DebuggerType.GDB
 

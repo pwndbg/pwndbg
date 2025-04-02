@@ -142,6 +142,13 @@ class BreakpointLocation:
     def __init__(self, address: int):
         self.address = address
 
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, BreakpointLocation):
+            return self.address == other.address
+        if isinstance(other, int):
+            return self.address == other
+        return False
+
 
 class WatchpointLocation:
     """
@@ -1142,6 +1149,13 @@ class Debugger:
         """
         Whether breakpoint or watchpoint creation through `break_at` is
         supported during breakpoint stop handlers.
+        """
+        raise NotImplementedError()
+
+    def breakpoint_locations(self) -> List[BreakpointLocation]:
+        """
+        Returns a list of all breakpoint locations that are currently
+        installed and enabled in the focused process.
         """
         raise NotImplementedError()
 

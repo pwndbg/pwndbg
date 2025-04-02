@@ -2030,6 +2030,20 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         return True
 
     @override
+    def breakpoint_locations(self) -> List[pwndbg.dbg_mod.BreakpointLocation]:
+        inferior: LLDBProcess = self.selected_inferior()
+        if inferior is None:
+            return []
+
+        bps: List[lldb.SBBreakpoint] = inferior.target.breakpoints
+        locations: List[pwndbg.dbg_mod.BreakpointLocation] = []
+        for bp in bps:
+            if bp.IsValid() and bp.IsEnabled():
+                for location in bp.locations:
+                    locations.append(location.GetAddress())
+        return locations
+
+    @override
     def name(self) -> pwndbg.dbg_mod.DebuggerType:
         return pwndbg.dbg_mod.DebuggerType.LLDB
 
