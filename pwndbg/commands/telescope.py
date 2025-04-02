@@ -93,7 +93,11 @@ parser.add_argument(
 
 
 parser.add_argument(
-    "address", nargs="?", default="$sp", type=pwndbg.commands.AddressExpr, help="The address to telescope at."
+    "address",
+    nargs="?",
+    default="$sp",
+    type=pwndbg.commands.AddressExpr,
+    help="The address to telescope at.",
 )
 
 parser.add_argument(
