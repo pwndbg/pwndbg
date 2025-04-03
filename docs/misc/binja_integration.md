@@ -3,7 +3,7 @@
 You need at least the personal edition of Binary Ninja (only tested on version 4.0+) that runs at least Python 3.10 for plugins.
 
 ## Setup
-Copy (or symlink) [`binja_script.py`](../binja_script.py) to your [plugins directory](https://docs.binary.ninja/guide/plugins.html).
+Copy (or symlink) [`binja_script.py`](https://raw.githubusercontent.com/pwndbg/pwndbg/refs/heads/dev/binja_script.py) to your [plugins directory](https://docs.binary.ninja/guide/plugins.html).
 
 ## Usage
 To start the Binary Ninja integration, open the binary you want to debug in Binary Ninja, then go to `Plugins > pwndbg > Start integration on current view`. This will start the XMLRPC server that pwndbg queries for information.
@@ -15,7 +15,7 @@ The integration currently syncs symbol names, comments, decompilation, function 
 
 ## Commands
 - `bn-sync`: Navigate the Binary Ninja view to the current instruction
-- `decomp ADDR NLINES`: Displays the decompilation for `NLINES` lines at address `ADDR`. 
+- `decomp ADDR NLINES`: Displays the decompilation for `NLINES` lines at address `ADDR`.
 
 ## Config Options
 - `bn-autosync`: If set to `yes`, every step will automatically run `bn-sync`

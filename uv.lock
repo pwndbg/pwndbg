@@ -1168,6 +1168,7 @@ docs = [
     { name = "mkdocstrings" },
     { name = "mkdocstrings-python" },
     { name = "pymdown-extensions" },
+    { name = "ruff" },
 ]
 lint = [
     { name = "isort" },
@@ -1221,6 +1222,7 @@ docs = [
     { name = "mkdocstrings" },
     { name = "mkdocstrings-python" },
     { name = "pymdown-extensions" },
+    { name = "ruff" },
 ]
 lint = [
     { name = "isort", specifier = ">=5.13.2,<6" },
