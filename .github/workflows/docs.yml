@@ -21,7 +21,8 @@ jobs:
 
       - name: Build site
         run: |
-          uv run --only-group docs mkdocs build
+          # --only-group doesn't work, not exactly sure why
+          uv run --group docs mkdocs build
 
   deploy:
     if: github.event_name == 'push' && contains(fromJson('["refs/heads/dev"]'), github.ref)
@@ -40,4 +41,5 @@ jobs:
 
       - name: Deploy site
         run: |
-          uv run --only-group docs mkdocs gh-deploy --force
+          # --only-group doesn't work, not exactly sure why
+          uv run --group docs mkdocs gh-deploy --force
