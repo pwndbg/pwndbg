@@ -175,24 +175,29 @@ def nearpc(
 
     breakpoint_locations = pwndbg.dbg.breakpoint_locations()
 
+    prefix_sign = pwndbg.config.nearpc_prefix
+    breakpoint_sign = pwndbg.config.nearpc_breakpoint_prefix
+
     # Print out each instruction
     for i, (address_str, symbol, instr, asm) in enumerate(
         zip(addresses, symbols, instructions, assembly_strings)
     ):
-        prefix_sign = pwndbg.config.nearpc_prefix
-        breakpoint_sign = pwndbg.config.nearpc_breakpoint_prefix
-
         # Show prefix only on the specified address and don't show it while in repeat-mode
         # or when showing current instruction for the second time
         show_prefix = instr.address == pc and not repeat and i == index_of_pc
-        prefix = " %s" % (prefix_sign if show_prefix else " " * len(prefix_sign))
-        prefix = c.prefix(prefix)
-
-        is_breakpoint = not show_prefix and instr.address in breakpoint_locations
-        # If the instruction is not the current instruction and a breakpoint,
-        # show the breakpoint sign
-        if is_breakpoint:
-            prefix = c.breakpoint(breakpoint_sign.ljust(len(prefix_sign)))
+        is_breakpoint = False
+        if show_prefix:
+            prefix = f" {prefix_sign}"
+            prefix = c.prefix(prefix)
+        elif instr.address in breakpoint_locations:
+            # If the instruction is not the current instruction and a breakpoint,
+            # show the breakpoint sign
+            prefix = breakpoint_sign.ljust(len(prefix_sign))
+            prefix = c.breakpoint(prefix)
+            is_breakpoint = True
+        else:
+            prefix = " " * len(prefix_sign)
+            prefix = c.prefix(prefix)
 
         # If this instruction is a breakpoint and not the current pc, highlight it.
         if is_breakpoint and pwndbg.config.highlight_breakpoints:
