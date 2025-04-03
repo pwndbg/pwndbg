@@ -2040,7 +2040,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         for bp in bps:
             if bp.IsValid() and bp.IsEnabled():
                 for location in bp.locations:
-                    locations.append(location.GetAddress())
+                    locations.append(location.GetAddress().GetLoadAddress(inferior.target))
         return locations
 
     @override
