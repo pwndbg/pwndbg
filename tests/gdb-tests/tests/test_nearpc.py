@@ -208,6 +208,7 @@ def test_nearpc_highlight_breakpoint(start_binary):
 
     gdb.execute("stepi")
     dis = gdb.execute("nearpc", to_string=True)
+    # When we stop on a breakpoint, we only highlight it (and not show the "b+" marker)
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         " ► 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
