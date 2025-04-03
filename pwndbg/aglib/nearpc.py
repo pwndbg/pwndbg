@@ -192,11 +192,11 @@ def nearpc(
         elif instr.address in breakpoint_locations:
             # If the instruction is not the current instruction and a breakpoint,
             # show the breakpoint sign
-            prefix = breakpoint_sign.ljust(len(prefix_sign))
+            prefix = breakpoint_sign.ljust(len(prefix_sign) + 1)
             prefix = c.breakpoint(prefix)
             is_breakpoint = True
         else:
-            prefix = " " * len(prefix_sign)
+            prefix = " " * (len(prefix_sign) + 1)
             prefix = c.prefix(prefix)
 
         # If this instruction is a breakpoint and not the current pc, highlight it.
