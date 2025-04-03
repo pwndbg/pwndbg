@@ -21,7 +21,7 @@ jobs:
 
       - name: Build site
         run: |
-          # --only-group doesn't work, not exactly sure why
+          # --only-group doesn't work with api-autonav (why?)
           uv run --group docs mkdocs build
 
   deploy:
@@ -41,5 +41,4 @@ jobs:
 
       - name: Deploy site
         run: |
-          # --only-group doesn't work, not exactly sure why
           uv run --group docs mkdocs gh-deploy --force

@@ -67,6 +67,8 @@ docs = [
     "pymdown-extensions",
     "mkdocs-api-autonav",
     "griffe-modernized-annotations",
+    # Used by mkdocstrings to format source.
+    "ruff",
 ]
 
 [tool.ruff]
