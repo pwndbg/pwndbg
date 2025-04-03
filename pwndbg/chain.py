@@ -4,6 +4,7 @@ from typing import List
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
+import pwndbg.aglib.qemu
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
@@ -71,11 +72,11 @@ def get(
         try:
             address = address + offset
 
-            # Avoid redundant dereferences in bare metal mode by checking
-            # if address is in any of vmmap pages
-            if not pwndbg.dbg.selected_inferior().is_linux() and not pwndbg.aglib.vmmap.find(
-                address
-            ):
+            # Only attempt to dereference if we know the address is readable.
+            # If we have no mapping information but we're in usermode, we can try to dereference
+            # and let memory errors be caught in the exception handler.
+            # Otherwise, verify the address is mapped before proceeding.
+            if not pwndbg.aglib.vmmap.find(address) and not pwndbg.aglib.qemu.is_usermode():
                 break
 
             next_address = int(
