@@ -93,7 +93,7 @@ plugins:
                 - griffe_modernized_annotations
 # https://mkdocstrings.github.io/python/usage/configuration/headings/
               heading_level: 1
-              parameter_headings: true
+              parameter_headings: false
               show_root_heading: true
               show_root_toc_entry: true
               show_root_full_path: false
@@ -108,7 +108,7 @@ plugins:
               summary: true
 # https://mkdocstrings.github.io/python/usage/configuration/docstrings/
               docstring_style: google
-              docstring_section_style: table
+              docstring_section_style: list
               merge_init_into_class: true
               relative_crossrefs: true
               scoped_crossrefs: true
@@ -125,6 +125,8 @@ plugins:
               docstring_options:
 # https://mkdocstrings.github.io/griffe/reference/docstrings/#google-options
                 ignore_init_summary: true
+                trim_doctest_flags: true
+                warn_unknown_params: true
 
   # Generate the whole Source page magically (hooks into mkdocstrings)
   - api-autonav:
