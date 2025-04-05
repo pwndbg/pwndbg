@@ -77,6 +77,9 @@ def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
         hexdump.offset = 0
 
     address = int(address)
+    if not pwndbg.aglib.memory.peek(address):
+        print("Could not read memory at specified address")
+        return
     if address > pwndbg.aglib.arch.ptrmask:
         new_address = address & pwndbg.aglib.arch.ptrmask
         print(

@@ -21,7 +21,7 @@ def run_tests(stack, use_big_endian, expected):
 
     # Test empty hexdump
     result = gdb.execute("hexdump 0", to_string=True)
-    assert result == "+0000 0x000000  \n"
+    assert result == "Could not read memory at specified address\n"
 
     results = []
     # TODO: Repetition is not working in tests
