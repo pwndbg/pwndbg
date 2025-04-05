@@ -888,6 +888,7 @@ def load_commands() -> None:
     import pwndbg.commands.misc
     import pwndbg.commands.mmap
     import pwndbg.commands.mprotect
+    import pwndbg.commands.msr
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
     import pwndbg.commands.onegadget

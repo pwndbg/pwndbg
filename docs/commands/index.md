@@ -84,6 +84,7 @@
 -  [knft-list-sets](kernel/knft-list-sets.md) - Dump netfilter sets from a specific table
 -  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
+-  [msr](kernel/msr.md) - Read or write to Model Specifc Register (MSR)
 -  [pcplist](kernel/pcplist.md) - Print Per-CPU page list
 -  [slab](kernel/slab.md) - Prints information about the slab allocator
 
