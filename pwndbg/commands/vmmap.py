@@ -50,7 +50,7 @@ def print_vmmap_table_header() -> None:
     width = 2 + 2 * pwndbg.aglib.arch.ptrsize
     print(
         f"{'Start':>{width}} {'End':>{width}} {'Perm'} {'Size':>8} {'Offset':>6} "
-        f"{'File'} (set vmmap_prefer_relpaths {prefer_relpaths})"
+        f"{'File'} (set vmmap-prefer-relpaths {prefer_relpaths})"
     )
 
 
