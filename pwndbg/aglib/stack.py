@@ -7,8 +7,8 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 
 from __future__ import annotations
 
-from typing import Dict
-from typing import List
+from typing import Dict , List, Generator , Tuple , Optional
+
 
 import pwndbg
 import pwndbg.aglib.elf
@@ -20,6 +20,8 @@ import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
+import pwndbg.gdblib.symbol
+
 
 auto_explore = pwndbg.config.add_param(
     "auto-explore-stack",
@@ -176,16 +178,22 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     return stacks
 
 
-def callstack() -> List[int]:
+def callstack() -> Generator[int, None, None]:
     """
     Return the address of the return address for the current frame.
     """
     frame = pwndbg.dbg.selected_frame()
-    addresses = []
     while frame:
         addr = frame.pc()
         if pwndbg.aglib.memory.is_readable_address(addr):
-            addresses.append(addr)
+            yield addr
         frame = frame.parent()
 
-    return addresses
+
+def callstack_with_symbols() -> Generator[Tuple[int, Optional[str]], None, None]:
+    """
+    Yields tuples of (address, symbol name) for each return address in the current thread.
+    """
+    for addr in callstack():
+        symbol = pwndbg.symbol.get(addr) if hasattr(pwndbg, 'symbol') else None
+        yield addr, symbol

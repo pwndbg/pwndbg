@@ -16,7 +16,8 @@ from pwndbg.commands.vmmap import print_vmmap_table_header
 )
 @pwndbg.commands.OnlyWhenRunning
 def retaddr() -> None:
-    addresses = pwndbg.aglib.stack.callstack()
+    addresses = list(pwndbg.aglib.stack.callstack())
+
 
     sp = pwndbg.aglib.regs.sp
     stack = pwndbg.aglib.vmmap.find(sp)

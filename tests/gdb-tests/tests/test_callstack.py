@@ -14,7 +14,16 @@ def test_callstack_readable(start_binary):
     gdb.execute("b break_here")
     gdb.execute("r")
 
-    addresses = pwndbg.aglib.stack.callstack()
+    addresses = list(pwndbg.aglib.stack.callstack())
 
     assert len(addresses) > 0
     assert all(pwndbg.aglib.memory.is_readable_address(address) for address in addresses)
+
+def test_callstack_with_symbols(start_binary):
+    start_binary(REFERENCE_BINARY)
+    gdb.execute("b break_here")
+    gdb.execute("r")
+
+    for addr, symbol in pwndbg.aglib.stack.callstack_with_symbols():
+        assert pwndbg.aglib.memory.is_readable_address(addr)
+        assert symbol is None or isinstance(symbol, str)
