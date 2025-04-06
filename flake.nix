@@ -147,7 +147,6 @@
                 inherit packager;
                 drv = portableDrv system;
                 config = ./nix/bundle/nfpm.yaml;
-                preremove = ./nix/bundle/preremove.sh;
               }
             )
           )
