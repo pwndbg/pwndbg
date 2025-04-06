@@ -493,7 +493,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 if stop_addr > addr:
                     return self.read_memory(addr, stop_addr - addr)
 
-        raise pwndbg.dbg_mod.Error(f"Cannot access memory at address 0x{address:x}")
+            raise pwndbg.dbg_mod.Error(e)
 
     @override
     def write_memory(self, address: int, data: bytearray, partial: bool = False) -> int:
