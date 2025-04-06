@@ -143,9 +143,8 @@ class Page:
     def __str__(self) -> str:
         if pwndbg.config.vmmap_prefer_relpaths:
             rel = relpath(self.objfile)
-            # Prefer absolute paths for system files (for example libc) since
-            # `os.path.relpath` returns longer relative paths with no clear benefits.
-            objfile = self.objfile if rel.startswith("../../") else rel
+            # Keep the origin path when relative paths are longer than absolute ones.
+            objfile = self.objfile if len(rel) >= len(self.objfile) else rel
         else:
             objfile = self.objfile
         width = 2 + 2 * pwndbg.aglib.arch.ptrsize
