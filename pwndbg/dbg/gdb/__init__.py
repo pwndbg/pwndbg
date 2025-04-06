@@ -430,54 +430,70 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         pages.sort()
         return GDBMemoryMap(qemu, pages)
 
+    def _find_memory_last_readable(self, start: int, count: int) -> int:
+        end = start + count
+        result = -1
+
+        def _is_readable(addr) -> bool:
+            try:
+                self.read_memory(addr, 1)
+                return True
+            except pwndbg.dbg_mod.Error:
+                return False
+
+        if not _is_readable(start):
+            return result
+
+        while start <= end:
+            mid = (start + end + 1) // 2
+            if _is_readable(mid):
+                result = mid
+                start = mid + 1
+            else:
+                end = mid - 1
+
+        return result
+
     @override
     def read_memory(self, address: int, size: int, partial: bool = False) -> bytearray:
-        result = b""
         count = max(int(size), 0)
         addr = address
 
         try:
             result = gdb.selected_inferior().read_memory(addr, count)
+            return bytearray(result)
         except gdb.error as e:
             if not partial:
                 raise pwndbg.dbg_mod.Error(e)
 
-            message = str(e)
-
-            stop_addr = addr
-            match = re.search(r"Memory at address (\w+) unavailable\.", message)
-            if match:
-                stop_addr = int(match.group(1), 0)
+            if pwndbg.aglib.remote.is_remote():
+                # GDB remote debugging will return the start address as the failed
+                # read address. Try moving back a few pages at a time.
+                stop_addr = self._find_memory_last_readable(addr, count)
+                if stop_addr > 0:
+                    return self.read_memory(addr, stop_addr - addr + 1)
             else:
-                stop_addr = int(message.split()[-1], 0)
+                message = str(e)
 
-            # Handle case of memory read that wraps around the memory space back to 0, where high memory was readable but memory at 0 was not.
-            # Example: 2-byte read at 0xFFFF_FFFF in a 32-bit address space.
-            # GDB returns error: "Cannot access memory at address 0x0"
-            if stop_addr == 0 and stop_addr < addr:
-                # We could read from the top-portion of memory, but not after wrapping around
-                # Because we are doing a partial read, read until the max address
-                return self.read_memory(addr, pwndbg.aglib.arch.ptrmask - addr + 1)
+                stop_addr = addr
+                match = re.search(r"Memory at address (\w+) unavailable\.", message)
+                if match:
+                    stop_addr = int(match.group(1), 0)
+                else:
+                    stop_addr = int(message.split()[-1], 0)
 
-            if stop_addr != addr:
-                return self.read_memory(addr, stop_addr - addr)
+                # Handle case of memory read that wraps around the memory space back to 0, where high memory was readable but memory at 0 was not.
+                # Example: 2-byte read at 0xFFFF_FFFF in a 32-bit address space.
+                # GDB returns error: "Cannot access memory at address 0x0"
+                if stop_addr == 0 and stop_addr < addr:
+                    # We could read from the top-portion of memory, but not after wrapping around
+                    # Because we are doing a partial read, read until the max address
+                    return self.read_memory(addr, pwndbg.aglib.arch.ptrmask - addr + 1)
 
-            # QEMU will return the start address as the failed
-            # read address.  Try moving back a few pages at a time.
-            stop_addr = addr + count
+                if stop_addr > addr:
+                    return self.read_memory(addr, stop_addr - addr)
 
-            # Move the stop address down to the previous page boundary
-            stop_addr &= PAGE_MASK
-            while stop_addr > addr:
-                result = self.read_memory(addr, stop_addr - addr)
-
-                if result:
-                    return bytearray(result)
-
-                # Move down by another page
-                stop_addr -= PAGE_SIZE
-
-        return bytearray(result)
+        raise pwndbg.dbg_mod.Error(f"Cannot access memory at address 0x{address:x}")
 
     @override
     def write_memory(self, address: int, data: bytearray, partial: bool = False) -> int:
