@@ -144,7 +144,7 @@ class Page:
         if pwndbg.config.vmmap_prefer_relpaths:
             rel = relpath(self.objfile)
             # Keep the origin path when relative paths are longer than absolute ones.
-            objfile = self.objfile if len(rel) >= len(self.objfile) else rel
+            objfile = self.objfile if len(rel) > len(self.objfile) else rel
         else:
             objfile = self.objfile
         width = 2 + 2 * pwndbg.aglib.arch.ptrsize
