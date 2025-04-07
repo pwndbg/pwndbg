@@ -733,16 +733,14 @@ class Emulator:
         debug(DEBUG_MEM_READ, "uc.mem_read(*%r, **%r)", (a, kw))
         return self.uc.mem_read(*a, **kw)
 
-    def until_jump(self, pc=None):
+    def until_jump(self, pc: int = None):
         """
         Emulates instructions starting at the specified address until the
         program counter is set to an address which does not linearly follow
         the previously-emulated instruction.
 
         Arguments:
-            pc(int): Address to start at.  If `None`, uses the current instruction.
-            types(list,set): List of instruction groups to stop at.
-                By default, it stops at all jumps, calls, and returns.
+            pc: Address to start at.  If `None`, uses the current instruction.
 
         Return:
             Returns a tuple containing the address of the jump instruction,

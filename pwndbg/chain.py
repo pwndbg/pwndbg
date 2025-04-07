@@ -41,13 +41,13 @@ def get(
     Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
 
     Arguments:
-        address(int): the first address to begin dereferencing
-        limit(int): number of valid pointers
-        offset(int): offset into the address to get the next pointer
-        hard_stop(int): address to stop at
+        address: the first address to begin dereferencing
+        limit: number of valid pointers
+        offset: offset into the address to get the next pointer
+        hard_stop: address to stop at
         hard_end: value to append when hard_stop is reached
-        include_start(bool): whether to include starting address or not
-        safe_linking(bool): whether this chain use safe-linking
+        include_start: whether to include starting address or not
+        safe_linking: whether this chain use safe-linking
 
     Returns:
         A list representing pointers of each ```address``` and reference
@@ -112,14 +112,14 @@ def format(
     of address dereferences into string representation.
 
     Arguments:
-        value(int|list): Either the starting address to be sent to get, or the result of get (a list)
-        limit(int): Number of valid pointers
-        code(bool): Hint that indicates the value may be an instruction
-        offset(int): Offset into the address to get the next pointer
-        hard_stop(int): Value to stop on
+        value: Either the starting address to be sent to get, or the result of get (a list)
+        limit: Number of valid pointers
+        code: Hint that indicates the value may be an instruction
+        offset: Offset into the address to get the next pointer
+        hard_stop: Value to stop on
         hard_end: Value to append when hard_stop is reached: null, value of hard stop, a string.
-        safe_linking(bool): whether this chain use safe-linking
-        enhance_string_len(int): The length of string to display for enhancement of the last pointer
+        safe_linking: whether this chain use safe-linking
+        enhance_string_len: The length of string to display for enhancement of the last pointer
     Returns:
         A string representing pointers of each address and reference
         Strings format: 0x0804a10 —▸ 0x08061000 ◂— 0x41414141

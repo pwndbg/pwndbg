@@ -41,16 +41,16 @@ def which(name: str, all: bool = False) -> Set[str] | str | None:
     Works as the system command ``which``; searches $PATH for ``name`` and
     returns a full path if found.
 
-    If `all` is :const:`True` the set of all found locations is returned, else
-    the first occurrence or :const:`None` is returned.
+    If `all` is `True` the set of all found locations is returned, else
+    the first occurrence or `None` is returned.
 
     Arguments:
-      `name` (str): The file to search for.
-      `all` (bool):  Whether to return all locations where `name` was found.
+      name: The file to search for.
+      all:  Whether to return all locations where `name` was found.
 
     Returns:
-      If `all` is :const:`True` the set of all locations where `name` was found,
-      else the first location or :const:`None` if not found.
+      If `all` is `True` the set of all locations where `name` was found,
+      else the first location or `None` if not found.
 
     Example:
       >>> which('sh')

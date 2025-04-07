@@ -24,12 +24,12 @@ def read(addr: int, count: int, partial: bool = False) -> bytearray:
     Read memory from the program being debugged.
 
     Arguments:
-        addr(int): Address to read
-        count(int): Number of bytes to read
-        partial(bool): Whether less than ``count`` bytes can be returned
+        addr: Address to read
+        count: Number of bytes to read
+        partial: Whether less than ``count`` bytes can be returned
 
     Returns:
-        :class:`bytearray`: The memory at the specified address,
+        `bytearray` The memory at the specified address,
         or ``None``.
     """
     return pwndbg.dbg.selected_inferior().read_memory(address=addr, size=count, partial=partial)
@@ -42,11 +42,11 @@ def readtype(type: pwndbg.dbg_mod.Type, addr: int) -> int:
     native integer representation of the same.
 
     Arguments:
-        type(pwndbg.dbg_mod.Type): GDB type to read
-        addr(int): Address at which the value to be read resides
+        type: GDB type to read
+        addr: Address at which the value to be read resides
 
     Returns:
-        :class:`int`
+        `int`
     """
     return int(get_typed_pointer_value(type, addr))
 
@@ -57,8 +57,8 @@ def write(addr: int, data: str | bytes | bytearray) -> None:
     Writes data into the memory of the process being debugged.
 
     Arguments:
-        addr(int): Address to write
-        data(str,bytes,bytearray): Data to write
+        addr: Address to write
+        data: Data to write
     """
     if isinstance(data, str):
         data = bytes(data, "utf8")
@@ -72,10 +72,10 @@ def peek(address: int) -> bytearray | None:
     Read one byte from the specified address.
 
     Arguments:
-        address(int): Address to read
+        address: Address to read
 
     Returns:
-        :class:`bytearray`: A single byte of data, or ``None`` if the
+        `bytearray` A single byte of data, or ``None`` if the
         address cannot be read.
     """
     try:
@@ -92,10 +92,10 @@ def is_readable_address(address: int) -> bool:
     Check if the address can be read by GDB.
 
     Arguments:
-        address(int): Address to read
+        address: Address to read
 
     Returns:
-        :class:`bool`: Whether the address is readable.
+        `bool`: Whether the address is readable.
     """
     # We use vmmap to check before `peek()` because accessing memory for embedded targets might be slow and expensive.
     return pwndbg.aglib.vmmap.find(address) is not None and peek(address) is not None
@@ -107,10 +107,10 @@ def poke(address: int) -> bool:
     Checks whether an address is writable.
 
     Arguments:
-        address(int): Address to check
+        address: Address to check
 
     Returns:
-        :class:`bool`: Whether the address is writable.
+        `bool`: Whether the address is writable.
     """
     c = peek(address)
     if c is None:
@@ -134,8 +134,8 @@ def string(addr: int, max: int = 4096) -> bytearray:
     """Reads a null-terminated string from memory.
 
     Arguments:
-        addr(int): Address to read from
-        max(int): Maximum string length (default 4096)
+        addr: Address to read from
+        max: Maximum string length (default 4096)
 
     Returns:
         An empty bytearray, or a NULL-terminated bytearray.

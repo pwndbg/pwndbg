@@ -207,10 +207,10 @@ def fix(
     """Fix a single command-line argument coming from the CLI.
 
     Arguments:
-        arg(str): Original string representation (e.g. '0', '$rax', '$rax+44')
-        sloppy(bool): If ``arg`` cannot be evaluated, return ``arg``. (default: False)
-        quiet(bool): If an error occurs, suppress it. (default: True)
-        reraise(bool): If an error occurs, raise the exception. (default: False)
+        arg: Original string representation (e.g. '0', '$rax', '$rax+44')
+        sloppy: If ``arg`` cannot be evaluated, return ``arg``. (default: False)
+        quiet: If an error occurs, suppress it. (default: True)
+        reraise: If an error occurs, raise the exception. (default: False)
 
     Returns:
         Ideally a ``Value`` object.  May return a ``str`` if ``sloppy==True``.

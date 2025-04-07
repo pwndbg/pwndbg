@@ -60,7 +60,7 @@ def enhance(
     value: int,
     code: bool = True,
     safe_linking: bool = False,
-    attempt_dereference=True,
+    attempt_dereference = True,
     enhance_string_len: int = None,
 ) -> str:
     """
@@ -74,10 +74,10 @@ def enhance(
     determine which order to print the fields.
 
     Arguments:
-        value(obj): Value to enhance
-        code(bool): Hint that indicates the value may be an instruction
-        safe_linking(bool): Whether this chain use safe-linking
-        enhance_string_len(int): The length of string to display for enhancement of the last pointer
+        value: Value to enhance
+        code: Hint that indicates the value may be an instruction
+        safe_linking: Whether this chain use safe-linking
+        enhance_string_len: The length of string to display for enhancement of the last pointer
     """
     value = int(value)
 
