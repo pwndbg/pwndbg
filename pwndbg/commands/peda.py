@@ -14,7 +14,7 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand("Gets the current file.")
+@pwndbg.commands.ArgparsedCommand("Gets the current file.", category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def getfile() -> None:
     print(repr(pwndbg.auxv.get().AT_EXECFN))

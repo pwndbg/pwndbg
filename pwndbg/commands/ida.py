@@ -41,7 +41,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def up(n=1) -> None:
     """
@@ -69,7 +69,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def down(n=1) -> None:
     """

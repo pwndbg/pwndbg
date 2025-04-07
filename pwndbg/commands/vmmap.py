@@ -374,7 +374,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap_load(filename) -> None:
     if filename is None:

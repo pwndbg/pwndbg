@@ -592,9 +592,9 @@ class ArgparsedCommand:
     def __init__(
         self,
         parser_or_desc: argparse.ArgumentParser | str,
-        aliases: List[str] = [],
+        category: CommandCategory,
         command_name: str | None = None,
-        category: CommandCategory = CommandCategory.MISC,
+        aliases: List[str] = [],
         only_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
         exclude_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
     ) -> None:
@@ -604,9 +604,11 @@ class ArgparsedCommand:
         if isinstance(parser_or_desc, str):
             self.parser = argparse.ArgumentParser(description=parser_or_desc)
         else:
+            assert(isinstance(parser_or_desc, argparse.ArgumentParser))
             self.parser = parser_or_desc
         self.aliases = aliases
         self._command_name = command_name
+        assert(category)
         self.category = category
         self.only_debuggers = only_debuggers
         self.exclude_debuggers = exclude_debuggers

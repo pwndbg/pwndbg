@@ -34,6 +34,7 @@ import pwndbg.lib.config
 import pwndbg.lib.gcc
 import pwndbg.lib.tempfile
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -302,7 +303,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
 def cymbol(add: str, file: str, remove: str, edit: str, load: str, show: str) -> None:
     if add:
         add_custom_structure(add)

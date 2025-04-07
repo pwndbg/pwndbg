@@ -5,6 +5,7 @@ import argparse
 import pwndbg
 import pwndbg.aglib.dt
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
@@ -24,7 +25,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
 def dt(typename: str, address: int | None = None) -> None:
     """
     Dump out information on a type (e.g. ucontext_t).

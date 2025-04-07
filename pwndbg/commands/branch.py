@@ -11,6 +11,7 @@ import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.gdblib.bpoint
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.commands import CommandCategory
 
 
 class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
@@ -41,7 +42,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="break-if-taken")
+@pwndbg.commands.ArgparsedCommand(parser, command_name="break-if-taken", category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def break_if_taken(branch) -> None:
     install_breakpoint(branch, taken=True)
@@ -55,7 +56,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="break-if-not-taken")
+@pwndbg.commands.ArgparsedCommand(parser, command_name="break-if-not-taken", category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def break_if_not_taken(branch) -> None:
     install_breakpoint(branch, taken=False)
