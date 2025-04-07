@@ -60,7 +60,7 @@ def enhance(
     value: int,
     code: bool = True,
     safe_linking: bool = False,
-    attempt_dereference = True,
+    attempt_dereference=True,
     enhance_string_len: int = None,
 ) -> str:
     """
