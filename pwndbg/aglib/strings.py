@@ -58,7 +58,11 @@ def get(address: int, maxlen: int | None = None, maxread: int | None = None) -> 
 
 def yield_in_page(page: Page, n=4) -> Iterator[str]:
     """Yields strings of length >= n found in a given vmmap page"""
-    data = pwndbg.aglib.memory.read(addr=page.vaddr, count=page.memsz, partial=True)
+    try:
+        data = pwndbg.aglib.memory.read(addr=page.vaddr, count=page.memsz, partial=True)
+    except:
+        # E.g. we cannot read [vvar] page even though it has a READ permission
+        return
 
     for match in re.finditer(rb"[ -~]{%d,}" % n, data):
         decoded_str = match.group().decode("ascii", errors="ignore")

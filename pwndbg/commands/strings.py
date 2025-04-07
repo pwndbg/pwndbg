@@ -44,4 +44,5 @@ def strings(n: int = 4, page_names: List[str] = [], save_as: str = None):
         for string in pwndbg.aglib.strings.yield_in_page(page, n):
             print(string, file=f)
 
-    f.close()
+    if f:
+        f.close()
