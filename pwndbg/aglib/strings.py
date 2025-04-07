@@ -60,7 +60,7 @@ def yield_in_page(page: Page, n=4) -> Iterator[str]:
     """Yields strings of length >= n found in a given vmmap page"""
     try:
         data = pwndbg.aglib.memory.read(addr=page.vaddr, count=page.memsz, partial=True)
-    except:
+    except pwndbg.dbg_mod.Error:
         # E.g. we cannot read [vvar] page even though it has a READ permission
         return
 
