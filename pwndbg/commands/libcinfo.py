@@ -1,9 +1,14 @@
-import gdb
+from __future__ import annotations
+
 import os
-import pwndbg.commands
-import pwndbg.aglib.vmmap
 import re
 import subprocess
+
+import gdb
+
+import pwndbg.aglib.vmmap
+import pwndbg.commands
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenLocal
@@ -13,55 +18,39 @@ def libcinfo():
         """
 
         try:
-            mappings = pwndbg.aglib.vmmap.get()
-            libc_path = None
-            real_libc_path = None
-
-            for mapping in mappings:
-                if "libc.so" in mapping.objfile:
-                    libc_path = mapping.objfile
-                    break
+            libc_path = next(
+                (m.objfile for m in pwndbg.aglib.vmmap.get() if "libc.so" in m.objfile), None
+            )
             
             if not libc_path:
-                print("[!] Could not find libc in memory mappings.")
+                print("[!] Could not find 'libc.so' string in vmmap memory mappings.")
                 return
             
             print(f"[+] libc found at: {libc_path}")
 
             # Resolve the real path in case it's a symlink
             real_libc_path = os.path.realpath(libc_path)
-            real_libc_path = real_libc_path.replace('\x1b[0m', '')
             print(f"[+] Resolved libc to: {real_libc_path}")
-            
+
             # Try opening the libc file
             with open(real_libc_path, "rb") as libc_file:
-                chunk_size = 4096
-                buffer = libc_file.read(chunk_size)
+                buffer = libc_file.read()
 
-                version_pattern = rb"GNU C Library.*?(\d+\.\d+)|libc-?(\d+\.\d+)"
+            version_pattern = rb"GNU C Library.*?(\d+\.\d+)|libc-?(\d+\.\d+)"
+            
+            # Look for version strings in the current chunk
+            match = re.search(version_pattern, buffer)
+            if match:
+                libc_version = (match.group(1) or match.group(2)).decode()
 
-                found_versions = []
-                while buffer:
-                    # Look for version strings in the current chunk
-                    match = re.search(version_pattern, buffer)
-                    if match:
-                        libc_version = match.group(1) or match.group(2)
-                        found_versions.append(libc_version.decode())
+                print(f"[+] libc version: {libc_version}")
 
-                    # Read the next chunk
-                    buffer = libc_file.read(chunk_size)
+                # Generate source link
+                source_url = f"https://ftp.gnu.org/gnu/libc/glibc-{libc_version}.tar.gz"
+                print(f"[+] libc source link: {source_url}")
 
-                if found_versions:
-                    libc_version = found_versions[0]
-                    print(f"[+] libc version: {libc_version}")
-
-
-                    # Generate source link
-                    source_url = f"https://ftp.gnu.org/gnu/libc/glibc-{libc_version}.tar.gz"
-                    print(f"[+] libc source: {source_url}")
-
-                else:
-                    print("[!] Could not determine libc version using file read.")
+            else:
+                print("[!] Could not determine libc version using file read.")
         except Exception as e:
             print(f"[!] Error: {e}")
 
