@@ -22,7 +22,7 @@ jobs:
       - name: Build site
         run: |
           # --only-group doesn't work with api-autonav (why?)
-          uv run --group docs mkdocs build
+          uv run --group docs mkdocs build --strict
 
   deploy:
     if: github.event_name == 'push' && contains(fromJson('["refs/heads/dev"]'), github.ref)
@@ -41,4 +41,4 @@ jobs:
 
       - name: Deploy site
         run: |
-          uv run --group docs mkdocs gh-deploy --force
+          uv run --group docs mkdocs gh-deploy --strict --force
