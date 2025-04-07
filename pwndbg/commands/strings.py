@@ -41,11 +41,7 @@ def strings(n: int = 4, page_names: List[str] = [], save_as: str = None):
     f = open(save_as, "w") if save_as else None
 
     for page in pages:
-        strings_iter = pwndbg.aglib.strings.yield_in_page(page, n)
-
-        if not save_as:
-            for string in strings_iter:
-                print(string, file=f)
-            continue
+        for string in pwndbg.aglib.strings.yield_in_page(page, n):
+            print(string, file=f)
 
     f.close()

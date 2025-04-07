@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 import string
-from typing import List
+from typing import Iterator
 
 import pwndbg
 import pwndbg.aglib.memory
@@ -56,9 +56,9 @@ def get(address: int, maxlen: int | None = None, maxread: int | None = None) -> 
     return sz[:maxlen] + "..."
 
 
-def yield_in_page(page: Page, n=4) -> List[str]:
+def yield_in_page(page: Page, n=4) -> Iterator[str]:
     """Yields strings of length >= n found in a given vmmap page"""
-    data = pwndbg.aglib.memory.read(addr=page.vaddr, count=page.memsz)
+    data = pwndbg.aglib.memory.read(addr=page.vaddr, count=page.memsz, partial=True)
 
     for match in re.finditer(rb"[ -~]{%d,}" % n, data):
         decoded_str = match.group().decode("ascii", errors="ignore")
