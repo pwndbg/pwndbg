@@ -55,7 +55,7 @@ def tls(pthread_self=False, all: bool = False) -> None:
         typename = "tcbhead_t"
         address = tls_base
         # dt doesn't seem to return anything in case it succeeds.
-        output = str(pwndbg.aglib.dt.dt(typename, addr=address))
+        output = str(pwndbg.aglib.dt.dt("tcbhead_t", addr=tls_base))
 
         print(message.success("Dumping the address:"))
         if output == "Type not found.":
