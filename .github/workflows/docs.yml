@@ -24,7 +24,7 @@ jobs:
       - name: Verify docs are up to date with source
         run: |
           export PWNDBG_GEN_DOC_JUST_VERIFY=1
-          gdb --batch --ex 'source ./scripts/gen_command_docs.py' --quiet
+          uv run --group docs gdb --batch --ex 'source ./scripts/gen_command_docs.py' --quiet
 
       - name: Copy README.md to docs/index.md
         run: cp README.md docs/index.md
