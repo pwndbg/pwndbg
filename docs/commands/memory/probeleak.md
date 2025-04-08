@@ -19,7 +19,9 @@ Examples:
 
 
 ```bash
-usage: probeleak [-h] [--max-distance MAX_DISTANCE] [--point-to POINT_TO] [--max-ptrs MAX_PTRS] [--flags FLAGS] [address] [count]
+usage: probeleak [-h] [--max-distance MAX_DISTANCE] [--point-to POINT_TO]
+                 [--max-ptrs MAX_PTRS] [--flags FLAGS]
+                 [address] [count]
 
 ```
 ## Positional Arguments

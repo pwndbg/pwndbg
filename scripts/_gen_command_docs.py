@@ -9,6 +9,12 @@ If it isn't, this fixes up the docs/commands/ files to be up
 to date with the (argparse) information from the sources.
 """
 
+# We need to patch shutil.get_terminal_size() because otherwise argparse will output
+# .format_usage() based on terminal width which may be different for different users.
+# I tried every other solution, it doesn't work :).
+import shutil
+shutil.get_terminal_size = lambda fallback=(80, 24): shutil.os.terminal_size((80, 24))
+
 from typing import Dict
 import re
 import argparse
@@ -280,6 +286,7 @@ if just_verify:
     if err:
         print("VERIFICATION FAILED. The files differ from what would be auto-generated.")
         print("Error:", err)
+        print("Please run ./scripts/generate_docs.sh from project root and commit the changes.")
         exit(777)
 
     print("Verification Successful.")

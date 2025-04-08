@@ -15,7 +15,8 @@ Default to the current arena's active heap.
 
 
 ```bash
-usage: vis_heap_chunks [-h] [--beyond_top] [--no_truncate] [--all_chunks] [count] [addr]
+usage: vis_heap_chunks [-h] [--beyond_top] [--no_truncate] [--all_chunks]
+                       [count] [addr]
 
 ```
 ## Positional Arguments

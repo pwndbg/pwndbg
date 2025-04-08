@@ -13,7 +13,9 @@ Ask GPT-3 a question about the current debugging context.
 
 
 ```bash
-usage: ai [-h] [-M MODEL] [-t TEMPERATURE] [-m MAX_TOKENS] [-v] [-L] [-c COMMAND] [question ...]
+usage: ai [-h] [-M MODEL] [-t TEMPERATURE] [-m MAX_TOKENS] [-v] [-L]
+          [-c COMMAND]
+          [question ...]
 
 ```
 ## Positional Arguments

@@ -13,7 +13,8 @@ Dump only expressions from specific rule
 
 
 ```bash
-usage: knft_list_exprs [-h] [--nsid NSID] [table_family] [table_name] [chain_name] [rule_id]
+usage: knft_list_exprs [-h] [--nsid NSID]
+                       [table_family] [table_name] [chain_name] [rule_id]
 
 ```
 ## Positional Arguments

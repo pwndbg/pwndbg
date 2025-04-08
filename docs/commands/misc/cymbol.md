@@ -13,7 +13,8 @@ Add, show, load, edit, or delete custom structures in plain C.
 
 
 ```bash
-usage: cymbol [-h] [-a name] [-f filepath] [-r name] [-e name] [-l name] [-s name]
+usage: cymbol [-h] [-a name] [-f filepath] [-r name] [-e name] [-l name]
+              [-s name]
 
 ```
 ## Optional Arguments

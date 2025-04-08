@@ -17,9 +17,11 @@ By default search results are cached. If you want to cache all results, but only
 
 
 ```bash
-usage: search [-h] [-t {byte,short,word,dword,qword,pointer,string,bytes,asm}] [-1] [-2] [-4] [-8] [-p] [--asm]
+usage: search [-h] [-t {byte,short,word,dword,qword,pointer,string,bytes,asm}]
+              [-1] [-2] [-4] [-8] [-p] [--asm]
               [--arch {powerpc64,aarch64,powerpc,riscv32,riscv64,sparc64,mips64,msp430,alpha,amd64,sparc,thumb,cris,i386,ia64,m68k,mips,s390,none,avr,arm,vax}]
-              [--asmbp] [-x] [-e] [-w] [-s STEP] [-l LIMIT] [-a ALIGNED] [--save] [--no-save] [-n] [--trunc-out]
+              [--asmbp] [-x] [-e] [-w] [-s STEP] [-l LIMIT] [-a ALIGNED]
+              [--save] [--no-save] [-n] [--trunc-out]
               value [mapping_name]
 
 ```

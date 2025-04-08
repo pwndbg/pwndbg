@@ -28,7 +28,9 @@ Memory pages can also be added manually with the use of vmmap_add, vmmap_clear a
 
 
 ```bash
-usage: vmmap [-h] [-w] [-x] [-A LINES_AFTER] [-B LINES_BEFORE] [-C CONTEXT] [--gaps] [gdbval_or_str]
+usage: vmmap [-h] [-w] [-x] [-A LINES_AFTER] [-B LINES_BEFORE] [-C CONTEXT]
+             [--gaps]
+             [gdbval_or_str]
 
 ```
 ## Positional Arguments

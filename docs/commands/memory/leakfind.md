@@ -18,7 +18,9 @@ Example: leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6. Thi
 
 
 ```bash
-usage: leakfind [-h] [-p [PAGE_NAME]] [-o [MAX_OFFSET]] [-d [MAX_DEPTH]] [-s [STEP]] [--negative_offset [NEGATIVE_OFFSET]] [address]
+usage: leakfind [-h] [-p [PAGE_NAME]] [-o [MAX_OFFSET]] [-d [MAX_DEPTH]]
+                [-s [STEP]] [--negative_offset [NEGATIVE_OFFSET]]
+                [address]
 
 ```
 ## Positional Arguments

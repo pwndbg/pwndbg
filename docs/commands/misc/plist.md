@@ -137,7 +137,9 @@ pwndbg> plist inner_b_node_a -i inner next
 
 
 ```bash
-usage: plist [-h] [-s SENTINEL] [-i INNER_NAME] [-f FIELD_NAME] [-o OFFSET] [-c COUNT] path next
+usage: plist [-h] [-s SENTINEL] [-i INNER_NAME] [-f FIELD_NAME] [-o OFFSET]
+             [-c COUNT]
+             path next
 
 ```
 ## Positional Arguments

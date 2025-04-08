@@ -13,7 +13,8 @@ Cyclic pattern creator/finder.
 
 
 ```bash
-usage: cyclic [-h] [-a charset] [-n length] [-l lookup_value | count] [filename]
+usage: cyclic [-h] [-a charset] [-n length] [-l lookup_value]
+              [count] [filename]
 
 ```
 ## Positional Arguments

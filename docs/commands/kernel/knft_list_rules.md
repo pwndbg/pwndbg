@@ -13,7 +13,8 @@ Dump netfilter rules form a specific chain
 
 
 ```bash
-usage: knft_list_rules [-h] [--nsid NSID] [table_family] [table_name] [chain_name]
+usage: knft_list_rules [-h] [--nsid NSID]
+                       [table_family] [table_name] [chain_name]
 
 ```
 ## Positional Arguments

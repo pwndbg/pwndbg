@@ -13,7 +13,8 @@ Prints out a list of all pwndbg commands.
 
 
 ```bash
-usage: pwndbg [-h] [--shell | --all] [-c CATEGORY_ | --list-categories] [filter_pattern]
+usage: pwndbg [-h] [--shell | --all] [-c CATEGORY_ | --list-categories]
+              [filter_pattern]
 
 ```
 ## Positional Arguments
