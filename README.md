@@ -1,3 +1,8 @@
+---
+hide:
+  - navigation
+---
+
 ![repository-open-graph](https://github.com/pwndbg/pwndbg/assets/150354584/77b2e438-898f-416f-a989-4bef30759627)
 # pwndbg
 
@@ -6,37 +11,37 @@
 [![codecov.io](https://codecov.io/github/pwndbg/pwndbg/branch/dev/badge.svg?token=i1cBPFVCav)](https://app.codecov.io/github/pwndbg/pwndbg/tree/dev)
 [![Discord](https://img.shields.io/discord/843809097920413717?label=Discord&style=plastic)](https://discord.gg/x47DssnGwm)
 
-`pwndbg` (/paʊnˈdiˌbʌɡ/) is a GDB and LLDB plug-in that makes debugging suck less, 
-with a focus on features needed by low-level software developers, hardware hackers, 
+`pwndbg` (/paʊnˈdiˌbʌɡ/) is a GDB and LLDB plug-in that makes debugging suck less,
+with a focus on features needed by low-level software developers, hardware hackers,
 reverse-engineers and exploit developers.
 
-It has a boatload of features, see [FEATURES.md](https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md) and [CHEATSHEET][CHEATSHEET] 
+It has a boatload of features, see [FEATURES.md](https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md) and [CHEATSHEET][CHEATSHEET]
 (feel free to print it!).
 
 [CHEATSHEET]: https://drive.google.com/file/d/16t9MV8KTFXK7oX_CzXhmDdaVnjT8IYM4/view?usp=drive_link
 
 ## Why?
 
-Vanilla GDB and LLDB are terrible to use for reverse engineering and exploit development. 
-Typing `x/g30x $esp` or navigating cumbersome LLDB commands is not fun and often provides 
-minimal information. The year is 2025, and core debuggers still lack many user-friendly 
-features such as a robust hexdump command. Windbg users are completely lost when they 
+Vanilla GDB and LLDB are terrible to use for reverse engineering and exploit development.
+Typing `x/g30x $esp` or navigating cumbersome LLDB commands is not fun and often provides
+minimal information. The year is 2025, and core debuggers still lack many user-friendly
+features such as a robust hexdump command. Windbg users are completely lost when they
 occasionally need to bump into GDB or LLDB.
 
 ## What?
 
-Pwndbg is a Python module which is loaded directly into GDB or LLDB*. It provides a suite 
-of utilities and enhancements that fill the gaps left by these debuggers, smoothing out 
+Pwndbg is a Python module which is loaded directly into GDB or LLDB*. It provides a suite
+of utilities and enhancements that fill the gaps left by these debuggers, smoothing out
 rough edges and making them more user-friendly.
 
-Many other projects from the past (e.g., [gdbinit][gdbinit], [PEDA][PEDA]) and present 
-(e.g. [GEF][GEF]) exist to fill some these gaps. Each provides an excellent experience 
-and great features -- but they're difficult to extend (some are unmaintained, and all 
+Many other projects from the past (e.g., [gdbinit][gdbinit], [PEDA][PEDA]) and present
+(e.g. [GEF][GEF]) exist to fill some these gaps. Each provides an excellent experience
+and great features -- but they're difficult to extend (some are unmaintained, and all
 are a single [100KB][gdbinit2], [200KB][peda.py], or [363KB][gef.py] file (respectively)).
 
-Pwndbg exists not only to replace all of its predecessors, but also to have a clean 
-implementation that runs quickly and is resilient against all the weird corner cases 
-that come up.  It also comes batteries-included, so all of its features are available 
+Pwndbg exists not only to replace all of its predecessors, but also to have a clean
+implementation that runs quickly and is resilient against all the weird corner cases
+that come up.  It also comes batteries-included, so all of its features are available
 if you run `setup.sh`.
 
 [gdbinit]: https://github.com/gdbinit/Gdbinit
@@ -50,7 +55,7 @@ if you run `setup.sh`.
 
 ## When to Use GDB or LLDB?
 
-Pwndbg supports both GDB and LLDB, and each debugger has its own strengths. 
+Pwndbg supports both GDB and LLDB, and each debugger has its own strengths.
 Here's a quick guide to help you decide which one to use:
 
 | Use Case                                        | Supported Debugger   |
@@ -63,8 +68,8 @@ Here's a quick guide to help you decide which one to use:
 
 Pwndbg ensures a consistent experience across both, so switching between them is seamless.
 > The LLDB implementation in Pwndbg is still in early-stage and may contain bugs or limitations.<br/>
-> Known issues are tracked in [GitHub Issues][lldb_tracker]. 
-> 
+> Known issues are tracked in [GitHub Issues][lldb_tracker].
+>
 > If you encounter any problems, feel free to report them or discuss on our [Discord server][discord].
 
 [lldb_tracker]: https://github.com/pwndbg/pwndbg/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22LLDB%20Port%22
@@ -111,13 +116,13 @@ cd pwndbg
 ./setup.sh
 ```
 
-Pwndbg is supported on Ubuntu 22.04, and 24.04 with GDB 12.1 and later. We do not test 
+Pwndbg is supported on Ubuntu 22.04, and 24.04 with GDB 12.1 and later. We do not test
 on any older versions of Ubuntu, so `pwndbg` may not work on these versions.
 - For Ubuntu 20.04 use the [2024.08.29 release](https://github.com/pwndbg/pwndbg/releases/tag/2024.08.29)
 - For Ubuntu 18.04 use the [2023.07.17: ubuntu18.04-final release](https://github.com/pwndbg/pwndbg/releases/tag/2023.07.17)
 
-We may accept pull requests fixing issues in older versions on a case by case basis, 
-please discuss this with us on [Discord][discord] first. You can also always checkout 
+We may accept pull requests fixing issues in older versions on a case by case basis,
+please discuss this with us on [Discord][discord] first. You can also always checkout
 an older version of `pwndbg` from around the time the Ubuntu version you're interested
 in was still supported by Canonical, or you can attempt to build a newer version of GDB from source.
 
