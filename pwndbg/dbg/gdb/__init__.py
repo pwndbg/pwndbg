@@ -430,23 +430,23 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         pages.sort()
         return GDBMemoryMap(qemu, pages)
 
+    def _is_memory_readable(self, addr: int) -> bool:
+        try:
+            gdb.selected_inferior().read_memory(addr, 1)
+            return True
+        except gdb.error:
+            return False
+
     def _find_memory_last_readable(self, start: int, count: int) -> int:
         end = start + count
         result = -1
 
-        def _is_readable(addr) -> bool:
-            try:
-                self.read_memory(addr, 1)
-                return True
-            except pwndbg.dbg_mod.Error:
-                return False
-
-        if not _is_readable(start):
+        if not self._is_memory_readable(start):
             return result
 
         while start <= end:
             mid = (start + end + 1) // 2
-            if _is_readable(mid):
+            if self._is_memory_readable(mid):
                 result = mid
                 start = mid + 1
             else:
@@ -466,16 +466,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             if not partial:
                 raise pwndbg.dbg_mod.Error(e)
 
-            if pwndbg.aglib.remote.is_remote():
-                # GDB remote debugging will return the start address as the failed
-                # read address. Try moving back a few pages at a time.
-                stop_addr = self._find_memory_last_readable(addr, count)
-                if stop_addr > 0:
-                    return self.read_memory(addr, stop_addr - addr + 1)
-            else:
+            if not pwndbg.aglib.remote.is_remote():
                 message = str(e)
-
-                stop_addr = addr
                 match = re.search(r"Memory at address (\w+) unavailable\.", message)
                 if match:
                     stop_addr = int(match.group(1), 0)
@@ -492,6 +484,18 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
                 if stop_addr > addr:
                     return self.read_memory(addr, stop_addr - addr)
+            else:
+                # Handle the case of remote debugging, where GDB's remote protocol
+                # returns the start address as the failed read address instead of the stop address.
+                # This is a limitation in how GDB handles the remote protocol, and while it could
+                # be fixed, it currently behaves this way.
+                #
+                # To work around this, we perform a binary search in the `_find_memory_last_readable` method
+                # to find the correct stop address that avoids the failure.
+                #
+                # For local debugging, this issue does not occur, and we proceed with the normal flow.
+                if (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
+                    return self.read_memory(addr, stop_addr - addr + 1)
 
             raise pwndbg.dbg_mod.Error(e)
 
