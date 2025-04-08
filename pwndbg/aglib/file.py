@@ -173,8 +173,8 @@ def _vfile_check_response(response: bytes):
     if response.startswith(b"F") and b"," in response:
         resp_status, resp_data = response[1:].split(b",", 1)  # Skip "F"
         if int(resp_status) != -1:
-            raise NotImplementedError(f"Unknown response status {resp_status}")
-        errno = int(resp_data.decode(), 10 if is_vfile_qemu_user_bug() else 16)
+            raise NotImplementedError(f"Unknown response status {resp_status!r}")
+        errno = int(resp_data.split(b";", 1)[0].decode(), 10 if is_vfile_qemu_user_bug() else 16)
         raise OSError(errno, "Error")
 
 
