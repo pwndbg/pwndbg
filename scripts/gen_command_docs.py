@@ -1,16 +1,22 @@
-from pprint import pprint
-import pwndbg.commands
-from collections import defaultdict
+"""
+usage: python scripts/gen_command_docs.py [options]
+
+If the PWNDBG_GEN_DOC_JUST_VERIFY environment variable
+is set, then    : Exit with non-zero exit status if the docs/commands/ files
+                  aren't up to date with the sources. Don't modify anything.
+
+If it isn't, this fixes up the docs/commands/ files to be up
+to date with the (argparse) information from the sources.
+"""
+
+from typing import Dict
+import re
 import argparse
-import os
-import io
-import sys
+import pwndbg.commands
 from mdutils.mdutils import MdUtils
 
-
-def dprint(ob):
-    print(dir(ob))
-
+autogen_end_marker1 = "<!-- Do not modify this line or the line below, they mark the end of the auto-generated part of the file. If you want to extend the documentation in a way which cannot easily be done by adding to the command help description, write below the following line. -->\n"
+autogen_end_marker2 = "<!-- ------------\\>8---- ----\\>8---- ----\\>8------------ -->\n"
 
 def save_to_file(filename, data):
     with open(filename, 'w') as f:
@@ -19,20 +25,80 @@ def save_to_file(filename, data):
 def inline_code(code):
     return f"`{code}`"
 
-def md_help(filename, parser, name):
+def category_to_folder_name(category) -> str:
+    folder = category.lower()
+    folder = re.sub(r"[ /]", "_", folder) # replace all spaces and / with _
+    return folder
+
+def extract_sources() -> Dict[str, argparse.ArgumentParser]:
+    """
+    Extract the sources.
+
+    Returns:
+        A dictionary that maps the filenames of .md files to the corresponding
+        command's ArgumentParser objects.
+    """
+    filename_to_source = {}
+
+    # This depends on pwndbg.commands.load_commands() importing every command :)
+    # `obj` iterates over all modules in pwndbg.commands (among other stuff).
+    for obj_name in dir(pwndbg.commands):
+        # Get the (potential) module by name.
+        mod = getattr(pwndbg.commands, obj_name)
+
+        # Iterate over everything in the module, which includes the command functions.
+        for fn_name in dir(mod):
+            fn = getattr(mod, fn_name)
+
+            if not isinstance(fn, pwndbg.commands.Command):
+                continue
+            # This object is a command (an _ArgparsedCommand object)!
+
+            category = fn.category
+            parser = fn.parser
+
+            if category is None:
+                # Should never be reached since ArgparsedCommand.__init__() will throw the error first.
+                print(f"ERROR: Command function {fn_name} in {obj_name} does not have an assigned category.")
+                exit(1)
+
+            cat_folder = category_to_folder_name(category.value)
+            filename = base_path + f'{cat_folder}/{fn_name}.md' # Should be using join but whatever.
+
+            parser = getattr(fn, 'parser')
+            assert(parser)
+
+            filename_to_source[filename] = parser
+            # directory = os.path.dirname(filename)
+            # os.makedirs(directory, exist_ok=True)
+
+            # md_help(filename, parser, parser.prog)
+
+    assert(filename_to_source)
+    return filename_to_source
+
+
+def convert_to_markdown(filename: str, parser: argparse.ArgumentParser) -> str:
+    name = parser.prog # parser.prog is the command name after all processing
+    description = parser.description
+
+    if not description:
+        print(f"ERROR: Command {name} ({filename}) does not have a description.")
+        exit(2)
+
     mdFile = MdUtils(filename)
 
     mdFile.new_header(level=1, title=name)
     if parser.description:
         mdFile.new_header(level=2, title="Description")
-        mdFile.new_paragraph(parser.description)
+        mdFile.new_paragraph(description)
 
     mdFile.new_header(level=2, title="Usage:")
     mdFile.insert_code(parser.format_usage(), language="bash")
 
     used_actions = {}
-    options_positional = ["Positional Argument", "Help"]
-    options_optional = ["Short", "Long", "Default", "Help"]
+    positionals = ["Positional Argument", "Help"]
+    optionals = ["Short", "Long", "Default", "Help"]
 
     # Process positional arguments
     if parser._positionals._group_actions:
@@ -43,16 +109,16 @@ def md_help(filename, parser, name):
                 continue
             used_actions[this_id] = True
 
-            options_positional.extend(list_of_str)
+            positionals.extend(list_of_str)
 
         mdFile.new_header(level=2, title="Positional Arguments")
-        options_positional = [
-            inline_code(di) if di is None else di.replace("\n", " ") for di in options_positional
+        positionals = [
+            inline_code(di) if di is None else di.replace("\n", " ") for di in positionals
         ]
         mdFile.new_table(
             columns=2,
-            rows=len(options_positional) // 2,
-            text=options_positional,
+            rows=len(positionals) // 2,
+            text=positionals,
             text_align="left",
         )
 
@@ -86,77 +152,152 @@ def md_help(filename, parser, name):
                 )
                 list_of_str[2] = inline_code(default)
 
-            options_optional.extend(list_of_str)
+            optionals.extend(list_of_str)
 
         mdFile.new_header(level=2, title="Optional Arguments")
-        options_optional = [
-            inline_code(di) if di is None else di.replace("\n", " ") for di in options_optional
+        optionals = [
+            inline_code(di) if di is None else di.replace("\n", " ") for di in optionals
         ]
         mdFile.new_table(
             columns=4,
-            rows=len(options_optional) // 4,
-            text=options_optional,
+            rows=len(optionals) // 4,
+            text=optionals,
             text_align="left",
         )
 
-    mdFile.create_md_file()
+    autogen_warning = "<!-- THIS PART OF THIS FILE IS AUTOGENERATED. DO NOT MODIFY IT. See scripts/gen_commands_docs.py -->"
+    autogen_warning_end = "<!-- END OF AUTOGENERATED PART OF THE FILE. -->"
 
-commands_info = {}
+    return autogen_warning + "\n" + mdFile.get_md_text() + "\n" + autogen_warning_end
 
-cmd = {}
-
-commands = defaultdict(list)
-
-for i in dir(pwndbg.commands):
-    fn = getattr(pwndbg.commands, i)
-    # print(dir(fn))
-    for j in dir(fn):
-        if isinstance(getattr(fn, j), pwndbg.commands.Command):
-            fn2 = getattr(fn, j)
-            category = fn2.category
-            parser = fn2.parser
-            if category is None:
-                category = 'Other'
-            else:
-                category = category.value
-            commands[category].append(j)
-
-            filename = f'commands/{i}/{j}.md'
-            parser = (getattr(fn2, 'parser'))
-            cmd[parser.prog] = i
-
-            directory = os.path.dirname(filename)
-            os.makedirs(directory, exist_ok=True)
-
-            commands_info[j] = {
-                "name": j,
-                "command_name": parser.prog,
-                "category": category,
-                "module": i,
-                "desc": parser.description.splitlines()[0] or ''
-            }
-
-            data = ""
-
-            md_help(filename, parser, parser.prog)
-
-pprint(cmd)
+def convert_all_to_markdown(filename_to_parser: Dict[str, argparse.ArgumentParser]) -> Dict[str, str]:
+    result = {}
+    for file in filename_to_parser:
+        result[file] = convert_to_markdown(file, filename_to_parser[file])
+    return result
 
 
+def verify_files(filename_to_markdown: Dict[str, str]) -> str | None:
+    """
+    Verify all the markdown files are up to date with the sources.
 
-# use d dict to create index
-mdFile = MdUtils('commands/index.md')
-mdFile.new_header(level=1, title="Commands")
-for k, v in commands.items():
-    mdFile.new_header(level=2, title=f"{k}")
-    items = []
-    for i in v:
-        info = commands_info[i]
-        try:
-            items.append(f' [{info["command_name"]}]({info["module"]}/{i}.md) {info["desc"]}')
-        except Exception as e:
-            print(f"-> {e}")
+    Returns:
+        None if everything is up-to-date.
+        A string containing the error message if something is not.
+    """
 
-    mdFile.new_list(items=items)
+    for filename, markdown in filename_to_markdown.items():
+        print(f"Checking {filename} ..")
 
-mdFile.create_md_file()
+        if not os.path.exists(filename):
+            return f"File {filename} does not exist."
+
+        file_data = ""
+        with open(filename, "r") as file:
+            file_data = file.readlines()
+
+        markdown = [x + "\n" for x in markdown.splitlines()]
+        mkdlen = len(markdown)
+
+        if len(file_data) < (mkdlen + 2):
+            return f"File {filename} is too short. Expected {mkdlen + 2} lines, got {len(file_data)}."
+
+        if not (file_data[mkdlen] == autogen_end_marker1
+            and file_data[mkdlen + 1] == autogen_end_marker2):
+            return f"Could not find the autogenerated end markers in {filename}."
+
+        for i in range(mkdlen):
+            if file_data[i] != markdown[i]:
+                return f"File {filename} differs from autogenerated on line {i}.\nFile: \"{file_data[i]}\".\nAutogenerated: \"{markdown[i]}\"."
+
+    return None
+
+def update_files(filename_to_markdown: Dict[str, str]):
+    """
+    Fix files so they are up to date with the sources. This also
+    creates new files/directories if needed.
+    """
+    for filename, markdown in filename_to_markdown.items():
+        print(f"Fixing {filename} ..")
+
+        if not os.path.exists(filename):
+            # Simple case, just create the file and write it.
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            with open(filename, 'w') as file:
+                file.write(markdown + '\n' + autogen_end_marker1 + autogen_end_marker2)
+            continue
+
+        # Need to find the marker in the file, and edit only above that part.
+        with open(filename, "r+") as file:
+            file_data = file.readlines()
+            marker_idx = -1
+            for i in reversed(range(len(file_data))):
+                if file_data[i] == autogen_end_marker2:
+                    if i == 0 or file_data[i - 1] != autogen_end_marker1:
+                        print(f"ERROR: In file {filename} found the second autogen marker, but couldn't find the first ({autogen_end_marker1}).")
+                        exit(7)
+                    marker_idx = i - 1
+                    break
+
+            if marker_idx == -1:
+                print(f"ERROR: In file {filename} couldn't find autogen marker ({autogen_end_marker2}).")
+                exit(8)
+
+            handwritten_doc = "".join(file_data[marker_idx:]) # Includes the autogen markers
+            if filename == "commands/breakpoint/breakrva.md":
+                print("mkd: ", markdown)
+                print("hw: ", handwritten_doc)
+
+            final = markdown + "\n" + handwritten_doc
+            file.seek(0)
+            file.write(final)
+            file.truncate()
+
+
+base_path = "docs/commands/" # Must have trailing slash.
+
+# ==== Start ====
+
+if len(sys.argv) > 1:
+    print("This script doesn't accept any arguments.")
+    print("See top of the file for usage.")
+    exit(3)
+
+just_verify = False
+if os.getenv("PWNDBG_GEN_DOC_JUST_VERIFY"):
+    just_verify = True
+
+extracted = extract_sources()
+markdowned = convert_all_to_markdown(extracted)
+
+if just_verify:
+    print("Verifying...")
+    err = verify_files(markdowned)
+    if err:
+        print("VERIFICATION FAILED. The files differ from what would be auto-generated.")
+        print("Error:", err)
+        exit(777)
+
+    print("Verification Successful.")
+else:
+    print("Updating files...")
+    update_files(markdowned)
+    print("Update successful.")
+
+
+# # use d dict to create index
+# mdFile = MdUtils('commands/index.md')
+# mdFile.new_header(level=1, title="Commands")
+# for k, v in commands.items():
+#     mdFile.new_header(level=2, title=f"{k}")
+#     items = []
+#     for obj_name in v:
+#         info = commands_info[obj_name]
+#         try:
+#             items.append(f' [{info["command_name"]}]({info["module"]}/{obj_name}.md) {info["desc"]}')
+#         except Exception as e:
+#             print(f"-> {e}")
+
+#     mdFile.new_list(items=items)
+
+# mdFile.create_md_file()
