@@ -6,6 +6,7 @@ from capstone.arm64_const import ARM64_INS_BL
 
 import pwndbg.aglib.disasm
 import pwndbg.aglib.nearpc
+import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.dbg
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -463,3 +464,42 @@ def test_aarch64_reference(qemu_start_binary):
     gdb.execute("piebase", to_string=True)
 
     gdb.execute("nextret", to_string=True)
+
+
+def test_memory_read_error_handling(qemu_assembly_run):
+    """
+    This test ensures that memory access errors are correctly handled and partial reads
+    are attempted when possible. Specifically, it tests that the function can handle
+    memory access failures at different address ranges and report the correct result.
+    """
+    qemu_assembly_run(SIMPLE_FUNCTION, "aarch64")
+
+    # Get the stack pointer address
+    stack_end_addr = list(pwndbg.aglib.stack.get().values())[0].end
+
+    result = pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0xff, 0xff, partial=False)
+    assert len(result) == 0xff, f"Expected 0xff bytes, but got {len(result)}"
+
+    try:
+        pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0xfe, 0xff, partial=False)
+        assert False, "Expected Error due to inaccessible memory address."
+    except pwndbg.dbg_mod.Error as e:
+        pass
+
+    result = pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0xff, 0xff, partial=True)
+    assert len(result) == 0xff, f"Expected 0xff bytes, but got {len(result)}"
+
+    result = pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0x10, 0xff, partial=True)
+    assert len(result) == 0x10, f"Expected 0x10 bytes, but got {len(result)}"
+
+    result = pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0x2, 0xff, partial=True)
+    assert len(result) == 0x2, f"Expected 0x2 bytes, but got {len(result)}"
+
+    result = pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0x1, 0xff, partial=True)
+    assert len(result) == 0x1, f"Expected 0x1 byte, but got {len(result)}"
+
+    try:
+        pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0x0, 0xff, partial=True)
+        assert False, "Expected Error due to inaccessible memory address."
+    except pwndbg.dbg_mod.Error as e:
+        pass
