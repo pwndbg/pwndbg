@@ -53,7 +53,6 @@ def tls(pthread_self=False, all: bool = False) -> None:
         # Trying to `dt tcbhead_t <tls_base>` it by default
         # If there is no tcbhead_t type, we can just use telescope.
         typename = "tcbhead_t"
-        address = tls_base
         # dt doesn't seem to return anything in case it succeeds.
         output = str(pwndbg.aglib.dt.dt("tcbhead_t", addr=tls_base))
 
