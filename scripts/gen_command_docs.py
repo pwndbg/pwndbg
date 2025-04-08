@@ -200,6 +200,8 @@ def verify_files(filename_to_markdown: Dict[str, str]) -> str | None:
         mkdlen = len(markdown)
 
         if len(file_data) < (mkdlen + 2):
+            print("file: ", file_data)
+            print("markdown: ", markdown)
             return f"File {filename} is too short. Expected {mkdlen + 2} lines, got {len(file_data)}."
 
         if not (file_data[mkdlen] == autogen_end_marker1
