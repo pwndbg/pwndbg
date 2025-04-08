@@ -16,6 +16,11 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
+      - name: Install gdb (needed for doc verification)
+        run: |
+          sudo apt update
+          sudo apt install -y gdb
+
       - name: Verify docs are up to date with source
         run: |
           export PWNDBG_GEN_DOC_JUST_VERIFY=1
