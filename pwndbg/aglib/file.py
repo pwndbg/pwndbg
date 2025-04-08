@@ -170,12 +170,14 @@ def is_vfile_qemu_user_bug() -> bool:
 def _vfile_check_response(response: bytes):
     if len(response) == 0:
         raise NotImplementedError("Not supported")
-    if response.startswith(b"F") and b"," in response:
-        resp_status, resp_data = response[1:].split(b",", 1)  # Skip "F"
-        if int(resp_status) != -1:
-            raise NotImplementedError(f"Unknown response status {resp_status!r}")
-        errno = int(resp_data.split(b";", 1)[0].decode(), 10 if is_vfile_qemu_user_bug() else 16)
-        raise OSError(errno, "Error")
+    # F result [,errno] [;attachment]; strip attachment first, skip if no errno
+    result_errno = response.split(b";", 1)[0]
+    if result_errno.startswith(b"F") and b"," in result_errno:
+        result, errno = result_errno[1:].split(b",", 1)  # Skip "F"
+        if int(result.split(b";", 1)[0]) != -1:
+            raise NotImplementedError(f"Unknown response status {result!r}")
+        err = int(errno, 10 if is_vfile_qemu_user_bug() else 16)
+        raise OSError(err, "Error")
 
 
 def vfile_readlink(pathname: str | bytes) -> bytes:
