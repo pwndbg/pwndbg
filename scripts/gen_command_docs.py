@@ -94,6 +94,8 @@ def convert_to_markdown(filename: str, parser: argparse.ArgumentParser) -> str:
         mdFile.new_paragraph(description)
 
     mdFile.new_header(level=2, title="Usage:")
+    if "ai.md" in filename:
+        print(f"ai usage: {parser.format_usage()}")
     mdFile.insert_code(parser.format_usage(), language="bash")
 
     used_actions = {}
