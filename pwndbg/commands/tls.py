@@ -50,9 +50,8 @@ def tls(pthread_self=False, all: bool = False) -> None:
         print(message.success("TLS is located at:"))
         print(message.notice(pwndbg.aglib.vmmap.find(tls_base)))
 
-        # Trying to `dt tcbhead_t <tls_base>` it by default
-        # If there is no tcbhead_t type, we can just use telescope.
-        # dt doesn't seem to return anything in case it succeeds.
+        # Displaying `dt tcbhead_t <tls_base>` if possible
+        # If not, we will dump the tls with telescope
         output = str(pwndbg.aglib.dt.dt("tcbhead_t", addr=tls_base))
 
         print(message.success("Dumping the address:"))
