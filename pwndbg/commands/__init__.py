@@ -604,11 +604,11 @@ class ArgparsedCommand:
         if isinstance(parser_or_desc, str):
             self.parser = argparse.ArgumentParser(description=parser_or_desc)
         else:
-            assert(isinstance(parser_or_desc, argparse.ArgumentParser))
+            assert isinstance(parser_or_desc, argparse.ArgumentParser)
             self.parser = parser_or_desc
         self.aliases = aliases
         self._command_name = command_name
-        assert(category)
+        assert category
         self.category = category
         self.only_debuggers = only_debuggers
         self.exclude_debuggers = exclude_debuggers

@@ -9,8 +9,8 @@ from pwnlib.util.cyclic import cyclic_find
 
 import pwndbg.aglib.arch
 import pwndbg.commands
-from pwndbg.commands import CommandCategory
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Cyclic pattern creator/finder.")
 

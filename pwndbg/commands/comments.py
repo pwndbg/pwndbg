@@ -4,8 +4,8 @@ import argparse
 from typing import Dict
 
 import pwndbg.commands
-from pwndbg.commands import CommandCategory
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Put comments in assembly code.")
 parser.add_argument(

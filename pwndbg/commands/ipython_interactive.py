@@ -14,6 +14,7 @@ import pwndbg.commands
 import pwndbg.lib.stdio
 from pwndbg.commands import CommandCategory
 
+
 @contextmanager
 def switch_to_ipython_env():
     """We need to change stdout/stderr to the default ones, otherwise we can't use tab or autocomplete"""
@@ -28,7 +29,9 @@ def switch_to_ipython_env():
     sys.excepthook = saved_excepthook
 
 
-@pwndbg.commands.ArgparsedCommand("Start an interactive IPython prompt.", category=CommandCategory.MISC)
+@pwndbg.commands.ArgparsedCommand(
+    "Start an interactive IPython prompt.", category=CommandCategory.MISC
+)
 def ipi() -> None:
     with switch_to_ipython_env():
         # Use `gdb.execute` to embed IPython into GDB's variable scope

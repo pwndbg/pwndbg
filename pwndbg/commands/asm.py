@@ -6,8 +6,8 @@ import pwnlib
 import pwnlib.context
 
 import pwndbg.commands
-from pwndbg.commands import CommandCategory
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Assemble shellcode into bytes")
 
