@@ -12,7 +12,10 @@ from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Show onegadget
+    description="""
+Find gadgets which single-handedly give code execution.
+
+Uses the onegadget tool by david942j.
 
 Examples:
     onegadget
