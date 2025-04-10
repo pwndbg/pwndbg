@@ -6,8 +6,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build docs
+  check:
+    name: Check docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,8 +35,8 @@ jobs:
 
   deploy:
     if: github.event_name == 'push' && contains(fromJson('["refs/heads/dev"]'), github.ref)
-    needs: build
-    name: Deploy docs
+    needs: check
+    name: Deploy dev docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,18 +45,17 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
-      - name: Install gdb (needed for doc verification)
-        run: |
-          sudo apt update
-          sudo apt install -y gdb
-
-      - name: Verify docs are up to date with source
-        run: |
-          ./scripts/verify_docs.sh
-
       - name: Copy README.md to docs/index.md
         run: cp README.md docs/index.md
 
       - name: Deploy site
         run: |
-          uv run --group docs mkdocs gh-deploy --strict --force
+          # mike pushes commits to the gh-pages branch
+          git config --global user.email "doc-bot@pwndbg.re"
+          git config --global user.name "DocBot"
+          git fetch --no-tags --prune --depth=1 origin +refs/heads/gh-pages:refs/remotes/origin/gh-pages
+          uv run --group docs mike deploy \
+            --update-aliases \
+            --push \
+            --remote origin \
+            dev

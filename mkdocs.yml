@@ -133,6 +133,13 @@ plugins:
       modules: ['pwndbg']
       nav_section_title: "Source"
 
+  # Documentation versioning
+  - mike:
+      css_dir: stylesheets
+      version_selector: true
+      canonical_version: latest
+      deploy_prefix: pwndbg
+
   - rss:
 # https://squidfunk.github.io/mkdocs-material/tutorials/blogs/engage/#rss-feeds
 # https://guts.github.io/mkdocs-rss-plugin/configuration/#plugin-options
@@ -159,6 +166,9 @@ extra:
       link: https://discord.gg/x47DssnGwm
   # Set to false to hide the "Made with Material for MkDocs" text :(.
   generator: true
+  # material integration with mike (doc versioning)
+  version:
+    provider: mike
 
 extra_css:
   - stylesheets/extra.css

@@ -69,6 +69,7 @@ docs = [
     "griffe-modernized-annotations",
     # Used by mkdocstrings to format source.
     "ruff",
+    "mike",
 ]
 
 [tool.ruff]
