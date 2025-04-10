@@ -16,12 +16,9 @@ parser = argparse.ArgumentParser(
 Find gadgets which single-handedly give code execution.
 
 Uses the onegadget tool by david942j.
-
-Examples:
-    onegadget
-    onegadget --show-unsat
 """,
 )
+
 parser.add_argument("--show-unsat", help="Show unsatisfiable gadgets.", action="store_true")
 parser.add_argument("--no-unknown", help="Do not show unknown gadgets.", action="store_true")
 parser.add_argument("-v", "--verbose", help="Show verbose output.", action="store_true")
