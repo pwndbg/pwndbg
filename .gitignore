@@ -64,7 +64,7 @@ site/
 target/
 
 npm-debug.log
-.gdb_history
+**/.gdb_history
 
 # PyCharm project files
 .idea/

@@ -7,6 +7,8 @@
 
 ## Breakpoint
 
+-  [break-if-not-taken](breakpoint/break-if-not-taken.md) - Breaks on a branch if it is not taken.
+-  [break-if-taken](breakpoint/break-if-taken.md) - Breaks on a branch if it is taken.
 -  [breakrva](breakpoint/breakrva.md) - Break at RVA from PIE base.
 -  [ignore](breakpoint/ignore.md) - Set ignore-count of breakpoint number N to COUNT.
 
@@ -100,7 +102,7 @@
 -  [gotplt](linux_libc_elf/gotplt.md) - Prints any symbols found in the .got.plt section if it exists.
 -  [libcinfo](linux_libc_elf/libcinfo.md) - Show libc version and link to its sources
 -  [linkmap](linux_libc_elf/linkmap.md) - Show the state of the Link Map
--  [onegadget](linux_libc_elf/onegadget.md) - Show onegadget
+-  [onegadget](linux_libc_elf/onegadget.md) - Find gadgets which single-handedly give code execution.
 -  [piebase](linux_libc_elf/piebase.md) - Calculate VA of RVA from PIE base.
 -  [plt](linux_libc_elf/plt.md) - Prints any symbols found in the .plt section if it exists.
 -  [strings](linux_libc_elf/strings.md) - Extracts and displays ASCII strings from readable memory pages of the debugged process.
@@ -135,8 +137,6 @@
 ## Misc
 
 -  [asm](misc/asm.md) - Assemble shellcode into bytes
--  [break-if-not-taken](misc/break-if-not-taken.md) - Breaks on a branch if it is not taken.
--  [break-if-taken](misc/break-if-taken.md) - Breaks on a branch if it is taken.
 -  [checksec](misc/checksec.md) - Prints out the binary security settings using `checksec`.
 -  [comm](misc/comm.md) - Put comments in assembly code.
 -  [cyclic](misc/cyclic.md) - Cyclic pattern creator/finder.
