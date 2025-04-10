@@ -79,8 +79,7 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
 
     longest_optname = max(map(len, (v.name for v in values)))
     longest_value = max(
-        # We use `repr` here so the string values will be in quotes
-        map(len, (extend_value_with_default(repr(v.value), repr(v.default)) for v in values))
+        map(len, (extend_value_with_default(v.pretty(), v.pretty_default()) for v in values))
     )
 
     header = print_row("Name", "Value", "Default", "Documentation", longest_optname, longest_value)
@@ -93,13 +92,9 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
 
             value = generateColorFunction(v.value)(v.value)
             default = generateColorFunction(v.default)(v.default)
-        elif isinstance(v.value, bool):
-            # Display 'on' or 'off' - same as GDB parameter display
-            value = "on" if v.value else "off"
-            default = "on" if v.default else "off"
         else:
-            value = repr(v.value)
-            default = repr(v.default)
+            value = v.pretty()
+            default = v.pretty_default()
 
         print_row(v.name, value, default, v.set_show_doc, longest_optname, longest_value)
 
