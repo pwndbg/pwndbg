@@ -35,9 +35,7 @@ if TYPE_CHECKING:
 pwndbg.config.add_param(
     "emulate",
     "on",
-    """
-Unicorn emulation of code from the current PC register
-""",
+    "unicorn emulation of code from the current PC register",
     help_docstring="""\
 emulate can be:
 off             - no emulation is performed
@@ -56,26 +54,21 @@ Emulation requires >1GB RAM being available on the system and ability to allocat
 pwndbg.config.add_param(
     "disasm-annotations",
     True,
-    """
-Display annotations for instructions to provide context on operands and results
-""",
+    "display annotations for instructions",
 )
 
 pwndbg.config.add_param(
     "emulate-annotations",
     True,
-    """
-Unicorn emulation for register and memory value annotations on instructions
-""",
+    "unicorn emulation for instruction annotations",
+    help_docstring="Refers to register and memory value annotations.",
 )
 
 # If this is false, emulation is only used for the current instruction (if emulate-annotations is enabled)
 pwndbg.config.add_param(
     "emulate-future-annotations",
     True,
-    """
-Unicorn emulation to annotate instructions after the current program counter
-""",
+    "unicorn emulation for future instruction's annotations",
 )
 
 # Effects future instructions, as past ones have already been cached and reflect the process state at the time
@@ -85,13 +78,13 @@ pwndbg.config.add_param("disasm-telescope-depth", 3, "Depth of telescope for dis
 pwndbg.config.add_param(
     "disasm-telescope-string-length",
     50,
-    "Number of characters in strings to display in disasm annotations",
+    "the number of characters in strings to display in disasm annotations",
 )
 
 pwndbg.config.add_param(
     "disasm-inline-symbols",
     True,
-    "Enable replacing constant operands with their symbol in the disassembly",
+    "replacing constant operands with their symbol in the disassembly",
 )
 
 

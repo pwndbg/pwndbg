@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 from functools import total_ordering
-from typing import Any, Callable, DefaultDict, Dict, List, Sequence, TypeVar
+from typing import Any
+from typing import Callable
+from typing import DefaultDict
+from typing import Dict
+from typing import List
+from typing import Sequence
+from typing import TypeVar
 
 T = TypeVar("T")
 
@@ -70,7 +76,9 @@ class Parameter:
         self.help_docstring += "\n\nDefault: " + self.pretty_default()
         # Show valid values if they aren't obvious
         if param_class == PARAM_ENUM:
-            self.help_docstring += "\nValid values: " + ", ".join([f"'{name}'" for name in enum_sequence]) + "."
+            self.help_docstring += (
+                "\nValid values: " + ", ".join([f'"{name}"' for name in enum_sequence]) + "."
+            )
         if param_class == PARAM_AUTO_BOOLEAN:
             self.help_docstring += "\nValid values: on, off, auto."
 
@@ -205,9 +213,9 @@ class Config:
     ) -> Parameter:
         # Dictionary keys are going to have underscores, so we can't allow them here
         assert "_" not in name
-        # assert len(set_show_doc) <= 80 and "Config set_show_doc too long, use the help_docstring parameter."
+        assert len(set_show_doc) <= 80 and "Config set_show_doc too long, use the help_docstring parameter."
         if param_class == PARAM_ENUM or enum_sequence:
-            assert(param_class == PARAM_ENUM and enum_sequence)
+            assert param_class == PARAM_ENUM and enum_sequence
 
         p = Parameter(
             name,

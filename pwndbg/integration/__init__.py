@@ -77,7 +77,7 @@ symbol_lookup = pwndbg.config.add_param(
 smart_enhance = pwndbg.config.add_param(
     "integration-smart-enhance",
     True,
-    "whether to use integration to determine if code should be disassembled during enhancing",
+    "whether to use integration to determine when to disassemble during enhancing",
 )
 
 function_lookup = pwndbg.config.add_param(

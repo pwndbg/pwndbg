@@ -24,7 +24,9 @@ _OPTIONS = [_NONE, _OLDEST, _NEWEST, _ASK]
 pwndbg.config.add_param(
     "attachp-resolution-method",
     _ASK,
-    f'how to determine the process to attach when multiple candidates exists ("{_OLDEST}", "{_NEWEST}", "{_NONE}" or "{_ASK}"(default))',
+    "how to determine the process to attach when multiple candidates exists",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=_OPTIONS,
 )
 
 parser = argparse.ArgumentParser(
@@ -180,14 +182,6 @@ def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
 
             if len(pids) > 1:
                 method = pwndbg.config.attachp_resolution_method
-
-                if method not in _OPTIONS:
-                    print(
-                        message.warn(
-                            f'Invalid value for `attachp-resolution-method` config. Fallback to default value("{_ASK}").'
-                        )
-                    )
-                    method = _ASK
 
                 try:
                     ps_output = check_output(

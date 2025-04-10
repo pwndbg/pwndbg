@@ -73,7 +73,7 @@ def parse_value(param: pwndbg.lib.config.Parameter, expression: str) -> Any:
             raise InvalidParse("expected an integer value")
     elif param_class == cfg.PARAM_ENUM:
         if expression not in param.enum_sequence:
-            names = ", ".join([f"'{name}'" for name in param.enum_sequence])
+            names = ", ".join([f'"{name}"' for name in param.enum_sequence])
             raise InvalidParse(f"expected one of {names}")
         return expression
     elif param_class == cfg.PARAM_OPTIONAL_FILENAME:

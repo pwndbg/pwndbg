@@ -383,7 +383,8 @@ themes["light"] = LightTheme
 style = theme.add_param(
     "bn-decomp-style",
     "dark",
-    f"Decompilation highlight theme for Binary Ninja (valid values are {', '.join(themes.keys())})",
+    "decompilation highlight theme for Binary Ninja",
+    help_docstring=f"Valid values: {', '.join(themes.keys())})",
 )
 
 
