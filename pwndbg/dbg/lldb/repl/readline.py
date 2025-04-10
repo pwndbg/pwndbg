@@ -6,22 +6,22 @@ Mostly concerns itself with argument completion.
 
 from __future__ import annotations
 
-import sys
 import contextlib
 import functools
 import os.path
+import sys
 from typing import Callable
 from typing import ParamSpec
 from typing import TypeVar
 
-if sys.platform == 'win32':
-    import pyreadline3
+if sys.platform == "win32":
     import readline
 
     # pyreadline3 don't implement `set_completion_display_matches_hook`
     readline.set_completion_display_matches_hook = lambda *args: None
 else:
     import gnureadline as readline
+
 import lldb
 
 from pwndbg.color import message
