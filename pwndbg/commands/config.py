@@ -25,13 +25,13 @@ def print_row(
     default: str,
     set_show_doc: str,
     ljust_optname: int,
-    ljust_value: int,
+    ljust_doc: int,
     empty_space: int = 6,
 ):
     name = ljust_colored(name, ljust_optname + empty_space)
+    set_show_doc = ljust_colored(set_show_doc , ljust_doc + empty_space)
     defval = extend_value_with_default(value, default)
-    defval = ljust_colored(defval, ljust_value + empty_space)
-    result = f"{name} {defval} {set_show_doc}"
+    result = f"{name} {set_show_doc} {defval} "
     print(result)
     return result
 
@@ -78,11 +78,11 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
         return
 
     longest_optname = max(map(len, (v.name for v in values)))
-    longest_value = max(
-        map(len, (extend_value_with_default(v.pretty(), v.pretty_default()) for v in values))
+    longest_doc = max(
+        map(len, (v.set_show_doc for v in values))
     )
 
-    header = print_row("Name", "Value", "Default", "Documentation", longest_optname, longest_value)
+    header = print_row("Name", "Value", "Default", "Documentation", longest_optname, longest_doc)
     print("-" * len(header))
 
     for v in sorted(values):
@@ -96,7 +96,7 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
             value = v.pretty()
             default = v.pretty_default()
 
-        print_row(v.name, value, default, v.set_show_doc, longest_optname, longest_value)
+        print_row(v.name, value, default, v.set_show_doc, longest_optname, longest_doc)
 
     print(hint(f"You can set config variable with `set <{scope}-var> <value>`"))
     print(
