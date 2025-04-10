@@ -138,7 +138,6 @@ plugins:
       css_dir: stylesheets
       version_selector: true
       canonical_version: latest
-      deploy_prefix: pwndbg
 
   - rss:
 # https://squidfunk.github.io/mkdocs-material/tutorials/blogs/engage/#rss-feeds
