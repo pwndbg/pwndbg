@@ -213,7 +213,10 @@ class Config:
     ) -> Parameter:
         # Dictionary keys are going to have underscores, so we can't allow them here
         assert "_" not in name
-        assert len(set_show_doc) <= 80 and "Config set_show_doc too long, use the help_docstring parameter."
+        assert (
+            len(set_show_doc) <= 80
+            and "Config set_show_doc too long, use the help_docstring parameter."
+        )
         if param_class == PARAM_ENUM or enum_sequence:
             assert param_class == PARAM_ENUM and enum_sequence
 

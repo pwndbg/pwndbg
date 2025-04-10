@@ -29,7 +29,7 @@ def print_row(
     empty_space: int = 6,
 ):
     name = ljust_colored(name, ljust_optname + empty_space)
-    set_show_doc = ljust_colored(set_show_doc , ljust_doc + empty_space)
+    set_show_doc = ljust_colored(set_show_doc, ljust_doc + empty_space)
     defval = extend_value_with_default(value, default)
     result = f"{name} {set_show_doc} {defval} "
     print(result)
@@ -78,9 +78,7 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
         return
 
     longest_optname = max(map(len, (v.name for v in values)))
-    longest_doc = max(
-        map(len, (v.set_show_doc for v in values))
-    )
+    longest_doc = max(map(len, (v.set_show_doc for v in values)))
 
     header = print_row("Name", "Value", "Default", "Documentation", longest_optname, longest_doc)
     print("-" * len(header))
