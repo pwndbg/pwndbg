@@ -96,7 +96,10 @@ jobs:
       matrix:
         os: [
           macos-13,  # x86_64-darwin
-          macos-15,  # aarch64-darwin
+          # Disable Apple Silicon due to bugs in Github Hypervisor
+          # See: https://github.com/unicorn-engine/unicorn/issues/2033
+          # See: https://github.com/actions/runner-images/issues/11127
+          # macos-15,  # aarch64-darwin
         ]
         attribute: [
           pwndbg-lldb-portable-tarball,
