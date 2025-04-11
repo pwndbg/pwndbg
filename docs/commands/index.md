@@ -23,8 +23,8 @@
 
 ## Developer
 
--  [dev_dump_instruction](developer/dev_dump_instruction.md) - Dump internal PwndbgInstruction attributes.
--  [log_level](developer/log_level.md) - Set the log level.
+-  [dev-dump-instruction](developer/dev-dump-instruction.md) - Dump internal PwndbgInstruction attributes.
+-  [log-level](developer/log-level.md) - Set the log level.
 
 ## Disassemble
 
@@ -37,20 +37,20 @@
 -  [arenas](glibc_ptmalloc2_heap/arenas.md) - List this process's arenas.
 -  [bins](glibc_ptmalloc2_heap/bins.md) - Print the contents of all an arena's bins and a thread's tcache.
 -  [fastbins](glibc_ptmalloc2_heap/fastbins.md) - Print the contents of an arena's fastbins.
--  [find_fake_fast](glibc_ptmalloc2_heap/find_fake_fast.md) - Find candidate fake fast or tcache chunks overlapping the specified address.
+-  [find-fake-fast](glibc_ptmalloc2_heap/find-fake-fast.md) - Find candidate fake fast or tcache chunks overlapping the specified address.
+-  [heap-config](glibc_ptmalloc2_heap/heap-config.md) - Shows heap related configuration.
 -  [heap](glibc_ptmalloc2_heap/heap.md) - Iteratively print chunks on a heap.
--  [heap_config](glibc_ptmalloc2_heap/heap_config.md) - Shows heap related configuration.
 -  [hi](glibc_ptmalloc2_heap/hi.md) - Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
 -  [largebins](glibc_ptmalloc2_heap/largebins.md) - Print the contents of an arena's largebins.
--  [malloc_chunk](glibc_ptmalloc2_heap/malloc_chunk.md) - Print a chunk.
+-  [malloc-chunk](glibc_ptmalloc2_heap/malloc-chunk.md) - Print a chunk.
 -  [mp](glibc_ptmalloc2_heap/mp.md) - Print the mp_ struct's contents.
 -  [smallbins](glibc_ptmalloc2_heap/smallbins.md) - Print the contents of an arena's smallbins.
 -  [tcache](glibc_ptmalloc2_heap/tcache.md) - Print a thread's tcache contents.
 -  [tcachebins](glibc_ptmalloc2_heap/tcachebins.md) - Print the contents of a tcache.
--  [top_chunk](glibc_ptmalloc2_heap/top_chunk.md) - Print relevant information about an arena's top chunk.
--  [try_free](glibc_ptmalloc2_heap/try_free.md) - Check what would happen if free was called with given address.
+-  [top-chunk](glibc_ptmalloc2_heap/top-chunk.md) - Print relevant information about an arena's top chunk.
+-  [try-free](glibc_ptmalloc2_heap/try-free.md) - Check what would happen if free was called with given address.
 -  [unsortedbin](glibc_ptmalloc2_heap/unsortedbin.md) - Print the contents of an arena's unsortedbin.
--  [vis_heap_chunks](glibc_ptmalloc2_heap/vis_heap_chunks.md) - Visualize chunks on a heap.
+-  [vis-heap-chunks](glibc_ptmalloc2_heap/vis-heap-chunks.md) - Visualize chunks on a heap.
 
 ## Integrations
 
@@ -64,7 +64,7 @@
 -  [ropper](integrations/ropper.md) - ROP gadget search with ropper.
 -  [rz](integrations/rz.md) - Launches rizin.
 -  [rzpipe](integrations/rzpipe.md) - Execute stateful rizin commands through rzpipe.
--  [save_ida](integrations/save_ida.md) - Save the ida database.
+-  [save-ida](integrations/save-ida.md) - Save the ida database.
 
 ## Kernel
 
@@ -74,14 +74,14 @@
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
 -  [kconfig](kernel/kconfig.md) - Outputs the kernel config (requires CONFIG_IKCONFIG).
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
--  [knft_dump](kernel/knft_dump.md) - Dump all nftables: tables, chains, rules, expressions
--  [knft_list_chains](kernel/knft_list_chains.md) - Dump netfilter chains form a specific table
--  [knft_list_exprs](kernel/knft_list_exprs.md) - Dump only expressions from specific rule
--  [knft_list_flowtables](kernel/knft_list_flowtables.md) - Dump netfilter flowtables from a specific table
--  [knft_list_objects](kernel/knft_list_objects.md) - Dump netfilter objects from a specific table
--  [knft_list_rules](kernel/knft_list_rules.md) - Dump netfilter rules form a specific chain
--  [knft_list_sets](kernel/knft_list_sets.md) - Dump netfilter sets from a specific table
--  [knft_list_tables](kernel/knft_list_tables.md) - Dump netfliter tables from a specific network namespace
+-  [knft-dump](kernel/knft-dump.md) - Dump all nftables: tables, chains, rules, expressions
+-  [knft-list-chains](kernel/knft-list-chains.md) - Dump netfilter chains form a specific table
+-  [knft-list-exprs](kernel/knft-list-exprs.md) - Dump only expressions from specific rule
+-  [knft-list-flowtables](kernel/knft-list-flowtables.md) - Dump netfilter flowtables from a specific table
+-  [knft-list-objects](kernel/knft-list-objects.md) - Dump netfilter objects from a specific table
+-  [knft-list-rules](kernel/knft-list-rules.md) - Dump netfilter rules form a specific chain
+-  [knft-list-sets](kernel/knft-list-sets.md) - Dump netfilter sets from a specific table
+-  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
 -  [pcplist](kernel/pcplist.md) - Print Per-CPU page list
 -  [slab](kernel/slab.md) - Prints information about the slab allocator
@@ -91,8 +91,8 @@
 -  [argc](linux_libc_elf/argc.md) - Prints out the number of arguments.
 -  [argv](linux_libc_elf/argv.md) - Prints out the contents of argv.
 -  [aslr](linux_libc_elf/aslr.md) - Check the current ASLR status, or turn it on/off.
+-  [auxv-explore](linux_libc_elf/auxv-explore.md) - Explore and print information from the Auxiliary ELF Vector.
 -  [auxv](linux_libc_elf/auxv.md) - Print information from the Auxiliary ELF Vector.
--  [auxv_explore](linux_libc_elf/auxv_explore.md) - Explore and print information from the Auxiliary ELF Vector.
 -  [elfsections](linux_libc_elf/elfsections.md) - Prints the section mappings contained in the ELF header.
 -  [envp](linux_libc_elf/envp.md) - Prints out the contents of the environment.
 -  [errno](linux_libc_elf/errno.md) - Converts errno (or argument) to its string representation.
@@ -125,10 +125,10 @@
 -  [search](memory/search.md) - Search memory for byte sequences, strings, pointers, and integer values.
 -  [telescope](memory/telescope.md) - Recursively dereferences pointers starting at the specified address.
 -  [telescope](memory/telescope.md) - Recursively dereferences pointers starting at the specified address.
+-  [vmmap-add](memory/vmmap-add.md) - Add virtual memory map page.
+-  [vmmap-clear](memory/vmmap-clear.md) - Clear the vmmap cache.
+-  [vmmap-explore](memory/vmmap-explore.md) - Explore a page, trying to guess permissions.
 -  [vmmap](memory/vmmap.md) - Print virtual memory map pages.
--  [vmmap_add](memory/vmmap_add.md) - Add virtual memory map page.
--  [vmmap_clear](memory/vmmap_clear.md) - Clear the vmmap cache.
--  [vmmap_explore](memory/vmmap_explore.md) - Explore a page, trying to guess permissions.
 -  [xinfo](memory/xinfo.md) - Shows offsets of the specified address from various useful locations.
 -  [xor](memory/xor.md) - XOR `count` bytes at `address` with the key `key`.
 
@@ -148,16 +148,16 @@
 -  [hex2ptr](misc/hex2ptr.md) - Converts a space-separated hex string to a little-endian address.
 -  [hijack-fd](misc/hijack-fd.md) - Replace a file descriptor of a debugged process.
 -  [ipi](misc/ipi.md) - Start an interactive IPython prompt.
+-  [patch-list](misc/patch-list.md) - List all patches.
+-  [patch-revert](misc/patch-revert.md) - Revert patch at given address.
 -  [patch](misc/patch.md) - Patches given instruction with given code or bytes.
--  [patch_list](misc/patch_list.md) - List all patches.
--  [patch_revert](misc/patch_revert.md) - Revert patch at given address.
 -  [plist](misc/plist.md) - Dumps the elements of a linked list.
 -  [sigreturn](misc/sigreturn.md) - Display the SigreturnFrame at the specific address
 -  [spray](misc/spray.md) - Spray memory with cyclic() generated values
 -  [tips](misc/tips.md) - Shows tips.
 -  [up](misc/up.md) - Select and print stack frame that called this one.
 -  [valist](misc/valist.md) - Dumps the arguments of a va_list.
--  [vmmap_load](misc/vmmap_load.md) - Load virtual memory map pages from ELF file.
+-  [vmmap-load](misc/vmmap-load.md) - Load virtual memory map pages from ELF file.
 
 ## Process
 
@@ -176,8 +176,8 @@
 
 -  [canary](stack/canary.md) - Print out the current stack canary.
 -  [retaddr](stack/retaddr.md) - Print out the stack addresses that contain return addresses.
+-  [stack-explore](stack/stack-explore.md) - Explore stack from all threads.
 -  [stack](stack/stack.md) - Dereferences on stack data with specified count and offset.
--  [stack_explore](stack/stack_explore.md) - Explore stack from all threads.
 -  [stackf](stack/stackf.md) - Dereferences on stack data, printing the entire stack frame with specified count and offset .
 
 ## Start
@@ -229,9 +229,9 @@
 
 ## jemalloc Heap
 
--  [jemalloc_extent_info](jemalloc_heap/jemalloc_extent_info.md) - Prints extent information for the given address
--  [jemalloc_find_extent](jemalloc_heap/jemalloc_find_extent.md) - Returns extent information for pointer address allocated by jemalloc
--  [jemalloc_heap](jemalloc_heap/jemalloc_heap.md) - Prints all extents information
+-  [jemalloc-extent-info](jemalloc_heap/jemalloc-extent-info.md) - Prints extent information for the given address
+-  [jemalloc-find-extent](jemalloc_heap/jemalloc-find-extent.md) - Returns extent information for pointer address allocated by jemalloc
+-  [jemalloc-heap](jemalloc_heap/jemalloc-heap.md) - Prints all extents information
 
 ## pwndbg
 
@@ -241,7 +241,7 @@
 -  [memoize](pwndbg/memoize.md) - Toggles memoization (caching).
 -  [profiler](pwndbg/profiler.md) - Utilities for profiling pwndbg.
 -  [pwndbg](pwndbg/pwndbg.md) - Prints out a list of all pwndbg commands.
--  [reinit_pwndbg](pwndbg/reinit_pwndbg.md) - Makes pwndbg reinitialize all state.
+-  [reinit-pwndbg](pwndbg/reinit-pwndbg.md) - Makes pwndbg reinitialize all state.
 -  [reload](pwndbg/reload.md) - Reload pwndbg.
 -  [theme](pwndbg/theme.md) - Shows pwndbg-specific theme configuration.
 -  [themefile](pwndbg/themefile.md) - Generates a configuration file for the current pwndbg theme options.
