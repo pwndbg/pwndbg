@@ -17,7 +17,7 @@ from typing import TypeVar
 if sys.platform == "win32":
     import readline
 
-    # pyreadline3 don't implement `set_completion_display_matches_hook`
+    # pyreadline3 doesn't implement `set_completion_display_matches_hook`
     readline.set_completion_display_matches_hook = lambda *args: None
 else:
     import gnureadline as readline
