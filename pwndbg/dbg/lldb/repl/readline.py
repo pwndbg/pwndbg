@@ -14,13 +14,14 @@ from typing import Callable
 from typing import ParamSpec
 from typing import TypeVar
 
-if sys.platform == "win32":
+if sys.platform != "win32":
+    import gnureadline as readline
+else:
     import readline
 
     # pyreadline3 doesn't implement `set_completion_display_matches_hook`
-    readline.set_completion_display_matches_hook = lambda *args: None
-else:
-    import gnureadline as readline
+    if not hasattr(readline, "set_completion_display_matches_hook"):
+        readline.set_completion_display_matches_hook = lambda *args: None
 
 import lldb
 
