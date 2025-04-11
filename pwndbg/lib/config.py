@@ -124,7 +124,7 @@ class Parameter:
             else:
                 return "on" if val else "off"
         elif self.param_class == PARAM_STRING or self.param_class == PARAM_ENUM:
-            return '"' + val + '"'
+            return "'" + val + "'"
         else:
             return str(val)
 
