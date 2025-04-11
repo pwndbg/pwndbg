@@ -306,8 +306,10 @@ def fix_int_reraise_arg(arg) -> int:
             f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
         )
 
+
 def func_name(function: Callable[P, T]) -> str:
-    return function.__name__.replace('_', '-')
+    return function.__name__.replace("_", "-")
+
 
 def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
@@ -389,7 +391,9 @@ def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         if pwndbg.aglib.kernel.paging_enabled():
             return function(*a, **kw)
         else:
-            log.error(f"{func_name(function)}: This command may only be run when paging is enabled.")
+            log.error(
+                f"{func_name(function)}: This command may only be run when paging is enabled."
+            )
             return None
 
     return _OnlyWhenPagingEnabled
@@ -565,7 +569,7 @@ class _ArgparsedCommand(Command):
         if command_name is None:
             # Take the command name from the name of the function
             # which defines it, but replace '_' with '-'.
-            self.parser.prog = function.__name__.replace('_', '-')
+            self.parser.prog = function.__name__.replace("_", "-")
         else:
             self.parser.prog = command_name
 
@@ -611,7 +615,7 @@ class ArgparsedCommand:
             assert isinstance(parser_or_desc, argparse.ArgumentParser)
             self.parser = parser_or_desc
         self.aliases = aliases
-        assert command_name is None or '_' not in command_name
+        assert command_name is None or "_" not in command_name
         self._command_name = command_name
         assert category
         self.category = category
