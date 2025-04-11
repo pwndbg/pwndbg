@@ -23,7 +23,7 @@ pwndbg.config.add_param(
 pwndbg.config.add_param(
     "hexdump-group-use-big-endian",
     False,
-    "whether to use big-endian within each group of bytes in hexdump command",
+    "use big-endian within each group of bytes in hexdump command",
     help_docstring="When `on`, use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. "
     "See also hexdump-highlight-group-lsb.",
 )

@@ -26,7 +26,7 @@ def print_row(
     set_show_doc: str,
     ljust_optname: int,
     ljust_doc: int,
-    empty_space: int = 6,
+    empty_space: int = 2,
 ):
     name = ljust_colored(name, ljust_optname + empty_space)
     set_show_doc = ljust_colored(set_show_doc, ljust_doc + empty_space)

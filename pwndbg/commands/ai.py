@@ -41,7 +41,7 @@ pwndbg.config.add_param(
 pwndbg.config.add_param(
     "ai-history-size",
     3,
-    "maximum number of questions and answers to maintain in ai command's prompt",
+    "maximum number of questions and answers to keep in the prompt",
 )
 pwndbg.config.add_param(
     "ai-stack-depth", 16, "rows of stack context to include in the prompt for the ai command"
