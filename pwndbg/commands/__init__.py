@@ -306,6 +306,8 @@ def fix_int_reraise_arg(arg) -> int:
             f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
         )
 
+def func_name(function: Callable[P, T]) -> str:
+    return function.__name__.replace('_', '-')
 
 def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
@@ -333,7 +335,7 @@ def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
             if pwndbg.aglib.qemu.is_qemu():
                 log.error("Could not determine the target binary on QEMU.")
             else:
-                log.error(f"{function.__name__}: There is no file loaded.")
+                log.error(f"{func_name(function)}: There is no file loaded.")
             return None
 
     return _OnlyWithFile
@@ -346,7 +348,7 @@ def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, Optional[T]]:
             return function(*a, **kw)
         else:
             log.error(
-                f"{function.__name__}: This command may only be run when debugging the Linux kernel in QEMU."
+                f"{func_name(function)}: This command may only be run when debugging the Linux kernel in QEMU."
             )
             return None
 
@@ -360,7 +362,7 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
             return function(*a, **kw)
         else:
             log.error(
-                f"{function.__name__}: This command may only be run when not debugging a QEMU kernel target."
+                f"{func_name(function)}: This command may only be run when not debugging a QEMU kernel target."
             )
             return None
 
@@ -374,7 +376,7 @@ def OnlyWithKernelDebugSyms(function: Callable[P, T]) -> Callable[P, Optional[T]
             return function(*a, **kw)
         else:
             log.error(
-                f"{function.__name__}: This command may only be run when debugging a Linux kernel with debug symbols."
+                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with debug symbols."
             )
             return None
 
@@ -387,7 +389,7 @@ def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         if pwndbg.aglib.kernel.paging_enabled():
             return function(*a, **kw)
         else:
-            log.error(f"{function.__name__}: This command may only be run when paging is enabled.")
+            log.error(f"{func_name(function)}: This command may only be run when paging is enabled.")
             return None
 
     return _OnlyWhenPagingEnabled
@@ -400,7 +402,7 @@ def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
         if pwndbg.aglib.proc.alive:
             return function(*a, **kw)
         else:
-            log.error(f"{function.__name__}: The program is not being run.")
+            log.error(f"{func_name(function)}: The program is not being run.")
             return None
 
     return _OnlyWhenRunning
@@ -414,7 +416,7 @@ def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, Optional[T]]:
             return function(*a, **kw)
         else:
             log.error(
-                f"{function.__name__}: This version of GLIBC was not compiled with tcache support."
+                f"{func_name(function)}: This version of GLIBC was not compiled with tcache support."
             )
             return None
 
@@ -427,7 +429,7 @@ def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, Optional[
         if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
             return function(*a, **kw)
         else:
-            log.error(f"{function.__name__}: Heap is not initialized yet.")
+            log.error(f"{func_name(function)}: Heap is not initialized yet.")
             return None
 
     return _OnlyWhenHeapIsInitialized
@@ -440,7 +442,7 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
     try:
         return function(*a, **kw)
     except SymbolUnresolvableError as err:
-        e(f"{function.__name__}: Fail to resolve the symbol: `{err.symbol}`")
+        e(f"{func_name(function)}: Fail to resolve the symbol: `{err.symbol}`")
         if "thread_arena" == err.symbol:
             w(
                 "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
@@ -455,7 +457,7 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
 
         pwndbg.exception.inform_verbose_and_debug()
     except Exception as err:
-        e(f"{function.__name__}: An unknown error occurred when running this command.")
+        e(f"{func_name(function)}: An unknown error occurred when running this command.")
         if isinstance(pwndbg.aglib.heap.current, HeuristicHeap):
             w(
                 "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
@@ -561,7 +563,9 @@ class _ArgparsedCommand(Command):
     ) -> None:
         self.parser = parser
         if command_name is None:
-            self.parser.prog = function.__name__
+            # Take the command name from the name of the function
+            # which defines it, but replace '_' with '-'.
+            self.parser.prog = function.__name__.replace('_', '-')
         else:
             self.parser.prog = command_name
 
@@ -575,7 +579,7 @@ class _ArgparsedCommand(Command):
         # Type error likely due to https://github.com/python/mypy/issues/6799
         super().__init__(  # type: ignore[misc]
             function,
-            command_name=command_name,
+            command_name=self.parser.prog,
             doc=doc,
             *a,
             **kw,
@@ -607,6 +611,7 @@ class ArgparsedCommand:
             assert isinstance(parser_or_desc, argparse.ArgumentParser)
             self.parser = parser_or_desc
         self.aliases = aliases
+        assert command_name is None or '_' not in command_name
         self._command_name = command_name
         assert category
         self.category = category
