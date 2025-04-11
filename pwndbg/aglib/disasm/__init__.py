@@ -300,19 +300,9 @@ def can_run_first_emulate() -> bool:
     first_time_emulate = False
 
     try:
-        from mmap import mmap, MAP_ANON, MAP_PRIVATE, PROT_EXEC, PROT_READ, PROT_WRITE  # isort:skip
+        from mmap import mmap
 
-        access_mode = PROT_WRITE | PROT_READ | PROT_EXEC
-        if sys.platform == "darwin":
-            # On macOS (Darwin), creating mmap with 'rwx' permissions is blocked
-            # by System Integrity Protection (SIP), which prevents execution of code
-            # from writable and readable memory regions. Therefore, we restrict
-            # the access mode to 'rw' (read and write only).
-            access_mode = PROT_WRITE | PROT_READ
-
-        mm = mmap(  # novm
-            -1, 1024 * 1024 * 1024, MAP_PRIVATE | MAP_ANON, access_mode
-        )
+        mm = mmap(-1, 1024 * 1024 * 1024)
         mm.close()
     except OSError:
         print(

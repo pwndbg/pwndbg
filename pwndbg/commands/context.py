@@ -94,9 +94,10 @@ def clear_screen(out=sys.stdout) -> None:
 config_reserve_lines = pwndbg.config.add_param(
     "context-reserve-lines",
     "if-ctx-fits",
-    'when to reserve lines after the prompt to reduce context shake ("never", "if-ctx-fits"(default), "always")',
-    help_docstring="""\
-The "if-ctx-fits" setting only reserves lines if the whole context would still fit vertically in the current terminal window. Note that it doesn't take into account line-wrapping due to insufficient terminal width.
+    "when to reserve lines after the prompt to reduce context shake",
+    help_docstring="""
+The "if-ctx-fits" setting only reserves lines if the whole context would still fit vertically in the current terminal window.
+It doesn't take into account line-wrapping due to insufficient terminal width.
 """,  # TODO: maybe it could take into account line-wrapping?
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["never", "if-ctx-fits", "always"],
@@ -626,7 +627,10 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
 config_context_ghidra = pwndbg.config.add_param(
     "context-ghidra",
     "never",
-    "when to try to decompile the current function with ghidra (slow and requires radare2/r2pipe or rizin/rzpipe) (valid values: always, never, if-no-source)",
+    "when to try to decompile the current function with ghidra",
+    help_docstring="Doing this is slow and requires radare2/r2pipe or rizin/rzpipe.",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=["always", "never", "if-no-source"],
 )
 
 

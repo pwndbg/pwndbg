@@ -34,7 +34,7 @@ T = TypeVar("T")
 safe_lnk = pwndbg.config.add_param(
     "safe-linking",
     None,
-    "whether glibc use safe-linking (on/off/auto)",
+    "whether glibc uses safe-linking",
     param_class=pwndbg.lib.config.PARAM_AUTO_BOOLEAN,
 )
 

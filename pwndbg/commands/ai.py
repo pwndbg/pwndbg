@@ -29,17 +29,19 @@ from pwndbg.commands import CommandCategory
 pwndbg.config.add_param(
     "ai-openai-api-key",
     "",
-    "OpenAI API key (will default to OPENAI_API_KEY environment variable if not set)",
+    "OpenAI API key",
+    help_docstring="Will default to OPENAI_API_KEY environment variable if not set.",
 )
 pwndbg.config.add_param(
     "ai-anthropic-api-key",
     "",
-    "Anthropic API key (will default to ANTHROPIC_API_KEY environment variable if not set)",
+    "Anthropic API key",
+    help_docstring="Defaults to ANTHROPIC_API_KEY environment variable if not set.",
 )
 pwndbg.config.add_param(
     "ai-history-size",
     3,
-    "maximum number of successive questions and answers to maintain in the prompt for the ai command",
+    "maximum number of questions and answers to keep in the prompt",
 )
 pwndbg.config.add_param(
     "ai-stack-depth", 16, "rows of stack context to include in the prompt for the ai command"
@@ -47,17 +49,20 @@ pwndbg.config.add_param(
 pwndbg.config.add_param(
     "ai-model",
     "gpt-3.5-turbo",  # the new conversational model
-    "the name of the OpenAI large language model to query (see <https://platform.openai.com/docs/models> for details)",
+    "the name of the OpenAI large language model to query",
+    help_docstring="See <https://platform.openai.com/docs/models> for details.",
 )
 pwndbg.config.add_param(
     "ai-temperature",
     0,
-    "the temperature specification for the LLM query (this controls the degree of randomness in the response -- see <https://beta.openai.com/docs/api-reference/parameters> for details)",
+    "the temperature specification for the LLM query",
+    help_docstring="This controls the degree of randomness in the response -- see <https://beta.openai.com/docs/api-reference/parameters> for details.",
 )
 pwndbg.config.add_param(
     "ai-max-tokens",
     100,
-    "the maximum number of tokens to return in the response (see <https://beta.openai.com/docs/api-reference/parameters> for details)",
+    "the maximum number of tokens to return in the response",
+    help_docstring="See <https://beta.openai.com/docs/api-reference/parameters> for details.",
 )
 pwndbg.config.add_param(
     "ai-show-usage",

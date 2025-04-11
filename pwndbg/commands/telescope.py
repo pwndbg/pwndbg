@@ -34,7 +34,7 @@ skip_repeating_values = pwndbg.config.add_param(
     "whether to skip repeating values of the telescope command",
 )
 skip_repeating_values_minimum = pwndbg.config.add_param(
-    "telescope-skip-repeating-val-minimum",
+    "telescope-skip-repeating-val-min",
     3,
     "minimum amount of repeated values before skipping lines",
 )

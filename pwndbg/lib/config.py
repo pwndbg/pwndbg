@@ -61,6 +61,10 @@ class Parameter:
         enum_sequence: Sequence[str] | None = None,
         scope: str = "config",
     ) -> None:
+        self.name = name
+        self.default = default
+        self._value = default
+        self.param_class = param_class or PARAM_CLASSES[type(default)]
         # Note: `set_show_doc` should be a noun phrase, e.g. "the value of the foo"
         # The `set_doc` will be "Set the value of the foo."
         # The `show_doc` will be "Show the value of the foo."
@@ -68,10 +72,16 @@ class Parameter:
         # `get_show_string()` will return "Show the value of the foo."
         self.set_show_doc = set_show_doc.strip()
         self.help_docstring = help_docstring.strip()
-        self.name = name
-        self.default = default
-        self._value = default
-        self.param_class = param_class or PARAM_CLASSES[type(default)]
+        # Show the default value in the parameter help
+        self.help_docstring += "\n\nDefault: " + self.pretty_default()
+        # Show valid values if they aren't obvious
+        if param_class == PARAM_ENUM:
+            self.help_docstring += (
+                "\nValid values: " + ", ".join([f"'{name}'" for name in enum_sequence]) + "."
+            )
+        if param_class == PARAM_AUTO_BOOLEAN:
+            self.help_docstring += "\nValid values: on, off, auto."
+
         self.enum_sequence = enum_sequence
         self.scope = scope
         self.update_listeners: List[Callable[[Any], None]] = []
@@ -103,6 +113,26 @@ class Parameter:
 
     def __getattr__(self, name: str):
         return getattr(self.value, name)
+
+    def pretty_val(self, val: Any) -> str:
+        """Convert a value this object could contain to its pretty string representation."""
+        if self.param_class == PARAM_BOOLEAN:
+            return "on" if val else "off"
+        elif self.param_class == PARAM_AUTO_BOOLEAN:
+            if val is None:
+                return "auto"
+            else:
+                return "on" if val else "off"
+        elif self.param_class == PARAM_STRING or self.param_class == PARAM_ENUM:
+            return "'" + val + "'"
+        else:
+            return str(val)
+
+    def pretty(self) -> str:
+        return self.pretty_val(self.value)
+
+    def pretty_default(self) -> str:
+        return self.pretty_val(self.default)
 
     # Casting
     def __int__(self) -> int:
@@ -183,6 +213,13 @@ class Config:
     ) -> Parameter:
         # Dictionary keys are going to have underscores, so we can't allow them here
         assert "_" not in name
+        assert len(name) <= 32 and "Config name too long."
+        assert (
+            len(set_show_doc) <= 70
+            and "Config set_show_doc too long, use the help_docstring parameter."
+        )
+        if param_class == PARAM_ENUM or enum_sequence:
+            assert param_class == PARAM_ENUM and enum_sequence
 
         p = Parameter(
             name,

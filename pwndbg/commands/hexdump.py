@@ -17,12 +17,13 @@ pwndbg.config.add_param("hexdump-bytes", 64, "number of bytes printed by hexdump
 pwndbg.config.add_param(
     "hexdump-group-width",
     -1,
-    "number of bytes grouped in hexdump command (If -1, the architecture's pointer size is used)",
+    "number of bytes grouped in hexdump command",
+    help_docstring="If -1, the architecture's pointer size is used.",
 )
 pwndbg.config.add_param(
     "hexdump-group-use-big-endian",
     False,
-    "whether to use big-endian within each group of bytes in hexdump command",
+    "use big-endian within each group of bytes in hexdump command",
     help_docstring="When `on`, use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. "
     "See also hexdump-highlight-group-lsb.",
 )

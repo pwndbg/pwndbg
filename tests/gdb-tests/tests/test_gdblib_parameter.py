@@ -97,11 +97,13 @@ def test_gdb_parameter_default_value_works(start_binary, params):
         assert gdb.parameter(param_name) == default_value
     assert param.value == default_value
 
+    # help_docstring is modified inside the Parameter constructor
+
     out = gdb.execute(f"help show {param_name}", to_string=True)
-    assert out == f"Show {set_show_doc}.\n{help_docstring}\n"
+    assert out == f"Show {set_show_doc}.\n{param.help_docstring}\n"
     assert (
         gdb.execute(f"help set {param_name}", to_string=True)
-        == f"Set {set_show_doc}.\n{help_docstring}\n"
+        == f"Set {set_show_doc}.\n{param.help_docstring}\n"
     )
 
     # TODO/FIXME: Is there a way to unregister a GDB parameter defined in Python?

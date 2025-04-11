@@ -55,8 +55,11 @@ heap_chain_limit = add_heap_param(
 heap_corruption_check_limit = add_heap_param(
     "heap-corruption-check-limit",
     64,
-    "amount of chunks to traverse (forwards and backwards) for the bin corruption check",
+    "amount of chunks to traverse for the bin corruption check",
     param_class=pwndbg.lib.config.PARAM_UINTEGER,
+    help_docstring="""
+The bins are traversed both forwards and backwards.
+""",
 )
 
 resolve_heap_via_heuristic = add_heap_param(

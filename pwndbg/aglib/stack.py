@@ -24,7 +24,7 @@ import pwndbg.lib.memory
 auto_explore = pwndbg.config.add_param(
     "auto-explore-stack",
     "warn",
-    "Enable or disable stack exploration; it may be really slow.",
+    "stack exploration; it may be really slow.",
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["warn", "yes", "no"],
 )

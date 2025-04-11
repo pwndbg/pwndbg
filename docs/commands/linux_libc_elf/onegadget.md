@@ -8,11 +8,10 @@
 ## Description
 
 
-Show onegadget
 
-Examples:
-    onegadget
-    onegadget --show-unsat
+Find gadgets which single-handedly give code execution.
+
+Uses the onegadget tool by david942j.
 
 ## Usage:
 

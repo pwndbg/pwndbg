@@ -30,7 +30,8 @@ debug = config.add_param("debug-events", False, "display internal event debuggin
 gdb_workaround_stop_event = config.add_param(
     "gdb-workaround-stop-event",
     0,
-    """Enable asynchronous stop events as a workaround to improve 'commands' functionality.
+    "asynchronous stop events to improve 'commands' functionality.",
+    help_docstring="""
 Note: This may cause unexpected behavior with pwndbg or gdb.execute.
 
 Values:

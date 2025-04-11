@@ -9,11 +9,20 @@ from __future__ import annotations
 import contextlib
 import functools
 import os.path
+import sys
 from typing import Callable
 from typing import ParamSpec
 from typing import TypeVar
 
-import gnureadline as readline
+if sys.platform != "win32":
+    import gnureadline as readline
+else:
+    import readline
+
+    # pyreadline3 doesn't implement `set_completion_display_matches_hook`
+    if not hasattr(readline, "set_completion_display_matches_hook"):
+        readline.set_completion_display_matches_hook = lambda *args: None
+
 import lldb
 
 from pwndbg.color import message

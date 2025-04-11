@@ -939,7 +939,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         e = lldb.SBError()
         buffer = self.process.ReadMemory(address, size, e)
         if buffer:
-            return buffer
+            return bytearray(buffer)
         elif not partial:
             raise pwndbg.dbg_mod.Error(f"could not read {size:#x} bytes: {e}")
 

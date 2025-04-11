@@ -20,16 +20,19 @@ def test_config():
 def test_config_filtering():
     out = gdb.execute("config context-disasm-lines", to_string=True).splitlines()
 
-    assert re.match(r"Name\s+Value\s+\(Default\)\s+Documentation", out[0])
+    assert re.match(r"Name\s+Documentation\s+Value\s+\(Default\)", out[0])
     assert re.match(r"-+", out[1])
     assert re.match(
-        r"context-disasm-lines\s+10\s+number of additional lines to print in the disasm context",
+        r"context-disasm-lines\s+number of additional lines to print in the disasm context\s+10",
         out[2],
     )
-    assert out[3] == "You can set config variable with `set <config-var> <value>`"
+    assert (
+        out[3]
+        == "You can set a config variable with `set <config-var> <value>`, and read more about it with `help set <config-var>`."
+    )
     assert (
         out[4]
-        == "You can generate configuration file using `configfile` - then put it in your .gdbinit after initializing pwndbg"
+        == "You can generate a configuration file using `configfile` - then put it in your .gdbinit after initializing pwndbg."
     )
 
 

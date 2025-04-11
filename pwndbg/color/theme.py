@@ -10,8 +10,17 @@ class ColorParameter(Parameter):
     pass
 
 
-def add_param(name: str, default: Any, set_show_doc: str, color_param: bool = False) -> Parameter:
-    return config.add_param(name, default, set_show_doc, scope="theme")
+def add_param(
+    name: str,
+    default: Any,
+    set_show_doc: str,
+    color_param: bool = False,
+    *,
+    help_docstring: str = "",
+) -> Parameter:
+    return config.add_param(
+        name, default, set_show_doc, scope="theme", help_docstring=help_docstring
+    )
 
 
 def add_color_param(name: str, default: Any, set_show_doc: str) -> Parameter:
