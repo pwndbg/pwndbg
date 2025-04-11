@@ -96,7 +96,11 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
 
         print_row(v.name, value, default, v.set_show_doc, longest_optname, longest_doc)
 
-    print(hint(f"You can set a {scope} variable with `set <{scope}-var> <value>`, and read more about it with `help set <{scope}-var>`."))
+    print(
+        hint(
+            f"You can set a {scope} variable with `set <{scope}-var> <value>`, and read more about it with `help set <{scope}-var>`."
+        )
+    )
     if has_file_command:
         print(
             hint(

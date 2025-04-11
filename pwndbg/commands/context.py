@@ -96,7 +96,8 @@ config_reserve_lines = pwndbg.config.add_param(
     "if-ctx-fits",
     "when to reserve lines after the prompt to reduce context shake",
     help_docstring="""
-The "if-ctx-fits" setting only reserves lines if the whole context would still fit vertically in the current terminal window. It doesn't take into account line-wrapping due to insufficient terminal width.
+The "if-ctx-fits" setting only reserves lines if the whole context would still fit vertically in the current terminal window.
+It doesn't take into account line-wrapping due to insufficient terminal width.
 """,  # TODO: maybe it could take into account line-wrapping?
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["never", "if-ctx-fits", "always"],
