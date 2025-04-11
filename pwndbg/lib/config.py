@@ -77,7 +77,7 @@ class Parameter:
         # Show valid values if they aren't obvious
         if param_class == PARAM_ENUM:
             self.help_docstring += (
-                "\nValid values: " + ", ".join([f'"{name}"' for name in enum_sequence]) + "."
+                "\nValid values: " + ", ".join([f"'{name}'" for name in enum_sequence]) + "."
             )
         if param_class == PARAM_AUTO_BOOLEAN:
             self.help_docstring += "\nValid values: on, off, auto."

@@ -96,17 +96,12 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
 
         print_row(v.name, value, default, v.set_show_doc, longest_optname, longest_doc)
 
-    print(hint(f"You can set config variable with `set <{scope}-var> <value>`"))
-    print(
-        hint(
-            f"You can see more information about a config variable with `help set <{scope}-var> <value>`"
-        )
-    )
+    print(hint(f"You can set a {scope} variable with `set <{scope}-var> <value>`, and read more about it with `help set <{scope}-var>`."))
     if has_file_command:
         print(
             hint(
-                f"You can generate configuration file using `{scope}file` "
-                "- then put it in your .gdbinit after initializing pwndbg"
+                f"You can generate a configuration file using `{scope}file` "
+                "- then put it in your .gdbinit after initializing pwndbg."
             )
         )
 
