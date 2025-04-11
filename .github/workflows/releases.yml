@@ -43,6 +43,12 @@ jobs:
         draft: true
         token: ${{ secrets.TOKEN }}
 
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # @v4
+      with:
+        name: ${{ matrix.os }}_${{ matrix.attribute }}
+        retention-days: 90
+        path: ./dist-tarball/
+
   releases-linux:
     strategy:
       fail-fast: false
@@ -78,6 +84,12 @@ jobs:
         draft: true
         token: ${{ secrets.TOKEN }}
 
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # @v4
+      with:
+        name: ${{ matrix.os }}_${{ matrix.attribute }}
+        retention-days: 90
+        path: ./dist-tarball/
+
   releases-macos:
     strategy:
       fail-fast: false
@@ -108,3 +120,9 @@ jobs:
           ./dist-tarball/*
         draft: true
         token: ${{ secrets.TOKEN }}
+
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # @v4
+      with:
+        name: ${{ matrix.os }}_${{ matrix.attribute }}
+        retention-days: 90
+        path: ./dist-tarball/
