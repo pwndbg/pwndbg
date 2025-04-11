@@ -474,8 +474,16 @@ def test_memory_read_error_handling(qemu_assembly_run):
     """
     qemu_assembly_run(SIMPLE_FUNCTION, "aarch64")
 
-    # Get the stack pointer address
-    stack_end_addr = list(pwndbg.aglib.stack.get().values())[0].end
+    # Find the first memory page where there is a gap after it
+    stack_end_addr = -1
+    page_prev = None
+    for page in pwndbg.dbg.selected_inferior().vmmap().ranges():
+        if page_prev is not None and page_prev.end != page.start:
+            stack_end_addr = page_prev.end
+            break
+        page_prev = page
+
+    assert stack_end_addr != -1, "Failed to find a memory page followed by a gap"
 
     result = pwndbg.dbg.selected_inferior().read_memory(stack_end_addr - 0xFF, 0xFF, partial=False)
     assert len(result) == 0xFF, f"Expected 0xff bytes, but got {len(result)}"
