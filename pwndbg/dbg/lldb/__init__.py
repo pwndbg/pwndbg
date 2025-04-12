@@ -1758,7 +1758,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         import pwndbg
 
-        self.suspended_events = {a: False for a in pwndbg.dbg_mod.EventType}
+        self.suspended_events = dict.fromkeys(pwndbg.dbg_mod.EventType, False)
 
         debugger: lldb.SBDebugger = args[0]
         assert (

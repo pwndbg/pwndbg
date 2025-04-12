@@ -8,7 +8,6 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 from __future__ import annotations
 
 from typing import Dict
-from typing import List
 
 import pwndbg
 import pwndbg.aglib.elf
@@ -176,16 +175,13 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     return stacks
 
 
-def callstack() -> List[int]:
+def callstack():
     """
     Return the address of the return address for the current frame.
     """
     frame = pwndbg.dbg.selected_frame()
-    addresses = []
     while frame:
         addr = frame.pc()
         if pwndbg.aglib.memory.is_readable_address(addr):
-            addresses.append(addr)
+            yield addr
         frame = frame.parent()
-
-    return addresses
