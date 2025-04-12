@@ -69,11 +69,11 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/developer/dev_dump_instruction/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/developer/dev-dump-instruction/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/developer/log_level/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/developer/log-level/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -101,15 +101,15 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/find_fake_fast/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/find-fake-fast/</loc>
+         <lastmod>2025-04-12</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/heap-config/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/heap/</loc>
-         <lastmod>2025-04-12</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/heap_config/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -121,7 +121,7 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/malloc_chunk/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/malloc-chunk/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -141,11 +141,11 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/top_chunk/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/top-chunk/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/try_free/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/try-free/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -153,7 +153,7 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/vis_heap_chunks/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/vis-heap-chunks/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -197,19 +197,19 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/save_ida/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/save-ida/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/jemalloc_heap/jemalloc_extent_info/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/jemalloc_heap/jemalloc-extent-info/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/jemalloc_heap/jemalloc_find_extent/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/jemalloc_heap/jemalloc-find-extent/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/jemalloc_heap/jemalloc_heap/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/jemalloc_heap/jemalloc-heap/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -237,35 +237,35 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft_dump/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-dump/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft_list_chains/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-chains/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft_list_exprs/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-exprs/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft_list_flowtables/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-flowtables/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft_list_objects/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-objects/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft_list_rules/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-rules/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft_list_sets/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-sets/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft_list_tables/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-tables/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -293,11 +293,11 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/auxv/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/auxv-explore/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/auxv_explore/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/auxv/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -413,19 +413,19 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap-add/</loc>
+         <lastmod>2025-04-12</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap-clear/</loc>
+         <lastmod>2025-04-12</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap-explore/</loc>
+         <lastmod>2025-04-12</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap/</loc>
-         <lastmod>2025-04-12</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap_add/</loc>
-         <lastmod>2025-04-12</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap_clear/</loc>
-         <lastmod>2025-04-12</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap_explore/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -485,15 +485,15 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/misc/patch-list/</loc>
+         <lastmod>2025-04-12</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/misc/patch-revert/</loc>
+         <lastmod>2025-04-12</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/patch/</loc>
-         <lastmod>2025-04-12</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/misc/patch_list/</loc>
-         <lastmod>2025-04-12</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/misc/patch_revert/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -521,7 +521,7 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/misc/vmmap_load/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/misc/vmmap-load/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -561,7 +561,7 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/reinit_pwndbg/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/reinit-pwndbg/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
@@ -605,11 +605,11 @@
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/stack/stack/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/stack/stack-explore/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/stack/stack_explore/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/stack/stack/</loc>
          <lastmod>2025-04-12</lastmod>
     </url>
     <url>
