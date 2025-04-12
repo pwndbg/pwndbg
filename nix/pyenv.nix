@@ -220,6 +220,15 @@ let
           postPatch = lib.optionalString stdenv.hostPlatform.isDarwin ''
             substituteInPlace ./src/CMakeLists.txt \
                 --replace-fail 'set(CMAKE_C_COMPILER "/usr/bin/cc")' 'set(CMAKE_C_COMPILER "${stdenv.cc}/bin/cc")' || true
+
+            # Due to an issue with the Apple ARM64 Hypervisor on GitHub Actions,
+            # we need to force the `sprr` register check.
+            # Otherwise, Nix may cache broken builds.
+            # See:
+            # - https://github.com/actions/runner-images/issues/11127
+            # - https://github.com/unicorn-engine/unicorn/issues/2033
+            substituteInPlace ./src/qemu/configure \
+                --replace-fail "have_sprr_mrs='no'" "have_sprr_mrs='yes'"
           '';
         }
       )
