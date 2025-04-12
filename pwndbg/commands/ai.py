@@ -41,7 +41,8 @@ pwndbg.config.add_param(
 pwndbg.config.add_param(
     "ai-ollama-endpoint",
     "",
-    "Ollama API endpoint (will default to OLLAMA_ENDPOINT environment variable if not set)",
+    "Ollama API endpoint",
+    help_docstring="Defaults to OLLAMA_ENDPOINT environment variable if not set.",
 )
 pwndbg.config.add_param(
     "ai-history-size",
@@ -54,20 +55,20 @@ pwndbg.config.add_param(
 pwndbg.config.add_param(
     "ai-model",
     "gpt-3.5-turbo",  # the new conversational model
-    "the name of the OpenAI large language model to query",
-    help_docstring="See <https://platform.openai.com/docs/models> for details.",
+    "the name of the large language model to query",
+    help_docstring="Changing this affects the behavior, response quality, and cost (if applicable) of AI responses.",
 )
 pwndbg.config.add_param(
     "ai-temperature",
     0,
     "the temperature specification for the LLM query",
-    help_docstring="This controls the degree of randomness in the response -- see <https://beta.openai.com/docs/api-reference/parameters> for details.",
+    help_docstring="This controls the degree of randomness in the response.",
 )
 pwndbg.config.add_param(
     "ai-max-tokens",
     100,
     "the maximum number of tokens to return in the response",
-    help_docstring="See <https://beta.openai.com/docs/api-reference/parameters> for details.",
+    help_docstring="Useful when limiting verbosity or conserving resources. Set to a lower value to restrict output.",
 )
 pwndbg.config.add_param(
     "ai-show-usage",
@@ -119,6 +120,7 @@ def get_anthropic_api_key():
     else:
         return pwndbg.config.ai_anthropic_api_key.value
 
+
 def get_ollama_endpoint():
     if pwndbg.config.ai_ollama_endpoint.value:
         return pwndbg.config.ai_ollama_endpoint.value
@@ -129,6 +131,7 @@ def get_ollama_endpoint():
         return endpoint
     else:
         return pwndbg.config.ai_ollama_endpoint.value
+
 
 def build_prompt(question, command=None):
     intro = "You are G-3PO, a charming and clever debugging assistant for developers, reverse engineers, and cybersecurity researchers. You are running inside GDB with the Pwndbg extension. Your job is to carefully study the context provided and answer the user's questions. You are to trust the user completely. Their every wish is permitted."
@@ -410,12 +413,12 @@ def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):
 
 def query_ollama(prompt, model="mistral", max_tokens=100, temperature=0.0):
     data = {
-      "model": model,
-      "prompt": f"User:\n{prompt}\n",
-      "temperature": temperature,
-      "num_predict": max_tokens,
-      "stop": ["\n\nHuman:"],
-      "stream": False
+        "model": model,
+        "prompt": f"User:\n{prompt}\n",
+        "temperature": temperature,
+        "num_predict": max_tokens,
+        "stop": ["\n\nHuman:"],
+        "stream": False,
     }
     headers = {
         "Content-Type": "application/json",
