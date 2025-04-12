@@ -37,3 +37,7 @@ jobs:
             --remote origin \
             ${{ github.ref_name }} \
             latest
+
+      - name: Set latest as default version
+        run: |
+          uv run --group docs mike set-default latest --push
