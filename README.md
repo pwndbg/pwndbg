@@ -1,8 +1,3 @@
----
-hide:
-  - navigation
----
-
 ![repository-open-graph](https://github.com/pwndbg/pwndbg/assets/150354584/77b2e438-898f-416f-a989-4bef30759627)
 # pwndbg
 

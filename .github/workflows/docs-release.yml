@@ -22,8 +22,8 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
-      - name: Copy README.md to docs/index.md
-        run: cp README.md docs/index.md
+      - name: Update docs/index.md with README.md
+        run: ./scripts/generate_readme.sh
 
       - name: Deploy site
         run: |
