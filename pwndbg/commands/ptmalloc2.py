@@ -144,12 +144,13 @@ def print_no_arena_found_error(tid=None) -> None:
             f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
         )
     )
-    print(
-        message.hint(
-            "Use `set libthread-db-search-path <path>` if the path contains a compatible libthread_db.\n"
-            "Then rerun the program."
+    if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
+        print(
+            message.hint(
+                "Use `set libthread-db-search-path <path>` if the path contains a compatible libthread_db.\n"
+                "Then rerun the program."
+            )
         )
-    )
 
 
 def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
