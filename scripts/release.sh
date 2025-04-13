@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 set -ex
 
@@ -11,7 +11,7 @@ portable_sed_replace() {
     shift 2
     local files=("$@")
 
-    if sed --version 2>/dev/null | grep -q "GNU"; then
+    if sed --version 2> /dev/null | grep -q "GNU"; then
         for file in "${files[@]}"; do
             sed -i "s@$arg1@$arg2@g" "$file"
         done
