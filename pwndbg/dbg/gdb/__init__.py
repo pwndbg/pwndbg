@@ -1295,6 +1295,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
     @override
     def setup(self):
         import pwnlib.update
+
         pwnlib.update.disabled = True
 
         from pwndbg.commands import load_commands

@@ -1752,6 +1752,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     @override
     def setup(self, *args, **kwargs):
         import pwnlib.update
+
         pwnlib.update.disabled = True
 
         self.exec_states = []
