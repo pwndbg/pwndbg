@@ -1294,7 +1294,7 @@ def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
 class GDB(pwndbg.dbg_mod.Debugger):
     @override
     def setup(self):
-        import pwnlib
+        import pwnlib.update
         pwnlib.update.disabled = True
 
         from pwndbg.commands import load_commands
