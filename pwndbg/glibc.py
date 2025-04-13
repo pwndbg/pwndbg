@@ -45,9 +45,8 @@ glibc_version = pwndbg.config.add_param(
 
 @pwndbg.config.trigger(glibc_version)
 def set_glibc_version() -> None:
-    ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
+    ret = re.search(r"^(\d+)\.(\d+)$", glibc_version.value)
     if ret:
-        glibc_version.value = tuple(map(int, ret.groups()))
         return
 
     print(
@@ -60,7 +59,11 @@ def set_glibc_version() -> None:
 
 @pwndbg.aglib.proc.OnlyWhenRunning
 def get_version() -> Tuple[int, ...] | None:
-    return cast(Union[Tuple[int, ...], None], glibc_version) or _get_version()
+    if glibc_version:
+        version_tuple = tuple(int(i) for i in glibc_version.split('.'))
+        return cast(Union[Tuple[int, ...], None], version_tuple)
+
+    return _get_version()
 
 
 @pwndbg.aglib.proc.OnlyWhenRunning
