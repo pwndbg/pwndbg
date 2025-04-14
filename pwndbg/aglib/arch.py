@@ -47,6 +47,20 @@ FMT_LITTLE_ENDIAN = {1: "B", 2: "<H", 4: "<I", 8: "<Q"}
 FMT_BIG_ENDIAN = {1: "B", 2: ">H", 4: ">I", 8: ">Q"}
 
 
+registered_architectures: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, PwndbgArchitecture] = {}
+
+
+def register_arch(arch: PwndbgArchitecture):
+    registered_architectures[arch.name] = arch
+
+
+def get_pwndbg_architecture(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> PwndbgArchitecture:
+    if name not in registered_architectures:
+        raise NotImplementedError()
+
+    return registered_architectures[name]
+
+
 class PwndbgArchitecture(ArchDefinition):
     """
     This class defines the context of the currently debugged architecture as well as other related information of the platform.
@@ -66,23 +80,11 @@ class PwndbgArchitecture(ArchDefinition):
     syscall_abi: SyscallABI | None
     sigreturn_abi: SyscallABI | None
     platform: Platform
-    # environment
-
-    registered_architectures: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, PwndbgArchitecture] = {}
-
-    @staticmethod
-    def get_arch(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> PwndbgArchitecture:
-        if name not in PwndbgArchitecture.registered_architectures:
-            raise NotImplementedError()
-
-        return PwndbgArchitecture.registered_architectures[name]
 
     def __init__(self, name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         """
         Calling the constructor will register the class with global list of PwndbgArchitectures
         """
-        self.registered_architectures[name] = self
-
         self.name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE = name
 
         # We have to set some values by default
@@ -136,11 +138,11 @@ class PwndbgArchitecture(ArchDefinition):
     def unpack_size(self, data: bytes, size: int) -> int:
         return struct.unpack(self.fmts[size], data)[0]
 
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> Tuple[int, int] | None:
         """
         Return tuple of (CAPSTONE ARCH, CAPSTONE MODE) used to instantiate the Capstone disassembler for this architecture.
         """
-        return (None, None)
+        return None
 
     def read_thumb_bit(self) -> Literal[0, 1, None]:
         """
@@ -288,17 +290,22 @@ class MipsArch(PwndbgArchitecture):
 
 
 # Register the architecture classes
-AMD64Arch()
-i386Arch()
-i8086Arch()
-ArmArch()
-ArmCortexArch()
-AArch64Arch()
-PowerPCArch()
-SparcArch()
-RISCV32Arch()
-RISCV64Arch()
-MipsArch()
+all_arches = [
+    AMD64Arch(),
+    i386Arch(),
+    i8086Arch(),
+    ArmArch(),
+    ArmCortexArch(),
+    AArch64Arch(),
+    PowerPCArch(),
+    SparcArch(),
+    RISCV32Arch(),
+    RISCV64Arch(),
+    MipsArch(),
+]
+
+for arch in all_arches:
+    register_arch(arch)
 
 
 def get_thumb_mode_string() -> Literal["arm", "thumb"] | None:
@@ -313,7 +320,7 @@ def update() -> None:
     pwnlib.context.context.bits = a.ptrsize * 8
 
     if a.name != pwndbg.aglib.arch.name:
-        pwndbg_arch = PwndbgArchitecture.get_arch(a.name)
+        pwndbg_arch = get_pwndbg_architecture(a.name)
         pwndbg.aglib.set_arch(pwndbg_arch)
 
     pwndbg.aglib.arch.update(a)
