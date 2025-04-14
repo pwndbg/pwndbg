@@ -384,7 +384,8 @@ style = theme.add_param(
     "bn-decomp-style",
     "dark",
     "decompilation highlight theme for Binary Ninja",
-    help_docstring=f"Valid values: {', '.join(themes.keys())})",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=list(themes.keys()),
 )
 
 

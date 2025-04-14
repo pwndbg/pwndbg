@@ -28,7 +28,7 @@ if pwndbg.dbg.is_gdblib_available():
 auto_explore = pwndbg.config.add_param(
     "auto-explore-auxv",
     "warn",
-    "stack exploration for AUXV information; it may be really slow.",
+    "stack exploration for AUXV information; it may be really slow",
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["warn", "yes", "no"],
 )

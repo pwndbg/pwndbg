@@ -15,9 +15,10 @@ def add_param(
     name: str,
     default: Any,
     set_show_doc: str,
-    color_param: bool = False,
     *,
     help_docstring: str = "",
+    param_class: int | None = None,
+    enum_sequence: Sequence[str] | None = None,
 ) -> Parameter:
     return config.add_param(
         name,

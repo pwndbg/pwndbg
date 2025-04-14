@@ -39,9 +39,10 @@ pwndbg.config.add_param(
     "unicorn emulation of code from the current PC register",
     help_docstring="""\
 emulate can be:
-off             - no emulation is performed
-jumps-only      - emulation is done only to resolve branch instructions
-on              - emulation is done to resolve registers/memory values etc.
+
++ off             - no emulation is performed
++ jumps-only      - emulation is done only to resolve branch instructions
++ on              - emulation is done to resolve registers/memory values etc.
 
 Emulation can slow down Pwndbg. Disabling it may improve performance.
 Emulation requires >1GB RAM being available on the system and ability to allocate RWX memory.
@@ -73,7 +74,7 @@ pwndbg.config.add_param(
 )
 
 # Effects future instructions, as past ones have already been cached and reflect the process state at the time
-pwndbg.config.add_param("disasm-telescope-depth", 3, "Depth of telescope for disasm annotations")
+pwndbg.config.add_param("disasm-telescope-depth", 3, "depth of telescope for disasm annotations")
 
 # In disasm view, long telescoped strings might cause lines wraps
 pwndbg.config.add_param(
