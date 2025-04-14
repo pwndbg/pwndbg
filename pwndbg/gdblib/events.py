@@ -21,9 +21,9 @@ from typing import List
 from typing import TypeVar
 
 import gdb
-import pwndbg
 from typing_extensions import ParamSpec
 
+import pwndbg
 from pwndbg import config
 from pwndbg.color import message
 
@@ -46,7 +46,7 @@ Values explained:
 + `{ENABLED}` - Enable asynchronous stop events; gdb.execute may behave unexpectedly (asynchronously).
     """,
     param_class=pwndbg.lib.config.PARAM_ENUM,
-    enum_sequence=[DISABLED, DISABLED_DEADLOCK, ENABLED]
+    enum_sequence=[DISABLED, DISABLED_DEADLOCK, ENABLED],
 )
 
 P = ParamSpec("P")

@@ -169,6 +169,7 @@ parser.add_argument(
     help="Filter to apply to config parameters names/descriptions",
 )
 
+
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
 def heap_config(filter_pattern: str) -> None:
     display_config(filter_pattern, Scope.heap, has_file_command=False)
@@ -177,6 +178,7 @@ def heap_config(filter_pattern: str) -> None:
             "Some parameters (e.g. main-arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
         )
     )
+
 
 def configfile_print_scope(scope: Scope, show_all: bool = False) -> None:
     params = pwndbg.config.get_params(scope)

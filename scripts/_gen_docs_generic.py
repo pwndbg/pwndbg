@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
 import os
 
 
@@ -10,6 +12,7 @@ def get_files_in_dir(directory) -> list[str]:
             relative_path = os.path.relpath(full_path, directory)
             file_paths.append(relative_path)
     return file_paths
+
 
 def verify_existence(filenames: list[str], base_path: str) -> (list[str], list[str]):
     current = get_files_in_dir(base_path)

@@ -33,7 +33,6 @@ from pwndbg.aglib.heap.ptmalloc import Heap
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.commands.config import display_config
 
 
 def read_chunk(addr: int) -> Dict[str, int]:

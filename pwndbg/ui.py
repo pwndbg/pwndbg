@@ -20,9 +20,12 @@ theme.add_param("banner-title-surrounding-left", "[ ", "banner title surrounding
 theme.add_param(
     "banner-title-surrounding-right", " ]", "banner title surrounding char (right side)"
 )
-title_position = theme.add_param("banner-title-position", "center", "banner title position",
+title_position = theme.add_param(
+    "banner-title-position",
+    "center",
+    "banner title position",
     param_class=pwndbg.lib.config.PARAM_ENUM,
-    enum_sequence=["center", "left", "right"]
+    enum_sequence=["center", "left", "right"],
 )
 
 
