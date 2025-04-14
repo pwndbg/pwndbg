@@ -251,12 +251,7 @@ class SparcArch(PwndbgArchitecture):
         super().__init__("sparc")
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
-        if "v9" in self.name_raw:
-            mode = CS_MODE_V9
-        else:
-            # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
-            mode = 0
-
+        mode = CS_MODE_V9 if "v9" in self.name_raw else 0
         return (CS_ARCH_SPARC, mode)
 
 
