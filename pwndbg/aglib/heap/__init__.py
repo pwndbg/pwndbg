@@ -9,6 +9,7 @@ import pwndbg.aglib.proc
 import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.dbg import EventType
+from pwndbg.lib.config import Scope
 
 current: pwndbg.aglib.heap.heap.MemoryAllocator | None = None
 
@@ -29,7 +30,7 @@ def add_heap_param(
         help_docstring=help_docstring,
         param_class=param_class,
         enum_sequence=enum_sequence,
-        scope="heap",
+        scope=Scope.heap,
     )
 
 

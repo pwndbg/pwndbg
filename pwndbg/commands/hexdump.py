@@ -35,7 +35,6 @@ pwndbg.config.add_param(
     Prevents GDB crashes due to excessive memory allocation requests.
     Set to 0 for unlimited (use with caution).""",
     param_class=PARAM_ZUINTEGER,
-    scope="memory",
 )
 
 

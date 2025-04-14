@@ -14,6 +14,7 @@ from pwndbg.color import ljust_colored
 from pwndbg.color import strip
 from pwndbg.color.message import hint
 from pwndbg.commands import CommandCategory
+from pwndbg.lib.config import Scope
 
 if pwndbg.dbg.is_gdblib_available():
     import pwndbg.gdblib.config
@@ -42,7 +43,7 @@ def extend_value_with_default(value, default):
     return value
 
 
-def get_config_parameters(scope, filter_pattern):
+def get_config_parameters(scope: Scope, filter_pattern: str):
     values = [
         v
         for k, v in pwndbg.config.params.items()
@@ -70,7 +71,7 @@ parser.add_argument(
 )
 
 
-def display_config(filter_pattern: str, scope: str, has_file_command: bool = True) -> None:
+def display_config(filter_pattern: str, scope: Scope, has_file_command: bool = True) -> None:
     values = get_config_parameters(scope, filter_pattern)
 
     if not values:
@@ -98,13 +99,13 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
 
     print(
         hint(
-            f"You can set a {scope} variable with `set <{scope}-var> <value>`, and read more about it with `help set <{scope}-var>`."
+            f"You can set a {scope.name} variable with `set <{scope.name}-var> <value>`, and read more about it with `help set <{scope.name}-var>`."
         )
     )
     if has_file_command:
         print(
             hint(
-                f"You can generate a configuration file using `{scope}file` "
+                f"You can generate a configuration file using `{scope.name}file` "
                 "- then put it in your .gdbinit after initializing pwndbg."
             )
         )
@@ -112,7 +113,7 @@ def display_config(filter_pattern: str, scope: str, has_file_command: bool = Tru
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
 def config(filter_pattern) -> None:
-    display_config(filter_pattern, "config")
+    display_config(filter_pattern, Scope.config)
 
 
 configfile_parser = argparse.ArgumentParser(
@@ -134,7 +135,7 @@ parser.add_argument(
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
 def theme(filter_pattern) -> None:
-    display_config(filter_pattern, "theme")
+    display_config(filter_pattern, Scope.theme)
 
 
 if pwndbg.dbg.is_gdblib_available():

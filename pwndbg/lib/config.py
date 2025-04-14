@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from enum import Enum
 from functools import total_ordering
 from typing import Any
 from typing import Callable
@@ -46,6 +47,14 @@ PARAM_CLASSES = {
 }
 
 
+class Scope(Enum):
+    # If you want to add another scope here, don't forget to add
+    # a command which prints it!
+    config = 1
+    theme = 2
+    heap = 3
+
+
 # @total_ordering allows us to implement `__eq__` and `__lt__` and have all the
 # other comparison operators handled for us
 @total_ordering
@@ -59,7 +68,7 @@ class Parameter:
         help_docstring: str = "",
         param_class: int | None = None,
         enum_sequence: Sequence[str] | None = None,
-        scope: str = "config",
+        scope: Scope = Scope.config,
     ) -> None:
         self.name = name
         self.default = default
@@ -77,7 +86,10 @@ class Parameter:
         # Show valid values if they aren't obvious
         if param_class == PARAM_ENUM:
             self.help_docstring += (
-                "\nValid values: " + ", ".join([f"'{name}'" for name in enum_sequence]) + "."
+                "\n"
+                + HELP_VALID_VALUES_PREFIX
+                + " "
+                + ", ".join([f"'{name}'" for name in enum_sequence])
             )
         if param_class == PARAM_AUTO_BOOLEAN:
             self.help_docstring += "\nValid values: on, off, auto."
@@ -209,7 +221,7 @@ class Config:
         help_docstring: str = "",
         param_class: int | None = None,
         enum_sequence: Sequence[str] | None = None,
-        scope: str = "config",
+        scope: Scope = Scope.config,
     ) -> Parameter:
         # Dictionary keys are going to have underscores, so we can't allow them here
         assert "_" not in name
@@ -220,6 +232,8 @@ class Config:
         )
         if param_class == PARAM_ENUM or enum_sequence:
             assert param_class == PARAM_ENUM and enum_sequence
+
+        assert scope in Scope
 
         p = Parameter(
             name,

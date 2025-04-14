@@ -4,6 +4,7 @@ from typing import Any
 
 from pwndbg import config
 from pwndbg.lib.config import Parameter
+from pwndbg.lib.config import Scope
 
 
 class ColorParameter(Parameter):
@@ -19,7 +20,13 @@ def add_param(
     help_docstring: str = "",
 ) -> Parameter:
     return config.add_param(
-        name, default, set_show_doc, scope="theme", help_docstring=help_docstring
+        name,
+        default,
+        set_show_doc,
+        scope=Scope.theme,
+        help_docstring=help_docstring,
+        param_class=param_class,
+        enum_sequence=enum_sequence,
     )
 
 

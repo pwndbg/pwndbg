@@ -27,6 +27,7 @@ import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.search
 from pwndbg.color import message
+from pwndbg.lib.config import Scope
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -39,7 +40,7 @@ safe_lnk = pwndbg.config.add_param(
 )
 
 glibc_version = pwndbg.config.add_param(
-    "glibc", "", "GLIBC version for heap heuristics resolution (e.g. 2.31)", scope="heap"
+    "glibc", "", "glibc version for heap heuristics resolution (e.g. 2.31)", scope=Scope.heap
 )
 
 
