@@ -85,6 +85,7 @@ Banner title position.
 
 
 **Default:** 'center'  
+**Valid values:** 'center', 'left', 'right'
 ## **banner-title-surrounding-left**
 
 

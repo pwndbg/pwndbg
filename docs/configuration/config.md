@@ -338,11 +338,11 @@ The number of characters in strings to display in disasm annotations.
 
 Unicorn emulation of code from the current PC register.
 
-emulate can be:
+Emulate can be:
 
-+ off             - no emulation is performed
-+ jumps-only      - emulation is done only to resolve branch instructions
-+ on              - emulation is done to resolve registers/memory values etc.
+1. off             - no emulation is performed
+2. jumps-only      - emulation is done only to resolve branch instructions
+3. on              - emulation is done to resolve registers/memory values etc.
 
 Emulation can slow down Pwndbg. Disabling it may improve performance.
 Emulation requires >1GB RAM being available on the system and ability to allocate RWX memory.
@@ -394,14 +394,16 @@ Path to the gcc/g++ toolchain for generating imported symbols.
 
 Asynchronous stop events to improve 'commands' functionality.
 
-Note: This may cause unexpected behavior with pwndbg or gdb.execute.
+Note that this may cause unexpected behavior with pwndbg or gdb.execute.
 
-Values:
-0 - Disable the workaround (default).
-1 - Enable asynchronous stop events; gdb.execute may behave unexpectedly(asynchronously).
-2 - Disable only deadlock detection; deadlocks may still occur.
+Values explained:
 
-**Default:** 0  
++ `disabled` - Disable the workaround (default).
++ `disabled-deadlock` - Disable only deadlock detection; deadlocks may still occur.
++ `enabled` - Enable asynchronous stop events; gdb.execute may behave unexpectedly (asynchronously).
+
+**Default:** 'disabled'  
+**Valid values:** 'disabled', 'disabled-deadlock', 'enabled'
 ## **go-dump-indent-amount**
 
 
@@ -522,10 +524,11 @@ Whether to use integration to look up unknown symbols.
 
 The method to get vmmap information when debugging via QEMU kernel.
 
-kernel-vmmap can be:
-page-tables    - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
-monitor        - use QEMU's `monitor info mem` to render vmmap
-none           - disable vmmap rendering; useful if rendering is particularly slow
+Values explained:
+
++ `page-tables` - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
++ `monitor` - use QEMU's `monitor info mem` to render vmmap
++ `none` - disable vmmap rendering; useful if rendering is particularly slow
 
 Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
 
