@@ -54,9 +54,9 @@ def register_arch(arch: PwndbgArchitecture):
     registered_architectures[arch.name] = arch
 
 
-def get_pwndbg_architecture(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> PwndbgArchitecture:
+def get_pwndbg_architecture(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> PwndbgArchitecture | None:
     if name not in registered_architectures:
-        raise NotImplementedError()
+        return None
 
     return registered_architectures[name]
 
@@ -321,6 +321,12 @@ def update() -> None:
 
     if a.name != pwndbg.aglib.arch.name:
         pwndbg_arch = get_pwndbg_architecture(a.name)
+        if pwndbg_arch is None:
+            raise pwndbg.dbg_mod.Error(
+                f"Unsupported architecture: {a.name}. "
+                f"It may be that Pwndbg is not correctly categorizing the architecture. "
+                f"Please file a bug report. "
+            )
         pwndbg.aglib.set_arch(pwndbg_arch)
 
     pwndbg.aglib.arch.update(a)
