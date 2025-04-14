@@ -91,6 +91,7 @@ arch_to_UC = {
     # 'powerpc': U.UC_ARCH_PPC,
     "rv32": U.UC_ARCH_RISCV,
     "rv64": U.UC_ARCH_RISCV,
+    "s390x": U.UC_ARCH_S390X,
 }
 
 # Architecture specific maps: Map<"UC_*_REG_*",constant>
@@ -104,6 +105,7 @@ arch_to_UC_consts = {
     "aarch64": parse_consts(U.arm64_const),
     "rv32": parse_consts(U.riscv_const),
     "rv64": parse_consts(U.riscv_const),
+    "s390x": parse_consts(U.s390x_const),
 }
 
 # Architecture specific maps: Map<reg_name, Unicorn constant>
@@ -122,6 +124,7 @@ arch_to_reg_const_map = {
     ),
     "rv32": create_reg_to_const_map(arch_to_UC_consts["rv32"]),
     "rv64": create_reg_to_const_map(arch_to_UC_consts["rv64"]),
+    "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
 }
 
 
@@ -592,6 +595,8 @@ class Emulator:
             and "isa32r6" in gdb.newest_frame().architecture().name()
         ):
             mode |= U.UC_MODE_MIPS32R6
+        elif (arch == "s390x"):
+            pass # fails with invalid mode error otherwise
         else:
             mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.aglib.arch.ptrsize]
 
