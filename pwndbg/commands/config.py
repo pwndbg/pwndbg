@@ -87,7 +87,7 @@ def display_config(filter_pattern: str, scope: Scope, has_file_command: bool = T
     for v in sorted(values):
         if isinstance(v, pwndbg.color.theme.ColorParameter):
             # Only the theme scope should use ColorParameter
-            assert scope == "theme"
+            assert scope == Scope.theme
 
             value = generateColorFunction(v.value)(v.value)
             default = generateColorFunction(v.default)(v.default)

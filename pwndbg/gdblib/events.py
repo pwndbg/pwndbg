@@ -21,24 +21,32 @@ from typing import List
 from typing import TypeVar
 
 import gdb
+import pwndbg
 from typing_extensions import ParamSpec
 
 from pwndbg import config
 from pwndbg.color import message
 
+DISABLED = "disabled"
+DISABLED_DEADLOCK = "disabled-deadlock"
+ENABLED = "enabled"
+
 debug = config.add_param("debug-events", False, "display internal event debugging info")
 gdb_workaround_stop_event = config.add_param(
     "gdb-workaround-stop-event",
-    0,
+    DISABLED,
     "asynchronous stop events to improve 'commands' functionality",
-    help_docstring="""
-Note: This may cause unexpected behavior with pwndbg or gdb.execute.
+    help_docstring=f"""
+Note that this may cause unexpected behavior with pwndbg or gdb.execute.
 
-Values:
-0 - Disable the workaround (default).
-1 - Enable asynchronous stop events; gdb.execute may behave unexpectedly(asynchronously).
-2 - Disable only deadlock detection; deadlocks may still occur.
+Values explained:
+
++ `{DISABLED}` - Disable the workaround (default).
++ `{DISABLED_DEADLOCK}` - Disable only deadlock detection; deadlocks may still occur.
++ `{ENABLED}` - Enable asynchronous stop events; gdb.execute may behave unexpectedly (asynchronously).
     """,
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=[DISABLED, DISABLED_DEADLOCK, ENABLED]
 )
 
 P = ParamSpec("P")
@@ -131,7 +139,7 @@ def _detect_deadlock():
         # Not executing an event inside another event, so no deadlock
         return
 
-    if gdb_workaround_stop_event == 2:
+    if gdb_workaround_stop_event == DISABLED_DEADLOCK:
         # Skip deadlock detection because this option disables it
         return
 
@@ -212,7 +220,7 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
         elif event_type == gdb.events.stop:
             # Workaround to issue with gdb `commands \n continue \n end` - Selected thread is running
             # https://github.com/pwndbg/pwndbg/issues/425
-            if gdb_workaround_stop_event == 1:
+            if gdb_workaround_stop_event == ENABLED:
                 gdb.post_event(_loop_until_thread_ok)
                 return
 

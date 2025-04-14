@@ -11,7 +11,6 @@ import pwndbg.color.context as C
 import pwndbg.dbg
 from pwndbg import config
 from pwndbg.color import ljust_colored
-from pwndbg.color import message
 from pwndbg.color import rjust_colored
 from pwndbg.color import strip
 from pwndbg.color import theme
@@ -21,19 +20,10 @@ theme.add_param("banner-title-surrounding-left", "[ ", "banner title surrounding
 theme.add_param(
     "banner-title-surrounding-right", " ]", "banner title surrounding char (right side)"
 )
-title_position = theme.add_param("banner-title-position", "center", "banner title position")
-
-
-@config.trigger(title_position)
-def check_title_position() -> None:
-    valid_values = ["center", "left", "right"]
-    if title_position not in valid_values:
-        print(
-            message.warn(
-                f"Invalid title position: {title_position}, must be one of: {', '.join(valid_values)}"
-            )
-        )
-        title_position.revert_default()
+title_position = theme.add_param("banner-title-position", "center", "banner title position",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=["center", "left", "right"]
+)
 
 
 def banner(title, target=sys.stdout, width=None, extra=""):

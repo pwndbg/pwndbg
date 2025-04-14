@@ -38,11 +38,11 @@ pwndbg.config.add_param(
     "on",
     "unicorn emulation of code from the current PC register",
     help_docstring="""\
-emulate can be:
+Emulate can be:
 
-+ off             - no emulation is performed
-+ jumps-only      - emulation is done only to resolve branch instructions
-+ on              - emulation is done to resolve registers/memory values etc.
+1. off             - no emulation is performed
+2. jumps-only      - emulation is done only to resolve branch instructions
+3. on              - emulation is done to resolve registers/memory values etc.
 
 Emulation can slow down Pwndbg. Disabling it may improve performance.
 Emulation requires >1GB RAM being available on the system and ability to allocate RWX memory.
