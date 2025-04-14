@@ -75,7 +75,7 @@ def display_config(filter_pattern: str, scope: Scope, has_file_command: bool = T
     values = get_config_parameters(scope, filter_pattern)
 
     if not values:
-        print(hint(f'No {scope} parameter found with filter "{filter_pattern}"'))
+        print(hint(f'No {scope.name} parameter found with filter "{filter_pattern}"'))
         return
 
     longest_optname = max(map(len, (v.name for v in values)))
@@ -174,7 +174,7 @@ parser.add_argument(
 def heap_config(filter_pattern: str) -> None:
     display_config(filter_pattern, Scope.heap, has_file_command=False)
     print(
-        pwndbg.color.message.hint(
+        hint(
             "Some parameters (e.g. main-arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
         )
     )
