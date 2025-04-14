@@ -10,7 +10,7 @@
 
 Anthropic API key.
 
-
+Defaults to ANTHROPIC_API_KEY environment variable if not set.
 
 **Default:** ''  
 ## **ai-history-size**
@@ -26,7 +26,7 @@ Maximum number of questions and answers to keep in the prompt.
 
 The maximum number of tokens to return in the response.
 
-
+Useful when limiting verbosity or conserving resources. Set to a lower value to restrict output.
 
 **Default:** 100  
 ## **ai-model**
@@ -34,7 +34,7 @@ The maximum number of tokens to return in the response.
 
 The name of the large language model to query.
 
-
+Changing this affects the behavior, response quality, and cost (if applicable) of AI responses.
 
 **Default:** 'gpt-3.5-turbo'  
 ## **ai-ollama-endpoint**
@@ -42,7 +42,7 @@ The name of the large language model to query.
 
 Ollama API endpoint.
 
-
+Defaults to OLLAMA_ENDPOINT environment variable if not set.
 
 **Default:** ''  
 ## **ai-openai-api-key**
@@ -50,7 +50,7 @@ Ollama API endpoint.
 
 OpenAI API key.
 
-
+Will default to OPENAI_API_KEY environment variable if not set.
 
 **Default:** ''  
 ## **ai-show-usage**
@@ -74,7 +74,7 @@ Rows of stack context to include in the prompt for the ai command.
 
 The temperature specification for the LLM query.
 
-
+This controls the degree of randomness in the response.
 
 **Default:** 0  
 ## **attachp-resolution-method**
@@ -100,7 +100,7 @@ Stack exploration for AUXV information; it may be really slow.
 
 Whether to try to infer page permissions when memory maps are missing.
 
-
+This command can cause errors.
 
 **Default:** 'warn'  
 **Valid values:** 'yes', 'warn', 'no'
@@ -207,7 +207,7 @@ Number of additional lines to print in the disasm context.
 
 When to try to decompile the current function with ghidra.
 
-
+Doing this is slow and requires radare2/r2pipe or rizin/rzpipe.
 
 **Default:** 'never'  
 **Valid values:** 'always', 'never', 'if-no-source'
@@ -248,7 +248,8 @@ Where pwndbg should output ("stdout" or file/tty).
 
 When to reserve lines after the prompt to reduce context shake.
 
-
+The "if-ctx-fits" setting only reserves lines if the whole context would still fit vertically in the current terminal window.
+It doesn't take into account line-wrapping due to insufficient terminal width.
 
 **Default:** 'if-ctx-fits'  
 **Valid values:** 'never', 'if-ctx-fits', 'always'
@@ -337,7 +338,14 @@ The number of characters in strings to display in disasm annotations.
 
 Unicorn emulation of code from the current PC register.
 
+emulate can be:
 
++ off             - no emulation is performed
++ jumps-only      - emulation is done only to resolve branch instructions
++ on              - emulation is done to resolve registers/memory values etc.
+
+Emulation can slow down Pwndbg. Disabling it may improve performance.
+Emulation requires >1GB RAM being available on the system and ability to allocate RWX memory.
 
 **Default:** 'on'  
 **Valid values:** 'on', 'off', 'jumps-only'
@@ -346,7 +354,7 @@ Unicorn emulation of code from the current PC register.
 
 Unicorn emulation for instruction annotations.
 
-
+Refers to register and memory value annotations.
 
 **Default:** on  
 ## **emulate-future-annotations**
@@ -386,7 +394,12 @@ Path to the gcc/g++ toolchain for generating imported symbols.
 
 Asynchronous stop events to improve 'commands' functionality.
 
+Note: This may cause unexpected behavior with pwndbg or gdb.execute.
 
+Values:
+0 - Disable the workaround (default).
+1 - Enable asynchronous stop events; gdb.execute may behave unexpectedly(asynchronously).
+2 - Disable only deadlock detection; deadlocks may still occur.
 
 **Default:** 0  
 ## **go-dump-indent-amount**
@@ -418,7 +431,7 @@ Number of bytes printed by hexdump command.
 
 Use big-endian within each group of bytes in hexdump command.
 
-
+When `on`, use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. See also hexdump-highlight-group-lsb.
 
 **Default:** off  
 ## **hexdump-group-width**
@@ -426,7 +439,7 @@ Use big-endian within each group of bytes in hexdump command.
 
 Number of bytes grouped in hexdump command.
 
-
+If -1, the architecture's pointer size is used.
 
 **Default:** -1  
 ## **hexdump-limit-mb**
@@ -434,7 +447,9 @@ Number of bytes grouped in hexdump command.
 
 The maximum size in megabytes (MB) `hexdump` will read.
 
-
+Set the maximum size in megabytes (MB) that the `hexdump` command will attempt to read at once.
+    Prevents GDB crashes due to excessive memory allocation requests.
+    Set to 0 for unlimited (use with caution).
 
 **Default:** 10  
 ## **hexdump-width**
@@ -507,7 +522,12 @@ Whether to use integration to look up unknown symbols.
 
 The method to get vmmap information when debugging via QEMU kernel.
 
+kernel-vmmap can be:
+page-tables    - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
+monitor        - use QEMU's `monitor info mem` to render vmmap
+none           - disable vmmap rendering; useful if rendering is particularly slow
 
+Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
 
 **Default:** 'page-tables'  
 **Valid values:** 'page-tables', 'monitor', 'none'

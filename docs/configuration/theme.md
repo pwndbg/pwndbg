@@ -331,7 +331,7 @@ Whether to colorize the hexdump command ascii section.
 
 Highlight LSB of each group.
 
-
+Applies only if hexdump-use-big-endian actually changes byte order.
 
 **Default:** 'underline'  
 ## **hexdump-normal-color**
