@@ -4,8 +4,6 @@ from pwndbg.aglib import arch as arch_mod
 from pwndbg.aglib.arch import PwndbgArchitecture
 from pwndbg.aglib.arch import get_pwndbg_architecture
 
-# from pwndbg.aglib.arch import arch as arch
-
 regs = None
 
 arch: PwndbgArchitecture = get_pwndbg_architecture("i386")
