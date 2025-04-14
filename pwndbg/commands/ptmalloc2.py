@@ -1585,24 +1585,3 @@ def try_free(addr: str | int) -> None:
 
 def try_unlink(addr: int) -> None:
     pass
-
-
-parser = argparse.ArgumentParser(description="Shows heap related configuration.")
-parser.add_argument(
-    "filter_pattern",
-    type=str,
-    nargs="?",
-    default=None,
-    help="Filter to apply to config parameters names/descriptions",
-)
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
-def heap_config(filter_pattern: str) -> None:
-    display_config(filter_pattern, pwndbg.lib.config.Scope.heap, has_file_command=False)
-
-    print(
-        message.hint(
-            "Some parameters (e.g. main-arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
-        )
-    )

@@ -32,4 +32,4 @@ def add_param(
 
 
 def add_color_param(name: str, default: Any, set_show_doc: str) -> Parameter:
-    return config.add_param_obj(ColorParameter(name, default, set_show_doc, scope="theme"))
+    return config.add_param_obj(ColorParameter(name, default, set_show_doc, scope=Scope.theme))

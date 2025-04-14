@@ -291,7 +291,7 @@ class Config:
 
         return wrapper
 
-    def get_params(self, scope: str) -> List[Parameter]:
+    def get_params(self, scope: Scope) -> List[Parameter]:
         return sorted(filter(lambda p: p.scope == scope, self.params.values()))
 
     def __getattr__(self, name: str) -> Parameter:

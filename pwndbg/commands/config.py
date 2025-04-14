@@ -139,10 +139,10 @@ def theme(filter_pattern) -> None:
 
 
 if pwndbg.dbg.is_gdblib_available():
-
+    # Register the configfile command
     @pwndbg.commands.ArgparsedCommand(configfile_parser, category=CommandCategory.PWNDBG)
     def configfile(show_all=False) -> None:
-        configfile_print_scope("config", show_all)
+        configfile_print_scope(Scope.config, show_all)
 
 
 themefile_parser = argparse.ArgumentParser(
@@ -154,13 +154,31 @@ themefile_parser.add_argument(
 
 
 if pwndbg.dbg.is_gdblib_available():
-
+    # Register the themefile command.
     @pwndbg.commands.ArgparsedCommand(themefile_parser, category=CommandCategory.PWNDBG)
     def themefile(show_all=False) -> None:
-        configfile_print_scope("theme", show_all)
+        configfile_print_scope(Scope.theme, show_all)
 
 
-def configfile_print_scope(scope: str, show_all: bool = False) -> None:
+parser = argparse.ArgumentParser(description="Shows heap related configuration.")
+parser.add_argument(
+    "filter_pattern",
+    type=str,
+    nargs="?",
+    default=None,
+    help="Filter to apply to config parameters names/descriptions",
+)
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
+def heap_config(filter_pattern: str) -> None:
+    display_config(filter_pattern, Scope.heap, has_file_command=False)
+    print(
+        message.hint(
+            "Some parameters (e.g. main-arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
+        )
+    )
+
+def configfile_print_scope(scope: Scope, show_all: bool = False) -> None:
     params = pwndbg.config.get_params(scope)
 
     if not show_all:
@@ -181,4 +199,5 @@ def configfile_print_scope(scope: str, show_all: bool = False) -> None:
             print(f"set {p.name} {native_value}")
             print()
     else:
-        print(hint(f"No changed values. To see current values use `{scope}`."))
+        # FIXME: Message would be wrong for a heapfile command.
+        print(hint(f"No changed values. To see current values use `{scope.name}`."))
