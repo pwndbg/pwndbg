@@ -668,6 +668,46 @@ loongarch64 = RegisterSet(
     misc=("tp", "r21"),
 )
 
+# https://refspecs.linuxfoundation.org/ELF/zSeries/lzsabi0_zSeries/x410.html
+# Register name | Usage                          | Call effect
+# --------------|--------------------------------|----------------
+# r0            | General purpose               | Volatile
+# r1            | General purpose               | Volatile
+# r2            | Parameter passing and return  | Volatile
+# r3, r4, r5    | Parameter passing             | Volatile
+# r6            | Parameter passing             | Saved
+# r7 - r11      | Local variables               | Saved
+# r12           | Local variable, commonly used | Saved
+#               | as GOT pointer                |
+# r13           | Local variable, commonly used | Saved
+#               | as Literal Pool pointer       |
+# r14           | Return address                | Volatile
+# r15           | Stack pointer                 | Saved
+s390x = RegisterSet(
+    pc="pc",
+    retaddr=("r14",),
+    stack="r15",
+    flags={"pswm": BitFlags()},
+    gpr=(
+        "r0",
+        "r1",
+        "r2",
+        "r3",
+        "r4",
+        "r5",
+        "r6",
+        "r7",
+        "r8",
+        "r9",
+        "r10",
+        "r11",
+        "r12",
+        "r13",
+    ),
+    args=("r2", "r3", "r4", "r5", "r6"),
+    retval="r2",
+)
+
 reg_sets: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "i386": i386,
     "i8086": i386,
@@ -681,4 +721,5 @@ reg_sets: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "aarch64": aarch64,
     "powerpc": powerpc,
     "loongarch64": loongarch64,
+    "s390x": s390x,
 }

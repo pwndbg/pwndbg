@@ -20,6 +20,7 @@ PWNDBG_SUPPORTED_ARCHITECTURES_TYPE = Literal[
     "sparc",
     "powerpc",
     "loongarch64",
+    "s390x",
 ]
 
 PWNDBG_SUPPORTED_ARCHITECTURES: list[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE] = list(
@@ -40,6 +41,7 @@ PWNLIB_ARCH_MAPPINGS = {
     "powerpc": "powerpc",
     "sparc": "sparc",
     "loongarch64": "none",
+    "s390x": "s390",  # FIXME: I believe this should be s390x, but that's not supported
 }
 
 
