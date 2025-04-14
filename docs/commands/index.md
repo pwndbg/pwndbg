@@ -40,7 +40,6 @@
 -  [bins](glibc_ptmalloc2_heap/bins.md) - Print the contents of all an arena's bins and a thread's tcache.
 -  [fastbins](glibc_ptmalloc2_heap/fastbins.md) - Print the contents of an arena's fastbins.
 -  [find-fake-fast](glibc_ptmalloc2_heap/find-fake-fast.md) - Find candidate fake fast or tcache chunks overlapping the specified address.
--  [heap-config](glibc_ptmalloc2_heap/heap-config.md) - Shows heap related configuration.
 -  [heap](glibc_ptmalloc2_heap/heap.md) - Iteratively print chunks on a heap.
 -  [hi](glibc_ptmalloc2_heap/hi.md) - Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
 -  [largebins](glibc_ptmalloc2_heap/largebins.md) - Print the contents of an arena's largebins.
@@ -238,6 +237,7 @@
 -  [bugreport](pwndbg/bugreport.md) - Generate a bug report.
 -  [config](pwndbg/config.md) - Shows pwndbg-specific configuration.
 -  [configfile](pwndbg/configfile.md) - Generates a configuration file for the current pwndbg options.
+-  [heap-config](pwndbg/heap-config.md) - Shows heap related configuration.
 -  [memoize](pwndbg/memoize.md) - Toggles memoization (caching).
 -  [profiler](pwndbg/profiler.md) - Utilities for profiling pwndbg.
 -  [pwndbg](pwndbg/pwndbg.md) - Prints out a list of all pwndbg commands.
