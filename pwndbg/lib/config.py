@@ -87,7 +87,7 @@ class Parameter:
         self.help_docstring = help_docstring
         # Show the default value in the parameter help.
         # We add a trailing double space because docs are in markdown.
-        self.help_docstring = "\n\n" + HELP_DEFAULT_PREFIX + " " + self.pretty_default() + "  "
+        self.help_docstring += "\n\n" + HELP_DEFAULT_PREFIX + " " + self.pretty_default() + "  "
         # Show valid values if they aren't obvious
         if param_class == PARAM_ENUM:
             self.help_docstring += (
