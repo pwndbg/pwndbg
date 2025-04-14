@@ -121,12 +121,17 @@ def argname(n: int, abi: pwndbg.lib.abi.ABI) -> str:
     return "arg[%i]" % n
 
 
-def argument(n: int, abi: pwndbg.lib.abi.ABI) -> int:
+def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
     """
     Returns the nth argument, as if $pc were a 'call' or 'bl' type
     instruction.
     Works only for ABIs that use registers for arguments.
     """
+    abi = abi or pwndbg.aglib.arch.function_abi
+    if abi is None:
+        raise pwndbg.dbg_mod.Error(
+            f"Function ABI not defined for current architecture, {pwndbg.aglib.arch.function_abi}"
+        )
     regs = abi.register_arguments
 
     if n < len(regs):
