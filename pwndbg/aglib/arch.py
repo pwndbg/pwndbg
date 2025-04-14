@@ -71,12 +71,13 @@ class PwndbgArchitecture(ArchDefinition):
     """
 
     name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
-    name_raw: str  # The raw string returned by the debugger
+    # The raw string returned by the debugger. Example: "mips:isa64r6"
+    name_raw: str
     endian: EndianType
     ptrsize: int
     ptrbits: int
     ptrmask: int
-    abi: ABI | None
+    function_abi: ABI | None
     syscall_abi: SyscallABI | None
     sigreturn_abi: SyscallABI | None
     platform: Platform
@@ -118,8 +119,7 @@ class PwndbgArchitecture(ArchDefinition):
 
         default_abi_identifer = (self.ptrbits, self.name, "linux")
 
-        # TODO - allow these to be selected by some other means
-        self.abi = DEFAULT_ABIS.get(default_abi_identifer)
+        self.function_abi = DEFAULT_ABIS.get(default_abi_identifer)
         self.syscall_abi = SYSCALL_ABIS.get(default_abi_identifer)
         self.sigreturn_abi = SIGRETURN_ABIS.get(default_abi_identifer)
 

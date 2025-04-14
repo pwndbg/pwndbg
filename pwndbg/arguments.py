@@ -44,7 +44,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         return []
 
     if instruction.call_like:
-        abi = pwndbg.aglib.arch.abi
+        abi = pwndbg.aglib.arch.function_abi
 
         if abi is None:
             return []
@@ -112,8 +112,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     return result
 
 
-def argname(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> str:
-    abi = abi or pwndbg.aglib.arch.abi
+def argname(n: int, abi: pwndbg.lib.abi.ABI) -> str:
     regs = abi.register_arguments
 
     if n < len(regs):
@@ -122,13 +121,12 @@ def argname(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> str:
     return "arg[%i]" % n
 
 
-def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
+def argument(n: int, abi: pwndbg.lib.abi.ABI) -> int:
     """
     Returns the nth argument, as if $pc were a 'call' or 'bl' type
     instruction.
     Works only for ABIs that use registers for arguments.
     """
-    abi = abi or pwndbg.aglib.arch.abi
     regs = abi.register_arguments
 
     if n < len(regs):
@@ -146,7 +144,9 @@ def arguments(abi: pwndbg.lib.abi.ABI | None = None):
     Yields (arg_name, arg_value) tuples for arguments from a given ABI.
     Works only for ABIs that use registers for arguments.
     """
-    abi = abi or pwndbg.aglib.arch.abi
+    abi = abi or pwndbg.aglib.arch.function_abi
+    if abi is None:
+        return []
     regs = abi.register_arguments
 
     for i in range(len(regs)):
