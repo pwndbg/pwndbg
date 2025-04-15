@@ -62,6 +62,21 @@ The bins are traversed both forwards and backwards.
 """,
 )
 
+if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
+    extra_hint_for_gdb = """
+In addition, even you have the debug symbols of libc, you might still see the following warning when debugging a multi-threaded program:
+
+warning: Unable to find libthread_db matching inferior's thread library, thread debugging will not be available.
+
+You'll need to ensure that the correct `libthread_db.so` is loaded. To do this, set the search path using:
+
+set libthread-db-search-path <path having correct libthread_db.so>
+
+Then, restart your program to enable proper thread debugging.
+"""
+else:
+    extra_hint_for_gdb = ""
+
 resolve_heap_via_heuristic = add_heap_param(
     "resolve-heap-via-heuristic",
     "auto",
@@ -87,10 +102,12 @@ sudo dpkg --add-architecture i386
 sudo apt-get install libc-dbg:i386
 
 If you used setup.sh on Arch based distro you'll need to do a power cycle or set environment variable manually like this: export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
-""",
+"""
+    + extra_hint_for_gdb,
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["auto", "force", "never"],
 )
+del extra_hint_for_gdb
 
 
 @pwndbg.dbg.event_handler(EventType.START)
