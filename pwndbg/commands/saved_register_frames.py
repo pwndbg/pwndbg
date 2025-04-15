@@ -50,7 +50,7 @@ def print_saved_register_frame(
 
 VALID_FRAME_TYPES = {"armcm-exception": ARM_CORTEX_M_EXCEPTION_STACK}
 
-parser = argparse.ArgumentParser(description="")
+parser = argparse.ArgumentParser(description="Display the registers saved to memory for a certain frame type")
 
 parser.add_argument(
     "frame_type", choices=list(VALID_FRAME_TYPES), type=str, help="The type of frame to print"
