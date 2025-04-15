@@ -80,7 +80,7 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
         logging.debug("No stored hash found")
 
     # If the hashes don't match, update the dependencies
-    if current_hash != stored_hash:
+    if current_hash == stored_hash:
         return
 
     print("Detected outdated Pwndbg dependencies (uv.lock). Updating.")
