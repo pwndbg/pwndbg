@@ -1539,7 +1539,16 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
 
 class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Value]):
-    can_be_resolved = GlibcMemoryAllocator.libc_has_debug_syms
+    def can_be_resolved(self) -> bool:
+        if not self.libc_has_debug_syms():
+            return False
+        # Check if thread_arena is needed and available, but if the binary is not multithreaded, then we don't care
+        # Note: it's possible that we unstripped the libc but still don't have libthread_db.so
+        return (
+            not self.multithreaded
+            or pwndbg.aglib.symbol.lookup_symbol_addr("thread_arena", prefer_static=True)
+            is not None
+        )
 
     @property
     def main_arena(self) -> Arena | None:
