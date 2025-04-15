@@ -96,7 +96,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
                 print(
                     M.warn(
                         f"Warning: Avoided exploring possible address {address_maybe:#x}.\n"
-                        f"You can explicitly explore it with `vmmap_explore {page_start:#x}`"
+                        f"You can explicitly explore it with `vmmap-explore {page_start:#x}`"
                     )
                 )
         return None

@@ -73,7 +73,7 @@ force   - pwndbg will always try to use heuristics, even if debug symbols are av
 never   - pwndbg will never use heuristics to resolve the heap
 
 If the output of the heap related command produces errors with heuristics, you can try manually setting the libc symbol addresses.
-For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses.
+For this, see the `heap-config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses.
 
 Note: pwndbg will generate more reliable results with proper debug symbols.
 Therefore, when debug symbols are missing, you should try to install them first if you haven't already.
