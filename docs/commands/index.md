@@ -113,6 +113,7 @@
 ## Memory
 
 -  [distance](memory/distance.md) - Print the distance between the two arguments, or print the offset to the address's page base.
+-  [dump-register-frame](memory/dump-register-frame.md) - Display the registers saved to memory for a certain frame type
 -  [gdt](memory/gdt.md) - Decode X86-64 GDT entries at address
 -  [go-dump](memory/go-dump.md) - Dumps a Go value of a given type at a specified address.
 -  [go-type](memory/go-type.md) - Dumps a Go runtime reflection type at a specified address.
