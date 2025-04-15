@@ -559,7 +559,6 @@ def test_arm_logical_shifts(qemu_assembly_run):
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
 
-
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"

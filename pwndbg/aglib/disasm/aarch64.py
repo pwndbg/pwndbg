@@ -346,7 +346,9 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.annotation = register_assign(result_operand.str, telescope)
 
     @override
-    def _prepare(self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator) -> None:
+    def _prepare(
+        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator
+    ) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)
@@ -533,7 +535,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             target = AARCH64_EXTEND_MAP[op.cs_op.ext](target) & ((1 << target_bit_width) - 1)
 
         if op.cs_op.shift.type != 0:
-            target = AARCH64_BIT_SHIFT_MAP.get(op.cs_op.shift.type,lambda *a: None)(
+            target = AARCH64_BIT_SHIFT_MAP.get(op.cs_op.shift.type, lambda *a: None)(
                 target, op.cs_op.shift.value, target_bit_width
             )
 

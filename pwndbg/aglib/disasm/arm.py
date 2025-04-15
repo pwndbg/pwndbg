@@ -210,7 +210,9 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     @override
-    def _prepare(self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator) -> None:
+    def _prepare(
+        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator
+    ) -> None:
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)

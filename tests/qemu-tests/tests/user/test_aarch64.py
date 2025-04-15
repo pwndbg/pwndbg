@@ -655,7 +655,7 @@ def test_aarch64_shift_instructions(qemu_assembly_run):
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
-        
+
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
