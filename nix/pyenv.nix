@@ -162,37 +162,10 @@ let
       }:
       prev.capstone.overrideAttrs (
         old:
-        lib.optionalAttrs ((isBuildSource old) && stdenv.hostPlatform.isDarwin) {
+        lib.optionalAttrs (isBuildSource old) {
           nativeBuildInputs = old.nativeBuildInputs ++ [
             cmake
-            fixDarwinDylibNames
           ];
-
-          preBuild = ''
-            sed -i 's/^IS_APPLE := .*$/IS_APPLE := 1/' ./src/Makefile
-
-            substituteInPlace ./setup.py \
-                --replace-fail "import sys" "import sys; sys.argv.extend(('--plat-name', 'any'))" || true
-          '';
-
-          # See: https://github.com/capstone-engine/capstone/issues/2621
-          postPatch = (
-            let
-              gitSrc = fetchFromGitHub {
-                owner = "capstone-engine";
-                repo = "capstone";
-                rev = old.version;
-                hash = "sha256-VGqqrixg7LaqRWTAEBzpC+gUTchncz3Oa2pSq8GLskI=";
-              };
-            in
-            ''
-              cp ${gitSrc}/capstone.pc.in src/
-              cp ${gitSrc}/capstone-config.cmake.in src/
-              cp ${gitSrc}/cmake_uninstall.cmake.in src/
-              cp ${gitSrc}/CPackConfig.txt src/
-              cp ${gitSrc}/CPackConfig.cmake src/
-            ''
-          );
         }
       )
     ) { };
