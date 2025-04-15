@@ -15,7 +15,7 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
-import pwndbg.aglib.saved_context
+import pwndbg.aglib.saved_register_frames
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -279,7 +279,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             if pwndbg.aglib.arch.name == "armcm" and target & 0xFF00_0000 == 0xFF00_0000:
                 # If the top 8-bits of the return address are 0xFF, this indicates we are returning from an exception,
                 # where the return address has been saved onto the stack
-                return pwndbg.aglib.saved_context.ARM_CORTEX_M_EXCEPTION_STACK.read_saved_register(
+                return pwndbg.aglib.saved_register_frames.ARM_CORTEX_M_EXCEPTION_STACK.read_saved_register(
                     "pc"
                 )
 

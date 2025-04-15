@@ -6,9 +6,21 @@ import pwndbg.aglib.memory
 
 
 @dataclass
-class SavedContext:
+class SavedRegisterFrame:
+    """
+    A list of registers that have been saved to process memory for later restoration.
+
+    For example, on syscall entry, the process registers are saved to the kernel stack.
+    """
+
+    # List of (offset, register name), sorted from smallest to largest offset
     frame_layout: list[tuple[int, str]]
     offsets: dict[str, int]
+
+    def __init__(self, register_offsets: dict[str, int]):
+        self.offsets = register_offsets
+
+        self.frame_layout = sorted([(y, x) for (x, y) in list(register_offsets.items())])
 
     def read_saved_register(self, reg: str, sp: int = None) -> int | None:
         if sp is None:
@@ -28,15 +40,6 @@ class SavedContext:
         return value
 
 
-def create_saved_context_handler(values: dict[str, int]):
-    items = list(values.items())
-
-    return SavedContext(
-        sorted([(y, x) for (x, y) in items]),
-        values,
-    )
-
-
 ARM_CORTEX_M_EXCEPTION_STACK_FRAME_OFFSETS = {
     "r0": 0x0,
     "r1": 0x4,
@@ -49,6 +52,4 @@ ARM_CORTEX_M_EXCEPTION_STACK_FRAME_OFFSETS = {
 }
 
 
-ARM_CORTEX_M_EXCEPTION_STACK = create_saved_context_handler(
-    ARM_CORTEX_M_EXCEPTION_STACK_FRAME_OFFSETS
-)
+ARM_CORTEX_M_EXCEPTION_STACK = SavedRegisterFrame(ARM_CORTEX_M_EXCEPTION_STACK_FRAME_OFFSETS)

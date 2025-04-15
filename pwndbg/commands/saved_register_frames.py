@@ -4,17 +4,18 @@ import argparse
 
 import pwndbg
 import pwndbg.aglib.memory
-import pwndbg.aglib.proc
 import pwndbg.chain
 import pwndbg.color.context as C
-import pwndbg.color.message
 import pwndbg.commands
-from pwndbg.aglib.saved_context import ARM_CORTEX_M_EXCEPTION_STACK
-from pwndbg.aglib.saved_context import SavedContext
+from pwndbg.aglib.saved_register_frames import ARM_CORTEX_M_EXCEPTION_STACK
+from pwndbg.aglib.saved_register_frames import SavedRegisterFrame
+from pwndbg.commands import CommandCategory
 from pwndbg.commands.sigreturn import print_value
 
 
-def print_saved_context(context: SavedContext, address: int = None, print_address=False):
+def print_saved_register_frame(
+    context: SavedRegisterFrame, address: int = None, print_address=False
+):
     address = pwndbg.aglib.regs.sp if address is None else address
 
     ptr_size = pwndbg.aglib.arch.ptrsize
@@ -47,34 +48,31 @@ def print_saved_context(context: SavedContext, address: int = None, print_addres
             print_value(f"{regname} {desc}", address + stack_offset, print_address)
 
 
-def create_saved_context_printer(
-    command_name: str, desc: str, context: SavedContext, arches: list[str]
-):
-    parser = argparse.ArgumentParser(description=desc)
+VALID_FRAME_TYPES = {"armcm-exception": ARM_CORTEX_M_EXCEPTION_STACK}
 
-    parser.add_argument(
-        "address", nargs="?", default=None, type=int, help="The address to read the frame from"
-    )
+parser = argparse.ArgumentParser(description="")
 
-    parser.add_argument(
-        "-p",
-        "--print",
-        dest="print_address",
-        action="store_true",
-        default=False,
-        help="Show addresses of frame values",
-    )
-
-    @pwndbg.commands.ArgparsedCommand(parser, command_name=command_name)
-    @pwndbg.commands.OnlyWhenRunning
-    @pwndbg.aglib.proc.OnlyWithArch(arches)
-    def saved_context(address: int = None, print_address=False) -> None:
-        print_saved_context(context, address, print_address)
-
-
-create_saved_context_printer(
-    "saved_arm_exception_context",
-    "Display the state saved for an Arm-M exception at the specific address",
-    ARM_CORTEX_M_EXCEPTION_STACK,
-    arches=["armcm"],
+parser.add_argument(
+    "frame_type", choices=list(VALID_FRAME_TYPES), type=str, help="The type of frame to print"
 )
+
+parser.add_argument(
+    "address", nargs="?", default=None, type=int, help="The address to read the frame from"
+)
+
+
+parser.add_argument(
+    "-p",
+    "--print",
+    dest="print_address",
+    action="store_true",
+    default=False,
+    help="Show addresses of frame values",
+)
+
+
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.OnlyWhenRunning
+def dump_register_frame(frame_type: str, address: int = None, print_address=False) -> None:
+    register_frame = VALID_FRAME_TYPES[frame_type]
+    print_saved_register_frame(register_frame, address, print_address)
