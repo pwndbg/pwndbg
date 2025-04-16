@@ -138,8 +138,21 @@ save_ida()
 
 
 @GdbFunction()
-def ida(name):
-    """Evaluate ida.LocByName() on the supplied value."""
+def ida(name: gdb.Value) -> int:
+    """
+    Evaluate ida.LocByName() on the supplied value.
+
+    Example:
+    ```
+    pwndbg> set integration-provider ida
+    Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:31337
+    Set which provider to use for integration features to 'ida'.
+    pwndbg> p/x chunk_op
+    No symbol "chunk_op" in current context.
+    pwndbg> p/x $ida("chunk_op")
+    $1 = 0x555555555298
+    ```
+    """
     name = name.string()
     result = pwndbg.integration.ida.LocByName(name)
 
