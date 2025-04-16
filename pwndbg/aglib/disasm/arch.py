@@ -232,11 +232,7 @@ class DisassemblyAssistant:
                     )
                 emu = jump_emu = None
 
-        enhancer: DisassemblyAssistant = DisassemblyAssistant.assistants.get(
-            pwndbg.aglib.arch.name, generic_assistant
-        )
-
-        enhancer._prepare(instruction, emu)
+        self._prepare(instruction, emu)
 
         # Don't disable emulation yet, as we can use it to read the syscall register
         self._enhance_syscall(instruction, emu)
