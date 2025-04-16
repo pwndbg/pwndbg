@@ -73,6 +73,9 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
+        if instruction.id == LOONGARCH_INS_ALIAS_RET:
+            return self._read_register_name(instruction, "ra", emu)
+
         # Manually compute target addresses for relative branches
         if instruction.id in (
             LOONGARCH_INS_B,
