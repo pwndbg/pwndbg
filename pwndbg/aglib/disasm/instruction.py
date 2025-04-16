@@ -40,9 +40,9 @@ from capstone.riscv import RISCV_INS_JAL
 from capstone.riscv import RISCV_INS_JALR
 from capstone.sparc import SPARC_INS_JMP
 from capstone.sparc import SPARC_INS_JMPL
-from capstone.systemz import SYSZ_INS_B
-from capstone.systemz import SYSZ_INS_BAL
-from capstone.systemz import SYSZ_INS_BALR
+from capstone.systemz import SYSTEMZ_INS_B
+from capstone.systemz import SYSTEMZ_INS_BAL
+from capstone.systemz import SYSTEMZ_INS_BALR
 from capstone.x86 import X86_INS_JMP
 from capstone.x86 import X86Op
 from typing_extensions import override
@@ -81,7 +81,7 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
         RISCV_INS_C_JR,
     },
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
-    CS_ARCH_SYSZ: {SYSZ_INS_B, SYSZ_INS_BAL, SYSZ_INS_BALR},
+    CS_ARCH_SYSTEMZ: {SYSTEMZ_INS_B, SYSTEMZ_INS_BAL, SYSTEMZ_INS_BALR},
 }
 
 # See: https://github.com/capstone-engine/capstone/issues/2448
