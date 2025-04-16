@@ -603,8 +603,8 @@ class Emulator:
             and "isa32r6" in gdb.newest_frame().architecture().name()
         ):
             mode |= U.UC_MODE_MIPS32R6
-        elif (arch == "s390x"):
-            pass # fails with invalid mode error otherwise
+        elif arch == "s390x":
+            pass  # fails with invalid mode error otherwise
         else:
             mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.aglib.arch.ptrsize]
 
