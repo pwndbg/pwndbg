@@ -32,11 +32,11 @@ CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
 }
 
 
-LOONGARCH_LOAD_INSTRUCTIONS = {}
+LOONGARCH_LOAD_INSTRUCTIONS: Dict[int, int] = {}
 
-LOONGARCH_STORE_INSTRUCTIONS = {}
+LOONGARCH_STORE_INSTRUCTIONS: Dict[int, int] = {}
 
-LOONGARCH_BINARY_OPERATIONS = {}
+LOONGARCH_BINARY_OPERATIONS: Dict[int, str] = {}
 
 
 # This class enhances 64-bit Loongarch
