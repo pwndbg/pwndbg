@@ -25,10 +25,8 @@ class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
         self.taken = taken
 
     def should_stop(self):
-        # Use the assistant to figure out which if all the conditions this
+        # The enhancement process has figured out if all the conditions this
         # branch requires in order to be taken have been met.
-        assistant = pwndbg.aglib.disasm.arch.DisassemblyAssistant.for_current_arch()
-        assistant.enhance(self.instruction)
         condition_met = self.instruction.is_conditional_jump_taken
 
         return condition_met == self.taken
@@ -104,7 +102,7 @@ def install_breakpoint(branch, taken: bool) -> None:
         return
 
     # Not all architectures have assistants we can use for conditionals.
-    if pwndbg.aglib.disasm.arch.DisassemblyAssistant.for_current_arch() is None:
+    if not pwndbg.aglib.disasm.arch.arch_has_disassembly_assistant():
         print(
             message.error(
                 "The current architecture is not supported for breaking on conditional branches"

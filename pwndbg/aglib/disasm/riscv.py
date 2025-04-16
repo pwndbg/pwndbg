@@ -12,6 +12,7 @@ import pwndbg.aglib.regs
 import pwndbg.color.memory as MemoryColor
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
+from pwndbg.aglib.disasm.arch import register_disassembly_assistant
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 
@@ -293,5 +294,5 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         return base + op.mem.disp
 
 
-assistant_rv32 = DisassemblyAssistant("rv32")
-assistant_rv64 = DisassemblyAssistant("rv64")
+register_disassembly_assistant("rv32", lambda: DisassemblyAssistant("rv32"))
+register_disassembly_assistant("rv64", lambda: DisassemblyAssistant("rv64"))

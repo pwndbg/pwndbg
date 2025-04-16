@@ -27,6 +27,7 @@ from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -134,17 +135,39 @@ def memory_or_register_assign(left: str, right: str, mem_assign: bool) -> str:
     return memory_assign(left, right) if mem_assign else register_assign(left, right)
 
 
+# A registry of functions that create disassembly assistants for each architecture
+ALL_DISASSEMBLY_ASSISTANTS: Dict[str, Callable[[], DisassemblyAssistant]] = {}
+
+
+def register_disassembly_assistant(
+    arch: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, assistant: Callable[[], DisassemblyAssistant]
+):
+    ALL_DISASSEMBLY_ASSISTANTS[arch] = assistant
+
+
+def get_disassembly_assistant_for_current_arch() -> DisassemblyAssistant:
+    # If a specific subclass has not been created for the given arc, return the generic assistant
+    return ALL_DISASSEMBLY_ASSISTANTS.get(
+        pwndbg.aglib.arch.name, lambda: DisassemblyAssistant(None)
+    )()
+
+
+def arch_has_disassembly_assistant(arch: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE | None = None) -> bool:
+    if arch is None:
+        arch = pwndbg.aglib.arch.name
+
+    return arch in ALL_DISASSEMBLY_ASSISTANTS
+
+
 # Enhances disassembly with memory values & symbols by adding member variables to an instruction
 # The only public method that should be called is "enhance"
 # The enhance function is passed an instance of the Unicorn emulator
 #  and will .single_step() it to determine operand values before and after executing the instruction
 class DisassemblyAssistant:
-    # Registry of all instances, {architecture: instance}
-    assistants: Dict[str, DisassemblyAssistant] = {}
+    architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
-    def __init__(self, architecture: str) -> None:
-        if architecture is not None:
-            self.assistants[architecture] = self
+    def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
+        self.architecture = architecture
 
         self.op_handlers: Dict[
             int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
@@ -163,14 +186,13 @@ class DisassemblyAssistant:
             CS_OP_MEM: self._memory_string,
         }
 
-    @staticmethod
-    def for_current_arch() -> DisassemblyAssistant:
-        return DisassemblyAssistant.assistants.get(pwndbg.aglib.arch.name, None)
+    def enhance(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
+        """
+        Enhance the instruction - resolving branch targets, conditionals, and adding annotations
 
-    # Mutates the "instruction" object
-    @staticmethod
-    def enhance(instruction: PwndbgInstruction, emu: Emulator = None) -> None:
-        # Assumed that the emulator's pc is at the instruction's address
+        This is the only public method that should be called on this object externally.
+        """
+        # It is assumed that the emulator's pc is at the instruction's address
 
         # There are 3 degrees of emulation:
         # 1. No emulation at all. In this case, the `emu` parameter should be None
@@ -217,7 +239,7 @@ class DisassemblyAssistant:
         enhancer._prepare(instruction, emu)
 
         # Don't disable emulation yet, as we can use it to read the syscall register
-        enhancer._enhance_syscall(instruction, emu)
+        self._enhance_syscall(instruction, emu)
 
         # Disable emulation for instructions we don't want to emulate (CALL, INT, ...)
         if emu and set(instruction.groups) & DO_NOT_EMULATE:
@@ -228,7 +250,7 @@ class DisassemblyAssistant:
                 print("Turned off emulation - not emulating certain type of instruction")
 
         # This function will .single_step the emulation
-        if not enhancer._enhance_operands(instruction, emu, jump_emu):
+        if not self._enhance_operands(instruction, emu, jump_emu):
             if jump_emu is not None and DEBUG_ENHANCEMENT:
                 print(f"Emulation failed at {instruction.address=:#x}")
             emu = None
@@ -239,13 +261,13 @@ class DisassemblyAssistant:
             instruction.emulated = True
 
         # Set the .condition field
-        enhancer._enhance_conditional(instruction, emu)
+        self._enhance_conditional(instruction, emu)
 
         # Set the .target and .next fields
-        enhancer._enhance_next(instruction, emu, jump_emu)
+        self._enhance_next(instruction, emu, jump_emu)
 
         if bool(pwndbg.config.disasm_annotations):
-            enhancer._set_annotation_string(instruction, emu)
+            self._set_annotation_string(instruction, emu)
 
         # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
         # to determine the call's target address.
@@ -258,7 +280,7 @@ class DisassemblyAssistant:
                 print("Turned off emulation for call")
 
         if DEBUG_ENHANCEMENT:
-            print(enhancer.dump(instruction))
+            print(self.dump(instruction))
             print("Done enhancing")
 
     # This is run before enhancement - often used to handle edge case behavior
@@ -1052,6 +1074,3 @@ class DisassemblyAssistant:
             instruction.annotation = memory_or_register_assign(
                 target_operand.str, math_string, memory_assignment
             )
-
-
-generic_assistant = DisassemblyAssistant(None)

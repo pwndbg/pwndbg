@@ -15,6 +15,7 @@ import pwndbg.aglib.regs
 import pwndbg.enhance
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
+from pwndbg.aglib.disasm.arch import register_disassembly_assistant
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -242,7 +243,7 @@ def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
 
 
 class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
-    def __init__(self, architecture: str) -> None:
+    def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
@@ -545,4 +546,4 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         return target
 
 
-assistant = DisassemblyAssistant("aarch64")
+register_disassembly_assistant("aarch64", lambda: DisassemblyAssistant("aarch64"))

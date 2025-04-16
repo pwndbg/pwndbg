@@ -23,6 +23,7 @@ import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
 from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
+from pwndbg.aglib.disasm.arch import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstructionImpl
@@ -199,6 +200,7 @@ def get_one_instruction(
     enhance=True,
     from_cache=False,
     put_cache=False,
+    assistant: DisassemblyAssistant = None,
 ) -> PwndbgInstruction:
     """
     If passed an emulator, this will pass it to the DisassemblyAssistant which will
@@ -219,7 +221,9 @@ def get_one_instruction(
         pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins)
 
         if enhance:
-            pwndbg.aglib.disasm.arch.DisassemblyAssistant.enhance(pwn_ins, emu)
+            if assistant is None:
+                assistant = pwndbg.aglib.disasm.arch.get_disassembly_assistant_for_current_arch()
+            assistant.enhance(pwn_ins, emu)
 
         if put_cache:
             computed_instruction_cache[address] = pwn_ins
@@ -238,6 +242,7 @@ def one(
     from_cache=False,
     put_cache=False,
     put_backward_cache=True,
+    assistant: DisassemblyAssistant = None,
 ) -> PwndbgInstruction | None:
     if address is None:
         address = pwndbg.aglib.regs.pc
@@ -246,7 +251,15 @@ def one(
         return None
 
     # A for loop in case this returns an empty list
-    for insn in get(address, 1, emu, enhance=enhance, from_cache=from_cache, put_cache=put_cache):
+    for insn in get(
+        address,
+        1,
+        emu,
+        enhance=enhance,
+        from_cache=from_cache,
+        put_cache=put_cache,
+        assistant=assistant,
+    ):
         if put_backward_cache:
             backward_cache[insn.next] = insn.address
         return insn
@@ -272,6 +285,7 @@ def get(
     enhance=True,
     from_cache=False,
     put_cache=False,
+    assistant: DisassemblyAssistant = None,
 ) -> List[PwndbgInstruction]:
     address = int(address)
 
@@ -282,7 +296,12 @@ def get(
     retval: List[PwndbgInstruction] = []
     for _ in range(instructions):
         i = get_one_instruction(
-            address, emu, enhance=enhance, from_cache=from_cache, put_cache=put_cache
+            address,
+            emu,
+            enhance=enhance,
+            from_cache=from_cache,
+            put_cache=put_cache,
+            assistant=assistant,
         )
         if i is None:
             break
@@ -388,8 +407,11 @@ def near(
             else:
                 raise
 
+    # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
+    assistant = pwndbg.aglib.disasm.arch.get_disassembly_assistant_for_current_arch()
+
     # Start at the current instruction using emulation if available.
-    current = one(address, emu, put_cache=True)
+    current = one(address, emu, put_cache=True, assistant=assistant)
 
     if DEBUG_ENHANCEMENT:
         if emu and not emu.last_step_succeeded:
@@ -491,7 +513,7 @@ def near(
         next_addresses_cache.add(target)
 
         # The emulator is stepped within this call
-        insn = one(target, emu, put_cache=True)
+        insn = one(target, emu, put_cache=True, assistant=assistant)
 
         if insn:
             insns.append(insn)
