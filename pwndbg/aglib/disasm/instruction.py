@@ -43,6 +43,10 @@ from capstone.sparc import SPARC_INS_JMPL
 from capstone.systemz import SYSTEMZ_INS_B
 from capstone.systemz import SYSTEMZ_INS_BAL
 from capstone.systemz import SYSTEMZ_INS_BALR
+from capstone.loongarch import LOONGARCH_INS_B
+from capstone.loongarch import LOONGARCH_INS_BL
+from capstone.loongarch import LOONGARCH_INS_JIRL
+from capstone.loongarch import LOONGARCH_INS_ALIAS_JR
 from capstone.x86 import X86_INS_JMP
 from capstone.x86 import X86Op
 from typing_extensions import override
@@ -82,6 +86,12 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     },
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
     CS_ARCH_SYSTEMZ: {SYSTEMZ_INS_B, SYSTEMZ_INS_BAL, SYSTEMZ_INS_BALR},
+    CS_ARCH_LOONGARCH: {
+        LOONGARCH_INS_B,
+        LOONGARCH_INS_BL,
+        LOONGARCH_INS_JIRL,
+        LOONGARCH_INS_ALIAS_JR,
+    },
 }
 
 # See: https://github.com/capstone-engine/capstone/issues/2448
