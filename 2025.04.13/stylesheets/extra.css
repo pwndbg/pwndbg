@@ -1,0 +1,87 @@
+@font-face {
+	font-family:'FiraCode-Regular';
+	src: url('https://github.com/bollwyvl/firacode-webfont/raw/master/FiraCode-Regular.eot');
+	src: url('https://github.com/bollwyvl/firacode-webfont/raw/master/FiraCode-Regular.eot?#iefix') format('embedded-opentype'),
+		url('https://github.com/bollwyvl/firacode-webfont/raw/master/FiraCode-Regular.woff') format('woff'),
+		url('https://github.com/bollwyvl/firacode-webfont/raw/master/FiraCode-Regular.ttf') format('truetype'),
+		url('https://github.com/bollwyvl/firacode-webfont/raw/master/FiraCode-Regular.svg#FiraCode-Regular') format('svg');
+	font-weight: 400;
+	font-style: normal;
+	font-stretch: normal;
+	unicode-range: U+000D-1F310;
+}
+
+:root > * {
+  --md-code-bg-color: hsla(var(--md-hue), 45%, 16%, 1);
+
+  --amazon-orange: #ff9900;
+  --amazon-squid-ink: #232f3e;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-hue: 266; /* [0, 360] */
+  --md-default-bg-color: hsla(var(--md-hue), 27.8%, 7.1%, 1);
+  --md-footer-bg-color--dark: hsla(var(--md-hue), 50%, 14%, 1);
+}
+
+[data-md-color-primary="black"] .md-tabs,
+[data-md-color-primary="black"] .md-header {
+  background-color: hsla(var(--md-hue), 50%, 14%, 1);
+}
+
+code,
+pre,
+kbd {
+  font-family: Monaco, Menlo, Consolas, "Courier Prime", Courier, "Courier New",
+    monospace;
+  box-shadow: var(--md-shadow-z2);
+}
+
+:root > * {
+  --md-code-link-bg-color: hsla(0, 0%, 96%, 1);
+  --md-code-link-accent-bg-color: var(--md-code-link-bg-color);
+  --md-default-bg-color--trans: rgb(100%, 100%, 100%, 0);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-code-link-bg-color: hsla(232, 15%, 15%, 1);
+  --md-code-link-accent-bg-color: var(--md-code-link-bg-color);
+  --md-code-special-bg-color: #21242e;
+  --md-default-bg-color--trans: hsla(232, 15%, 15%, 0);
+  --md-typeset-kbd-color: var(--md-default-fg-color--lightest);
+  --md-typeset-kbd-border-color: #2e303e;
+  --md-typeset-kbd-accent-color: var(--md-default-fg-color--lighter);
+}
+
+.md-typeset .highlight span.filename {
+  position: relative;
+  display: block;
+  margin-top: 1em;
+  padding: px2em(8px) px2em(16px, 13.6px) px2em(8px) px2em(40px, 13.6px);
+  font-weight: 700;
+  font-size: px2rem(13.6px);
+  background-color: var(--md-code-title-bg-color);
+  border-top-left-radius: px2rem(2px);
+  border-top-right-radius: px2rem(2px);
+}
+
+[data-linenos]:before {
+  content: attr(data-linenos);
+}
+
+.md-footer {
+  background-color: hsla(var(--md-hue), 40%, 9%, 1);
+}
+
+.md-footer nav {
+  padding-bottom: 100px;
+}
+
+.md-content {
+  padding-bottom:30vh;
+}
+
+label.md-nav__link {
+  background: var(--md-code-bg-color);
+  padding: 5px;
+}
