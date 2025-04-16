@@ -18,6 +18,10 @@ from capstone.aarch64 import AARCH64_INS_BLR
 from capstone.aarch64 import AARCH64_INS_BR
 from capstone.arm import ARM_INS_TBB
 from capstone.arm import ARM_INS_TBH
+from capstone.loongarch import LOONGARCH_INS_ALIAS_JR
+from capstone.loongarch import LOONGARCH_INS_B
+from capstone.loongarch import LOONGARCH_INS_BL
+from capstone.loongarch import LOONGARCH_INS_JIRL
 from capstone.mips import MIPS_INS_ALIAS_B
 from capstone.mips import MIPS_INS_ALIAS_BAL
 from capstone.mips import MIPS_INS_B
@@ -43,10 +47,6 @@ from capstone.sparc import SPARC_INS_JMPL
 from capstone.systemz import SYSTEMZ_INS_B
 from capstone.systemz import SYSTEMZ_INS_BAL
 from capstone.systemz import SYSTEMZ_INS_BALR
-from capstone.loongarch import LOONGARCH_INS_B
-from capstone.loongarch import LOONGARCH_INS_BL
-from capstone.loongarch import LOONGARCH_INS_JIRL
-from capstone.loongarch import LOONGARCH_INS_ALIAS_JR
 from capstone.x86 import X86_INS_JMP
 from capstone.x86 import X86Op
 from typing_extensions import override
