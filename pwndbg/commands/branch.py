@@ -25,8 +25,11 @@ class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
         self.taken = taken
 
     def should_stop(self):
-        # The enhancement process has figured out if all the conditions this
-        # branch requires in order to be taken have been met.
+        # We need to re-run the enhancement process, since now the PC == instruction.address,
+        # where previously it was not. The enhancement process will figure out if all the conditions
+        # this branch requires in order to be taken have been met.
+        assistant = pwndbg.aglib.disasm.arch.get_disassembly_assistant_for_current_arch()
+        assistant.enhance(self.instruction)
         condition_met = self.instruction.is_conditional_jump_taken
 
         return condition_met == self.taken
