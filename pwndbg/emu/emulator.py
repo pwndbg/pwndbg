@@ -233,7 +233,7 @@ class Emulator:
 
         if enable_virtual_tlb.get(self.arch, False):
             debug(DEBUG_INIT, "# Setting TLB mode to virtual")
-            self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)
+            self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
 
         self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
 
