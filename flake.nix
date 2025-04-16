@@ -92,7 +92,7 @@
           overlays = [
             (final: prev: {
               pwndbg_gdb = prev.gdb;
-              pwndbg_lldb = prev.lldb_19;
+              pwndbg_lldb = prev.lldb_20;
               libffi_portable = null;
             })
             (
