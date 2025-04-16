@@ -165,7 +165,7 @@ For coredump debugging, GDB also lacks all vmmap info but we do our best to get 
 
 As a last resort, we sometimes try to explore the addresses in CPU registers and if they are readable by GDB, we determine their bounds and create an "<explored>" vmmap. However, this method is slow and is not used on each GDB stop.
 
-Memory pages can also be added manually with the use of vmmap_add, vmmap_clear and vmmap_load commands. This may be useful for bare metal debugging.
+Memory pages can also be added manually with the use of vmmap-add, vmmap-clear and vmmap-load commands. This may be useful for bare metal debugging.
 
 [0] https://lore.kernel.org/all/20220221030910.3203063-1-dominik.b.czarnota@gmail.com/""",
 )
