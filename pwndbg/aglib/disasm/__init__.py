@@ -46,7 +46,7 @@ CapstoneArch = {
     "sparc": CS_ARCH_SPARC,
     "rv32": CS_ARCH_RISCV,
     "rv64": CS_ARCH_RISCV,
-    "s390x": CS_ARCH_SYSZ,
+    "s390x": CS_ARCH_SYSTEMZ,
 }
 
 CapstoneEndian = {
