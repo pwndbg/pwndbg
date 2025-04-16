@@ -161,8 +161,8 @@ async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController):
 
     while (
         pwndbg.aglib.proc.alive
-        and not (await pwndbg.aglib.next.break_next_interrupt(ec))
-        and (await pwndbg.aglib.next.break_next_branch(ec))
+        and not (await pwndbg.aglib.next.break_next_interrupt(ec, honor_current_branch=True))
+        and (await pwndbg.aglib.next.break_next_branch(ec, including_current=True))
     ):
         # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
         # We need to step so that we take this branch instead of ignoring it
