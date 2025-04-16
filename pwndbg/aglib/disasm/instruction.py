@@ -142,6 +142,8 @@ CAPSTONE_ARCH_MAPPING_STRING = {
     CS_ARCH_MIPS: "mips",
     CS_ARCH_SPARC: "sparc",
     CS_ARCH_RISCV: "RISCV",
+    CS_ARCH_SYSTEMZ: "s390x",
+    CS_ARCH_LOONGARCH: "loongarch",
 }
 
 
