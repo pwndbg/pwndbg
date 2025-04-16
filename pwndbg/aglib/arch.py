@@ -6,17 +6,20 @@ from typing import Literal
 from typing import Tuple
 
 import pwnlib
+from capstone import CS_ARCH_AARCH64
 from capstone import CS_ARCH_ARM
-from capstone import CS_ARCH_ARM64
+from capstone import CS_ARCH_LOONGARCH
 from capstone import CS_ARCH_MIPS
 from capstone import CS_ARCH_PPC
 from capstone import CS_ARCH_RISCV
 from capstone import CS_ARCH_SPARC
+from capstone import CS_ARCH_SYSTEMZ
 from capstone import CS_ARCH_X86
 from capstone import CS_MODE_16
 from capstone import CS_MODE_32
 from capstone import CS_MODE_64
 from capstone import CS_MODE_ARM
+from capstone import CS_MODE_LOONGARCH64
 from capstone import CS_MODE_MCLASS
 from capstone import CS_MODE_MIPS32
 from capstone import CS_MODE_MIPS32R6
@@ -236,7 +239,7 @@ class AArch64Arch(PwndbgArchitecture):
         super().__init__("aarch64")
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
-        return (CS_ARCH_ARM64, CS_MODE_ARM)
+        return (CS_ARCH_AARCH64, CS_MODE_ARM)
 
 
 class PowerPCArch(PwndbgArchitecture):
@@ -289,6 +292,22 @@ class MipsArch(PwndbgArchitecture):
         return (CS_ARCH_MIPS, extra)
 
 
+class Loongarch64Arch(PwndbgArchitecture):
+    def __init__(self) -> None:
+        super().__init__("loongarch64")
+
+    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+        return (CS_ARCH_LOONGARCH, CS_MODE_LOONGARCH64)
+
+
+class S390xArch(PwndbgArchitecture):
+    def __init__(self) -> None:
+        super().__init__("s390x")
+
+    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+        return (CS_ARCH_SYSTEMZ, 0)
+
+
 # Register the architecture classes
 all_arches = [
     AMD64Arch(),
@@ -302,6 +321,8 @@ all_arches = [
     RISCV32Arch(),
     RISCV64Arch(),
     MipsArch(),
+    Loongarch64Arch(),
+    S390xArch(),
 ]
 
 for arch in all_arches:
