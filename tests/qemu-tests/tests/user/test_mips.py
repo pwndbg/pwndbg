@@ -100,10 +100,10 @@ def test_mips32_bnez_instruction(qemu_assembly_run):
     """
     qemu_assembly_run(MIPS_BNEZ, "mips")
 
-    dis = gdb.execute("context disasm", to_string=True)
-    dis = pwndbg.color.strip(dis)
+    dis_1 = gdb.execute("context disasm", to_string=True)
+    dis_1 = pwndbg.color.strip(dis_1)
 
-    expected = (
+    expected_1 = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
         " ► 0x10000000 <_start>      addiu  $t0, $zero, 0xa     T0 => 10 (0x0 + 0xa)\n"
@@ -120,15 +120,15 @@ def test_mips32_bnez_instruction(qemu_assembly_run):
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
-    assert dis == expected
+    assert dis_1 == expected_1
 
     gdb.execute("set emulate off")
-    no_emulate_dis = gdb.execute("context disasm", to_string=True)
-    no_emulate_dis = pwndbg.color.strip(no_emulate_dis)
+    no_emulate_dis_2 = gdb.execute("context disasm", to_string=True)
+    no_emulate_dis_2 = pwndbg.color.strip(no_emulate_dis_2)
 
     # Without emulation, we cannot determine whether or not we take the branch yet
     # So the disasm output should just contain the instructions linearly in memory
-    expected = (
+    expected_2 = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────────[ DISASM / mips / set emulate off ]───────────────────────\n"
         " ► 0x10000000 <_start>       addiu  $t0, $zero, 0xa     T0 => 0x0 + 0xa\n"
@@ -145,15 +145,15 @@ def test_mips32_bnez_instruction(qemu_assembly_run):
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
-    assert no_emulate_dis == expected
+    assert no_emulate_dis_2 == expected_2
 
     # Once we are on the instruction, the branch target should be manually determined
     gdb.execute("si")
 
-    no_emulate_dis = gdb.execute("context disasm", to_string=True)
-    no_emulate_dis = pwndbg.color.strip(no_emulate_dis)
+    no_emulate_dis_3 = gdb.execute("context disasm", to_string=True)
+    no_emulate_dis_3 = pwndbg.color.strip(no_emulate_dis_3)
 
-    expected = (
+    expected_3 = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────────[ DISASM / mips / set emulate off ]───────────────────────\n"
         "   0x10000000 <_start>      addiu  $t0, $zero, 0xa     T0 => 0x0 + 0xa\n"
@@ -170,7 +170,7 @@ def test_mips32_bnez_instruction(qemu_assembly_run):
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
-    assert no_emulate_dis == expected
+    assert no_emulate_dis_3 == expected_3
 
 
 MIPS_CALL = f"""
@@ -282,13 +282,13 @@ def test_mips32_store_instruction(qemu_assembly_run):
         "   0x10000004 <_start+4>     ori    $t0, $t0, 0x5678     T0 => 0x12345678 (0x12340000 | 0x5678)\n"
         "   0x10000008 <_start+8>     lui    $s0, 0x40            S0 => 0x400000\n"
         "   0x1000000c <_start+12>    addiu  $s0, $s0, 0x1130     S0 => 0x401130 (value1) (0x400000 + 0x1130)\n"
-        "   0x10000010 <_start+16>    sw     $t0, ($s0)           [value1] <= 0x12345678\n"
+        "   0x10000010 <_start+16>    sw     $t0, 0($s0)          [value1] <= 0x12345678\n"
         "   0x10000014 <_start+20>    lui    $s1, 0x40            S1 => 0x400000\n"
         "   0x10000018 <_start+24>    addiu  $s1, $s1, 0x1134     S1 => 0x401134 (value2) (0x400000 + 0x1134)\n"
-        "   0x1000001c <_start+28>    sh     $t0, ($s1)           [value2] <= 0x5678\n"
+        "   0x1000001c <_start+28>    sh     $t0, 0($s1)          [value2] <= 0x5678\n"
         "   0x10000020 <_start+32>    lui    $s2, 0x40            S2 => 0x400000\n"
         "   0x10000024 <_start+36>    addiu  $s2, $s2, 0x1136     S2 => 0x401136 (value3) (0x400000 + 0x1136)\n"
-        "   0x10000028 <_start+40>    sb     $t0, ($s2)           [value3] <= 0x78\n"
+        "   0x10000028 <_start+40>    sb     $t0, 0($s2)          [value3] <= 0x78\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -347,12 +347,12 @@ def test_mips32_load_instructions(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
-        " ► 0x10000038 <loads>       lw     $t1, ($s0)     T1, [value1] => 0xffffffff\n"
-        "   0x1000003c <loads+4>     lhu    $t2, ($s1)     T2, [value2] => 0xffff\n"
-        "   0x10000040 <loads+8>     lbu    $t3, ($s2)     T3, [value3] => 0xff\n"
-        "   0x10000044 <loads+12>    lw     $t4, ($s0)     T4, [value1] => 0xffffffff\n"
-        "   0x10000048 <loads+16>    lh     $t5, ($s1)     T5, [value2] => 0xffffffff\n"
-        "   0x1000004c <loads+20>    lb     $t6, ($s2)     T6, [value3] => 0xffffffff\n"
+        " ► 0x10000038 <loads>       lw     $t1, 0($s0)     T1, [value1] => 0xffffffff\n"
+        "   0x1000003c <loads+4>     lhu    $t2, 0($s1)     T2, [value2] => 0xffff\n"
+        "   0x10000040 <loads+8>     lbu    $t3, 0($s2)     T3, [value3] => 0xff\n"
+        "   0x10000044 <loads+12>    lw     $t4, 0($s0)     T4, [value1] => 0xffffffff\n"
+        "   0x10000048 <loads+16>    lh     $t5, 0($s1)     T5, [value2] => 0xffffffff\n"
+        "   0x1000004c <loads+20>    lb     $t6, 0($s2)     T6, [value3] => 0xffffffff\n"
         "\n"
         "\n"
         "\n"

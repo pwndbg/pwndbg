@@ -103,13 +103,9 @@ data:
 
 def test_riscv64_compressed_loads(qemu_assembly_run):
     """
-    RISC-V support in Capstone is fairly new, and as of Capstone 5, there are some inconsistenties, and the underlying
-    metadata of the instructions can change between versions.
+    RISC-V support in Capstone is fairly new, and the underlying metadata of the instructions can change between versions.
 
-    Currently, compressed load and stores operations have a memory operand representation that is subject to change in Capstone v6.
-
-    If this crashes, it is we likely need to update the parser for compressed memory operands.
-    - Link: https://github.com/capstone-engine/capstone/issues/2351
+    This test ensures that we properly handle compressed load and stores instruction, as the data representation changed between v5 and v6.
     """
     qemu_assembly_run(RISCV64_COMPRESSED_LOAD_STORE, "riscv64")
 

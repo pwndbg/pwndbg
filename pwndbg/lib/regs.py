@@ -5,6 +5,7 @@ standardized interface to registers like "sp" and "pc".
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Dict
 from typing import Iterator
 from typing import List
@@ -16,6 +17,16 @@ from typing import Union
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 BitFlags = OrderedDict[str, Union[int, Tuple[int, int]]]
+
+
+@dataclass
+class EmulatedRegister:
+    """
+    Represent a register to write to the Unicorn emulator.
+    """
+
+    name: str
+    force_write: bool
 
 
 class RegisterSet:
@@ -87,11 +98,12 @@ class RegisterSet:
         # we must write the flags register after PC, and the stack pointer after the flags register.
         # Otherwise, the values will be clobbered
         # https://github.com/pwndbg/pwndbg/pull/2337
-        self.emulated_regs_order: List[str] = []
+        self.emulated_regs_order: List[EmulatedRegister] = []
 
         for reg in [pc] + list(flags) + [stack, frame] + list(retaddr) + list(misc) + list(gpr):
             if reg and reg not in self.emulated_regs_order:
-                self.emulated_regs_order.append(reg)
+                emu_reg = EmulatedRegister(reg, True if reg in flags else False)
+                self.emulated_regs_order.append(emu_reg)
 
         self.all = set(misc) | set(flags) | set(extra_flags) | set(self.retaddr) | set(self.common)
         self.all -= {None}
@@ -668,6 +680,46 @@ loongarch64 = RegisterSet(
     misc=("tp", "r21"),
 )
 
+# https://refspecs.linuxfoundation.org/ELF/zSeries/lzsabi0_zSeries/x410.html
+# Register name | Usage                          | Call effect
+# --------------|--------------------------------|----------------
+# r0            | General purpose               | Volatile
+# r1            | General purpose               | Volatile
+# r2            | Parameter passing and return  | Volatile
+# r3, r4, r5    | Parameter passing             | Volatile
+# r6            | Parameter passing             | Saved
+# r7 - r11      | Local variables               | Saved
+# r12           | Local variable, commonly used | Saved
+#               | as GOT pointer                |
+# r13           | Local variable, commonly used | Saved
+#               | as Literal Pool pointer       |
+# r14           | Return address                | Volatile
+# r15           | Stack pointer                 | Saved
+s390x = RegisterSet(
+    pc="pc",
+    retaddr=("r14",),
+    stack="r15",
+    flags={"pswm": BitFlags()},
+    gpr=(
+        "r0",
+        "r1",
+        "r2",
+        "r3",
+        "r4",
+        "r5",
+        "r6",
+        "r7",
+        "r8",
+        "r9",
+        "r10",
+        "r11",
+        "r12",
+        "r13",
+    ),
+    args=("r2", "r3", "r4", "r5", "r6"),
+    retval="r2",
+)
+
 reg_sets: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "i386": i386,
     "i8086": i386,
@@ -681,4 +733,5 @@ reg_sets: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, RegisterSet] = {
     "aarch64": aarch64,
     "powerpc": powerpc,
     "loongarch64": loongarch64,
+    "s390x": s390x,
 }

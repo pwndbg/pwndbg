@@ -5,6 +5,7 @@ def to_signed(unsigned: int, bit_width: int):
     """
     Returns the signed number associated with the two's-complement binary representation of `unsigned`
     """
+    unsigned = unsigned & ((1 << bit_width) - 1)
     extract_bit = 1 << (bit_width - 1)
     return unsigned - ((unsigned & extract_bit) << 1)
 

@@ -214,6 +214,8 @@ class DisassemblyAssistant:
             pwndbg.aglib.arch.name, generic_assistant
         )
 
+        enhancer._prepare(instruction, emu)
+
         # Don't disable emulation yet, as we can use it to read the syscall register
         enhancer._enhance_syscall(instruction, emu)
 
@@ -258,6 +260,10 @@ class DisassemblyAssistant:
         if DEBUG_ENHANCEMENT:
             print(enhancer.dump(instruction))
             print("Done enhancing")
+
+    # This is run before enhancement - often used to handle edge case behavior
+    def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
+        return None
 
     # Subclasses for specific architecture should override this
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -317,7 +323,11 @@ class DisassemblyAssistant:
                     op.before_value, instruction, op, emu
                 )
 
-                if op.symbol and op.type == CS_OP_IMM and pwndbg.config.disasm_inline_symbols:
+                if (
+                    op.symbol
+                    and op.type in (CS_OP_IMM, CS_OP_MEM)
+                    and pwndbg.config.disasm_inline_symbols
+                ):
                     # Make an inline replacement, so `jmp 0x400122` becomes `jmp function_name`
                     instruction.asm_string = instruction.asm_string.replace(
                         hex(op.before_value), op.symbol

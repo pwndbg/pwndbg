@@ -55,6 +55,7 @@ gdb_architecture_name_fixup_list = (
     "riscv:rv64",
     "riscv",
     "loongarch64",
+    "s390:64-bit",
 )
 
 
@@ -762,6 +763,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 elif match == "rs6000":
                     # The RS/6000 architecture is compatible with the PowerPC common
                     match = "powerpc"
+                elif match == "s390:64-bit":
+                    match = "s390x"
                 return GDBArch(endian, match, ptrsize)  # type: ignore[arg-type]
 
         if not_exactly_arch:

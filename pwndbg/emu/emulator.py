@@ -14,7 +14,6 @@ from typing import Tuple
 
 import capstone as C
 import unicorn as U
-import unicorn.riscv_const
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
@@ -91,6 +90,7 @@ arch_to_UC = {
     # 'powerpc': U.UC_ARCH_PPC,
     "rv32": U.UC_ARCH_RISCV,
     "rv64": U.UC_ARCH_RISCV,
+    "s390x": U.UC_ARCH_S390X,
 }
 
 # Architecture specific maps: Map<"UC_*_REG_*",constant>
@@ -104,6 +104,7 @@ arch_to_UC_consts = {
     "aarch64": parse_consts(U.arm64_const),
     "rv32": parse_consts(U.riscv_const),
     "rv64": parse_consts(U.riscv_const),
+    "s390x": parse_consts(U.s390x_const),
 }
 
 # Architecture specific maps: Map<reg_name, Unicorn constant>
@@ -122,8 +123,13 @@ arch_to_reg_const_map = {
     ),
     "rv32": create_reg_to_const_map(arch_to_UC_consts["rv32"]),
     "rv64": create_reg_to_const_map(arch_to_UC_consts["rv64"]),
+    "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
 }
 
+# Architectures for which we want to enable virtual TLB mode
+enable_virtual_tlb = {
+    "s390x": True,
+}
 
 # combine the flags with | operator. -1 for all
 (
@@ -173,7 +179,7 @@ arch_to_SYSCALL = {
     U.UC_ARCH_MIPS: [C.mips_const.MIPS_INS_SYSCALL],
     U.UC_ARCH_SPARC: [C.sparc_const.SPARC_INS_T],
     U.UC_ARCH_ARM: [C.arm_const.ARM_INS_SVC],
-    U.UC_ARCH_ARM64: [C.arm64_const.ARM64_INS_SVC],
+    U.UC_ARCH_ARM64: [C.aarch64_const.AARCH64_INS_SVC],
     U.UC_ARCH_PPC: [C.ppc_const.PPC_INS_SC],
     U.UC_ARCH_RISCV: [C.riscv_const.RISCV_INS_ECALL],
 }
@@ -190,7 +196,7 @@ BANNED_INSTRUCTIONS = {
     "mips": {C.mips.MIPS_INS_RDHWR},
     "arm": ARM_BANNED_INSTRUCTIONS,
     "armcm": ARM_BANNED_INSTRUCTIONS,
-    "aarch64": {C.arm64.ARM64_INS_MRS},
+    "aarch64": {C.aarch64.AARCH64_INS_MRS},
 }
 
 # https://github.com/unicorn-engine/unicorn/issues/550
@@ -224,6 +230,10 @@ class Emulator:
         debug(DEBUG_INIT, "uc = U.Uc(%r, %r)", (arch_to_UC[self.arch], self.uc_mode))
         self.uc = U.Uc(arch_to_UC[self.arch], self.uc_mode)
 
+        if enable_virtual_tlb.get(self.arch, False):
+            debug(DEBUG_INIT, "# Setting TLB mode to virtual")
+            self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
+
         self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
 
         # Whether the emulator is allowed to emulate instructions
@@ -243,7 +253,8 @@ class Emulator:
         self.last_single_step_result = InstructionExecutedResult(None, None)
 
         # Initialize the register state
-        for reg in self.regs.emulated_regs_order:
+        for emu_reg in self.regs.emulated_regs_order:
+            reg = emu_reg.name
             enum = self.get_reg_enum(reg)
 
             if not reg:
@@ -259,8 +270,9 @@ class Emulator:
                     debug(DEBUG_INIT, "# Could not set register %r", reg)
                 continue
 
-            # All registers are initialized to zero.
-            if value == 0:
+            # Most registers are initialized to zero.
+            # However, some registers (CPSR on AArch64) do not default to zero, so we must explicitly set them to 0
+            if not emu_reg.force_write and value == 0:
                 continue
 
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
@@ -592,6 +604,8 @@ class Emulator:
             and "isa32r6" in gdb.newest_frame().architecture().name()
         ):
             mode |= U.UC_MODE_MIPS32R6
+        elif arch == "s390x":
+            pass  # fails with invalid mode error otherwise
         else:
             mode |= {4: U.UC_MODE_32, 8: U.UC_MODE_64}[pwndbg.aglib.arch.ptrsize]
 

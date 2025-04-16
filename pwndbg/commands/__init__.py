@@ -454,7 +454,7 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
             )
         else:
             w(
-                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap_config` command output and set the config for `{err.symbol}`."
+                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap-config` command output and set the config for `{err.symbol}`."
             )
         if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
             raise err
@@ -464,7 +464,7 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
         e(f"{func_name(function)}: An unknown error occurred when running this command.")
         if isinstance(pwndbg.aglib.heap.current, HeuristicHeap):
             w(
-                "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
+                "Maybe you can try to determine the libc symbols addresses manually, set them appropriately and re-run this command. For this, see the `heap-config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses."
             )
         else:
             w("You can try `set resolve-heap-via-heuristic force` and re-run this command.\n")

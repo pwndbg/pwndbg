@@ -48,14 +48,14 @@ def test_arm_simple_branch(qemu_assembly_run):
         " ► 0x10000000 <_start>         mov    r2, #5       R2 => 5\n"
         "   0x10000004 <_start+4>       mov    r1, #0xa     R1 => 0xa\n"
         "   0x10000008 <_start+8>       cmp    r0, r1       0x0 - 0xa     CPSR => 0x80000010 [ N z c v q j t e a i f ]\n"
-        "   0x1000000c <_start+12>    ✔ bne    #not_equal                  <not_equal>\n"
+        "   0x1000000c <_start+12>    ✔ bne    not_equal                   <not_equal>\n"
         "    ↓\n"
         "   0x10000018 <not_equal>      mov    r3, #1       R3 => 1\n"
         "   0x1000001c <not_equal+4>    cmp    r1, r3       0xa - 0x1     CPSR => 0x20000010 [ n z C v q j t e a i f ]\n"
-        "   0x10000020 <not_equal+8>  ✔ bgt    #greater                    <greater>\n"
+        "   0x10000020 <not_equal+8>  ✔ bgt    greater                     <greater>\n"
         "    ↓\n"
         "   0x1000002c <greater>        cmp    r3, r1       0x1 - 0xa     CPSR => 0x80000010 [ N z c v q j t e a i f ]\n"
-        "   0x10000030 <greater+4>    ✔ bls    #end                        <end>\n"
+        "   0x10000030 <greater+4>    ✔ bls    end                         <end>\n"
         "    ↓\n"
         "   0x1000003c <end>            mov    r0, #0        R0 => 0\n"
         "   0x10000040 <end+4>          mov    r7, #0xf8     R7 => 0xf8\n"
@@ -71,14 +71,14 @@ def test_arm_simple_branch(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
-        "   0x1000000c <_start+12>    ✔ bne    #not_equal                  <not_equal>\n"
+        "   0x1000000c <_start+12>    ✔ bne    not_equal                   <not_equal>\n"
         "    ↓\n"
         "   0x10000018 <not_equal>      mov    r3, #1       R3 => 1\n"
         "   0x1000001c <not_equal+4>    cmp    r1, r3       0xa - 0x1     CPSR => 0x20000010 [ n z C v q j t e a i f ]\n"
-        "   0x10000020 <not_equal+8>  ✔ bgt    #greater                    <greater>\n"
+        "   0x10000020 <not_equal+8>  ✔ bgt    greater                     <greater>\n"
         "    ↓\n"
         "   0x1000002c <greater>        cmp    r3, r1       0x1 - 0xa     CPSR => 0x80000010 [ N z c v q j t e a i f ]\n"
-        " ► 0x10000030 <greater+4>    ✔ bls    #end                        <end>\n"
+        " ► 0x10000030 <greater+4>    ✔ bls    end                         <end>\n"
         "    ↓\n"
         "   0x1000003c <end>            mov    r0, #0                  R0 => 0\n"
         "   0x10000040 <end+4>          mov    r7, #0xf8               R7 => 0xf8\n"
@@ -419,7 +419,7 @@ def test_arm_cmp_instructions(qemu_assembly_run):
         " ► 0x10000000 <_start>       mov    r0, #5     R0 => 5\n"
         "   0x10000004 <_start+4>     mov    r1, #5     R1 => 5\n"
         "   0x10000008 <_start+8>     cmp    r0, r1     5 - 5     CPSR => 0x60000010 [ n Z C v q j t e a i f ]\n"
-        "   0x1000000c <_start+12>  ✔ beq    #end                        <end>\n"
+        "   0x1000000c <_start+12>  ✔ beq    end                         <end>\n"
         "    ↓\n"
         "   0x1000001c <end>          mov    r0, #0                  R0 => 0\n"
         "   0x10000020 <end+4>        mov    r7, #0xf8               R7 => 0xf8\n"
@@ -467,7 +467,7 @@ def test_arm_call_instructions(qemu_assembly_run):
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
         " ► 0x10000000 <_start>       nop    \n"
-        "   0x10000004 <_start+4>     bl     #func                       <func>\n"
+        "   0x10000004 <_start+4>     bl     func                        <func>\n"
         " \n"
         "   0x10000008 <_start+8>     nop    \n"
         "   0x1000000c <_start+12>    nop    \n"
@@ -536,21 +536,21 @@ def test_arm_exclusive_store(qemu_assembly_run):
 
 
 ARM_SHIFTS = """
-MOV r0, #0xF000
-LSR r1, r0, #4
-MOV r2, #2
-LSR r3, r0, r2
-MOV r4, #0x1234
-LSL r5, r4, #8
+MOV r0, #3
+MOV r1, #0xF000
+MOV r2, #0x1234
+LSR r3, r1, #4
+LSR r4, r1, r0
+LSL r5, r4, #4
 LSL r6, r4, r2
-nop
-nop
-nop
-nop
+ASR r6, r4, #4
+ASR r6, r4, r0
+ROR r6, r4, #4
+ROR r6, r4, r0
 """
 
 
-def test_logical_shifts(qemu_assembly_run):
+def test_arm_logical_shifts(qemu_assembly_run):
     """
     Shifts have a different underlying Capstone representation if it's an constant or a register offset.
     This test ensures we handle both cases.
@@ -562,13 +562,118 @@ def test_logical_shifts(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
-        " ► 0x10000000 <_start>       mov    r0, #0xf000     R0 => 0xf000\n"
-        "   0x10000004 <_start+4>     lsr    r1, r0, #4      R1 => 0xf00 (0xf000 >> 0x4)\n"
-        "   0x10000008 <_start+8>     mov    r2, #2          R2 => 2\n"
-        "   0x1000000c <_start+12>    lsr    r3, r0, r2      R3 => 0x3c00 (0xf000 >> 0x2)\n"
-        "   0x10000010 <_start+16>    movw   r4, #0x1234     R4 => 0x1234\n"
-        "   0x10000014 <_start+20>    lsl    r5, r4, #8      R5 => 0x123400 (0x1234 << 0x8)\n"
-        "   0x10000018 <_start+24>    lsl    r6, r4, r2      R6 => 0x48d0 (0x1234 << 0x2)\n"
+        " ► 0x10000000 <_start>       mov    r0, #3          R0 => 3\n"
+        "   0x10000004 <_start+4>     mov    r1, #0xf000     R1 => 0xf000\n"
+        "   0x10000008 <_start+8>     movw   r2, #0x1234     R2 => 0x1234\n"
+        "   0x1000000c <_start+12>    lsr    r3, r1, #4      R3 => 0xf00 (0xf000 >> 0x4)\n"
+        "   0x10000010 <_start+16>    lsr    r4, r1, r0      R4 => 0x1e00 (0xf000 >> 0x3)\n"
+        "   0x10000014 <_start+20>    lsl    r5, r4, #4      R5 => 0x1e000 (0x1e00 << 0x4)\n"
+        "   0x10000018 <_start+24>    lsl    r6, r4, r2      R6 => 0 (0x1e00 << 0x1234)\n"
+        "   0x1000001c <_start+28>    asr    r6, r4, #4      R6 => 0x1e0 (0x1e00 >>s 0x4)\n"
+        "   0x10000020 <_start+32>    asr    r6, r4, r0      R6 => 0x3c0 (0x1e00 >>s 0x3)\n"
+        "   0x10000024 <_start+36>    ror    r6, r4, #4      R6 => 0x1e0 (0x1e00 >>r 0x4)\n"
+        "   0x10000028 <_start+40>    ror    r6, r4, r0      R6 => 0x3c0 (0x1e00 >>r 0x3)\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+NEGATIVE_DISPONENTS = r"""
+LDR r1, =msg
+ADD r1, 4
+LDR r0, [r1, #-4]
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+
+
+.data
+msg:
+    .asciz "ABCDEFGHIJKLMNOPQRSTUVWXYZ!"
+"""
+
+
+def test_arm_negative_disponent(qemu_assembly_run):
+    """
+    Negative disponents are now represented by a positive offset and a flag that indicates it should be subtracted.
+    This representation changed in CapstoneV6
+    """
+    qemu_assembly_run(NEGATIVE_DISPONENTS, "arm")
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x10000000 <_start>       ldr    r1, [pc, #0x24]     R1, [_start+44] => 0x11094 (msg) ◂— 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!'\n"
+        "   0x10000004 <_start+4>     add    r1, r1, #4          R1 => 0x11098 (msg+4) (0x11094 + 0x4)\n"
+        "   0x10000008 <_start+8>     ldr    r0, [r1, #-4]       R0, [msg] => 0x44434241 ('ABCD')\n"
+        "   0x1000000c <_start+12>    nop    \n"
+        "   0x10000010 <_start+16>    nop    \n"
+        "   0x10000014 <_start+20>    nop    \n"
+        "   0x10000018 <_start+24>    nop    \n"
+        "   0x1000001c <_start+28>    nop    \n"
+        "   0x10000020 <_start+32>    nop    \n"
+        "   0x10000024 <_start+36>    nop    \n"
+        "   0x10000028 <_start+40>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+NEGATIVE_INDEX_REGISTER = r"""
+LDR R1, =msg
+ADD r1, 4
+ADD r2, r1, 4
+
+MOV R3, #4
+MOV R4, #2
+
+LDR R5, [R1, -R3]
+LDR R6, [R2, -R4, LSL #2]
+
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+
+.data
+msg:
+    .asciz "ABCDEFGHIJKLMNOPQRSTUVWXYZ!"
+"""
+
+
+def test_arm_negative_index_register(qemu_assembly_run):
+    """
+    In the second LDR instruction above, the index register, R2, is negated.
+
+    This has a specific encoding that has changed in Capstone in the past, so we test to make sure we are handling it correctly.
+    """
+
+    qemu_assembly_run(NEGATIVE_INDEX_REGISTER, "arm")
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x10000000 <_start>       ldr    r1, [pc, #0x30]           R1, [_start+56] => 0x11094 (msg) ◂— 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!'\n"
+        "   0x10000004 <_start+4>     add    r1, r1, #4                R1 => 0x11098 (msg+4) (0x11094 + 0x4)\n"
+        "   0x10000008 <_start+8>     add    r2, r1, #4                R2 => 0x1109c (msg+8) (0x11098 + 0x4)\n"
+        "   0x1000000c <_start+12>    mov    r3, #4                    R3 => 4\n"
+        "   0x10000010 <_start+16>    mov    r4, #2                    R4 => 2\n"
+        "   0x10000014 <_start+20>    ldr    r5, [r1, -r3]             R5, [msg] => 0x44434241 ('ABCD')\n"
+        "   0x10000018 <_start+24>    ldr    r6, [r2, -r4, lsl #2]     R6, [msg] => 0x44434241 ('ABCD')\n"
         "   0x1000001c <_start+28>    nop    \n"
         "   0x10000020 <_start+32>    nop    \n"
         "   0x10000024 <_start+36>    nop    \n"

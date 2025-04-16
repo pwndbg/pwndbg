@@ -54,13 +54,13 @@ def test_aarch64_branch_enhancement(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
-        " ► 0x10000000 <_start>      bl     #my_function                <my_function>\n"
+        " ► 0x10000000 <_start>      bl     my_function                 <my_function>\n"
         "        x0:        0\n"
         "        x1:        0\n"
         "        x2:        0\n"
         "        x3:        0\n"
         " \n"
-        "   0x10000004 <_start+4>    b      #end                        <end>\n"
+        "   0x10000004 <_start+4>    b      end                         <end>\n"
         "    ↓\n"
         "   0x1000000c <end>         mov    x0, #0        X0 => 0\n"
         "   0x10000010 <end+4>       mov    x8, #0x5d     X8 => 0x5d\n"
@@ -77,7 +77,7 @@ def test_aarch64_branch_enhancement(qemu_assembly_run):
     assert dis == expected
 
     # Now, ensure the `b` instruction is set correctly.
-    gdb.execute("si")
+    gdb.execute("ni")
 
     instruction = pwndbg.aglib.disasm.one_with_config()
     assert not instruction.is_conditional_jump
@@ -178,19 +178,19 @@ def test_aarch64_conditional_jump_output(qemu_assembly_run):
         "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
         " ► 0x10000000 <_start>      mov    x2, #0xa     X2 => 0xa\n"
         "   0x10000004 <_start+4>    mov    x3, #0       X3 => 0\n"
-        "   0x10000008 <_start+8>  ✔ cbz    x3, #A                      <A>\n"
+        "   0x10000008 <_start+8>  ✔ cbz    x3, A                       <A>\n"
         "    ↓\n"
-        "   0x10000010 <A>         ✔ cbnz   x2, #B                      <B>\n"
+        "   0x10000010 <A>         ✔ cbnz   x2, B                       <B>\n"
         "    ↓\n"
-        "   0x10000018 <B>         ✔ tbz    w2, #0, #C                  <C>\n"
+        "   0x10000018 <B>         ✔ tbz    w2, #0, C                   <C>\n"
         "    ↓\n"
-        "   0x10000020 <C>         ✔ tbnz   w2, #3, #D                  <D>\n"
+        "   0x10000020 <C>         ✔ tbnz   w2, #3, D                   <D>\n"
         "    ↓\n"
         "   0x10000028 <D>           cmp    x2, x3       0xa - 0x0     CPSR => 0x20000000 [ n z C v q pan il d a i f el:0 sp ]\n"
-        "   0x1000002c <D+4>         b.eq   #E                          <E>\n"
+        "   0x1000002c <D+4>         b.eq   E                           <E>\n"
         " \n"
         "   0x10000030 <D+8>         nop    \n"
-        "   0x10000034 <E>         ✔ b.ne   #F                          <F>\n"
+        "   0x10000034 <E>         ✔ b.ne   F                           <F>\n"
         "    ↓\n"
         "   0x1000003c <F>           mov    x0, #0       X0 => 0\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
@@ -246,25 +246,23 @@ def test_conditional_jumps_no_emulate(qemu_assembly_run):
     test_aarch64_conditional_jumps(qemu_assembly_run)
 
 
-AARCH64_ASSEMBLY = """
+AARCH64_BINARY_OPERATIONS = """
 mov x0, 7
 mov x1, 563
-
 add x2, x0, x1
 sub x3, x1, x0
+adds x2, x0, x1
+subs x3, x1, x0
 and x4, x0, x1
 orr x5, x0, x1
 eor x6, x0, x1
-lsl x7, x0, 2
-lsr x8, x1, 2
 mul x10, x0, x1
 udiv x11, x1, x0
-
 """
 
 
 def test_aarch64_binary_operations(qemu_assembly_run):
-    qemu_assembly_run(AARCH64_ASSEMBLY, "aarch64")
+    qemu_assembly_run(AARCH64_BINARY_OPERATIONS, "aarch64")
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
@@ -276,11 +274,11 @@ def test_aarch64_binary_operations(qemu_assembly_run):
         "   0x10000004 <_start+4>     mov    x1, #0x233      X1 => 0x233\n"
         "   0x10000008 <_start+8>     add    x2, x0, x1      X2 => 0x23a (0x7 + 0x233)\n"
         "   0x1000000c <_start+12>    sub    x3, x1, x0      X3 => 0x22c (0x233 - 0x7)\n"
-        "   0x10000010 <_start+16>    and    x4, x0, x1      X4 => 3 (0x7 & 0x233)\n"
-        "   0x10000014 <_start+20>    orr    x5, x0, x1      X5 => 0x237 (0x7 & 0x233)\n"
-        "   0x10000018 <_start+24>    eor    x6, x0, x1      X6 => 0x234 (0x7 ^ 0x233)\n"
-        "   0x1000001c <_start+28>    lsl    x7, x0, #2      X7 => 28 (7 << 2)\n"
-        "   0x10000020 <_start+32>    lsr    x8, x1, #2      X8 => 140 (0x233 >> 0x2)\n"
+        "   0x10000010 <_start+16>    adds   x2, x0, x1      X2 => 0x23a (0x7 + 0x233)\n"
+        "   0x10000014 <_start+20>    subs   x3, x1, x0      X3 => 0x22c (0x233 - 0x7)\n"
+        "   0x10000018 <_start+24>    and    x4, x0, x1      X4 => 3 (0x7 & 0x233)\n"
+        "   0x1000001c <_start+28>    orr    x5, x0, x1      X5 => 0x237 (0x7 | 0x233)\n"
+        "   0x10000020 <_start+32>    eor    x6, x0, x1      X6 => 0x234 (0x7 ^ 0x233)\n"
         "   0x10000024 <_start+36>    mul    x10, x0, x1     X10 => 0xf65 (0x7 * 0x233)\n"
         "   0x10000028 <_start+40>    udiv   x11, x1, x0     X11 => 80 (0x233 / 0x7)\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
@@ -342,16 +340,16 @@ def test_aarch64_store_instructions(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
-        " ► 0x10000028 <stores>       ldr    x4, #stores+56     X4, 0x10000060 => 0x4010e8 (value1) ◂— 0\n"
-        "   0x1000002c <stores+4>     strb   w0, [x4]           [value1] <= 0xf0\n"
-        "   0x10000030 <stores+8>     ldr    x5, #stores+64     X5, 0x10000068 => 0x4010e9 (value2) ◂— 0\n"
-        "   0x10000034 <stores+12>    strh   w0, [x5]           [value2] <= 0xdef0\n"
-        "   0x10000038 <stores+16>    ldr    x6, #stores+72     X6, 0x10000070 => 0x4010eb (value4) ◂— 0\n"
-        "   0x1000003c <stores+20>    str    w0, [x6]           [value4] <= 0x9abcdef0\n"
-        "   0x10000040 <stores+24>    ldr    x7, #stores+80     X7, 0x10000078 => 0x4010ef (value8) ◂— 0\n"
-        "   0x10000044 <stores+28>    str    x0, [x7]           [value8] <= 0x123456789abcdef0\n"
-        "   0x10000048 <stores+32>    mov    x8, #0x5d          X8 => 0x5d\n"
-        "   0x1000004c <stores+36>    mov    x0, #0             X0 => 0\n"
+        " ► 0x10000028 <stores>       ldr    x4, stores+56     X4, [stores+56] => 0x4010e8 (value1) ◂— 0\n"
+        "   0x1000002c <stores+4>     strb   w0, [x4]          [value1] <= 0xf0\n"
+        "   0x10000030 <stores+8>     ldr    x5, stores+64     X5, [stores+64] => 0x4010e9 (value2) ◂— 0\n"
+        "   0x10000034 <stores+12>    strh   w0, [x5]          [value2] <= 0xdef0\n"
+        "   0x10000038 <stores+16>    ldr    x6, stores+72     X6, [stores+72] => 0x4010eb (value4) ◂— 0\n"
+        "   0x1000003c <stores+20>    str    w0, [x6]          [value4] <= 0x9abcdef0\n"
+        "   0x10000040 <stores+24>    ldr    x7, stores+80     X7, [stores+80] => 0x4010ef (value8) ◂— 0\n"
+        "   0x10000044 <stores+28>    str    x0, [x7]          [value8] <= 0x123456789abcdef0\n"
+        "   0x10000048 <stores+32>    mov    x8, #0x5d         X8 => 0x5d\n"
+        "   0x1000004c <stores+36>    mov    x0, #0            X0 => 0\n"
         "   0x10000050 <stores+40>    svc    #0 <SYS_exit>\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
@@ -426,6 +424,252 @@ def test_aarch64_load_instructions(qemu_assembly_run):
         "   0x10000044 <loads+32>    mov    x0, #0            X0 => 0\n"
         "   0x10000048 <loads+36>    svc    #0 <SYS_exit>\n"
         "   0x1000004c <loads+40>    udf    #0\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+CPSR_REGISTER_TEST = f"""
+mov x19, #8
+cmn x19, #8
+b.ne exit
+
+nop
+nop
+nop
+nop
+nop
+
+end:
+exit:
+{AARCH64_GRACEFUL_EXIT}
+"""
+
+
+def test_aarch64_write_cpsr_when_zero(qemu_assembly_run):
+    """
+    The purpose of this test is to ensure we writing our CPSR register to the Unicorn emulator always.
+
+    We have an optimization to not write registers with the value zero to the emulator. This conflicts with the flags register.
+    The CPSR register, by default, has the Z bit enabled, so the value is not 0. In this test, we do a comparison that sets the bit off,
+    making CPSR have the value of zero. If we don't write 0 to this register explicitly emulator, Unicorn will take the "default" value which has the Z bit enabled.
+    And therefore, the branch will be mispredicted.
+    """
+
+    qemu_assembly_run(CPSR_REGISTER_TEST, "aarch64")
+
+    # Warm up the instruction cache so when we step forward, we remember the earlier instructions
+    gdb.execute("context disasm")
+
+    gdb.execute("si")
+    gdb.execute("si")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
+        "   0x10000000 <_start>      mov    x19, #8     X19 => 8\n"
+        "   0x10000004 <_start+4>    cmn    x19, #8     8 + 8     CPSR => 0x0 [ n z c v q pan il d a i f el:0 sp ]\n"
+        " ► 0x10000008 <_start+8>  ✔ b.ne   exit                        <exit>\n"
+        "    ↓\n"
+        "   0x10000020 <exit>        mov    x0, #0            X0 => 0\n"
+        "   0x10000024 <exit+4>      mov    x8, #0x5d         X8 => 0x5d\n"
+        "   0x10000028 <exit+8>      svc    #0 <SYS_exit>\n"
+        "   0x1000002c               udf    #0\n"
+        "   0x10000030               udf    #0\n"
+        "   0x10000034               udf    #0\n"
+        "   0x10000038               udf    #0\n"
+        "   0x1000003c               udf    #0\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+AARCH64_MEMORY_OPERAND_TEST = rf"""
+LDR X1, =msg
+LDR W0, [X1], #4
+LDR W0, [X1, #4]
+MOV X3, #8
+LDR W4, [X1, X3]
+LDR W5, [X1, #-4]
+MOV X6, #-4
+LDR W7, [X1, X6]
+
+exit:
+{AARCH64_GRACEFUL_EXIT}
+
+data:
+.data
+msg:
+    .asciz "ABCDEFGHIJKLMNOPQRSTUVWXYZ!"
+"""
+
+
+def test_aarch64_memory_operands(qemu_assembly_run):
+    """
+    Testing LDR instructions with interseting operands:
+    - LDR a constant into a register
+    - Post-index offset
+    - Pre-index with constant/register
+    - Pre-index with negated constants/register
+    - Include shifts
+    """
+
+    qemu_assembly_run(AARCH64_MEMORY_OPERAND_TEST, "aarch64")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
+        " ► 0x10000000 <_start>       ldr    x1, data+4        X1, [data+4] => 0x4010e8 (msg) ◂— 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!'\n"
+        "   0x10000004 <_start+4>     ldr    w0, [x1], #4      W0, [msg] => 0x44434241\n"
+        "   0x10000008 <_start+8>     ldr    w0, [x1, #4]      W0, [msg+8] => 0x4c4b4a49\n"
+        "   0x1000000c <_start+12>    mov    x3, #8            X3 => 8\n"
+        "   0x10000010 <_start+16>    ldr    w4, [x1, x3]      W4, [msg+12] => 0x504f4e4d\n"
+        "   0x10000014 <_start+20>    ldur   w5, [x1, #-4]     W5, [msg] => 0x44434241\n"
+        "   0x10000018 <_start+24>    mov    x6, #-4           X6 => 0xfffffffffffffffc\n"
+        "   0x1000001c <_start+28>    ldr    w7, [x1, x6]      W7, [msg] => 0x44434241\n"
+        "   0x10000020 <exit>         mov    x0, #0            X0 => 0\n"
+        "   0x10000024 <exit+4>       mov    x8, #0x5d         X8 => 0x5d\n"
+        "   0x10000028 <exit+8>       svc    #0 <SYS_exit>\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+AARCH64_SHIFTS_AND_EXTENDS = r"""
+mov X1, 1
+mov X3, 8
+ADD X0, X1, X1, LSL 2
+ADD X0, X1, X3, LSR 2
+
+MOV W2, 0xFFFFFFFF
+ADD X0, X1, W2, SXTB
+ADD X0, X1, W2, UXTB
+
+ADD X0, X1, X2, ASR 2
+MOV X0, X1, ROR 2
+
+SXTB X2, w2
+ADD X0, X1, X2, ASR 2
+"""
+
+
+def test_aarch64_shifts_and_extends(qemu_assembly_run):
+    """
+    Ensure our logic in register shifts + extends are working correctly
+    """
+    qemu_assembly_run(AARCH64_SHIFTS_AND_EXTENDS, "aarch64")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
+        " ► 0x10000000 <_start>       mov    x1, #1                  X1 => 1\n"
+        "   0x10000004 <_start+4>     mov    x3, #8                  X3 => 8\n"
+        "   0x10000008 <_start+8>     add    x0, x1, x1, lsl #2      X0 => 5 (1 + 4)\n"
+        "   0x1000000c <_start+12>    add    x0, x1, x3, lsr #2      X0 => 3 (1 + 2)\n"
+        "   0x10000010 <_start+16>    mov    w2, #-1                 W2 => 0xffffffff\n"
+        "   0x10000014 <_start+20>    add    x0, x1, w2, sxtb        X0 => 0 (0x1 + 0xffffffffffffffff)\n"
+        "   0x10000018 <_start+24>    add    x0, x1, w2, uxtb        X0 => 0x100 (0x1 + 0xff)\n"
+        "   0x1000001c <_start+28>    add    x0, x1, x2, asr #2      X0 => 0x40000000 (0x1 + 0x3fffffff)\n"
+        "   0x10000020 <_start+32>    orr    x0, xzr, x1, ror #2     X0 => 0x4000000000000000 (0x0 | 0x4000000000000000)\n"
+        "   0x10000024 <_start+36>    sxtb   x2, w2\n"
+        "   0x10000028 <_start+40>    add    x0, x1, x2, asr #2      X0 => 0 (0x1 + 0xffffffffffffffff)\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+AARCH64_MEMORY_OPERAND_SHIFT = r"""
+LDR x2, =msg
+ADD x2,x2,16
+MOV w3, 0xffffffff
+ldr x1, [x2, w3, sxtw]
+ldr x1, [x2, w3, sxtw 3]
+nop
+.data
+msg:
+    .asciz "ABCDEFGHIJKLMNOPQRSTUVWXYZ!"
+"""
+
+
+def test_aarch64_shifts_and_extends_in_memory_operands(qemu_assembly_run):
+    qemu_assembly_run(AARCH64_MEMORY_OPERAND_SHIFT, "aarch64")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
+        " ► 0x10000000 <_start>       ldr    x2, _start+24             X2, [_start+24] => 0x4010e8 (msg) ◂— 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!'\n"
+        "   0x10000004 <_start+4>     add    x2, x2, #0x10             X2 => 0x4010f8 (msg+16) (0x4010e8 + 0x10)\n"
+        "   0x10000008 <_start+8>     mov    w3, #-1                   W3 => 0xffffffff\n"
+        "   0x1000000c <_start+12>    ldr    x1, [x2, w3, sxtw]        X1, [msg+15] => 0x5756555453525150 ('PQRSTUVW')\n"
+        "   0x10000010 <_start+16>    ldr    x1, [x2, w3, sxtw #3]     X1, [msg+8] => 0x504f4e4d4c4b4a49 ('IJKLMNOP')\n"
+        "   0x10000014 <_start+20>    nop    \n"
+        "\n"
+        "\n"
+        "\n"
+        "\n"
+        "\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+AARCH64_SHIFT_INSTRUCTIONS = """
+MOV x0, #3
+MOV x1, #0xF000
+MOV x2, #0x1234
+LSR x3, x1, #4
+LSR x4, x1, x0
+LSL x5, x4, #4
+LSL x6, x4, x2
+ASR x6, x4, #4
+ASR x6, x4, x0
+ROR x6, x4, #4
+ROR x6, x4, x0
+"""
+
+
+def test_aarch64_shift_instructions(qemu_assembly_run):
+    """
+    Test annotations for shift instructions - the format of these has changed between Capstone versions.
+    Special attention is paid to the shift-by-register amount
+    - https://github.com/capstone-engine/capstone/issues/2631
+    """
+    qemu_assembly_run(AARCH64_SHIFT_INSTRUCTIONS, "aarch64")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
+        " ► 0x10000000 <_start>       mov    x0, #3          X0 => 3\n"
+        "   0x10000004 <_start+4>     mov    x1, #0xf000     X1 => 0xf000\n"
+        "   0x10000008 <_start+8>     mov    x2, #0x1234     X2 => 0x1234\n"
+        "   0x1000000c <_start+12>    lsr    x3, x1, #4      X3 => 0xf00 (0xf000 >> 0x4)\n"
+        "   0x10000010 <_start+16>    lsr    x4, x1, x0      X4 => 0x1e00\n"
+        "   0x10000014 <_start+20>    lsl    x5, x4, #4      X5 => 0x1e000 (0x1e00 << 0x4)\n"
+        "   0x10000018 <_start+24>    lsl    x6, x4, x2      X6 => 0xe000000000000000\n"
+        "   0x1000001c <_start+28>    asr    x6, x4, #4      X6 => 0x1e0 (0x1e00 >>s 0x4)\n"
+        "   0x10000020 <_start+32>    asr    x6, x4, x0      X6 => 0x3c0\n"
+        "   0x10000024 <_start+36>    ror    x6, x4, #4      X6 => 0x1e0 (0x1e00 >>r 0x4)\n"
+        "   0x10000028 <_start+40>    ror    x6, x4, x0      X6 => 0x3c0\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 

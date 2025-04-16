@@ -37,7 +37,7 @@ if pwndbg.dbg.is_gdblib_available():
 CapstoneArch = {
     "arm": CS_ARCH_ARM,
     "armcm": CS_ARCH_ARM,
-    "aarch64": CS_ARCH_ARM64,
+    "aarch64": CS_ARCH_AARCH64,
     "i386": CS_ARCH_X86,
     "i8086": CS_ARCH_X86,
     "x86-64": CS_ARCH_X86,
@@ -46,6 +46,7 @@ CapstoneArch = {
     "sparc": CS_ARCH_SPARC,
     "rv32": CS_ARCH_RISCV,
     "rv64": CS_ARCH_RISCV,
+    "s390x": CS_ARCH_SYSZ,
 }
 
 CapstoneEndian = {
@@ -69,6 +70,7 @@ VariableInstructionSizeMax = {
     "mips": 8,
     "rv32": 22,
     "rv64": 22,
+    "s390x": 6,
 }
 
 
@@ -180,7 +182,9 @@ def get_disassembler(address):
         extra = CS_MODE_RISCV32 | CS_MODE_RISCVC  # novermin
     elif pwndbg.aglib.arch.name == "rv64":
         extra = CS_MODE_RISCV64 | CS_MODE_RISCVC  # novermin
-
+    elif pwndbg.aglib.arch.name == "s390x":
+        # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
+        extra = 0
     else:
         extra = None
 

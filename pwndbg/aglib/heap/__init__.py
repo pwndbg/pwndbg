@@ -91,6 +91,7 @@ auto    - pwndbg will try to use heuristics if debug symbols are missing
 force   - pwndbg will always try to use heuristics, even if debug symbols are available
 never   - pwndbg will never use heuristics to resolve the heap
 
+
 If the output of the heap related command produces errors with heuristics, you
 can try manually setting the libc symbol addresses.
 For this, see the `heap_config` command output and set the `main_arena`, `mp_`,

@@ -78,31 +78,48 @@ ARM_MATH_INSTRUCTIONS = {
 
 ARM_SHIFT_INSTRUCTIONS = {
     ARM_INS_ASR: ">>s",
+    ARM_INS_ALIAS_ASR: ">>s",
     ARM_INS_LSR: ">>",
+    ARM_INS_ALIAS_LSR: ">>",
     ARM_INS_LSL: "<<",
+    ARM_INS_ALIAS_LSL: "<<",
+    ARM_INS_ROR: ">>r",
+    ARM_INS_ALIAS_ROR: ">>r",
 }
 
-
-def first_op_is_pc(i: PwndbgInstruction) -> bool:
-    return i.operands[0].reg == ARM_REG_PC
-
-
-def ops_contain_pc(i: PwndbgInstruction) -> bool:
-    for op in i.operands:
-        if op.type == CS_OP_REG:
-            if op.reg == ARM_REG_PC:
-                return True
-    return False
-
-
-ARM_CAN_WRITE_TO_PC: Dict[int, Callable[[PwndbgInstruction], bool]] = {
-    ARM_INS_ADD: first_op_is_pc,
-    ARM_INS_SUB: first_op_is_pc,
-    ARM_INS_SUBS: first_op_is_pc,
-    ARM_INS_MOV: first_op_is_pc,
-    ARM_INS_LDR: first_op_is_pc,
-    ARM_INS_POP: ops_contain_pc,
-    ARM_INS_LDM: ops_contain_pc,
+# All of these instructions can write to the PC
+# https://developer.arm.com/documentation/ddi0406/cb/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-registers/Writing-to-the-PC?lang=en
+# If they do write to PC, Capstone gives the instructions the `ARM_GRP_JUMP` group
+# Note that we don't have the flag-setting variants - "ands", "subs" - because these generate an illegal instruction interrupt at runtime
+ARM_CAN_WRITE_TO_PC_INSTRUCTIONS = {
+    ARM_INS_LDM,
+    ARM_INS_ALIAS_LDM,
+    ARM_INS_POP,
+    ARM_INS_ALIAS_POP,
+    ARM_INS_LDR,
+    ARM_INS_ADC,
+    ARM_INS_ADD,
+    ARM_INS_ADR,
+    ARM_INS_AND,
+    ARM_INS_ASR,
+    ARM_INS_ALIAS_ASR,
+    ARM_INS_BIC,
+    ARM_INS_EOR,
+    ARM_INS_LSL,
+    ARM_INS_ALIAS_LSL,
+    ARM_INS_LSR,
+    ARM_INS_ALIAS_LSR,
+    ARM_INS_MOV,
+    ARM_INS_MVN,
+    ARM_INS_ORR,
+    ARM_INS_ROR,
+    ARM_INS_ALIAS_ROR,
+    ARM_INS_RRX,
+    ARM_INS_ALIAS_RRX,
+    ARM_INS_RSB,
+    ARM_INS_RSC,
+    ARM_INS_SBC,
+    ARM_INS_SUB,
 }
 
 
@@ -178,23 +195,14 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 ARM_MATH_INSTRUCTIONS[instruction.id],
             )
         elif instruction.id in ARM_SHIFT_INSTRUCTIONS:
-            # If it's a constant shift
-            if len(instruction.operands) == 2:
+            # The encoding of shifts has changed between past Capstone versions: https://github.com/capstone-engine/capstone/pull/2638
+            # This check avoids a crash
+            if len(instruction.operands) == 3:
                 self._common_binary_op_annotator(
                     instruction,
                     emu,
                     instruction.operands[0],
                     instruction.operands[1].before_value_no_modifiers,
-                    instruction.operands[1].cs_op.shift.value,
-                    ARM_SHIFT_INSTRUCTIONS[instruction.id],
-                )
-            else:
-                # Register shift
-                self._common_binary_op_annotator(
-                    instruction,
-                    emu,
-                    instruction.operands[0],
-                    instruction.operands[1].before_value,
                     instruction.operands[2].before_value,
                     ARM_SHIFT_INSTRUCTIONS[instruction.id],
                 )
@@ -202,13 +210,24 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        if instruction.id in ARM_CAN_WRITE_TO_PC:
-            instruction.declare_is_unconditional_jump = ARM_CAN_WRITE_TO_PC[instruction.id](
-                instruction
-            )
+    def _prepare(
+        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator
+    ) -> None:
+        if CS_GRP_INT in instruction.groups:
+            # https://github.com/capstone-engine/capstone/issues/2630
+            instruction.groups.remove(CS_GRP_CALL)
 
-        if instruction.cs_insn.cc == ARM_CC_AL:
+    @override
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+        if ARM_GRP_JUMP in instruction.groups:
+            if instruction.id in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
+                # Since Capstone V6, instructions that write to the PC are given the jump group.
+                # However, in Pwndbg code, unless stated otherwise, jumps are assumed to be conditional, so we set this attribute
+                # to indicate that this is an unconditional branch.
+                instruction.declare_is_unconditional_jump = True
+
+        # These condition codes indicate unconditionally/condition is not relevant
+        if instruction.cs_insn.cc in (ARM_CC_AL, ARMCC_UNDEF):
             if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
                 instruction.declare_conditional = False
             return InstructionCondition.UNDETERMINED
@@ -325,7 +344,11 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # See "Operation" at the bottom of https://developer.arm.com/documentation/ddi0597/2024-03/Base-Instructions/LDR--literal---Load-Register--literal--
             base = align_down(4, base)
 
-        target = base + op.mem.disp
+        target = base
+
+        # On post index, the base pointer is incremented after the memory dereference
+        if not instruction.cs_insn.post_index:
+            target += op.mem.disp * (-1 if op.cs_op.subtracted else 1)
 
         # If there is an index register
         if op.mem.index != 0:
@@ -337,7 +360,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             if op.cs_op.shift.type != 0:
                 index = ARM_BIT_SHIFT_MAP[op.cs_op.shift.type](index, op.cs_op.shift.value, 32)
 
-            target += index * (-1 if op.cs_op.subtracted else 1)
+            target += index * op.mem.scale
 
         return target
 
