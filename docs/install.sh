@@ -153,7 +153,7 @@ case "$OS" in
             powerpc64) FILE="${BINARY_NAME}_${VERSION}_powerpc64-portable.tar.xz" ;;
             powerpc64le) FILE="${BINARY_NAME}_${VERSION}_powerpc64le-portable.tar.xz" ;;
             s390x) FILE="${BINARY_NAME}_${VERSION}_s390x-portable.tar.xz" ;;
-                # loongarch64) FILE="${BINARY_NAME}_${VERSION}_loongarch64-portable.tar.xz" ;;
+            loongarch64) FILE="${BINARY_NAME}_${VERSION}_loongarch64-portable.tar.xz" ;;
             *)
                 echoerr "Unsupported architecture: $ARCH"
                 exit 1

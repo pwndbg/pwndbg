@@ -15,6 +15,7 @@ jobs:
           pwndbg-gdb-cross-ppc64-tarball,
           pwndbg-gdb-cross-ppc64le-tarball,
           pwndbg-gdb-cross-x86_32-tarball,
+          pwndbg-gdb-cross-loong64-tarball,
 
           # lldb
           pwndbg-lldb-cross-arm32-tarball,
@@ -23,6 +24,7 @@ jobs:
 #          pwndbg-lldb-cross-ppc64-tarball,  # broken lldb compilation
           pwndbg-lldb-cross-ppc64le-tarball,
           pwndbg-lldb-cross-x86_32-tarball,
+          pwndbg-lldb-cross-loong64-tarball,
         ]
     runs-on: ubuntu-latest  # x86_64-linux
     timeout-minutes: 360
