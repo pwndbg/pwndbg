@@ -42,7 +42,6 @@ def update_files_simple(filename_to_markdown: Dict[str, str]):
     creates new files if needed.
     """
 
-
     for filename, markdown in filename_to_markdown.items():
         print(f"Updating {filename} ..")
 

@@ -22,7 +22,9 @@ import pwndbg
 from pwndbg.lib.config import HELP_DEFAULT_PREFIX
 from pwndbg.lib.config import HELP_VALID_VALUES_PREFIX
 from pwndbg.lib.config import Parameter
-from scripts._gen_docs_generic import verify_existence, update_files_simple, verify_files_simple
+from scripts._gen_docs_generic import update_files_simple
+from scripts._gen_docs_generic import verify_existence
+from scripts._gen_docs_generic import verify_files_simple
 
 
 def extract_params() -> Dict[str, list[Parameter]]:
