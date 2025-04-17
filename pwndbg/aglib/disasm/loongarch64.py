@@ -97,6 +97,3 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 return offset_reg + (instruction.operands[2].before_value << 2)
 
         return super()._resolve_target(instruction, emu)
-
-
-assistant = DisassemblyAssistant("loongarch64")
