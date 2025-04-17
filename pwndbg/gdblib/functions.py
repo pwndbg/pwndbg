@@ -34,7 +34,10 @@ class _GdbFunction(gdb.Function):
         self.only_when_running = only_when_running
         self.__doc__ = func.__doc__
 
-        assert("Example:" in func.__doc__ and "Convenience functions need to provide a usage example.")
+        assert func.__doc__ and "The function must have a docstring."
+        assert (
+            "Example:" in func.__doc__ and "Convenience functions need to provide a usage example."
+        )
 
         functions.append(self)
 
@@ -233,3 +236,78 @@ def dbg_value_to_gdb(d: pwndbg.dbg_mod.Value) -> gdb.Value:
 
     assert isinstance(d, GDBValue)
     return d.inner
+
+
+@GdbFunction(only_when_running=True)
+def fsbase(arg: gdb.Value = gdb.Value(0)) -> int:
+    """
+    Get the value of the FS segment register. Only valid on x86(-64).
+
+    Example:
+    ```
+    pwndbg> p/x $fsbase()
+    $3 = 0x7ffff7cdab80
+    pwndbg> p $fs_base == $fsbase()
+    $4 = 1
+    pwndbg> x/gx $fsbase(0x28)
+    0x7ffff7cdaba8:	0x4da926e1668e5a00
+    pwndbg> x/gx $fsbase(0x30)
+    0x7ffff7cdabb0:	0x190a86d93bccf0ad
+    pwndbg> tls
+    Thread Local Storage (TLS) base: 0x7ffff7cdab80
+    TLS is located at:
+        0x7ffff7cda000     0x7ffff7cdc000 rw-p     2000      0 [anon_7ffff7cda]
+    Dumping the address:
+    tcbhead_t @ 0x7ffff7cdab80
+        0x00007ffff7cdab80 +0x0000 tcb                  : 0x7ffff7cdab80
+        0x00007ffff7cdab88 +0x0008 dtv                  : 0x7ffff7cdb4f0
+        0x00007ffff7cdab90 +0x0010 self                 : 0x7ffff7cdab80
+        0x00007ffff7cdab98 +0x0018 multiple_threads     : 0x0
+        0x00007ffff7cdab9c +0x001c gscope_flag          : 0x0
+        0x00007ffff7cdaba0 +0x0020 sysinfo              : 0x0
+        0x00007ffff7cdaba8 +0x0028 stack_guard          : 0x4da926e1668e5a00
+        0x00007ffff7cdabb0 +0x0030 pointer_guard        : 0x190a86d93bccf0ad
+        [...]
+    pwndbg> canary
+    [...]
+    Canary    = 0x4da926e1668e5a00 (may be incorrect on != glibc)
+    [...]
+    ```
+    FS will usually point to the start of the TLS. If you're not providing an
+    offset, it is usually easier to use gdb's builtin $fs_base variable.
+    """
+    if pwndbg.aglib.arch.name not in ("i386", "x86-64"):
+        raise gdb.GdbError("This function is only valid on i386 and x86-64.")
+
+    return pwndbg.aglib.regs.fsbase + int(arg)
+
+
+@GdbFunction(only_when_running=True)
+def gsbase(arg: gdb.Value = gdb.Value(0)) -> int:
+    """
+    Get the value of the GS segment register. Only valid on x86(-64).
+
+    Example:
+    ```
+    pwndbg> p/x $gsbase()
+    $1 = 0x0
+    ```
+    The value of the GS register is more interesting when doing kernel debugging:
+    ```
+    pwndbg> p/x $gsbase()
+    $1 = 0xffff999287a00000
+    pwndbg> tele $gsbase()
+    00:0000│  0xffff999287a00000 ◂— 0
+    ... ↓     4 skipped
+    05:0028│  0xffff999287a00028 ◂— 0xd6aa9b336d52a400
+    06:0030│  0xffff999287a00030 ◂— 0
+    07:0038│  0xffff999287a00038 ◂— 0
+    pwndbg> p $gsbase() == $gs_base
+    $2 = 1
+    ```
+    If you're not providing an offset, it is usually easier to use gdb's
+    builtin $gs_base variable.
+    """
+    if pwndbg.aglib.arch.name not in ("i386", "x86-64"):
+        raise gdb.GdbError("This function is only valid on i386 and x86-64.")
+    return pwndbg.aglib.regs.gsbase + int(arg)
