@@ -3,7 +3,6 @@ from __future__ import annotations
 import struct
 from typing import Dict
 from typing import Literal
-from typing import Protocol
 from typing import Tuple
 
 import pwnlib
@@ -66,7 +65,7 @@ def get_pwndbg_architecture(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> Pwndbg
     return registered_architectures[name]
 
 
-class PwndbgArchitectureProtocol(Protocol):
+class PwndbgArchitecture(ArchDefinition):
     """
     This class defines the context of the currently debugged architecture as well as other related information of the platform.
 
@@ -75,9 +74,14 @@ class PwndbgArchitectureProtocol(Protocol):
     - ABI information
     """
 
+    ### All subclasses must provide values for the following attributes
+
+    max_instruction_size: int
+
+    ###
+
     name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
-    # The raw string returned by the debugger. Example: "mips:isa64r6"
-    name_raw: str
+    name_raw: str  # The raw string returned by the debugger. Example: "mips:isa64r6"
     endian: EndianType
     ptrsize: int
     ptrbits: int
@@ -90,12 +94,7 @@ class PwndbgArchitectureProtocol(Protocol):
     fmts: Dict[int, str]
     fmt: str
 
-    max_instruction_size: int
-
     def __init__(self, name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
-        """
-        Calling the constructor will register the class with global list of PwndbgArchitectures
-        """
         self.name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE = name
 
         # We have to set some values by default
@@ -161,14 +160,6 @@ class PwndbgArchitectureProtocol(Protocol):
         Return None if the Thumb bit is not relevent to the current architecture
         """
         return None
-
-
-# This intermediate class is necessary to allow the use of Protocols while still subclassing ArchDefinition for type safety.
-# which allows us to, among many things, declare attributes that all subclasses must define.
-# By subclassing ArchDefinition, we indicate that the class conforms to the ArchDefinition type as well.
-# PwndbgArchitectureProtocol cannot inherit from ArchDefinition due to constraints with Protocols, so this extra class is needed.
-class PwndbgArchitecture(PwndbgArchitectureProtocol, ArchDefinition):
-    pass
 
 
 class AMD64Arch(PwndbgArchitecture):
