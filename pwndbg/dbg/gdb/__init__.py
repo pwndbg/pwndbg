@@ -1326,7 +1326,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         handle SIGBUS  stop   print nopass
         handle SIGPIPE nostop print nopass
         handle SIGSEGV stop   print nopass
-        """.strip()
+        """
 
         # See https://github.com/pwndbg/pwndbg/issues/808
         if gdb_version[0] <= 9:
@@ -1334,6 +1334,44 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         for line in pre_commands.strip().splitlines():
             gdb.execute(line)
+
+        # See https://github.com/pwndbg/pwndbg/issues/2890#issuecomment-2813047212
+        # Note: Remove this in a late 2025 or 2026 release?
+        for deprecated_cmd in (
+            "dev_dump_instruction",
+            "vmmap_add",
+            "vmmap_clear",
+            "vmmap_load",
+            "vmmap_explore",
+            "vis_heap_chunks",
+            "heap_config",
+            "stack_explore",
+            "auxv_explore",
+            "log_level",
+            "find_fake_fast",
+            "malloc_chunk",
+            "top_chunk",
+            "try_free",
+            "save_ida",
+            "knft_dump",
+            "knft_list_chains",
+            "knft_list_exprs",
+            "knft_list_flowtables",
+            "knft_list_objects",
+            "knft_list_rules",
+            "knft_list_sets",
+            "knft_list_tables",
+            "patch_list",
+            "patch_revert",
+            "jemalloc_extent_info",
+            "jemalloc_find_extent",
+            "jemalloc_heap",
+            "reinit_pwndbg",
+        ):
+            fixed_cmd = deprecated_cmd.replace("_", "-")
+            gdb.execute(
+                f"alias {deprecated_cmd} = echo Use `{fixed_cmd}` instead (Pwndbg changed `_` to `-` in command names)\\n"
+            )
 
         # This may throw an exception, see pwndbg/pwndbg#27
         try:
