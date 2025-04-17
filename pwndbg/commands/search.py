@@ -11,7 +11,7 @@ import pwnlib
 
 import pwndbg
 import pwndbg.aglib.arch
-import pwndbg.aglib.disassembly
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands

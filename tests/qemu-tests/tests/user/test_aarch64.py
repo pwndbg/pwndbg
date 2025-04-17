@@ -4,7 +4,7 @@ import gdb
 import user
 from capstone.arm64_const import ARM64_INS_BL
 
-import pwndbg.aglib.disassembly
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
@@ -40,7 +40,7 @@ def test_aarch64_branch_enhancement(qemu_assembly_run):
     """
     qemu_assembly_run(SIMPLE_FUNCTION, "aarch64")
 
-    instruction = pwndbg.aglib.disassembly.one_with_config()
+    instruction = pwndbg.aglib.disasm.disassembly.one_with_config()
 
     assert instruction.id == ARM64_INS_BL
     assert instruction.call_like
@@ -79,7 +79,7 @@ def test_aarch64_branch_enhancement(qemu_assembly_run):
     # Now, ensure the `b` instruction is set correctly.
     gdb.execute("ni")
 
-    instruction = pwndbg.aglib.disassembly.one_with_config()
+    instruction = pwndbg.aglib.disasm.disassembly.one_with_config()
     assert not instruction.is_conditional_jump
     assert instruction.is_unconditional_jump
 
@@ -90,7 +90,7 @@ def test_aarch64_syscall_annotation(qemu_assembly_run):
     """
     qemu_assembly_run(AARCH64_GRACEFUL_EXIT, "aarch64")
 
-    instructions = pwndbg.aglib.disassembly.near(
+    instructions = pwndbg.aglib.disasm.disassembly.near(
         address=pwndbg.aglib.regs.pc, instructions=3, emulate=True
     )[0]
     future_syscall_ins = instructions[2]
@@ -125,8 +125,8 @@ def test_aarch64_syscall_annotation(qemu_assembly_run):
 
     # Both for emulation and non-emulation, ensure a syscall at current PC gets enriched
     instructions = (
-        pwndbg.aglib.disassembly.emulate_one(),
-        pwndbg.aglib.disassembly.no_emulate_one(),
+        pwndbg.aglib.disasm.disassembly.emulate_one(),
+        pwndbg.aglib.disasm.disassembly.no_emulate_one(),
     )
 
     for i in instructions:
@@ -210,36 +210,36 @@ def test_aarch64_conditional_jumps(qemu_assembly_run):
     qemu_assembly_run(CONDITIONAL_JUMPS, "aarch64")
 
     gdb.execute("stepuntilasm cbz")
-    ins = pwndbg.aglib.disassembly.one_with_config()
+    ins = pwndbg.aglib.disasm.disassembly.one_with_config()
 
     assert ins.condition == InstructionCondition.TRUE
 
     gdb.execute("si")
-    ins = pwndbg.aglib.disassembly.one_with_config()
+    ins = pwndbg.aglib.disasm.disassembly.one_with_config()
 
     assert ins.condition == InstructionCondition.TRUE
 
     gdb.execute("si")
-    ins = pwndbg.aglib.disassembly.one_with_config()
+    ins = pwndbg.aglib.disasm.disassembly.one_with_config()
 
     assert ins.condition == InstructionCondition.TRUE
 
     gdb.execute("si")
-    ins = pwndbg.aglib.disassembly.one_with_config()
+    ins = pwndbg.aglib.disasm.disassembly.one_with_config()
 
     assert ins.condition == InstructionCondition.TRUE
 
     gdb.execute("si")
     gdb.execute("si")
 
-    ins = pwndbg.aglib.disassembly.one_with_config()
+    ins = pwndbg.aglib.disasm.disassembly.one_with_config()
 
     assert ins.condition == InstructionCondition.FALSE
 
     gdb.execute("si")
     gdb.execute("si")
 
-    ins = pwndbg.aglib.disassembly.one_with_config()
+    ins = pwndbg.aglib.disasm.disassembly.one_with_config()
 
     assert ins.condition == InstructionCondition.TRUE
 

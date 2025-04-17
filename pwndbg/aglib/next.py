@@ -10,7 +10,7 @@ from itertools import chain
 
 import capstone
 
-import pwndbg.aglib.disassembly
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -30,20 +30,20 @@ def next_int(address=None, honor_current_branch=False):
     If no interrupt exists or a jump is in the way, return None.
     """
     if address is None:
-        ins = pwndbg.aglib.disassembly.one(pwndbg.aglib.regs.pc)
+        ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
         if not ins:
             return None
         if honor_current_branch and ins.jump_like:
             return None
         address = ins.next
 
-    ins = pwndbg.aglib.disassembly.one(address)
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
     while ins:
         if ins.jump_like:
             return None
         elif ins.groups & interrupts:
             return ins
-        ins = pwndbg.aglib.disassembly.one(ins.next)
+        ins = pwndbg.aglib.disasm.disassembly.one(ins.next)
 
     return None
 
@@ -55,18 +55,18 @@ def next_branch(address=None, including_current=False) -> PwndbgInstruction | No
     If including_current == True, then if the instruction at the address is already a branch, return it.
     """
     if address is None:
-        ins = pwndbg.aglib.disassembly.one(pwndbg.aglib.regs.pc)
+        ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
         if not ins:
             return None
         if including_current and ins.jump_like:
             return ins
         address = ins.next
 
-    ins = pwndbg.aglib.disassembly.one(address)
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
     while ins:
         if ins.jump_like:
             return ins
-        ins = pwndbg.aglib.disassembly.one(ins.next)
+        ins = pwndbg.aglib.disasm.disassembly.one(ins.next)
 
     return None
 
@@ -79,7 +79,7 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
     if address is None:
         address = pwndbg.aglib.regs.pc
 
-    ins = pwndbg.aglib.disassembly.one(address)
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
     while ins:
         # Check whether or not the mnemonic matches if it was specified
         mnemonic_match = ins.mnemonic.casefold() == mnemonic.casefold() if mnemonic else True
@@ -109,7 +109,7 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
             # not trying to match the branch instruction itself.
             return None
 
-        ins = pwndbg.aglib.disassembly.one(ins.next)
+        ins = pwndbg.aglib.disasm.disassembly.one(ins.next)
     return None
 
 
@@ -277,7 +277,7 @@ async def break_on_program_code(ec: pwndbg.dbg_mod.ExecutionController) -> bool:
 
 async def break_on_next(ec: pwndbg.dbg_mod.ExecutionController, address=None) -> None:
     address = address or pwndbg.aglib.regs.pc
-    ins = pwndbg.aglib.disassembly.one(address)
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
 
     proc = pwndbg.dbg.selected_inferior()
     with proc.break_at(BreakpointLocation(ins.address + ins.size), internal=True) as bp:

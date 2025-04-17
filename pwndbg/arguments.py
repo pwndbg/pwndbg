@@ -12,7 +12,7 @@ from capstone import CS_GRP_INT
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.disassembly
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc

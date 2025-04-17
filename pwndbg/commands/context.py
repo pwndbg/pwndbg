@@ -21,7 +21,7 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib.arch
-import pwndbg.aglib.disassembly
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
@@ -976,10 +976,10 @@ def try_emulate_if_bug_disable(handler: Callable[[], T]) -> T:
 @serve_context_history
 def context_disasm(target=sys.stdout, with_banner=True, width=None):
     flavor = pwndbg.dbg.x86_disassembly_flavor()
-    syntax = pwndbg.aglib.disassembly.CapstoneSyntax[flavor]
+    syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(iter(pwndbg.aglib.disassembly.get_disassembler_cached.cache.values()), None)
+    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler_cached.cache.values()), None)
 
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
@@ -1199,7 +1199,7 @@ def context_backtrace(with_banner=True, target=sys.stdout, width=None):
 
 @serve_context_history
 def context_args(with_banner=True, target=sys.stdout, width=None):
-    args = pwndbg.arguments.format_args(pwndbg.aglib.disassembly.one())
+    args = pwndbg.arguments.format_args(pwndbg.aglib.disasm.disassembly.one())
 
     # early exit to skip section if no arg found
     if not args:

@@ -20,10 +20,10 @@ import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.aarch64
 import pwndbg.aglib.disasm.arm
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.disasm.mips
 import pwndbg.aglib.disasm.riscv
 import pwndbg.aglib.disasm.x86
-import pwndbg.aglib.disassembly
 import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
@@ -228,7 +228,9 @@ def get_one_instruction(
 
         if enhance:
             if assistant is None:
-                assistant = pwndbg.aglib.disassembly.get_disassembly_assistant_for_current_arch()
+                assistant = (
+                    pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
+                )
             assistant.enhance(pwn_ins, emu)
 
         if put_cache:
@@ -414,7 +416,7 @@ def near(
                 raise
 
     # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
-    assistant = pwndbg.aglib.disassembly.get_disassembly_assistant_for_current_arch()
+    assistant = pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
 
     # Start at the current instruction using emulation if available.
     current = one(address, emu, put_cache=True, assistant=assistant)

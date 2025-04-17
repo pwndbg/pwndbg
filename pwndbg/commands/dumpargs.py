@@ -4,7 +4,7 @@ import argparse
 from typing import List
 
 import pwndbg.aglib.arch
-import pwndbg.aglib.disassembly
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.commands
@@ -38,7 +38,7 @@ def call_args() -> List[str]:
     """
     results: List[str] = []
 
-    for arg, value in pwndbg.arguments.get(pwndbg.aglib.disassembly.one()):
+    for arg, value in pwndbg.arguments.get(pwndbg.aglib.disasm.disassembly.one()):
         code = arg.type != "char"
         pretty = (
             pwndbg.chain.format(value, code=code)
