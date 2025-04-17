@@ -1328,38 +1328,6 @@ class GDB(pwndbg.dbg_mod.Debugger):
         handle SIGSEGV stop   print nopass
         """
 
-        deprecations = """
-        alias dev_dump_instruction = echo "Use `dev-dump-instruction` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias vmmap_add = echo "Use `vmmap-add` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias vmmap_clear = echo "Use `vmmap-clear` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias vmmap_load = echo "Use `vmmap-load` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias vmmap_explore = echo "Use `vmmap-explore` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias vis_heap_chunks = echo "Use `vis-heap-chunks` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias heap_config = echo "Use `heap-config` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias stack_explore = echo "Use `stack-explore` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias auxv_explore = echo "Use `auxv-explore` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias log_level = echo "Use `log-level` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias find_fake_fast = echo "Use `find-fake-fast` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias malloc_chunk = echo "Use `malloc-chunk` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias top_chunk = echo "Use `top-chunk` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias try_free = echo "Use `try-free` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias save_ida = echo "Use `save-ida` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias knft_dump = echo "Use `knft-dump` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias knft_list_chains = echo "Use `knft-list-chains` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias knft_list_exprs = echo "Use `knft-list-exprs` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias knft_list_flowtables = echo "Use `knft-list-flowtables` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias knft_list_objects = echo "Use `knft-list-objects` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias knft_list_rules = echo "Use `knft-list-rules` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias knft_list_sets = echo "Use `knft-list-sets` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias knft_list_tables = echo "Use `knft-list-tables` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias patch_list = echo "Use `patch-list` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias patch_revert = echo "Use `patch-revert` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias jemalloc_extent_info = echo "Use `jemalloc-extent-info` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias jemalloc_find_extent = echo "Use `jemalloc-find-extent` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias jemalloc_heap = echo "Use `jemalloc-heap` instead (Pwndbg changed "-" to "_" in command names)\n"
-        alias reinit_pwndbg = echo "Use `reinit-pwndbg` instead (Pwndbg changed "-" to "_" in command names)\n"
-        """
-
         # See https://github.com/pwndbg/pwndbg/issues/808
         if gdb_version[0] <= 9:
             pre_commands += "\nset remote search-memory-packet off"
@@ -1369,8 +1337,41 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         # See https://github.com/pwndbg/pwndbg/issues/2890#issuecomment-2813047212
         # Note: Remove this in a late 2025 or 2026 release?
-        for line in deprecations.strip().splitlines():
-            gdb.execute(line)
+        for deprecated_cmd in (
+            "dev_dump_instruction",
+            "vmmap_add",
+            "vmmap_clear",
+            "vmmap_load",
+            "vmmap_explore",
+            "vis_heap_chunks",
+            "heap_config",
+            "stack_explore",
+            "auxv_explore",
+            "log_level",
+            "find_fake_fast",
+            "malloc_chunk",
+            "top_chunk",
+            "try_free",
+            "save_ida",
+            "knft_dump",
+            "knft_list_chains",
+            "knft_list_exprs",
+            "knft_list_flowtables",
+            "knft_list_objects",
+            "knft_list_rules",
+            "knft_list_sets",
+            "knft_list_tables",
+            "patch_list",
+            "patch_revert",
+            "jemalloc_extent_info",
+            "jemalloc_find_extent",
+            "jemalloc_heap",
+            "reinit_pwndbg",
+        ):
+            fixed_cmd = deprecated_cmd.replace("_", "-")
+            gdb.execute(
+                f"alias {deprecated_cmd} = echo Use `{fixed_cmd}` instead (Pwndbg changed `_` to `-` in command names)\\n"
+            )
 
         # This may throw an exception, see pwndbg/pwndbg#27
         try:
