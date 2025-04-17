@@ -1331,10 +1331,6 @@ class GDB(pwndbg.dbg_mod.Debugger):
         handle SIGSEGV stop   print nopass
         """.strip()
 
-        # See https://github.com/pwndbg/pwndbg/issues/808
-        if gdb_version[0] <= 9:
-            pre_commands += "\nset remote search-memory-packet off"
-
         for line in pre_commands.strip().splitlines():
             gdb.execute(line)
 
