@@ -4,7 +4,7 @@ import struct
 import types
 
 
-class Amd64Arch(types.ModuleType):
+class MockAmd64Arch(types.ModuleType):
     def __init__(self, module_name):
         super().__init__(module_name)
 

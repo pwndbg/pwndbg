@@ -4,7 +4,7 @@ import sys
 import types
 from unittest.mock import MagicMock
 
-from mocks.arch import Amd64Arch
+from mocks.arch import MockAmd64Arch
 from mocks.config import Config
 from mocks.typeinfo import Amd64TypeInfo
 
@@ -24,7 +24,7 @@ class GdbLib(types.ModuleType):
         self.gdb_version = (12, 0)
 
         self.config_mod = Config(module_name + ".config")
-        self.arch = Amd64Arch(module_name + ".arch")
+        self.arch = MockAmd64Arch(module_name + ".arch")
         self.typeinfo = Amd64TypeInfo(module_name + ".typeinfo")
         self.regs = MagicMock(__name__=module_name + ".regs")
         self.prompt = MagicMock(__name__=module_name + ".prompt")
