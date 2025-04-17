@@ -34,3 +34,50 @@ def verify_existence(filenames: list[str], base_path: str) -> (list[str], list[s
         print()
 
     return missing, extra
+
+
+def update_files_simple(filename_to_markdown: Dict[str, str]):
+    """
+    Fix files so they are up to date with the sources. This also
+    creates new files if needed.
+    """
+
+
+    for filename, markdown in filename_to_markdown.items():
+        print(f"Updating {filename} ..")
+
+        # Make the folder containing the file if it doesn't exist.
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+        # Simple case, just create the file and write it.
+        with open(filename, "w") as file:
+            file.seek(0)
+            file.write(markdown)
+
+
+def verify_files_simple(filename_to_markdown: Dict[str, str], skip: list[str] = []) -> str | None:
+    """
+    Verify all the markdown files are up to date with the sources.
+
+    Returns:
+        None if everything is up-to-date.
+        A string containing the error message if something is not.
+    """
+
+    for filename, markdown in filename_to_markdown.items():
+        if filename in skip:
+            print(f"Skipping {filename}")
+            continue
+
+        print(f"Checking {filename} ..")
+
+        if not os.path.exists(filename):
+            return f"File {filename} does not exist."
+
+        file_data = ""
+        with open(filename, "r") as file:
+            file_data = file.read()
+            if file_data != markdown:
+                return f"File {filename} differs from auto-generated output."
+
+    return None

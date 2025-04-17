@@ -22,7 +22,7 @@ import pwndbg
 from pwndbg.lib.config import HELP_DEFAULT_PREFIX
 from pwndbg.lib.config import HELP_VALID_VALUES_PREFIX
 from pwndbg.lib.config import Parameter
-from scripts._gen_docs_generic import verify_existence
+from scripts._gen_docs_generic import verify_existence, update_files_simple, verify_files_simple
 
 
 def extract_params() -> Dict[str, list[Parameter]]:
@@ -97,48 +97,6 @@ def convert_to_markdown(scoped: Dict[str, list[Parameter]]) -> Dict[str, str]:
     return markdowned
 
 
-def verify_files(filename_to_markdown: Dict[str, str]) -> str | None:
-    """
-    Verify all the markdown files are up to date with the sources.
-
-    Returns:
-        None if everything is up-to-date.
-        A string containing the error message if something is not.
-    """
-
-    for filename, markdown in filename_to_markdown.items():
-        if filename == index_path:
-            print(f"Skipping {filename} (the index).")
-            continue
-
-        print(f"Checking {filename} ..")
-
-        if not os.path.exists(filename):
-            return f"File {filename} does not exist."
-
-        file_data = ""
-        with open(filename, "r") as file:
-            file_data = file.read()
-            if file_data != markdown:
-                return f"File {filename} differs from auto-generated output."
-
-    return None
-
-
-def update_files(filename_to_markdown: Dict[str, str]):
-    """
-    Fix files so they are up to date with the sources. This also
-    creates new files if needed.
-    """
-    for filename, markdown in filename_to_markdown.items():
-        print(f"Updating {filename} ..")
-
-        # Simple case, just create the file and write it.
-        with open(filename, "w") as file:
-            file.seek(0)
-            file.write(markdown)
-
-
 def check_index(scoped_params: Dict[str, list[Parameter]]):
     assert (
         len(scoped_params.keys()) == 3
@@ -164,7 +122,7 @@ just_verify = False
 if os.getenv("PWNDBG_GEN_DOC_JUST_VERIFY"):
     just_verify = True
 
-print("==== Parameter Documentation ====")
+print("\n==== Parameter Documentation ====")
 
 scoped_params = extract_params()
 markdowned = convert_to_markdown(scoped_params)
@@ -179,7 +137,7 @@ if just_verify:
     print("Every file is where it should be!")
 
     print("Verifying contents...")
-    err = verify_files(markdowned)
+    err = verify_files_simple(markdowned, skip=[index_path])
     if err:
         print("VERIFICATION FAILED. The files differ from what would be auto-generated.")
         print("Error:", err)
@@ -189,7 +147,7 @@ if just_verify:
     print("Verification successful!")
 else:
     print("Updating files...")
-    update_files(markdowned)
+    update_files_simple(markdowned)
     print("Update successful.")
 
     missing, extra = verify_existence(list(markdowned.keys()) + [index_path], base_path)
