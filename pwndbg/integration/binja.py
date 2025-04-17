@@ -48,9 +48,6 @@ from pwndbg.dbg import StopPoint
 from pwndbg.lib.functions import Argument
 from pwndbg.lib.functions import Function
 
-xmlrpc.client.MAXINT = 10**100  # type: ignore[misc]
-xmlrpc.client.MININT = -(10**100)  # type: ignore[misc]
-
 bn_rpc_host = pwndbg.config.add_param(
     "bn-rpc-host", "127.0.0.1", "Binary Ninja XML-RPC server host"
 )
@@ -89,6 +86,9 @@ def init_bn_rpc_client() -> None:
 
     if pwndbg.integration.provider_name.value != "binja":
         return
+
+    xmlrpc.client.MAXINT = 10**100  # type: ignore[misc]
+    xmlrpc.client.MININT = -(10**100)  # type: ignore[misc]
 
     now = time.time()
     if _bn is None and (now - _bn_last_connection_check) < int(bn_timeout) + 5:
