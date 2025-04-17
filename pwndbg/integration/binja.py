@@ -189,17 +189,11 @@ def can_connect() -> bool:
 
 
 def l2r(addr: int) -> int:
-    exe = pwndbg.aglib.elf.exe()
-    if not exe:
-        raise Exception("Can't find EXE base")
     result = (addr - pwndbg.aglib.proc.binary_base_addr + base()) & pwndbg.aglib.arch.ptrmask
     return result
 
 
 def r2l(addr: int) -> int:
-    exe = pwndbg.aglib.elf.exe()
-    if not exe:
-        raise Exception("Can't find EXE base")
     result = (addr - base() + pwndbg.aglib.proc.binary_base_addr) & pwndbg.aglib.arch.ptrmask
     return result
 
