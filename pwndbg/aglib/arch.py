@@ -3,6 +3,7 @@ from __future__ import annotations
 import struct
 from typing import Dict
 from typing import Literal
+from typing import Protocol
 from typing import Tuple
 
 import pwnlib
@@ -64,7 +65,7 @@ def get_pwndbg_architecture(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> Pwndbg
     return registered_architectures[name]
 
 
-class PwndbgArchitecture(ArchDefinition):
+class PwndbgArchitectureProtocol(Protocol):
     """
     This class defines the context of the currently debugged architecture as well as other related information of the platform.
 
@@ -84,6 +85,11 @@ class PwndbgArchitecture(ArchDefinition):
     syscall_abi: SyscallABI | None
     sigreturn_abi: SyscallABI | None
     platform: Platform
+
+    fmts: Dict[int, str]
+    fmt: str
+
+    max_instruction_size: int
 
     def __init__(self, name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         """
@@ -156,7 +162,17 @@ class PwndbgArchitecture(ArchDefinition):
         return None
 
 
+# This intermediate class is necessary to allow the use of Protocols while still subclassing ArchDefinition for type safety.
+# which allows us to, among many things, declare attributes that all subclasses must define.
+# By subclassing ArchDefinition, we indicate that the class conforms to the ArchDefinition type as well.
+# PwndbgArchitectureProtocol cannot inherit from ArchDefinition due to constraints with Protocols, so this extra class is needed.
+class PwndbgArchitecture(PwndbgArchitectureProtocol, ArchDefinition):
+    pass
+
+
 class AMD64Arch(PwndbgArchitecture):
+    max_instruction_size = 16
+
     def __init__(self) -> None:
         super().__init__("x86-64")
 
@@ -168,6 +184,8 @@ class i386Arch(PwndbgArchitecture):
     """
     32-bit mode x86
     """
+
+    max_instruction_size = 16
 
     def __init__(self) -> None:
         super().__init__("i386")
@@ -181,6 +199,8 @@ class i8086Arch(PwndbgArchitecture):
     16-bit mode x86
     """
 
+    max_instruction_size = 16
+
     def __init__(self) -> None:
         super().__init__("i8086")
 
@@ -189,6 +209,8 @@ class i8086Arch(PwndbgArchitecture):
 
 
 class ArmArch(PwndbgArchitecture):
+    max_instruction_size = 4
+
     def __init__(self) -> None:
         super().__init__("arm")
 
@@ -217,6 +239,8 @@ class ArmCortexArch(PwndbgArchitecture):
     Only Thumb-2 instructions are supported, and the Thumb bit is always 1.
     """
 
+    max_instruction_size = 4
+
     def __init__(self) -> None:
         super().__init__("armcm")
 
@@ -235,6 +259,8 @@ class ArmCortexArch(PwndbgArchitecture):
 
 
 class AArch64Arch(PwndbgArchitecture):
+    max_instruction_size = 4
+
     def __init__(self) -> None:
         super().__init__("aarch64")
 
@@ -243,6 +269,8 @@ class AArch64Arch(PwndbgArchitecture):
 
 
 class PowerPCArch(PwndbgArchitecture):
+    max_instruction_size = 4
+
     def __init__(self) -> None:
         super().__init__("powerpc")
 
@@ -252,6 +280,8 @@ class PowerPCArch(PwndbgArchitecture):
 
 
 class SparcArch(PwndbgArchitecture):
+    max_instruction_size = 4
+
     def __init__(self) -> None:
         super().__init__("sparc")
 
@@ -261,6 +291,8 @@ class SparcArch(PwndbgArchitecture):
 
 
 class RISCV32Arch(PwndbgArchitecture):
+    max_instruction_size = 22
+
     def __init__(self) -> None:
         super().__init__("rv32")
 
@@ -269,6 +301,8 @@ class RISCV32Arch(PwndbgArchitecture):
 
 
 class RISCV64Arch(PwndbgArchitecture):
+    max_instruction_size = 22
+
     def __init__(self) -> None:
         super().__init__("rv64")
 
@@ -277,6 +311,8 @@ class RISCV64Arch(PwndbgArchitecture):
 
 
 class MipsArch(PwndbgArchitecture):
+    max_instruction_size = 8
+
     def __init__(self) -> None:
         super().__init__("mips")
 
@@ -293,6 +329,8 @@ class MipsArch(PwndbgArchitecture):
 
 
 class Loongarch64Arch(PwndbgArchitecture):
+    max_instruction_size = 4
+
     def __init__(self) -> None:
         super().__init__("loongarch64")
 
@@ -301,6 +339,8 @@ class Loongarch64Arch(PwndbgArchitecture):
 
 
 class S390xArch(PwndbgArchitecture):
+    max_instruction_size = 6
+
     def __init__(self) -> None:
         super().__init__("s390x")
 
