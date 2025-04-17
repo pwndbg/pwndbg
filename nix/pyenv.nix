@@ -157,6 +157,8 @@ let
       {
         cmake,
         stdenv,
+        fetchFromGitHub,
+        fixDarwinDylibNames,
       }:
       prev.capstone.overrideAttrs (
         old:
