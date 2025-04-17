@@ -156,8 +156,6 @@ let
     capstone = pkgs.callPackage (
       {
         cmake,
-        fixDarwinDylibNames,
-        fetchFromGitHub,
         stdenv,
       }:
       prev.capstone.overrideAttrs (
@@ -176,6 +174,7 @@ let
         pkg-config,
         cctools,
         stdenv,
+        fetchFromGitHub,
       }:
       prev.unicorn.overrideAttrs (
         old:
@@ -202,6 +201,19 @@ let
             # - https://github.com/unicorn-engine/unicorn/issues/2033
             substituteInPlace ./src/qemu/configure \
                 --replace-fail "have_sprr_mrs='no'" "have_sprr_mrs='yes'"
+          '';
+        }
+        // lib.optionalAttrs stdenv.hostPlatform.isLoongArch64 {
+          # Remove this block after upgrading to unicorn 2.2.0
+          src = fetchFromGitHub {
+            owner = "unicorn-engine";
+            repo = "unicorn";
+            rev = "e867b08c66544ddf8cd62c1e36e8ff35d32c3e77";
+            hash = "sha256-vov6io2+RY8CZAoF0S00J2trlEEQHeMxw4HV8gm2Q2Y=";
+          };
+          sourceRoot = "source/bindings/python";
+          preBuild = ''
+            chmod -R +w ../../../
           '';
         }
       )
