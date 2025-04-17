@@ -37,7 +37,7 @@ def find_address_with_pthread_self() -> int:
     the pthread_self() function. The returned address points to the `struct tcbhead_t`,
     which serves as the header for TLS and thread-specific metadata.
     """
-    if pwndbg.aglib.arch.name not in ("x86-64", "i386", "arm", "aarch64"):
+    if pwndbg.aglib.arch.name not in ("x86-64", "i386", "arm", "aarch64", "loongarch64"):
         return 0
 
     result = __call_pthread_self()
