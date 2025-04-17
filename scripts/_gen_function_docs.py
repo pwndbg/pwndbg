@@ -59,13 +59,22 @@ function like so:
 pwndbg> p $environ("LANG")
 $2 = (signed char *) 0x7fffffffe6da "LANG=en_US.UTF-8"
 ```
-Make sure to escape the function argument quotes if the result of the function is being passed
-to a pwndbg command:
+If the result of the function is being passed to a pwndbg command, make sure to either escape
+the function argument's quotes, or put the whole function call in quotes.
 ```
+pwndbg> tele $environ("LANG")
+usage: telescope [-h] [-r] [-f] [-i] [address] [count]
+telescope: error: argument address: debugger couldn't resolve argument '$environ(LANG)':
+    No symbol "LANG" in current context.
 pwndbg> tele $environ(\\"LANG\\")
-00:0000│  0x7fffffffede0 ◂— 'LANG=en_US.UTF-8'
-01:0008│  0x7fffffffede8 ◂— 'US.UTF-8'
-02:0010│  0x7fffffffedf0 ◂— 0x313d53454e494c00
+00:0000│  0x7fffffffe6cf ◂— 'LANG=en_US.UTF-8'
+01:0008│  0x7fffffffe6d7 ◂— 'US.UTF-8'
+02:0010│  0x7fffffffe6df ◂— 0x4e49475542454400
+[...]
+pwndbg> tele '$environ("LANG")'
+00:0000│  0x7fffffffe6cf ◂— 'LANG=en_US.UTF-8'
+01:0008│  0x7fffffffe6d7 ◂— 'US.UTF-8'
+02:0010│  0x7fffffffe6df ◂— 0x4e49475542454400
 [...]
 ```
 ## pwndbg functions

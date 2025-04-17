@@ -20,6 +20,9 @@ def bn_sym(name_val: gdb.Value) -> int | None:
 
     Example:
     ```
+    pwndbg> set integration-provider binja
+    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+    Set which provider to use for integration features to 'binja'.
     pwndbg> p main
     No symbol "main" in current context.
     pwndbg> p/x $bn_sym("main")
@@ -43,6 +46,9 @@ def bn_var(name_val: gdb.Value) -> int | None:
 
     Example:
     ```
+    pwndbg> set integration-provider binja
+    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+    Set which provider to use for integration features to 'binja'.
     pwndbg> p var_10
     No symbol "var_10" in current context.
     pwndbg> p/x $bn_var("var_10")
@@ -72,13 +78,17 @@ def bn_eval(expr: gdb.Value) -> int | None:
     """
     Parse and evaluate a Binary Ninja expression.
 
-    Read more: https://api.binary.ninja/binaryninja.binaryview-module.html#binaryninja.binaryview.BinaryView.parse_expression
+    Read more about binary ninja expressions here:
+    https://api.binary.ninja/binaryninja.binaryview-module.html#binaryninja.binaryview.BinaryView.parse_expression
 
-    Adds all registers in the current register set as magic variables (e.g. $rip).
-    Also adds a $piebase magic variable with the computed executable base.
+    All registers in the current register set are available as magic variables (e.g. $rip).
+    The $piebase magic variable is also included, with the computed executable base.
 
     Example:
     ```
+    pwndbg> set integration-provider binja
+    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+    Set which provider to use for integration features to 'binja'.
     pwndbg> p $bn_expr("0x20+0x10")
     Invalid data type for function to be called.
     ```

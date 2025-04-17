@@ -22,13 +22,22 @@ function like so:
 pwndbg> p $environ("LANG")
 $2 = (signed char *) 0x7fffffffe6da "LANG=en_US.UTF-8"
 ```
-Make sure to escape the function argument quotes if the result of the function is being passed
-to a pwndbg command:
+If the result of the function is being passed to a pwndbg command, make sure to either escape
+the function argument's quotes, or put the whole function call in quotes.
 ```
+pwndbg> tele $environ("LANG")
+usage: telescope [-h] [-r] [-f] [-i] [address] [count]
+telescope: error: argument address: debugger couldn't resolve argument '$environ(LANG)':
+    No symbol "LANG" in current context.
 pwndbg> tele $environ(\"LANG\")
-00:0000│  0x7fffffffede0 ◂— 'LANG=en_US.UTF-8'
-01:0008│  0x7fffffffede8 ◂— 'US.UTF-8'
-02:0010│  0x7fffffffedf0 ◂— 0x313d53454e494c00
+00:0000│  0x7fffffffe6cf ◂— 'LANG=en_US.UTF-8'
+01:0008│  0x7fffffffe6d7 ◂— 'US.UTF-8'
+02:0010│  0x7fffffffe6df ◂— 0x4e49475542454400
+[...]
+pwndbg> tele '$environ("LANG")'
+00:0000│  0x7fffffffe6cf ◂— 'LANG=en_US.UTF-8'
+01:0008│  0x7fffffffe6d7 ◂— 'US.UTF-8'
+02:0010│  0x7fffffffe6df ◂— 0x4e49475542454400
 [...]
 ```
 ## pwndbg functions
@@ -120,7 +129,11 @@ Converts a hex string to a little-endian address and returns the address.
 
 #### Example
 ```
-pwndbg> dist $base(\"libc\") '$hex2ptr("20 74 ed f7 ff 7f")'
+pwndbg> p/x $hex2ptr("20 74 ed f7 ff 7f")
+$1 = 0x7ffff7ed7420
+pwndbg> p/x $hex2ptr("2074edf7ff7f")
+$2 = 0x7ffff7ed7420
+pwndbg> distance '$base("libc")' '$hex2ptr("20 74 ed f7 ff 7f")'
 0x7ffff7d4b000->0x7ffff7ed7420 is 0x18c420 bytes (0x31884 words)
 ```
 
@@ -179,6 +192,28 @@ pwndbg> argv
 
 ----------
 
+### **environ**
+
+
+``` {.python .no-copy}
+environ(name_value: gdb.Value) -> gdb.Value
+```
+
+
+#### Description
+
+Evaluate getenv() on the supplied value. Get an
+environment variable by name.
+
+#### Example
+```
+pwndbg> p $environ("LANG")
+$2 = (signed char *) 0x7fffffffebfb "LANG=en_US.UTF-8"
+```
+
+
+----------
+
 ### **envp**
 
 
@@ -203,28 +238,6 @@ $14 = 1
 
 ----------
 
-### **environ**
-
-
-``` {.python .no-copy}
-environ(name_value: gdb.Value) -> gdb.Value
-```
-
-
-#### Description
-
-Evaluate getenv() on the supplied value. Get an
-environment variable by name.
-
-#### Example
-```
-pwndbg> p $environ("LANG")
-$2 = (signed char *) 0x7fffffffebfb "LANG=en_US.UTF-8"
-```
-
-
-----------
-
 ### **bn_sym**
 
 
@@ -239,6 +252,9 @@ Lookup a symbol's address by name from Binary Ninja.
 
 #### Example
 ```
+pwndbg> set integration-provider binja
+Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+Set which provider to use for integration features to 'binja'.
 pwndbg> p main
 No symbol "main" in current context.
 pwndbg> p/x $bn_sym("main")
@@ -264,6 +280,9 @@ Lookup a stack variable's address by name from Binary Ninja.
 
 #### Example
 ```
+pwndbg> set integration-provider binja
+Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+Set which provider to use for integration features to 'binja'.
 pwndbg> p var_10
 No symbol "var_10" in current context.
 pwndbg> p/x $bn_var("var_10")
@@ -290,13 +309,17 @@ bn_eval(expr: gdb.Value) -> int | None
 
 Parse and evaluate a Binary Ninja expression.
 
-Read more: https://api.binary.ninja/binaryninja.binaryview-module.html#binaryninja.binaryview.BinaryView.parse_expression
+Read more about binary ninja expressions here:
+https://api.binary.ninja/binaryninja.binaryview-module.html#binaryninja.binaryview.BinaryView.parse_expression
 
-Adds all registers in the current register set as magic variables (e.g. $rip).
-Also adds a $piebase magic variable with the computed executable base.
+All registers in the current register set are available as magic variables (e.g. $rip).
+The $piebase magic variable is also included, with the computed executable base.
 
 #### Example
 ```
+pwndbg> set integration-provider binja
+Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+Set which provider to use for integration features to 'binja'.
 pwndbg> p $bn_expr("0x20+0x10")
 Invalid data type for function to be called.
 ```

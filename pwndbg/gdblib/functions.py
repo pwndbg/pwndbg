@@ -122,14 +122,18 @@ def base(name_pattern: gdb.Value | str) -> int:
     raise ValueError(f"No mapping named {name}")
 
 
-@GdbFunction(only_when_running=True)
+@GdbFunction()
 def hex2ptr(hex_string: gdb.Value | str) -> int:
     """
     Converts a hex string to a little-endian address and returns the address.
 
     Example:
     ```
-    pwndbg> dist $base(\\"libc\\") '$hex2ptr("20 74 ed f7 ff 7f")'
+    pwndbg> p/x $hex2ptr("20 74 ed f7 ff 7f")
+    $1 = 0x7ffff7ed7420
+    pwndbg> p/x $hex2ptr("2074edf7ff7f")
+    $2 = 0x7ffff7ed7420
+    pwndbg> distance '$base("libc")' '$hex2ptr("20 74 ed f7 ff 7f")'
     0x7ffff7d4b000->0x7ffff7ed7420 is 0x18c420 bytes (0x31884 words)
     ```
 
@@ -183,26 +187,6 @@ def argv(number_value: gdb.Value) -> gdb.Value:
 
 
 @GdbFunction(only_when_running=True)
-def envp(number_value: gdb.Value) -> gdb.Value:
-    """
-    Evaluate envp on the supplied value. Get the
-    n-th environment variable.
-
-    Example:
-    ```
-    pwndbg> p $envp(0x3F)
-    $13 = (signed char *) 0x7fffffffef7d "LANG=en_US.UTF-8"
-    pwndbg> p $envp(0x3F) == $environ("LANG")
-    $14 = 1
-    ```
-    """
-    val = pwndbg.aglib.argv.envp(int(number_value))
-    if val is None:
-        raise gdb.GdbError("Environ not found")
-    return dbg_value_to_gdb(val)
-
-
-@GdbFunction(only_when_running=True)
 def environ(name_value: gdb.Value) -> gdb.Value:
     """
     Evaluate getenv() on the supplied value. Get an
@@ -219,6 +203,26 @@ def environ(name_value: gdb.Value) -> gdb.Value:
         raise gdb.GdbError("No environment variable name provided")
 
     val = pwndbg.aglib.argv.environ(name)
+    if val is None:
+        raise gdb.GdbError("Environ not found")
+    return dbg_value_to_gdb(val)
+
+
+@GdbFunction(only_when_running=True)
+def envp(number_value: gdb.Value) -> gdb.Value:
+    """
+    Evaluate envp on the supplied value. Get the
+    n-th environment variable.
+
+    Example:
+    ```
+    pwndbg> p $envp(0x3F)
+    $13 = (signed char *) 0x7fffffffef7d "LANG=en_US.UTF-8"
+    pwndbg> p $envp(0x3F) == $environ("LANG")
+    $14 = 1
+    ```
+    """
+    val = pwndbg.aglib.argv.envp(int(number_value))
     if val is None:
         raise gdb.GdbError("Environ not found")
     return dbg_value_to_gdb(val)
