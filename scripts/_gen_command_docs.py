@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """
-usage: python scripts/_gen_command_docs.py
-
 You should use scripts/generate_docs.sh and scripts/verify_docs.sh instead
 of using this.
 

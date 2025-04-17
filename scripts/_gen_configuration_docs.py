@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """
-usage: python scripts/_gen_configuration_docs.py
-
 You should use scripts/generate_docs.sh and scripts/verify_docs.sh instead
 of using this.
 
@@ -10,7 +8,8 @@ is set, then    : Exit with non-zero exit status if the docs/configuration/ file
                   aren't up to date with the sources. Don't modify anything.
 
 If it isn't, this fixes up the docs/configuration/ files to be up
-to date with the information from the sources.
+to date with the information from the sources. Except docs/configuration/index.md
+which is hand-written.
 """
 
 from __future__ import annotations
