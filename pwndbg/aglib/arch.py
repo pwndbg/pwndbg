@@ -34,6 +34,7 @@ from typing_extensions import override
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.disasm
 from pwndbg.aglib import typeinfo
 from pwndbg.lib.abi import ABI
 from pwndbg.lib.abi import DEFAULT_ABIS
@@ -216,7 +217,7 @@ class ArmArch(PwndbgArchitecture):
 
     @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
-        thumb_mode = pwndbg.aglib.disasm.emulated_arm_mode_cache[address]
+        thumb_mode = pwndbg.aglib.disasm.disassembly.emulated_arm_mode_cache[address]
         if thumb_mode is None:
             thumb_mode = self.read_thumb_bit()
         mode = CS_MODE_THUMB if thumb_mode else CS_MODE_ARM

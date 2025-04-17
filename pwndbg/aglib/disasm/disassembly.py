@@ -38,50 +38,12 @@ from pwndbg.color import message
 from pwndbg.dbg import EventType
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
-
-
-CapstoneArch = {
-    "arm": CS_ARCH_ARM,
-    "armcm": CS_ARCH_ARM,
-    "aarch64": CS_ARCH_AARCH64,
-    "i386": CS_ARCH_X86,
-    "i8086": CS_ARCH_X86,
-    "x86-64": CS_ARCH_X86,
-    "powerpc": CS_ARCH_PPC,
-    "mips": CS_ARCH_MIPS,
-    "sparc": CS_ARCH_SPARC,
-    "rv32": CS_ARCH_RISCV,
-    "rv64": CS_ARCH_RISCV,
-    "s390x": CS_ARCH_SYSTEMZ,
-    "loongarch64": CS_ARCH_LOONGARCH,
-}
-
 CapstoneEndian = {
     "little": CS_MODE_LITTLE_ENDIAN,
     "big": CS_MODE_BIG_ENDIAN,
 }
 
-CapstoneMode = {4: CS_MODE_32, 8: CS_MODE_64}
-
 CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}
-
-# For variable-instruction-width architectures
-# (x86 and amd64), we keep a cache of instruction
-# sizes, and where the end of the instruction falls.
-#
-# This allows us to consistently disassemble backward.
-VariableInstructionSizeMax = {
-    "i386": 16,
-    "x86-64": 16,
-    "i8086": 16,
-    "mips": 8,
-    "rv32": 22,
-    "rv64": 22,
-    "s390x": 6,
-    "loongarch64": 4,
-}
 
 
 # Caching strategy:
@@ -136,96 +98,23 @@ emulated_arm_mode_cache: DefaultDict[int, int] = collections.defaultdict(lambda:
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_disassembler_cached(arch, ptrsize: int, endian, extra=None):
-    arch = CapstoneArch[arch]
-
-    if extra is None:
-        mode = CapstoneMode[ptrsize]
+def get_disassembler(address: int, cs_info: Tuple[int, int] = None):
+    if cs_info is not None:
+        arch, mode = cs_info
     else:
-        mode = extra
+        arch, mode = pwndbg.aglib.arch.get_capstone_constants(address)
 
-    mode |= CapstoneEndian[endian]
-
-    flavor = pwndbg.dbg.x86_disassembly_flavor()
+    mode |= CapstoneEndian[pwndbg.aglib.arch.endian]
 
     cs = Cs(arch, mode)
+
+    flavor = pwndbg.dbg.x86_disassembly_flavor()
     try:
         cs.syntax = CapstoneSyntax[flavor]
     except CsError:
         pass
     cs.detail = True
     return cs
-
-
-def get_disassembler(address):
-    if pwndbg.aglib.arch.name == "armcm":
-        thumb_mode = emulated_arm_mode_cache[address]
-        if thumb_mode is None:
-            thumb_mode = pwndbg.aglib.regs.xpsr & (1 << 24)
-        # novermin
-        extra = (CS_MODE_MCLASS | CS_MODE_THUMB) if thumb_mode else CS_MODE_MCLASS
-
-    elif pwndbg.aglib.arch.name in ("arm", "aarch64"):
-        thumb_mode = emulated_arm_mode_cache[address]
-        if thumb_mode is None:
-            thumb_mode = pwndbg.aglib.regs.cpsr & (1 << 5)
-        extra = CS_MODE_THUMB if thumb_mode else CS_MODE_ARM
-
-    elif pwndbg.aglib.arch.name == "sparc":
-        if pwndbg.dbg.is_gdblib_available() and "v9" in gdb.newest_frame().architecture().name():
-            extra = CS_MODE_V9
-        else:
-            # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
-            extra = 0
-
-    elif pwndbg.aglib.arch.name == "i8086":
-        extra = CS_MODE_16
-
-    elif pwndbg.aglib.arch.name == "mips":
-        if pwndbg.dbg.is_gdblib_available():
-            # Example: "mips:isa64r2"
-            raw_arch_name = gdb.newest_frame().architecture().name()
-
-            if "isa32r2" in raw_arch_name:
-                extra = CS_MODE_MIPS32R2
-            elif "isa32r3" in raw_arch_name:
-                extra = CS_MODE_MIPS32R3
-            elif "isa32r5" in raw_arch_name:
-                extra = CS_MODE_MIPS32R5
-            elif "isa32r6" in raw_arch_name:
-                extra = CS_MODE_MIPS32R6
-            elif "isa64r2" in raw_arch_name:
-                extra = CS_MODE_MIPS64R2
-            elif "isa64r3" in raw_arch_name:
-                extra = CS_MODE_MIPS64R3
-            elif "isa64r5" in raw_arch_name:
-                extra = CS_MODE_MIPS64R5
-            elif "isa64r6" in raw_arch_name:
-                extra = CS_MODE_MIPS64R6
-            elif "micromips" in raw_arch_name:
-                extra = CS_MODE_MICRO
-            elif "mips5" in raw_arch_name:
-                extra = CS_MODE_MIPS5
-            elif pwndbg.aglib.arch.ptrsize == 64:
-                extra = CS_MODE_MIPS64
-            else:
-                extra = CS_MODE_MIPS32
-
-    elif pwndbg.aglib.arch.name == "rv32":
-        extra = CS_MODE_RISCV32 | CS_MODE_RISCVC  # novermin
-    elif pwndbg.aglib.arch.name == "rv64":
-        extra = CS_MODE_RISCV64 | CS_MODE_RISCVC  # novermin
-    elif pwndbg.aglib.arch.name == "s390x":
-        # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
-        extra = 0
-    elif pwndbg.aglib.arch.name == "loongarch64":
-        extra = CS_MODE_LOONGARCH64
-    else:
-        extra = None
-
-    return get_disassembler_cached(
-        pwndbg.aglib.arch.name, pwndbg.aglib.arch.ptrsize, pwndbg.aglib.arch.endian, extra
-    )
 
 
 def get_one_instruction(
@@ -245,12 +134,12 @@ def get_one_instruction(
         if cached is not None:
             return cached
 
-    if pwndbg.aglib.arch.name not in CapstoneArch:
+    cs_info = pwndbg.aglib.arch.get_capstone_constants(address)
+    if cs_info is None:
         return ManualPwndbgInstruction(address)
 
-    md = get_disassembler(address)
-    size = VariableInstructionSizeMax.get(pwndbg.aglib.arch.name, 4)
-    data = pwndbg.aglib.memory.read(address, size, partial=True)
+    md = get_disassembler(address, cs_info)
+    data = pwndbg.aglib.memory.read(address, pwndbg.aglib.arch.max_instruction_size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
         pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins)
 
