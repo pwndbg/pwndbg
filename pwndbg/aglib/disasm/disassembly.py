@@ -24,6 +24,7 @@ import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.disasm.mips
 import pwndbg.aglib.disasm.riscv
 import pwndbg.aglib.disasm.x86
+import pwndbg.aglib.disasm.loongarch64
 import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
@@ -54,6 +55,7 @@ CapstoneArch = {
     "rv32": CS_ARCH_RISCV,
     "rv64": CS_ARCH_RISCV,
     "s390x": CS_ARCH_SYSTEMZ,
+    "loongarch64": CS_ARCH_LOONGARCH,
 }
 
 CapstoneEndian = {
@@ -78,6 +80,7 @@ VariableInstructionSizeMax = {
     "rv32": 22,
     "rv64": 22,
     "s390x": 6,
+    "loongarch64": 4,
 }
 
 
@@ -192,6 +195,8 @@ def get_disassembler(address):
     elif pwndbg.aglib.arch.name == "s390x":
         # The ptrsize base modes cause capstone.CsError: Invalid mode (CS_ERR_MODE)
         extra = 0
+    elif pwndbg.aglib.arch.name == "loongarch64":
+        extra = CS_MODE_LOONGARCH64
     else:
         extra = None
 
@@ -549,6 +554,7 @@ ALL_DISASSEMBLY_ASSISTANTS: Dict[
     "mips": lambda: pwndbg.aglib.disasm.mips.MipsDisassemblyAssistant("mips"),
     "rv32": lambda: pwndbg.aglib.disasm.riscv.RISCVDisassemblyAssistant("rv32"),
     "rv64": lambda: pwndbg.aglib.disasm.riscv.RISCVDisassemblyAssistant("rv64"),
+    "loongarch64": lambda: pwndbg.aglib.disasm.loongarch64.RISCVDisassemblyAssistant("rv64"),
 }
 
 
