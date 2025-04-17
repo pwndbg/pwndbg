@@ -53,7 +53,7 @@ def sanitize_signature(func_name: str, sig: str) -> str:
     return sig
 
 
-def convert_to_markdown(named_funcs: Dict[str, _GdbFunction]) -> str:
+def convert_to_markdown(named_funcs: Dict[str, _GdbFunction]) -> Dict[str, str]:
     """
     Returns a dict which maps filenames to their markdown contents.
     It will have only one item (the index.md).

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.commands
