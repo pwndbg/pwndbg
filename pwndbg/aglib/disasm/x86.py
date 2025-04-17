@@ -20,7 +20,6 @@ import pwndbg.color.message as MessageColor
 import pwndbg.enhance
 from pwndbg.aglib.disasm.arch import memory_or_register_assign
 from pwndbg.aglib.disasm.arch import register_assign
-from pwndbg.aglib.disasm.arch import register_disassembly_assistant
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -50,7 +49,7 @@ X86_MATH_INSTRUCTIONS = {
 
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
-class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
@@ -438,7 +437,3 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             sz += f"{abs(disp):#x}"
 
         return f"[{sz}]"
-
-
-register_disassembly_assistant("i386", lambda: DisassemblyAssistant("i386"))
-register_disassembly_assistant("x86-64", lambda: DisassemblyAssistant("x86-64"))

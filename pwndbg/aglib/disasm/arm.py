@@ -16,7 +16,6 @@ import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.lib.disasm.helpers as bit_math
-from pwndbg.aglib.disasm.arch import register_disassembly_assistant
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -125,7 +124,7 @@ ARM_CAN_WRITE_TO_PC_INSTRUCTIONS = {
 
 
 # This class enhances both ARM A-profile and ARM M-profile (Cortex-M)
-class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture, flags_reg: Literal["cpsr", "xpsr"]) -> None:
         super().__init__(architecture)
 
@@ -386,8 +385,3 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             )
 
         return target
-
-
-# Register the assistant for both ARM A-profile and ARM M-profile
-register_disassembly_assistant("arm", lambda: DisassemblyAssistant("arm", "cpsr"))
-register_disassembly_assistant("armcm", lambda: DisassemblyAssistant("armcm", "xpsr"))

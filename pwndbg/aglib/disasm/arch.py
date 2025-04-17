@@ -135,30 +135,6 @@ def memory_or_register_assign(left: str, right: str, mem_assign: bool) -> str:
     return memory_assign(left, right) if mem_assign else register_assign(left, right)
 
 
-# A registry of functions that create disassembly assistants for each architecture
-ALL_DISASSEMBLY_ASSISTANTS: Dict[str, Callable[[], DisassemblyAssistant]] = {}
-
-
-def register_disassembly_assistant(
-    arch: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, assistant: Callable[[], DisassemblyAssistant]
-):
-    ALL_DISASSEMBLY_ASSISTANTS[arch] = assistant
-
-
-def get_disassembly_assistant_for_current_arch() -> DisassemblyAssistant:
-    # If a specific subclass has not been created for the given arc, return the generic assistant
-    return ALL_DISASSEMBLY_ASSISTANTS.get(
-        pwndbg.aglib.arch.name, lambda: DisassemblyAssistant(None)
-    )()
-
-
-def arch_has_disassembly_assistant(arch: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE | None = None) -> bool:
-    if arch is None:
-        arch = pwndbg.aglib.arch.name
-
-    return arch in ALL_DISASSEMBLY_ASSISTANTS
-
-
 # Enhances disassembly with memory values & symbols by adding member variables to an instruction
 # The only public method that should be called is "enhance"
 # The enhance function is passed an instance of the Unicorn emulator

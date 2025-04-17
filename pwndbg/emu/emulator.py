@@ -16,7 +16,7 @@ import capstone as C
 import unicorn as U
 
 import pwndbg.aglib.arch
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.strings
@@ -444,7 +444,7 @@ class Emulator:
             rwx = exe = False
 
         if exe:
-            pwndbg_instr = pwndbg.aglib.disasm.one_raw(value)
+            pwndbg_instr = pwndbg.aglib.disassembly.one_raw(value)
             if pwndbg_instr:
                 instr = f"{pwndbg_instr.mnemonic} {pwndbg_instr.op_str}"
                 if pwndbg.config.syntax_highlight:
@@ -806,7 +806,7 @@ class Emulator:
     def until_call(self, pc=None):
         addr, target = self.until_jump(pc)
 
-        while target and not pwndbg.aglib.disasm.one_raw(addr).call_like:
+        while target and not pwndbg.aglib.disassembly.one_raw(addr).call_like:
             addr, target = self.until_jump(target)
 
         return addr, target
@@ -844,7 +844,7 @@ class Emulator:
 
         pc = pc or self.pc
 
-        insn = pwndbg.aglib.disasm.one_raw(pc)
+        insn = pwndbg.aglib.disassembly.one_raw(pc)
 
         # If we don't know how to disassemble, bail.
         if insn is None:

@@ -12,7 +12,6 @@ import pwndbg.aglib.regs
 import pwndbg.color.memory as MemoryColor
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
-from pwndbg.aglib.disasm.arch import register_disassembly_assistant
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 
@@ -114,7 +113,7 @@ RISCV_EMULATED_ANNOTATIONS = {
 }
 
 
-class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
         self.architecture = architecture
@@ -292,7 +291,3 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if base is None:
             return None
         return base + op.mem.disp
-
-
-register_disassembly_assistant("rv32", lambda: DisassemblyAssistant("rv32"))
-register_disassembly_assistant("rv64", lambda: DisassemblyAssistant("rv64"))

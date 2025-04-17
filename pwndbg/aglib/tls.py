@@ -5,7 +5,7 @@ Getting Thread Local Storage (TLS) information.
 from __future__ import annotations
 
 import pwndbg.aglib.arch
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol

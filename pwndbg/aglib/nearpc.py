@@ -5,7 +5,7 @@ from typing import List
 from capstone import *  # noqa: F403
 
 import pwndbg
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disassembly
 import pwndbg.aglib.regs
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
@@ -145,7 +145,7 @@ def nearpc(
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
 
-    instructions, index_of_pc = pwndbg.aglib.disasm.near(
+    instructions, index_of_pc = pwndbg.aglib.disassembly.near(
         pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache, linear=linear
     )
 
