@@ -554,7 +554,9 @@ ALL_DISASSEMBLY_ASSISTANTS: Dict[
     "mips": lambda: pwndbg.aglib.disasm.mips.MipsDisassemblyAssistant("mips"),
     "rv32": lambda: pwndbg.aglib.disasm.riscv.RISCVDisassemblyAssistant("rv32"),
     "rv64": lambda: pwndbg.aglib.disasm.riscv.RISCVDisassemblyAssistant("rv64"),
-    "loongarch64": lambda: pwndbg.aglib.disasm.loongarch64.RISCVDisassemblyAssistant("rv64"),
+    "loongarch64": lambda: pwndbg.aglib.disasm.loongarch64.Loong64DisassemblyAssistant(
+        "loongarch64"
+    ),
 }
 
 

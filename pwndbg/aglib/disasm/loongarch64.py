@@ -40,7 +40,7 @@ LOONGARCH_BINARY_OPERATIONS: Dict[int, str] = {}
 
 
 # This class enhances 64-bit Loongarch
-class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
