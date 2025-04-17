@@ -23,7 +23,7 @@ theme:
   features:
 # https://squidfunk.github.io/mkdocs-material/reference/code-blocks/
     # A button to copy code snippets.
-    - content.code.copy
+    # - content.code.copy
     # Enable annotations in code blocks.
     - content.code.annotate
 # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/
@@ -183,6 +183,7 @@ markdown_extensions:
   - md_in_html
   - toc:
       permalink: "¤"
+      toc_depth: 3
   - tables
 # https://facelessuser.github.io/pymdown-extensions/
 # Officially supported are:
