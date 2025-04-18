@@ -13,7 +13,6 @@ Pwndbg relies on several environment variables to customize its behavior. Below 
 - `PWNDBG_PROFILE`: Enables profiling for benchmarking.
 - `USE_PDB`: Enables Python debugger in tests.
 - `PWNDBG_LAUNCH_TEST`: Used by tests to configure test launching.
-- `PWNDBG_RUN_SLOW_TESTS`: Used by tests to determine if certain long-running tests will run.
 - `PWNDBG_ARCH`, `PWNDBG_KERNEL_TYPE`, `PWNDBG_KERNEL_VERSION`: Used by `gdblib` kernel tests to specify kernel parameters.
 - `SPHINX`: Used by `docs/source/conf.py`, likely to be removed.
 - `PWNLIB_NOTERM=1`: Set by Pwndbg to avoid terminal issues with Pwntools.

@@ -15,12 +15,6 @@ import pwndbg.commands.context
 # when displaying the context.
 # These are worth running after large changes in the instruction enhancement code and updates to Unicorn/Capstone.
 
-SKIP_SLOW_TESTS = os.getenv("PWNDBG_RUN_SLOW_TESTS") is not None
-
-REASON_SKIPPING = (
-    "Test skipped because it is slow - run these tests when changing instruction enhancement code"
-)
-
 NUMBER_OF_STEPS = 1500
 
 
@@ -45,27 +39,22 @@ def helper(
         pwndbg.commands.context.context_disasm()
 
 
-@pytest.mark.skipif(SKIP_SLOW_TESTS is False, reason=REASON_SKIPPING)
 def test_basic_aarch64(qemu_start_binary):
     helper(qemu_start_binary, "basic.aarch64.out", "aarch64")
 
 
-@pytest.mark.skipif(SKIP_SLOW_TESTS is False, reason=REASON_SKIPPING)
 def test_basic_arm(qemu_start_binary):
     helper(qemu_start_binary, "basic.arm.out", "arm")
 
 
-@pytest.mark.skipif(SKIP_SLOW_TESTS is False, reason=REASON_SKIPPING)
 def test_basic_riscv64(qemu_start_binary):
     helper(qemu_start_binary, "basic.riscv64.out", "riscv64")
 
 
-@pytest.mark.skipif(SKIP_SLOW_TESTS is False, reason=REASON_SKIPPING)
 def test_basic_mips64(qemu_start_binary):
     # pwnlib.context.endian defaults to "little", but these MIPS binaries are compiled to big endian.
     helper(qemu_start_binary, "basic.mips64.out", "mips64", endian="big")
 
 
-@pytest.mark.skipif(SKIP_SLOW_TESTS is False, reason=REASON_SKIPPING)
 def test_basic_mips32(qemu_start_binary):
     helper(qemu_start_binary, "basic.mips32.out", "mips", endian="big")
