@@ -60,7 +60,10 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     elif CS_GRP_INT in instruction.groups:
         # Get the syscall number and name
         name = instruction.syscall_name
-        abi = pwndbg.lib.abi.ABI.syscall()
+        try:
+            abi = pwndbg.lib.abi.ABI.syscall()
+        except KeyError:
+            return []
         target = None
 
         if name is None:
