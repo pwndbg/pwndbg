@@ -1490,7 +1490,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             raise pwndbg.dbg_mod.Error("Unknown target architecture")
 
         name = names[0]
-        raw_name = name
         if name == "x86_64":
             # GDB and Pwndbg use a different name for x86_64.
             name = "x86-64"
@@ -1520,9 +1519,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # Pwndbg use a different name for riscv64.
             name = "rv64"
 
-        return ArchDefinition(
-            name=name, name_raw=raw_name, ptrsize=ptrsize0, endian=endian, platform=Platform.LINUX
-        )
+        return ArchDefinition(name=name, ptrsize=ptrsize0, endian=endian, platform=Platform.LINUX)
 
     @override
     def break_at(

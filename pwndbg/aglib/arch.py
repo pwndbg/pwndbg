@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import struct
 from typing import Dict
+from typing import List
 from typing import Literal
 from typing import Tuple
 
@@ -22,7 +23,6 @@ from capstone import CS_MODE_ARM
 from capstone import CS_MODE_LOONGARCH64
 from capstone import CS_MODE_MCLASS
 from capstone import CS_MODE_MIPS32
-from capstone import CS_MODE_MIPS32R6
 from capstone import CS_MODE_MIPS64
 from capstone import CS_MODE_RISCV32
 from capstone import CS_MODE_RISCV64
@@ -42,6 +42,7 @@ from pwndbg.lib.abi import SYSCALL_ABIS
 from pwndbg.lib.abi import SyscallABI
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import PWNLIB_ARCH_MAPPINGS
+from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 
@@ -81,7 +82,6 @@ class PwndbgArchitecture(ArchDefinition):
     ###
 
     name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
-    name_raw: str  # The raw string returned by the debugger. Example: "mips:isa64r6"
     endian: EndianType
     ptrsize: int
     ptrbits: int
@@ -90,6 +90,7 @@ class PwndbgArchitecture(ArchDefinition):
     syscall_abi: SyscallABI | None
     sigreturn_abi: SyscallABI | None
     platform: Platform
+    attributes: List[ArchAttribute]
 
     fmts: Dict[int, str]
     fmt: str
@@ -102,7 +103,6 @@ class PwndbgArchitecture(ArchDefinition):
         self.update(
             ArchDefinition(
                 name=name,
-                name_raw=name,
                 ptrsize=typeinfo.ptrsize,
                 endian="little",
                 platform=Platform.LINUX,
@@ -116,8 +116,8 @@ class PwndbgArchitecture(ArchDefinition):
         For example:
         - Some architectures can change endianness dynamically.
         """
-        self.name_raw = arch_definition.name_raw
         self.platform = arch_definition.platform
+        self.attributes = arch_definition.attributes
 
         self.endian: EndianType = arch_definition.endian
 
@@ -278,7 +278,7 @@ class SparcArch(PwndbgArchitecture):
         super().__init__("sparc")
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
-        mode = CS_MODE_V9 if "v9" in self.name_raw else 0
+        mode = CS_MODE_V9 if self.ptrsize == 8 else 0
         return (CS_ARCH_SPARC, mode)
 
 
@@ -309,13 +309,16 @@ class MipsArch(PwndbgArchitecture):
         super().__init__("mips")
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
-        # TODO - Capstone v6 increased the number of MIPS constants
-        if "isa32r6" in self.name_raw:
-            extra = CS_MODE_MIPS32R6
-        elif self.ptrsize == 64:
-            extra = CS_MODE_MIPS64
-        else:
-            extra = CS_MODE_MIPS32
+        extra = 0
+        for attribute in self.attributes:
+            if attribute.cs_mode is not None:
+                extra |= attribute.cs_mode
+
+        if extra == 0:
+            if self.ptrsize == 64:
+                extra = CS_MODE_MIPS64
+            else:
+                extra = CS_MODE_MIPS32
 
         return (CS_ARCH_MIPS, extra)
 

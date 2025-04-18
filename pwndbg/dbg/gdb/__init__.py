@@ -29,6 +29,7 @@ from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
+from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.memory import PAGE_MASK
@@ -58,6 +59,22 @@ gdb_architecture_name_fixup_list = (
     "loongarch64",
     "s390:64-bit",
 )
+
+# `show architecture` returns a string like "mips:isa32r5"
+gdb_mips_to_arch_attribute_map = {
+    "mips5": ArchAttribute.MIPS_ISA_5,
+    "micromips": ArchAttribute.MIPS_ISA_MICRO,
+    "isa32": ArchAttribute.MIPS_ISA_32,
+    "isa32r2": ArchAttribute.MIPS_ISA_32R2,
+    "isa32r3": ArchAttribute.MIPS_ISA_32R3,
+    "isa32r5": ArchAttribute.MIPS_ISA_32R5,
+    "isa32r6": ArchAttribute.MIPS_ISA_32R6,
+    "isa64": ArchAttribute.MIPS_ISA_64,
+    "isa64r2": ArchAttribute.MIPS_ISA_64R2,
+    "isa64r3": ArchAttribute.MIPS_ISA_64R3,
+    "isa64r5": ArchAttribute.MIPS_ISA_64R5,
+    "isa64r6": ArchAttribute.MIPS_ISA_64R6,
+}
 
 
 def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
@@ -711,6 +728,14 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
         arch = arch.lower()
 
+        arch_attributes = []
+
+        if arch.startswith("mips:"):
+            isa = arch[5:]
+
+            if (attribute := gdb_mips_to_arch_attribute_map.get(isa)) is not None:
+                arch_attributes.append(attribute)
+
         # Below, we fix the fetched architecture
         for match in gdb_architecture_name_fixup_list:
             if match in arch:
@@ -737,10 +762,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     match = "s390x"
                 return ArchDefinition(
                     name=match,  # type: ignore[arg-type]
-                    name_raw=arch,
                     ptrsize=ptrsize,
                     endian=endian,
                     platform=Platform.LINUX,
+                    attributes=arch_attributes,
                 )
 
         if not_exactly_arch:
@@ -748,10 +773,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
         return ArchDefinition(
             name=arch,  # type: ignore[arg-type]
-            name_raw=arch,
             ptrsize=ptrsize,
             endian=endian,
             platform=Platform.LINUX,
+            attributes=arch_attributes,
         )
 
     @override
