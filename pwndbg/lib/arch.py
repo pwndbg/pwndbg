@@ -119,6 +119,7 @@ class ArchAttribute(Enum):
 class ArchDefinition:
     name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
     ptrsize: int
+    """Pointer size in bytes"""
     endian: Literal["little", "big"]
     platform: Platform
     attributes: List[ArchAttribute] = field(default_factory=list)

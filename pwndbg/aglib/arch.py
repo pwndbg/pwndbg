@@ -84,7 +84,9 @@ class PwndbgArchitecture(ArchDefinition):
     name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
     endian: EndianType
     ptrsize: int
+    """Pointer size in bytes"""
     ptrbits: int
+    """Pointer size in bits"""
     ptrmask: int
     function_abi: ABI | None
     syscall_abi: SyscallABI | None
@@ -121,7 +123,6 @@ class PwndbgArchitecture(ArchDefinition):
 
         self.endian: EndianType = arch_definition.endian
 
-        # Pointer size in bytes
         self.ptrsize: int = arch_definition.ptrsize
         self.ptrbits: int = self.ptrsize * 8
         self.ptrmask: int = (1 << self.ptrbits) - 1
@@ -323,10 +324,7 @@ class MipsArch(PwndbgArchitecture):
                 extra |= attribute.cs_mode
 
         if extra == 0:
-            if self.ptrsize == 64:
-                extra = CS_MODE_MIPS64
-            else:
-                extra = CS_MODE_MIPS32
+            extra = CS_MODE_MIPS64 if self.ptrsize == 8 else CS_MODE_MIPS32
 
         return (CS_ARCH_MIPS, extra)
 
