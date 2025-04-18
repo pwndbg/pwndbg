@@ -1337,7 +1337,6 @@ class GDB(pwndbg.dbg_mod.Debugger):
         # See https://github.com/pwndbg/pwndbg/issues/2890#issuecomment-2813047212
         # Note: Remove this in a late 2025 or 2026 release?
         for deprecated_cmd in (
-            "dev_dump_instruction",
             "vmmap_add",
             "vmmap_clear",
             "vmmap_load",
@@ -1365,11 +1364,10 @@ class GDB(pwndbg.dbg_mod.Debugger):
             "jemalloc_extent_info",
             "jemalloc_find_extent",
             "jemalloc_heap",
-            "reinit_pwndbg",
         ):
             fixed_cmd = deprecated_cmd.replace("_", "-")
             gdb.execute(
-                f"alias {deprecated_cmd} = echo Use `{fixed_cmd}` instead (Pwndbg changed `_` to `-` in command names)\\n"
+                f"alias -a {deprecated_cmd} = echo Use `{fixed_cmd}` instead (Pwndbg changed `_` to `-` in command names)\\n"
             )
 
         # This may throw an exception, see pwndbg/pwndbg#27

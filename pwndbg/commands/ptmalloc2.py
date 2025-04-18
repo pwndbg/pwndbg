@@ -989,7 +989,7 @@ group.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["vis"], category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
