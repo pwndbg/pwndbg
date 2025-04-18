@@ -105,10 +105,6 @@
          <lastmod>2025-04-18</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/heap-config/</loc>
-         <lastmod>2025-04-18</lastmod>
-    </url>
-    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/heap/</loc>
          <lastmod>2025-04-18</lastmod>
     </url>
@@ -549,6 +545,10 @@
          <lastmod>2025-04-18</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/heap-config/</loc>
+         <lastmod>2025-04-18</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/memoize/</loc>
          <lastmod>2025-04-18</lastmod>
     </url>
@@ -766,6 +766,22 @@
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/peb/</loc>
+         <lastmod>2025-04-18</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/configuration/</loc>
+         <lastmod>2025-04-18</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/configuration/config/</loc>
+         <lastmod>2025-04-18</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/configuration/heap/</loc>
+         <lastmod>2025-04-18</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/configuration/theme/</loc>
          <lastmod>2025-04-18</lastmod>
     </url>
     <url>
