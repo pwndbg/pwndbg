@@ -181,12 +181,35 @@ def get_disassembler(address):
     elif pwndbg.aglib.arch.name == "i8086":
         extra = CS_MODE_16
 
-    elif (
-        pwndbg.aglib.arch.name == "mips"
-        and pwndbg.dbg.is_gdblib_available()
-        and "isa32r6" in gdb.newest_frame().architecture().name()
-    ):
-        extra = CS_MODE_MIPS32R6
+    elif pwndbg.aglib.arch.name == "mips":
+        if pwndbg.dbg.is_gdblib_available():
+            # Example: "mips:isa64r2"
+            raw_arch_name = gdb.newest_frame().architecture().name()
+
+            if "isa32r2" in raw_arch_name:
+                extra = CS_MODE_MIPS32R2
+            elif "isa32r3" in raw_arch_name:
+                extra = CS_MODE_MIPS32R3
+            elif "isa32r5" in raw_arch_name:
+                extra = CS_MODE_MIPS32R5
+            elif "isa32r6" in raw_arch_name:
+                extra = CS_MODE_MIPS32R6
+            elif "isa64r2" in raw_arch_name:
+                extra = CS_MODE_MIPS64R2
+            elif "isa64r3" in raw_arch_name:
+                extra = CS_MODE_MIPS64R3
+            elif "isa64r5" in raw_arch_name:
+                extra = CS_MODE_MIPS64R5
+            elif "isa64r6" in raw_arch_name:
+                extra = CS_MODE_MIPS64R6
+            elif "micromips" in raw_arch_name:
+                extra = CS_MODE_MICRO
+            elif "mips5" in raw_arch_name:
+                extra = CS_MODE_MIPS5
+            elif pwndbg.aglib.arch.ptrsize == 64:
+                extra = CS_MODE_MIPS64
+            else:
+                extra = CS_MODE_MIPS32
 
     elif pwndbg.aglib.arch.name == "rv32":
         extra = CS_MODE_RISCV32 | CS_MODE_RISCVC  # novermin
