@@ -140,8 +140,8 @@ save_ida()
 @GdbFunction()
 def ida(name: gdb.Value) -> int:
     """
-    Evaluate ida.LocByName() on the supplied value. Lookup
-    a symbol's address by name.
+    Lookup a symbol's address by name from IDA.
+    Evaluate ida.LocByName() on the supplied value.
 
     This functions doesn't see stack local variables.
 

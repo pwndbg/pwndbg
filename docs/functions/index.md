@@ -152,7 +152,8 @@ argc() -> int
 
 #### Description
 
-Evaluates to argc. Get the number of program arguments.
+Get the number of program arguments.
+Evaluates to argc.
 
 #### Example
 ```
@@ -171,14 +172,14 @@ pwndbg> argv
 
 
 ``` {.python .no-copy}
-argv(number_value: gdb.Value) -> gdb.Value
+argv(index: gdb.Value) -> gdb.Value
 ```
 
 
 #### Description
 
-Evaluate argv on the supplied value. Get the
-n-th program argument.
+Get the n-th program argument.
+Evaluate argv on the supplied value.
 
 #### Example
 ```
@@ -196,14 +197,14 @@ pwndbg> argv
 
 
 ``` {.python .no-copy}
-environ(name_value: gdb.Value) -> gdb.Value
+environ(env_name: gdb.Value) -> gdb.Value
 ```
 
 
 #### Description
 
-Evaluate getenv() on the supplied value. Get an
-environment variable by name.
+Get an environment variable by name.
+Evaluate getenv() on the supplied value.
 
 #### Example
 ```
@@ -218,14 +219,14 @@ $2 = (signed char *) 0x7fffffffebfb "LANG=en_US.UTF-8"
 
 
 ``` {.python .no-copy}
-envp(number_value: gdb.Value) -> gdb.Value
+envp(index: gdb.Value) -> gdb.Value
 ```
 
 
 #### Description
 
-Evaluate envp on the supplied value. Get the
-n-th environment variable.
+Get the n-th environment variable.
+Evaluate envp on the supplied value.
 
 #### Example
 ```
@@ -242,13 +243,14 @@ $14 = 1
 
 
 ``` {.python .no-copy}
-fsbase(arg: gdb.Value = gdb.Value(0)) -> int
+fsbase(offset: gdb.Value = gdb.Value(0)) -> int
 ```
 
 
 #### Description
 
-Get the value of the FS segment register. Only valid on x86(-64).
+Get the value of the FS segment register.
+Only valid on x86(-64).
 
 #### Example
 ```
@@ -290,13 +292,14 @@ offset, it is usually easier to use gdb's builtin $fs_base variable.
 
 
 ``` {.python .no-copy}
-gsbase(arg: gdb.Value = gdb.Value(0)) -> int
+gsbase(offset: gdb.Value = gdb.Value(0)) -> int
 ```
 
 
 #### Description
 
-Get the value of the GS segment register. Only valid on x86(-64).
+Get the value of the GS segment register.
+Only valid on x86(-64).
 
 #### Example
 ```
@@ -442,8 +445,8 @@ ida(name: gdb.Value) -> int
 
 #### Description
 
-Evaluate ida.LocByName() on the supplied value. Lookup
-a symbol's address by name.
+Lookup a symbol's address by name from IDA.
+Evaluate ida.LocByName() on the supplied value.
 
 This functions doesn't see stack local variables.
 

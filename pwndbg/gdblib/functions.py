@@ -32,11 +32,21 @@ class _GdbFunction(gdb.Function):
         self.name = func.__name__
         self.func = func
         self.only_when_running = only_when_running
-        self.__doc__ = func.__doc__
+        self.__doc__ = func.__doc__.strip()
 
         assert func.__doc__ and "The function must have a docstring."
+        _first_line = self.__doc__.split("\n")[0]
+        assert len(_first_line) <= 80 and (
+            "The first line of the function's docstring should be short,"
+            " as it is printed with `help function`."
+        )
+        assert _first_line[-1] == "." and (
+            "The first line should be a standalone sentence, as it is "
+            "printed alone with `help function`."
+        )
         assert (
-            "Example:" in func.__doc__ and "Convenience functions need to provide a usage example."
+            "Example:\n" in func.__doc__
+            and "Convenience functions need to provide a usage example."
         )
 
         functions.append(self)
@@ -153,7 +163,8 @@ def hex2ptr(hex_string: gdb.Value | str) -> int:
 @GdbFunction(only_when_running=True)
 def argc() -> int:
     """
-    Evaluates to argc. Get the number of program arguments.
+    Get the number of program arguments.
+    Evaluates to argc.
 
     Example:
     ```
@@ -169,10 +180,10 @@ def argc() -> int:
 
 
 @GdbFunction(only_when_running=True)
-def argv(number_value: gdb.Value) -> gdb.Value:
+def argv(index: gdb.Value) -> gdb.Value:
     """
-    Evaluate argv on the supplied value. Get the
-    n-th program argument.
+    Get the n-th program argument.
+    Evaluate argv on the supplied value.
 
     Example:
     ```
@@ -183,17 +194,17 @@ def argv(number_value: gdb.Value) -> gdb.Value:
     01:0008│  0x7fffffffe2b0 ◂— 0
     ```
     """
-    val = pwndbg.aglib.argv.argv(int(number_value))
+    val = pwndbg.aglib.argv.argv(int(index))
     if val is None:
         raise gdb.GdbError("Arg not found")
     return dbg_value_to_gdb(val)
 
 
 @GdbFunction(only_when_running=True)
-def environ(name_value: gdb.Value) -> gdb.Value:
+def environ(env_name: gdb.Value) -> gdb.Value:
     """
-    Evaluate getenv() on the supplied value. Get an
-    environment variable by name.
+    Get an environment variable by name.
+    Evaluate getenv() on the supplied value.
 
     Example:
     ```
@@ -201,7 +212,7 @@ def environ(name_value: gdb.Value) -> gdb.Value:
     $2 = (signed char *) 0x7fffffffebfb "LANG=en_US.UTF-8"
     ```
     """
-    name = name_value.string()
+    name = env_name.string()
     if not name:
         raise gdb.GdbError("No environment variable name provided")
 
@@ -212,10 +223,10 @@ def environ(name_value: gdb.Value) -> gdb.Value:
 
 
 @GdbFunction(only_when_running=True)
-def envp(number_value: gdb.Value) -> gdb.Value:
+def envp(index: gdb.Value) -> gdb.Value:
     """
-    Evaluate envp on the supplied value. Get the
-    n-th environment variable.
+    Get the n-th environment variable.
+    Evaluate envp on the supplied value.
 
     Example:
     ```
@@ -225,7 +236,7 @@ def envp(number_value: gdb.Value) -> gdb.Value:
     $14 = 1
     ```
     """
-    val = pwndbg.aglib.argv.envp(int(number_value))
+    val = pwndbg.aglib.argv.envp(int(index))
     if val is None:
         raise gdb.GdbError("Environ not found")
     return dbg_value_to_gdb(val)
@@ -239,9 +250,10 @@ def dbg_value_to_gdb(d: pwndbg.dbg_mod.Value) -> gdb.Value:
 
 
 @GdbFunction(only_when_running=True)
-def fsbase(arg: gdb.Value = gdb.Value(0)) -> int:
+def fsbase(offset: gdb.Value = gdb.Value(0)) -> int:
     """
-    Get the value of the FS segment register. Only valid on x86(-64).
+    Get the value of the FS segment register.
+    Only valid on x86(-64).
 
     Example:
     ```
@@ -279,13 +291,14 @@ def fsbase(arg: gdb.Value = gdb.Value(0)) -> int:
     if pwndbg.aglib.arch.name not in ("i386", "x86-64"):
         raise gdb.GdbError("This function is only valid on i386 and x86-64.")
 
-    return pwndbg.aglib.regs.fsbase + int(arg)
+    return pwndbg.aglib.regs.fsbase + int(offset)
 
 
 @GdbFunction(only_when_running=True)
-def gsbase(arg: gdb.Value = gdb.Value(0)) -> int:
+def gsbase(offset: gdb.Value = gdb.Value(0)) -> int:
     """
-    Get the value of the GS segment register. Only valid on x86(-64).
+    Get the value of the GS segment register.
+    Only valid on x86(-64).
 
     Example:
     ```
@@ -310,4 +323,4 @@ def gsbase(arg: gdb.Value = gdb.Value(0)) -> int:
     """
     if pwndbg.aglib.arch.name not in ("i386", "x86-64"):
         raise gdb.GdbError("This function is only valid on i386 and x86-64.")
-    return pwndbg.aglib.regs.gsbase + int(arg)
+    return pwndbg.aglib.regs.gsbase + int(offset)
