@@ -94,24 +94,24 @@ download_zig_binary() {
 
     if command -v "${ZIGPATH}"/zig &> /dev/null; then
         echo "Zig is already installed. Skipping build and install."
-        return
+    else
+        echo "Downloading and installing Zig..."
+        ZIG_TAR_URL="https://ziglang.org/download/0.10.1/zig-linux-x86_64-0.10.1.tar.xz"
+        ZIG_TAR_SHA256="6699f0e7293081b42428f32c9d9c983854094bd15fee5489f12c4cf4518cc380"
+        curl --output /tmp/zig.tar.xz "${ZIG_TAR_URL}"
+        ACTUAL_SHA256=$(sha256sum /tmp/zig.tar.xz | cut -d' ' -f1)
+        if [ "${ACTUAL_SHA256}" != "${ZIG_TAR_SHA256}" ]; then
+            echo "Zig binary checksum mismatch"
+            echo "Expected: ${ZIG_TAR_SHA256}"
+            echo "Actual: ${ACTUAL_SHA256}"
+            exit 1
+        fi
+
+        tar -C /tmp -xJf /tmp/zig.tar.xz
+
+        mv /tmp/zig-linux-x86_64-* ${ZIGPATH} &> /dev/null || true
+        echo "Zig installed to ${ZIGPATH}"
     fi
-
-    ZIG_TAR_URL="https://ziglang.org/download/0.10.1/zig-linux-x86_64-0.10.1.tar.xz"
-    ZIG_TAR_SHA256="6699f0e7293081b42428f32c9d9c983854094bd15fee5489f12c4cf4518cc380"
-    curl --output /tmp/zig.tar.xz "${ZIG_TAR_URL}"
-    ACTUAL_SHA256=$(sha256sum /tmp/zig.tar.xz | cut -d' ' -f1)
-    if [ "${ACTUAL_SHA256}" != "${ZIG_TAR_SHA256}" ]; then
-        echo "Zig binary checksum mismatch"
-        echo "Expected: ${ZIG_TAR_SHA256}"
-        echo "Actual: ${ACTUAL_SHA256}"
-        exit 1
-    fi
-
-    tar -C /tmp -xJf /tmp/zig.tar.xz
-
-    mv /tmp/zig-linux-x86_64-* ${ZIGPATH} &> /dev/null || true
-    echo "Zig installed to ${ZIGPATH}"
 }
 
 install_apt() {
