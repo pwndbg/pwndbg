@@ -499,6 +499,11 @@ def near(
                     emu.valid = False
 
                 split_insn = one(insn.address + insn.size, None, put_cache=True)
+
+                # There might not be a valid instruction at the branch delay slot
+                if split_insn is None:
+                    break
+
                 insns.append(split_insn)
 
                 # Manually make the backtracing cache correct
