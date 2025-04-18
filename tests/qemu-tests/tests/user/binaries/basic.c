@@ -14,7 +14,6 @@ int other_function(){
 }
 
 void function_call(int value) {
-    // Math operations
     value = a * value;
     a = value / a;
     a += 123;
@@ -28,7 +27,6 @@ void function_call(int value) {
     counter = counter & mod_number;
     counter = counter ^ mod_number;
 
-    // Memory accesses have interesting representations in assembly
     for(int i = 0; i < sizeof(buffer); i++){
         buffer[i] = i;
     }
@@ -39,7 +37,6 @@ void function_call(int value) {
     }
     int c = buffer[1];
 
-    // Try some branching
     if (c > b) { // true
         b++;
         if(value <= c){
@@ -50,8 +47,6 @@ void function_call(int value) {
             value++;
         }
     }
-
-    // printf("Hello world! %d, %d, %d", a + b + c, mod_number, len);
 };
 
 int main(int argc, char const* argv[])

@@ -41,7 +41,7 @@ MIPS32_TARGETS := $(MIPS32_SOURCES:.mips32.c=.mips32.out)
 # Build basic.c for all architectures
 BASIC_C_TARGETS = $(ARCHS:%=basic.%.out)
 basic.%.out: basic.c
-	echo $@ "hello" $<
+	@echo "[+] Building '$@'"
 	$(CC.$*) $(CFLAGS.$*) -o $@ $<
 
 
