@@ -8,7 +8,6 @@ char buffer[3];
 int counter = 0x20000;
 
 int other_function(){
-    // write(1,str,6);
     puts(str);
     return 1;
 }
@@ -36,6 +35,8 @@ void function_call(int value) {
         buffer[i] = i + 1;
     }
     int c = buffer[1];
+
+    write(1,str,6);
 
     if (c > b) { // true
         b++;
