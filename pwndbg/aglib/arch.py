@@ -168,6 +168,7 @@ class AMD64Arch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("x86-64")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         return (CS_ARCH_X86, CS_MODE_64)
 
@@ -182,6 +183,7 @@ class i386Arch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("i386")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         return (CS_ARCH_X86, CS_MODE_32)
 
@@ -196,6 +198,7 @@ class i8086Arch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("i8086")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         return (CS_ARCH_X86, CS_MODE_16)
 
@@ -256,6 +259,7 @@ class AArch64Arch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("aarch64")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         return (CS_ARCH_AARCH64, CS_MODE_ARM)
 
@@ -266,8 +270,8 @@ class PowerPCArch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("powerpc")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
-        # TODO - what about 32-bit powerpc?
         return (CS_ARCH_PPC, CS_MODE_64)
 
 
@@ -277,6 +281,7 @@ class SparcArch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("sparc")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         mode = CS_MODE_V9 if self.ptrsize == 8 else 0
         return (CS_ARCH_SPARC, mode)
@@ -288,6 +293,7 @@ class RISCV32Arch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("rv32")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         return (CS_ARCH_RISCV, CS_MODE_RISCV32 | CS_MODE_RISCVC)
 
@@ -298,6 +304,7 @@ class RISCV64Arch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("rv64")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         return (CS_ARCH_RISCV, CS_MODE_RISCV64 | CS_MODE_RISCVC)
 
@@ -308,6 +315,7 @@ class MipsArch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("mips")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         extra = 0
         for attribute in self.attributes:
@@ -329,6 +337,7 @@ class Loongarch64Arch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("loongarch64")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         return (CS_ARCH_LOONGARCH, CS_MODE_LOONGARCH64)
 
@@ -339,6 +348,7 @@ class S390xArch(PwndbgArchitecture):
     def __init__(self) -> None:
         super().__init__("s390x")
 
+    @override
     def get_capstone_constants(self, address: int) -> Tuple[int, int]:
         return (CS_ARCH_SYSTEMZ, 0)
 
