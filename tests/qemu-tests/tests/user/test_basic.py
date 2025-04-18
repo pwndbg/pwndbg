@@ -9,7 +9,6 @@ import user
 
 import pwndbg.aglib.proc
 import pwndbg.commands.context
-import pwndbg.lib.arch
 
 # The tests in this file execute for a long time - they can take 5-15 minutes to run, depending on the machine
 # They check for any crashes in the instruction enhancement code that may arise through
@@ -21,6 +20,8 @@ SKIP_SLOW_TESTS = os.getenv("PWNDBG_RUN_SLOW_TESTS") is not None
 REASON_SKIPPING = (
     "Test skipped because it is slow - run these tests when changing instruction enhancement code"
 )
+
+NUMBER_OF_STEPS = 1500
 
 
 # Step through a binary, running "ctx" each time the program stops
@@ -35,14 +36,13 @@ def helper(
     gdb.execute("b main")
     gdb.execute("c")
 
-    pwndbg.commands.context.context()
+    pwndbg.commands.context.context_disasm()
 
-    # Step through at least 10,000 instructions
-    for i in range(10000):
+    for i in range(NUMBER_OF_STEPS):
         if not pwndbg.aglib.proc.alive:
             break
         gdb.execute("stepi")
-        pwndbg.commands.context.context()
+        pwndbg.commands.context.context_disasm()
 
 
 @pytest.mark.skipif(SKIP_SLOW_TESTS is False, reason=REASON_SKIPPING)
