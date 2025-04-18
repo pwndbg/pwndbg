@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import os
 from typing import Literal
 
 import gdb
-import pytest
 import user
 
 import pwndbg.aglib.proc
