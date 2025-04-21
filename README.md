@@ -79,130 +79,37 @@ Pwndbg ensures a consistent experience across both, so switching between them is
 
 ## How?
 
-For a portable version with no external dependencies, scroll down for the [Portable Installation](#portable-installation) section.
-
-### Installing LLDB
-
-* Install via the Nix package manager (you can use Nix on any distribution):
+### Installing Pwndbg-LLDB
+* Install via curl/sh (Linux/macOS)
+```
+curl -qsL 'https://install.pwndbg.re' | /bin/sh -s -- -t pwndbg-lldb
+```
+* Install via Homebrew (macOS)
+```
+brew install pwndbg/tap/pwndbg-lldb
+```
+* Install via the Nix package manager (Linux/macOS):
 ```shell
 nix shell github:pwndbg/pwndbg#pwndbg-lldb
 pwndbg-lldb ./your-binary
 ```
-* Or download portable version with no external dependencies, scroll down for the [Portable Installation](#portable-installation) section
-* ~~Or install from source, instructions below.~~ (not supported)
+* Install from source [go here](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-lldb)
 
-### Installing GDB
-
-* Install via the Nix package manager (you can use Nix on any distribution):
+### Installing Pwndbg-GDB
+* Install via curl/sh (Linux/macOS)
+```
+curl -qsL 'https://install.pwndbg.re' | /bin/sh -s -- -t pwndbg-gdb
+```
+* Install via Homebrew (macOS)
+```
+brew install pwndbg/tap/pwndbg-gdb
+```
+* Install via the Nix package manager (Linux/macOS)
 ```shell
 nix shell github:pwndbg/pwndbg
 pwndbg ./your-binary
 ```
-* Or download portable version with no external dependencies, scroll down for the [Portable Installation](#portable-installation) section
-
-* Or install from source, instructions below.
-<details>
-  <summary>Click here to expand instructions</summary>
-
-Installation from source is straightforward:
-```shell
-git clone https://github.com/pwndbg/pwndbg
-cd pwndbg
-./setup.sh
-```
-
-Pwndbg is supported on Ubuntu 22.04, and 24.04 with GDB 12.1 and later. We do not test
-on any older versions of Ubuntu, so `pwndbg` may not work on these versions.
-- For Ubuntu 20.04 use the [2024.08.29 release](https://github.com/pwndbg/pwndbg/releases/tag/2024.08.29)
-- For Ubuntu 18.04 use the [2023.07.17: ubuntu18.04-final release](https://github.com/pwndbg/pwndbg/releases/tag/2023.07.17)
-
-We may accept pull requests fixing issues in older versions on a case by case basis,
-please discuss this with us on [Discord][discord] first. You can also always checkout
-an older version of `pwndbg` from around the time the Ubuntu version you're interested
-in was still supported by Canonical, or you can attempt to build a newer version of GDB from source.
-
-Other Linux distributions are also supported via `setup.sh`, including:
-
-* Debian-based OSes (via apt-get)
-* Fedora and Red Hat (via dnf)
-* Clear (via swiped)
-* OpenSUSE LEAP (via zypper)
-* Arch and Manjaro (via community AUR packages)
-* Void (via xbps)
-* Gentoo (via emerge)
-
-If you use any Linux distribution other than Ubuntu, we recommend using the [latest available GDB](https://www.gnu.org/software/gdb/download/) built from source. You can build it as:
-```
-cd <gdb-sources-dir>
-mkdir build && cd build
-sudo apt install libgmp-dev libmpfr-dev libreadline-dev texinfo  # required by build
-../configure --disable-nls --disable-werror --with-system-readline --with-python=`which python3` --with-system-gdbinit=/etc/gdb/gdbinit --enable-targets=all
-make -j7
-```
-</details>
-
-## Portable Installation:
-
-The portable version includes all necessary dependencies and should work without the need to install additional packages.
-
-### Download the Portable Version:
-
-Download the portable version from the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases) by selecting the desired version.
-
-**Note:** For LLDB, only the tarball version is available.
-
-Make sure to select the correct file for your operating system and architecture:
-- **Linux (x86_64, armv7l, aarch64, riscv64):**
-  - `pwndbg_2025.04.18_amd64.tar.xz` (x86_64 for GDB)
-  - `pwndbg_2025.04.18_armv7.tar.xz` (armv7l for GDB)
-  - `pwndbg_2025.04.18_arm64.tar.xz` (aarch64 for GDB)
-  - `pwndbg_2025.04.18_riscv64.tar.xz` (riscv64 for GDB)
-  - `pwndbg-lldb_2025.04.18_amd64.tar.xz` (x86_64 for LLDB)
-  - `pwndbg-lldb_2025.04.18_armv7.tar.xz` (armv7l for LLDB)
-  - `pwndbg-lldb_2025.04.18_arm64.tar.xz` (aarch64 for LLDB)
-  - `pwndbg-lldb_2025.04.18_riscv64.tar.xz` (riscv64 for LLDB)
-
-- **macOS (amd64, arm64):**
-  - `pwndbg-lldb_2025.04.18_macos_amd64.tar.xz` (macOS, Intel/AMD CPUs, for LLDB)
-  - `pwndbg-lldb_2025.04.18_macos_arm64.tar.xz` (macOS, Apple Silicon/M1/M2/M*, for LLDB)
-  - `pwndbg_2025.04.18_macos_amd64.tar.xz` (macOS, Intel/AMD CPUs for GDB)
-  - `pwndbg_2025.04.18_macos_amd64.tar.xz` (macOS, Apple Silicon/M1/M2/M*, for GDB via **Rosseta emulation**)
-
-
-#### Instructions:
-- Portable tarball:
-```shell
-tar -v -xf ./pwndbg_2025.04.18_amd64.tar.xz
-# ./pwndbg/bin/pwndbg
-# or ./pwndbg/bin/pwndbg-lldb
-```
-- Installation on RPM-based Systems (CentOS/Alma/Rocky/RHEL):
-```shell
-dnf install ./pwndbg-2025.04.18.x86_64.rpm
-# pwndbg
-# and/or pwndbg-lldb
-```
-
-- Installation on DEB-based Systems (Debian/Ubuntu/Kali):
-```shell
-apt install ./pwndbg_2025.04.18_amd64.deb
-# pwndbg
-# and/or pwndbg-lldb
-```
-
-- Installation on Alpine:
-```shell
-apk add --allow-untrusted ./pwndbg_2025.04.18_x86_64.apk
-# pwndbg
-# and/or pwndbg-lldb
-```
-
-- Installation on Arch Linux:
-```shell
-pacman -U ./pwndbg-2025.04.18-1-x86_64.pkg.tar.zst
-# pwndbg
-# and/or pwndbg-lldb
-```
+* Install from source [go here](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-gdb)
 
 ## What can I do with that?
 
