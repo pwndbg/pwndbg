@@ -39,8 +39,7 @@ pwndbg ./your-binary
 
 ### Download the Distro/Portable Version:
 
-> Remember!
-> 
+> [!TIP]
 > Download the proper version from the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases).
 > Choose the appropriate version for your system architecture.
 
