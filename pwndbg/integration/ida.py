@@ -45,6 +45,10 @@ ida_timeout = pwndbg.config.add_param("ida-timeout", 2, "time to wait for ida xm
 
 _ida: xmlrpc.client.ServerProxy | None = None
 
+# Patch to avoid OverflowError for large integers
+xmlrpc.client.MAXINT = 10**100
+xmlrpc.client.MININT = -(10**100)
+
 # to avoid printing the same exception multiple times, we store the last exception here
 _ida_last_exception = None
 
