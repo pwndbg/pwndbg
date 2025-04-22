@@ -162,9 +162,13 @@ def init_logger():
 
 
 def main() -> None:
-    if 'pwndbg' in sys.modules:
-        print("Detected double-loading of Pwndbg (likely from both .gdbinit and the Pwndbg portable build).")
-        print("To fix this, please remove the line 'source your-path/gdbinit.py' from your .gdbinit file.")
+    if "pwndbg" in sys.modules:
+        print(
+            "Detected double-loading of Pwndbg (likely from both .gdbinit and the Pwndbg portable build)."
+        )
+        print(
+            "To fix this, please remove the line 'source your-path/gdbinit.py' from your .gdbinit file."
+        )
         sys.stdout.flush()
         os._exit(1)
 

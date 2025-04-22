@@ -125,7 +125,7 @@ def skip_venv(src_root) -> bool:
 
 
 def main(debugger: lldb.SBDebugger, major: int, minor: int, debug: bool = False) -> None:
-    if 'pwndbg' in sys.modules:
+    if "pwndbg" in sys.modules:
         print("Detected double-loading of Pwndbg.")
         print("This should not happen. Please report this issue if you're not sure how to fix it.")
         sys.exit(1)
