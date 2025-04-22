@@ -79,38 +79,7 @@ Pwndbg ensures a consistent experience across both, so switching between them is
 
 ## How?
 
-### Installing Pwndbg-LLDB
-* Install via curl/sh (Linux/macOS)
-```
-curl -qsL 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb
-```
-* Install via Homebrew (macOS)
-```
-brew install pwndbg/tap/pwndbg-lldb
-```
-* Install via the Nix package manager (Linux/macOS):
-```shell
-nix shell github:pwndbg/pwndbg#pwndbg-lldb
-pwndbg-lldb ./your-binary
-```
-* [Install from source](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-lldb)
-
-### Installing Pwndbg-GDB
-* Install via curl/sh (Linux/macOS)
-```
-curl -qsL 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
-```
-* Install via Homebrew (macOS)
-```
-brew install pwndbg/tap/pwndbg-gdb
-```
-* Install via the Nix package manager (Linux/macOS)
-```shell
-nix shell github:pwndbg/pwndbg
-pwndbg ./your-binary
-```
-* [Install via your distro’s package manager (apt, yum, dnf, apk, pacman)](https://pwndbg.re/pwndbg/latest/setup/#download-the-portable-version)
-* [Install from source](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-gdb)
+See [installation instructions](https://pwndbg.re/pwndbg/latest/setup).
 
 ## What can I do with that?
 
