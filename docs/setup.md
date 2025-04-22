@@ -35,9 +35,10 @@ brew install pwndbg/tap/pwndbg-gdb
 nix shell github:pwndbg/pwndbg
 pwndbg ./your-binary
 ```
-* Install from source [go here](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-gdb)
+* [Install via your distro’s package manager (apt, yum, dnf, apk, pacman)](https://pwndbg.re/pwndbg/latest/setup/#download-the-portable-version)
+* [Install from source](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-gdb)
 
-### Download the Distro/Portable Version:
+### Download the Portable Version:
 
 > [!TIP]
 > Download the proper version from the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases).

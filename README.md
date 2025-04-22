@@ -93,7 +93,7 @@ brew install pwndbg/tap/pwndbg-lldb
 nix shell github:pwndbg/pwndbg#pwndbg-lldb
 pwndbg-lldb ./your-binary
 ```
-* Install from source [go here](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-lldb)
+* [Install from source](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-lldb)
 
 ### Installing Pwndbg-GDB
 * Install via curl/sh (Linux/macOS)
@@ -109,7 +109,8 @@ brew install pwndbg/tap/pwndbg-gdb
 nix shell github:pwndbg/pwndbg
 pwndbg ./your-binary
 ```
-* Install from source [go here](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-gdb)
+* [Install via your distro’s package manager (apt, yum, dnf, apk, pacman)](https://pwndbg.re/pwndbg/latest/setup/#download-the-portable-version)
+* [Install from source](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-gdb)
 
 ## What can I do with that?
 
