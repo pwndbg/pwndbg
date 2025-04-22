@@ -14,6 +14,8 @@ which is hand-written.
 
 from __future__ import annotations
 
+import os
+import sys
 from typing import Dict
 
 from mdutils.mdutils import MdUtils

@@ -21,7 +21,9 @@ import shutil
 shutil.get_terminal_size = lambda fallback=(80, 24): shutil.os.terminal_size((80, 24))
 
 import argparse
+import os
 import re
+import sys
 from typing import Dict
 
 from mdutils.mdutils import MdUtils
