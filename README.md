@@ -82,7 +82,7 @@ Pwndbg ensures a consistent experience across both, so switching between them is
 ### Installing Pwndbg-LLDB
 * Install via curl/sh (Linux/macOS)
 ```
-curl -qsL 'https://install.pwndbg.re' | /bin/sh -s -- -t pwndbg-lldb
+curl -qsL 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb
 ```
 * Install via Homebrew (macOS)
 ```
@@ -98,7 +98,7 @@ pwndbg-lldb ./your-binary
 ### Installing Pwndbg-GDB
 * Install via curl/sh (Linux/macOS)
 ```
-curl -qsL 'https://install.pwndbg.re' | /bin/sh -s -- -t pwndbg-gdb
+curl -qsL 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
 ```
 * Install via Homebrew (macOS)
 ```
