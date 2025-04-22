@@ -80,10 +80,6 @@
             # Disable patching trampoline
             postPatch = "";
           });
-          pwndbg_gdb = prev.pwndbg_gdb.override {
-            # Darwin version of libiconv causes issues with our portable build
-            libiconv = prev.pkgsStatic.libiconvReal;
-          };
         };
       pkgsBySystem = forAllSystems (
         system:
@@ -94,6 +90,21 @@
               pwndbg_gdb = prev.gdb;
               pwndbg_lldb = prev.lldb_20;
               libffi_portable = null;
+            })
+            (final: prev: {
+              # Dynamic libiconv causes issues with our portable build.
+              # It reads /some-path/lib/gconv/gconv-modules.d/gconv-modules-extra.conf,
+              # then loads /some-path/lib/gconv/UTF-32.so dynamically.
+              pwndbg_gdb =
+                let
+                  libiconv = prev.pkgsStatic.libiconvReal;
+                in
+                (prev.pwndbg_gdb.override {
+                  inherit libiconv;
+                }).overrideAttrs
+                  (old: {
+                    buildInputs = old.buildInputs ++ [ libiconv ];
+                  });
             })
             (
               final: prev:
