@@ -314,6 +314,40 @@ def update_files(filename_to_markdown: Dict[str, str]):
             file.truncate()
 
 
+def file_has_handwritten(filename: str) -> bool:
+    """
+    Returns if a file has a hand-written part.
+
+    Also returns true if the autogen markers are malformed or
+    don't exist.
+    """
+    with open(filename, "r+") as file:
+        file_data = file.readlines()
+        marker_idx = -1
+        for i in reversed(range(len(file_data))):
+            if file_data[i] == autogen_end_marker2:
+                if i == 0 or file_data[i - 1] != autogen_end_marker1:
+                    return True
+
+                marker_idx = i - 1
+                break
+
+        if marker_idx == -1:
+            return True
+
+        if len(file_data) == marker_idx + 2:
+            # there is nothing after the markers
+            return False
+
+        handwritten_doc = "".join(file_data[marker_idx + 2 :])
+        if handwritten_doc.strip():
+            # There is some non-whitespace after the markers
+            return True
+        # There is only whitespace after the markers, we won't
+        # complain about this.
+        return False
+
+
 base_path = "docs/commands/"  # Must have trailing slash.
 
 # ==== Start ====
@@ -358,8 +392,22 @@ else:
     missing, extra = verify_existence(markdowned.keys(), base_path)
     assert not missing and "Some files are missing, which should be impossible."
     if extra:
-        print(f"Take care! Deleting these extra files ({len(extra)}):")
+        print("Take care! Deleting these extra files:")
+        not_deleted = []
         for e in extra:
-            print(e)
-            os.remove(e)
-        print("Deleted successfully.")
+            if file_has_handwritten(e):
+                not_deleted.append(e)
+            else:
+                print(e)
+                os.remove(e)
+
+        if not_deleted:
+            print("\nSome files were not auto-deleted as they contain a hand-written part")
+            print("(or the markers for the hand-written part are malformed). Please delete")
+            print("them manually, probably after transfering the hand-written part to a")
+            print("new file.")
+            print(f"Files ({len(not_deleted)}):")
+            print("\n".join(not_deleted))
+            exit(18)
+        else:
+            print("Deleted successfully.")
