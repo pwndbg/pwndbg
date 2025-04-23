@@ -26,20 +26,15 @@ class SavedRegisterFrame:
         if sp is None:
             sp = pwndbg.aglib.regs.sp
 
-        ptr_size = pwndbg.aglib.arch.ptrsize
-
-        address = sp + self.offsets[reg]
-
         try:
-            mem = pwndbg.aglib.memory.read(address, ptr_size)
+            mem = pwndbg.aglib.memory.read(sp + self.offsets[reg], pwndbg.aglib.arch.ptrsize)
         except pwndbg.dbg_mod.Error:
             return None
 
-        value = pwndbg.aglib.arch.unpack(mem)
-
-        return value
+        return pwndbg.aglib.arch.unpack(mem)
 
 
+# Basic exception stack frame defined here - https://developer.arm.com/documentation/107706/0100/Exceptions-and-interrupts-overview/Stack-frames
 ARM_CORTEX_M_EXCEPTION_STACK_FRAME_OFFSETS = {
     "r0": 0x0,
     "r1": 0x4,

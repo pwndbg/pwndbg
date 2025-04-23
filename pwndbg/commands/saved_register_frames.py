@@ -40,22 +40,23 @@ def print_saved_register_frame(
         if reg in pwndbg.aglib.regs.flags:  # eflags or cpsr
             reg_flags = pwndbg.aglib.regs.flags[reg]
             desc = C.format_flags(value, reg_flags)
-
-            print_value(f"{regname} {desc}", address + stack_offset, print_address)
         else:
             desc = pwndbg.chain.format(value)
 
-            print_value(f"{regname} {desc}", address + stack_offset, print_address)
+        print_value(f"{regname} {desc}", address + stack_offset, print_address)
 
 
-VALID_FRAME_TYPES = {"armcm-exception": ARM_CORTEX_M_EXCEPTION_STACK}
+VALID_FRAME_TYPES = {
+    "armcm-exception": ARM_CORTEX_M_EXCEPTION_STACK,
+    "armcm-exception2": ARM_CORTEX_M_EXCEPTION_STACK,
+}
 
 parser = argparse.ArgumentParser(
     description="Display the registers saved to memory for a certain frame type"
 )
 
 parser.add_argument(
-    "frame_type", choices=list(VALID_FRAME_TYPES), type=str, help="The type of frame to print"
+    "frame_type", choices=tuple(VALID_FRAME_TYPES), type=str, help="The type of frame to print"
 )
 
 parser.add_argument(
@@ -76,5 +77,9 @@ parser.add_argument(
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def dump_register_frame(frame_type: str, address: int = None, print_address=False) -> None:
-    register_frame = VALID_FRAME_TYPES[frame_type]
+    register_frame = VALID_FRAME_TYPES.get(frame_type)
+    if register_frame is None:
+        print(f"Invalid frame type: {frame_type} (valid: {','.join(VALID_FRAME_TYPES.keys())})")
+        return
+
     print_saved_register_frame(register_frame, address, print_address)
