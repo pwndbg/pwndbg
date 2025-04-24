@@ -97,10 +97,7 @@ download_zig_binary() {
     if command -v "${ZIGPATH}"/zig &> /dev/null; then
         ZIG_VERSION=$("$ZIGPATH/zig" version)
 
-        echo "${TARGET_ZIG_VERSION}"
-
         if [ "${ZIG_VERSION}" = "${TARGET_ZIG_VERSION}" ]; then
-
             echo "Zig is already installed. Skipping build and install."
             return
         else
