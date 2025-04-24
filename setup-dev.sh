@@ -96,11 +96,15 @@ download_zig_binary() {
 
     if command -v "${ZIGPATH}"/zig &> /dev/null; then
         ZIG_VERSION=$("$ZIGPATH/zig" version)
-        if [ "${ZIG_VERSION}" == "${TARGET_ZIG_VERSION}" ]; then
+
+        echo "${TARGET_ZIG_VERSION}"
+
+        if [ "${ZIG_VERSION}" = "${TARGET_ZIG_VERSION}" ]; then
+
             echo "Zig is already installed. Skipping build and install."
             return
         else
-            echo "Old version of Zig installed. Proceeding with install."
+            echo "Old version of Zig installed (${ZIG_VERSION}). Installing version ${TARGET_ZIG_VERSION}."
         fi
     fi
 
@@ -117,6 +121,9 @@ download_zig_binary() {
     fi
 
     tar -C /tmp -xJf /tmp/zig.tar.xz
+
+    # Delete previous installation
+    rm -rf "${ZIGPATH}"
 
     mv /tmp/zig-linux-x86_64-* ${ZIGPATH} &> /dev/null || true
     echo "Zig installed to ${ZIGPATH}"
@@ -330,9 +337,7 @@ if linux; then
             install_apt $ubuntu_version
             ;;
         "arch")
-            set_zigpath "$(pwd)/.zig"
-            download_zig_binary
-            # install_pacman
+            install_pacman
             ;;
         "fedora")
             fedora_version=$(
@@ -354,7 +359,7 @@ if linux; then
             ;;
     esac
 
-    # install_jemalloc
+    install_jemalloc
 
     if [ $USE_INSTALL_ONLY -eq 0 ]; then
         configure_venv
