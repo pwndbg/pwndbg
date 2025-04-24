@@ -1430,20 +1430,18 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
             parsed_lines = []
             for line in lines:
-                try:
-                    number_str, command = line.split(maxsplit=1)
-                except ValueError:
-                    # In rare cases GDB stores a number with no command, and the split()
-                    # then only returns one element. We can safely ignore these.
-                    continue
+                num_cmd = line.split(maxsplit=1)
 
                 try:
-                    number = int(number_str)
+                    number = int(num_cmd[0])
                 except ValueError:
                     # In rare cases GDB will output a warning after executing `show commands`
                     # (i.e. "warning: (Internal error: pc 0x0 in read in CU, but not in
                     # symtab.)").
                     return []
+                # In rare cases GDB stores a number with no command, and the split()
+                # then only returns one element. We can safely ignore these.
+                command = num_cmd[1] if len(num_cmd) > 1 else ""
 
                 parsed_lines.append((number, command))
 
