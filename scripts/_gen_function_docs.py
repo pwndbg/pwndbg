@@ -112,7 +112,7 @@ pwndbg> tele '$environ("LANG")'
         if " object at " in func_sig or "<" in func_sig:  # '>' is valid in type annotation (->)
             print(f'Signature of {func_name} is rendered as "{func_sig}", please edit')
             print("the sanitize_signature() function to display the signature better in the docs.")
-            exit(1313)
+            sys.exit(5)
 
         mdFile.new_paragraph(func_signature_code)
         mdFile.new_paragraph(
@@ -144,7 +144,7 @@ index_path = base_path + "index.md"
 if len(sys.argv) > 1:
     print("This script doesn't accept any arguments.")
     print("See top of the file for usage.")
-    exit(3)
+    sys.exit(1)
 
 just_verify = False
 if os.getenv("PWNDBG_GEN_DOC_JUST_VERIFY"):
@@ -162,7 +162,7 @@ if just_verify:
     if missing or extra:
         print("To add mising files please run ./scripts/generate_docs.sh.")
         print("To remove extra files please remove them manually.")
-        exit(555)
+        sys.exit(2)
     print("Every file is where it should be!")
 
     print("Verifying contents...")
@@ -171,7 +171,7 @@ if just_verify:
         print("VERIFICATION FAILED. The files differ from what would be auto-generated.")
         print("Error:", err)
         print("Please run ./scripts/generate_docs.sh from project root and commit the changes.")
-        exit(777)
+        sys.exit(3)
 
     print("Verification successful!")
 else:
@@ -184,4 +184,4 @@ else:
 
     if extra:
         print("Please delete the extra files by hand.")
-        exit(888)
+        sys.exit(4)

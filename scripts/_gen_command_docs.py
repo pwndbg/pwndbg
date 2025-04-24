@@ -82,7 +82,7 @@ def extract_sources() -> (Dict[str, argparse.ArgumentParser], Dict[str, list[str
                 print(
                     f"ERROR: Command function {fn_name} in {obj_name} does not have an assigned category."
                 )
-                exit(1)
+                sys.exit(4)
 
             cat_folder = category_to_folder_name(category.value)
             filename = (
@@ -109,7 +109,7 @@ def convert_to_markdown(filename: str, parser: argparse.ArgumentParser) -> str:
 
     if not description:
         print(f"ERROR: Command {name} ({filename}) does not have a description.")
-        exit(2)
+        sys.exit(5)
 
     mdFile = MdUtils(filename)
 
@@ -291,7 +291,7 @@ def update_files(filename_to_markdown: Dict[str, str]):
                         print(
                             f"ERROR: In file {filename} found the second autogen marker, but couldn't find the first ({autogen_end_marker1})."
                         )
-                        exit(7)
+                        sys.exit(6)
                     marker_idx = i - 1
                     break
 
@@ -299,7 +299,7 @@ def update_files(filename_to_markdown: Dict[str, str]):
                 print(
                     f"ERROR: In file {filename} couldn't find autogen marker ({autogen_end_marker2})."
                 )
-                exit(8)
+                sys.exit(7)
 
             handwritten_doc = "".join(file_data[marker_idx:])  # Includes the autogen markers
 
@@ -316,7 +316,7 @@ base_path = "docs/commands/"  # Must have trailing slash.
 if len(sys.argv) > 1:
     print("This script doesn't accept any arguments.")
     print("See top of the file for usage.")
-    exit(3)
+    sys.exit(1)
 
 just_verify = False
 if os.getenv("PWNDBG_GEN_DOC_JUST_VERIFY"):
@@ -333,7 +333,7 @@ if just_verify:
     missing, extra = verify_existence(markdowned.keys(), base_path)
     if missing or extra:
         print("To fix this please run ./scripts/generate_docs.sh.")
-        exit(555)
+        sys.exit(2)
     print("Every file is where it should be!")
 
     print("Verifying contents...")
@@ -342,7 +342,7 @@ if just_verify:
         print("VERIFICATION FAILED. The files differ from what would be auto-generated.")
         print("Error:", err)
         print("Please run ./scripts/generate_docs.sh from project root and commit the changes.")
-        exit(777)
+        sys.exit(3)
 
     print("Verification successful!")
 else:
