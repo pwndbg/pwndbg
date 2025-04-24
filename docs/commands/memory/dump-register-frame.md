@@ -13,7 +13,8 @@ Display the registers saved to memory for a certain frame type
 
 
 ```bash
-usage: dump-register-frame [-h] [-p] {armcm-exception} [address]
+usage: dump-register-frame [-h] [-p]
+                           {armcm-exception,armcm-exception2} [address]
 
 ```
 ## Positional Arguments
