@@ -8,44 +8,44 @@ from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
 
 config_status_on_color = theme.add_color_param(
-    "message-status-on-color", "green", "color of on status messages"
+    "message_status_on_color", "GREEN", "color of on status messages"
 )
 config_status_off_color = theme.add_color_param(
-    "message-status-off-color", "red", "color of off status messages"
+    "message_status_off_color", "RED", "color of off status messages"
 )
 
 config_notice_color = theme.add_color_param(
-    "message-notice-color", "purple", "color of notice messages"
+    "message_notice_color", "PURPLE", "color of notice messages"
 )
 config_hint_color = theme.add_color_param(
-    "message-hint-color", "yellow", "color of hint and marker messages"
+    "message_hint_color", "YELLOW", "color of hint and marker messages"
 )
 config_success_color = theme.add_color_param(
-    "message-success-color", "green", "color of success messages"
+    "message_success_color", "GREEN", "color of success messages"
 )
-config_debug_color = theme.add_color_param("message-debug-color", "blue", "color of debug messages")
-config_info_color = theme.add_color_param("message-info-color", "white", "color of info messages")
+config_debug_color = theme.add_color_param("message_debug_color", "BLUE", "color of debug messages")
+config_info_color = theme.add_color_param("message_info_color", "WHITE", "color of info messages")
 config_warning_color = theme.add_color_param(
-    "message-warning-color", "yellow", "color of warning messages"
+    "message_warning_color", "YELLOW", "color of warning messages"
 )
-config_error_color = theme.add_color_param("message-error-color", "red", "color of error messages")
+config_error_color = theme.add_color_param("message_error_color", "RED", "color of error messages")
 config_system_color = theme.add_color_param(
-    "message-system-color", "light-red", "color of system messages"
+    "message_system_color", "LIGHT_RED", "color of system messages"
 )
 
-config_exit_color = theme.add_color_param("message-exit-color", "red", "color of exit messages")
+config_exit_color = theme.add_color_param("message_exit_color", "RED", "color of exit messages")
 config_breakpoint_color = theme.add_color_param(
-    "message-breakpoint-color", "yellow", "color of breakpoint messages"
+    "message_breakpoint_color", "YELLOW", "color of breakpoint messages"
 )
 config_signal_color = theme.add_color_param(
-    "message-signal-color", "bold,red", "color of signal messages"
+    "message_signal_color", "BOLD,RED", "color of signal messages"
 )
 
 config_prompt_color: pwndbg.lib.config.Parameter = theme.add_color_param(
-    "prompt-color", "bold,red", "prompt color"
+    "prompt_color", "BOLD,RED", "prompt color"
 )
 config_prompt_alive_color: pwndbg.lib.config.Parameter = theme.add_color_param(
-    "prompt-alive-color", "bold,green", "prompt alive color"
+    "prompt_alive_color", "BOLD,GREEN", "prompt alive color"
 )
 
 

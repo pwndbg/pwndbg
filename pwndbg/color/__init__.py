@@ -11,27 +11,30 @@ from pwndbg.lib.config import Parameter
 
 from . import theme
 
-NORMAL = "\x1b[0m"
-BLACK = "\x1b[30m"
-RED = "\x1b[31m"
-GREEN = "\x1b[32m"
-YELLOW = "\x1b[33m"
-BLUE = "\x1b[34m"
-PURPLE = "\x1b[35m"
-CYAN = "\x1b[36m"
-LIGHT_GREY = LIGHT_GRAY = "\x1b[37m"
-FOREGROUND = "\x1b[39m"
-GREY = GRAY = "\x1b[90m"
-LIGHT_RED = "\x1b[91m"
-LIGHT_GREEN = "\x1b[92m"
-LIGHT_YELLOW = "\x1b[93m"
-LIGHT_BLUE = "\x1b[94m"
-LIGHT_PURPLE = "\x1b[95m"
-LIGHT_CYAN = "\x1b[96m"
-WHITE = "\x1b[97m"
-BOLD = "\x1b[1m"
-UNDERLINE = "\x1b[4m"
-
+COLOUR_CODE = {
+    "NORMAL": "\x1b[0m",
+    "BLACK": "\x1b[30m",
+    "RED": "\x1b[31m", 
+    "GREEN": "\x1b[32m",
+    "YELLOW": "\x1b[33m",
+    "BLUE": "\x1b[34m",
+    "PURPLE": "\x1b[35m",
+    "CYAN": "\x1b[36m",
+    "LIGHT_GREY": "\x1b[37m",
+    "LIGHT_GRAY": "\x1b[37m",
+    "FOREGROUND": "\x1b[39m",
+    "GREY": "\x1b[90m",
+    "GRAY": "\x1b[90m",
+    "LIGHT_RED": "\x1b[91m",
+    "LIGHT_GREEN": "\x1b[92m",
+    "LIGHT_YELLOW": "\x1b[93m",
+    "LIGHT_BLUE": "\x1b[94m",
+    "LIGHT_PURPLE": "\x1b[95m",
+    "LIGHT_CYAN": "\x1b[96m",
+    "WHITE": "\x1b[97m",
+    "BOLD": "\x1b[1m",
+    "UNDERLINE": "\x1b[4m"
+}
 
 # We assign `none` instead of creating a function since it is faster this way
 # While this is a microptimization, the `none` may be called thousands of times with
@@ -46,87 +49,87 @@ none = str
 
 
 def normal(x: str) -> str:
-    return colorize(x, NORMAL)
+    return colorize(x, COLOUR_CODE["NORMAL"])
 
 
 def black(x: str) -> str:
-    return colorize(x, BLACK)
+    return colorize(x, COLOUR_CODE["BLACK"])
 
 
 def red(x: str) -> str:
-    return colorize(x, RED)
+    return colorize(x, COLOUR_CODE["RED"])
 
 
 def green(x: str) -> str:
-    return colorize(x, GREEN)
+    return colorize(x, COLOUR_CODE["GREEN"])
 
 
 def yellow(x: str) -> str:
-    return colorize(x, YELLOW)
+    return colorize(x, COLOUR_CODE["YELLOW"])
 
 
 def blue(x: str) -> str:
-    return colorize(x, BLUE)
+    return colorize(x, COLOUR_CODE["BLUE"])
 
 
 def purple(x: str) -> str:
-    return colorize(x, PURPLE)
+    return colorize(x, COLOUR_CODE["PURPLE"])
 
 
 def cyan(x: str) -> str:
-    return colorize(x, CYAN)
+    return colorize(x, COLOUR_CODE["CYAN"])
 
 
 def light_gray(x: str) -> str:
-    return colorize(x, LIGHT_GRAY)
+    return colorize(x, COLOUR_CODE["LIGHT_GRAY"])
 
 
 def foreground(x: str) -> str:
-    return colorize(x, FOREGROUND)
+    return colorize(x, COLOUR_CODE["FOREGROUND"])
 
 
 def gray(x: str) -> str:
-    return colorize(x, GRAY)
+    return colorize(x, COLOUR_CODE["GRAY"])
 
 
 def light_red(x: str) -> str:
-    return colorize(x, LIGHT_RED)
+    return colorize(x, COLOUR_CODE["LIGHT_RED"])
 
 
 def light_green(x: str) -> str:
-    return colorize(x, LIGHT_GREEN)
+    return colorize(x, COLOUR_CODE["LIGHT_GREEN"])
 
 
 def light_yellow(x: str) -> str:
-    return colorize(x, LIGHT_YELLOW)
+    return colorize(x, COLOUR_CODE["LIGHT_YELLOW"])
 
 
 def light_blue(x: str) -> str:
-    return colorize(x, LIGHT_BLUE)
+    return colorize(x, COLOUR_CODE["LIGHT_BLUE"])
 
 
 def light_purple(x: str) -> str:
-    return colorize(x, LIGHT_PURPLE)
+    return colorize(x, COLOUR_CODE["LIGHT_PURPLE"])
 
 
 def light_cyan(x: str) -> str:
-    return colorize(x, LIGHT_CYAN)
+    return colorize(x, COLOUR_CODE["LIGHT_CYAN"])
 
 
 def white(x: str) -> str:
-    return colorize(x, WHITE)
+    return colorize(x, COLOUR_CODE["WHITE"])
 
 
 def bold(x: str) -> str:
-    return colorize(x, BOLD)
+    return colorize(x, COLOUR_CODE["BOLD"])
 
 
 def underline(x: str) -> str:
-    return colorize(x, UNDERLINE)
+    return colorize(x, COLOUR_CODE["UNDERLINE"])
 
 
 def colorize(x: str, color: str) -> str:
-    return color + terminateWith(str(x), color) + NORMAL
+    return color + terminateWith(str(x), color) + COLOUR_CODE["NORMAL"]
 
 
 # Taken from https://stackoverflow.com/a/14693789
@@ -179,21 +182,20 @@ class ColorConfig:
 
 
 def generateColorFunction(
-    config: str | Parameter, _globals: Dict[str, Callable[[str], str]] = globals()
+    config: str | Parameter, _globals: Dict[str, Callable[[str], str]] = COLOUR_CODE
 ) -> Callable[[object], str]:
-    # the `config` here may be a config Parameter object
-    # and if we run with disable_colors or if the config value
-    # is empty, we need to ensure we cast it to string
-    # so it can be properly formatted e.g. with:
-    # "{config_param:5}".format(config_param=some_config_parameter)
     function = str
 
     if disable_colors:
         return function
 
-    for color in config.split(","):
-        func_name = color.lower().replace("-", "_")
-        function = generateColorFunctionInner(function, _globals[func_name])
+    for color in str(config).split(","):
+        color_key = color.upper()
+        if color_key not in COLOUR_CODE:
+            raise ValueError(f"Invalid color: {color}. Valid options: {', '.join(COLOUR_CODE.keys())}")
+
+        function = generateColorFunctionInner(function, lambda x, color=color_key: colorize(x, COLOUR_CODE[color]))
+    
     return function
 
 
@@ -202,7 +204,7 @@ def strip(x: str) -> str:
 
 
 def terminateWith(x: str, color: str) -> str:
-    return x.replace("\x1b[0m", NORMAL + color)
+    return x.replace("\x1b[0m", COLOUR_CODE["NORMAL"] + color)
 
 
 def ljust_colored(x: str, length: int, char: str = " ") -> str:
