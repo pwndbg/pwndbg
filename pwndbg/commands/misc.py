@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import errno
-import inspect
 from collections import defaultdict
 
 import pwndbg.aglib.memory

@@ -13,11 +13,13 @@ def test_command_help_strings(start_binary):
     """
 
     for command in commands.commands:
-        help_str = gdb.execute(f"help {command.__name__}", from_tty=False, to_string=True)
-        if command.doc is None:
+        help_str = gdb.execute(f"help {command.command_name}", from_tty=False, to_string=True)
+        if command.help_str is None:
             assert help_str.strip() == "This command is not documented."
         else:
-            truth = [line.strip() for line in command.doc.splitlines() if len(line.strip()) > 0]
+            truth = [
+                line.strip() for line in command.help_str.splitlines() if len(line.strip()) > 0
+            ]
             gdb_out = [line.strip() for line in help_str.splitlines() if len(line.strip()) > 0]
 
             # We check both of these cases since for some commands GDB will
