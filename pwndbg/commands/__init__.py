@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import functools
+import inspect
 import io
 import logging
 from enum import Enum
@@ -14,7 +15,6 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import TypeVar
-import inspect
 
 from typing_extensions import ParamSpec
 

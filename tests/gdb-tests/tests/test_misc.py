@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pytest
 import inspect
+
+import pytest
 
 import pwndbg.commands
 from pwndbg.commands.misc import list_and_filter_commands

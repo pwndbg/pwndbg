@@ -16,8 +16,8 @@ from __future__ import annotations
 import os
 import re
 import sys
-from inspect import signature
 from inspect import getdoc
+from inspect import signature
 from typing import Dict
 
 from mdutils.mdutils import MdUtils

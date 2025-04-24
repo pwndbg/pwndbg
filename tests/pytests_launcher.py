@@ -30,11 +30,12 @@ if return_code != 0:
     print("If you want to debug tests locally, run ./tests.sh with the --pdb flag")
     print("-" * 80)
 
-# We must call these functions manually to flush the code coverage data to disk due to using os._exit()
+# We must call these functions manually to flush the code coverage data to disk since the sys.exit() call
+# might've been replaced by os._exit() in gdbinit.py.
 # https://github.com/nedbat/coveragepy/issues/310
 if (cov := coverage.Coverage.current()) is not None:
     cov.stop()
     cov.save()
 
 sys.stdout.flush()
-os._exit(return_code)
+sys.exit(return_code)
