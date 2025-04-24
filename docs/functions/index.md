@@ -51,7 +51,6 @@ rebase(addr: gdb.Value | int) -> int
 
 
 #### Description
-
 Return address rebased onto the executable's mappings.
 
 #### Example
@@ -73,7 +72,6 @@ pwndbg> tele $rebase(0xd9020)
 [...]
 ```
 
-
 ----------
 
 ### **base**
@@ -85,7 +83,6 @@ base(name_pattern: gdb.Value | str) -> int
 
 
 #### Description
-
 Return the base address of the first memory mapping containing the given name.
 
 #### Example
@@ -112,7 +109,6 @@ Beware of accidentally matching the wrong mapping. For instance, if the loaded
 executable contained the string "libc" anywhere in it's path, it would've been
 returned.
 
-
 ----------
 
 ### **hex2ptr**
@@ -124,7 +120,6 @@ hex2ptr(hex_string: gdb.Value | str) -> int
 
 
 #### Description
-
 Converts a hex string to a little-endian address and returns the address.
 
 #### Example
@@ -139,7 +134,6 @@ pwndbg> distance '$base("libc")' '$hex2ptr("20 74 ed f7 ff 7f")'
 
 Especially useful for quickly converting pwntools output.
 
-
 ----------
 
 ### **argc**
@@ -151,7 +145,6 @@ argc() -> int
 
 
 #### Description
-
 Get the number of program arguments.
 Evaluates to argc.
 
@@ -165,7 +158,6 @@ pwndbg> argv
 02:0010│  0x7fffffffe298 ◂— 0
 ```
 
-
 ----------
 
 ### **argv**
@@ -177,7 +169,6 @@ argv(index: gdb.Value) -> gdb.Value
 
 
 #### Description
-
 Get the n-th program argument.
 Evaluate argv on the supplied value.
 
@@ -190,7 +181,6 @@ pwndbg> argv
 01:0008│  0x7fffffffe2b0 ◂— 0
 ```
 
-
 ----------
 
 ### **environ**
@@ -202,7 +192,6 @@ environ(env_name: gdb.Value) -> gdb.Value
 
 
 #### Description
-
 Get an environment variable by name.
 Evaluate getenv() on the supplied value.
 
@@ -211,7 +200,6 @@ Evaluate getenv() on the supplied value.
 pwndbg> p $environ("LANG")
 $2 = (signed char *) 0x7fffffffebfb "LANG=en_US.UTF-8"
 ```
-
 
 ----------
 
@@ -224,7 +212,6 @@ envp(index: gdb.Value) -> gdb.Value
 
 
 #### Description
-
 Get the n-th environment variable.
 Evaluate envp on the supplied value.
 
@@ -235,7 +222,6 @@ $13 = (signed char *) 0x7fffffffef7d "LANG=en_US.UTF-8"
 pwndbg> p $envp(0x3F) == $environ("LANG")
 $14 = 1
 ```
-
 
 ----------
 
@@ -248,7 +234,6 @@ fsbase(offset: gdb.Value = gdb.Value(0)) -> int
 
 
 #### Description
-
 Get the value of the FS segment register.
 Only valid on x86(-64).
 
@@ -285,7 +270,6 @@ Canary    = 0x4da926e1668e5a00 (may be incorrect on != glibc)
 FS will usually point to the start of the TLS. If you're not providing an
 offset, it is usually easier to use gdb's builtin $fs_base variable.
 
-
 ----------
 
 ### **gsbase**
@@ -297,7 +281,6 @@ gsbase(offset: gdb.Value = gdb.Value(0)) -> int
 
 
 #### Description
-
 Get the value of the GS segment register.
 Only valid on x86(-64).
 
@@ -322,7 +305,6 @@ $2 = 1
 If you're not providing an offset, it is usually easier to use gdb's
 builtin $gs_base variable.
 
-
 ----------
 
 ### **bn_sym**
@@ -334,7 +316,6 @@ bn_sym(name_val: gdb.Value) -> int | None
 
 
 #### Description
-
 Lookup a symbol's address by name from Binary Ninja.
 
 This function sees symbols like functions and global variables,
@@ -353,7 +334,6 @@ pwndbg> b *($bn_sym("main"))
 Breakpoint 1 at 0x555555555645
 ```
 
-
 ----------
 
 ### **bn_var**
@@ -365,7 +345,6 @@ bn_var(name_val: gdb.Value) -> int | None
 
 
 #### Description
-
 Lookup a stack variable's address by name from Binary Ninja.
 
 This function doesn't see functions or global variables,
@@ -388,7 +367,6 @@ TypeError: Could not convert Python object: None.
 Error while executing Python code.
 ```
 
-
 ----------
 
 ### **bn_eval**
@@ -400,7 +378,6 @@ bn_eval(expr: gdb.Value) -> int | None
 
 
 #### Description
-
 Parse and evaluate a Binary Ninja expression.
 
 Read more about binary ninja expressions here:
@@ -432,7 +409,6 @@ pwndbg> p $bn_eval("$piebase+some_global_var+$rax") == $bn_sym("some_global_var"
 $11 = 1
 ```
 
-
 ----------
 
 ### **ida**
@@ -444,7 +420,6 @@ ida(name: gdb.Value) -> int
 
 
 #### Description
-
 Lookup a symbol's address by name from IDA.
 Evaluate ida.LocByName() on the supplied value.
 
@@ -462,6 +437,5 @@ $1 = 0x555555555645
 pwndbg> b *$ida("main")
 Breakpoint 2 at 0x555555555645
 ```
-
 
 ----------
