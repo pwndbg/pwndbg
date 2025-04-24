@@ -14,6 +14,7 @@ from typing import Optional
 from typing import Set
 from typing import Tuple
 from typing import TypeVar
+import inspect
 
 from typing_extensions import ParamSpec
 
@@ -194,7 +195,7 @@ class Command:
         try:
             return self.function(*args, **kwargs)
         except TypeError:
-            print(f"{self.function.__name__.strip()!r}: {self.function.__doc__.strip()}")
+            print(f"{self.function.__name__.strip()!r}: {inspect.getdoc(self.function).strip()}")
             pwndbg.exception.handle(self.function.__name__)
         except Exception:
             pwndbg.exception.handle(self.function.__name__)

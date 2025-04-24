@@ -17,6 +17,7 @@ import os
 import re
 import sys
 from inspect import signature
+from inspect import getdoc
 from typing import Dict
 
 from mdutils.mdutils import MdUtils
@@ -115,7 +116,7 @@ pwndbg> tele '$environ("LANG")'
 
         mdFile.new_paragraph(func_signature_code)
         mdFile.new_paragraph(
-            "#### Description\n" + func.__doc__.replace("Example:", "#### Example")
+            "#### Description\n" + getdoc(func).replace("Example:", "#### Example")
         )
         mdFile.new_paragraph("-" * 10)
 

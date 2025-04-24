@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import errno
+import inspect
 from collections import defaultdict
 
 import pwndbg.aglib.memory
@@ -165,7 +166,7 @@ def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
             continue
 
         name = c.__name__
-        docs = c.__doc__
+        docs = inspect.getdoc(c)
 
         if docs:
             docs = docs.strip()
