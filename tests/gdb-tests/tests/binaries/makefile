@@ -120,7 +120,7 @@ tls.i386.out: tls.i386.c
 	@echo "[+] Building tls.i386.c"
 	${ZIGCC} \
 	${CFLAGS} \
-	-target i386-linux-gnu \
+	-target x86-linux-gnu \
 	-o tls.i386.out tls.i386.c
 
 issue_1565.out: issue_1565.c
@@ -132,7 +132,7 @@ initialized_heap_i386_big.out: initialized_heap.c
 	@echo "[+] Building initialized_heap_i386_big.out"
 	${ZIGCC} \
 	${CFLAGS} \
-	-target i386-linux-gnu \
+	-target x86-linux-gnu \
 	-o initialized_heap_i386_big.out initialized_heap.c
 
 # TODO: Link against a specific GLIBC version.
@@ -154,7 +154,7 @@ onegadget.i386.out: onegadget.c
 	@echo "[+] Building onegadget.i386.out"
 	${ZIGCC} \
 	${CFLAGS} \
-	-target i386-linux-gnu \
+	-target x86-linux-gnu \
 	-o onegadget.i386.out onegadget.c
 
 clean :
@@ -175,7 +175,7 @@ reference_bin_nopie.out: reference-binary.c
 
 reference_bin_nopie.i386.out: reference-binary.c
 	@echo "[+] Building reference_bin_nopie.i386.out"
-	${ZIGCC} -fpie -target i386-linux-gnu -o reference_bin_nopie.i386.out reference-binary.c
+	${ZIGCC} -fpie -target x86-linux-gnu -o reference_bin_nopie.i386.out reference-binary.c
 
 symbol_1600_and_752.out: symbol_1600_and_752.cpp
 	${CXX} -O0 -ggdb -Wno-pmf-conversions symbol_1600_and_752.cpp -o symbol_1600_and_752.out
