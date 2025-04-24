@@ -79,7 +79,7 @@ Pwndbg ensures a consistent experience across both, so switching between them is
 
 ## How?
 
-See [installation instructions](https://pwndbg.re/pwndbg/latest/setup).
+See [installation instructions](https://pwndbg.re/pwndbg/dev/setup).
 
 ## What can I do with that?
 
