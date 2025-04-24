@@ -89,43 +89,44 @@ class Command:
     def __init__(
         self,
         function: Callable[..., str | None],
-        prefix: bool = False,
-        command_name: str | None = None,
+        *,  # All further parameters are not positional
+        command_name: str,
+        category: CommandCategory,
+        help_str: str,
+        description: str,
         shell: bool = False,
         is_alias: bool = False,
         aliases: List[str] = [],
-        category: CommandCategory = CommandCategory.MISC,
-        doc: str | None = None,
     ) -> None:
+        assert command_name and category and help_str and description
+        assert "_" not in command_name and "Use '-'."
+        assert command_name not in command_names and "Command already exists."
+        assert (
+            not (
+                command_name in GDB_BUILTIN_COMMANDS
+                and command_name not in self.builtin_override_whitelist
+                and not pwndbg_is_reloading
+            )
+            and "Cannot override non-whitelisted built-in command."
+        )
+        assert not (is_alias and aliases) and "Cannot set aliases for an alias."
+
+        self.function = function
+        self.command_name = command_name
+        self.shell = shell
         self.is_alias = is_alias
         self.aliases = aliases
         self.category = category
-        self.shell = shell
-        self.doc = doc
-
-        if command_name is None:
-            command_name = function.__name__
+        self.help_str = help_str
+        self.description = description
 
         def _handler(_debugger, arguments, is_interactive):
             self.invoke(arguments, is_interactive)
 
-        self.handle = pwndbg.dbg.add_command(command_name, _handler, doc)
-        self.function = function
-
-        if command_name in command_names:
-            raise Exception(f"Cannot add command {command_name}: already exists.")
-        if (
-            command_name in GDB_BUILTIN_COMMANDS
-            and command_name not in self.builtin_override_whitelist
-            and not pwndbg_is_reloading
-        ):
-            raise Exception(f'Cannot override non-whitelisted built-in command "{command_name}"')
+        self.handle = pwndbg.dbg.add_command(command_name, _handler, help_str)
 
         command_names.add(command_name)
         commands.append(self)
-
-        functools.update_wrapper(self, function)
-        self.__name__ = command_name
 
         self.repeat = False
 
@@ -200,6 +201,132 @@ class Command:
         except Exception:
             pwndbg.exception.handle(self.function.__name__)
         return None
+
+
+class _ArgparsedCommand(Command):
+    def __init__(
+        self,
+        parser: argparse.ArgumentParser,
+        function: Callable[..., Any],
+        category: CommandCategory,
+        command_name: str,
+        is_alias: bool,
+        aliases: List[str],
+        /,  # All parameters must be passed positionally
+    ) -> None:
+        self.parser = parser
+
+        # Set parser.prog so the help is generated properly.
+        self.parser.prog = command_name
+
+        # Generate command help
+        file = io.StringIO()
+        self.parser.print_help(file)
+        file.seek(0)
+        self.help_str = file.read()
+
+        # Used by `pwndbg [filter]`
+        self.description = self.parser.description.strip()
+
+        super().__init__(
+            function,
+            command_name=command_name,
+            shell=False,
+            is_alias=is_alias,
+            aliases=aliases,
+            category=category,
+            help_str=self.help_str,
+            description=self.description,
+        )
+
+    def split_args(self, argument: str):
+        argv = pwndbg.dbg.lex_args(argument)
+        return (), vars(self.parser.parse_args(argv))
+
+
+class ArgparsedCommand:
+    """Adds documentation and offloads parsing for a Command via argparse"""
+
+    def __init__(
+        self,
+        parser_or_desc: argparse.ArgumentParser | str,
+        *,  # All further parameters are not positional
+        category: CommandCategory,
+        command_name: str | None = None,
+        aliases: List[str] = [],
+        only_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
+        exclude_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
+    ) -> None:
+        # Setup an ArgumentParser even if we were only passed a description.
+        if isinstance(parser_or_desc, str):
+            self.parser = argparse.ArgumentParser(description=parser_or_desc)
+        else:
+            assert isinstance(parser_or_desc, argparse.ArgumentParser)
+            self.parser = parser_or_desc
+
+        assert (
+            self.parser.description
+            and self.parser.description.strip()
+            and "A command must contain a description."
+        )
+
+        # We can only set the proper command name in __call__
+        # once we have a reference to the function.
+        self.command_name = command_name
+        self.aliases = aliases
+
+        assert category
+        self.category = category
+
+        self.only_debuggers = only_debuggers
+        self.exclude_debuggers = exclude_debuggers
+
+        # We want to run all integer and otherwise-unspecified arguments
+        # through fix() so that GDB parses it.
+        for action in self.parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                action.type = str
+            if action.dest == "help":
+                continue
+            if action.type is int:
+                action.type = fix_int_reraise_arg
+            if action.type is None:
+                action.type = fix_reraise_arg
+            if action.default is not None:
+                action.help += " (default: %(default)s)"
+
+    def __call__(self, function: Callable[..., Any]) -> _ArgparsedCommand:
+        if self.only_debuggers is not None and pwndbg.dbg.name() not in self.only_debuggers:
+            return function  # type: ignore[return-value]
+        if self.exclude_debuggers is not None and pwndbg.dbg.name() in self.exclude_debuggers:
+            return function  # type: ignore[return-value]
+
+        if self.command_name is None:
+            # Take the command name from the name of the function
+            # which defines it, but replace '_' with '-'.
+            self.command_name = function.__name__.replace("_", "-")
+        else:
+            self.command_name = self.command_name
+
+        assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
+
+        for alias in self.aliases:
+            _ArgparsedCommand(
+                self.parser,
+                function,
+                self.category,
+                alias,
+                True,
+                [],
+            )
+        return _ArgparsedCommand(
+            self.parser,
+            function,
+            self.category,
+            self.command_name,
+            False,
+            self.aliases,
+        )
 
 
 def fix(
@@ -555,104 +682,6 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
         return None
 
     return _OnlyWithResolvedHeapSyms
-
-
-class _ArgparsedCommand(Command):
-    def __init__(
-        self,
-        parser: argparse.ArgumentParser,
-        function,
-        command_name=None,
-        *a,
-        **kw,
-    ) -> None:
-        self.parser = parser
-        if command_name is None:
-            # Take the command name from the name of the function
-            # which defines it, but replace '_' with '-'.
-            self.parser.prog = function.__name__.replace("_", "-")
-        else:
-            self.parser.prog = command_name
-
-        file = io.StringIO()
-        self.parser.print_help(file)
-        file.seek(0)
-        doc = file.read()
-        # Note: function.__doc__ is used in the `pwndbg [filter]` command display
-        function.__doc__ = self.parser.description.strip()
-
-        # Type error likely due to https://github.com/python/mypy/issues/6799
-        super().__init__(  # type: ignore[misc]
-            function,
-            command_name=self.parser.prog,
-            doc=doc,
-            *a,
-            **kw,
-        )
-
-    def split_args(self, argument: str):
-        argv = pwndbg.dbg.lex_args(argument)
-        return (), vars(self.parser.parse_args(argv))
-
-
-class ArgparsedCommand:
-    """Adds documentation and offloads parsing for a Command via argparse"""
-
-    def __init__(
-        self,
-        parser_or_desc: argparse.ArgumentParser | str,
-        category: CommandCategory,
-        command_name: str | None = None,
-        aliases: List[str] = [],
-        only_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
-        exclude_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
-    ) -> None:
-        """
-        :param parser_or_desc: `argparse.ArgumentParser` instance or `str`
-        """
-        if isinstance(parser_or_desc, str):
-            self.parser = argparse.ArgumentParser(description=parser_or_desc)
-        else:
-            assert isinstance(parser_or_desc, argparse.ArgumentParser)
-            self.parser = parser_or_desc
-        self.aliases = aliases
-        assert command_name is None or "_" not in command_name
-        self._command_name = command_name
-        assert category
-        self.category = category
-        self.only_debuggers = only_debuggers
-        self.exclude_debuggers = exclude_debuggers
-        # We want to run all integer and otherwise-unspecified arguments
-        # through fix() so that GDB parses it.
-        for action in self.parser._actions:
-            if isinstance(action, argparse._SubParsersAction):
-                action.type = str
-            if action.dest == "help":
-                continue
-            if action.type is int:
-                action.type = fix_int_reraise_arg
-            if action.type is None:
-                action.type = fix_reraise_arg
-            if action.default is not None:
-                action.help += " (default: %(default)s)"
-
-    def __call__(self, function: Callable[..., Any]) -> _ArgparsedCommand:
-        if self.only_debuggers is not None and pwndbg.dbg.name() not in self.only_debuggers:
-            return function  # type: ignore[return-value]
-        if self.exclude_debuggers is not None and pwndbg.dbg.name() in self.exclude_debuggers:
-            return function  # type: ignore[return-value]
-
-        for alias in self.aliases:
-            _ArgparsedCommand(
-                self.parser, function, command_name=alias, is_alias=True, category=self.category
-            )
-        return _ArgparsedCommand(
-            self.parser,
-            function,
-            command_name=self._command_name,
-            aliases=self.aliases,
-            category=self.category,
-        )
 
 
 def sloppy_gdb_parse(s: str) -> int | str:

@@ -65,7 +65,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, CommandCategory.MISC)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "i386", "aarch64", "arm"])
 def sigreturn(address: int = None, display_all=False, print_address=False) -> None:

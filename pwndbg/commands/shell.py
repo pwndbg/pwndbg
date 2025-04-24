@@ -84,7 +84,14 @@ def register_shell_function(cmd, deprecated=False) -> None:
     handler.__name__ = str(cmd)
     handler.__doc__ = doc
 
-    pwndbg.commands.Command(handler, shell=True, category=CommandCategory.SHELL)
+    pwndbg.commands.Command(
+        handler,
+        command_name=str(cmd),
+        shell=True,
+        category=CommandCategory.SHELL,
+        help_str=doc,
+        description=doc,
+    )
 
 
 for cmd in pwncmds:

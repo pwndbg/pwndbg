@@ -148,7 +148,7 @@ def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
 
 def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
     sorted_commands = list(pwndbg.commands.commands)
-    sorted_commands.sort(key=lambda x: x.__name__)
+    sorted_commands.sort(key=lambda x: x.command_name)
 
     if filter_str:
         filter_str = filter_str.lower()
@@ -168,15 +168,15 @@ def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
         if c.is_alias:
             continue
 
-        name = c.__name__
-        docs = inspect.getdoc(c)
+        name = c.command_name
+        desc = c.description
 
-        if docs:
-            docs = docs.strip()
-        if docs:
-            docs = docs.splitlines()[0]
+        if desc:
+            desc = desc.strip()
+        if desc:
+            desc = desc.splitlines()[0]
 
-        if not filter_str or filter_str in name.lower() or (docs and filter_str in docs.lower()):
-            results.append((name, c.aliases, c.category, docs))
+        if not filter_str or filter_str in name.lower() or (desc and filter_str in desc.lower()):
+            results.append((name, c.aliases, c.category, desc))
 
     return results
