@@ -404,7 +404,7 @@ else:
         if not_deleted:
             print("\nSome files were not auto-deleted as they contain a hand-written part")
             print("(or the markers for the hand-written part are malformed). Please delete")
-            print("them manually, probably after transfering the hand-written part to a")
+            print("them manually, probably after transferring the hand-written part to a")
             print("new file.")
             print(f"Files ({len(not_deleted)}):")
             print("\n".join(not_deleted))
