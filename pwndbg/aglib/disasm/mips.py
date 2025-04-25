@@ -1,15 +1,3 @@
-# When single stepping in Unicorn with MIPS, the address it arrives at in Unicorn
-# is often incorrect with branches.
-# This is due to "Delay slots" - the instruction AFTER a branch is always executed
-# before the jump, and the Unicorn emulator respects this behavior.
-# This causes single stepping branches to not arrive at the correct instruction -
-# it will simply go to the next location in memory, not respecting the branch. It doesn't appear to be extremely consistent.
-# Unicorn doesn't have a workaround for this single stepping issue:
-# https://github.com/unicorn-engine/unicorn/issues/332
-#
-# The way to fix the issue this causes (incorrect instruction.next) is by implementing the
-# condition function to manually specify when a jump is taken. Our manual decision will override the emulator.
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

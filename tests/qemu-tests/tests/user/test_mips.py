@@ -43,10 +43,10 @@ def test_mips32_delay_slot(qemu_assembly_run):
         " ► 0x10000000 <_start>     ✔ beq    $t1, $t0, _target           <_target>\n"
         "   0x10000004 <_start+4>     nop    \n"
         "    ↓\n"
-        "   0x10000008 <_target>      addu   $gp, $gp, $ra         GP => 0 + 0\n"
+        "   0x10000008 <_target>      addu   $gp, $gp, $ra         GP => 0 (0 + 0)\n"
         "   0x1000000c <_target+4>    nop    \n"
-        "   0x10000010 <end>          addiu  $v0, $zero, 0xfa1\n"
-        "   0x10000014 <end+4>        addiu  $a0, $zero, 0\n"
+        "   0x10000010 <end>          addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
+        "   0x10000014 <end+4>        addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
         "   0x10000018 <end+8>        syscall \n"
         "\n"
         "\n"
@@ -110,8 +110,8 @@ def test_mips32_bnez_instruction(qemu_assembly_run):
         "   0x10000004 <_start+4>  ✔ bnez   $t0, end                    <end>\n"
         "   0x10000008 <_start+8>    nop    \n"
         "    ↓\n"
-        "   0x10000014 <end>         addiu  $v0, $zero, 0xfa1     V0 => 0x0 + 0xfa1\n"
-        "   0x10000018 <end+4>       addiu  $a0, $zero, 0\n"
+        "   0x10000014 <end>         addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
+        "   0x10000018 <end+4>       addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
         "   0x1000001c <end+8>       syscall \n"
         "\n"
         "\n"
@@ -398,6 +398,60 @@ def test_mips32_binary_operations(qemu_assembly_run):
         "   0x10000020 <_start+32>    srl    $t8, $t1, 2          T8 => 5 (0x14 >> 0x2)\n"
         "\n"
         "\n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+MIPS_JUMPS = f"""
+nop
+beq $t1, $t0, first
+nop
+nop
+
+first:
+    li $t0, 10
+    bnez $t0, second
+    nop
+    nop
+
+second:
+    b end
+    nop
+    nop
+
+end:
+{MIPS_GRACEFUL_EXIT}
+"""
+
+
+def test_mips32_multiple_branches_followed(qemu_assembly_run):
+    """
+    Ensure that emulation is setup correctly so as to follow multiple branches - bugs in how we handle delay slots and disable the emulator might break this.
+    """
+    qemu_assembly_run(MIPS_JUMPS, "mips")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
+        " ► 0x10000000 <_start>      nop    \n"
+        "   0x10000004 <_start+4>  ✔ beq    $t1, $t0, first             <first>\n"
+        "   0x10000008 <_start+8>    nop    \n"
+        "    ↓\n"
+        "   0x10000010 <first>       addiu  $t0, $zero, 0xa     T0 => 10 (0x0 + 0xa)\n"
+        "   0x10000014 <first+4>   ✔ bnez   $t0, second                 <second>\n"
+        "   0x10000018 <first+8>     nop    \n"
+        "    ↓\n"
+        "   0x10000020 <second>      b      end                         <end>\n"
+        "   0x10000024 <second+4>    nop    \n"
+        "    ↓\n"
+        "   0x1000002c <end>         addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
+        "   0x10000030 <end+4>       addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
+        "   0x10000034 <end+8>       syscall \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 

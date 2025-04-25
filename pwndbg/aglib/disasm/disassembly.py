@@ -405,10 +405,11 @@ def near(
             # If this instruction has a delay slot, disassemble the delay slot instruction
             # And append it to the list
             if insn.causes_branch_delay:
-                # The Unicorn emulator forgets branch decisions when stopped inside of a
-                # delay slot. We disable emulation in this case
-                if emu:
-                    emu.valid = False
+                # Delay slots are instructions after branches that always execute.
+                # Unicorn cannot be paused in a delay slot instruction.
+                # Single stepping on a branch will cause Unicorn to execute the delay slot instruction and take the branch action.
+                # This means the emulator's program counter will take on the value that the branch action dictates, and we would normally continue disassembling there.
+                # We disassemble the delay slot instructions here as the normal codeflow will not reach them.
 
                 split_insn = one(insn.address + insn.size, None, put_cache=True)
 
