@@ -124,6 +124,29 @@ ARM_CAN_WRITE_TO_PC_INSTRUCTIONS = {
 }
 
 
+def itstate_from_cpsr(cpsr_value: int) -> int:
+    """
+    The ITSTATE bits are spread across 3 sections of Arm flags register to a total of 8 bits.
+    This function extracts them and reorders the bits into their logical order
+    - https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Level-Programmers--Model/Registers/The-special-purpose-program-status-registers--xPSR#:~:text=shows%20the%20assignment%20of%20the%20ICI/IT%20bits.
+
+    Bits of the flags register: EPSR[26:25]    EPSR[15:12]    EPSR[11:10]
+    Bits of ITSTATE:            IT[1:0]        IT[7:4]        IT[3:2]
+
+    The lower 5 bits has information that indicates the number of instructions in the IT Block.
+    The top 3 bits indicate the base condition of the block.
+    - https://developer.arm.com/documentation/ddi0406/cb/Application-Level-Architecture/Application-Level-Programmers--Model/Execution-state-registers/IT-block-state-register--ITSTATE?lang=en
+
+    If the value is zero, it means we are not in an IT block.
+    """
+
+    return (
+        ((cpsr_value >> 25) & 0b11)
+        | ((cpsr_value >> 10) & 0b11) << 2
+        | ((cpsr_value >> 12) & 0b1111) << 4
+    )
+
+
 # This class enhances both ARM A-profile and ARM M-profile (Cortex-M)
 class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture, flags_reg: Literal["cpsr", "xpsr"]) -> None:
@@ -217,6 +240,15 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if CS_GRP_INT in instruction.groups:
             # https://github.com/capstone-engine/capstone/issues/2630
             instruction.groups.remove(CS_GRP_CALL)
+
+        # Disable Unicorn while in IT instruction blocks since Unicorn cannot be paused in it.
+        flags_value = pwndbg.aglib.regs[self.flags_reg]
+        if flags_value is not None:
+            it_state = itstate_from_cpsr(flags_value)
+
+            if instruction.id == ARM_INS_IT or it_state != 0:
+                if emu:
+                    emu.valid = False
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:

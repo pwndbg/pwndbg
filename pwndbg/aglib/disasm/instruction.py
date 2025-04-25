@@ -8,6 +8,8 @@ from typing import List
 from typing import Protocol
 from typing import Set
 
+import pwnlib
+
 # Reverse lookup tables for debug printing
 from capstone import CS_AC
 from capstone import CS_GRP
@@ -507,6 +509,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         operands_str = " ".join([repr(op) for op in self.operands])
 
         info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
+        Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
         Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else 'None'}
         Raw asm: {'%-06s %s' % (self.mnemonic, self.op_str)}
@@ -531,6 +534,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         # Hacky, but this is just for debugging
         if hasattr(self.cs_insn, "cc"):
             info += f"\n\tARM condition code: {self.cs_insn.cc}"
+            info += f"\n\tThumb mode: {1 if self.cs_insn._cs._mode & CS_MODE_THUMB else 0}"
 
         return info
 

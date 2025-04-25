@@ -682,3 +682,119 @@ def test_arm_negative_index_register(qemu_assembly_run):
     )
 
     assert dis == expected
+
+
+ARM_IT_BLOCK = """
+add r0, pc, #1
+bx r0
+
+.THUMB
+CMP     R0, #0
+ITTTE   EQ
+MOVEQ   R1, #1
+MOVEQ   R2, #2
+MOVEQ   R2, #3
+MOVNE   R1, #4
+nop
+nop
+nop
+nop
+nop
+nop
+"""
+
+
+def test_arm_it_block(qemu_assembly_run):
+    """
+    The Unicorn engine cannot be paused in the IT block, so we need to handle these instructions specially.
+
+    Additionally, if we are halfway through an IT block, and then copy the the process state into the emulator, it will finish the
+    IT block upon single stepping, and sometimes step an additional step.
+    """
+
+    qemu_assembly_run(ARM_IT_BLOCK, "arm")
+
+    gdb.execute("si")
+    gdb.execute("si")
+
+    dis_1 = gdb.execute("context disasm", to_string=True)
+    dis_1 = pwndbg.color.strip(dis_1)
+
+    expected_1 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────[ DISASM / arm / thumb mode / set emulate on ]─────────────────\n"
+        " ► 0x10000008 <_start+8>     cmp    r0, #0     0x10000009 - 0x0     CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
+        "   0x1000000a <_start+10>    ittte  eq\n"
+        "   0x1000000c <_start+12>    movs   r1, #1     R1 => 1\n"
+        "   0x1000000e <_start+14>    movs   r2, #2     R2 => 2\n"
+        "   0x10000010 <_start+16>    movs   r2, #3     R2 => 3\n"
+        "   0x10000012 <_start+18>    movs   r1, #4     R1 => 4\n"
+        "   0x10000014 <_start+20>    nop    \n"
+        "   0x10000016 <_start+22>    nop    \n"
+        "   0x10000018 <_start+24>    nop    \n"
+        "   0x1000001a <_start+26>    nop    \n"
+        "   0x1000001c <_start+28>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_1 == expected_1
+
+    # Now, ensure that once we step into the block, the disassembly is still correct.
+    gdb.execute("si")
+    gdb.execute("si")
+    gdb.execute("si")
+
+    dis_2 = gdb.execute("context disasm", to_string=True)
+    dis_2 = pwndbg.color.strip(dis_2)
+
+    expected_2 = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────[ DISASM / arm / thumb mode / set emulate on ]─────────────────\n"
+        "   0x10000008 <_start+8>     cmp    r0, #0     0x10000009 - 0x0     CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
+        "   0x1000000a <_start+10>    ittte  eq\n"
+        "   0x1000000c <_start+12>    movs   r1, #1     R1 => 1\n"
+        " ► 0x1000000e <_start+14>    movs   r2, #2     R2 => 2\n"
+        "   0x10000010 <_start+16>    movs   r2, #3     R2 => 3\n"
+        "   0x10000012 <_start+18>    movs   r1, #4     R1 => 4\n"
+        "   0x10000014 <_start+20>    nop    \n"
+        "   0x10000016 <_start+22>    nop    \n"
+        "   0x10000018 <_start+24>    nop    \n"
+        "   0x1000001a <_start+26>    nop    \n"
+        "   0x1000001c <_start+28>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis_2 == expected_2
+
+
+def test_arm_it_block_cached_thumb_mode(qemu_assembly_run):
+    """
+    This test ensures that we handle transitions to Thumb mode correctly once the emulator has been disabled.
+    """
+
+    qemu_assembly_run(ARM_IT_BLOCK, "arm")
+
+    gdb.execute("context disasm", to_string=True)
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x10000000 <_start>       add    r0, pc, #1     R0 => 0x10000009 (_start+9) (0x10000008 + 0x1)\n"
+        "   0x10000004 <_start+4>     bx     r0                          <_start+8>\n"
+        "    ↓\n"
+        "   0x10000008 <_start+8>     cmp    r0, #0         0x10000009 - 0x0     CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
+        "   0x1000000a <_start+10>    ittte  eq\n"
+        "   0x1000000c <_start+12>    movs   r1, #1         R1 => 1\n"
+        "   0x1000000e <_start+14>    movs   r2, #2         R2 => 2\n"
+        "   0x10000010 <_start+16>    movs   r2, #3         R2 => 3\n"
+        "   0x10000012 <_start+18>    movs   r1, #4         R1 => 4\n"
+        "   0x10000014 <_start+20>    nop    \n"
+        "   0x10000016 <_start+22>    nop    \n"
+        "   0x10000018 <_start+24>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
