@@ -9,8 +9,7 @@
 
 
 
-Read or write to Model Specifc Register (MSR)
-
+Read or write to Model Specific Register (MSR)
 ## Usage:
 
 
