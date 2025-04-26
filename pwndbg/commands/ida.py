@@ -4,7 +4,6 @@ import argparse
 import bz2
 import datetime
 import os
-
 import gdb
 import pwndbg
 import pwndbg.aglib.regs
