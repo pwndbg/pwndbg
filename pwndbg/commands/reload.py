@@ -25,16 +25,14 @@ def rreload(module, _exclude_mods=None) -> None:
     importlib.import_module("pwndbg")
 
 
-@pwndbg.commands.ArgparsedCommand("Reload pwndbg.", category=CommandCategory.PWNDBG)
+@pwndbg.commands.Command("Reload pwndbg.", category=CommandCategory.PWNDBG)
 def reload(*a) -> None:
     pwndbg.gdblib.events.on_reload()
     rreload(pwndbg)
     pwndbg.gdblib.events.after_reload()
 
 
-@pwndbg.commands.ArgparsedCommand(
-    "Makes pwndbg reinitialize all state.", category=CommandCategory.PWNDBG
-)
+@pwndbg.commands.Command("Makes pwndbg reinitialize all state.", category=CommandCategory.PWNDBG)
 def reinit_pwndbg() -> None:
     """
     Makes pwndbg reinitialize all state.

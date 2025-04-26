@@ -220,7 +220,7 @@ parser = argparse.ArgumentParser(description="Command description.")
 parser.add_argument("arg", type=str, help="An example argument.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.Command(parser)
 def my_command(arg: str) -> None:
     """Print the argument"""
     print(f"Argument is {arg}")

@@ -36,7 +36,7 @@ parser.add_argument(
 parser.add_argument("-a", "--all", action="store_true", help="Do not truncate the dump output.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenUserspace
 def tls(pthread_self=False, all: bool = False) -> None:
@@ -123,7 +123,7 @@ group.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenUserspace
 def threads(num_threads, respect_config) -> None:

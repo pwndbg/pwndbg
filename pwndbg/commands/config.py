@@ -111,7 +111,7 @@ def display_config(filter_pattern: str, scope: Scope, has_file_command: bool = T
         )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
+@pwndbg.commands.Command(parser, category=CommandCategory.PWNDBG)
 def config(filter_pattern) -> None:
     display_config(filter_pattern, Scope.config)
 
@@ -133,14 +133,14 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
+@pwndbg.commands.Command(parser, category=CommandCategory.PWNDBG)
 def theme(filter_pattern) -> None:
     display_config(filter_pattern, Scope.theme)
 
 
 if pwndbg.dbg.is_gdblib_available():
     # Register the configfile command
-    @pwndbg.commands.ArgparsedCommand(configfile_parser, category=CommandCategory.PWNDBG)
+    @pwndbg.commands.Command(configfile_parser, category=CommandCategory.PWNDBG)
     def configfile(show_all=False) -> None:
         configfile_print_scope(Scope.config, show_all)
 
@@ -155,7 +155,7 @@ themefile_parser.add_argument(
 
 if pwndbg.dbg.is_gdblib_available():
     # Register the themefile command.
-    @pwndbg.commands.ArgparsedCommand(themefile_parser, category=CommandCategory.PWNDBG)
+    @pwndbg.commands.Command(themefile_parser, category=CommandCategory.PWNDBG)
     def themefile(show_all=False) -> None:
         configfile_print_scope(Scope.theme, show_all)
 
@@ -170,7 +170,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
+@pwndbg.commands.Command(parser, category=CommandCategory.PWNDBG)
 def heap_config(filter_pattern: str) -> None:
     display_config(filter_pattern, Scope.heap, has_file_command=False)
     print(

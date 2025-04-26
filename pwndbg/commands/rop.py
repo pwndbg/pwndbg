@@ -209,9 +209,7 @@ parser.add_argument("--memlimit", type=str, default="50MB", help="String to grep
 parser.add_argument("argument", nargs="*", type=str, help="Arguments to pass to ROPgadget")
 
 
-@pwndbg.commands.ArgparsedCommand(
-    parser, aliases=["ropgadget"], category=CommandCategory.INTEGRATIONS
-)
+@pwndbg.commands.Command(parser, aliases=["ropgadget"], category=CommandCategory.INTEGRATIONS)
 @pwndbg.commands.OnlyWithFile
 def rop(grep: str | None, memlimit: str, argument: List[str]) -> None:
     memlimit = parse_size(memlimit)

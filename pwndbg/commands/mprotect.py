@@ -91,7 +91,7 @@ def prot_val_to_str(protval: int) -> str:
     return "|".join(ret)
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def mprotect(addr, length, prot) -> None:
     prot_int = prot_str_to_val(prot)

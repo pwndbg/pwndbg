@@ -316,7 +316,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx-out"], category=CommandCategory.CONTEXT)
+@pwndbg.commands.Command(parser, aliases=["ctx-out"], category=CommandCategory.CONTEXT)
 def contextoutput(section, path, clearing, banner="both", width: int = None):
     if not banner:  # synonym for splitmind backwards compatibility
         banner = "none"
@@ -438,7 +438,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctxp"], category=CommandCategory.CONTEXT)
+@pwndbg.commands.Command(parser, aliases=["ctxp"], category=CommandCategory.CONTEXT)
 def contextprev(count) -> None:
     global selected_history_index
     if not context_history:
@@ -463,7 +463,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctxn"], category=CommandCategory.CONTEXT)
+@pwndbg.commands.Command(parser, aliases=["ctxn"], category=CommandCategory.CONTEXT)
 def contextnext(count) -> None:
     global selected_history_index
     if not context_history:
@@ -495,7 +495,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctxsearch"], category=CommandCategory.CONTEXT)
+@pwndbg.commands.Command(parser, aliases=["ctxsearch"], category=CommandCategory.CONTEXT)
 def contextsearch(needle, section) -> None:
     if not section:
         sections = context_history.keys()
@@ -564,9 +564,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(
-    parser, aliases=["ctx-watch", "cwatch"], category=CommandCategory.CONTEXT
-)
+@pwndbg.commands.Command(parser, aliases=["ctx-watch", "cwatch"], category=CommandCategory.CONTEXT)
 def contextwatch(expression, cmd) -> None:
     expressions.append((expression, cmd))
 
@@ -577,7 +575,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("num", type=int, help="The expression number to be removed from context")
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     parser, aliases=["ctx-unwatch", "cunwatch"], category=CommandCategory.CONTEXT
 )
 def contextunwatch(num) -> None:
@@ -686,7 +684,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["ctx"], category=CommandCategory.CONTEXT)
+@pwndbg.commands.Command(parser, aliases=["ctx"], category=CommandCategory.CONTEXT)
 def context(subcontext=None, enabled=None) -> None:
     """
     Print out the current register, instruction, and stack context.
@@ -887,7 +885,7 @@ parser = argparse.ArgumentParser(description="Print out all registers and enhanc
 parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers to be shown")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.CONTEXT)
+@pwndbg.commands.Command(parser, category=CommandCategory.CONTEXT)
 @pwndbg.commands.OnlyWhenRunning
 def regs(regs=[]) -> None:
     """Print out all registers and enhance the information."""

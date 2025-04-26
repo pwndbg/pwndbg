@@ -33,7 +33,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
 def gdt(address, count) -> None:

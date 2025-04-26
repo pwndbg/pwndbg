@@ -271,7 +271,7 @@ For sockets, the following formats are allowed:
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC, command_name="hijack-fd")
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC, command_name="hijack-fd")
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenUserspace
 def hijack_fd(fdnum: int, newfile: PARSED_FILE_ARG) -> None:

@@ -28,7 +28,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def strings(n: int = 4, page_names: List[str] = [], save_as: str = None):
     # Get only readable pages and those that match the page_names filter

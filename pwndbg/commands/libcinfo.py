@@ -5,7 +5,7 @@ import pwndbg.glibc
 from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Show libc version and link to its sources", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWhenRunning

@@ -6,7 +6,7 @@ import pwndbg.integration.binja
 from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Synchronize Binary Ninja's cursor with GDB.",
     category=CommandCategory.INTEGRATIONS,
     command_name="bn-sync",

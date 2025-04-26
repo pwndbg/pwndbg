@@ -28,7 +28,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
+@pwndbg.commands.Command(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(pc=None, lines=None, emulate=False, use_cache=False, linear=True) -> None:
     """
@@ -56,7 +56,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.DISASS)
+@pwndbg.commands.Command(parser, category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
 def emulate(pc=None, lines=None, emulate_=True) -> None:
     """

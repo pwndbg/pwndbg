@@ -70,7 +70,7 @@ def extract_sources() -> (Dict[str, argparse.ArgumentParser], Dict[str, list[str
         for fn_name in dir(mod):
             fn = getattr(mod, fn_name)
 
-            if not isinstance(fn, pwndbg.commands.Command):
+            if not isinstance(fn, pwndbg.commands.CommandObj):
                 continue
             # This object is a command (an _ArgparsedCommand object)!
 

@@ -22,9 +22,7 @@ parser.add_argument(
 parser.add_argument("arguments", nargs="*", type=str, help="Arguments to pass to radare")
 
 
-@pwndbg.commands.ArgparsedCommand(
-    parser, aliases=["radare2"], category=CommandCategory.INTEGRATIONS
-)
+@pwndbg.commands.Command(parser, aliases=["radare2"], category=CommandCategory.INTEGRATIONS)
 @pwndbg.commands.OnlyWithFile
 def r2(arguments, no_seek=False, no_rebase=False) -> None:
     filename = pwndbg.aglib.file.get_proc_exe_file()
@@ -58,7 +56,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("arguments", nargs="+", type=str, help="Arguments to pass to r2pipe")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.INTEGRATIONS)
+@pwndbg.commands.Command(parser, category=CommandCategory.INTEGRATIONS)
 @pwndbg.commands.OnlyWithFile
 def r2pipe(arguments) -> None:
     try:

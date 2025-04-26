@@ -17,7 +17,7 @@ Useful for diagnosing caching-related bugs. Decreases performance.
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PWNDBG)
+@pwndbg.commands.Command(parser, category=CommandCategory.PWNDBG)
 def memoize() -> None:
     pwndbg.lib.cache.IS_CACHING = not pwndbg.lib.cache.IS_CACHING
 

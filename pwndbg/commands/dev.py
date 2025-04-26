@@ -38,7 +38,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.DEV)
+@pwndbg.commands.Command(parser, category=CommandCategory.DEV)
 @pwndbg.commands.OnlyWhenRunning
 def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) -> None:
     if address is not None:
@@ -78,7 +78,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.DEV)
+@pwndbg.commands.Command(parser, category=CommandCategory.DEV)
 def log_level(level: str) -> None:
     logging.getLogger().setLevel(getattr(logging, level.upper()))
     print(f"Log level set to {level}")

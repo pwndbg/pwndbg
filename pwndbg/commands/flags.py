@@ -33,7 +33,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["flag"], category=CommandCategory.REGISTER)
+@pwndbg.commands.Command(parser, aliases=["flag"], category=CommandCategory.REGISTER)
 def setflag(flag: str, value: int) -> None:
     register_set = pwndbg.aglib.regs.current
 

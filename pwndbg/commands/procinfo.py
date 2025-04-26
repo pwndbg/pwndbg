@@ -221,15 +221,13 @@ class Process:
         return tuple(result)
 
 
-@pwndbg.commands.ArgparsedCommand(
-    "Gets the pid.", aliases=["getpid"], category=CommandCategory.PROCESS
-)
+@pwndbg.commands.Command("Gets the pid.", aliases=["getpid"], category=CommandCategory.PROCESS)
 @pwndbg.commands.OnlyWhenRunning
 def pid() -> None:
     print(pwndbg.aglib.proc.pid)
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Display information about the running process.", category=CommandCategory.PROCESS
 )
 @pwndbg.commands.OnlyWhenRunning

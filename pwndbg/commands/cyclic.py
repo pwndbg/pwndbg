@@ -61,7 +61,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="cyclic", category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, command_name="cyclic", category=CommandCategory.MISC)
 def cyclic_cmd(alphabet, length: Optional[int], lookup, count=100, filename="") -> None:
     if length is None:
         length = pwndbg.aglib.arch.ptrsize

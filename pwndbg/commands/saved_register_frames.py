@@ -74,7 +74,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def dump_register_frame(frame_type: str, address: int = None, print_address=False) -> None:
     register_frame = VALID_FRAME_TYPES.get(frame_type)

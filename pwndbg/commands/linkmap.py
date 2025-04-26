@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def linkmap() -> None:
     is_first = True

@@ -194,7 +194,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     parser, aliases=["lm", "address", "vprot", "libs"], category=CommandCategory.MEMORY
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -306,7 +306,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
     page_flags = {
@@ -334,7 +334,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap_explore(address: int) -> None:
     if not isinstance(address, int):
@@ -357,7 +357,7 @@ def vmmap_explore(address: int) -> None:
     print(page)
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Clear the vmmap cache.", category=CommandCategory.MEMORY
 )  # TODO is this accurate?
 @pwndbg.commands.OnlyWhenRunning
@@ -374,7 +374,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def vmmap_load(filename) -> None:
     if filename is None:

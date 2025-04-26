@@ -7,7 +7,7 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Prints the section mappings contained in the ELF header.", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWithFile
@@ -33,7 +33,7 @@ def elfsections() -> None:
             print(f"{start:#x} - {end:#x} ", name)
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Prints any symbols found in the .got.plt section if it exists.",
     category=CommandCategory.LINUX,
 )
@@ -42,7 +42,7 @@ def gotplt() -> None:
     print_symbols_in_section(".got.plt", "@got.plt")
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Prints any symbols found in the .plt section if it exists.", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWithFile

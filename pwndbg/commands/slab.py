@@ -52,7 +52,7 @@ parser_contains = subparsers.add_parser("contains", prog="slab contains")
 parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
+@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled

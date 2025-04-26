@@ -74,7 +74,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     parser,
     aliases=["main", "init"],
     only_debuggers={DebuggerType.GDB},
@@ -129,7 +129,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
+@pwndbg.commands.Command(parser, category=CommandCategory.START)
 @pwndbg.commands.OnlyWithFile
 @pwndbg.commands.OnlyWhenLocal
 def entry(args=None) -> None:
@@ -152,7 +152,7 @@ def entry(args=None) -> None:
     breakpoint_at_entry()
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Alias for 'tbreak __libc_start_main; run'.",
     only_debuggers={DebuggerType.GDB},
     category=CommandCategory.START,

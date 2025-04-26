@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 T = TypeVar("T")
 P = ParamSpec("P")
 
-commands: List[Command] = []
+commands: List[CommandObj] = []
 command_names: Set[str] = set()
 
 
@@ -72,8 +72,21 @@ if pwndbg.dbg.is_gdblib_available():
     pwndbg_is_reloading = getattr(gdb, "pwndbg_is_reloading", False)
 
 
-class Command:
-    """Generic command wrapper"""
+class InvalidDebuggerError(Exception):
+    """
+    Raised when a command is called in a debugger for which
+    it is disallowed.
+    """
+
+    def __init__(self, message: str):
+        super().__init__(message)
+
+
+class CommandObj:
+    """
+    Represents a command that can be invoked from the
+    debugger.
+    """
 
     builtin_override_whitelist: Set[str] = {
         "up",
@@ -89,58 +102,99 @@ class Command:
     def __init__(
         self,
         function: Callable[..., str | None],
-        *,  # All further parameters are not positional
-        command_name: str,
+        parser: argparse.ArgumentParser,
+        command_name: str | None,
         category: CommandCategory,
-        help_str: str,
-        description: str,
-        shell: bool = False,
-        is_alias: bool = False,
-        aliases: List[str] = [],
+        is_alias: bool,
+        aliases: List[str],
+        /,  # All parameters must be passed in positionally
     ) -> None:
-        assert command_name and category and help_str and description
-        assert "_" not in command_name and "Use '-'."
-        assert command_name not in command_names and "Command already exists."
+        assert function
+        self.function = function
+
+        self.command_name = command_name
+        if self.command_name is None:
+            # Take the command name from the name of the function
+            # which defines it, but replace '_' with '-'.
+            self.command_name = function.__name__.replace("_", "-")
+
+        assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
+        assert self.command_name not in command_names and "Command already exists."
         assert (
             not (
-                command_name in GDB_BUILTIN_COMMANDS
-                and command_name not in self.builtin_override_whitelist
+                self.command_name in GDB_BUILTIN_COMMANDS
+                and self.command_name not in CommandObj.builtin_override_whitelist
                 and not pwndbg_is_reloading
             )
             and "Cannot override non-whitelisted built-in command."
         )
-        assert not (is_alias and aliases) and "Cannot set aliases for an alias."
 
-        self.function = function
-        self.command_name = command_name
-        self.shell = shell
+        assert category
+        self.category = category
+
+        assert not (is_alias and aliases) and "Cannot set aliases for an alias."
         self.is_alias = is_alias
         self.aliases = aliases
-        self.category = category
-        self.help_str = help_str
-        self.description = description
+
+        assert parser
+        self.parser = parser
+        # Sets self.help_str and self.description (among other stuff).
+        self.initialize_parser()
+
+        # Let the debugger and pwndbg global state know about it.
+        self.register_command()
+
+        # For commands like hexdump where you get new output from
+        # continuous invocations.
+        self.repeat = False
+
+    def register_command(self):
+        """
+        Register this object command with the underlying debugger
+        and update pwndbg global state to know about this command.
+        """
 
         def _handler(_debugger, arguments, is_interactive):
             self.invoke(arguments, is_interactive)
 
-        self.handle = pwndbg.dbg.add_command(command_name, _handler, help_str)
+        # Tell the debugger about it.
+        self.handle = pwndbg.dbg.add_command(self.command_name, _handler, self.help_str)
 
-        command_names.add(command_name)
+        command_names.add(self.command_name)
         commands.append(self)
 
-        self.repeat = False
+    def initialize_parser(self):
+        # Set parser.prog so the help is generated properly.
+        self.parser.prog = self.command_name
 
-    def split_args(self, argument: str) -> Tuple[List[str], Dict[Any, Any]]:
-        """Split a command-line string from the user into arguments.
+        # Generate command help
+        file = io.StringIO()
+        self.parser.print_help(file)
+        file.seek(0)
+        self.help_str = file.read()
 
-        This is only used by pwndbg/commands/shell.py which is deprecated.
-        Usually _ArgparsedCommand.split_args is called.
+        # Used by `pwndbg [filter]`
+        assert (
+            self.parser.description
+            and self.parser.description.strip()
+            and "A command must contain a description."
+        )
+        self.description = self.parser.description.strip()
 
-        Returns:
-            A ``(tuple, dict)``, in the form of ``*args, **kwargs``.
-            The contents of the tuple/dict are undefined.
-        """
-        return pwndbg.dbg.lex_args(argument), {}
+        # We want to run all integer and otherwise-unspecified arguments
+        # through fix() so that GDB parses it.
+        # FIXME: I don't understand all of this, is it good?
+        for action in self.parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                action.type = str
+            if action.dest == "help":
+                continue
+            if action.type is int:
+                action.type = fix_int_reraise_arg
+            if action.type is None:
+                action.type = fix_reraise_arg
+            if action.default is not None:
+                action.help += " (default: %(default)s)"
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
@@ -148,24 +202,32 @@ class Command:
             log.error("Pwndbg commands require a target binary to be selected")
             return
 
+        # Put the arguments through the debugger
         try:
-            args, kwargs = self.split_args(argument)
-        except SystemExit:
-            # Raised when the usage is printed by an ArgparsedCommand
-            # because of an error in argument parsing
-            return
+            arg_list = pwndbg.dbg.lex_args(argument)
         except (TypeError, pwndbg.dbg_mod.Error):
             pwndbg.exception.handle(self.function.__name__)
             return
 
+        # Put the arguments through argparse
+        try:
+            kwargs = vars(self.parser.parse_args(arg_list))
+        except SystemExit:
+            # argparse complained about incorrect usage or printed
+            # help and exited. Either way the appropriate message
+            # is already printed and we shouldn't call the function.
+            return
+
         try:
             self.repeat = self.check_repeated(argument, from_tty)
-            self(*args, **kwargs)
+            # Call this object, goes to __call__
+            self(**kwargs)
         finally:
             self.repeat = False
 
     def check_repeated(self, argument: str, from_tty: bool) -> bool:
-        """Keep a record of all commands which come from the TTY.
+        """
+        Keep a record of all commands which come from the TTY.
 
         Returns:
             True if this command was executed by the user just hitting "enter".
@@ -182,8 +244,8 @@ class Command:
 
         number, command = last_line[-1]
         # A new command was entered by the user
-        if number not in Command.history:
-            Command.history[number] = command
+        if number not in CommandObj.history:
+            CommandObj.history[number] = command
             return False
 
         # Somehow the command is different than we got before?
@@ -196,56 +258,23 @@ class Command:
         try:
             return self.function(*args, **kwargs)
         except TypeError:
+<<<<<<< HEAD
             print(f"{self.function.__name__.strip()!r}: {inspect.getdoc(self.function).strip()}")
+=======
+            print(f"{self.command_name}: {self.description}")
+>>>>>>> d5513d18 (remove shell commands, refactor command logic)
             pwndbg.exception.handle(self.function.__name__)
         except Exception:
             pwndbg.exception.handle(self.function.__name__)
         return None
 
 
-class _ArgparsedCommand(Command):
-    def __init__(
-        self,
-        parser: argparse.ArgumentParser,
-        function: Callable[..., Any],
-        category: CommandCategory,
-        command_name: str,
-        is_alias: bool,
-        aliases: List[str],
-        /,  # All parameters must be passed positionally
-    ) -> None:
-        self.parser = parser
+class Command:
+    """
+    Parametrized decorator for functions that serve as pwndbg commands.
 
-        # Set parser.prog so the help is generated properly.
-        self.parser.prog = command_name
-
-        # Generate command help
-        file = io.StringIO()
-        self.parser.print_help(file)
-        file.seek(0)
-        self.help_str = file.read()
-
-        # Used by `pwndbg [filter]`
-        self.description = self.parser.description.strip()
-
-        super().__init__(
-            function,
-            command_name=command_name,
-            shell=False,
-            is_alias=is_alias,
-            aliases=aliases,
-            category=category,
-            help_str=self.help_str,
-            description=self.description,
-        )
-
-    def split_args(self, argument: str):
-        argv = pwndbg.dbg.lex_args(argument)
-        return (), vars(self.parser.parse_args(argv))
-
-
-class ArgparsedCommand:
-    """Adds documentation and offloads parsing for a Command via argparse"""
+    Always use this to decorate your commands.
+    """
 
     def __init__(
         self,
@@ -264,66 +293,57 @@ class ArgparsedCommand:
             assert isinstance(parser_or_desc, argparse.ArgumentParser)
             self.parser = parser_or_desc
 
-        assert (
-            self.parser.description
-            and self.parser.description.strip()
-            and "A command must contain a description."
-        )
-
-        # We can only set the proper command name in __call__
-        # once we have a reference to the function.
+        self.category = category
         self.command_name = command_name
         self.aliases = aliases
-
-        assert category
-        self.category = category
-
         self.only_debuggers = only_debuggers
         self.exclude_debuggers = exclude_debuggers
 
-        # We want to run all integer and otherwise-unspecified arguments
-        # through fix() so that GDB parses it.
-        for action in self.parser._actions:
-            if isinstance(action, argparse._SubParsersAction):
-                action.type = str
-            if action.dest == "help":
-                continue
-            if action.type is int:
-                action.type = fix_int_reraise_arg
-            if action.type is None:
-                action.type = fix_reraise_arg
-            if action.default is not None:
-                action.help += " (default: %(default)s)"
+    def __call__(self, function: Callable[..., Any]) -> CommandObj:
+        # Since this is the __call__ of a parametrized decorator, it is
+        # invoked during decoration, and it must return a callable object
+        # i.e. the "real" decorator of the function.
 
-    def __call__(self, function: Callable[..., Any]) -> _ArgparsedCommand:
+        # If this command is not valid for this debugger, do not even
+        # pass it to ComandObj to be registered with the debugger API.
+        # Also make sure it raises an error if it is called from the code.
         if self.only_debuggers is not None and pwndbg.dbg.name() not in self.only_debuggers:
-            return function  # type: ignore[return-value]
+
+            def decorator(*args, **kwargs):
+                raise InvalidDebuggerError(
+                    f"This command cannot be used in {pwndbg.dbg.name()}.\n"
+                    f"It is only valid for {self.only_debuggers}."
+                )
+
+            return decorator  # type: ignore[return-value]
         if self.exclude_debuggers is not None and pwndbg.dbg.name() in self.exclude_debuggers:
-            return function  # type: ignore[return-value]
 
-        if self.command_name is None:
-            # Take the command name from the name of the function
-            # which defines it, but replace '_' with '-'.
-            self.command_name = function.__name__.replace("_", "-")
-        else:
-            self.command_name = self.command_name
+            def decorator(*args, **kwargs):
+                raise InvalidDebuggerError(
+                    f"This command cannot be used in {pwndbg.dbg.name()}.\n"
+                    f"It is invalid for {self.exclude_debuggers}."
+                )
 
-        assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
+            return decorator  # type: ignore[return-value]
 
+        # Create aliases as seperate CommandObj's and register
+        # them seperately.
         for alias in self.aliases:
-            _ArgparsedCommand(
-                self.parser,
+            CommandObj(
                 function,
-                self.category,
+                self.parser,
                 alias,
+                self.category,
                 True,
                 [],
             )
-        return _ArgparsedCommand(
-            self.parser,
+        # Since CommandObj has __call__ defined, an instance of it is a
+        # callable object (which essentially decorates the function).
+        return CommandObj(
             function,
-            self.category,
+            self.parser,
             self.command_name,
+            self.category,
             False,
             self.aliases,
         )
@@ -754,7 +774,6 @@ def load_commands() -> None:
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
-        import pwndbg.commands.shell
 
     import pwndbg.commands.argv
     import pwndbg.commands.aslr

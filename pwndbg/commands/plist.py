@@ -187,7 +187,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="plist", category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, command_name="plist", category=CommandCategory.MISC)
 def plist(
     path: str,
     next: str,

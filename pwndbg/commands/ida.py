@@ -18,7 +18,7 @@ from pwndbg.dbg import EventType
 from pwndbg.gdblib.functions import GdbFunction
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Synchronize IDA's cursor with GDB.", category=CommandCategory.INTEGRATIONS
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -41,7 +41,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def up(n=1) -> None:
     """
@@ -69,7 +69,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def down(n=1) -> None:
     """
@@ -91,7 +91,7 @@ def down(n=1) -> None:
     j()
 
 
-@pwndbg.commands.ArgparsedCommand("Save the ida database.", category=CommandCategory.INTEGRATIONS)
+@pwndbg.commands.Command("Save the ida database.", category=CommandCategory.INTEGRATIONS)
 @pwndbg.integration.ida.withIDA
 def save_ida() -> None:
     """Save the IDA database"""

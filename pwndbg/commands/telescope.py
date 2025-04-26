@@ -101,7 +101,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def telescope(
     address=None, count=telescope_lines, to_string=False, reverse=False, frame=False, inverse=False
@@ -319,7 +319,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.STACK)
+@pwndbg.commands.Command(parser, category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
 def stack(count, offset, frame, inverse) -> None:
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
@@ -342,7 +342,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.STACK)
+@pwndbg.commands.Command(parser, category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
 def stackf(count, offset) -> None:
     ptrsize = pwndbg.aglib.typeinfo.ptrsize

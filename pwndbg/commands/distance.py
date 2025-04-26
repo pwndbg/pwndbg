@@ -14,7 +14,7 @@ parser.add_argument("a", type=int, help="The first address.")
 parser.add_argument("b", nargs="?", default=None, type=int, help="The second address.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 def distance(a, b) -> None:
     """Print the distance between the two arguments"""
 

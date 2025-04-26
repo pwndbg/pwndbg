@@ -46,7 +46,7 @@ toggle_break = subparsers.add_parser(
 toggle_break.set_defaults(mode="toggle-break")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX, command_name="track-heap")
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX, command_name="track-heap")
 @pwndbg.commands.OnlyWhenRunning
 def track_heap(mode=None, use_hardware_breakpoints=False):
     if mode == "enable":
