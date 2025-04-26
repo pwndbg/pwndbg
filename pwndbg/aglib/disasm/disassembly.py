@@ -400,7 +400,7 @@ def near(
 
         if not emu and last_emulated_thumb_bit_value is not None:
             # The emulator may have been disabled, but while it was live we transitioned into Thumb mode.
-            # We propogate the Thumb mode through the remaining instructions we disassemble.
+            # We propagate the Thumb mode through the remaining instructions we disassemble.
             emulated_arm_mode_cache[target] = last_emulated_thumb_bit_value
 
         # Handle visual splits in the disasm view
