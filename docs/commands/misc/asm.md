@@ -23,14 +23,14 @@ usage: asm [-h] [-f {hex,string}]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`shellcode`|Assembler code to assemble (default: %(default)s)|
+|`shellcode`|Assembler code to assemble|
 
 ## Optional Arguments
 
 |Short|Long|Default|Help|
 | :--- | :--- | :--- | :--- |
 |`-h`|`--help`||show this help message and exit|
-|`-f`|`--format`|`hex`|Output format (default: %(default)s)|
+|`-f`|`--format`|`hex`|Output format|
 ||`--arch`|`None`|Target architecture|
 |`-v`|`--avoid`|`None`|Encode the shellcode to avoid the listed bytes (provided as hex)|
 |`-n`|`--newline`|`None`|Encode the shellcode to avoid newlines|

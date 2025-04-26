@@ -24,7 +24,7 @@ usage: contextwatch [-h] [{eval,execute}] expression
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`cmd`|Command to be used with the expression. - eval: the expression is parsed and evaluated as in the debugged language. - execute: the expression is executed as a GDB command. (default: %(default)s)|
+|`cmd`|Command to be used with the expression. - eval: the expression is parsed and evaluated as in the debugged language. - execute: the expression is executed as a GDB command.|
 |`expression`|The expression to be evaluated and shown in context|
 
 ## Optional Arguments

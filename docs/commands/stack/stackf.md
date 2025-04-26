@@ -20,8 +20,8 @@ usage: stackf [-h] [count] [offset]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`count`|number of element to dump (default: %(default)s)|
-|`offset`|Element offset from $sp (support negative offset) (default: %(default)s)|
+|`count`|number of element to dump|
+|`offset`|Element offset from $sp (support negative offset)|
 
 ## Optional Arguments
 

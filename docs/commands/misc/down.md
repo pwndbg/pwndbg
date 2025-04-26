@@ -20,7 +20,7 @@ usage: down [-h] [n]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`n`|The number of stack frames to go down. (default: %(default)s)|
+|`n`|The number of stack frames to go down.|
 
 ## Optional Arguments
 

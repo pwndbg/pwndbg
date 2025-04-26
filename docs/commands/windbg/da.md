@@ -21,7 +21,7 @@ usage: da [-h] address [max]
 |Positional Argument|Help|
 | :--- | :--- |
 |`address`|Address to dump|
-|`max`|Maximum string length (default: %(default)s)|
+|`max`|Maximum string length|
 
 ## Optional Arguments
 

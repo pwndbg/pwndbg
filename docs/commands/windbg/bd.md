@@ -20,7 +20,7 @@ usage: bd [-h] [which]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`which`|Index of the breakpoint to disable. (default: %(default)s)|
+|`which`|Index of the breakpoint to disable.|
 
 ## Optional Arguments
 

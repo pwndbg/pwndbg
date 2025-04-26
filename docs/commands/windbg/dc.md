@@ -21,7 +21,7 @@ usage: dc [-h] address [count]
 |Positional Argument|Help|
 | :--- | :--- |
 |`address`|The address to dump from.|
-|`count`|The number of bytes to hexdump. (default: %(default)s)|
+|`count`|The number of bytes to hexdump.|
 
 ## Optional Arguments
 

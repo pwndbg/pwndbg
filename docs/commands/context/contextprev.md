@@ -20,7 +20,7 @@ usage: contextprev [-h] [count]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`count`|The number of entries to go back in history (default: %(default)s)|
+|`count`|The number of entries to go back in history|
 
 ## Optional Arguments
 

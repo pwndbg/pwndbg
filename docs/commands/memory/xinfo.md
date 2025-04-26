@@ -20,7 +20,7 @@ usage: xinfo [-h] [address]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`address`|Address to inspect (default: %(default)s)|
+|`address`|Address to inspect|
 
 ## Optional Arguments
 

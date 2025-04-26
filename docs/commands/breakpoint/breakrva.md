@@ -20,8 +20,8 @@ usage: breakrva [-h] [offset] [module]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`offset`|Offset to add. (default: %(default)s)|
-|`module`|Module to choose as base. Defaults to the target executable. (default: %(default)s)|
+|`offset`|Offset to add.|
+|`module`|Module to choose as base. Defaults to the target executable.|
 
 ## Optional Arguments
 

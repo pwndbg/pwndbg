@@ -29,7 +29,7 @@ usage: gdt [-h] address [count]
 |Positional Argument|Help|
 | :--- | :--- |
 |`address`|x86-64 GDTR base address (e.g. read from sgdt instruction from [16:79] bits)|
-|`count`|Number of entries to dump (should be (GDTR.size+1)/8) (default: %(default)s)|
+|`count`|Number of entries to dump (should be (GDTR.size+1)/8)|
 
 ## Optional Arguments
 

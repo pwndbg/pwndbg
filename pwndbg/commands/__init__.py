@@ -193,8 +193,9 @@ class CommandObj:
                 action.type = fix_int_reraise_arg
             if action.type is None:
                 action.type = fix_reraise_arg
-            if action.default is not None:
-                action.help += " (default: %(default)s)"
+
+        # FIXME: The defaults are not currently reflected in the docs.
+        self.parser.formatter_class = argparse.ArgumentDefaultsHelpFormatter
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""

@@ -21,7 +21,7 @@ usage: valist [-h] addr [count]
 |Positional Argument|Help|
 | :--- | :--- |
 |`addr`|Address of the va_list|
-|`count`|Number of arguments to dump (default: %(default)s)|
+|`count`|Number of arguments to dump|
 
 ## Optional Arguments
 

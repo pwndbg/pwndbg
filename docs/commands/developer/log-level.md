@@ -20,7 +20,7 @@ usage: log-level [-h] [{debug,info,warning,error,critical}]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`level`|The log level to set. (default: %(default)s)|
+|`level`|The log level to set.|
 
 ## Optional Arguments
 

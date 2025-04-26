@@ -20,7 +20,7 @@ usage: bc [-h] [which]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`which`|Index of the breakpoint to clear. (default: %(default)s)|
+|`which`|Index of the breakpoint to clear.|
 
 ## Optional Arguments
 

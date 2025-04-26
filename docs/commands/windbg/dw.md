@@ -21,7 +21,7 @@ usage: dw [-h] address [count]
 |Positional Argument|Help|
 | :--- | :--- |
 |`address`|The address to dump from.|
-|`count`|The number of words to dump. (default: %(default)s)|
+|`count`|The number of words to dump.|
 
 ## Optional Arguments
 

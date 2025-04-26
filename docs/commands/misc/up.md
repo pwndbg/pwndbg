@@ -20,7 +20,7 @@ usage: up [-h] [n]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`n`|The number of stack frames to go up. (default: %(default)s)|
+|`n`|The number of stack frames to go up.|
 
 ## Optional Arguments
 

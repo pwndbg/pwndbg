@@ -22,8 +22,8 @@ usage: vmmap-add [-h] start size [flags] [offset]
 | :--- | :--- |
 |`start`|Starting virtual address|
 |`size`|Size of the address space, in bytes|
-|`flags`|Flags set by the ELF file (r - read, w - write, x - executable) (default: %(default)s)|
-|`offset`|Offset into the original ELF file that the data is loaded from (default: %(default)s)|
+|`flags`|Flags set by the ELF file (r - read, w - write, x - executable)|
+|`offset`|Offset into the original ELF file that the data is loaded from|
 
 ## Optional Arguments
 

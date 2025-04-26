@@ -21,7 +21,7 @@ usage: dq [-h] address [count]
 |Positional Argument|Help|
 | :--- | :--- |
 |`address`|The address to dump from.|
-|`count`|The number of qwords to dump. (default: %(default)s)|
+|`count`|The number of qwords to dump.|
 
 ## Optional Arguments
 

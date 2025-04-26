@@ -21,15 +21,15 @@ usage: cyclic [-h] [-a charset] [-n length] [-l lookup_value]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`count`|Number of characters to print from the sequence (default: print the entire sequence) (default: %(default)s)|
-|`filename`|Name (path) of the file to save the cyclic pattern to (default: %(default)s)|
+|`count`|Number of characters to print from the sequence (default: print the entire sequence)|
+|`filename`|Name (path) of the file to save the cyclic pattern to|
 
 ## Optional Arguments
 
 |Short|Long|Default|Help|
 | :--- | :--- | :--- | :--- |
 |`-h`|`--help`||show this help message and exit|
-|`-a`|`--alphabet`|`abcdefghijklmnopqrstuvwxyz`|The alphabet to use in the cyclic pattern (default: %(default)s)|
+|`-a`|`--alphabet`|`abcdefghijklmnopqrstuvwxyz`|The alphabet to use in the cyclic pattern|
 |`-n`|`--length`|`None`|Size of the unique subsequences (defaults to the pointer size for the current arch)|
 |`-o`|`--lookup`|`None`|Do a lookup instead of printing the sequence (accepts constant values as well as expressions)|
 

@@ -20,8 +20,8 @@ usage: piebase [-h] [offset] [module]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`offset`|Offset from PIE base. (default: %(default)s)|
-|`module`|Module to choose as base. Defaults to the target executable. (default: %(default)s)|
+|`offset`|Offset from PIE base.|
+|`module`|Module to choose as base. Defaults to the target executable.|
 
 ## Optional Arguments
 

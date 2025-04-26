@@ -20,7 +20,7 @@ usage: be [-h] [which]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`which`|Index of the breakpoint to enable. (default: %(default)s)|
+|`which`|Index of the breakpoint to enable.|
 
 ## Optional Arguments
 

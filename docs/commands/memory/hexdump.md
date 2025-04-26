@@ -20,8 +20,8 @@ usage: hexdump [-h] [address] [count]
 
 |Positional Argument|Help|
 | :--- | :--- |
-|`address`|Address or module name to dump (default: %(default)s)|
-|`count`|Number of bytes to dump (default: %(default)s)|
+|`address`|Address or module name to dump|
+|`count`|Number of bytes to dump|
 
 ## Optional Arguments
 
