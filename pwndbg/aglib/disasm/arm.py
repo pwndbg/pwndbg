@@ -246,9 +246,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         flags_value = pwndbg.aglib.regs[self.flags_reg]
         it_state = itstate_from_cpsr(flags_value)
 
-        if instruction.id == ARM_INS_IT or it_state != 0:
-            if emu:
-                emu.valid = False
+        if (instruction.id == ARM_INS_IT or it_state != 0) and emu:
+            emu.valid = False
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
