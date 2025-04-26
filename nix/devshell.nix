@@ -25,6 +25,7 @@ let
       isLLDB
       ;
     isDev = true;
+    isEditable = true;
   };
   jemalloc-static = pkgs.jemalloc.overrideAttrs (
     finalAttrs: previousAttrs: {
@@ -89,8 +90,10 @@ in
         (pkgs.writeShellScriptBin "riscv64-linux-gnu-gcc" ''
           exec ${lib.getBin pkgs.pkgsCross.riscv64.buildPackages.gcc}/bin/riscv64-unknown-linux-gnu-gcc "$@"
         '')
-
         pyEnv
+        (pkgs.writeShellScriptBin "pwndbg" ''
+          exec ${lib.getBin pkgs.gdb}/bin/gdb --quiet --init-eval-command="python import site; site.addsitedir('${pyEnv}/${python3.sitePackages}')" -iex "source $REPO_ROOT/gdbinit.py" $@
+        '')
       ]
       ++ pkgs.lib.optionals isLLDB [
         pkgs.lldb_19
@@ -98,6 +101,7 @@ in
     shellHook = ''
       export PWNDBG_VENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
       export ZIGPATH="${pkgs.lib.getBin pkgs.zig_0_13}/bin/"
+      export REPO_ROOT=$(git rev-parse --show-toplevel)
     '';
   };
 }
