@@ -155,6 +155,11 @@ def versions():
         "hexrays": idaapi.get_hexrays_version() if idaapi.init_hexrays_plugin() else None,
     }
 
+def safe_symbol(name):
+    ea = idc.get_name_ea_simple(name)
+    if ea == idc.BADADDR:  
+        return None
+    return ea
 
 server = SimpleXMLRPCServer((host, port), logRequests=False, allow_none=True)
 register_module(idaapi)
@@ -167,6 +172,7 @@ server.register_function(wrap(decompile))  # overwrites idaapi/ida_hexrays.decom
 server.register_function(wrap(decompile_context), "decompile_context")  # support context decompile
 server.register_function(wrap(versions))
 server.register_introspection_functions()
+server.register_function(wrap(safe_symbol), "LocByName")
 
 print(f"IDA Pro xmlrpc hosted on http://{host}:{port}")
 print("Call `shutdown()` to shutdown the IDA Pro xmlrpc server.")

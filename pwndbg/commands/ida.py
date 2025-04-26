@@ -6,7 +6,6 @@ import datetime
 import os
 
 import gdb
-
 import pwndbg
 import pwndbg.aglib.regs
 import pwndbg.commands
