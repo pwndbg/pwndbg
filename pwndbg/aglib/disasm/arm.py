@@ -126,6 +126,7 @@ ARM_CAN_WRITE_TO_PC_INSTRUCTIONS = {
 
 def itstate_from_cpsr(cpsr_value: int) -> int:
     """
+    ITSTATE == If-Then execution state bits for the Thumb IT instruction
     The ITSTATE bits are spread across 3 sections of Arm flags register to a total of 8 bits.
     This function extracts them and reorders the bits into their logical order
     - https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Level-Programmers--Model/Registers/The-special-purpose-program-status-registers--xPSR#:~:text=shows%20the%20assignment%20of%20the%20ICI/IT%20bits.
