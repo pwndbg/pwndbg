@@ -29,7 +29,7 @@ def test_list_and_filter_commands_full_list():
     def get_doc(c):
         return c.description.splitlines()[0]
 
-    commands = commands.extend([c for c in pwndbg.commands.commands if not c.is_alias])
+    commands = [c for c in pwndbg.commands.commands if not c.is_alias]
     cmd_name_docs = [(c.command_name, c.aliases, c.category, get_doc(c)) for c in commands]
     cmd_name_docs.sort()
 

@@ -9,7 +9,7 @@ from pwndbg.gdblib import gdb_version
 from .utils import run_gdb_with_script
 
 HELLO = [
-    "pwndbg: loaded ### pwndbg commands and ### shell commands. Type pwndbg [--shell | --all] [filter] for a list.",
+    "pwndbg: loaded ### pwndbg commands. Type pwndbg [filter] for a list.",
     "pwndbg: created xxx GDB functions (can be used with print/break)",
 ]
 

@@ -183,7 +183,7 @@ class CommandObj:
 
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
-        # FIXME: I don't understand all of this, is it good?
+        # FIXME: this is weird
         for action in self.parser._actions:
             if isinstance(action, argparse._SubParsersAction):
                 action.type = str

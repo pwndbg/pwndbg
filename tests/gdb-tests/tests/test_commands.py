@@ -7,8 +7,6 @@ import pytest
 
 import tests
 from pwndbg.commands import command_names
-from pwndbg.commands.shell import pwncmd_names
-from pwndbg.commands.shell import shellcmd_names
 
 BINARY = tests.binaries.get("heap_bins.out")
 
@@ -20,10 +18,6 @@ disallowed_commands = {
     "nextproginstr",
 }
 
-# Don't run any shell commands
-disallowed_commands.update(shellcmd_names)
-disallowed_commands.update(pwncmd_names)
-
 filtered_commands = command_names - disallowed_commands
 
 # TODO: Figure out why these are being thrown and then remove this
@@ -33,7 +27,6 @@ allowed_exceptions = [
     "Warning:",
     "The program is not being run",
 ]
-
 
 # Only run on CI, unless the user requests this with the RUN_FLAKY environment variable
 running_on_ci = os.getenv("GITHUB_ACTIONS")
