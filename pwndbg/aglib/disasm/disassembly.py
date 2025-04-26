@@ -93,7 +93,7 @@ computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.de
 )
 
 # Maps an address to integer 0/1, indicating the Thumb mode bit for the given address.
-# Value is None if Thumb bit irrelevent or unknown.
+# Value is None if Thumb bit is irrelevent or unknown.
 emulated_arm_mode_cache: DefaultDict[int, int | None] = collections.defaultdict(lambda: None)
 
 
