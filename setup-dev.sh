@@ -149,6 +149,7 @@ install_apt() {
         gcc-riscv64-linux-gnu \
         gcc-arm-linux-gnueabihf \
         gcc-mips-linux-gnu \
+        gcc-mipsel-linux-gnu \
         gcc-mips64-linux-gnuabi64
 
     # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big

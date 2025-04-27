@@ -1,6 +1,6 @@
 .PHONY: all
 
-ARCHS = aarch64 arm riscv64 mips64 mips32
+ARCHS = aarch64 arm riscv64 mips64 mips32 mipsel32
 
 CC.aarch64 = aarch64-linux-gnu-gcc
 CC.arm = arm-linux-gnueabihf-gcc
@@ -9,6 +9,7 @@ CC.riscv64 = riscv64-linux-gnu-gcc
 # CC.riscv32 = riscv64-linux-gnu-gcc
 CC.mips64 = mips64-linux-gnuabi64-gcc
 CC.mips32 = mips-linux-gnu-gcc
+CC.mipsel32 = mipsel-linux-gnu-gcc
 # CC.loongarch64 = loongarch64-linux-gnu-gcc
 
 ALL_FLAGS = -g
@@ -18,7 +19,8 @@ CFLAGS.arm = $(ALL_FLAGS)
 CFLAGS.riscv64 = -march=rv64gc -mabi=lp64d $(ALL_FLAGS)
 # CFLAGS.riscv32 = -march=rv32gc $(ALL_FLAGS)
 CFLAGS.mips64 = $(ALL_FLAGS)
-CFLAGS.mips32 = $(ALL_FLAGS)
+CFLAGS.mips32 = $(ALL_FLAGS) # Big-endian MIPS
+CFLAGS.mipsel32 = $(ALL_FLAGS) # Little-endian MIPS
 # CFLAGS.loongarch64 = $(ALL_FLAGS)
 
 

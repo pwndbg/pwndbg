@@ -35,13 +35,16 @@ def qemu_assembly_run():
         sys.stdout.flush()
         sys.exit(1)
 
-    def _start_binary(asm: str, arch: str, *args):
+    def _start_binary(asm: str, arch: str, endian: Literal["big", "little"] | None = None):
         nonlocal qemu
 
         # Clear the context so setting the .arch will also set .bits
         # https://github.com/Gallopsled/pwntools/issues/2498
         context.clear()
         context.arch = arch
+
+        if endian is not None:
+            context.endian = endian
 
         binary_tmp_path = make_elf_from_assembly(asm)
         qemu_suffix = pwnlib.qemu.archname()
@@ -78,6 +81,7 @@ CROSS_ARCH_LIBC = {
     "aarch64": "/usr/aarch64-linux-gnu",
     "arm": "/usr/arm-linux-gnueabihf",
     "mips": "/usr/mips-linux-gnu",
+    "mipsel": "/usr/mipsel-linux-gnu",
     "mips64": "/usr/mips64-linux-gnuabi64/",
     "riscv64": "/usr/riscv64-linux-gnu/",
     "loongarch64": "/usr/loongarch64-linux-gnu/",
@@ -111,6 +115,8 @@ def qemu_start_binary():
         qemu_suffix = pwnlib.qemu.archname(arch=arch)
         # qemu_libs = pwnlib.qemu.ld_prefix(arch=arch)
         qemu_libs = CROSS_ARCH_LIBC.get(qemu_suffix, f"/usr/gnemul/qemu-{qemu_suffix}")
+
+        assert os.path.isdir(qemu_libs), f"Cannot find cross-arch libraries at path: {qemu_libs}"
 
         qemu = subprocess.Popen(
             [

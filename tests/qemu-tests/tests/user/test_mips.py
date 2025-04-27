@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gdb
+import pytest
 
 import pwndbg.color
 
@@ -8,7 +9,15 @@ MIPS_GRACEFUL_EXIT = """
 li $v0, 0xfa1
 li $a0, 0
 syscall
+.byte 0xFF, 0xFF
+.byte 0xFF, 0xFF
+.byte 0xFF, 0xFF
+.byte 0xFF, 0xFF
+.byte 0xFF, 0xFF
 """
+# The .bytes form invalid instructions that don't get disassembled,
+# leaving blanks lines in the disasm view
+
 
 MIPS_DELAY_SLOT = f"""
 beq $t1, $t0, _target
@@ -23,7 +32,8 @@ end:
 """
 
 
-def test_mips32_delay_slot(qemu_assembly_run):
+@pytest.mark.parametrize("endian", ["big", "little"])
+def test_mips32_delay_slot(qemu_assembly_run, endian):
     """
     MIPS has delay slots, meaning that when a branch is encountered, they is a "delay" in the branch taking effect.
     The next instruction sequentially in memory is always executed, and then the result of the branch is applied.
@@ -32,7 +42,7 @@ def test_mips32_delay_slot(qemu_assembly_run):
 
     This test makes sure that looking forwards, we determine branch slots directly, and after moving passed them, they stay intact.
     """
-    qemu_assembly_run(MIPS_DELAY_SLOT, "mips")
+    qemu_assembly_run(MIPS_DELAY_SLOT, "mips", endian=endian)
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
@@ -94,11 +104,12 @@ end:
 """
 
 
-def test_mips32_bnez_instruction(qemu_assembly_run):
+@pytest.mark.parametrize("endian", ["big", "little"])
+def test_mips32_bnez_instruction(qemu_assembly_run, endian):
     """
     Test that conditional branches work, with and without emulation.
     """
-    qemu_assembly_run(MIPS_BNEZ, "mips")
+    qemu_assembly_run(MIPS_BNEZ, "mips", endian=endian)
 
     dis_1 = gdb.execute("context disasm", to_string=True)
     dis_1 = pwndbg.color.strip(dis_1)
@@ -187,14 +198,15 @@ end:
 """
 
 
-def test_mips32_call_instruction(qemu_assembly_run):
+@pytest.mark.parametrize("endian", ["big", "little"])
+def test_mips32_call_instruction(qemu_assembly_run, endian):
     """
     Ensure that MIPS "branch-and-link" instructions like "JAL" do not get unrolled, and have splits in disassembly correctly.
 
     There's a bug in Capstone which doesn't consider JAL a jump-like/call instruction, so we have to manually add the jump group.
     See: https://github.com/capstone-engine/capstone/issues/2448
     """
-    qemu_assembly_run(MIPS_CALL, "mips")
+    qemu_assembly_run(MIPS_CALL, "mips", endian=endian)
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
@@ -264,13 +276,14 @@ value3: .byte 0
 """
 
 
-def test_mips32_store_instruction(qemu_assembly_run):
+@pytest.mark.parametrize("endian", ["big", "little"])
+def test_mips32_store_instruction(qemu_assembly_run, endian):
     """
     Ensure all store instructions are annotated correctly.
 
     The assembly is very specific - note the .data section and the size of the variables.
     """
-    qemu_assembly_run(MIPS_STORE_INSTRUCTIONS, "mips")
+    qemu_assembly_run(MIPS_STORE_INSTRUCTIONS, "mips", endian=endian)
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
@@ -321,6 +334,10 @@ loads:
     lh $t5, 0($s1)
     lb $t6, 0($s2)
 
+.byte 0xFF, 0xFF
+.byte 0xFF, 0xFF
+.byte 0xFF, 0xFF
+
         .data
 value1: .word 0
 value2: .half 0
@@ -328,7 +345,8 @@ value3: .byte 0
 """
 
 
-def test_mips32_load_instructions(qemu_assembly_run):
+@pytest.mark.parametrize("endian", ["big", "little"])
+def test_mips32_load_instructions(qemu_assembly_run, endian):
     """
     This test ensures our logic for load instructions - including sign-extension - is working correctly.
 
@@ -336,7 +354,7 @@ def test_mips32_load_instructions(qemu_assembly_run):
 
     The signed reads should signed extend from the read size to 32-bits.
     """
-    qemu_assembly_run(MIPS_LOAD_INSTRUCTIONS, "mips")
+    qemu_assembly_run(MIPS_LOAD_INSTRUCTIONS, "mips", endian=endian)
 
     gdb.execute("b loads")
     gdb.execute("c")
@@ -365,21 +383,24 @@ def test_mips32_load_instructions(qemu_assembly_run):
 
 
 MIPS_BINARY_OPERATIONS = """
-    li $t0, 10
-    li $t1, 20
+li $t0, 10
+li $t1, 20
 
-    add $t2, $t0, $t1
-    sub $t3, $t1, $t0
-    and $t4, $t0, $t1
-    or $t5, $t0, $t1
-    xor $t6, $t0, $t1
-    sll $t7, $t0, 2
-    srl $t8, $t1, 2
+add $t2, $t0, $t1
+sub $t3, $t1, $t0
+and $t4, $t0, $t1
+or $t5, $t0, $t1
+xor $t6, $t0, $t1
+sll $t7, $t0, 2
+srl $t8, $t1, 2
+sllv $t8, $t1, $t8
+srlv $t3, $t8, $t5
 """
 
 
-def test_mips32_binary_operations(qemu_assembly_run):
-    qemu_assembly_run(MIPS_BINARY_OPERATIONS, "mips")
+@pytest.mark.parametrize("endian", ["big", "little"])
+def test_mips32_binary_operations(qemu_assembly_run, endian):
+    qemu_assembly_run(MIPS_BINARY_OPERATIONS, "mips", endian=endian)
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
@@ -396,8 +417,8 @@ def test_mips32_binary_operations(qemu_assembly_run):
         "   0x10000018 <_start+24>    xor    $t6, $t0, $t1        T6 => 30 (0xa ^ 0x14)\n"
         "   0x1000001c <_start+28>    sll    $t7, $t0, 2          T7 => 40 (0xa << 0x2)\n"
         "   0x10000020 <_start+32>    srl    $t8, $t1, 2          T8 => 5 (0x14 >> 0x2)\n"
-        "\n"
-        "\n"
+        "   0x10000024 <_start+36>    sllv   $t8, $t1, $t8        T8 => 0x280 (0x14 << 0x5)\n"
+        "   0x10000028 <_start+40>    srlv   $t3, $t8, $t5        T3 => 0 (0x280 >> 0x1e)\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -426,11 +447,12 @@ end:
 """
 
 
-def test_mips32_multiple_branches_followed(qemu_assembly_run):
+@pytest.mark.parametrize("endian", ["big", "little"])
+def test_mips32_multiple_branches_followed(qemu_assembly_run, endian):
     """
     Ensure that emulation is setup correctly so as to follow multiple branches - bugs in how we handle delay slots and disable the emulator might break this.
     """
-    qemu_assembly_run(MIPS_JUMPS, "mips")
+    qemu_assembly_run(MIPS_JUMPS, "mips", endian=endian)
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
