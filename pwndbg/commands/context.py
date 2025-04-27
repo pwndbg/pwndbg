@@ -1003,8 +1003,11 @@ def get_regs(regs: List[str] = None):
     def select_context(name, reg) -> RegisterContext | RegistersContext | None:
         if isinstance(reg, BitFlags):
             return FlagRegisterContext(name, reg)
-        return AddressingRegisterContext(name, reg)
-    contexts = []
+        elif isinstance(reg, AddressingRegister):
+            return AddressingRegisterContext(name, reg)
+        return None
+
+    contexts: List[RegisterContext | RegistersContext | None] = []
     result = []
 
     if regs is None:
