@@ -107,6 +107,8 @@ class RegisterSet:
         self.args = args
         self.retval = retval
 
+        all_sub_registers: List[str] = []
+
         self.reg_definitions = {}
         self.full_register_lookup = {}
         for reg in gpr + (stack, frame, pc) + retaddr:
@@ -116,6 +118,7 @@ class RegisterSet:
                 for subregister in reg.subregisters:
                     self.reg_definitions[subregister.name] = subregister
                     self.full_register_lookup[subregister.name] = reg
+                    all_sub_registers.append(subregister.name)
 
         # In 'common', we don't want to lose the ordering of:
         self.common = []
@@ -148,6 +151,7 @@ class RegisterSet:
             | set(self.extra_flags)
             | set(self.retaddr)
             | set(self.common)
+            | set(all_sub_registers)
         )
         self.all -= {None}
         self.all |= {"pc", "sp"}
