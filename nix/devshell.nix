@@ -83,7 +83,7 @@ in
         '')
         pkgs.pkgsCross.aarch64-multiplatform.buildPackages.binutils
         pkgs.pkgsCross.riscv64.buildPackages.binutils
-        pkgs.pkgsCross.mipsel-linux-gnu.buildPackages.binutils
+        pkgs.pkgsCross.mips-linux-gnu.buildPackages.binutils
         (pkgs.writeShellScriptBin "aarch64-linux-gnu-gcc" ''
           exec ${lib.getBin pkgs.pkgsCross.aarch64-multiplatform.buildPackages.gcc}/bin/aarch64-unknown-linux-gnu-gcc "$@"
         '')
