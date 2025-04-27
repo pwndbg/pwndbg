@@ -999,21 +999,11 @@ pwndbg.config.add_param("show-flags", False, "whether to show flags registers")
 pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return address register")
 
 
-def get_context(reg) -> RegisterContext | RegistersContext | None:
-    if isinstance(reg, str):
-        return RegisterContext(reg)
-    elif isinstance(reg, tuple):
-        reg, representation = reg
-        if isinstance(representation, BitFlags):
-            return FlagRegisterContext(reg, representation)
-        elif isinstance(representation, AddressingRegister):
-            return AddressingRegisterContext(reg, representation)
-        elif isinstance(representation, list):
-            return SegmentRegistersContext(representation)
-    return None
-
-
 def get_regs(regs: List[str] = None):
+    def select_context(name, reg) -> RegisterContext | RegistersContext | None:
+        if isinstance(reg, BitFlags):
+            return FlagRegisterContext(name, reg)
+        return AddressingRegisterContext(name, reg)
     contexts = []
     result = []
 
@@ -1021,28 +1011,31 @@ def get_regs(regs: List[str] = None):
         regs = []
 
     if len(regs) == 0:
-        contexts += [get_context(reg) for reg in pwndbg.aglib.regs.gpr]
+        contexts += [RegisterContext(reg) for reg in pwndbg.aglib.regs.gpr]
 
-        contexts.append(get_context(pwndbg.aglib.regs.frame))
-        contexts.append(get_context(pwndbg.aglib.regs.stack))
+        contexts.append(RegisterContext(pwndbg.aglib.regs.frame))
+        contexts.append(RegisterContext(pwndbg.aglib.regs.stack))
 
         if pwndbg.config.show_retaddr_reg:
-            contexts += [get_context(reg) for reg in pwndbg.aglib.regs.retaddr]
+            contexts += [RegisterContext(reg) for reg in pwndbg.aglib.regs.retaddr]
 
-        contexts.append(get_context(pwndbg.aglib.regs.current.pc))
+        contexts.append(RegisterContext(pwndbg.aglib.regs.current.pc))
 
         if pwndbg.aglib.qemu.is_qemu_kernel():
             controls = pwndbg.aglib.regs.kernel.controls.items()
             if controls is not None:
-                contexts += [get_context(reg) for reg in controls]
+                contexts += [select_context(name, reg) for name, reg in controls]
             msrs = pwndbg.aglib.regs.kernel.msrs.items()
             if msrs is not None:
-                contexts += [get_context(reg) for reg in msrs]
+                contexts += [select_context(name, reg) for name, reg in msrs]
         if pwndbg.config.show_flags:
             flags = pwndbg.aglib.regs.flags.items()
-            contexts += [get_context(reg) for reg in flags]
+            contexts += [FlagRegisterContext(name, reg) for name, reg in flags]
         if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel.segments is not None:
-            contexts.append(get_context((None, pwndbg.aglib.regs.kernel.segments)))
+            contexts.append(SegmentRegistersContext(pwndbg.aglib.regs.kernel.segments))
+    else:
+        for reg in regs:
+            contexts.append(RegisterContext(reg))
 
     for context in contexts:
         if context is None:

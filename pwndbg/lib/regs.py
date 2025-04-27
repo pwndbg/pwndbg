@@ -402,12 +402,11 @@ amd64_kernel = KernelRegisterSet(
     segments=["cs", "ss", "ds", "es", "fs", "gs"],
     controls={
         # only displays the security related bits, otherwise it can be too clustered
-        "cr0": BitFlags([("PE", 0), ("WP", 16), ("AM", 18), ("PG", 31)]),
+        "cr0": BitFlags([("PE", 0), ("WP", 16), ("PG", 31)]),
         "cr3": AddressingRegister(False),
         "cr4": BitFlags(
             [
-                ("TSD", 2),
-                ("GPE", 7),
+                ("UMIP", 11),
                 ("FSGSBASE", 16),
                 ("SMEP", 20),
                 ("SMAP", 21),
@@ -418,7 +417,7 @@ amd64_kernel = KernelRegisterSet(
         ),
     },
     msrs={
-        "efer": BitFlags([]),
+        "efer": BitFlags([("NXE", 11)]),
         "gs_base": AddressingRegister(True),
         "fs_base": AddressingRegister(True),
     },
