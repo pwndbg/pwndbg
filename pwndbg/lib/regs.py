@@ -122,7 +122,7 @@ class RegisterSet:
 
         # In 'common', we don't want to lose the ordering of:
         self.common = []
-        for reg in self.gpr + (self.frame, self.stack, self.pc) + tuple(flags):
+        for reg in self.gpr + (self.frame, self.stack, self.pc) + tuple(self.flags):
             if reg and reg not in self.common:
                 self.common.append(reg)
 
@@ -259,7 +259,7 @@ class PsuedoEmulatedRegisterFile:
         self.values[full_reg_def.name] = written_bits | value_masked_for_placement
 
     def read_register(self, reg: str) -> int | None:
-        # Definition of the register we are writing
+        # Definition of the register we are reading
         write_reg_def = self.register_set.reg_definitions.get(reg)
         if write_reg_def is None:
             return None
@@ -270,7 +270,7 @@ class PsuedoEmulatedRegisterFile:
         )
         written_register_mask = (1 << (written_register_size * 8)) - 1
 
-        # Definition of the "full" register that the written register resides in. Might be itself.
+        # Definition of the "full" register that the read register resides in. Might be itself.
         full_reg_def = self.register_set.full_register_lookup[reg]
 
         mask = self.masks[full_reg_def.name]
