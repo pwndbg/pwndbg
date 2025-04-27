@@ -92,7 +92,7 @@ in
         '')
         pyEnv
         (pkgs.writeShellScriptBin "pwndbg" ''
-          exec ${lib.getBin pkgs.gdb}/bin/gdb --quiet --init-eval-command="python import site; site.addsitedir('${pyEnv}/${python3.sitePackages}')" -iex "source $REPO_ROOT/gdbinit.py" $@
+          exec ${lib.getBin pkgs.gdb}/bin/gdb --quiet --command="$REPO_ROOT/gdbinit.py" $@
         '')
       ]
       ++ pkgs.lib.optionals isLLDB [
