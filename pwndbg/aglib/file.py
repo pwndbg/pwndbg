@@ -152,19 +152,32 @@ def readlink(path: str) -> str:
         return ""
 
 
+@pwndbg.lib.cache.cache_until("start")
 def is_vfile_qemu_user_bug() -> bool:
     # This is a BUG[1] in the gdbstub of QEMU user mode. It should return data encoded in hexadecimal,
     # but instead, it returns the data as a decimal integer (%d).
     # [1] https://github.com/qemu/qemu/blob/b14d0649628cbe88ac0ef35fcf58cd1fc22735b8/gdbstub/user-target.c#L322
-    return pwndbg.aglib.qemu.is_qemu_usermode()
+    if not pwndbg.aglib.qemu.is_qemu_usermode():
+        return False
+
+    # On a bugged QEMU version, the response is `F-1,36`
+    # On a fixed QEMU version, the response is `F-1,24`
+    # This performs the syscall: `openat(0, "/\01*256", O_RDONLY|0x20) = -1 ENAMETOOLONG (File name too long)`
+    response = pwndbg.dbg.selected_inferior().send_remote("vFile:open:2f" + ("01" * 256))
+    return response == b"F-1,36"
 
 
 def _vfile_check_response(response: bytes):
     if len(response) == 0:
         raise NotImplementedError("Not supported")
-    if response.startswith(b"F-1,"):
-        errno = int(response[4:].decode(), 10 if is_vfile_qemu_user_bug() else 16)
-        raise OSError(errno, "Error")
+    # F result [,errno] [;attachment]; strip attachment first, skip if no errno
+    result_errno = response.split(b";", 1)[0]
+    if result_errno.startswith(b"F") and b"," in result_errno:
+        result, errno = result_errno[1:].split(b",", 1)  # Skip "F"
+        if int(result) != -1:
+            raise NotImplementedError(f"Unknown response status {result!r}")
+        err = int(errno, 10 if is_vfile_qemu_user_bug() else 16)
+        raise OSError(err, "Error")
 
 
 def vfile_readlink(pathname: str | bytes) -> bytes:

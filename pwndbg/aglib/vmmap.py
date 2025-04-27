@@ -7,6 +7,13 @@ import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 
+pwndbg.config.add_param(
+    "vmmap-prefer-relpaths",
+    True,
+    "show relative paths by default in vmmap",
+    param_class=pwndbg.lib.config.PARAM_BOOLEAN,
+)
+
 
 @pwndbg.lib.cache.cache_until("start", "stop")
 def get() -> Tuple[pwndbg.lib.memory.Page, ...]:

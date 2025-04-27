@@ -448,7 +448,7 @@ def info_auxv(skip_exe: bool = False) -> Tuple[pwndbg.lib.memory.Page, ...]:
     it is not dereferenced by `info auxv` and we also don't dereference it.
 
     Arguments:
-        skip_exe(bool): Do not return any mappings that belong to the exe.
+        skip_exe: Do not return any mappings that belong to the exe.
 
     Returns:
         A list of pwndbg.lib.memory.Page objects.

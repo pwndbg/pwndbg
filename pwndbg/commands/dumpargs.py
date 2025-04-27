@@ -4,18 +4,19 @@ import argparse
 from typing import List
 
 import pwndbg.aglib.arch
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.commands
 import pwndbg.commands.telescope
+from pwndbg.commands import CommandCategory
 from pwndbg.lib.functions import format_flags_argument
 
 parser = argparse.ArgumentParser(description="Prints determined arguments for call instruction.")
 parser.add_argument("-f", "--force", action="store_true", help="Force displaying of all arguments.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["args"])
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["args"], category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def dumpargs(force: bool = False) -> None:
     args = (not force and call_args()) or all_args()
@@ -37,7 +38,7 @@ def call_args() -> List[str]:
     """
     results: List[str] = []
 
-    for arg, value in pwndbg.arguments.get(pwndbg.aglib.disasm.one()):
+    for arg, value in pwndbg.arguments.get(pwndbg.aglib.disasm.disassembly.one()):
         code = arg.type != "char"
         pretty = (
             pwndbg.chain.format(value, code=code)

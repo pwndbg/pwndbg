@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+
 import pytest
 
 import pwndbg.commands
@@ -30,7 +32,7 @@ def test_list_and_filter_commands_full_list(pwndbg_cmds, shell_cmds):
     all_commands = list_and_filter_commands("", pwndbg_cmds=pwndbg_cmds, shell_cmds=shell_cmds)
 
     def get_doc(c):
-        return c.__doc__.strip().splitlines()[0] if c.__doc__ else None
+        return inspect.getdoc(c).strip().splitlines()[0] if c.__doc__ else None
 
     commands = []
     if pwndbg_cmds:

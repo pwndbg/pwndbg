@@ -32,7 +32,9 @@ class ShellcodeRegs(NamedTuple):
 
 def get_shellcode_regs() -> ShellcodeRegs:
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
-    syscall_abi = pwndbg.lib.abi.ABI.syscall()
+    syscall_abi = pwndbg.aglib.arch.syscall_abi
+    if syscall_abi is None:
+        raise pwndbg.dbg_mod.Error("Syscall ABI not defined for current architecture")
 
     # pickup free register what is not used for syscall abi
     newfd_reg = next(
@@ -50,7 +52,10 @@ def get_shellcode_regs() -> ShellcodeRegs:
 
 
 def stack_size_alignment(s: int) -> int:
-    syscall_abi = pwndbg.lib.abi.ABI.syscall()
+    syscall_abi = pwndbg.aglib.arch.syscall_abi
+    if syscall_abi is None:
+        raise pwndbg.dbg_mod.Error("Syscall ABI not defined for current architecture")
+
     return s + (syscall_abi.arg_alignment - (s % syscall_abi.arg_alignment))
 
 

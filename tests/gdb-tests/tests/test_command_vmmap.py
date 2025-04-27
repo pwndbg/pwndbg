@@ -74,6 +74,7 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
 
     expected_maps = get_proc_maps()
 
+    gdb.execute("set vmmap-prefer-relpaths off")
     vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
 
     # Basic asserts

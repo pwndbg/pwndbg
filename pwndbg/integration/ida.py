@@ -42,8 +42,6 @@ ida_rpc_host = pwndbg.config.add_param("ida-rpc-host", "127.0.0.1", "ida xmlrpc 
 ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
 ida_timeout = pwndbg.config.add_param("ida-timeout", 2, "time to wait for ida xmlrpc in seconds")
 
-xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
-
 
 _ida: xmlrpc.client.ServerProxy | None = None
 
@@ -64,6 +62,9 @@ def init_ida_rpc_client() -> None:
 
     if pwndbg.integration.provider_name.value != "ida":
         return
+
+    xmlrpc.client.MAXINT = 10**100  # type: ignore[misc]
+    xmlrpc.client.MININT = -(10**100)  # type: ignore[misc]
 
     now = time.time()
     if _ida is None and (now - _ida_last_connection_check) < int(ida_timeout) + 5:

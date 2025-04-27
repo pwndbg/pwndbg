@@ -33,7 +33,6 @@ from pwndbg.aglib.heap.ptmalloc import Heap
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.commands.config import display_config
 
 
 def read_chunk(addr: int) -> Dict[str, int]:
@@ -948,7 +947,7 @@ pwndbg.config.add_param(
 pwndbg.config.add_param(
     "default-visualize-chunk-number",
     10,
-    "default number of chunks to visualize (default is 10)",
+    "default number of chunks to visualize",
 )
 
 parser = argparse.ArgumentParser(
@@ -989,7 +988,7 @@ group.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.ArgparsedCommand(parser, aliases=["vis"], category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -1585,24 +1584,3 @@ def try_free(addr: str | int) -> None:
 
 def try_unlink(addr: int) -> None:
     pass
-
-
-parser = argparse.ArgumentParser(description="Shows heap related configuration.")
-parser.add_argument(
-    "filter_pattern",
-    type=str,
-    nargs="?",
-    default=None,
-    help="Filter to apply to config parameters names/descriptions",
-)
-
-
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
-def heap_config(filter_pattern: str) -> None:
-    display_config(filter_pattern, "heap", has_file_command=False)
-
-    print(
-        message.hint(
-            "Some config values (e.g. main_arena) will be used only when resolve-heap-via-heuristic is `auto` or `force`"
-        )
-    )

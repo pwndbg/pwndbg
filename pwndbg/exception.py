@@ -37,7 +37,7 @@ def print_exception(exception_msg) -> None:
 verbose = config.add_param(
     "exception-verbose",
     False,
-    "whether to print a full stacktrace for exceptions raised in Pwndbg commands",
+    "print a full stacktrace for exceptions raised in pwndbg commands",
 )
 debug = config.add_param(
     "exception-debugger", False, "whether to debug exceptions raised in Pwndbg commands"

@@ -42,7 +42,6 @@ def columns(rows, colors=None) -> None:
         print()
 
 
-# Subcommand that enables the tracker.
 parser = argparse.ArgumentParser(
     description="Controls GOT tracking",
 )

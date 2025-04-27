@@ -24,9 +24,12 @@ custom_pages: List[pwndbg.lib.memory.Page] = []
 auto_explore = pwndbg.config.add_param(
     "auto-explore-pages",
     "warn",
-    "whether to try to infer page permissions when memory maps missing (can cause errors)",
+    "whether to try to infer page permissions when memory maps are missing",
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["yes", "warn", "no"],
+    help_docstring="""
+This command can cause errors.
+""",
 )
 
 
@@ -93,7 +96,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
                 print(
                     M.warn(
                         f"Warning: Avoided exploring possible address {address_maybe:#x}.\n"
-                        f"You can explicitly explore it with `vmmap_explore {page_start:#x}`"
+                        f"You can explicitly explore it with `vmmap-explore {page_start:#x}`"
                     )
                 )
         return None

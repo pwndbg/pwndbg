@@ -9,6 +9,7 @@ import pwndbg.aglib.proc
 import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.dbg import EventType
+from pwndbg.lib.config import Scope
 
 current: pwndbg.aglib.heap.heap.MemoryAllocator | None = None
 
@@ -29,7 +30,7 @@ def add_heap_param(
         help_docstring=help_docstring,
         param_class=param_class,
         enum_sequence=enum_sequence,
-        scope="heap",
+        scope=Scope.heap,
     )
 
 
@@ -55,39 +56,73 @@ heap_chain_limit = add_heap_param(
 heap_corruption_check_limit = add_heap_param(
     "heap-corruption-check-limit",
     64,
-    "amount of chunks to traverse (forwards and backwards) for the bin corruption check",
+    "amount of chunks to traverse for the bin corruption check",
     param_class=pwndbg.lib.config.PARAM_UINTEGER,
+    help_docstring="""
+The bins are traversed both forwards and backwards.
+""",
 )
+
+if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
+    extra_hint_for_gdb = """
+In addition, even you have the debug symbols of libc, you might still see the
+following warning when debugging a multi-threaded program:
+```
+warning: Unable to find libthread_db matching inferior's thread library, thread
+debugging will not be available.
+```
+
+You'll need to ensure that the correct `libthread_db.so` is loaded. To do this,
+set the search path using:
+```
+set libthread-db-search-path <path having correct libthread_db.so>
+```
+Then, restart your program to enable proper thread debugging.
+"""
+else:
+    extra_hint_for_gdb = ""
 
 resolve_heap_via_heuristic = add_heap_param(
     "resolve-heap-via-heuristic",
     "auto",
     "the strategy to resolve heap via heuristic",
     help_docstring="""\
-resolve-heap-via-heuristic can be:
-auto    - pwndbg will try to use heuristics if debug symbols are missing
-force   - pwndbg will always try to use heuristics, even if debug symbols are available
-never   - pwndbg will never use heuristics to resolve the heap
+Values explained:
 
-If the output of the heap related command produces errors with heuristics, you can try manually setting the libc symbol addresses.
-For this, see the `heap_config` command output and set the `main_arena`, `mp_`, `global_max_fast`, `tcache` and `thread_arena` addresses.
++ `auto` - pwndbg will try to use heuristics if debug symbols are missing
++ `force` - pwndbg will always try to use heuristics, even if debug symbols are available
++ `never` - pwndbg will never use heuristics to resolve the heap
+
+If the output of the heap related command produces errors with heuristics, you
+can try manually setting the libc symbol addresses.
+For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
+`global_max_fast`, `tcache` and `thread_arena` addresses.
 
 Note: pwndbg will generate more reliable results with proper debug symbols.
-Therefore, when debug symbols are missing, you should try to install them first if you haven't already.
+Therefore, when debug symbols are missing, you should try to install them first
+if you haven't already.
 
 They can probably be installed via the package manager of your choice.
-See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html
+See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html .
 
-E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and 32-bit binaries):
+E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and
+32-bit binaries):
+```bash
 sudo apt-get install libc6-dbg
 sudo dpkg --add-architecture i386
 sudo apt-get install libc-dbg:i386
-
-If you used setup.sh on Arch based distro you'll need to do a power cycle or set environment variable manually like this: export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
-""",
+```
+If you used setup.sh on Arch based distro you'll need to do a power cycle or set
+environment variable manually like this:
+```bash
+export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
+```
+"""
+    + extra_hint_for_gdb,
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["auto", "force", "never"],
 )
+del extra_hint_for_gdb
 
 
 @pwndbg.dbg.event_handler(EventType.START)

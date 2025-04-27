@@ -124,22 +124,22 @@ async def exec_shellcode(
 
     # Execute.
     target_address = starting_address + len(blob)
-    bp = pwndbg.dbg.selected_inferior().break_at(BreakpointLocation(target_address), internal=True)
-    while True:
-        try:
-            await ec.cont(bp)
-            break
-        except CancelledError:
-            if disable_breakpoints:
-                # We probably hit another breakpoint, but in this mode we're
-                # supposed to ignore any breakpoints that aren't the one we put
-                # at the end of the range, so just retry.
-                continue
+    with pwndbg.dbg.selected_inferior().break_at(
+        BreakpointLocation(target_address), internal=True
+    ) as bp:
+        while True:
+            try:
+                await ec.cont(bp)
+                break
+            except CancelledError:
+                if disable_breakpoints:
+                    # We probably hit another breakpoint, but in this mode we're
+                    # supposed to ignore any breakpoints that aren't the one we put
+                    # at the end of the range, so just retry.
+                    continue
 
-            # We hit an external break, and we haven't been told to ignore it.
-            raise
-
-    bp.remove()
+                # We hit an external break, and we haven't been told to ignore it.
+                raise
 
     # Restore the state of the context skip.
     if pwndbg.dbg.is_gdblib_available():

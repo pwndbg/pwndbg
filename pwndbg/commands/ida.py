@@ -41,7 +41,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def up(n=1) -> None:
     """
@@ -69,7 +69,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def down(n=1) -> None:
     """
@@ -138,8 +138,26 @@ save_ida()
 
 
 @GdbFunction()
-def ida(name):
-    """Evaluate ida.LocByName() on the supplied value."""
+def ida(name: gdb.Value) -> int:
+    """
+    Lookup a symbol's address by name from IDA.
+    Evaluate ida.LocByName() on the supplied value.
+
+    This functions doesn't see stack local variables.
+
+    Example:
+    ```
+    pwndbg> set integration-provider ida
+    Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:31337
+    Set which provider to use for integration features to 'ida'.
+    pwndbg> p main
+    No symbol "main" in current context.
+    pwndbg> p/x $ida("main")
+    $1 = 0x555555555645
+    pwndbg> b *$ida("main")
+    Breakpoint 2 at 0x555555555645
+    ```
+    """
     name = name.string()
     result = pwndbg.integration.ida.LocByName(name)
 

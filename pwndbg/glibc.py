@@ -27,6 +27,7 @@ import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.search
 from pwndbg.color import message
+from pwndbg.lib.config import Scope
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -34,20 +35,19 @@ T = TypeVar("T")
 safe_lnk = pwndbg.config.add_param(
     "safe-linking",
     None,
-    "whether glibc use safe-linking (on/off/auto)",
+    "whether glibc uses safe-linking",
     param_class=pwndbg.lib.config.PARAM_AUTO_BOOLEAN,
 )
 
 glibc_version = pwndbg.config.add_param(
-    "glibc", "", "GLIBC version for heap heuristics resolution (e.g. 2.31)", scope="heap"
+    "glibc", "", "glibc version for heap heuristics resolution (e.g. 2.31)", scope=Scope.heap
 )
 
 
 @pwndbg.config.trigger(glibc_version)
 def set_glibc_version() -> None:
-    ret = re.search(r"(\d+)\.(\d+)", glibc_version.value)
+    ret = re.search(r"^(\d+)\.(\d+)$", glibc_version.value)
     if ret:
-        glibc_version.value = tuple(map(int, ret.groups()))
         return
 
     print(
@@ -60,7 +60,11 @@ def set_glibc_version() -> None:
 
 @pwndbg.aglib.proc.OnlyWhenRunning
 def get_version() -> Tuple[int, ...] | None:
-    return cast(Union[Tuple[int, ...], None], glibc_version) or _get_version()
+    if glibc_version:
+        version_tuple = tuple(int(i) for i in glibc_version.split("."))
+        return cast(Union[Tuple[int, ...], None], version_tuple)
+
+    return _get_version()
 
 
 @pwndbg.aglib.proc.OnlyWhenRunning

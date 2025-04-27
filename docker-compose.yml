@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   base: &base-spec
     build: .
@@ -28,6 +27,16 @@ services:
       args:
         image: ubuntu:24.04
 
+  ubuntu24.04-mount:
+    <<: *base-spec
+    build:
+      context: .
+      target: base
+      dockerfile: Dockerfile
+      args:
+        image: ubuntu:24.04
+    volumes:
+      - .:/pwndbg
 
   debian12:
     <<: *base-spec

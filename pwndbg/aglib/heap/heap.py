@@ -17,7 +17,7 @@ class MemoryAllocator:
         """Returns a textual summary of the specified address.
 
         Arguments:
-            address(int): Address of the heap block to summarize.
+            address: Address of the heap block to summarize.
 
         Returns:
             A string.
@@ -28,7 +28,7 @@ class MemoryAllocator:
         """Returns the address of the allocation which contains 'address'.
 
         Arguments:
-            address(int): Address to look up.
+            address: Address to look up.
 
         Returns:
             An integer.

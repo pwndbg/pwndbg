@@ -1,4 +1,6 @@
 - [Development Basics](#development-basics)
+  - [Install from source GDB](#install-from-source-gdb)
+  - [Install from source LLDB](#install-from-source-lldb)
   - [Environment setup](#environment-setup)
     - [Development using Nix](#development-using-nix)
   - [Testing](#testing)
@@ -25,6 +27,60 @@
   - [Creating small cross-architecture programs](#creating-small-cross-architecture-programs)
 
 # Development Basics
+
+## Install from source GDB
+Installation from source is straightforward:
+```shell
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+./setup.sh
+```
+
+Pwndbg is supported on Ubuntu 22.04, and 24.04 with GDB 12.1 and later. We do not test
+on any older versions of Ubuntu, so `pwndbg` may not work on these versions.
+- For Ubuntu 20.04 use the [2024.08.29 release](https://github.com/pwndbg/pwndbg/releases/tag/2024.08.29)
+- For Ubuntu 18.04 use the [2023.07.17: ubuntu18.04-final release](https://github.com/pwndbg/pwndbg/releases/tag/2023.07.17)
+
+We may accept pull requests fixing issues in older versions on a case by case basis,
+please discuss this with us on [Discord][discord] first. You can also always checkout
+an older version of `pwndbg` from around the time the Ubuntu version you're interested
+in was still supported by Canonical, or you can attempt to build a newer version of GDB from source.
+
+Other Linux distributions are also supported via `setup.sh`, including:
+
+* Debian-based OSes (via apt-get)
+* Fedora and Red Hat (via dnf)
+* Clear (via swiped)
+* OpenSUSE LEAP (via zypper)
+* Arch and Manjaro (via community AUR packages)
+* Void (via xbps)
+* Gentoo (via emerge)
+
+If you use any Linux distribution other than Ubuntu, we recommend using the [latest available GDB](https://www.gnu.org/software/gdb/download/) built from source. You can build it as:
+```
+cd <gdb-sources-dir>
+mkdir build && cd build
+sudo apt install libgmp-dev libmpfr-dev libreadline-dev texinfo  # required by build
+../configure --disable-nls --disable-werror --with-system-readline --with-python=`which python3` --with-system-gdbinit=/etc/gdb/gdbinit --enable-targets=all
+make -j $(nproc)
+```
+
+## Install from source LLDB
+```shell
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+
+apt install -y lldb-19 liblldb-19-dev python3 python3-venv 
+export PATH=/usr/lib/llvm-19/bin/:$PATH
+export LLDB_DEBUGSERVER_PATH=/usr/lib/llvm-19/bin/lldb-server
+
+python3 -m venv -- .venv
+./.venv/bin/pip install uv
+./.venv/bin/uv sync --extra lldb
+
+./.venv/bin/python3 ./pwndbg-lldb.py
+```
+This will work only for ubuntu 24.04
 
 ## Environment setup
 
@@ -62,6 +118,19 @@ We have four types of tests: `gdb-tests`,`qemu-tests`, `unit-tests`, and Linux k
 To run these tests, run [`./tests.sh`](./tests.sh). You can filter the tests to run by providing an argument to the script, such as `./tests.sh heap`, which will only run tests that contain "heap" in the name. You can also drop into the PDB debugger when a test fails with `./tests.sh --pdb`.
 
 To invoke cross-architecture tests, use `./qemu-tests.sh`, and to run unit tests, use `./unit-tests.sh`
+
+To run the tests in the same environment as the testing CI/CD, you can use the following Docker command.
+
+```sh
+# General test suite
+docker compose run --rm --build ubuntu24.04-mount ./tests.sh
+# Cross-architecture tests
+docker compose run --rm --build ubuntu24.04-mount ./qemu-tests.sh
+```
+
+This comes in handy particularly for cross-architecture tests because the Docker environment has all the cross-compilers installed. The active `pwndbg` directory is mounted, preventing the need for a full rebuild whenever you update the codebase.
+
+Remove the `-mount` if you want the tests to run from a clean slate (no files are mounted, meaning all binaries are recompiled each time).
 
 ## Writing Tests
 
@@ -420,7 +489,7 @@ Capstone will expose the most "simplified" one possible, and the underlying list
 
 When encountering an instruction that is behaving strangely (incorrect annotation, or there is a jump target when one shouldn't exist, or the target is incorrect), there are a couple routine things to check.
 
-1. Use the `dev_dump_instruction` command to print all the enhancement information. With no arguments, it will dump the info from the instruction at the current address. If given an address, it will pull from the instruction cache at the corresponding location.
+1. Use the `dev-dump-instruction` command to print all the enhancement information. With no arguments, it will dump the info from the instruction at the current address. If given an address, it will pull from the instruction cache at the corresponding location.
 
 If the issue is not related to branches, check the operands and the resolved values for registers and memory accesses. Verify that the values are correct - are the resolved memory locations correct? Step past the instruction and use instructions like `telescope` and `regs` to read memory and verify if the claim that the annotation is making is correct. For things like memory operands, you can try to look around the resolved memory location in memory to see the actual value that the instruction dereferenced, and see if the resolved memory location is simply off by a couple bytes.
 

@@ -24,7 +24,7 @@ import pwndbg.lib.memory
 auto_explore = pwndbg.config.add_param(
     "auto-explore-stack",
     "warn",
-    "Enable or disable stack exploration; it may be really slow.",
+    "stack exploration; it may be really slow",
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["warn", "yes", "no"],
 )
@@ -133,7 +133,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
             M.warn(
                 "Warning: All methods to detect STACK have failed.\n"
                 "You can explore STACK using exploration, but it may be very slow.\n"
-                "To explicitly explore, use the command: `stack_explore`\n"
+                "To explicitly explore, use the command: `stack-explore`\n"
                 "Alternatively, enable it by default with: `set auto-explore-stack yes`"
             )
         )

@@ -13,9 +13,14 @@
 
 :root > * {
   --md-code-bg-color: hsla(var(--md-hue), 45%, 16%, 1);
+  --md-code-fg-color: #cccccc;
 
   --amazon-orange: #ff9900;
   --amazon-squid-ink: #232f3e;
+}
+
+.md-typeset h2 {
+  margin-top: 1em
 }
 
 [data-md-color-scheme="slate"] {

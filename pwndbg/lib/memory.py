@@ -5,6 +5,7 @@ Reading, writing, and describing memory.
 from __future__ import annotations
 
 import os
+from os.path import relpath
 
 import pwndbg.aglib.arch
 
@@ -140,7 +141,14 @@ class Page:
         )
 
     def __str__(self) -> str:
-        return f"{self.vaddr:#{2 + 2 * pwndbg.aglib.arch.ptrsize}x} {self.vaddr + self.memsz:#{2 + 2 * pwndbg.aglib.arch.ptrsize}x} {self.permstr} {self.memsz:8x} {self.offset:6x} {self.objfile or ''}"
+        if pwndbg.config.vmmap_prefer_relpaths:
+            rel = relpath(self.objfile)
+            # Keep the origin path when relative paths are longer than absolute ones.
+            objfile = self.objfile if len(rel) > len(self.objfile) else rel
+        else:
+            objfile = self.objfile
+        width = 2 + 2 * pwndbg.aglib.arch.ptrsize
+        return f"{self.vaddr:#{width}x} {self.vaddr + self.memsz:#{width}x} {self.permstr} {self.memsz:8x} {self.offset:6x} {objfile or ''}"
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.__str__()!r})"

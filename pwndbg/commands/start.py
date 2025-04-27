@@ -20,6 +20,7 @@ import pwndbg.commands
 import pwndbg.dbg
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg import BreakpointLocation
+from pwndbg.dbg import DebuggerType
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
@@ -40,8 +41,8 @@ def breakpoint_at_entry():
     bp = proc.break_at(BreakpointLocation(addr), internal=True)
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
-        await ec.cont(bp)
-        bp.remove()
+        with bp:
+            await ec.cont(bp)
 
     proc.dispatch_execution_controller(ctrl)
 
@@ -73,8 +74,12 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["main", "init"], category=CommandCategory.START)
-@pwndbg.commands.OnlyWithDbg("gdb")
+@pwndbg.commands.ArgparsedCommand(
+    parser,
+    aliases=["main", "init"],
+    only_debuggers={DebuggerType.GDB},
+    category=CommandCategory.START,
+)
 @pwndbg.commands.OnlyWhenLocal
 def start(args=None) -> None:
     if args is None:
@@ -89,7 +94,7 @@ def start(args=None) -> None:
             continue
 
         gdb.Breakpoint(symbol, temporary=True)
-        gdb.execute(run, from_tty=False, to_string=True)
+        gdb.execute(run, from_tty=False)
         return
 
     # Try a breakpoint at the binary entry
@@ -148,10 +153,11 @@ def entry(args=None) -> None:
 
 
 @pwndbg.commands.ArgparsedCommand(
-    "Alias for 'tbreak __libc_start_main; run'.", category=CommandCategory.START
+    "Alias for 'tbreak __libc_start_main; run'.",
+    only_debuggers={DebuggerType.GDB},
+    category=CommandCategory.START,
 )
 @pwndbg.commands.OnlyWithFile
-@pwndbg.commands.OnlyWithDbg("gdb")
 @pwndbg.commands.OnlyWhenLocal
 def sstart() -> None:
     gdb.Breakpoint("__libc_start_main", temporary=True)

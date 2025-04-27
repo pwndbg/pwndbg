@@ -15,7 +15,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.lib.memory
-from pwndbg.aglib.disasm import get_disassembler
+from pwndbg.aglib.disasm.disassembly import get_disassembler
 from pwndbg.commands import CommandCategory
 
 

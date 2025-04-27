@@ -24,16 +24,16 @@ def search(
     """Search inferior memory for a byte sequence.
 
     Arguments:
-        searchfor(bytes): Byte sequence to find
-        mappings(list): List of pwndbg.lib.memory.Page objects to search
+        searchfor: Byte sequence to find
+        mappings: List of pwndbg.lib.memory.Page objects to search
             By default, uses all available mappings.
-        start(int): First address to search, inclusive.
-        end(int): Last address to search, exclusive.
-        step(int): Size of memory region to skip each result
-        aligned(int): Strict byte alignment for search result
-        limit(int): Maximum number of results to return
-        executable(bool): Restrict search to executable pages
-        writable(bool): Restrict search to writable pages
+        start: First address to search, inclusive.
+        end: Last address to search, exclusive.
+        step: Size of memory region to skip each result
+        aligned: Strict byte alignment for search result
+        limit: Maximum number of results to return
+        executable: Restrict search to executable pages
+        writable: Restrict search to writable pages
 
     Yields:
         An iterator on the address matches

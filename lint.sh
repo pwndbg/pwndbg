@@ -37,7 +37,7 @@ fi
 
 set -o xtrace
 
-LINT_FILES="pwndbg tests *.py"
+LINT_FILES="pwndbg tests *.py scripts/*.py"
 LINT_CMD="uv run --only-group lint"
 
 call_shfmt() {

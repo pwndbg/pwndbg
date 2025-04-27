@@ -19,7 +19,7 @@ def parse_nft_family(s: str) -> int:
 parser = argparse.ArgumentParser(
     description="Dump all nftables: tables, chains, rules, expressions"
 )
-parser.add_argument("nsid", type=int, help="Network Namespace ID")
+parser.add_argument("nsid", type=int, nargs="?", help="Network Namespace ID")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)

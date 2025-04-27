@@ -12,13 +12,13 @@ from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
     formatter_class=argparse.RawTextHelpFormatter,
-    description="""Show onegadget
+    description="""
+Find gadgets which single-handedly give code execution.
 
-Examples:
-    onegadget
-    onegadget --show-unsat
+Uses the onegadget tool by david942j.
 """,
 )
+
 parser.add_argument("--show-unsat", help="Show unsatisfiable gadgets.", action="store_true")
 parser.add_argument("--no-unknown", help="Do not show unknown gadgets.", action="store_true")
 parser.add_argument("-v", "--verbose", help="Show verbose output.", action="store_true")

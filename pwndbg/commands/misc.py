@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import errno
+import inspect
 from collections import defaultdict
 
 import pwndbg.aglib.memory
@@ -9,6 +10,7 @@ import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color as C
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg
 from pwndbg.commands import CommandCategory
@@ -141,6 +143,8 @@ def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
         )
         print()
 
+    print(message.info("Also check out convenience functions with `help function`!"))
+
 
 def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
     sorted_commands = list(pwndbg.commands.commands)
@@ -165,7 +169,7 @@ def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
             continue
 
         name = c.__name__
-        docs = c.__doc__
+        docs = inspect.getdoc(c)
 
         if docs:
             docs = docs.strip()

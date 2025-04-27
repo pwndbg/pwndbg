@@ -80,7 +80,7 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
         logging.debug("No stored hash found")
 
     # If the hashes don't match, update the dependencies
-    if current_hash != stored_hash:
+    if current_hash == stored_hash:
         return
 
     print("Detected outdated Pwndbg dependencies (uv.lock). Updating.")
@@ -161,6 +161,28 @@ def init_logger():
     return handler
 
 
+def check_doubleload():
+    if "pwndbg" in sys.modules:
+        print(
+            "Detected double-loading of Pwndbg (likely from both .gdbinit and the Pwndbg portable build)."
+        )
+        print(
+            "To fix this, please remove the line 'source your-path/gdbinit.py' from your .gdbinit file."
+        )
+        sys.stdout.flush()
+        sys.exit(1)
+
+
+def rewire_exit():
+    major_ver = int(gdb.VERSION.split(".")[0])
+    if major_ver <= 15:
+        # On certain verions of gdb (used on ubuntu 24.04) using sys.exit() can cause
+        # a segfault. See:
+        # https://github.com/pwndbg/pwndbg/pull/2900#issuecomment-2825456636
+        # https://sourceware.org/bugzilla/show_bug.cgi?id=31946
+        sys.exit = os._exit
+
+
 def main() -> None:
     profiler = cProfile.Profile()
 
@@ -168,6 +190,9 @@ def main() -> None:
     if os.environ.get("PWNDBG_PROFILE") == "1":
         start_time = time.time()
         profiler.enable()
+
+    rewire_exit()
+    check_doubleload()
 
     handler = init_logger()
 
@@ -177,7 +202,7 @@ def main() -> None:
         if not venv_path.exists():
             print(f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh")
             sys.stdout.flush()
-            os._exit(1)
+            sys.exit(1)
         no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE")
         if no_auto_update is None:
             update_deps(src_root, venv_path)
@@ -224,4 +249,4 @@ try:
 except Exception:
     print(traceback.format_exc(), file=sys.stderr)
     sys.stdout.flush()
-    os._exit(1)
+    sys.exit(1)

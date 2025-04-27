@@ -148,7 +148,7 @@ def test_malloc_chunk_command(start_binary):
             pwndbg.aglib.heap.current.malloc_chunk,
             int(gdb.lookup_symbol(f"{name}_chunk")[0].value()),
         )
-        results[name] = gdb.execute(f"malloc_chunk {name}_chunk", to_string=True).splitlines()
+        results[name] = gdb.execute(f"malloc-chunk {name}_chunk", to_string=True).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
 
@@ -159,7 +159,7 @@ def test_malloc_chunk_command(start_binary):
 
     # Print main thread's chunk from another thread
     assert pwndbg.dbg.selected_thread().index() == 2
-    results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
+    results["large"] = gdb.execute("malloc-chunk large_chunk", to_string=True).splitlines()
     expected = generate_expected_malloc_chunk_output(chunks)
     assert results["large"] == expected["large"]
 
@@ -171,7 +171,7 @@ def test_malloc_chunk_command(start_binary):
             pwndbg.aglib.heap.current.malloc_chunk,
             int(gdb.lookup_symbol(f"{name}_chunk")[0].value()),
         )
-        results[name] = gdb.execute(f"malloc_chunk {name}_chunk", to_string=True).splitlines()
+        results[name] = gdb.execute(f"malloc-chunk {name}_chunk", to_string=True).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
     expected["allocated"][0] += " | NON_MAIN_ARENA"
@@ -184,7 +184,7 @@ def test_malloc_chunk_command(start_binary):
     # Print another thread's chunk from the main thread
     gdb.execute("thread 1")
     assert pwndbg.dbg.selected_thread().index() == 1
-    results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
+    results["large"] = gdb.execute("malloc-chunk large_chunk", to_string=True).splitlines()
     assert results["large"] == expected["large"]
 
 
@@ -201,7 +201,7 @@ def test_malloc_chunk_command_heuristic(start_binary):
         chunks[name] = pwndbg.aglib.heap.current.malloc_chunk(
             int(gdb.lookup_symbol(f"{name}_chunk")[0].value())
         )
-        results[name] = gdb.execute(f"malloc_chunk {name}_chunk", to_string=True).splitlines()
+        results[name] = gdb.execute(f"malloc-chunk {name}_chunk", to_string=True).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
 
@@ -212,7 +212,7 @@ def test_malloc_chunk_command_heuristic(start_binary):
 
     # Print main thread's chunk from another thread
     assert pwndbg.dbg.selected_thread().index() == 2
-    results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
+    results["large"] = gdb.execute("malloc-chunk large_chunk", to_string=True).splitlines()
     expected = generate_expected_malloc_chunk_output(chunks)
     assert results["large"] == expected["large"]
 
@@ -223,7 +223,7 @@ def test_malloc_chunk_command_heuristic(start_binary):
         chunks[name] = pwndbg.aglib.heap.current.malloc_chunk(
             int(gdb.lookup_symbol(f"{name}_chunk")[0].value())
         )
-        results[name] = gdb.execute(f"malloc_chunk {name}_chunk", to_string=True).splitlines()
+        results[name] = gdb.execute(f"malloc-chunk {name}_chunk", to_string=True).splitlines()
 
     expected = generate_expected_malloc_chunk_output(chunks)
     expected["allocated"][0] += " | NON_MAIN_ARENA"
@@ -236,7 +236,7 @@ def test_malloc_chunk_command_heuristic(start_binary):
     # Print another thread's chunk from the main thread
     gdb.execute("thread 1")
     assert pwndbg.dbg.selected_thread().index() == 1
-    results["large"] = gdb.execute("malloc_chunk large_chunk", to_string=True).splitlines()
+    results["large"] = gdb.execute("malloc-chunk large_chunk", to_string=True).splitlines()
     assert results["large"] == expected["large"]
 
 
@@ -250,7 +250,7 @@ def test_malloc_chunk_dump_command(start_binary):
     )
     chunk_addr = chunk.address
 
-    malloc_chunk = gdb.execute(f"malloc_chunk {int(chunk_addr):#x} -d", to_string=True)
+    malloc_chunk = gdb.execute(f"malloc-chunk {int(chunk_addr):#x} -d", to_string=True)
 
     size = int(
         chunk[("mchunk_size" if "mchunk_size" in (f.name for f in chunk.type.fields()) else "size")]
@@ -520,7 +520,7 @@ def test_jemalloc_find_extent(start_binary):
     gdb.execute("continue")
 
     # run jemalloc extent_info command
-    result = gdb.execute("jemalloc_find_extent ptr", to_string=True).splitlines()
+    result = gdb.execute("jemalloc-find-extent ptr", to_string=True).splitlines()
 
     expected_output = [
         "Jemalloc find extent",
@@ -544,7 +544,7 @@ def test_jemalloc_extent_info(start_binary):
     gdb.execute("break break_here")
     gdb.execute("continue")
 
-    find_extent_results = gdb.execute("jemalloc_find_extent ptr", to_string=True).splitlines()
+    find_extent_results = gdb.execute("jemalloc-find-extent ptr", to_string=True).splitlines()
     extent_address = None
     for line in find_extent_results:
         if "Extent Address:" in line:
@@ -552,7 +552,7 @@ def test_jemalloc_extent_info(start_binary):
     if extent_address is None:
         raise ValueError("Could not find extent address")
     # run jemalloc extent_info command
-    result = gdb.execute(f"jemalloc_extent_info {extent_address}", to_string=True).splitlines()
+    result = gdb.execute(f"jemalloc-extent-info {extent_address}", to_string=True).splitlines()
 
     expected_output = [
         "Jemalloc extent info",
@@ -574,7 +574,7 @@ def test_jemalloc_heap(start_binary):
     gdb.execute("continue")
 
     # run jemalloc extent_info command
-    result = gdb.execute("jemalloc_heap", to_string=True).splitlines()
+    result = gdb.execute("jemalloc-heap", to_string=True).splitlines()
 
     expected_output = [
         "Jemalloc heap",

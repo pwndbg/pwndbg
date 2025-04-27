@@ -81,7 +81,7 @@ def make_binaries(test_dir: str):
     try:
         subprocess.check_call(["make", "all"], cwd=str(dir_binaries))
     except subprocess.CalledProcessError:
-        exit(1)
+        sys.exit(1)
 
 
 def run_gdb(
@@ -117,10 +117,10 @@ def get_tests_list(
 
     if result.returncode == 1:
         print(tests_collect_output)
-        exit(1)
+        sys.exit(1)
     elif collect_only == 1:
         print(tests_collect_output)
-        exit(0)
+        sys.exit(0)
 
     # Extract the test names from the output using regex
     pattern = re.compile(rf"{test_dir_path}.*::.*")
@@ -237,7 +237,7 @@ def run_tests_and_print_stats(
         print("\nFailing tests:")
         for test_case in stats.fail_tests_names:
             print(f"- {test_case}")
-        exit(1)
+        sys.exit(1)
 
 
 def parse_args():

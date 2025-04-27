@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from typing import Literal
 
 import gdb
 import pytest
@@ -32,18 +33,18 @@ def qemu_assembly_run():
     if QEMU_PORT is None:
         print("'QEMU_PORT' environment variable not set")
         sys.stdout.flush()
-        os._exit(1)
+        sys.exit(1)
 
     def _start_binary(asm: str, arch: str, *args):
         nonlocal qemu
 
-        # This is defaulting to 32-bit in this case, breaks the compilation
-        if arch == "riscv64":
-            context.bits = 64
-
+        # Clear the context so setting the .arch will also set .bits
+        # https://github.com/Gallopsled/pwntools/issues/2498
+        context.clear()
         context.arch = arch
+
         binary_tmp_path = make_elf_from_assembly(asm)
-        qemu_suffix = pwnlib.qemu.archname(arch=arch)
+        qemu_suffix = pwnlib.qemu.archname()
 
         qemu = subprocess.Popen(
             [
@@ -57,6 +58,7 @@ def qemu_assembly_run():
         os.environ["PWNDBG_IN_TEST"] = "1"
         os.environ["COLUMNS"] = "80"
         gdb.execute("set exception-verbose on")
+        gdb.execute("set context-reserve-lines never")
         gdb.execute("set width 80")
         gdb.execute(f"target remote :{QEMU_PORT}")
 
@@ -69,6 +71,20 @@ def qemu_assembly_run():
     yield _start_binary
 
     qemu.kill()
+
+
+# Map of qemu_suffix to location of library files in default Ubuntu installs of cross-compilers
+CROSS_ARCH_LIBC = {
+    "aarch64": "/usr/aarch64-linux-gnu",
+    "arm": "/usr/arm-linux-gnueabihf",
+    "mips": "/usr/mips-linux-gnu",
+    "mips64": "/usr/mips64-linux-gnuabi64/",
+    "riscv64": "/usr/riscv64-linux-gnu/",
+    "loongarch64": "/usr/loongarch64-linux-gnu/",
+    "ppc": "/usr/powerpc-linux-gnu/",
+    "ppc64": "/usr/powerpc64-linux-gnu/",
+    "sparc64": "/usr/sparc64-linux-gnu/",
+}
 
 
 @pytest.fixture
@@ -84,16 +100,23 @@ def qemu_start_binary():
     if QEMU_PORT is None:
         print("'QEMU_PORT' environment variable not set")
         sys.stdout.flush()
-        os._exit(1)
+        sys.exit(1)
 
-    def _start_binary(path: str, arch: str, *args):
+    def _start_binary(path: str, arch: str, endian: Literal["big", "little"] | None = None):
         nonlocal qemu
+
+        if endian is not None:
+            context.endian = endian
+
+        qemu_suffix = pwnlib.qemu.archname(arch=arch)
+        # qemu_libs = pwnlib.qemu.ld_prefix(arch=arch)
+        qemu_libs = CROSS_ARCH_LIBC.get(qemu_suffix, f"/usr/gnemul/qemu-{qemu_suffix}")
 
         qemu = subprocess.Popen(
             [
-                f"qemu-{arch}",
+                f"qemu-{qemu_suffix}",
                 "-L",
-                f"/usr/{arch}-linux-gnu/",
+                qemu_libs,
                 "-g",
                 f"{QEMU_PORT}",
                 f"{path}",
@@ -103,6 +126,7 @@ def qemu_start_binary():
         os.environ["PWNDBG_IN_TEST"] = "1"
         os.environ["COLUMNS"] = "80"
         gdb.execute("set exception-verbose on")
+        gdb.execute("set context-reserve-lines never")
         gdb.execute("set width 80")
         gdb.execute(f"target remote :{QEMU_PORT}")
 

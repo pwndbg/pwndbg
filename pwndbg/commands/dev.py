@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.color.message as MessageColor
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
@@ -43,7 +43,9 @@ parser.add_argument(
 def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) -> None:
     if address is not None:
         address = int(address)
-        cached_instruction = pwndbg.aglib.disasm.computed_instruction_cache.get(address, None)
+        cached_instruction = pwndbg.aglib.disasm.disassembly.computed_instruction_cache.get(
+            address, None
+        )
         if cached_instruction:
             print(repr(cached_instruction))
         else:
@@ -56,7 +58,7 @@ def dev_dump_instruction(address=None, force_emulate=False, no_emulate=False) ->
             bool(pwndbg.config.emulate == "on") if override_setting is None else override_setting
         )
 
-        instructions, index_of_pc = pwndbg.aglib.disasm.near(
+        instructions, index_of_pc = pwndbg.aglib.disasm.disassembly.near(
             pwndbg.aglib.regs.pc, 1, emulate=use_emulation, show_prev_insns=False, use_cache=False
         )
 

@@ -1,0 +1,39 @@
+name: Latest Release Docs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy docs for latest release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only allow running on tag refs
+        if: ${{ github.ref_type != 'tag' }}
+        run: |
+          echo "You must run this workflow in the context of a tag."
+          exit 1
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Update docs/index.md with README.md
+        run: ./scripts/generate_readme.sh
+
+      - name: Deploy site
+        run: |
+          # mike pushes commits to the gh-pages branch
+          git config --global user.email "doc-bot@pwndbg.re"
+          git config --global user.name "DocBot"
+          git fetch --no-tags --prune --depth=1 origin +refs/heads/gh-pages:refs/remotes/origin/gh-pages
+          uv run --group docs mike deploy \
+            --update-aliases \
+            --push \
+            --remote origin \
+            ${{ github.ref_name }} \
+            latest

@@ -202,6 +202,7 @@ class ContextTUIWindow:
             )
             .replace("\x1b[39m", "\x1b[0m")
             .replace("\x1b[49m", "\x1b[0m")
+            .replace("\x1b[39;49m", "\x1b[0m")
         )
 
 

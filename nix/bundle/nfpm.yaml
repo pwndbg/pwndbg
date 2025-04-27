@@ -11,11 +11,8 @@ description: |
 homepage: "https://github.com/pwndbg/pwndbg"
 license: "MIT"
 contents:
-- src: /usr/lib/pwndbg/bin/pwndbg
+- src: /usr/lib/pwndbg-gdb/bin/pwndbg
   dst: /usr/bin/pwndbg
   type: symlink
 - src: ./result/pwndbg
-  dst: /usr/lib/pwndbg
-
-scripts:
-  preremove: ./preremove.sh
+  dst: /usr/lib/pwndbg-gdb

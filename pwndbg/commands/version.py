@@ -19,6 +19,7 @@ import pwndbg.commands
 import pwndbg.integration
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg import DebuggerType
 
 
 def os_info():
@@ -93,11 +94,21 @@ def get_terminal_size():
     return f"Terminal width: {width_info}, height: {height_info}\n"
 
 
+def version_impl() -> None:
+    """
+    Implementation of the `version` command.
+    """
+    print("\n".join(map(message.system, all_versions())))
+
+
+# In LLDB, this command is implemented as part of the Pwndbg CLI.
 @pwndbg.commands.ArgparsedCommand(
-    "Displays Pwndbg and its important deps versions.", category=CommandCategory.PWNDBG
+    "Displays Pwndbg and its important deps versions.",
+    exclude_debuggers={DebuggerType.LLDB},
+    category=CommandCategory.PWNDBG,
 )
 def version() -> None:
-    print("\n".join(map(message.system, all_versions())))
+    version_impl()
 
 
 bugreport_parser = argparse.ArgumentParser(description="Generate a bug report.")

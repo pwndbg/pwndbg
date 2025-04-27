@@ -64,7 +64,7 @@ in
           parallel
           qemu
           netcat-openbsd
-          zig_0_10 # version match setup-dev.sh
+          zig_0_13 # version match setup-dev.sh
           go
 
           # for onegadget command
@@ -97,7 +97,7 @@ in
       ];
     shellHook = ''
       export PWNDBG_VENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
-      export ZIGPATH="${pkgs.lib.getBin pkgs.zig_0_10}/bin/"
+      export ZIGPATH="${pkgs.lib.getBin pkgs.zig_0_13}/bin/"
     '';
   };
 }

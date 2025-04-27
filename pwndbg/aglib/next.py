@@ -10,51 +10,63 @@ from itertools import chain
 
 import capstone
 
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message
 from pwndbg.dbg import BreakpointLocation
 
 interrupts = {capstone.CS_GRP_INT}
 
 
-def next_int(address=None):
+def next_int(address=None, honor_current_branch=False):
     """
     If there is a syscall in the current basic black,
     return the instruction of the one closest to $PC.
 
-    Otherwise, return None.
+    If honor_current_branch is True, then if the address is already a branch, return None.
+
+    If no interrupt exists or a jump is in the way, return None.
     """
     if address is None:
-        ins = pwndbg.aglib.disasm.one(pwndbg.aglib.regs.pc)
+        ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
         if not ins:
+            return None
+        if honor_current_branch and ins.jump_like:
             return None
         address = ins.next
 
-    ins = pwndbg.aglib.disasm.one(address)
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
     while ins:
         if ins.jump_like:
             return None
         elif ins.groups & interrupts:
             return ins
-        ins = pwndbg.aglib.disasm.one(ins.next)
+        ins = pwndbg.aglib.disasm.disassembly.one(ins.next)
 
     return None
 
 
-def next_branch(address=None):
+def next_branch(address=None, including_current=False) -> PwndbgInstruction | None:
+    """
+    Return the next branch instruction that the process will encounter with repeated usage of the "nexti" command.
+
+    If including_current == True, then if the instruction at the address is already a branch, return it.
+    """
     if address is None:
-        ins = pwndbg.aglib.disasm.one(pwndbg.aglib.regs.pc)
+        ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
         if not ins:
             return None
+        if including_current and ins.jump_like:
+            return ins
         address = ins.next
 
-    ins = pwndbg.aglib.disasm.one(address)
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
     while ins:
         if ins.jump_like:
             return ins
-        ins = pwndbg.aglib.disasm.one(ins.next)
+        ins = pwndbg.aglib.disasm.disassembly.one(ins.next)
 
     return None
 
@@ -67,7 +79,7 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
     if address is None:
         address = pwndbg.aglib.regs.pc
 
-    ins = pwndbg.aglib.disasm.one(address)
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
     while ins:
         # Check whether or not the mnemonic matches if it was specified
         mnemonic_match = ins.mnemonic.casefold() == mnemonic.casefold() if mnemonic else True
@@ -97,30 +109,45 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
             # not trying to match the branch instruction itself.
             return None
 
-        ins = pwndbg.aglib.disasm.one(ins.next)
+        ins = pwndbg.aglib.disasm.disassembly.one(ins.next)
     return None
 
 
-async def break_next_branch(ec: pwndbg.dbg_mod.ExecutionController, address=None):
-    ins = next_branch(address)
+async def break_next_branch(
+    ec: pwndbg.dbg_mod.ExecutionController, address=None, including_current=False
+):
+    """
+    If including_current == True, do not step in case we are currently on a branch
+    """
+    ins = next_branch(address, including_current=including_current)
 
     proc = pwndbg.dbg.selected_inferior()
     if ins:
-        bp = proc.break_at(BreakpointLocation(ins.address), internal=True)
-        await ec.cont(bp)
-        bp.remove()
+        # If the branch we found was not at the current program counter, we should step to it.
+        # Otherwise, return the current instruction.
+        if ins.address != pwndbg.aglib.regs.pc:
+            with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+                await ec.cont(bp)
         return ins
 
 
-async def break_next_interrupt(ec: pwndbg.dbg_mod.ExecutionController, address=None):
-    ins = next_int(address)
+async def break_next_interrupt(
+    ec: pwndbg.dbg_mod.ExecutionController, address=None, honor_current_branch=False
+) -> PwndbgInstruction | None:
+    """
+    Break at the next interrupt if there is one in the current basic block
+    and no jumps are between the current instruction and the interrupt.
 
+    If no such interrupt exists or a jump is in the way, return None.
+    """
+    ins = next_int(address, honor_current_branch=honor_current_branch)
     proc = pwndbg.dbg.selected_inferior()
     if ins:
-        bp = proc.break_at(BreakpointLocation(ins.address), internal=True)
-        await ec.cont(bp)
-        bp.remove()
+        with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+            await ec.cont(bp)
         return ins
+
+    return None
 
 
 async def break_next_call(ec: pwndbg.dbg_mod.ExecutionController, symbol_regex=None):
@@ -182,13 +209,11 @@ async def break_on_next_matching_instruction(
         ins = next_matching_until_branch(mnemonic=mnemonic, op_str=op_str)
         if ins is not None:
             if ins.address != pwndbg.aglib.regs.pc:
-                print("Found instruction")
                 # Only set breakpoints at a different PC location, otherwise we
                 # will continue until we hit a breakpoint that's not related to
                 # this opeeration, or the program halts.
-                bp = proc.break_at(BreakpointLocation(ins.address), internal=True)
-                await ec.cont(bp)
-                bp.remove()
+                with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+                    await ec.cont(bp)
                 return ins
             else:
                 # We don't want to be spinning in place, nudge execution forward
@@ -196,14 +221,12 @@ async def break_on_next_matching_instruction(
                 pass
         else:
             # Move to the next branch instruction.
-            print("Moving to next branch")
-            nb = next_branch(pwndbg.aglib.regs.pc)
+            nb = next_branch(pwndbg.aglib.regs.pc, including_current=True)
             if nb is not None:
                 if nb.address != pwndbg.aglib.regs.pc:
                     # Stop right at the next branch instruction.
-                    bp = proc.break_at(BreakpointLocation(nb.address), internal=True)
-                    await ec.cont(bp)
-                    bp.remove()
+                    with proc.break_at(BreakpointLocation(nb.address), internal=True) as bp:
+                        await ec.cont(bp)
                 else:
                     # Nudge execution so we take the branch we're on top of.
                     pass
@@ -254,9 +277,8 @@ async def break_on_program_code(ec: pwndbg.dbg_mod.ExecutionController) -> bool:
 
 async def break_on_next(ec: pwndbg.dbg_mod.ExecutionController, address=None) -> None:
     address = address or pwndbg.aglib.regs.pc
-    ins = pwndbg.aglib.disasm.one(address)
+    ins = pwndbg.aglib.disasm.disassembly.one(address)
 
     proc = pwndbg.dbg.selected_inferior()
-    bp = proc.break_at(BreakpointLocation(ins.address + ins.size), internal=True)
-    await ec.cont(bp)
-    bp.remove()
+    with proc.break_at(BreakpointLocation(ins.address + ins.size), internal=True) as bp:
+        await ec.cont(bp)

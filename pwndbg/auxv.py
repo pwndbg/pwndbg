@@ -28,7 +28,7 @@ if pwndbg.dbg.is_gdblib_available():
 auto_explore = pwndbg.config.add_param(
     "auto-explore-auxv",
     "warn",
-    "Enable or disable stack exploration for AUXV information; it may be really slow.",
+    "stack exploration for AUXV information; it may be really slow",
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["warn", "yes", "no"],
 )
@@ -130,7 +130,7 @@ def explore_stack_auxv() -> AUXV | None:
             M.warn(
                 "Warning: All methods to detect AUXV have failed.\n"
                 "You can explore AUXV using stack exploration, but it may be very slow.\n"
-                "To explicitly explore, use the command: `auxv_explore`\n"
+                "To explicitly explore, use the command: `auxv-explore`\n"
                 "Alternatively, enable it by default with: `set auto-explore-auxv yes`\n\n"
                 "Note: AUXV is probably not necessary for debugging firmware or embedded systems."
             )

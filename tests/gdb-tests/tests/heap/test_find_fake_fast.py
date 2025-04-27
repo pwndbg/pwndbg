@@ -58,116 +58,116 @@ def test_find_fake_fast_command(start_binary):
     assert pwndbg.aglib.memory.peek(unmapped_heap_info) is None
 
     # A gdb.MemoryError raised here indicates a regression from PR #1145
-    gdb.execute("find_fake_fast fake_chunk+0x80")
+    gdb.execute("find-fake-fast fake_chunk+0x80")
 
     target_address = pwndbg.aglib.symbol.lookup_symbol_addr("target_address")
     assert target_address is not None
     print(hex(target_address))
 
     # setup_mem(0x20, 0x8)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_result(result, 0x20)
 
-    result = gdb.execute("find_fake_fast --align &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast --align &target_address", to_string=True)
     check_result(result, 0x20)
     gdb.execute("continue")
 
     # setup_mem(0x2F, 0x8)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_result(result, 0x28)
 
-    result = gdb.execute("find_fake_fast --align &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast --align &target_address", to_string=True)
     check_result(result, 0x28)
     gdb.execute("continue")
 
     # setup_mem(0x20, 0x9)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_result(result, 0x20)
 
-    result = gdb.execute("find_fake_fast --align &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast --align &target_address", to_string=True)
     check_no_results(result)
     gdb.execute("continue")
 
     # setup_mem(0x20, 0x0)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_no_results(result)
 
-    result = gdb.execute("find_fake_fast --align &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast --align &target_address", to_string=True)
     check_no_results(result)
     gdb.execute("continue")
 
     # setup_mem(0x20, 0x7)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_no_results(result)
 
-    result = gdb.execute("find_fake_fast --align &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast --align &target_address", to_string=True)
     check_no_results(result)
     gdb.execute("continue")
 
     # setup_mem(0x1F, 0x8)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_no_results(result)
 
-    result = gdb.execute("find_fake_fast --align &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast --align &target_address", to_string=True)
     check_no_results(result)
     gdb.execute("continue")
 
     # setup_mem(0x80, 0x78)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_result(result, 0x80)
 
-    result = gdb.execute("find_fake_fast --align &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast --align &target_address", to_string=True)
     check_result(result, 0x80)
     gdb.execute("continue")
 
     # # setup_mem(0x80, 0x7F)
-    # result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    # result = gdb.execute("find-fake-fast &target_address", to_string=True)
     # check_result(result, 0x80)
     # gdb.execute("continue")
 
     # setup_mem(0x80, 0x80)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_no_results(result)
 
-    result = gdb.execute("find_fake_fast --align &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast --align &target_address", to_string=True)
     check_no_results(result)
     gdb.execute("continue")
 
     # setup_mem(0x100, 0x10)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_no_results(result)
 
-    result = gdb.execute("find_fake_fast &target_address 0x100", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address 0x100", to_string=True)
     check_result(result, 0x100)
     gdb.execute("continue")
 
     # setup_mem(0x100, 0x90)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_no_results(result)
 
-    result = gdb.execute("find_fake_fast &target_address 0x100", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address 0x100", to_string=True)
     check_result(result, 0x100)
     gdb.execute("continue")
 
     # setup_mem(0x100, 0x100)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_no_results(result)
 
-    result = gdb.execute("find_fake_fast &target_address 0x100", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address 0x100", to_string=True)
     check_no_results(result)
     gdb.execute("continue")
 
     # setup_mem(0xAABBCCDD00000020, 0x8)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_no_results(result)
 
-    result = gdb.execute("find_fake_fast &target_address --glibc-fastbin-bug", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address --glibc-fastbin-bug", to_string=True)
     check_result(result, 0xAABBCCDD00000020)
     gdb.execute("continue")
 
     # setup_mem(0x8000, 0x80)
-    result = gdb.execute("find_fake_fast &target_address", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address", to_string=True)
     check_no_results(result)
 
-    result = gdb.execute("find_fake_fast &target_address --partial-overwrite", to_string=True)
+    result = gdb.execute("find-fake-fast &target_address --partial-overwrite", to_string=True)
     check_result(result, 0x80)
