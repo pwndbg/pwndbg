@@ -615,6 +615,8 @@ class ArgparsedCommand:
         else:
             assert isinstance(parser_or_desc, argparse.ArgumentParser)
             self.parser = parser_or_desc
+        self.parser.exit_on_error = False
+        # self.parser.exit = lambda *_: None
         self.aliases = aliases
         assert command_name is None or "_" not in command_name
         self._command_name = command_name
