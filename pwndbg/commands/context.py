@@ -13,7 +13,6 @@ from typing import DefaultDict
 from typing import Dict
 from typing import List
 from typing import Optional
-from typing import OrderedDict
 from typing import Tuple
 from typing import TypeVar
 
@@ -43,8 +42,8 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import AddressingRegister
+from pwndbg.lib.regs import BitFlags
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
@@ -222,6 +221,104 @@ class CallOutput:
             return self.func.isatty()
         except AttributeError:
             return False
+
+
+class RegisterContext:
+    reg: str
+
+    def __init__(self, reg: str):
+        self.reg = reg
+
+    def value(self):
+        val = pwndbg.aglib.regs[self.reg]
+        if val is None:
+            print(message.warn(f"Unknown register: {self.reg!r}"))
+        return val
+
+    def desc(self):
+        val = self.value()
+        if val is None:
+            return None
+        return pwndbg.chain.format(val)
+
+    def context(self):
+        changed = pwndbg.aglib.regs.changed
+
+        # Make the register stand out and give a color if changed
+        regname = C.register(self.reg.ljust(4).upper())
+        if self.reg in changed:
+            regname = C.register_changed(regname)
+
+        # Show a marker next to the register if it changed
+        change_marker = f"{C.config_register_changed_marker}"
+        m = (
+            " " * len(change_marker)
+            if self.reg not in changed
+            else C.register_changed(change_marker)
+        )
+        return f"{m}{regname} {self.desc()}"
+
+
+class FlagRegisterContext(RegisterContext):
+    flags: BitFlags
+
+    def __init__(self, reg: str, flags: BitFlags):
+        super().__init__(reg)
+        self.flags = flags
+
+    def desc(self):
+        val = self.value()
+        if val is None:
+            return None
+        return C.format_flags(val, self.flags, pwndbg.aglib.regs.last.get(self.reg, 0))
+
+
+class AddressingRegisterContext(RegisterContext):
+    is_virtual: bool
+
+    def __init__(self, reg: str, ar: AddressingRegister):
+        super().__init__(reg)
+        self.is_virtual = ar.is_virtual
+
+
+class WordRegisterContext(RegisterContext):
+    def __init__(self, reg: str):
+        super().__init__(reg)
+
+    def context(self):
+        changed = pwndbg.aglib.regs.changed
+        regname = C.register((self.reg + ":").ljust(4).upper())
+        if self.reg in changed:
+            regname = C.register_changed(regname)
+        change_marker = f"{C.config_register_changed_marker}"
+        m = (
+            " " * len(change_marker)
+            if self.reg not in changed
+            else C.register_changed(change_marker)
+        )
+        return f"{m}{regname} {hex(self.value())}   "
+
+
+class RegistersContext:
+    regs: List[str]
+
+    def __init__(self, regs: List[str]):
+        self.regs = regs
+
+    def context(self):
+        raise NotImplementedError("Not implemented")
+
+
+class SegmentRegistersContext(RegistersContext):
+    def __init__(self, regs):
+        super().__init__(regs)
+
+    def context(self):
+        result = ""
+        for reg in self.regs:
+            context = WordRegisterContext(reg)
+            result += context.context()
+        return result
 
 
 def output(section: str):
@@ -824,77 +921,56 @@ pwndbg.config.add_param("show-flags", False, "whether to show flags registers")
 pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return address register")
 
 
+def get_context(reg) -> RegisterContext | RegistersContext | None:
+    if isinstance(reg, str):
+        return RegisterContext(reg)
+    elif isinstance(reg, tuple):
+        reg, representation = reg
+        if isinstance(representation, BitFlags):
+            return FlagRegisterContext(reg, representation)
+        elif isinstance(representation, AddressingRegister):
+            return AddressingRegisterContext(reg, representation)
+        elif isinstance(representation, list):
+            return SegmentRegistersContext(representation)
+    return None
+
+
 def get_regs(regs: List[str] = None):
+    contexts = []
     result = []
 
     if regs is None:
         regs = []
 
     if len(regs) == 0:
-        regs += pwndbg.aglib.regs.gpr
+        contexts += [get_context(reg) for reg in pwndbg.aglib.regs.gpr]
 
-        regs.append(pwndbg.aglib.regs.frame)
-        regs.append(pwndbg.aglib.regs.stack)
+        contexts.append(get_context(pwndbg.aglib.regs.frame))
+        contexts.append(get_context(pwndbg.aglib.regs.stack))
 
         if pwndbg.config.show_retaddr_reg:
-            regs += pwndbg.aglib.regs.retaddr
+            contexts += [get_context(reg) for reg in pwndbg.aglib.regs.retaddr]
 
-        regs.append(pwndbg.aglib.regs.current.pc)
+        contexts.append(get_context(pwndbg.aglib.regs.current.pc))
 
-        if pwndbg.aglib.qemu.is_qemu_kernel:
-            controls = pwndbg.aglib.regs.kernel.controls
+        if pwndbg.aglib.qemu.is_qemu_kernel():
+            controls = pwndbg.aglib.regs.kernel.controls.items()
             if controls is not None:
-                regs += tuple(controls.items())
-            msr = pwndbg.aglib.regs.kernel.msr
-            if msr is not None:
-                regs += tuple(msr.items())
-            segments = pwndbg.aglib.regs.kernel.segments
-            d = {}
-            if segments is not None:
-                for reg in segments:
-                    d[reg] = pwndbg.aglib.regs[reg]
-            regs += (segments, d)
-            print(type(d))
-
+                contexts += [get_context(reg) for reg in controls]
+            msrs = pwndbg.aglib.regs.kernel.msrs.items()
+            if msrs is not None:
+                contexts += [get_context(reg) for reg in msrs]
         if pwndbg.config.show_flags:
-            regs += tuple(pwndbg.aglib.regs.flags.items())
+            flags = pwndbg.aglib.regs.flags.items()
+            contexts += [get_context(reg) for reg in flags]
+        if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel.segments is not None:
+            contexts.append(get_context((None, pwndbg.aglib.regs.kernel.segments)))
 
-    changed = pwndbg.aglib.regs.changed
-
-    for reg in regs:
-        reg_rep = 0 # the underlying representation the register, defaults to be int
-        if reg is None:
+    for context in contexts:
+        if context is None:
             continue
+        result.append(context.context())
 
-        if isinstance(reg, tuple):
-            (reg, reg_rep) = reg # assume the length is 2 since it is either from cmdline or a dict
-        if not isinstance(reg_rep, OrderedDict) and isinstance(reg_rep, dict):
-            desc = C.format_regs(d, changed)
-            result.append(desc)
-            continue
-
-        value = pwndbg.aglib.regs[reg]
-        if value is None:
-            print(message.warn(f"Unknown register: {reg!r}"))
-            continue
-
-        # Make the register stand out and give a color if changed
-        regname = C.register(reg.ljust(4).upper())
-        if reg in changed:
-            regname = C.register_changed(regname)
-
-        # Show a marker next to the register if it changed
-        change_marker = f"{C.config_register_changed_marker}"
-        m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
-
-        if isinstance(reg_rep, type(BitFlags())):
-            desc = C.format_flags(value, reg_rep, pwndbg.aglib.regs.last.get(reg, 0))
-        elif isinstance(reg_rep, AddressingRegister):
-            desc = pwndbg.chain.format(value)
-        else:
-            desc = pwndbg.chain.format(value)
-
-        result.append(f"{m}{regname} {desc}")
     return result
 
 

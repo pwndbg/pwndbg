@@ -14,10 +14,45 @@ from typing import Tuple
 from typing import Union
 
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
-import pwndbg.aglib.qemu
 
-BitFlags = OrderedDict[str, Union[int, Tuple[int, int]]]
-AddressingRegister = bool # inicating if the address is a virtual address
+
+class BitFlags:
+    # this should be backwards compatible
+    flags: OrderedDict[str, Union[int, Tuple[int, int]]]
+
+    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
+        self.flags = {}
+        for name, bits in flags:
+            self.flags[name] = bits
+
+    def __getattr__(self, name):
+        return getattr(self.flags, name)
+
+    def __getitem__(self, key):
+        return self.flags[key]
+
+    def __setitem__(self, key, value):
+        self.flags[key] = value
+
+    def __delitem__(self, key):
+        del self.flags[key]
+
+    def __iter__(self):
+        return iter(self.flags)
+
+    def __len__(self):
+        return len(self.flags)
+
+    def __repr__(self):
+        return f"BitFlags({self.flags})"
+
+
+class AddressingRegister:
+    is_virtual: bool  # inicating if the address is a virtual address
+
+    def __init__(self, is_virtual):
+        self.is_virtual = is_virtual
+
 
 class KernelRegisterSet:
     """
@@ -32,17 +67,17 @@ class KernelRegisterSet:
     controls: Dict[str, BitFlags | AddressingRegister]
 
     # Model specific registers
-    msr: Dict[str, BitFlags | AddressingRegister]
+    msrs: Dict[str, BitFlags | AddressingRegister]
 
     def __init__(
         self,
         segments: List[str] = [],
         controls: Dict[str, BitFlags | AddressingRegister] = {},
-        msr: Dict[str, BitFlags | AddressingRegister] = {},
+        msrs: Dict[str, BitFlags | AddressingRegister] = {},
     ):
         self.segments = segments
         self.controls = controls
-        self.msr = msr
+        self.msrs = msrs
 
 
 class RegisterSet:
@@ -114,11 +149,13 @@ class RegisterSet:
             if reg and reg not in self.common:
                 self.common.append(reg)
 
-        if pwndbg.aglib.qemu.is_qemu_kernel and self.kernel is not None:
+        # pwndbg.aglib.qemu.is_qemu_kernel() results in error here
+        # because pwndbg is only partially initialized at this point
+        if self.kernel is not None:
             controls = self.kernel.controls
             segments = self.kernel.segments
-            msr = self.kernel.msr
-            for reg in list(controls) + segments + list(msr):
+            msrs = self.kernel.msrs
+            for reg in tuple(controls) + tuple(segments) + tuple(msrs):
                 if reg and reg not in self.common:
                     self.common.append(reg)
 
@@ -368,7 +405,7 @@ amd64_kernel = KernelRegisterSet(
             ]
         ),
     },
-    msr= {
+    msrs={
         "efer": BitFlags([]),
         "gs_base": AddressingRegister(True),
         "fs_base": AddressingRegister(True),
