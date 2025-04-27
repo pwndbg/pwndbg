@@ -165,7 +165,7 @@ class PsuedoEmulatedRegisterFile:
 
     The aim is to allow some manual dynamic/static analysis without the need for a full emulator.
 
-    The implementation can handle the behavior of architectures with partial register,
+    The implementation can handle the behavior of architectures with partial registers,
     such as x86 (Ex: rax has "eax", "ax", "ah", and "al" as subregisters) or AArch64 (Ex: X0 contains W0).
     Most of the complexity of the bitshifts and masks arise from the necessity to handle these cases.
     """
