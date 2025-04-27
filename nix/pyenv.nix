@@ -340,7 +340,4 @@ let
       ];
   };
 in
-if isEditable then
-  pyenvEditable
-else
-  pyenv
+if isEditable then pyenvEditable else pyenv
