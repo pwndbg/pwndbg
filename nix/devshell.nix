@@ -96,7 +96,15 @@ in
         '')
       ]
       ++ pkgs.lib.optionals isLLDB [
-        pkgs.lldb_19
+        pkgs.lldb_20
+        (pkgs.writeShellScriptBin "pwndbg-lldb" (
+          (lib.optionalString (!pkgs.stdenv.isDarwin) ''
+            export LLDB_DEBUGSERVER_PATH=${lib.makeBinPath [ pkgs.lldb_20 ]}/lldb-server
+          '')
+          + ''
+            exec ${lib.getBin pyEnv}/bin/python3 $REPO_ROOT/pwndbg-lldb.py $@
+          ''
+        ))
       ];
     shellHook = ''
       export PWNDBG_NO_AUTOUPDATE=1
