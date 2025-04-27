@@ -22,7 +22,7 @@ BitFlags = OrderedDict[str, Union[int, Tuple[int, int]]]
 
 
 @dataclass
-class UnicornRegisterWrites:
+class UnicornRegisterWrite:
     """
     Represent a register to write to the Unicorn emulator.
     """
@@ -131,7 +131,7 @@ class RegisterSet:
         # we must write the flags register after PC, and the stack pointer after the flags register.
         # Otherwise, the values will be clobbered
         # https://github.com/pwndbg/pwndbg/pull/2337
-        self.emulated_regs_order: List[UnicornRegisterWrites] = []
+        self.emulated_regs_order: List[UnicornRegisterWrite] = []
 
         for reg in (
             [self.pc]
@@ -142,7 +142,7 @@ class RegisterSet:
             + list(self.gpr)
         ):
             if reg and reg not in self.emulated_regs_order:
-                emu_reg = UnicornRegisterWrites(reg, True if reg in flags else False)
+                emu_reg = UnicornRegisterWrite(reg, True if reg in flags else False)
                 self.emulated_regs_order.append(emu_reg)
 
         self.all = (
