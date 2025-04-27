@@ -37,5 +37,4 @@ if (cov := coverage.Coverage.current()) is not None:
     cov.stop()
     cov.save()
 
-sys.stdout.flush()
 sys.exit(return_code)

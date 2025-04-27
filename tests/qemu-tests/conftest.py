@@ -32,7 +32,6 @@ def qemu_assembly_run():
 
     if QEMU_PORT is None:
         print("'QEMU_PORT' environment variable not set")
-        sys.stdout.flush()
         sys.exit(1)
 
     def _start_binary(asm: str, arch: str, endian: Literal["big", "little"] | None = None):
@@ -103,7 +102,6 @@ def qemu_start_binary():
 
     if QEMU_PORT is None:
         print("'QEMU_PORT' environment variable not set")
-        sys.stdout.flush()
         sys.exit(1)
 
     def _start_binary(path: str, arch: str, endian: Literal["big", "little"] | None = None):
