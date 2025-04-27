@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.aglib.regs
 import tests
 
 REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
