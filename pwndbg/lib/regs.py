@@ -80,7 +80,7 @@ class RegisterSet:
     #: Reg objects containing information on each register
     reg_definitions: Dict[str, Reg]
 
-    #: Map of register name to the full register it resides in. Example mapping: "eax" -> "rax"
+    #: Map of register name to the full register it resides in. Example mapping: "eax" -> Reg("rax")
     full_register_lookup: Dict[str, Reg]
 
     def __init__(
