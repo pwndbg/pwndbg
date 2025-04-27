@@ -173,15 +173,16 @@ class TestStats:
 
     def handle_test_result(self, test_result: TEST_RETURN_TYPE, args, test_dir_path):
         (process, test_case, duration) = test_result
-        content = process.stdout
+        testname = test_case
 
-        # Extract the test name and result using regex
-        testname = re.search(rf"^({test_dir_path}/[^ ]+)", content, re.MULTILINE)[0]
-        result = re.search(
-            r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)", content, re.MULTILINE
-        )[0]
-
-        (_, testname) = testname.split("::")
+        if process.returncode == 0:
+            content = process.stdout
+            result = re.search(
+                r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)", content, re.MULTILINE
+            )[0]
+        else:
+            content = process.stdout + process.stderr
+            result = "FAIL"
 
         if "FAIL" in result:
             self.fail_tests += 1
