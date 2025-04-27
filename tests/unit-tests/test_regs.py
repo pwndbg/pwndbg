@@ -7,6 +7,15 @@ from pwndbg.lib.regs import mips
 
 
 def test_emulated_register_set_amd64():
+    """
+    These tests check that register writes and reads are implemented correctly.
+
+    RAX = 64-bits
+    EAX = low 32-bits    // All writes EAX will zero out the high 32-bits of RAX
+    AX  = low 16-bits
+    AH  = top half of AX
+    AL  = bottom half of AX
+    """
     new = PsuedoEmulatedRegisterFile(amd64, 8)
 
     new.write_register("rax", -1)
@@ -31,11 +40,11 @@ def test_emulated_register_set_amd64():
 
     new.write_register("eax", 0xFFFF_AABB)
 
-    # The 32-bit write here zero-extends to the entire register so we can read RAX
     assert new.read_register("al") == 0xBB
     assert new.read_register("ah") == 0xAA
     assert new.read_register("ax") == 0xAABB
     assert new.read_register("eax") == 0xFFFF_AABB
+    # The 32-bit write here zero-extends to the entire register so we can read RAX
     assert new.read_register("rax") == 0x000_0000_FFFF_AABB
 
     new.invalidate_all_registers()
@@ -78,6 +87,7 @@ def test_emulated_register_set_amd64_more():
     assert new.read_register("ah") == 0x00
     assert new.read_register("ax") == 0x0000
     assert new.read_register("eax") == 0xFF00_0000
+    # Writes to 32-bit registers zero-extend to the entire register
     assert new.read_register("rax") == 0xFF00_0000
 
     new.write_register("al", 0x01)
