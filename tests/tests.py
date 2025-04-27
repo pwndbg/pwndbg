@@ -173,30 +173,31 @@ class TestStats:
 
     def handle_test_result(self, test_result: TEST_RETURN_TYPE, args, test_dir_path):
         (process, test_case, duration) = test_result
-        testname = test_case
 
+        test_status = "FAIL"
         if process.returncode == 0:
-            content = process.stdout
             result = re.search(
-                r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)", content, re.MULTILINE
-            )[0]
-        else:
-            content = process.stdout + process.stderr
-            result = "FAIL"
+                r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)",
+                process.stdout,
+                re.MULTILINE,
+            )
+            if result:
+                test_status = result[0]
 
-        if "FAIL" in result:
+        if "FAIL" in test_status:
             self.fail_tests += 1
             self.fail_tests_names.append(test_case)
-        elif "PASS" in result:
+        elif "PASS" in test_status:
             self.pass_tests += 1
-        elif "SKIP" in result:
+        elif "SKIP" in test_status:
             self.skip_tests += 1
-        print(f"{testname:<70} {result} {duration:.2f}s")
+        print(f"{test_case:<70} {test_status} {duration:.2f}s")
 
         # Only show the output of failed tests unless the verbose flag was used
-        if args.verbose or "FAIL" in result:
+        if args.verbose or "FAIL" in test_status:
             print("")
-            print(content)
+            print(process.stderr)
+            print(process.stdout)
 
 
 def run_tests_and_print_stats(
