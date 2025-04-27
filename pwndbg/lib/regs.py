@@ -290,7 +290,7 @@ class PsuedoEmulatedRegisterFile:
 
     def invalidate_register(self, reg: str) -> None:
         """
-        Invalidate the bits that a write this register would override.
+        Invalidate the bits that a write to this register would override.
 
         This can be used when we statically detect that a register is written, but
         we don't know the concrete value that is written so we have to invalidate any current
