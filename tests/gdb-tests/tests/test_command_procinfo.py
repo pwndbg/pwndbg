@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import os
-import shutil
-import signal
-import subprocess
+import socket
+import threading
+import time
 
 import gdb
 
@@ -13,21 +12,30 @@ import tests
 REFERENCE_BINARY_NET = tests.binaries.get("reference-binary-net.out")
 
 
+class TCPServerThread(threading.Thread):
+    def __init__(self):
+        super().__init__(daemon=True)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.bind(("127.0.0.1", 31337))
+        self.port = self.sock.getsockname()[1]
+        self.sock.listen(1)
+
+    def run(self):
+        try:
+            # Accept one conn and sleep
+            conn, addr = self.sock.accept()
+            while True:
+                time.sleep(1)
+        except OSError:
+            pass  # Socket closed
+
+
 def test_command_procinfo(start_binary):
     start_binary(REFERENCE_BINARY_NET)
 
-    # Check if netcat exists
-    nc_path = shutil.which("nc")
-    assert nc_path is not None, "netcat is not installed"
-
-    # Spawn netcat
-    netcat_process = subprocess.Popen(
-        [nc_path, "-l", "-p", "31337"],
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
+    # Listen tcp server
+    server = TCPServerThread()
+    server.start()
 
     bin_path = pwndbg.aglib.proc.exe
     pid = str(pwndbg.aglib.proc.pid)
@@ -40,10 +48,10 @@ def test_command_procinfo(start_binary):
 
     assert bin_path in res_list[0]
     assert pid in res_list[3]
-    assert "127.0.0.1:31337" in result
+    assert f"127.0.0.1:{server.port}" in result
 
-    # Close netcat
-    os.killpg(os.getpgid(netcat_process.pid), signal.SIGTERM)
+    # Close tcp server
+    server.sock.close()
 
 
 def test_command_procinfo_before_binary_start():

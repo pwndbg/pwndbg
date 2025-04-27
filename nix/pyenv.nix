@@ -4,6 +4,7 @@
   python3 ? pkgs.python3,
   isDev ? false,
   isLLDB ? false,
+  isEditable ? false,
   ...
 }:
 let
@@ -13,6 +14,10 @@ let
 
   pyprojectOverlay = workspace.mkPyprojectOverlay {
     sourcePreference = "sdist";
+  };
+
+  editableOverlay = workspace.mkEditablePyprojectOverlay {
+    root = "$REPO_ROOT";
   };
 
   pkgsNeedSetuptools = [
@@ -284,6 +289,30 @@ let
     python = python3;
   };
   pythonSet = baseSet.overrideScope overlays;
+  editablePythonSet = pythonSet.overrideScope (
+    lib.composeManyExtensions [
+      inputs.pyproject-build-systems.overlays.default
+      editableOverlay
+      pyprojectOverrides1
+      pyprojectOverrides2
+      (final: prev: {
+        pythonPkgsBuildHost = prev.pythonPkgsBuildHost.overrideScope (
+          lib.composeManyExtensions [
+            inputs.pyproject-build-systems.overlays.default
+          ]
+        );
+      })
+      (final: prev: {
+        pwndbg = prev.pwndbg.overrideAttrs (old: {
+          nativeBuildInputs =
+            old.nativeBuildInputs
+            ++ final.resolveBuildSystem {
+              editables = [ ];
+            };
+        });
+      })
+    ]
+  );
 
   pyenv = pythonSet.mkVirtualEnv "pwndbg-env" {
     pwndbg =
@@ -298,5 +327,17 @@ let
         # "lint"
       ];
   };
+
+  pyenvEditable = editablePythonSet.mkVirtualEnv "pwndbg-editable-env" {
+    pwndbg =
+      [ ]
+      ++ lib.optionals isLLDB [
+        "lldb"
+      ]
+      ++ lib.optionals isDev [
+        "dev"
+        "tests"
+      ];
+  };
 in
-pyenv
+if isEditable then pyenvEditable else pyenv

@@ -248,6 +248,6 @@
           isLLDB = true;
         }
       );
-      formatter = forAllSystems (system: pkgsBySystem.${system}.nixfmt-rfc-style);
+      formatter = forAllSystems (system: pkgsBySystem.${system}.nixfmt-tree);
     };
 }

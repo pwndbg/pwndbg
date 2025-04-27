@@ -56,3 +56,7 @@ def test_basic_mips64(qemu_start_binary):
 
 def test_basic_mips32(qemu_start_binary):
     helper(qemu_start_binary, "basic.mips32.out", "mips", endian="big")
+
+
+def test_basic_mipsel32(qemu_start_binary):
+    helper(qemu_start_binary, "basic.mipsel32.out", "mips", endian="little")

@@ -162,10 +162,10 @@ register_module(
     idc
 )  # prioritize idc functions over above (e.g. idc.get_next_seg/ida_segment.get_next_seg)
 
-server.register_function(lambda a: eval(a, globals(), locals()), "eval")
-server.register_function(wrap(decompile))  # overwrites idaapi/ida_hexrays.decompile
+server.register_function(wrap(lambda a: eval(a, globals(), locals())), "eval")
+server.register_function(wrap(decompile), "decompile")  # overwrites idaapi/ida_hexrays.decompile
 server.register_function(wrap(decompile_context), "decompile_context")  # support context decompile
-server.register_function(wrap(versions))
+server.register_function(wrap(versions), "versions")
 server.register_introspection_functions()
 
 print(f"IDA Pro xmlrpc hosted on http://{host}:{port}")

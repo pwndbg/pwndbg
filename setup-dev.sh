@@ -140,7 +140,6 @@ install_apt() {
         gdb \
         gdb-multiarch \
         parallel \
-        netcat-openbsd \
         iproute2 \
         qemu-system-x86 \
         qemu-system-arm \
@@ -149,6 +148,7 @@ install_apt() {
         gcc-riscv64-linux-gnu \
         gcc-arm-linux-gnueabihf \
         gcc-mips-linux-gnu \
+        gcc-mipsel-linux-gnu \
         gcc-mips64-linux-gnuabi64
 
     # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
@@ -202,11 +202,6 @@ EOF
         base-devel \
         gdb \
         parallel
-
-    # check if netcat exists first, as it might it may be installed from some other netcat packages
-    if [ ! -f /usr/bin/nc ]; then
-        sudo pacman -S --needed --noconfirm gnu-netcat
-    fi
 
     command -v go &> /dev/null || sudo pacman -S --noconfirm go
 

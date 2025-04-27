@@ -117,6 +117,7 @@ def get_tests_list(
 
     if result.returncode == 1:
         print(tests_collect_output)
+        print(result.stderr)
         sys.exit(1)
     elif collect_only == 1:
         print(tests_collect_output)

@@ -137,6 +137,39 @@ def save_ida() -> None:
 save_ida()
 
 
+def _ida_local(name: str) -> int | None:
+    if not pwndbg.aglib.proc.alive:
+        return None
+
+    pc = int(pwndbg.dbg.selected_frame().pc())
+    frame_id = pwndbg.integration.ida.GetFuncAttr(pc, pwndbg.integration.ida.idc.FUNCATTR_FRAME)  # type: ignore[attr-defined]
+    if frame_id == -1:
+        return None
+
+    stack_size = pwndbg.integration.ida.GetStrucSize(frame_id)
+
+    # workaround for bug in IDA 9 when looking up the " s" member offset raises
+    # AttributeError: module 'ida_typeinf' has no attribute 'FRAME_UDM_NAME_S'
+    saved_baseptr = pwndbg.integration.ida.GetMemberOffset(frame_id, "__saved_registers")
+    if saved_baseptr == -1:
+        saved_baseptr = pwndbg.integration.ida.GetMemberOffset(frame_id, " s")
+
+    for i in range(stack_size):
+        local_name = pwndbg.integration.ida.GetMemberName(frame_id, i)
+        if local_name != name:
+            continue
+
+        # Heuristic: Offset is relative to the base pointer or stack pointer
+        # depending on if IDA is detecting a saved frame pointer or not.
+        offset = pwndbg.integration.ida.GetMemberOffset(frame_id, local_name)
+        if offset == -1:
+            raise ValueError("ida.GetMemberOffset(%r) == -1" % local_name)
+        if saved_baseptr != -1:
+            return pwndbg.aglib.regs[pwndbg.aglib.regs.frame] + offset - saved_baseptr
+        return pwndbg.aglib.regs[pwndbg.aglib.regs.stack] + offset
+    return None
+
+
 @GdbFunction()
 def ida(name: gdb.Value) -> int:
     """
@@ -159,9 +192,18 @@ def ida(name: gdb.Value) -> int:
     ```
     """
     name = name.string()
-    result = pwndbg.integration.ida.LocByName(name)
 
-    if 0xFFFFE000 <= result <= 0xFFFFFFFF or 0xFFFFFFFFFFFFE000 <= result <= 0xFFFFFFFFFFFFFFFF:
+    # Lookup local variables first
+    result = _ida_local(name)
+    if result is not None:
+        return result
+
+    result = pwndbg.integration.ida.LocByName(name)
+    if result is None:
+        raise ValueError("ida.LocByName(%r) == None" % name)
+
+    result_r = pwndbg.integration.ida.l2r(result)
+    if 0xFFFFE000 <= result_r <= 0xFFFFFFFF or 0xFFFFFFFFFFFFE000 <= result_r <= 0xFFFFFFFFFFFFFFFF:
         raise ValueError("ida.LocByName(%r) == BADADDR" % name)
 
     return result
