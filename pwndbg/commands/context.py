@@ -13,6 +13,7 @@ from typing import DefaultDict
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import OrderedDict
 from typing import Tuple
 from typing import TypeVar
 
@@ -23,6 +24,7 @@ import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm
 import pwndbg.aglib.nearpc
+import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.arguments
@@ -41,6 +43,8 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
+from pwndbg.lib.regs import BitFlags
+from pwndbg.lib.regs import AddressingRegister
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
@@ -837,13 +841,36 @@ def get_regs(regs: List[str] = None):
 
         regs.append(pwndbg.aglib.regs.current.pc)
 
+        if pwndbg.aglib.qemu.is_qemu_kernel:
+            controls = pwndbg.aglib.regs.kernel.controls
+            if controls is not None:
+                regs += tuple(controls.items())
+            msr = pwndbg.aglib.regs.kernel.msr
+            if msr is not None:
+                regs += tuple(msr.items())
+            segments = pwndbg.aglib.regs.kernel.segments
+            d = {}
+            if segments is not None:
+                for reg in segments:
+                    d[reg] = pwndbg.aglib.regs[reg]
+            regs += (segments, d)
+            print(type(d))
+
         if pwndbg.config.show_flags:
-            regs += pwndbg.aglib.regs.flags.keys()
+            regs += tuple(pwndbg.aglib.regs.flags.items())
 
     changed = pwndbg.aglib.regs.changed
 
     for reg in regs:
+        reg_rep = 0 # the underlying representation the register, defaults to be int
         if reg is None:
+            continue
+
+        if isinstance(reg, tuple):
+            (reg, reg_rep) = reg # assume the length is 2 since it is either from cmdline or a dict
+        if not isinstance(reg_rep, OrderedDict) and isinstance(reg_rep, dict):
+            desc = C.format_regs(d, changed)
+            result.append(desc)
             continue
 
         value = pwndbg.aglib.regs[reg]
@@ -856,19 +883,14 @@ def get_regs(regs: List[str] = None):
         if reg in changed:
             regname = C.register_changed(regname)
 
-        # Show a dot next to the register if it changed
+        # Show a marker next to the register if it changed
         change_marker = f"{C.config_register_changed_marker}"
         m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
 
-        bit_flags = None
-        if reg in pwndbg.aglib.regs.flags:
-            bit_flags = pwndbg.aglib.regs.flags[reg]
-        elif reg in pwndbg.aglib.regs.extra_flags:
-            bit_flags = pwndbg.aglib.regs.extra_flags[reg]
-
-        if bit_flags:
-            desc = C.format_flags(value, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
-
+        if isinstance(reg_rep, type(BitFlags())):
+            desc = C.format_flags(value, reg_rep, pwndbg.aglib.regs.last.get(reg, 0))
+        elif isinstance(reg_rep, AddressingRegister):
+            desc = pwndbg.chain.format(value)
         else:
             desc = pwndbg.chain.format(value)
 

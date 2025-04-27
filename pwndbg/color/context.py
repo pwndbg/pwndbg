@@ -126,3 +126,18 @@ def format_flags(value: int | None, flags: BitFlags, last: int | None = None):
         names.append(name)
 
     return f"{desc} {flag_bracket('[')} {' '.join(names)} {flag_bracket(']')}"
+
+def format_regs(regs: Dict[str, int | None], changed: List[str]):
+    result = ""
+    for reg, value in regs.items():
+        regname = register((reg + ":").ljust(4).upper())
+        if reg in changed:
+            regname = register_changed(regname)
+        change_marker = f"{config_register_changed_marker}"
+        m = (
+            " " * len(change_marker)
+            if reg not in changed
+            else register_changed(change_marker)
+        )
+        result += f"{m}{regname} {hex(value)}   "
+    return result

@@ -14,8 +14,35 @@ from typing import Tuple
 from typing import Union
 
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+import pwndbg.aglib.qemu
 
 BitFlags = OrderedDict[str, Union[int, Tuple[int, int]]]
+AddressingRegister = bool # inicating if the address is a virtual address
+
+class KernelRegisterSet:
+    """
+    additional registers that are useful when pwning kernels
+    used only for x86-64 for now
+    """
+
+    # Segment registers (CS, DS, ES, FS, GS, SS)
+    segments: Tuple[str, ...]
+
+    # Control registers (cr0, cr3, cr4)
+    controls: Dict[str, BitFlags | AddressingRegister]
+
+    # Model specific registers
+    msr: Dict[str, BitFlags | AddressingRegister]
+
+    def __init__(
+        self,
+        segments: List[str] = [],
+        controls: Dict[str, BitFlags | AddressingRegister] = {},
+        msr: Dict[str, BitFlags | AddressingRegister] = {},
+    ):
+        self.segments = segments
+        self.controls = controls
+        self.msr = msr
 
 
 class RegisterSet:
@@ -49,6 +76,9 @@ class RegisterSet:
     #: Common registers which should be displayed in the register context
     common: List[str] = []
 
+    #: Extra registers for kernel debugging
+    kernel: KernelRegisterSet | None
+
     #: All valid registers
     all: Set[str]
 
@@ -63,6 +93,7 @@ class RegisterSet:
         gpr: Tuple[str, ...] = (),
         misc: Tuple[str, ...] = (),
         args: Tuple[str, ...] = (),
+        kernel: KernelRegisterSet | None = None,
         retval: str | None = None,
     ) -> None:
         self.pc = pc
@@ -75,12 +106,21 @@ class RegisterSet:
         self.misc = misc
         self.args = args
         self.retval = retval
+        self.kernel = kernel
 
         # In 'common', we don't want to lose the ordering of:
         self.common = []
         for reg in gpr + (frame, stack, pc) + tuple(flags):
             if reg and reg not in self.common:
                 self.common.append(reg)
+
+        if pwndbg.aglib.qemu.is_qemu_kernel and self.kernel is not None:
+            controls = self.kernel.controls
+            segments = self.kernel.segments
+            msr = self.kernel.msr
+            for reg in list(controls) + segments + list(msr):
+                if reg and reg not in self.common:
+                    self.common.append(reg)
 
         # The specific order of this list is very important:
         # Due to the behavior of Arm in the Unicorn engine,
@@ -295,9 +335,45 @@ aarch64 = RegisterSet(
 
 x86flags = {
     "eflags": BitFlags(
-        [("CF", 0), ("PF", 2), ("AF", 4), ("ZF", 6), ("SF", 7), ("IF", 9), ("DF", 10), ("OF", 11)]
+        [
+            ("CF", 0),
+            ("PF", 2),
+            ("AF", 4),
+            ("ZF", 6),
+            ("SF", 7),
+            ("IF", 9),
+            ("DF", 10),
+            ("OF", 11),
+            ("AC", 18),
+        ]
     )
 }
+
+amd64_kernel = KernelRegisterSet(
+    segments=["cs", "ss", "ds", "es", "fs", "gs"],
+    controls={
+        # only displays the security related bits, otherwise it can be too clustered
+        "cr0": BitFlags([("PE", 0), ("WP", 16), ("AM", 18), ("PG", 31)]),
+        "cr3": AddressingRegister(False),
+        "cr4": BitFlags(
+            [
+                ("TSD", 2),
+                ("GPE", 7),
+                ("FSGSBASE", 16),
+                ("SMEP", 20),
+                ("SMAP", 21),
+                ("PKE", 22),
+                ("CET", 23),
+                ("PKS", 24),
+            ]
+        ),
+    },
+    msr= {
+        "efer": BitFlags([]),
+        "gs_base": AddressingRegister(True),
+        "fs_base": AddressingRegister(True),
+    },
+)
 
 amd64 = RegisterSet(
     pc="rip",
@@ -327,8 +403,8 @@ amd64 = RegisterSet(
         "es",
         "fs",
         "gs",
-        "fsbase",
-        "gsbase",
+        "fs_base",
+        "gs_base",
         "ax",
         "ah",
         "al",
@@ -351,6 +427,7 @@ amd64 = RegisterSet(
         "sp",
         "ip",
     ),
+    kernel=amd64_kernel,
     args=("rdi", "rsi", "rdx", "rcx", "r8", "r9"),
     retval="rax",
 )
@@ -368,8 +445,8 @@ i386 = RegisterSet(
         "es",
         "fs",
         "gs",
-        "fsbase",
-        "gsbase",
+        "fs_base",
+        "gs_base",
         "ax",
         "ah",
         "al",
