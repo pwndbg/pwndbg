@@ -140,7 +140,6 @@ install_apt() {
         gdb \
         gdb-multiarch \
         parallel \
-        netcat-openbsd \
         iproute2 \
         qemu-system-x86 \
         qemu-system-arm \
@@ -202,11 +201,6 @@ EOF
         base-devel \
         gdb \
         parallel
-
-    # check if netcat exists first, as it might it may be installed from some other netcat packages
-    if [ ! -f /usr/bin/nc ]; then
-        sudo pacman -S --needed --noconfirm gnu-netcat
-    fi
 
     command -v go &> /dev/null || sudo pacman -S --noconfirm go
 

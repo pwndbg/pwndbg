@@ -64,7 +64,6 @@ in
           gdb
           parallel
           qemu
-          netcat-openbsd
           zig_0_13 # version match setup-dev.sh
           go
 
