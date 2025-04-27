@@ -202,7 +202,7 @@ class PsuedoEmulatedRegisterFile:
     ) -> None:
         """
         source_width is the byte width of the value's source.
-        It should be specified when the source source has a width shorter than the destination register.
+        It should be specified when the source has a width shorter than the destination register.
 
         Examples:
             movsbl EAX, AL      // sign extend 1 byte register to 4 byte register
@@ -222,7 +222,7 @@ class PsuedoEmulatedRegisterFile:
         )
         written_register_mask = (1 << (written_register_size * 8)) - 1
 
-        # Definition of the "full" register that the written register resides in. Might be the same.
+        # Definition of the "full" register that the written register resides in. Might be itself.
         full_reg_def = self.register_set.full_register_lookup[reg]
 
         # Handle zero / sign-extension
@@ -237,7 +237,7 @@ class PsuedoEmulatedRegisterFile:
         # Bitmask of the register positioned in the full register. Ex: ah register is bits [15-8] in RAX.
         value_mask = written_register_mask << register_bit_offset
 
-        # The bits we will place into register
+        # The bits we will place into the register
         written_bits = (value << register_bit_offset) & value_mask
 
         if write_reg_def.zero_extend_writes:
@@ -266,7 +266,7 @@ class PsuedoEmulatedRegisterFile:
         )
         written_register_mask = (1 << (written_register_size * 8)) - 1
 
-        # Definition of the "full" register that the written register resides in. Might be the same.
+        # Definition of the "full" register that the written register resides in. Might be itself.
         full_reg_def = self.register_set.full_register_lookup[reg]
 
         mask = self.masks[full_reg_def.name]
@@ -303,7 +303,7 @@ class PsuedoEmulatedRegisterFile:
         )
         written_register_mask = (1 << (written_register_size * 8)) - 1
 
-        # Definition of the "full" register that the written register resides in. Might be the same.
+        # Definition of the "full" register that the written register resides in. Might be itself.
         full_reg_def = self.register_set.full_register_lookup[reg]
 
         value_mask = written_register_mask << register_bit_offset
