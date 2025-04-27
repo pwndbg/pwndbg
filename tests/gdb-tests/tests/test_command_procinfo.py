@@ -34,10 +34,8 @@ def test_command_procinfo(start_binary):
     start_binary(REFERENCE_BINARY_NET)
 
     # Listen tcp server
-    server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_sock.bind(("127.0.0.1", 31337))
-    server_port = server_sock.getsockname()[1]
-    server_sock.listen(1)
+    server = TCPServerThread()
+    server.start()
 
     bin_path = pwndbg.aglib.proc.exe
     pid = str(pwndbg.aglib.proc.pid)
@@ -50,10 +48,10 @@ def test_command_procinfo(start_binary):
 
     assert bin_path in res_list[0]
     assert pid in res_list[3]
-    assert f"127.0.0.1:{server_port}" in result
+    assert f"127.0.0.1:{server.port}" in result
 
     # Close tcp server
-    server_sock.close()
+    server.sock.close()
 
 
 def test_command_procinfo_before_binary_start():
