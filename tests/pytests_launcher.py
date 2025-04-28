@@ -37,4 +37,9 @@ if (cov := coverage.Coverage.current()) is not None:
     cov.stop()
     cov.save()
 
-sys.exit(return_code)
+# `sys.exit` triggers a GDB detach, while `os._exit` does not.
+# This allows the debugging session to remain at the same PC location,
+# which is useful for attaching to qemu-system multiple times.
+sys.stdout.flush()
+sys.stderr.flush()
+os._exit(return_code)
