@@ -138,10 +138,6 @@ def list_and_filter_commands(filter_str):
     results = []
 
     for c in sorted_commands:
-        # Don't print aliases
-        if c.is_alias:
-            continue
-
         name = c.command_name
         desc = c.description
 

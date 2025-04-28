@@ -156,8 +156,7 @@ def show_greeting() -> None:
     lifetime of the program, we know exactly when the greeting needs to be shown,
     so we don't bother with any of the lifetime checks.
     """
-    num_pwndbg_cmds = sum(not c.is_alias for c in pwndbg.commands.commands)
-    hint_lines = ("loaded %i pwndbg commands commands." % num_pwndbg_cmds,)
+    hint_lines = ("loaded %i pwndbg commands commands." % len(pwndbg.commands.commands),)
 
     for line in hint_lines:
         print(message.prompt("pwndbg: ") + message.system(line))

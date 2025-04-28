@@ -104,7 +104,6 @@ class CommandObj:
         parser: argparse.ArgumentParser,
         command_name: str | None,
         category: CommandCategory,
-        is_alias: bool,
         aliases: List[str],
         /,  # All parameters must be passed in positionally
     ) -> None:
@@ -131,8 +130,6 @@ class CommandObj:
         assert category
         self.category = category
 
-        assert not (is_alias and aliases) and "Cannot set aliases for an alias."
-        self.is_alias = is_alias
         self.aliases = aliases
 
         assert parser
@@ -156,8 +153,15 @@ class CommandObj:
         def _handler(_debugger, arguments, is_interactive):
             self.invoke(arguments, is_interactive)
 
-        # Tell the debugger about it.
-        self.handle = pwndbg.dbg.add_command(self.command_name, _handler, self.help_str)
+        # Keep a handle to the command and its aliases so we can
+        # easily remove them if necessary (not supported with GDB).
+        self.handles = []
+
+        # Tell the debugger about the command...
+        self.handles.append(pwndbg.dbg.add_command(self.command_name, _handler, self.help_str))
+        # ...and all of its aliases.
+        for alias in self.aliases:
+            self.handles.append(pwndbg.dbg.add_command(alias, _handler, self.help_str))
 
         command_names.add(self.command_name)
         commands.append(self)
@@ -323,17 +327,6 @@ class Command:
 
             return decorator  # type: ignore[return-value]
 
-        # Create aliases as seperate CommandObj's and register
-        # them seperately.
-        for alias in self.aliases:
-            CommandObj(
-                function,
-                self.parser,
-                alias,
-                self.category,
-                True,
-                [],
-            )
         # Since CommandObj has __call__ defined, an instance of it is a
         # callable object (which essentially decorates the function).
         return CommandObj(
@@ -341,7 +334,6 @@ class Command:
             self.parser,
             self.command_name,
             self.category,
-            False,
             self.aliases,
         )
 
