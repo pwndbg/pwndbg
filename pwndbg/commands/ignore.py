@@ -13,7 +13,6 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Set ignore-count of breakpoint number N to COUNT.
 
 While the ignore count is positive, execution will not stop on the breakpoint.

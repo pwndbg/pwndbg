@@ -156,7 +156,6 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Iteratively print chunks on a heap.
 
 Default to the current thread's active heap.""",
@@ -205,7 +204,6 @@ def heap(addr: int | None = None, verbose: bool = False, simple: bool = False) -
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.""",
 )
 parser.add_argument(
@@ -259,7 +257,6 @@ def hi(addr: int, verbose: bool = False, simple: bool = False, fake: bool = Fals
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena.
 
 Default to the current thread's arena.""",
@@ -356,7 +353,6 @@ def arenas() -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print a thread's tcache contents.
 
 Default to the current thread's tcache.""",
@@ -407,7 +403,6 @@ def mp() -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print relevant information about an arena's top chunk.
 
 Default to current thread's arena.""",
@@ -564,7 +559,6 @@ def malloc_chunk(
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of all an arena's bins and a thread's tcache.
 
 Default to the current thread's arena and tcache.""",
@@ -599,7 +593,6 @@ def bins(addr: int | None = None, tcache_addr: int | None = None) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena's fastbins.
 
 Default to the current thread's arena.""",
@@ -635,7 +628,6 @@ def fastbins(addr: int | None = None, verbose: bool = False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena's unsortedbin.
 
 Default to the current thread's arena.""",
@@ -671,7 +663,6 @@ def unsortedbin(addr: int | None = None, verbose: bool = False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena's smallbins.
 
 Default to the current thread's arena.""",
@@ -707,7 +698,6 @@ def smallbins(addr: int | None = None, verbose: bool = False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena's largebins.
 
 Default to the current thread's arena.""",
@@ -742,7 +732,6 @@ def largebins(addr: int | None = None, verbose: bool = False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of a tcache.
 
 Default to the current thread's tcache.""",
@@ -951,7 +940,6 @@ pwndbg.config.add_param(
 )
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Visualize chunks on a heap.
 
 Default to the current arena's active heap.""",

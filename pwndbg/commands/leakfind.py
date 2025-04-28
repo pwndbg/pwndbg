@@ -54,7 +54,6 @@ def dbg_print_map(maps) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Attempt to find a leak chain given a starting address.
 Scans memory near the given address, looks for pointers, and continues that process to attempt to find leaks.

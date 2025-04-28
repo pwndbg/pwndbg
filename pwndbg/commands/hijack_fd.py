@@ -145,7 +145,6 @@ async def exec_shellcode_with_stack(ec: pwndbg.dbg_mod.ExecutionController, blob
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Replace a file descriptor of a debugged process.
 
 The new file descriptor can point to:

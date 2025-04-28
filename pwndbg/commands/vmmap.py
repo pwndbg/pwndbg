@@ -151,7 +151,6 @@ def print_vmmap_gaps(pages: Tuple[Page, ...]) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print virtual memory map pages.
 
 Unnamed mappings are named as [anon_%#x] where %#x is high part of their start address. This is useful for filtering with `vmmap` or `search` commands.

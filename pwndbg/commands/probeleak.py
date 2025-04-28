@@ -45,7 +45,6 @@ def flags_str2int(flags_s):
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Pointer scan for possible offset leaks.
 Examples:

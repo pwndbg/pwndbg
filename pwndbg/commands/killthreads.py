@@ -11,7 +11,6 @@ from pwndbg.commands import CommandCategory
 from pwndbg.gdblib.scheduler import lock_scheduler
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Kill all or given threads.
 
 Switches to given threads and calls pthread_exit(0) on them.

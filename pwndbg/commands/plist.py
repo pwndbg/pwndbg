@@ -12,7 +12,6 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Dumps the elements of a linked list.
 
 This command traverses the linked list beginning at a given element, dumping its

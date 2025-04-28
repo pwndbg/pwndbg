@@ -57,7 +57,6 @@ def check_aslr() -> Tuple[bool | None, str]:
 options = {"on": "off", "off": "on"}
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Check the current ASLR status, or turn it on/off.
 

@@ -542,7 +542,6 @@ def contextsearch(needle, section) -> None:
 expressions = []
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Adds an expression to be shown on context.
 

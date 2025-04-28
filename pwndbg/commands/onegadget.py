@@ -11,7 +11,6 @@ import pwndbg.glibc
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Find gadgets which single-handedly give code execution.
 

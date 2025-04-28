@@ -170,17 +170,6 @@ class CommandObj:
         # Set parser.prog so the help is generated properly.
         self.parser.prog = self.command_name
 
-        # Generate command help
-        self.help_str = self.parser.format_help()
-
-        # Used by `pwndbg [filter]`
-        assert (
-            self.parser.description
-            and self.parser.description.strip()
-            and "A command must contain a description."
-        )
-        self.description = self.parser.description.strip()
-
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
         # FIXME: this is weird
@@ -194,8 +183,29 @@ class CommandObj:
             elif action.type is None:
                 action.type = fix_reraise_arg
 
+        class GoodFormatter(
+            argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter
+        ):
+            pass
+
+        assert (
+            self.parser.formatter_class is argparse.HelpFormatter
+            and "All pwndbg commands should use the same formatter."
+        )
+
         # FIXME: The defaults are not currently reflected in the docs.
-        self.parser.formatter_class = argparse.ArgumentDefaultsHelpFormatter
+        self.parser.formatter_class = GoodFormatter
+
+        # Generate command help (after we have selected the formatter)
+        self.help_str = self.parser.format_help()
+
+        # Used by `pwndbg [filter]`
+        assert (
+            self.parser.description
+            and self.parser.description.strip()
+            and "A command must contain a description."
+        )
+        self.description = self.parser.description.strip()
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""

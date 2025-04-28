@@ -10,7 +10,6 @@ import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Decode X86-64 GDT entries at address
 
 See also:

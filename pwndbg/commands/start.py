@@ -6,7 +6,6 @@ entry point.
 from __future__ import annotations
 
 import argparse
-from argparse import RawTextHelpFormatter
 from shlex import quote
 
 import pwndbg
@@ -50,7 +49,6 @@ def breakpoint_at_entry():
 # Starting from 3rd paragraph, the description is
 # taken from the GDB's `starti` command description
 parser = argparse.ArgumentParser(
-    formatter_class=RawTextHelpFormatter,
     description="""
 Start the debugged program stopping at the first convenient location
 from this list: main, _main, start, _start, init or _init.
@@ -104,7 +102,6 @@ def start(args=None) -> None:
 # Starting from 3rd paragraph, the description is
 # taken from the GDB's `starti` command description
 parser = argparse.ArgumentParser(
-    formatter_class=RawTextHelpFormatter,
     description="""
 Start the debugged program stopping at its entrypoint address.
 

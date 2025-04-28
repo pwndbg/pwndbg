@@ -8,7 +8,6 @@ import pwndbg.gdblib.ptmalloc2_tracking
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Manages the heap tracker.
 
 The heap tracker is a module that tracks usage of the GLibc heap and looks for

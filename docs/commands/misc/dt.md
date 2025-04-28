@@ -9,10 +9,9 @@
 
 
 
-    Dump out information on a type (e.g. ucontext_t).
+Dump out information on a type (e.g. ucontext_t).
 
-    Optionally overlay that information at an address.
-    
+Optionally overlay that information at an address.
 ## Usage:
 
 

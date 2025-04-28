@@ -15,7 +15,6 @@ import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Calls the mmap syscall and prints its resulting address.
 

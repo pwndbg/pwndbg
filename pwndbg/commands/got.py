@@ -24,7 +24,6 @@ from pwndbg.commands import CommandCategory
 from pwndbg.wrappers.readelf import RelocationType
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Show the state of the Global Offset Table.
 
 Examples:

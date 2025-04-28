@@ -13,7 +13,6 @@ import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Calls the mprotect syscall and prints its result value.
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from argparse import RawTextHelpFormatter
 
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
@@ -22,9 +21,7 @@ epilog = """Examples:
 (This command supports flags registers that are defined for architectures in the pwndbg/regs.py file)
     """
 
-parser = argparse.ArgumentParser(
-    description=description, epilog=epilog, formatter_class=RawTextHelpFormatter
-)
+parser = argparse.ArgumentParser(description=description, epilog=epilog)
 parser.add_argument("flag", type=str, help="Flag for which you want to change the value")
 parser.add_argument(
     "value",
