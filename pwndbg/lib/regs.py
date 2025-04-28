@@ -5,6 +5,7 @@ standardized interface to registers like "sp" and "pc".
 
 from __future__ import annotations
 
+import itertools
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Dict
@@ -107,24 +108,26 @@ class RegisterSet:
         self.args = args
         self.retval = retval
 
-        all_sub_registers: List[str] = []
+        all_subregisters: List[str] = []
 
         self.reg_definitions = {}
         self.full_register_lookup = {}
-        for reg in gpr + (stack, frame, pc) + retaddr:
+        for reg in itertools.chain(gpr, (stack, frame, pc), retaddr):
             if reg:
                 self.reg_definitions[reg.name] = reg
                 self.full_register_lookup[reg.name] = reg
                 for subregister in reg.subregisters:
                     self.reg_definitions[subregister.name] = subregister
                     self.full_register_lookup[subregister.name] = reg
-                    all_sub_registers.append(subregister.name)
+                    all_subregisters.append(subregister.name)
 
         # In 'common', we don't want to lose the ordering of:
         self.common = []
-        for reg in self.gpr + (self.frame, self.stack, self.pc) + tuple(self.flags):
-            if reg and reg not in self.common:
-                self.common.append(reg)
+        for regname in itertools.chain(
+            self.gpr, (self.frame, self.stack, self.pc), tuple(self.flags)
+        ):
+            if regname and regname not in self.common:
+                self.common.append(regname)
 
         # The specific order of this list is very important:
         # Due to the behavior of Arm in the Unicorn engine,
@@ -133,16 +136,16 @@ class RegisterSet:
         # https://github.com/pwndbg/pwndbg/pull/2337
         self.emulated_regs_order: List[UnicornRegisterWrite] = []
 
-        for reg in (
-            [self.pc]
-            + list(self.flags)
-            + [self.stack, self.frame]
-            + list(self.retaddr)
-            + list(self.misc)
-            + list(self.gpr)
+        for regname in itertools.chain(
+            (self.pc,),
+            tuple(self.flags),
+            (self.stack, self.frame),
+            self.retaddr,
+            self.misc,
+            self.gpr,
         ):
-            if reg and reg not in self.emulated_regs_order:
-                emu_reg = UnicornRegisterWrite(reg, True if reg in flags else False)
+            if regname and regname not in self.emulated_regs_order:
+                emu_reg = UnicornRegisterWrite(regname, True if regname in flags else False)
                 self.emulated_regs_order.append(emu_reg)
 
         self.all = (
@@ -151,7 +154,7 @@ class RegisterSet:
             | set(self.extra_flags)
             | set(self.retaddr)
             | set(self.common)
-            | set(all_sub_registers)
+            | set(all_subregisters)
         )
         self.all -= {None}
         self.all |= {"pc", "sp"}
