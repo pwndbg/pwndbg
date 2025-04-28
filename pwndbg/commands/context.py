@@ -1000,6 +1000,8 @@ pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return addres
 
 
 def get_regs(regs: List[str] = None):
+    regs: List[str | Tuple[str | None, BitFlags | AddressingRegister | Tuple[str, ...]]] = regs
+
     def select_context(reg) -> RegisterContext | RegistersContext | None:
         if reg is None:
             return None
@@ -1015,7 +1017,6 @@ def get_regs(regs: List[str] = None):
                 return SegmentRegistersContext(reg)
         return None
 
-    contexts: List[RegisterContext | RegistersContext | None] = []
     result = []
 
     if regs is None:
