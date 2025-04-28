@@ -130,8 +130,7 @@ def pwndbg_(filter_pattern, category_, list_categories) -> None:
 
 
 def list_and_filter_commands(filter_str):
-    sorted_commands = list(pwndbg.commands.commands)
-    sorted_commands.sort(key=lambda x: x.command_name)
+    sorted_commands = sorted(pwndbg.commands.commands, key=lambda c: c.command_name)
 
     if filter_str:
         filter_str = filter_str.lower()
@@ -146,10 +145,8 @@ def list_and_filter_commands(filter_str):
         name = c.command_name
         desc = c.description
 
-        if desc:
-            desc = desc.strip()
-        if desc:
-            desc = desc.splitlines()[0]
+        assert desc
+        desc = desc.splitlines()[0]
 
         if not filter_str or filter_str in name.lower() or (desc and filter_str in desc.lower()):
             results.append((name, c.aliases, c.category, desc))

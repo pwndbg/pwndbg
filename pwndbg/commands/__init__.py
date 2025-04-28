@@ -78,8 +78,7 @@ class InvalidDebuggerError(Exception):
     it is disallowed.
     """
 
-    def __init__(self, message: str):
-        super().__init__(message)
+    pass
 
 
 class CommandObj:
@@ -168,10 +167,7 @@ class CommandObj:
         self.parser.prog = self.command_name
 
         # Generate command help
-        file = io.StringIO()
-        self.parser.print_help(file)
-        file.seek(0)
-        self.help_str = file.read()
+        self.help_str = self.parser.format_help()
 
         # Used by `pwndbg [filter]`
         assert (
@@ -191,7 +187,7 @@ class CommandObj:
                 continue
             if action.type is int:
                 action.type = fix_int_reraise_arg
-            if action.type is None:
+            elif action.type is None:
                 action.type = fix_reraise_arg
 
         # FIXME: The defaults are not currently reflected in the docs.
@@ -221,8 +217,8 @@ class CommandObj:
 
         try:
             self.repeat = self.check_repeated(argument, from_tty)
-            # Call this object, goes to __call__
-            self(**kwargs)
+            # Call this object, same as `self(**kwargs)` but faster.
+            self.__call__(**kwargs)
         finally:
             self.repeat = False
 
