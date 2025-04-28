@@ -259,11 +259,7 @@ class CommandObj:
         try:
             return self.function(*args, **kwargs)
         except TypeError:
-<<<<<<< HEAD
-            print(f"{self.function.__name__.strip()!r}: {inspect.getdoc(self.function).strip()}")
-=======
             print(f"{self.command_name}: {self.description}")
->>>>>>> d5513d18 (remove shell commands, refactor command logic)
             pwndbg.exception.handle(self.function.__name__)
         except Exception:
             pwndbg.exception.handle(self.function.__name__)

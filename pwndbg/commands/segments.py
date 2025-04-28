@@ -5,6 +5,7 @@ import pwndbg.aglib.regs
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
+
 @pwndbg.commands.Command(
     "Prints out the FS base address. See also $fsbase.", category=CommandCategory.REGISTER
 )
