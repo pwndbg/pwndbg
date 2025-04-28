@@ -174,7 +174,7 @@ def check_doubleload():
 
 def rewire_exit():
     major_ver = int(gdb.VERSION.split(".")[0])
-    if major_ver <= 16:
+    if major_ver <= 15:
         # On certain verions of gdb (used on ubuntu 24.04) using sys.exit() can cause
         # a segfault. See:
         # https://github.com/pwndbg/pwndbg/pull/2900#issuecomment-2825456636
