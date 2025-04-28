@@ -174,12 +174,19 @@ def check_doubleload():
 
 def rewire_exit():
     major_ver = int(gdb.VERSION.split(".")[0])
-    if major_ver <= 15:
+    if major_ver <= 16:
         # On certain verions of gdb (used on ubuntu 24.04) using sys.exit() can cause
         # a segfault. See:
         # https://github.com/pwndbg/pwndbg/pull/2900#issuecomment-2825456636
         # https://sourceware.org/bugzilla/show_bug.cgi?id=31946
         def _patched_exit(exit_code):
+            # argparse requires a SystemExit exception, otherwise our CLI commands will exit incorrectly on invalid arguments
+            stack_list = traceback.extract_stack(limit=2)
+            if len(stack_list) == 2:
+                p = stack_list[0]
+                if p.filename.endswith('/argparse.py'):
+                    raise SystemExit()
+
             sys.stdout.flush()
             sys.stderr.flush()
             os._exit(exit_code)
