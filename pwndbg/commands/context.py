@@ -1024,7 +1024,7 @@ def get_regs(regs: List[str] = None):
 
         contexts.append(RegisterContext(pwndbg.aglib.regs.current.pc))
 
-        if pwndbg.aglib.qemu.is_qemu_kernel():
+        if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
             controls = pwndbg.aglib.regs.kernel.controls.items()
             if controls is not None:
                 contexts += [select_context(name, reg) for name, reg in controls]
@@ -1034,8 +1034,9 @@ def get_regs(regs: List[str] = None):
         if pwndbg.config.show_flags:
             flags = pwndbg.aglib.regs.flags.items()
             contexts += [FlagRegisterContext(name, reg) for name, reg in flags]
-        if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel.segments is not None:
-            contexts.append(SegmentRegistersContext(pwndbg.aglib.regs.kernel.segments))
+        if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
+            if pwndbg.aglib.regs.kernel.segments is not None:
+                contexts.append(SegmentRegistersContext(pwndbg.aglib.regs.kernel.segments))
     else:
         for reg in regs:
             contexts.append(RegisterContext(reg))
