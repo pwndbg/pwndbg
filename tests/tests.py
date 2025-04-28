@@ -173,6 +173,9 @@ class TestStats:
 
     def handle_test_result(self, test_result: TEST_RETURN_TYPE, args, test_dir_path):
         (process, test_case, duration) = test_result
+        if args.serial:
+            # Serial mode does not capture stdout, so it's not possible to check the result
+            return
 
         test_status = "FAIL"
         if process.returncode == 0:

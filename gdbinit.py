@@ -184,7 +184,7 @@ def rewire_exit():
             stack_list = traceback.extract_stack(limit=2)
             if len(stack_list) == 2:
                 p = stack_list[0]
-                if p.filename.endswith('/argparse.py'):
+                if p.filename.endswith("/argparse.py"):
                     raise SystemExit()
 
             sys.stdout.flush()
