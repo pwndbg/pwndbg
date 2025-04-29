@@ -5,7 +5,7 @@ import pytest
 
 import pwndbg.color
 
-# Zig requires the start symbol to __start instead of _start for MIPS
+# Zig requires the start symbol to be __start instead of _start for MIPS
 MIPS_PREAMBLE = """
 .text
 .globl __start
