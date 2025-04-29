@@ -215,7 +215,7 @@ class Process:
         socket = "socket:["
         result = []
 
-        functions = [tcp, unix, netlink]
+        functions = [tcp, tcp6, unix, netlink]
 
         for fd, path in fds.items():
             if socket not in path:
@@ -225,7 +225,7 @@ class Process:
             inode = int(inode)
 
             for func in functions:
-                for x in func():
+                for x in func(self.tid):
                     if x.inode == inode:
                         x.fd = fd
                         result.append(x)
