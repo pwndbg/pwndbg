@@ -108,9 +108,9 @@ class CommandFormatter(argparse.RawDescriptionHelpFormatter):
                 defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
                 if action.option_strings or action.nargs in defaulting_nargs:
                     if action.type is str:
-                        help_ += argparse._(" (default: '%(default)s')")
+                        help_ += " (default: '%(default)s')"
                     else:
-                        help_ += argparse._(" (default: %(default)s)")
+                        help_ += " (default: %(default)s)"
 
         return help_
 
