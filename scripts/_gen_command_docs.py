@@ -60,6 +60,9 @@ def extract_sources() -> (Dict[str, argparse.ArgumentParser], Dict[str, list[str
     filename_to_source = {}
     category_to_filename = {}
 
+    # FIXME: If an lldb-only command is added this (or pwndbg.commands) will need to be
+    # revamped.
+
     # This depends on pwndbg.commands.load_commands() importing every command :)
     # `obj` iterates over all modules in pwndbg.commands (among other stuff).
     for obj_name in dir(pwndbg.commands):
@@ -72,13 +75,13 @@ def extract_sources() -> (Dict[str, argparse.ArgumentParser], Dict[str, list[str
 
             if not isinstance(fn, pwndbg.commands.CommandObj):
                 continue
-            # This object is a command (an _ArgparsedCommand object)!
+            # This object is a command!
 
             category = fn.category
             parser = fn.parser
 
             if category is None:
-                # Should never be reached since ArgparsedCommand.__init__() will throw the error first.
+                # Should never be reached since CommandObj.__init__() will throw the error first.
                 print(
                     f"ERROR: Command function {fn_name} in {obj_name} does not have an assigned category."
                 )
