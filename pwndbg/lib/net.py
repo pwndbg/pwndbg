@@ -28,10 +28,10 @@ TCP_STATUSES = {
 
 
 def format_host_port(ip, port):
-    if ':' in ip and not ip.startswith('['):
-        return f'[{ip}]:{port}'
+    if ":" in ip and not ip.startswith("["):
+        return f"[{ip}]:{port}"
     else:
-        return f'{ip}:{port}'
+        return f"{ip}:{port}"
 
 
 class inode:
@@ -51,9 +51,7 @@ class Connection(inode):
     family: str | None = None
 
     def __str__(self) -> str:
-        return (
-            f"{self.family} {format_host_port(self.lhost, self.lport)} => {format_host_port(self.rhost, self.rport)} ({self.status})"
-        )
+        return f"{self.family} {format_host_port(self.lhost, self.lport)} => {format_host_port(self.rhost, self.rport)} ({self.status})"
 
     def __repr__(self) -> str:
         return f'Connection("{self}")'
