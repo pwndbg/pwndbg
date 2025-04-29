@@ -56,7 +56,6 @@ parser.add_argument(
     "filename",
     type=str,
     help="Name (path) of the file to save the cyclic pattern to",
-    default="",
     nargs="?",
 )
 

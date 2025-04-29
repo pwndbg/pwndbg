@@ -17,6 +17,7 @@ from typing import Tuple
 from typing import TypeVar
 
 from typing_extensions import ParamSpec
+from typing_extensions import override
 
 import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
@@ -79,6 +80,39 @@ class InvalidDebuggerError(Exception):
     """
 
     pass
+
+
+class CommandFormatter(argparse.RawDescriptionHelpFormatter):
+    """
+    The formatter_class that is passed to argparse for all
+    commands.
+
+    Subclassing this isn't officially supported, but there
+    isn't a good alternative.
+    """
+
+    @override
+    def _get_help_string(self, action):
+        # Yoinked from argparse.ArgumentDefaultsHelpFormatter with
+        # the added ` and action.default not in (None, False)` check.
+        help_ = action.help
+        if help_ is None:
+            help_ = ""
+
+        if "%(default)" not in help_:
+            is_false_bool = (
+                action.type is bool or isinstance(action.default, bool)
+            ) and not action.default
+            is_none = action.default is None
+            if action.default is not argparse.SUPPRESS and not (is_false_bool or is_none):
+                defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
+                if action.option_strings or action.nargs in defaulting_nargs:
+                    if action.type is str:
+                        help_ += argparse._(" (default: '%(default)s')")
+                    else:
+                        help_ += argparse._(" (default: %(default)s)")
+
+        return help_
 
 
 class CommandObj:
@@ -183,21 +217,12 @@ class CommandObj:
             elif action.type is None:
                 action.type = fix_reraise_arg
 
-        class GoodFormatter(
-            argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter
-        ):
-            pass
-
         assert (
             self.parser.formatter_class is argparse.HelpFormatter
             and "All pwndbg commands should use the same formatter."
         )
 
-        # FIXME: The defaults are not currently reflected in the docs.
-        self.parser.formatter_class = GoodFormatter
-
-        # Generate command help (after we have selected the formatter)
-        self.help_str = self.parser.format_help()
+        self.parser.formatter_class = CommandFormatter
 
         # Used by `pwndbg [filter]`
         assert (
@@ -205,7 +230,13 @@ class CommandObj:
             and self.parser.description.strip()
             and "A command must contain a description."
         )
-        self.description = self.parser.description.strip()
+        self.description = self.parser.description = self.parser.description.strip()
+        if self.parser.epilog:
+            self.epilog = self.parser.epilog = self.parser.epilog.strip()
+
+        # Generate command help (after stripping the parser's variables
+        # and defining a formatter).
+        self.help_str = self.parser.format_help()
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
