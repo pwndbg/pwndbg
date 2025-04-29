@@ -299,20 +299,22 @@ def main():
             sys.exit(1)
     else:
         gdbinit_path = os.path.join(root_dir, "gdbinit.py")
-        gdb_binary = "gdb"
-        if args.type == "cross-arch":
-            gdb_binary = "gdb-multiarch"
-        gdb_path = shutil.which(gdb_binary)
+        if (
+            args.type == "cross-arch"
+            and (gdb_multiarch := shutil.which("gdb-multiarch")) is not None
+        ):
+            gdb_path = gdb_multiarch
+        else:
+            gdb_path = shutil.which("gdb")
 
     os.environ["GDB_INIT_PATH"] = gdbinit_path
     os.environ["GDB_BIN_PATH"] = gdb_path
 
     test_dir_path = TEST_FOLDER_NAME[args.type]
 
-    if args.type == "gdb":
-        ensure_zig_path()
-        make_binaries(test_dir_path)
-    elif args.type == "cross-arch":
+    ensure_zig_path()
+
+    if args.type in ("gdb", "cross-arch"):
         make_binaries(test_dir_path)
     else:
         raise NotImplementedError(args.type)

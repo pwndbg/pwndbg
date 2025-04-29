@@ -140,16 +140,9 @@ install_apt() {
         gdb \
         gdb-multiarch \
         parallel \
-        iproute2 \
         qemu-system-x86 \
         qemu-system-arm \
-        qemu-user \
-        gcc-aarch64-linux-gnu \
-        gcc-riscv64-linux-gnu \
-        gcc-arm-linux-gnueabihf \
-        gcc-mips-linux-gnu \
-        gcc-mipsel-linux-gnu \
-        gcc-mips64-linux-gnuabi64
+        qemu-user
 
     # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
     if uname -m | grep -q x86_64; then

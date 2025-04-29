@@ -7,17 +7,56 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import typing
+from typing import Dict
 from typing import Literal
+from typing import Tuple
 
 import gdb
 import pytest
-from pwn import context
-from pwn import make_elf_from_assembly
-from pwn import pwnlib
+
+from pwndbg.lib import tempfile
 
 _start_binary_called = False
 
 QEMU_PORT = os.environ.get("QEMU_PORT")
+ZIGPATH = os.environ.get("ZIGPATH")
+
+COMPILATION_TARGETS_TYPE = Literal[
+    "aarch64",
+    "arm",
+    "riscv32",
+    "riscv64",
+    "loongarch64",
+    "powerpc32",
+    "powerpc64",
+    "mips32",
+    "mipsel32",
+    "mips64",
+    "s390x",
+    "sparc",
+]
+
+COMPILATION_TARGETS: list[COMPILATION_TARGETS_TYPE] = list(
+    typing.get_args(COMPILATION_TARGETS_TYPE)
+)
+
+# Tuple contains (Zig target,extra_cli_args,qemu_suffix),
+COMPILE_AND_RUN_INFO: Dict[COMPILATION_TARGETS_TYPE, Tuple[str, Tuple[str, ...], str]] = {
+    "aarch64": ("aarch64-freestanding", (), "aarch64"),
+    # TODO: when updating to newer version of Zig, this -mcpu option can be removed
+    "arm": ("arm-freestanding", ("-mcpu=cortex_a7",), "arm"),
+    "riscv32": ("riscv32-freestanding", (), "riscv32"),
+    "riscv64": ("riscv64-freestanding", (), "riscv64"),
+    "mips32": ("mips-freestanding", (), "mips"),
+    "mipsel32": ("mipsel-freestanding", (), "mipsel"),
+    "mips64": ("mips64-freestanding", (), "mips64"),
+    "loongarch64": ("loongarch64-freestanding", (), "loongarch64"),
+    "s390x": ("s390x-freestanding", (), "s390x"),
+    "sparc": ("sparc64-freestanding", (), "sparc64"),
+    "powerpc32": ("powerpc-freestanding", (), "ppc"),
+    "powerpc64": ("powerpc64-freestanding", (), "ppc64"),
+}
 
 
 @pytest.fixture
@@ -28,6 +67,11 @@ def qemu_assembly_run():
     The `path` is returned from `make_elf_from_assembly` (provided by pwntools)
     """
 
+    if ZIGPATH is None:
+        raise Exception("ZIGPATH not defined")
+
+    PATH_TO_ZIG = os.path.join(ZIGPATH, "zig")
+
     qemu: subprocess.Popen = None
 
     if QEMU_PORT is None:
@@ -35,26 +79,55 @@ def qemu_assembly_run():
         sys.stdout.flush()
         sys.exit(1)
 
-    def _start_binary(asm: str, arch: str, endian: Literal["big", "little"] | None = None):
+    def _start_binary(asm: str, arch: COMPILATION_TARGETS_TYPE):
         nonlocal qemu
 
-        # Clear the context so setting the .arch will also set .bits
-        # https://github.com/Gallopsled/pwntools/issues/2498
-        context.clear()
-        context.arch = arch
+        if arch not in COMPILATION_TARGETS or arch not in COMPILE_AND_RUN_INFO:
+            raise Exception(f"Unknown compilation target: {arch}")
 
-        if endian is not None:
-            context.endian = endian
+        zig_target, extra_cli_args, qemu_suffix = COMPILE_AND_RUN_INFO[arch]
 
-        binary_tmp_path = make_elf_from_assembly(asm)
-        qemu_suffix = pwnlib.qemu.archname()
+        # Declare _start symbol at start of the assembly if it's not already declared
+        if "_start:" not in asm:
+            asm = ".text\n.globl _start\n_start:\n" + asm
+
+        # Place assembly and compiled binary in a temporary folder
+        # named /tmp/pwndbg-*
+        tmpdir = tempfile.tempdir()
+
+        asm_file = os.path.join(tmpdir, "input.S")
+
+        with open(asm_file, "w") as f:
+            f.write(asm)
+
+        compiled_file = os.path.join(tmpdir, "out.elf")
+
+        # Build the binary with Zig
+        compile_process = subprocess.run(
+            [
+                PATH_TO_ZIG,
+                "cc",
+                *extra_cli_args,
+                f"--target={zig_target}",
+                asm_file,
+                "-o",
+                compiled_file,
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+
+        if compile_process.returncode != 0:
+            raise Exception("Compilation error", compile_process.stdout, compile_process.stderr)
 
         qemu = subprocess.Popen(
             [
                 f"qemu-{qemu_suffix}",
                 "-g",
                 f"{QEMU_PORT}",
-                f"{binary_tmp_path}",
+                f"{compiled_file}",
             ]
         )
 
@@ -76,21 +149,6 @@ def qemu_assembly_run():
     qemu.kill()
 
 
-# Map of qemu_suffix to location of library files in default Ubuntu installs of cross-compilers
-CROSS_ARCH_LIBC = {
-    "aarch64": "/usr/aarch64-linux-gnu",
-    "arm": "/usr/arm-linux-gnueabihf",
-    "mips": "/usr/mips-linux-gnu",
-    "mipsel": "/usr/mipsel-linux-gnu",
-    "mips64": "/usr/mips64-linux-gnuabi64/",
-    "riscv64": "/usr/riscv64-linux-gnu/",
-    "loongarch64": "/usr/loongarch64-linux-gnu/",
-    "ppc": "/usr/powerpc-linux-gnu/",
-    "ppc64": "/usr/powerpc64-linux-gnu/",
-    "sparc64": "/usr/sparc64-linux-gnu/",
-}
-
-
 @pytest.fixture
 def qemu_start_binary():
     """
@@ -106,23 +164,17 @@ def qemu_start_binary():
         sys.stdout.flush()
         sys.exit(1)
 
-    def _start_binary(path: str, arch: str, endian: Literal["big", "little"] | None = None):
+    def _start_binary(path: str, arch: COMPILATION_TARGETS_TYPE):
         nonlocal qemu
 
-        if endian is not None:
-            context.endian = endian
+        if arch not in COMPILATION_TARGETS or arch not in COMPILE_AND_RUN_INFO:
+            raise Exception(f"Unknown compilation target: {arch}")
 
-        qemu_suffix = pwnlib.qemu.archname(arch=arch)
-        # qemu_libs = pwnlib.qemu.ld_prefix(arch=arch)
-        qemu_libs = CROSS_ARCH_LIBC.get(qemu_suffix, f"/usr/gnemul/qemu-{qemu_suffix}")
-
-        assert os.path.isdir(qemu_libs), f"Cannot find cross-arch libraries at path: {qemu_libs}"
+        _, _, qemu_suffix = COMPILE_AND_RUN_INFO[arch]
 
         qemu = subprocess.Popen(
             [
                 f"qemu-{qemu_suffix}",
-                "-L",
-                qemu_libs,
                 "-g",
                 f"{QEMU_PORT}",
                 f"{path}",
