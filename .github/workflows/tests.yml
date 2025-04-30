@@ -74,11 +74,6 @@ jobs:
       matrix:
         os: [ubuntu-24.04]
         type: [qemu-user-tests, qemu-tests, tests]
-        include:
-          - os: ubuntu-24.04-arm
-            type: qemu-user-tests
-          - os: ubuntu-24.04-arm
-            type: qemu-tests
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     env:
