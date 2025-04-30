@@ -15,6 +15,7 @@ from typing import Tuple
 from typing import Union
 
 import pwndbg.color.context as C
+from pwndbg.color import message
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
@@ -65,6 +66,7 @@ class BitFlags:
         if not (
             isinstance(self.reg, str) and isinstance(self.value, int) and isinstance(self.last, int)
         ):
+            print(message.warn(f"Unknown register: {self.reg!r}"))
             return None
         regname = C.register(self.reg.ljust(4).upper())
         if self.reg in changed:
@@ -93,6 +95,7 @@ class AddressingRegister:
 
     def context(self, changed):
         if not (isinstance(self.reg, str) and isinstance(self.value, int)):
+            print(message.warn(f"Unknown register: {self.reg!r}"))
             return None
         regname = C.register(self.reg.ljust(4).upper())
         if self.reg in changed:
@@ -124,12 +127,16 @@ class SegmentRegisters:
         self.values = values
 
     def format_reg(self, reg, changed):
+        value = self.values[self.idx_map[reg]]
+        if not (isinstance(value, int) and isinstance(reg, str)):
+            print(message.warn(f"Unknown register: {reg!r}"))
+            return None
         regname = C.register((reg + ":").ljust(4).upper())
         if reg in changed:
             regname = C.register_changed(regname)
         change_marker = f"{C.config_register_changed_marker}"
         m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
-        return f"{m}{regname} {hex(self.values[self.idx_map[reg]])}   "
+        return f"{m}{regname} {hex(value)}   "
 
     def context(self, changed):
         result = ""

@@ -282,42 +282,6 @@ class CallOutput:
             return False
 
 
-class RegisterContext:
-    reg: str
-
-    def __init__(self, reg: str):
-        self.reg = reg
-
-    def value(self):
-        val = pwndbg.aglib.regs[self.reg]
-        if val is None:
-            print(message.warn(f"Unknown register: {self.reg!r}"))
-        return val
-
-    def desc(self):
-        val = self.value()
-        if val is None:
-            return None
-        return pwndbg.chain.format(val)
-
-    def context(self):
-        changed = pwndbg.aglib.regs.changed
-
-        # Make the register stand out and give a color if changed
-        regname = C.register(self.reg.ljust(4).upper())
-        if self.reg in changed:
-            regname = C.register_changed(regname)
-
-        # Show a marker next to the register if it changed
-        change_marker = f"{C.config_register_changed_marker}"
-        m = (
-            " " * len(change_marker)
-            if self.reg not in changed
-            else C.register_changed(change_marker)
-        )
-        return f"{m}{regname} {self.desc()}"
-
-
 def output(section: str):
     """Creates a context manager corresponding to configured context output"""
     target = outputs.get(section, str(config_output))
@@ -938,6 +902,24 @@ pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return addres
 def get_regs(regs: List[str] = None):
     regs: List[Any] = regs  # ei, not dealing with types here is probably fine
 
+    def context(reg):
+        val = pwndbg.aglib.regs[reg]
+        if val is None:
+            print(message.warn(f"Unknown register: {reg!r}"))
+            return None
+        desc = pwndbg.chain.format(val)
+        changed = pwndbg.aglib.regs.changed
+
+        # Make the register stand out and give a color if changed
+        regname = C.register(reg.ljust(4).upper())
+        if reg in changed:
+            regname = C.register_changed(regname)
+
+        # Show a marker next to the register if it changed
+        change_marker = f"{C.config_register_changed_marker}"
+        m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
+        return f"{m}{regname} {desc}"
+
     result = []
 
     if regs is None:
@@ -974,10 +956,13 @@ def get_regs(regs: List[str] = None):
         if reg is None:
             continue
         if not isinstance(reg, str):
-            result.append(reg.context(changed))
-            continue
-        context = RegisterContext(reg)
-        result.append(context.context())
+            desc = reg.context(changed)
+            if desc is not None:
+                result.append(desc)
+                continue
+        desc = context(reg)
+        if desc is not None:
+            result.append(desc)
 
     return result
 
