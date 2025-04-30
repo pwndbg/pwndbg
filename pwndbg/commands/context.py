@@ -299,7 +299,7 @@ parser.add_argument(
     help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')",
 )
 parser.add_argument("path", type=str, help="The path to which the output is written")
-parser.add_argument("clearing", type=bool, help="Indicates weather to clear the output")
+parser.add_argument("clearing", type=bool, help="Indicates whether to clear the output")
 banner_arg = parser.add_argument(
     "banner",
     type=str,
