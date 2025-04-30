@@ -30,6 +30,7 @@ from pwndbg.dbg import EventType
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import KernelRegisterSet
 from pwndbg.lib.regs import RegisterSet
+from pwndbg.lib.regs import SegmentRegisters
 from pwndbg.lib.regs import reg_sets
 
 
@@ -170,11 +171,41 @@ class module(ModuleType):
 
     @property
     def kernel(self) -> KernelRegisterSet:
-        return reg_sets[pwndbg.aglib.arch.name].kernel
+        kernel_regs = reg_sets[pwndbg.aglib.arch.name].kernel
+        if kernel_regs is None:
+            return None
+        controls = kernel_regs.controls
+        if controls is not None:
+            for reg, control in controls.items():
+                if isinstance(control, BitFlags):
+                    control.update(reg, self[reg], self.last.get(reg, 0))
+                else:
+                    control.update(self[reg])
+        msrs = kernel_regs.msrs
+        if msrs is not None:
+            for reg, msr in msrs.items():
+                if isinstance(msr, BitFlags):
+                    msr.update(reg, self[reg], self.last.get(reg, 0))
+                else:
+                    msr.update(self[reg])
+
+        segments = kernel_regs.segments
+        if isinstance(segments, SegmentRegisters):
+            values = [self[reg] for reg in segments.regs]
+            segments.update(values)
+        return kernel_regs
 
     @property
     def flags(self) -> Dict[str, BitFlags]:
-        return reg_sets[pwndbg.aglib.arch.name].flags
+        _flags = reg_sets[pwndbg.aglib.arch.name].flags
+        if _flags is None:
+            return None
+        for reg, _flag in _flags.items():
+            if _flag is None:
+                continue
+            # this should update the reference
+            _flag.update(reg, self[reg], self.last.get(reg, 0))
+        return _flags
 
     @property
     def extra_flags(self) -> Dict[str, BitFlags]:

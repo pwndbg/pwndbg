@@ -14,19 +14,28 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
+import pwndbg.color.context as C
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
 class BitFlags:
-    # this should be backwards compatible
+    # this should be backwards compatibility
+    reg: str  # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
+    value: int
+    last: int
     flags: OrderedDict[str, Union[int, Tuple[int, int]]]
 
     def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
+        self.reg = ""
+        self.value = 0
+        self.last = 0
         self.flags = {}
         for name, bits in flags:
             self.flags[name] = bits
 
     def __getattr__(self, name):
+        if name in {"reg", "value", "last"}:
+            return self.__dict__[name]
         return getattr(self.flags, name)
 
     def __getitem__(self, key):
@@ -47,12 +56,86 @@ class BitFlags:
     def __repr__(self):
         return f"BitFlags({self.flags})"
 
+    def update(self, reg: str, value: int, last: int):
+        self.reg = reg
+        self.value = value
+        self.last = last
+
+    def context(self, changed):
+        if not (
+            isinstance(self.reg, str) and isinstance(self.value, int) and isinstance(self.last, int)
+        ):
+            return None
+        regname = C.register(self.reg.ljust(4).upper())
+        if self.reg in changed:
+            regname = C.register_changed(regname)
+        change_marker = f"{C.config_register_changed_marker}"
+        m = (
+            " " * len(change_marker)
+            if self.reg not in changed
+            else C.register_changed(change_marker)
+        )
+        desc = C.format_flags(self.value, self, self.last)
+        return f"{m}{regname} {desc}"
+
 
 class AddressingRegister:
+    reg: str
+    value: int
     is_virtual: bool  # inicating if the address is a virtual address
 
-    def __init__(self, is_virtual):
+    def __init__(self, reg: str, is_virtual: bool):
+        self.reg = reg
         self.is_virtual = is_virtual
+
+    def update(self, value):
+        self.value = value
+
+    def context(self, changed):
+        if not (isinstance(self.reg, str) and isinstance(self.value, int)):
+            return None
+        regname = C.register(self.reg.ljust(4).upper())
+        if self.reg in changed:
+            regname = C.register_changed(regname)
+        change_marker = f"{C.config_register_changed_marker}"
+        m = (
+            " " * len(change_marker)
+            if self.reg not in changed
+            else C.register_changed(change_marker)
+        )
+        import pwndbg.chain
+
+        desc = pwndbg.chain.format(self.value)
+        return f"{m}{regname} {desc}"
+
+
+class SegmentRegisters:
+    regs: List[str]
+    idx_map: Dict[str, int]
+    values: List[int]
+
+    def __init__(self, regs: List[str]):
+        self.regs = regs
+        self.idx_map = {}
+        for i, reg in enumerate(regs):
+            self.idx_map[reg] = i
+
+    def update(self, values):
+        self.values = values
+
+    def format_reg(self, reg, changed):
+        regname = C.register((reg + ":").ljust(4).upper())
+        if reg in changed:
+            regname = C.register_changed(regname)
+        change_marker = f"{C.config_register_changed_marker}"
+        m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
+        return f"{m}{regname} {hex(self.values[self.idx_map[reg]])}   "
+
+    def context(self, changed):
+        result = ""
+        for reg in self.regs:
+            result += self.format_reg(reg, changed)
+        return result
 
 
 class KernelRegisterSet:
@@ -62,7 +145,7 @@ class KernelRegisterSet:
     """
 
     # Segment registers (CS, DS, ES, FS, GS, SS)
-    segments: Tuple[str, ...]
+    segments: SegmentRegisters
 
     # Control registers (cr0, cr3, cr4)
     controls: Dict[str, BitFlags | AddressingRegister]
@@ -72,7 +155,7 @@ class KernelRegisterSet:
 
     def __init__(
         self,
-        segments: List[str] = [],
+        segments: SegmentRegisters | None,
         controls: Dict[str, BitFlags | AddressingRegister] = {},
         msrs: Dict[str, BitFlags | AddressingRegister] = {},
     ):
@@ -166,7 +249,7 @@ class RegisterSet:
             controls = self.kernel.controls
             segments = self.kernel.segments
             msrs = self.kernel.msrs
-            for reg in tuple(controls) + tuple(segments) + tuple(msrs):
+            for reg in tuple(controls) + tuple(segments.regs) + tuple(msrs):
                 if reg and reg not in self.common:
                     self.common.append(reg)
 
@@ -399,11 +482,11 @@ x86flags = {
 }
 
 amd64_kernel = KernelRegisterSet(
-    segments=["cs", "ss", "ds", "es", "fs", "gs"],
+    segments=SegmentRegisters(["cs", "ss", "ds", "es", "fs", "gs"]),
     controls={
         # only displays the security related bits, otherwise it can be too clustered
         "cr0": BitFlags([("PE", 0), ("WP", 16), ("PG", 31)]),
-        "cr3": AddressingRegister(False),
+        "cr3": AddressingRegister("cr3", False),
         "cr4": BitFlags(
             [
                 ("UMIP", 11),
@@ -418,8 +501,8 @@ amd64_kernel = KernelRegisterSet(
     },
     msrs={
         "efer": BitFlags([("NXE", 11)]),
-        "gs_base": AddressingRegister(True),
-        "fs_base": AddressingRegister(True),
+        "gs_base": AddressingRegister("gs_base", True),
+        "fs_base": AddressingRegister("fs_base", True),
     },
 )
 
