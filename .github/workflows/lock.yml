@@ -34,6 +34,13 @@ jobs:
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
       with:
         nix_path: nixpkgs=channel:nixos-unstable
+    - name: configure cache
+      if: github.ref == 'refs/heads/dev'
+      uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
+      with:
+        name: pwndbg
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
 
     - name: build pwndbg
       run: nix build '.#pwndbg' --accept-flake-config -o result
@@ -43,15 +50,6 @@ jobs:
 
     - name: build develop environment
       run: nix develop --accept-flake-config
-
-    - name: configure cache
-      if: github.ref == 'refs/heads/dev'
-      uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
-      with:
-        name: pwndbg
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-        skipPush: false
 
   check_release_build-lldb:
     strategy:
@@ -71,6 +69,13 @@ jobs:
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
       with:
         nix_path: nixpkgs=channel:nixos-unstable
+    - name: configure cache
+      if: github.ref == 'refs/heads/dev'
+      uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
+      with:
+        name: pwndbg
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
 
     - name: build pwndbg
       run: nix build '.#pwndbg-lldb' --accept-flake-config -o result
@@ -80,15 +85,6 @@ jobs:
 
     - name: build develop environment
       run: nix develop --accept-flake-config
-
-    - name: configure cache
-      if: github.ref == 'refs/heads/dev'
-      uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
-      with:
-        name: pwndbg
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-        skipPush: false
 
   lock_flake:
     runs-on: ubuntu-latest
