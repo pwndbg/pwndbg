@@ -47,7 +47,7 @@ jobs:
     - name: Run qemu-user-tests
       if: matrix.type == 'qemu-user-tests'
       run: |
-        nix develop -c './qemu-tests.sh --nix'
+        nix develop -c ./qemu-tests.sh --nix
 
     - name: Set up cache for QEMU images
       if: matrix.type == 'qemu-tests'
@@ -66,7 +66,7 @@ jobs:
       if: matrix.type == 'qemu-tests'
       working-directory: ./tests/qemu-tests
       run: |
-        nix develop -c './tests.sh --nix'
+        nix develop -c ./tests.sh --nix
 
   tests-using-nix:
     strategy:
