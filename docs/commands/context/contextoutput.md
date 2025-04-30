@@ -22,7 +22,7 @@ usage: contextoutput [-h] section path clearing [banner] [width]
 | :--- | :--- |
 |section|The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')|
 |path|The path to which the output is written|
-|clearing|Indicates weather to clear the output|
+|clearing|Indicates whether to clear the output|
 |banner|Where a banner should be placed: both, top , bottom, none (default: 'both')|
 |width|Sets a fixed width (used for banner). Set to None for auto|
 
