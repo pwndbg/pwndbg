@@ -41,6 +41,9 @@ jobs:
     - name: simple run pwndbg
       run: TERM=xterm-256color ./result/bin/pwndbg <<< 'exit'
 
+    - name: build develop environment
+      run: nix develop --accept-flake-config
+
     - name: configure cache
       if: github.ref == 'refs/heads/dev'
       uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
@@ -48,11 +51,7 @@ jobs:
         name: pwndbg
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-        skipPush: true
-
-    - name: upload cache
-      if: github.ref == 'refs/heads/dev'
-      run: cachix push -v pwndbg ./result
+        skipPush: false
 
   check_release_build-lldb:
     strategy:
@@ -79,6 +78,9 @@ jobs:
     - name: simple run pwndbg
       run: TERM=xterm-256color ./result/bin/pwndbg-lldb <<< 'exit'
 
+    - name: build develop environment
+      run: nix develop --accept-flake-config
+
     - name: configure cache
       if: github.ref == 'refs/heads/dev'
       uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
@@ -86,12 +88,7 @@ jobs:
         name: pwndbg
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-        skipPush: true
-
-    - name: upload cache
-      if: github.ref == 'refs/heads/dev'
-      run: cachix push -v pwndbg ./result
-
+        skipPush: false
 
   lock_flake:
     runs-on: ubuntu-latest
