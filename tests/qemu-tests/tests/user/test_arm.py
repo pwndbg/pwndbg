@@ -4,6 +4,12 @@ import gdb
 
 import pwndbg.color
 
+ARM_PREAMBLE = """
+.text
+.globl _start
+_start:
+"""
+
 ARM_GRACEFUL_EXIT = """
 mov r0, 0
 mov r7, 0xf8
@@ -11,6 +17,7 @@ swi #0
 """
 
 ARM_BRANCHES = f"""
+{ARM_PREAMBLE}
 mov r2, #5
 mov r1, #10
 cmp r0, r1
@@ -92,6 +99,7 @@ def test_arm_simple_branch(qemu_assembly_run):
 
 
 ARM_INTERWORKING_BRANCH = f"""
+{ARM_PREAMBLE}
 add r0, pc, #1
 bx r0
 
@@ -153,8 +161,8 @@ def test_arm_interworking_branch(qemu_assembly_run):
     assert dis == expected
 
 
-ARM_IMPLICIT_BRANCH = """
-.syntax unified
+ARM_IMPLICIT_BRANCH = f"""
+{ARM_PREAMBLE}
 ldr     R1, =_target
 ADD PC, R1, #1
 
@@ -209,7 +217,8 @@ def test_arm_implicit_branch(qemu_assembly_run):
     assert dis == expected
 
 
-ARM_IMPLICIT_BRANCH_NEXT_INSTRUCTION = """
+ARM_IMPLICIT_BRANCH_NEXT_INSTRUCTION = f"""
+{ARM_PREAMBLE}
 ldr     R1, =_target
 ADD PC, R1, #1
 
@@ -262,6 +271,7 @@ def test_arm_implicit_branch_next_instruction(qemu_assembly_run):
 
 
 ARM_LDR_TO_PC = f"""
+{ARM_PREAMBLE}
 
 ldr    pc, =end
 nop
@@ -348,6 +358,7 @@ def test_arm_mode_banner(qemu_assembly_run):
 
 
 ARM_STACK_CRASH = f"""
+{ARM_PREAMBLE}
 mov r0, #4
 mov r1, #3
 add r2, r0, r1
@@ -399,6 +410,7 @@ def test_arm_stack_pointer_check(qemu_assembly_run):
 
 
 ARM_CMP = f"""
+{ARM_PREAMBLE}
 mov r0, #5
 mov r1, #5
 cmp r0, r1
@@ -436,6 +448,7 @@ def test_arm_cmp_instructions(qemu_assembly_run):
 
 
 ARM_BRANCH_AND_LINK = f"""
+{ARM_PREAMBLE}
 nop
 bl func
 nop
@@ -487,6 +500,7 @@ def test_arm_call_instructions(qemu_assembly_run):
 
 
 ARM_STORE = f"""
+{ARM_PREAMBLE}
 ldr r0, =value1
 ldr r1, =0x87654321
 ldr r2, =0x12345678
@@ -537,7 +551,8 @@ def test_arm_exclusive_store(qemu_assembly_run):
     assert dis == expected
 
 
-ARM_SHIFTS = """
+ARM_SHIFTS = f"""
+{ARM_PREAMBLE}
 MOV r0, #3
 MOV r1, #0xF000
 MOV r2, #0x1234
@@ -581,7 +596,8 @@ def test_arm_logical_shifts(qemu_assembly_run):
     assert dis == expected
 
 
-NEGATIVE_DISPONENTS = r"""
+NEGATIVE_DISPONENTS = rf"""
+{ARM_PREAMBLE}
 LDR r1, =msg
 ADD r1, 4
 LDR r0, [r1, #-4]
@@ -630,7 +646,8 @@ def test_arm_negative_disponent(qemu_assembly_run):
     assert dis == expected
 
 
-NEGATIVE_INDEX_REGISTER = r"""
+NEGATIVE_INDEX_REGISTER = rf"""
+{ARM_PREAMBLE}
 LDR R1, =msg
 ADD r1, 4
 ADD r2, r1, 4
@@ -686,7 +703,8 @@ def test_arm_negative_index_register(qemu_assembly_run):
     assert dis == expected
 
 
-ARM_IT_BLOCK = """
+ARM_IT_BLOCK = f"""
+{ARM_PREAMBLE}
 add r0, pc, #1
 bx r0
 

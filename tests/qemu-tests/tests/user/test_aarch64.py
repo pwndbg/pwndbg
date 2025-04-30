@@ -11,6 +11,18 @@ import pwndbg.aglib.symbol
 import pwndbg.dbg
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 
+AARCH64_PREAMBLE = """
+.text
+.globl _start
+_start:
+"""
+
+# The svc 0 is often the last instruction to be executed in these AArch64 tests and are placed in memory
+# after all the other instructions. The bytes after it in memory (to fill the rest of the page) are typically filled with 0's.
+# It was observed that compiling the program on different Linux distros even with the same Zig version might
+# result in a couple of the bytes after svc being slightly different, resulting in the disassembly outputting
+# slightly different instructions, like udf #0 or udf #23, depending on the source distro.
+# To make this problem go away, the nops are added so that the disassembled instructions are consistent.
 AARCH64_GRACEFUL_EXIT = """
 mov x0, 0
 mov x8, 93
@@ -27,6 +39,7 @@ nop
 """
 
 SIMPLE_FUNCTION = f"""
+{AARCH64_PREAMBLE}
 
 bl my_function
 b end
@@ -93,11 +106,17 @@ def test_aarch64_branch_enhancement(qemu_assembly_run):
     assert instruction.is_unconditional_jump
 
 
+EXIT_SYSCALL = f"""
+{AARCH64_PREAMBLE}
+{AARCH64_GRACEFUL_EXIT}
+"""
+
+
 def test_aarch64_syscall_annotation(qemu_assembly_run):
     """
     Validate that we have enriched syscalls correctly.
     """
-    qemu_assembly_run(AARCH64_GRACEFUL_EXIT, "aarch64")
+    qemu_assembly_run(EXIT_SYSCALL, "aarch64")
 
     instructions = pwndbg.aglib.disasm.disassembly.near(
         address=pwndbg.aglib.regs.pc, instructions=3, emulate=True
@@ -144,6 +163,7 @@ def test_aarch64_syscall_annotation(qemu_assembly_run):
 
 
 CONDITIONAL_JUMPS = f"""
+{AARCH64_PREAMBLE}
 mov x2, 0b1010
 mov x3, 0
 
@@ -258,7 +278,8 @@ def test_conditional_jumps_no_emulate(qemu_assembly_run):
     test_aarch64_conditional_jumps(qemu_assembly_run)
 
 
-AARCH64_BINARY_OPERATIONS = """
+AARCH64_BINARY_OPERATIONS = f"""
+{AARCH64_PREAMBLE}
 mov x0, 7
 mov x1, 563
 add x2, x0, x1
@@ -300,7 +321,8 @@ def test_aarch64_binary_operations(qemu_assembly_run):
 
 
 # Nops are so that when we break at `stores`, the display doesn't have any previous instructions
-AARCH64_STORES = """
+AARCH64_STORES = f"""
+{AARCH64_PREAMBLE}
 
 ldr x0, =0x123456789ABCDEF0
 
@@ -369,7 +391,9 @@ def test_aarch64_store_instructions(qemu_assembly_run):
     assert dis == expected
 
 
-AARCH64_LOADS = """
+AARCH64_LOADS = f"""
+{AARCH64_PREAMBLE}
+
 
 ldr x0, =0x123456789ABCDEF0
 stores:
@@ -443,6 +467,8 @@ def test_aarch64_load_instructions(qemu_assembly_run):
 
 
 CPSR_REGISTER_TEST = f"""
+{AARCH64_PREAMBLE}
+
 mov x19, #8
 cmn x19, #8
 b.ne exit
@@ -502,6 +528,8 @@ def test_aarch64_write_cpsr_when_zero(qemu_assembly_run):
 
 
 AARCH64_MEMORY_OPERAND_TEST = rf"""
+{AARCH64_PREAMBLE}
+
 LDR X1, =msg
 LDR W0, [X1], #4
 LDR W0, [X1, #4]
@@ -556,7 +584,9 @@ def test_aarch64_memory_operands(qemu_assembly_run):
     assert dis == expected
 
 
-AARCH64_SHIFTS_AND_EXTENDS = """
+AARCH64_SHIFTS_AND_EXTENDS = f"""
+{AARCH64_PREAMBLE}
+
 mov X1, 1
 mov X3, 8
 ADD X0, X1, X1, LSL 2
@@ -603,7 +633,8 @@ def test_aarch64_shifts_and_extends(qemu_assembly_run):
     assert dis == expected
 
 
-AARCH64_MEMORY_OPERAND_SHIFT = r"""
+AARCH64_MEMORY_OPERAND_SHIFT = rf"""
+{AARCH64_PREAMBLE}
 LDR x2, =msg
 ADD x2,x2,16
 MOV w3, 0xffffffff
@@ -642,7 +673,9 @@ def test_aarch64_shifts_and_extends_in_memory_operands(qemu_assembly_run):
     assert dis == expected
 
 
-AARCH64_SHIFT_INSTRUCTIONS = """
+AARCH64_SHIFT_INSTRUCTIONS = f"""
+{AARCH64_PREAMBLE}
+
 MOV x0, #3
 MOV x1, #0xF000
 MOV x2, #0x1234

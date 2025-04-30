@@ -87,10 +87,6 @@ def qemu_assembly_run():
 
         zig_target, extra_cli_args, qemu_suffix = COMPILE_AND_RUN_INFO[arch]
 
-        # Declare _start symbol at start of the assembly if it's not already declared
-        if "_start:" not in asm:
-            asm = ".text\n.globl _start\n_start:\n" + asm
-
         # Place assembly and compiled binary in a temporary folder
         # named /tmp/pwndbg-*
         tmpdir = tempfile.tempdir()

@@ -7,6 +7,12 @@ import pwndbg.aglib.symbol
 import pwndbg.color
 import pwndbg.dbg
 
+RISCV64_PREAMBLE = """
+.text
+.globl _start
+_start:
+"""
+
 RISCV64_GRACEFUL_EXIT = """
     li a2, 30
     li a7, 93
@@ -15,6 +21,7 @@ RISCV64_GRACEFUL_EXIT = """
 """
 
 RISCV64_JALR = f"""
+{RISCV64_PREAMBLE}
 li a0, 10
 li a1, 20
 
@@ -69,6 +76,7 @@ def test_riscv64_jalr(qemu_assembly_run):
 
 
 RISCV64_COMPRESSED_LOAD_STORE = f"""
+{RISCV64_PREAMBLE}
 li a0, 0x1234567890ABCDEF
 la a2, data
 
@@ -136,6 +144,7 @@ def test_riscv64_compressed_loads(qemu_assembly_run):
 
 
 RISCV64_JUMPS = f"""
+{RISCV64_PREAMBLE}
 li t0, 4
 li t1, 5
 beq t0, t1, first
@@ -228,6 +237,7 @@ def test_riscv64_jumps(qemu_assembly_run):
 
 
 RISCV64_JUMP_CHAIN = f"""
+{RISCV64_PREAMBLE}
 j a
 
 a:
