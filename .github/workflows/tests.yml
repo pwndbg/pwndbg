@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04-arm]
-        type: [qemu-user-tests, qemu-tests]
+        type: [qemu-user-tests, qemu-tests, tests]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     env:
@@ -43,6 +43,12 @@ jobs:
     - name: Setup
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
+
+    - name: Run tests
+      if: matrix.type == 'tests'
+      run: |
+        nix develop -c ./tests.sh --nix
+      continue-on-error: true  # TODO: remove when we remove all x86_64 dependencies
 
     - name: Run qemu-user-tests
       if: matrix.type == 'qemu-user-tests'
