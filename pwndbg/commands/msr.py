@@ -106,7 +106,7 @@ def msr_list(arch: str):
 
 parser = argparse.ArgumentParser(
     description="""
-Read or write to Model Specifc Register (MSR)
+Read or write to Model Specific Register (MSR)
 """,
 )
 parser.add_argument("msr", help="MSR value or name", type=str, nargs="?", default=None)
