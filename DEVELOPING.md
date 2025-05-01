@@ -2,7 +2,7 @@
   - [Install from source GDB](#install-from-source-gdb)
   - [Install from source LLDB](#install-from-source-lldb)
   - [Environment setup](#environment-setup)
-    - [Development using Nix](#development-using-nix)
+  - [Development using Nix](#development-using-nix)
   - [Testing](#testing)
   - [Writing Tests](#writing-tests)
   - [QEMU Tests](#qemu-tests)
@@ -70,7 +70,7 @@ make -j $(nproc)
 git clone https://github.com/pwndbg/pwndbg
 cd pwndbg
 
-apt install -y lldb-19 liblldb-19-dev python3 python3-venv 
+apt install -y lldb-19 liblldb-19-dev python3 python3-venv
 export PATH=/usr/lib/llvm-19/bin/:$PATH
 export LLDB_DEBUGSERVER_PATH=/usr/lib/llvm-19/bin/lldb-server
 
@@ -100,12 +100,16 @@ If you'd like to use `docker compose`, you can run
 docker compose run -i main
 ```
 
-### Development using Nix
+## Development using Nix
 
-There is a development shell defined in the flake that should install all of the development requirements. To enter the
-environment run `nix develop` or automatically enter the environment using `direnv`.
+Pwndbg supports development with Nix which installs all the required
+development dependencies:
 
-When testing changes run `nix build .#pwndbg-dev` and use the copy of the files in the `results/` folder.
+1. Install Nix with [Determinate Nix Installer](https://github.com/DeterminateSystems/nix-installer?tab=readme-ov-file#determinate-nix-installer).
+
+2. Enter the development shell with `nix develop` or automate this with `direnv`.
+
+3. Run local changes with `pwndbg` or `pwndbg-lldb`. Run tests with `./tests.sh`.
 
 ## Testing
 
@@ -134,10 +138,10 @@ Remove the `-mount` if you want the tests to run from a clean slate (no files ar
 
 ## Writing Tests
 
-Each test is a Python function that runs inside of an isolated GDB session. 
-Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning of each test, 
-GDB will attach to a [`binary`](tests/gdb-tests/conftest.py) or connect to a [`QEMU instance`](tests/qemu-tests/conftest.py). 
-Each test runs some commands and uses Python `assert` statements to verify correctness. 
+Each test is a Python function that runs inside of an isolated GDB session.
+Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning of each test,
+GDB will attach to a [`binary`](tests/gdb-tests/conftest.py) or connect to a [`QEMU instance`](tests/qemu-tests/conftest.py).
+Each test runs some commands and uses Python `assert` statements to verify correctness.
 We can access `pwndbg` library code like `pwndbg.aglib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
 
 We can take a look at [`tests/gdb-tests/tests/test_symbol.py`](tests/gdb-tests/tests/test_symbol.py) for an example of a
