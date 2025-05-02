@@ -67,7 +67,7 @@ class UnixSocket(inode):
         return f"UnixSocket({self})"
 
 
-def tcp(data: str) -> List[Connection]:
+def _tcp_parser(data: str, ip_family: socket.AddressFamily) -> List[Connection]:
     # For reference, see:
     # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
     """
@@ -127,7 +127,7 @@ def tcp(data: str) -> List[Connection]:
             if pwndbg.aglib.arch.endian == "little":
                 host = host[::-1]
 
-            host = socket.inet_ntop(socket.AF_INET, host)
+            host = socket.inet_ntop(ip_family, host)
             port = int(port, 16)
             return host, port
 
@@ -143,80 +143,12 @@ def tcp(data: str) -> List[Connection]:
     return result
 
 
+def tcp(data: str) -> List[Connection]:
+    return _tcp_parser(data, socket.AF_INET)
+
+
 def tcp6(data: str) -> List[Connection]:
-    # For reference, see:
-    # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
-    """
-    It will first list all listening TCP sockets, and next list all established
-    TCP connections. A typical entry of /proc/net/tcp would look like this (split
-    up into 3 parts because of the length of the line):
-    """
-    if not data:
-        return []
-
-    result: List[Connection] = []
-    for line in data.splitlines()[1:]:
-        fields = line.split()
-        """
-           46: 010310AC:9C4C 030310AC:1770 01
-           |      |      |      |      |   |--> connection state
-           |      |      |      |      |------> remote TCP port number
-           |      |      |      |-------------> remote IPv4 address
-           |      |      |--------------------> local TCP port number
-           |      |---------------------------> local IPv4 address
-           |----------------------------------> number of entry
-        """
-        local = fields[1]
-        remote = fields[2]
-        status = fields[3]
-        """
-           00000150:00000000 01:00000019 00000000
-              |        |     |     |       |--> number of unrecovered RTO timeouts
-              |        |     |     |----------> number of jiffies until timer expires
-              |        |     |----------------> timer_active (see below)
-              |        |----------------------> receive-queue
-              |-------------------------------> transmit-queue
-        """
-        """
-           1000        0 54165785 4 cd1e6040 25 4 27 3 -1
-            |          |    |     |    |     |  | |  | |--> slow start size threshold,
-            |          |    |     |    |     |  | |  |      or -1 if the threshold
-            |          |    |     |    |     |  | |  |      is >= 0xFFFF
-            |          |    |     |    |     |  | |  |----> sending congestion window
-            |          |    |     |    |     |  | |-------> (ack.quick<<1)|ack.pingpong
-            |          |    |     |    |     |  |---------> Predicted tick of soft clock
-            |          |    |     |    |     |              (delayed ACK control data)
-            |          |    |     |    |     |------------> retransmit timeout
-            |          |    |     |    |------------------> location of socket in memory
-            |          |    |     |-----------------------> socket reference count
-            |          |    |-----------------------------> inode
-            |          |----------------------------------> unanswered 0-window probes
-            |---------------------------------------------> uid
-        """
-        inode = fields[9]
-
-        # Actually extract the useful data
-        def split_hist_port(hostport: str):
-            host, port = hostport.split(":")
-            host = binascii.unhexlify(host)
-
-            if pwndbg.aglib.arch.endian == "little":
-                host = host[::-1]
-
-            host = socket.inet_ntop(socket.AF_INET6, host)
-            port = int(port, 16)
-            return host, port
-
-        c = Connection()
-        c.rhost, c.rport = split_hist_port(remote)
-        c.lhost, c.lport = split_hist_port(local)
-        c.inode = int(inode)
-        c.status = TCP_STATUSES.get(status, "unknown")
-        c.family = "tcp6"
-
-        result.append(c)
-
-    return result
+    return _tcp_parser(data, socket.AF_INET6)
 
 
 def unix(data: str) -> List[UnixSocket]:
@@ -272,7 +204,7 @@ NETLINK_TYPES = {
 
 class Netlink(inode):
     eth: int = 0
-    pid: int | None = None
+    portid: int | None = None
 
     def __str__(self) -> str:
         return NETLINK_TYPES.get(self.eth, "(unknown netlink)")
@@ -292,7 +224,7 @@ def netlink(data: str) -> List[Netlink]:
 
         n = Netlink()
         n.eth = int(fields[1])
-        n.pid = int(fields[2])
+        n.portid = int(fields[2])  # 'Pid' in Netlink context refers to Port ID, not Process ID
         n.inode = int(fields[9])
         result.append(n)
 
