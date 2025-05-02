@@ -85,6 +85,10 @@ class BitFlags:
 
 
 class AddressingRegister:
+    """
+    Represents a register that is used to store an address, e.g. cr3, gsbase, fsbase
+    """
+
     reg: str
     value: int
     is_virtual: bool  # inicating if the address is a virtual address
@@ -116,6 +120,10 @@ class AddressingRegister:
 
 
 class SegmentRegisters:
+    """
+    Represents the x86 segment register set
+    """
+
     regs: List[str]
     idx_map: Dict[str, int]
     values: List[int]
