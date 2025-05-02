@@ -50,7 +50,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def piebase(offset=None, module=None) -> None:
     offset = int(offset)
@@ -77,7 +77,7 @@ if pwndbg.dbg.is_gdblib_available():
         help="Module to choose as base. Defaults to the target executable.",
     )
 
-    @pwndbg.commands.ArgparsedCommand(parser, aliases=["brva"], category=CommandCategory.BREAKPOINT)
+    @pwndbg.commands.Command(parser, aliases=["brva"], category=CommandCategory.BREAKPOINT)
     @pwndbg.commands.OnlyWhenRunning
     def breakrva(offset=0, module=None) -> None:
         offset = int(offset)

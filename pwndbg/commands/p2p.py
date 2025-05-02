@@ -58,7 +58,6 @@ def address_range(section: str) -> List[AddrRange] | Tuple[int, int] | None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Pointer to pointer chain search. Searches given mapping for all pointers that point to specified mapping.
 
 Any chain length greater than 0 is valid. If only one mapping is given it just looks for any pointers in that mapping.""",
@@ -97,7 +96,7 @@ def p2p_walk(addr: int, ranges: List[List[AddrRange]], current_level: int) -> in
     return p2p_walk(maybe_addr, ranges, current_level + 1)
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def p2p(mapping_names: List[List[AddrRange]] | None = None) -> None:
     if not mapping_names:

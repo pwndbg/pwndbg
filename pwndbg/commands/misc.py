@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import errno
-import inspect
 from collections import defaultdict
 
 import pwndbg.aglib.memory
@@ -61,7 +60,7 @@ def _get_errno() -> int:
         ) from e
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="errno", category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, command_name="errno", category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def errno_(err) -> None:
     if err is None:
@@ -76,10 +75,6 @@ def errno_(err) -> None:
 
 
 parser = argparse.ArgumentParser(description="Prints out a list of all pwndbg commands.")
-
-group = parser.add_mutually_exclusive_group()
-group.add_argument("--shell", action="store_true", help="Only display shell commands")
-group.add_argument("--all", dest="all_", action="store_true", help="Only display shell commands")
 
 cat_group = parser.add_mutually_exclusive_group()
 cat_group.add_argument(
@@ -98,29 +93,17 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="pwndbg", category=CommandCategory.PWNDBG)
-def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
+@pwndbg.commands.Command(parser, command_name="pwndbg", category=CommandCategory.PWNDBG)
+def pwndbg_(filter_pattern, category_, list_categories) -> None:
     if list_categories:
         for category in CommandCategory:
             print(C.bold(C.green(f"{category.value}")))
         return
 
-    if all_:
-        shell_cmds = True
-        pwndbg_cmds = True
-    elif shell:
-        shell_cmds = True
-        pwndbg_cmds = False
-    else:
-        shell_cmds = False
-        pwndbg_cmds = True
-
     from tabulate import tabulate
 
     table_data = defaultdict(list)
-    for name, aliases, category, docs in list_and_filter_commands(
-        filter_pattern, pwndbg_cmds, shell_cmds
-    ):
+    for name, aliases, category, docs in list_and_filter_commands(filter_pattern):
         alias_str = ""
         if aliases:
             aliases = map(C.blue, aliases)
@@ -146,9 +129,8 @@ def pwndbg_(filter_pattern, shell, all_, category_, list_categories) -> None:
     print(message.info("Also check out convenience functions with `help function`!"))
 
 
-def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
-    sorted_commands = list(pwndbg.commands.commands)
-    sorted_commands.sort(key=lambda x: x.__name__)
+def list_and_filter_commands(filter_str):
+    sorted_commands = sorted(pwndbg.commands.commands, key=lambda c: c.command_name)
 
     if filter_str:
         filter_str = filter_str.lower()
@@ -156,27 +138,13 @@ def list_and_filter_commands(filter_str, pwndbg_cmds=True, shell_cmds=False):
     results = []
 
     for c in sorted_commands:
-        # If this is a shell command and we didn't ask for shell commands, skip it
-        if c.shell and not shell_cmds:
-            continue
+        name = c.command_name
+        desc = c.description
 
-        # If this is a normal command and we didn't ask for normal commands, skip it
-        if not c.shell and not pwndbg_cmds:
-            continue
+        assert desc
+        desc = desc.splitlines()[0]
 
-        # Don't print aliases
-        if c.is_alias:
-            continue
-
-        name = c.__name__
-        docs = inspect.getdoc(c)
-
-        if docs:
-            docs = docs.strip()
-        if docs:
-            docs = docs.splitlines()[0]
-
-        if not filter_str or filter_str in name.lower() or (docs and filter_str in docs.lower()):
-            results.append((name, c.aliases, c.category, docs))
+        if not filter_str or filter_str in name.lower() or (desc and filter_str in desc.lower()):
+            results.append((name, c.aliases, c.category, desc))
 
     return results

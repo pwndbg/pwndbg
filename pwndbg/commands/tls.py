@@ -21,7 +21,6 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="Print out base address of the current Thread Local Storage (TLS).",
 )
 
@@ -36,7 +35,7 @@ parser.add_argument(
 parser.add_argument("-a", "--all", action="store_true", help="Do not truncate the dump output.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenUserspace
 def tls(pthread_self=False, all: bool = False) -> None:
@@ -101,7 +100,6 @@ def tls(pthread_self=False, all: bool = False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="List all threads belonging to the selected inferior.",
 )
 group = parser.add_mutually_exclusive_group()
@@ -123,7 +121,7 @@ group.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenUserspace
 def threads(num_threads, respect_config) -> None:

@@ -8,12 +8,10 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
-    Dump out information on a type (e.g. ucontext_t).
+Dump out information on a type (e.g. ucontext_t).
 
-    Optionally overlay that information at an address.
-    """,
+Optionally overlay that information at an address.""",
 )
 parser.add_argument(
     "typename",
@@ -25,7 +23,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 def dt(typename: str, address: int | None = None) -> None:
     """
     Dump out information on a type (e.g. ucontext_t).

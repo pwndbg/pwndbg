@@ -169,7 +169,6 @@ def check_doubleload():
         print(
             "To fix this, please remove the line 'source your-path/gdbinit.py' from your .gdbinit file."
         )
-        sys.stdout.flush()
         sys.exit(1)
 
 
@@ -180,7 +179,19 @@ def rewire_exit():
         # a segfault. See:
         # https://github.com/pwndbg/pwndbg/pull/2900#issuecomment-2825456636
         # https://sourceware.org/bugzilla/show_bug.cgi?id=31946
-        sys.exit = os._exit
+        def _patched_exit(exit_code):
+            # argparse requires a SystemExit exception, otherwise our CLI commands will exit incorrectly on invalid arguments
+            stack_list = traceback.extract_stack(limit=2)
+            if len(stack_list) == 2:
+                p = stack_list[0]
+                if p.filename.endswith("/argparse.py"):
+                    raise SystemExit()
+
+            sys.stdout.flush()
+            sys.stderr.flush()
+            os._exit(exit_code)
+
+        sys.exit = _patched_exit
 
 
 def main() -> None:
@@ -201,7 +212,6 @@ def main() -> None:
         venv_path = get_venv_path(src_root)
         if not venv_path.exists():
             print(f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh")
-            sys.stdout.flush()
             sys.exit(1)
         no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE")
         if no_auto_update is None:
@@ -248,5 +258,4 @@ try:
 
 except Exception:
     print(traceback.format_exc(), file=sys.stderr)
-    sys.stdout.flush()
     sys.exit(1)

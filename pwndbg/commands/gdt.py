@@ -10,7 +10,6 @@ import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Decode X86-64 GDT entries at address
 
 See also:
@@ -33,7 +32,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
 def gdt(address, count) -> None:

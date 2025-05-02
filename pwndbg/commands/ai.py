@@ -467,7 +467,7 @@ parser.add_argument(
 
 
 # @pwndbg.commands.OnlyWhenRunning
-@pwndbg.commands.ArgparsedCommand(parser, command_name="ai", category=CommandCategory.INTEGRATIONS)
+@pwndbg.commands.Command(parser, command_name="ai", category=CommandCategory.INTEGRATIONS)
 def ai(question, model, temperature, max_tokens, verbose, list_models=False, command=None) -> None:
     # print the arguments
     global last_question, last_answer, last_pc, last_command, verbosity

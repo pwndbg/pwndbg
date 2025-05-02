@@ -102,7 +102,7 @@ def version_impl() -> None:
 
 
 # In LLDB, this command is implemented as part of the Pwndbg CLI.
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Displays Pwndbg and its important deps versions.",
     exclude_debuggers={DebuggerType.LLDB},
     category=CommandCategory.PWNDBG,
@@ -121,7 +121,7 @@ bugreport_group.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(bugreport_parser, category=CommandCategory.PWNDBG)
+@pwndbg.commands.Command(bugreport_parser, category=CommandCategory.PWNDBG)
 def bugreport(run_browser=False, use_gh=False):
     ISSUE_TEMPLATE = """
 <!--

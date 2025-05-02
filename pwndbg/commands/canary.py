@@ -37,7 +37,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="canary", category=CommandCategory.STACK)
+@pwndbg.commands.Command(parser, command_name="canary", category=CommandCategory.STACK)
 @pwndbg.commands.OnlyWhenRunning
 def canary(all) -> None:
     global_canary, at_random = canary_value()

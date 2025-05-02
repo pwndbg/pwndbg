@@ -53,7 +53,6 @@ auto_save = pwndbg.config.add_param(
     "auto-save-search", False, 'automatically pass --save to "search" command'
 )
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Search memory for byte sequences, strings, pointers, and integer values.
 
 By default search results are cached. If you want to cache all results, but only print a subset, use --trunc-out. If you want to cache only a subset of results, and print the results immediately, use --limit. The latter is specially useful if you're searching a huge section of memory.
@@ -177,7 +176,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def search(
     type,

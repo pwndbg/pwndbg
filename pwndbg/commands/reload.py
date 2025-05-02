@@ -19,22 +19,20 @@ def rreload(module, _exclude_mods=None) -> None:
         if "pwndbg" in module:
             del sys.modules[module]
 
-    # Mark that we are reloading; this is used to prevent ArgparsedCommand from
+    # Mark that we are reloading; this is used to prevent the Command decorator from
     # erroring out on re-registering the same commands we had registered before
     gdb.pwndbg_is_reloading = True
     importlib.import_module("pwndbg")
 
 
-@pwndbg.commands.ArgparsedCommand("Reload pwndbg.", category=CommandCategory.PWNDBG)
+@pwndbg.commands.Command("Reload pwndbg.", category=CommandCategory.PWNDBG)
 def reload(*a) -> None:
     pwndbg.gdblib.events.on_reload()
     rreload(pwndbg)
     pwndbg.gdblib.events.after_reload()
 
 
-@pwndbg.commands.ArgparsedCommand(
-    "Makes pwndbg reinitialize all state.", category=CommandCategory.PWNDBG
-)
+@pwndbg.commands.Command("Makes pwndbg reinitialize all state.", category=CommandCategory.PWNDBG)
 def reinit_pwndbg() -> None:
     """
     Makes pwndbg reinitialize all state.

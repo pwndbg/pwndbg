@@ -57,13 +57,9 @@ def show_hint() -> None:
         message.notice("$" + f.name) for f in pwndbg.gdblib.functions.functions
     )
 
-    num_pwndbg_cmds = sum(
-        1 for _ in filter(lambda c: not (c.shell or c.is_alias), pwndbg.commands.commands)
-    )
-    num_shell_cmds = sum(1 for _ in filter(lambda c: c.shell, pwndbg.commands.commands))
     hint_lines = (
-        "loaded %i pwndbg commands and %i shell commands. Type %s for a list."
-        % (num_pwndbg_cmds, num_shell_cmds, message.notice("pwndbg [--shell | --all] [filter]")),
+        "loaded %i pwndbg commands. Type %s for a list."
+        % (len(pwndbg.commands.commands), message.notice("pwndbg [filter]")),
         f"created {funcs_list_str} GDB functions (can be used with print/break)",
     )
 

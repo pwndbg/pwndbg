@@ -45,7 +45,6 @@ def flags_str2int(flags_s):
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Pointer scan for possible offset leaks.
 Examples:
@@ -80,7 +79,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def probeleak(
     address=None, count=0x40, max_distance=0x0, point_to=None, max_ptrs=0, flags=None

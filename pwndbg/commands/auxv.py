@@ -6,7 +6,7 @@ import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Print information from the Auxiliary ELF Vector.", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -17,7 +17,7 @@ def auxv() -> None:
             print(k.ljust(24), v if not isinstance(v, int) else pwndbg.chain.format(v))
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Explore and print information from the Auxiliary ELF Vector.", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWhenRunning

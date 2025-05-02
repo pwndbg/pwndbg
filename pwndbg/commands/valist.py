@@ -12,7 +12,7 @@ parser.add_argument("addr", type=int, help="Address of the va_list")
 parser.add_argument("count", type=int, nargs="?", default=8, help="Number of arguments to dump")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def valist(addr: int, count: int) -> None:
     # The `va_list` struct looks like this:

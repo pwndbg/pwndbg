@@ -169,9 +169,7 @@ To address this, you have three options:
 """
         )
     )
-    import os
-
-    os._exit(1)
+    sys.exit(1)
 
 
 def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> Callable[P, T]:

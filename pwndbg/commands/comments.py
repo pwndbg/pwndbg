@@ -16,7 +16,7 @@ parser.add_argument("comment", type=str, default=None, help="The text you want t
 file_lists: Dict[str, Dict[str, str]] = {}  # This saves all comments.
 
 
-@pwndbg.commands.ArgparsedCommand(parser, CommandCategory.MISC)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def comm(addr=None, comment=None) -> None:
     if addr is None:

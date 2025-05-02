@@ -57,7 +57,6 @@ def check_aslr() -> Tuple[bool | None, str]:
 options = {"on": "off", "off": "on"}
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Check the current ASLR status, or turn it on/off.
 
@@ -73,7 +72,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 def aslr(state=None) -> None:
     if state:
         if pwndbg.dbg.is_gdblib_available():

@@ -6,7 +6,6 @@ entry point.
 from __future__ import annotations
 
 import argparse
-from argparse import RawTextHelpFormatter
 from shlex import quote
 
 import pwndbg
@@ -50,7 +49,6 @@ def breakpoint_at_entry():
 # Starting from 3rd paragraph, the description is
 # taken from the GDB's `starti` command description
 parser = argparse.ArgumentParser(
-    formatter_class=RawTextHelpFormatter,
     description="""
 Start the debugged program stopping at the first convenient location
 from this list: main, _main, start, _start, init or _init.
@@ -74,7 +72,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     parser,
     aliases=["main", "init"],
     only_debuggers={DebuggerType.GDB},
@@ -104,7 +102,6 @@ def start(args=None) -> None:
 # Starting from 3rd paragraph, the description is
 # taken from the GDB's `starti` command description
 parser = argparse.ArgumentParser(
-    formatter_class=RawTextHelpFormatter,
     description="""
 Start the debugged program stopping at its entrypoint address.
 
@@ -129,7 +126,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
+@pwndbg.commands.Command(parser, category=CommandCategory.START)
 @pwndbg.commands.OnlyWithFile
 @pwndbg.commands.OnlyWhenLocal
 def entry(args=None) -> None:
@@ -152,7 +149,7 @@ def entry(args=None) -> None:
     breakpoint_at_entry()
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Alias for 'tbreak __libc_start_main; run'.",
     only_debuggers={DebuggerType.GDB},
     category=CommandCategory.START,

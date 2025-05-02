@@ -68,7 +68,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
     if hexdump.repeat:

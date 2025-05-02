@@ -6,7 +6,7 @@ import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Prints out the FS base address. See also $fsbase.", category=CommandCategory.REGISTER
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -18,7 +18,7 @@ def fsbase() -> None:
     print(hex(int(pwndbg.aglib.regs.fsbase)))
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Prints out the GS base address. See also $gsbase.", category=CommandCategory.REGISTER
 )
 @pwndbg.commands.OnlyWhenRunning

@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("config_name", nargs="?", type=str, help="A config name to search for")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
+@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kconfig(config_name=None) -> None:

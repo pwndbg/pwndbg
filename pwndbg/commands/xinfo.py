@@ -101,7 +101,7 @@ def xinfo_default(page: Page, addr: int) -> None:
     print_line("Mapped Area", addr, page.vaddr, addr - page.vaddr, "+")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def xinfo(address=None) -> None:
     address = address.cast(

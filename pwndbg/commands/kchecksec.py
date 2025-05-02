@@ -103,7 +103,7 @@ _arch_hardening_options["aarch64"] = [
 parser = argparse.ArgumentParser(description="Checks for kernel hardening configuration options.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
+@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kchecksec() -> None:

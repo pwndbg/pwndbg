@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal
-
 import gdb
 import user
 
@@ -18,15 +16,10 @@ NUMBER_OF_STEPS = 1500
 
 # Step through a binary, running "ctx" each time the program stops
 # This is meant to detect crashes originating from the annotations/emulation code
-def helper(
-    qemu_start_binary, filename: str, qemu_arch: str, endian: Literal["big", "little"] | None = None
-):
+def helper(qemu_start_binary, filename: str, arch: str):
     FILE = user.binaries.get(filename)
 
-    qemu_start_binary(FILE, qemu_arch, endian)
-
-    gdb.execute("b main")
-    gdb.execute("c")
+    qemu_start_binary(FILE, arch)
 
     pwndbg.commands.context.context_disasm()
 
@@ -51,12 +44,12 @@ def test_basic_riscv64(qemu_start_binary):
 
 def test_basic_mips64(qemu_start_binary):
     # pwnlib.context.endian defaults to "little", but these MIPS binaries are compiled to big endian.
-    helper(qemu_start_binary, "basic.mips64.out", "mips64", endian="big")
+    helper(qemu_start_binary, "basic.mips64.out", "mips64")
 
 
 def test_basic_mips32(qemu_start_binary):
-    helper(qemu_start_binary, "basic.mips32.out", "mips", endian="big")
+    helper(qemu_start_binary, "basic.mips32.out", "mips32")
 
 
 def test_basic_mipsel32(qemu_start_binary):
-    helper(qemu_start_binary, "basic.mipsel32.out", "mips", endian="little")
+    helper(qemu_start_binary, "basic.mipsel32.out", "mipsel32")

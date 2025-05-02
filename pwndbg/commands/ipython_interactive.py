@@ -29,9 +29,7 @@ def switch_to_ipython_env():
     sys.excepthook = saved_excepthook
 
 
-@pwndbg.commands.ArgparsedCommand(
-    "Start an interactive IPython prompt.", category=CommandCategory.MISC
-)
+@pwndbg.commands.Command("Start an interactive IPython prompt.", category=CommandCategory.MISC)
 def ipi() -> None:
     with switch_to_ipython_env():
         # Use `gdb.execute` to embed IPython into GDB's variable scope

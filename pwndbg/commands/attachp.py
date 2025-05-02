@@ -30,7 +30,6 @@ pwndbg.config.add_param(
 )
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Attaches to a given pid, process name, process found with partial argv match or to a device file.
 
 This command wraps the original GDB `attach` command to add the ability
@@ -131,7 +130,7 @@ def find_pids(target, user, exact, all):
         return pids_exact_match_cmd or pids_partial_match_cmd or pids_partial_match_args
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
+@pwndbg.commands.Command(parser, category=CommandCategory.START)
 def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
     # As a default, the user may want to attach to a binary name taken from currently loaded file name
     if target is None:

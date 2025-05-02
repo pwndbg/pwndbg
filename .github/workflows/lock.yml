@@ -34,13 +34,6 @@ jobs:
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
       with:
         nix_path: nixpkgs=channel:nixos-unstable
-
-    - name: build pwndbg
-      run: nix build '.#pwndbg' --accept-flake-config -o result
-
-    - name: simple run pwndbg
-      run: TERM=xterm-256color ./result/bin/pwndbg <<< 'exit'
-
     - name: configure cache
       if: github.ref == 'refs/heads/dev'
       uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
@@ -48,11 +41,15 @@ jobs:
         name: pwndbg
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-        skipPush: true
 
-    - name: upload cache
-      if: github.ref == 'refs/heads/dev'
-      run: cachix push -v pwndbg ./result
+    - name: build pwndbg
+      run: nix build '.#pwndbg' --accept-flake-config -o result
+
+    - name: simple run pwndbg
+      run: TERM=xterm-256color ./result/bin/pwndbg <<< 'exit'
+
+    - name: build develop environment
+      run: nix develop --accept-flake-config
 
   check_release_build-lldb:
     strategy:
@@ -72,13 +69,6 @@ jobs:
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
       with:
         nix_path: nixpkgs=channel:nixos-unstable
-
-    - name: build pwndbg
-      run: nix build '.#pwndbg-lldb' --accept-flake-config -o result
-
-    - name: simple run pwndbg
-      run: TERM=xterm-256color ./result/bin/pwndbg-lldb <<< 'exit'
-
     - name: configure cache
       if: github.ref == 'refs/heads/dev'
       uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc  # v15
@@ -86,12 +76,15 @@ jobs:
         name: pwndbg
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-        skipPush: true
 
-    - name: upload cache
-      if: github.ref == 'refs/heads/dev'
-      run: cachix push -v pwndbg ./result
+    - name: build pwndbg
+      run: nix build '.#pwndbg-lldb' --accept-flake-config -o result
 
+    - name: simple run pwndbg
+      run: TERM=xterm-256color ./result/bin/pwndbg-lldb <<< 'exit'
+
+    - name: build develop environment
+      run: nix develop --accept-flake-config
 
   lock_flake:
     runs-on: ubuntu-latest

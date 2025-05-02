@@ -7,6 +7,12 @@ import pwndbg.aglib.symbol
 import pwndbg.color
 import pwndbg.dbg
 
+RISCV64_PREAMBLE = """
+.text
+.globl _start
+_start:
+"""
+
 RISCV64_GRACEFUL_EXIT = """
     li a2, 30
     li a7, 93
@@ -15,6 +21,7 @@ RISCV64_GRACEFUL_EXIT = """
 """
 
 RISCV64_JALR = f"""
+{RISCV64_PREAMBLE}
 li a0, 10
 li a1, 20
 
@@ -49,19 +56,19 @@ def test_riscv64_jalr(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / rv64 / set emulate on ]───────────────────────\n"
-        " ► 0x10000000 <_start>       c.li   a0, 0xa          A0 => 0xa\n"
-        "   0x10000002 <_start+2>     c.li   a1, 0x14         A1 => 0x14\n"
-        "   0x10000004 <_start+4>     auipc  t0, 0            T0 => 0x10000004 (_start+4)\n"
-        "   0x10000008 <_start+8>     addi   t0, t0, 0x20     T0 => 0x10000024 (function) (0x10000004 + 0x20)\n"
-        "   0x1000000c <_start+12>    jalr   t0                          <function>\n"
+        " ► 0x1001158 <_start>       c.li   a0, 0xa          A0 => 0xa\n"
+        "   0x100115a <_start+2>     c.li   a1, 0x14         A1 => 0x14\n"
+        "   0x100115c <_start+4>     auipc  t0, 0            T0 => 0x100115c (_start+4)\n"
+        "   0x1001160 <_start+8>     addi   t0, t0, 0x1c     T0 => 0x1001178 (function) (0x100115c + 0x1c)\n"
+        "   0x1001164 <_start+12>    c.jalr t0                          <function>\n"
         " \n"
-        "   0x10000010 <_start+16>    add    a2, a0, a1\n"
-        "   0x10000014 <_start+20>    auipc  t1, 0            T1 => 0x10000014 (_start+20)\n"
-        "   0x10000018 <_start+24>    addi   t1, t1, 0x12\n"
-        "   0x1000001c <_start+28>    jalr   t1\n"
+        "   0x1001166 <_start+14>    add    a2, a0, a1\n"
+        "   0x100116a <_start+18>    auipc  t1, 0            T1 => 0x100116a (_start+18)\n"
+        "   0x100116e <_start+22>    addi   t1, t1, 0x10\n"
+        "   0x1001172 <_start+26>    c.jalr t1\n"
         " \n"
-        "   0x10000020 <_start+32>    c.nop  \n"
-        "   0x10000022 <_start+34>    c.nop  \n"
+        "   0x1001174 <_start+28>    c.nop  \n"
+        "   0x1001176 <_start+30>    c.nop  \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -69,6 +76,7 @@ def test_riscv64_jalr(qemu_assembly_run):
 
 
 RISCV64_COMPRESSED_LOAD_STORE = f"""
+{RISCV64_PREAMBLE}
 li a0, 0x1234567890ABCDEF
 la a2, data
 
@@ -118,17 +126,17 @@ def test_riscv64_compressed_loads(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / rv64 / set emulate on ]───────────────────────\n"
-        " ► 0x10000028 <store>       c.sd   a0, 0(a2)          [data] <= 0x1234567890abcdef\n"
-        "   0x1000002a <store+2>     c.ld   a1, 0(a2)          A1, [data] => 0x1234567890abcdef\n"
-        "   0x1000002c <store+4>     c.li   a1, 0x10           A1 => 0x10\n"
-        "   0x1000002e <store+6>     addi   a2, zero, 0x26     A2 => 38 (0x0 + 0x26)\n"
-        "   0x10000032 <store+10>    add    a4, a1, a2         A4 => 54 (0x10 + 0x26)\n"
-        "   0x10000036 <store+14>    sub    a5, a1, a3         A5 => 16 (0x10 - 0x0)\n"
-        "   0x1000003a <store+18>    xor    a6, a1, a2         A6 => 54 (0x10 ^ 0x26)\n"
-        "   0x1000003e <store+22>    and    a7, a1, a2         A7 => 0 (0x10 & 0x26)\n"
-        "   0x10000042 <store+26>    sll    a3, a1, a2         A3 => 0x40000000000 (0x10 << 0x26)\n"
-        "   0x10000046 <store+30>    mul    a2, a1, a2         A2 => 0x260 (0x10 * 0x26)\n"
-        "   0x1000004a <store+34>    div    a5, a3, a2         A5 => 0x1af286bca (0x40000000000 / 0x260)\n"
+        " ► 0x10011b8 <store>       c.sd   a0, 0(a2)          [data] <= 0x1234567890abcdef\n"
+        "   0x10011ba <store+2>     c.ld   a1, 0(a2)          A1, [data] => 0x1234567890abcdef\n"
+        "   0x10011bc <store+4>     c.li   a1, 0x10           A1 => 0x10\n"
+        "   0x10011be <store+6>     addi   a2, zero, 0x26     A2 => 38 (0x0 + 0x26)\n"
+        "   0x10011c2 <store+10>    add    a4, a1, a2         A4 => 54 (0x10 + 0x26)\n"
+        "   0x10011c6 <store+14>    sub    a5, a1, a3         A5 => 16 (0x10 - 0x0)\n"
+        "   0x10011ca <store+18>    xor    a6, a1, a2         A6 => 54 (0x10 ^ 0x26)\n"
+        "   0x10011ce <store+22>    and    a7, a1, a2         A7 => 0 (0x10 & 0x26)\n"
+        "   0x10011d2 <store+26>    sll    a3, a1, a2         A3 => 0x40000000000 (0x10 << 0x26)\n"
+        "   0x10011d6 <store+30>    mul    a2, a1, a2         A2 => 0x260 (0x10 * 0x26)\n"
+        "   0x10011da <store+34>    div    a5, a3, a2         A5 => 0x1af286bca (0x40000000000 / 0x260)\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -136,6 +144,7 @@ def test_riscv64_compressed_loads(qemu_assembly_run):
 
 
 RISCV64_JUMPS = f"""
+{RISCV64_PREAMBLE}
 li t0, 4
 li t1, 5
 beq t0, t1, first
@@ -174,22 +183,22 @@ def test_riscv64_jumps(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / rv64 / set emulate on ]───────────────────────\n"
-        " ► 0x10000000 <_start>      c.li   t0, 4     T0 => 4\n"
-        "   0x10000002 <_start+2>    c.li   t1, 5     T1 => 5\n"
-        "   0x10000004 <_start+4>    beq    t0, t1, 6                   <first>\n"
+        " ► 0x1001158 <_start>      c.li   t0, 4     T0 => 4\n"
+        "   0x100115a <_start+2>    c.li   t1, 5     T1 => 5\n"
+        "   0x100115c <_start+4>    beq    t0, t1, 6                   <first>\n"
         " \n"
-        "   0x10000008 <_start+8>    c.nop  \n"
-        "   0x1000000a <first>     ✔ bne    t0, t2, 6                   <second>\n"
+        "   0x1001160 <_start+8>    c.nop  \n"
+        "   0x1001162 <first>     ✔ bne    t0, t2, 6                   <second>\n"
         "    ↓\n"
-        "   0x10000010 <second>      blt    t0, t3, 6                   <third>\n"
+        "   0x1001168 <second>      blt    t0, t3, 6                   <third>\n"
         " \n"
-        "   0x10000014 <second+4>    c.nop  \n"
-        "   0x10000016 <third>     ✔ bge    t0, t4, 6                   <fourth>\n"
+        "   0x100116c <second+4>    c.nop  \n"
+        "   0x100116e <third>     ✔ bge    t0, t4, 6                   <fourth>\n"
         "    ↓\n"
-        "   0x1000001c <fourth>    ✔ blt    t5, t0, 6                   <end>\n"
+        "   0x1001174 <fourth>    ✔ blt    t5, t0, 6                   <end>\n"
         "    ↓\n"
-        "   0x10000022 <end>         c.li   a2, 0x1e           A2 => 0x1e\n"
-        "   0x10000024 <end+2>       addi   a7, zero, 0x5d     A7 => 93 (0x0 + 0x5d)\n"
+        "   0x100117a <end>         c.li   a2, 0x1e           A2 => 0x1e\n"
+        "   0x100117c <end+2>       addi   a7, zero, 0x5d     A7 => 93 (0x0 + 0x5d)\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -205,22 +214,22 @@ def test_riscv64_jumps(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / rv64 / set emulate on ]───────────────────────\n"
-        "   0x10000002 <_start+2>    c.li   t1, 5     T1 => 5\n"
-        "   0x10000004 <_start+4>    beq    t0, t1, 6                   <first>\n"
+        "   0x100115a <_start+2>    c.li   t1, 5     T1 => 5\n"
+        "   0x100115c <_start+4>    beq    t0, t1, 6                   <first>\n"
         " \n"
-        "   0x10000008 <_start+8>    c.nop  \n"
-        "   0x1000000a <first>     ✔ bne    t0, t2, 6                   <second>\n"
+        "   0x1001160 <_start+8>    c.nop  \n"
+        "   0x1001162 <first>     ✔ bne    t0, t2, 6                   <second>\n"
         "    ↓\n"
-        "   0x10000010 <second>      blt    t0, t3, 6                   <third>\n"
+        "   0x1001168 <second>      blt    t0, t3, 6                   <third>\n"
         " \n"
-        " ► 0x10000014 <second+4>    c.nop  \n"
-        "   0x10000016 <third>     ✔ bge    t0, t4, 6                   <fourth>\n"
+        " ► 0x100116c <second+4>    c.nop  \n"
+        "   0x100116e <third>     ✔ bge    t0, t4, 6                   <fourth>\n"
         "    ↓\n"
-        "   0x1000001c <fourth>    ✔ blt    t5, t0, 6                   <end>\n"
+        "   0x1001174 <fourth>    ✔ blt    t5, t0, 6                   <end>\n"
         "    ↓\n"
-        "   0x10000022 <end>         c.li   a2, 0x1e           A2 => 0x1e\n"
-        "   0x10000024 <end+2>       addi   a7, zero, 0x5d     A7 => 93 (0x0 + 0x5d)\n"
-        "   0x10000028 <end+6>       c.li   a0, 0              A0 => 0\n"
+        "   0x100117a <end>         c.li   a2, 0x1e           A2 => 0x1e\n"
+        "   0x100117c <end+2>       addi   a7, zero, 0x5d     A7 => 93 (0x0 + 0x5d)\n"
+        "   0x1001180 <end+6>       c.li   a0, 0              A0 => 0\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -228,6 +237,7 @@ def test_riscv64_jumps(qemu_assembly_run):
 
 
 RISCV64_JUMP_CHAIN = f"""
+{RISCV64_PREAMBLE}
 j a
 
 a:
@@ -265,23 +275,23 @@ def test_riscv64_jump_chain(qemu_assembly_run):
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / rv64 / set emulate on ]───────────────────────\n"
-        " ► 0x10000000 <_start>    c.j    2                           <a>\n"
+        " ► 0x1001158 <_start>    c.j    2                           <a>\n"
         "    ↓\n"
-        "   0x10000002 <a>         c.j    2                           <b>\n"
+        "   0x100115a <a>         c.j    2                           <b>\n"
         "    ↓\n"
-        "   0x10000004 <b>         c.j    2                           <c>\n"
+        "   0x100115c <b>         c.j    2                           <c>\n"
         "    ↓\n"
-        "   0x10000006 <c>         c.j    2                           <d>\n"
+        "   0x100115e <c>         c.j    2                           <d>\n"
         "    ↓\n"
-        "   0x10000008 <d>         c.j    2                           <e>\n"
+        "   0x1001160 <d>         c.j    2                           <e>\n"
         "    ↓\n"
-        "   0x1000000a <e>         c.j    2                           <end>\n"
+        "   0x1001162 <e>         c.j    2                           <end>\n"
         "    ↓\n"
-        "   0x1000000c <end>       c.li   a2, 0x1e           A2 => 0x1e\n"
-        "   0x1000000e <end+2>     addi   a7, zero, 0x5d     A7 => 93 (0x0 + 0x5d)\n"
-        "   0x10000012 <end+6>     c.li   a0, 0              A0 => 0\n"
-        "   0x10000014 <end+8>     ecall   <SYS_exit>\n"
-        "   0x10000018             c.addiw s6, -0x10\n"
+        "   0x1001164 <end>       c.li   a2, 0x1e           A2 => 0x1e\n"
+        "   0x1001166 <end+2>     addi   a7, zero, 0x5d     A7 => 93 (0x0 + 0x5d)\n"
+        "   0x100116a <end+6>     c.li   a0, 0              A0 => 0\n"
+        "   0x100116c <end+8>     ecall   <SYS_exit>\n"
+        "   0x1001170             c.addiw s6, -0x10\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 

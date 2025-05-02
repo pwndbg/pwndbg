@@ -156,7 +156,6 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Iteratively print chunks on a heap.
 
 Default to the current thread's active heap.""",
@@ -176,7 +175,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -205,7 +204,6 @@ def heap(addr: int | None = None, verbose: bool = False, simple: bool = False) -
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.""",
 )
 parser.add_argument(
@@ -227,7 +225,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
@@ -259,7 +257,6 @@ def hi(addr: int, verbose: bool = False, simple: bool = False, fake: bool = Fals
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena.
 
 Default to the current thread's arena.""",
@@ -267,7 +264,7 @@ Default to the current thread's arena.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -297,7 +294,7 @@ def arena(addr: int | None = None) -> None:
 parser = argparse.ArgumentParser(description="List this process's arenas.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -356,7 +353,6 @@ def arenas() -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print a thread's tcache contents.
 
 Default to the current thread's tcache.""",
@@ -364,7 +360,7 @@ Default to the current thread's tcache.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWithTcache
 @pwndbg.commands.OnlyWhenUserspace
@@ -393,7 +389,7 @@ def tcache(addr: int | None = None) -> None:
 parser = argparse.ArgumentParser(description="Print the mp_ struct's contents.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -407,7 +403,6 @@ def mp() -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print relevant information about an arena's top chunk.
 
 Default to current thread's arena.""",
@@ -415,7 +410,7 @@ Default to current thread's arena.""",
 parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of the arena.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -456,7 +451,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -564,7 +559,6 @@ def malloc_chunk(
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of all an arena's bins and a thread's tcache.
 
 Default to the current thread's arena and tcache.""",
@@ -573,7 +567,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 parser.add_argument("tcache_addr", nargs="?", type=int, default=None, help="Address of the tcache.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -599,7 +593,6 @@ def bins(addr: int | None = None, tcache_addr: int | None = None) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena's fastbins.
 
 Default to the current thread's arena.""",
@@ -610,7 +603,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -635,7 +628,6 @@ def fastbins(addr: int | None = None, verbose: bool = False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena's unsortedbin.
 
 Default to the current thread's arena.""",
@@ -646,7 +638,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -671,7 +663,6 @@ def unsortedbin(addr: int | None = None, verbose: bool = False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena's smallbins.
 
 Default to the current thread's arena.""",
@@ -682,7 +673,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -707,7 +698,6 @@ def smallbins(addr: int | None = None, verbose: bool = False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of an arena's largebins.
 
 Default to the current thread's arena.""",
@@ -718,7 +708,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -742,7 +732,6 @@ def largebins(addr: int | None = None, verbose: bool = False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Print the contents of a tcache.
 
 Default to the current thread's tcache.""",
@@ -753,7 +742,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWithTcache
 @pwndbg.commands.OnlyWhenUserspace
@@ -811,7 +800,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -951,7 +940,6 @@ pwndbg.config.add_param(
 )
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Visualize chunks on a heap.
 
 Default to the current arena's active heap.""",
@@ -988,7 +976,7 @@ group.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["vis"], category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(parser, aliases=["vis"], category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
@@ -1224,7 +1212,7 @@ try_free_parser = argparse.ArgumentParser(
 try_free_parser.add_argument("addr", help="Address passed to free")
 
 
-@pwndbg.commands.ArgparsedCommand(try_free_parser, category=CommandCategory.PTMALLOC2)
+@pwndbg.commands.Command(try_free_parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWhenUserspace
 def try_free(addr: str | int) -> None:

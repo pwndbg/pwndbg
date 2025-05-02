@@ -76,19 +76,6 @@ in
       }
       ++ [
         jemalloc-static
-        # from qemu-tests.sh
-        (pkgs.writeShellScriptBin "gdb-multiarch" ''
-          exec ${lib.getBin pkgs.gdb}/bin/gdb "$@"
-        '')
-        pkgs.pkgsCross.aarch64-multiplatform.buildPackages.binutils
-        pkgs.pkgsCross.riscv64.buildPackages.binutils
-        pkgs.pkgsCross.mips-linux-gnu.buildPackages.binutils
-        (pkgs.writeShellScriptBin "aarch64-linux-gnu-gcc" ''
-          exec ${lib.getBin pkgs.pkgsCross.aarch64-multiplatform.buildPackages.gcc}/bin/aarch64-unknown-linux-gnu-gcc "$@"
-        '')
-        (pkgs.writeShellScriptBin "riscv64-linux-gnu-gcc" ''
-          exec ${lib.getBin pkgs.pkgsCross.riscv64.buildPackages.gcc}/bin/riscv64-unknown-linux-gnu-gcc "$@"
-        '')
         pyEnv
         (pkgs.writeShellScriptBin "pwndbg" ''
           exec ${lib.getBin pkgs.gdb}/bin/gdb --quiet --command="$REPO_ROOT/gdbinit.py" $@

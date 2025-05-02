@@ -16,6 +16,7 @@ GDB_TIPS: List[str] = [
     "If you have debugging symbols the `info args` command shows current frame's function arguments (use `up` and `down` to switch between frames)",
     'Calling functions like `call (void)puts("hello world")` will run all other target threads for the time the function runs. Use `set scheduler-locking on` to lock the execution to current thread when calling functions',
     "Use the `pipe <cmd> | <prog>` command to pass output of a GDB/Pwndbg command to a shell program, e.g. `pipe elfsections | grep bss`. This can also be shortened to: `| <cmd> | <prog>`",
+    "Prefixing a command with `!` in GDB will execute it as a shell command, e.g.: `!ls` or `!cat flag.txt`",
 ]
 
 # Pwndbg specific tips
