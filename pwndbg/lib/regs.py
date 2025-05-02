@@ -292,9 +292,9 @@ class RegisterSet:
             controls = self.kernel.controls
             segments = self.kernel.segments
             msrs = self.kernel.msrs
-            for reg in tuple(controls) + tuple(segments.regs) + tuple(msrs):
-                if reg and reg not in self.common:
-                    self.common.append(reg)
+            for regname in tuple(controls) + tuple(segments.regs) + tuple(msrs):
+                if regname and regname not in self.common:
+                    self.common.append(regname)
 
         # The specific order of this list is very important:
         # Due to the behavior of Arm in the Unicorn engine,
