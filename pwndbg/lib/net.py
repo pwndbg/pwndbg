@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import binascii
 import socket
+import struct
 from typing import List
 
 import pwndbg.aglib.arch
@@ -125,7 +126,16 @@ def _tcp_parser(data: str, ip_family: socket.AddressFamily) -> List[Connection]:
             host = binascii.unhexlify(host)
 
             if pwndbg.aglib.arch.endian == "little":
-                host = host[::-1]
+                if ip_family == socket.AF_INET:
+                    words = struct.unpack('<1I', host)
+                    host = struct.pack('>1I', *words)
+                elif ip_family == socket.AF_INET6:
+                    # The kernel outputs the IPv6 address as 4 little-endian 32-bit chunks.
+                    # This behavior is specific to little-endian kernels, such as x86.
+                    # On a big-endian kernel, the byte order would differ.
+                    # Reference: https://github.com/torvalds/linux/blob/a7c428ee8f59f171a3b57474f2bd5cee0ef1e036/net/ipv6/tcp_ipv6.c#L2153
+                    words = struct.unpack('<4I', host)
+                    host = struct.pack('>4I', *words)
 
             host = socket.inet_ntop(ip_family, host)
             port = int(port, 16)
