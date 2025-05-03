@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import List
+from typing import Tuple
+
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.commands
@@ -47,7 +50,8 @@ def gotplt() -> None:
 )
 @pwndbg.commands.OnlyWithFile
 def plt() -> None:
-    print_symbols_in_section(".plt", "@plt")
+    found = print_symbols_in_section(".plt", "@plt")
+    print_symbols_in_section(".plt.sec", "@plt", silent_if_empty=found)
 
 
 def get_section_bounds(section_name):
@@ -66,12 +70,16 @@ def get_section_bounds(section_name):
         return (start, start + size)
 
 
-def print_symbols_in_section(section_name, filter_text="") -> None:
+def print_symbols_in_section(section_name, filter_text="", silent_if_empty=False) -> bool:
+    """
+    Return True if any symbols were found
+    """
     start, end = get_section_bounds(section_name)
 
     if start is None:
-        print(message.error(f"Could not find section {section_name}"))
-        return
+        if not silent_if_empty:
+            print(message.error(f"Could not find section {section_name}"))
+        return False
 
     # If we started the binary and it has PIE, rebase it
     if pwndbg.aglib.proc.alive:
@@ -82,9 +90,12 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
             start += bin_base_addr
             end += bin_base_addr
 
-    print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
-
     symbols = get_symbols_in_region(start, end, filter_text)
+
+    if len(symbols) == 0 and silent_if_empty:
+        return False
+
+    print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
 
     if not symbols:
         print(message.error(f"No symbols found in section {section_name}"))
@@ -92,9 +103,11 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
     for symbol, addr in symbols:
         print(hex(int(addr)) + ": " + symbol)
 
+    return len(symbols) > 0
 
-def get_symbols_in_region(start, end, filter_text=""):
-    symbols = []
+
+def get_symbols_in_region(start: int, end: int, filter_text="") -> List[Tuple[str, int]]:
+    symbols: List[Tuple[str, int]] = []
     ptr_size = pwndbg.aglib.typeinfo.pvoid.sizeof
     addr = start
     while addr < end:
