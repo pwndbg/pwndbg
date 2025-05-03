@@ -30,7 +30,7 @@ TLS_CANARY_OFFSETS = {
 
 def canary_value():
     """Get the global canary value from AT_RANDOM.
-    
+
     Returns:
         tuple: (canary_value, at_random_addr) or (None, None) if not found
     """
@@ -48,18 +48,18 @@ def canary_value():
 
 def find_tls_canary_addr():
     """Find the address of the canary in the Thread Local Storage (TLS).
-    
+
     The canary is stored at a fixed offset from the TLS base, which varies by architecture.
     The TLS base can be accessed through architecture-specific registers:
     - x86_64: fs register
     - i386: gs register
     - aarch64: tpidr_el0 register
-    
+
     Returns:
         int: The virtual address of the canary in TLS, or None if not found/supported
     """
     arch = pwndbg.aglib.arch.name
-    
+
     # Get TLS base address
     tls_base = (
         pwndbg.aglib.tls.find_address_with_register()
@@ -67,12 +67,12 @@ def find_tls_canary_addr():
     )
     if not tls_base:
         return None
-            
+
     # Get architecture-specific offset
     offset = TLS_CANARY_OFFSETS.get(arch)
     if offset is None:
         return None
-        
+
     return tls_base + offset
 
 
@@ -95,15 +95,13 @@ def canary(all) -> None:
         print(message.error("Couldn't find AT_RANDOM - can't display canary."))
         return
 
-    print(
-        message.notice("AT_RANDOM = %#x # points to global canary seed value" % at_random)
-    )
-    
+    print(message.notice("AT_RANDOM = %#x # points to global canary seed value" % at_random))
+
     # Get and display the TLS canary address
     tls_addr = find_tls_canary_addr()
     if tls_addr is not None:
         print(message.notice("TLS Canary = %#x # address where canary is stored" % tls_addr))
-        
+
         # Verify the value at the TLS address matches our computed canary
         try:
             tls_canary = pwndbg.aglib.memory.pvoid(tls_addr) & (pwndbg.aglib.arch.ptrmask ^ 0xFF)
@@ -113,7 +111,7 @@ def canary(all) -> None:
             print(message.warn("Warning: Could not read TLS canary value"))
     else:
         print(message.warn("Note: Could not determine TLS canary address for current architecture"))
-    
+
     print(message.notice("Canary    = 0x%x (may be incorrect on != glibc)" % global_canary))
 
     found_canaries = False
