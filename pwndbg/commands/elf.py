@@ -51,7 +51,9 @@ def gotplt() -> None:
 @pwndbg.commands.OnlyWithFile
 def plt() -> None:
     found = print_symbols_in_section(".plt", "@plt")
-    print_symbols_in_section(".plt.sec", "@plt", silent_if_empty=found)
+    found |= print_symbols_in_section(".plt.sec", "@plt", silent_if_empty=found)
+    found |= print_symbols_in_section(".plt.got", "@plt", silent_if_empty=found)
+    print_symbols_in_section(".plt.bnd", "@plt", silent_if_empty=found)
 
 
 def get_section_bounds(section_name):
