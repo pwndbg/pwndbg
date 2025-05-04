@@ -4,6 +4,7 @@ import re
 from asyncio import CancelledError
 from contextlib import contextmanager
 from contextlib import nullcontext
+from pathlib import Path
 from typing import Any
 from typing import Coroutine
 from typing import Generator
@@ -1302,6 +1303,56 @@ def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
 
 
 class GDB(pwndbg.dbg_mod.Debugger):
+    def _disable_gdbinit_loading(self) -> Tuple[bool, bool, bool]:
+        import os
+
+        import psutil
+
+        disable_home_gdbinit = 0
+        disable_any_gdbinit = 0
+        proc = psutil.Process(os.getpid())
+        for arg in proc.cmdline():
+            if arg in ("-nh", "--nh"):
+                disable_home_gdbinit += 1
+            elif arg in ("-nx", "--nx", "-n", "--n"):
+                disable_any_gdbinit += 1
+
+        if disable_any_gdbinit == 0:
+            # The `--nx` option is added only in pwndbg-portable mode.
+            # This check allows using OLD syntax, eg: `source /path/to/pwndbg/gdbinit.py`, from ~/.gdbinit
+            return True, True, True
+
+        disable_local = not gdb.parameter("auto-load local-gdbinit")
+        return disable_any_gdbinit >= 2, disable_home_gdbinit >= 1, disable_local
+
+    def _load_gdbinit(self):
+        # Emulate how `gdb` loads `.gdbinit` files (home and local)
+        disable_any, disable_home, disable_local = self._disable_gdbinit_loading()
+        if disable_any:
+            return
+
+        home_file = Path("~/.gdbinit").expanduser().resolve()
+        local_file = Path("./.gdbinit").resolve()
+
+        def safe_source(file_path: str):
+            try:
+                gdb.execute(f"source {file_path}", to_string=True)
+            except gdb.error as e:
+                print(e)
+
+        is_home_loaded = False
+        if not disable_home and home_file.exists():
+            safe_source("~/.gdbinit")
+            is_home_loaded = True
+
+        should_load_local = (
+            not disable_local
+            and local_file.exists()
+            and not (is_home_loaded and home_file.samefile(local_file))
+        )
+        if should_load_local:
+            safe_source("./.gdbinit")
+
     @override
     def setup(self):
         import pwnlib.update
@@ -1324,6 +1375,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         prompt.set_prompt()
 
         pre_commands = """
+        set auto-load safe-path /
         set confirm off
         set verbose off
         set pagination off
@@ -1399,6 +1451,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
         prompt.show_hint()
 
         from pwndbg.dbg.gdb import debug_sym
+
+        self._load_gdbinit()
 
     @override
     def add_command(
