@@ -1335,7 +1335,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         home_file = Path("~/.gdbinit").expanduser().resolve()
         local_file = Path("./.gdbinit").resolve()
 
-        def safe_source(file_path: str):
+        def load_source(file_path: str):
             try:
                 gdb.execute(f"source {file_path}", to_string=True)
             except gdb.error as e:
@@ -1343,7 +1343,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         is_home_loaded = False
         if not disable_home and home_file.exists():
-            safe_source("~/.gdbinit")
+            load_source("~/.gdbinit")
             is_home_loaded = True
 
         disable_local = not gdb.parameter("auto-load local-gdbinit")
@@ -1353,7 +1353,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
             and not (is_home_loaded and home_file.samefile(local_file))
         )
         if should_load_local:
-            safe_source("./.gdbinit")
+            load_source("./.gdbinit")
 
     @override
     def setup(self):
