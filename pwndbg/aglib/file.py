@@ -99,16 +99,18 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     if try_local_path and not has_target_prefix and os.path.exists(local_path):
         return local_path
 
+    _remote_file_cache = {}
     if can_download_remote_file():
+        if path in _remote_file_cache:
+            return _remote_file_cache[path]
+
         local_path = tempfile.mktemp(dir=remote_files_dir())
         try:
             pwndbg.dbg.selected_inferior().download_remote_file(path, local_path)
+            _remote_file_cache[path] = local_path
+            return local_path
         except pwndbg.dbg_mod.Error as e:
-            # This module originally raised this as an OSError
             raise OSError(e)
-
-    else:
-        raise OSError(f"get_file('{local_path}') is not supported for your target", errno.ENODEV)
 
     return local_path
 
