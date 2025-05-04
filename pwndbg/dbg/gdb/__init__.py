@@ -1314,7 +1314,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for arg in proc.cmdline():
             if arg in ("-args", "--args"):
                 break
-            elif arg in ("-nh", "--nh"):
+            if arg in ("-nh", "--nh"):
                 disable_home_gdbinit += 1
             elif arg in ("-nx", "--nx", "-n", "--n"):
                 disable_any_gdbinit += 1
