@@ -75,8 +75,6 @@ or
 ./pwndbg/bin/pwndbg-lldb
 ```
 depending on which version you installed. You may add the appropriate file to your shell's PATH.
-!!! warning ".gdbinit doesn't work for portable release"
-    If you're running `./pwndbg/bin/pwndbg` from the portable release, it is a known limitation that pwndbg settings in your `.gdbinit` won't work (see [issue #2774](https://github.com/pwndbg/pwndbg/issues/2774)). Also, make sure not to source pwndbg in your gdbinit as it already happens automatically for portable releases (if this is the first time you're installing pwndbg, you don't need to worry about this).
 
 ## Installing from source
 See the relevant section in DEVELOPING.md: [with GDB](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-gdb), [with LLDB](https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-lldb).
