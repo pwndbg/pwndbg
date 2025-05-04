@@ -75,8 +75,6 @@ def plt() -> None:
 
                 if start is None:
                     continue
-                    # print(message.error(f"Could not find section {section_name}"))
-                    # return False
 
                 found = True
                 end = start + size
