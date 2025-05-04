@@ -45,18 +45,62 @@ def gotplt() -> None:
     print_symbols_in_section(".got.plt", "@got.plt")
 
 
+PLT_SECTION_NAMES = (".plt", ".plt.sec", ".plt.got", ".plt.bnd")
+
 @pwndbg.commands.Command(
     "Prints any symbols found in the .plt section if it exists.", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWithFile
 def plt() -> None:
-    found = print_symbols_in_section(".plt", "@plt")
-    found |= print_symbols_in_section(".plt.sec", "@plt", silent_if_empty=found)
-    found |= print_symbols_in_section(".plt.got", "@plt", silent_if_empty=found)
-    print_symbols_in_section(".plt.bnd", "@plt", silent_if_empty=found)
+
+    local_path = pwndbg.aglib.file.get_proc_exe_file()
+
+    bin_base_addr = 0
+    # If we started the binary and it has PIE, rebase it
+    if pwndbg.aglib.proc.alive:
+        bin_base_addr = pwndbg.aglib.proc.binary_base_addr
+
+    # If at least one .plt.* section was found
+    found = False
+
+    with open(local_path, "rb") as f:
+        elffile = ELFFile(f)
+
+        for section_name in PLT_SECTION_NAMES:
+            section = elffile.get_section_by_name(section_name)
+            
+            if section:
+                start = section["sh_addr"]
+                size = section["sh_size"]
+
+                if start is None:
+                    continue
+                    # print(message.error(f"Could not find section {section_name}"))
+                    # return False
+
+                found = True
+                end = start + size
+
+                # Rebase the start and end addresses if needed
+                if start < bin_base_addr:
+                    start += bin_base_addr
+                    end += bin_base_addr
+
+                symbols = get_symbols_in_region(start, end, "@plt")
+
+                print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
+
+                if not symbols:
+                    print(message.error(f"No symbols found in section {section_name}"))
+
+                for symbol, addr in symbols:
+                    print(hex(int(addr)) + ": " + symbol)
+
+    if not found:
+        print(message.error(f"No .plt.* sections found"))
 
 
-def get_section_bounds(section_name):
+def get_section_bounds(section_name: str):
     local_path = pwndbg.aglib.file.get_proc_exe_file()
 
     with open(local_path, "rb") as f:
@@ -72,16 +116,14 @@ def get_section_bounds(section_name):
         return (start, start + size)
 
 
-def print_symbols_in_section(section_name, filter_text="", silent_if_empty=False) -> bool:
+def print_symbols_in_section(section_name, filter_text=""):
     """
     Return True if any symbols were found
     """
     start, end = get_section_bounds(section_name)
 
     if start is None:
-        if not silent_if_empty:
-            print(message.error(f"Could not find section {section_name}"))
-        return False
+        print(message.error(f"Could not find section {section_name}"))
 
     # If we started the binary and it has PIE, rebase it
     if pwndbg.aglib.proc.alive:
@@ -92,20 +134,15 @@ def print_symbols_in_section(section_name, filter_text="", silent_if_empty=False
             start += bin_base_addr
             end += bin_base_addr
 
-    symbols = get_symbols_in_region(start, end, filter_text)
-
-    if len(symbols) == 0 and silent_if_empty:
-        return False
-
     print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
+    
+    symbols = get_symbols_in_region(start, end, filter_text)
 
     if not symbols:
         print(message.error(f"No symbols found in section {section_name}"))
 
     for symbol, addr in symbols:
         print(hex(int(addr)) + ": " + symbol)
-
-    return len(symbols) > 0
 
 
 def get_symbols_in_region(start: int, end: int, filter_text="") -> List[Tuple[str, int]]:
