@@ -104,8 +104,9 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         try:
             pwndbg.dbg.selected_inferior().download_remote_file(path, local_path)
         except pwndbg.dbg_mod.Error as e:
-            # This module originally raised this as an OSError.
+            # This module originally raised this as an OSError
             raise OSError(e)
+
     else:
         raise OSError(f"get_file('{local_path}') is not supported for your target", errno.ENODEV)
 
