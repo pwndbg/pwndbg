@@ -99,7 +99,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     if try_local_path and not has_target_prefix and os.path.exists(local_path):
         return local_path
 
-    _remote_file_cache = {}
+    _remote_file_cache: dict[str, str] = {}
     if can_download_remote_file():
         if path in _remote_file_cache:
             return _remote_file_cache[path]
