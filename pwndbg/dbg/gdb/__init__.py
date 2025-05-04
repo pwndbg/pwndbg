@@ -1303,7 +1303,7 @@ def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
 
 
 class GDB(pwndbg.dbg_mod.Debugger):
-    def _disable_gdbinit_loading(self) -> Tuple[bool, bool, bool]:
+    def _disable_gdbinit_loading(self) -> Tuple[bool, bool]:
         import os
 
         import psutil
@@ -1322,14 +1322,13 @@ class GDB(pwndbg.dbg_mod.Debugger):
         if disable_any_gdbinit == 0:
             # The `--nx` option is added only in pwndbg-portable mode.
             # This check allows using OLD syntax, eg: `source /path/to/pwndbg/gdbinit.py`, from ~/.gdbinit
-            return True, True, True
+            return True, True
 
-        disable_local = not gdb.parameter("auto-load local-gdbinit")
-        return disable_any_gdbinit >= 2, disable_home_gdbinit >= 1, disable_local
+        return disable_any_gdbinit >= 2, disable_home_gdbinit >= 1
 
     def _load_gdbinit(self):
         # Emulate how `gdb` loads `.gdbinit` files (home and local)
-        disable_any, disable_home, disable_local = self._disable_gdbinit_loading()
+        disable_any, disable_home = self._disable_gdbinit_loading()
         if disable_any:
             return
 
@@ -1347,6 +1346,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
             safe_source("~/.gdbinit")
             is_home_loaded = True
 
+        disable_local = not gdb.parameter("auto-load local-gdbinit")
         should_load_local = (
             not disable_local
             and local_file.exists()
