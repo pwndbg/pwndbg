@@ -47,12 +47,12 @@ def gotplt() -> None:
 
 PLT_SECTION_NAMES = (".plt", ".plt.sec", ".plt.got", ".plt.bnd")
 
+
 @pwndbg.commands.Command(
     "Prints any symbols found in the .plt section if it exists.", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWithFile
 def plt() -> None:
-
     local_path = pwndbg.aglib.file.get_proc_exe_file()
 
     bin_base_addr = 0
@@ -68,7 +68,7 @@ def plt() -> None:
 
         for section_name in PLT_SECTION_NAMES:
             section = elffile.get_section_by_name(section_name)
-            
+
             if section:
                 start = section["sh_addr"]
                 size = section["sh_size"]
@@ -97,7 +97,7 @@ def plt() -> None:
                     print(hex(int(addr)) + ": " + symbol)
 
     if not found:
-        print(message.error(f"No .plt.* sections found"))
+        print(message.error("No .plt.* sections found"))
 
 
 def get_section_bounds(section_name: str):
@@ -116,14 +116,12 @@ def get_section_bounds(section_name: str):
         return (start, start + size)
 
 
-def print_symbols_in_section(section_name, filter_text=""):
-    """
-    Return True if any symbols were found
-    """
+def print_symbols_in_section(section_name, filter_text="") -> None:
     start, end = get_section_bounds(section_name)
 
     if start is None:
         print(message.error(f"Could not find section {section_name}"))
+        return
 
     # If we started the binary and it has PIE, rebase it
     if pwndbg.aglib.proc.alive:
@@ -135,7 +133,7 @@ def print_symbols_in_section(section_name, filter_text=""):
             end += bin_base_addr
 
     print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
-    
+
     symbols = get_symbols_in_region(start, end, filter_text)
 
     if not symbols:
