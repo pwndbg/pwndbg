@@ -133,7 +133,7 @@ class ContextTUIWindow:
     def _receive_context_output(self, data: str):
         if not self._verify_enabled_state():
             return
-        self._lines = data.split("\n")
+        self._lines = data.strip("\n").split("\n")
         self._blank_line_lengths = [
             len(self._ansi_escape_regex.sub("", line)) for line in self._lines
         ]
