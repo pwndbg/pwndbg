@@ -141,7 +141,6 @@ def run_test(
         gdb_args.extend(["--init-command", gdbinit_path])
 
     if args.cov:
-        print("Running with coverage")
         gdb_args = [
             "-ex",
             "py import sys;print(sys.path);import coverage;coverage.process_startup();",
@@ -238,6 +237,18 @@ def run_tests_and_print_stats(
     print(f"Tests Passed: {stats.pass_tests}")
     print(f"Tests Skipped: {stats.skip_tests}")
     print(f"Tests Failed: {stats.fail_tests}")
+
+    if args.cov:
+        print("")
+        print("*********************************")
+        print("******** COVERAGE REPORT ********")
+        print("*********************************")
+        try:
+            coverage_report_cmd = ["python", "-m", "coverage", "report"]
+            subprocess.run(coverage_report_cmd, check=True)
+        except Exception as e:
+            print(f"Error generating coverage report: {e}")
+        print("")
 
     if stats.fail_tests != 0:
         print("\nFailing tests:")
