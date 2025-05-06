@@ -24,8 +24,8 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
-import pwndbg.exception
 import pwndbg.color.message as message
+import pwndbg.exception
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
