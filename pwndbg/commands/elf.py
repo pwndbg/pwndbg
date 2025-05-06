@@ -45,6 +45,9 @@ def gotplt() -> None:
     print_symbols_in_section(".got.plt", "@got.plt")
 
 
+# These are all the section names associated with PLTs.
+# .plt.sec and .plt.bnd are associated with control flow transfer integrity.
+# These are derived from this list that GDB recognizes: https://github.com/bminor/binutils-gdb/blob/38d726a24c1a85abdb606e7ab6cefad17872aad7/bfd/elf64-x86-64.c#L5775-L5780
 PLT_SECTION_NAMES = (".plt", ".plt.sec", ".plt.got", ".plt.bnd")
 
 
@@ -60,8 +63,8 @@ def plt() -> None:
     if pwndbg.aglib.proc.alive:
         bin_base_addr = pwndbg.aglib.proc.binary_base_addr
 
-    # If at least one .plt.* section was found
-    found = False
+    # List of (Section name, start_addr, end_addr)
+    sections_found: List[Tuple[str, int, int]] = []
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
@@ -70,13 +73,12 @@ def plt() -> None:
             section = elffile.get_section_by_name(section_name)
 
             if section:
-                start = section["sh_addr"]
-                size = section["sh_size"]
+                start: int = section["sh_addr"]
+                size: int = section["sh_size"]
 
                 if start is None:
                     continue
 
-                found = True
                 end = start + size
 
                 # Rebase the start and end addresses if needed
@@ -84,17 +86,26 @@ def plt() -> None:
                     start += bin_base_addr
                     end += bin_base_addr
 
-                symbols = get_symbols_in_region(start, end, "@plt")
+                sections_found.append((section_name, start, end))
 
-                print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
+    # Sort by the start address so we print from lowest to highest
+    sections_found.sort(key=lambda x: x[1])
 
-                if not symbols:
-                    print(message.error(f"No symbols found in section {section_name}"))
+    for name, start, end in sections_found:
+        symbols = get_symbols_in_region(start, end, "@plt")
 
-                for symbol, addr in symbols:
-                    print(hex(int(addr)) + ": " + symbol)
+        print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
 
-    if not found:
+        if not symbols:
+            print(message.error(f"No symbols found in section {section_name}"))
+
+        stuff: List[Tuple[int, str]] = []
+
+        for symbol, addr in symbols:
+            stuff.append((addr, symbol))
+            print(hex(int(addr)) + ": " + symbol)
+
+    if len(sections_found) == 0:
         print(message.error("No .plt.* sections found"))
 
 
