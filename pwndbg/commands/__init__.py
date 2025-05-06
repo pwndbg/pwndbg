@@ -25,6 +25,7 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
 import pwndbg.exception
+import pwndbg.color.message as message
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
@@ -139,6 +140,8 @@ class CommandObj:
         command_name: str | None,
         category: CommandCategory,
         aliases: List[str],
+        examples: str,
+        notes: str,
         /,  # All parameters must be passed in positionally
     ) -> None:
         assert function
@@ -165,6 +168,8 @@ class CommandObj:
         self.category = category
 
         self.aliases = aliases
+        self.examples = examples.strip()
+        self.notes = notes.strip()
 
         assert parser
         self.parser = parser
@@ -231,8 +236,23 @@ class CommandObj:
             and "A command must contain a description."
         )
         self.description = self.parser.description = self.parser.description.strip()
+
+        # Build the actual epilog from the examples, notes and passed epilog.
+        self.epilog = ""
+
+        if self.examples:
+            # Not putting '\n' in the notice() so .strip() works properly.
+            self.epilog += "\n" + message.notice("Examples:") + "\n"
+            self.epilog += self.examples + "\n"
+
+        if self.notes:
+            self.epilog += "\n" + message.notice("Notes:") + "\n"
+            self.epilog += self.notes + "\n"
+
         if self.parser.epilog:
-            self.epilog = self.parser.epilog = self.parser.epilog.strip()
+            self.epilog += "\n" + self.parser.epilog.strip() + "\n"
+
+        self.parser.epilog = self.epilog = self.epilog.strip()
 
         # Generate command help (after stripping the parser's variables
         # and defining a formatter).
@@ -321,6 +341,8 @@ class Command:
         category: CommandCategory,
         command_name: str | None = None,
         aliases: List[str] = [],
+        examples: str = "",
+        notes: str = "",
         only_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
         exclude_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
     ) -> None:
@@ -334,6 +356,8 @@ class Command:
         self.category = category
         self.command_name = command_name
         self.aliases = aliases
+        self.examples = examples
+        self.notes = notes
         self.only_debuggers = only_debuggers
         self.exclude_debuggers = exclude_debuggers
 
@@ -372,6 +396,8 @@ class Command:
             self.command_name,
             self.category,
             self.aliases,
+            self.examples,
+            self.notes,
         )
 
 
