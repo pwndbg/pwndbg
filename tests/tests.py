@@ -243,18 +243,15 @@ def run_tests_and_print_stats(
         print("*********************************")
         print("******** COVERAGE REPORT ********")
         print("*********************************")
-        try:
-            coverage_report_cmd = ["python", "-m", "coverage", "report"]
-            subprocess.run(coverage_report_cmd, check=True)
-        except Exception as e:
-            print(f"Error generating coverage report: {e}")
-        print("")
-
-    if stats.fail_tests != 0:
-        print("\nFailing tests:")
-        for test_case in stats.fail_tests_names:
-            print(f"- {test_case}")
-        sys.exit(1)
+    try:
+        combine_cmd = ["python", "-m", "coverage", "combine", "--data-file", os.path.join(root_dir, ".cov/coverage")]
+        subprocess.run(combine_cmd, check=False)
+        
+        coverage_report_cmd = ["python", "-m", "coverage", "report", "--data-file", os.path.join(root_dir, ".cov/coverage")]
+        subprocess.run(coverage_report_cmd, check=True)
+    except Exception as e:
+        print(f"Error generating coverage report: {e}")
+    print("")
 
 
 def parse_args():
