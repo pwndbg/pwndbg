@@ -266,6 +266,10 @@ class CommandObj:
 
             self.epilog += "\n" + self.pure_epilog + "\n"
 
+        if self.aliases:
+            self.epilog += "\n" + message.notice("Aliases: ")
+            self.epilog += ", ".join(self.aliases) + "\n"
+
         # Update the parser so the help is correctly generated.
         self.parser.epilog = self.epilog = self.epilog.strip()
 
