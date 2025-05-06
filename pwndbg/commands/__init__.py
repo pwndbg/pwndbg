@@ -239,6 +239,7 @@ class CommandObj:
 
         # Build the actual epilog from the examples, notes and passed epilog.
         self.epilog = ""
+        self.pure_epilog = ""
 
         if self.examples:
             # Not putting '\n' in the notice() so .strip() works properly.
@@ -250,8 +251,8 @@ class CommandObj:
             self.epilog += self.notes + "\n"
 
         if self.parser.epilog:
-            pure_epilog = self.parser.epilog
-            pure_epilog_low = pure_epilog.lower()
+            self.pure_epilog = self.parser.epilog.strip()
+            pure_epilog_low = self.pure_epilog.lower()
             assert (
                 self.examples
                 or not ("examples:" in pure_epilog_low or "example:" in pure_epilog_low)
@@ -263,8 +264,9 @@ class CommandObj:
                 and "Put command notes in pwndbg.commands.Command(notes=your_note)."
             )
 
-            self.epilog += "\n" + pure_epilog.strip() + "\n"
+            self.epilog += "\n" + self.pure_epilog + "\n"
 
+        # Update the parser so the help is correctly generated.
         self.parser.epilog = self.epilog = self.epilog.strip()
 
         # Generate command help (after stripping the parser's variables
