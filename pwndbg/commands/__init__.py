@@ -250,7 +250,20 @@ class CommandObj:
             self.epilog += self.notes + "\n"
 
         if self.parser.epilog:
-            self.epilog += "\n" + self.parser.epilog.strip() + "\n"
+            pure_epilog = self.parser.epilog
+            pure_epilog_low = pure_epilog.lower()
+            assert (
+                self.examples
+                or not ("examples:" in pure_epilog_low or "example:" in pure_epilog_low)
+                and "Put command examples in pwndbg.commands.Command(examples=your_example)."
+            )
+            assert (
+                self.notes
+                or not ("notes:" in pure_epilog_low or "note:" in pure_epilog_low)
+                and "Put command notes in pwndbg.commands.Command(notes=your_note)."
+            )
+
+            self.epilog += "\n" + pure_epilog.strip() + "\n"
 
         self.parser.epilog = self.epilog = self.epilog.strip()
 
