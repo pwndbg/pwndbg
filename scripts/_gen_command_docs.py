@@ -55,7 +55,7 @@ def extract_sources() -> Tuple[Dict[str, CommandObj], Dict[str, list[str]]]:
         CommandObj objects, A dictionary that maps a category name
         to a list of filenames for commands that belong to the category).
     """
-    filename_to_source = {}
+    filename_to_source: Dict[str, CommandObj] = {}
     category_to_filename: Dict[str, list[str]] = {}
 
     # FIXME: If an lldb-only command is added this (or pwndbg.commands) will need to be
@@ -179,7 +179,6 @@ def convert_to_markdown(filename: str, command: CommandObj) -> str:
         )
         mdFile.write("\n")
 
-    # examples, notes, pure epilog
     if command.examples:
         # Put the examples into a code block so they are formatted sensically.
         mdFile.write("## Examples\n```text\n" + command.examples + "\n```\n")

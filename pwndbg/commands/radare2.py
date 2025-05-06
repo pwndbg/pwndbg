@@ -36,7 +36,7 @@ INFO: Debugger commands disabled in sandbox mode
 
 Welcome to radare2!
 [...]
-                         """,
+    """,
 )
 @pwndbg.commands.OnlyWithFile
 def r2(arguments, no_seek=False, no_rebase=False) -> None:
@@ -93,7 +93,7 @@ pwndbg> r2pipe pdf @ sym.main
 │     ┌───< 0x0001b97b      743d           je 0x1b9ba
 │     │╎│   0x0001b97d      bf03000000     mov edi, 3
 [...]
-""",
+    """,
 )
 @pwndbg.commands.OnlyWithFile
 def r2pipe(arguments) -> None:

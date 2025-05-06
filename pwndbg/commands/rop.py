@@ -223,7 +223,7 @@ Gadgets information
 0x0001ee23 : pop rdi ; ret
 
 Unique gadgets found: 8514
-                     """,
+    """,
 )
 @pwndbg.commands.OnlyWithFile
 def rop(grep: str | None, memlimit: str, argument: List[str]) -> None:

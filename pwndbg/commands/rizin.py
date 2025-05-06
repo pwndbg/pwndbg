@@ -34,7 +34,7 @@ pwndbg> rz -- -AA
 [x] Enable constraint types analysis for variables
  -- Use 'e asm.offset=true' to show offsets in 16bit segment addressing mode.
 [0x0001d3d0]>
-            """,
+    """,
 )
 @pwndbg.commands.OnlyWithFile
 def rz(arguments, no_seek=False, no_rebase=False) -> None:
@@ -98,7 +98,7 @@ pwndbg> rzpipe pdf @ sym.main
 │     ┌───< 0x0001b97b      je    0x1b9ba
 │     │╎│   0x0001b97d      mov   edi, 3                               ; int s
 [...]
-""",
+    """,
 )
 @pwndbg.commands.OnlyWithFile
 def rzpipe(arguments) -> None:
