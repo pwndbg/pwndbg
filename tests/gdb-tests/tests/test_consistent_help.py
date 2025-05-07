@@ -16,4 +16,5 @@ def test_consistent_help():
         gdb_out = gdb.execute(f"help {name}", to_string=True)
         argparse_out = gdb.execute(f"{name} -h", to_string=True)
 
-        assert gdb_out == argparse_out
+        # I would rather not strip, but gdb is inconsistent between versions.
+        assert gdb_out.rstrip() == argparse_out.rstrip()
