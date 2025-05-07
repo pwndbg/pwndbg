@@ -94,7 +94,7 @@ def plt() -> None:
     for section_name, start, end in sections_found:
         symbols = get_symbols_in_region(start, end, "@plt")
 
-        print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
+        print(message.notice(f"Section {section_name} {start:#x} - {end:#x}:"))
 
         if not symbols:
             print(message.error(f"No symbols found in section {section_name}"))
