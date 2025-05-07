@@ -16,23 +16,17 @@ from typing import Set
 from typing import Tuple
 from typing import Union
 
-import pwndbg.color.context as C
 import pwndbg.lib.disasm.helpers as bit_math
-from pwndbg.color import message
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
 class BitFlags:
     # this should be backwards compatibility
     reg: str  # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
-    value: int
-    last: int
     flags: OrderedDict[str, Union[int, Tuple[int, int]]]
 
     def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
         self.reg = ""
-        self.value = 0
-        self.last = 0
         self.flags = {}
         for name, bits in flags:
             self.flags[name] = bits
@@ -60,28 +54,11 @@ class BitFlags:
     def __repr__(self):
         return f"BitFlags({self.flags})"
 
-    def update(self, reg: str, value: int, last: int):
-        self.reg = reg
-        self.value = value
-        self.last = last
+    def update(self, regname: str):
+        self.reg = regname
 
-    def context(self, changed):
-        if not (
-            isinstance(self.reg, str) and isinstance(self.value, int) and isinstance(self.last, int)
-        ):
-            print(message.warn(f"Unknown register: {self.reg!r}"))
-            return None
-        regname = C.register(self.reg.ljust(4).upper())
-        if self.reg in changed:
-            regname = C.register_changed(regname)
-        change_marker = f"{C.config_register_changed_marker}"
-        m = (
-            " " * len(change_marker)
-            if self.reg not in changed
-            else C.register_changed(change_marker)
-        )
-        desc = C.format_flags(self.value, self, self.last)
-        return f"{m}{regname} {desc}"
+    def context(self, rc):
+        return rc.flag_register_context(self.reg, self)
 
 
 class AddressingRegister:
@@ -95,28 +72,14 @@ class AddressingRegister:
 
     def __init__(self, reg: str, is_virtual: bool):
         self.reg = reg
+        self.value = 0
         self.is_virtual = is_virtual
 
-    def update(self, value):
-        self.value = value
+    def update(self, regname: str):
+        pass
 
-    def context(self, changed):
-        if not (isinstance(self.reg, str) and isinstance(self.value, int)):
-            print(message.warn(f"Unknown register: {self.reg!r}"))
-            return None
-        regname = C.register(self.reg.ljust(4).upper())
-        if self.reg in changed:
-            regname = C.register_changed(regname)
-        change_marker = f"{C.config_register_changed_marker}"
-        m = (
-            " " * len(change_marker)
-            if self.reg not in changed
-            else C.register_changed(change_marker)
-        )
-        import pwndbg.chain
-
-        desc = pwndbg.chain.format(self.value)
-        return f"{m}{regname} {desc}"
+    def context(self, rc):
+        return rc.addressing_register_context(self.reg, self.is_virtual)
 
 
 class SegmentRegisters:
@@ -125,35 +88,12 @@ class SegmentRegisters:
     """
 
     regs: List[str]
-    idx_map: Dict[str, int]
-    values: List[int]
 
     def __init__(self, regs: List[str]):
         self.regs = regs
-        self.idx_map = {}
-        for i, reg in enumerate(regs):
-            self.idx_map[reg] = i
 
-    def update(self, values):
-        self.values = values
-
-    def format_reg(self, reg, changed):
-        value = self.values[self.idx_map[reg]]
-        if not (isinstance(value, int) and isinstance(reg, str)):
-            print(message.warn(f"Unknown register: {reg!r}"))
-            return None
-        regname = C.register((reg + ":").ljust(4).upper())
-        if reg in changed:
-            regname = C.register_changed(regname)
-        change_marker = f"{C.config_register_changed_marker}"
-        m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
-        return f"{m}{regname} {hex(value)}   "
-
-    def context(self, changed):
-        result = ""
-        for reg in self.regs:
-            result += self.format_reg(reg, changed)
-        return result
+    def context(self, rc):
+        return rc.segment_registers_context(self.regs)
 
 
 class KernelRegisterSet:
@@ -300,7 +240,7 @@ class RegisterSet:
             controls = self.kernel.controls
             segments = self.kernel.segments
             msrs = self.kernel.msrs
-            for regname in tuple(controls) + tuple(segments.regs) + tuple(msrs):
+            for regname in itertools.chain(controls, segments.regs, msrs):
                 if regname and regname not in self.common:
                     self.common.append(regname)
 

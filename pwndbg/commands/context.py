@@ -896,15 +896,8 @@ pwndbg.config.add_param("show-flags", False, "whether to show flags registers")
 pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return address register")
 
 
-def get_regs(regs: List[str] = None):
-    regs: List[Any] = regs  # ei, not dealing with types here is probably fine
-
-    def context(reg):
-        val = pwndbg.aglib.regs[reg]
-        if val is None:
-            print(message.warn(f"Unknown register: {reg!r}"))
-            return None
-        desc = pwndbg.chain.format(val)
+class RegisterContext:
+    def get_prefix(self, reg):
         changed = pwndbg.aglib.regs.changed
 
         # Make the register stand out and give a color if changed
@@ -915,13 +908,62 @@ def get_regs(regs: List[str] = None):
         # Show a marker next to the register if it changed
         change_marker = f"{C.config_register_changed_marker}"
         m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
-        return f"{m}{regname} {desc}"
+        return f"{m}{regname}"
 
+    def get_register_value(self, reg):
+        val = pwndbg.aglib.regs[reg]
+        if val is None:
+            print(message.warn(f"Unknown register: {reg!r}"))
+            return None
+        return val
+
+    def flag_register_context(self, reg, bit_flags):
+        val = self.get_register_value(reg)
+        if val is None:
+            return None
+        desc = C.format_flags(val, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
+        prefix = self.get_prefix(reg)
+        return f"{prefix} {desc}"
+
+    def segment_registers_context(self, regs):
+        result = ""
+        for reg in regs:
+            val = self.get_register_value(reg)
+            if val is None:
+                continue
+            prefix = self.get_prefix(reg)
+            result += f"{prefix} {hex(val)}   "
+        return result
+
+    def addressing_register_context(self, reg, is_virtual):
+        if is_virtual:
+            return self.register_context_default(reg)
+        val = self.get_register_value(reg)
+        if val is None:
+            return None
+        prefix = self.get_prefix(reg)
+        virtual = pwndbg.aglib.kernel.phys_to_virt(
+            val
+        )  # TODO: this function is bugged when kaslr is enabled
+        desc = f"{hex(val)} [virtual: {pwndbg.chain.format(virtual)}]"
+        return f"{prefix} {desc}"
+
+    def register_context_default(self, reg):
+        val = self.get_register_value(reg)
+        if val is None:
+            return None
+        desc = pwndbg.chain.format(val)
+        prefix = self.get_prefix(reg)
+        return f"{prefix} {desc}"
+
+
+def get_regs(regs: List[str] = None):
+    regs: List[Any] = regs  # ei, not dealing with types here is probably fine
     result = []
+    rc = RegisterContext()
 
     if regs is None:
         regs = []
-    changed = pwndbg.aglib.regs.changed
 
     if len(regs) == 0:
         regs += pwndbg.aglib.regs.gpr
@@ -937,14 +979,20 @@ def get_regs(regs: List[str] = None):
         if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
             controls = pwndbg.aglib.regs.kernel.controls
             if controls is not None:
-                regs += controls.values()
+                for regname, control in controls.items():
+                    control.update(regname)
+                    regs.append(control)
             msrs = pwndbg.aglib.regs.kernel.msrs
             if msrs is not None:
-                regs += msrs.values()
+                for regname, msr in msrs.items():
+                    msr.update(regname)
+                    regs.append(msr)
         if pwndbg.config.show_flags:
             flags = pwndbg.aglib.regs.flags
             if flags is not None:
-                regs += flags.values()
+                for regname, flag in flags.items():
+                    flag.update(regname)
+                    regs.append(flag)
         if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
             if pwndbg.aglib.regs.kernel.segments is not None:
                 regs.append(pwndbg.aglib.regs.kernel.segments)
@@ -953,11 +1001,11 @@ def get_regs(regs: List[str] = None):
         if reg is None:
             continue
         if not isinstance(reg, str):
-            desc = reg.context(changed)
+            desc = reg.context(rc)
             if desc is not None:
                 result.append(desc)
                 continue
-        desc = context(reg)
+        desc = rc.register_context_default(reg)
         if desc is not None:
             result.append(desc)
 
