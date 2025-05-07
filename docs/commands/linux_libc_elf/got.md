@@ -5,8 +5,11 @@
 
 # got
 
-## Description
 
+```text
+usage: got [-h] [-p PATH_FILTER | -a] [-r] [symbol_filter]
+
+```
 
 Show the state of the Global Offset Table.
 
@@ -15,20 +18,13 @@ Examples:
     got puts
     got -p libc
     got -a
-## Usage
-
-
-```bash
-usage: got [-h] [-p PATH_FILTER | -a] [-r] [symbol_filter]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |symbol_filter|Filter results by symbol name. (default: '')|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

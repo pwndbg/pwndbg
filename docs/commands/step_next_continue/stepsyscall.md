@@ -5,18 +5,14 @@
 
 # stepsyscall
 
-## Description
 
-
-Breaks at the next syscall by taking branches.
-## Usage
-
-
-```bash
+```text
 usage: stepsyscall [-h]
 
 ```
-## Optional Arguments
+
+Breaks at the next syscall by taking branches.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

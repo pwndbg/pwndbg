@@ -5,25 +5,21 @@
 
 # knft-list-flowtables
 
-## Description
 
-
-Dump netfilter flowtables from a specific table
-## Usage
-
-
-```bash
+```text
 usage: knft-list-flowtables [-h] [--nsid NSID] [table_family] [table_name]
 
 ```
-## Positional Arguments
+
+Dump netfilter flowtables from a specific table
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |table_family|Netfilter table family (inet, ip, ip6, netdev, bridge, arp)|
 |table_name|Table name|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

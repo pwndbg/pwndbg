@@ -5,25 +5,21 @@
 
 # telescope
 
-## Description
 
-
-Recursively dereferences pointers starting at the specified address.
-## Usage
-
-
-```bash
+```text
 usage: telescope [-h] [-r] [-f] [-i] [address] [count]
 
 ```
-## Positional Arguments
+
+Recursively dereferences pointers starting at the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to telescope at. (default: $sp)|
 |count|The number of lines to show. (default: 8)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

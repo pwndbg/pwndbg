@@ -5,24 +5,20 @@
 
 # errno
 
-## Description
 
-
-Converts errno (or argument) to its string representation.
-## Usage
-
-
-```bash
+```text
 usage: errno [-h] [err]
 
 ```
-## Positional Arguments
+
+Converts errno (or argument) to its string representation.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |err|Errno; if not passed, it is retrieved from __errno_location|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,24 +5,20 @@
 
 # profiler
 
-## Description
 
-
-Utilities for profiling pwndbg.
-## Usage
-
-
-```bash
+```text
 usage: profiler [-h] {start,stop} ...
 
 ```
-## Positional Arguments
+
+Utilities for profiling pwndbg.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |command||
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

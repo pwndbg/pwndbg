@@ -5,18 +5,14 @@
 
 # retaddr
 
-## Description
 
-
-Print out the stack addresses that contain return addresses.
-## Usage
-
-
-```bash
+```text
 usage: retaddr [-h]
 
 ```
-## Optional Arguments
+
+Print out the stack addresses that contain return addresses.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,24 +5,20 @@
 
 # xinfo
 
-## Description
 
-
-Shows offsets of the specified address from various useful locations.
-## Usage
-
-
-```bash
+```text
 usage: xinfo [-h] [address]
 
 ```
-## Positional Arguments
+
+Shows offsets of the specified address from various useful locations.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|Address to inspect (default: $pc)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

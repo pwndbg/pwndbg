@@ -5,24 +5,20 @@
 
 # go-type
 
-## Description
 
-
-Dumps a Go runtime reflection type at a specified address.
-## Usage
-
-
-```bash
+```text
 usage: go-type [-h] address
 
 ```
-## Positional Arguments
+
+Dumps a Go runtime reflection type at a specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|Address to dump|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

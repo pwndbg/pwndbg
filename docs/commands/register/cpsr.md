@@ -5,24 +5,20 @@
 
 # cpsr
 
-## Description
 
-
-Print out ARM CPSR or xPSR register.
-## Usage
-
-
-```bash
+```text
 usage: cpsr [-h] [cpsr_value]
 
 ```
-## Positional Arguments
+
+Print out ARM CPSR or xPSR register.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |cpsr_value|Parse the given CPSR value instead of the actual one.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

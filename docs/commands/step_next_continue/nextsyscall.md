@@ -5,18 +5,14 @@
 
 # nextsyscall
 
-## Description
 
-
-Breaks at the next syscall not taking branches.
-## Usage
-
-
-```bash
+```text
 usage: nextsyscall [-h]
 
 ```
-## Optional Arguments
+
+Breaks at the next syscall not taking branches.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

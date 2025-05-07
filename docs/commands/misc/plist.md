@@ -5,8 +5,13 @@
 
 # plist
 
-## Description
 
+```text
+usage: plist [-h] [-s SENTINEL] [-i INNER_NAME] [-f FIELD_NAME] [-o OFFSET]
+             [-c COUNT]
+             path next
+
+```
 
 Dumps the elements of a linked list.
 
@@ -131,23 +136,14 @@ pwndbg> plist inner_b_node_a -i inner next
     next = 0x0
   }
 }
-## Usage
-
-
-```bash
-usage: plist [-h] [-s SENTINEL] [-i INNER_NAME] [-f FIELD_NAME] [-o OFFSET]
-             [-c COUNT]
-             path next
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |path|The first element of the linked list|
 |next|The name of the field pointing to the next element in the list|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,30 +5,26 @@
 
 # rzpipe
 
-## Description
 
-
-Execute stateful rizin commands through rzpipe.
-## Usage
-
-
-```bash
+```text
 usage: rzpipe [-h] arguments [arguments ...]
 
 ```
-## Positional Arguments
+
+Execute stateful rizin commands through rzpipe.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |arguments|Arguments to pass to rzpipe|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-## Examples
+### Examples
 ```text
 pwndbg> rzpipe pdf @ sym.main
             ; DATA XREF from entry0 @ 0x1d3e8

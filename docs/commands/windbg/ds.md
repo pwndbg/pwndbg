@@ -5,25 +5,21 @@
 
 # ds
 
-## Description
 
-
-Dump a string at the specified address.
-## Usage
-
-
-```bash
+```text
 usage: ds [-h] address [max]
 
 ```
-## Positional Arguments
+
+Dump a string at the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|Address to dump|
 |max|Maximum string length (default: 256)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

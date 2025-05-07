@@ -5,25 +5,21 @@
 
 # memfrob
 
-## Description
 
-
-Memfrobs a region of memory (xor with '*').
-## Usage
-
-
-```bash
+```text
 usage: memfrob [-h] address count
 
 ```
-## Positional Arguments
+
+Memfrobs a region of memory (xor with '*').
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to start xoring at.|
 |count|The number of bytes to xor.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

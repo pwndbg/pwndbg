@@ -5,18 +5,14 @@
 
 # nextproginstr
 
-## Description
 
-
-Breaks at the next instruction that belongs to the running program.
-## Usage
-
-
-```bash
+```text
 usage: nextproginstr [-h]
 
 ```
-## Optional Arguments
+
+Breaks at the next instruction that belongs to the running program.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

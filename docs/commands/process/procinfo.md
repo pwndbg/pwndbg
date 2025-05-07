@@ -5,18 +5,14 @@
 
 # procinfo
 
-## Description
 
-
-Display information about the running process.
-## Usage
-
-
-```bash
+```text
 usage: procinfo [-h]
 
 ```
-## Optional Arguments
+
+Display information about the running process.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

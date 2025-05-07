@@ -5,18 +5,14 @@
 
 # stepret
 
-## Description
 
-
-Breaks at next return-like instruction by 'stepping' to it.
-## Usage
-
-
-```bash
+```text
 usage: stepret [-h]
 
 ```
-## Optional Arguments
+
+Breaks at next return-like instruction by 'stepping' to it.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

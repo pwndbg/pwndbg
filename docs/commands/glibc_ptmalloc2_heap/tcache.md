@@ -5,26 +5,22 @@
 
 # tcache
 
-## Description
 
+```text
+usage: tcache [-h] [addr]
+
+```
 
 Print a thread's tcache contents.
 
 Default to the current thread's tcache.
-## Usage
-
-
-```bash
-usage: tcache [-h] [addr]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the tcache.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

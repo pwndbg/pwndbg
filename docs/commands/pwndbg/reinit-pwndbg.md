@@ -5,18 +5,14 @@
 
 # reinit-pwndbg
 
-## Description
 
-
-Makes pwndbg reinitialize all state.
-## Usage
-
-
-```bash
+```text
 usage: reinit-pwndbg [-h]
 
 ```
-## Optional Arguments
+
+Makes pwndbg reinitialize all state.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

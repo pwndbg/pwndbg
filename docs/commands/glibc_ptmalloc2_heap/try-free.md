@@ -5,24 +5,20 @@
 
 # try-free
 
-## Description
 
-
-Check what would happen if free was called with given address.
-## Usage
-
-
-```bash
+```text
 usage: try-free [-h] addr
 
 ```
-## Positional Arguments
+
+Check what would happen if free was called with given address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address passed to free|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,8 +5,13 @@
 
 # vmmap
 
-## Description
 
+```text
+usage: vmmap [-h] [-w] [-x] [-A LINES_AFTER] [-B LINES_BEFORE] [-C CONTEXT]
+             [--gaps]
+             [gdbval_or_str]
+
+```
 
 Print virtual memory map pages.
 
@@ -24,22 +29,13 @@ As a last resort, we sometimes try to explore the addresses in CPU registers and
 Memory pages can also be added manually with the use of vmmap-add, vmmap-clear and vmmap-load commands. This may be useful for bare metal debugging.
 
 [0] https://lore.kernel.org/all/20220221030910.3203063-1-dominik.b.czarnota@gmail.com/
-## Usage
-
-
-```bash
-usage: vmmap [-h] [-w] [-x] [-A LINES_AFTER] [-B LINES_BEFORE] [-C CONTEXT]
-             [--gaps]
-             [gdbval_or_str]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |gdbval_or_str|Address or module name filter|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

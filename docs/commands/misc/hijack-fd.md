@@ -5,8 +5,11 @@
 
 # hijack-fd
 
-## Description
 
+```text
+usage: hijack-fd [-h] fdnum newfile
+
+```
 
 Replace a file descriptor of a debugged process.
 
@@ -22,21 +25,14 @@ Examples:
 
 2. Redirect STDERR to a socket:
    `hijack-fd 2 tcp://localhost:8888`
-## Usage
-
-
-```bash
-usage: hijack-fd [-h] fdnum newfile
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |fdnum|File descriptor (FD) number to be replaced with the specified new socket or file.|
 |newfile|Specify a file or a socket.  For files, the filename must start with `/` (e.g., `/etc/passwd`).  For sockets, the following formats are allowed: - `127.0.0.1:80` (default is TCP) - `tcp://[::1]:80` - `udp://example.com:80` - `tcp+ipv6://example.com:80`     |
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

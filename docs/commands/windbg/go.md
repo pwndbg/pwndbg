@@ -5,18 +5,14 @@
 
 # go
 
-## Description
 
-
-Windbg compatibility alias for 'continue' command.
-## Usage
-
-
-```bash
+```text
 usage: go [-h]
 
 ```
-## Optional Arguments
+
+Windbg compatibility alias for 'continue' command.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

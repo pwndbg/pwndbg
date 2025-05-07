@@ -5,24 +5,20 @@
 
 # pcplist
 
-## Description
 
-
-Print Per-CPU page list
-## Usage
-
-
-```bash
+```text
 usage: pcplist [-h] [zone]
 
 ```
-## Positional Arguments
+
+Print Per-CPU page list
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |zone||
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

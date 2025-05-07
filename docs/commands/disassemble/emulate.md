@@ -5,25 +5,21 @@
 
 # emulate
 
-## Description
 
-
-Like nearpc, but will emulate instructions from the current $PC forward.
-## Usage
-
-
-```bash
+```text
 usage: emulate [-h] [pc] [lines]
 
 ```
-## Positional Arguments
+
+Like nearpc, but will emulate instructions from the current $PC forward.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |pc|Address to emulate near.|
 |lines|Number of lines to show on either side of the address.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

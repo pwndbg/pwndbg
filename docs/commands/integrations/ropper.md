@@ -5,30 +5,26 @@
 
 # ropper
 
-## Description
 
-
-ROP gadget search with ropper.
-## Usage
-
-
-```bash
+```text
 usage: ropper [-h] [argument ...]
 
 ```
-## Positional Arguments
+
+ROP gadget search with ropper.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |argument|Arguments to pass to ropper|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-## Examples
+### Examples
 ```text
 pwndbg> ropper -- --console
 [INFO] Load gadgets from cache

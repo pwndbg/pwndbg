@@ -5,26 +5,22 @@
 
 # unsortedbin
 
-## Description
 
+```text
+usage: unsortedbin [-h] [-v] [addr]
+
+```
 
 Print the contents of an arena's unsortedbin.
 
 Default to the current thread's arena.
-## Usage
-
-
-```bash
-usage: unsortedbin [-h] [-v] [addr]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the arena.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

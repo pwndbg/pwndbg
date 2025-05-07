@@ -5,25 +5,21 @@
 
 # ez
 
-## Description
 
-
-Write a string at the specified address.
-## Usage
-
-
-```bash
+```text
 usage: ez [-h] address data
 
 ```
-## Positional Arguments
+
+Write a string at the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to write to.|
 |data|The string to write.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

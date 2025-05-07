@@ -5,18 +5,14 @@
 
 # auxv
 
-## Description
 
-
-Print information from the Auxiliary ELF Vector.
-## Usage
-
-
-```bash
+```text
 usage: auxv [-h]
 
 ```
-## Optional Arguments
+
+Print information from the Auxiliary ELF Vector.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,18 +5,14 @@
 
 # ipi
 
-## Description
 
-
-Start an interactive IPython prompt.
-## Usage
-
-
-```bash
+```text
 usage: ipi [-h]
 
 ```
-## Optional Arguments
+
+Start an interactive IPython prompt.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

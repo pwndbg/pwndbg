@@ -5,18 +5,14 @@
 
 # bugreport
 
-## Description
 
-
-Generate a bug report.
-## Usage
-
-
-```bash
+```text
 usage: bugreport [-h] [--run-browser | --use-gh]
 
 ```
-## Optional Arguments
+
+Generate a bug report.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

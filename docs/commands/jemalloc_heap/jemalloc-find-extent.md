@@ -5,24 +5,20 @@
 
 # jemalloc-find-extent
 
-## Description
 
-
-Returns extent information for pointer address allocated by jemalloc
-## Usage
-
-
-```bash
+```text
 usage: jemalloc-find-extent [-h] addr
 
 ```
-## Positional Arguments
+
+Returns extent information for pointer address allocated by jemalloc
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the allocated memory location|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

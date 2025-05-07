@@ -5,24 +5,20 @@
 
 # regs
 
-## Description
 
-
-Print out all registers and enhance the information.
-## Usage
-
-
-```bash
+```text
 usage: regs [-h] [regs ...]
 
 ```
-## Positional Arguments
+
+Print out all registers and enhance the information.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |regs|Registers to be shown|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

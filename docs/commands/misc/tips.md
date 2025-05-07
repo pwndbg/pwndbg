@@ -5,18 +5,14 @@
 
 # tips
 
-## Description
 
-
-Shows tips.
-## Usage
-
-
-```bash
+```text
 usage: tips [-h] [-a]
 
 ```
-## Optional Arguments
+
+Shows tips.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,18 +5,14 @@
 
 # vmmap-add
 
-## Description
 
-
-Add virtual memory map page.
-## Usage
-
-
-```bash
+```text
 usage: vmmap-add [-h] start size [flags] [offset]
 
 ```
-## Positional Arguments
+
+Add virtual memory map page.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
@@ -25,7 +21,7 @@ usage: vmmap-add [-h] start size [flags] [offset]
 |flags|Flags set by the ELF file (r - read, w - write, x - executable) (default: '')|
 |offset|Offset into the original ELF file that the data is loaded from (default: 0)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

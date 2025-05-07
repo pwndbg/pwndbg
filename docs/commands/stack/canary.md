@@ -5,18 +5,14 @@
 
 # canary
 
-## Description
 
-
-Print out the current stack canary.
-## Usage
-
-
-```bash
+```text
 usage: canary [-h] [-a]
 
 ```
-## Optional Arguments
+
+Print out the current stack canary.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,25 +5,21 @@
 
 # decomp
 
-## Description
 
-
-Use the current integration to decompile code near an address.
-## Usage
-
-
-```bash
+```text
 usage: decomp [-h] [addr] [lines]
 
 ```
-## Positional Arguments
+
+Use the current integration to decompile code near an address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address to decompile near.|
 |lines|Number of lines of decompilation to show.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

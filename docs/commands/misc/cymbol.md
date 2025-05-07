@@ -5,19 +5,15 @@
 
 # cymbol
 
-## Description
 
-
-Add, show, load, edit, or delete custom structures in plain C.
-## Usage
-
-
-```bash
+```text
 usage: cymbol [-h] [-a name] [-f filepath] [-r name] [-e name] [-l name]
               [-s name]
 
 ```
-## Optional Arguments
+
+Add, show, load, edit, or delete custom structures in plain C.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

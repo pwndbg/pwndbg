@@ -5,25 +5,21 @@
 
 # dc
 
-## Description
 
-
-Starting at the specified address, hexdump.
-## Usage
-
-
-```bash
+```text
 usage: dc [-h] address [count]
 
 ```
-## Positional Arguments
+
+Starting at the specified address, hexdump.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to dump from.|
 |count|The number of bytes to hexdump. (default: 8)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

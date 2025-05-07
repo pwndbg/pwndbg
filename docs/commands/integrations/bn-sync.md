@@ -5,18 +5,14 @@
 
 # bn-sync
 
-## Description
 
-
-Synchronize Binary Ninja's cursor with GDB.
-## Usage
-
-
-```bash
+```text
 usage: bn-sync [-h]
 
 ```
-## Optional Arguments
+
+Synchronize Binary Ninja's cursor with GDB.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

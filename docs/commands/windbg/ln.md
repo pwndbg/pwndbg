@@ -5,24 +5,20 @@
 
 # ln
 
-## Description
 
-
-List the symbols nearest to the provided value.
-## Usage
-
-
-```bash
+```text
 usage: ln [-h] [value]
 
 ```
-## Positional Arguments
+
+List the symbols nearest to the provided value.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |value|The address you want the name of.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

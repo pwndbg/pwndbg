@@ -5,28 +5,24 @@
 
 # vis-heap-chunks
 
-## Description
 
-
-Visualize chunks on a heap.
-
-Default to the current arena's active heap.
-## Usage
-
-
-```bash
+```text
 usage: vis-heap-chunks [-h] [--beyond_top] [--no_truncate] [--all_chunks]
                        [count] [addr]
 
 ```
-## Positional Arguments
+
+Visualize chunks on a heap.
+
+Default to the current arena's active heap.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |count|Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead. (default: 10)|
 |addr|Address of the first chunk.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

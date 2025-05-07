@@ -5,24 +5,20 @@
 
 # heap-config
 
-## Description
 
-
-Shows heap related configuration.
-## Usage
-
-
-```bash
+```text
 usage: heap-config [-h] [filter_pattern]
 
 ```
-## Positional Arguments
+
+Shows heap related configuration.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |filter_pattern|Filter to apply to config parameters names/descriptions|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

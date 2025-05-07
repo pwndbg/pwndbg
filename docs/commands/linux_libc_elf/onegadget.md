@@ -5,20 +5,16 @@
 
 # onegadget
 
-## Description
 
+```text
+usage: onegadget [-h] [--show-unsat] [--no-unknown] [-v]
+
+```
 
 Find gadgets which single-handedly give code execution.
 
 Uses the onegadget tool by david942j.
-## Usage
-
-
-```bash
-usage: onegadget [-h] [--show-unsat] [--no-unknown] [-v]
-
-```
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,25 +5,21 @@
 
 # hexdump
 
-## Description
 
-
-Hexdumps data at the specified address or module name.
-## Usage
-
-
-```bash
+```text
 usage: hexdump [-h] [address] [count]
 
 ```
-## Positional Arguments
+
+Hexdumps data at the specified address or module name.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|Address or module name to dump (default: $sp)|
 |count|Number of bytes to dump (default: 64)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

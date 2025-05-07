@@ -5,24 +5,20 @@
 
 # context
 
-## Description
 
-
-Print out the current register, instruction, and stack context.
-## Usage
-
-
-```bash
+```text
 usage: context [-h] [--on] [--off] [subcontext ...]
 
 ```
-## Positional Arguments
+
+Print out the current register, instruction, and stack context.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |subcontext|Submenu to display: 'regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,18 +5,14 @@
 
 # linkmap
 
-## Description
 
-
-Show the state of the Link Map
-## Usage
-
-
-```bash
+```text
 usage: linkmap [-h]
 
 ```
-## Optional Arguments
+
+Show the state of the Link Map
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

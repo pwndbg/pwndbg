@@ -5,19 +5,15 @@
 
 # knft-list-rules
 
-## Description
 
-
-Dump netfilter rules form a specific chain
-## Usage
-
-
-```bash
+```text
 usage: knft-list-rules [-h] [--nsid NSID]
                        [table_family] [table_name] [chain_name]
 
 ```
-## Positional Arguments
+
+Dump netfilter rules form a specific chain
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
@@ -25,7 +21,7 @@ usage: knft-list-rules [-h] [--nsid NSID]
 |table_name|Table name|
 |chain_name|Chain name|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

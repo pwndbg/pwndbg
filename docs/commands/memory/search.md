@@ -5,16 +5,8 @@
 
 # search
 
-## Description
 
-
-Search memory for byte sequences, strings, pointers, and integer values.
-
-By default search results are cached. If you want to cache all results, but only print a subset, use --trunc-out. If you want to cache only a subset of results, and print the results immediately, use --limit. The latter is specially useful if you're searching a huge section of memory.
-## Usage
-
-
-```bash
+```text
 usage: search [-h] [-t {byte,short,word,dword,qword,pointer,string,bytes,asm}]
               [-1] [-2] [-4] [-8] [-p] [--asm]
               [--arch {powerpc64,aarch64,powerpc,riscv32,riscv64,sparc64,mips64,msp430,alpha,amd64,sparc,thumb,cris,i386,ia64,m68k,mips,s390,none,avr,arm,vax}]
@@ -23,14 +15,18 @@ usage: search [-h] [-t {byte,short,word,dword,qword,pointer,string,bytes,asm}]
               value [mapping_name]
 
 ```
-## Positional Arguments
+
+Search memory for byte sequences, strings, pointers, and integer values.
+
+By default search results are cached. If you want to cache all results, but only print a subset, use --trunc-out. If you want to cache only a subset of results, and print the results immediately, use --limit. The latter is specially useful if you're searching a huge section of memory.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |value|Value to search for|
 |mapping_name|Mapping to search [e.g. libc]|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

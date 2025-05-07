@@ -5,24 +5,20 @@
 
 # pwndbg
 
-## Description
 
-
-Prints out a list of all pwndbg commands.
-## Usage
-
-
-```bash
+```text
 usage: pwndbg [-h] [-c CATEGORY_ | --list-categories] [filter_pattern]
 
 ```
-## Positional Arguments
+
+Prints out a list of all pwndbg commands.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |filter_pattern|Filter to apply to commands names/docs|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

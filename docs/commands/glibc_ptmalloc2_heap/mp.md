@@ -5,18 +5,14 @@
 
 # mp
 
-## Description
 
-
-Print the mp_ struct's contents.
-## Usage
-
-
-```bash
+```text
 usage: mp [-h]
 
 ```
-## Optional Arguments
+
+Print the mp_ struct's contents.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

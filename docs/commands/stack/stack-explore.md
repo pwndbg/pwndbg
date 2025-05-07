@@ -5,18 +5,14 @@
 
 # stack-explore
 
-## Description
 
-
-Explore stack from all threads.
-## Usage
-
-
-```bash
+```text
 usage: stack-explore [-h]
 
 ```
-## Optional Arguments
+
+Explore stack from all threads.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

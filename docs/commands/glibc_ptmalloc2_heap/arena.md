@@ -5,26 +5,22 @@
 
 # arena
 
-## Description
 
+```text
+usage: arena [-h] [addr]
+
+```
 
 Print the contents of an arena.
 
 Default to the current thread's arena.
-## Usage
-
-
-```bash
-usage: arena [-h] [addr]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the arena.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

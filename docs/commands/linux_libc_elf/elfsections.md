@@ -5,18 +5,14 @@
 
 # elfsections
 
-## Description
 
-
-Prints the section mappings contained in the ELF header.
-## Usage
-
-
-```bash
+```text
 usage: elfsections [-h]
 
 ```
-## Optional Arguments
+
+Prints the section mappings contained in the ELF header.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

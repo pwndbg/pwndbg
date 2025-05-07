@@ -5,25 +5,21 @@
 
 # dq
 
-## Description
 
-
-Starting at the specified address, dump N qwords.
-## Usage
-
-
-```bash
+```text
 usage: dq [-h] address [count]
 
 ```
-## Positional Arguments
+
+Starting at the specified address, dump N qwords.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to dump from.|
 |count|The number of qwords to dump. (default: 8)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

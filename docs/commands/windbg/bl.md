@@ -5,18 +5,14 @@
 
 # bl
 
-## Description
 
-
-List breakpoints.
-## Usage
-
-
-```bash
+```text
 usage: bl [-h]
 
 ```
-## Optional Arguments
+
+List breakpoints.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

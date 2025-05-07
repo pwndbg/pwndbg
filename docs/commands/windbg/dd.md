@@ -5,25 +5,21 @@
 
 # dd
 
-## Description
 
-
-Starting at the specified address, dump N dwords.
-## Usage
-
-
-```bash
+```text
 usage: dd [-h] address [count]
 
 ```
-## Positional Arguments
+
+Starting at the specified address, dump N dwords.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to dump from.|
 |count|The number of dwords to dump. (default: 16)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

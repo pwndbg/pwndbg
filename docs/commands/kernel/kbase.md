@@ -5,18 +5,14 @@
 
 # kbase
 
-## Description
 
-
-Finds the kernel virtual base address.
-## Usage
-
-
-```bash
+```text
 usage: kbase [-h] [-r]
 
 ```
-## Optional Arguments
+
+Finds the kernel virtual base address.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

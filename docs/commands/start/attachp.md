@@ -5,8 +5,11 @@
 
 # attachp
 
-## Description
 
+```text
+usage: attachp [-h] [--no-truncate] [--retry] [--user USER] [-e] [-a] [target]
+
+```
 
 Attaches to a given pid, process name, process found with partial argv match or to a device file.
 
@@ -28,20 +31,13 @@ Original GDB attach command help:
     directory, or (if not found there) using the source file search path
     (see the "directory" command).  You can also use the "file" command
     to specify the program, and to load its symbol table.
-## Usage
-
-
-```bash
-usage: attachp [-h] [--no-truncate] [--retry] [--user USER] [-e] [-a] [target]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |target|pid, process name, part of cmdline to be matched or device file to attach to (uses current loaded file name if not provided)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

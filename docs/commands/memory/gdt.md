@@ -5,8 +5,11 @@
 
 # gdt
 
-## Description
 
+```text
+usage: gdt [-h] address [count]
+
+```
 
 Decode X86-64 GDT entries at address
 
@@ -16,21 +19,14 @@ See also:
 
 Note:
 In 64-bit mode, the Base and Limit values are ignored, each descriptor covers the entire linear address space regardless of what they are set to.
-## Usage
-
-
-```bash
-usage: gdt [-h] address [count]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|x86-64 GDTR base address (e.g. read from sgdt instruction from [16:79] bits)|
 |count|Number of entries to dump (should be (GDTR.size+1)/8) (default: 8)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

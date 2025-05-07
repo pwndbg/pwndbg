@@ -5,24 +5,20 @@
 
 # stepover
 
-## Description
 
-
-Breaks on the instruction after this one.
-## Usage
-
-
-```bash
+```text
 usage: stepover [-h] [addr]
 
 ```
-## Positional Arguments
+
+Breaks on the instruction after this one.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|The address to break after.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

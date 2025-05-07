@@ -5,24 +5,20 @@
 
 # bd
 
-## Description
 
-
-Disable the breakpoint with the specified index.
-## Usage
-
-
-```bash
+```text
 usage: bd [-h] [which]
 
 ```
-## Positional Arguments
+
+Disable the breakpoint with the specified index.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |which|Index of the breakpoint to disable. (default: '*')|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

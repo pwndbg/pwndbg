@@ -5,25 +5,21 @@
 
 # knft-list-objects
 
-## Description
 
-
-Dump netfilter objects from a specific table
-## Usage
-
-
-```bash
+```text
 usage: knft-list-objects [-h] [--nsid NSID] [table_family] [table_name]
 
 ```
-## Positional Arguments
+
+Dump netfilter objects from a specific table
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |table_family|Table family, eg: inet, ip, ip6, netdev, bridge, arp|
 |table_name|Table name|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

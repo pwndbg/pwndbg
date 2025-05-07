@@ -5,18 +5,14 @@
 
 # pid
 
-## Description
 
-
-Gets the pid.
-## Usage
-
-
-```bash
+```text
 usage: pid [-h]
 
 ```
-## Optional Arguments
+
+Gets the pid.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

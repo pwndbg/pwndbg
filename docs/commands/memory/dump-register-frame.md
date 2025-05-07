@@ -5,26 +5,22 @@
 
 # dump-register-frame
 
-## Description
 
-
-Display the registers saved to memory for a certain frame type
-## Usage
-
-
-```bash
+```text
 usage: dump-register-frame [-h] [-p]
                            {armcm-exception,armcm-exception2} [address]
 
 ```
-## Positional Arguments
+
+Display the registers saved to memory for a certain frame type
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |frame_type|The type of frame to print|
 |address|The address to read the frame from|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

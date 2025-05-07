@@ -5,18 +5,14 @@
 
 # dumpargs
 
-## Description
 
-
-Prints determined arguments for call instruction.
-## Usage
-
-
-```bash
+```text
 usage: dumpargs [-h] [-f]
 
 ```
-## Optional Arguments
+
+Prints determined arguments for call instruction.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

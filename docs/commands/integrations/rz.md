@@ -5,24 +5,20 @@
 
 # rz
 
-## Description
 
-
-Launches rizin.
-## Usage
-
-
-```bash
+```text
 usage: rz [-h] [--no-seek] [--no-rebase] [arguments ...]
 
 ```
-## Positional Arguments
+
+Launches rizin.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |arguments|Arguments to pass to rizin|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
@@ -30,7 +26,7 @@ usage: rz [-h] [--no-seek] [--no-rebase] [arguments ...]
 ||--no-seek|Do not seek to current pc|
 ||--no-rebase|Do not set the base address for PIE according to the current mapping|
 
-## Examples
+### Examples
 ```text
 pwndbg> rz -- -AA
 [x] Analyze all flags starting with sym. and entry0 (aa)

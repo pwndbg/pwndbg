@@ -5,24 +5,20 @@
 
 # klookup
 
-## Description
 
-
-Lookup kernel symbols
-## Usage
-
-
-```bash
+```text
 usage: klookup [-h] symbol
 
 ```
-## Positional Arguments
+
+Lookup kernel symbols
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |symbol|Address or symbol name to lookup|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

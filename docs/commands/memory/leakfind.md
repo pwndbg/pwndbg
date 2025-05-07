@@ -5,29 +5,25 @@
 
 # leakfind
 
-## Description
 
-
-Attempt to find a leak chain given a starting address.
-Scans memory near the given address, looks for pointers, and continues that process to attempt to find leaks.
-
-Example: leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6. This would look for any chains of leaks that point to a section in filename which begin near $rsp, are never 0x48 bytes further from a known pointer, and are a maximum length of 6.
-## Usage
-
-
-```bash
+```text
 usage: leakfind [-h] [-p [PAGE_NAME]] [-o [MAX_OFFSET]] [-d [MAX_DEPTH]]
                 [-s [STEP]] [--negative_offset [NEGATIVE_OFFSET]]
                 [address]
 
 ```
-## Positional Arguments
+
+Attempt to find a leak chain given a starting address.
+Scans memory near the given address, looks for pointers, and continues that process to attempt to find leaks.
+
+Example: leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6. This would look for any chains of leaks that point to a section in filename which begin near $rsp, are never 0x48 bytes further from a known pointer, and are a maximum length of 6.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|Starting address to find a leak chain from (default: $sp)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,18 +5,14 @@
 
 # arenas
 
-## Description
 
-
-List this process's arenas.
-## Usage
-
-
-```bash
+```text
 usage: arenas [-h]
 
 ```
-## Optional Arguments
+
+List this process's arenas.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

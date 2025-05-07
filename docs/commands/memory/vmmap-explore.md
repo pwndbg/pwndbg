@@ -5,24 +5,20 @@
 
 # vmmap-explore
 
-## Description
 
-
-Explore a page, trying to guess permissions.
-## Usage
-
-
-```bash
+```text
 usage: vmmap-explore [-h] address
 
 ```
-## Positional Arguments
+
+Explore a page, trying to guess permissions.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|Address of the page to explore|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

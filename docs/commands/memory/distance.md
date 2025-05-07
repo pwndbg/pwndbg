@@ -5,25 +5,21 @@
 
 # distance
 
-## Description
 
-
-Print the distance between the two arguments, or print the offset to the address's page base.
-## Usage
-
-
-```bash
+```text
 usage: distance [-h] a [b]
 
 ```
-## Positional Arguments
+
+Print the distance between the two arguments, or print the offset to the address's page base.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |a|The first address.|
 |b|The second address.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

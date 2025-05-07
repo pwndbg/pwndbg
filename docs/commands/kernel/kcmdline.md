@@ -5,18 +5,14 @@
 
 # kcmdline
 
-## Description
 
-
-Return the kernel commandline (/proc/cmdline).
-## Usage
-
-
-```bash
+```text
 usage: kcmdline [-h]
 
 ```
-## Optional Arguments
+
+Return the kernel commandline (/proc/cmdline).
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

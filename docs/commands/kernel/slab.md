@@ -5,24 +5,20 @@
 
 # slab
 
-## Description
 
-
-Prints information about the slab allocator
-## Usage
-
-
-```bash
+```text
 usage: slab [-h] {list,info,contains} ...
 
 ```
-## Positional Arguments
+
+Prints information about the slab allocator
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |command||
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,18 +5,14 @@
 
 # k
 
-## Description
 
-
-Print a backtrace (alias 'bt').
-## Usage
-
-
-```bash
+```text
 usage: k [-h]
 
 ```
-## Optional Arguments
+
+Print a backtrace (alias 'bt').
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

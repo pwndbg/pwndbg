@@ -5,25 +5,21 @@
 
 # patch
 
-## Description
 
-
-Patches given instruction with given code or bytes.
-## Usage
-
-
-```bash
+```text
 usage: patch [-h] [-q] address ins
 
 ```
-## Positional Arguments
+
+Patches given instruction with given code or bytes.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to patch|
 |ins|instruction[s]|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

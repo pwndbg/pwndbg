@@ -5,26 +5,22 @@
 
 # smallbins
 
-## Description
 
+```text
+usage: smallbins [-h] [-v] [addr]
+
+```
 
 Print the contents of an arena's smallbins.
 
 Default to the current thread's arena.
-## Usage
-
-
-```bash
-usage: smallbins [-h] [-v] [addr]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the arena.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

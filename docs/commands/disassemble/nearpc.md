@@ -5,25 +5,21 @@
 
 # nearpc
 
-## Description
 
-
-Disassemble near a specified address.
-## Usage
-
-
-```bash
+```text
 usage: nearpc [-h] [-e] [pc] [lines]
 
 ```
-## Positional Arguments
+
+Disassemble near a specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |pc|Address to disassemble near. If this is the only argument and the value provided is small enough, it is interpreted as lines instead.|
 |lines|Number of lines to show on either side of the address.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

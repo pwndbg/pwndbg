@@ -5,18 +5,14 @@
 
 # reload
 
-## Description
 
-
-Reload pwndbg.
-## Usage
-
-
-```bash
+```text
 usage: reload [-h]
 
 ```
-## Optional Arguments
+
+Reload pwndbg.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

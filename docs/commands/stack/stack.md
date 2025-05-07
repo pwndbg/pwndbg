@@ -5,25 +5,21 @@
 
 # stack
 
-## Description
 
-
-Dereferences on stack data with specified count and offset.
-## Usage
-
-
-```bash
+```text
 usage: stack [-h] [-f] [-i] [count] [offset]
 
 ```
-## Positional Arguments
+
+Dereferences on stack data with specified count and offset.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |count|number of element to dump (default: 8)|
 |offset|Element offset from $sp (support negative offset) (default: 0)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

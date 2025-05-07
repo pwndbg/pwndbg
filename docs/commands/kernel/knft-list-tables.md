@@ -5,18 +5,14 @@
 
 # knft-list-tables
 
-## Description
 
-
-Dump netfliter tables from a specific network namespace
-## Usage
-
-
-```bash
+```text
 usage: knft-list-tables [-h] [--nsid NSID]
 
 ```
-## Optional Arguments
+
+Dump netfliter tables from a specific network namespace
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

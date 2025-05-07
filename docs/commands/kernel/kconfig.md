@@ -5,24 +5,20 @@
 
 # kconfig
 
-## Description
 
-
-Outputs the kernel config (requires CONFIG_IKCONFIG).
-## Usage
-
-
-```bash
+```text
 usage: kconfig [-h] [config_name]
 
 ```
-## Positional Arguments
+
+Outputs the kernel config (requires CONFIG_IKCONFIG).
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |config_name|A config name to search for|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

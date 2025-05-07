@@ -5,26 +5,22 @@
 
 # tcachebins
 
-## Description
 
+```text
+usage: tcachebins [-h] [-v] [addr]
+
+```
 
 Print the contents of a tcache.
 
 Default to the current thread's tcache.
-## Usage
-
-
-```bash
-usage: tcachebins [-h] [-v] [addr]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|The address of the tcache bins.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

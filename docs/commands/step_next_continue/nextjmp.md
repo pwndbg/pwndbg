@@ -5,18 +5,14 @@
 
 # nextjmp
 
-## Description
 
-
-Breaks at the next jump instruction.
-## Usage
-
-
-```bash
+```text
 usage: nextjmp [-h]
 
 ```
-## Optional Arguments
+
+Breaks at the next jump instruction.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,27 +5,23 @@
 
 # asm
 
-## Description
 
-
-Assemble shellcode into bytes
-## Usage
-
-
-```bash
+```text
 usage: asm [-h] [-f {hex,string}]
            [--arch {powerpc64,aarch64,powerpc,riscv32,riscv64,sparc64,mips64,msp430,alpha,amd64,sparc,thumb,cris,i386,ia64,m68k,mips,s390,none,avr,arm,vax}]
            [-v AVOID] [-n] [-z] [-i INFILE]
            [shellcode ...]
 
 ```
-## Positional Arguments
+
+Assemble shellcode into bytes
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |shellcode|Assembler code to assemble (default: '[]')|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

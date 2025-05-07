@@ -5,24 +5,20 @@
 
 # hex2ptr
 
-## Description
 
-
-Converts a space-separated hex string to a little-endian address.
-## Usage
-
-
-```bash
+```text
 usage: hex2ptr [-h] hex_string
 
 ```
-## Positional Arguments
+
+Converts a space-separated hex string to a little-endian address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |hex_string|Hexadecimal string to convert (e.g., '00 70 75 c1 cd ef 59 00').|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

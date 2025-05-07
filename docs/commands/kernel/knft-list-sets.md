@@ -5,25 +5,21 @@
 
 # knft-list-sets
 
-## Description
 
-
-Dump netfilter sets from a specific table
-## Usage
-
-
-```bash
+```text
 usage: knft-list-sets [-h] [--nsid NSID] [table_family] [table_name]
 
 ```
-## Positional Arguments
+
+Dump netfilter sets from a specific table
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |table_family|Table family, eg: inet, ip, ip6, netdev, bridge, arp|
 |table_name|Table name|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

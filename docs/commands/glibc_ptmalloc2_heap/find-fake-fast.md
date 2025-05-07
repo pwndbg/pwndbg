@@ -5,27 +5,23 @@
 
 # find-fake-fast
 
-## Description
 
-
-Find candidate fake fast or tcache chunks overlapping the specified address.
-## Usage
-
-
-```bash
+```text
 usage: find-fake-fast [-h] [--align] [--glibc-fastbin-bug]
                       [--partial-overwrite]
                       target_address [max_candidate_size]
 
 ```
-## Positional Arguments
+
+Find candidate fake fast or tcache chunks overlapping the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |target_address|Address of the word-sized value to overlap.|
 |max_candidate_size|Maximum size of fake chunks to find.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

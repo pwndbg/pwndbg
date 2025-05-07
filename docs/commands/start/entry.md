@@ -5,8 +5,11 @@
 
 # entry
 
-## Description
 
+```text
+usage: entry [-h] [args ...]
+
+```
 
 Start the debugged program stopping at its entrypoint address.
 
@@ -24,20 +27,13 @@ With no arguments, uses arguments last specified (with "run" or
 use "set args" without arguments.
 
 To start the inferior without using a shell, use "set startup-with-shell off".
-## Usage
-
-
-```bash
-usage: entry [-h] [args ...]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |args|The arguments to run the binary with.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

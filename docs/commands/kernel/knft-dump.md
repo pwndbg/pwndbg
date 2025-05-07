@@ -5,24 +5,20 @@
 
 # knft-dump
 
-## Description
 
-
-Dump all nftables: tables, chains, rules, expressions
-## Usage
-
-
-```bash
+```text
 usage: knft-dump [-h] [nsid]
 
 ```
-## Positional Arguments
+
+Dump all nftables: tables, chains, rules, expressions
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |nsid|Network Namespace ID|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

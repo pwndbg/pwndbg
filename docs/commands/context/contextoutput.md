@@ -5,18 +5,14 @@
 
 # contextoutput
 
-## Description
 
-
-Sets the output of a context section.
-## Usage
-
-
-```bash
+```text
 usage: contextoutput [-h] section path clearing [banner] [width]
 
 ```
-## Positional Arguments
+
+Sets the output of a context section.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
@@ -26,7 +22,7 @@ usage: contextoutput [-h] section path clearing [banner] [width]
 |banner|Where a banner should be placed: both, top , bottom, none (default: 'both')|
 |width|Sets a fixed width (used for banner). Set to None for auto|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

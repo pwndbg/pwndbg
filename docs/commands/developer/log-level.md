@@ -5,24 +5,20 @@
 
 # log-level
 
-## Description
 
-
-Set the log level.
-## Usage
-
-
-```bash
+```text
 usage: log-level [-h] [{debug,info,warning,error,critical}]
 
 ```
-## Positional Arguments
+
+Set the log level.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |level|The log level to set. (default: 'warning')|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

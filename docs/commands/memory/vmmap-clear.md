@@ -5,18 +5,14 @@
 
 # vmmap-clear
 
-## Description
 
-
-Clear the vmmap cache.
-## Usage
-
-
-```bash
+```text
 usage: vmmap-clear [-h]
 
 ```
-## Optional Arguments
+
+Clear the vmmap cache.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,25 +5,21 @@
 
 # eb
 
-## Description
 
-
-Write hex bytes at the specified address.
-## Usage
-
-
-```bash
+```text
 usage: eb [-h] address [data ...]
 
 ```
-## Positional Arguments
+
+Write hex bytes at the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to write to.|
 |data|The bytes to write.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

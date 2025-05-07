@@ -5,24 +5,20 @@
 
 # hi
 
-## Description
 
-
-Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
-## Usage
-
-
-```bash
+```text
 usage: hi [-h] [-v] [-s] [-f] addr
 
 ```
-## Positional Arguments
+
+Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the interest.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

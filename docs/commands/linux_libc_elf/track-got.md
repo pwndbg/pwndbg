@@ -5,18 +5,14 @@
 
 # track-got
 
-## Description
 
-
-Controls GOT tracking
-## Usage
-
-
-```bash
+```text
 usage: track-got [-h] {enable,disable,info,query} ...
 
 ```
-## Optional Arguments
+
+Controls GOT tracking
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

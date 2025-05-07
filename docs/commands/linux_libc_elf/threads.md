@@ -5,24 +5,20 @@
 
 # threads
 
-## Description
 
-
-List all threads belonging to the selected inferior.
-## Usage
-
-
-```bash
+```text
 usage: threads [-h] [-c] [num_threads]
 
 ```
-## Positional Arguments
+
+List all threads belonging to the selected inferior.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |num_threads|Number of threads to display. Omit to display all threads.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

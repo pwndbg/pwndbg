@@ -5,26 +5,22 @@
 
 # fastbins
 
-## Description
 
+```text
+usage: fastbins [-h] [-v] [addr]
+
+```
 
 Print the contents of an arena's fastbins.
 
 Default to the current thread's arena.
-## Usage
-
-
-```bash
-usage: fastbins [-h] [-v] [addr]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the arena.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

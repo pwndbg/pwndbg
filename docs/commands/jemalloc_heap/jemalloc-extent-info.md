@@ -5,24 +5,20 @@
 
 # jemalloc-extent-info
 
-## Description
 
-
-Prints extent information for the given address
-## Usage
-
-
-```bash
+```text
 usage: jemalloc-extent-info [-h] [-v] addr
 
 ```
-## Positional Arguments
+
+Prints extent information for the given address
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the extent metadata|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

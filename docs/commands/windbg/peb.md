@@ -5,18 +5,14 @@
 
 # peb
 
-## Description
 
-
-Not be windows.
-## Usage
-
-
-```bash
+```text
 usage: peb [-h]
 
 ```
-## Optional Arguments
+
+Not be windows.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

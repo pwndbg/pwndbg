@@ -5,24 +5,20 @@
 
 # patch-revert
 
-## Description
 
-
-Revert patch at given address.
-## Usage
-
-
-```bash
+```text
 usage: patch-revert [-h] address
 
 ```
-## Positional Arguments
+
+Revert patch at given address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|Address to revert patch on|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

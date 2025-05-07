@@ -5,25 +5,21 @@
 
 # checksec
 
-## Description
 
-
-Prints out the binary security settings using `checksec`.
-## Usage
-
-
-```bash
+```text
 usage: checksec [-h] [-f FILE]
 
 ```
-## Optional Arguments
+
+Prints out the binary security settings using `checksec`.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 |-f|--file|Specify the file to run `checksec` on.|
 
-## Examples
+### Examples
 ```text
 pwndbg> checksec
 File:     /usr/bin/bash

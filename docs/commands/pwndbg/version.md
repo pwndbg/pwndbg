@@ -5,18 +5,14 @@
 
 # version
 
-## Description
 
-
-Displays Pwndbg and its important deps versions.
-## Usage
-
-
-```bash
+```text
 usage: version [-h]
 
 ```
-## Optional Arguments
+
+Displays Pwndbg and its important deps versions.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,18 +5,14 @@
 
 # binder
 
-## Description
 
-
-Show Android Binder information
-## Usage
-
-
-```bash
+```text
 usage: binder [-h]
 
 ```
-## Optional Arguments
+
+Show Android Binder information
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

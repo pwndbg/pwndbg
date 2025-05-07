@@ -5,18 +5,14 @@
 
 # sstart
 
-## Description
 
-
-Alias for 'tbreak __libc_start_main; run'.
-## Usage
-
-
-```bash
+```text
 usage: sstart [-h]
 
 ```
-## Optional Arguments
+
+Alias for 'tbreak __libc_start_main; run'.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

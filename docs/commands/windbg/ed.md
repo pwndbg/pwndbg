@@ -5,25 +5,21 @@
 
 # ed
 
-## Description
 
-
-Write hex dwords at the specified address.
-## Usage
-
-
-```bash
+```text
 usage: ed [-h] address [data ...]
 
 ```
-## Positional Arguments
+
+Write hex dwords at the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to write to.|
 |data|The dwords to write.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

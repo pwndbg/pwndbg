@@ -5,24 +5,20 @@
 
 # bc
 
-## Description
 
-
-Clear the breakpoint with the specified index.
-## Usage
-
-
-```bash
+```text
 usage: bc [-h] [which]
 
 ```
-## Positional Arguments
+
+Clear the breakpoint with the specified index.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |which|Index of the breakpoint to clear. (default: '*')|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

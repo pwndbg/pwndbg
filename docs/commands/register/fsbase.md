@@ -5,18 +5,14 @@
 
 # fsbase
 
-## Description
 
-
-Prints out the FS base address. See also $fsbase.
-## Usage
-
-
-```bash
+```text
 usage: fsbase [-h]
 
 ```
-## Optional Arguments
+
+Prints out the FS base address. See also $fsbase.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

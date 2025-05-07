@@ -5,24 +5,20 @@
 
 # dds
 
-## Description
 
-
-Dump pointers and symbols at the specified address.
-## Usage
-
-
-```bash
+```text
 usage: dds [-h] addr
 
 ```
-## Positional Arguments
+
+Dump pointers and symbols at the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|The address to dump from.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

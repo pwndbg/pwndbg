@@ -5,24 +5,20 @@
 
 # contextprev
 
-## Description
 
-
-Select previous entry in context history.
-## Usage
-
-
-```bash
+```text
 usage: contextprev [-h] [count]
 
 ```
-## Positional Arguments
+
+Select previous entry in context history.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |count|The number of entries to go back in history (default: 1)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

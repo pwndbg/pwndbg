@@ -5,24 +5,20 @@
 
 # theme
 
-## Description
 
-
-Shows pwndbg-specific theme configuration.
-## Usage
-
-
-```bash
+```text
 usage: theme [-h] [filter_pattern]
 
 ```
-## Positional Arguments
+
+Shows pwndbg-specific theme configuration.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |filter_pattern|Filter to apply to theme parameters names/descriptions|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,24 +5,20 @@
 
 # config
 
-## Description
 
-
-Shows pwndbg-specific configuration.
-## Usage
-
-
-```bash
+```text
 usage: config [-h] [filter_pattern]
 
 ```
-## Positional Arguments
+
+Shows pwndbg-specific configuration.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |filter_pattern|Filter to apply to config parameters names/descriptions|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

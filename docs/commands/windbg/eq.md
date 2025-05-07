@@ -5,25 +5,21 @@
 
 # eq
 
-## Description
 
-
-Write hex qwords at the specified address.
-## Usage
-
-
-```bash
+```text
 usage: eq [-h] address [data ...]
 
 ```
-## Positional Arguments
+
+Write hex qwords at the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to write to.|
 |data|The qwords to write.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

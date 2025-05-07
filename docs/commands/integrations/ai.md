@@ -5,26 +5,22 @@
 
 # ai
 
-## Description
 
-
-Ask GPT-3 a question about the current debugging context.
-## Usage
-
-
-```bash
+```text
 usage: ai [-h] [-M MODEL] [-t TEMPERATURE] [-m MAX_TOKENS] [-v] [-L]
           [-c COMMAND]
           [question ...]
 
 ```
-## Positional Arguments
+
+Ask GPT-3 a question about the current debugging context.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |question|The question to ask.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

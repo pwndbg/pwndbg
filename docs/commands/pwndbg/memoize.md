@@ -5,20 +5,16 @@
 
 # memoize
 
-## Description
 
+```text
+usage: memoize [-h]
+
+```
 
 Toggles memoization (caching).
 
 Useful for diagnosing caching-related bugs. Decreases performance.
-## Usage
-
-
-```bash
-usage: memoize [-h]
-
-```
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

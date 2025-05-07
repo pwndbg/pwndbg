@@ -5,8 +5,11 @@
 
 # track-heap
 
-## Description
 
+```text
+usage: track-heap [-h] {enable,disable,toggle-break} ...
+
+```
 
 Manages the heap tracker.
 
@@ -15,14 +18,7 @@ user errors such as double frees and use after frees.
 
 Currently, the following errors can be detected:
     - Use After Free
-## Usage
-
-
-```bash
-usage: track-heap [-h] {enable,disable,toggle-break} ...
-
-```
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,24 +5,20 @@
 
 # strings
 
-## Description
 
-
-Extracts and displays ASCII strings from readable memory pages of the debugged process.
-## Usage
-
-
-```bash
+```text
 usage: strings [-h] [-n N] [--save-as SAVE_AS] [page_names ...]
 
 ```
-## Positional Arguments
+
+Extracts and displays ASCII strings from readable memory pages of the debugged process.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |page_names|Mapping to search [e.g. libc]. Can be used with multiple mappings [e.g libc heap stack] (default: '[]')|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

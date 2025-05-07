@@ -5,8 +5,11 @@
 
 # mprotect
 
-## Description
 
+```text
+usage: mprotect [-h] addr length prot
+
+```
 
 Calls the mprotect syscall and prints its result value.
 
@@ -19,14 +22,7 @@ Examples:
     mprotect $rsp 4096 rwx
     mprotect $rsp 4096 7
     mprotect some_symbol 0x1000 PROT_NONE
-## Usage
-
-
-```bash
-usage: mprotect [-h] addr length prot
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
@@ -34,7 +30,7 @@ usage: mprotect [-h] addr length prot
 |length|Count of bytes to call mprotect on. Needs to be multiple of page size.|
 |prot|Prot string as in mprotect(2). Eg. "PROT_READ\|PROT_EXEC", "rx", or "5"|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

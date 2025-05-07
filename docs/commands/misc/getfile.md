@@ -5,18 +5,14 @@
 
 # getfile
 
-## Description
 
-
-Gets the current file.
-## Usage
-
-
-```bash
+```text
 usage: getfile [-h]
 
 ```
-## Optional Arguments
+
+Gets the current file.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

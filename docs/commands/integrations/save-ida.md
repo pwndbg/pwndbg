@@ -5,18 +5,14 @@
 
 # save-ida
 
-## Description
 
-
-Save the ida database.
-## Usage
-
-
-```bash
+```text
 usage: save-ida [-h]
 
 ```
-## Optional Arguments
+
+Save the ida database.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

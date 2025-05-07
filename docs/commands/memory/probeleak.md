@@ -5,31 +5,27 @@
 
 # probeleak
 
-## Description
 
+```text
+usage: probeleak [-h] [--max-distance MAX_DISTANCE] [--point-to POINT_TO]
+                 [--max-ptrs MAX_PTRS] [--flags FLAGS]
+                 [address] [count]
+
+```
 
 Pointer scan for possible offset leaks.
 Examples:
     probeleak $rsp 0x64 - leaks 0x64 bytes starting at stack pointer and search for valid pointers
     probeleak $rsp 0x64 --max-dist 0x10 - as above, but pointers may point 0x10 bytes outside of memory page
     probeleak $rsp 0x64 --point-to libc --max-ptrs 1 --flags rwx - leaks 0x64 bytes starting at stack pointer and search for one valid pointer which points to a libc rwx page
-## Usage
-
-
-```bash
-usage: probeleak [-h] [--max-distance MAX_DISTANCE] [--point-to POINT_TO]
-                 [--max-ptrs MAX_PTRS] [--flags FLAGS]
-                 [address] [count]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|Leak memory address (default: $sp)|
 |count|Leak size in bytes (default: 64)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

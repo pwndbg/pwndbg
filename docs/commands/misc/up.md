@@ -5,24 +5,20 @@
 
 # up
 
-## Description
 
-
-Select and print stack frame that called this one.
-## Usage
-
-
-```bash
+```text
 usage: up [-h] [n]
 
 ```
-## Positional Arguments
+
+Select and print stack frame that called this one.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |n|The number of stack frames to go up. (default: 1)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

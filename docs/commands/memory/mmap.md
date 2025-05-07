@@ -5,8 +5,11 @@
 
 # mmap
 
-## Description
 
+```text
+usage: mmap [-h] [--quiet] [--force] addr length [prot] [flags] [fd] [offset]
+
+```
 
 Calls the mmap syscall and prints its resulting address.
 
@@ -34,14 +37,7 @@ Examples:
     mmap 0xdeadbeef 0x1000
      - Maps a new private+anonymous page with RWX permissions at a page boundary
        near 0xdeadbeef.
-## Usage
-
-
-```bash
-usage: mmap [-h] [--quiet] [--force] addr length [prot] [flags] [fd] [offset]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
@@ -52,7 +48,7 @@ usage: mmap [-h] [--quiet] [--force] addr length [prot] [flags] [fd] [offset]
 |fd|File descriptor of the file to be mapped, or -1 if using MAP_ANONYMOUS. (default: -1)|
 |offset|Offset from the start of the file, in bytes, if using file based mapping. (default: 0)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

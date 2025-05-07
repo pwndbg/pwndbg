@@ -5,24 +5,20 @@
 
 # bp
 
-## Description
 
-
-Set a breakpoint at the specified address.
-## Usage
-
-
-```bash
+```text
 usage: bp [-h] where
 
 ```
-## Positional Arguments
+
+Set a breakpoint at the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |where|The address to break at.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

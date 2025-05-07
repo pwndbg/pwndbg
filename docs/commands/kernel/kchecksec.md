@@ -5,18 +5,14 @@
 
 # kchecksec
 
-## Description
 
-
-Checks for kernel hardening configuration options.
-## Usage
-
-
-```bash
+```text
 usage: kchecksec [-h]
 
 ```
-## Optional Arguments
+
+Checks for kernel hardening configuration options.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

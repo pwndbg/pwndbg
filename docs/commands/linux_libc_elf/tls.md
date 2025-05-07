@@ -5,18 +5,14 @@
 
 # tls
 
-## Description
 
-
-Print out base address of the current Thread Local Storage (TLS).
-## Usage
-
-
-```bash
+```text
 usage: tls [-h] [-p] [-a]
 
 ```
-## Optional Arguments
+
+Print out base address of the current Thread Local Storage (TLS).
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

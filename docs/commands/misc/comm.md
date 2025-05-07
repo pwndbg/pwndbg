@@ -5,24 +5,20 @@
 
 # comm
 
-## Description
 
-
-Put comments in assembly code.
-## Usage
-
-
-```bash
+```text
 usage: comm [-h] [--addr address] comment
 
 ```
-## Positional Arguments
+
+Put comments in assembly code.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |comment|The text you want to comment|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,24 +5,20 @@
 
 # dev-dump-instruction
 
-## Description
 
-
-Dump internal PwndbgInstruction attributes.
-## Usage
-
-
-```bash
+```text
 usage: dev-dump-instruction [-h] [-e] [-n] [address]
 
 ```
-## Positional Arguments
+
+Dump internal PwndbgInstruction attributes.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to get the enhanced instruction from - must be in cache.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

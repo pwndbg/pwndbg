@@ -5,18 +5,14 @@
 
 # argc
 
-## Description
 
-
-Prints out the number of arguments.
-## Usage
-
-
-```bash
+```text
 usage: argc [-h]
 
 ```
-## Optional Arguments
+
+Prints out the number of arguments.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

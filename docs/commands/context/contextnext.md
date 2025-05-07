@@ -5,24 +5,20 @@
 
 # contextnext
 
-## Description
 
-
-Select next entry in context history.
-## Usage
-
-
-```bash
+```text
 usage: contextnext [-h] [count]
 
 ```
-## Positional Arguments
+
+Select next entry in context history.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |count|The number of entries to go forward in history (default: 1)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

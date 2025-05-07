@@ -5,25 +5,21 @@
 
 # contextsearch
 
-## Description
 
-
-Search for a string in the context history and select that entry.
-## Usage
-
-
-```bash
+```text
 usage: contextsearch [-h] needle [section]
 
 ```
-## Positional Arguments
+
+Search for a string in the context history and select that entry.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |needle|The string to search for in the context history|
 |section|The section to search in. If not provided, search in all sections|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

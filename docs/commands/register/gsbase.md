@@ -5,18 +5,14 @@
 
 # gsbase
 
-## Description
 
-
-Prints out the GS base address. See also $gsbase.
-## Usage
-
-
-```bash
+```text
 usage: gsbase [-h]
 
 ```
-## Optional Arguments
+
+Prints out the GS base address. See also $gsbase.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

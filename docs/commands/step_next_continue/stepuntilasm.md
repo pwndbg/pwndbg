@@ -5,25 +5,21 @@
 
 # stepuntilasm
 
-## Description
 
-
-Breaks on the next matching instruction.
-## Usage
-
-
-```bash
+```text
 usage: stepuntilasm [-h] mnemonic [op_str ...]
 
 ```
-## Positional Arguments
+
+Breaks on the next matching instruction.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |mnemonic|The mnemonic of the instruction|
 |op_str|The operands of the instruction|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

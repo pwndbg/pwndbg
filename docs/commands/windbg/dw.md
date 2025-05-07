@@ -5,25 +5,21 @@
 
 # dw
 
-## Description
 
-
-Starting at the specified address, dump N words.
-## Usage
-
-
-```bash
+```text
 usage: dw [-h] address [count]
 
 ```
-## Positional Arguments
+
+Starting at the specified address, dump N words.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to dump from.|
 |count|The number of words to dump. (default: 32)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

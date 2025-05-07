@@ -5,24 +5,20 @@
 
 # xuntil
 
-## Description
 
-
-Continue execution until an address or expression.
-## Usage
-
-
-```bash
+```text
 usage: xuntil [-h] target
 
 ```
-## Positional Arguments
+
+Continue execution until an address or expression.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |target|Location to stop execution at|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

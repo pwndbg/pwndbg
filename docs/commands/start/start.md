@@ -5,8 +5,11 @@
 
 # start
 
-## Description
 
+```text
+usage: start [-h] [args ...]
+
+```
 
 Start the debugged program stopping at the first convenient location
 from this list: main, _main, start, _start, init or _init.
@@ -22,20 +25,13 @@ With no arguments, uses arguments last specified (with "run" or
 use "set args" without arguments.
 
 To start the inferior without using a shell, use "set startup-with-shell off".
-## Usage
-
-
-```bash
-usage: start [-h] [args ...]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |args|The arguments to run the binary with.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,25 +5,21 @@
 
 # piebase
 
-## Description
 
-
-Calculate VA of RVA from PIE base.
-## Usage
-
-
-```bash
+```text
 usage: piebase [-h] [offset] [module]
 
 ```
-## Positional Arguments
+
+Calculate VA of RVA from PIE base.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |offset|Offset from PIE base. (default: 0)|
 |module|Module to choose as base. Defaults to the target executable. (default: '')|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

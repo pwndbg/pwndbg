@@ -5,18 +5,14 @@
 
 # themefile
 
-## Description
 
-
-Generates a configuration file for the current pwndbg theme options.
-## Usage
-
-
-```bash
+```text
 usage: themefile [-h] [--show-all]
 
 ```
-## Optional Arguments
+
+Generates a configuration file for the current pwndbg theme options.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

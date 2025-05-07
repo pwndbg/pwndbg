@@ -5,18 +5,14 @@
 
 # nextret
 
-## Description
 
-
-Breaks at next return-like instruction.
-## Usage
-
-
-```bash
+```text
 usage: nextret [-h]
 
 ```
-## Optional Arguments
+
+Breaks at next return-like instruction.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

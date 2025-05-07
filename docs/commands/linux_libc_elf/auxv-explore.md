@@ -5,18 +5,14 @@
 
 # auxv-explore
 
-## Description
 
-
-Explore and print information from the Auxiliary ELF Vector.
-## Usage
-
-
-```bash
+```text
 usage: auxv-explore [-h]
 
 ```
-## Optional Arguments
+
+Explore and print information from the Auxiliary ELF Vector.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

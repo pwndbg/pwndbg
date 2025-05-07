@@ -5,30 +5,26 @@
 
 # r2pipe
 
-## Description
 
-
-Execute stateful radare2 commands through r2pipe.
-## Usage
-
-
-```bash
+```text
 usage: r2pipe [-h] arguments [arguments ...]
 
 ```
-## Positional Arguments
+
+Execute stateful radare2 commands through r2pipe.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |arguments|Arguments to pass to r2pipe|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-## Examples
+### Examples
 ```text
 pwndbg> r2pipe pdf @ sym.main
             ; ICOD XREF from entry0 @ 0x1d3e8(r)

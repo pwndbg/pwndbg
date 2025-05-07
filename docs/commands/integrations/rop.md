@@ -5,24 +5,20 @@
 
 # rop
 
-## Description
 
-
-Dump ROP gadgets with Jon Salwan's ROPgadget tool.
-## Usage
-
-
-```bash
+```text
 usage: rop [-h] [--grep GREP] [--memlimit MEMLIMIT] [argument ...]
 
 ```
-## Positional Arguments
+
+Dump ROP gadgets with Jon Salwan's ROPgadget tool.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |argument|Arguments to pass to ROPgadget|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
@@ -30,7 +26,7 @@ usage: rop [-h] [--grep GREP] [--memlimit MEMLIMIT] [argument ...]
 ||--grep|String to grep the output for|
 ||--memlimit|String to grep the output for (default: '50MB')|
 
-## Examples
+### Examples
 ```text
 pwndbg> rop --grep 'pop rdi' -- --nojop
 Gadgets information

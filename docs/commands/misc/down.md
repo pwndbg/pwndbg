@@ -5,24 +5,20 @@
 
 # down
 
-## Description
 
-
-Select and print stack frame called by this one.
-## Usage
-
-
-```bash
+```text
 usage: down [-h] [n]
 
 ```
-## Positional Arguments
+
+Select and print stack frame called by this one.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |n|The number of stack frames to go down. (default: 1)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

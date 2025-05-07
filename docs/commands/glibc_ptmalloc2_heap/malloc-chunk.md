@@ -5,24 +5,20 @@
 
 # malloc-chunk
 
-## Description
 
-
-Print a chunk.
-## Usage
-
-
-```bash
+```text
 usage: malloc-chunk [-h] [-f] [-v] [-s] [-d] [-n NEXT] addr
 
 ```
-## Positional Arguments
+
+Print a chunk.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the chunk (malloc_chunk struct start, prev_size field).|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

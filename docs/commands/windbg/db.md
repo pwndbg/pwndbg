@@ -5,25 +5,21 @@
 
 # db
 
-## Description
 
-
-Starting at the specified address, dump N bytes.
-## Usage
-
-
-```bash
+```text
 usage: db [-h] address [count]
 
 ```
-## Positional Arguments
+
+Starting at the specified address, dump N bytes.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to dump from.|
 |count|The number of bytes to dump. (default: 64)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

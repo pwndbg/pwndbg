@@ -5,24 +5,20 @@
 
 # break-if-taken
 
-## Description
 
-
-Breaks on a branch if it is taken.
-## Usage
-
-
-```bash
+```text
 usage: break-if-taken [-h] branch
 
 ```
-## Positional Arguments
+
+Breaks on a branch if it is taken.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |branch|The branch instruction to break on.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

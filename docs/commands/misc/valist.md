@@ -5,25 +5,21 @@
 
 # valist
 
-## Description
 
-
-Dumps the arguments of a va_list.
-## Usage
-
-
-```bash
+```text
 usage: valist [-h] addr [count]
 
 ```
-## Positional Arguments
+
+Dumps the arguments of a va_list.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the va_list|
 |count|Number of arguments to dump (default: 8)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

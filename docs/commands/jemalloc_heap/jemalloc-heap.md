@@ -5,18 +5,14 @@
 
 # jemalloc-heap
 
-## Description
 
-
-Prints all extents information
-## Usage
-
-
-```bash
+```text
 usage: jemalloc-heap [-h]
 
 ```
-## Optional Arguments
+
+Prints all extents information
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

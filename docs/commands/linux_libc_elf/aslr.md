@@ -5,26 +5,22 @@
 
 # aslr
 
-## Description
 
+```text
+usage: aslr [-h] [{on,off}]
+
+```
 
 Check the current ASLR status, or turn it on/off.
 
 Does not take effect until the program is restarted.
-## Usage
-
-
-```bash
-usage: aslr [-h] [{on,off}]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |state|Turn ASLR on or off (takes effect when target is started)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

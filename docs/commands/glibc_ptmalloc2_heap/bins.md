@@ -5,27 +5,23 @@
 
 # bins
 
-## Description
 
+```text
+usage: bins [-h] [addr] [tcache_addr]
+
+```
 
 Print the contents of all an arena's bins and a thread's tcache.
 
 Default to the current thread's arena and tcache.
-## Usage
-
-
-```bash
-usage: bins [-h] [addr] [tcache_addr]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the arena.|
 |tcache_addr|Address of the tcache.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

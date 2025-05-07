@@ -5,26 +5,22 @@
 
 # heap
 
-## Description
 
+```text
+usage: heap [-h] [-v] [-s] [addr]
+
+```
 
 Iteratively print chunks on a heap.
 
 Default to the current thread's active heap.
-## Usage
-
-
-```bash
-usage: heap [-h] [-v] [-s] [addr]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the first chunk (malloc_chunk struct start, prev_size field).|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

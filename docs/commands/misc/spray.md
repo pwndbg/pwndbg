@@ -5,25 +5,21 @@
 
 # spray
 
-## Description
 
-
-Spray memory with cyclic() generated values
-## Usage
-
-
-```bash
+```text
 usage: spray [-h] [--value VALUE] [-x] addr [length]
 
 ```
-## Positional Arguments
+
+Spray memory with cyclic() generated values
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address to spray|
 |length|Length of byte sequence, when unspecified sprays until the end of vmmap which address belongs to (default: 0)|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

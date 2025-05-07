@@ -5,26 +5,22 @@
 
 # top-chunk
 
-## Description
 
+```text
+usage: top-chunk [-h] [addr]
+
+```
 
 Print relevant information about an arena's top chunk.
 
 Default to current thread's arena.
-## Usage
-
-
-```bash
-usage: top-chunk [-h] [addr]
-
-```
-## Positional Arguments
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |addr|Address of the arena.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,25 +5,21 @@
 
 # breakrva
 
-## Description
 
-
-Break at RVA from PIE base.
-## Usage
-
-
-```bash
+```text
 usage: breakrva [-h] [offset] [module]
 
 ```
-## Positional Arguments
+
+Break at RVA from PIE base.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |offset|Offset to add. (default: 0)|
 |module|Module to choose as base. Defaults to the target executable. (default: '')|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,18 +5,14 @@
 
 # libcinfo
 
-## Description
 
-
-Show libc version and link to its sources
-## Usage
-
-
-```bash
+```text
 usage: libcinfo [-h]
 
 ```
-## Optional Arguments
+
+Show libc version and link to its sources
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

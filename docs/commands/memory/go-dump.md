@@ -5,25 +5,21 @@
 
 # go-dump
 
-## Description
 
-
-Dumps a Go value of a given type at a specified address.
-## Usage
-
-
-```bash
+```text
 usage: go-dump [-h] [-x] [-f [DECIMALS]] [-d] [-p] ty address
 
 ```
-## Positional Arguments
+
+Dumps a Go value of a given type at a specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |ty|Go type of value to dump, e.g. map[int]string, or the address of a type to resolve at runtime, e.g. 0x408860|
 |address|Address to dump|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

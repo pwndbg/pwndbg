@@ -5,18 +5,14 @@
 
 # configfile
 
-## Description
 
-
-Generates a configuration file for the current pwndbg options.
-## Usage
-
-
-```bash
+```text
 usage: configfile [-h] [--show-all]
 
 ```
-## Optional Arguments
+
+Generates a configuration file for the current pwndbg options.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,18 +5,14 @@
 
 # kversion
 
-## Description
 
-
-Outputs the kernel version (/proc/version).
-## Usage
-
-
-```bash
+```text
 usage: kversion [-h]
 
 ```
-## Optional Arguments
+
+Outputs the kernel version (/proc/version).
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

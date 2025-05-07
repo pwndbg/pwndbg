@@ -5,18 +5,14 @@
 
 # xor
 
-## Description
 
-
-XOR `count` bytes at `address` with the key `key`.
-## Usage
-
-
-```bash
+```text
 usage: xor [-h] address key count
 
 ```
-## Positional Arguments
+
+XOR `count` bytes at `address` with the key `key`.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
@@ -24,7 +20,7 @@ usage: xor [-h] address key count
 |key|The key to use.|
 |count|The number of bytes to xor.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

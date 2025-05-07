@@ -5,18 +5,14 @@
 
 # gotplt
 
-## Description
 
-
-Prints any symbols found in the .got.plt section if it exists.
-## Usage
-
-
-```bash
+```text
 usage: gotplt [-h]
 
 ```
-## Optional Arguments
+
+Prints any symbols found in the .got.plt section if it exists.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

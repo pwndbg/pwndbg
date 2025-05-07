@@ -5,18 +5,14 @@
 
 # plt
 
-## Description
 
-
-Prints any symbols found in the .plt section if it exists.
-## Usage
-
-
-```bash
+```text
 usage: plt [-h]
 
 ```
-## Optional Arguments
+
+Prints any symbols found in the .plt section if it exists.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

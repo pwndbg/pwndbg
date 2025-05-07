@@ -5,26 +5,22 @@
 
 # cyclic
 
-## Description
 
-
-Cyclic pattern creator/finder.
-## Usage
-
-
-```bash
+```text
 usage: cyclic [-h] [-a charset] [-n length] [-l lookup_value]
               [count] [filename]
 
 ```
-## Positional Arguments
+
+Cyclic pattern creator/finder.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |count|Number of characters to print from the sequence (default: print the entire sequence) (default: 100)|
 |filename|Name (path) of the file to save the cyclic pattern to|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

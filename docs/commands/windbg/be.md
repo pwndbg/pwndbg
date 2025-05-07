@@ -5,24 +5,20 @@
 
 # be
 
-## Description
 
-
-Enable the breakpoint with the specified index.
-## Usage
-
-
-```bash
+```text
 usage: be [-h] [which]
 
 ```
-## Positional Arguments
+
+Enable the breakpoint with the specified index.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |which|Index of the breakpoint to enable. (default: '*')|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,24 +5,20 @@
 
 # contextunwatch
 
-## Description
 
-
-Removes an expression previously added to be watched.
-## Usage
-
-
-```bash
+```text
 usage: contextunwatch [-h] num
 
 ```
-## Positional Arguments
+
+Removes an expression previously added to be watched.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |num|The expression number to be removed from context|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

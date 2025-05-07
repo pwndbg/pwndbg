@@ -5,25 +5,21 @@
 
 # ew
 
-## Description
 
-
-Write hex words at the specified address.
-## Usage
-
-
-```bash
+```text
 usage: ew [-h] address [data ...]
 
 ```
-## Positional Arguments
+
+Write hex words at the specified address.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to write to.|
 |data|The words to write.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

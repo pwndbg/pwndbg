@@ -5,18 +5,14 @@
 
 # patch-list
 
-## Description
 
-
-List all patches.
-## Usage
-
-
-```bash
+```text
 usage: patch-list [-h]
 
 ```
-## Optional Arguments
+
+List all patches.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

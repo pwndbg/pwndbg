@@ -5,24 +5,20 @@
 
 # argv
 
-## Description
 
-
-Prints out the contents of argv.
-## Usage
-
-
-```bash
+```text
 usage: argv [-h] [i]
 
 ```
-## Positional Arguments
+
+Prints out the contents of argv.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |i|Index of the argument to print out.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

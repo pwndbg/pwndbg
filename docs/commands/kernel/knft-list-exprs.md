@@ -5,19 +5,15 @@
 
 # knft-list-exprs
 
-## Description
 
-
-Dump only expressions from specific rule
-## Usage
-
-
-```bash
+```text
 usage: knft-list-exprs [-h] [--nsid NSID]
                        [table_family] [table_name] [chain_name] [rule_id]
 
 ```
-## Positional Arguments
+
+Dump only expressions from specific rule
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
@@ -26,7 +22,7 @@ usage: knft-list-exprs [-h] [--nsid NSID]
 |chain_name|Chain name|
 |rule_id|Rule Handle ID|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

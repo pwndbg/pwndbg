@@ -5,24 +5,20 @@
 
 # sigreturn
 
-## Description
 
-
-Display the SigreturnFrame at the specific address
-## Usage
-
-
-```bash
+```text
 usage: sigreturn [-h] [-a] [-p] [address]
 
 ```
-## Positional Arguments
+
+Display the SigreturnFrame at the specific address
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |address|The address to read the frame from|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

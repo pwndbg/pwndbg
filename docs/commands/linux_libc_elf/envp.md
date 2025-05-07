@@ -5,24 +5,20 @@
 
 # envp
 
-## Description
 
-
-Prints out the contents of the environment.
-## Usage
-
-
-```bash
+```text
 usage: envp [-h] [name]
 
 ```
-## Positional Arguments
+
+Prints out the contents of the environment.
+### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
 |name|Name of the environment variable to see.|
 
-## Optional Arguments
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |

@@ -5,18 +5,14 @@
 
 # j
 
-## Description
 
-
-Synchronize IDA's cursor with GDB.
-## Usage
-
-
-```bash
+```text
 usage: j [-h]
 
 ```
-## Optional Arguments
+
+Synchronize IDA's cursor with GDB.
+### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
