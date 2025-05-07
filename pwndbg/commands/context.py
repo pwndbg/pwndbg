@@ -942,10 +942,11 @@ class RegisterContext:
         if val is None:
             return None
         prefix = self.get_prefix(reg)
-        virtual = pwndbg.aglib.kernel.phys_to_virt(
-            val
-        )  # TODO: this function is bugged when kaslr is enabled
-        desc = f"{hex(val)} [virtual: {pwndbg.chain.format(virtual)}]"
+        desc = hex(val)
+        if pwndbg.aglib.kernel.has_debug_syms():
+            # TODO: phys_to_virt is bugged when kaslr is enabled or if symbols are not present
+            virtual = pwndbg.aglib.kernel.phys_to_virt(val)
+            desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
         return f"{prefix} {desc}"
 
     def register_context_default(self, reg):
