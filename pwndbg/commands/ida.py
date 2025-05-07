@@ -69,7 +69,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC, aliases=["do", "dow"])
 @pwndbg.commands.OnlyWhenRunning
 def down(n=1) -> None:
     """
