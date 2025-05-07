@@ -115,9 +115,7 @@ pwndbg> tele '$environ("LANG")'
             sys.exit(5)
 
         mdFile.new_paragraph(func_signature_code)
-        mdFile.new_paragraph(
-            "#### Description\n" + getdoc(func).replace("Example:", "#### Example")
-        )
+        mdFile.new_paragraph(getdoc(func).replace("Example:", "#### Example"))
         mdFile.new_paragraph("-" * 10)
 
     hide_nav = "---\nhide:\n  - navigation\n---\n"
