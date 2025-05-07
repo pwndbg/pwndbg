@@ -91,7 +91,7 @@ def plt() -> None:
     # Sort by the start address so we print from lowest to highest
     sections_found.sort(key=lambda x: x[1])
 
-    for name, start, end in sections_found:
+    for section_name, start, end in sections_found:
         symbols = get_symbols_in_region(start, end, "@plt")
 
         print(message.notice(f"Section {section_name} {start:#x}-{end:#x}:"))
