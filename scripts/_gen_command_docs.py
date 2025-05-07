@@ -120,6 +120,10 @@ def convert_to_markdown(filename: str, command: CommandObj) -> str:
     mdFile.insert_code(parser.format_usage(), language="text")
     # description
     mdFile.new_paragraph(description + "\n")
+    # aliases
+    if command.aliases:
+        alias_txt = "Alias" + ("es" if len(command.aliases) > 1 else "") + ":"
+        mdFile.write(f"\n**{alias_txt}** " + ", ".join(command.aliases) + ".\n")
 
     used_actions = {}
     positionals = ["Positional Argument", "Help"]
