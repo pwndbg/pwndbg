@@ -449,6 +449,7 @@ class DisassemblyAssistant:
                 print(f"Read value from process register: {pwndbg.aglib.regs[regname]}")
             return pwndbg.aglib.regs[regname]
         elif (reg_value := self.manual_register_values.read_register(regname)) is not None:
+            # If we manually tracked the value of this register while disassembling, we can read from it.
             return reg_value
         else:
             return None
