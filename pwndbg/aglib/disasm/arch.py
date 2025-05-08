@@ -146,7 +146,6 @@ class DisassemblyAssistant:
     architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
     manual_register_values: PseudoEmulatedRegisterFile
-    """Map of register name to value"""
 
     supports_manual_emulation = False
     """This feature relies on the Capstone .regs_access() features that not all architectures have reliable support for"""
