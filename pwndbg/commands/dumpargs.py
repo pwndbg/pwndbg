@@ -38,12 +38,10 @@ def call_args() -> List[str]:
     """
 
     # Get arguments and add spacing
-    results = [
+    return [
         f"        {arg}"
         for arg in pwndbg.arguments.format_args(pwndbg.aglib.disasm.disassembly.one())
     ]
-
-    return results
 
 
 def all_args() -> List[str]:

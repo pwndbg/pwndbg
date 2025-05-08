@@ -159,6 +159,8 @@ def arguments(abi: pwndbg.lib.abi.ABI | None = None):
         yield argname(i, abi), argument(i, abi)
 
 
+# When an argument is named one of these in Linux syscalls/glibc, it refers to a file descriptor
+# Search for strings containing "fd" in https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
 FILE_DESCRIPTOR_ARG_NAMES = {
     "fd",
     "in_fd",
