@@ -70,7 +70,9 @@ parser.add_argument(
 
 
 # Since we are redefining a gdb command, we also redefine the original aliases.
-# This is both for consistency and to pass the test_consistent_help test - see #2961.
+# These aliases ("do", "dow") are necessary to ensure consistency in the help system
+# and to pass the test_consistent_help test, which verifies that all commands and their
+# aliases are documented correctly. See issue #2961 for more details.
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC, aliases=["do", "dow"])
 @pwndbg.commands.OnlyWhenRunning
 def down(n=1) -> None:
