@@ -69,6 +69,8 @@ parser.add_argument(
 )
 
 
+# Since we are redefining a gdb command, we also redefine the original aliases.
+# This is both for consistency and to pass the test_consistent_help test - see #2961.
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC, aliases=["do", "dow"])
 @pwndbg.commands.OnlyWhenRunning
 def down(n=1) -> None:
