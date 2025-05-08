@@ -342,7 +342,8 @@ def exec_repl_command(
     relay: EventRelay,
 ) -> bool:
     """
-    Parses and runs the given command, returning whether the event loop should continue.
+    Parses and runs the given command, returning whether the event loop should
+    continue.
     """
 
     bits = lex_args(line)

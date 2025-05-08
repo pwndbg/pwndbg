@@ -56,7 +56,8 @@ def sharedlibrary() -> str:
 
 def parsed_sharedlibrary() -> Dict[str, Tuple[int, int]]:
     """
-    Returns a dictionary of shared libraries with their .text section from and to addresses.
+    Returns a dictionary of shared libraries with their .text section from and to
+    addresses.
     """
     lines = sharedlibrary().splitlines()
     if len(lines) <= 1:
@@ -78,7 +79,8 @@ def parsed_sharedlibrary() -> Dict[str, Tuple[int, int]]:
 
 def sharedlibrary_paths() -> List[str]:
     """
-    Get the paths of all shared libraries loaded in the process by parsing the output of "info sharedlibrary".
+    Get the paths of all shared libraries loaded in the process by parsing the output
+    of "info sharedlibrary".
     """
     return list(parsed_sharedlibrary().keys())
 

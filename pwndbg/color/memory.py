@@ -43,7 +43,8 @@ def get_address_and_symbol(address: int) -> str:
 
 def get_address_or_symbol(address: int) -> str:
     """
-    Convert and colorize address to symbol if it can be resolved, else return colorized address
+    Convert and colorize address to symbol if it can be resolved, else return
+    colorized address
     """
     return attempt_colorized_symbol(address) or get(address)
 

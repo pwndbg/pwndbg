@@ -15,7 +15,8 @@ from pwndbg.commands import CommandCategory
 
 class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
     """
-    A breakpoint that only stops the inferior if a given branch is taken or not taken.
+    A breakpoint that only stops the inferior if a given branch is taken or not
+    taken.
     """
 
     def __init__(self, instruction: PwndbgInstruction, taken: bool) -> None:

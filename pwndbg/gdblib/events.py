@@ -234,7 +234,8 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
 
 class HandlerPriority(Enum):
     """
-    A priority level for an event handler, ordered from highest to lowest priority.
+    A priority level for an event handler, ordered from highest to lowest
+    priority.
     """
 
     CACHE_CLEAR = auto()

@@ -566,7 +566,8 @@ class Emulator:
 
     def read_thumb_bit(self) -> int:
         """
-        Return 0 or 1, representing the status of the Thumb bit in the current Arm architecture
+        Return 0 or 1, representing the status of the Thumb bit in the current Arm
+        architecture
 
         This reads from the emulator itself, meaning this can be read to determine a state
         transitions between non-Thumb and Thumb mode

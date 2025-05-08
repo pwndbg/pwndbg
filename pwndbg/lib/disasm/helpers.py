@@ -3,7 +3,8 @@ from __future__ import annotations
 
 def to_signed(unsigned: int, bit_width: int):
     """
-    Returns the signed number associated with the two's-complement binary representation of `unsigned`
+    Returns the signed number associated with the two's-complement binary
+    representation of `unsigned`
     """
     unsigned = unsigned & ((1 << bit_width) - 1)
     extract_bit = 1 << (bit_width - 1)
@@ -16,7 +17,8 @@ def logical_shift_left(n: int, shift_amt: int, bit_width: int):
 
 def logical_shift_right(n: int, shift_amt: int, bit_width: int):
     """
-    `n` is truncated to the width of `bit_width` before the operation takes place.
+    `n` is truncated to the width of `bit_width` before the operation takes
+    place.
     """
     n = n & ((1 << bit_width) - 1)
     return n >> shift_amt
@@ -24,7 +26,8 @@ def logical_shift_right(n: int, shift_amt: int, bit_width: int):
 
 def rotate_right(n: int, shift_amt: int, bit_width: int):
     """
-    `n` is truncated to the width of `bit_width` before the operation takes place.
+    `n` is truncated to the width of `bit_width` before the operation takes
+    place.
     """
     n = n & ((1 << bit_width) - 1)
     return ((n >> shift_amt) | (n << (bit_width - shift_amt))) & ((1 << bit_width) - 1)
@@ -32,7 +35,8 @@ def rotate_right(n: int, shift_amt: int, bit_width: int):
 
 def arithmetic_shift_right(n: int, shift_amt: int, bit_width: int):
     """
-    This returns the value represented by the two's-complement binary representation of the final result.
+    This returns the value represented by the two's-complement binary representation
+    of the final result.
     This means the result could be negative (if the top bit of the input is negative)
 
     `n` is truncated to the width of `bit_width` before the operation takes place.

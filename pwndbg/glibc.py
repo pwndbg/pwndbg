@@ -204,6 +204,7 @@ def check_safe_linking() -> bool:
     """
     Safe-linking is a glibc 2.32 mitigation; see:
     - https://lanph3re.blogspot.com/2020/08/blog-post.html
-    - https://research.checkpoint.com/2020/safe-linking-eliminating-a-20-year-old-malloc-exploit-primitive/
+    - https://research.checkpoint.com/2020/safe-linking-eliminating-a-20-year-old-
+    malloc-exploit-primitive/
     """
     return (get_version() >= (2, 32) or safe_lnk.value) and safe_lnk.value is not False

@@ -209,7 +209,8 @@ AARCH64_SHIFT_INSTRUCTIONS = {
 
 def resolve_condition(condition: int, cpsr: int) -> InstructionCondition:
     """
-    Given a condition and the NZCV flag bits, determine when the condition is satisfied
+    Given a condition and the NZCV flag bits, determine when the condition is
+    satisfied
 
     The condition is a Capstone constant
     """
@@ -427,7 +428,8 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
         self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
         """
-        Parse the `Arm64OpMem` Capstone object to determine the concrete memory address used.
+        Parse the `Arm64OpMem` Capstone object to determine the concrete memory
+        address used.
 
         Three types of AArch64 memory operands:
         1. Register base with optional immediate offset
@@ -491,7 +493,8 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
     @override
     def _parse_immediate(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
         """
-        In AArch64, there can be an optional shift applied to constants, typically only a `LSL #12`
+        In AArch64, there can be an optional shift applied to constants, typically
+        only a `LSL #12`
 
         Ex:
             cmp    x8, #1, lsl #12      (1 << 12)

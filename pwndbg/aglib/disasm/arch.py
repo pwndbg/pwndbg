@@ -169,7 +169,8 @@ class DisassemblyAssistant:
 
     def enhance(self, instruction: PwndbgInstruction, emu: Emulator = None) -> None:
         """
-        Enhance the instruction - resolving branch targets, conditionals, and adding annotations
+        Enhance the instruction - resolving branch targets, conditionals, and adding
+        annotations
 
         This is the only public method that should be called on this object externally.
         """
@@ -273,7 +274,8 @@ class DisassemblyAssistant:
     # Subclasses for specific architecture should override this
     def _set_annotation_string(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         """
-        The goal of this function is to set the `annotation` field of the instruction,
+        The goal of this function is to set the `annotation` field of the
+        instruction,
         which is the string to be printed in a disasm view.
         """
         return None
@@ -403,9 +405,11 @@ class DisassemblyAssistant:
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
     ) -> int | None:
         """
-        Read value in register. Return None if cannot reason about the value in the register.
+        Read value in register. Return None if cannot reason about the value in the
+        register.
         Different architectures use registers in different patterns, so it is best to
-        override this to get to best behavior for a given architecture. See x86.py as example.
+        override this to get to best behavior for a given architecture. See x86.py as
+        example.
 
         operand_id is the ID internal to Capstone
         """
@@ -826,7 +830,8 @@ class DisassemblyAssistant:
 
     def _memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
         """
-        Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
+        Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is
+        colorized
         """
         if operand.before_value is not None:
             return f"[{MemoryColor.get_address_or_symbol(operand.before_value)}]"
@@ -927,7 +932,8 @@ class DisassemblyAssistant:
         source_str: str,
     ) -> None:
         """
-        This function annotates load instructions - moving data from memory into a register.
+        This function annotates load instructions - moving data from memory into a
+        register.
 
         These instructions read `read_size` bytes from memory into a register.
 
@@ -1004,7 +1010,8 @@ class DisassemblyAssistant:
         address_str: str,
     ) -> None:
         """
-        This function annotates store functions - moving data from a register to memory.
+        This function annotates store functions - moving data from a register to
+        memory.
 
         The `value` is truncated to match the `write_size`, if `write_size` is not None.
 

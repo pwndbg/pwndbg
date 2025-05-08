@@ -66,8 +66,10 @@ def is_old_qemu_user() -> bool:
 
 @pwndbg.lib.cache.cache_until("stop")
 def exec_file_supported() -> bool:
-    """Returns ``True`` if the remote target understands the 'qXfer:exec-file:read' packet.
-    A check for this feature is done in vmmap code, to warn against running legacy Qemu versions.
+    """Returns ``True`` if the remote target understands the 'qXfer:exec-file:read'
+    packet.
+    A check for this feature is done in vmmap code, to warn against running legacy Qemu
+    versions.
     """
     response = pwndbg.dbg.selected_inferior().send_remote("qSupported")
 

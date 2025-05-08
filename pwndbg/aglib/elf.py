@@ -206,7 +206,8 @@ def dump_section_by_name(
     filepath: str, section_name: str, try_local_path: bool = False
 ) -> Tuple[int, int, bytes] | None:
     """
-    Dump the content of a section from an ELF file, return the start address, size and content.
+    Dump the content of a section from an ELF file, return the start address, size
+    and content.
     """
     # TODO: We should have some cache mechanism or something at
     # `pndbg.aglib.file.get_file()` in the future to avoid downloading the
@@ -223,7 +224,8 @@ def dump_relocations_by_section_name(
     filepath: str, section_name: str, try_local_path: bool = False
 ) -> Tuple[Relocation, ...] | None:
     """
-    Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
+    Dump the relocation entries of a section from an ELF file, return a generator of
+    Relocation objects.
     """
     # TODO: We should have some cache mechanism or something at
     # `pndbg.aglib.file.get_file()` in the future to avoid downloading the

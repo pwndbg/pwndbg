@@ -287,7 +287,8 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         emu: Emulator,
     ) -> int | None:
         """
-        Parse the `MipsOpMem` Capstone object to determine the concrete memory address used.
+        Parse the `MipsOpMem` Capstone object to determine the concrete memory
+        address used.
         """
         base = self._read_register(instruction, op.mem.base, emu)
         if base is None:

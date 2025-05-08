@@ -128,7 +128,8 @@ def get_one_instruction(
 ) -> PwndbgInstruction:
     """
     If passed an emulator, this will pass it to the DisassemblyAssistant which will
-    single_step the emulator to determine the operand values before and after the instruction executes.
+    single_step the emulator to determine the operand values before and after the
+    instruction executes.
     """
     if from_cache:
         cached = computed_instruction_cache[address]

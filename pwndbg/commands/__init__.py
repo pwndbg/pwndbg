@@ -785,7 +785,8 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
 
 def sloppy_gdb_parse(s: str) -> int | str:
     """
-    This function should be used as ``argparse.ArgumentParser`` .add_argument method's `type` helper.
+    This function should be used as ``argparse.ArgumentParser`` .add_argument
+    method's `type` helper.
 
     This makes the type being parsed as gdb value and if that parsing fails,
     a string is returned.

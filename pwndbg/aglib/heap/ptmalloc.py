@@ -454,7 +454,8 @@ class Chunk:
 
     def __contains__(self, addr: int) -> bool:
         """
-        This allow us to avoid extra constructions like 'if start_addr <= ptr < end_addr', etc.
+        This allow us to avoid extra constructions like 'if start_addr <= ptr <
+        end_addr', etc.
         """
         size_field_address = int(self._gdbValue[self.__match_renamed_field("size")].address)
         start_address = size_field_address if self.prev_inuse else self.address
@@ -490,7 +491,8 @@ class Heap:
         """Build a Heap object given an address on that heap.
         Heap regions are treated differently depending on their arena:
         1) main_arena - uses the sbrk heap
-        2) non-main arena - heap starts after its heap_info struct (and possibly an arena)
+        2) non-main arena - heap starts after its heap_info struct (and possibly an
+        arena)
         3) non-contiguous main_arena - just a memory region
         4) no arena - for fake/mmapped chunks
         """
@@ -1262,7 +1264,8 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         safe_lnk = pwndbg.glibc.check_safe_linking()
 
         def tidx2usize(idx: int):
-            """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
+            """Tcache bin index to chunk size, following tidx2usize macro in glibc
+            malloc.c"""
             return idx * self.malloc_alignment + self.minsize - self.size_sz
 
         result = Bins(BinType.TCACHE)
@@ -1346,7 +1349,8 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     ) -> Tuple[List[int], List[int], bool] | None:
         """
         Modeled after glibc's bin_at function - so starts indexing from 1
-        https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-security/view/head:/malloc/malloc.c#L1394
+        https://bazaar.launchpad.net/~ubuntu-branches/ubuntu/trusty/eglibc/trusty-
+        security/view/head:/malloc/malloc.c#L1394
 
         bin_at(1) returns the unsorted bin
 
@@ -1534,7 +1538,8 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
     def libc_has_debug_syms(self) -> bool:
         """
-        The `struct malloc_chunk` comes from debugging symbols and it will not be there
+        The `struct malloc_chunk` comes from debugging symbols and it will not be
+        there
         for statically linked binaries
         """
         return (
@@ -1921,7 +1926,8 @@ class HeuristicHeap(
     def brute_force_tls_reference_in_got_section(
         self, tls_address: int, validator: Callable[[int], bool]
     ) -> Tuple[int, int] | None:
-        """Brute force the TLS-reference in the .got section to that can pass the validator."""
+        """Brute force the TLS-reference in the .got section to that can pass the
+        validator."""
         # Note: This highly depends on the correctness of the TLS address
         print(message.notice("Brute forcing the TLS-reference in the .got section..."))
         if self.is_statically_linked():
@@ -1951,7 +1957,8 @@ class HeuristicHeap(
     def brute_force_thread_local_variable_near_tls_base(
         self, tls_address: int, validator: Callable[[int], bool]
     ) -> Tuple[int, int] | None:
-        """Brute force the thread-local variable near the TLS base address that can pass the validator."""
+        """Brute force the thread-local variable near the TLS base address that can pass
+        the validator."""
         print(
             message.notice(
                 "Brute forcing all the possible thread-local variables near the TLS base address..."
@@ -2039,7 +2046,8 @@ class HeuristicHeap(
 
     @property
     def thread_cache(self) -> "pwndbg.aglib.heap.structs.TcachePerthreadStruct" | None:
-        """Locate a thread's tcache struct. We try to find its address in Thread Local Storage (TLS) first,
+        """Locate a thread's tcache struct. We try to find its address in Thread Local
+        Storage (TLS) first,
         and if that fails, we guess it's at the first chunk of the heap.
         """
         if not self.has_tcache():
@@ -2249,7 +2257,8 @@ class HeuristicHeap(
         """Return a Page object representing the sbrk heap region.
         Ensure the region's start address is aligned to SIZE_SZ * 2,
         which compensates for the presence of GLIBC_TUNABLES.
-        This heuristic version requires some sanity checks and may raise SymbolUnresolvableError
+        This heuristic version requires some sanity checks and may raise
+        SymbolUnresolvableError
         if malloc's `mp_` struct can't be resolved.
         """
         # Initialize malloc's mp_ struct if necessary.

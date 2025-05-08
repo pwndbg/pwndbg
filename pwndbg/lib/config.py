@@ -132,7 +132,8 @@ class Parameter:
         return getattr(self.value, name)
 
     def pretty_val(self, val: Any) -> str:
-        """Convert a value this object could contain to its pretty string representation."""
+        """Convert a value this object could contain to its pretty string
+        representation."""
         if self.param_class == PARAM_BOOLEAN:
             return "on" if val else "off"
         elif self.param_class == PARAM_AUTO_BOOLEAN:

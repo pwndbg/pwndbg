@@ -38,7 +38,8 @@ def get(
     safe_linking: bool = False,
 ) -> List[int] | None:
     """
-    Recursively dereferences an address. For bare metal, it will stop when the address is not in any of vmmap pages to avoid redundant dereference.
+    Recursively dereferences an address. For bare metal, it will stop when the
+    address is not in any of vmmap pages to avoid redundant dereference.
 
     Arguments:
         address: the first address to begin dereferencing
@@ -108,7 +109,8 @@ def format(
     enhance_string_len: int | None = None,
 ) -> str:
     """
-    Recursively dereferences an address into string representation, or convert the list representation
+    Recursively dereferences an address into string representation, or convert the
+    list representation
     of address dereferences into string representation.
 
     Arguments:

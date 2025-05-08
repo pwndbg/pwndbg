@@ -235,7 +235,9 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         self.groups: Set[int] = set(cs_insn.groups)
         """
         Capstone instruction groups that we belong to.
-        Groups that apply to all architectures: CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
+        Groups that apply to all architectures: CS_GRP_INVALID | CS_GRP_JUMP |
+        CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE |
+        CS_GRP_BRANCH_RELATIVE
         """
 
         self.id: int = cs_insn.alias_id if cs_insn.is_alias else cs_insn.id
@@ -262,7 +264,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         self.asm_string: str = f"{self.mnemonic:<6} {self.op_str}"
         """
-        The full string representing the instruction - `mov    rdi, rsp` with appropriate padding.
+        The full string representing the instruction - `mov    rdi, rsp` with
+        appropriate padding.
 
         This is syntax highlighted during enhancement.
 
@@ -272,8 +275,10 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         self.next: int = self.address + self.size
         """
-        This is the address that the instruction pointer will be set to after using the "nexti" GDB command.
-        This means it is the address of the next instruction to be executed in all cases except "call" instructions.
+        This is the address that the instruction pointer will be set to after using
+        the "nexti" GDB command.
+        This means it is the address of the next instruction to be executed in all cases
+        except "call" instructions.
 
         Typically, it is `self.address + self.size` (the next instruction in memory)
 
@@ -284,8 +289,10 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         self.target: int = None
         """
-        This is target of instructions that change the PC, regardless of if it's conditional or not,
-        and whether or not we take the jump. This includes "call" and all other instructions that set the PC
+        This is target of instructions that change the PC, regardless of if it's
+        conditional or not,
+        and whether or not we take the jump. This includes "call" and all other
+        instructions that set the PC
 
         If the instruction is not one that changes the PC, target is set to "next"
         """
@@ -318,12 +325,17 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         self.declare_conditional: bool | None = None
         """
-        This field is used to declare if the instruction is a conditional instruction.
-        In most cases, we can determine this purely based on the instruction ID, and this field is irrelevent.
-        However, in some arches, like Arm, the same instruction can be made conditional by certain instruction attributes.
+        This field is used to declare if the instruction is a conditional
+        instruction.
+        In most cases, we can determine this purely based on the instruction ID, and
+        this field is irrelevent.
+        However, in some arches, like Arm, the same instruction can be made conditional
+        by certain instruction attributes.
         Ex:
-            Arm, `bls` instruction. This is encoded as a `b` under the code, with an additional condition code field.
-            In this case, sometimes a `b` instruction is unconditional (always branches), in other cases it is conditional.
+            Arm, `bls` instruction. This is encoded as a `b` under the code, with an
+        additional condition code field.
+            In this case, sometimes a `b` instruction is unconditional (always
+        branches), in other cases it is conditional.
             We use this field to disambiguate these cases.
 
         True if we manually determine this instruction is a conditional instruction
@@ -347,18 +359,24 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         self.force_unconditional_jump_target: bool = False
         """
-        This asserts that the .target attribute is the real target of the instruction.
-        This is only relevent in the edge case that the target is the next instruction in memory (address + size).
-        The normal check for "target" checks that the target is NOT the next address in memory, and here we can assert that even if that is the case,
+        This asserts that the .target attribute is the real target of the
+        instruction.
+        This is only relevent in the edge case that the target is the next instruction
+        in memory (address + size).
+        The normal check for "target" checks that the target is NOT the next address in
+        memory, and here we can assert that even if that is the case,
         we know that the jump really does just go to where self.target is.
         """
 
         self.annotation: str | None = None
         """
         The string is set in the "DisassemblyAssistant.enhance" function.
-        It is used in the disasm print view to add context to the instruction, mostly operand value.
-        This string is not used for all cases - if the instruction is a call or a jump, the 'target'.
-        variables is used instead. See 'pwndbg.color.disasm.instruction()' for specific usage.
+        It is used in the disasm print view to add context to the instruction, mostly
+        operand value.
+        This string is not used for all cases - if the instruction is a call or a jump,
+        the 'target'.
+        variables is used instead. See 'pwndbg.color.disasm.instruction()' for specific
+        usage.
         """
 
         self.annotation_padding: int | None = None
@@ -369,7 +387,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         self.syscall: int | None = None
         """
-        The syscall number for this instruction, if it is a syscall. Otherwise None.
+        The syscall number for this instruction, if it is a syscall. Otherwise
+        None.
         """
 
         self.syscall_name: str | None = None
@@ -401,7 +420,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
     @property
     def call_like(self) -> bool:
         """
-        True if this is a call-like instruction, meaning either it's a CALL or a branch and link.
+        True if this is a call-like instruction, meaning either it's a CALL or a
+        branch and link.
 
         Checking for the CS_GRP_CALL is insufficient, as there are many "branch and link" instructions that are not labeled as a call
         """
@@ -423,7 +443,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
     @property
     def has_jump_target(self) -> bool:
         """
-        True if we have determined that this instruction can explicitly change the program counter, and
+        True if we have determined that this instruction can explicitly change the
+        program counter, and
         we have determined the jump target.
 
         Edge case - the jump target MAY be the next address in memory - so we check force_unconditional_jump_target
@@ -455,7 +476,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
     @property
     def is_unconditional_jump(self) -> bool:
         """
-        True if we know the instruction can change the program counter, and does so unconditionally.
+        True if we know the instruction can change the program counter, and does so
+        unconditionally.
 
         This includes things like RET, CALL, and JMP (in x86).
 
@@ -473,7 +495,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
     @property
     def is_conditional_jump_taken(self) -> bool:
         """
-        True if this is a conditional jump, and we predicted that we will take the jump
+        True if this is a conditional jump, and we predicted that we will take the
+        jump
         """
         # True if:
         # - We manually determined in .condition that we take the jump
@@ -496,7 +519,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         return self.cs_insn.bytes
 
     def op_find(self, op_type: int, position: int) -> EnhancedOperand:
-        """Get the operand at position @position of all operands having the same type @op_type"""
+        """Get the operand at position @position of all operands having the same type
+        @op_type"""
         cs_op = self.cs_insn.op_find(op_type, position)
         # Find the matching EnhancedOperand
         for x in self.operands:
@@ -547,7 +571,8 @@ class EnhancedOperand:
     def __init__(self, cs_op):
         self.cs_op: typing.Any = cs_op
         """
-        Underlying Capstone operand. Takes on a different value depending on the architecture.
+        Underlying Capstone operand. Takes on a different value depending on the
+        architecture.
 
         x86 = capstone.x86.X86Op, arm = capstone.arm.ArmOp, mips = capstone.mips.MipsOp
         """
@@ -571,8 +596,10 @@ class EnhancedOperand:
 
         self.before_value_resolved: int | None = None
         """
-        The 'resolved' value of the operand that is actually used in the instruction logic, before the instruction executes.
-        This is the same as before_value if it's not a memory operand, in which cases it's the dereferenced value.
+        The 'resolved' value of the operand that is actually used in the instruction
+        logic, before the instruction executes.
+        This is the same as before_value if it's not a memory operand, in which cases
+        it's the dereferenced value.
 
         Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
         a register or a memory value to dereference, and we want the actual value used.
@@ -580,9 +607,12 @@ class EnhancedOperand:
 
         self.before_value_no_modifiers: int | None = None
         """
-        This is a special field used in some architectures that allow operand modifiers, such as shifts and extends in Arm.
-        Capstone bundles the modifier with the operand, and when we are resolving concrete operand values, we apply the modifier.
-        However, in some annotations we need to un-modified raw register value, which is what this field is for.
+        This is a special field used in some architectures that allow operand
+        modifiers, such as shifts and extends in Arm.
+        Capstone bundles the modifier with the operand, and when we are resolving
+        concrete operand values, we apply the modifier.
+        However, in some annotations we need to un-modified raw register value, which is
+        what this field is for.
         """
 
         self.after_value_resolved: int | None = None
@@ -599,7 +629,8 @@ class EnhancedOperand:
 
         self.symbol: str | None = None
         """
-        Colorized symbol name for this operand, if .before_value is set and symbol exists, else None.
+        Colorized symbol name for this operand, if .before_value is set and symbol
+        exists, else None.
         """
 
     @property
@@ -653,8 +684,10 @@ class EnhancedOperand:
 class ManualPwndbgInstruction(PwndbgInstruction):
     def __init__(self, address: int) -> None:
         """
-        This class provides an implementation of PwndbgInstruction for cases where the architecture
-        at hand is not supported by the Capstone disassembler. The backing information is sourced from
+        This class provides an implementation of PwndbgInstruction for cases where
+        the architecture
+        at hand is not supported by the Capstone disassembler. The backing information
+        is sourced from
         GDB/LLDB's built-in disassemblers.
 
         Instances of this class do not go through the 'enhancement' process due to lacking important information provided by Capstone.

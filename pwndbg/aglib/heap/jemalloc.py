@@ -187,9 +187,12 @@ rtree_levels = [
 
 class RTree:
     """
-    RTree is used by jemalloc to keep track of extents that are allocated by jemalloc.
-    Since extent data is not stored in a doubly linked list, rtree is used to find the extent belonging to a pointer that is being freed.
-    Implementation of rtree is similar to Linux Radix tree: https://lwn.net/Articles/175432/
+    RTree is used by jemalloc to keep track of extents that are allocated by
+    jemalloc.
+    Since extent data is not stored in a doubly linked list, rtree is used to find the
+    extent belonging to a pointer that is being freed.
+    Implementation of rtree is similar to Linux Radix tree:
+    https://lwn.net/Articles/175432/
     """
 
     # TODO: Check rtee_ctx cache in
@@ -242,8 +245,10 @@ class RTree:
 
     def __subkey(self, key: int, level: int) -> int:
         """
-        Return a portion of the key that is used to find the node/leaf in the rtree at a specific level.
-        Source: https://github.com/jemalloc/jemalloc/blob/5b72ac098abce464add567869d082f2097bd59a2/include/jemalloc/internal/rtree.h#L161
+        Return a portion of the key that is used to find the node/leaf in the rtree
+        at a specific level.
+        Source: https://github.com/jemalloc/jemalloc/blob/5b72ac098abce464add567869d082f
+        2097bd59a2/include/jemalloc/internal/rtree.h#L161
         """
 
         ptrbits = 1 << (LG_SIZEOF_PTR + 3)
@@ -413,12 +418,18 @@ class RTree:
 
 class Extent:
     """
-    Concept of extent (edata) is similar to chunk in glibc malloc but allocation algorithm differs a lot.
-    - Extents are used to manage memory blocks (including jemalloc metadata) where extents sizes can vary but each block is always a multiple of the page size.
-    - jemalloc will either allocate one large class request or multiple small class request (called slab) depending on request size.
-    - Unlike chunks in glibc malloc, extents are not doubly linked list but are managed using rtree.
-    - This tree is mostly used during deallocation to find the extent belonging to a pointer that is being freed.
-    - Extents are also not stored as a header structure but externally (therefore extent metadata and actually mapped data may be very far apart).
+    Concept of extent (edata) is similar to chunk in glibc malloc but allocation
+    algorithm differs a lot.
+    - Extents are used to manage memory blocks (including jemalloc metadata) where
+    extents sizes can vary but each block is always a multiple of the page size.
+    - jemalloc will either allocate one large class request or multiple small class
+    request (called slab) depending on request size.
+    - Unlike chunks in glibc malloc, extents are not doubly linked list but are managed
+    using rtree.
+    - This tree is mostly used during deallocation to find the extent belonging to a
+    pointer that is being freed.
+    - Extents are also not stored as a header structure but externally (therefore extent
+    metadata and actually mapped data may be very far apart).
     """
 
     def __init__(self, addr: int) -> None:
@@ -432,7 +443,8 @@ class Extent:
     @property
     def size(self):
         """
-        May be larger in case of large size class allocation when cache_oblivious is enabled.
+        May be larger in case of large size class allocation when cache_oblivious is
+        enabled.
         """
         # return self._Value["e_size_esn"]
         return (int(self._Value["e_size_esn"]) >> LG_PAGE) << LG_PAGE
@@ -449,9 +461,12 @@ class Extent:
         """
         Starting address of allocated memory
         cache-oblivious large allocation alignment:
-            When a large class allocation is made, jemalloc selects the closest size class that can fit the request and allocates that size + 4 KiB (0x1000).
-            However, the pointer returned to user is randomized between the 'base' and 'base + 4 KiB' (0x1000) range.
-            Source code: https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/arena_inlines_b.h#L505
+            When a large class allocation is made, jemalloc selects the closest size
+        class that can fit the request and allocates that size + 4 KiB (0x1000).
+            However, the pointer returned to user is randomized between the 'base' and
+        'base + 4 KiB' (0x1000) range.
+            Source code: https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be30
+        83db349991bbbbf1661/include/jemalloc/internal/arena_inlines_b.h#L505
         """
         return int(self._Value["e_addr"])
 
@@ -507,7 +522,8 @@ class Extent:
         """
         Returns True if the extent is used for small size classes.
         Reference for size in Table 1 at https://jemalloc.net/jemalloc.3.html
-        At time of writing, allocations <= 0x3800 are considered as small allocations and has slabs.
+        At time of writing, allocations <= 0x3800 are considered as small allocations
+        and has slabs.
         """
         return self.bitfields["slab"] != 0
 

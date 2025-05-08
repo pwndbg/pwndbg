@@ -129,9 +129,12 @@ ARM_CAN_WRITE_TO_PC_INSTRUCTIONS = {
 def itstate_from_cpsr(cpsr_value: int) -> int:
     """
     ITSTATE == If-Then execution state bits for the Thumb IT instruction
-    The ITSTATE bits are spread across 3 sections of Arm flags register to a total of 8 bits.
+    The ITSTATE bits are spread across 3 sections of Arm flags register to a total of 8
+    bits.
     This function extracts them and reorders the bits into their logical order
-    - https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Level-Programmers--Model/Registers/The-special-purpose-program-status-registers--xPSR#:~:text=shows%20the%20assignment%20of%20the%20ICI/IT%20bits.
+    - https://developer.arm.com/documentation/ddi0403/d/System-Level-
+    Architecture/System-Level-Programmers--Model/Registers/The-special-purpose-program-
+    status-registers--xPSR#:~:text=shows%20the%20assignment%20of%20the%20ICI/IT%20bits.
 
     Bits of the flags register: EPSR[26:25]    EPSR[15:12]    EPSR[11:10]
     Bits of ITSTATE:            IT[1:0]        IT[7:4]        IT[3:2]
@@ -360,7 +363,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
         """
-        Parse the `ArmOpMem` Capstone object to determine the concrete memory address used.
+        Parse the `ArmOpMem` Capstone object to determine the concrete memory address
+        used.
 
         Types of memory operands:
             [Rn]

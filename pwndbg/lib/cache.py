@@ -100,7 +100,8 @@ _ALL_CACHE_EVENT_NAMES = tuple(_ALL_CACHE_UNTIL_EVENTS.keys())
 
 def connect_clear_caching_events(event_dicts: Dict[str, Tuple[Any, ...]], **kwargs: Any) -> None:
     """
-    Connect given debugger event hooks to correspoonding _CacheUntilEvent instances
+    Connect given debugger event hooks to correspoonding _CacheUntilEvent
+    instances
     """
     for event_name, event_hooks in event_dicts.items():
         _ALL_CACHE_UNTIL_EVENTS[event_name].connect_event_hooks(event_hooks, **kwargs)

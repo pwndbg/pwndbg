@@ -84,25 +84,27 @@ class Kallsyms:
 
     def find_token_table(self) -> int:
         """
-        This function searches for the kallsyms_token_table structure in the kernel memory.
-        The kallsyms_token_table contains 256 zero-terminated tokens from which symbol names are built.
+        This function searches for the kallsyms_token_table structure in the kernel
+        memory.
+        The kallsyms_token_table contains 256 zero-terminated tokens from which symbol
+        names are built.
         Example structure:
-        0xffffffff827b2f00:	"mm"
-        0xffffffff827b2f03:	"tim"
-        0xffffffff827b2f07:	"bu"
-        0xffffffff827b2f0a:	"ode_"
-        0xffffffff827b2f0f:	"robestub"
+        0xffffffff827b2f00:     "mm"
+        0xffffffff827b2f03:     "tim"
+        0xffffffff827b2f07:     "bu"
+        0xffffffff827b2f0a:     "ode_"
+        0xffffffff827b2f0f:     "robestub"
         <SKIPPED>
-        0xffffffff827b2fdb:	"0"
-        0xffffffff827b2fdd:	"1"
-        0xffffffff827b2fdf:	"2"
-        0xffffffff827b2fe1:	"3"
-        0xffffffff827b2fe3:	"4"
-        0xffffffff827b2fe5:	"5"
-        0xffffffff827b2fe7:	"6"
-        0xffffffff827b2fe9:	"7"
-        0xffffffff827b2feb:	"8"
-        0xffffffff827b2fed:	"9"
+        0xffffffff827b2fdb:     "0"
+        0xffffffff827b2fdd:     "1"
+        0xffffffff827b2fdf:     "2"
+        0xffffffff827b2fe1:     "3"
+        0xffffffff827b2fe3:     "4"
+        0xffffffff827b2fe5:     "5"
+        0xffffffff827b2fe7:     "6"
+        0xffffffff827b2fe9:     "7"
+        0xffffffff827b2feb:     "8"
+        0xffffffff827b2fed:     "9"
         """
         sequence_to_find = b"".join(b"%c\0" % i for i in range(ord("0"), ord("9") + 1))
         sequences_to_avoid = [b":\0", b"\0\0", b"\0\1", b"\0\2", b"ASCII\0"]
@@ -158,17 +160,24 @@ class Kallsyms:
 
     def find_token_index(self) -> int | None:
         """
-        This function searches for the kallsyms_token_index structure in the kernel memory
-        starting at kallsyms_token_table. The token index table provides offsets into the kallsyms_token_table
+        This function searches for the kallsyms_token_index structure in the kernel
+        memory
+        starting at kallsyms_token_table. The token index table provides offsets into
+        the kallsyms_token_table
         for each 256 byte-valued sub-table.
         The kallsyms_token_index is typically located immediately after
         the kallsyms_token_table in the kernel's read-only data section.
         Example structure:
-        0xffffffff827b3288:	0x0000	0x0003	0x0007	0x000a	0x000f	0x0018	0x001f	0x0023
-        0xffffffff827b3298:	0x0027	0x0031	0x0035	0x0038	0x003b	0x0043	0x0047	0x004a
-        0xffffffff827b32a8:	0x004f	0x0053	0x0056	0x0059	0x005d	0x0061	0x0067	0x006b
-        0xffffffff827b32b8:	0x006e	0x0071	0x0076	0x007c	0x0080	0x0088	0x008b	0x008f
-        0xffffffff827b32c8:	0x0094	0x0098	0x009b	0x009f	0x00a3	0x00a8	0x00ab	0x00b0
+        0xffffffff827b3288:     0x0000  0x0003  0x0007  0x000a  0x000f  0x0018  0x001f
+        0x0023
+        0xffffffff827b3298:     0x0027  0x0031  0x0035  0x0038  0x003b  0x0043  0x0047
+        0x004a
+        0xffffffff827b32a8:     0x004f  0x0053  0x0056  0x0059  0x005d  0x0061  0x0067
+        0x006b
+        0xffffffff827b32b8:     0x006e  0x0071  0x0076  0x007c  0x0080  0x0088  0x008b
+        0x008f
+        0xffffffff827b32c8:     0x0094  0x0098  0x009b  0x009f  0x00a3  0x00a8  0x00ab
+        0x00b0
         """
         position = self.token_table
 
@@ -195,19 +204,29 @@ class Kallsyms:
 
     def find_markers(self) -> int | None:
         """
-        This function searches for the kallsyms_markers structure in the kernel memory
-        starting at kallsyms_token_table and search backwards. The markers table contains
+        This function searches for the kallsyms_markers structure in the kernel
+        memory
+        starting at kallsyms_token_table and search backwards. The markers table
+        contains
         offsets to the corresponding symbol name for each kernel symbol.
-        The kallsyms_markers table is typically located immediately before the kallsyms_token_table
+        The kallsyms_markers table is typically located immediately before the
+        kallsyms_token_table
         in the kernel's read-only data section.
         Example structure:
-        0xffffffff827b2430:	0x00000000	0x00000b2a	0x00001762	0x000023f6
-        0xffffffff827b2440:	0x00002fe4	0x00003c9d	0x0000487c	0x000056fd
-        0xffffffff827b2450:	0x00006597	0x000073b9	0x000081be	0x00008f21
-        0xffffffff827b2460:	0x00009c94	0x0000a958	0x0000b632	0x0000c193
-        0xffffffff827b2470:	0x0000ce0b	0x0000db98	0x0000ea3e	0x0000f80a
-        0xffffffff827b2480:	0x000105be	0x000112d3	0x00011f8c	0x00012d75
-        0xffffffff827b2490:	0x0001384d	0x0001446e	0x00015138	0x00015d8c
+        0xffffffff827b2430:     0x00000000      0x00000b2a      0x00001762
+        0x000023f6
+        0xffffffff827b2440:     0x00002fe4      0x00003c9d      0x0000487c
+        0x000056fd
+        0xffffffff827b2450:     0x00006597      0x000073b9      0x000081be
+        0x00008f21
+        0xffffffff827b2460:     0x00009c94      0x0000a958      0x0000b632
+        0x0000c193
+        0xffffffff827b2470:     0x0000ce0b      0x0000db98      0x0000ea3e
+        0x0000f80a
+        0xffffffff827b2480:     0x000105be      0x000112d3      0x00011f8c
+        0x00012d75
+        0xffffffff827b2490:     0x0001384d      0x0001446e      0x00015138
+        0x00015d8c
         """
         if self.kernel_version < (4, 20):
             elem_size = pwndbg.aglib.arch.ptrsize
@@ -246,13 +265,18 @@ class Kallsyms:
 
     def find_num_syms(self):
         """
-        This function searches for the kallsyms_num_syms variable in the kernel memory
-        starting at kallsyms_markers. The kallsyms_num_syms holds the number of kernel symbols
+        This function searches for the kallsyms_num_syms variable in the kernel
+        memory
+        starting at kallsyms_markers. The kallsyms_num_syms holds the number of kernel
+        symbols
         in the symbol table.
-        The kallsyms_num_syms variable is typically located before the kallsyms_names table in the kernel's
+        The kallsyms_num_syms variable is typically located before the kallsyms_names
+        table in the kernel's
         read-only data section.
-        In newer kernel versions the kallsyms_num_syms is immediately behind the linux_banner and in older version
-        its behind kallsyms_base_relative or kallsyms_addresses (it depends on CONFIG_KALLSYMS_BASE_RELATIVE y/n)
+        In newer kernel versions the kallsyms_num_syms is immediately behind the
+        linux_banner and in older version
+        its behind kallsyms_base_relative or kallsyms_addresses (it depends on
+        CONFIG_KALLSYMS_BASE_RELATIVE y/n)
         """
         if self.kernel_version < (6, 4):
             # try to find num_syms by walking backwards and looking
@@ -287,18 +311,27 @@ class Kallsyms:
 
     def find_offsets(self):
         """
-        This function searches for the kallsyms_offsets/kallsyms_addresses table in the kernel memory
-        starting at kallsyms_token_index. The offsets/addresses table containts offsets / addresses of each
+        This function searches for the kallsyms_offsets/kallsyms_addresses table in
+        the kernel memory
+        starting at kallsyms_token_index. The offsets/addresses table containts offsets
+        / addresses of each
         symbol in the kernel.
-        The kallsyms_addresses is typically located before the kallsyms_num_syms variable in the kernel's read-only
+        The kallsyms_addresses is typically located before the kallsyms_num_syms
+        variable in the kernel's read-only
         data section.
         Example structure:
-        0xffffffff827b3488:	0x00000000	0x00000000	0x00001000	0x00002000
-        0xffffffff827b3498:	0x00006000	0x0000b000	0x0000c000	0x0000d000
-        0xffffffff827b34a8:	0x00015000	0x00015008	0x00015010	0x00015018
-        0xffffffff827b34b8:	0x00015020	0x00015022	0x00015030	0x00015050
-        0xffffffff827b34c8:	0x00015450	0x00015460	0x00015860	0x00015888
-        0xffffffff827b34d8:	0x00015890	0x00015898	0x000158a0	0x000159c0
+        0xffffffff827b3488:     0x00000000      0x00000000      0x00001000
+        0x00002000
+        0xffffffff827b3498:     0x00006000      0x0000b000      0x0000c000
+        0x0000d000
+        0xffffffff827b34a8:     0x00015000      0x00015008      0x00015010
+        0x00015018
+        0xffffffff827b34b8:     0x00015020      0x00015022      0x00015030
+        0x00015050
+        0xffffffff827b34c8:     0x00015450      0x00015460      0x00015860
+        0x00015888
+        0xffffffff827b34d8:     0x00015890      0x00015898      0x000158a0
+        0x000159c0
         """
         forward_search = self.kernel_version >= (6, 4)
 
@@ -337,10 +370,13 @@ class Kallsyms:
 
     def find_relative_base(self):
         """
-        This function searches for the kallsyms_relative_base variable in the kernel memory.
-        The relative base is used to calculate the actual virtual addresses of symbols from
+        This function searches for the kallsyms_relative_base variable in the kernel
+        memory.
+        The relative base is used to calculate the actual virtual addresses of symbols
+        from
         their offsets in the kallsyms_offsets table.
-        The kallsyms_relative_base variable is typically located after the kallsyms_offsets table
+        The kallsyms_relative_base variable is typically located after the
+        kallsyms_offsets table
         in the kernel's read-only data section.
         """
         position = self.offsets
@@ -465,8 +501,10 @@ class Kallsyms:
 
     def find_markers_uncompressed(self):
         """
-        This function searches for the kallsyms_markers structure in the kernel memory
-        Original Source: https://github.com/marin-m/vmlinux-to-elf/blob/master/vmlinux_to_elf/kallsyms_finder.py
+        This function searches for the kallsyms_markers structure in the kernel
+        memory
+        Original Source: https://github.com/marin-m/vmlinux-to-
+        elf/blob/master/vmlinux_to_elf/kallsyms_finder.py
         """
         position = self.end_of_kallsyms_names_uncompressed
         position += -position % 4

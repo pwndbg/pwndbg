@@ -12,7 +12,8 @@ from pwndbg.color import message
 
 class IntegrationProvider:
     """
-    A class representing an integration that provides intelligence external to GDB.
+    A class representing an integration that provides intelligence external to
+    GDB.
     """
 
     def get_symbol(self, addr: int) -> str | None:
@@ -57,7 +58,8 @@ class IntegrationProvider:
 
     def get_stack_var_name(self, addr: int) -> str | None:
         """
-        Gets the name of a stack variable based on only the address of the variable.
+        Gets the name of a stack variable based on only the address of the
+        variable.
         """
         return None
 
@@ -91,7 +93,8 @@ function_lookup = pwndbg.config.add_param(
 @dataclass
 class ConfigurableProvider(IntegrationProvider):
     """
-    A wrapper around an IntegrationProvider that skips calling functions if disabled in config.
+    A wrapper around an IntegrationProvider that skips calling functions if disabled
+    in config.
     """
 
     inner: IntegrationProvider

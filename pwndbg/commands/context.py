@@ -1388,7 +1388,8 @@ if pwndbg.dbg.is_gdblib_available():
 @pwndbg.lib.cache.cache_until("forever")
 def _is_rr_present() -> bool:
     """
-    Checks whether rr project is present (so someone launched e.g. `rr replay <some-recording>`)
+    Checks whether rr project is present (so someone launched e.g. `rr replay <some-
+    recording>`)
     """
 
     # this is ugly but I couldn't find a better way to do it

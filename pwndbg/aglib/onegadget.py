@@ -613,7 +613,8 @@ def find_gadgets(
     show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False
 ) -> Dict[CheckSatResult, int]:
     """
-    Find gadgets by parsing the output of onegadget, return there's any valid gadget
+    Find gadgets by parsing the output of onegadget, return there's any valid
+    gadget
     """
     gadgets = run_onegadget().split("\n\n")
     gadgets_count = {SAT: 0, UNSAT: 0, UNKNOWN: 0}

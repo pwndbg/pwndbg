@@ -113,7 +113,8 @@ def print_gap(current: Page, last_map: Page):
 
 def print_vmmap_gaps(pages: Tuple[Page, ...]) -> None:
     """
-    Indicates the size of adjacent memory regions and unmapped gaps between them in process memory
+    Indicates the size of adjacent memory regions and unmapped gaps between them in
+    process memory
     """
     print(f"LEGEND: {green('MAPPED')} | {cyan('GUARD')} | {red('GAP')}")
     print_vmmap_gaps_table_header()

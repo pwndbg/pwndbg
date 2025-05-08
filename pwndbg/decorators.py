@@ -21,7 +21,8 @@ def only_after_first_prompt(
     value_before: T | None = None,
 ) -> Callable[[Callable[P, T]], Callable[P, T | None]]:
     """
-    Decorator to prevent a function from running before the first prompt was displayed.
+    Decorator to prevent a function from running before the first prompt was
+    displayed.
     The 'value_before' parameter can be used to specify the value that is
     returned if the function is called before the first prompt was displayed.
     """
@@ -43,9 +44,11 @@ def suppress_errors(
     fallback: K = None, should_warn: bool = True
 ) -> Callable[[Callable[P, T]], Callable[P, T | K]]:
     """
-    Decorator to make a function return a fallback value when it would otherwise error.
+    Decorator to make a function return a fallback value when it would otherwise
+    error.
     The 'fallback' parameter can be used to specify the fallback value.
-    If the 'should_warn' parameter is set, a warning will be printed whenever an error is suppressed.
+    If the 'should_warn' parameter is set, a warning will be printed whenever an error
+    is suppressed.
     """
 
     def decorator(func: Callable[P, T]) -> Callable[P, T | K]:

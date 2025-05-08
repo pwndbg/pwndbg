@@ -50,7 +50,8 @@ def next_int(address=None, honor_current_branch=False):
 
 def next_branch(address=None, including_current=False) -> PwndbgInstruction | None:
     """
-    Return the next branch instruction that the process will encounter with repeated usage of the "nexti" command.
+    Return the next branch instruction that the process will encounter with repeated
+    usage of the "nexti" command.
 
     If including_current == True, then if the instruction at the address is already a branch, return it.
     """
@@ -117,7 +118,8 @@ async def break_next_branch(
     ec: pwndbg.dbg_mod.ExecutionController, address=None, including_current=False
 ):
     """
-    If including_current == True, do not step in case we are currently on a branch
+    If including_current == True, do not step in case we are currently on a
+    branch
     """
     ins = next_branch(address, including_current=including_current)
 

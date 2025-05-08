@@ -31,7 +31,8 @@ import pwndbg.lib.memory
 def is_corefile() -> bool:
     """
     For example output use:
-        gdb ./tests/binaries/crash_simple.out -ex run -ex 'generate-core-file ./core' -ex 'quit'
+        gdb ./tests/binaries/crash_simple.out -ex run -ex 'generate-core-file ./core'
+    -ex 'quit'
 
     And then use:
         gdb ./tests/binaries/crash_simple.out -core ./core -ex 'info target'

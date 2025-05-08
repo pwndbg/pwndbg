@@ -176,14 +176,16 @@ class Type(ABC):
 
     def is_cyclic(self) -> bool:
         """
-        Checks if a type is cyclic (contains references to itself), e.g. type a []a
+        Checks if a type is cyclic (contains references to itself), e.g. type a
+        []a
         """
 
         return _cyclic_helper(self, set())
 
     def additional_metadata(self) -> List[str]:
         """
-        Returns a list of lines of additional metadata to dump from the `go-type` command.
+        Returns a list of lines of additional metadata to dump from the `go-type`
+        command.
         """
         return []
 
@@ -334,7 +336,8 @@ def _guess_moduledata_types() -> int | None:
 
 def get_type_start(addr: int | None = None) -> int | None:
     """
-    Given the address to a type, try to find the moduledata types section containing it.
+    Given the address to a type, try to find the moduledata types section containing
+    it.
 
     Necessary to determine the base address that the type name is offset by.
     """
@@ -450,7 +453,8 @@ class GoTypeMeta:
 @dataclass
 class BackrefType(Type):
     """
-    A temporary placeholder type used when dumping recursive types, e.g. type a []a
+    A temporary placeholder type used when dumping recursive types, e.g. type a
+    []a
     """
 
     key: int
@@ -503,7 +507,8 @@ def decode_runtime_type(addr: int, keep_backrefs: bool = False) -> Tuple[GoTypeM
 
 def _remove_backrefs(ty: Any, cache: Dict[int, Tuple[GoTypeMeta, Type | None]]) -> Any:
     """
-    Helper function to replace all _BackrefType instances after the cache is fully resolved.
+    Helper function to replace all _BackrefType instances after the cache is fully
+    resolved.
 
     May mutate the argument.
     """
@@ -525,7 +530,8 @@ def _inner_decode_runtime_type(
     addr: int, cache: Dict[int, Tuple[GoTypeMeta, Type | None]]
 ) -> Tuple[GoTypeMeta, Type | None]:
     """
-    Internal function for decode_runtime_type with a cache to avoid recursive types.
+    Internal function for decode_runtime_type with a cache to avoid recursive
+    types.
     """
 
     if addr in cache:

@@ -286,7 +286,8 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator
     ) -> int | None:
         """
-        Parse the `RISCVOpMem` Capstone object to determine the concrete memory address used.
+        Parse the `RISCVOpMem` Capstone object to determine the concrete memory
+        address used.
         """
         base = self._read_register(instruction, op.mem.base, emu)
         if base is None:

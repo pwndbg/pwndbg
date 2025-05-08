@@ -102,7 +102,8 @@ class ProcessDriver:
 
     def _should_cancel(self) -> bool:
         """
-        Checks whether a cancellation has been requested, and clears cancellation state.
+        Checks whether a cancellation has been requested, and clears cancellation
+        state.
         """
         should = self.cancellation_requested
         self._clear_cancel()

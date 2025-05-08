@@ -115,7 +115,8 @@ class module(ModuleType):
     @pwndbg.lib.cache.cache_until("start", "objfile")
     def dump_relocations_by_section_name(self, section_name: str) -> Tuple[Relocation, ...] | None:
         """
-        Dump relocations of a section by section name of current process's ELF file
+        Dump relocations of a section by section name of current process's ELF
+        file
         """
         import pwndbg.aglib.elf
 

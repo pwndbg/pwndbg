@@ -53,7 +53,8 @@ def lookup_symbol(
     objfile_endswith: str | None = None,
 ) -> pwndbg.dbg_mod.Value | None:
     """
-    Returns the address of the given `symbol`, cast-ed to the appropriate symbol type.
+    Returns the address of the given `symbol`, cast-ed to the appropriate symbol
+    type.
 
     This function searches for (SymbolLookupType.ANY):
     - Function names
@@ -77,7 +78,8 @@ def lookup_frame_symbol(
     name: str, *, type: SymbolLookupType = SymbolLookupType.ANY
 ) -> pwndbg.dbg_mod.Value | None:
     """
-    Returns the address of the given `symbol`, cast-ed to the appropriate symbol type.
+    Returns the address of the given `symbol`, cast-ed to the appropriate symbol
+    type.
 
     This function searches for (SymbolLookupType.ANY):
     - Function names

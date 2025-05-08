@@ -159,7 +159,8 @@ class CStruct2GDB:
 
     def value_to_human_readable(self) -> str:
         """
-        Returns a string representation of the C struct like `pwndbg.dbg_mod.Value` does.
+        Returns a string representation of the C struct like `pwndbg.dbg_mod.Value`
+        does.
         """
         output = "{\n"
         for f in self._c_struct._fields_:
@@ -183,7 +184,8 @@ class CStruct2GDB:
     @property
     def type(self):
         """
-        Returns type(self) to make it compatible with the `pwndbg.dbg_mod.Value` interface.
+        Returns type(self) to make it compatible with the `pwndbg.dbg_mod.Value`
+        interface.
         """
         return type(self)
 
@@ -197,7 +199,8 @@ class CStruct2GDB:
     @classmethod
     def fields(cls) -> List[FakeGDBField]:
         """
-        Return fields of the struct to make it compatible with the `pwndbg.dbg_mod.Type` interface.
+        Return fields of the struct to make it compatible with the
+        `pwndbg.dbg_mod.Type` interface.
         """
         fake_gdb_fields: List[FakeGDBField] = []
         for f in cls._c_struct._fields_:
@@ -215,7 +218,8 @@ class CStruct2GDB:
     @classmethod
     def keys(cls) -> List[str]:
         """
-        Return a list of the names of the fields in the struct to make it compatible with the `pwndbg.dbg_mod.Type` interface.
+        Return a list of the names of the fields in the struct to make it compatible
+        with the `pwndbg.dbg_mod.Type` interface.
         """
         return [f[0] for f in cls._c_struct._fields_]
 
@@ -241,7 +245,8 @@ class CStruct2GDB:
     @classmethod
     def has_field(self, field: str) -> bool:
         """
-        Checks whether a field exists to make it compatible with the `pwndbg.dbg_mod.Type` interface.
+        Checks whether a field exists to make it compatible with the
+        `pwndbg.dbg_mod.Type` interface.
         """
         return field in self.keys()
 
@@ -441,7 +446,8 @@ class c_malloc_state_2_27(Structure):
 
 class MallocState(CStruct2GDB):
     """
-    This class represents malloc_state struct with interface compatible with `pwndbg.dbg_mod.Value`.
+    This class represents malloc_state struct with interface compatible with
+    `pwndbg.dbg_mod.Value`.
     """
 
     if GLIBC_VERSION >= (2, 27):
@@ -484,7 +490,8 @@ class c_heap_info(Structure):
 
 class HeapInfo(CStruct2GDB):
     """
-    This class represents heap_info struct with interface compatible with `pwndbg.dbg_mod.Value`.
+    This class represents heap_info struct with interface compatible with
+    `pwndbg.dbg_mod.Value`.
     """
 
     _c_struct = c_heap_info
@@ -523,7 +530,8 @@ class c_malloc_chunk(Structure):
 
 class MallocChunk(CStruct2GDB):
     """
-    This class represents malloc_chunk struct with interface compatible with `pwndbg.dbg_mod.Value`.
+    This class represents malloc_chunk struct with interface compatible with
+    `pwndbg.dbg_mod.Value`.
     """
 
     _c_struct = c_malloc_chunk
@@ -532,7 +540,8 @@ class MallocChunk(CStruct2GDB):
 
 class c_tcache_perthread_struct_2_29(Structure):
     """
-    This class represents tcache_perthread_struct for GLIBC < 2.30 as a ctypes struct.
+    This class represents tcache_perthread_struct for GLIBC < 2.30 as a ctypes
+    struct.
 
     https://github.com/bminor/glibc/blob/glibc-2.29/malloc/malloc.c#L2916
 
@@ -551,7 +560,8 @@ class c_tcache_perthread_struct_2_29(Structure):
 
 class c_tcache_perthread_struct_2_30(Structure):
     """
-    This class represents the tcache_perthread_struct for GLIBC >= 2.30 as a ctypes struct.
+    This class represents the tcache_perthread_struct for GLIBC >= 2.30 as a ctypes
+    struct.
 
     https://github.com/bminor/glibc/blob/glibc-2.34/malloc/malloc.c#L3025
 
@@ -570,7 +580,8 @@ class c_tcache_perthread_struct_2_30(Structure):
 
 class TcachePerthreadStruct(CStruct2GDB):
     """
-    This class represents tcache_perthread_struct with interface compatible with `pwndbg.dbg_mod.Value`.
+    This class represents tcache_perthread_struct with interface compatible with
+    `pwndbg.dbg_mod.Value`.
     """
 
     if GLIBC_VERSION >= (2, 30):
@@ -582,7 +593,8 @@ class TcachePerthreadStruct(CStruct2GDB):
 
 class c_tcache_entry_2_28(Structure):
     """
-    This class represents the tcache_entry struct for GLIBC < 2.29 as a ctypes struct.
+    This class represents the tcache_entry struct for GLIBC < 2.29 as a ctypes
+    struct.
 
     https://github.com/bminor/glibc/blob/glibc-2.28/malloc/malloc.c#L2888
 
@@ -597,7 +609,8 @@ class c_tcache_entry_2_28(Structure):
 
 class c_tcache_entry_2_29(Structure):
     """
-    This class represents the tcache_entry struct for GLIBC >= 2.29 as a ctypes struct.
+    This class represents the tcache_entry struct for GLIBC >= 2.29 as a ctypes
+    struct.
 
     https://github.com/bminor/glibc/blob/glibc-2.34/malloc/malloc.c#L3013
 
@@ -614,7 +627,8 @@ class c_tcache_entry_2_29(Structure):
 
 class TcacheEntry(CStruct2GDB):
     """
-    This class represents the tcache_entry struct with interface compatible with `pwndbg.dbg_mod.Value`.
+    This class represents the tcache_entry struct with interface compatible with
+    `pwndbg.dbg_mod.Value`.
     """
 
     if GLIBC_VERSION >= (2, 29):
@@ -927,7 +941,8 @@ class c_malloc_par_2_35(Structure):
 
 class MallocPar(CStruct2GDB):
     """
-    This class represents the malloc_par struct with interface compatible with `pwndbg.dbg_mod.Value`.
+    This class represents the malloc_par struct with interface compatible with
+    `pwndbg.dbg_mod.Value`.
     """
 
     if GLIBC_VERSION >= (2, 35):

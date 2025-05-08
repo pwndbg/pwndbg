@@ -40,7 +40,8 @@ class Reg:
     offset: int = 0
     """Relevant for subregisters - the offset of this register in the main register"""
     zero_extend_writes: bool = False
-    """Upon writing a value to this subregister, are the higher bits of the full register zeroed out?"""
+    """Upon writing a value to this subregister, are the higher bits of the full
+    register zeroed out?"""
     subregisters: tuple[Reg, ...] = ()
 
 
@@ -168,7 +169,8 @@ class RegisterSet:
 
 class PsuedoEmulatedRegisterFile:
     """
-    This class represents a set of registers that can be written, read, and invalidated.
+    This class represents a set of registers that can be written, read, and
+    invalidated.
 
     The aim is to allow some manual dynamic/static analysis without the need for a full emulator.
 
@@ -179,7 +181,8 @@ class PsuedoEmulatedRegisterFile:
 
     masks: defaultdict[str, int]
     """
-    Map of register name to bitmask indicating what bits of the register we know the value of.
+    Map of register name to bitmask indicating what bits of the register we know the
+    value of.
 
     Example:
     {
@@ -209,7 +212,8 @@ class PsuedoEmulatedRegisterFile:
     ) -> None:
         """
         source_width is the byte width of the value's source.
-        It should be specified when the source has a width shorter than the destination register.
+        It should be specified when the source has a width shorter than the destination
+        register.
 
         Examples:
             movsbl EAX, AL      // sign extend 1 byte register to 4 byte register

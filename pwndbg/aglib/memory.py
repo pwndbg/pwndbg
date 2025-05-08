@@ -271,7 +271,8 @@ def s64(addr: int) -> int:
 def cast_pointer(
     type: pwndbg.dbg_mod.Type, addr: int | pwndbg.dbg_mod.Value
 ) -> pwndbg.dbg_mod.Value:
-    """Create a Value containing given address and cast it to the pointer of specified type"""
+    """Create a Value containing given address and cast it to the pointer of specified
+    type"""
     if isinstance(addr, int):
         addr = pwndbg.dbg.selected_inferior().create_value(addr)
     return addr.cast(type.pointer())
@@ -280,7 +281,8 @@ def cast_pointer(
 def get_typed_pointer(
     type: str | pwndbg.dbg_mod.Type, addr: int | pwndbg.dbg_mod.Value
 ) -> pwndbg.dbg_mod.Value:
-    """Look up a type by name if necessary and return a Value of addr cast to that type"""
+    """Look up a type by name if necessary and return a Value of addr cast to that
+    type"""
     if isinstance(type, str):
         real_type = pwndbg.aglib.typeinfo.load(type)
         if real_type is None:

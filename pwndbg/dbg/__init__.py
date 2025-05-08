@@ -887,7 +887,8 @@ class Value:
     # TODO: Move to single, common string function.
     def string(self) -> str:
         """
-        If this value is a string, then this method converts it to a Python string.
+        If this value is a string, then this method converts it to a Python
+        string.
         """
         raise NotImplementedError()
 
@@ -1043,7 +1044,8 @@ class Debugger:
 
     def selected_inferior(self) -> Process | None:
         """
-        The inferior process currently being focused on in this interactive session.
+        The inferior process currently being focused on in this interactive
+        session.
         """
         raise NotImplementedError()
 

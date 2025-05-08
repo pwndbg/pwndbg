@@ -99,7 +99,8 @@ def update() -> None:
 
 
 def load(name: str) -> Optional[pwndbg.dbg_mod.Type]:
-    """Load a symbol; note that new symbols can be added with `add-symbol-file` functionality"""
+    """Load a symbol; note that new symbols can be added with `add-symbol-file`
+    functionality"""
     names = pwndbg.dbg.selected_inferior().types_with_name(name)
     if len(names) > 0:
         return names[0]

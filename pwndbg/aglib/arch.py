@@ -158,7 +158,8 @@ class PwndbgArchitecture(ArchDefinition):
 
     def read_thumb_bit(self) -> Literal[0, 1, None]:
         """
-        Return 0 or 1, representing the status of the Thumb bit in the current Arm architecture
+        Return 0 or 1, representing the status of the Thumb bit in the current Arm
+        architecture
 
         Return None if the Thumb bit is not relevent to the current architecture
         """
@@ -233,7 +234,8 @@ class ArmArch(PwndbgArchitecture):
 class ArmCortexArch(PwndbgArchitecture):
     """
     Cortex-M processors run the M-profile Arm architecture.
-    This architecture is prevalent in bare-metal/embedded systems that lack operating systems.
+    This architecture is prevalent in bare-metal/embedded systems that lack operating
+    systems.
     Only Thumb-2 instructions are supported, and the Thumb bit is always 1.
     """
 
