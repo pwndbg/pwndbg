@@ -133,7 +133,8 @@ def memory_assign(left: str, right: str) -> str:
 
 def memory_or_register_assign(left: str, right: str, mem_assign: bool) -> str:
     """
-    Used when we don't know until runtime whether a codepath will annotate a register or memory location.
+    Used when we don't know until runtime whether a codepath will
+    annotate a register or memory location.
     """
     return memory_assign(left, right) if mem_assign else register_assign(left, right)
 
@@ -250,7 +251,8 @@ class DisassemblyAssistant:
         if bool(pwndbg.config.disasm_annotations):
             self._set_annotation_string(instruction, emu)
 
-        # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
+        # Disable emulation after CALL instructions.
+        # We do it after enhancement, as we can use emulation
         # to determine the call's target address.
         if jump_emu and instruction.call_like:
             jump_emu.valid = False
@@ -282,10 +284,12 @@ class DisassemblyAssistant:
         """
         Enhances the operands by determining values and symbols
 
-        When emulation is enabled, this will `single_step` the emulation to determine the value of registers
-        before and after the instrution has executed.
+        When emulation is enabled, this will `single_step` the emulation
+        to determine the value of registers before and after the instrution
+        has executed.
 
-        For each operand explicitly written to or read from (instruction.operands), sets the following fields:
+        For each operand explicitly written to or read from
+        (instruction.operands), sets the following fields:
 
             operand.before_value
                 Integer value of the operand before instruction executes.
@@ -366,10 +370,12 @@ class DisassemblyAssistant:
 
     def can_reason_about_process_state(self, instruction: PwndbgInstruction) -> bool:
         """
-        Determine if the program counter of the process equals the address of the instruction being enhanced.
-        If so, it means we can safely reason and read from registers and memory to enhance values that
-        we can add to the annotation string. This becomes relevent when NOT emulating, and is meant to
-        allow more details when the PC is at the instruction being enhanced
+        Determine if the program counter of the process equals the address of
+        the instruction being enhanced. If so, it means we can safely reason
+        and read from registers and memory to enhance values that we can add
+        to the annotation string. This becomes relevent when NOT emulating, and
+        is meant to allow more details when the PC is at the instruction being
+        enhanced
         """
         return instruction.address == pwndbg.aglib.regs.pc
 
@@ -380,7 +386,8 @@ class DisassemblyAssistant:
         reg = operand.reg
         return self._read_register(instruction, reg, emu)
 
-    # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55], would return $rip_after_instruction+0xd55)
+    # Determine memory address of operand (Ex: in x86, mov rax, [rip + 0xd55],
+    # would return $rip_after_instruction+0xd55).
     # Subclasses override for specific architectures
     def _parse_memory(
         self, instruction: PwndbgInstruction, operand: EnhancedOperand, emu: Emulator
@@ -418,8 +425,8 @@ class DisassemblyAssistant:
             return value
         elif self.can_reason_about_process_state(instruction):
             # When instruction address == pc, we can reason about all registers.
-            # The values will just reflect values prior to executing the instruction, instead of after,
-            # which is relevent if we are writing to this register.
+            # The values will just reflect values prior to executing the instruction,
+            # instead of after, which is relevent if we are writing to this register.
             # However, the information can still be useful for display purposes.
             if DEBUG_ENHANCEMENT:
                 print(f"Read value from process register: {pwndbg.aglib.regs[regname]}")
@@ -448,7 +455,8 @@ class DisassemblyAssistant:
     # a register or a memory value to dereference, and we want the actual value used.
     # Override this to implement memory lookups in given architecture (if it's relevent)
     # Different architecture read memory differently:
-    # - Only a couple Capstone architectures support the memory .size field, which determines read width.
+    # - Only a couple Capstone architectures support the memory .size field,
+    #   which determines read width.
     # - In others, read/write width is implied.
     def _resolve_used_value(
         self,
@@ -480,7 +488,8 @@ class DisassemblyAssistant:
         """
         Dereference an address recursively - takes into account emulation.
 
-        It will only dereference as it is safe to do so, meaning the last value in the returned list may be a pointer
+        It will only dereference as it is safe to do so, meaning the last
+        value in the returned list may be a pointer
 
         The list that the function returns is guaranteed have len >= 1
         """
@@ -542,8 +551,9 @@ class DisassemblyAssistant:
     # Dispatch to the appropriate format handler. Pass the list returned by
     # `telescope()` to this function
     def _telescope_format_list(self, addresses: List[int], limit: int, emu: Emulator) -> str:
-        # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
-        #  will return values accurate to the program state at the time of instruction executing.
+        # It is assumed proper checks have been made BEFORE calling this
+        # function so that pwndbg.chain.format  will return values accurate
+        # to the program state at the time of instruction executing.
 
         enhance_string_len = int(pwndbg.config.disasm_telescope_string_length)
 
@@ -552,8 +562,9 @@ class DisassemblyAssistant:
                 addresses, limit, enhance_string_len=enhance_string_len
             )
         else:
-            # We can format, but in some cases we may not be able to reason about memory, so don't allow
-            # it to dereference to last value in memory (we can't determine what value it is)
+            # We can format, but in some cases we may not be able to
+            # reason about memory, so don't allow it to dereference
+            # to last value in memory (we can't determine what value it is)
             return pwndbg.chain.format(
                 addresses,
                 limit=limit,
@@ -623,8 +634,9 @@ class DisassemblyAssistant:
         """
         Sets the `condition` of the instruction
 
-        If the instruction is always executed unconditionally, or we cannot reason about the instruction,
-        the value of the field is `InstructionCondition.UNDETERMINED`.
+        If the instruction is always executed unconditionally, or we cannot reason
+        about the instruction, the value of the field is
+        `InstructionCondition.UNDETERMINED`.
 
         If the instruction is executed conditionally, and we can be absolutely
         sure that it will be executed, the value of the field is `InstructionCondition.TRUE`.
@@ -648,7 +660,8 @@ class DisassemblyAssistant:
         instruction.
 
         `next` is the address that the PC would be upon using the GDB `nexti` command,
-        `target` is the jump target whether or not the jump is taken, like `stepi` and assuming the jump is taken.
+        `target` is the jump target whether or not the jump is taken, like `stepi` and
+         assuming the jump is taken.
 
         If the instruction is a non-"call" branch and either:
         - Is unconditional, or is conditional and is known to be taken, a
@@ -660,10 +673,12 @@ class DisassemblyAssistant:
         """
         next_addr: int | None = None
 
-        # The order for the following statements in determining the next executed instruction is important
+        # The order for the following statements in determining the next executed
+        # instruction is important.
         #
-        # Firstly, we check the condition field - this field is manually set by our enhancement code
-        # There are cases where the Unicorn emulator is incorrect - for example, delay slots in MIPS causing jumps to not resolve correctly
+        # Firstly, we check the condition field - this field is manually set by our
+        # enhancement code. There are cases where the Unicorn emulator is incorrect -
+        # for example, delay slots in MIPS causing jumps to not resolve correctly
         # due to the way we single-step the emulator. We want our own manual
         # checks to override the emulator
 
@@ -672,7 +687,8 @@ class DisassemblyAssistant:
         ):
             # Don't allow call instructions - we want the actual "nexti" address
             # If condition is true, then this might be a conditional jump
-            # There are some other instructions that run conditionally though - resolve_target returns None in those cases
+            # There are some other instructions that run conditionally though
+            # - resolve_target returns None in those cases.
             # Or, if this is a unconditional jump, we will try to resolve target
             next_addr = self._resolve_target(instruction, emu)
 
@@ -686,8 +702,8 @@ class DisassemblyAssistant:
             if not instruction.call_like and instruction.condition != InstructionCondition.FALSE:
                 next_addr = jump_emu.pc
 
-        # Handle edge case - if the target happens to be the next address in memory and it's a jump, we need this variable
-        # so the disasm output is accurate.
+        # Handle edge case - if the target happens to be the next address
+        # in memory and it's a jump, we need this variable so the disasm output is accurate.
         if next_addr is not None and instruction.is_unconditional_jump:
             instruction.force_unconditional_jump_target = True
 
@@ -729,9 +745,10 @@ class DisassemblyAssistant:
 
         # The FORWARD_JUMP_GROUP here is very specific
         # We only want this resolver to work for instructions that Capstone
-        # explicitely labels as jump instructions. If we determine that another type of instruction
-        # can have a target, we resolve it manually, as this manual resolver would return improper values,
-        # as it is built on the assumptions of branch instructions across many architectures.
+        # explicitely labels as jump instructions. If we determine that another
+        # type of instruction can have a target, we resolve it manually, as this
+        # manual resolver would return improper values, as it is built on the
+        # assumptions of branch instructions across many architectures.
         if not bool(instruction.groups & FORWARD_JUMP_GROUP):
             return None
 
@@ -745,8 +762,9 @@ class DisassemblyAssistant:
             if addr:
                 addr &= pwndbg.aglib.arch.ptrmask
         else:
-            # Some architectures have jumps with multiple operands. In this case, this default implementation
-            # does a simple naive check. Iterate all operands, pick the first one resolves to a symbol or lands in executable memory
+            # Some architectures have jumps with multiple operands. In this case,
+            # this default implementation does a simple naive check. Iterate all
+            # operands, pick the first one resolves to a symbol or lands in executable memory
             # and use that as the target
 
             # Reversed order, just because through observation the immediates and
@@ -759,8 +777,9 @@ class DisassemblyAssistant:
                         addr = resolved_addr
                     else:
                         page = pwndbg.aglib.vmmap.find(resolved_addr)
-                        # When debugging a remote QEMU target, the page permissions are not accurate.
-                        # In this case, if the candidate address is mapped at all, just go with it.
+                        # When debugging a remote QEMU target, the page permissions are
+                        # not accurate.In this case, if the candidate address is mapped
+                        # at all, just go with it.
                         if page and (page.execute or pwndbg.aglib.remote.is_remote()):
                             addr = resolved_addr
 
@@ -818,10 +837,12 @@ class DisassemblyAssistant:
         self, instruction: PwndbgInstruction, emu: Emulator
     ) -> None:
         """
-        This function can be used to annotate instructions that have a register destination.
-        In the vast majority of instructions in most architectures, the destination register is the first operand.
+        This function can be used to annotate instructions that have a register
+        destination. In the vast majority of instructions in most architectures,
+        the destination register is the first operand.
 
-        Using emulation, it will determine the value placed into the register, and create an annotation string based on the result.
+        Using emulation, it will determine the value placed into the register,
+        and create an annotation string based on the result.
         """
 
         left = instruction.operands[0]
@@ -855,12 +876,14 @@ class DisassemblyAssistant:
         It takes two values, either subtracts, adds, or does some bit operation
         with them to set values in the flag register.
 
-        To reduce code duplication, subclasses can use this function to create an annotator for CMP-like instructions.
+        To reduce code duplication, subclasses can use this function to create
+        an annotator for CMP-like instructions.
         """
         FLAG_REG_NAME_DISPLAY = flags_register_name.upper()
 
         def handler(instruction: PwndbgInstruction, emu: Emulator):
-            # If there are just two operands, we can assume we are comparing them directly, and can display the values.
+            # If there are just two operands, we can assume we are comparing them
+            # directly, and can display the values.
             # Some architectures have variants with more operands.
             if len(instruction.operands) == 2:
                 left, right = instruction.operands
@@ -883,9 +906,9 @@ class DisassemblyAssistant:
                 display_result = register_assign(FLAG_REG_NAME_DISPLAY, eflags_formatted)
 
                 if instruction.annotation is None:
-                    # First part of this function usually sets .annotation to a string. But if the instruction
-                    # has more than two operands, then we don't have a way of showing them, so
-                    # this avoids the "+="" below
+                    # First part of this function usually sets .annotation to a string.
+                    # But if the instruction has more than two operands, then we don't
+                    # have a way of showing them, so this avoids the "+="" below
                     instruction.annotation = display_result
                 else:
                     instruction.annotation += " " * 5 + display_result
@@ -1018,7 +1041,8 @@ class DisassemblyAssistant:
 
     def _common_move_annotator(self, instruction: PwndbgInstruction, emu: Emulator):
         """
-        This function handles annotating `MOV` type instructions - where the value of one register is placed into another.
+        This function handles annotating `MOV` type instructions -
+        where the value of one register is placed into another.
         """
         if len(instruction.operands) == 2:
             left, right = instruction.operands

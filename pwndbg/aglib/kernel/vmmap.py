@@ -99,7 +99,7 @@ class QemuMachine(Machine):
                 block = os.pread(self.file, length_to_read, hva + offset)
                 data += block
             return data
-        except Exception as e:
+        except Exception:
             msg = (
                 f"Physical address ({hex(physical_address)},"
                 f" +{hex(length)}) is not accessible. Reason: "

@@ -209,7 +209,8 @@ class ServerHandler:
             func = func.hlil_if_available
         else:
             raise ValueError(
-                f"{level!r} is not a recognized IL level. Supported values are: disasm, llil, mlil, hlil."
+                f"{level!r} is not a recognized IL level. "
+                "Supported values are: disasm, llil, mlil, hlil."
             )
         if func is None:
             return None
@@ -292,7 +293,8 @@ class ServerHandler:
     @should_register
     def get_var_offset_from_sp(self, pc: int, var_name: str) -> Tuple[int, int] | None:
         """
-        Gets the offset of a stack variable from the stack pointer, given the current pc and variable name.
+        Gets the offset of a stack variable from the stack pointer,
+        given the current pc and variable name.
 
         Returns a (confidence, offset) tuple.
         """

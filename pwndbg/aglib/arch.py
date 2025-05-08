@@ -68,7 +68,8 @@ def get_pwndbg_architecture(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> Pwndbg
 
 class PwndbgArchitecture(ArchDefinition):
     """
-    This class defines the context of the currently debugged architecture as well as other related information of the platform.
+    This class defines the context of the currently debugged architecture
+    as well as other related information of the platform.
 
     This includes the following information:
     - Capstone/Unicorn constants
@@ -150,7 +151,8 @@ class PwndbgArchitecture(ArchDefinition):
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int] | None:
         """
-        Return tuple of (CAPSTONE ARCH, CAPSTONE MODE) used to instantiate the Capstone disassembler for this architecture.
+        Return tuple of (CAPSTONE ARCH, CAPSTONE MODE) used to instantiate
+        the Capstone disassembler for this architecture.
         """
         return None
 
