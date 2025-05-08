@@ -158,6 +158,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
         if right.before_value is not None:
+            # We have determined the value written to this register - propagate this to future instructions.
             instruction.register_writes[left.reg] = right.before_value
 
             telescope_addresses = super()._telescope(
@@ -217,6 +218,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         # If zeroing the register with XOR A, A. Can reason about this no matter where the instruction is
         if left.type == CS_OP_REG and right.type == CS_OP_REG and left.reg == right.reg:
+            # We know that 0 is written to this register - propagate this to future instructions.
             instruction.register_writes[left.reg] = 0
             instruction.annotation = register_assign(left.str, "0")
         else:

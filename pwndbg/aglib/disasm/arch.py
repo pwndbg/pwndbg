@@ -1051,6 +1051,7 @@ class DisassemblyAssistant:
             # If we already used emulation, use the result, otherwise take the source operand before_value
             result = left.after_value or right.before_value
             if result is not None and result >= 0:
+                # We have determined the value written to this register - propagate this to future instructions.
                 instruction.register_writes[left.reg] = result
 
                 TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
