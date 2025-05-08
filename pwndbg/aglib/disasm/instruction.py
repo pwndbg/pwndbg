@@ -515,6 +515,11 @@ class PwndbgInstructionImpl(PwndbgInstruction):
     def __repr__(self) -> str:
         operands_str = " ".join([repr(op) for op in self.operands])
 
+        hex_register_writes = {
+            self.cs_insn.reg_name(reg_id): hex(reg_value)
+            for reg_id, reg_value in self.register_writes.items()
+        }
+
         info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
@@ -536,12 +541,15 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
         Causes Delay slot: {self.causes_branch_delay}
         Split: {SplitType(self.split).name}
-        Call-like: {self.call_like}"""
+        Call-like: {self.call_like}
+        Register writes: {hex_register_writes}"""
 
         try:
             regs_read, regs_written = self.cs_insn.regs_access()
-            info += f"\n\tRegs read: {[self.cs_insn.reg_name(reg) for reg in regs_read]}"
-            info += f"\n\tRegs written: {[self.cs_insn.reg_name(reg) for reg in regs_written]}"
+            info += f"\n\tCapstone regs read: {[self.cs_insn.reg_name(reg) for reg in regs_read]}"
+            info += (
+                f"\n\tCapstone regs written: {[self.cs_insn.reg_name(reg) for reg in regs_written]}"
+            )
         except CsError:
             # Not all architectures support the .reg_access() API
             pass
