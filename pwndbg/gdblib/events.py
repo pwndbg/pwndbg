@@ -43,7 +43,7 @@ Values explained:
 
 + `{DISABLED}` - Disable the workaround (default).
 + `{DISABLED_DEADLOCK}` - Disable only deadlock detection; deadlocks may still occur.
-+ `{ENABLED}` - Enable asynchronous stop events; gdb.execute may behave unexpectedly (asynchronously).
++ `{ENABLED}` - Enable asynchronous stop events; gdb.execute may behave unexpectedly/asynchronously.
     """,
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=[DISABLED, DISABLED_DEADLOCK, ENABLED],
@@ -216,7 +216,8 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
             gdb.post_event(_loop_until_thread_ok)
             return
         elif event_type == gdb.events.stop:
-            # Workaround to issue with gdb `commands \n continue \n end` - Selected thread is running
+            # Workaround to issue with gdb `commands \n continue \n end`
+            # - Selected thread is running
             # https://github.com/pwndbg/pwndbg/issues/425
             if gdb_workaround_stop_event == ENABLED:
                 gdb.post_event(_loop_until_thread_ok)

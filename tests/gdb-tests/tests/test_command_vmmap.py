@@ -22,7 +22,8 @@ def get_proc_maps():
     Mapped address spaces:
 
               Start Addr           End Addr       Size     Offset objfile
-                0x400000           0x401000     0x1000        0x0 /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
+                0x400000           0x401000     0x1000        0x0
+                        /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
           0x7ffff7ffa000     0x7ffff7ffd000     0x3000        0x0 [vvar]
           0x7ffff7ffd000     0x7ffff7fff000     0x2000        0x0 [vdso]
           0x7ffffffde000     0x7ffffffff000    0x21000        0x0 [stack]
@@ -59,14 +60,16 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
 
     The same vmmap when debugging coredump:
         LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA
-                  0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
+                  0x400000           0x401000 r-xp     1000 0
+                              /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
             0x7ffff7ffd000     0x7ffff7fff000 r-xp     2000 1158   load2
             0x7ffffffde000     0x7ffffffff000 rwxp    21000 3158   [stack]
         0xffffffffff600000 0xffffffffff601000 r-xp     1000 24158  [vsyscall]
 
-    Note that for a core-file, we display the [vdso] page as load2 and we are missing the [vvar] page.
-    This is... how it is. It just seems that core files (at least those I met) have no info about
-    the vvar page and also GDB can't access the [vvar] memory with its x/ command during core debugging.
+    Note that for a core-file, we display the [vdso] page as load2 and we are
+    missing the [vvar] page. This is... how it is. It just seems that core
+    files (at least those I met) have no info about the vvar page and also GDB
+    can't access the [vvar] memory with its x/ command during core debugging.
     """
     start_binary(CRASH_SIMPLE_BINARY)
 
@@ -178,7 +181,8 @@ def test_vmmap_issue_1565(start_binary):
     E       gdb.error: Error occurred in Python: maximum recursion depth exceeded in comparison
 
     In a normal GDB session this is reported as:
-        Exception occurred: context: maximum recursion depth exceeded while calling a Python object (<class 'RecursionError'>)
+        Exception occurred: context: maximum recursion depth exceeded while calling a
+        Python object (<class 'RecursionError'>)
     """
     gdb.execute(f"file {BINARY_ISSUE_1565}")
     gdb.execute("break thread_function")

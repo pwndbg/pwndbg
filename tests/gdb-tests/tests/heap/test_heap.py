@@ -417,7 +417,8 @@ def test_thread_cache_heuristic(start_binary, is_multi_threaded):
             pwndbg.aglib.heap.current
         )()  # Reset the heap object of pwndbg
         # Check if we can find tcache by using the first chunk
-        # # Note: This will NOT work when can NOT find the heap boundaries or the the arena is been shared
+        # Note: This will NOT work when can NOT find the heap boundaries or
+        # the the arena is been shared
         pwndbg.aglib.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: False
         assert pwndbg.aglib.heap.current.thread_cache.address == thread_cache_addr_via_debug_symbol
 
@@ -596,8 +597,9 @@ def test_jemalloc_heap(start_binary):
         "This command was tested only for jemalloc 5.3.0 and does not support lower versions",
     ]
 
-    # Extent sizes different depending on the system built (it would seem), so only check for the 0x8000 size,
-    # since it seems consistent. The output of an extent implies the rest of the command is working
+    # Extent sizes different depending on the system built (it would seem),
+    # so only check for the 0x8000 size, since it seems consistent.
+    # The output of an extent implies the rest of the command is working
     expected_output += [
         "",
         "Allocated Address: " + re_match_valid_address,

@@ -49,9 +49,11 @@ def test_mips32_delay_slot(qemu_assembly_run, arch):
     The next instruction sequentially in memory is always executed, and then the result
     of the branch is applied.
 
-    In the disasm output, we group the delay slot with the branch. After the delay slot instruction we put the blank line/line with a down arrow.
+    In the disasm output, we group the delay slot with the branch. After the delay
+    slot instruction we put the blank line/line with a down arrow.
 
-    This test makes sure that looking forwards, we determine branch slots directly, and after moving passed them, they stay intact.
+    This test makes sure that looking forwards, we determine branch slots directly,
+    and after moving passed them, they stay intact.
     """
     qemu_assembly_run(MIPS_DELAY_SLOT, arch)
 
@@ -219,7 +221,8 @@ def test_mips32_call_instruction(qemu_assembly_run, arch):
     Ensure that MIPS "branch-and-link" instructions like "JAL" do not get unrolled,
     and have splits in disassembly correctly.
 
-    There's a bug in Capstone which doesn't consider JAL a jump-like/call instruction, so we have to manually add the jump group.
+    There's a bug in Capstone which doesn't consider JAL a jump-like/call instruction,
+    so we have to manually add the jump group.
     See: https://github.com/capstone-engine/capstone/issues/2448
     """
     qemu_assembly_run(MIPS_CALL, arch)
@@ -314,15 +317,19 @@ def test_mips32_store_instruction(qemu_assembly_run, arch):
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "───────────────────────[ DISASM / mips / set emulate on ]───────────────────────\n"
         " ► 0x20150 <__start>       lui    $t0, 0x1234          T0 => 0x12340000\n"
-        "   0x20154 <__start+4>     ori    $t0, $t0, 0x5678     T0 => 0x12345678 (0x12340000 | 0x5678)\n"
+        "   0x20154 <__start+4>     ori    $t0, $t0, 0x5678     "
+        "T0 => 0x12345678 (0x12340000 | 0x5678)\n"
         "   0x20158 <__start+8>     lui    $s0, 3               S0 => 0x30000\n"
-        "   0x2015c <__start+12>    addiu  $s0, $s0, 0x180      S0 => 0x30180 (value1) (0x30000 + 0x180)\n"
+        "   0x2015c <__start+12>    addiu  $s0, $s0, 0x180      "
+        "S0 => 0x30180 (value1) (0x30000 + 0x180)\n"
         "   0x20160 <__start+16>    sw     $t0, 0($s0)          [value1] <= 0x12345678\n"
         "   0x20164 <__start+20>    lui    $s1, 3               S1 => 0x30000\n"
-        "   0x20168 <__start+24>    addiu  $s1, $s1, 0x184      S1 => 0x30184 (value2) (0x30000 + 0x184)\n"
+        "   0x20168 <__start+24>    addiu  $s1, $s1, 0x184      "
+        "S1 => 0x30184 (value2) (0x30000 + 0x184)\n"
         "   0x2016c <__start+28>    sh     $t0, 0($s1)          [value2] <= 0x5678\n"
         "   0x20170 <__start+32>    lui    $s2, 3               S2 => 0x30000\n"
-        "   0x20174 <__start+36>    addiu  $s2, $s2, 0x186      S2 => 0x30186 (value3) (0x30000 + 0x186)\n"
+        "   0x20174 <__start+36>    addiu  $s2, $s2, 0x186      "
+        "S2 => 0x30186 (value3) (0x30000 + 0x186)\n"
         "   0x20178 <__start+40>    sb     $t0, 0($s2)          [value3] <= 0x78\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
@@ -375,7 +382,8 @@ def test_mips32_load_instructions(qemu_assembly_run, arch):
     This test ensures our logic for load instructions - including sign-extension - is
     working correctly.
 
-    The size of the data reads is very important - the variables in the assembly have specific sizes to check that our reads don't overlap into other variables.
+    The size of the data reads is very important - the variables in the assembly have
+    specific sizes to check that our reads don't overlap into other variables.
 
     The signed reads should signed extend from the read size to 32-bits.
     """

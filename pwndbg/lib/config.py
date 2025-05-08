@@ -253,8 +253,11 @@ class Config:
         )
         assert (
             HELP_VALID_VALUES_PREFIX not in help_docstring
-            and f"Having the string '{HELP_VALID_VALUES_PREFIX}' in the help_docstring "
-            "messes with documentation generation. Please remove it, you can use param_class=PARAM_ENUM."
+            and (
+                f"Having the string '{HELP_VALID_VALUES_PREFIX}' in the help_docstring "
+                "messes with documentation generation. Please remove it, you can use "
+                "param_class=PARAM_ENUM."
+            )
         )
 
         if param_class == PARAM_ENUM or enum_sequence:

@@ -52,7 +52,10 @@ class Connection(inode):
     family: str | None = None
 
     def __str__(self) -> str:
-        return f"{self.family} {format_host_port(self.lhost, self.lport)} => {format_host_port(self.rhost, self.rport)} ({self.status})"
+        return (
+            f"{self.family} {format_host_port(self.lhost, self.lport)}"
+            f" => {format_host_port(self.rhost, self.rport)} ({self.status})"
+        )
 
     def __repr__(self) -> str:
         return f'Connection("{self}")'
@@ -169,7 +172,9 @@ def unix(data: str) -> List[UnixSocket]:
     result: List[UnixSocket] = []
     # Note: it is super important to split by "\n" instead of .splitlines() here
     # because there may be a line like this:
-    # "0000000000000000: 00000002 00000000 00000000 0002 01 23302 @@@@\x9e\x05@@\x01=\r@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
+    # "0000000000000000: 00000002 00000000 00000000 0002 01 23302
+    # @@@@\x9e\x05@@\x01=\r@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+    # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
     # and splitlines will also split by \r which we do not want here
     # We also finish at -1 index since with .split() the empty last line is kept in the result
     for line in data.split("\n")[1:-1]:

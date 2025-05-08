@@ -311,7 +311,12 @@ def main():
             if (gdb_multiarch := shutil.which("gdb-multiarch")) is not None:
                 gdb_path = gdb_multiarch
             else:
-                supports_arches = "py import os; archs = ['i386', 'aarch64', 'arm', 'mips', 'riscv', 'sparc']; os._exit(3) if len([arch for arch in archs if arch in gdb.architecture_names()]) == len(archs) else os._exit(2)"
+                supports_arches = (
+                    "py import os; archs = ['i386', 'aarch64', 'arm', 'mips', "
+                    "'riscv', 'sparc']; os._exit(3) if len([arch for arch in"
+                    " archs if arch in gdb.architecture_names()]) == "
+                    "len(archs) else os._exit(2)"
+                )
 
                 result = run_gdb("gdb", ["-ex", supports_arches])
                 # GDB supports cross architecture targets
@@ -319,7 +324,8 @@ def main():
                     gdb_path = shutil.which("gdb")
                 else:
                     raise Exception(
-                        "gdb-multiarch not found, and gdb does not support cross architecture targets"
+                        "gdb-multiarch not found, and gdb does not support"
+                        " cross architecture targets"
                     )
 
     os.environ["GDB_INIT_PATH"] = gdbinit_path

@@ -175,8 +175,9 @@ class PsuedoEmulatedRegisterFile:
     The aim is to allow some manual dynamic/static analysis without the need for a full emulator.
 
     The implementation can handle the behavior of architectures with partial registers,
-    such as x86 (Ex: rax has "eax", "ax", "ah", and "al" as subregisters) or AArch64 (Ex: X0 contains W0).
-    Most of the complexity of the bitshifts and masks arise from the necessity to handle these cases.
+    such as x86 (Ex: rax has "eax", "ax", "ah", and "al" as subregisters) or AArch64
+    (Ex: X0 contains W0). Most of the complexity of the bitshifts and masks arise from
+    the necessity to handle these cases.
     """
 
     masks: defaultdict[str, int]
@@ -188,8 +189,10 @@ class PsuedoEmulatedRegisterFile:
     {
         "rax": 0xFFFF
     }
-    This indicates that in the RAX register, we only know the bottom 16 bits. This likely resulted from writing the "ax" register.
-    Any attempt to read any other bits returns None. In this case, we can read from "ax", "ah", and "al", but not "eax" or "rax".
+    This indicates that in the RAX register, we only know the bottom 16 bits.
+    This likely resulted from writing the "ax" register. Any attempt to read
+    any other bits returns None. In this case, we can read from "ax", "ah",
+    and "al", but not "eax" or "rax".
     """
 
     values: defaultdict[str, int]

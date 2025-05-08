@@ -463,7 +463,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 else:
                     stop_addr = int(message.split()[-1], 0)
 
-                # Handle case of memory read that wraps around the memory space back to 0, where high memory was readable but memory at 0 was not.
+                # Handle case of memory read that wraps around the memory space
+                # back to 0, where high memory was readable but memory at 0 was not.
                 # Example: 2-byte read at 0xFFFF_FFFF in a 32-bit address space.
                 # GDB returns error: "Cannot access memory at address 0x0"
                 if stop_addr == 0 and stop_addr < addr:
@@ -479,7 +480,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 # This is a limitation in how GDB handles the remote protocol, and while it could
                 # be fixed, it currently behaves this way.
                 #
-                # To work around this, we perform a binary search in the `_find_memory_last_readable` method
+                # To work around this, we perform a binary search in the
+                # `_find_memory_last_readable` method
                 # to find the correct stop address that avoids the failure.
                 #
                 # For local debugging, this issue does not occur, and we proceed with the
@@ -742,12 +744,13 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         for match in gdb_architecture_name_fixup_list:
             if match in arch:
                 # Distinguish between Cortex-M and other ARM
-                # When GDB detects correctly Cortex-M processes, it will label them with `arm*-m`, such as armv7e-m
-                # However, GDB will sometimes fail to correctly label Cortex-M binaries properly, and says it's simply 'arm'.
-                # Internally, GDB still detects the processes as Cortex-M, as it can access .xpsr, but it doesn't
-                # appear to expose this in information through any command/API. Since Cortex-M has the .xpsr flags register
-                # instead of .cpsr, we will check if it's present.
-                # See: https://github.com/pwndbg/pwndbg/issues/2153
+                # When GDB detects correctly Cortex-M processes, it will label them with
+                # `arm*-m`, such as armv7e-m. However, GDB will sometimes fail to correctly
+                # label Cortex-M binaries properly, and says it's simply 'arm'. Internally,
+                # GDB still detects the processes as Cortex-M, as it can access .xpsr,
+                # but it doesn't appear to expose this in information through any command/API.
+                # Since Cortex-M has the .xpsr flags register instead of .cpsr, we will check
+                # if it's present. See: https://github.com/pwndbg/pwndbg/issues/2153
                 if match == "arm" and ("-m" in arch or pwndbg.aglib.regs.xpsr is not None):
                     match = "armcm"
                 elif match.startswith("riscv:"):
@@ -844,9 +847,11 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         # Detect current ABI of client side by 'show osabi'
         #
         # Examples of strings returned by `show osabi`:
-        # 'The current OS ABI is "auto" (currently "GNU/Linux").\nThe default OS ABI is "GNU/Linux".\n'
+        # 'The current OS ABI is "auto" (currently "GNU/Linux").\n
+        # The default OS ABI is "GNU/Linux".\n'
         # 'The current OS ABI is "GNU/Linux".\nThe default OS ABI is "GNU/Linux".\n'
-        # 'El actual SO ABI es «auto» (actualmente «GNU/Linux»).\nEl SO ABI predeterminado es «GNU/Linux».\n'
+        # 'El actual SO ABI es «auto» (actualmente «GNU/Linux»).\n
+        # El SO ABI predeterminado es «GNU/Linux».\n'
         # 'The current OS ABI is "auto" (currently "none")'
         #
         # As you can see, there might be GDBs with different language versions
@@ -885,8 +890,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         # 0x0000555555573c68 - 0x0000555555573ff8 is .got
         # 0x0000555555574000 - 0x0000555555574278 is .data
         # 0x0000555555574280 - 0x0000555555575540 is .bss
-        # 0x00007ffff7fc92a8 - 0x00007ffff7fc92e8 is .note.gnu.property in /lib64/ld-linux-x86-64.so.2
-        # 0x00007ffff7fc92e8 - 0x00007ffff7fc930c is .note.gnu.build-id in /lib64/ld-linux-x86-64.so.2
+        # 0x00007ffff7fc92a8 - 0x00007ffff7fc92e8 is .note.gnu.property in /lib64/ld-linux-x86-64.so.2  # noqa: E501
+        # 0x00007ffff7fc92e8 - 0x00007ffff7fc930c is .note.gnu.build-id in /lib64/ld-linux-x86-64.so.2  # noqa: E501
         # 0x00007ffff7fc9310 - 0x00007ffff7fc94f8 is .gnu.hash in /lib64/ld-linux-x86-64.so.2
 
         files = pwndbg.gdblib.info.files()
@@ -1429,7 +1434,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
         ):
             fixed_cmd = deprecated_cmd.replace("_", "-")
             gdb.execute(
-                f"alias -a {deprecated_cmd} = echo Use `{fixed_cmd}` instead (Pwndbg changed `_` to `-` in command names)\\n"
+                f"alias -a {deprecated_cmd} = echo Use `{fixed_cmd}` instead"
+                " (pwndbg changed `_` to `-` in command names)\\n"
             )
 
         # This may throw an exception, see pwndbg/pwndbg#27

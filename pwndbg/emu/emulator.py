@@ -190,8 +190,8 @@ ARM_BANNED_INSTRUCTIONS = {
     C.arm.ARM_INS_MRC2,
     C.arm.ARM_INS_MRRC2,
 }
-# We stop emulation when hitting these instructions, since they depend on co-processors or other information
-# unavailable to the emulator
+# We stop emulation when hitting these instructions, since they depend
+# on co-processors or other information unavailable to the emulator
 BANNED_INSTRUCTIONS = {
     "mips": {C.mips.MIPS_INS_RDHWR},
     "arm": ARM_BANNED_INSTRUCTIONS,
@@ -237,9 +237,9 @@ class Emulator:
         self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
 
         # Whether the emulator is allowed to emulate instructions
-        # There are cases when the emulator is incorrect or we want to disable it for certain instruction types,
-        # and so we can set this to False to indicate that we should not allow the
-        # emulator to continue to step
+        # There are cases when the emulator is incorrect or we want to disable
+        # it for certain instruction types, and so we can set this to False to
+        # indicate that we should not allow the emulator to continue to step
         self.valid = True
 
         # Jump tracking state
@@ -316,7 +316,8 @@ class Emulator:
         value = None
         try:
             # Raises UcError if failed
-            # If the memory is not mapped, it will fail. It will not attempt to run the UC_HOOK_MEM_UNMAPPED hook
+            # If the memory is not mapped, it will fail. It will not attempt
+            # to run the UC_HOOK_MEM_UNMAPPED hook
             # https://github.com/unicorn-engine/unicorn/blob/d4b92485b1a228fb003e1218e42f6c778c655809/uc.c#L569
             value = self.uc.mem_read(address, size)
         except U.unicorn.UcError as e:
@@ -464,7 +465,10 @@ class Emulator:
             return E.integer(pwndbg.enhance.int_str(value))
 
         # Read from emulator memory
-        # intval = int(pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.pvoid, value))
+        # intval = int(
+        #     pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.pvoid,
+        #                                                 value)
+        # )
         read_value = self.read_memory(value, pwndbg.aglib.arch.ptrsize)
         if read_value is not None:
             # intval = pwndbg.aglib.arch.unpack(read_value)
@@ -731,13 +735,15 @@ class Emulator:
         ident = self.hook_add(U.UC_HOOK_CODE, hook)
 
         pc: int = self.pc
-        # Unicorn appears to disregard the UC_MODE_THUMB mode passed into the constructor, and instead
-        # determines Thumb mode based on the PC that is passed to the `emu_start` function
+        # Unicorn appears to disregard the UC_MODE_THUMB mode passed into the
+        # constructor, and instead determines Thumb mode based on the PC that
+        # is passed to the `emu_start` function
         # https://github.com/unicorn-engine/unicorn/issues/391
         #
-        # Because we single-step the emulator, we always have to read the Thumb bit from the emulator
-        # and set the least significant bit of the PC to 1 if the bit is 1 in order to enable Thumb mode
-        # for the execution of the next instruction. If this `emulate_with_hook` executes multiple instructions
+        # Because we single-step the emulator, we always have to read the Thumb
+        # bit from the emulator and set the least significant bit of the PC to 1
+        # if the bit is 1 in order to enable Thumb mode for the execution of the
+        # next instruction. If this `emulate_with_hook` executes multiple instructions
         # which have Thumb mode transitions, Unicorn will internally handle them.
         pc |= self.read_thumb_bit()
 

@@ -57,7 +57,8 @@ class _GdbFunction(gdb.Function):
 
     def invoke(self, *args: gdb.Value) -> Any:
         if self.only_when_running and not pwndbg.aglib.proc.alive:
-            # Returning empty string is a workaround that we can't stop e.g. `break *$rebase(offset)`
+            # Returning empty string is a workaround that we can't stop
+            # e.g. `break *$rebase(offset)`.
             # Thx to that, gdb will print out 'evaluation of this expression requires
             # the target program to be active'
             return ""

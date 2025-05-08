@@ -78,7 +78,8 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
         # We look for lines like:
         # ['[9]', '0x00000000->0x00000150', 'at', '0x00098c40:', '.auxv', 'HAS_CONTENTS']
-        # ['[15]', '0x555555555000->0x555555556000', 'at', '0x00001430:', 'load2', 'ALLOC', 'LOAD', 'READONLY', 'CODE', 'HAS_CONTENTS']
+        # ['[15]', '0x555555555000->0x555555556000', 'at', '0x00001430:', 'load2',
+        # 'ALLOC', 'LOAD', 'READONLY', 'CODE', 'HAS_CONTENTS']
         try:
             _idx, start_end, _at_str, _at, name, *flags_list = line.split()
             start, end = (int(v, 16) for v in start_end.split("->"))
@@ -161,7 +162,8 @@ def parse_info_proc_mappings_line(
         0x4c3000           0x4c5000     0x2000    0xc2000  rw-p   /root/hello_world/main
         0x4c5000           0x4cb000     0x6000        0x0  rw-p
 
-    The objfile column might be empty, and the permissions column is only present in GDB versions >= 12.1
+    The objfile column might be empty, and the permissions column is only present
+    in GDB versions >= 12.1
     https://github.com/bminor/binutils-gdb/commit/29ef4c0699e1b46d41ade00ae07a54f979ea21cc
 
     Args:
@@ -268,25 +270,25 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
         return None
 
     # Example /proc/$tid/maps
-    # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    # 7f95268b5000-7f9526ab5000 ---p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    # 7f9526ab5000-7f9526ab9000 r--p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
-    # 7f9526ab9000-7f9526abb000 rw-p 001bf000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f95268b5000-7f9526ab5000 ---p 001bb000 08:01 418404     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f9526ab5000-7f9526ab9000 r--p 001bb000 08:01 418404     /lib/x86_64-linux-gnu/libc-2.19.so
+    # 7f9526ab9000-7f9526abb000 rw-p 001bf000 08:01 418404     /lib/x86_64-linux-gnu/libc-2.19.so
     # 7f9526abb000-7f9526ac0000 rw-p 00000000 00:00 0
-    # 7f9526ac0000-7f9526ae3000 r-xp 00000000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
+    # 7f9526ac0000-7f9526ae3000 r-xp 00000000 08:01 418153     /lib/x86_64-linux-gnu/ld-2.19.so
     # 7f9526cbe000-7f9526cc1000 rw-p 00000000 00:00 0
     # 7f9526ce0000-7f9526ce2000 rw-p 00000000 00:00 0
-    # 7f9526ce2000-7f9526ce3000 r--p 00022000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
-    # 7f9526ce3000-7f9526ce4000 rw-p 00023000 08:01 418153                     /lib/x86_64-linux-gnu/ld-2.19.so
+    # 7f9526ce2000-7f9526ce3000 r--p 00022000 08:01 418153     /lib/x86_64-linux-gnu/ld-2.19.so
+    # 7f9526ce3000-7f9526ce4000 rw-p 00023000 08:01 418153     /lib/x86_64-linux-gnu/ld-2.19.so
     # 7f9526ce4000-7f9526ce5000 rw-p 00000000 00:00 0
-    # 7f9526ce5000-7f9526d01000 r-xp 00000000 08:01 786466                     /bin/dash
-    # 7f9526f00000-7f9526f02000 r--p 0001b000 08:01 786466                     /bin/dash
-    # 7f9526f02000-7f9526f03000 rw-p 0001d000 08:01 786466                     /bin/dash
+    # 7f9526ce5000-7f9526d01000 r-xp 00000000 08:01 786466     /bin/dash
+    # 7f9526f00000-7f9526f02000 r--p 0001b000 08:01 786466     /bin/dash
+    # 7f9526f02000-7f9526f03000 rw-p 0001d000 08:01 786466     /bin/dash
     # 7f9526f03000-7f9526f05000 rw-p 00000000 00:00 0
-    # 7f95279fe000-7f9527a1f000 rw-p 00000000 00:00 0                          [heap]
-    # 7fff3c177000-7fff3c199000 rw-p 00000000 00:00 0                          [stack]
-    # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
-    # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
+    # 7f95279fe000-7f9527a1f000 rw-p 00000000 00:00 0          [heap]
+    # 7fff3c177000-7fff3c199000 rw-p 00000000 00:00 0          [stack]
+    # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0          [vdso]
+    # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0  [vsyscall]
 
     tid = pwndbg.aglib.proc.tid
     locations = [

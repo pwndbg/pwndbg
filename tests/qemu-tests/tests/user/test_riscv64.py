@@ -60,7 +60,8 @@ def test_riscv64_jalr(qemu_assembly_run):
         " ► 0x1001158 <_start>       c.li   a0, 0xa          A0 => 0xa\n"
         "   0x100115a <_start+2>     c.li   a1, 0x14         A1 => 0x14\n"
         "   0x100115c <_start+4>     auipc  t0, 0            T0 => 0x100115c (_start+4)\n"
-        "   0x1001160 <_start+8>     addi   t0, t0, 0x1c     T0 => 0x1001178 (function) (0x100115c + 0x1c)\n"
+        "   0x1001160 <_start+8>     addi   t0, t0, 0x1c     T0 => "
+        "0x1001178 (function) (0x100115c + 0x1c)\n"
         "   0x1001164 <_start+12>    c.jalr t0                          <function>\n"
         " \n"
         "   0x1001166 <_start+14>    add    a2, a0, a1\n"
@@ -115,7 +116,8 @@ def test_riscv64_compressed_loads(qemu_assembly_run):
     RISC-V support in Capstone is fairly new, and the underlying metadata of the
     instructions can change between versions.
 
-    This test ensures that we properly handle compressed load and stores instruction, as the data representation changed between v5 and v6.
+    This test ensures that we properly handle compressed load and stores instruction,
+    as the data representation changed between v5 and v6.
     """
     qemu_assembly_run(RISCV64_COMPRESSED_LOAD_STORE, "riscv64")
 
@@ -138,7 +140,8 @@ def test_riscv64_compressed_loads(qemu_assembly_run):
         "   0x10011ce <store+22>    and    a7, a1, a2         A7 => 0 (0x10 & 0x26)\n"
         "   0x10011d2 <store+26>    sll    a3, a1, a2         A3 => 0x40000000000 (0x10 << 0x26)\n"
         "   0x10011d6 <store+30>    mul    a2, a1, a2         A2 => 0x260 (0x10 * 0x26)\n"
-        "   0x10011da <store+34>    div    a5, a3, a2         A5 => 0x1af286bca (0x40000000000 / 0x260)\n"
+        "   0x10011da <store+34>    div    a5, a3, a2         A5 =>"
+        " 0x1af286bca (0x40000000000 / 0x260)\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -267,7 +270,8 @@ def test_riscv64_jump_chain(qemu_assembly_run):
     This test checks a sneaky edge case - when a jump target goes to the next address
     linearly in memory.
 
-    Typically, we can determine jumps by seeing if the `next` address is NOT the address of the next instruction in memory, so this requires
+    Typically, we can determine jumps by seeing if the `next` address is NOT the address
+    of the next instruction in memory, so this requires
     manual handling to make sure that the target is correctly displayed.
     """
     qemu_assembly_run(RISCV64_JUMP_CHAIN, "riscv64")

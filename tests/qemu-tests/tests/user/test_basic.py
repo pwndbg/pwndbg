@@ -6,7 +6,8 @@ import user
 import pwndbg.aglib.proc
 import pwndbg.commands.context
 
-# The tests in this file execute for a long time - they can take 5-15 minutes to run, depending on the machine
+# The tests in this file execute for a long time - they can take 5-15 minutes to run,
+# depending on the machine.
 # They check for any crashes in the instruction enhancement code that may arise through
 # when displaying the context.
 # These are worth running after large changes in the instruction

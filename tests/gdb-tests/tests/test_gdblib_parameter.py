@@ -82,15 +82,22 @@ def test_gdb_parameter_default_value_works(start_binary, params):
     out = gdb.execute(f"show {param_name}", to_string=True)
     assert (
         out
-        == f"{set_show_doc.capitalize()} is {displayed_value!r}. See `help set {param_name}` for more information.\n"
+        == (
+            f"{set_show_doc.capitalize()} is {displayed_value!r}."
+            f" See `help set {param_name}` for more information.\n"
+        )
     )
     if (
         optional_kwargs.get("param_class")
         in (pwndbg.lib.config.PARAM_UINTEGER, pwndbg.lib.config.PARAM_INTEGER)
         and default_value == 0
     ):
-        # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
-        # And hilarious thing is that GDB won't let you set the default value to `None` when you construct the `gdb.Parameter` object with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
+        # Note: This is really weird, according to GDB docs, 0 should mean
+        # "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but
+        # somehow GDB sets the value to `None` actually :/
+        # And hilarious thing is that GDB won't let you set the default value
+        # to `None` when you construct the `gdb.Parameter` object with
+        # `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
         # Maybe it's a bug of GDB?
         # Anyway, to avoid some unexpected behaviors, we still set pwndbg's
         # Parameter object's value to 0 in `get_set_string()` and `__init__()`

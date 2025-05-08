@@ -1087,7 +1087,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # have to use the command. The implementation of the command calls into
         # private APIs.
 
-        # FIXME: `plugin packet send` Don't handle well bytes or nullbytes, because they use `%s` in lldb[1]
+        # FIXME: `plugin packet send` Don't handle well bytes or nullbytes,
+        # because they use `%s` in lldb[1]
         # [1] https://github.com/llvm/llvm-project/blob/6c42d0d7df55f28084e41b482dd7c25d4e7bcd10/lldb/source/Plugins/Process/gdb-remote/ProcessGDBRemote.cpp#L5660
         response = self.dbg._execute_lldb_command(f"process plugin packet send {packet}")
 
@@ -1115,7 +1116,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             raise RuntimeError("Called send_monitor() on a local process")
 
         # `process plugin packet monitor {cmd}` command is returned in an ugly way, eg:
-        # "Host virtual address for 0x1000 (virt.flash0) is 0xe2780fc01000\r\n  packet: qRcmd,6770613268766120307831303030\nresponse: OK\n"
+        # "Host virtual address for 0x1000 (virt.flash0) is 0xe2780fc01000\r\n
+        # packet: qRcmd,6770613268766120307831303030\nresponse: OK\n"
         # We need to cut the string, so it matches the same format we have in GDB.
 
         res = self.dbg._execute_lldb_command(f"process plugin packet monitor {cmd}")
@@ -1205,7 +1207,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def symbol_name_at_address(self, address: int) -> str | None:
         addr = lldb.SBAddress(address, self.target)
 
-        # We are using `lldb.eSymbolContextEverything` because it can find symbols without debug info.
+        # We are using `lldb.eSymbolContextEverything` because it can find symbols
+        # without debug info.
         # Additional information:
         # `eSymbolContextVariable` is potentially expensive to look up,
         # so it is not included in `eSymbolContextEverything`.
@@ -1352,7 +1355,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # works fine on x86_64, but may fail on aarch64 or other architectures.
 
         # We need to map variable types to symbols...
-        # This approach may not work correctly if there are multiple global variables with the same <name> and <address>.
+        # This approach may not work correctly if there are multiple global variables
+        # with the same <name> and <address>.
         # The same address may occur for TLS symbols, as they have a `0xffffffffffffffff` address.
         # NOTE: `FindGlobalVariables` returns ONLY variables that have DEBUG INFO.
         variables_types: Dict[Tuple[int, str], LLDBType] = {}
@@ -1361,7 +1365,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             variables: lldb.SBValueList = (objfile or self.target).FindGlobalVariables(name, 0)
             var: lldb.SBValue
             for var in variables:
-                # LLDB[1] is attempting to resolve a TLS variable, but it fails with the following error:
+                # LLDB[1] is attempting to resolve a TLS variable, but it fails with
+                # the following error:
                 # [1] https://github.com/llvm/llvm-project/blob/1dfa34c8e1f28963f059e05ce89ebf1f76ebbddc/lldb/source/Expression/DWARFExpression.cpp#L2198
                 #
                 # is_tls = var.error and var.error.description == 'no thread to evaluate TLS within'
@@ -1467,7 +1472,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         if endian0 != endian1:
             raise RuntimeError(
-                "SBTarget::GetByteOrder() != SBProcess::GetByteOrder(). We don't know how to handle that"
+                "SBTarget::GetByteOrder() != SBProcess::GetByteOrder(). "
+                "We don't know how to handle that"
             )
         if endian0 != lldb.eByteOrderLittle and endian0 != lldb.eByteOrderBig:
             raise RuntimeError("We only support little and big endian systems")
@@ -1480,7 +1486,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         ptrsize1 = self.target.GetAddressByteSize()
         if ptrsize0 != ptrsize1:
             raise RuntimeError(
-                "SBTarget::GetAddressByteSize() != SBProcess::GetAddressByteSize(). We don't know how to handle that"
+                "SBTarget::GetAddressByteSize() != SBProcess::GetAddressByteSize(). "
+                "We don't know how to handle that"
             )
 
         names = self.target.GetTriple().split("-")
@@ -1511,7 +1518,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             has_xpsr = [_has_xpsr(thread) for thread in self.threads()]
             assert (
                 all(has_xpsr) or not any(has_xpsr)
-            ), "Either all threads are Cortex-M or none are, Pwndbg doesn't know how to handle other cases"
+            ), (
+                "Either all threads are Cortex-M or none are, "
+                "pwndbg doesn't know how to handle other cases"
+            )
 
             if any(has_xpsr):
                 name = "armcm"

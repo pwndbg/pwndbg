@@ -93,8 +93,12 @@ class Parameter(gdb.Parameter):
             gdb.PARAM_UINTEGER,
             gdb.PARAM_INTEGER,
         ):
-            # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
-            # And hilarious thing is that GDB won't let you set the default value to `None` when you construct the `gdb.Parameter` object with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
+            # Note: This is really weird, according to GDB docs, 0 should mean
+            # "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but
+            # somehow GDB sets the value to `None` actually :/
+            # And hilarious thing is that GDB won't let you set the default
+            # value to `None` when you construct the `gdb.Parameter` object
+            # with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
             # Maybe it's a bug of GDB?
             # Anyway, to avoid some unexpected behaviors, we'll still set
             # `self.param.value` to 0 here.

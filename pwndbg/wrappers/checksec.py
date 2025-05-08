@@ -14,7 +14,8 @@ import pwndbg.color.message as M
 
 @contextlib.contextmanager
 def monkeypatch_pwnlib_term_text() -> Iterator[None]:
-    # Note: It's kinda hacky to monkeypatch pwnlib.term.text like this, but I didn't find a better way to do it.
+    # Note: It's kinda hacky to monkeypatch pwnlib.term.text like this, but I
+    # didn't find a better way to do it.
     # The patch is for here:
     # https://github.com/Gallopsled/pwntools/blob/f046fdd93e154bd892332f38cfbb518de130f1f2/pwnlib/elf/elf.py#L1999-L2001
     # This might break in the future, so need to update this patch when the

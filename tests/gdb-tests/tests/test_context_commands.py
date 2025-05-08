@@ -354,11 +354,13 @@ def test_context_disasm_fsbase_annotations(start_binary):
     """
     This test checks that fsbase support in annotations is working properly.
 
-    If this breaks, either our x86 memory operand parser is broken, we cannot fetch fsbase, or we are not passing FSBASE to Unicorn.
+    If this breaks, either our x86 memory operand parser is broken, we cannot fetch fsbase,
+    or we are not passing FSBASE to Unicorn.
     See: https://github.com/pwndbg/pwndbg/pull/2317
 
     For this test, we use a binary we know has a stack canary.
-    Between compilations and between x86 vs x86_64, the exact instruction changes, but matches a regex pattern.
+    Between compilations and between x86 vs x86_64, the exact instruction changes,
+    but matches a regex pattern.
 
     """
     start_binary(ONE_GADGET_BINARY)

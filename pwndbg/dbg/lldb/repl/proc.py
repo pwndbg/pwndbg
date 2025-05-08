@@ -170,7 +170,8 @@ class ProcessDriver:
                 if not running:
                     if self.debug:
                         print(
-                            "[-] ProcessDriver: Waited too long for process to start running, giving up"
+                            "[-] ProcessDriver: Waited too long for process "
+                            "to start running, giving up"
                         )
                     break
 

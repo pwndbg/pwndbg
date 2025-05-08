@@ -31,7 +31,8 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
     libc_path = pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
     assert libc_path is not None
 
-    # Create 3 copies of the libc with the filenames: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
+    # Create 3 copies of the libc with the filenames:
+    # libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so.
     # Note: The version in the above filename doesn't matter, just some tests
     # for the common libc names we might use with LD_PRELOAD
     test_libc_names = ["libc-2.36.so", "libc6_2.36-0ubuntu4_amd64.so", "libc.so"]

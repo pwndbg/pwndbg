@@ -144,7 +144,8 @@ def _fallback_any_symbol_to_address(name: str, global_only: bool = False) -> gdb
         # Unfortunately, `gdb.lookup_symbol` does not seem to handle all
         # symbols, so we need to fallback to using `gdb.parse_and_eval`. See
         # https://sourceware.org/pipermail/gdb/2022-October/050362.html
-        # (We tried parsing the output of the `info address` before, but there were some issues. See #1628 and #1666)
+        # (We tried parsing the output of the `info address` before,
+        # but there were some issues. See #1628 and #1666)
         if "\\" in name:
             # Is it possible that happens? Probably not, but just in case
             raise ValueError(f"Symbol {name!r} contains a backslash")

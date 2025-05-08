@@ -130,7 +130,8 @@ def get_libc_filename_from_info_sharedlibrary() -> str | None:
             # We don't return it, maybe there is a libc.so.6 and this match is just a
             # false positive.
             )
-    # TODO: This might fail if user use LD_PRELOAD to load libc with a weird name or there are multiple shared libraries match the pattern.
+    # TODO: This might fail if user use LD_PRELOAD to load libc with a weird name
+    # or there are multiple shared libraries match the pattern.
     # (But do we really need to support this case? Maybe we can wait until users really need it :P.)
     if possible_libc_path:
         return possible_libc_path[0]  # just return the first match for now :)

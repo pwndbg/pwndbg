@@ -28,11 +28,17 @@ def test_config_filtering():
     )
     assert (
         out[3]
-        == "You can set a config variable with `set <config-var> <value>`, and read more about it with `help set <config-var>`."
+        == (
+            "You can set a config variable with `set <config-var> <value>`,"
+            " and read more about it with `help set <config-var>`."
+        )
     )
     assert (
         out[4]
-        == "You can generate a configuration file using `configfile` - then put it in your .gdbinit after initializing pwndbg."
+        == (
+            "You can generate a configuration file using `configfile` - "
+            "then put it in your .gdbinit after initializing pwndbg."
+        )
     )
 
 

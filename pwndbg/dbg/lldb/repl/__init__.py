@@ -418,7 +418,8 @@ def exec_repl_command(
 
         print(
             message.error(
-                f"The '{name}' command is not supported. Use the 'lldb' command to enter LLDB mode and try again."
+                f"The '{name}' command is not supported. "
+                "Use the 'lldb' command to enter LLDB mode and try again."
             )
         )
 
@@ -506,7 +507,9 @@ def exec_repl_command(
         if warn:
             print(
                 message.warn(
-                    "The 'set' command is used exclusively for Pwndbg settings. If you meant to change LLDB settings, use the fully spelled-out 'settings' command, instead."
+                    "The 'set' command is used exclusively for pwndbg settings."
+                    " If you meant to change LLDB settings, use the fully "
+                    "spelled-out 'settings' command, instead."
                 )
             )
 
@@ -556,7 +559,8 @@ def exec_repl_command(
     if coroutine_fail_warn:
         print(
             message.warn(
-                "Exceptions occurred execution controller processing. Debugging will likely be unreliable going forward."
+                "Exceptions occurred execution controller processing."
+                " Debugging will likely be unreliable going forward."
             )
         )
 
@@ -667,7 +671,8 @@ def target_create(args: List[str], dbg: LLDB) -> None:
     if dbg.debugger.GetNumTargets() > 0:
         print(
             message.error(
-                "Pwndbg does not support multiple targets. Please remove the current target with 'target delete' and try again."
+                "Pwndbg does not support multiple targets. "
+                "Please remove the current target with 'target delete' and try again."
             )
         )
         return

@@ -153,7 +153,10 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
             # We explicitly allow this operation.
             return False
 
-        msg = f"Possible use-after-free in {self.chunk.size}-byte chunk at address {self.chunk.address:#x}"
+        msg = (
+            f"Possible use-after-free in {self.chunk.size}-byte "
+            f"chunk at address {self.chunk.address:#x}"
+        )
         print(f"[!] {msg}")
 
         global stop_on_error
@@ -526,7 +529,8 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
         print(
-            f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size} bytes real size"
+            f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) "
+            f"-> {ret_ptr:#x}, {chunk.size} bytes real size"
         )
         return False
 
