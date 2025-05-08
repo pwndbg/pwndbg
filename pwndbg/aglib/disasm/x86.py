@@ -50,6 +50,8 @@ X86_MATH_INSTRUCTIONS = {
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
 class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+    supports_manual_emulation = True
+
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
@@ -156,6 +158,8 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
         if right.before_value is not None:
+            instruction.register_writes[left.reg] = right.before_value
+
             telescope_addresses = super()._telescope(
                 right.before_value, TELESCOPE_DEPTH, instruction, emu
             )
@@ -213,6 +217,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         # If zeroing the register with XOR A, A. Can reason about this no matter where the instruction is
         if left.type == CS_OP_REG and right.type == CS_OP_REG and left.reg == right.reg:
+            instruction.register_writes[left.reg] = 0
             instruction.annotation = register_assign(left.str, "0")
         else:
             self._common_binary_op_annotator(

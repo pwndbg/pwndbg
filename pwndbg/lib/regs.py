@@ -288,7 +288,7 @@ class RegisterSet:
         yield from self.all
 
 
-class PsuedoEmulatedRegisterFile:
+class PseudoEmulatedRegisterFile:
     """
     This class represents a set of registers that can be written, read, and invalidated.
 

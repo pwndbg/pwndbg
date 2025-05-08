@@ -175,6 +175,7 @@ class PwndbgInstruction(Protocol):
     causes_branch_delay: bool
     split: SplitType
     emulated: bool
+    register_writes: Dict[int, int]
 
     @property
     def call_like(self) -> bool: ...
@@ -396,6 +397,12 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         If the enhancement successfully used emulation for this instruction
         """
 
+        self.register_writes = {}
+        """
+        Mapping of Capstone register id to integer value. During enhancement, we might manually determine
+        that an instruction writes some value to a register, and this is stored here.
+        """
+
     @property
     def call_like(self) -> bool:
         """
@@ -530,6 +537,14 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Causes Delay slot: {self.causes_branch_delay}
         Split: {SplitType(self.split).name}
         Call-like: {self.call_like}"""
+
+        try:
+            regs_read, regs_written = self.cs_insn.regs_access()
+            info += f"\n\tRegs read: {[self.cs_insn.reg_name(reg) for reg in regs_read]}"
+            info += f"\n\tRegs written: {[self.cs_insn.reg_name(reg) for reg in regs_written]}"
+        except CsError:
+            # Not all architectures support the .reg_access() API
+            pass
 
         # Hacky, but this is just for debugging
         if hasattr(self.cs_insn, "cc"):
@@ -700,6 +715,8 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         self.split = SplitType.NO_SPLIT
 
         self.emulated = False
+
+        self.register_writes = {}
 
     @property
     def bytes(self) -> bytearray:
