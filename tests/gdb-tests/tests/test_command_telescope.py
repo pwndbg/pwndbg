@@ -145,7 +145,8 @@ def test_command_telescope_frame_bp_below_sp(start_binary):
 
 def test_command_telescope_frame_bp_sp_different_vmmaps(start_binary):
     """
-    Tests telescope --frame when base pointer and stack pointer are on different vmmap pages
+    Tests telescope --frame when base pointer and stack pointer are on different
+    vmmap pages
     """
     start_binary(TELESCOPE_BINARY)
 

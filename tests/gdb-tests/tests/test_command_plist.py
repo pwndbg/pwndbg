@@ -67,7 +67,8 @@ def test_command_plist_dereference_limit_change_has_impact_on_plist(start_binary
 
 def test_command_plist_unreached_sentinel_does_not_cause_null_deference(start_binary):
     """
-    Tests the plist command with a sentinel set to an address that is not reached does
+    Tests the plist command with a sentinel set to an address that is not reached
+    does
     not try to dereference zero
     """
     startup(start_binary)

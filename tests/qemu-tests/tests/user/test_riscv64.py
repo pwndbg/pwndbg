@@ -46,7 +46,8 @@ end:
 
 def test_riscv64_jalr(qemu_assembly_run):
     """
-    Test that we resolve jalr branch correctly (don't crash) and that there are corresponding splits in the disassembly.
+    Test that we resolve jalr branch correctly (don't crash) and that there are
+    corresponding splits in the disassembly.
     """
     qemu_assembly_run(RISCV64_JALR, "riscv64")
 
@@ -111,7 +112,8 @@ data:
 
 def test_riscv64_compressed_loads(qemu_assembly_run):
     """
-    RISC-V support in Capstone is fairly new, and the underlying metadata of the instructions can change between versions.
+    RISC-V support in Capstone is fairly new, and the underlying metadata of the
+    instructions can change between versions.
 
     This test ensures that we properly handle compressed load and stores instruction, as the data representation changed between v5 and v6.
     """
@@ -262,7 +264,8 @@ end:
 
 def test_riscv64_jump_chain(qemu_assembly_run):
     """
-    This test checks a sneaky edge case - when a jump target goes to the next address linearly in memory.
+    This test checks a sneaky edge case - when a jump target goes to the next address
+    linearly in memory.
 
     Typically, we can determine jumps by seeing if the `next` address is NOT the address of the next instruction in memory, so this requires
     manual handling to make sure that the target is correctly displayed.

@@ -196,7 +196,8 @@ lsr r3, #4
 
 def test_arm_implicit_branch(qemu_assembly_run):
     """
-    In Arm, many general-purpose instructions can target the PC as the destination register,
+    In Arm, many general-purpose instructions can target the PC as the destination
+    register,
     particularly while changing between Arm/Thumb mode
 
     For example, the `add` and `sub` instructions can be used to directory write to the PC,
@@ -254,7 +255,8 @@ add r1, r2, r3
 
 def test_arm_implicit_branch_next_instruction(qemu_assembly_run):
     """
-    This is near identical to the test above, with a minor change that makes it tricky.
+    This is near identical to the test above, with a minor change that makes it
+    tricky.
 
     The branch target of the add instruction is the next instruction in memory.
     This requires special detection for this case, as we typically
@@ -301,7 +303,8 @@ end:
 
 def test_arm_implicit_branch_ldr(qemu_assembly_run):
     """
-    Like the previous test, but using the LDR instruction to load a value into the PC.
+    Like the previous test, but using the LDR instruction to load a value into the
+    PC.
 
     These are very common as PLT trampolines:
         ldr    pc, [ip, #0xbf4]!           <printf>
@@ -546,7 +549,8 @@ value1:
 
 def test_arm_exclusive_store(qemu_assembly_run):
     """
-    This tests that we properly handle both stores, exclusive stores, and store with post-indexing
+    This tests that we properly handle both stores, exclusive stores, and store with
+    post-indexing
     """
     qemu_assembly_run(ARM_STORE, "arm")
 

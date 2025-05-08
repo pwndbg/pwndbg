@@ -18,7 +18,8 @@ root_dir = os.path.realpath("../")
 
 def reserve_port(ip="127.0.0.1", port=0):
     """
-    https://github.com/Yelp/ephemeral-port-reserve/blob/master/ephemeral_port_reserve.py
+    https://github.com/Yelp/ephemeral-port-
+    reserve/blob/master/ephemeral_port_reserve.py
 
     Bind to an ephemeral port, force it into the TIME_WAIT state, and unbind it.
 

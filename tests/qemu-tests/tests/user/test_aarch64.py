@@ -55,9 +55,12 @@ end:
 
 def test_aarch64_branch_enhancement(qemu_assembly_run):
     """
-    This test makes sures that the output of functions are correct in AArch64, and tests
-    and case with AArch64 branches. BL and B instructions can be made conditional, and need
-    manual handling to determine if they are not make conditional if there is no condition code.
+    This test makes sures that the output of functions are correct in AArch64, and
+    tests
+    and case with AArch64 branches. BL and B instructions can be made conditional, and
+    need
+    manual handling to determine if they are not make conditional if there is no
+    condition code.
 
     If the `b` instruction doesn't have a down arrow in the next line (the split), it means the detection to consider it an unconditional branch is broken.
     """
@@ -199,7 +202,8 @@ F:
 
 def test_aarch64_conditional_jump_output(qemu_assembly_run):
     """
-    Test that branches are resolved correctly, and make sure we have an annotation on the cmp instruction.
+    Test that branches are resolved correctly, and make sure we have an annotation on
+    the cmp instruction.
     """
     qemu_assembly_run(CONDITIONAL_JUMPS, "aarch64")
 
@@ -234,7 +238,8 @@ def test_aarch64_conditional_jump_output(qemu_assembly_run):
 
 def test_aarch64_conditional_jumps(qemu_assembly_run):
     """
-    Uses the same assembly has above, but ensures that the underlying manual determinations of the branches
+    Uses the same assembly has above, but ensures that the underlying manual
+    determinations of the branches
     are correct, which is important for non-emulation.
     """
     qemu_assembly_run(CONDITIONAL_JUMPS, "aarch64")
@@ -488,7 +493,8 @@ exit:
 
 def test_aarch64_write_cpsr_when_zero(qemu_assembly_run):
     """
-    The purpose of this test is to ensure we writing our CPSR register to the Unicorn emulator always.
+    The purpose of this test is to ensure we writing our CPSR register to the Unicorn
+    emulator always.
 
     We have an optimization to not write registers with the value zero to the emulator. This conflicts with the flags register.
     The CPSR register, by default, has the Z bit enabled, so the value is not 0. In this test, we do a comparison that sets the bit off,
@@ -693,7 +699,8 @@ ROR x6, x4, x0
 
 def test_aarch64_shift_instructions(qemu_assembly_run):
     """
-    Test annotations for shift instructions - the format of these has changed between Capstone versions.
+    Test annotations for shift instructions - the format of these has changed between
+    Capstone versions.
     Special attention is paid to the shift-by-register amount
     - https://github.com/capstone-engine/capstone/issues/2631
     """
@@ -758,7 +765,8 @@ def test_aarch64_reference(qemu_start_binary):
 
 def test_memory_read_error_handling(qemu_assembly_run):
     """
-    This test ensures that memory access errors are correctly handled and partial reads
+    This test ensures that memory access errors are correctly handled and partial
+    reads
     are attempted when possible. Specifically, it tests that the function can handle
     memory access failures at different address ranges and report the correct result.
     """

@@ -14,7 +14,8 @@ NESTED_STRUCTS_BINARY = tests.binaries.get("nested_structs.out")
 
 def test_memory_read_write(start_binary):
     """
-    Tests simple pwndbg's memory read/write operations with different argument types
+    Tests simple pwndbg's memory read/write operations with different argument
+    types
     """
     start_binary(REFERENCE_BINARY)
     stack_addr = next(iter(pwndbg.aglib.stack.get().values())).vaddr

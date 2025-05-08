@@ -50,7 +50,8 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     """
     Example vmmap when debugging binary:
         LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA
-                  0x400000           0x401000 r-xp     1000 0      /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
+                  0x400000           0x401000 r-xp     1000 0
+    /opt/pwndbg/tests/gdb-tests/tests/binaries/crash_simple.out
             0x7ffff7ffa000     0x7ffff7ffd000 r--p     3000 0      [vvar]
             0x7ffff7ffd000     0x7ffff7fff000 r-xp     2000 0      [vdso]
             0x7ffffffde000     0x7ffffffff000 rwxp    21000 0      [stack]

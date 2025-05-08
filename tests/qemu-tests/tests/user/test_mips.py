@@ -44,8 +44,10 @@ end:
 @pytest.mark.parametrize("arch", ["mips32", "mipsel32"])
 def test_mips32_delay_slot(qemu_assembly_run, arch):
     """
-    MIPS has delay slots, meaning that when a branch is encountered, they is a "delay" in the branch taking effect.
-    The next instruction sequentially in memory is always executed, and then the result of the branch is applied.
+    MIPS has delay slots, meaning that when a branch is encountered, they is a
+    "delay" in the branch taking effect.
+    The next instruction sequentially in memory is always executed, and then the result
+    of the branch is applied.
 
     In the disasm output, we group the delay slot with the branch. After the delay slot instruction we put the blank line/line with a down arrow.
 
@@ -214,7 +216,8 @@ end:
 @pytest.mark.parametrize("arch", ["mips32", "mipsel32"])
 def test_mips32_call_instruction(qemu_assembly_run, arch):
     """
-    Ensure that MIPS "branch-and-link" instructions like "JAL" do not get unrolled, and have splits in disassembly correctly.
+    Ensure that MIPS "branch-and-link" instructions like "JAL" do not get unrolled,
+    and have splits in disassembly correctly.
 
     There's a bug in Capstone which doesn't consider JAL a jump-like/call instruction, so we have to manually add the jump group.
     See: https://github.com/capstone-engine/capstone/issues/2448
@@ -369,7 +372,8 @@ value3: .byte 0
 @pytest.mark.parametrize("arch", ["mips32", "mipsel32"])
 def test_mips32_load_instructions(qemu_assembly_run, arch):
     """
-    This test ensures our logic for load instructions - including sign-extension - is working correctly.
+    This test ensures our logic for load instructions - including sign-extension - is
+    working correctly.
 
     The size of the data reads is very important - the variables in the assembly have specific sizes to check that our reads don't overlap into other variables.
 
@@ -475,7 +479,8 @@ end:
 @pytest.mark.parametrize("arch", ["mips32", "mipsel32"])
 def test_mips32_multiple_branches_followed(qemu_assembly_run, arch):
     """
-    Ensure that emulation is setup correctly so as to follow multiple branches - bugs in how we handle delay slots and disable the emulator might break this.
+    Ensure that emulation is setup correctly so as to follow multiple branches - bugs
+    in how we handle delay slots and disable the emulator might break this.
     """
     qemu_assembly_run(MIPS_JUMPS, arch)
 
