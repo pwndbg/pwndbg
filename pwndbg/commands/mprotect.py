@@ -99,7 +99,8 @@ def mprotect(addr, length, prot) -> None:
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         print(
-            f"calling mprotect on address {aligned:#x} with protection {prot_int} ({prot_val_to_str(prot_int)})"
+            f"calling mprotect on address {aligned:#x} with "
+            f"protection {prot_int} ({prot_val_to_str(prot_int)})"
         )
 
         ret = await pwndbg.aglib.shellcode.exec_syscall(

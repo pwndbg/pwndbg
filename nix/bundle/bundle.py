@@ -182,13 +182,15 @@ def patch_library_macho(binary_path: Path, root_dst: Path, *, is_exe: bool):
     if is_exe:
         # For executable files (e.g., /abs/exe/gdb), replace absolute library paths with paths relative to the executable.
         # Example: replace /abs/lib/libLLVM.dylib with @executable_path/../lib/libLLVM.dylib
-        # This makes the executable locate libraries in its own relative directory structure at runtime.
-        prefix_lib = '@executable_path/'
+        # This makes the executable locate libraries in its own relative directory
+        # structure at runtime.
+        prefix_lib = "@executable_path/"
     else:
         # For shared libraries (e.g., /abs/lib/python3.12/capstone/foo.dylib), replace absolute library paths with paths relative to the library.
         # Example: replace /abs/lib/libiconv.2.dylib with @loader_path/../../libiconv.2.dylib
-        # This allows libraries to locate dependencies in a relative directory structure without absolute paths.
-        prefix_lib = '@loader_path/'
+        # This allows libraries to locate dependencies in a relative directory
+        # structure without absolute paths.
+        prefix_lib = "@loader_path/"
 
     # When `binary_path` is already patched. `iter_deps` should return empty list
     for src_lib_path in iter_deps(binary_path):

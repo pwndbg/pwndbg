@@ -285,7 +285,8 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
         # Notify the user about changes to the GOT.
         if not self.init:
             print(
-                f"[*] GOT entry {self.entry:#x} ({self.tracker.sym_display_name}@{self.tracker.obj_display_name}) now points to {new_target:#x}"
+                f"[*] GOT entry {self.entry:#x} ({self.tracker.sym_display_name}"
+                f"@{self.tracker.obj_display_name}) now points to {new_target:#x}"
             )
         self.init = False
 

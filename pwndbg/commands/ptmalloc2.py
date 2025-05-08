@@ -140,7 +140,8 @@ def print_no_arena_found_error(tid=None) -> None:
         tid = pwndbg.aglib.proc.thread_id
     print(
         message.notice(
-            f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
+            f"No arena found for thread {message.hint(tid)}"
+            " (the thread hasn't performed any allocations)."
         )
     )
 
@@ -150,7 +151,8 @@ def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
         tid = pwndbg.aglib.proc.thread_id
     print(
         message.notice(
-            f"No tcache bins found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
+            f"No tcache bins found for thread {message.hint(tid)}"
+            " (the thread hasn't performed any allocations)."
         )
     )
 
@@ -284,7 +286,8 @@ def arena(addr: int | None = None) -> None:
             return
         print(
             message.notice(
-                f"Arena for thread {message.hint(tid)} is located at: {message.hint(hex(arena.address))}"
+                f"Arena for thread {message.hint(tid)} is located at:"
+                f" {message.hint(hex(arena.address))}"
             )
         )
 
@@ -838,7 +841,8 @@ def find_fake_fast(
         if max_candidate_size > global_max_fast:
             print(
                 message.warn(
-                    f"Maximum candidate size {max_candidate_size:#04x} is greater than the global_max_fast value of {global_max_fast:#04x}"
+                    f"Maximum candidate size {max_candidate_size:#04x} is greater"
+                    f" than the global_max_fast value of {global_max_fast:#04x}"
                 )
             )
 
@@ -846,7 +850,8 @@ def find_fake_fast(
     if max_candidate_size > target_address:
         print(
             message.warn(
-                f"Maximum candidate size {max_candidate_size:#04x} is greater than the target address {target_address:#x}"
+                f"Maximum candidate size {max_candidate_size:#04x} is greater"
+                f" than the target address {target_address:#x}"
             )
         )
         print(message.warn(f"Using maximum candidate size of {target_address:#x}"))
@@ -854,7 +859,8 @@ def find_fake_fast(
     elif max_candidate_size < min_chunk_size:
         print(
             message.warn(
-                f"Maximum candidate size {max_candidate_size:#04x} is smaller than the minimum chunk size of {min_chunk_size:#04x}"
+                f"Maximum candidate size {max_candidate_size:#04x} is smaller"
+                f" than the minimum chunk size of {min_chunk_size:#04x}"
             )
         )
         print(message.warn(f"Using maximum candidate size of {min_chunk_size:#04x}"))
@@ -877,7 +883,8 @@ def find_fake_fast(
         ):
             print(
                 message.warn(
-                    "No fake fast chunk candidates found; memory preceding target address is not readable"
+                    "No fake fast chunk candidates found; memory preceding"
+                    " target address is not readable"
                 )
             )
             return None
@@ -889,14 +896,17 @@ def find_fake_fast(
         if search_start > (search_end - size_field_width):
             print(
                 message.warn(
-                    "No fake fast chunk candidates found; alignment didn't leave enough space for a size field"
+                    "No fake fast chunk candidates found; alignment didn't"
+                    " leave enough space for a size field"
                 )
             )
             return None
 
     print(
         message.notice(
-            f"Searching for fastbin size fields up to {max_candidate_size:#04x}, starting at {search_start:#x} resulting in an overlap of {target_address:#x}"
+            f"Searching for fastbin size fields up to {max_candidate_size:#04x},"
+            f" starting at {search_start:#x} resulting in an overlap of "
+            f"{target_address:#x}"
         )
     )
 
@@ -1000,7 +1010,8 @@ def vis_heap_chunks(
         and not all_chunks
     )
 
-    # If the first argument (count) is big enough (and address isn't provided) interpret it as an address
+    # If the first argument (count) is big enough (and address isn't provided)
+    # interpret it as an address
     if addr is None and count is not None and count > 0x1000:
         addr = count
         count = pwndbg.config.default_visualize_chunk_number
@@ -1376,7 +1387,8 @@ def try_free(addr: str | int) -> None:
         except pwndbg.dbg_mod.Error as e:
             print(
                 message.error(
-                    f"Can't read next chunk at address 0x{chunk + chunk_size_unmasked:x}, memory error"
+                    "Can't read next chunk at address "
+                    f"0x{chunk + chunk_size_unmasked:x}, memory error"
                 )
             )
             finalize(errors_found, returned_before_error)
@@ -1385,7 +1397,8 @@ def try_free(addr: str | int) -> None:
         # next chunk's size is big enough and small enough
         next_chunk_size = unsigned_size(next_chunk["size"])
         if next_chunk_size <= 2 * size_sz or chunksize(next_chunk_size) >= arena.system_mem:
-            err = "free(): invalid next size (fast) -> next chunk's size not in [2*size_sz; av->system_mem]\n"
+            err = "free(): invalid next size (fast) -> next chunk's size"
+            err += " not in [2*size_sz; av->system_mem]\n"
             err += "    next chunk's size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}"
             err = err.format(next_chunk_size, 2 * size_sz, arena.system_mem)
             print(message.error(err))
@@ -1407,13 +1420,15 @@ def try_free(addr: str | int) -> None:
             except pwndbg.dbg_mod.Error:
                 print(
                     message.error(
-                        f"Can't read top fastbin chunk at address 0x{fastbin_top_chunk:x}, memory error"
+                        f"Can't read top fastbin chunk at address 0x{
+    fastbin_top_chunk:x}, memory error"
                     )
                 )
                 finalize(errors_found, returned_before_error)
                 return
 
-            fastbin_top_chunk_size = chunksize(unsigned_size(fastbin_top_chunk["size"]))  # type: ignore[index]
+            fastbin_top_chunk_size = chunksize(unsigned_size(
+                fastbin_top_chunk["size"]))  # type: ignore[index]
             if chunk_fastbin_idx != allocator.fastbin_index(fastbin_top_chunk_size):
                 err = "invalid fastbin entry (free) -> chunk's size is not near top chunk's size\n"
                 err += "    chunk's size == {}, idx == {}\n"

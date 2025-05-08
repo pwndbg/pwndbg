@@ -91,7 +91,8 @@ def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str)
 
     if not all_ and not path_filter:
         return
-    # TODO: We might fail to find shared libraries if GDB can't find them (can't show them in `info sharedlibrary`)
+    # TODO: We might fail to find shared libraries if GDB can't find them
+    # (can't show them in `info sharedlibrary`)
     paths = pwndbg.gdblib.info.sharedlibrary_paths()
     for path in paths:
         if path_filter not in path:
@@ -125,7 +126,8 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
         bin_base_offset = pwndbg.aglib.proc.binary_base_addr if "PIE enabled" in pie_status else 0
     else:
         # TODO/FIXME: Is there a better way to get the base address of the loaded shared library?
-        # I guess parsing the vmmap result might also work, but what if it's not reliable or not available? (e.g. debugging with qemu-user)
+        # I guess parsing the vmmap result might also work, but what if it's not
+        # reliable or not available? (e.g. debugging with qemu-user)
         text_section_addr = pwndbg.gdblib.info.parsed_sharedlibrary()[path][0]
         with open(local_path, "rb") as f:
             bin_base_offset = (
@@ -151,15 +153,19 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
             else:
                 # Every fields are present in this case
                 # The output of readelf might look like this:
-                # 00000000001ec030  0000020a00000007 R_X86_64_JUMP_SLOT     000000000009ae80 realloc@@GLIBC_2.2.5 + 0
+                # 00000000001ec030  0000020a00000007 R_X86_64_JUMP_SLOT
+                # 000000000009ae80 realloc@@GLIBC_2.2.5 + 0
                 value, name = rest
             address = int(offset, 16) + bin_base_offset
-            # TODO/FIXME: This check might not work correctly if we failed to get the correct vmmap result
+            # TODO/FIXME: This check might not work correctly if we failed to get the
+            # correct vmmap result
             if not accept_readonly and not pwndbg.aglib.vmmap.find(address).write:
                 continue
             if not name and category == RelocationType.IRELATIVE:
-                # TODO/FIXME: I don't know the naming logic behind this yet, I'm just modifying @bata24's code here :p
-                # We might need to add some comments here to explain the logic in the future, and also fix it if something wrong
+                # TODO/FIXME: I don't know the naming logic behind this yet, I'm just modifying
+                # @bata24's code here :p
+                # We might need to add some comments here to explain the logic in the
+                # future, and also fix it if something wrong
                 if pwndbg.aglib.arch.name == "i386":
                     name = "*ABS*"
                 else:
@@ -181,9 +187,12 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
         relro_color = message.on
     print(f"State of the GOT of {message.notice(path)}:")
     print(
-        f"GOT protection: {relro_color(relro_status)} | Found {message.hint(len(outputs))} GOT entries passing the filter"
+          f"GOT protection: {relro_color(relro_status)} | "
+          f"Found {message.hint(len(outputs))} GOT entries passing the filter"
     )
     for output in outputs:
         print(
-            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.aglib.memory.pvoid(output['address']))}"  # type: ignore[arg-type]
+            # type: ignore[arg-type]
+            f"[{M.get(output['address'])}] {message.hint(output['name'])}"
+            f" -> {pwndbg.chain.format(pwndbg.aglib.memory.pvoid(output['address']))}"
         )

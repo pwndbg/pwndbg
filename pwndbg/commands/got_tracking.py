@@ -133,7 +133,8 @@ def got_report(soname=".*", writable=False, fnname=".*") -> None:
     fnname = re.compile(fnname)
 
     print(
-        f"Showing {'writable' if writable else 'all'} GOT function entries and how many times they were called."
+        f"Showing {'writable' if writable else 'all'} GOT"
+        " function entries and how many times they were called."
     )
     print()
 

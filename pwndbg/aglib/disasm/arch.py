@@ -66,14 +66,16 @@ pwndbg.config.add_param(
     help_docstring="Refers to register and memory value annotations.",
 )
 
-# If this is false, emulation is only used for the current instruction (if emulate-annotations is enabled)
+# If this is false, emulation is only used for the current instruction (if
+# emulate-annotations is enabled)
 pwndbg.config.add_param(
     "emulate-future-annotations",
     True,
     "unicorn emulation for future instruction's annotations",
 )
 
-# Effects future instructions, as past ones have already been cached and reflect the process state at the time
+# Effects future instructions, as past ones have already been cached and
+# reflect the process state at the time
 pwndbg.config.add_param("disasm-telescope-depth", 3, "depth of telescope for disasm annotations")
 
 # In disasm view, long telescoped strings might cause lines wraps
@@ -151,7 +153,8 @@ class DisassemblyAssistant:
         ] = {
             CS_OP_IMM: self._parse_immediate,  # Return immediate value
             CS_OP_REG: self._parse_register,  # Return value of register
-            # Handler for memory references (as dictated by Capstone), such as first operand of "mov qword ptr [rbx + rcx*4], rax"
+            # Handler for memory references (as dictated by Capstone), such as first
+            # operand of "mov qword ptr [rbx + rcx*4], rax"
             CS_OP_MEM: self._parse_memory,  # Return parsed address, do not dereference
         }
 
@@ -173,12 +176,15 @@ class DisassemblyAssistant:
 
         # There are 3 degrees of emulation:
         # 1. No emulation at all. In this case, the `emu` parameter should be None
-        # 2. Only emulate jumps - the only interaction with the emulator in this case is stepping it and reading the PC
-        # 3. Full emulation - read registers and memory from the emulator as well as determining jumps
+        # 2. Only emulate jumps - the only interaction with the emulator in this case is stepping it
+        #    and reading the PC
+        # 3. Full emulation - read registers and memory from the emulator as well
+        # as determining jumps
 
         if DEBUG_ENHANCEMENT:
             print(
-                f"Start enhancing instruction at {hex(instruction.address)} - {instruction.mnemonic} {instruction.op_str}"
+                f"Start enhancing instruction at "
+                f"{hex(instruction.address)} - {instruction.mnemonic} {instruction.op_str}"
             )
 
         # Get another reference to the emulator for the purposes of jumps
@@ -200,12 +206,14 @@ class DisassemblyAssistant:
             emu = None
 
         # Ensure emulator's program counter is at the correct location.
-        # This occurs very rarely - observed sometimes when the remote is stalling, ctrl-c, and for some reason emulator returns PC=0.
+        # This occurs very rarely - observed sometimes when the remote is
+        # stalling, ctrl-c, and for some reason emulator returns PC=0.
         if emu:
             if emu.pc != instruction.address:
                 if DEBUG_ENHANCEMENT:
                     print(
-                        f"Program counter and emu.pc do not line up: {hex(pwndbg.aglib.regs.pc)=} {hex(emu.pc)=}"
+                        "Program counter and emu.pc do not line up: "
+                        f"{hex(pwndbg.aglib.regs.pc)=} {hex(emu.pc)=}"
                     )
                 emu = jump_emu = None
 
@@ -419,7 +427,8 @@ class DisassemblyAssistant:
         else:
             return None
 
-    # Read memory of given size, taking into account emulation and being able to reason about the memory location
+    # Read memory of given size, taking into account emulation and being able
+    # to reason about the memory location
     def _read_memory(
         self,
         address: int,
@@ -530,7 +539,8 @@ class DisassemblyAssistant:
         # Just without any further information
         return [address]
 
-    # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
+    # Dispatch to the appropriate format handler. Pass the list returned by
+    # `telescope()` to this function
     def _telescope_format_list(self, addresses: List[int], limit: int, emu: Emulator) -> str:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
@@ -654,7 +664,8 @@ class DisassemblyAssistant:
         #
         # Firstly, we check the condition field - this field is manually set by our enhancement code
         # There are cases where the Unicorn emulator is incorrect - for example, delay slots in MIPS causing jumps to not resolve correctly
-        # due to the way we single-step the emulator. We want our own manual checks to override the emulator
+        # due to the way we single-step the emulator. We want our own manual
+        # checks to override the emulator
 
         if not instruction.call_like and (
             instruction.condition == InstructionCondition.TRUE or instruction.is_unconditional_jump
@@ -665,11 +676,13 @@ class DisassemblyAssistant:
             # Or, if this is a unconditional jump, we will try to resolve target
             next_addr = self._resolve_target(instruction, emu)
 
-        # Secondly, attempt to use emulation if we could not resolve the target above, or don't have custom condition handler for the architecture yet
+        # Secondly, attempt to use emulation if we could not resolve the target
+        # above, or don't have custom condition handler for the architecture yet
         if next_addr is None and jump_emu:
             # Use emulator to determine the next address:
             # 1. Only use it to determine non-call's (`nexti` should step over calls)
-            # 2. Make sure we haven't manually set .condition to False (which should override the emulators prediction)
+            # 2. Make sure we haven't manually set .condition to False (which should
+            # override the emulators prediction)
             if not instruction.call_like and instruction.condition != InstructionCondition.FALSE:
                 next_addr = jump_emu.pc
 
@@ -683,7 +696,8 @@ class DisassemblyAssistant:
             next_addr = instruction.address + instruction.size
 
         # Determine the target of this address.
-        # This is the address that the instruction could potentially change the program counter to, meaning that `stepi` would go to the target
+        # This is the address that the instruction could potentially change the
+        # program counter to, meaning that `stepi` would go to the target
         instruction.target = self._resolve_target(instruction, emu)
 
         instruction.next = next_addr & pwndbg.aglib.arch.ptrmask
@@ -703,7 +717,8 @@ class DisassemblyAssistant:
             instruction.target_const = True
 
     # This is the default implementation.
-    # Subclasses should override this for more accurate behavior/to catch more cases. See x86.py as example
+    # Subclasses should override this for more accurate behavior/to catch more
+    # cases. See x86.py as example
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
         """
         Architecture-specific hook point for _enhance_next.
@@ -734,7 +749,8 @@ class DisassemblyAssistant:
             # does a simple naive check. Iterate all operands, pick the first one resolves to a symbol or lands in executable memory
             # and use that as the target
 
-            # Reversed order, just because through observation the immediates and labels are often farther right
+            # Reversed order, just because through observation the immediates and
+            # labels are often farther right
             for op in reversed(instruction.operands):
                 resolved_addr = self._resolve_used_value(op.before_value, instruction, op, emu)
                 if resolved_addr:
@@ -868,7 +884,8 @@ class DisassemblyAssistant:
 
                 if instruction.annotation is None:
                     # First part of this function usually sets .annotation to a string. But if the instruction
-                    # has more than two operands, then we don't have a way of showing them, so this avoids the "+="" below
+                    # has more than two operands, then we don't have a way of showing them, so
+                    # this avoids the "+="" below
                     instruction.annotation = display_result
                 else:
                     instruction.annotation += " " * 5 + display_result
@@ -923,26 +940,31 @@ class DisassemblyAssistant:
             )
 
             if len(telescope_addresses) == 1:
-                # If telescope returned only 1 address (and we already know the address is in a mapped page)
-                # it means we couldn't reason about the dereferenced memory.
+                # If telescope returned only 1 address (and we already know the address is in a
+                # mapped page). It means we couldn't reason about the dereferenced memory.
                 # In this case, simply display the address
 
                 # As an example, this path is taken for the following case:
-                # mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in writeable memory,
-                # and we are not emulating. This means we cannot savely dereference if PC is not at the current instruction address,
-                # because the the memory address could have been written to by the time the instruction executes
+                # mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in
+                # writeable memory, and we are not emulating.
+                # This means we cannot savely dereference if PC is not at the current instruction
+                # address, because the the memory address could have been written to by the time
+                # the instruction executes
                 telescope_print = None
             else:
                 if signed and read_size != target_size and len(telescope_addresses) == 2:
-                    # We sign extend the value, then convert it back to the unsigned bit representation
+                    # We sign extend the value, then convert it back to the unsigned bit
+                    # representation
                     final_value = bit_math.to_signed(telescope_addresses[1], read_size * 8) & (
                         (1 << (target_size * 8)) - 1
                     )
-                    # If it's a signed read that required extension, it will just be a number with no special symbol/color needed
+                    # If it's a signed read that required extension, it will just be a number
+                    # with no special symbol/color needed
                     telescope_print = hex(final_value)
                 else:
                     # Start showing at dereferenced address, hence the [1:]
-                    telescope_print = f"{self._telescope_format_list(telescope_addresses[1:], TELESCOPE_DEPTH, emu)}"
+                    telescope_print = self._telescope_format_list(telescope_addresses[1:],
+                                                                  TELESCOPE_DEPTH, emu)
 
             instruction.annotation = f"{dest_str}, {source_str}"
 
@@ -1000,7 +1022,8 @@ class DisassemblyAssistant:
         """
         if len(instruction.operands) == 2:
             left, right = instruction.operands
-            # If we already used emulation, use the result, otherwise take the source operand before_value
+            # If we already used emulation, use the result, otherwise take the source
+            # operand before_value
             result = left.after_value or right.before_value
             if result is not None and result >= 0:
                 TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))

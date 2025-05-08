@@ -74,7 +74,8 @@ def enhance_cache_listener() -> None:
 @pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED)
 def clear_on_reg_mem_change() -> None:
     # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
-    # used by the instructions at or just after the current PC, and our previously emulated future instructions might be inaccurate
+    # used by the instructions at or just after the current PC, and our
+    # previously emulated future instructions might be inaccurate
     computed_instruction_cache.pop(pwndbg.aglib.regs.pc, None)
 
     for addr in next_addresses_cache:
@@ -332,7 +333,8 @@ def near(
             else:
                 raise
 
-    # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
+    # By using the same assistant for all the instructions disassembled in
+    # this pass, we can track and share information across the instructions
     assistant = pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
 
     # Start at the current instruction using emulation if available.
@@ -418,7 +420,8 @@ def near(
                 # Unicorn cannot be paused in a delay slot instruction.
                 # Single stepping on a branch will cause Unicorn to execute the delay slot instruction and take the branch action.
                 # This means the emulator's program counter will take on the value that the branch action dictates, and we would normally continue disassembling there.
-                # We disassemble the delay slot instructions here as the normal codeflow will not reach them.
+                # We disassemble the delay slot instructions here as the normal codeflow
+                # will not reach them.
 
                 split_insn = one(insn.address + insn.size, None, put_cache=True)
 

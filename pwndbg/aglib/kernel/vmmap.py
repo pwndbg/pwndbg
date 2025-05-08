@@ -100,7 +100,11 @@ class QemuMachine(Machine):
                 data += block
             return data
         except Exception as e:
-            msg = f"Physical address ({hex(physical_address)}, +{hex(length)}) is not accessible. Reason: {e}. gpa2hva result: {res}"
+            msg = (
+                f"Physical address ({hex(physical_address)},"
+                f" +{hex(length)}) is not accessible. Reason: "
+                "{e}. gpa2hva result: {res}"
+            )
             raise OSError(msg)
 
     def read_register(self, register_name: str) -> int:

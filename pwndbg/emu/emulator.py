@@ -238,7 +238,8 @@ class Emulator:
 
         # Whether the emulator is allowed to emulate instructions
         # There are cases when the emulator is incorrect or we want to disable it for certain instruction types,
-        # and so we can set this to False to indicate that we should not allow the emulator to continue to step
+        # and so we can set this to False to indicate that we should not allow the
+        # emulator to continue to step
         self.valid = True
 
         # Jump tracking state
@@ -271,7 +272,8 @@ class Emulator:
                 continue
 
             # Most registers are initialized to zero.
-            # However, some registers (CPSR on AArch64) do not default to zero, so we must explicitly set them to 0
+            # However, some registers (CPSR on AArch64) do not default to zero, so we
+            # must explicitly set them to 0
             if not emu_reg.force_write and value == 0:
                 continue
 

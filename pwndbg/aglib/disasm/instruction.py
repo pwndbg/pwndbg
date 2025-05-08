@@ -107,7 +107,8 @@ BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
 
 # Everything that is a CALL or a RET is a unconditional jump
 GENERIC_UNCONDITIONAL_JUMP_GROUPS = {CS_GRP_CALL, CS_GRP_RET, CS_GRP_IRET}
-# All branch-like instructions - jumps thats are non-call and non-ret - should have one of these two groups in Capstone
+# All branch-like instructions - jumps thats are non-call and non-ret -
+# should have one of these two groups in Capstone
 GENERIC_JUMP_GROUPS = {CS_GRP_JUMP, CS_GRP_BRANCH_RELATIVE}
 # All Capstone jumps should have at least one of these groups
 ALL_JUMP_GROUPS = GENERIC_JUMP_GROUPS | GENERIC_UNCONDITIONAL_JUMP_GROUPS
@@ -247,7 +248,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         # For ease, for x86 we will assume Intel syntax (destination operand first).
         # However, Capstone will disassemble using the `set disassembly-flavor` preference,
-        # and the order of operands are read left to right into the .operands array. So we flip operand order if AT&T
+        # and the order of operands are read left to right into the .operands
+        # array. So we flip operand order if AT&T
         if self.cs_insn._cs.syntax == CS_OPT_SYNTAX_ATT:
             self.cs_insn.operands.reverse()
 
@@ -427,7 +429,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Edge case - the jump target MAY be the next address in memory - so we check force_unconditional_jump_target
         """
         # The second check ensures that if the target address is itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
-        # Because capstone doesn't catch ALL cases of an instruction changing the PC, we don't have the `jump_like` in the first part of this check.
+        # Because capstone doesn't catch ALL cases of an instruction changing the
+        # PC, we don't have the `jump_like` in the first part of this check.
         return (
             self.target not in (None, self.address + self.size)
             and (self.target != self.address or self.jump_like)
@@ -475,7 +478,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         # True if:
         # - We manually determined in .condition that we take the jump
         # - Or that emulation determined the .next to go somewhere and we didn't explicitely set .condition to False.
-        #   Emulation can be incorrect, so we check the conditional for false to check if we manually override the emulator's decision
+        # Emulation can be incorrect, so we check the conditional for false to
+        # check if we manually override the emulator's decision
         return self.is_conditional_jump and (
             self.condition == InstructionCondition.TRUE
             or (
@@ -735,7 +739,8 @@ class ManualPwndbgInstruction(PwndbgInstruction):
     @override
     def op_find(self, op_type: int, position: int) -> EnhancedOperand:
         # raise NotImplementedError, because if this is called it indicates a bug elsewhere in the codebase.
-        # ManualPwndbgInstruction should not go through the enhancement process, where this would be called.
+        # ManualPwndbgInstruction should not go through the enhancement process,
+        # where this would be called.
         raise NotImplementedError
 
     @override

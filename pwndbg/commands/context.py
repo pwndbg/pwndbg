@@ -530,11 +530,9 @@ def contextsearch(needle, section) -> None:
             print(message.warn("No more matches before the current entry. Starting from the top."))
 
     selected_history_index = next_match[1]
-    print(
-        message.info(
-            f"Found {len(matches)} match{'es' if len(matches) > 1 else ''}. Selected entry {next_match[1] + 1} for match in section '{next_match[0]}'."
-        )
-    )
+    print(message.info(f"Found {len(matches)} match{'es' if len(matches) > 1 else ''}"
+                       f". Selected entry {next_match[1] + 1} for match in section"
+                       f" '{next_match[0]}'."))
     context()
 
 

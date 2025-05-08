@@ -22,7 +22,8 @@ _start:
 # It was observed that compiling the program on different Linux distros even with the same Zig version might
 # result in a couple of the bytes after svc being slightly different, resulting in the disassembly outputting
 # slightly different instructions, like udf #0 or udf #23, depending on the source distro.
-# To make this problem go away, the nops are added so that the disassembled instructions are consistent.
+# To make this problem go away, the nops are added so that the
+# disassembled instructions are consistent.
 AARCH64_GRACEFUL_EXIT = """
 mov x0, 0
 mov x8, 93

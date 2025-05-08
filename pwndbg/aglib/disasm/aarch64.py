@@ -158,7 +158,8 @@ AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
     AARCH64_EXT_UXTB: lambda x: x & ((1 << 8) - 1),
     AARCH64_EXT_UXTH: lambda x: x & ((1 << 16) - 1),
     AARCH64_EXT_UXTW: lambda x: x & ((1 << 32) - 1),
-    AARCH64_EXT_UXTX: lambda x: x,  # UXTX has no effect. It extracts 64-bits from a 64-bit register.
+    # UXTX has no effect. It extracts 64-bits from a 64-bit register.
+    AARCH64_EXT_UXTX: lambda x: x,
     AARCH64_EXT_SXTB: lambda x: bit_math.to_signed(x, 8),
     AARCH64_EXT_SXTH: lambda x: bit_math.to_signed(x, 16),
     AARCH64_EXT_SXTW: lambda x: bit_math.to_signed(x, 32),
@@ -314,7 +315,8 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
                 AARCH64_MATH_INSTRUCTIONS[instruction.id],
             )
         elif instruction.id in AARCH64_SHIFT_INSTRUCTIONS:
-            # AArch64 encoding of shifts forces special attention: https://github.com/capstone-engine/capstone/issues/2631
+            # AArch64 encoding of shifts forces special attention:
+            # https://github.com/capstone-engine/capstone/issues/2631
             if len(instruction.operands) == 2:
                 if instruction.operands[1].cs_op.shift.type in AARCH64_CONSTANT_SHIFTS:
                     self._common_binary_op_annotator(
@@ -409,7 +411,8 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
             return None
 
         if len(instruction.operands) > 0:
-            # For all AArch64 branches, the target is either an immediate or a register and is the last operand
+            # For all AArch64 branches, the target is either an immediate or a
+            # register and is the last operand
             if (val := instruction.operands[-1].before_value) is not None:
                 return val & pwndbg.aglib.arch.ptrmask
             return None
@@ -519,7 +522,8 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
         if target is None:
             return None
 
-        # We need this to retain the value of the un-shifted register in some annotations, such as shifts
+        # We need this to retain the value of the un-shifted register in some
+        # annotations, such as shifts
         op.before_value_no_modifiers = target
 
         # The shift and sign-extend operations depend on the target bit width.

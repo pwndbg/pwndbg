@@ -48,10 +48,12 @@ def check_style() -> None:
 
 def _fn_matches(filename, pattern):
     # faster alternative to the naive regex matching algorithm that pygments uses
-    # most of the regexs are of the form "*.<extension>", which can be converted to a simple string match
+    # most of the regexs are of the form "*.<extension>", which can be
+    # converted to a simple string match
     extension = pattern[2:]
     if pattern.isascii() and pattern[0] == "*" and pattern[1] == "." and extension.isalnum():
-        # to avoid an extra string copy, we also need to check whether the filename has a '.' before the extension
+        # to avoid an extra string copy, we also need to check whether the
+        # filename has a '.' before the extension
         return filename.endswith(extension) and filename[-len(extension) - 1] == "."
 
     # fall back to slow regex

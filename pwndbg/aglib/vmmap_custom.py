@@ -136,7 +136,8 @@ def get_memory_flags(address_maybe: int) -> int | None:
     # 3. Otherwise, just say it's not executable.
     if address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.pc):
         flags |= 1
-    # TODO: could maybe make this check look at the stacks in pwndbg.aglib.stack.get() but that might have issues
+    # TODO: could maybe make this check look at the stacks in
+    # pwndbg.aglib.stack.get() but that might have issues
     elif (
         address_maybe == pwndbg.lib.memory.page_align(pwndbg.aglib.regs.sp)
         and pwndbg.aglib.stack.is_executable()

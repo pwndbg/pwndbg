@@ -132,7 +132,8 @@ def find_pids(target, user, exact, all):
 
 @pwndbg.commands.Command(parser, category=CommandCategory.START)
 def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
-    # As a default, the user may want to attach to a binary name taken from currently loaded file name
+    # As a default, the user may want to attach to a binary name taken from
+    # currently loaded file name
     if target is None:
         bin_path = pwndbg.dbg.selected_inferior().main_module_name()
         if bin_path is None:

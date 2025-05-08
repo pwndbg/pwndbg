@@ -128,7 +128,8 @@ class Lambda:
 
     @property
     def gdb_expr(self) -> str:
-        # TODO: Don't use gdb.parse_and_eval here, directly fetching the value with `pwndbg.aglib.memory` would be better(?)
+        # TODO: Don't use gdb.parse_and_eval here, directly fetching the value
+        # with `pwndbg.aglib.memory` would be better(?)
         obj = self.obj
         if isinstance(obj, str):
             if obj.startswith("xmm"):
@@ -355,7 +356,8 @@ def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
             return UNSAT, output_msg
         if result == 0:
             if n > 1 and "-c" in exprs[n - 1]:
-                output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL because argv[{n-1}] = "-c"\n'
+                output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL'
+                output_msg += f'because argv[{n - 1}] = "-c"\n'
                 return UNSAT, output_msg
             else:
                 output_msg += f"argv[{n}] = {color_str} = NULL\n"
@@ -369,7 +371,8 @@ def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
             )
             return UNSAT, output_msg
         if n > 0:
-            output_msg += f"argv[{n}] = {color_str} = {result:#x} -> {bytes(pwndbg.aglib.memory.string(result))!r}\n"
+            output_msg += f"argv[{n}] = {color_str} = "
+            output_msg += f"{result:#x} -> {bytes(pwndbg.aglib.memory.string(result))!r}\n"
         else:
             output_msg += (
                 f"argv[{n}] = {color_str} = {result:#x}, {color_str} is a readable address\n"
@@ -396,7 +399,8 @@ def check_non_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
         try:
             argv_n = pwndbg.aglib.memory.pvoid(argv + n * pwndbg.aglib.arch.ptrsize)
         except pwndbg.dbg_mod.Error:
-            output_msg += f"&argv[{n}] = {argv + n * pwndbg.aglib.arch.ptrsize:#x}, {argv + n * pwndbg.aglib.arch.ptrsize:#x} is a invalid address\n"
+            output_msg += f"&argv[{n}] = {argv + n * pwndbg.aglib.arch.ptrsize:#x}"
+            output_msg += f", {argv + n * pwndbg.aglib.arch.ptrsize:#x} is a invalid address\n"
             return UNSAT, output_msg
         if argv_n == 0:
             if n > 1:
@@ -429,7 +433,8 @@ def check_envp(expr: str) -> Tuple[bool, str]:
     """
     output_msg = ""
     if expr.startswith("{"):
-        # Note: we don't have to handle this case for now, but might need to implement it in the future
+        # Note: we don't have to handle this case for now, but might need to
+        # implement it in the future
         return False, output_msg
 
     envp, color_str, err = parse_expression(expr)
@@ -446,7 +451,8 @@ def check_envp(expr: str) -> Tuple[bool, str]:
         try:
             envp_n = pwndbg.aglib.memory.pvoid(envp + n * pwndbg.aglib.arch.ptrsize)
         except pwndbg.dbg_mod.Error:
-            output_msg += f"&envp[{n}] = {envp + n * pwndbg.aglib.arch.ptrsize:#x}, {envp + n * pwndbg.aglib.arch.ptrsize:#x} is a invalid address\n"
+            output_msg += f"&envp[{n}] = {envp + n * pwndbg.aglib.arch.ptrsize:#x},"
+            output_msg += f" {envp + n * pwndbg.aglib.arch.ptrsize:#x} is a invalid address\n"
             return False, output_msg
         if envp_n == 0:
             output_msg += f"envp[{n}] is NULL, {color_str} is a valid envp\n"
@@ -494,7 +500,8 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
             if err is None:
                 page = pwndbg.aglib.vmmap.find(result)
                 passed = page is not None and page.write
-                output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}writable\n"
+                output_msg += f"{color_str} = {result:#x}, {color_str} is "
+                output_msg += f"{'' if passed else 'not '}writable\n"
             else:
                 output_msg += f"{err} while parsing {color_str}\n"
                 passed = False
@@ -535,7 +542,8 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
         if err is None:
             assert isinstance(result, int)  # somehow mypy is complaining without this :/
             passed = result & 0xF == value
-            output_msg += f"{color_str} = {result:#x}, {color_str} & 0xf {'==' if passed else '!='} {value:#x}\n"
+            output_msg += f"{color_str} = {result:#x}, {color_str} & 0xf"
+            output_msg += f" {'==' if passed else '!='} {value:#x}\n"
         else:
             output_msg += f"{err} while parsing {color_str}\n"
     elif IS_GOT_ADDRESS_PATTERN.match(constraint):
@@ -544,7 +552,9 @@ def check_constraint(constraint: str) -> Tuple[CheckSatResult, str]:
         if err is None:
             got_plt_address = pwndbg.glibc.get_section_address_by_name(".got.plt")
             passed = result == got_plt_address
-            output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_plt_address:#x}) of libc\n"
+            output_msg += f"{color_str} = {result:#x}, {color_str} is"
+            output_msg += f" {'' if passed else 'not '}the GOT address"
+            output_msg += f" ({got_plt_address:#x}) of libc\n"
         else:
             output_msg += f"{err} while parsing {color_str}\n"
     else:

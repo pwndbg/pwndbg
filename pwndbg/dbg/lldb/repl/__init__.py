@@ -311,7 +311,8 @@ def run(
         elif isinstance(action, YieldExecDirect):
             if debug:
                 print(
-                    f"[-] REPL: Executing command '{action._command}' {'with' if action._capture else 'without'} output capture"
+                    f"[-] REPL: Executing command '{action._command}'"
+                    f" {'with' if action._capture else 'without'} output capture"
                 )
 
             last_command = action._command
@@ -353,7 +354,8 @@ def exec_repl_command(
     if bits[0] == "lldb":
         print(
             message.warn(
-                "You are now entering LLDB mode. In this mode, certain commands may cause Pwndbg to break. Proceed with caution."
+                "You are now entering LLDB mode. In this mode, certain commands may cause"
+                " pwndbg to break. Proceed with caution."
             )
         )
         dbg.debugger.RunCommandInterpreter(
@@ -932,7 +934,8 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
     if "plugin" not in args or args.plugin != "gdb-remote":
         print(
             message.error(
-                "Pwndbg only supports the gdb-remote plugin for 'process connect'. Please specify it with the '-p gdb-remote' argument."
+                "Pwndbg only supports the gdb-remote plugin for 'process connect'."
+                " Please specify it with the '-p gdb-remote' argument."
             )
         )
         return
@@ -969,7 +972,8 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
         if not error.success or not target.IsValid():
             print(
                 message.error(
-                    f"error: could not automatically create target for 'process connect': {error.description}"
+                    "error: could not automatically create target for"
+                    f" 'process connect': {error.description}"
                 )
             )
             return

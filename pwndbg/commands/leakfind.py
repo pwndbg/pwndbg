@@ -131,7 +131,8 @@ def leakfind(
         raise argparse.ArgumentTypeError("Unable to read from starting address.")
 
     # Just warn the user that a large depth might be slow.
-    # Probably worth checking offset^depth < threshold. Do this when more benchmarking is established.
+    # Probably worth checking offset^depth < threshold. Do this when more
+    # benchmarking is established.
     if max_depth > 8:
         print(message.warn("leakfind may take a while to run on larger depths."))
 

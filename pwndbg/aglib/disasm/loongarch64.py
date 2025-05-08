@@ -51,7 +51,8 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
         if len(instruction.operands) == 0:
             return InstructionCondition.UNDETERMINED
 
-        # Not using list comprehension because they run in a separate scope in which super() does not exist
+        # Not using list comprehension because they run in a separate scope in
+        # which super() does not exist
         resolved_operands: List[int] = []
         for op in instruction.operands:
             resolved_operands.append(

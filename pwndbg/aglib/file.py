@@ -162,7 +162,8 @@ def is_vfile_qemu_user_bug() -> bool:
 
     # On a bugged QEMU version, the response is `F-1,36`
     # On a fixed QEMU version, the response is `F-1,24`
-    # This performs the syscall: `openat(0, "/\01*256", O_RDONLY|0x20) = -1 ENAMETOOLONG (File name too long)`
+    # This performs the syscall: `openat(0, "/\01*256", O_RDONLY|0x20) = -1
+    # ENAMETOOLONG (File name too long)`
     response = pwndbg.dbg.selected_inferior().send_remote("vFile:open:2f" + ("01" * 256))
     return response == b"F-1,36"
 

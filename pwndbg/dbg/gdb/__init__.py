@@ -482,7 +482,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 # To work around this, we perform a binary search in the `_find_memory_last_readable` method
                 # to find the correct stop address that avoids the failure.
                 #
-                # For local debugging, this issue does not occur, and we proceed with the normal flow.
+                # For local debugging, this issue does not occur, and we proceed with the
+                # normal flow.
                 if (stop_addr := self._find_memory_last_readable(addr, count)) > 0:
                     return self.read_memory(addr, stop_addr - addr + 1)
 
@@ -1686,7 +1687,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
                         locations.append(pwndbg.dbg_mod.BreakpointLocation(location.address))
                 else:
                     # Num     Type           Disp Enb Address            What
-                    # 1       breakpoint     keep y   0x00007ffff7e90840 in __GI___libc_read at ../sysdeps/unix/sysv/linux/read.c:26
+                    # 1       breakpoint     keep y   0x00007ffff7e90840 in __GI___libc_read
+                    # at ../sysdeps/unix/sysv/linux/read.c:26
                     bp_locations = gdb.execute(
                         f"info breakpoint {bp.number}", to_string=True
                     ).split("\n")

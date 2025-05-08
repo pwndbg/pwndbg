@@ -56,7 +56,8 @@ pwndbg.config.add_param(
     "ai-model",
     "gpt-3.5-turbo",  # the new conversational model
     "the name of the large language model to query",
-    help_docstring="Changing this affects the behavior, response quality, and cost (if applicable) of AI responses.",
+    help_docstring="""Changing this affects the behavior, response quality, and cost (if applicable)
+of AI responses.""",
 )
 pwndbg.config.add_param(
     "ai-temperature",
@@ -68,7 +69,8 @@ pwndbg.config.add_param(
     "ai-max-tokens",
     100,
     "the maximum number of tokens to return in the response",
-    help_docstring="Useful when limiting verbosity or conserving resources. Set to a lower value to restrict output.",
+    help_docstring="""Useful when limiting verbosity or conserving resources.
+Set to a lower value to restrict output.""",
 )
 pwndbg.config.add_param(
     "ai-show-usage",
@@ -294,7 +296,8 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
     if verbosity > 0:
         print(
             M.notice(
-                f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{pprint.pformat(prompt)}"
+                f"Querying {model} for {max_tokens} tokens at temperature {temperature}"
+                f" with the following prompt:\n\n{pprint.pformat(prompt)}"
             )
         )
     data = {
@@ -321,7 +324,11 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
     if pwndbg.config.ai_show_usage:
         print(
             M.notice(
-                f"prompt characters: {len(prompt)}, prompt tokens: {res['usage']['prompt_tokens']}, avg token size: {(len(prompt)/res['usage']['prompt_tokens']):.2f}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
+                f"prompt characters: {len(prompt)}, prompt tokens: "
+                f"{res['usage']['prompt_tokens']}, avg token size: "
+                f"{(len(prompt) / res['usage']['prompt_tokens']):.2f}"
+                f", completion tokens: {res['usage']['completion_tokens']},"
+                f" total tokens: {res['usage']['total_tokens']}"
             )
         )
     reply = res["choices"][0]["message"]["content"]
@@ -332,7 +339,8 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
     if verbosity > 0:
         print(
             M.notice(
-                f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{prompt}"
+                f"Querying {model} for {max_tokens} tokens at temperature {temperature}"
+                f" with the following prompt:\n\n{prompt}"
             )
         )
     data = {
@@ -361,7 +369,11 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
     if pwndbg.config.ai_show_usage:
         print(
             M.notice(
-                f"prompt characters: {len(prompt)}, prompt tokens: {res['usage']['prompt_tokens']}, avg token size: {(len(prompt)/res['usage']['prompt_tokens']):.2f}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
+                f"prompt characters: {len(prompt)}, prompt tokens:"
+                f" {res['usage']['prompt_tokens']}, avg token size:"
+                f" {(len(prompt) / res['usage']['prompt_tokens']):.2f},"
+                f" completion tokens: {res['usage']['completion_tokens']},"
+                f" total tokens: {res['usage']['total_tokens']}"
             )
         )
     return reply
@@ -369,7 +381,11 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
 
 def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
     if dummy:
-        return f"""This is a dummy response for unit testing purposes.\nmodel = {model}, max_tokens = {max_tokens}, temperature = {temperature}\n\nPrompt:\n\n{prompt}"""
+        return (
+            f"""This is a dummy response for unit testing purposes.\n"
+            f"model = {model}, max_tokens = {max_tokens}, temperature = "
+            f"{temperature}\n\nPrompt:\n\n{prompt}"""
+        )
     if pwndbg.config.ai_ollama_endpoint:
         if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)

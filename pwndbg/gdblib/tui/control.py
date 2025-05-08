@@ -29,7 +29,8 @@ class ControlTUIWindow:
         pass
 
     def click(self, x: int, y: int, button: int) -> None:
-        # button specifies which mouse button was used, whose values can be 1 (left), 2 (middle), or 3 (right).
+        # button specifies which mouse button was used, whose values can be 1
+        # (left), 2 (middle), or 3 (right).
         if button != 1:
             return
 

@@ -471,7 +471,8 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
             # defined. Either way, print a warning and do nothing.
             print(
                 message.warn(
-                    f"[-] realloc({self.freed_pointer:#x}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
+                    f"[-] realloc({self.freed_pointer:#x}, {requested_size}) ignored, as"
+                    " realloc(0, ...) is implementation defined"
                 )
             )
             return False
@@ -511,7 +512,8 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
             malloc()
             self.tracker.exit_memory_management()
 
-            msg = f"realloc() to {self.requested_size} bytes with previously unknown pointer {self.freed_ptr:#x}"
+            msg = f"realloc() to {self.requested_size} bytes with previously"
+            msg += f" unknown pointer {self.freed_ptr:#x}"
             print(f"[!] {msg}")
 
             global stop_on_error

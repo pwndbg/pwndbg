@@ -81,25 +81,59 @@ line-length = 100
 [tool.ruff.lint]
 ignore = ["A003", "E402", "E501", "E731", "F405", "F821", "W505"]
 
+# messes with ruff formatting
+#     "ISC",    # flake8-implicit-str-concat
+
+# default select is ["E4", "E7", "E9", "F"]
 select = [
     "A",      # flake8-builtins
     "E",      # pycodestyle
     "F",      # pyflakes
     "W",      # pycodestyle
     "C4",     # flake8-comprehensions
-    "ISC",    # flake8-implicit-str-concat
-    "SLOT",   # flake8-slots
-    "FLY",    # flynt
-    "PGH",    # pygrep-hooks
-    "RET506", # flake8-return: superfluous-else-raise
-    "RET507", # flake8-return: superfluous-else-continue
-    "RET508", # flake8-return: superfluous-else-break
-    # We want to enable the below lints, but they currently return too many errors
-    # "RET505", # flake8-return: superfluous-else-return
-    # "SLF" # flake8-self
-    # "SIM", # flake8-simplify
-    # "PTH", # flake8-use-pathlib
 ]
+#     "SLOT",   # flake8-slots
+#     "FLY",    # flynt
+#     "PGH",    # pygrep-hooks
+#     "RET506", # flake8-return: superfluous-else-raise
+#     "RET507", # flake8-return: superfluous-else-continue
+#     "RET508", # flake8-return: superfluous-else-break
+#     # We want to enable the below lints, but they currently return too many errors
+#     # "RET505", # flake8-return: superfluous-else-return
+#     # "SLF" # flake8-self
+#     # "SIM", # flake8-simplify
+#     # "PTH", # flake8-use-pathlib
+# ]
+
+# [tool.ruff.lint.flake8-builtins]
+# builtins-ignorelist = [
+#     "all",
+#     "bin",
+#     "breakpoint",
+#     "copyright",
+#     "dir",
+#     "exit",
+#     "format",
+#     "hex",
+#     "map",
+#     "max",
+#     "min",
+#     "next",
+#     "type",
+# ]
+
+[tool.ruff.lint.per-file-ignores]
+"pwndbg/aglib/disasm/x86.py" = ["F405"]
+"pwndbg/aglib/disasm/sparc.py" = ["F405"]
+"pwndbg/aglib/disasm/riscv.py" = ["F405"]
+"pwndbg/aglib/disasm/mips.py" = ["F405"]
+"pwndbg/aglib/disasm/loongarch64.py" = ["F405"]
+"pwndbg/aglib/disasm/instruction.py" = ["F405"]
+"pwndbg/aglib/disasm/disassembly.py" = ["F405"]
+"pwndbg/aglib/disasm/arm.py" = ["F405"]
+"pwndbg/aglib/disasm/arch.py" = ["F405"]
+"pwndbg/aglib/disasm/aarch64.py" = ["F405"]
+# "__init__.py" = ["F401"]
 
 [tool.uv]
 default-groups = []

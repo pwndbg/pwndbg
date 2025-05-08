@@ -39,7 +39,8 @@ def mask(current_field_width, current_field_shift):
     return ((1 << current_field_width) - 1) << current_field_shift
 
 
-# For size class related explanation and calculations, refer to https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/sc.h#L8
+# For size class related explanation and calculations, refer to
+# https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/sc.h#L8
 
 LG_QUANTUM = 4  # LG_QUANTUM ensures correct platform alignment and necessary to ensure we never return improperly aligned memory
 
@@ -64,7 +65,8 @@ SC_NSIZES = SC_NTINY + SC_NPSEUDO + SC_NREGULAR
 SC_LG_SLAB_MAXREGS = LG_PAGE - SC_LG_TINY_MIN
 
 
-# Source: https://github.com/jemalloc/jemalloc/blob/dev/include/jemalloc/internal/bit_util.h#L400-L419
+# Source:
+# https://github.com/jemalloc/jemalloc/blob/dev/include/jemalloc/internal/bit_util.h#L400-L419
 def lg_floor_1(x):
     return 0
 
@@ -157,7 +159,9 @@ EDATA_BITS_IS_HEAD_MASK = mask(EDATA_BITS_IS_HEAD_WIDTH, EDATA_BITS_IS_HEAD_SHIF
 
 # In RTree, Each level distinguishes a certain number of bits from the key, which helps in narrowing down the search space
 # bits: how many bits have been used at that particular level (Number of key bits distinguished by this level)
-# cumbits: how many bits in total have been used up to that level (Cumulative number of key bits distinguished by traversing to corresponding tree level)
+# cumbits: how many bits in total have been used up to that level
+# (Cumulative number of key bits distinguished by traversing to
+# corresponding tree level)
 rtree_levels = [
     # for height == 1
     [{"bits": RTREE_NSB, "cumbits": RTREE_NHIB + RTREE_NSB}],
@@ -280,7 +284,8 @@ class RTree:
         )
         child_repr = int(fetched_struct["child"]["repr"])
 
-        # on node element, child contains the bits with which we can find another node or leaf element
+        # on node element, child contains the bits with which we can find another
+        # node or leaf element
         if child_repr == 0:
             return None
 
@@ -291,19 +296,22 @@ class RTree:
             "struct rtree_leaf_elm_s", addr
         )
 
-        # On leaf element, le_bits contains the virtual memory address bits so we can use it to find the extent address
+        # On leaf element, le_bits contains the virtual memory address bits so we
+        # can use it to find the extent address
         val = int(fetched_struct["le_bits"]["repr"])
         if val == 0:
             return None
 
         # In this function, we are trying to find the extent address given the address of memory block
-        # that this extent is managing (which is represented by edata->e_addr in the extent structure)
+        # that this extent is managing (which is represented by edata->e_addr in
+        # the extent structure)
 
         # e_addr is 64 bits but
         # e_addr is also page (4096) aligned which means last 12 bits are zero and therefore unused
         # In rtree, each layer can be accessed using bits 0-16, 17-33 and 34-51
         # When height of rtree is 3, level 1 can be accessed using bits 0-16, and so on for level 2 and 3
-        # When the height is 2, 0-15 bits are unused and level 1 can be accessed using bits 16-33 and level 2 using 34-51
+        # When the height is 2, 0-15 bits are unused and level 1 can be accessed
+        # using bits 16-33 and level 2 using 34-51
 
         ls = (val << RTREE_NHIB) & ((2**64) - 1)
         ptr = ((ls >> RTREE_NHIB) >> 1) << 1

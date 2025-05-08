@@ -48,7 +48,10 @@ def generate_expected_malloc_chunk_output(chunks):
     )
     real_size = size & (0xFFFFFFFFFFFFFFF - 0b111)
     expected["tcache"] = [
-        f"Free chunk ({'tcachebins' if pwndbg.aglib.heap.current.has_tcache else 'fastbins'}) | PREV_INUSE",
+        (
+            f"Free chunk ({'tcachebins' if pwndbg.aglib.heap.current.has_tcache else 'fastbins'})"
+            f" | PREV_INUSE"
+        ),
         f"Addr: {int(chunks['tcache'].address):#x}",
         f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         f"fd: 0x{int(chunks['tcache']['fd']):02x}",
@@ -265,10 +268,14 @@ def test_malloc_chunk_dump_command(start_binary):
         f"Size: 0x{real_size:02x} (with flag bits: 0x{size:02x})",
         "",
         "hexdump",
-        f"+0000 0x{chunk_addr:x}  00 00 00 00 00 00 00 00  31 00 00 00 00 00 00 00  │........│1.......│",
-        f"+0010 0x{chunk_addr+0x10:x}  54 68 69 73 20 69 73 20  61 20 74 65 73 74 20 73  │This.is.│a.test.s│",
-        f"+0020 0x{chunk_addr+0x20:x}  74 72 69 6e 67 00 00 00  00 00 00 00 00 00 00 00  │tring...│........│",
-        f"+0030 0x{chunk_addr+0x30:x}  00 00 00 00 00 00 00 00                           │........│        │",
+        f"+0000 0x{chunk_addr:x}  00 00 00 00 00 00 00 00"
+        "  31 00 00 00 00 00 00 00  │........│1.......│",
+        f"+0010 0x{chunk_addr + 0x10:x}  54 68 69 73 20 69 73 20"
+        "  61 20 74 65 73 74 20 73  │This.is.│a.test.s│",
+        f"+0020 0x{chunk_addr + 0x20:x}  74 72 69 6e 67 00 00 00"
+        "  00 00 00 00 00 00 00 00  │tring...│........│",
+        f"+0030 0x{chunk_addr + 0x30:x}  00 00 00 00 00 00 00 00"
+        "                           │........│        │",
     ]
 
     # now just compare the output
@@ -323,7 +330,8 @@ def test_main_arena_heuristic(start_binary):
         "main_arena", prefer_static=True
     )
 
-    # Check if we can get the address of `main_arena` from debug symbols and the struct of `main_arena` is correct
+    # Check if we can get the address of `main_arena` from debug symbols and
+    # the struct of `main_arena` is correct
     assert pwndbg.aglib.heap.current.main_arena is not None
     # Check the address of `main_arena` is correct
     assert pwndbg.aglib.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
@@ -334,7 +342,8 @@ def test_main_arena_heuristic(start_binary):
     )
     pwndbg.aglib.heap.current = type(pwndbg.aglib.heap.current)()  # Reset the heap object of pwndbg
 
-    # Check if we can get the address of `main_arena` by parsing the .data section of the ELF of libc
+    # Check if we can get the address of `main_arena` by parsing the .data
+    # section of the ELF of libc
     with mock_for_heuristic(["main_arena"]):
         assert pwndbg.aglib.heap.current.main_arena is not None
         # Check the address of `main_arena` is correct
@@ -387,7 +396,8 @@ def test_thread_cache_heuristic(start_binary, is_multi_threaded):
     )
     thread_cache_addr_via_debug_symbol = pwndbg.aglib.memory.u(tcache_addr_via_debug_symbol)
 
-    # Check if we can get the address of `thread_cache` from debug symbols and the struct of `thread_cache` is correct
+    # Check if we can get the address of `thread_cache` from debug symbols and
+    # the struct of `thread_cache` is correct
     assert pwndbg.aglib.heap.current.thread_cache is not None
     # Check the address of `thread_cache` is correct
     assert pwndbg.aglib.heap.current.thread_cache.address == thread_cache_addr_via_debug_symbol
@@ -433,13 +443,16 @@ def test_thread_arena_heuristic(start_binary, is_multi_threaded):
     thread_arena_via_debug_symbol = pwndbg.aglib.memory.u(thread_arena_via_debug_symbol)
     assert thread_arena_via_debug_symbol > 0
 
-    # Check if we can get the address of `thread_arena` from debug symbols and the value of `thread_arena` is correct
+    # Check if we can get the address of `thread_arena` from debug symbols and
+    # the value of `thread_arena` is correct
     assert pwndbg.aglib.heap.current.thread_arena is not None
     # Check the address of `thread_arena` is correct
     assert pwndbg.aglib.heap.current.thread_arena.address == thread_arena_via_debug_symbol
     pwndbg.aglib.heap.current = type(pwndbg.aglib.heap.current)()  # Reset the heap object of pwndbg
 
-    # Check if we can use brute-force to find the `thread_arena` when multi-threaded, and if we can use the `main_arena` as the `thread_arena` when single-threaded
+    # Check if we can use brute-force to find the `thread_arena` when
+    # multi-threaded, and if we can use the `main_arena` as the `thread_arena`
+    # when single-threaded
     with mock_for_heuristic(["thread_arena"]):
         # mock the prompt to avoid input
         pwndbg.aglib.heap.current.prompt_for_brute_force_thread_arena_permission = lambda: True
@@ -461,13 +474,15 @@ def test_global_max_fast_heuristic(start_binary):
     )
     assert global_max_fast_addr_via_debug_symbol is not None
 
-    # Check if we can get the address of `global_max_fast` from debug symbols and the value of `global_max_fast` is correct
+    # Check if we can get the address of `global_max_fast` from debug symbols
+    # and the value of `global_max_fast` is correct
     assert pwndbg.aglib.heap.current.global_max_fast is not None
     # Check the address of `global_max_fast` is correct
     assert pwndbg.aglib.heap.current._global_max_fast_addr == global_max_fast_addr_via_debug_symbol
     pwndbg.aglib.heap.current = type(pwndbg.aglib.heap.current)()  # Reset the heap object of pwndbg
 
-    # Check if we can return the default value even if we can NOT find the address of `global_max_fast`
+    # Check if we can return the default value even if we can NOT find the
+    # address of `global_max_fast`
     with mock_for_heuristic(["global_max_fast"]):
         assert pwndbg.aglib.heap.current.global_max_fast == pwndbg.aglib.memory.u(
             global_max_fast_addr_via_debug_symbol

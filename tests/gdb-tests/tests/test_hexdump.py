@@ -74,9 +74,12 @@ def test_hexdump_collapse_lines(start_binary):
         out = gdb.execute(f"hexdump $rsp {offset+16}", to_string=True)
 
         expected = (
-            f"+0000 0x{sp:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
-            f"... ↓            skipped {skipped_lines} identical lines ({skipped_lines*16} bytes)\n"
-            f"+{offset:04x} 0x{sp+offset:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
+            f"+0000 0x{sp:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08"
+            "  │abcdefgh│........│\n"
+            f"... ↓            skipped {skipped_lines} identical lines"
+            f" ({skipped_lines * 16} bytes)\n"
+            f"+{offset:04x} 0x{sp + offset:x}  61 62 63 64 65 66 67 68"
+            "  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
         )
         assert out == expected
 
@@ -98,7 +101,8 @@ def test_hexdump_saved_address_and_offset(start_binary):
     out1 = gdb.execute(f"hexdump $rsp {SIZE}", to_string=True)
     out2 = (
         f"+0000 0x{sp:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
-        f"+0010 0x{sp+0x10:x}  61 62 63 64 65                                    │abcde   │        │\n"
+        f"+0010 0x{sp + 0x10:x}  61 62 63 64 65                             "
+        "       │abcde   │        │\n"
     )
 
     assert out1 == out2

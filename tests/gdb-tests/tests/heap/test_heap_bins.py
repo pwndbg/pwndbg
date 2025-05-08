@@ -287,7 +287,9 @@ def test_largebins_size_range_32bit_big(start_binary):
         "0xac0-0xaf0",
         "0xb00-0xb30",
         "0xb40-0xb70",
-        "0xb80-0xb70",  # Largebin 31 (bin 95) is unused, but its size is used to calculate the previous bin's maximum chunk size.
+        # Largebin 31 (bin 95) is unused, but its size is used to calculate the
+        # previous bin's maximum chunk size.
+        "0xb80-0xb70",
         "0xb80-0xbf0",
         "0xc00-0xdf0",
         "0xe00-0xff0",

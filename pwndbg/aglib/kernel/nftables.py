@@ -257,7 +257,8 @@ class Chain(NftFields):
     userdata: bytearray  # NFTA_CHAIN_USERDATA
     policy: int  # NFTA_CHAIN_POLICY
     type: str  # NFTA_CHAIN_TYPE
-    # TODO: implement: counters # NFTA_CHAIN_COUNTERS chain->basechain->stats (struct nft_stats __percpu *stats;)
+    # TODO: implement: counters # NFTA_CHAIN_COUNTERS chain->basechain->stats
+    # (struct nft_stats __percpu *stats;)
 
     def __init__(self, addr: pwndbg.dbg_mod.Value):
         self._addr = addr  # struct nft_chain *

@@ -241,7 +241,8 @@ class PsuedoEmulatedRegisterFile:
             if sign_extend:
                 value = bit_math.to_signed(value, source_width * 8) & written_register_mask
 
-        # Bitmask of the register positioned in the full register. Ex: ah register is bits [15-8] in RAX.
+        # Bitmask of the register positioned in the full register. Ex: ah register
+        # is bits [15-8] in RAX.
         value_mask = written_register_mask << register_bit_offset
 
         # The bits we will place into the register

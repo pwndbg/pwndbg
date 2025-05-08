@@ -92,7 +92,8 @@ def print_map(page: Page) -> None:
 def print_adjacent_map(map_start: Page, map_end: Page) -> None:
     print(
         green(
-            f"{gap_text(map_end)} {'ADJACENT':>9} {hex(map_end.end - map_start.start):>{2 + 2 * pwndbg.aglib.arch.ptrsize}}"
+            f"{gap_text(map_end)} {'ADJACENT':>9}"
+            f" {hex(map_end.end - map_start.start):>{2 + 2 * pwndbg.aglib.arch.ptrsize}}"
         )
     )
 
@@ -382,7 +383,8 @@ def vmmap_load(filename) -> None:
     print(f'Load "{filename}" ...')
     file_basename = os.path.basename(filename)
 
-    # TODO: Add an argument to let use to choose loading the page information from sections or segments
+    # TODO: Add an argument to let use to choose loading the page information
+    # from sections or segments
 
     # Use section information to recover the segment information.
     # The entry point of bare metal environment is often at the first segment.

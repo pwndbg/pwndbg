@@ -52,7 +52,8 @@ def find_address_with_pthread_self() -> int:
     # arm: https://elixir.bootlin.com/glibc/latest/source/sysdeps/arm/nptl/tls.h#L76
     # loongarch64: https://github.com/bminor/glibc/blob/1c9ac027a5deb6c3e026be0e88d38959529e6102/sysdeps/loongarch/nptl/tls.h#L64
     # For i386 and x86-64, the return value of the pthread_self() is the address of TLS, because the value is self reference of the TLS: https://elixir.bootlin.com/glibc/glibc-2.37/source/nptl/pthread_create.c#L671
-    # But for arm, the implementation of THREAD_SELF is different, we need to add sizeof(struct pthread) to the result to get the address of TLS.
+    # But for arm, the implementation of THREAD_SELF is different, we need to
+    # add sizeof(struct pthread) to the result to get the address of TLS.
 
     if pwndbg.aglib.arch.name in ("arm", "aarch64"):
         pthread_type = pwndbg.aglib.typeinfo.load("struct pthread")

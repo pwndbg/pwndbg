@@ -164,7 +164,8 @@ class module(ModuleType):
         for arch in arch_names:
             if arch not in pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES:
                 raise ValueError(
-                    f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
+                    f"OnlyWithArch used with unsupported arch={arch}."
+                    f" Must be one of {', '.join(arch_names)}"
                 )
 
         def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:

@@ -460,7 +460,8 @@ def fix(
         # completely get rid of this call. We can't do that now because there's
         # no debugger-agnostic architecture functions. Those will come later.
         #
-        # TODO: Port architecutre functions and `pwndbg.gdblib.regs.fix` to debugger-agnostic API and remove this.
+        # TODO: Port architecutre functions and `pwndbg.gdblib.regs.fix` to
+        # debugger-agnostic API and remove this.
         arg = pwndbg.aglib.regs.fix(arg)
         return target.evaluate_expression(arg)
     except Exception as e:
@@ -669,12 +670,17 @@ def _try2run_heap_command(function: Callable[P, T], *a: P.args, **kw: P.kwargs) 
         e(f"{func_name(function)}: Fail to resolve the symbol: `{err.symbol}`")
         if "thread_arena" == err.symbol:
             w(
-                "You are probably debugging a multi-threaded target without debug symbols, so we failed to determine which arena is used by the current thread.\n"
-                "To resolve this issue, you can use the `arenas` command to list all arenas, and use `set thread-arena <addr>` to set the current thread's arena address you think is correct.\n"
+                "You are probably debugging a multi-threaded target without debug symbols,"
+                " so we failed to determine which arena is used by the current thread.\n"
+                "To resolve this issue, you can use the `arenas` command to list all arenas,"
+                " and use `set thread-arena <addr>` to set the current thread's arena address"
+                " you think is correct.\n"
             )
         else:
             w(
-                f"You can try to determine the libc symbols addresses manually and set them appropriately. For this, see the `heap-config` command output and set the config for `{err.symbol}`."
+                f"You can try to determine the libc symbols addresses manually and set them"
+                " appropriately. For this, see the `heap-config` command output and set the"
+                f" config for `{err.symbol}`."
             )
         if pwndbg.config.exception_verbose or pwndbg.config.exception_debugger:
             raise err
@@ -719,7 +725,8 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
                 isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
                 and pwndbg.config.resolve_heap_via_heuristic == "auto"
             ):
-                # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
+                # In auto mode, if the debug symbols are not enough, we will try to use
+                # the heuristic if possible
                 heuristic_heap = HeuristicHeap()
                 if heuristic_heap.can_be_resolved():
                     pwndbg.aglib.heap.current = heuristic_heap

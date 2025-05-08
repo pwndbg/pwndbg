@@ -99,7 +99,8 @@ def display_config(filter_pattern: str, scope: Scope, has_file_command: bool = T
 
     print(
         hint(
-            f"You can set a {scope.name} variable with `set <{scope.name}-var> <value>`, and read more about it with `help set <{scope.name}-var>`."
+            f"You can set a {scope.name} variable with `set <{scope.name}-var> <value>`,"
+            f" and read more about it with `help set <{scope.name}-var>`."
         )
     )
     if has_file_command:

@@ -304,11 +304,13 @@ def _get_moduledata_types() -> Tuple[Tuple[int, int], ...] | None:
                     return tuple(ret)
         else:
             emit_warning(
-                "Warning: Could not find `runtime.firstmoduledata` symbol, so a heuristic is used instead"
+                "Warning: Could not find `runtime.firstmoduledata` symbol,"
+                " so a heuristic is used instead"
             )
     except pwndbg.dbg_mod.Error as e:
         emit_warning(
-            f"Warning: Exception '{e}' occurred while trying to parse `runtime.firstmoduledata`, so a heuristic is used instead"
+            f"Warning: Exception '{e}' occurred while trying to parse "
+            "`runtime.firstmoduledata`, so a heuristic is used instead"
         )
     return None
 
@@ -344,7 +346,8 @@ def get_type_start(addr: int | None = None) -> int | None:
             if addr is None or start <= addr < end:
                 return start
         emit_warning(
-            f"Warning: Type at {addr:#x} is out of bounds of all module data, so a heuristic is used instead"
+            f"Warning: Type at {addr:#x} is out of bounds of all module data,"
+            " so a heuristic is used instead"
         )
         # if we found at least one moduledata, use the start of the first one
         if md_types:
@@ -364,7 +367,8 @@ def read_varint_str(addr: int) -> bytes:
         b = pwndbg.aglib.memory.read(addr, 1)[0]
         strlen = (strlen << 7) | (b & 0x7F)
         if b == 0x80 or strlen > 0x1000:
-            # we're probably not actually reading a varint str and should just return some bytes to avoid infinite looping
+            # we're probably not actually reading a varint str and should just return
+            # some bytes to avoid infinite looping
             return pwndbg.aglib.memory.read(orig_addr, 16)
         addr += 1
         if not (b & 0x80):
@@ -456,7 +460,9 @@ class BackrefType(Type):
 
     def size(self) -> int:
         raise NotImplementedError(
-            f"Cannot get size of placeholder type {type(self).__name__}. Perhaps the type is ill-formed? (e.g. struct that contains itself without indirection)"
+            f"Cannot get size of placeholder type {type(self).__name__}."
+            " Perhaps the type is ill-formed? (e.g. struct that contains"
+            " itself without indirection)"
         )
 
     def get_typename(self) -> str:

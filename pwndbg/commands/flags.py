@@ -63,6 +63,7 @@ def setflag(flag: str, value: int) -> None:
 
                 setattr(pwndbg.aglib.regs, flag_reg, new_val)
                 print(
-                    f"Set flag {flag}={value} in flag register {flag_reg} (old val={old_val:#x}, new val={new_val:#x})"
+                    f"Set flag {flag}={value} in flag register {flag_reg}"
+                    f" (old val={old_val:#x}, new val={new_val:#x})"
                 )
                 return

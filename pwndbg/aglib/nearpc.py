@@ -311,7 +311,8 @@ def nearpc(
                 align += (show_opcode_bytes - 1) * opcode_separator_bytes  # type: ignore[operator]
             if len(instr.bytes) > show_opcode_bytes:
                 opcodes += pwndbg.color.gray("...")
-                # the length of gray("...") is 12, so we need to add extra 9 (12-3) alignment length for the invisible characters
+                # the length of gray("...") is 12, so we need to add extra 9 (12-3)
+                # alignment length for the invisible characters
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align)
             if pwndbg.config.highlight_pc and i == index_of_pc:
@@ -325,7 +326,8 @@ def nearpc(
         # symbol        = <__strrchr_avx2+70>
         # asm           = bsr    eax, eax           (jump target/annotation would go here too)
 
-        # mem_access was on this list, but not used due to the `and False` in the code that sets it above
+        # mem_access was on this list, but not used due to the `and False` in the
+        # code that sets it above
         line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
         if show_comments:

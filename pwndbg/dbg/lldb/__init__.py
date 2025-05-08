@@ -104,7 +104,8 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
 
         if value is None:
             # Fallback because `evaluate_expression` may fail to resolve symbols for TLS variables.
-            # This issue occurs on certain architectures (e.g., it works fine on x86_64 but fails on aarch64).
+            # This issue occurs on certain architectures (e.g., it works fine on
+            # x86_64 but fails on aarch64).
             value = self.proc.lookup_symbol(name, type=type)
 
         return value
@@ -507,7 +508,8 @@ class LLDBValue(pwndbg.dbg_mod.Value):
             if len(b) > 0xFF:
                 # SetDataWithOwnership() is limited to 255 bits.
                 raise pwndbg.dbg_mod.Error(
-                    f"could not dereference value: value at 0x0 is too large (is {len(b)} bytes, must be at most 255)"
+                    f"could not dereference value: value at 0x0 is too large"
+                    f" (is {len(b)} bytes, must be at most 255)"
                 )
 
             d = lldb.SBData()
@@ -1245,7 +1247,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         if not self.is_linux():
             print(
-                f"warning: symbol '{sym.GetName()}' might be a TLS symbol, but Pwndbg only knows how to resolve those in x86-64 GNU/Linux"
+                f"warning: symbol '{sym.GetName()}' might be a TLS symbol,"
+                " but pwndbg only knows how to resolve those in x86-64 GNU/Linux"
             )
             return None
 
@@ -1257,7 +1260,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         )
         if tls_base == 0:
             print(
-                f"warning: symbol '{sym.GetName()}' might be a TLS symbol, but the TCB for the current thread could not be found"
+                f"warning: symbol '{sym.GetName()}' might be a TLS symbol,"
+                " but the TCB for the current thread could not be found"
             )
             return None
 
@@ -1412,7 +1416,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                         if cast_type.sizeof != resolved_size:
                             print(
                                 M.warn(
-                                    f"WARNING: Symbol {sym_name} has invalid size (has:{cast_type.sizeof:02x}, needed:{resolved_size:02x}), should not happen"
+                                    f"WARNING: Symbol {sym_name} has invalid size"
+                                    f" (has:{cast_type.sizeof:02x}, needed:{resolved_size:02x}),"
+                                    " should not happen"
                                 )
                             )
 

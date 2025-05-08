@@ -97,7 +97,8 @@ def is_readable_address(address: int) -> bool:
     Returns:
         `bool`: Whether the address is readable.
     """
-    # We use vmmap to check before `peek()` because accessing memory for embedded targets might be slow and expensive.
+    # We use vmmap to check before `peek()` because accessing memory for
+    # embedded targets might be slow and expensive.
     return pwndbg.aglib.vmmap.find(address) is not None and peek(address) is not None
 
 

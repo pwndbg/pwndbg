@@ -34,7 +34,8 @@ class SavedRegisterFrame:
         return pwndbg.aglib.arch.unpack(mem)
 
 
-# Basic exception stack frame defined here - https://developer.arm.com/documentation/107706/0100/Exceptions-and-interrupts-overview/Stack-frames
+# Basic exception stack frame defined here -
+# https://developer.arm.com/documentation/107706/0100/Exceptions-and-interrupts-overview/Stack-frames
 ARM_CORTEX_M_EXCEPTION_STACK_FRAME_OFFSETS = {
     "r0": 0x0,
     "r1": 0x4,

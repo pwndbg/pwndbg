@@ -24,7 +24,8 @@ from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 if TYPE_CHECKING:
     from pwndbg.emu.emulator import Emulator
 
-# Note: this map does not contain all the Arm32 shift types, just the ones relevent to register and memory modifier operations
+# Note: this map does not contain all the Arm32 shift types, just the ones
+# relevent to register and memory modifier operations
 ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
     ARM_SFT_ASR: bit_math.arithmetic_shift_right,
     ARM_SFT_LSL: bit_math.logical_shift_left,
@@ -91,7 +92,8 @@ ARM_SHIFT_INSTRUCTIONS = {
 # All of these instructions can write to the PC
 # https://developer.arm.com/documentation/ddi0406/cb/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-registers/Writing-to-the-PC?lang=en
 # If they do write to PC, Capstone gives the instructions the `ARM_GRP_JUMP` group
-# Note that we don't have the flag-setting variants - "ands", "subs" - because these generate an illegal instruction interrupt at runtime
+# Note that we don't have the flag-setting variants - "ands", "subs" -
+# because these generate an illegal instruction interrupt at runtime
 ARM_CAN_WRITE_TO_PC_INSTRUCTIONS = {
     ARM_INS_LDM,
     ARM_INS_ALIAS_LDM,
@@ -198,7 +200,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             )
         elif instruction.id in ARM_EXCLUSIVE_STORE_INSTRUCTIONS:
             # These store instructions include the "Store Register Exclusive", which
-            # have an additional register at the front which pushes the source and destination one to the right.
+            # have an additional register at the front which pushes the source and
+            # destination one to the right.
             self._common_store_annotator(
                 instruction,
                 emu,
@@ -210,7 +213,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         elif instruction.id in ARM_MATH_INSTRUCTIONS:
             # In Arm assembly, if there are two operands, than the first source operand is also the destination
             # Example: add    sl, r3
-            # Or, it can be a seperate register. We use -1 and -2 indexes here to access the source operands either way
+            # Or, it can be a seperate register. We use -1 and -2 indexes here to
+            # access the source operands either way
             self._common_binary_op_annotator(
                 instruction,
                 emu,
@@ -381,7 +385,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if op.mem.base == ARM_REG_PC:
             # The PC as the base register is a special case - it will align the address to a word (32-bit) boundary
             # Explanation: https://stackoverflow.com/a/29588678
-            # See "Operation" at the bottom of https://developer.arm.com/documentation/ddi0597/2024-03/Base-Instructions/LDR--literal---Load-Register--literal--
+            # See "Operation" at the bottom of
+            # https://developer.arm.com/documentation/ddi0597/2024-03/Base-Instructions/LDR--literal---Load-Register--literal--
             base = align_down(4, base)
 
         target = base
@@ -415,7 +420,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if target is None:
             return None
 
-        # We need this to retain the value of the un-shifted register in some annotations, such as shifts
+        # We need this to retain the value of the un-shifted register in some
+        # annotations, such as shifts
         op.before_value_no_modifiers = target
 
         # Optionally apply shift to the index register

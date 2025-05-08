@@ -208,7 +208,9 @@ def dump_section_by_name(
     """
     Dump the content of a section from an ELF file, return the start address, size and content.
     """
-    # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    # TODO: We should have some cache mechanism or something at
+    # `pndbg.aglib.file.get_file()` in the future to avoid downloading the
+    # same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
 
     with open(local_path, "rb") as f:
@@ -223,7 +225,9 @@ def dump_relocations_by_section_name(
     """
     Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
     """
-    # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
+    # TODO: We should have some cache mechanism or something at
+    # `pndbg.aglib.file.get_file()` in the future to avoid downloading the
+    # same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
 
     with open(local_path, "rb") as f:

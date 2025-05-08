@@ -52,7 +52,8 @@ def set_glibc_version() -> None:
 
     print(
         message.warn(
-            f"Invalid GLIBC version: `{glibc_version.value}`, you should provide something like: 2.31 or 2.34"
+            f"Invalid GLIBC version: `{glibc_version.value}`,"
+            f" you should provide something like: 2.31 or 2.34"
         )
     )
     glibc_version.revert_default()
@@ -118,14 +119,17 @@ def get_libc_filename_from_info_sharedlibrary() -> str | None:
             path[7:] if path.startswith("target:") else path
         )  # "target:" prefix is for remote debugging
         if basename == "libc.so.6":
-            # The default filename of libc should be libc.so.6, so if we found it, we just return it directly.
+            # The default filename of libc should be libc.so.6, so if we found it, we
+            # just return it directly.
             return path
         elif re.search(r"^libc6?[-_\.]", basename):
             # Maybe user loaded the libc with LD_PRELOAD.
             # Some common libc names: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
             possible_libc_path.append(
                 path
-            )  # We don't return it, maybe there is a libc.so.6 and this match is just a false positive.
+            # We don't return it, maybe there is a libc.so.6 and this match is just a
+            # false positive.
+            )
     # TODO: This might fail if user use LD_PRELOAD to load libc with a weird name or there are multiple shared libraries match the pattern.
     # (But do we really need to support this case? Maybe we can wait until users really need it :P.)
     if possible_libc_path:

@@ -155,7 +155,8 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             )
         elif instruction.id in RISCV_MATH_INSTRUCTIONS:
             # We need this check, because some of these instructions can encoded as aliases
-            # Example: NOP is an alias of ADDI where target is x0. In Capstone, the ID will still be that of ADDI but with no operands
+            # Example: NOP is an alias of ADDI where target is x0. In Capstone, the ID
+            # will still be that of ADDI but with no operands
             if len(instruction.operands) >= 2:
                 self._common_binary_op_annotator(
                     instruction,

@@ -146,7 +146,8 @@ def _ida_local(name: str) -> int | None:
         return None
 
     pc = int(pwndbg.dbg.selected_frame().pc())
-    frame_id = pwndbg.integration.ida.GetFuncAttr(pc, pwndbg.integration.ida.idc.FUNCATTR_FRAME)  # type: ignore[attr-defined]
+    frame_id = pwndbg.integration.ida.GetFuncAttr(
+    pc, pwndbg.integration.ida.idc.FUNCATTR_FRAME)  # type: ignore[attr-defined]
     if frame_id == -1:
         return None
 

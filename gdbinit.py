@@ -180,7 +180,8 @@ def rewire_exit():
         # https://github.com/pwndbg/pwndbg/pull/2900#issuecomment-2825456636
         # https://sourceware.org/bugzilla/show_bug.cgi?id=31946
         def _patched_exit(exit_code):
-            # argparse requires a SystemExit exception, otherwise our CLI commands will exit incorrectly on invalid arguments
+            # argparse requires a SystemExit exception, otherwise our CLI commands
+            # will exit incorrectly on invalid arguments
             stack_list = traceback.extract_stack(limit=2)
             if len(stack_list) == 2:
                 p = stack_list[0]

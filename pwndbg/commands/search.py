@@ -347,7 +347,8 @@ def search(
                 gdb.Breakpoint("*%#x" % address, temporary=False)
             else:
                 print(
-                    f"breakpoints are not supported outside of GDB yet, would be set at {address:#x}"
+                    "breakpoints are not supported outside of GDB yet,"
+                    f" would be set at {address:#x}"
                 )
 
         if not trunc_out or i < 20:

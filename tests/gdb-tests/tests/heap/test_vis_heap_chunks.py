@@ -72,7 +72,8 @@ def test_vis_heap_chunk_command(start_binary):
     expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
     assert result == expected
 
-    ## This time using `default-visualize-chunk-number` to set `count`, to make sure that the config can work
+    # This time using `default-visualize-chunk-number` to set `count`, to make
+    # sure that the config can work
     gdb.execute("set default-visualize-chunk-number 1")
     assert pwndbg.config.default_visualize_chunk_number == 1
     result = gdb.execute("vis-heap-chunk", to_string=True).splitlines()

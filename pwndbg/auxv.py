@@ -144,7 +144,8 @@ def explore_stack_auxv() -> AUXV | None:
 
 def walk_stack2(offset: int = 0) -> AUXV:
     # FIXME: This function doesn't work with Go (Golang) binaries, as Golang has two stacks.
-    # NOTE: This function is intended to work only with real binaries, not those emulated under qemu-user.
+    # NOTE: This function is intended to work only with real binaries, not
+    # those emulated under qemu-user.
     sp = pwndbg.aglib.regs.sp
 
     if not sp:

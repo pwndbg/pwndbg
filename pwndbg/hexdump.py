@@ -124,7 +124,10 @@ def hexdump(
                         continue
 
                 elif skip_lines > 0:
-                    out = f"... ↓            skipped {skip_lines} identical lines ({skip_lines * width} bytes)"
+                    out = (
+                        f"... ↓            skipped {skip_lines} identical lines"
+                        f" ({skip_lines * width} bytes)"
+                    )
                     skip_lines = -1
                     yield out
                     # Fallthrough (do not continue) so we yield the current line too

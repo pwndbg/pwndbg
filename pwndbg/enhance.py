@@ -89,7 +89,8 @@ def enhance(
     if not attempt_dereference or not page or None is pwndbg.aglib.memory.peek(value):
         can_read = False
 
-    # If it's a pointer that we told we cannot deference, then color it accordingly and add symbol if can
+    # If it's a pointer that we told we cannot deference, then color it
+    # accordingly and add symbol if can
     if page and not attempt_dereference:
         return pwndbg.color.memory.get_address_and_symbol(value)
 
@@ -184,4 +185,5 @@ def enhance(
     if len(retval) == 1:
         return retval[0]  # type: ignore[return-value]
 
-    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))  # type: ignore[arg-type]
+    # type: ignore[arg-type]
+    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))

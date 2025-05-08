@@ -140,14 +140,16 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         )
 
         if mem_operand and mem_operand.before_value is not None:
-            # operand.size is the width of memory in bytes (128, 256, or 512 bits = 16, 32, 64 bytes).
+            # operand.size is the width of memory in bytes
+            # (128, 256, or 512 bits = 16, 32, 64 bytes).
             # Pointer must be aligned to that memory width
             alignment_mask = mem_operand.cs_op.size - 1
 
             if mem_operand.before_value & alignment_mask != 0:
                 instruction.annotation = MessageColor.error(
-                    f"<[{MemoryColor.get(mem_operand.before_value)}] not aligned to {mem_operand.cs_op.size} bytes>"
-                )
+                    f"<[{MemoryColor.get(mem_operand.before_value)}] not aligned to"
+                    f"{mem_operand.cs_op.size} bytes>"
+        )
 
     def handle_lea(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         # Example: lea    rdx, [rax*8]
@@ -191,7 +193,8 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         reg_operand = instruction.operands[0]
 
-        # It is possible to pop [0xdeadbeef] and pop dword [esp], but this only handles popping into a register
+        # It is possible to pop [0xdeadbeef] and pop dword [esp], but this only
+        # handles popping into a register
         if reg_operand.type == CS_OP_REG:
             if emu and reg_operand.after_value is not None:
                 # After emulation, the register has taken on the popped value
@@ -211,7 +214,8 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def handle_xor(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
 
-        # If zeroing the register with XOR A, A. Can reason about this no matter where the instruction is
+        # If zeroing the register with XOR A, A. Can reason about this no matter
+        # where the instruction is
         if left.type == CS_OP_REG and right.type == CS_OP_REG and left.reg == right.reg:
             instruction.annotation = register_assign(left.str, "0")
         else:
@@ -267,7 +271,8 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):
-        # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return $rip+0xd55. Does not dereference)
+        # Get memory address (Ex: lea    rax, [rip + 0xd55], this would return
+        # $rip+0xd55. Does not dereference)
         if op.mem.segment != 0:
             if op.mem.segment == X86_REG_FS:
                 if (seg_base := pwndbg.aglib.regs.fsbase) is None:

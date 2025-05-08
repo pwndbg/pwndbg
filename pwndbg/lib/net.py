@@ -133,7 +133,8 @@ def _tcp_parser(data: str, ip_family: socket.AddressFamily) -> List[Connection]:
                     # The kernel outputs the IPv6 address as 4 little-endian 32-bit chunks.
                     # This behavior is specific to little-endian kernels, such as x86.
                     # On a big-endian kernel, the byte order would differ.
-                    # Reference: https://github.com/torvalds/linux/blob/a7c428ee8f59f171a3b57474f2bd5cee0ef1e036/net/ipv6/tcp_ipv6.c#L2153
+                    # Reference:
+                    # https://github.com/torvalds/linux/blob/a7c428ee8f59f171a3b57474f2bd5cee0ef1e036/net/ipv6/tcp_ipv6.c#L2153
                     words = struct.unpack("<4I", host)
                     host = struct.pack(">4I", *words)
 
@@ -229,7 +230,8 @@ def netlink(data: str) -> List[Netlink]:
 
     result: List[Netlink] = []
     for line in data.splitlines()[1:]:
-        # sk       Eth Pid    Groups   Rmem     Wmem     Dump     Locks     Drops     Inode            [10/8747]
+        # sk       Eth Pid    Groups   Rmem     Wmem     Dump     Locks     Drops
+        # Inode            [10/8747]
         fields = line.split()
 
         n = Netlink()

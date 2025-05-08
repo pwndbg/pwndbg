@@ -292,7 +292,8 @@ class ProcessDriver:
             # event right before the process is resumed, but as far as I know,
             # there is no way to do that.
             #
-            # TODO/FIXME: Find a way to trigger the continued event before the process is resumed in LLDB
+            # TODO/FIXME: Find a way to trigger the continued event before the process
+            # is resumed in LLDB
 
             if not start_expected:
                 # Even if the current process has not been resumed, LLDB might

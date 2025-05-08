@@ -102,7 +102,8 @@ CONDITION_RESOLVERS[MIPS_INS_ALIAS_BNEZ] = CONDITION_RESOLVERS[MIPS_INS_BNEZ]
 
 # These are instructions that have the first operand as the destination register.
 # They all do some computation and set the register to the result.
-# These were derived from "MIPS Architecture for Programmers Volume II: The MIPS64 Instruction Set Reference Manual"
+# These were derived from "MIPS Architecture for Programmers Volume II:
+# The MIPS64 Instruction Set Reference Manual"
 MIPS_SIMPLE_DESTINATION_INSTRUCTIONS = {
     MIPS_INS_CLO,
     MIPS_INS_CLZ,
@@ -248,7 +249,8 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if len(instruction.operands) == 0:
             return InstructionCondition.UNDETERMINED
 
-        # Not using list comprehension because they run in a separate scope in which super() does not exist
+        # Not using list comprehension because they run in a separate scope in
+        # which super() does not exist
         resolved_operands: List[int] = []
         for op in instruction.operands:
             resolved_operands.append(

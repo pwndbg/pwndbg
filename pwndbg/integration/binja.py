@@ -71,7 +71,8 @@ _bn: xmlrpc.client.ServerProxy | None = None
 # to avoid printing the same exception multiple times, we store the last exception here
 _bn_last_exception = None
 
-# to avoid checking the connection multiple times with no delay, we store the last time we checked it
+# to avoid checking the connection multiple times with no delay, we store
+# the last time we checked it
 _bn_last_connection_check = 0
 
 P = ParamSpec("P")

@@ -10,7 +10,8 @@ from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Dump internal PwndbgInstruction attributes.")
 
-# We don't have a parser to pass in true/false in arguments, so there are two args to force the enabling/disabling of emulation
+# We don't have a parser to pass in true/false in arguments, so there are
+# two args to force the enabling/disabling of emulation
 parser.add_argument(
     "-e",
     "--emulate",

@@ -65,7 +65,8 @@ class ContextTUIWindow:
         ):
             self._tui_window.write(
                 message.warn(
-                    f"Section '{self._section}' is not in 'context-sections' and won't be updated automatically."
+                    f"Section '{self._section}' is not in 'context-sections'"
+                    " and won't be updated automatically."
                 ),
                 True,
             )

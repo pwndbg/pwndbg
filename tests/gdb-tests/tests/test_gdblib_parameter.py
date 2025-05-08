@@ -26,7 +26,8 @@ import pwndbg.lib.config
                 "enum_sequence": ["enum1", "enum2", "enum3"],
             },
         ),
-        # Note: GDB < 9 does not support PARAM_ZUINTEGER*, so we implement it by ourselves for consistency
+        # Note: GDB < 9 does not support PARAM_ZUINTEGER*, so we implement it by
+        # ourselves for consistency
         (
             "zuint",
             0,
@@ -91,7 +92,8 @@ def test_gdb_parameter_default_value_works(start_binary, params):
         # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
         # And hilarious thing is that GDB won't let you set the default value to `None` when you construct the `gdb.Parameter` object with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
         # Maybe it's a bug of GDB?
-        # Anyway, to avoid some unexpected behaviors, we still set pwndbg's Parameter object's value to 0 in `get_set_string()` and `__init__()`
+        # Anyway, to avoid some unexpected behaviors, we still set pwndbg's
+        # Parameter object's value to 0 in `get_set_string()` and `__init__()`
         assert gdb.parameter(param_name) is None
     else:
         assert gdb.parameter(param_name) == default_value

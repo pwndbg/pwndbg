@@ -159,7 +159,8 @@ def _fallback_any_symbol_to_address(name: str, global_only: bool = False) -> gdb
 
         # global_context is only supported in GDB14+
         if gdb_version[0] >= 14:
-            return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'", global_context=global_only)  # type: ignore[call-arg]
+            return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'",
+                                      global_context=global_only)  # type: ignore[call-arg]
 
         return gdb.parse_and_eval(f"&'{sanitized_symbol_name}'")
     except gdb.error:
@@ -177,7 +178,8 @@ class Domain(Enum):
 
         elif self == Domain.VARIABLE:
             # For 'VARIABLE' we need manually filter out
-            # We have to check for `is_function`, because TLS variables will return False in `is_variable`
+            # We have to check for `is_function`, because TLS variables will return
+            # False in `is_variable`
             if sym.is_function:
                 return False
         return True

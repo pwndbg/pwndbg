@@ -10,7 +10,8 @@ import pytest
 import pwndbg.glibc
 import tests
 
-# We used the same binary as heap tests since it will use libc, and many functions are mainly for debugging the heap
+# We used the same binary as heap tests since it will use libc, and many
+# functions are mainly for debugging the heap
 HEAP_MALLOC_CHUNK = tests.binaries.get("heap_malloc_chunk.out")
 
 
@@ -31,7 +32,8 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
     assert libc_path is not None
 
     # Create 3 copies of the libc with the filenames: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
-    # Note: The version in the above filename doesn't matter, just some tests for the common libc names we might use with LD_PRELOAD
+    # Note: The version in the above filename doesn't matter, just some tests
+    # for the common libc names we might use with LD_PRELOAD
     test_libc_names = ["libc-2.36.so", "libc6_2.36-0ubuntu4_amd64.so", "libc.so"]
     with tempfile.TemporaryDirectory() as tmp_dir:
         for test_libc_name in test_libc_names:
