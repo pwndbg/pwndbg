@@ -264,13 +264,13 @@ class DisassemblyAssistant:
 
         # Manually propagate register values so when enhancing the next instruction, we can read from these registers
         if self.supports_manual_emulation:
-            _, regs_written = instruction.cs_insn.regs_access()
-
             if instruction.call_like or (set(instruction.groups) & DO_NOT_EMULATE):
                 # Syscalls and functions (which we step over) can clobber registers
                 # so we no longer reliably know the values of registers
                 self.manual_register_values.invalidate_all_registers()
             else:
+                _, regs_written = instruction.cs_insn.regs_access()
+
                 for reg_id in regs_written:
                     reg_name: str = instruction.cs_insn.reg_name(reg_id)
 
