@@ -12,6 +12,8 @@ usage: pid [-h]
 ```
 
 Gets the pid.
+
+**Alias:** getpid.
 ### Optional arguments
 
 |Short|Long|Help|

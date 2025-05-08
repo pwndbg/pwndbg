@@ -29,6 +29,8 @@ As a last resort, we sometimes try to explore the addresses in CPU registers and
 Memory pages can also be added manually with the use of vmmap-add, vmmap-clear and vmmap-load commands. This may be useful for bare metal debugging.
 
 [0] https://lore.kernel.org/all/20220221030910.3203063-1-dominik.b.czarnota@gmail.com/
+
+**Aliases:** lm, address, vprot, libs.
 ### Positional arguments
 
 |Positional Argument|Help|

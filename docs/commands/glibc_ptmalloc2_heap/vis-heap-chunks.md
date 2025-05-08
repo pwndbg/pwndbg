@@ -15,6 +15,8 @@ usage: vis-heap-chunks [-h] [--beyond_top] [--no_truncate] [--all_chunks]
 Visualize chunks on a heap.
 
 Default to the current arena's active heap.
+
+**Alias:** vis.
 ### Positional arguments
 
 |Positional Argument|Help|

@@ -12,6 +12,8 @@ usage: contextnext [-h] [count]
 ```
 
 Select next entry in context history.
+
+**Alias:** ctxn.
 ### Positional arguments
 
 |Positional Argument|Help|

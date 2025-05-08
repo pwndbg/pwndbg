@@ -12,6 +12,8 @@ usage: stepsyscall [-h]
 ```
 
 Breaks at the next syscall by taking branches.
+
+**Alias:** stepsc.
 ### Optional arguments
 
 |Short|Long|Help|

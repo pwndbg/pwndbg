@@ -12,6 +12,8 @@ usage: setflag [-h] flag value
 ```
 
 Modify the flags register.
+
+**Alias:** flag.
 ### Positional arguments
 
 |Positional Argument|Help|

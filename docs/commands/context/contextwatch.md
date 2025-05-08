@@ -14,6 +14,8 @@ usage: contextwatch [-h] [{eval,execute}] expression
 Adds an expression to be shown on context.
 
 To remove an expression, see `cunwatch`.
+
+**Aliases:** ctx-watch, cwatch.
 ### Positional arguments
 
 |Positional Argument|Help|

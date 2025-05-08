@@ -12,6 +12,8 @@ usage: dds [-h] addr
 ```
 
 Dump pointers and symbols at the specified address.
+
+**Aliases:** kd, dps, dqs.
 ### Positional arguments
 
 |Positional Argument|Help|

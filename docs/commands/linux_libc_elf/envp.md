@@ -12,6 +12,8 @@ usage: envp [-h] [name]
 ```
 
 Prints out the contents of the environment.
+
+**Aliases:** env, environ.
 ### Positional arguments
 
 |Positional Argument|Help|
