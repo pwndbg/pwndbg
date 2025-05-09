@@ -129,9 +129,9 @@ plugins:
                 warn_unknown_params: true
 
   # Generate the whole Source page magically (hooks into mkdocstrings)
-  - api-autonav:
-      modules: ['pwndbg']
-      nav_section_title: "Source"
+  # - api-autonav:
+  #     modules: ['pwndbg']
+  #     nav_section_title: "Source"
 
   # Documentation versioning
   - mike:
