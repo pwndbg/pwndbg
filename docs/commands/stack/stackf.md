@@ -11,7 +11,7 @@ usage: stackf [-h] [count] [offset]
 
 ```
 
-Dereferences on stack data, printing the entire stack frame with specified count and offset .
+Dereferences on stack data, printing the entire stack frame with specified count and offset.
 ### Positional arguments
 
 |Positional Argument|Help|

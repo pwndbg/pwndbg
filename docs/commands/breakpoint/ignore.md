@@ -15,7 +15,8 @@ Set ignore-count of breakpoint number N to COUNT.
 
 While the ignore count is positive, execution will not stop on the breakpoint.
 
-By default, if `N' is ommitted, the last breakpoint (i.e. greatest breakpoint number) will be used.
+By default, if `N' is ommitted, the last breakpoint (i.e. greatest breakpoint
+number) will be used.
 ### Positional arguments
 
 |Positional Argument|Help|

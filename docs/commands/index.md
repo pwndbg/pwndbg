@@ -41,7 +41,7 @@
 -  [fastbins](glibc_ptmalloc2_heap/fastbins.md) - Print the contents of an arena's fastbins.
 -  [find-fake-fast](glibc_ptmalloc2_heap/find-fake-fast.md) - Find candidate fake fast or tcache chunks overlapping the specified address.
 -  [heap](glibc_ptmalloc2_heap/heap.md) - Iteratively print chunks on a heap.
--  [hi](glibc_ptmalloc2_heap/hi.md) - Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
+-  [hi](glibc_ptmalloc2_heap/hi.md) - Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk
 -  [largebins](glibc_ptmalloc2_heap/largebins.md) - Print the contents of an arena's largebins.
 -  [malloc-chunk](glibc_ptmalloc2_heap/malloc-chunk.md) - Print a chunk.
 -  [mp](glibc_ptmalloc2_heap/mp.md) - Print the mp_ struct's contents.
@@ -122,7 +122,7 @@
 -  [memfrob](memory/memfrob.md) - Memfrobs a region of memory (xor with '*').
 -  [mmap](memory/mmap.md) - Calls the mmap syscall and prints its resulting address.
 -  [mprotect](memory/mprotect.md) - Calls the mprotect syscall and prints its result value.
--  [p2p](memory/p2p.md) - Pointer to pointer chain search. Searches given mapping for all pointers that point to specified mapping.
+-  [p2p](memory/p2p.md) - Pointer chain search. Searches given mapping for all pointers that point to specified mapping.
 -  [probeleak](memory/probeleak.md) - Pointer scan for possible offset leaks.
 -  [search](memory/search.md) - Search memory for byte sequences, strings, pointers, and integer values.
 -  [telescope](memory/telescope.md) - Recursively dereferences pointers starting at the specified address.
@@ -178,7 +178,7 @@
 -  [retaddr](stack/retaddr.md) - Print out the stack addresses that contain return addresses.
 -  [stack-explore](stack/stack-explore.md) - Explore stack from all threads.
 -  [stack](stack/stack.md) - Dereferences on stack data with specified count and offset.
--  [stackf](stack/stackf.md) - Dereferences on stack data, printing the entire stack frame with specified count and offset .
+-  [stackf](stack/stackf.md) - Dereferences on stack data, printing the entire stack frame with specified count and offset.
 
 ## Start
 

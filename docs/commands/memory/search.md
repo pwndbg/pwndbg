@@ -18,7 +18,10 @@ usage: search [-h] [-t {byte,short,word,dword,qword,pointer,string,bytes,asm}]
 
 Search memory for byte sequences, strings, pointers, and integer values.
 
-By default search results are cached. If you want to cache all results, but only print a subset, use --trunc-out. If you want to cache only a subset of results, and print the results immediately, use --limit. The latter is specially useful if you're searching a huge section of memory.
+By default search results are cached. If you want to cache all results,
+but only print a subset, use --trunc-out. If you want to cache only a
+subset of results, and print the results immediately, use --limit. The
+latter is specially useful if you're searching a huge section of memory.
 ### Positional arguments
 
 |Positional Argument|Help|

@@ -26,7 +26,8 @@ Maximum number of questions and answers to keep in the prompt.
 
 The maximum number of tokens to return in the response.
 
-Useful when limiting verbosity or conserving resources. Set to a lower value to restrict output.
+Useful when limiting verbosity or conserving resources.
+Set to a lower value to restrict output.
 
 **Default:** 100  
 ## **ai-model**
@@ -34,7 +35,8 @@ Useful when limiting verbosity or conserving resources. Set to a lower value to 
 
 The name of the large language model to query.
 
-Changing this affects the behavior, response quality, and cost (if applicable) of AI responses.
+Changing this affects the behavior, response quality, and cost (if applicable)
+of AI responses.
 
 **Default:** 'gpt-3.5-turbo'  
 ## **ai-ollama-endpoint**
@@ -248,7 +250,8 @@ Where pwndbg should output ("stdout" or file/tty).
 
 When to reserve lines after the prompt to reduce context shake.
 
-The "if-ctx-fits" setting only reserves lines if the whole context would still fit vertically in the current terminal window.
+The "if-ctx-fits" setting only reserves lines if the whole context would
+still fit vertically in the current terminal window.
 It doesn't take into account line-wrapping due to insufficient terminal width.
 
 **Default:** 'if-ctx-fits'  
@@ -400,7 +403,7 @@ Values explained:
 
 + `disabled` - Disable the workaround (default).
 + `disabled-deadlock` - Disable only deadlock detection; deadlocks may still occur.
-+ `enabled` - Enable asynchronous stop events; gdb.execute may behave unexpectedly (asynchronously).
++ `enabled` - Enable asynchronous stop events; gdb.execute may behave unexpectedly/asynchronously.
 
 **Default:** 'disabled'  
 **Valid values:** 'disabled', 'disabled-deadlock', 'enabled'
@@ -433,7 +436,8 @@ Number of bytes printed by hexdump command.
 
 Use big-endian within each group of bytes in hexdump command.
 
-When `on`, use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. See also hexdump-highlight-group-lsb.
+When `on`, use big-endian within each group of bytes.
+Only applies to raw bytes, not the ASCII part. See also hexdump-highlight-group-lsb.
 
 **Default:** off  
 ## **hexdump-group-width**
@@ -450,8 +454,8 @@ If -1, the architecture's pointer size is used.
 The maximum size in megabytes (MB) `hexdump` will read.
 
 Set the maximum size in megabytes (MB) that the `hexdump` command will attempt to read at once.
-    Prevents GDB crashes due to excessive memory allocation requests.
-    Set to 0 for unlimited (use with caution).
+Prevents GDB crashes due to excessive memory allocation requests.
+Set to 0 for unlimited (use with caution).
 
 **Default:** 10  
 ## **hexdump-width**
@@ -530,7 +534,11 @@ Values explained:
 + `monitor` - use QEMU's `monitor info mem` to render vmmap
 + `none` - disable vmmap rendering; useful if rendering is particularly slow
 
-Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
+Note that the page-tables method will require the QEMU kernel process to be on the
+same machine and within the same PID namespace. Running QEMU kernel and GDB in
+different Docker containers will not work. Consider running both containers with
+--pid=host (meaning they will see and so be able to interact with all processes
+on the machine).
 
 **Default:** 'page-tables'  
 **Valid values:** 'page-tables', 'monitor', 'none'

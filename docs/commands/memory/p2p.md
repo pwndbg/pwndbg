@@ -11,9 +11,10 @@ usage: p2p [-h] mapping_names [mapping_names ...]
 
 ```
 
-Pointer to pointer chain search. Searches given mapping for all pointers that point to specified mapping.
+Pointer chain search. Searches given mapping for all pointers that point to specified mapping.
 
-Any chain length greater than 0 is valid. If only one mapping is given it just looks for any pointers in that mapping.
+Any chain length greater than 0 is valid.
+If only one mapping is given it just looks for any pointers in that mapping.
 ### Positional arguments
 
 |Positional Argument|Help|

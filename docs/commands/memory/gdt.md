@@ -18,7 +18,9 @@ See also:
 * https://wiki.osdev.org/GDT_Tutorial
 
 Note:
-In 64-bit mode, the Base and Limit values are ignored, each descriptor covers the entire linear address space regardless of what they are set to.
+In 64-bit mode, the Base and Limit values are ignored,
+each descriptor covers the entire linear address space
+regardless of what they are set to.
 ### Positional arguments
 
 |Positional Argument|Help|

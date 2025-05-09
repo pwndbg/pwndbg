@@ -11,7 +11,7 @@ usage: hi [-h] [-v] [-s] [-f] addr
 
 ```
 
-Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.
+Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk
 ### Positional arguments
 
 |Positional Argument|Help|
