@@ -9,9 +9,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from types import TracebackType
-from typing import Optional
-from typing import Type
 
 from tabulate import tabulate
 
@@ -24,6 +21,7 @@ from pwndbg.aglib.kernel.slab import NodeCache
 from pwndbg.aglib.kernel.slab import Slab
 from pwndbg.aglib.kernel.slab import find_containing_slab_cache
 from pwndbg.commands import CommandCategory
+from pwndbg.lib.exception import IndentContextManager
 
 parser = argparse.ArgumentParser(description="Prints information about the slab allocator")
 subparsers = parser.add_subparsers(dest="command")
@@ -67,41 +65,15 @@ def slab(command, filter_=None, names=None, verbose=False, addresses=None) -> No
             slab_contains(addr)
 
 
-class IndentContextManager:
-    def __init__(self) -> None:
-        self.indent = 0
-
-    def __enter__(self) -> None:
-        self.indent += 1
-
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ) -> None:
-        self.indent -= 1
-        assert self.indent >= 0
-
-    def print(self, *a, **kw) -> None:
-        print("    " * self.indent, *a, **kw)
-
-
-def _yx(val: int) -> str:
-    return C.yellow(hex(val))
-
-
-def _rx(val: int) -> str:
-    return C.red(hex(val))
-
-
 def print_slab(slab: Slab, indent, verbose: bool) -> None:
-    indent.print(f"- {C.green('Slab')} @ {_yx(slab.virt_address)} [{_rx(slab.slab_address)}]:")
+    indent.print(
+        f"- {C.green('Slab')} @ {indent.addr_hex(slab.virt_address)} [{indent.aux_hex(slab.slab_address)}]:"
+    )
 
     with indent:
         indent.print(f"{C.blue('In-Use')}: {slab.inuse}/{slab.object_count}")
         indent.print(f"{C.blue('Frozen')}: {slab.frozen}")
-        indent.print(f"{C.blue('Freelist')}: {_yx(int(slab.freelist))}")
+        indent.print(f"{C.blue('Freelist')}: {indent.addr_hex(int(slab.freelist))}")
 
         if verbose:
             with indent:
@@ -113,16 +85,18 @@ def print_slab(slab: Slab, indent, verbose: bool) -> None:
                     for freelist in slab.freelists:
                         next_free = freelist.find_next(addr)
                         if next_free:
-                            indent.print(f"- {_yx(addr)} (next: {next_free:#x})")
+                            indent.print(f"- {indent.addr_hex(addr)} (next: {next_free:#x})")
                             break
                     else:
-                        indent.print(f"- {_yx(addr)} (no next)")
+                        indent.print(f"- {indent.addr_hex(addr)} (no next)")
 
 
 def print_cpu_cache(cpu_cache: CpuCache, verbose: bool, indent) -> None:
-    indent.print(f"{C.green('kmem_cache_cpu')} @ {_yx(cpu_cache.address)} [CPU {cpu_cache.cpu}]:")
+    indent.print(
+        f"{C.green('kmem_cache_cpu')} @ {indent.addr_hex(cpu_cache.address)} [CPU {cpu_cache.cpu}]:"
+    )
     with indent:
-        indent.print(f"{C.blue('Freelist')}:", _yx(int(cpu_cache.freelist)))
+        indent.print(f"{C.blue('Freelist')}:", indent.addr_hex(int(cpu_cache.freelist)))
 
         active_slab = cpu_cache.active_slab
         if active_slab:
@@ -146,7 +120,7 @@ def print_cpu_cache(cpu_cache: CpuCache, verbose: bool, indent) -> None:
 
 def print_node_cache(node_cache: NodeCache, verbose: bool, indent) -> None:
     indent.print(
-        f"{C.green('kmem_cache_node')} @ {_yx(node_cache.address)} [NUMA node {node_cache.node}]:"
+        f"{C.green('kmem_cache_node')} @ {indent.addr_hex(node_cache.address)} [NUMA node {node_cache.node}]:"
     )
     with indent:
         partial_slabs = node_cache.partial_slabs
@@ -168,7 +142,7 @@ def slab_info(name: str, verbose: bool) -> None:
 
     indent = IndentContextManager()
 
-    indent.print(f"{C.green('Slab Cache')} @ {_yx(slab_cache.address)}")
+    indent.print(f"{C.green('Slab Cache')} @ {indent.addr_hex(slab_cache.address)}")
     with indent:
         indent.print(f"{C.blue('Name')}: {slab_cache.name}")
         flags_list = slab_cache.flags
