@@ -2122,7 +2122,8 @@ class HeuristicHeap(
             print(
                 message.warn(
                     "Cannot find tcache, we assume it's at the beginning of the heap.\n"
-                    "If you think this is wrong, please manually set it with `set tcache <address>`.\n"
+                    "If you think this is wrong, please manually set it with"
+                    " `set tcache <address>`.\n"
                 )
             )
 
@@ -2184,7 +2185,8 @@ class HeuristicHeap(
         )
         print(
             message.warn(
-                "Use `set global-max-fast <address>` to set the address of global_max_fast manually if needed."
+                "Use `set global-max-fast <address>` to set the address of"
+                " global_max_fast manually if needed."
             )
         )
         return default

@@ -39,7 +39,7 @@ def run(args: typing.List[str], no_error=False) -> str:
     if result.returncode != 0:
         if no_error:
             eprint(result.stderr)
-            eprint("WARNING: Command failed with return code {}: {}".format(result.returncode, args))
+            eprint(f"WARNING: Command failed with return code {result.returncode}: {args}")
             return ''
 
         eprint(result.stderr)
@@ -79,7 +79,10 @@ def iter_elf_deps(binary_path: Path) -> typing.Iterator[Path]:
     def get_needed(exe: str) -> typing.Iterable[str]:
         return stripped_strs(run(["patchelf", "--print-needed", exe]).splitlines())
 
-    def resolve_paths(needed: typing.Iterable[str], rpaths: typing.List[str]) -> typing.Iterable[str]:
+    def resolve_paths(
+        needed: typing.Iterable[str],
+        rpaths: typing.List[str]
+    ) -> typing.Iterable[str]:
         existing_paths = lambda lib, paths: (
             abs_path for path in paths for abs_path in [os.path.join(path, lib)]
             if os.path.exists(abs_path)
@@ -108,7 +111,11 @@ else:
     iter_deps = iter_elf_deps
 
 
-def iter_deps_recursive(binary_path: Path, depth: int=None, visited: typing.Set[Path]=None)  -> typing.Iterator[Path]:
+def iter_deps_recursive(
+    binary_path: Path,
+    depth: int=None,
+    visited: typing.Set[Path]=None
+) -> typing.Iterator[Path]:
     is_first = depth is None
     if depth is None:
         depth = 0
@@ -130,8 +137,11 @@ def iter_deps_recursive(binary_path: Path, depth: int=None, visited: typing.Set[
         yield from iter_deps_recursive(dep, depth=depth + 1, visited=visited)
 
 
-def iter_dir_recursive(dir_path: Path, depth: int = None, visited: typing.Set[Path] = None) -> typing.Iterator[
-    typing.Tuple[Path, typing.List[Path]]]:
+def iter_dir_recursive(
+    dir_path: Path,
+    depth: int = None,
+    visited: typing.Set[Path] = None
+) -> typing.Iterator[typing.Tuple[Path, typing.List[Path]]]:
     if depth is None:
         depth = 0
     if visited is None:
@@ -202,7 +212,13 @@ def patch_library_macho(binary_path: Path, root_dst: Path, *, is_exe: bool):
 
         rel_path = os.path.relpath(dst_lib_path, binary_path.parent)
         print(f'Patching {binary_path.name}: {src_lib_path.name}->{rel_path}')
-        run(["install_name_tool", "-change", str(src_lib_path), prefix_lib + rel_path, str(binary_path)])
+        run([
+            "install_name_tool",
+            "-change",
+            str(src_lib_path),
+            prefix_lib + rel_path,
+            str(binary_path)
+        ])
 
     cleanup_nixrefs(binary_path)
 
@@ -236,8 +252,17 @@ def patch_library_elf(binary_path: Path, root_dst: Path, *, is_exe: bool):
 
     if is_rpath_patch_needed:
         if is_exe:
-            interpreter_path = Path(run(["patchelf", "--print-interpreter", str(binary_path)]).strip())
-            run(["patchelf", "--set-interpreter", interpreter_path.name, "--set-rpath", rpath, str(binary_path)])
+            interpreter_path = Path(
+                run(["patchelf", "--print-interpreter", str(binary_path)]).strip()
+            )
+            run([
+                "patchelf",
+                "--set-interpreter",
+                interpreter_path.name,
+                "--set-rpath",
+                rpath,
+                str(binary_path)
+            ])
         else:
             run(["patchelf", "--set-rpath", rpath, str(binary_path)])
 
@@ -272,7 +297,12 @@ def symlink(target: Path | str, dst: Path):
     dst.symlink_to(str(target))
 
 
-def copy_with_symlink_normal(src_file_path: Path, root_dir_src: Path, root_dst_dir: Path, is_so: bool=False) -> Path | None:
+def copy_with_symlink_normal(
+    src_file_path: Path,
+    root_dir_src: Path,
+    root_dst_dir: Path,
+    is_so: bool=False
+) -> Path | None:
     dst_file_path = root_dst_dir / src_file_path.relative_to(root_dir_src)
     if dst_file_path.exists():
         return dst_file_path
@@ -400,7 +430,9 @@ def bundle_python_venv(src_lib_dir: Path, out_lib_dir: Path, root_dst: Path):
             if not (is_so or is_good_ext or is_good_name):
                 continue
 
-            real_file = copy_with_symlink_normal(src_file_path, src_lib_dir, out_lib_dir, is_so=is_so)
+            real_file = copy_with_symlink_normal(
+                src_file_path, src_lib_dir, out_lib_dir, is_so=is_so
+            )
             if is_so and real_file:
                 bundle_binaries.add(real_file)
 

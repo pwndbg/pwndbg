@@ -115,7 +115,8 @@ def generate_debug_symbols(
         print(message.error(exception))
         print(
             message.error(
-                "Failed to compile the .c file with custom structures. Please fix any compilation errors there may be."
+                "Failed to compile the .c file with custom structures. "
+                "Please fix any compilation errors there may be."
             )
         )
         return None
@@ -133,7 +134,8 @@ def add_custom_structure(custom_structure_name: str) -> None:
     if os.path.exists(pwndbg_custom_structure_path):
         option = input(
             message.notice(
-                "A custom structure was found with the given name, would you like to overwrite it? [y/n] "
+                "A custom structure was found with the given name, "
+                "would you like to overwrite it? [y/n] "
             )
         )
         if option != "y":

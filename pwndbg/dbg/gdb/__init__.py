@@ -1327,7 +1327,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         if disable_any_gdbinit == 0:
             # The `--nx` option is added only in pwndbg-portable mode.
-            # This check allows using OLD syntax, eg: `source /path/to/pwndbg/gdbinit.py`, from ~/.gdbinit
+            # This check allows using OLD syntax,
+            # eg: `source /path/to/pwndbg/gdbinit.py`, from ~/.gdbinit
             return True, True
 
         return disable_any_gdbinit >= 2, disable_home_gdbinit >= 1

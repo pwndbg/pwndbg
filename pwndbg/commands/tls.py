@@ -93,8 +93,10 @@ def tls(pthread_self=False, all: bool = False) -> None:
     if not pthread_self:
         print(
             message.notice(
-                "You can try to use -p/--pthread option to get the address of TLS by calling pthread_self().\n"
-                "(This might cause problems if the pthread_self() is not in libc or not initialized yet.)"
+                "You can try to use -p/--pthread option to get the address of"
+                " TLS by calling pthread_self().\n"
+                "(This might cause problems if the pthread_self() is not in "
+                "libc or not initialized yet.)"
             )
         )
 

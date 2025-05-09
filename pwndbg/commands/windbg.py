@@ -275,7 +275,8 @@ def eX(size, address, data, hex=True) -> None:
 
             if any(ch not in "0123456789abcdefABCDEF" for ch in string):
                 print(
-                    "Incorrect data format: it must all be a hex value (0x1234 or 1234, both interpreted as 0x1234)"
+                    "Incorrect data format: it must all be a hex value"
+                    " (0x1234 or 1234, both interpreted as 0x1234)"
                 )
                 return
 
@@ -350,7 +351,8 @@ def ds(address, max) -> None:
         print(f"{address:x} {string!r}")
     else:
         print(
-            "Data at address can't be dereferenced or is not a printable null-terminated string or is too short."
+            "Data at address can't be dereferenced or is not a"
+            " printable null-terminated string or is too short."
         )
         print("Perhaps try: db <address> <count> or hexdump <address>")
 

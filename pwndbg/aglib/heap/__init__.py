@@ -150,8 +150,9 @@ def resolve_heap(is_first_run: bool = False) -> None:
         if not is_first_run and pwndbg.aglib.proc.alive and current.libc_has_debug_syms():
             print(
                 message.warn(
-                    "You are going to resolve the heap via heuristic even though you have libc debug symbols."
-                    " This is not recommended!"
+                    "You are going to resolve the heap via heuristic even though"
+                    " you have libc debug symbols.\n"
+                    "This is not recommended!"
                 )
             )
     else:

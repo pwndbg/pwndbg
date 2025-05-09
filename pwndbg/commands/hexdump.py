@@ -24,7 +24,8 @@ pwndbg.config.add_param(
     "hexdump-group-use-big-endian",
     False,
     "use big-endian within each group of bytes in hexdump command",
-    help_docstring="When `on`, use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. "
+    help_docstring="""When `on`, use big-endian within each group of bytes.
+Only applies to raw bytes, not the ASCII part. """
     "See also hexdump-highlight-group-lsb.",
 )
 pwndbg.config.add_param(
@@ -103,7 +104,8 @@ def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
             # Raise an error with the informative message
             raise ValueError(
                 f"Hexdump count ({count}) exceeds the current limit of {limit_mb} MB.\n"
-                f"Use 'set hexdump-limit-mb <new_limit_in_mb>' to increase the limit (or set to 0 for unlimited)."
+                "Use 'set hexdump-limit-mb <new_limit_in_mb>' to increase the limit "
+                "(or set to 0 for unlimited)."
             )
 
     width = int(pwndbg.config.hexdump_width)

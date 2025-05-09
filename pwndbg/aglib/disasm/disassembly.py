@@ -260,7 +260,8 @@ def can_run_first_emulate() -> bool:
         print(
             message.error(
                 "Disabling the emulation via Unicorn Engine that is used for computing branches"
-                " as there isn't enough memory (1GB) to use it (since mmap(1G, RWX) failed). See also:\n"
+                " as there isn't enough memory (1GB) to use it (since mmap(1G, RWX) failed)."
+                " See also:\n"
                 "* https://github.com/pwndbg/pwndbg/issues/1534\n"
                 "* https://github.com/unicorn-engine/unicorn/pull/1743\n"
                 "Either free your memory or explicitly set `set emulate off` in your Pwndbg config"

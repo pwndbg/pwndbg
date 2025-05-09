@@ -12,7 +12,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "ty",
     type=str,
-    help="Go type of value to dump, e.g. map[int]string, or the address of a type to resolve at runtime, e.g. 0x408860",
+    help="""Go type of value to dump, e.g. map[int]string, or the address of a
+type to resolve at runtime, e.g. 0x408860""",
 )
 parser.add_argument(
     "address",

@@ -16,7 +16,8 @@ Optionally overlay that information at an address.""",
 parser.add_argument(
     "typename",
     type=str,
-    help='The name of the structure being dumped. Use quotes if the type contains spaces (e.g. "struct malloc_state").',
+    help='''The name of the structure being dumped.
+Use quotes if the type contains spaces (e.g. "struct malloc_state").''',
 )
 parser.add_argument(
     "address", type=int, nargs="?", default=None, help="The address of the structure."

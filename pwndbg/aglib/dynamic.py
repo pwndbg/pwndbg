@@ -353,7 +353,8 @@ class DynamicSegment:
             self.symtab_elem = CStruct.elf64_sym()
         else:
             raise RuntimeError(
-                f"unsupported value {syment} for DT_SYMENT, expected either 16 (Elf32_Sym) or 24 (Elf64_Sym)"
+                f"unsupported value {syment} for DT_SYMENT,"
+                " expected either 16 (Elf32_Sym) or 24 (Elf64_Sym)"
             )
 
         # Check the relocation sections, and perform some sanity checks.

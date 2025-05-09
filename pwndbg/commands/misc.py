@@ -45,7 +45,9 @@ def _get_errno() -> int:
         page_loaded = pwndbg.aglib.vmmap.find(pwndbg.aglib.memory.pvoid(errno_loc_gotplt))
         if page_loaded is None:
             raise pwndbg.dbg_mod.Error(
-                "Could not determine error code automatically: the __errno_location@got.plt has no valid address yet (perhaps libc.so hasn't been loaded yet?)"
+                "Could not determine error code automatically: the "
+                "__errno_location@got.plt has no valid address yet "
+                "(perhaps libc.so hasn't been loaded yet?)"
             )
 
     try:
@@ -56,7 +58,9 @@ def _get_errno() -> int:
         )
     except pwndbg.dbg_mod.Error as e:
         raise pwndbg.dbg_mod.Error(
-            "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
+            "Could not determine error code automatically: neither `errno`"
+            " nor `__errno_location` symbols were provided (perhaps libc.so"
+            " hasn't been not loaded yet?)"
         ) from e
 
 

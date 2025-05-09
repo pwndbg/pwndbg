@@ -12,14 +12,16 @@ parser = argparse.ArgumentParser(description="Spray memory with cyclic() generat
 parser.add_argument("addr", help="Address to spray")
 parser.add_argument(
     "length",
-    help="Length of byte sequence, when unspecified sprays until the end of vmmap which address belongs to",
+    help="""Length of byte sequence, when unspecified sprays
+until the end of vmmap which address belongs to""",
     type=int,
     nargs="?",
     default=0,
 )
 parser.add_argument(
     "--value",
-    help="Value to spray memory with, when prefixed with '0x' treated as hex string encoded big-endian",
+    help="""Value to spray memory with, when prefixed with
+'0x' treated as hex string encoded big-endian""",
     type=str,
     required=False,
 )
@@ -40,7 +42,8 @@ def spray(addr, length, value, only_funcptrs) -> None:
         if page is None:
             print(
                 M.error(
-                    f"Invalid address {addr}: can't find vmmap containing it to determine the spray length"
+                    f"Invalid address {addr}: can't find vmmap containing"
+                    " it to determine the spray length"
                 )
             )
             return

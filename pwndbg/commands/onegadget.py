@@ -44,7 +44,8 @@ def onegadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool 
     if not gadgets_count[pwndbg.aglib.onegadget.SAT] and not show_unsat:
         print(
             M.warn(
-                "No valid gadgets found, you might want to run with --show-unsat again to check unsatisfiable gadgets.\n"
+                "No valid gadgets found, you might want to run with --show-unsat again"
+                " to check unsatisfiable gadgets.\n"
                 "To see why they are unsatisfiable, you might want to run with -v or --verbose."
             )
         )

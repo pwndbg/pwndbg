@@ -142,7 +142,8 @@ def entry(args=None) -> None:
         if not pwndbg.aglib.proc.alive:
             print(
                 M.error(
-                    "The program is not running. Start the program with `run -s` and then use `entry` to set the breakpoint."
+                    "The program is not running. Start the program with `run -s` and\n"
+                    " then use `entry` to set the breakpoint."
                 )
             )
             return

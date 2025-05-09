@@ -85,7 +85,8 @@ def aslr(state=None) -> None:
         else:
             # TODO: lldb settings set target.disable-aslr false
             print(
-                "Please use command 'settings set target.disable-aslr true/false', autocommand not supported yet"
+                "Please use command 'settings set target.disable-aslr true/false',\n"
+                "autocommand not supported yet"
             )
 
     aslr, method = check_aslr()

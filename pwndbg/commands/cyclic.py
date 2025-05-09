@@ -41,7 +41,8 @@ group.add_argument(
     dest="lookup",
     metavar="lookup_value",
     type=str,
-    help="Do a lookup instead of printing the sequence (accepts constant values as well as expressions)",
+    help="""Do a lookup instead of printing the sequence
+(accepts constant values as well as expressions)""",
 )
 
 group.add_argument(
@@ -76,7 +77,8 @@ def cyclic_cmd(alphabet, length: Optional[int], lookup, count=100, filename="") 
         if len(lookup) != length:
             print(
                 message.error(
-                    f"Lookup pattern must be {length} bytes (use `-n <length>` to lookup pattern of different length)"
+                    f"Lookup pattern must be {length} bytes (use `-n"
+                    " <length>` to lookup pattern of different length)"
                 )
             )
             return

@@ -138,7 +138,8 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
         print(
             M.error(
                 "Could not find the PID for process named `qemu-system`.\n"
-                "This might happen if pwndbg is running on a different machine than `qemu-system`,\n"
+                "This might happen if pwndbg is running on a different machine"
+                " than `qemu-system`,\n"
                 "or if the `qemu-system` binary has a different name."
             )
         )
@@ -255,7 +256,8 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
             print(
                 M.warn(
                     (
-                        "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                        "The vmmap output may be incorrect as `monitor info mem`"
+                        " output assertion/assumption\n"
                         "that end-start==size failed. The values are:\n"
                         "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
                         "Note that this warning will not show up again in this Pwndbg/GDB session."

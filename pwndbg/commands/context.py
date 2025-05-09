@@ -297,7 +297,9 @@ parser = argparse.ArgumentParser(description="Sets the output of a context secti
 parser.add_argument(
     "section",
     type=str,
-    help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')",
+    help="""The section which is to be configured. ('regs', 'disasm',
+'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker',
+'expressions', and/or 'last_signal')""",
 )
 parser.add_argument("path", type=str, help="The path to which the output is written")
 parser.add_argument("clearing", type=bool, help="Indicates whether to clear the output")
@@ -664,21 +666,24 @@ parser.add_argument(
     nargs="*",
     type=str,
     default=None,
-    help="Submenu to display: 'regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'",
+    help="""Submenu to display: 'regs', 'disasm', 'code', 'stack',
+'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'""",
 )
 parser.add_argument(
     "--on",
     dest="enabled",
     action="store_true",
     default=None,
-    help="Show the section(s) in subsequent context commands again. The section(s) have to be in the 'context-sections' list.",
+    help="""Show the section(s) in subsequent context commands again.
+The section(s) have to be in the 'context-sections' list.""",
 )
 parser.add_argument(
     "--off",
     dest="enabled",
     action="store_false",
     default=None,
-    help="Do not show the section(s) in subsequent context commands even though they might be in the 'context-sections' list.",
+    help="""Do not show the section(s) in subsequent context commands
+even though they might be in the 'context-sections' list.""",
 )
 
 
@@ -1304,7 +1309,8 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
     if num_threads_not_shown:
         out.append(
             pwndbg.lib.tips.color_tip(
-                f"Not showing {num_threads_not_shown} thread(s). Use `set context-max-threads <number of threads>` to change this."
+                f"Not showing {num_threads_not_shown} thread(s). "
+                "Use `set context-max-threads <number of threads>` to change this."
             )
         )
 

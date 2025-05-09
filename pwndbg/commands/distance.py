@@ -8,7 +8,7 @@ import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    description="Print the distance between the two arguments, or print the offset to the address's page base."
+    description="Print the distance between the two arguments, or print the offset to the address's page base."  # noqa: E501
 )
 parser.add_argument("a", type=int, help="The first address.")
 parser.add_argument("b", nargs="?", default=None, type=int, help="The second address.")

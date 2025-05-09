@@ -146,7 +146,8 @@ parser.add_argument(
     "--limit",
     default=None,
     type=str,
-    help="Max results before quitting the search. Differs from --trunc-out in that it will not save all search results before quitting",
+    help="""Max results before quitting the search.
+Differs from --trunc-out in that it will not save all search results before quitting""",
 )
 parser.add_argument(
     "-a", "--aligned", default=None, type=str, help="Result must be aligned to this byte boundary"
@@ -175,7 +176,8 @@ parser.add_argument(
     "--trunc-out",
     action="store_true",
     default=False,
-    help="Truncate the output to 20 results. Differs from --limit in that it will first save all search results",
+    help="""Truncate the output to 20 results.
+Differs from --limit in that it will first save all search results""",
 )
 
 
@@ -200,7 +202,8 @@ def search(
     global saved
     if next and not saved:
         print(
-            "WARNING: cannot filter previous search results as they were empty. Performing new search saving results."
+            "WARNING: cannot filter previous search results as they were empty.\n"
+            "Performing new search saving results."
         )
         next = False
         save = True
@@ -276,7 +279,8 @@ def search(
         except UnicodeError as what:
             print(
                 message.error(
-                    f"Invalid pattern '{value}'. Patterns of type `bytes` must be encodable in UTF-8: {what}"
+                    f"Invalid pattern '{value}'. Patterns of type `bytes` "
+                    f"must be encodable in UTF-8: {what}"
                 )
             )
             return

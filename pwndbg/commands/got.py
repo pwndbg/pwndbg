@@ -68,7 +68,8 @@ parser.add_argument(
 def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str) -> None:
     if pwndbg.aglib.qemu.is_qemu_usermode():
         print(
-            "QEMU target detected - the result might not be accurate when checking if the entry is writable and getting the information for libraries/objfiles"
+            "QEMU target detected - the result might not be accurate when checking if\n"
+            "the entry is writable and getting the information for libraries/objfiles"
         )
         print()
     # Show the filters we are using

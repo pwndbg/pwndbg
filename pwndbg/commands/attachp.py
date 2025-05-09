@@ -74,7 +74,8 @@ parser.add_argument(
     nargs="?",
     default=None,
     type=str,
-    help="pid, process name, part of cmdline to be matched or device file to attach to (uses current loaded file name if not provided)",
+    help="""pid, process name, part of cmdline to be matched or device
+file to attach to (uses current loaded file name if not provided)""",
 )
 
 
@@ -172,7 +173,8 @@ def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
                 user_filter = "" if not user else f" and user={user}"
                 print(
                     message.warn(
-                        f"Looking for pids for target={target}{user_filter} in a loop. Hit CTRL+C to cancel"
+                        f"Looking for pids for target={target}{user_filter} in a loop."
+                        " Hit CTRL+C to cancel"
                     )
                 )
                 while not pids:
@@ -214,7 +216,9 @@ def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
 
                 print(
                     message.warn(
-                        f'Multiple processes found. Current resolution method is "{method}". Run the command `config attachp-resolution-method` to see more informations.'
+                        f'Multiple processes found. Current resolution method is "{method}".\n'
+                        'Run the command `config attachp-resolution-method` to see more'
+                        ' informations.'
                     )
                 )
 

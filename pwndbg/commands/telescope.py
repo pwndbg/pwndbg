@@ -148,7 +148,8 @@ def telescope(
         for page in pwndbg.aglib.vmmap.get():
             if sp in page and bp not in page:
                 print(
-                    "Cannot display stack frame because base pointer is not on the same page with stack pointer"
+                    "Cannot display stack frame because base pointer is not on "
+                    "the same page with stack pointer"
                 )
                 return
 
@@ -330,7 +331,8 @@ def stack(count, offset, frame, inverse) -> None:
 
 
 parser = argparse.ArgumentParser(
-    description="Dereferences on stack data, printing the entire stack frame with specified count and offset ."
+    description="Dereferences on stack data, printing the entire\
+ stack frame with specified count and offset."
 )
 parser.add_argument("count", nargs="?", default=8, type=int, help="number of element to dump")
 parser.add_argument(

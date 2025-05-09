@@ -9,7 +9,8 @@ import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    description="Extracts and displays ASCII strings from readable memory pages of the debugged process."
+    description="Extracts and displays ASCII strings from\
+ readable memory pages of the debugged process."
 )
 
 parser.add_argument("-n", type=int, default=4, help="Minimum length of ASCII strings to include")

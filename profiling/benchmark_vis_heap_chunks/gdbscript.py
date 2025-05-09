@@ -1,4 +1,5 @@
-import gdb, pwndbg
+import gdb
+import pwndbg
 
 pwndbg.profiling.profiler.start()
 result = gdb.execute("vis 2000", to_string=True)

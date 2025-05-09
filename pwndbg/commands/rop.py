@@ -176,8 +176,10 @@ def iterate_over_pages(mem_limit: int) -> Iterator[Tuple[str, pwndbg.lib.memory.
             print(
                 M.hint(
                     "WARNING: The memory page size is too large to dump.\n"
-                    "WARNING: Parsing this large memory page might take an excessive amount of time...\n"
-                    "WARNING: To process larger pages, increase the `--memlimit` parameter (e.g., `--memlimit 100MB`)."
+                    "WARNING: Parsing this large memory page might take an"
+                    " excessive amount of time...\n"
+                    "WARNING: To process larger pages, increase the `--memlimit`"
+                    " parameter (e.g., `--memlimit 100MB`)."
                 )
             )
             continue

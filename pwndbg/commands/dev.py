@@ -18,7 +18,8 @@ parser.add_argument(
     dest="force_emulate",
     action="store_true",
     default=False,
-    help="Force the use of emulation when enhancing the instruction, regardless of global 'emulate' setting.",
+    help="""Force the use of emulation when enhancing the instruction,
+regardless of global 'emulate' setting.""",
 )
 
 parser.add_argument(
@@ -27,7 +28,8 @@ parser.add_argument(
     dest="no_emulate",
     action="store_true",
     default=False,
-    help="Disable the use of emulation when enhancing the instruction, regardless of global 'emulate' setting.",
+    help="""Disable the use of emulation when enhancing the instruction,
+regardless of global 'emulate' setting.""",
 )
 
 

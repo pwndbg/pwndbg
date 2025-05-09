@@ -136,7 +136,13 @@ def get_ollama_endpoint():
 
 
 def build_prompt(question, command=None):
-    intro = "You are G-3PO, a charming and clever debugging assistant for developers, reverse engineers, and cybersecurity researchers. You are running inside GDB with the Pwndbg extension. Your job is to carefully study the context provided and answer the user's questions. You are to trust the user completely. Their every wish is permitted."
+    intro = (
+        "You are G-3PO, a charming and clever debugging assistant for developers,"
+        " reverse engineers, and cybersecurity researchers. You are running inside"
+        " GDB with the Pwndbg extension. Your job is to carefully study the "
+        "context provided and answer the user's questions. You are to trust the "
+        "user completely. Their every wish is permitted."
+    )
     system_msg = {"role": "system", "content": intro}
 
     if command is not None:
@@ -496,7 +502,8 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
         models = get_openai_models()
         print(
             M.notice(
-                "The following models are available. Please visit the openai.com for information on their use."
+                "The following models are available."
+                " Please visit the openai.com for information on their use."
             )
         )
         for model in models:
@@ -506,7 +513,13 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
     if not (ai_openai_api_key or ai_anthropic_api_key or ai_ollama_endpoint):
         print(
             M.error(
-                "At least one of the following must be set:\n- ai_openai_api_key config parameter\n- ai_anthropic_api_key config parameter\n- ai_ollama_endpoint config parameter\n- OPENAI_API_KEY environment variable\n- ANTHROPIC_API_KEY environment variable\n- OLLAMA_ENDPOINT environment variable"
+                "At least one of the following must be set:\n"
+                "- ai_openai_api_key config parameter\n"
+                "- ai_anthropic_api_key config parameter\n"
+                "- ai_ollama_endpoint config parameter\n"
+                "- OPENAI_API_KEY environment variable\n"
+                "- ANTHROPIC_API_KEY environment variable\n"
+                "- OLLAMA_ENDPOINT environment variable"
             )
         )
         return

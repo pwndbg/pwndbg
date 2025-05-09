@@ -92,7 +92,9 @@ parser.add_argument(
     nargs="?",
     type=int,
     default=0x1,
-    help="Step to add between pointers so they are considered. For example, if this is 4 it would only consider pointers at an offset divisible by 4 from the starting pointer",
+    help="""Step to add between pointers so they are considered.
+For example, if this is 4 it would only consider pointers at an
+offset divisible by 4 from the starting pointer""",
 )
 parser.add_argument(
     "--negative_offset",

@@ -225,7 +225,8 @@ parser.add_argument(
     "-f",
     "--fake",
     action="store_true",
-    help="Allow fake chunks. If set, displays any memory as a heap chunk (even if its not a real chunk).",
+    help="""Allow fake chunks. If set, displays any memory as a
+heap chunk (even if its not a real chunk).""",
 )
 
 
@@ -382,7 +383,8 @@ def tcache(addr: int | None = None) -> None:
     if tcache:
         print(
             message.notice(
-                f"tcache is pointing to: {message.hint(hex(int(tcache.address)))} for thread {message.hint(tid)}"
+                f"tcache is pointing to: {message.hint(hex(int(tcache.address)))}"
+                f" for thread {message.hint(tid)}"
             )
         )
     else:
@@ -831,7 +833,8 @@ def find_fake_fast(
     if global_max_fast is None:
         print(
             message.warn(
-                "The global_max_fast symbol is not available, falling back to the default value of 0x80"
+                "The global_max_fast symbol is not available, "
+                "falling back to the default value of 0x80"
             )
         )
         global_max_fast = 0x80
@@ -962,7 +965,8 @@ group.add_argument(
     nargs="?",
     type=lambda n: max(int(n, 0), 1),
     default=pwndbg.config.default_visualize_chunk_number,
-    help="Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead.",
+    help="""Number of chunks to visualize. If the value is big enough
+and addr isn't provided, this is interpreted as addr instead.""",
 )
 parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
 parser.add_argument(
@@ -1465,8 +1469,11 @@ def try_free(addr: str | int) -> None:
         if (arena.flags & NONCONTIGUOUS_BIT == 0) and next_chunk_addr >= top_chunk_addr + chunksize(
             top_chunk["size"]
         ):
-            err = "double free or corruption (out) -> next chunk is beyond arena and arena is contiguous\n"
-            err += "next chunk at 0x{:x}, end of arena at 0x{:x}"
+            err = (
+                "double free or corruption (out) -> next chunk "
+                "is beyond arena and arena is contiguous\n"
+                "next chunk at 0x{:x}, end of arena at 0x{:x}"
+            )
             err = err.format(
                 next_chunk_addr, top_chunk_addr + chunksize(unsigned_size(top_chunk["size"]))
             )
@@ -1491,8 +1498,11 @@ def try_free(addr: str | int) -> None:
 
         # next chunk's size is big enough and small enough
         if next_chunk_size <= 2 * size_sz or next_chunk_size >= arena.system_mem:
-            err = "free(): invalid next size (normal) -> next chunk's size not in [2*size_sz; system_mem]\n"
-            err += "next chunk's size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}"
+            err = (
+                "free(): invalid next size (normal) -> next chunk's size"
+                " not in [2*size_sz; system_mem]\n"
+                "next chunk's size is 0x{:x}, 2*size_sz is 0x{:x}, system_mem is 0x{:x}"
+            )
             err = err.format(next_chunk_size, 2 * size_sz, arena.system_mem)
             print(message.error(err))
             errors_found += 1
@@ -1550,7 +1560,10 @@ def try_free(addr: str | int) -> None:
                 unsorted = read_chunk(unsorted_addr)
                 try:
                     if read_chunk(unsorted["fd"])["bk"] != unsorted_addr:
-                        err = "free(): corrupted unsorted chunks -> unsorted_chunk->fd->bk != unsorted_chunk\n"
+                        err = (
+                            "free(): corrupted unsorted chunks -> "
+                            "unsorted_chunk->fd->bk != unsorted_chunk\n"
+                        )
                         err += (
                             "unsorted at 0x{:x}, unsorted->fd == 0x{:x}, unsorted->fd->bk == 0x{:x}"
                         )
