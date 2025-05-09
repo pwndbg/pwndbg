@@ -30,7 +30,7 @@ Memory pages can also be added manually with the use of vmmap-add, vmmap-clear a
 
 [0] https://lore.kernel.org/all/20220221030910.3203063-1-dominik.b.czarnota@gmail.com/
 
-**Aliases:** lm, address, vprot, libs.
+**Aliases:** lm, address, vprot, libs
 ### Positional arguments
 
 |Positional Argument|Help|

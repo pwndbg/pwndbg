@@ -13,7 +13,7 @@ usage: bn-sync [-h]
 
 Synchronize Binary Ninja's cursor with GDB.
 
-**Alias:** bns.
+**Alias:** bns
 ### Optional arguments
 
 |Short|Long|Help|

@@ -13,7 +13,7 @@ usage: rz [-h] [--no-seek] [--no-rebase] [arguments ...]
 
 Launches rizin.
 
-**Alias:** rizin.
+**Alias:** rizin
 ### Positional arguments
 
 |Positional Argument|Help|

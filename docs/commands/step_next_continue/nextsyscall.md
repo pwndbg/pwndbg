@@ -13,7 +13,7 @@ usage: nextsyscall [-h]
 
 Breaks at the next syscall not taking branches.
 
-**Alias:** nextsc.
+**Alias:** nextsc
 ### Optional arguments
 
 |Short|Long|Help|

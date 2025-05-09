@@ -26,7 +26,7 @@ use "set args" without arguments.
 
 To start the inferior without using a shell, use "set startup-with-shell off".
 
-**Aliases:** main, init.
+**Aliases:** main, init
 ### Positional arguments
 
 |Positional Argument|Help|

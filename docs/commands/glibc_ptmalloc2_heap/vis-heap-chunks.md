@@ -16,7 +16,7 @@ Visualize chunks on a heap.
 
 Default to the current arena's active heap.
 
-**Alias:** vis.
+**Alias:** vis
 ### Positional arguments
 
 |Positional Argument|Help|

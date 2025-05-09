@@ -13,7 +13,7 @@ usage: contextsearch [-h] needle [section]
 
 Search for a string in the context history and select that entry.
 
-**Alias:** ctxsearch.
+**Alias:** ctxsearch
 ### Positional arguments
 
 |Positional Argument|Help|

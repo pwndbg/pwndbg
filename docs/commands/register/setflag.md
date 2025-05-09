@@ -13,7 +13,7 @@ usage: setflag [-h] flag value
 
 Modify the flags register.
 
-**Alias:** flag.
+**Alias:** flag
 ### Positional arguments
 
 |Positional Argument|Help|

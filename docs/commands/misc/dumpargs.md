@@ -13,7 +13,7 @@ usage: dumpargs [-h] [-f]
 
 Prints determined arguments for call instruction.
 
-**Alias:** args.
+**Alias:** args
 ### Optional arguments
 
 |Short|Long|Help|

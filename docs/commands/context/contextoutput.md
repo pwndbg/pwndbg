@@ -13,7 +13,7 @@ usage: contextoutput [-h] section path clearing [banner] [width]
 
 Sets the output of a context section.
 
-**Alias:** ctx-out.
+**Alias:** ctx-out
 ### Positional arguments
 
 |Positional Argument|Help|

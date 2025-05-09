@@ -13,7 +13,7 @@ usage: rop [-h] [--grep GREP] [--memlimit MEMLIMIT] [argument ...]
 
 Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 
-**Alias:** ropgadget.
+**Alias:** ropgadget
 ### Positional arguments
 
 |Positional Argument|Help|

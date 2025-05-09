@@ -13,7 +13,7 @@ usage: breakrva [-h] [offset] [module]
 
 Break at RVA from PIE base.
 
-**Alias:** brva.
+**Alias:** brva
 ### Positional arguments
 
 |Positional Argument|Help|

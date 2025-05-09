@@ -13,7 +13,7 @@ usage: nextjmp [-h]
 
 Breaks at the next jump instruction.
 
-**Alias:** nextjump.
+**Alias:** nextjump
 ### Optional arguments
 
 |Short|Long|Help|

@@ -13,7 +13,7 @@ usage: stepover [-h] [addr]
 
 Breaks on the instruction after this one.
 
-**Alias:** so.
+**Alias:** so
 ### Positional arguments
 
 |Positional Argument|Help|

@@ -13,7 +13,7 @@ usage: down [-h] [n]
 
 Select and print stack frame called by this one.
 
-**Aliases:** do, dow.
+**Aliases:** do, dow
 ### Positional arguments
 
 |Positional Argument|Help|

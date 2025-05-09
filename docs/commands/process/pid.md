@@ -13,7 +13,7 @@ usage: pid [-h]
 
 Gets the pid.
 
-**Alias:** getpid.
+**Alias:** getpid
 ### Optional arguments
 
 |Short|Long|Help|
