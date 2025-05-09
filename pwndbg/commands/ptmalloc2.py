@@ -1426,8 +1426,8 @@ def try_free(addr: str | int) -> None:
             except pwndbg.dbg_mod.Error:
                 print(
                     message.error(
-                        f"Can't read top fastbin chunk at address 0x{
-    fastbin_top_chunk:x}, memory error"
+                        f"Can't read top fastbin chunk at address 0x{fastbin_top_chunk:x}"
+                        ", memory error"
                     )
                 )
                 finalize(errors_found, returned_before_error)

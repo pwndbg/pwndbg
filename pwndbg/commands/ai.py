@@ -388,9 +388,11 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
 
 def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
     if dummy:
-        return f"""This is a dummy response for unit testing purposes.\n"
+        return (
+            f"This is a dummy response for unit testing purposes.\n"
             f"model = {model}, max_tokens = {max_tokens}, temperature = "
-            f"{temperature}\n\nPrompt:\n\n{prompt}"""
+            f"{temperature}\n\nPrompt:\n\n{prompt}"
+        )
     if pwndbg.config.ai_ollama_endpoint:
         if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)

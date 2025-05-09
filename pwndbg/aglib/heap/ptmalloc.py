@@ -1539,8 +1539,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     def libc_has_debug_syms(self) -> bool:
         """
         The `struct malloc_chunk` comes from debugging symbols and it will not be
-        there
-        for statically linked binaries
+        there for statically linked binaries.
         """
         return (
             pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
@@ -2107,7 +2106,8 @@ class HeuristicHeap(
                         print(
                             message.notice(
                                 f"Found possible tcache at {message.hint(hex(address))}"
-                                f" with value: {message.hint(hex(value))}\n")
+                                f" with value: {message.hint(hex(value))}\n"
+                            )
                         )
                         self._thread_cache = tps(value)
                         self._thread_caches[pwndbg.dbg.selected_thread().index()] = (
