@@ -138,23 +138,6 @@ default-groups = []
 [tool.uv.sources]
 pt = { git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e94027f811a15879588de6d5cb" }
 
-[tool.ruff.lint.flake8-builtins]
-builtins-ignorelist = [
-    "all",
-    "bin",
-    "breakpoint",
-    "copyright",
-    "dir",
-    "exit",
-    "format",
-    "hex",
-    "map",
-    "max",
-    "min",
-    "next",
-    "type",
-]
-
 [tool.hatch.build.targets.sdist]
 include = ["pwndbg"]
 
@@ -164,9 +147,6 @@ include = ["pwndbg"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]
 
 [tool.mypy]
 strict_optional = false
