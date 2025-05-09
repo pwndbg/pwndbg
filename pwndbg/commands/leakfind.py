@@ -56,12 +56,8 @@ def dbg_print_map(maps) -> None:
 parser = argparse.ArgumentParser(
     description="""
 Attempt to find a leak chain given a starting address.
-Scans memory near the given address, looks for pointers, and continues that process to attempt to find leaks.
-
-Example: leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6. This would look for any chains of leaks \
-that point to a section in filename which begin near $rsp, are never 0x48 bytes further from a known pointer, \
-and are a maximum length of 6.
-""",
+Scans memory near the given address, looks for pointers,
+and continues that process to attempt to find leaks.""",
 )
 parser.add_argument(
     "address", nargs="?", default="$sp", help="Starting address to find a leak chain from"
@@ -107,7 +103,12 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY, examples="""
+pwndbg> leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6
+This would look for any chains of leaks that point to a section in
+filename which begin near $rsp, are never 0x48 bytes further from
+a known pointer, and are a maximum length of 6.
+    """)
 @pwndbg.commands.OnlyWhenRunning
 def leakfind(
     address=None,
@@ -150,7 +151,8 @@ def leakfind(
     time_to_depth_increase = 0
 
     # Run a bfs
-    # TODO look into performance gain from checking if an address is mapped before calling pwndbg.aglib.memory.pvoid()
+    # TODO look into performance gain from checking if an address is
+    # mapped before calling pwndbg.aglib.memory.pvoid()
     # TODO also check using pwndbg.aglib.memory.read for possible performance boosts.
     while address_queue.qsize() > 0 and depth < max_depth:
         if time_to_depth_increase == 0:

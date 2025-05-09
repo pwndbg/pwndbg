@@ -154,12 +154,16 @@ def format(
     # the only element there is.
     if len(chain) == 1:
         # Note the "attempt_dereference" argument, which is set to False.
-        # In general, this function assumes that the caller has manually fully dereferenced the input list of pointers.
-        # If the only value in the list is a pointer, the function assumes this is purposeful and that that pointer cannot be dereferenced.
-        # This is because the code that generated the list determined that we cannot safely reason about the dereferenced value at the current program state.
-        # This case only applies to lists of length one, because if the list has more than one value, we already know
-        # that the second to last value, chain[-2], can be safely dereferenced - how else would chain[-1] exist?
-        # In other case where chain[-1] is not a pointer, the argument has no effect.
+        # In general, this function assumes that the caller has manually fully
+        # dereferenced the input list of pointers. If the only value in the list
+        # is a pointer, the function assumes this is purposeful and that that
+        # pointer cannot be dereferenced. This is because the code that generated
+        # the list determined that we cannot safely reason about the dereferenced
+        # value at the current program state. This case only applies to lists of
+        # length one, because if the list has more than one value, we already know
+        # that the second to last value, chain[-2], can be safely dereferenced -
+        # how else would chain[-1] exist? In other case where chain[-1] is not a
+        # pointer, the argument has no effect.
         enhanced = pwndbg.enhance.enhance(
             chain[-1],
             code=code,

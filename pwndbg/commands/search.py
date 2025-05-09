@@ -55,7 +55,10 @@ auto_save = pwndbg.config.add_param(
 parser = argparse.ArgumentParser(
     description="""Search memory for byte sequences, strings, pointers, and integer values.
 
-By default search results are cached. If you want to cache all results, but only print a subset, use --trunc-out. If you want to cache only a subset of results, and print the results immediately, use --limit. The latter is specially useful if you're searching a huge section of memory.
+By default search results are cached. If you want to cache all results,
+but only print a subset, use --trunc-out. If you want to cache only a
+subset of results, and print the results immediately, use --limit. The
+latter is specially useful if you're searching a huge section of memory.
 
 """,
 )
@@ -258,10 +261,11 @@ def search(
         value = pwnlib.asm.asm(value, arch=arch, bits=bits_for_arch)
 
     # `pwndbg.search.search` expects a `bytes` object for its pattern. Convert the string pattern we
-    # were given to a bytes object by encoding it as an UTF-8 byte sequence. This matches the behavior
-    # we previously got by calling `gdb.Inferior.search_memory` with an `str`, since right about GDB
-    # version 7.x or 8.x[1], as it uses a `Py_buffer` object populated with an `'s*'` pattern, which
-    # has been encoding `str` object as a UTF-8 byte sequence since Python 3.1[2].
+    # were given to a bytes object by encoding it as an UTF-8 byte sequence. This matches the
+    # behavior we previously got by calling `gdb.Inferior.search_memory` with an `str`, since
+    # right about GDB version 7.x or 8.x[1], as it uses a `Py_buffer` object populated with
+    # an `'s*'` pattern, which has been encoding `str` object as a UTF-8 byte sequence since
+    # Python 3.1[2].
     #
     # [1]: https://sourceware.org/git/?p=binutils-gdb.git;a=blame;f=gdb/python/py-inferior.c;h=a1042ee72ac733091f7572bc04b072546d3c1519;hb=23c84db5b3cb4e8a0d555c76e1a0ab56dc8355f3
     # [2]: https://docs.python.org/3.1/c-api/arg.html#strings-and-buffers

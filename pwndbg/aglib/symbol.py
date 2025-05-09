@@ -103,7 +103,8 @@ def resolve_addr(addr: int) -> str | None:
     Resolves an address to its corresponding symbol name, if available.
 
     Note:
-    - This function does not resolve TLS (Thread-Local Storage) addresses or addresses with local scope.
+    - This function does not resolve TLS (Thread-Local Storage) addresses or addresses
+      with local scope.
 
     Resolution is performed in the following order:
     - Global scope symbols.

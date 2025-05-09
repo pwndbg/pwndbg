@@ -206,7 +206,9 @@ def heap(addr: int | None = None, verbose: bool = False, simple: bool = False) -
 
 
 parser = argparse.ArgumentParser(
-    description="""Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk.""",
+    description="""
+Searches all heaps to find if an address belongs to a chunk. If yes, prints the chunk
+    """,
 )
 parser.add_argument(
     "addr",

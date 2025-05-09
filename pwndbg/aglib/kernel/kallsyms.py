@@ -521,9 +521,8 @@ class Kallsyms:
 
         for null_separated_bytes_chunks in range(20):
             num_non_null_bytes = 1  # we always start at a non-null byte in this loop
-            num_null_bytes = (
-                1  # we will at least encounter one null byte before the end of this loop
-            )
+            # we will at least encounter one null byte before the end of this loop
+            num_null_bytes = 1
 
             while True:
                 position += 1

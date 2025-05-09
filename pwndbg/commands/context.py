@@ -96,7 +96,8 @@ config_reserve_lines = pwndbg.config.add_param(
     "if-ctx-fits",
     "when to reserve lines after the prompt to reduce context shake",
     help_docstring="""
-The "if-ctx-fits" setting only reserves lines if the whole context would still fit vertically in the current terminal window.
+The "if-ctx-fits" setting only reserves lines if the whole context would
+still fit vertically in the current terminal window.
 It doesn't take into account line-wrapping due to insufficient terminal width.
 """,  # TODO: maybe it could take into account line-wrapping?
     param_class=pwndbg.lib.config.PARAM_ENUM,
@@ -378,8 +379,8 @@ def serve_context_history(function: Callable[P, List[str]]) -> Callable[P, List[
         current_output = []
         if pwndbg.aglib.proc.alive:
             # Do not reevaluate the expressions section because its content is not deterministic.
-            # Instead, reuse the last evaluated expression and rely on the other sections to deselect
-            # the history entry if the output changed.
+            # Instead, reuse the last evaluated expression and rely on the other sections to
+            # deselect the history entry if the output changed.
             # https://github.com/pwndbg/pwndbg/issues/2579
             if (
                 section_name == "expressions"
@@ -686,7 +687,8 @@ def context(subcontext=None, enabled=None) -> None:
     """
     Print out the current register, instruction, and stack context.
 
-    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
+    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace',
+    'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
     """
     # Allow to view history after the program has exited
     if not pwndbg.aglib.proc.alive and (context_history_size <= 0 or not context_history):

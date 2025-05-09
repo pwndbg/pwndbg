@@ -248,8 +248,11 @@ class Config:
         assert set_show_doc[-1] != "." and "Don't end set_show_doc with punctuation."
         assert (
             HELP_DEFAULT_PREFIX not in help_docstring
-            and f"Having the string '{HELP_DEFAULT_PREFIX }' in the help_docstring "
-            "messes with documentation generation. Please remove it, it is automatically generated."
+            and (
+                f"Having the string '{HELP_DEFAULT_PREFIX}' in the "
+                "help_docstring messes with documentation generation. "
+                "Please remove it, it is automatically generated."
+            )
         )
         assert (
             HELP_VALID_VALUES_PREFIX not in help_docstring

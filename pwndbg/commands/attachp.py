@@ -30,7 +30,8 @@ pwndbg.config.add_param(
 )
 
 parser = argparse.ArgumentParser(
-    description="""Attaches to a given pid, process name, process found with partial argv match or to a device file.
+    description="""
+Attaches to a given pid, process name, process found with partial argv match or to a device file.
 
 This command wraps the original GDB `attach` command to add the ability
 to debug a process with a given name or partial name match. In such cases,
@@ -152,7 +153,8 @@ def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
         # GDB supposedly supports device files, so let's try it here...:
         #    <disconnect3d> hey, does anyone know what does `attach <device-file>` do?
         #    <disconnect3d> is this an alias for `target extended /dev/ttyACM0` or similar?
-        #    <disconnect3d> I mean, `help attach` suggests that the `attach` command supports a device file target...
+        #    <disconnect3d> I mean, `help attach` suggests that the `attach` command supports
+        #                   a device file target...
         #    <simark> I had no idea
         #    <simark> what you pass to attach is passed directly to target_ops::attach
         #    <simark> so it must be very target-specific

@@ -42,7 +42,9 @@ def mask(current_field_width, current_field_shift):
 # For size class related explanation and calculations, refer to
 # https://github.com/jemalloc/jemalloc/blob/a25b9b8ba91881964be3083db349991bbbbf1661/include/jemalloc/internal/sc.h#L8
 
-LG_QUANTUM = 4  # LG_QUANTUM ensures correct platform alignment and necessary to ensure we never return improperly aligned memory
+# LG_QUANTUM ensures correct platform alignment and necessary to
+# ensure we never return improperly aligned memory
+LG_QUANTUM = 4
 
 SC_LG_TINY_MIN = 3
 SC_NTINY = (
@@ -51,9 +53,11 @@ SC_NTINY = (
 
 # Size classes
 SC_LG_NGROUP = 2  # Number of size classes group
+# Number of size classes in each group, equally spaced in the range,
+# so that * each one covers allocations for base / SC_NGROUP possible allocation sizes
 SC_NGROUP = (
     1 << SC_LG_NGROUP
-)  # Number of size classes in each group, equally spaced in the range, so that * each one covers allocations for base / SC_NGROUP possible allocation sizes
+)
 SC_NPSEUDO = SC_NGROUP
 SC_PTR_BITS = (1 << LG_SIZEOF_PTR) * 8
 SC_LG_BASE_MAX = SC_PTR_BITS - 2
@@ -157,11 +161,13 @@ EDATA_BITS_IS_HEAD_WIDTH = 1
 EDATA_BITS_IS_HEAD_SHIFT = EDATA_BITS_BINSHARD_WIDTH + EDATA_BITS_BINSHARD_SHIFT
 EDATA_BITS_IS_HEAD_MASK = mask(EDATA_BITS_IS_HEAD_WIDTH, EDATA_BITS_IS_HEAD_SHIFT)
 
-# In RTree, Each level distinguishes a certain number of bits from the key, which helps in narrowing down the search space
-# bits: how many bits have been used at that particular level (Number of key bits distinguished by this level)
+# In RTree, Each level distinguishes a certain number of bits from the key, which helps
+# in narrowing down the search space
+# bits: how many bits have been used at that particular level
+#     (Number of key bits distinguished by this level)
 # cumbits: how many bits in total have been used up to that level
-# (Cumulative number of key bits distinguished by traversing to
-# corresponding tree level)
+#     (Cumulative number of key bits distinguished by traversing to
+#     corresponding tree level)
 rtree_levels = [
     # for height == 1
     [{"bits": RTREE_NSB, "cumbits": RTREE_NHIB + RTREE_NSB}],
@@ -196,7 +202,7 @@ class RTree:
     """
 
     # TODO: Check rtee_ctx cache in
-    # tsd_nominal_tsds.qlh_first.cant_access_tsd_items_directly_use_a_getter_or_setter_rtree_ctx.cache
+    # tsd_nominal_tsds.qlh_first.cant_access_tsd_items_directly_use_a_getter_or_setter_rtree_ctx.cache  # noqa: E501
     def __init__(self, addr: int) -> None:
         self._addr = addr
 
@@ -268,7 +274,8 @@ class RTree:
         Lookup the key in the rtree and return the value.
 
         How it works:
-        - Jemalloc stores the extent address in the rtree as a node and to find a specific node we need a address key.
+        - Jemalloc stores the extent address in the rtree as a node and
+          to find a specific node we need a address key.
         """
         rtree_node_elm_s = pwndbg.aglib.typeinfo.load("struct rtree_node_elm_s")
         if rtree_node_elm_s is None:
@@ -307,14 +314,15 @@ class RTree:
         if val == 0:
             return None
 
-        # In this function, we are trying to find the extent address given the address of memory block
-        # that this extent is managing (which is represented by edata->e_addr in
-        # the extent structure)
+        # In this function, we are trying to find the extent address given the
+        # address of memory block that this extent is managing (which is
+        # represented by edata->e_addr in the extent structure)
 
         # e_addr is 64 bits but
         # e_addr is also page (4096) aligned which means last 12 bits are zero and therefore unused
         # In rtree, each layer can be accessed using bits 0-16, 17-33 and 34-51
-        # When height of rtree is 3, level 1 can be accessed using bits 0-16, and so on for level 2 and 3
+        # When height of rtree is 3, level 1 can be accessed using bits 0-16,
+        # and so on for level 2 and 3.
         # When the height is 2, 0-15 bits are unused and level 1 can be accessed
         # using bits 16-33 and level 2 using 34-51
 
@@ -398,7 +406,8 @@ class RTree:
                         extent_addresses.append(extent.extent_address)
 
                         # during initializations, addresses may get some alignment
-                        # lets check if size makes sense, otherwise do page alignment and check if again
+                        # lets check if size makes sense, otherwise do page alignment
+                        # and check if again
                         # TODO: better way to do this
                         extent_tmp = extent
                         if extent.size == 0:
@@ -484,13 +493,22 @@ class Extent:
         Extract bitfields
 
         arena_ind: Arena from which this extent came, or all 1 bits if unassociated.
-        slab: The slab flag indicates whether the extent is used for a slab of small regions. This helps differentiate small size classes, and it indicates whether interior pointers can be looked up via iealloc().
-        committed: The committed flag indicates whether physical memory is committed to the extent, whether explicitly or implicitly as on a system that overcommits and satisfies physical memory needs on demand via soft page faults.
+        slab: The slab flag indicates whether the extent is used for a slab of small regions.
+              This helps differentiate small size classes, and it indicates whether interior
+              pointers can be looked up via iealloc().
+        committed: The committed flag indicates whether physical memory is committed to the
+                   extent, whether explicitly or implicitly as on a system that overcommits
+                   and satisfies physical memory needs on demand via soft page faults.
         pai: The pai flag is an extent_pai_t.
-        zeroed: The zeroed flag is used by extent recycling code to track whether memory is zero-filled.
-        guarded: The guarded flag is used by the sanitizer to track whether the extent has page guards around it.
+        zeroed: The zeroed flag is used by extent recycling code to track whether memory is
+                zero-filled.
+        guarded: The guarded flag is used by the sanitizer to track whether the extent has
+                 page guards around it.
         state: The state flag is an extent_state_t.
-        szind: The szind flag indicates usable size class index for allocations residing in this extent, regardless of whether the extent is a slab. Extent size and usable size often differ even for non-slabs, either due to sz_large_pad or promotion of sampled small regions.
+        szind: The szind flag indicates usable size class index for allocations residing in
+               this extent, regardless of whether the extent is a slab. Extent size and
+               usable size often differ even for non-slabs, either due to sz_large_pad or
+               promotion of sampled small regions.
         nfree: Number of free regions in slab.
         bin_shard: The shard of the bin from which this extent came.
         """

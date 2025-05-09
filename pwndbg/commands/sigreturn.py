@@ -22,7 +22,8 @@ from pwndbg.lib.regs import amd64
 from pwndbg.lib.regs import arm
 from pwndbg.lib.regs import i386
 
-# Grab frame values from pwntools. Offsets are defined as the offset to stack pointer when syscall instruction is called
+# Grab frame values from pwntools. Offsets are defined as the offset to
+# stack pointer when syscall instruction is called.
 # Offsets and names are from Linux kernel source. For example x86_64 is
 # defined in CONFIG_X86_64 struct rt_sigframe (Linux Kernel
 # /arch/x86/include/asm/sigframe.h)

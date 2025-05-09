@@ -49,11 +49,12 @@ CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}
 # Caching strategy:
 # To ensure we don't have stale register/memory information in our cached PwndbgInstruction,
 # we clear the cache whenever we DON'T do a `stepi`, `nexti`, `step`, or `next` command.
-# Although `stepi` and `nexti` always go to the next machine instruction in memory, `step` and `next`
-# can skip over multiple when GDB has debugging symbols and sourcecode
-# In order to determine that we did a `stepi`, `nexti`, `step`, or `next`, whenever the process stops,
-# we check if the current program counter is at the address of one of the instructions that we
-# emulated to the last time the process stopped. This allows use to skips a handful of instruction, but still retain the cache
+# Although `stepi` and `nexti` always go to the next machine instruction in memory,
+# `step` and `next` can skip over multiple when GDB has debugging symbols and sourcecode
+# In order to determine that we did a `stepi`, `nexti`, `step`, or `next`, whenever the
+# process stops, we check if the current program counter is at the address of one of the
+# instructions that we emulated to the last time the process stopped. This allows use to
+# skips a handful of instruction, but still retain the cache.
 # Any larger changes of the program counter will cause the cache to reset.
 
 next_addresses_cache: Set[int] = set()
@@ -73,7 +74,8 @@ def enhance_cache_listener() -> None:
 @pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED)
 @pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED)
 def clear_on_reg_mem_change() -> None:
-    # We clear all the future computed instructions because when we manually change a register or memory, it's often a location
+    # We clear all the future computed instructions because when we manually change a
+    # register or memory, it's often a location
     # used by the instructions at or just after the current PC, and our
     # previously emulated future instructions might be inaccurate
     computed_instruction_cache.pop(pwndbg.aglib.regs.pc, None)
@@ -322,9 +324,14 @@ def near(
 
     emu: pwndbg.emu.emulator.Emulator = None
 
-    # Emulate if program pc is at the current instruction - can't emulate at arbitrary places, because we need current
-    # processor state to instantiate the emulator.
-    if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
+    # Emulate if program pc is at the current instruction - can't emulate
+    # at arbitrary places, because we need current processor state to
+    # instantiate the emulator.
+    if (
+        address == pc
+        and emulate
+        and (not first_time_emulate or can_run_first_emulate())
+    ):
         try:
             emu = pwndbg.emu.emulator.Emulator()
         except pwndbg.dbg_mod.Error as e:
@@ -402,14 +409,17 @@ def near(
                 )
 
         if not emu and last_emulated_thumb_bit_value is not None:
-            # The emulator may have been disabled, but while it was live we transitioned into Thumb mode.
+            # The emulator may have been disabled, but while it was live we
+            # transitioned into Thumb mode.
             # We propagate the Thumb mode through the remaining instructions we disassemble.
             emulated_arm_mode_cache[target] = last_emulated_thumb_bit_value
 
         # Handle visual splits in the disasm view
         # We create splits in 3 conditions:
-        # 1. We know the instruction is "jump_like" - it mutates the PC. We don't necessarily know the target, but know it can have one.
-        # 2. The instruction has an explicitly resolved target which is not the next instruction in memory
+        # 1. We know the instruction is "jump_like" - it mutates the PC.
+        #    We don't necessarily know the target, but know it can have one.
+        # 2. The instruction has an explicitly resolved target which is not
+        #    the next instruction in memory
         # 3. The instruction repeats (like x86 `REP`)
         if insn.jump_like or insn.has_jump_target or insn.next == insn.address:
             split_insn = insn
@@ -419,8 +429,10 @@ def near(
             if insn.causes_branch_delay:
                 # Delay slots are instructions after branches that always execute.
                 # Unicorn cannot be paused in a delay slot instruction.
-                # Single stepping on a branch will cause Unicorn to execute the delay slot instruction and take the branch action.
-                # This means the emulator's program counter will take on the value that the branch action dictates, and we would normally continue disassembling there.
+                # Single stepping on a branch will cause Unicorn to execute the
+                # delay slot instruction and take the branch action. This means the
+                # emulator's program counter will take on the value that the branch
+                # action dictates, and we would normally continue disassembling there.
                 # We disassemble the delay slot instructions here as the normal codeflow
                 # will not reach them.
 

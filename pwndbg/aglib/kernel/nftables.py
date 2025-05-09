@@ -530,9 +530,7 @@ class Flowtable(NftFields):
 
 class Table(NftFields):
     family: int  # internal field
-    genmask: (
-        int  # internal nft transaction number (maybe useful to checking errors in commit phase)
-    )
+    genmask: int # internal nft transaction number (maybe useful to checking errors in commit phase)
     name: str  # NFTA_TABLE_NAME
     handle: int  # NFTA_TABLE_HANDLE
     use: int  # NFTA_TABLE_USE
@@ -620,7 +618,8 @@ def get_init_net_namespace() -> pwndbg.dbg_mod.Value:
 # - listing nested expressions eg. in "dynset" expression or expresions inside setelem
 # - bug with printing "counter", because there are percpu struct
 # - printing/parser xtable (iptables) expressions
-# - missing listing set elements: `knft-list-set-elements [-nsid <nsid>] <table_family> <table_name> <set_id>`
+# - missing listing set elements:
+#    `knft-list-set-elements [-nsid <nsid>] <table_family> <table_name> <set_id>`
 # - missing info about ebpf nft hooks
 # - listing network namespaces
 # - printing netns tables

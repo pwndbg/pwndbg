@@ -36,7 +36,7 @@ INFO: Debugger commands disabled in sandbox mode
 
 Welcome to radare2!
 [...]
-    """,
+    """,  # noqa: E501
 )
 @pwndbg.commands.OnlyWithFile
 def r2(arguments, no_seek=False, no_rebase=False) -> None:

@@ -245,7 +245,11 @@ class LinkMapEntry:
             return LinkMapEntry(ptr)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} node={self.link_map_address:#x} name={self.name()} load_bias={self.load_bias():#x} dynamic={self.dynamic():#x}>"
+        return (
+            f"<{self.__class__.__name__} node={self.link_map_address:#x}"
+            f" name={self.name()} load_bias={self.load_bias():#x}"
+            f" dynamic={self.dynamic():#x}>"
+        )
 
 
 # Normally, only one entry for each tag is allowed to be present in the dynamic

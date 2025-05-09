@@ -76,7 +76,8 @@ def get_file(path: str, try_local_path: bool = False) -> str:
     If the `path` is prefixed with "target:" the prefix is stripped
     (to support remote target paths properly).
 
-    If the `try_local_path` is set to `True` and the `path` exists locally and "target:" prefix is not present, it will return the local path instead of downloading the file.
+    If the `try_local_path` is set to `True` and the `path` exists locally and
+    "target:" prefix is not present, it will return the local path instead of downloading the file.
 
     Returns:
         The local path to the file
@@ -154,8 +155,8 @@ def readlink(path: str) -> str:
 
 @pwndbg.lib.cache.cache_until("start")
 def is_vfile_qemu_user_bug() -> bool:
-    # This is a BUG[1] in the gdbstub of QEMU user mode. It should return data encoded in hexadecimal,
-    # but instead, it returns the data as a decimal integer (%d).
+    # This is a BUG[1] in the gdbstub of QEMU user mode. It should return data encoded
+    # in hexadecimal, but instead, it returns the data as a decimal integer (%d).
     # [1] https://github.com/qemu/qemu/blob/b14d0649628cbe88ac0ef35fcf58cd1fc22735b8/gdbstub/user-target.c#L322
     if not pwndbg.aglib.qemu.is_qemu_usermode():
         return False

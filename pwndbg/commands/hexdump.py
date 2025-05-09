@@ -31,9 +31,10 @@ pwndbg.config.add_param(
     "hexdump-limit-mb",
     10,
     "the maximum size in megabytes (MB) `hexdump` will read",
-    help_docstring="""Set the maximum size in megabytes (MB) that the `hexdump` command will attempt to read at once.
-    Prevents GDB crashes due to excessive memory allocation requests.
-    Set to 0 for unlimited (use with caution).""",
+    help_docstring="""
+Set the maximum size in megabytes (MB) that the `hexdump` command will attempt to read at once.
+Prevents GDB crashes due to excessive memory allocation requests.
+Set to 0 for unlimited (use with caution).""",
     param_class=PARAM_ZUINTEGER,
 )
 

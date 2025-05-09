@@ -214,7 +214,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[-1].str,
             )
         elif instruction.id in ARM_MATH_INSTRUCTIONS:
-            # In Arm assembly, if there are two operands, than the first source operand is also the destination
+            # In Arm assembly, if there are two operands, than the first source operand
+            # is also the destination
             # Example: add    sl, r3
             # Or, it can be a seperate register. We use -1 and -2 indexes here to
             # access the source operands either way
@@ -261,7 +262,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if ARM_GRP_JUMP in instruction.groups:
             if instruction.id in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
                 # Since Capstone V6, instructions that write to the PC are given the jump group.
-                # However, in Pwndbg code, unless stated otherwise, jumps are assumed to be conditional, so we set this attribute
+                # However, in Pwndbg code, unless stated otherwise,
+                # jumps are assumed to be conditional, so we set this attribute
                 # to indicate that this is an unconditional branch.
                 instruction.declare_is_unconditional_jump = True
 
@@ -314,12 +316,15 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # This means we have to clear the least significant bit of the target.
             target = target & ~1
 
-            if pwndbg.aglib.arch.name == "armcm" and target & 0xFF00_0000 == 0xFF00_0000:
-                # If the top 8-bits of the return address are 0xFF, this indicates we are returning from an exception,
-                # where the return address has been saved onto the stack
-                return pwndbg.aglib.saved_register_frames.ARM_CORTEX_M_EXCEPTION_STACK.read_saved_register(
-                    "pc"
-                )
+            if (
+                pwndbg.aglib.arch.name == "armcm"
+                and target & 0xFF00_0000 == 0xFF00_0000
+            ):
+                # If the top 8-bits of the return address are 0xFF, this indicates
+                # we are returning from an exception, where the return address has
+                # been saved onto the stack
+                except_stack = pwndbg.aglib.saved_register_frames.ARM_CORTEX_M_EXCEPTION_STACK
+                return except_stack.read_saved_register("pc")
 
         return target
 
@@ -351,8 +356,9 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def _read_register(
         self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator
     ) -> int | None:
-        # When `pc` is referenced in an operand (typically in a memory operand), the value it takes on
-        # is `pc_at_instruction + 8`. In Thumb mode, you only add 4 to the instruction address.
+        # When `pc` is referenced in an operand (typically in a memory operand),
+        # the value it takes on is `pc_at_instruction + 8`. In Thumb mode, you
+        # only add 4 to the instruction address.
         if operand_id == ARM_REG_PC:
             return instruction.address + (4 if self.read_thumb_bit(instruction, emu) else 8)
 
@@ -372,7 +378,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             [Rn, Rm]
             [Rn, Rm, <shift> #imm]
 
-        Capstone represents the object a bit differently then AArch64 to align with the underlying architecture of Arm.
+        Capstone represents the object a bit differently then AArch64 to align with
+        the underlying architecture of Arm.
 
         This representation will change in Capstone 6:
             https://github.com/capstone-engine/capstone/issues/2281
@@ -387,7 +394,8 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             return None
 
         if op.mem.base == ARM_REG_PC:
-            # The PC as the base register is a special case - it will align the address to a word (32-bit) boundary
+            # The PC as the base register is a special case - it will align the
+            # address to a word (32-bit) boundary
             # Explanation: https://stackoverflow.com/a/29588678
             # See "Operation" at the bottom of
             # https://developer.arm.com/documentation/ddi0597/2024-03/Base-Instructions/LDR--literal---Load-Register--literal--

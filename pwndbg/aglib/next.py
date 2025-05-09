@@ -53,7 +53,8 @@ def next_branch(address=None, including_current=False) -> PwndbgInstruction | No
     Return the next branch instruction that the process will encounter with repeated
     usage of the "nexti" command.
 
-    If including_current == True, then if the instruction at the address is already a branch, return it.
+    If including_current == True, then if the instruction at the address is
+    already a branch, return it.
     """
     if address is None:
         ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
@@ -247,7 +248,8 @@ async def break_on_program_code(ec: pwndbg.dbg_mod.ExecutionController) -> bool:
     """
     Breaks on next instruction that belongs to process' objfile code
 
-    :return: True for success, False when process ended or when pc is not at the code or if a signal occurred
+    :return: True for success, False when process ended or when pc is not at
+    the code or if a signal occurred
     """
     exe = pwndbg.aglib.proc.exe
     binary_exec_page_ranges = tuple(

@@ -1553,7 +1553,8 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
     def can_be_resolved(self) -> bool:
         if not self.libc_has_debug_syms():
             return False
-        # Check if thread_arena is needed and available, but if the binary is not multithreaded, then we don't care
+        # Check if thread_arena is needed and available, but if the binary is not
+        # multithreaded, then we don't care
         # Note: it's possible that we unstripped the libc but still don't have libthread_db.so
         return (
             not self.multithreaded

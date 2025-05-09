@@ -95,7 +95,8 @@ def nearpc(
     """
     Disassemble near a specified address.
 
-    The `linear` argument specifies if we should disassemble linearly in memory, or take jumps into account
+    The `linear` argument specifies if we should disassemble linearly in memory,
+    or take jumps into account
     """
 
     # Repeating nearpc (pressing enter) makes it show next addresses
@@ -216,7 +217,8 @@ def nearpc(
             symbol = c.symbol(symbol)
         elif pwndbg.config.highlight_pc and i == index_of_pc:
             # If this instruction is the one the PC is at.
-            # In case of tight loops, with emulation we may display the same instruction multiple times.
+            # In case of tight loops, with emulation we may display the same
+            # instruction multiple times.
             # Only highlight current instance, not past or future times.
             address_str = C.highlight(address_str)
             symbol = C.highlight(symbol)
@@ -322,7 +324,7 @@ def nearpc(
         # ► 0x7ffff7f1aeb6 0f bd c0    <__strrchr_avx2+70>    bsr    eax, eax
         # prefix        = ►
         # address_str   = 0x555555556030
-        # opcodes       = 0f bd c0                  Opcodes are enabled with the 'nearpc-num-opcode-bytes' setting
+        # opcodes       = 0f bd c0                  Opcodes are enabled with the 'nearpc-num-opcode-bytes' setting  # noqa: E501
         # symbol        = <__strrchr_avx2+70>
         # asm           = bsr    eax, eax           (jump target/annotation would go here too)
 

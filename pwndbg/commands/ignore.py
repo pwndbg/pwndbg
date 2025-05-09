@@ -17,7 +17,8 @@ parser = argparse.ArgumentParser(
 
 While the ignore count is positive, execution will not stop on the breakpoint.
 
-By default, if `N' is ommitted, the last breakpoint (i.e. greatest breakpoint number) will be used.""",
+By default, if `N' is ommitted, the last breakpoint (i.e. greatest breakpoint
+number) will be used.""",
 )
 parser.add_argument(
     "bpnum", metavar="N", type=int, default=None, nargs="?", help="The breakpoint number N."

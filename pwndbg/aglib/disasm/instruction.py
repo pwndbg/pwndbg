@@ -57,8 +57,8 @@ import pwndbg.dbg
 from pwndbg.dbg import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
-# The Capstone RET and CALL groups are also used to filter CALL and RET types when we check for unconditional jumps,
-# so we don't need to manually specify those for each architecture
+# The Capstone RET and CALL groups are also used to filter CALL and RET types when we
+# check for unconditional jumps, so we don't need to manually specify those for each architecture
 UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     CS_ARCH_X86: {X86_INS_JMP},
     CS_ARCH_MIPS: {
@@ -284,7 +284,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         If it is a jump and we know it is taken, then it is the value of the jump target.
 
-        Not set to "call" instruction targets, to indicate we will eventually (probably) return to this address
+        Not set to "call" instruction targets, to indicate we will eventually (probably)
+        return to this address
         """
 
         self.target: int = None
@@ -313,10 +314,12 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         """
         Does the condition that the instruction checks for pass?
 
-        For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA" conditionally performs a move depending on a flag.
+        For example, "JNE" jumps if Zero Flag is 0, else it does nothing. "CMOVA"
+        conditionally performs a move depending on a flag.
         See 'condition' function in pwndbg.aglib.disasm.x86 for example on setting this.
 
-        UNDETERMINED if we cannot reason about the condition, or if the instruction always executes unconditionally (most instructions).
+        UNDETERMINED if we cannot reason about the condition, or if the instruction always
+        executes unconditionally (most instructions).
 
         TRUE if the instruction has a conditional action, and we determine it is taken.
 
@@ -350,11 +353,13 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         However, some instructions become branches depending on the operands,
         such as Arm `add`, `sub`, `ldr`, `pop`, where PC is the destination register
 
-        In these cases, we want to forcefully state that this instruction mutates the PC, so we set this attribute to True.
+        In these cases, we want to forcefully state that this instruction mutates the PC,
+        so we set this attribute to True.
 
         This helps in two cases:
         1. Disassembly splits
-        2. Instructions like `stepuntilasm` work better, as they detect these as branches to stop at.
+        2. Instructions like `stepuntilasm` work better, as they detect these as branches
+           to stop at.
         """
 
         self.force_unconditional_jump_target: bool = False
@@ -423,7 +428,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         True if this is a call-like instruction, meaning either it's a CALL or a
         branch and link.
 
-        Checking for the CS_GRP_CALL is insufficient, as there are many "branch and link" instructions that are not labeled as a call
+        Checking for the CS_GRP_CALL is insufficient, as there are many "branch and link"
+        instructions that are not labeled as a call
         """
         return (
             CS_GRP_CALL in self.groups
@@ -436,7 +442,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         True if this instruction is "jump-like", such as a JUMP, CALL, or RET.
         Basically, the PC is set to some target by means of this instruction.
 
-        It may still be a conditional jump - this property does not indicate whether the jump is taken or not.
+        It may still be a conditional jump - this property does not indicate whether the
+        jump is taken or not.
         """
         return bool(self.groups & ALL_JUMP_GROUPS) or self.declare_is_unconditional_jump
 
@@ -447,9 +454,11 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         program counter, and
         we have determined the jump target.
 
-        Edge case - the jump target MAY be the next address in memory - so we check force_unconditional_jump_target
+        Edge case - the jump target MAY be the next address in memory - so we
+        check force_unconditional_jump_target
         """
-        # The second check ensures that if the target address is itself, it's a jump (infinite loop) and not something like `rep movsb` which repeats the same instruction.
+        # The second check ensures that if the target address is itself, it's a jump
+        # (infinite loop) and not something like `rep movsb` which repeats the same instruction.
         # Because capstone doesn't catch ALL cases of an instruction changing the
         # PC, we don't have the `jump_like` in the first part of this check.
         return (
@@ -462,7 +471,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         """
         True if this instruction can change the program counter conditionally.
 
-        This is used, in part, to determine if the instruction deserves a "checkmark" in the disasm view.
+        This is used, in part, to determine if the instruction deserves a "checkmark"
+        in the disasm view.
 
         This does not imply that we have resolved the .target
         """
@@ -481,7 +491,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
 
         This includes things like RET, CALL, and JMP (in x86).
 
-        This property is used in enhancement to determine certain codepaths when resolving .next for this instruction.
+        This property is used in enhancement to determine certain codepaths when resolving
+        .next for this instruction.
 
         This does not imply that we have resolved the .target
         """
@@ -500,7 +511,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         """
         # True if:
         # - We manually determined in .condition that we take the jump
-        # - Or that emulation determined the .next to go somewhere and we didn't explicitely set .condition to False.
+        # - Or that emulation determined the .next to go somewhere and we didn't
+        # explicitely set .condition to False.
         # Emulation can be incorrect, so we check the conditional for false to
         # check if we manually override the emulator's decision
         return self.is_conditional_jump and (
@@ -536,14 +548,17 @@ class PwndbgInstructionImpl(PwndbgInstruction):
     def __repr__(self) -> str:
         operands_str = " ".join([repr(op) for op in self.operands])
 
-        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
+        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x}\
+        (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch, None)})
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
-        Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else 'None'}
-        Raw asm: {'%-06s %s' % (self.mnemonic, self.op_str)}
+        Capstone ID/Alias ID: \
+        {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else "None"}
+        Raw asm: {"%-06s %s" % (self.mnemonic, self.op_str)}
         New asm: {self.asm_string}
         Next: {self.next:#x}
-        Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
+        Target: {hex(self.target) if self.target is not None else None},\
+        Target string={self.target_string or ""}, const={self.target_const}
         Condition: {self.condition.name}
         Groups: {[CS_GRP.get(group, group) for group in self.groups]}
         Annotation: {self.annotation}
@@ -554,7 +569,8 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Declare unconditional jump: {self.declare_is_unconditional_jump}
         Force jump target: {self.force_unconditional_jump_target}
         Can change PC: {self.has_jump_target}
-        Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
+        Syscall: {self.syscall if self.syscall is not None else ""}\
+        {self.syscall_name if self.syscall_name is not None else "N/A"}
         Causes Delay slot: {self.causes_branch_delay}
         Split: {SplitType(self.split).name}
         Call-like: {self.call_like}"""
@@ -690,8 +706,10 @@ class ManualPwndbgInstruction(PwndbgInstruction):
         is sourced from
         GDB/LLDB's built-in disassemblers.
 
-        Instances of this class do not go through the 'enhancement' process due to lacking important information provided by Capstone.
-        As a result of this, some of the methods raise NotImplementedError, because if they are called it indicates a bug elsewhere in the codebase.
+        Instances of this class do not go through the 'enhancement' process due to
+        lacking important information provided by Capstone. As a result of this,
+        some of the methods raise NotImplementedError, because if they are called
+        it indicates a bug elsewhere in the codebase.
         """
         ins: DisassembledInstruction = pwndbg.dbg.selected_inferior().disasm(address)
         asm = ins["asm"].split(maxsplit=1)
@@ -771,8 +789,8 @@ class ManualPwndbgInstruction(PwndbgInstruction):
 
     @override
     def op_find(self, op_type: int, position: int) -> EnhancedOperand:
-        # raise NotImplementedError, because if this is called it indicates a bug elsewhere in the codebase.
-        # ManualPwndbgInstruction should not go through the enhancement process,
+        # raise NotImplementedError, because if this is called it indicates a bug elsewhere
+        # in the codebase. ManualPwndbgInstruction should not go through the enhancement process,
         # where this would be called.
         raise NotImplementedError
 

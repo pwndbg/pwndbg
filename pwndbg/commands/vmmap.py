@@ -106,7 +106,8 @@ def print_gap(current: Page, last_map: Page):
     print(
         red(
             " - " * int(51 / 3)
-            + f" {'GAP':>9} {hex(current.start - last_map.end):>{2 + 2 * pwndbg.aglib.arch.ptrsize}}"
+            + f" {'GAP':>9} "
+            f"{hex(current.start - last_map.end):>{2 + 2 * pwndbg.aglib.arch.ptrsize}}"
         )
     )
 
@@ -155,18 +156,31 @@ def print_vmmap_gaps(pages: Tuple[Page, ...]) -> None:
 parser = argparse.ArgumentParser(
     description="""Print virtual memory map pages.
 
-Unnamed mappings are named as [anon_%#x] where %#x is high part of their start address. This is useful for filtering with `vmmap` or `search` commands.
+Unnamed mappings are named as [anon_%#x] where %#x is high part of their start address.
+This is useful for filtering with `vmmap` or `search` commands.
 
 Known issues with vmmap:
-For QEMU user targets, the QEMU's gdbstub does not provide memory maps information to GDB until [0] is finished & merged. We try to deal with it without parsing the QEMU process' /proc/$pid/maps file, but if our approach fails, we simply create a [0, 0xffff...] vmmap which is not great and may result in lack of proper colors or inability to search memory with the `search` command.
+For QEMU user targets, the QEMU's gdbstub does not provide memory maps information to
+GDB until [0] is finished & merged. We try to deal with it without parsing the QEMU
+process' /proc/$pid/maps file, but if our approach fails, we simply create a
+[0, 0xffff...] vmmap which is not great and may result in lack of proper colors or
+inability to search memory with the `search` command.
 
-For QEMU kernel, we use gdb-pt-dump that parses page tables from the guest by reading /proc/$pid/mem of QEMU process. If this does not work for you, use `set kernel-vmmap-via-page-tables off` to refer to our old method of reading vmmap info from `monitor info mem` command exposed by QEMU. Note that the latter may be slower and will not give full vmmaps permission information.
+For QEMU kernel, we use gdb-pt-dump that parses page tables from the guest by reading
+/proc/$pid/mem of QEMU process. If this does not work for you, use
+`set kernel-vmmap-via-page-tables off` to refer to our old method of reading vmmap
+info from `monitor info mem` command exposed by QEMU. Note that the latter may be
+slower and will not give full vmmaps permission information.
 
-For coredump debugging, GDB also lacks all vmmap info but we do our best to get it back by using the `info proc mappings` and `maintenance info sections` commands.
+For coredump debugging, GDB also lacks all vmmap info but we do our best to get it
+back by using the `info proc mappings` and `maintenance info sections` commands.
 
-As a last resort, we sometimes try to explore the addresses in CPU registers and if they are readable by GDB, we determine their bounds and create an "<explored>" vmmap. However, this method is slow and is not used on each GDB stop.
+As a last resort, we sometimes try to explore the addresses in CPU registers and
+if they are readable by GDB, we determine their bounds and create an "<explored>"
+vmmap. However, this method is slow and is not used on each GDB stop.
 
-Memory pages can also be added manually with the use of vmmap-add, vmmap-clear and vmmap-load commands. This may be useful for bare metal debugging.
+Memory pages can also be added manually with the use of vmmap-add, vmmap-clear and
+vmmap-load commands. This may be useful for bare metal debugging.
 
 [0] https://lore.kernel.org/all/20220221030910.3203063-1-dominik.b.czarnota@gmail.com/""",
 )

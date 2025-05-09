@@ -323,7 +323,8 @@ def _guess_moduledata_types() -> int | None:
     type_start = pwndbg.aglib.symbol.lookup_symbol_addr("type:*")
     if type_start is not None:
         return type_start
-    # otherwise, just assume that types are at the start of .rodata if there aren't any debug symbols
+    # otherwise, just assume that types are at the start of .rodata if
+    # there aren't any debug symbols
     # not a great workaround, but parsing moduledata manually is very version-dependent
     elf = get_elf()
     if elf is not None:
@@ -386,9 +387,11 @@ def read_type_name(addr: int) -> bytes:
     """
     Reads a Go type name given the address to the name.
 
-    Go type names are stored as a 1 byte bitfield followed by a varint length prefixed string after 1.17.
+    Go type names are stored as a 1 byte bitfield followed by a varint length
+    prefixed string after 1.17.
 
-    Prior to 1.17, they were stored as a 1 byte bitfield followed by a 2 byte length prefixed string.
+    Prior to 1.17, they were stored as a 1 byte bitfield followed by a 2 byte
+    length prefixed string.
     """
     vers = get_go_version()
     if vers is not None and vers < (1, 17):
@@ -1004,15 +1007,15 @@ class MapType(Type):
         bucket_base = load(offsets["buckets"], word)
         keysize = self.key.size()
         valsize = self.val.size()
-        # technically need to worry about padding but every go arch has max alignment of 8 and bucket count is 8
-        # so padding is never actually possible
-        [tophash_start, keys_start, vals_start, overflow_start, bucket_size] = compute_offsets(
-            [
+        # technically need to worry about padding but every go arch has max
+        # alignment of 8 and bucket count is 8 so padding is never actually possible
+        [tophash_start, keys_start, vals_start, overflow_start, bucket_size] = (
+            compute_offsets([
                 (bucket_count, 1),
                 (keysize * bucket_count, 1),
                 (valsize * bucket_count, 1),
                 (word, word),
-            ]
+            ])
         )
         ret = []
         for i in range(num_buckets):

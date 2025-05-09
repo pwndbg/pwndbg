@@ -119,7 +119,8 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     pie_status = pwndbg.wrappers.checksec.pie_status(local_path)
     got_entry = pwndbg.wrappers.readelf.get_got_entry(local_path)
 
-    # The following code is inspired by the "got" command of https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
+    # The following code is inspired by the "got" command of
+    # https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
     # TODO/FIXME: Maybe a -v option to show more information will be better
     outputs: List[Dict[str, Union[str, int]]] = []
     if path == pwndbg.aglib.proc.exe:

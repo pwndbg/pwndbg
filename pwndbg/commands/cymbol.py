@@ -91,7 +91,8 @@ def generate_debug_symbols(
     if not pwndbg_debug_symbols_output_file:
         _, pwndbg_debug_symbols_output_file = tempfile.mkstemp(prefix="custom-", suffix=".dbg")
 
-    # -fno-eliminate-unused-debug-types is a handy gcc flag that lets us extract debug symbols from non-used defined structures.
+    # -fno-eliminate-unused-debug-types is a handy gcc flag that lets
+    # us extract debug symbols from non-used defined structures.
     gcc_extra_flags = [
         custom_structure_path,
         "-c",

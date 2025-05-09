@@ -16,7 +16,8 @@ parser = argparse.ArgumentParser(
 Switches to given threads and calls pthread_exit(0) on them.
 This is performed with scheduler-locking to prevent other threads from operating at the same time.
 
-Killing all other threads may be useful to use GDB checkpoints, e.g., to test given input & restart the execution to the point of interest (checkpoint).
+Killing all other threads may be useful to use GDB checkpoints, e.g., to test given input &
+restart the execution to the point of interest (checkpoint).
 """,
 )
 

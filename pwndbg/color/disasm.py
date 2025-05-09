@@ -53,15 +53,16 @@ WHITESPACE_LIMIT = 20
 
 
 # To making the padding visually nicer, the following padding scheme is used for annotations:
-# All instructions in a group will have the same amount of left-adjusting spaces, so they are aligned.
-# A group is defined as a sequence of instructions surrounded by
+# All instructions in a group will have the same amount of left-adjusting spaces
+# so they are aligned. A group is defined as a sequence of instructions surrounded by
 # instructions that can change the instruction pointer.
 def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]:
     result: List[str] = []
 
     cur_padding_len = None
 
-    # Stores intermediate padding results so we can do a final pass to clean up edges and jagged parts
+    # Stores intermediate padding results so we can do a final pass
+    # to clean up edges and jagged parts.
     # None if padding doesn't apply to the instruction
     paddings: List[int | None] = []
 
@@ -86,7 +87,8 @@ def instructions_and_padding(instructions: List[PwndbgInstruction]) -> List[str]
                 asm += f" <{pwndbg.aglib.nearpc.c.syscall_name('SYS_' + ins.syscall_name)}>"
 
             # Padding the string for a nicer output
-            # This path calculates the padding for each instruction - even if there we don't have annotations for it.
+            # This path calculates the padding for each instruction - even if there
+            # we don't have annotations for it.
             # This allows groups to have uniform padding, even if some of the
             # instructions don't have annotations
             current_group.append(i)

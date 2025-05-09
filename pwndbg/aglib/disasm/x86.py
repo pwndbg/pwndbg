@@ -168,8 +168,12 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def handle_xchg(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
         left, right = instruction.operands
 
-        if left.before_value_resolved is not None and right.before_value_resolved is not None:
-            # Display the exchanged values. Doing it this way (instead of using .after_value) allows this to work without emulation
+        if (
+            left.before_value_resolved is not None
+            and right.before_value_resolved is not None
+        ):
+            # Display the exchanged values. Doing it this way (instead of using .after_value)
+            # allows this to work without emulation
             # Don't telescope here for the sake of screen space
             instruction.annotation = (
                 memory_or_register_assign(
