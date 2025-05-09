@@ -2106,12 +2106,8 @@ class HeuristicHeap(
                         value, address = found
                         print(
                             message.notice(
-                                f"Found possible tcache at {
-    message.hint(
-        hex(address))} with value: {
-            message.hint(
-                hex(value))}\n"
-                            )
+                                f"Found possible tcache at {message.hint(hex(address))}"
+                                f" with value: {message.hint(hex(value))}\n")
                         )
                         self._thread_cache = tps(value)
                         self._thread_caches[pwndbg.dbg.selected_thread().index()] = (
