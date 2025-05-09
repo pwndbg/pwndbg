@@ -269,7 +269,7 @@ class CommandObj:
         if self.aliases:
             alias_txt = "Alias" + ("es" if len(self.aliases) > 1 else "") + ": "
             self.epilog += "\n" + message.notice(alias_txt)
-            self.epilog += ", ".join(self.aliases) + ".\n"
+            self.epilog += ", ".join(self.aliases) + "\n"
 
         # Update the parser so the help is correctly generated.
         self.parser.epilog = self.epilog = self.epilog.strip()
