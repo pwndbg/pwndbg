@@ -782,7 +782,7 @@ def test_arm_it_block(qemu_assembly_run):
     expected_1 = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────[ DISASM / arm / thumb mode / set emulate on ]─────────────────\n"
-        " ► 0x200bc <_start+8>     cmp    r0, #0     0x200bd - 0x0"
+        " ► 0x200bc <_start+8>     cmp    r0, #0     0x200bd - 0x0     "
         "CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
         "   0x200be <_start+10>    ittte  eq\n"
         "   0x200c0 <_start+12>    movs   r1, #1     R1 => 1\n"
