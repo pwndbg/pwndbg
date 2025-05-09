@@ -1337,7 +1337,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         def load_source(file_path: str):
             try:
-                gdb.execute(f"source {file_path}", to_string=True)
+                gdb.execute(f"source {file_path}")
             except gdb.error as e:
                 print(e)
 
