@@ -105,8 +105,7 @@ def print_guard(page: Page) -> None:
 def print_gap(current: Page, last_map: Page):
     print(
         red(
-            " - " * int(51 / 3)
-            + f" {'GAP':>9} "
+            " - " * int(51 / 3) + f" {'GAP':>9} "
             f"{hex(current.start - last_map.end):>{2 + 2 * pwndbg.aglib.arch.ptrsize}}"
         )
     )

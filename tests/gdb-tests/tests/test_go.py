@@ -39,12 +39,9 @@ def helper_test_dump(start_binary, filename):
     assert first.strip() == """(map[string]int) &{"a": 1, "b": 2, "c": 3}"""
     gdb.execute("continue")
     second = gdb.execute("go-dump any &x", to_string=True)
-    assert (
-        second.strip()
-        == (
-            """([]struct { a int; b string }) [struct {a: 1, b: "first"},"""
-            """ struct {a: 2, b: "second"}]"""
-        )
+    assert second.strip() == (
+        """([]struct { a int; b string }) [struct {a: 1, b: "first"},"""
+        """ struct {a: 2, b: "second"}]"""
     )
     gdb.execute("continue")
     third = gdb.execute("go-dump -f 1 any &x", to_string=True)

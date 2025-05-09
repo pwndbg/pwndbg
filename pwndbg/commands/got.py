@@ -189,12 +189,11 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
         relro_color = message.on
     print(f"State of the GOT of {message.notice(path)}:")
     print(
-          f"GOT protection: {relro_color(relro_status)} | "
-          f"Found {message.hint(len(outputs))} GOT entries passing the filter"
+        f"GOT protection: {relro_color(relro_status)} | "
+        f"Found {message.hint(len(outputs))} GOT entries passing the filter"
     )
     for output in outputs:
         print(
-            # type: ignore[arg-type]
             f"[{M.get(output['address'])}] {message.hint(output['name'])}"
-            f" -> {pwndbg.chain.format(pwndbg.aglib.memory.pvoid(output['address']))}"
+            f" -> {pwndbg.chain.format(pwndbg.aglib.memory.pvoid(output['address']))}"  # type: ignore[arg-type]
         )

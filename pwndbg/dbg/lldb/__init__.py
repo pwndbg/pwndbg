@@ -1516,9 +1516,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     return frame.regs().by_name("xpsr") is not None
 
             has_xpsr = [_has_xpsr(thread) for thread in self.threads()]
-            assert (
-                all(has_xpsr) or not any(has_xpsr)
-            ), (
+            assert all(has_xpsr) or not any(has_xpsr), (
                 "Either all threads are Cortex-M or none are, "
                 "pwndbg doesn't know how to handle other cases"
             )

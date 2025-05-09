@@ -658,9 +658,7 @@ def paging_enabled() -> bool:
         # page 41, satp.MODE, bits: 60,61,62,63
         # "When satp.MODE=0x0, supervisor virtual addresses are equal
         # to supervisor physical addresses"
-        return (
-            int(pwndbg.aglib.regs.satp) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
-        )
+        return int(pwndbg.aglib.regs.satp) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
     else:
         raise NotImplementedError()
 

@@ -95,8 +95,12 @@ def install_breakpoint(branch, taken: bool) -> None:
         print(message.error(f"Could not decode instruction at address {address:#x}"))
         return
     if CS_GRP_JUMP not in instruction.groups:
-        print(message.error(f"Instruction '{instruction.mnemonic} {instruction.op_str}'"
-                            f" at address {address:#x} is not a branch"))
+        print(
+            message.error(
+                f"Instruction '{instruction.mnemonic} {instruction.op_str}'"
+                f" at address {address:#x} is not a branch"
+            )
+        )
         return
 
     # Not all architectures have assistants we can use for conditionals.

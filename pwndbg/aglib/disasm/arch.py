@@ -992,8 +992,9 @@ class DisassemblyAssistant:
                     telescope_print = hex(final_value)
                 else:
                     # Start showing at dereferenced address, hence the [1:]
-                    telescope_print = self._telescope_format_list(telescope_addresses[1:],
-                                                                  TELESCOPE_DEPTH, emu)
+                    telescope_print = self._telescope_format_list(
+                        telescope_addresses[1:], TELESCOPE_DEPTH, emu
+                    )
 
             instruction.annotation = f"{dest_str}, {source_str}"
 

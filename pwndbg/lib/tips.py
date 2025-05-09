@@ -12,7 +12,7 @@ GDB_TIPS: List[str] = [
     " to the given <topic>",
     "GDB's `follow-fork-mode` parameter can be used to set whether to trace parent or "
     "child after fork() calls. Pwndbg sets it to child by default",
-    'Use GDB\'s `dprintf` command to print all calls to given function. E.g. `dprintf '
+    "Use GDB's `dprintf` command to print all calls to given function. E.g. `dprintf "
     'malloc, "malloc(%p)\\n", (void*)$rdi` will print all malloc calls',
     "Use GDB's `pi` command to run an interactive Python console where you can use Pwn"
     "dbg APIs like `pwndbg.aglib.memory.read(addr, len)`, `pwndbg.aglib.memory.write(a"
@@ -22,8 +22,8 @@ GDB_TIPS: List[str] = [
     "If you have debugging symbols the `info args` command shows current frame's funct"
     "ion arguments (use `up` and `down` to switch between frames)",
     'Calling functions like `call (void)puts("hello world")` will run all other target'
-    ' threads for the time the function runs. Use `set scheduler-locking on` to lock t'
-    'he execution to current thread when calling functions',
+    " threads for the time the function runs. Use `set scheduler-locking on` to lock t"
+    "he execution to current thread when calling functions",
     "Use the `pipe <cmd> | <prog>` command to pass output of a GDB/Pwndbg command to a"
     " shell program, e.g. `pipe elfsections | grep bss`. This can also be shortened to"
     ": `| <cmd> | <prog>`",
@@ -35,12 +35,10 @@ GDB_TIPS: List[str] = [
 PWNDBG_TIPS: List[str] = [
     "If you want Pwndbg to clear screen on each command (but still save previous outpu"
     "t in history) use `set context-clear-screen on`",
-    "The `set show-flags on` setting will display CPU flags register in the regs conte"
-    "xt panel",
+    "The `set show-flags on` setting will display CPU flags register in the regs conte" "xt panel",
     "GDB and Pwndbg parameters can be shown or set with `show <param>` and `set <param"
     "> <value>` GDB commands",
-    "Use Pwndbg's `config` and `theme` commands to tune its configuration and theme co"
-    "lors!",
+    "Use Pwndbg's `config` and `theme` commands to tune its configuration and theme co" "lors!",
     "Pwndbg mirrors some of Windbg commands like `eq`, `ew`, `ed`, `eb`, `es`, `dq`, `"
     "dw`, `dd`, `db`, `ds` for writing and reading memory",
     "Pwndbg resolves kernel memory maps by parsing page tables (default) or via `monit"
@@ -70,8 +68,7 @@ PWNDBG_TIPS: List[str] = [
     "ided (libc) error",
     "Pwndbg sets the SIGLARM, SIGBUS, SIGPIPE and SIGSEGV signals so they are not pass"
     "ed to the app; see `info signals` for full GDB signals configuration",
-    "Use `vmmap -A|-B <number> <filter>` to display <number> of maps after/before filt"
-    "ered ones",
+    "Use `vmmap -A|-B <number> <filter>` to display <number> of maps after/before filt" "ered ones",
     "Use the `killall` command to kill all specified threads (via their ids)",
     "Use the `spray` command to spray memory with cyclic pattern or specified value",
     "Use `patch <address> '<assembly>'` to patch an address with given assembly code",

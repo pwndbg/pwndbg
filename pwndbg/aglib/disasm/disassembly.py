@@ -328,11 +328,7 @@ def near(
     # Emulate if program pc is at the current instruction - can't emulate
     # at arbitrary places, because we need current processor state to
     # instantiate the emulator.
-    if (
-        address == pc
-        and emulate
-        and (not first_time_emulate or can_run_first_emulate())
-    ):
+    if address == pc and emulate and (not first_time_emulate or can_run_first_emulate()):
         try:
             emu = pwndbg.emu.emulator.Emulator()
         except pwndbg.dbg_mod.Error as e:

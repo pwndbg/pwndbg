@@ -316,10 +316,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # This means we have to clear the least significant bit of the target.
             target = target & ~1
 
-            if (
-                pwndbg.aglib.arch.name == "armcm"
-                and target & 0xFF00_0000 == 0xFF00_0000
-            ):
+            if pwndbg.aglib.arch.name == "armcm" and target & 0xFF00_0000 == 0xFF00_0000:
                 # If the top 8-bits of the return address are 0xFF, this indicates
                 # we are returning from an exception, where the return address has
                 # been saved onto the stack

@@ -1009,13 +1009,13 @@ class MapType(Type):
         valsize = self.val.size()
         # technically need to worry about padding but every go arch has max
         # alignment of 8 and bucket count is 8 so padding is never actually possible
-        [tophash_start, keys_start, vals_start, overflow_start, bucket_size] = (
-            compute_offsets([
+        [tophash_start, keys_start, vals_start, overflow_start, bucket_size] = compute_offsets(
+            [
                 (bucket_count, 1),
                 (keysize * bucket_count, 1),
                 (valsize * bucket_count, 1),
                 (word, word),
-            ])
+            ]
         )
         ret = []
         for i in range(num_buckets):

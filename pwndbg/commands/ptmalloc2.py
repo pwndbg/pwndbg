@@ -1433,8 +1433,7 @@ def try_free(addr: str | int) -> None:
                 finalize(errors_found, returned_before_error)
                 return
 
-            fastbin_top_chunk_size = chunksize(unsigned_size(
-                fastbin_top_chunk["size"]))  # type: ignore[index]
+            fastbin_top_chunk_size = chunksize(unsigned_size(fastbin_top_chunk["size"]))  # type: ignore[index]
             if chunk_fastbin_idx != allocator.fastbin_index(fastbin_top_chunk_size):
                 err = "invalid fastbin entry (free) -> chunk's size is not near top chunk's size\n"
                 err += "    chunk's size == {}, idx == {}\n"

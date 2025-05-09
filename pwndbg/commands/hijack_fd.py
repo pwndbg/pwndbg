@@ -135,9 +135,7 @@ async def exec_shellcode_with_stack(ec: pwndbg.dbg_mod.ExecutionController, blob
             stack_diff_size = stack_start_diff - pwndbg.aglib.regs.sp
 
             # Make sure stack is not corrupted somehow
-            assert not (
-                stack_diff_size > stack_size
-            ), (
+            assert not (stack_diff_size > stack_size), (
                 f"stack is probably corrupted size_current=f{stack_diff_size}"
                 f" size_max_want={stack_size}"
             )

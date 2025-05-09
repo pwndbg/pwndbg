@@ -530,7 +530,9 @@ class Flowtable(NftFields):
 
 class Table(NftFields):
     family: int  # internal field
-    genmask: int # internal nft transaction number (maybe useful to checking errors in commit phase)
+    genmask: (
+        int  # internal nft transaction number (maybe useful to checking errors in commit phase)
+    )
     name: str  # NFTA_TABLE_NAME
     handle: int  # NFTA_TABLE_HANDLE
     use: int  # NFTA_TABLE_USE

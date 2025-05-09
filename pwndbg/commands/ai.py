@@ -291,8 +291,7 @@ def build_context_prompt_body():
 
 def build_command_prompt_body(command):
     prompt = (
-        f"Running the command `{command}` in the GDB "
-        "debugger yields the following output:\n"
+        f"Running the command `{command}` in the GDB " "debugger yields the following output:\n"
     )
     output = gdb.execute(command, to_string=True)
     print(output)
@@ -389,11 +388,9 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
 
 def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
     if dummy:
-        return (
-            f"""This is a dummy response for unit testing purposes.\n"
+        return f"""This is a dummy response for unit testing purposes.\n"
             f"model = {model}, max_tokens = {max_tokens}, temperature = "
             f"{temperature}\n\nPrompt:\n\n{prompt}"""
-        )
     if pwndbg.config.ai_ollama_endpoint:
         if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)

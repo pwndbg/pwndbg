@@ -18,13 +18,10 @@ def test_command_errno(start_binary):
     # the errno is not yet an available symbol, because the libc library it is
     # defined in is not yet loaded
     result = "".join(gdb.execute("errno", to_string=True).splitlines())
-    assert (
-        result
-        == (
-            "Could not determine error code automatically: neither "
-            "`errno` nor `__errno_location` symbols were provided "
-            "(perhaps libc.so hasn't been not loaded yet?)"
-        )
+    assert result == (
+        "Could not determine error code automatically: neither "
+        "`errno` nor `__errno_location` symbols were provided "
+        "(perhaps libc.so hasn't been not loaded yet?)"
     )
 
     gdb.execute("break main")

@@ -24,12 +24,9 @@ def print_line(name, addr, first, second, op, width=20) -> None:
     if not isinstance(first, str):
         first_str = M.get(first)
     else:
-        first_str = first.ljust(len(hex(addr).rstrip('L')))
+        first_str = first.ljust(len(hex(addr).rstrip("L")))
 
-    print(
-        f"{name.rjust(width)} {M.get(addr)} = {first_str}"
-        f" {op} {second:#x}"
-    )
+    print(f"{name.rjust(width)} {M.get(addr)} = {first_str}" f" {op} {second:#x}")
 
 
 def xinfo_stack(page: Page, addr: int) -> None:

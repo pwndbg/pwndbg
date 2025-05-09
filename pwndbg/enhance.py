@@ -185,5 +185,4 @@ def enhance(
     if len(retval) == 1:
         return retval[0]  # type: ignore[return-value]
 
-    # type: ignore[arg-type]
-    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))
+    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))  # type: ignore[arg-type]

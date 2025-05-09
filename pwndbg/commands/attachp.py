@@ -217,8 +217,8 @@ def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
                 print(
                     message.warn(
                         f'Multiple processes found. Current resolution method is "{method}".\n'
-                        'Run the command `config attachp-resolution-method` to see more'
-                        ' informations.'
+                        "Run the command `config attachp-resolution-method` to see more"
+                        " informations."
                     )
                 )
 

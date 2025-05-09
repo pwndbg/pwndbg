@@ -203,7 +203,7 @@ def test_try_free_corrupted_consolidate_backward(start_binary):
 
 
 @pytest.mark.skip(
-    reason = (
+    reason=(
         "Needs review. In the heap.py on the line 972 the condition is true"
         " always. The heap_bug.c file has the function: corrupted_unsorted_chunks()"
     )

@@ -127,8 +127,8 @@ def get_libc_filename_from_info_sharedlibrary() -> str | None:
             # Some common libc names: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
             possible_libc_path.append(
                 path
-            # We don't return it, maybe there is a libc.so.6 and this match is just a
-            # false positive.
+                # We don't return it, maybe there is a libc.so.6 and this match is just a
+                # false positive.
             )
     # TODO: This might fail if user use LD_PRELOAD to load libc with a weird name
     # or there are multiple shared libraries match the pattern.

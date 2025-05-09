@@ -55,9 +55,7 @@ SC_NTINY = (
 SC_LG_NGROUP = 2  # Number of size classes group
 # Number of size classes in each group, equally spaced in the range,
 # so that * each one covers allocations for base / SC_NGROUP possible allocation sizes
-SC_NGROUP = (
-    1 << SC_LG_NGROUP
-)
+SC_NGROUP = 1 << SC_LG_NGROUP
 SC_NPSEUDO = SC_NGROUP
 SC_PTR_BITS = (1 << LG_SIZEOF_PTR) * 8
 SC_LG_BASE_MAX = SC_PTR_BITS - 2
