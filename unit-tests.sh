@@ -11,6 +11,7 @@ done
 
 if [ $COV -eq 1 ]; then
     coverage run -m pytest tests/unit-tests
+    coverage report
 else
     pytest tests/unit-tests
 fi

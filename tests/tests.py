@@ -141,7 +141,6 @@ def run_test(
         gdb_args.extend(["--init-command", gdbinit_path])
 
     if args.cov:
-        print("Running with coverage")
         gdb_args = [
             "-ex",
             "py import sys;print(sys.path);import coverage;coverage.process_startup();",
