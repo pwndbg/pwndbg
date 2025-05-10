@@ -897,17 +897,24 @@ pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return addres
 
 
 class RegisterContext:
-    def get_prefix(self, reg):
-        changed = pwndbg.aglib.regs.changed
+    changed: List[str]
 
+    def __init__(self):
+        self.changed = pwndbg.aglib.regs.changed
+
+    def get_prefix(self, reg):
         # Make the register stand out and give a color if changed
         regname = C.register(reg.ljust(4).upper())
-        if reg in changed:
+        if reg in self.changed:
             regname = C.register_changed(regname)
 
         # Show a marker next to the register if it changed
         change_marker = f"{C.config_register_changed_marker}"
-        m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
+        m = (
+            " " * len(change_marker)
+            if reg not in self.changed
+            else C.register_changed(change_marker)
+        )
         return f"{m}{regname}"
 
     def get_register_value(self, reg):
@@ -944,9 +951,16 @@ class RegisterContext:
         prefix = self.get_prefix(reg)
         desc = hex(val)
         if pwndbg.aglib.kernel.has_debug_syms():
-            # TODO: phys_to_virt is bugged when kaslr is enabled or if symbols are not present
-            virtual = pwndbg.aglib.kernel.phys_to_virt(val)
-            desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
+            # TODO: phys_to_virt is bugged when kaslr is enabled, ptrace_scope is enabled, or if symbols are not present
+            try:
+                virtual = pwndbg.aglib.kernel.phys_to_virt(val)
+                desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
+            except Exception:
+                print(
+                    message.error(
+                        "error when running phys_to_virt, try running `echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`"
+                    )
+                )
         return f"{prefix} {desc}"
 
     def register_context_default(self, reg):

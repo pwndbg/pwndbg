@@ -21,17 +21,21 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
 class BitFlags:
-    reg: str  # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
+    # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
+    # for example
+    #   - aarch64_cpsr_flags is used for "cpsr", "spsr_el1", "spsr_el2", "spsr_el3"
+    #   - aarch64_sctlr_flags is used for "sctlr", "sctlr_el2", "sctlr_el3"
+    regname: str
     flags: OrderedDict[str, Union[int, Tuple[int, int]]]
 
     def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
-        self.reg = ""
+        self.regname = ""
         self.flags = {}
         for name, bits in flags:
             self.flags[name] = bits
 
     def __getattr__(self, name):
-        if name in {"reg", "value", "last"}:
+        if name in {"regname"}:
             return self.__dict__[name]
         return getattr(self.flags, name)
 
@@ -54,10 +58,10 @@ class BitFlags:
         return f"BitFlags({self.flags})"
 
     def update(self, regname: str):
-        self.reg = regname
+        self.regname = regname
 
     def context(self, rc):
-        return rc.flag_register_context(self.reg, self)
+        return rc.flag_register_context(self.regname, self)
 
 
 class AddressingRegister:
