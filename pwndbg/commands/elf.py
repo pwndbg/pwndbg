@@ -52,7 +52,8 @@ PLT_SECTION_NAMES = (".plt", ".plt.sec", ".plt.got", ".plt.bnd")
 
 
 @pwndbg.commands.Command(
-    "Prints any symbols found in Procedure Linkage Table sections if any exist.", category=CommandCategory.LINUX
+    "Prints any symbols found in Procedure Linkage Table sections if any exist.",
+    category=CommandCategory.LINUX,
 )
 @pwndbg.commands.OnlyWithFile
 def plt() -> None:
