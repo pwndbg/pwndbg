@@ -959,7 +959,7 @@ class RegisterContext:
 
 
 def get_regs(regs: List[str] = None):
-    regs: List[Any] = regs  # ei, not dealing with types here is probably fine
+    regs: List[Any] = regs
     result = []
     rc = RegisterContext()
 

@@ -21,7 +21,6 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
 class BitFlags:
-    # this should be backwards compatibility
     reg: str  # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
     flags: OrderedDict[str, Union[int, Tuple[int, int]]]
 
@@ -68,7 +67,7 @@ class AddressingRegister:
 
     reg: str
     value: int
-    is_virtual: bool  # inicating if the address is a virtual address
+    is_virtual: bool
 
     def __init__(self, reg: str, is_virtual: bool):
         self.reg = reg
@@ -234,8 +233,6 @@ class RegisterSet:
             if regname and regname not in self.common:
                 self.common.append(regname)
 
-        # pwndbg.aglib.qemu.is_qemu_kernel() results in error here
-        # because pwndbg is only partially initialized at this point
         if self.kernel is not None:
             controls = self.kernel.controls
             segments = self.kernel.segments
