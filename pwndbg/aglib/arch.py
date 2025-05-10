@@ -41,8 +41,8 @@ from pwndbg.lib.abi import SIGRETURN_ABIS
 from pwndbg.lib.abi import SYSCALL_ABIS
 from pwndbg.lib.abi import SyscallABI
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
-from pwndbg.lib.arch import PWNLIB_PLATFORM_MAPPINGS
 from pwndbg.lib.arch import PWNLIB_ARCH_MAPPINGS
+from pwndbg.lib.arch import PWNLIB_PLATFORM_MAPPINGS
 from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
