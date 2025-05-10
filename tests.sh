@@ -11,7 +11,8 @@ exit_code=$?
 # Show coverage report if --cov is passed
 for arg in "$@"; do
     if [ "$arg" == "--cov" ]; then
-        coverage report
+        coverage combine 2>/dev/null
+        coverage report || echo "No coverage data to report."
         break
     fi
 done

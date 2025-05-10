@@ -11,7 +11,8 @@ done
 
 if [ $COV -eq 1 ]; then
     coverage run -m pytest tests/unit-tests
-    coverage report
+    coverage combine 2>/dev/null
+    coverage report || echo "No coverage data to report."
 else
     pytest tests/unit-tests
 fi
