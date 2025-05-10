@@ -50,7 +50,6 @@ rebase(addr: gdb.Value | int) -> int
 ```
 
 
-#### Description
 Return address rebased onto the executable's mappings.
 
 #### Example
@@ -82,7 +81,6 @@ base(name_pattern: gdb.Value | str) -> int
 ```
 
 
-#### Description
 Return the base address of the first memory mapping containing the given name.
 
 #### Example
@@ -119,7 +117,6 @@ hex2ptr(hex_string: gdb.Value | str) -> int
 ```
 
 
-#### Description
 Converts a hex string to a little-endian address and returns the address.
 
 #### Example
@@ -144,7 +141,6 @@ argc() -> int
 ```
 
 
-#### Description
 Get the number of program arguments.
 Evaluates to argc.
 
@@ -168,7 +164,6 @@ argv(index: gdb.Value) -> gdb.Value
 ```
 
 
-#### Description
 Get the n-th program argument.
 Evaluate argv on the supplied value.
 
@@ -191,7 +186,6 @@ environ(env_name: gdb.Value) -> gdb.Value
 ```
 
 
-#### Description
 Get an environment variable by name.
 Evaluate getenv() on the supplied value.
 
@@ -211,7 +205,6 @@ envp(index: gdb.Value) -> gdb.Value
 ```
 
 
-#### Description
 Get the n-th environment variable.
 Evaluate envp on the supplied value.
 
@@ -233,7 +226,6 @@ fsbase(offset: gdb.Value = gdb.Value(0)) -> int
 ```
 
 
-#### Description
 Get the value of the FS segment register.
 Only valid on x86(-64).
 
@@ -280,7 +272,6 @@ gsbase(offset: gdb.Value = gdb.Value(0)) -> int
 ```
 
 
-#### Description
 Get the value of the GS segment register.
 Only valid on x86(-64).
 
@@ -315,7 +306,6 @@ bn_sym(name_val: gdb.Value) -> int | None
 ```
 
 
-#### Description
 Lookup a symbol's address by name from Binary Ninja.
 
 This function sees symbols like functions and global variables,
@@ -344,7 +334,6 @@ bn_var(name_val: gdb.Value) -> int | None
 ```
 
 
-#### Description
 Lookup a stack variable's address by name from Binary Ninja.
 
 This function doesn't see functions or global variables,
@@ -377,7 +366,6 @@ bn_eval(expr: gdb.Value) -> int | None
 ```
 
 
-#### Description
 Parse and evaluate a Binary Ninja expression.
 
 Read more about binary ninja expressions here:
@@ -419,7 +407,6 @@ ida(name: gdb.Value) -> int
 ```
 
 
-#### Description
 Lookup a symbol's address by name from IDA.
 Evaluate ida.LocByName() on the supplied value.
 

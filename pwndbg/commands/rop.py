@@ -118,7 +118,7 @@ def _rop(
             )
         )
 
-    print("\nUnique gadgets found: %d\n\n" % (len(c.gadgets())))
+    print("\nUnique gadgets found: %d" % (len(c.gadgets())))
 
 
 def split_range_to_chunks(
@@ -202,14 +202,29 @@ def iterate_over_pages(mem_limit: int) -> Iterator[Tuple[str, pwndbg.lib.memory.
 
 parser = argparse.ArgumentParser(
     description="Dump ROP gadgets with Jon Salwan's ROPgadget tool.",
-    epilog="Example: rop --grep 'pop rdi' -- --nojop",
 )
 parser.add_argument("--grep", type=str, help="String to grep the output for")
 parser.add_argument("--memlimit", type=str, default="50MB", help="String to grep the output for")
 parser.add_argument("argument", nargs="*", type=str, help="Arguments to pass to ROPgadget")
 
 
-@pwndbg.commands.Command(parser, aliases=["ropgadget"], category=CommandCategory.INTEGRATIONS)
+@pwndbg.commands.Command(
+    parser,
+    aliases=["ropgadget"],
+    category=CommandCategory.INTEGRATIONS,
+    examples="""
+pwndbg> rop --grep 'pop rdi' -- --nojop
+Gadgets information
+============================================================
+[...]
+0x0007dce8 : pop rdi ; or dword ptr [rax], eax ; add rsp, 0x28 ; ret
+0x0007d838 : pop rdi ; or dword ptr [rax], eax ; je 0x7d840 ; ret
+0x0005b13d : pop rdi ; pop rbp ; ret
+0x0001ee23 : pop rdi ; ret
+
+Unique gadgets found: 8514
+    """,
+)
 @pwndbg.commands.OnlyWithFile
 def rop(grep: str | None, memlimit: str, argument: List[str]) -> None:
     memlimit = parse_size(memlimit)

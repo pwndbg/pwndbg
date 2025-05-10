@@ -24,6 +24,7 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
+import pwndbg.color.message as message
 import pwndbg.exception
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
@@ -139,6 +140,8 @@ class CommandObj:
         command_name: str | None,
         category: CommandCategory,
         aliases: List[str],
+        examples: str,
+        notes: str,
         /,  # All parameters must be passed in positionally
     ) -> None:
         assert function
@@ -165,6 +168,8 @@ class CommandObj:
         self.category = category
 
         self.aliases = aliases
+        self.examples = examples.strip()
+        self.notes = notes.strip()
 
         assert parser
         self.parser = parser
@@ -231,8 +236,43 @@ class CommandObj:
             and "A command must contain a description."
         )
         self.description = self.parser.description = self.parser.description.strip()
+
+        # Build the actual epilog from the examples, notes and passed epilog.
+        self.epilog = ""
+        self.pure_epilog = ""
+
+        if self.examples:
+            # Not putting '\n' in the notice() so .strip() works properly.
+            self.epilog += "\n" + message.notice("Examples:") + "\n"
+            self.epilog += self.examples + "\n"
+
+        if self.notes:
+            self.epilog += "\n" + message.notice("Notes:") + "\n"
+            self.epilog += self.notes + "\n"
+
         if self.parser.epilog:
-            self.epilog = self.parser.epilog = self.parser.epilog.strip()
+            self.pure_epilog = self.parser.epilog.strip()
+            pure_epilog_low = self.pure_epilog.lower()
+            assert (
+                self.examples
+                or not ("examples:" in pure_epilog_low or "example:" in pure_epilog_low)
+                and "Put command examples in pwndbg.commands.Command(examples=your_example)."
+            )
+            assert (
+                self.notes
+                or not ("notes:" in pure_epilog_low or "note:" in pure_epilog_low)
+                and "Put command notes in pwndbg.commands.Command(notes=your_note)."
+            )
+
+            self.epilog += "\n" + self.pure_epilog + "\n"
+
+        if self.aliases:
+            alias_txt = "Alias" + ("es" if len(self.aliases) > 1 else "") + ": "
+            self.epilog += "\n" + message.notice(alias_txt)
+            self.epilog += ", ".join(self.aliases) + "\n"
+
+        # Update the parser so the help is correctly generated.
+        self.parser.epilog = self.epilog = self.epilog.strip()
 
         # Generate command help (after stripping the parser's variables
         # and defining a formatter).
@@ -321,6 +361,8 @@ class Command:
         category: CommandCategory,
         command_name: str | None = None,
         aliases: List[str] = [],
+        examples: str = "",
+        notes: str = "",
         only_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
         exclude_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
     ) -> None:
@@ -334,6 +376,8 @@ class Command:
         self.category = category
         self.command_name = command_name
         self.aliases = aliases
+        self.examples = examples
+        self.notes = notes
         self.only_debuggers = only_debuggers
         self.exclude_debuggers = exclude_debuggers
 
@@ -372,6 +416,8 @@ class Command:
             self.command_name,
             self.category,
             self.aliases,
+            self.examples,
+            self.notes,
         )
 
 
