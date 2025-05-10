@@ -40,7 +40,7 @@ def test_command_plt(binary_name, is_pie):
     out = gdb.execute("plt", to_string=True).splitlines()
 
     assert len(out) == 2
-    assert re.match(r"Section \.plt 0x[0-9a-f]+-0x[0-9a-f]+:", out[0])
+    assert re.match(r"Section \.plt 0x[0-9a-f]+ - 0x[0-9a-f]+:", out[0])
     assert re.match(r"0x[0-9a-f]+: puts@plt", out[1])
 
     gdb.execute("starti")
@@ -53,7 +53,7 @@ def test_command_plt(binary_name, is_pie):
         assert out == out2
 
     assert len(out2) == 2
-    assert re.match(r"Section \.plt 0x[0-9a-f]+-0x[0-9a-f]+:", out2[0])
+    assert re.match(r"Section \.plt 0x[0-9a-f]+ - 0x[0-9a-f]+:", out2[0])
     assert re.match(r"0x[0-9a-f]+: puts@plt", out2[1])
 
 
