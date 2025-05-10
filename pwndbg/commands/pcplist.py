@@ -17,9 +17,31 @@ from pwndbg.lib.exception import IndentContextManager
 log = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(description="Print Per-CPU page list.")
-parser.add_argument("zone", type=int, nargs="?", help="")
 parser.add_argument(
-    "-pcp", "--pcp-only", action="store_true", dest="pcp_only", help="Print only pcp lists."
+    "-z",
+    "--zone",
+    type=str,
+    dest="zone",
+    choices=["DMA", "DMA32", "Normal", "HighMem", "Movable", "Device"],
+    help="",
+)
+parser.add_argument("-o", "--order", type=int, dest="order", help="")
+parser.add_argument(
+    "-m",
+    "--mtype",
+    type=str,
+    dest="mtype",
+    choices=["Unmovable", "Movable", "Reclaimable", "HighAtomic", "CMA", "Isolate"],
+    help="",
+)
+parser.add_argument(
+    "-p",
+    "--pcp",
+    type=str,
+    choices=["all", "none", "only"] + [str(i) for i in range(0x10)],
+    default="all",
+    dest="pcp",
+    help="",
 )
 
 MAX_PG_FREE_LIST_STR_RESULT_CNT = 0x10
@@ -92,13 +114,13 @@ def print_pglist(
     sections: List[Tuple[str, str]],
     indent: IndentContextManager,
 ) -> bool:
+    if len(sections) != 2:
+        log.warning("The number of sections is not 2!")
+        return False
     results, counter, msgs = traverse_pglist(free_list, indent)
     if not results or len(results) == 0 or counter == 0:
         return False
     # this needs to be done after passing the previous if-statement buf before the first print within `with indent`
-    if len(sections) != 2:
-        log.warning("The number of sections is not 2!")
-        return False
     with indent:
         print_section(sections[0], indent)
         with indent:
@@ -118,16 +140,24 @@ def print_pglist(
 
 
 def print_mtypes(
-    free_list: pwndbg.dbg_mod.Value, sections: List[Tuple[str, str]], indent: IndentContextManager
+    free_list: pwndbg.dbg_mod.Value,
+    sections: List[Tuple[str, str]],
+    indent: IndentContextManager,
+    mtype: str | None,
 ) -> bool:
     for i, name in enumerate(static_str_arr("migratetype_names")):
+        if mtype is not None and name != mtype:
+            continue
         _free_list = free_list[i]
         if print_pglist(_free_list, name, sections, indent):
             sections = [NONE_TUPLE, NONE_TUPLE]
-    return len(sections) == 0
+    # returns if it succeeds or not
+    return sections[0] == NONE_TUPLE and sections[1] == NONE_TUPLE
 
 
-def print_pcp_lists(zone: pwndbg.dbg_mod.Value | None, indent: IndentContextManager):
+def print_pcp_lists(zone: pwndbg.dbg_mod.Value | None, indent: IndentContextManager, choice: str):
+    if choice == "none":
+        return
     pcp = per_cpu(zone["per_cpu_pageset"])
     sections = [
         ("per_cpu_pageset", f"number of pages {indent.aux_hex(int(pcp["count"]))}"),
@@ -135,22 +165,30 @@ def print_pcp_lists(zone: pwndbg.dbg_mod.Value | None, indent: IndentContextMana
     ]
     pcp_lists = pcp["lists"]
     for i in range(array_size(pcp_lists)):
+        if choice.isdigit() and int(choice) != i:
+            continue
         if print_pglist(pcp_lists[i], f"PCP List {i}", sections, indent):
             sections[0] = NONE_TUPLE  # do not reprint section info multiple times
 
 
-def print_free_area(zone: pwndbg.dbg_mod.Value | None, indent: IndentContextManager):
+def print_free_area(
+    zone: pwndbg.dbg_mod.Value | None,
+    indent: IndentContextManager,
+    order: int | None,
+    mtype: str | None,
+):
     free_area = zone["free_area"]
     sections: List[Tuple[str, str]] = [("free_area", None), NONE_TUPLE]
-    for order in range(array_size(free_area)):
-        free_list = free_area[order]["free_list"]
-        nr_free = int(free_area[order]["nr_free"])
-        order_desc = (
-            f"Order {order}",
-            f"nr_free: {indent.aux_hex(nr_free)}, size: {indent.aux_hex(0x1000 * (2 ** order))}",
+    for i in range(array_size(free_area)):
+        if order is not None and i != order:
+            continue
+        free_list = free_area[i]["free_list"]
+        nr_free = int(free_area[i]["nr_free"])
+        sections[1] = (
+            f"Order {i}",
+            f"nr_free: {indent.aux_hex(nr_free)}, size: {indent.aux_hex(0x1000 * (2 ** i))}",
         )
-        sections[1] = order_desc
-        if print_mtypes(free_list, sections, indent):
+        if print_mtypes(free_list, sections, indent, mtype):
             sections[0] = NONE_TUPLE  # do not reprint section info multiple times
 
 
@@ -158,7 +196,7 @@ def print_free_area(zone: pwndbg.dbg_mod.Value | None, indent: IndentContextMana
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def pcplist(zone: int = None, pcp_only: bool = False) -> None:
+def pcplist(zone: str = None, pcp: str = "all", order: int = None, mtype: str = None) -> None:
     indent = IndentContextManager()
     node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
     if not node_data:
@@ -167,7 +205,10 @@ def pcplist(zone: int = None, pcp_only: bool = False) -> None:
     # TODO: this command currently only supports one node which should be the common case
     zones = node_data.dereference()[0]["node_zones"]
     for i, name in enumerate(static_str_arr("zone_names")):
+        if zone is not None and zone != name:
+            continue
         indent.print(indent.prefix(f"Zone {name}"))
-        print_pcp_lists(zones[i], indent)
-        if not pcp_only:
-            print_free_area(zones[i], indent)
+        if mtype is None and order is None:
+            print_pcp_lists(zones[i], indent, pcp)
+        if pcp != "only" and not pcp.isdigit():
+            print_free_area(zones[i], indent, order, mtype)
