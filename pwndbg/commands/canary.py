@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+from typing import Optional
+from typing import Tuple
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
@@ -28,7 +30,7 @@ TLS_CANARY_OFFSETS = {
 }
 
 
-def canary_value():
+def canary_value() -> Tuple[Optional[int], Optional[int]]:
     """Get the global canary value from AT_RANDOM with its last byte masked (as glibc does)
 
     Returns:
@@ -46,7 +48,7 @@ def canary_value():
     return global_canary, at_random
 
 
-def find_tls_canary_addr():
+def find_tls_canary_addr() -> Optional[int]:
     """Find the address of the canary in the Thread Local Storage (TLS).
 
     The canary is stored at a fixed offset from the TLS base, which varies by architecture.
