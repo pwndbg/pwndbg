@@ -125,10 +125,10 @@ builtins-ignorelist = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["pwndbg"]
+include = ["/pwndbg"]
 
 [tool.hatch.build.targets.wheel]
-include = ["pwndbg"]
+include = ["/pwndbg"]
 
 [build-system]
 requires = ["hatchling"]
