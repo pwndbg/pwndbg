@@ -61,6 +61,6 @@ def run_gdb_with_script(
 
     # It also shows every single registered function, so we change it to xxx
     # so as to not break this test every time a new function is added
-    output = re.sub(r"created (\$\w+, )*\$\w+ GDB functions", r"created xxx GDB functions", output)
+    output = re.sub(r"created [0-9]+ GDB functions", r"created xxx GDB functions", output)
 
     return output

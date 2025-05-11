@@ -51,7 +51,7 @@ theme:
     # Press right arrow to accept search suggestion.
     - search.suggest
     # Highlight the search query on the chosen page.
-    - search.highlight
+    # - search.highlight
     # Add a "share" button to copy a link to the search query.
     - search.share
 # https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/#code-actions

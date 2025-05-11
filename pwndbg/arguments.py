@@ -26,12 +26,13 @@ import pwndbg.lib.funcparser
 import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
+from pwndbg.lib.functions import format_flags_argument
 
 
 def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
     """
     Returns an array containing the arguments to the current function,
-    if $pc is a 'call', 'bl', or 'jalr' type instruction.
+    if $pc is a function call or syscall instruction.
 
     Otherwise, returns None.
     """
@@ -158,14 +159,36 @@ def arguments(abi: pwndbg.lib.abi.ABI | None = None):
         yield argname(i, abi), argument(i, abi)
 
 
+# When an argument is named one of these in Linux syscalls/glibc, it refers to a file descriptor
+# Search for strings containing "fd" in https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md
+FILE_DESCRIPTOR_ARG_NAMES = {
+    "fd",
+    "in_fd",
+    "out_fd",
+    "fdin",
+    "fdout",
+    "oldfd",
+    "fildes",
+    "newfd",
+    "epfd",
+    "dfd",
+    "dirfd",
+    "mountdirfd",
+}
+
+
 def format_args(instruction: PwndbgInstruction) -> List[str]:
     result = []
     for arg, value in get(instruction):
         code = arg.type != "char"
-        pretty = pwndbg.chain.format(value, code=code)
+        pretty = (
+            pwndbg.chain.format(value, code=code)
+            if not arg.flags
+            else format_flags_argument(arg.flags, value)
+        )
 
         # Enhance args display
-        if arg.name == "fd" and isinstance(value, int):
+        if arg.name in FILE_DESCRIPTOR_ARG_NAMES and isinstance(value, int):
             # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
             pid = pwndbg.aglib.proc.pid
             if pid is not None:

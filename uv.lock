@@ -1195,6 +1195,7 @@ source = { editable = "." }
 dependencies = [
     { name = "capstone" },
     { name = "ipython" },
+    { name = "psutil" },
     { name = "pt" },
     { name = "pwntools" },
     { name = "pycparser" },
@@ -1219,6 +1220,7 @@ lldb = [
 dev = [
     { name = "sortedcontainers-stubs" },
     { name = "types-gdb" },
+    { name = "types-psutil" },
     { name = "types-pygments" },
     { name = "types-requests" },
     { name = "types-tabulate" },
@@ -1255,6 +1257,7 @@ requires-dist = [
     { name = "capstone", specifier = "==6.0.0a4" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.10,<9" },
     { name = "ipython", specifier = ">=8.27.0,<9" },
+    { name = "psutil", specifier = ">=6.1.1,<7" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
     { name = "pwntools", specifier = ">=4.14.0,<5" },
     { name = "pycparser", specifier = "~=2.22" },
@@ -1275,6 +1278,7 @@ provides-extras = ["lldb", "gdb"]
 dev = [
     { name = "sortedcontainers-stubs", specifier = ">=2.4.2,<3" },
     { name = "types-gdb", specifier = ">=12.1.4.20240704,<13" },
+    { name = "types-psutil", specifier = ">=6.1.0.20241221,<7" },
     { name = "types-pygments", specifier = ">=2.17.0.20240310,<3" },
     { name = "types-requests", specifier = ">=2.31.0.20240406,<3" },
     { name = "types-tabulate", specifier = ">=0.9.0.20240106,<0.10" },
@@ -1824,6 +1828,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/62/e2/fecd2092bc4c516d095aa3315f3fbb7de64ce200aceed4bb92807a16cc4d/types-gdb-12.1.4.20240704.tar.gz", hash = "sha256:0b537f6acf8339e82dc92388aad057a30c83d89105cd820cf5dc948d6debce10", size = 11819 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/27/d4/48df589370499dd5c1011a5351f74ac69b296030fe84d732c37083ce6b4f/types_gdb-12.1.4.20240704-py3-none-any.whl", hash = "sha256:da273ebf395ded84ea12745ef70d0c1560694c26b6d9c04575d500a74929fed1", size = 12067 },
+]
+
+[[package]]
+name = "types-psutil"
+version = "6.1.0.20241221"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/8c/5f82cd554cc5bb79d137f082e4c9f8d22e85c8c08dabee4971d422a9abdd/types_psutil-6.1.0.20241221.tar.gz", hash = "sha256:600f5a36bd5e0eb8887f0e3f3ff2cf154d90690ad8123c8a707bba4ab94d3185", size = 20035 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2e/8f/eda6f25fe59e683b875108f520dfaf683dd45aed59051ec55b9470d869b7/types_psutil-6.1.0.20241221-py3-none-any.whl", hash = "sha256:8498dbe13285a9ba7d4b2fa934c569cc380efc74e3dacdb34ae16d2cdf389ec3", size = 23361 },
 ]
 
 [[package]]

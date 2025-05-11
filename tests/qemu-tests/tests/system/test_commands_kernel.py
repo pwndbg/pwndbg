@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gdb
+import pytest
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
@@ -99,3 +100,25 @@ def get_slab_object_address():
         if len(matches) > 0:
             return (matches[0], cache_name)
     raise ValueError("Could not find any slab objects")
+
+
+def test_command_msr_read():
+    if pwndbg.aglib.arch.name not in ["x86", "x86-64"]:
+        pytest.skip("Unsupported architecture: msr tests only work on x86 and x86-64")
+
+    msr_lstar_literal = int(gdb.execute("msr MSR_LSTAR", to_string=True).split(":\t")[1], 16)
+    msr_lstar = int(gdb.execute("msr 0xc0000082", to_string=True).split(":\t")[1], 16)
+    assert msr_lstar == msr_lstar_literal
+
+
+def test_command_msr_write():
+    if pwndbg.aglib.arch.name not in ["x86", "x86-64"]:
+        pytest.skip("Unsupported architecture: msr tests only work on x86 and x86-64")
+
+    prev_msr_lstar = int(gdb.execute("msr MSR_LSTAR", to_string=True).split(":\t")[1], 16)
+
+    new_val = 0x4141414142424242
+    gdb.execute(f"msr MSR_LSTAR -w {new_val}")
+    new_msr_lstar = int(gdb.execute("msr 0xc0000082", to_string=True).split(":\t")[1], 16)
+    assert new_msr_lstar == new_val
+    gdb.execute(f"msr MSR_LSTAR -w {prev_msr_lstar}")

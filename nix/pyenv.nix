@@ -68,6 +68,7 @@ let
     "types-tabulate"
     "types-pygments"
     "types-docutils"
+    "types-psutil"
     "types-gdb"
     "types-setuptools"
     "cryptography"
