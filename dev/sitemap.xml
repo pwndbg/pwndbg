@@ -269,6 +269,10 @@
          <lastmod>2025-05-11</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/msr/</loc>
+         <lastmod>2025-05-11</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/pcplist/</loc>
          <lastmod>2025-05-11</lastmod>
     </url>
@@ -1274,6 +1278,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/mprotect/</loc>
+         <lastmod>2025-05-11</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/msr/</loc>
          <lastmod>2025-05-11</lastmod>
     </url>
     <url>
