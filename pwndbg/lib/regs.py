@@ -21,7 +21,8 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
 class BitFlags:
-    # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
+    # this is intentionally uninitialized -- arm uses the same self.flags
+    # structuture for different registers
     # for example
     #   - aarch64_cpsr_flags is used for "cpsr", "spsr_el1", "spsr_el2", "spsr_el3"
     #   - aarch64_sctlr_flags is used for "sctlr", "sctlr_el2", "sctlr_el3"

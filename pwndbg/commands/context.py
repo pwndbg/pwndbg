@@ -960,14 +960,16 @@ class RegisterContext:
         prefix = self.get_prefix(reg)
         desc = hex(val)
         if pwndbg.aglib.kernel.has_debug_syms():
-            # TODO: phys_to_virt is bugged when kaslr is enabled, ptrace_scope is enabled, or if symbols are not present
+            # TODO: phys_to_virt is bugged when kaslr is enabled,
+            # ptrace_scope is enabled, or if symbols are not present
             try:
                 virtual = pwndbg.aglib.kernel.phys_to_virt(val)
                 desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
             except Exception:
                 print(
                     message.error(
-                        "error when running phys_to_virt, try running `echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`"
+                        "error when running phys_to_virt, try running "
+                        "`echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`"
                     )
                 )
         return f"{prefix} {desc}"
