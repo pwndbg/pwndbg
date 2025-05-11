@@ -16,6 +16,35 @@ from pwndbg.lib.exception import IndentContextManager
 
 log = logging.getLogger(__name__)
 
+
+MAX_PG_FREE_LIST_STR_RESULT_CNT = 0x10
+MAX_PG_FREE_LIST_CNT = 0x1000
+NONE_TUPLE = (None, None)
+
+
+def pcp_typecheck(pcp: str):
+    str_opts = {"none", "only", "all"}
+    nr_pcp_lists = pwndbg.aglib.kernel.npcplist()
+    if pcp is None:
+        return "all"  # default
+    if pcp in str_opts:
+        return pcp
+    if pcp.isdigit() and int(pcp) < nr_pcp_lists:
+        return pcp
+    raise argparse.ArgumentTypeError(f"Only {str_opts} and numbers < {nr_pcp_lists} are allowed.")
+
+
+def cpu_limitcheck(cpu: str):
+    if cpu is None:
+        return None
+    nr_cpus = pwndbg.aglib.kernel.nproc()
+    if cpu.isdigit() and int(cpu) < nr_cpus:
+        return int(cpu)
+    raise argparse.ArgumentTypeError(
+        f"The --cpu option takes in a number less than nr_cpu_ids ({nr_cpus})."
+    )
+
+
 parser = argparse.ArgumentParser(description="Print Per-CPU page list.")
 parser.add_argument(
     "-z",
@@ -23,6 +52,7 @@ parser.add_argument(
     type=str,
     dest="zone",
     choices=["DMA", "DMA32", "Normal", "HighMem", "Movable", "Device"],
+    default=None,
     help="",
 )
 parser.add_argument("-o", "--order", type=int, dest="order", help="")
@@ -32,34 +62,16 @@ parser.add_argument(
     type=str,
     dest="mtype",
     choices=["Unmovable", "Movable", "Reclaimable", "HighAtomic", "CMA", "Isolate"],
+    default=None,
     help="",
 )
-parser.add_argument(
-    "-p",
-    "--pcp",
-    type=str,
-    choices=["all", "none", "only"] + [str(i) for i in range(0x10)],
-    default="all",
-    dest="pcp",
-    help="",
-)
-
-MAX_PG_FREE_LIST_STR_RESULT_CNT = 0x10
-MAX_PG_FREE_LIST_CNT = 0x1000
-NONE_TUPLE = (None, None)
-
-
-def array_size(t: pwndbg.dbg_mod.Value):
-    return t.type.sizeof // t.type.target().sizeof
+parser.add_argument("-p", "--pcp", type=pcp_typecheck, dest="pcp", default="all", help="")
+parser.add_argument("-c", "--cpu", type=cpu_limitcheck, dest="cpu", default=None)
 
 
 def static_str_arr(name: str) -> List[str]:
-    results = []
     arr = pwndbg.aglib.symbol.lookup_symbol(name).dereference()
-    sz = array_size(arr)
-    for i in range(sz):
-        results.append(arr[i].string())
-    return results
+    return [arr[i].string() for i in range(len(arr))]
 
 
 def traverse_pglist(
@@ -151,23 +163,24 @@ def print_mtypes(
         _free_list = free_list[i]
         if print_pglist(_free_list, name, sections, indent):
             sections = [NONE_TUPLE, NONE_TUPLE]
-    # returns if it succeeds or not
+    # returns if it succeeded or not
     return sections[0] == NONE_TUPLE and sections[1] == NONE_TUPLE
 
 
-def print_pcp_lists(zone: pwndbg.dbg_mod.Value | None, indent: IndentContextManager, choice: str):
+def print_pcp_lists(
+    zone: pwndbg.dbg_mod.Value | None, indent: IndentContextManager, choice: str, cpu: int | None
+):
     if choice == "none":
         return
-    pcp = per_cpu(zone["per_cpu_pageset"])
+    pcp = per_cpu(zone["per_cpu_pageset"], cpu)
     sections = [
         ("per_cpu_pageset", f"number of pages {indent.aux_hex(int(pcp["count"]))}"),
         NONE_TUPLE,
     ]
-    pcp_lists = pcp["lists"]
-    for i in range(array_size(pcp_lists)):
+    for i in range(pwndbg.aglib.kernel.npcplist()):
         if choice.isdigit() and int(choice) != i:
             continue
-        if print_pglist(pcp_lists[i], f"PCP List {i}", sections, indent):
+        if print_pglist(pcp["lists"][i], f"PCP List {i}", sections, indent):
             sections[0] = NONE_TUPLE  # do not reprint section info multiple times
 
 
@@ -179,7 +192,7 @@ def print_free_area(
 ):
     free_area = zone["free_area"]
     sections: List[Tuple[str, str]] = [("free_area", None), NONE_TUPLE]
-    for i in range(array_size(free_area)):
+    for i in range(len(free_area)):
         if order is not None and i != order:
             continue
         free_list = free_area[i]["free_list"]
@@ -196,7 +209,7 @@ def print_free_area(
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def pcplist(zone: str = None, pcp: str = "all", order: int = None, mtype: str = None) -> None:
+def pcplist(zone: str, pcp: str, order: int, mtype: str, cpu: int) -> None:
     indent = IndentContextManager()
     node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
     if not node_data:
@@ -209,6 +222,6 @@ def pcplist(zone: str = None, pcp: str = "all", order: int = None, mtype: str = 
             continue
         indent.print(indent.prefix(f"Zone {name}"))
         if mtype is None and order is None:
-            print_pcp_lists(zones[i], indent, pcp)
+            print_pcp_lists(zones[i], indent, pcp, cpu)
         if pcp != "only" and not pcp.isdigit():
             print_free_area(zones[i], indent, order, mtype)

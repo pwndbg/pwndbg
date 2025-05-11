@@ -955,6 +955,12 @@ class Value:
         """
         raise NotImplementedError()
 
+    def __len__(self) -> int:
+        """
+        Return len(self).
+        """
+        raise NotImplementedError()
+
 
 class CommandHandle:
     """
