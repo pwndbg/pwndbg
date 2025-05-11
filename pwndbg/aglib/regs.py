@@ -28,6 +28,7 @@ import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 from pwndbg.dbg import EventType
 from pwndbg.lib.regs import BitFlags
+from pwndbg.lib.regs import KernelRegisterSet
 from pwndbg.lib.regs import RegisterSet
 from pwndbg.lib.regs import reg_sets
 
@@ -166,6 +167,10 @@ class module(ModuleType):
     @property
     def retaddr(self) -> Tuple[str, ...]:
         return reg_sets[pwndbg.aglib.arch.name].retaddr
+
+    @property
+    def kernel(self) -> KernelRegisterSet:
+        return reg_sets[pwndbg.aglib.arch.name].kernel
 
     @property
     def flags(self) -> Dict[str, BitFlags]:

@@ -73,6 +73,19 @@ def test_command_slab_contains():
     assert f"{addr} @ {slab_cache}" in res
 
 
+def test_x64_extra_registers_under_kernel_mode():
+    res = gdb.execute("context", to_string=True)
+    if "RAX" not in res or "RSP" not in res:
+        # we are not debugging x64
+        # there's probably a better way to check this but good enough
+        return
+    for reg in ["cr0", "cr3", "cr4", "fs_base", "gs_base", "efer", "ss", "cs"]:
+        assert reg.upper() in res
+    # those are the most important ones, and their presence should indicate it's working as intended
+    for flag in ["smep", "smap", "wp"]:
+        assert flag in res or flag.upper() in res
+
+
 def get_slab_object_address():
     """helper function to get the address of some kmalloc slab object
     and the associated slab cache name"""

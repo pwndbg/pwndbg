@@ -11,7 +11,7 @@ usage: plt [-h]
 
 ```
 
-Prints any symbols found in the .plt section if it exists.
+Prints any symbols found in Procedure Linkage Table sections if any exist.
 ### Optional arguments
 
 |Short|Long|Help|
