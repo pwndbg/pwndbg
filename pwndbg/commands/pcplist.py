@@ -31,8 +31,20 @@ class ParsedBuddyArgs:
     order: int | None
     mtype: str | None
     cpu: int | None
+    find: int | None
+
+
+@dataclass
+class CurrentBuddyParams:
     sections: List[Tuple[str, str]]
     indent: IndentContextManager
+    order: int
+    mtype: str | None
+    freelists: pwndbg.dbg_mod.Value | None
+    freelist: pwndbg.dbg_mod.Value | None
+    nr_types: int | None
+    found: bool
+
 
 def cpu_limitcheck(cpu: str):
     if cpu is None:
@@ -65,8 +77,11 @@ parser.add_argument(
     default=None,
     help="",
 )
-parser.add_argument("-p", "--pcp-only", action="store_true", dest="pcp_only", default=False, help="")
+parser.add_argument(
+    "-p", "--pcp-only", action="store_true", dest="pcp_only", default=False, help=""
+)
 parser.add_argument("-c", "--cpu", type=cpu_limitcheck, dest="cpu", default=None)
+parser.add_argument("-f", "--find", type=int, dest="find", default=None)
 
 
 def static_str_arr(name: str) -> List[str]:
@@ -74,23 +89,39 @@ def static_str_arr(name: str) -> List[str]:
     return [arr[i].string() for i in range(len(arr))]
 
 
+def check_find(counter: int, physmap_addr: int, pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+    if counter < MAX_PG_FREE_LIST_STR_RESULT_CNT and pba.find is None:
+        return True
+    if pba.find is None:
+        return False
+    start = physmap_addr
+    end = physmap_addr + (1 << cbp.order)
+    return pba.find >= start and pba.find < end
+
+
 def traverse_pglist(
-    free_list: pwndbg.dbg_mod.Value, indent: IndentContextManager
-) -> Tuple[List[str], int, List[str]]:
-    if free_list is None or int(free_list["next"]) == 0:
+    pba: ParsedBuddyArgs, cbp: CurrentBuddyParams
+) -> Tuple[List[Tuple[int, str]], int, List[str]]:
+    freelist = cbp.freelist
+    if freelist is None or int(freelist["next"]) == 0:
         return None, 0, None
+    indent = cbp.indent
     seen_pages = set()
     results = []
     counter = 0
     msgs = []
-    for e in for_each_entry(free_list, "struct page", "lru"):
+    for e in for_each_entry(freelist, "struct page", "lru"):
         page = int(e)
-        if counter < MAX_PG_FREE_LIST_STR_RESULT_CNT:
-            phys_addr = pwndbg.aglib.kernel.page_to_phys(page)
-            physmap_addr = pwndbg.aglib.kernel.page_to_physmap(page)
+        phys_addr = pwndbg.aglib.kernel.page_to_phys(page)
+        physmap_addr = pwndbg.aglib.kernel.page_to_physmap(page)
+        if check_find(counter, physmap_addr, pba, cbp):
             results.append(
-                f"{indent.addr_hex(physmap_addr)} [page: {indent.aux_hex(page)}, phys: {indent.aux_hex(phys_addr)}]"
+                (
+                    counter,
+                    f"{indent.addr_hex(physmap_addr)} [page: {indent.aux_hex(page)}, phys: {indent.aux_hex(phys_addr)}]",
+                )
             )
+            cbp.found = True
         if counter == MAX_PG_FREE_LIST_STR_RESULT_CNT:
             msgs.append(f"{indent.prefix('... (truncated)')}")
             msgs.append(
@@ -118,16 +149,12 @@ def print_section(section: Tuple[str, str], indent: IndentContextManager):
         indent.print(title)
 
 
-def print_pglist(
-    free_list: pwndbg.dbg_mod.Value,
-    name: str | None,
-    sections: List[Tuple[str, str]],
-    indent: IndentContextManager,
-):
+def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+    sections, indent = cbp.sections, cbp.indent
     if len(sections) != 3:
         log.warning(f"The number ({len(sections)}) of sections is not 2!")
         return
-    results, counter, msgs = traverse_pglist(free_list, indent)
+    results, counter, msgs = traverse_pglist(pba, cbp)
     if not results or len(results) == 0 or counter == 0:
         return
     # this needs to be done after passing the previous if-statement buf before the first print within `with indent`
@@ -141,10 +168,10 @@ def print_pglist(
             sections[2] = NONE_TUPLE
             with indent:
                 indent.print(
-                    f"- {indent.prefix(name)} (contains {indent.aux_hex(counter)} elements)"
+                    f"- {indent.prefix(cbp.mtype)} (contains {indent.aux_hex(counter)} elements)"
                 )
                 with indent:
-                    for i, result in enumerate(results):
+                    for i, result in results:
                         indent.print(indent.prefix(f"[0x{i:02x}] ") + result)
                     if msgs is not None:
                         for msg in msgs:
@@ -152,24 +179,25 @@ def print_pglist(
                         print()
 
 
-def print_mtypes(
-    free_list: pwndbg.dbg_mod.Value,
-    pba: ParsedBuddyArgs,
-    nr_types: int | None = None,
-):
-    names = static_str_arr("migratetype_names")
+def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
+    freelists, nr_types = cbp.freelists, cbp.nr_types
+    mtypes = static_str_arr("migratetype_names")
     if nr_types is None:
-        nr_types = len(names)
+        nr_types = len(mtypes)
     for i in range(nr_types):
-        name = names[i]
-        if pba.mtype is not None and name != pba.mtype:
+        cbp.mtype = mtypes[i]
+        if pba.mtype is not None and cbp.mtype != pba.mtype:
             continue
-        print_pglist(free_list[i], name, pba.sections, pba.indent)
+        cbp.freelist = freelists[i]
+        print_pglist(pba, cbp)
 
 
-def print_pcp_set(pba: ParsedBuddyArgs):
+def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     pcp = per_cpu(pba.zone["per_cpu_pageset"], pba.cpu)
-    pba.sections[1] = ("per_cpu_pageset", f"number of pages {pba.indent.aux_hex(int(pcp["count"]))}")
+    cbp.sections[1] = (
+        "per_cpu_pageset",
+        f"number of pages {cbp.indent.aux_hex(int(pcp["count"]))}",
+    )
     nr_pcp_lists = pwndbg.aglib.kernel.npcplist()
     pcp_lists = pcp["lists"]
     for i in range(0, nr_pcp_lists, MIGRATE_PCPTYPES):
@@ -177,50 +205,58 @@ def print_pcp_set(pba: ParsedBuddyArgs):
         order = i // MIGRATE_PCPTYPES
         if pba.order is not None and pba.order != order:
             continue
-        free_list = pcp_lists[order * MIGRATE_PCPTYPES].address
-        nr_types = MIGRATE_PCPTYPES
-        if order == MIGRATE_PCPTYPES + 1:
-            order = 11 # THPs are 2MB
-            nr_types = nr_pcp_lists % MIGRATE_PCPTYPES
-        pba.sections[2] = (
+        cbp.freelists = pcp_lists[order * MIGRATE_PCPTYPES].address
+        cbp.nr_types = MIGRATE_PCPTYPES
+        if order == 4:
+            # https://elixir.bootlin.com/linux/v6.13/source/arch/x86/include/asm/page_types.h#L20
+            order = 21 - 12  # HPAGE_SHIFT - PAGE_SHIFT
+            cbp.nr_types = nr_pcp_lists % MIGRATE_PCPTYPES
+        cbp.sections[2] = (
             f"Order {order}",
-            f"size: {pba.indent.aux_hex(0x1000 * (1 << order))}",
+            f"size: {cbp.indent.aux_hex(0x1000 * (1 << order))}",
         )
-        print_mtypes(free_list, pba, nr_types)
+        cbp.order = order
+        print_mtypes(pba, cbp)
 
 
-def print_free_area(pba: ParsedBuddyArgs):
+def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     free_area = pba.zone["free_area"]
-    pba.sections[1] = ("free_area", None)
+    cbp.sections[1] = ("free_area", None)
     for order in range(len(free_area)):
         if pba.order is not None and pba.order != order:
             continue
-        free_list = free_area[order]["free_list"]
+        cbp.freelists = free_area[order]["free_list"]
         nr_free = int(free_area[order]["nr_free"])
-        pba.sections[2] = (
+        cbp.sections[2] = (
             f"Order {order}",
-            f"nr_free: {pba.indent.aux_hex(nr_free)}, size: {pba.indent.aux_hex(0x1000 * (1 << order))}",
+            f"nr_free: {cbp.indent.aux_hex(nr_free)}, size: {cbp.indent.aux_hex(0x1000 * (1 << order))}",
         )
-        print_mtypes(free_list, pba)
+        cbp.order = order
+        print_mtypes(pba, cbp)
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def pcplist(zone: str, pcp_only: bool, order: int, mtype: str, cpu: int) -> None:
+def pcplist(zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, find: int) -> None:
     node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
     if not node_data:
         log.warning("WARNING: Symbol 'node_data' not found")
         return
-    pba = ParsedBuddyArgs(None, order, mtype, cpu, [NONE_TUPLE] * 3, IndentContextManager())
+    pba = ParsedBuddyArgs(None, order, mtype, cpu, find)
+    cbp = CurrentBuddyParams(
+        [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, False
+    )
     # TODO: this command currently only supports one node which should be the common case
     zones = node_data.dereference()[0]["node_zones"]
     for i, name in enumerate(static_str_arr("zone_names")):
         if zone is not None and zone != name:
             continue
         pba.zone = zones[i]
-        pba.sections[0] = (f"Zone {name}", None)
-        print_pcp_set(pba)
+        cbp.sections[0] = (f"Zone {name}", None)
+        print_pcp_set(pba, cbp)
         if not pcp_only:
-            print_free_area(pba)
+            print_free_area(pba, cbp)
+    if not cbp.found:
+        log.warning("No free pages with specified filters found.")
