@@ -57,7 +57,9 @@ def cpu_limitcheck(cpu: str):
     )
 
 
-parser = argparse.ArgumentParser(description="Print Per-CPU page list.")
+parser = argparse.ArgumentParser(
+    description="Displays metadata and freelists of the buddy allocator."
+)
 parser.add_argument(
     "-z",
     "--zone",
@@ -65,9 +67,15 @@ parser.add_argument(
     dest="zone",
     choices=["DMA", "DMA32", "Normal", "HighMem", "Movable", "Device"],
     default=None,
-    help="",
+    help="Displays/searches lists only in a specified zone.",
 )
-parser.add_argument("-o", "--order", type=int, dest="order", help="")
+parser.add_argument(
+    "-o",
+    "--order",
+    type=int,
+    dest="order",
+    help="Displays/searches lists only with a specified zone.",
+)
 parser.add_argument(
     "-m",
     "--mtype",
@@ -75,13 +83,27 @@ parser.add_argument(
     dest="mtype",
     choices=["Unmovable", "Movable", "Reclaimable", "HighAtomic", "CMA", "Isolate"],
     default=None,
-    help="",
+    help="Displays/searches lists only with a specified mtype.",
 )
 parser.add_argument(
-    "-p", "--pcp-only", action="store_true", dest="pcp_only", default=False, help=""
+    "-p",
+    "--pcp-only",
+    action="store_true",
+    dest="pcp_only",
+    default=False,
+    help="Displays/searches lists only in PCP.",
 )
-parser.add_argument("-c", "--cpu", type=cpu_limitcheck, dest="cpu", default=None)
-parser.add_argument("-f", "--find", type=int, dest="find", default=None)
+parser.add_argument(
+    "-c", "--cpu", type=cpu_limitcheck, dest="cpu", default=None, help="CPU nr for searching PCP."
+)
+parser.add_argument(
+    "-f",
+    "--find",
+    type=int,
+    dest="find",
+    default=None,
+    help="The address to find in page free lists.",
+)
 
 
 def static_str_arr(name: str) -> List[str]:
