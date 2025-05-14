@@ -160,6 +160,17 @@ def run_test(
     started_at = time.time()
     result = run_gdb(gdb_path, gdb_args, env=env, capture_output=not args.serial)
     duration = time.time() - started_at
+
+    if args.cov and result.stdout:
+        lines = result.stdout.splitlines()
+        filtered_lines = []
+        for line in lines:
+            if not (
+                line.startswith("Combined data file") or line.startswith("Skipping duplicate data")
+            ):
+                filtered_lines.append(line)
+        result = result._replace(stdout="\n".join(filtered_lines))
+
     return result, test_case, duration
 
 
@@ -248,23 +259,6 @@ def run_tests_and_print_stats(
         print("*********************************")
         print("******** COVERAGE REPORT ********")
         print("*********************************")
-
-        max_wait_time = 10.0
-        check_interval = 0.1
-        start_wait = time.time()
-
-        cov_dir = os.path.join(root_dir, ".cov")
-        while time.time() - start_wait < max_wait_time:
-            if os.path.exists(cov_dir):
-                files = [
-                    f for f in os.listdir(cov_dir) if f.startswith("coverage.") and f != "coverage"
-                ]
-                if not files:
-                    break
-            time.sleep(check_interval)
-
-        time.sleep(0.1)
-
         try:
             combine_cmd = [
                 "python",
