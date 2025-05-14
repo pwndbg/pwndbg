@@ -228,7 +228,7 @@ def run_tests_and_print_stats(
                 futures.append(future)
 
             concurrent.futures.wait(futures)
-            
+
             for future in futures:
                 stats.handle_test_result(future.result(), args, test_dir_path)
 
