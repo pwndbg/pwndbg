@@ -220,12 +220,15 @@ def run_tests_and_print_stats(
         print("")
         print("Running tests in parallel")
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+            futures = []
             for test in tests_list:
-                executor.submit(
-                    run_test, test, args, gdb_path, gdbinit_path, reserve_port()
-                ).add_done_callback(
-                    lambda future: stats.handle_test_result(future.result(), args, test_dir_path)
-                )
+                future = executor.submit(run_test, test, args, gdb_path, gdbinit_path, reserve_port())
+                futures.append(future)
+
+            for future in concurrent.futures.as_completed(futures):
+                stats.handle_test_result(future.result(), args, test_dir_path)
+
+
 
     end = time.time()
     seconds = int(end - start)
@@ -243,29 +246,31 @@ def run_tests_and_print_stats(
         print("*********************************")
         print("******** COVERAGE REPORT ********")
         print("*********************************")
-    try:
-        combine_cmd = [
-            "python",
-            "-m",
-            "coverage",
-            "combine",
-            "--data-file",
-            os.path.join(root_dir, ".cov/coverage"),
-        ]
-        subprocess.run(combine_cmd, check=False)
+        try:
+            combine_cmd = [
+                "python",
+                "-m",
+                "coverage",
+                "combine",
+                "--data-file",
+                os.path.join(root_dir, ".cov/coverage"),
+            ]
+            subprocess.run(combine_cmd, check=False)
 
-        coverage_report_cmd = [
-            "python",
-            "-m",
-            "coverage",
-            "report",
-            "--data-file",
-            os.path.join(root_dir, ".cov/coverage"),
-        ]
-        subprocess.run(coverage_report_cmd, check=True)
-    except Exception as e:
-        print(f"Error generating coverage report: {e}")
-    print("")
+            coverage_report_cmd = [
+                "python",
+                "-m",
+                "coverage",
+                "report",
+                "--data-file",
+                os.path.join(root_dir, ".cov/coverage"),
+                "--include=*/pwndbg/*",
+                "--omit=*/tests/*"
+            ]
+            subprocess.run(coverage_report_cmd, check=True)
+        except Exception as e:
+            print(f"Error generating coverage report: {e}")
+        print("")
 
     if stats.fail_tests != 0:
         print("\nFailing tests:")
