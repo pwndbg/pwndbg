@@ -19,7 +19,110 @@ from typing import Union
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
-BitFlags = OrderedDict[str, Union[int, Tuple[int, int]]]
+
+class BitFlags:
+    # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
+    # for example
+    #   - aarch64_cpsr_flags is used for "cpsr", "spsr_el1", "spsr_el2", "spsr_el3"
+    #   - aarch64_sctlr_flags is used for "sctlr", "sctlr_el2", "sctlr_el3"
+    regname: str
+    flags: OrderedDict[str, Union[int, Tuple[int, int]]]
+
+    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
+        self.regname = ""
+        self.flags = {}
+        for name, bits in flags:
+            self.flags[name] = bits
+
+    def __getattr__(self, name):
+        if name in {"regname"}:
+            return self.__dict__[name]
+        return getattr(self.flags, name)
+
+    def __getitem__(self, key):
+        return self.flags[key]
+
+    def __setitem__(self, key, value):
+        self.flags[key] = value
+
+    def __delitem__(self, key):
+        del self.flags[key]
+
+    def __iter__(self):
+        return iter(self.flags)
+
+    def __len__(self):
+        return len(self.flags)
+
+    def __repr__(self):
+        return f"BitFlags({self.flags})"
+
+    def update(self, regname: str):
+        self.regname = regname
+
+    def context(self, rc):
+        return rc.flag_register_context(self.regname, self)
+
+
+class AddressingRegister:
+    """
+    Represents a register that is used to store an address, e.g. cr3, gsbase, fsbase
+    """
+
+    reg: str
+    value: int
+    is_virtual: bool
+
+    def __init__(self, reg: str, is_virtual: bool):
+        self.reg = reg
+        self.value = 0
+        self.is_virtual = is_virtual
+
+    def update(self, regname: str):
+        pass
+
+    def context(self, rc):
+        return rc.addressing_register_context(self.reg, self.is_virtual)
+
+
+class SegmentRegisters:
+    """
+    Represents the x86 segment register set
+    """
+
+    regs: List[str]
+
+    def __init__(self, regs: List[str]):
+        self.regs = regs
+
+    def context(self, rc):
+        return rc.segment_registers_context(self.regs)
+
+
+class KernelRegisterSet:
+    """
+    additional registers that are useful when pwning kernels
+    used only for x86-64 for now
+    """
+
+    # Segment registers (CS, DS, ES, FS, GS, SS)
+    segments: SegmentRegisters
+
+    # Control registers (cr0, cr3, cr4)
+    controls: Dict[str, BitFlags | AddressingRegister]
+
+    # Model specific registers
+    msrs: Dict[str, BitFlags | AddressingRegister]
+
+    def __init__(
+        self,
+        segments: SegmentRegisters | None,
+        controls: Dict[str, BitFlags | AddressingRegister] = {},
+        msrs: Dict[str, BitFlags | AddressingRegister] = {},
+    ):
+        self.segments = segments
+        self.controls = controls
+        self.msrs = msrs
 
 
 @dataclass
@@ -75,6 +178,9 @@ class RegisterSet:
     #: Common registers which should be displayed in the register context
     common: List[str] = []
 
+    #: Extra registers for kernel debugging
+    kernel: KernelRegisterSet | None
+
     #: All valid registers
     all: Set[str]
 
@@ -95,6 +201,7 @@ class RegisterSet:
         gpr: Tuple[Reg, ...] = (),
         misc: Tuple[str, ...] = (),
         args: Tuple[str, ...] = (),
+        kernel: KernelRegisterSet | None = None,
         retval: str | None = None,
     ) -> None:
         self.pc = pc.name
@@ -107,6 +214,7 @@ class RegisterSet:
         self.misc = misc
         self.args = args
         self.retval = retval
+        self.kernel = kernel
 
         all_subregisters: List[str] = []
 
@@ -128,6 +236,14 @@ class RegisterSet:
         ):
             if regname and regname not in self.common:
                 self.common.append(regname)
+
+        if self.kernel is not None:
+            controls = self.kernel.controls
+            segments = self.kernel.segments
+            msrs = self.kernel.msrs
+            for regname in itertools.chain(controls, segments.regs, msrs):
+                if regname and regname not in self.common:
+                    self.common.append(regname)
 
         # The specific order of this list is very important:
         # Due to the behavior of Arm in the Unicorn engine,
@@ -522,9 +638,44 @@ aarch64 = RegisterSet(
 
 x86flags = {
     "eflags": BitFlags(
-        [("CF", 0), ("PF", 2), ("AF", 4), ("ZF", 6), ("SF", 7), ("IF", 9), ("DF", 10), ("OF", 11)]
+        [
+            ("CF", 0),
+            ("PF", 2),
+            ("AF", 4),
+            ("ZF", 6),
+            ("SF", 7),
+            ("IF", 9),
+            ("DF", 10),
+            ("OF", 11),
+            ("AC", 18),
+        ]
     )
 }
+
+amd64_kernel = KernelRegisterSet(
+    segments=SegmentRegisters(["cs", "ss", "ds", "es", "fs", "gs"]),
+    controls={
+        # only displays the security related bits, otherwise it can be too clustered
+        "cr0": BitFlags([("PE", 0), ("WP", 16), ("PG", 31)]),
+        "cr3": AddressingRegister("cr3", False),
+        "cr4": BitFlags(
+            [
+                ("UMIP", 11),
+                ("FSGSBASE", 16),
+                ("SMEP", 20),
+                ("SMAP", 21),
+                ("PKE", 22),
+                ("CET", 23),
+                ("PKS", 24),
+            ]
+        ),
+    },
+    msrs={
+        "efer": BitFlags([("NXE", 11)]),
+        "gs_base": AddressingRegister("gs_base", True),
+        "fs_base": AddressingRegister("fs_base", True),
+    },
+)
 
 amd64 = RegisterSet(
     pc=Reg("rip"),
@@ -678,10 +829,11 @@ amd64 = RegisterSet(
         "es",
         "fs",
         "gs",
-        "fsbase",
-        "gsbase",
+        "fs_base",
+        "gs_base",
         "ip",
     ),
+    kernel=amd64_kernel,
     args=("rdi", "rsi", "rdx", "rcx", "r8", "r9"),
     retval="rax",
 )
@@ -730,8 +882,8 @@ i386 = RegisterSet(
         "es",
         "fs",
         "gs",
-        "fsbase",
-        "gsbase",
+        "fs_base",
+        "gs_base",
         "ip",
     ),
     retval="eax",

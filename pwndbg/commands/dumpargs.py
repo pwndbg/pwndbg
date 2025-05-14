@@ -10,7 +10,6 @@ import pwndbg.chain
 import pwndbg.commands
 import pwndbg.commands.telescope
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.functions import format_flags_argument
 
 parser = argparse.ArgumentParser(description="Prints determined arguments for call instruction.")
 parser.add_argument("-f", "--force", action="store_true", help="Force displaying of all arguments.")
@@ -34,20 +33,15 @@ def call_args() -> List[str]:
     """
     Returns list of resolved call argument strings for display.
     Attempts to resolve the target and determine the number of arguments.
-    Should be used only when being on a call instruction.
+
+    Return empty list if PC is not on a call or syscall instruction.
     """
-    results: List[str] = []
 
-    for arg, value in pwndbg.arguments.get(pwndbg.aglib.disasm.disassembly.one()):
-        code = arg.type != "char"
-        pretty = (
-            pwndbg.chain.format(value, code=code)
-            if not arg.flags
-            else format_flags_argument(arg.flags, value)
-        )
-        results.append("        %-10s %s" % (arg.name + ":", pretty))
-
-    return results
+    # Get arguments and add spacing
+    return [
+        f"        {arg}"
+        for arg in pwndbg.arguments.format_args(pwndbg.aglib.disasm.disassembly.one())
+    ]
 
 
 def all_args() -> List[str]:

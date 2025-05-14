@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gdb
+import pytest
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
@@ -73,6 +74,19 @@ def test_command_slab_contains():
     assert f"{addr} @ {slab_cache}" in res
 
 
+def test_x64_extra_registers_under_kernel_mode():
+    res = gdb.execute("context", to_string=True)
+    if "RAX" not in res or "RSP" not in res:
+        # we are not debugging x64
+        # there's probably a better way to check this but good enough
+        return
+    for reg in ["cr0", "cr3", "cr4", "fs_base", "gs_base", "efer", "ss", "cs"]:
+        assert reg.upper() in res
+    # those are the most important ones, and their presence should indicate it's working as intended
+    for flag in ["smep", "smap", "wp"]:
+        assert flag in res or flag.upper() in res
+
+
 def get_slab_object_address():
     """helper function to get the address of some kmalloc slab object
     and the associated slab cache name"""
@@ -86,3 +100,25 @@ def get_slab_object_address():
         if len(matches) > 0:
             return (matches[0], cache_name)
     raise ValueError("Could not find any slab objects")
+
+
+def test_command_msr_read():
+    if pwndbg.aglib.arch.name not in ["x86", "x86-64"]:
+        pytest.skip("Unsupported architecture: msr tests only work on x86 and x86-64")
+
+    msr_lstar_literal = int(gdb.execute("msr MSR_LSTAR", to_string=True).split(":\t")[1], 16)
+    msr_lstar = int(gdb.execute("msr 0xc0000082", to_string=True).split(":\t")[1], 16)
+    assert msr_lstar == msr_lstar_literal
+
+
+def test_command_msr_write():
+    if pwndbg.aglib.arch.name not in ["x86", "x86-64"]:
+        pytest.skip("Unsupported architecture: msr tests only work on x86 and x86-64")
+
+    prev_msr_lstar = int(gdb.execute("msr MSR_LSTAR", to_string=True).split(":\t")[1], 16)
+
+    new_val = 0x4141414142424242
+    gdb.execute(f"msr MSR_LSTAR -w {new_val}")
+    new_msr_lstar = int(gdb.execute("msr 0xc0000082", to_string=True).split(":\t")[1], 16)
+    assert new_msr_lstar == new_val
+    gdb.execute(f"msr MSR_LSTAR -w {prev_msr_lstar}")

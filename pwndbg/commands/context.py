@@ -23,6 +23,7 @@ import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
+import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.arguments
@@ -895,8 +896,86 @@ pwndbg.config.add_param("show-flags", False, "whether to show flags registers")
 pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return address register")
 
 
+class RegisterContext:
+    changed: List[str]
+
+    def __init__(self):
+        self.changed = pwndbg.aglib.regs.changed
+
+    def get_prefix(self, reg):
+        # Make the register stand out and give a color if changed
+        regname = C.register(reg.ljust(4).upper())
+        if reg in self.changed:
+            regname = C.register_changed(regname)
+
+        # Show a marker next to the register if it changed
+        change_marker = f"{C.config_register_changed_marker}"
+        m = (
+            " " * len(change_marker)
+            if reg not in self.changed
+            else C.register_changed(change_marker)
+        )
+        return f"{m}{regname}"
+
+    def get_register_value(self, reg):
+        val = pwndbg.aglib.regs[reg]
+        if val is None:
+            print(message.warn(f"Unknown register: {reg!r}"))
+            return None
+        return val
+
+    def flag_register_context(self, reg, bit_flags):
+        val = self.get_register_value(reg)
+        if val is None:
+            return None
+        desc = C.format_flags(val, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
+        prefix = self.get_prefix(reg)
+        return f"{prefix} {desc}"
+
+    def segment_registers_context(self, regs):
+        result = ""
+        for reg in regs:
+            val = self.get_register_value(reg)
+            if val is None:
+                continue
+            prefix = self.get_prefix(reg)
+            result += f"{prefix} {hex(val)}   "
+        return result
+
+    def addressing_register_context(self, reg, is_virtual):
+        if is_virtual:
+            return self.register_context_default(reg)
+        val = self.get_register_value(reg)
+        if val is None:
+            return None
+        prefix = self.get_prefix(reg)
+        desc = hex(val)
+        if pwndbg.aglib.kernel.has_debug_syms():
+            # TODO: phys_to_virt is bugged when kaslr is enabled, ptrace_scope is enabled, or if symbols are not present
+            try:
+                virtual = pwndbg.aglib.kernel.phys_to_virt(val)
+                desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
+            except Exception:
+                print(
+                    message.error(
+                        "error when running phys_to_virt, try running `echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`"
+                    )
+                )
+        return f"{prefix} {desc}"
+
+    def register_context_default(self, reg):
+        val = self.get_register_value(reg)
+        if val is None:
+            return None
+        desc = pwndbg.chain.format(val)
+        prefix = self.get_prefix(reg)
+        return f"{prefix} {desc}"
+
+
 def get_regs(regs: List[str] = None):
+    regs: List[Any] = regs
     result = []
+    rc = RegisterContext()
 
     if regs is None:
         regs = []
@@ -912,42 +991,39 @@ def get_regs(regs: List[str] = None):
 
         regs.append(pwndbg.aglib.regs.current.pc)
 
+        if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
+            controls = pwndbg.aglib.regs.kernel.controls
+            if controls is not None:
+                for regname, control in controls.items():
+                    control.update(regname)
+                    regs.append(control)
+            msrs = pwndbg.aglib.regs.kernel.msrs
+            if msrs is not None:
+                for regname, msr in msrs.items():
+                    msr.update(regname)
+                    regs.append(msr)
         if pwndbg.config.show_flags:
-            regs += pwndbg.aglib.regs.flags.keys()
-
-    changed = pwndbg.aglib.regs.changed
+            flags = pwndbg.aglib.regs.flags
+            if flags is not None:
+                for regname, flag in flags.items():
+                    flag.update(regname)
+                    regs.append(flag)
+        if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.regs.kernel is not None:
+            if pwndbg.aglib.regs.kernel.segments is not None:
+                regs.append(pwndbg.aglib.regs.kernel.segments)
 
     for reg in regs:
         if reg is None:
             continue
+        if not isinstance(reg, str):
+            desc = reg.context(rc)
+            if desc is not None:
+                result.append(desc)
+                continue
+        desc = rc.register_context_default(reg)
+        if desc is not None:
+            result.append(desc)
 
-        value = pwndbg.aglib.regs[reg]
-        if value is None:
-            print(message.warn(f"Unknown register: {reg!r}"))
-            continue
-
-        # Make the register stand out and give a color if changed
-        regname = C.register(reg.ljust(4).upper())
-        if reg in changed:
-            regname = C.register_changed(regname)
-
-        # Show a dot next to the register if it changed
-        change_marker = f"{C.config_register_changed_marker}"
-        m = " " * len(change_marker) if reg not in changed else C.register_changed(change_marker)
-
-        bit_flags = None
-        if reg in pwndbg.aglib.regs.flags:
-            bit_flags = pwndbg.aglib.regs.flags[reg]
-        elif reg in pwndbg.aglib.regs.extra_flags:
-            bit_flags = pwndbg.aglib.regs.extra_flags[reg]
-
-        if bit_flags:
-            desc = C.format_flags(value, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
-
-        else:
-            desc = pwndbg.chain.format(value)
-
-        result.append(f"{m}{regname} {desc}")
     return result
 
 

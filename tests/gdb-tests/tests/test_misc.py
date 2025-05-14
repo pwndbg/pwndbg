@@ -11,7 +11,8 @@ STACK_COMMANDS = [
         "Context",
         "Print out the current register, instruction, and stack context.",
     ),
-    ("down", [], "Misc", "Select and print stack frame called by this one."),
+    # The aliases 'do' and 'dow' were added to support the help consistency test.
+    ("down", ["do", "dow"], "Misc", "Select and print stack frame called by this one."),
     ("retaddr", [], "Stack", "Print out the stack addresses that contain return addresses."),
     ("stack", [], "Stack", "Dereferences on stack data with specified count and offset."),
     ("up", [], "Misc", "Select and print stack frame that called this one."),

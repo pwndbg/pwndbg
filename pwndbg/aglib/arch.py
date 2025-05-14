@@ -42,6 +42,7 @@ from pwndbg.lib.abi import SYSCALL_ABIS
 from pwndbg.lib.abi import SyscallABI
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import PWNLIB_ARCH_MAPPINGS
+from pwndbg.lib.arch import PWNLIB_PLATFORM_MAPPINGS
 from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
@@ -382,6 +383,8 @@ def update() -> None:
 
     pwnlib.context.context.arch = PWNLIB_ARCH_MAPPINGS.get(a.name, "none")
     pwnlib.context.context.bits = a.ptrsize * 8
+    pwnlib.context.context.endian = a.endian
+    pwnlib.context.context.os = PWNLIB_PLATFORM_MAPPINGS.get(a.platform, "linux")
 
     if a.name != pwndbg.aglib.arch.name:
         pwndbg_arch = get_pwndbg_architecture(a.name)
