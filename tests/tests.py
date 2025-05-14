@@ -222,13 +222,13 @@ def run_tests_and_print_stats(
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = []
             for test in tests_list:
-                future = executor.submit(run_test, test, args, gdb_path, gdbinit_path, reserve_port())
+                future = executor.submit(
+                    run_test, test, args, gdb_path, gdbinit_path, reserve_port()
+                )
                 futures.append(future)
 
             for future in concurrent.futures.as_completed(futures):
                 stats.handle_test_result(future.result(), args, test_dir_path)
-
-
 
     end = time.time()
     seconds = int(end - start)
@@ -265,7 +265,7 @@ def run_tests_and_print_stats(
                 "--data-file",
                 os.path.join(root_dir, ".cov/coverage"),
                 "--include=*/pwndbg/*",
-                "--omit=*/tests/*"
+                "--omit=*/tests/*",
             ]
             subprocess.run(coverage_report_cmd, check=True)
         except Exception as e:
