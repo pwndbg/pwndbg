@@ -227,7 +227,9 @@ def run_tests_and_print_stats(
                 )
                 futures.append(future)
 
-            for future in concurrent.futures.as_completed(futures):
+            concurrent.futures.wait(futures)
+            
+            for future in futures:
                 stats.handle_test_result(future.result(), args, test_dir_path)
 
     end = time.time()
