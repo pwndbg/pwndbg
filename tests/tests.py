@@ -169,7 +169,12 @@ def run_test(
                 line.startswith("Combined data file") or line.startswith("Skipping duplicate data")
             ):
                 filtered_lines.append(line)
-        result = result._replace(stdout="\n".join(filtered_lines))
+        result = subprocess.CompletedProcess(
+            args=result.args,
+            returncode=result.returncode,
+            stdout="\n".join(filtered_lines),
+            stderr=result.stderr,
+        )
 
     return result, test_case, duration
 
