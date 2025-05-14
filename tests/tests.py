@@ -234,8 +234,6 @@ def run_tests_and_print_stats(
 
     end = time.time()
     seconds = int(end - start)
-    if args.cov:
-        time.sleep(0.5)
     print(f"Tests completed in {seconds} seconds")
     print("")
     print("*********************************")
@@ -250,6 +248,9 @@ def run_tests_and_print_stats(
         print("*********************************")
         print("******** COVERAGE REPORT ********")
         print("*********************************")
+
+        time.sleep(0.5)
+
         try:
             combine_cmd = [
                 "python",
