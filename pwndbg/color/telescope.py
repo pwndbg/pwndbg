@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pwndbg import config
-from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
 
 offset_color = theme.add_color_param(
@@ -28,20 +26,20 @@ repeating_marker_color = theme.add_color_param(
 
 
 def offset(x: object) -> str:
-    return generateColorFunction(config.telescope_offset_color)(x)
+    return offset_color.color_function(x)
 
 
 def register(x: object) -> str:
-    return generateColorFunction(config.telescope_register_color)(x)
+    return register_color.color_function(x)
 
 
 def separator(x: object) -> str:
-    return generateColorFunction(config.telescope_offset_separator_color)(x)
+    return offset_separator_color.color_function(x)
 
 
 def delimiter(x: object) -> str:
-    return generateColorFunction(config.telescope_offset_delimiter_color)(x)
+    return offset_delimiter_color.color_function(x)
 
 
 def repeating_marker(x: object) -> str:
-    return generateColorFunction(config.telescope_repeating_marker_color)(x)
+    return repeating_marker_color.color_function(x)

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pwndbg import config
-from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
 
 config_integer_color = theme.add_color_param(
@@ -19,16 +17,16 @@ config_unknown_color = theme.add_color_param(
 
 
 def integer(x):
-    return generateColorFunction(config.enhance_integer_value_color)(x)
+    return config_integer_color.color_function(x)
 
 
 def string(x):
-    return generateColorFunction(config.enhance_string_value_color)(x)
+    return config_string_color.color_function(x)
 
 
 def comment(x):
-    return generateColorFunction(config.enhance_comment_color)(x)
+    return config_comment_color.color_function(x)
 
 
 def unknown(x):
-    return generateColorFunction(config.enhance_unknown_color)(x)
+    return config_unknown_color.color_function(x)
