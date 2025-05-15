@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List
 
 import pwndbg.aglib.arch
+import pwndbg.aglib.baremetal
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
@@ -71,11 +72,10 @@ def get(
         try:
             address = address + offset
 
-            # Avoid redundant dereferences in bare metal mode by checking
-            # if address is in any of vmmap pages
-            if not pwndbg.dbg.selected_inferior().is_linux() and not pwndbg.aglib.vmmap.find(
-                address
-            ):
+            # On embedded systems, it's non uncommon for MMIO regions to exist where memory reads might mutate the hardware/process state.
+            # This check prevents the memory dereferences to protect against this case.
+            # See discussion here: https://github.com/pwndbg/pwndbg/pull/385
+            if not pwndbg.aglib.baremetal.is_baremetal() and not pwndbg.aglib.vmmap.find(address):
                 break
 
             next_address = int(
