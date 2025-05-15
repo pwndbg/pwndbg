@@ -3,7 +3,7 @@
 You should use scripts/generate_docs.sh and scripts/verify_docs.sh instead
 of using this.
 
-If the PWNDBG_GEN_DOC_JUST_VERIFY environment variable
+If the PWNDBG_DOCGEN_VERIFY environment variable
 is set, then    : Exit with non-zero exit status if the docs/commands/ files
                   aren't up to date with the sources. Don't modify anything.
 
