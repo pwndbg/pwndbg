@@ -268,7 +268,7 @@ if len(sys.argv) > 1:
     sys.exit(1)
 
 just_verify = False
-if os.getenv("PWNDBG_GEN_DOC_JUST_VERIFY"):
+if os.getenv("PWNDBG_DOCGEN_VERIFY"):
     just_verify = True
 
 print("\n==== Command Documentation ====")

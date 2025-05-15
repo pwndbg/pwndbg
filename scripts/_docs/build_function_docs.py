@@ -1,5 +1,5 @@
 """
-If the PWNDBG_GEN_DOC_JUST_VERIFY environment variable
+If the PWNDBG_DOCGEN_VERIFY environment variable
 is set, then    : Exit with non-zero exit status if the docs/functions/ files
                   aren't up to date with the sources. Don't modify anything.
 
@@ -121,7 +121,7 @@ def main():
         sys.exit(1)
 
     just_verify = False
-    if os.getenv("PWNDBG_GEN_DOC_JUST_VERIFY"):
+    if os.getenv("PWNDBG_DOCGEN_VERIFY"):
         just_verify = True
 
     print("\n==== Function Documentation ====")
