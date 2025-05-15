@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 
-
 def get_files_in_dir(directory) -> list[str]:
     file_paths = []
     for root, dirs, files in os.walk(directory):
