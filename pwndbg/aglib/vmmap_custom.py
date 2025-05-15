@@ -6,7 +6,6 @@ from typing import Set
 from typing import Tuple
 
 import pwndbg
-import pwndbg.aglib.baremetal
 import pwndbg.aglib.memory
 import pwndbg.aglib.stack
 import pwndbg.color.message as M
@@ -85,7 +84,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
 
         Also assumes the entire contiguous section has the same permission.
     """
-    if pwndbg.aglib.baremetal.is_baremetal():
+    if not pwndbg.aglib.memory.is_pagefault_supported():
         return None
 
     if auto_explore.value == "warn":

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import List
 
 import pwndbg.aglib.arch
-import pwndbg.aglib.baremetal
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
@@ -61,7 +60,7 @@ def get(
 
     result = [address] if include_start else []
 
-    is_baremetal = pwndbg.aglib.baremetal.is_baremetal()
+    is_pagefault_supported = pwndbg.aglib.memory.is_pagefault_supported()
 
     for _ in range(limit):
         # Don't follow cycles, except to stop at the second occurrence.
@@ -78,7 +77,7 @@ def get(
             # On embedded systems, it's non uncommon for MMIO regions to exist where memory reads might mutate the hardware/process state.
             # This check prevents the memory dereferences to protect against this case.
             # See discussion here: https://github.com/pwndbg/pwndbg/pull/385
-            if is_baremetal and not pwndbg.aglib.vmmap.find(address):
+            if not is_pagefault_supported and not pwndbg.aglib.vmmap.find(address):
                 break
 
             next_address = int(
