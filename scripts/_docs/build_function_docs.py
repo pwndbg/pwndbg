@@ -1,8 +1,4 @@
-#!/usr/bin/env python
 """
-You should use scripts/generate_docs.sh and scripts/verify_docs.sh instead
-of using this.
-
 If the PWNDBG_GEN_DOC_JUST_VERIFY environment variable
 is set, then    : Exit with non-zero exit status if the docs/functions/ files
                   aren't up to date with the sources. Don't modify anything.
@@ -11,37 +7,18 @@ If it isn't, this fixes up the docs/functions/ files to be up
 to date with the information from the sources.
 """
 
-from __future__ import annotations
-
-import os
-import re
-import sys
-from inspect import getdoc
-from inspect import signature
-from typing import Dict
 
 from mdutils.mdutils import MdUtils
+from inspect import getdoc
+from inspect import signature
+import sys
+import os
+import re
 
-import pwndbg
-from pwndbg.gdblib.functions import _GdbFunction
-from scripts._gen_docs_generic import update_files_simple
-from scripts._gen_docs_generic import verify_existence
-from scripts._gen_docs_generic import verify_files_simple
 
-
-def extract_functions() -> Dict[str, _GdbFunction]:
-    """
-    Returns a dictionary that mapes function names to
-    the corresponding _GdbFunction objects.
-    """
-    functions = pwndbg.gdblib.functions.functions
-    result = {}
-
-    for f in functions:
-        result[f.name] = f
-
-    return result
-
+from scripts._docs.gen_docs_generic import update_files_simple
+from scripts._docs.docs_generic import verify_existence
+from scripts._docs.docs_generic import verify_files_simple
 
 def sanitize_signature(func_name: str, sig: str) -> str:
     """
@@ -134,52 +111,55 @@ def check_index(scoped_params: Dict[str, list[Parameter]]):
     )
 
 
-base_path = "docs/functions/"  # Must have trailing slash.
 index_path = base_path + "index.md"
 
-# ==== Start ====
 
-if len(sys.argv) > 1:
-    print("This script doesn't accept any arguments.")
-    print("See top of the file for usage.")
-    sys.exit(1)
+def main():
+    if len(sys.argv) > 1:
+        print("This script doesn't accept any arguments.")
+        print("See top of the file for usage.")
+        sys.exit(1)
 
-just_verify = False
-if os.getenv("PWNDBG_GEN_DOC_JUST_VERIFY"):
-    just_verify = True
+    just_verify = False
+    if os.getenv("PWNDBG_GEN_DOC_JUST_VERIFY"):
+        just_verify = True
 
-print("\n==== Function Documentation ====")
+    print("\n==== Function Documentation ====")
 
-named_functions = extract_functions()
-markdowned = convert_to_markdown(named_functions)
-assert len(markdowned) == 1  # Only index.md
+    named_functions = extract_functions()
+    markdowned = convert_to_markdown(named_functions)
+    assert len(markdowned) == 1  # Only index.md
 
-if just_verify:
-    print("Checking if all files are in place..")
-    missing, extra = verify_existence(list(markdowned.keys()), base_path)
-    if missing or extra:
-        print("To add mising files please run ./scripts/generate_docs.sh.")
-        print("To remove extra files please remove them manually.")
-        sys.exit(2)
-    print("Every file is where it should be!")
+    if just_verify:
+        print("Checking if all files are in place..")
+        missing, extra = verify_existence(list(markdowned.keys()), base_path)
+        if missing or extra:
+            print("To add mising files please run ./scripts/generate_docs.sh.")
+            print("To remove extra files please remove them manually.")
+            sys.exit(2)
+        print("Every file is where it should be!")
 
-    print("Verifying contents...")
-    err = verify_files_simple(markdowned)
-    if err:
-        print("VERIFICATION FAILED. The files differ from what would be auto-generated.")
-        print("Error:", err)
-        print("Please run ./scripts/generate_docs.sh from project root and commit the changes.")
-        sys.exit(3)
+        print("Verifying contents...")
+        err = verify_files_simple(markdowned)
+        if err:
+            print("VERIFICATION FAILED. The files differ from what would be auto-generated.")
+            print("Error:", err)
+            print("Please run ./scripts/generate_docs.sh from project root and commit the changes.")
+            sys.exit(3)
 
-    print("Verification successful!")
-else:
-    print("Updating files...")
-    update_files_simple(markdowned)
-    print("Update successful.")
+        print("Verification successful!")
+    else:
+        print("Updating files...")
+        update_files_simple(markdowned)
+        print("Update successful.")
 
-    missing, extra = verify_existence(list(markdowned.keys()), base_path)
-    assert not missing and "Some files (and not the index) are missing, which should be impossible."
+        missing, extra = verify_existence(list(markdowned.keys()), base_path)
+        assert not missing and "Some files (and not the index) are missing, which should be impossible."
 
-    if extra:
-        print("Please delete the extra files by hand.")
-        sys.exit(4)
+        if extra:
+            print("Please delete the extra files by hand.")
+            sys.exit(4)
+
+
+if __name__ == "__main__":
+    main()
