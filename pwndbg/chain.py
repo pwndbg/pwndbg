@@ -78,7 +78,7 @@ def get(
             # On embedded systems, it's non uncommon for MMIO regions to exist where memory reads might mutate the hardware/process state.
             # This check prevents the memory dereferences to protect against this case.
             # See discussion here: https://github.com/pwndbg/pwndbg/pull/385
-            if not is_baremetal and not pwndbg.aglib.vmmap.find(address):
+            if is_baremetal and not pwndbg.aglib.vmmap.find(address):
                 break
 
             next_address = int(

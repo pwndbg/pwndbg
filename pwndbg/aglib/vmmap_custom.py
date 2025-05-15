@@ -85,7 +85,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
 
         Also assumes the entire contiguous section has the same permission.
     """
-    if not pwndbg.aglib.baremetal.is_baremetal():
+    if pwndbg.aglib.baremetal.is_baremetal():
         return None
 
     if auto_explore.value == "warn":
