@@ -422,7 +422,7 @@ def is_pagefault_supported() -> bool:
     This function should be called before stray memory dereferences to protect against the following situations:
 
     1. On embedded systems, it's not uncommon for MMIO regions to exist where memory reads might mutate the hardware/process state.
-    2. On baremetal/embedded, paging doesn't always exist, so all memory is "valid" (and often initialized to zero) - this makes everything value appear to be a pointer.
+    2. On baremetal/embedded, paging doesn't always exist, so all memory is "valid" (and often initialized to zero) - this makes every value appear to be a pointer.
 
     As such, we disable dereferencing by default for bare metal targets.
 
