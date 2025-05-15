@@ -44,7 +44,7 @@ def add_param(
 def add_color_param(name: str, default: Any, set_show_doc: str) -> ColorParameter:
     color_parameter = ColorParameter(name, default, set_show_doc, scope=Scope.theme)
 
-    config.triggers[name].append(lambda: color_parameter.update_color_function())
+    config.triggers[name].append(color_parameter.update_color_function)
 
     config.add_param_obj(color_parameter)
 
