@@ -853,6 +853,7 @@ def load_commands() -> None:
     import pwndbg.commands.auxv
     import pwndbg.commands.binder
     import pwndbg.commands.binja
+    import pwndbg.commands.buddydump
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
@@ -894,7 +895,6 @@ def load_commands() -> None:
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.patch
-    import pwndbg.commands.pcplist
     import pwndbg.commands.pie
     import pwndbg.commands.plist
     import pwndbg.commands.probeleak

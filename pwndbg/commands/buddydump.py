@@ -61,7 +61,7 @@ def cpu_limitcheck(cpu: str):
 
 
 parser = argparse.ArgumentParser(
-    description="Displays metadata and freelists of the buddy allocator."
+    description="Displays metadata and freelists of the buddydump allocator."
 )
 parser.add_argument(
     "-z",
@@ -183,7 +183,7 @@ def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     if not results or len(results) == 0 or counter == 0:
         return
     print_section(sections[0], indent)
-    sections[0] = NONE_TUPLE # so that the header info is not reprinted
+    sections[0] = NONE_TUPLE  # so that the header info is not reprinted
     with indent:
         print_section(sections[1], indent)
         sections[1] = NONE_TUPLE
@@ -217,13 +217,23 @@ def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 
 
 def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
-    pcp = per_cpu(pba.zone["per_cpu_pageset"], pba.cpu)
-    cbp.sections[1] = (
-        "per_cpu_pageset",
-        f"number of pages {cbp.indent.aux_hex(int(pcp["count"]))}",
-    )
+    pcp = None
+    pcp_lists = None
+    if pba.zone.type.has_field("per_cpu_pageset"):
+        pcp = per_cpu(pba.zone["per_cpu_pageset"], pba.cpu)
+        pcp_lists = pcp["lists"]
+        cbp.sections[1] = (
+            "per_cpu_pageset",
+            f"number of pages {cbp.indent.aux_hex(int(pcp["count"]))}",
+        )
+    elif pba.zone.type.has_field("pageset"):
+        pcp = per_cpu(pba.zone["pageset"], pba.cpu)
+        pcp_lists = pcp["pcp"]["lists"]
+        cbp.sections[1] = ("per_cpu_pageset", None)
+    if pcp is None or pcp_lists is None:
+        log.warning("cannot find pcplist")
+        return
     nr_pcp_lists = pwndbg.aglib.kernel.npcplist()
-    pcp_lists = pcp["lists"]
     for i in range(0, nr_pcp_lists, MIGRATE_PCPTYPES):
         # https://elixir.bootlin.com/linux/v6.13.12/source/include/linux/mmzone.h#L660
         order = i // MIGRATE_PCPTYPES
@@ -263,7 +273,7 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def pcplist(zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, find: int) -> None:
+def buddydump(zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, find: int) -> None:
     node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
     if not node_data:
         log.warning("WARNING: Symbol 'node_data' not found")

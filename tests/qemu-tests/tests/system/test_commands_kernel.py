@@ -74,12 +74,12 @@ def test_command_slab_contains():
     assert f"{addr} @ {slab_cache}" in res
 
 
+@pytest.mark.skipif(
+    pwndbg.aglib.arch.name not in ["x86", "x86-64"],
+    reason="function page_offset is only implemented for x86",
+)
 def test_x64_extra_registers_under_kernel_mode():
     res = gdb.execute("context", to_string=True)
-    if "RAX" not in res or "RSP" not in res:
-        # we are not debugging x64
-        # there's probably a better way to check this but good enough
-        return
     for reg in ["cr0", "cr3", "cr4", "fs_base", "gs_base", "efer", "ss", "cs"]:
         assert reg.upper() in res
     # those are the most important ones, and their presence should indicate it's working as intended
@@ -101,20 +101,21 @@ def get_slab_object_address():
             return (matches[0], cache_name)
     raise ValueError("Could not find any slab objects")
 
-
+@pytest.mark.skipif(
+    pwndbg.aglib.arch.name not in ["x86", "x86-64"],
+    reason="Unsupported architecture: msr tests only work on x86 and x86-64",
+)
 def test_command_msr_read():
-    if pwndbg.aglib.arch.name not in ["x86", "x86-64"]:
-        pytest.skip("Unsupported architecture: msr tests only work on x86 and x86-64")
-
     msr_lstar_literal = int(gdb.execute("msr MSR_LSTAR", to_string=True).split(":\t")[1], 16)
     msr_lstar = int(gdb.execute("msr 0xc0000082", to_string=True).split(":\t")[1], 16)
     assert msr_lstar == msr_lstar_literal
 
 
+@pytest.mark.skipif(
+    pwndbg.aglib.arch.name not in ["x86", "x86-64"],
+    reason="Unsupported architecture: msr tests only work on x86 and x86-64",
+)
 def test_command_msr_write():
-    if pwndbg.aglib.arch.name not in ["x86", "x86-64"]:
-        pytest.skip("Unsupported architecture: msr tests only work on x86 and x86-64")
-
     prev_msr_lstar = int(gdb.execute("msr MSR_LSTAR", to_string=True).split(":\t")[1], 16)
 
     new_val = 0x4141414142424242
@@ -122,3 +123,15 @@ def test_command_msr_write():
     new_msr_lstar = int(gdb.execute("msr 0xc0000082", to_string=True).split(":\t")[1], 16)
     assert new_msr_lstar == new_val
     gdb.execute(f"msr MSR_LSTAR -w {prev_msr_lstar}")
+
+
+@pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
+@pytest.mark.skipif(
+    pwndbg.aglib.arch.name not in ["x86", "x86-64"],
+    reason="function page_offset is only implemented for x86",
+)
+def test_command_buddydump():
+    res = gdb.execute("buddydump", to_string=True)
+    assert (
+        "Order" in res and "Zone" in res and ("per_cpu_pageset" in res or "free_area" in res)
+    ) or res == "WARNING: Symbol 'node_data' not found\n"
