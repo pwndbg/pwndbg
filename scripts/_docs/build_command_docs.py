@@ -110,7 +110,7 @@ def convert_all_to_markdown(
                     cur_cmd = data[filename]
                     if cur_cmd != cmd:
                         print(f"Error: Debuggers don't agree on {filename}")
-                        print(f"{supported_debuggers[0]} says: {cmd}")
+                        print(f"{supported_debuggers[0]} says: {cmd}\n")
                         print(f"{debugger} says: {cur_cmd}")
                         exit(10)
 
@@ -296,7 +296,7 @@ def read_extracted() -> list[Tuple[str, Dict[str, ExtractedCommand]]]:
         with open(filepath, "r") as file:
             raw_data = json.loads(file.read())
 
-        # Convert the dict objs to ExtractedCommand's
+        # Convert the dict objs to ExtractedCommands
         data: Dict[str, ExtractedCommand] = {}
         for filename, cmd_dict in raw_data.items():
             data[filename] = ExtractedCommand(**cmd_dict)
