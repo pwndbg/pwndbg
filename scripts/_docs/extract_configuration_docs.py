@@ -11,19 +11,17 @@ which is hand-written.
 
 from __future__ import annotations
 
-import os
-import sys
 from typing import Dict
-
-from mdutils.mdutils import MdUtils
+from dataclasses import asdict
+import json
 
 import pwndbg
+from pwndbg.lib.config import Parameter
+from scripts._docs.configuration_docs_common import ExtractedParam
+from scripts._docs.configuration_docs_common import extracted_filename
+from scripts._docs.gen_docs_generic import get_debugger
 from pwndbg.lib.config import HELP_DEFAULT_PREFIX
 from pwndbg.lib.config import HELP_VALID_VALUES_PREFIX
-from pwndbg.lib.config import Parameter
-from scripts._docs.gen_docs_generic import update_files_simple
-from scripts._docs.gen_docs_generic import verify_existence
-from scripts._docs.gen_docs_generic import verify_files_simple
 
 
 def extract_params() -> Dict[str, list[Parameter]]:
@@ -34,7 +32,8 @@ def extract_params() -> Dict[str, list[Parameter]]:
     scope_dict: Dict[str, list[Parameter]] = {}
     parameters = pwndbg.config.params
 
-    # could use pwndbg.config.get_params() here but whatever
+    # Could use pwndbg.config.get_params() here but
+    # we want to catch all scopes.
 
     for param in parameters.values():
         scope_name = param.scope.name
@@ -42,7 +41,7 @@ def extract_params() -> Dict[str, list[Parameter]]:
             scope_dict[scope_name] = []
         scope_dict[scope_name].append(param)
 
-    # Sort the parameters by name
+    # Sort the parameters by name.
     for scope in scope_dict:
         scope_dict[scope].sort(key=lambda p: p.attr_name())
 
@@ -53,6 +52,60 @@ def extract_params() -> Dict[str, list[Parameter]]:
 
     return scope_dict
 
-base_path = "docs/configuration/"  # Must have trailing slash.
 
-scoped_params = extract_params()
+def distill_sources(scoped_params: Dict[str, list[Parameter]]) -> Dict[str, list[ExtractedParam]]:
+    result: Dict[str, list[ExtractedParam]] = {}
+
+    for scope, params in scoped_params.items():
+        result[scope] = []
+
+        for param in params:
+            set_show_doc = param.set_show_doc
+            # Uppercase first letter and add dot to make it look like a sentence.
+            set_show_doc = set_show_doc[0].upper() + set_show_doc[1:] + "."
+
+            assert not param.help_docstring or (
+                param.help_docstring.count(HELP_DEFAULT_PREFIX) == 1
+                and "The configuration generator expects to find the string "
+                f"'{HELP_DEFAULT_PREFIX}' exactly once in order to perform proper bolding."
+            )
+            assert (
+                param.help_docstring.count(HELP_VALID_VALUES_PREFIX) <= 1
+                and "The configuration generator expects to find the string "
+                f"'{HELP_VALID_VALUES_PREFIX}' exactly once in order to perform proper bolding."
+            )
+
+            help_docstring = param.help_docstring.replace(
+                HELP_DEFAULT_PREFIX, f"**{HELP_DEFAULT_PREFIX}**"
+            )
+            help_docstring = help_docstring.replace(
+                HELP_VALID_VALUES_PREFIX, f"**{HELP_VALID_VALUES_PREFIX}**"
+            )
+
+            result[scope].append(ExtractedParam(param.name, set_show_doc, help_docstring))
+
+    return result
+
+
+def main():
+    print("\n== Extracting Configuration ==")
+
+    debugger = get_debugger()
+
+    scoped_params = extract_params()
+    extracted = distill_sources(scoped_params)
+
+    result = {}
+    for scope, params in extracted.items():
+        result[scope] = [asdict(x) for x in params]
+
+    # Write to file.
+    out_path = extracted_filename(debugger)
+    with open(out_path, "w") as file:
+        # Specify indent so the file is human-readable. TODO: why?
+        json.dump(result, file, indent=2)
+
+    print("== Finished Extracting Configuration ==")
+
+# Not checking __name__ due to lldb.
+main()

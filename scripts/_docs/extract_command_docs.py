@@ -26,7 +26,7 @@ from typing import Tuple
 
 import pwndbg.commands
 from pwndbg.commands import CommandObj
-from scripts._docs.gen_docs_generic import ALL_DEBUGGERS
+from scripts._docs.gen_docs_generic import get_debugger
 from scripts._docs.command_docs_common import ExtractedCommand
 from scripts._docs.command_docs_common import category_to_folder_name
 from scripts._docs.command_docs_common import extracted_filename
@@ -155,9 +155,7 @@ def distill_sources(commandobjs: list[CommandObj]) -> list[ExtractedCommand]:
 def main():
     print("\n== Extracting Commands ==")
 
-    debugger = os.getenv("PWNDBG_DOCGEN_DBGNAME")
-    assert debugger and "Use the PWNDBG_DOCGEN_DBGNAME env variable."
-    assert debugger in ALL_DEBUGGERS and "Debugger not defined in the ALL_DEBUGGERS array."
+    debugger = get_debugger()
 
     commandobjs = extract_sources()
     extracted = distill_sources(commandobjs)

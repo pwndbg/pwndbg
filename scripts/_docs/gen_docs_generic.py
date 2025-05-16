@@ -82,3 +82,10 @@ def verify_files_simple(filename_to_markdown: Dict[str, str], skip: list[str] = 
                 return f"File {filename} differs from auto-generated output."
 
     return None
+
+
+def get_debugger() -> str:
+    debugger = os.getenv("PWNDBG_DOCGEN_DBGNAME")
+    assert debugger and "Use the PWNDBG_DOCGEN_DBGNAME env variable."
+    assert debugger in ALL_DEBUGGERS and "Debugger not defined in the ALL_DEBUGGERS array."
+    return debugger
