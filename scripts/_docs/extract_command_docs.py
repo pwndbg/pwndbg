@@ -9,7 +9,6 @@ to date with the (argparse) information from the sources.
 """
 
 from __future__ import annotations
-from dataclasses import asdict
 
 import os
 
@@ -17,20 +16,21 @@ import os
 # .format_usage() based on terminal width which may be different for different users.
 # I tried every other solution, it doesn't work :).
 import shutil
+from dataclasses import asdict
 
 shutil.get_terminal_size = lambda fallback=(80, 24): os.terminal_size((80, 24))
 
-import sys
 import json
+import sys
 from typing import Tuple
 
 import pwndbg.commands
 from pwndbg.commands import CommandObj
-from scripts._docs.gen_docs_generic import get_debugger
+from scripts._docs.command_docs_common import BASE_PATH
 from scripts._docs.command_docs_common import ExtractedCommand
 from scripts._docs.command_docs_common import category_to_folder_name
 from scripts._docs.command_docs_common import extracted_filename
-from scripts._docs.command_docs_common import BASE_PATH
+from scripts._docs.gen_docs_generic import get_debugger
 
 
 def extract_sources() -> list[CommandObj]:
@@ -174,6 +174,7 @@ def main():
         json.dump(result, file, indent=2)
 
     print("== Finished Extracting Commands ==")
+
 
 # Since lldb's `command script import ...` doesn't
 # actually run the file like gdb's `source ...`, we can't

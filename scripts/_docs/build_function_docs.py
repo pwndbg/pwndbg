@@ -7,22 +7,23 @@ If it isn't, this fixes up the docs/functions/ files to be up
 to date with the information from the sources.
 """
 
+from __future__ import annotations
+
+import json
+import os
+import sys
+from typing import Dict
+from typing import Tuple
 
 from mdutils.mdutils import MdUtils
-import sys
-import os
-from typing import Tuple
-from typing import Dict
-import json
 
+from scripts._docs.function_docs_common import BASE_PATH
+from scripts._docs.function_docs_common import ExtractedFunction
+from scripts._docs.function_docs_common import extracted_filename
+from scripts._docs.gen_docs_generic import ALL_DEBUGGERS
 from scripts._docs.gen_docs_generic import update_files_simple
 from scripts._docs.gen_docs_generic import verify_existence
 from scripts._docs.gen_docs_generic import verify_files_simple
-from scripts._docs.gen_docs_generic import ALL_DEBUGGERS
-from scripts._docs.function_docs_common import extracted_filename
-from scripts._docs.function_docs_common import ExtractedFunction
-from scripts._docs.function_docs_common import BASE_PATH
-
 
 INTRO_TEXT = """
 pwndbg provides a set of functions which can be used during expression evaluation to
@@ -57,6 +58,7 @@ pwndbg> tele '$environ("LANG")'
 ```
 ## pwndbg functions
 """.strip()
+
 
 def convert_to_markdown(extracted: list[Tuple[str, list[ExtractedFunction]]]) -> Dict[str, str]:
     """
@@ -99,7 +101,9 @@ def convert_to_markdown(extracted: list[Tuple[str, list[ExtractedFunction]]]) ->
 {func.name}{func.signature}
 ```
 """
-        if " object at " in func.signature or "<" in func.signature:  # '>' is valid in type annotation (->)
+        if (
+            " object at " in func.signature or "<" in func.signature
+        ):  # '>' is valid in type annotation (->)
             print(f'Signature of {func.name} is rendered as "{func.signature}", please edit')
             print("the sanitize_signature() function (in the extractor) to display the ")
             print("signature better in the docs.")
@@ -189,7 +193,10 @@ def main():
         print("Update successful.")
 
         missing, extra = verify_existence(list(markdowned.keys()), BASE_PATH)
-        assert not missing and "Some files (and not the index) are missing, which should be impossible."
+        assert (
+            not missing
+            and "Some files (and not the index) are missing, which should be impossible."
+        )
 
         if extra:
             print("Please delete the extra files by hand.")

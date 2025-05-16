@@ -1,7 +1,10 @@
-from dataclasses import dataclass
+from __future__ import annotations
+
 import os
+from dataclasses import dataclass
 
 BASE_PATH = os.path.join("docs", "configuration")
+
 
 @dataclass
 class ExtractedParam:
