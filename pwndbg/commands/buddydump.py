@@ -61,7 +61,7 @@ def cpu_limitcheck(cpu: str):
 
 
 parser = argparse.ArgumentParser(
-    description="Displays metadata and freelists of the buddydump allocator."
+    description="Displays metadata and freelists of the buddy allocator."
 )
 parser.add_argument(
     "-z",

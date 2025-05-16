@@ -14,7 +14,7 @@ usage: buddydump [-h] [-z {DMA,DMA32,Normal,HighMem,Movable,Device}]
 
 ```
 
-Displays metadata and freelists of the buddydump allocator.
+Displays metadata and freelists of the buddy allocator.
 ### Optional arguments
 
 |Short|Long|Help|
