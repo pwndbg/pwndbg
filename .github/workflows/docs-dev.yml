@@ -16,10 +16,14 @@ jobs:
       - name: Install uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
-      - name: Install gdb (needed for doc verification)
+      - name: Setup the necessary deps
         run: |
+          # https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-lldb
           sudo apt update
-          sudo apt install -y gdb
+          sudo apt install -y gdb lldb-19 liblldb-19-dev
+          export PATH=/usr/lib/llvm-19/bin/:$PATH
+          export LLDB_DEBUGSERVER_PATH=/usr/lib/llvm-19/bin/lldb-server
+          uv sync --extra lldb --group docs
 
       - name: Verify docs are up to date with source
         run: |
