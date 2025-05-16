@@ -27,6 +27,7 @@ MIGRATE_PCPTYPES = 3
 
 @dataclass
 class ParsedBuddyArgs:
+    # stores the input options
     zone: pwndbg.dbg_mod.Value | None
     order: int | None
     mtype: str | None
@@ -36,6 +37,8 @@ class ParsedBuddyArgs:
 
 @dataclass
 class CurrentBuddyParams:
+    # stores the current properties of the freelist being/to be traversed
+    # this is so that values can be cleanly passed around
     sections: List[Tuple[str, str]]
     indent: IndentContextManager
     order: int
@@ -179,9 +182,8 @@ def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     results, counter, msgs = traverse_pglist(pba, cbp)
     if not results or len(results) == 0 or counter == 0:
         return
-    # this needs to be done after passing the previous if-statement buf before the first print within `with indent`
     print_section(sections[0], indent)
-    sections[0] = NONE_TUPLE
+    sections[0] = NONE_TUPLE # so that the header info is not reprinted
     with indent:
         print_section(sections[1], indent)
         sections[1] = NONE_TUPLE
