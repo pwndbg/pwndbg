@@ -6,4 +6,4 @@ echo "Extracting docs.."
 
 # Build the documentation.
 echo "Building docs.."
-./scripts/_docs/build-all-docs.sh || exit 1
+./scripts/_docs/build-all-docs.sh || exit 2
