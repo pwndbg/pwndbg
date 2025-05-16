@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
-from typing import Dict
-from dataclasses import asdict
 import json
+import re
+from dataclasses import asdict
 from inspect import getdoc
 from inspect import signature
-import re
 
 import pwndbg
 from scripts._docs.function_docs_common import ExtractedFunction
 from scripts._docs.function_docs_common import extracted_filename
 from scripts._docs.gen_docs_generic import get_debugger
-
 
 if pwndbg.dbg.is_gdblib_available():
     from pwndbg.gdblib.functions import GdbFunction as ConvFunction

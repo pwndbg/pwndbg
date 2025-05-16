@@ -1,9 +1,12 @@
-from typing import Tuple
-from dataclasses import dataclass
-import re
+from __future__ import annotations
+
 import os
+import re
+from dataclasses import dataclass
+from typing import Tuple
 
 BASE_PATH = os.path.join("docs", "commands")
+
 
 @dataclass
 class ExtractedCommand:

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 from __future__ import annotations
-from typing import Tuple
-from typing import Dict
 
 import os
+from typing import Dict
+from typing import Tuple
 
 ALL_DEBUGGERS = ["gdb", "lldb"]
+
 
 def get_files_in_dir(directory) -> list[str]:
     file_paths = []

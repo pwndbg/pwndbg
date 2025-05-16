@@ -11,17 +11,17 @@ which is hand-written.
 
 from __future__ import annotations
 
-from typing import Dict
-from dataclasses import asdict
 import json
+from dataclasses import asdict
+from typing import Dict
 
 import pwndbg
+from pwndbg.lib.config import HELP_DEFAULT_PREFIX
+from pwndbg.lib.config import HELP_VALID_VALUES_PREFIX
 from pwndbg.lib.config import Parameter
 from scripts._docs.configuration_docs_common import ExtractedParam
 from scripts._docs.configuration_docs_common import extracted_filename
 from scripts._docs.gen_docs_generic import get_debugger
-from pwndbg.lib.config import HELP_DEFAULT_PREFIX
-from pwndbg.lib.config import HELP_VALID_VALUES_PREFIX
 
 
 def extract_params() -> Dict[str, list[Parameter]]:
@@ -106,6 +106,7 @@ def main():
         json.dump(result, file, indent=2)
 
     print("== Finished Extracting Configuration ==")
+
 
 # Not checking __name__ due to lldb.
 main()
