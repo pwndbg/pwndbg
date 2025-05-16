@@ -8,6 +8,7 @@ import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
+import pwndbg.color.message as M
 from pwndbg.aglib import kernel
 from pwndbg.aglib.kernel.macros import compound_head
 from pwndbg.aglib.kernel.macros import for_each_entry
@@ -99,7 +100,18 @@ class Freelist:
         return self.start_addr
 
     def __len__(self) -> int:
-        return sum(1 for _ in self)
+        seen = set()
+        for addr in self:
+            if addr in seen:
+                # this can happen during exploit dev
+                print(
+                    M.warn(
+                        f"Cyclic slab freelist detected at {hex(addr)} when length is {len(seen)}"
+                    )
+                )
+                seen.add(addr)
+                break
+        return len(seen)
 
     def find_next(self, addr: int) -> int:
         freelist_iter = iter(self)
@@ -176,6 +188,10 @@ class SlabCache:
     @property
     def cpu_partial(self) -> int:
         return int(self._slab_cache["cpu_partial"])
+
+    @property
+    def cpu_partial_slabs(self) -> int:
+        return int(self._slab_cache["cpu_partial_slabs"])
 
     @property
     def inuse(self) -> int:
