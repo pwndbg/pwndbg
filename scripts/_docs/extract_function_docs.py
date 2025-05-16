@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-"""
-You should use scripts/generate_docs.sh and scripts/verify_docs.sh instead
-of using this.
-"""
 from __future__ import annotations
 
 from typing import Dict
