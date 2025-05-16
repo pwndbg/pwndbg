@@ -33,9 +33,9 @@ from scripts._docs.command_docs_common import extracted_filename
 from scripts._docs.gen_docs_generic import get_debugger
 
 
-def extract_sources() -> list[CommandObj]:
+def extract_commands() -> list[CommandObj]:
     """
-    Extract the sources.
+    Extract the commands.
 
     Returns:
         A list of all CommandObj objects that this debugger can see.
@@ -157,7 +157,7 @@ def main():
 
     debugger = get_debugger()
 
-    commandobjs = extract_sources()
+    commandobjs = extract_commands()
     extracted = distill_sources(commandobjs)
 
     result = {}
@@ -170,8 +170,7 @@ def main():
     # Write to file.
     out_path = extracted_filename(debugger)
     with open(out_path, "w") as file:
-        # Specify indent so the file is human-readable. TODO: why?
-        json.dump(result, file, indent=2)
+        json.dump(result, file)
 
     print("== Finished Extracting Commands ==")
 

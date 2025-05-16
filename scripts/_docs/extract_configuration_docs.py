@@ -102,8 +102,7 @@ def main():
     # Write to file.
     out_path = extracted_filename(debugger)
     with open(out_path, "w") as file:
-        # Specify indent so the file is human-readable. TODO: why?
-        json.dump(result, file, indent=2)
+        json.dump(result, file)
 
     print("== Finished Extracting Configuration ==")
 
