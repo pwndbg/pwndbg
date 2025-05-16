@@ -47,7 +47,7 @@ def find_upper_stack_boundary(stack_ptr: int, max_pages: int = 1024) -> int:
 
     # We can't get the stack size from stack layout and page fault on bare metal mode,
     # so we return current page as a walkaround.
-    if not pwndbg.dbg.selected_inferior().is_linux():
+    if not pwndbg.aglib.memory.is_pagefault_supported():
         return stack_ptr + pwndbg.aglib.memory.PAGE_SIZE
 
     return pwndbg.aglib.memory.find_upper_boundary(stack_ptr, max_pages)

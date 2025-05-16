@@ -59,6 +59,9 @@ def get(
     limit = int(limit)
 
     result = [address] if include_start else []
+
+    is_pagefault_supported = pwndbg.aglib.memory.is_pagefault_supported()
+
     for _ in range(limit):
         # Don't follow cycles, except to stop at the second occurrence.
         if result.count(address) >= 2:
@@ -71,11 +74,10 @@ def get(
         try:
             address = address + offset
 
-            # Avoid redundant dereferences in bare metal mode by checking
-            # if address is in any of vmmap pages
-            if not pwndbg.dbg.selected_inferior().is_linux() and not pwndbg.aglib.vmmap.find(
-                address
-            ):
+            # On embedded systems, it's non uncommon for MMIO regions to exist where memory reads might mutate the hardware/process state.
+            # This check prevents the memory dereferences to protect against this case.
+            # See discussion here: https://github.com/pwndbg/pwndbg/pull/385
+            if not is_pagefault_supported and not pwndbg.aglib.vmmap.find(address):
                 break
 
             next_address = int(

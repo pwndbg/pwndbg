@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import Callable
 
-import pwndbg.lib.config
-from pwndbg import config
-from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
 
 config_status_on_color = theme.add_color_param(
@@ -41,72 +38,70 @@ config_signal_color = theme.add_color_param(
     "message-signal-color", "bold,red", "color of signal messages"
 )
 
-config_prompt_color: pwndbg.lib.config.Parameter = theme.add_color_param(
-    "prompt-color", "bold,red", "prompt color"
-)
-config_prompt_alive_color: pwndbg.lib.config.Parameter = theme.add_color_param(
+config_prompt_color = theme.add_color_param("prompt-color", "bold,red", "prompt color")
+config_prompt_alive_color = theme.add_color_param(
     "prompt-alive-color", "bold,green", "prompt alive color"
 )
 
 
 def on(msg: object) -> str:
-    return generateColorFunction(config.message_status_on_color)(msg)
+    return config_status_on_color.color_function(msg)
 
 
 def off(msg: object) -> str:
-    return generateColorFunction(config.message_status_off_color)(msg)
+    return config_status_off_color.color_function(msg)
 
 
 def notice(msg: object) -> str:
-    return generateColorFunction(config.message_notice_color)(msg)
+    return config_notice_color.color_function(msg)
 
 
 def hint(msg: object) -> str:
-    return generateColorFunction(config.message_hint_color)(msg)
+    return config_hint_color.color_function(msg)
 
 
 def success(msg: object) -> str:
-    return generateColorFunction(config.message_success_color)(msg)
+    return config_success_color.color_function(msg)
 
 
 def debug(msg: object) -> str:
-    return generateColorFunction(config.message_warning_color)(msg)
+    return config_debug_color.color_function(msg)
 
 
 def info(msg: object) -> str:
-    return generateColorFunction(config.message_warning_color)(msg)
+    return config_info_color.color_function(msg)
 
 
 def warn(msg: object) -> str:
-    return generateColorFunction(config.message_warning_color)(msg)
+    return config_warning_color.color_function(msg)
 
 
 def error(msg: object) -> str:
-    return generateColorFunction(config.message_error_color)(msg)
+    return config_error_color.color_function(msg)
 
 
 def system(msg: object) -> str:
-    return generateColorFunction(config.message_system_color)(msg)
+    return config_system_color.color_function(msg)
 
 
 def exit(msg: object) -> str:
-    return generateColorFunction(config.message_exit_color)(msg)
+    return config_exit_color.color_function(msg)
 
 
 def breakpoint(msg: object) -> str:
-    return generateColorFunction(config.message_breakpoint_color)(msg)
+    return config_breakpoint_color.color_function(msg)
 
 
 def signal(msg: object) -> str:
-    return generateColorFunction(config.message_signal_color)(msg)
+    return config_signal_color.color_function(msg)
 
 
 def prompt(msg: object) -> str:
-    return generateColorFunction(config.prompt_color)(msg)
+    return config_prompt_color.color_function(msg)
 
 
 def alive_prompt(msg: object) -> str:
-    return generateColorFunction(config.prompt_alive_color)(msg)
+    return config_prompt_alive_color.color_function(msg)
 
 
 def readline_escape(func_message: Callable[[str], str], text: str) -> str:

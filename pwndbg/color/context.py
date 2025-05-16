@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import List
 
-from pwndbg import config
-from pwndbg.color import generateColorFunction
 from pwndbg.color import theme
 from pwndbg.lib.regs import BitFlags
 
@@ -43,51 +41,51 @@ config_comment = theme.add_color_param("comment-color", "gray", "color for comme
 
 
 def prefix(x: object) -> str:
-    return generateColorFunction(config.code_prefix_color)(x)
+    return config_prefix_color.color_function(x)
 
 
 def highlight(x: object) -> str:
-    return generateColorFunction(config.highlight_color)(x)
+    return config_highlight_color.color_function(x)
 
 
 def register(x: object) -> str:
-    return generateColorFunction(config.context_register_color)(x)
+    return config_register_color.color_function(x)
 
 
 def register_changed(x: object) -> str:
-    return generateColorFunction(config.context_register_changed_color)(x)
+    return config_register_changed_color.color_function(x)
 
 
 def flag_bracket(x: object) -> str:
-    return generateColorFunction(config.context_flag_bracket_color)(x)
+    return config_flag_bracket_color.color_function(x)
 
 
 def flag_value(x: object) -> str:
-    return generateColorFunction(config.context_flag_value_color)(x)
+    return config_flag_value_color.color_function(x)
 
 
 def flag_set(x: object) -> str:
-    return generateColorFunction(config.context_flag_set_color)(x)
+    return config_flag_set_color.color_function(x)
 
 
 def flag_unset(x: object) -> str:
-    return generateColorFunction(config.context_flag_unset_color)(x)
+    return config_flag_unset_color.color_function(x)
 
 
 def flag_changed(x: object) -> str:
-    return generateColorFunction(config.context_flag_changed_color)(x)
+    return config_flag_changed_color.color_function(x)
 
 
 def banner(x: object) -> str:
-    return generateColorFunction(config.banner_color)(x)
+    return config_banner_color.color_function(x)
 
 
 def banner_title(x: object) -> str:
-    return generateColorFunction(config.banner_title_color)(x)
+    return config_banner_title.color_function(x)
 
 
 def comment(x: object) -> str:
-    return generateColorFunction(config.comment_color)(x)
+    return config_comment.color_function(x)
 
 
 def format_flags(value: int | None, flags: BitFlags, last: int | None = None):
