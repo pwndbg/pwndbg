@@ -13,7 +13,7 @@ uv run --group docs gdb --batch -nx -ix ./gdbinit.py \
 
 export PWNDBG_DOCGEN_DBGNAME="lldb"
 {
-uv run --group docs --extra lldb python pwndbg-lldb.py <<EOF
+    uv run --group docs --extra lldb python pwndbg-lldb.py << EOF
 set show-tips off
 command script import ./scripts/_docs/extract_command_docs.py
 command script import ./scripts/_docs/extract_configuration_docs.py
