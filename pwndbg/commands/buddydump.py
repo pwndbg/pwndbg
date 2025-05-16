@@ -224,7 +224,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         pcp_lists = pcp["lists"]
         cbp.sections[1] = (
             "per_cpu_pageset",
-            f"number of pages {cbp.indent.aux_hex(int(pcp["count"]))}",
+            f"number of pages {cbp.indent.aux_hex(int(pcp['count']))}",
         )
     elif pba.zone.type.has_field("pageset"):
         pcp = per_cpu(pba.zone["pageset"], pba.cpu)
