@@ -23,12 +23,12 @@ jobs:
 
       - name: Verify docs are up to date with source
         run: |
-          ./scripts/verify_docs.sh
+          ./scripts/verify-docs.sh
 
       - name: Update docs/index.md with README.md
         # This can be a simple copy if https://github.com/github/markup/issues/994
         # is solved.
-        run: ./scripts/generate_readme.sh
+        run: ./scripts/generate-readme.sh
 
       - name: Build site
         run: |
@@ -48,7 +48,7 @@ jobs:
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
       - name: Update docs/index.md with README.md
-        run: ./scripts/generate_readme.sh
+        run: ./scripts/generate-readme.sh
 
       - name: Deploy site
         run: |
