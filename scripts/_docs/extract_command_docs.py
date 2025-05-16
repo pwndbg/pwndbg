@@ -26,10 +26,11 @@ from typing import Tuple
 
 import pwndbg.commands
 from pwndbg.commands import CommandObj
+from scripts._docs.gen_docs_generic import ALL_DEBUGGERS
 from scripts._docs.command_docs_common import ExtractedCommand
 from scripts._docs.command_docs_common import category_to_folder_name
+from scripts._docs.command_docs_common import extracted_filename
 from scripts._docs.command_docs_common import BASE_PATH
-from scripts._docs.command_docs_common import OUT_BASE
 
 
 def extract_sources() -> list[CommandObj]:
@@ -137,6 +138,7 @@ def distill_sources(commandobjs: list[CommandObj]) -> list[ExtractedCommand]:
                 name,
                 category,
                 filename,
+                description,
                 aliases,
                 examples,
                 notes,
@@ -155,6 +157,7 @@ def main():
 
     debugger = os.getenv("PWNDBG_DOCGEN_DBGNAME")
     assert debugger and "Use the PWNDBG_DOCGEN_DBGNAME env variable."
+    assert debugger in ALL_DEBUGGERS and "Debugger not defined in the ALL_DEBUGGERS array."
 
     commandobjs = extract_sources()
     extracted = distill_sources(commandobjs)
@@ -167,7 +170,7 @@ def main():
         result[c.filename] = asdict(c)
 
     # Write to file.
-    out_path = os.path.join("scripts", "_docs", debugger + OUT_BASE)
+    out_path = extracted_filename(debugger)
     with open(out_path, "w") as file:
         # Specify indent so the file is human-readable. TODO: why?
         json.dump(result, file, indent=2)

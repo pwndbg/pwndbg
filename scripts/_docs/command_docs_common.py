@@ -4,13 +4,13 @@ import re
 import os
 
 BASE_PATH = os.path.join("docs", "commands")
-OUT_BASE = "_commands.json"
 
 @dataclass
 class ExtractedCommand:
     name: str
     category: str
     filename: str
+    description: str
     aliases: list[str]
     examples: str
     notes: str
@@ -27,3 +27,7 @@ def category_to_folder_name(category) -> str:
     # to update the regex above to sanitize the category name.
     assert all(c.isalnum() or c == "_" for c in folder)
     return folder
+
+
+def extracted_filename(debugger: str) -> str:
+    return os.path.join("scripts", "_docs", debugger + "_commands.json")

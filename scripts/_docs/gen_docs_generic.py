@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 from __future__ import annotations
+from typing import Tuple
 
 import os
+
+ALL_DEBUGGERS = ["gdb", "lldb"]
 
 def get_files_in_dir(directory) -> list[str]:
     file_paths = []
@@ -13,9 +16,9 @@ def get_files_in_dir(directory) -> list[str]:
     return file_paths
 
 
-def verify_existence(filenames: list[str], base_path: str) -> (list[str], list[str]):
+def verify_existence(filenames: list[str], base_path: str) -> Tuple[list[str], list[str]]:
     current = get_files_in_dir(base_path)
-    current = [base_path + x for x in current]
+    current = [os.path.join(base_path, x) for x in current]
 
     missing = [x for x in filenames if x not in current]
     extra = [x for x in current if x not in filenames]
