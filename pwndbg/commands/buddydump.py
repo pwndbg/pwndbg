@@ -269,6 +269,50 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         print_mtypes(pba, cbp)
 
 
+"""
+Based off https://github.com/bata24/gef and https://elixir.bootlin.com/linux/v6.13/source
+
+Simplified visualization from bata24/gef:
+
++-node_data[MAX_NUMNODES]-+
+| *pglist_data (node 0)   |--+
+| *pglist_data (node 1)   |  |
+| *pglist_data (node 2)   |  |
+| ...                     |  |
++-------------------------+  |
+                             |
++----------------------------+
+|
+v
++-pglist_data------------------------------+
+| node_zones[MAX_NR_ZONES]                 |
+|   +-node_zones[0]----------------------+ |   +--->+-per_cpu_pages--------+
+|   |  ...                               | |   |    | ...                  |
+|   |  per_cpu_pageset                   |-----+    | lists[NR_PCP_LISTS]  |    +-page-----+
+|   |  ...                               | |        |   +-lists[0]-------+ |    | flags    |
+|   |  name                              | |        |   | next           |----->| lru.next |->..."
+|   |  ...                               | |        |   | prev           | |    | lru.prev |
+|   |  free_area[MAX_ORDER]              | |        |   +-lists[1]-------+ |    | ...      |
+|   |    +-free_area[0]----------------+ | |        |   | ...            | |    +----------+
+|   |    | free_list[MIGRATE_TYPES]    | | |        |   +----------------+ |
+|   |    |   +-free_list[0]----------+ | | |        +----------------------+
+|   |    |   | next                  |---------+
+|   |    |   | prev                  | | | |   |
+|   |    |   +-free_list[1]----------+ | | |   |    +-page-----+    +-page-----+    +-page-----+
+|   |    |   | ...                   | | | |   |    | flags    |    | flags    |    | flags    |
+|   |    |   +-----------------------+ | | |   +--->| lru.next |--->| lru.next |--->| lru.next |->..."
+|   |    | nr_free                     | | |        | lru.prev |    | lru.prev |    | lru.prev |
+|   |    +-free_area[1]----------------+ | |        | ...      |    | ...      |    | ...      |
+|   |    | ...                         | | |        +----------+    +----------+    +----------+
+|   |    +-----------------------------+ | |
+|   +-node_zones[1]----------------------+ |
+|   |  ...                               | |
+|   +------------------------------------+ |
+| ...                                      |
++------------------------------------------+
+"""
+
+
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms

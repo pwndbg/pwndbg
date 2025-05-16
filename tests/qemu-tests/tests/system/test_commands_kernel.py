@@ -101,6 +101,7 @@ def get_slab_object_address():
             return (matches[0], cache_name)
     raise ValueError("Could not find any slab objects")
 
+
 @pytest.mark.skipif(
     pwndbg.aglib.arch.name not in ["x86", "x86-64"],
     reason="Unsupported architecture: msr tests only work on x86 and x86-64",
