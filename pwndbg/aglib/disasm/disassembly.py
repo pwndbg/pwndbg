@@ -18,8 +18,8 @@ from capstone import *  # noqa: F403
 
 import pwndbg
 import pwndbg.aglib.arch
-import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.disasm.aarch64
+import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.disasm.arm
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.disasm.loongarch64
