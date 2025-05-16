@@ -70,6 +70,7 @@
 ## Kernel
 
 -  [binder](kernel/binder.md) - Show Android Binder information
+-  [buddydump](kernel/buddydump.md) - Displays metadata and freelists of the buddydump allocator.
 -  [kbase](kernel/kbase.md) - Finds the kernel virtual base address.
 -  [kchecksec](kernel/kchecksec.md) - Checks for kernel hardening configuration options.
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
@@ -85,7 +86,6 @@
 -  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
 -  [msr](kernel/msr.md) - Read or write to Model Specific Register (MSR)
--  [pcplist](kernel/pcplist.md) - Print Per-CPU page list
 -  [slab](kernel/slab.md) - Prints information about the slab allocator
 
 ## Linux/libc/ELF
