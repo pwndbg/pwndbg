@@ -209,6 +209,10 @@ def slab_info(name: str, verbose: bool, cpu: int, active: bool, partial: bool) -
         )
         indent.print(f"{indent.prefix('Align')}: {indent.aux_hex(slab_cache.align)}")
         indent.print(f"{indent.prefix('Object Size')}: {indent.aux_hex(slab_cache.object_size)}")
+        useroffset, usersize = slab_cache.useroffset, slab_cache.useroffset
+        if useroffset is not None and usersize is not None:
+            indent.print(f"{indent.prefix('Usercopy region offset')}: {useroffset}")
+            indent.print(f"{indent.prefix('Usercopy region size')}: {usersize}")
 
         for cpu_cache in slab_cache.cpu_caches:
             if cpu_cache.cpu is not None and cpu_cache.cpu != cpu:

@@ -198,6 +198,18 @@ class SlabCache:
         return int(self._slab_cache["inuse"])
 
     @property
+    def useroffset(self) -> int:
+        if not self._slab_cache.type.has_field("useroffset"):
+            return None
+        return int(self._slab_cache["useroffset"])
+
+    @property
+    def usersize(self) -> int:
+        if not self._slab_cache.type.has_field("usersize"):
+            return None
+        return int(self._slab_cache["usersize"])
+
+    @property
     def __oo_x(self) -> int:
         return int(self._slab_cache["oo"]["x"])
 
