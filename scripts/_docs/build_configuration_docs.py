@@ -48,8 +48,15 @@ def convert_to_markdown(scope: str, debugger_to_params: Dict[str, list[Extracted
         assert param_variants
 
         mdFile.new_header(level=2, title="**" + param_name + "**")
-        # TODO: add text about which debuggers are supported if
-        # not all are.
+
+        # Note about supported debuggers if the parameter isn't
+        # available everywhere.
+        if len(param_variants) != len(ALL_DEBUGGERS):
+            supported_list = ", ".join([x[0] for x in param_variants])
+            md = '<small style="color: lightgray;">'
+            md += f"(only in {supported_list})"
+            md += "</small>\n"
+            mdFile.write(md)
 
         debuggers_agree = all(x[1] == param_variants[0][1] for x in param_variants)
 

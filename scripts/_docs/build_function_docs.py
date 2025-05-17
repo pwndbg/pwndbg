@@ -110,6 +110,8 @@ def convert_to_markdown(extracted: list[Tuple[str, list[ExtractedFunction]]]) ->
         assert func_variants
 
         mdFile.new_paragraph(f"### **{func_name}**")
+        # NOTE: We aren't saying anything about supported
+        # debuggers since all functions only work in gdb for now.
 
         debuggers_agree = all(x[1] == func_variants[0][1] for x in func_variants)
 
