@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+import textwrap
 from typing import Dict
 from typing import Tuple
-import textwrap
 
 from mdutils.mdutils import MdUtils
 
