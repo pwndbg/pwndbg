@@ -57,6 +57,9 @@ theme:
 # https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/#code-actions
     # Adds an edit button to every page that links to the repository.
     - content.action.edit
+# Extra
+    # Sync the content tab selection across the whole site (based on label).
+    - content.tabs.link
   palette:
     scheme: slate
     primary: black
@@ -188,7 +191,7 @@ markdown_extensions:
 # https://facelessuser.github.io/pymdown-extensions/
 # Officially supported are:
 # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown-extensions/
-  # Not enabled from the list^ : arithmatex, critic, tabbed
+  # Not enabled from the list^ : arithmatex, critic
   - pymdownx.betterem:
       smart_enable: all
   - pymdownx.blocks.caption
@@ -215,6 +218,13 @@ markdown_extensions:
   - pymdownx.superfences:
   - pymdownx.tasklist:
       custom_checkbox: true
+  - pymdownx.tabbed:
+      # Better on mobile.
+      alternate_style: true
+      # Nicer looking anchor links.
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
 # Not officially supported:
   - pymdownx.magiclink:
       repo_url_shortener: true
