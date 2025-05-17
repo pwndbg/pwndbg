@@ -29,7 +29,7 @@ from scripts._docs.gen_docs_generic import verify_files_simple
 INTRO_TEXT = """
 pwndbg provides a set of functions which can be used during expression evaluation to
 quickly perform common calculations. These can even be passed to other commands as arguments.
-Currently, they only work in gdb.
+Currently, they **only work in gdb**.
 
 To see a list of all functions, including those built into gdb, use `help function`. To see
 the help of any given function use `help function function_name`. Function invokation must
