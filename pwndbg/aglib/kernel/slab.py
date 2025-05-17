@@ -100,7 +100,7 @@ class Freelist:
         return self.start_addr
 
     def __len__(self) -> int:
-        seen = set()
+        seen: set[int] = set()
         for addr in self:
             if addr in seen:
                 # this can happen during exploit dev

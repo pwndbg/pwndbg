@@ -12,11 +12,13 @@ import sys
 
 from tabulate import tabulate
 
+import pwndbg
 import pwndbg.aglib.kernel.slab
 import pwndbg.aglib.memory
 import pwndbg.color.message as M
 import pwndbg.commands
 from pwndbg.aglib.kernel.slab import CpuCache
+from pwndbg.aglib.kernel.slab import Freelist
 from pwndbg.aglib.kernel.slab import NodeCache
 from pwndbg.aglib.kernel.slab import Slab
 from pwndbg.aglib.kernel.slab import find_containing_slab_cache
@@ -25,15 +27,6 @@ from pwndbg.lib.exception import IndentContextManager
 
 parser = argparse.ArgumentParser(description="Prints information about the slab allocator")
 subparsers = parser.add_subparsers(dest="command")
-parser.add_argument(
-    "-c", "--cpu", type=cpu_limitcheck, dest="cpu", default=False, help="CPU to display"
-)
-parser.add_argument(
-    "-p", "--partial", action="store_true", default=False, help="only displays partial lists"
-)
-parser.add_argument(
-    "-a", "--active", action="store_true", default=False, help="only displays the active list"
-)
 
 # The command will still work on 3.6 and earlier, but the help won't be shown
 # when no subcommand is provided
@@ -51,33 +44,55 @@ parser_list.add_argument(
     help="Only show caches that contain the given filter string",
 )
 
-# TODO: --cpu, --node, --partial, --active
+# TODO: --node
 parser_info = subparsers.add_parser("info", prog="slab info")
-parser_info.add_argument("names", metavar="name", type=str, default=None, nargs="+", help="")
-parser_info.add_argument("-v", "--verbose", action="store_true", default=False, help="")
+parser_info.add_argument("names", metavar="name", type=str, nargs="+", help="")
+parser_info.add_argument("-v", "--verbose", action="store_true", help="")
+parser_info.add_argument("-c", "--cpu", type=int, default=False, help="CPU to display")
+parser_info.add_argument(
+    "-p", "--partial-only", action="store_true", help="only displays partial lists"
+)
+parser_info.add_argument(
+    "-a", "--active-only", action="store_true", help="only displays the active list"
+)
 
 parser_contains = subparsers.add_parser("contains", prog="slab contains")
-parser_contains.add_argument(
-    "addresses", metavar="addr", type=str, default=None, nargs="+", help=""
-)
+parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
 
 
 @pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def slab(command, filter_, names, verbose, addresses, cpu, partial, active) -> None:
+def slab(
+    command,
+    filter_=None,
+    names=None,
+    verbose=False,
+    addresses=None,
+    cpu=None,
+    partial_only=False,
+    active_only=False,
+) -> None:
     if command == "list":
         slab_list(filter_)
     elif command == "info":
+        partial, active = True, True
+        if partial_only and active_only:
+            print(M.warn("partial_only and active_only are both specified"))
+            return
+        if partial_only:
+            active = False
+        if active_only:
+            partial = False
         for name in names:
-            slab_info(name, verbose)
+            slab_info(name, verbose, cpu, active, partial)
     elif command == "contains":
         for addr in addresses:
             slab_contains(addr)
 
 
-def print_slab(slab: Slab, indent, verbose: bool) -> None:
+def print_slab(slab: Slab, indent, verbose: bool, freelist: Freelist = None) -> None:
     indent.print(
         f"- {indent.prefix('Slab')} @ {indent.addr_hex(slab.virt_address)} [{indent.aux_hex(slab.slab_address)}]:"
     )
@@ -87,37 +102,51 @@ def print_slab(slab: Slab, indent, verbose: bool) -> None:
         indent.print(f"{indent.prefix('Frozen')}: {slab.frozen}")
         indent.print(f"{indent.prefix('Freelist')}: {indent.addr_hex(int(slab.freelist))}")
 
+        idx = 0
+        indexes = {}
+        if freelist is None:
+            freelist = slab.freelist
+        for addr in freelist:
+            if addr in indexes:
+                print(M.warn(f"Cyclic slab freelist detected at {hex(addr)}"))
+                break
+            indexes[addr] = idx
+            idx += 1
+
         if verbose:
             with indent:
                 free_objects = slab.free_objects
                 for addr in slab.objects:
+                    prefix = f"- {indent.prefix(f'[0x{indexes[addr]:02}]')} {indent.addr_hex(addr)}"
                     if addr not in free_objects:
-                        indent.print(f"- {addr:#x} (in-use)")
+                        indent.print(f"{prefix} (in-use)")
                         continue
-                    for freelist in slab.freelists:
-                        next_free = freelist.find_next(addr)
-                        if next_free:
-                            indent.print(f"- {indent.addr_hex(addr)} (next: {next_free:#x})")
-                            break
+                    next_free = freelist.find_next(addr)
+                    if next_free:
+                        indent.print(f"{prefix} (next: {indent.aux_hex(next_free)})")
                     else:
-                        indent.print(f"- {indent.addr_hex(addr)} (no next)")
+                        indent.print(f"{prefix} (no next)")
 
 
-def print_cpu_cache(cpu_cache: CpuCache, verbose: bool, indent) -> None:
+def print_cpu_cache(
+    cpu_cache: CpuCache, verbose: bool, active: bool, partial: bool, indent
+) -> None:
     indent.print(
         f"{indent.prefix('kmem_cache_cpu')} @ {indent.addr_hex(cpu_cache.address)} [CPU {cpu_cache.cpu}]:"
     )
     with indent:
-        indent.print(f"{indent.prefix('Freelist')}:", indent.addr_hex(int(cpu_cache.freelist)))
+        if active:
+            indent.print(f"{indent.prefix('Freelist')}:", indent.addr_hex(int(cpu_cache.freelist)))
+            active_slab = cpu_cache.active_slab
+            if active_slab:
+                indent.print(f"{indent.prefix('Active Slab')}:")
+                with indent:
+                    print_slab(active_slab, indent, verbose, cpu_cache.freelist)
+            else:
+                indent.print("Active Slab: (none)")
 
-        active_slab = cpu_cache.active_slab
-        if active_slab:
-            indent.print(f"{indent.prefix('Active Slab')}:")
-            with indent:
-                print_slab(active_slab, indent, verbose)
-        else:
-            indent.print("Active Slab: (none)")
-
+        if not partial:
+            return
         partial_slabs = cpu_cache.partial_slabs
         if not partial_slabs:
             indent.print("Partial Slabs: (none)")
@@ -153,7 +182,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool, indent) -> None:
                 print_slab(slab, indent, verbose)
 
 
-def slab_info(name: str, verbose: bool) -> None:
+def slab_info(name: str, verbose: bool, cpu: int, active: bool, partial: bool) -> None:
     slab_cache = pwndbg.aglib.kernel.slab.get_cache(name)
 
     if slab_cache is None:
@@ -171,13 +200,23 @@ def slab_info(name: str, verbose: bool) -> None:
         else:
             indent.print(f"{indent.prefix('Flags')}: (none)")
 
-        indent.print(f"{indent.prefix('Offset')}: {slab_cache.offset}")
-        indent.print(f"{indent.prefix('Size')}: {slab_cache.size}")
-        indent.print(f"{indent.prefix('Align')}: {slab_cache.align}")
-        indent.print(f"{indent.prefix('Object Size')}: {slab_cache.object_size}")
+        indent.print(f"{indent.prefix('Offset')}: {indent.aux_hex(slab_cache.offset)}")
+        indent.print(
+            f"{indent.prefix('Slab size')}: {indent.aux_hex(0x1000 << slab_cache.oo_order)}"
+        )
+        indent.print(
+            f"{indent.prefix('Size (without metadata)')}: {indent.aux_hex(slab_cache.size)}"
+        )
+        indent.print(f"{indent.prefix('Align')}: {indent.aux_hex(slab_cache.align)}")
+        indent.print(f"{indent.prefix('Object Size')}: {indent.aux_hex(slab_cache.object_size)}")
 
         for cpu_cache in slab_cache.cpu_caches:
-            print_cpu_cache(cpu_cache, verbose, indent)
+            if cpu_cache.cpu is not None and cpu_cache.cpu != cpu:
+                continue
+            print_cpu_cache(cpu_cache, verbose, active, partial, indent)
+
+        if not partial:
+            return
 
         for node_cache in slab_cache.node_caches:
             print_node_cache(node_cache, verbose, indent)
