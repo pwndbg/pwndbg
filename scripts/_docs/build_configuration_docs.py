@@ -58,7 +58,8 @@ def convert_to_markdown(scope: str, debugger_to_params: Dict[str, list[Extracted
             mdFile.new_paragraph(param_variants[0][1].help_docstring)
         else:
             for debugger, dparam in sorted(param_variants):
-                # Content tabs: https://squidfunk.github.io/mkdocs-material/reference/content-tabs/
+                # Content tabs
+                # https://squidfunk.github.io/mkdocs-material/reference/content-tabs/
                 mdFile.write(f'\n=== "{debugger.upper()}"')
 
                 indented_set_show_doc = textwrap.indent(dparam.set_show_doc, "     ")
