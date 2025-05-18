@@ -14,7 +14,9 @@ jobs:
       - uses: actions/setup-python@v5
 
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          sudo ln -s $HOME/.local/bin/uv /usr/bin/uv
 
       - name: Setup the necessary deps
         run: |
@@ -27,7 +29,11 @@ jobs:
 
       - name: Verify docs are up to date with source
         run: |
-          ./scripts/verify-docs.sh
+          # FIXME: Not sure why this line is needed, the verification
+          # fails with "mdutils not found" if it is run first.
+          # Doing a uv sync before running the script doesn't help.
+          uv run gdb --batch -nx -ix ./gdbinit.py -nx
+          ./scripts/verify_docs.sh
 
       - name: Update docs/index.md with README.md
         # This can be a simple copy if https://github.com/github/markup/issues/994
@@ -48,8 +54,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
 
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Install uv and sync deps
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          sudo ln -s $HOME/.local/bin/uv /usr/bin/uv
 
       - name: Update docs/index.md with README.md
         run: ./scripts/generate-readme.sh
