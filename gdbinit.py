@@ -53,7 +53,7 @@ def run_uv_install(
 
 
 def find_uv(venv_path: Path) -> Path | None:
-    binary_path = shutil.which("uv", path=venv_path / "bin")
+    binary_path = shutil.which("uv")
     if binary_path is not None:
         return Path(binary_path)
 
