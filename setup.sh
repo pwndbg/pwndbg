@@ -232,7 +232,8 @@ echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
 uv venv $PWNDBG_VENV_PATH
 
 # Install dependencies
-uv sync --extra gdb
+echo "Installing dependancies.."
+uv sync --extra gdb --quiet
 
 if [ -z "$UPDATE_MODE" ]; then
     if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
@@ -242,5 +243,6 @@ if [ -z "$UPDATE_MODE" ]; then
         echo "source $PWD/gdbinit.py" >> ~/.gdbinit
         echo "[*] Added 'source $PWD/gdbinit.py' to ~/.gdbinit so that Pwndbg will be loaded on every launch of GDB."
     fi
-    echo "Please set the PWNDBG_NO_AUTOUPDATE environment variable to any value to disable the automatic updating of dependencies when Pwndbg is loaded."
+    echo "Please set the PWNDBG_NO_AUTOUPDATE environment variable to any value"
+    echo "to disable the automatic updating of dependencies when Pwndbg is loaded."
 fi
