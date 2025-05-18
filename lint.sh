@@ -26,19 +26,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Use Python virtual env for all programs used here
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="./.venv"
-fi
-
-if [[ "${PWNDBG_VENV_PATH}" != "PWNDBG_PLEASE_SKIP_VENV" ]]; then
-    source "${PWNDBG_VENV_PATH}/bin/activate"
-fi
-
 set -o xtrace
 
-LINT_FILES="pwndbg tests *.py scripts"
-LINT_CMD="uv run --only-group lint"
+LINT_FILES="pwndbg tests *.py scripts/*.py"
+LINT_CMD="uv run --group lint --group dev"
 
 call_shfmt() {
     local FLAGS=$1
@@ -46,7 +37,7 @@ call_shfmt() {
         local SHFMT_FILES=$(find . -name "*.sh" -not -path "./.venv/*")
         # Indents are four spaces, binary ops can start a line, indent switch cases,
         # and allow spaces following a redirect
-        shfmt ${FLAGS} -i 4 -bn -ci -sr -d ${SHFMT_FILES}
+        $LINT_CMD shfmt ${FLAGS} -i 4 -bn -ci -sr -d ${SHFMT_FILES}
     else
         echo "shfmt not installed, skipping"
     fi
