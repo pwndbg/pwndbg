@@ -206,17 +206,24 @@ if [[ -z "$is_supported" ]]; then
     exit 4
 fi
 
+# Check if uv is already installed
+if ! command -v uv 2>&1 > /dev/null; then
+    # Install uv
+    echo "Installing uv.."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    # Make sure the uv command is accessible
+    if [ -e $HOME/.local/bin/env ]; then
+        source $HOME/.local/bin/env
+    fi
+fi
+
 # Create the Python virtual environment and install dependencies using uv
 if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="./.venv"
 fi
+
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
-
-${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
-source ${PWNDBG_VENV_PATH}/bin/activate
-
-# Install uv
-pip install uv
+uv venv $PWNDBG_VENV_PATH
 
 # Install dependencies
 uv sync --extra gdb

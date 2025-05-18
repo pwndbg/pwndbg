@@ -287,12 +287,16 @@ install_jemalloc() {
 }
 
 configure_venv() {
+    # Make sure the uv command is accessible
+    if [ -e $HOME/.local/bin/env ]; then
+        source $HOME/.local/bin/env
+    fi
+
     if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
         PWNDBG_VENV_PATH="./.venv"
     fi
     echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
 
-    source "${PWNDBG_VENV_PATH}/bin/activate"
     uv sync --all-groups --all-extras
 
     # Create a developer marker file
