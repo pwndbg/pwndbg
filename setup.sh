@@ -211,9 +211,15 @@ if ! command -v uv 2>&1 > /dev/null; then
     # Install uv
     echo "Installing uv.."
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    # Make sure the uv command is accessible
-    if [ -e $HOME/.local/bin/env ]; then
-        source $HOME/.local/bin/env
+    echo "If you wish to uninstall it follow the official instructions:"
+    echo "https://docs.astral.sh/uv/getting-started/installation/#uninstallation"
+    # Check if uv is now accessible from PATH
+    if ! command -v uv 2>&1 > /dev/null; then
+        # Add uv to PATH (doing `source $HOME/.local/bin/env` does not
+        # change the outer shell's PATH and wouldn't work with our CI).
+        sudo ln -s $HOME/.local/bin/uv /usr/bin/uv
+        echo "and also run:"
+        echo "sudo rm /usr/bin/uv"
     fi
 fi
 
