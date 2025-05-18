@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+TEST_CMD="uv run --group dev --group tests --all-extras"
+
 COV=0
 # Run unit tests
 for arg in "$@"; do
@@ -10,9 +12,9 @@ for arg in "$@"; do
 done
 
 if [ $COV -eq 1 ]; then
-    uv run --group dev --all-extras coverage run -m pytest tests/unit-tests
+    $TEST_CMD coverage run -m pytest tests/unit-tests
 else
-    uv run --group dev --all-extras pytest tests/unit-tests
+    $TEST_CMD pytest tests/unit-tests
 fi
 
 exit_code=$((exit_code + $?))

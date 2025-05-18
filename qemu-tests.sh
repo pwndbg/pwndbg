@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
-(cd tests && uv run --group dev --all-extras python3 tests.py -t cross-arch $@)
+TEST_CMD="uv run --group dev --group tests --all-extras"
+
+(cd tests && $TEST_CMD python3 tests.py -t cross-arch $@)
 exit_code=$?
 exit $exit_code
