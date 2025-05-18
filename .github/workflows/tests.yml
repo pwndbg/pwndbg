@@ -99,14 +99,13 @@ jobs:
         echo 'GDB py:'
         gdb --batch --quiet --nx --nh --ex 'py import sys; print(sys.version)'
         echo 'Installed py:'
-        ./.venv/bin/python -V
+        uvx python -V
         echo 'Installed packages:'
-        ./.venv/bin/python -m pip freeze
+        uv pip freeze
 
     # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
     - name: Run tests
       run: |
-        source .venv/bin/activate
         mkdir .cov
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh --cov
@@ -115,8 +114,8 @@ jobs:
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        ./.venv/bin/coverage combine
-        ./.venv/bin/coverage xml
+        uvx coverage combine
+        uvx coverage xml
 
     - name: "Upload coverage to Codecov"
       if: matrix.os == 'ubuntu-22.04'
@@ -146,8 +145,8 @@ jobs:
 
     - name: Process coverage data
       run: |
-        ./.venv/bin/coverage combine
-        ./.venv/bin/coverage xml
+        uvx coverage combine
+        uvx coverage xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -190,8 +189,8 @@ jobs:
 
     - name: Process coverage data
       run: |
-        ./.venv/bin/coverage combine
-        ./.venv/bin/coverage xml
+        uvx coverage combine
+        uvx coverage xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

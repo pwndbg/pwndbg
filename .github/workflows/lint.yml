@@ -25,10 +25,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        sudo apt install -y shfmt python3 python3-venv
-        python3 -m venv -- .venv
-        ./.venv/bin/pip install uv
-        ./.venv/bin/uv sync --group dev --extra gdb --extra lldb
+        sudo apt install -y shfmt curl
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        sudo ln -s $HOME/.local/bin/uv /usr/bin/uv
 
     - name: Run linters
       run: |
@@ -46,7 +45,7 @@ jobs:
         level: error
         # Change the current directory to run mypy command.
         # mypy command reads setup.cfg or other settings file in this path.
-        execute_command: ./.venv/bin/uv run --only-group lint mypy
+        execute_command: uv run --group lint --group dev mypy
         install_types: false
         target: pwndbg
         filter_mode: nofilter

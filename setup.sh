@@ -215,11 +215,13 @@ if ! command -v uv 2>&1 > /dev/null; then
     echo "https://docs.astral.sh/uv/getting-started/installation/#uninstallation"
     # Check if uv is now accessible from PATH
     if ! command -v uv 2>&1 > /dev/null; then
-        # Add uv to PATH (doing `source $HOME/.local/bin/env` does not
-        # change the outer shell's PATH and wouldn't work with our CI).
+        # Add uv to PATH.
+        # Doing `source $HOME/.local/bin/env` does not
+        # change the outer shell's PATH and wouldn't work with our CI.
         sudo ln -s $HOME/.local/bin/uv /usr/bin/uv
+        sudo ln -s $HOME/.local/bin/uvx /usr/bin/uvx
         echo "and also run:"
-        echo "sudo rm /usr/bin/uv"
+        echo "sudo rm /usr/bin/uv; sudo rm /usr/bin/uvx"
     fi
 fi
 
