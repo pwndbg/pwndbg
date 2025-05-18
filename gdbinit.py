@@ -83,7 +83,7 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
     if current_hash == stored_hash:
         return
 
-    print("Detected outdated Pwndbg dependencies (uv.lock). Updating.")
+    print("Detected outdated pwndbg dependencies (uv.lock). Updating.")
     uv_path = find_uv(venv_path)
     if uv_path is None:
         print(
