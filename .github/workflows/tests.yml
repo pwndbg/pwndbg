@@ -114,8 +114,8 @@ jobs:
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        uvx coverage combine
-        uvx coverage xml
+        uv run --group tests coverage combine
+        uv run --group tests coverage xml
 
     - name: "Upload coverage to Codecov"
       if: matrix.os == 'ubuntu-22.04'
@@ -145,8 +145,8 @@ jobs:
 
     - name: Process coverage data
       run: |
-        uvx coverage combine
-        uvx coverage xml
+        uv run --group tests coverage combine
+        uv run --group tests coverage xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -189,8 +189,8 @@ jobs:
 
     - name: Process coverage data
       run: |
-        uvx coverage combine
-        uvx coverage xml
+        uv run --group tests coverage combine
+        uv run --group tests coverage xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
