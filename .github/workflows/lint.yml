@@ -28,6 +28,7 @@ jobs:
         sudo apt install -y shfmt curl
         curl -LsSf https://astral.sh/uv/install.sh | sh
         sudo ln -s $HOME/.local/bin/uv /usr/bin/uv
+        uv sync --group lint --group dev
 
     - name: Run linters
       run: |
