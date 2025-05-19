@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        type: [qemu-user-tests, qemu-tests, tests]
+        type: [qemu-user-tests, qemu-system-tests, tests]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     env:
@@ -50,13 +50,13 @@ jobs:
       run: |
         ./tests.sh --nix --cov
 
-    - name: Run qemu-user-tests
+    - name: Run cross-arch tests
       if: matrix.type == 'qemu-user-tests'
       run: |
         ./qemu-tests.sh --nix --cov
 
     - name: Set up cache for QEMU images
-      if: matrix.type == 'qemu-tests'
+      if: matrix.type == 'qemu-system-tests'
       id: qemu-cache
       uses: actions/cache@v3
       with:
@@ -64,12 +64,12 @@ jobs:
         key: ${{ matrix.os }}-cache-qemu-images
 
     - name: Download QEMU images
-      if: matrix.type == 'qemu-tests'
+      if: matrix.type == 'qemu-system-tests'
       run: |
         ./tests/qemu-tests/download_images.sh
 
-    - name: Run qemu-tests
-      if: matrix.type == 'qemu-tests'
+    - name: Run kernel tests
+      if: matrix.type == 'qemu-system-tests'
       working-directory: ./tests/qemu-tests
       run: |
         ./tests.sh --nix --cov
@@ -133,7 +133,7 @@ jobs:
       with:
         path: ~/.cache/pip
         key: ${{ matrix.os }}-cache-pip
-    
+
     - name: Install dependencies
       run: |
         ./setup.sh
@@ -152,7 +152,7 @@ jobs:
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
 
-  qemu-tests:
+  qemu-system-tests:
     runs-on: [ubuntu-22.04]
     timeout-minutes: 30
     steps:
@@ -169,7 +169,7 @@ jobs:
         ./setup.sh
         ./setup-dev.sh
         mkdir .cov
-        
+
     - name: Set up cache for QEMU images
       id: qemu-cache
       uses: actions/cache@v3
@@ -182,7 +182,7 @@ jobs:
         ./tests/qemu-tests/download_images.sh
 
     # We set `kernel.yama.ptrace_scope=0` for `gdb-pt-dump`
-    - name: Run tests
+    - name: Run kernel tests
       working-directory: ./tests/qemu-tests
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
