@@ -13,6 +13,7 @@ from pwndbg.commands.context import context
 from pwndbg.commands.context import context_sections
 from pwndbg.commands.context import contextoutput
 from pwndbg.commands.context import resetcontextoutput
+from pwndbg.gdblib import gdb_version
 
 
 class ContextTUIWindow:
@@ -200,7 +201,7 @@ class ContextTUIWindow:
     # It resets other styling attributes like bold too but it's better
     # than having wrong colors.
     # https://github.com/pwndbg/pwndbg/issues/2654
-    if tuple(map(int, gdb.VERSION.split(".")[:2])) < (16, 3):
+    if gdb_version < (16, 3):
         ___ansi_substr = _ansi_substr
         _ansi_substr = (
             lambda *a, **kw: ContextTUIWindow.___ansi_substr(*a, **kw)
