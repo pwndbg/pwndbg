@@ -18,6 +18,14 @@ Officially supported is Ubuntu 22.04 and later, but the setup script also suppor
 * Void (via xbps)
 * Gentoo (via emerge)
 
+!!! tip
+    If you have an older ubuntu version you may still use pwndbg:
+
+    - for Ubuntu 20.04 use the [2024.08.29 release](https://github.com/pwndbg/pwndbg/releases/tag/2024.08.29)
+    - for Ubuntu 18.04 use the [2023.07.17: ubuntu18.04-final release](https://github.com/pwndbg/pwndbg/releases/tag/2023.07.17)
+
+    however if you wish to contribute, it is recommended you upgrade your distribution.
+
 ### Running with GDB
 Pwndbg requires GDB 12.1 or later. If the GDB version your distro provides is too old, [build GDB from source](https://sourceware.org/gdb/wiki/BuildingNatively):
 ```{.bash .copy}
