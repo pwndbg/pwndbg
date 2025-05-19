@@ -235,7 +235,7 @@ uv venv $PWNDBG_VENV_PATH
 
 # Install dependencies
 echo "Installing dependancies.."
-uv sync --extra gdb --quiet
+uv sync --extra gdb --extra lldb --quiet
 
 if [ -z "$UPDATE_MODE" ]; then
     if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
