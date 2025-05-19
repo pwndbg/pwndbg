@@ -77,4 +77,4 @@ or
 depending on which version you installed. You may add the appropriate file to your shell's PATH.
 
 ## Installing from source
-See the relevant "Contributing" section: [with GDB](contributing/index.md#install-from-source-gdb), [with LLDB](contributing/index.md#install-from-source-lldb).
+See [contributing/Installing pwndbg from source](contributing/1-setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section.

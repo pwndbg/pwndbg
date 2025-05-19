@@ -12,8 +12,8 @@ For common tasks see:
 + [Adding a configuration option](adding-a-parameter.md)
 + [Improving annotations](improving-annotations.md)
 
-Regardless of the contents of your PR, you will need to [lint](#linting) and [test](#testing) your code so make
-sure to read those sections. It is also likely you will need to [update the documentation](#TODO).
+Regardless of the contents of your PR, you will need to [lint](#linting) and [test](#running-tests) your code
+so make sure to read those sections. It is also likely you will need to [update the documentation](#updating-documentation).
 
 Read [General developer notes](2-dev-notes.md) to get more familiar with the various systems in place in
 pwndbg.
@@ -97,3 +97,6 @@ and run the kernel tests with
 ```{.bash .copy}
 cd ./tests/qemu-tests/ && ./tests.sh
 ```
+
+## Updating Documentation
+TODO
