@@ -108,7 +108,6 @@ def print_slab(slab: Slab, indent, verbose: bool, freelist: Freelist = None) -> 
             freelist = slab.freelist
         for addr in freelist:
             if addr in indexes:
-                print(M.warn(f"Cyclic slab freelist detected at {hex(addr)}"))
                 break
             indexes[addr] = idx
             idx += 1
@@ -117,7 +116,10 @@ def print_slab(slab: Slab, indent, verbose: bool, freelist: Freelist = None) -> 
             with indent:
                 free_objects = slab.free_objects
                 for addr in slab.objects:
-                    prefix = f"- {indent.prefix(f'[0x{indexes[addr]:02}]')} {indent.addr_hex(addr)}"
+                    index = "0x--"
+                    if addr in indexes:
+                        index = f"0x{indexes[addr]:02}"
+                    prefix = f"- {indent.prefix(f'[{index}]')} {indent.addr_hex(addr)}"
                     if addr not in free_objects:
                         indent.print(f"{prefix} (in-use)")
                         continue

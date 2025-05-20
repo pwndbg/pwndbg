@@ -88,6 +88,7 @@ class Freelist:
         self.random = random
 
     def __iter__(self) -> Generator[int, None, None]:
+        seen: set[int] = set()
         current_object = self.start_addr
         while current_object:
             addr = int(current_object)
@@ -95,6 +96,15 @@ class Freelist:
             current_object = pwndbg.aglib.memory.pvoid(addr + self.offset)
             if self.random:
                 current_object ^= self.random ^ swab(addr + self.offset)
+            if addr in seen:
+                # this can happen during exploit dev
+                print(
+                    M.warn(
+                        f"Cyclic slab freelist detected at {hex(addr)} when length is {len(seen)}"
+                    )
+                )
+                break
+            seen.add(addr)
 
     def __int__(self) -> int:
         return self.start_addr
@@ -109,8 +119,8 @@ class Freelist:
                         f"Cyclic slab freelist detected at {hex(addr)} when length is {len(seen)}"
                     )
                 )
-                seen.add(addr)
                 break
+            seen.add(addr)
         return len(seen)
 
     def find_next(self, addr: int) -> int:
@@ -199,13 +209,13 @@ class SlabCache:
 
     @property
     def useroffset(self) -> int:
-        if not self._slab_cache.type.has_field("useroffset"):
+        if not self._slab_cache.dereference().type.has_field("useroffset"):
             return None
         return int(self._slab_cache["useroffset"])
 
     @property
     def usersize(self) -> int:
-        if not self._slab_cache.type.has_field("usersize"):
+        if not self._slab_cache.dereference().type.has_field("usersize"):
             return None
         return int(self._slab_cache["usersize"])
 
