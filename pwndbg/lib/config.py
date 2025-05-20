@@ -15,25 +15,25 @@ T = TypeVar("T")
 
 # Boolean value. True or False, same as in Python.
 PARAM_BOOLEAN = 0
+# Boolean value, or 'auto'.
+PARAM_AUTO_BOOLEAN = 1
+# Signed integer value. Disallows zero.
+PARAM_INTEGER = 2
 # Signed integer value.
-PARAM_ZINTEGER = 1
-# String value. Accepts escape sequences.
-PARAM_STRING = 2
+PARAM_ZINTEGER = 3
+# Unsigned integer value. Disallows zero.
+PARAM_UINTEGER = 4
 # Unsigned integer value.
-PARAM_ZUINTEGER = 3
+PARAM_ZUINTEGER = 5
+# Unlimited ZUINTEGER.
+PARAM_ZUINTEGER_UNLIMITED = 6
+# String value. Accepts escape sequences.
+PARAM_STRING = 7
 # String value, accepts only one of a number of possible values, specified at
 # parameter creation.
-PARAM_ENUM = 4
+PARAM_ENUM = 8
 # String value corresponding to the name of a file, if present.
-PARAM_OPTIONAL_FILENAME = 5
-# Boolean value, or 'auto'.
-PARAM_AUTO_BOOLEAN = 6
-# Unlimited ZUINTEGER.
-PARAM_ZUINTEGER_UNLIMITED = 7
-# Signed integer value. Disallows zero.
-PARAM_INTEGER = 8
-# Unsigned integer value. Disallows zero.
-PARAM_UINTEGER = 9
+PARAM_OPTIONAL_FILENAME = 9
 
 PARAM_CLASSES = {
     # The Python boolean values, True and False are the only valid values.
@@ -247,7 +247,7 @@ class Config:
         assert set_show_doc[-1] != "." and "Don't end set_show_doc with punctuation."
         assert (
             HELP_DEFAULT_PREFIX not in help_docstring
-            and f"Having the string '{HELP_DEFAULT_PREFIX }' in the help_docstring "
+            and f"Having the string '{HELP_DEFAULT_PREFIX}' in the help_docstring "
             "messes with documentation generation. Please remove it, it is automatically generated."
         )
         assert (

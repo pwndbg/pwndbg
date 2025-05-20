@@ -32,6 +32,7 @@ DISABLED_DEADLOCK = "disabled-deadlock"
 ENABLED = "enabled"
 
 debug = config.add_param("debug-events", False, "display internal event debugging info")
+
 gdb_workaround_stop_event = config.add_param(
     "gdb-workaround-stop-event",
     DISABLED,
