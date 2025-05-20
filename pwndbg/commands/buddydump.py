@@ -330,8 +330,11 @@ def buddydump(
     cbp = CurrentBuddyParams(
         [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, False
     )
-    for node in range(kernel.num_numa_nodes()):
-        zones = node_data.dereference()[node]["node_zones"]
+    for node_idx in range(kernel.num_numa_nodes()):
+        # only display one node per invocation is probably sufficient under most use cases
+        if node is not None and node_idx != node:
+            continue
+        zones = node_data.dereference()[node_idx]["node_zones"]
         for i, name in enumerate(static_str_arr("zone_names")):
             if zone is not None and zone != name:
                 continue
