@@ -201,7 +201,13 @@ class SlabCache:
 
     @property
     def cpu_partial_slabs(self) -> int:
-        return int(self._slab_cache["cpu_partial_slabs"])
+        if self._slab_cache.dereference().type.has_field("cpu_partial_slabs"):
+            return int(self._slab_cache["cpu_partial_slabs"])
+        return None
+
+    @property
+    def min_partial(self) -> int:
+        return int(self._slab_cache["min_partial"])
 
     @property
     def inuse(self) -> int:
@@ -302,6 +308,14 @@ class NodeCache:
         ):
             ret.append(Slab(slab.dereference(), None, self.slab_cache, is_partial=True))
         return ret
+
+    @property
+    def nr_partial(self) -> int:
+        return int(self._node_cache["nr_partial"])
+
+    @property
+    def min_partial(self) -> int:
+        return self.slab_cache.min_partial
 
 
 class Slab:

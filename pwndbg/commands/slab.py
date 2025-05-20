@@ -44,11 +44,11 @@ parser_list.add_argument(
     help="Only show caches that contain the given filter string",
 )
 
-# TODO: --node
 parser_info = subparsers.add_parser("info", prog="slab info")
 parser_info.add_argument("names", metavar="name", type=str, nargs="+", help="")
 parser_info.add_argument("-v", "--verbose", action="store_true", help="")
 parser_info.add_argument("-c", "--cpu", type=int, default=False, help="CPU to display")
+parser_info.add_argument("-n", "--node", type=int, help="")
 parser_info.add_argument(
     "-p", "--partial-only", action="store_true", help="only displays partial lists"
 )
@@ -71,6 +71,7 @@ def slab(
     verbose=False,
     addresses=None,
     cpu=None,
+    node=None,
     partial_only=False,
     active_only=False,
 ) -> None:
@@ -86,7 +87,7 @@ def slab(
         if active_only:
             partial = False
         for name in names:
-            slab_info(name, verbose, cpu, active, partial)
+            slab_info(name, verbose, cpu, node, active, partial)
     elif command == "contains":
         for addr in addresses:
             slab_contains(addr)
@@ -154,12 +155,14 @@ def print_cpu_cache(
             indent.print("Partial Slabs: (none)")
             return
         slabs = partial_slabs[0].slabs
-        pobjects = partial_slabs[0].pobjects
         # the kernel checks cpu_partial_slabs to determine whether partial slabs are to be flushed
         # see: https://elixir.bootlin.com/linux/v6.13/source/mm/slub.c#L3209
         cpu_partial_slabs = partial_slabs[0].slab_cache.cpu_partial_slabs
+        if cpu_partial_slabs is None:
+            # legacy
+            cpu_partial_slabs = partial_slabs[0].pobjects
         indent.print(
-            f"{indent.prefix('Partial Slabs')} [nr_objs: {indent.aux_hex(pobjects)}] [nr_slabs/cpu_partial_slabs: {indent.aux_hex(slabs)}/{indent.aux_hex(cpu_partial_slabs)}]"
+            f"{indent.prefix('Partial Slabs')} [nr_slabs/cpu_partial_slabs: {indent.aux_hex(slabs)}/{indent.aux_hex(cpu_partial_slabs)}]"
         )
         with indent:
             for partial_slab in partial_slabs:
@@ -167,8 +170,15 @@ def print_cpu_cache(
 
 
 def print_node_cache(node_cache: NodeCache, verbose: bool, indent) -> None:
+    address, nr_partial, min_partial, node = (
+        node_cache.address,
+        node_cache.nr_partial,
+        node_cache.min_partial,
+        node_cache.node,
+    )
+    # https://elixir.bootlin.com/linux/v6.13/source/mm/slub.c#L3140
     indent.print(
-        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(node_cache.address)} [NUMA node {node_cache.node}]:"
+        f"{indent.prefix('kmem_cache_node')} @ {indent.addr_hex(address)} [NUMA node {node}, nr_partial/min_partial: {indent.aux_hex(nr_partial)}/{indent.aux_hex(min_partial)}]:"
     )
     with indent:
         partial_slabs = node_cache.partial_slabs
@@ -184,7 +194,7 @@ def print_node_cache(node_cache: NodeCache, verbose: bool, indent) -> None:
                 print_slab(slab, indent, verbose)
 
 
-def slab_info(name: str, verbose: bool, cpu: int, active: bool, partial: bool) -> None:
+def slab_info(name: str, verbose: bool, cpu: int, node: int, active: bool, partial: bool) -> None:
     slab_cache = pwndbg.aglib.kernel.slab.get_cache(name)
 
     if slab_cache is None:
@@ -225,6 +235,8 @@ def slab_info(name: str, verbose: bool, cpu: int, active: bool, partial: bool) -
             return
 
         for node_cache in slab_cache.node_caches:
+            if node is not None and node != node_cache.node:
+                continue
             print_node_cache(node_cache, verbose, indent)
 
 
