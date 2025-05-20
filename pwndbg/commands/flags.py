@@ -34,6 +34,7 @@ To see flags registers:
 This command supports flags registers that are defined for architectures in the pwndbg/regs.py file.
     """,
 )
+@pwndbg.commands.OnlyWhenRunning
 def setflag(flag: str, value: int) -> None:
     register_set = pwndbg.aglib.regs.current
 
