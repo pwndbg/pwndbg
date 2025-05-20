@@ -205,7 +205,20 @@ class SlabCache:
 
     @property
     def inuse(self) -> int:
-        return int(self._slab_cache["inuse"])
+        # somewhat mirrors libslub's implementation
+        # looks for per_cpu active lists and per_cpu and node partial lists
+        # no good way to track full slabs unless CONFIG_SLUB_DEBUG is enabled
+        #       which is typically not from what I have seen
+        cnt = 0
+        for cpu_cache in self.cpu_caches:
+            if cpu_cache.active_slab is not None:
+                cnt += cpu_cache.active_slab.inuse
+            for partial_slab in cpu_cache.partial_slabs:
+                cnt += partial_slab.inuse
+        for node_cache in self.node_caches:
+            for partial_slab in node_cache.partial_slabs:
+                cnt += partial_slab.inuse
+        return cnt
 
     @property
     def useroffset(self) -> int:
