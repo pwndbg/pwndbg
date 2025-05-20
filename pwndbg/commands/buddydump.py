@@ -10,6 +10,7 @@ import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.commands
+from pwndbg.aglib import kernel
 from pwndbg.aglib.kernel import per_cpu
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.commands import CommandCategory
@@ -70,14 +71,14 @@ parser.add_argument(
     dest="zone",
     choices=["DMA", "DMA32", "Normal", "HighMem", "Movable", "Device"],
     default=None,
-    help="Displays/searches lists only in a specified zone.",
+    help="Displays/searches lists only in the specified zone.",
 )
 parser.add_argument(
     "-o",
     "--order",
     type=int,
     dest="order",
-    help="Displays/searches lists only with a specified zone.",
+    help="Displays/searches lists only with the specified order.",
 )
 parser.add_argument(
     "-m",
@@ -86,7 +87,7 @@ parser.add_argument(
     dest="mtype",
     choices=["Unmovable", "Movable", "Reclaimable", "HighAtomic", "CMA", "Isolate"],
     default=None,
-    help="Displays/searches lists only with a specified mtype.",
+    help="Displays/searches lists only with the specified mtype.",
 )
 parser.add_argument(
     "-p",
@@ -94,11 +95,12 @@ parser.add_argument(
     action="store_true",
     dest="pcp_only",
     default=False,
-    help="Displays/searches lists only in PCP.",
+    help="Displays/searches only PCP lists.",
 )
 parser.add_argument(
     "-c", "--cpu", type=cpu_limitcheck, dest="cpu", default=None, help="CPU nr for searching PCP."
 )
+parser.add_argument("-n", "--node", type=int, dest="node", default=0, help="")
 parser.add_argument(
     "-f",
     "--find",
@@ -317,7 +319,9 @@ v
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
-def buddydump(zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, find: int) -> None:
+def buddydump(
+    zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, node: int, find: int
+) -> None:
     node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
     if not node_data:
         log.warning("WARNING: Symbol 'node_data' not found")
@@ -326,15 +330,15 @@ def buddydump(zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, find:
     cbp = CurrentBuddyParams(
         [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, False
     )
-    # TODO: this command currently only supports one node which should be the common case
-    zones = node_data.dereference()[0]["node_zones"]
-    for i, name in enumerate(static_str_arr("zone_names")):
-        if zone is not None and zone != name:
-            continue
-        pba.zone = zones[i]
-        cbp.sections[0] = (f"Zone {name}", None)
-        print_pcp_set(pba, cbp)
-        if not pcp_only:
-            print_free_area(pba, cbp)
-    if not cbp.found:
-        log.warning("No free pages with specified filters found.")
+    for node in range(kernel.num_numa_nodes()):
+        zones = node_data.dereference()[node]["node_zones"]
+        for i, name in enumerate(static_str_arr("zone_names")):
+            if zone is not None and zone != name:
+                continue
+            pba.zone = zones[i]
+            cbp.sections[0] = (f"Zone {name}", None)
+            print_pcp_set(pba, cbp)
+            if not pcp_only:
+                print_free_area(pba, cbp)
+        if not cbp.found:
+            log.warning("No free pages with specified filters found.")

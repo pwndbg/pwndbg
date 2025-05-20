@@ -10,7 +10,7 @@
 usage: buddydump [-h] [-z {DMA,DMA32,Normal,HighMem,Movable,Device}]
                  [-o ORDER]
                  [-m {Unmovable,Movable,Reclaimable,HighAtomic,CMA,Isolate}]
-                 [-p] [-c CPU] [-f FIND]
+                 [-p] [-c CPU] [-n NODE] [-f FIND]
 
 ```
 
@@ -20,11 +20,12 @@ Displays metadata and freelists of the buddy allocator.
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
-|-z|--zone|Displays/searches lists only in a specified zone.|
-|-o|--order|Displays/searches lists only with a specified zone.|
-|-m|--mtype|Displays/searches lists only with a specified mtype.|
-|-p|--pcp-only|Displays/searches lists only in PCP.|
+|-z|--zone|Displays/searches lists only in the specified zone.|
+|-o|--order|Displays/searches lists only with the specified order.|
+|-m|--mtype|Displays/searches lists only with the specified mtype.|
+|-p|--pcp-only|Displays/searches only PCP lists.|
 |-c|--cpu|CPU nr for searching PCP.|
+|-n|--node| (default: 0)|
 |-f|--find|The address to find in page free lists.|
 
 
