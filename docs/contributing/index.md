@@ -16,7 +16,7 @@ Regardless of the contents of your PR, you will need to [lint](#linting) and [te
 so make sure to read those sections. It is also likely you will need to [update the documentation](#updating-documentation).
 
 Read [General developer notes](2-dev-notes.md) to get more familiar with the various systems in place in
-pwndbg.
+pwndbg. If you have any questions don't hesitate to ask us on our [discord server](https://discord.gg/x47DssnGwm)!
 
 ## Linting
 The `lint.sh` script runs isort, ruff, shfmt, and vermin. isort and ruff (mostly) are able to automatically fix
