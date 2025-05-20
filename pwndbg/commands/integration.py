@@ -27,7 +27,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     parser,
     category=CommandCategory.INTEGRATIONS,
 )

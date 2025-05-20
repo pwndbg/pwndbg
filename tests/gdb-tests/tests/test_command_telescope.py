@@ -123,7 +123,7 @@ def test_command_telescope_frame(start_binary):
     result_lines = result_str.strip().split("\n")
 
     assert rsp in result_lines[0]
-    assert rbp in result_lines[-1]
+    assert rbp in result_lines[-2]
 
 
 def test_command_telescope_frame_bp_below_sp(start_binary):

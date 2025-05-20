@@ -81,7 +81,7 @@ def make_binaries(test_dir: str):
     try:
         subprocess.check_call(["make", "all"], cwd=str(dir_binaries))
     except subprocess.CalledProcessError:
-        exit(1)
+        sys.exit(1)
 
 
 def run_gdb(
@@ -117,10 +117,11 @@ def get_tests_list(
 
     if result.returncode == 1:
         print(tests_collect_output)
-        exit(1)
+        print(result.stderr)
+        sys.exit(1)
     elif collect_only == 1:
         print(tests_collect_output)
-        exit(0)
+        sys.exit(0)
 
     # Extract the test names from the output using regex
     pattern = re.compile(rf"{test_dir_path}.*::.*")
@@ -172,29 +173,34 @@ class TestStats:
 
     def handle_test_result(self, test_result: TEST_RETURN_TYPE, args, test_dir_path):
         (process, test_case, duration) = test_result
-        content = process.stdout
+        if args.serial:
+            # Serial mode does not capture stdout, so it's not possible to check the result
+            return
 
-        # Extract the test name and result using regex
-        testname = re.search(rf"^({test_dir_path}/[^ ]+)", content, re.MULTILINE)[0]
-        result = re.search(
-            r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)", content, re.MULTILINE
-        )[0]
+        test_status = "FAIL"
+        if process.returncode == 0:
+            result = re.search(
+                r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)",
+                process.stdout,
+                re.MULTILINE,
+            )
+            if result:
+                test_status = result[0]
 
-        (_, testname) = testname.split("::")
-
-        if "FAIL" in result:
+        if "FAIL" in test_status:
             self.fail_tests += 1
             self.fail_tests_names.append(test_case)
-        elif "PASS" in result:
+        elif "PASS" in test_status:
             self.pass_tests += 1
-        elif "SKIP" in result:
+        elif "SKIP" in test_status:
             self.skip_tests += 1
-        print(f"{testname:<70} {result} {duration:.2f}s")
+        print(f"{test_case:<70} {test_status} {duration:.2f}s")
 
         # Only show the output of failed tests unless the verbose flag was used
-        if args.verbose or "FAIL" in result:
+        if args.verbose or "FAIL" in test_status:
             print("")
-            print(content)
+            print(process.stderr)
+            print(process.stdout)
 
 
 def run_tests_and_print_stats(
@@ -237,7 +243,7 @@ def run_tests_and_print_stats(
         print("\nFailing tests:")
         for test_case in stats.fail_tests_names:
             print(f"- {test_case}")
-        exit(1)
+        sys.exit(1)
 
 
 def parse_args():
@@ -298,20 +304,31 @@ def main():
             sys.exit(1)
     else:
         gdbinit_path = os.path.join(root_dir, "gdbinit.py")
-        gdb_binary = "gdb"
-        if args.type == "cross-arch":
-            gdb_binary = "gdb-multiarch"
-        gdb_path = shutil.which(gdb_binary)
+        if args.type == "gdb":
+            gdb_path = shutil.which("gdb")
+        elif args.type == "cross-arch":
+            if (gdb_multiarch := shutil.which("gdb-multiarch")) is not None:
+                gdb_path = gdb_multiarch
+            else:
+                supports_arches = "py import os; archs = ['i386', 'aarch64', 'arm', 'mips', 'riscv', 'sparc']; os._exit(3) if len([arch for arch in archs if arch in gdb.architecture_names()]) == len(archs) else os._exit(2)"
+
+                result = run_gdb("gdb", ["-ex", supports_arches])
+                # GDB supports cross architecture targets
+                if result.returncode == 3:
+                    gdb_path = shutil.which("gdb")
+                else:
+                    raise Exception(
+                        "gdb-multiarch not found, and gdb does not support cross architecture targets"
+                    )
 
     os.environ["GDB_INIT_PATH"] = gdbinit_path
     os.environ["GDB_BIN_PATH"] = gdb_path
 
     test_dir_path = TEST_FOLDER_NAME[args.type]
 
-    if args.type == "gdb":
-        ensure_zig_path()
-        make_binaries(test_dir_path)
-    elif args.type == "cross-arch":
+    ensure_zig_path()
+
+    if args.type in ("gdb", "cross-arch"):
         make_binaries(test_dir_path)
     else:
         raise NotImplementedError(args.type)

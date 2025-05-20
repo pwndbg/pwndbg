@@ -12,7 +12,7 @@ import pwndbg.radare2
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
-parser = argparse.ArgumentParser(description="Launches radare2.", epilog="Example: r2 -- -S -AA")
+parser = argparse.ArgumentParser(description="Launches radare2.")
 parser.add_argument("--no-seek", action="store_true", help="Do not seek to current pc")
 parser.add_argument(
     "--no-rebase",
@@ -22,8 +22,21 @@ parser.add_argument(
 parser.add_argument("arguments", nargs="*", type=str, help="Arguments to pass to radare")
 
 
-@pwndbg.commands.ArgparsedCommand(
-    parser, aliases=["radare2"], category=CommandCategory.INTEGRATIONS
+@pwndbg.commands.Command(
+    parser,
+    aliases=["radare2"],
+    category=CommandCategory.INTEGRATIONS,
+    examples="""
+pwndbg> r2 -- -S -AA
+WARN: Relocs has not been applied. Please use `-e bin.relocs.apply=true` or `-e bin.cache=true` next time
+INFO: Analyze all flags starting with sym. and entry0 (aa)
+[...]
+INFO: Debugger commands disabled in sandbox mode
+[0x0001d3d0]> help
+
+Welcome to radare2!
+[...]
+    """,
 )
 @pwndbg.commands.OnlyWithFile
 def r2(arguments, no_seek=False, no_rebase=False) -> None:
@@ -53,18 +66,41 @@ def r2(arguments, no_seek=False, no_rebase=False) -> None:
 
 parser = argparse.ArgumentParser(
     description="Execute stateful radare2 commands through r2pipe.",
-    epilog="Example: r2pipe pdf sym.main",
 )
 parser.add_argument("arguments", nargs="+", type=str, help="Arguments to pass to r2pipe")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.INTEGRATIONS)
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.INTEGRATIONS,
+    examples="""
+pwndbg> r2pipe pdf @ sym.main
+            ; ICOD XREF from entry0 @ 0x1d3e8(r)
+┌ 6786: int main (uint32_t argc, char **argv, char **envp);
+│ `- args(rdi, rsi, rdx) vars(21:sp[0x40..0x18c])
+│           0x0001b920      f30f1efa       endbr64
+│           0x0001b924      4157           push r15
+│           0x0001b926      4156           push r14
+│           0x0001b928      4155           push r13
+│           0x0001b92a      4154           push r12
+[...]
+│           0x0001b966      85c0           test eax, eax
+│       ┌─< 0x0001b968      7545           jne 0x1b9af
+│       │   0x0001b96a      e8311b0100     call sym.xtrace_init
+│       │   0x0001b96f      e80cff0000     call sym.check_dev_tty
+│       │   ; CODE XREF from main @ 0x1b988(x)
+│      ┌──> 0x0001b974      833dd1680f..   cmp dword [obj.debugging_login_shell], 0 ; [0x11224c:4]=0
+│     ┌───< 0x0001b97b      743d           je 0x1b9ba
+│     │╎│   0x0001b97d      bf03000000     mov edi, 3
+[...]
+    """,
+)
 @pwndbg.commands.OnlyWithFile
 def r2pipe(arguments) -> None:
     try:
         r2 = pwndbg.radare2.r2pipe()
         print(r2.cmd(" ".join(arguments)))
     except ImportError:
-        print(message.error("Could not import r2pipe python library"))
+        print(message.error("Could not import r2pipe python library. Is it installed?"))
     except Exception as e:
         print(message.error(e))

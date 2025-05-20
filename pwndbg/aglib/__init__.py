@@ -1,22 +1,17 @@
 from __future__ import annotations
 
 from pwndbg.aglib import arch as arch_mod
-from pwndbg.aglib.arch import arch as arch
+from pwndbg.aglib.arch import PwndbgArchitecture
+from pwndbg.aglib.arch import get_pwndbg_architecture
 
 regs = None
+
+arch: PwndbgArchitecture = get_pwndbg_architecture("i386")
 
 
 def load_aglib():
     import pwndbg.aglib.argv
     import pwndbg.aglib.ctypes
-    import pwndbg.aglib.disasm
-    import pwndbg.aglib.disasm.aarch64
-    import pwndbg.aglib.disasm.arm
-    import pwndbg.aglib.disasm.mips
-    import pwndbg.aglib.disasm.ppc
-    import pwndbg.aglib.disasm.riscv
-    import pwndbg.aglib.disasm.sparc
-    import pwndbg.aglib.disasm.x86
     import pwndbg.aglib.dynamic
     import pwndbg.aglib.elf
     import pwndbg.aglib.file
@@ -42,3 +37,8 @@ def load_aglib():
     regs_: regs_mod.module = regs_mod
     global regs
     regs = regs_
+
+
+def set_arch(pwndbg_arch: PwndbgArchitecture):
+    global arch
+    arch = pwndbg_arch

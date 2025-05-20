@@ -18,7 +18,7 @@ parser = argparse.ArgumentParser(description="Finds the kernel virtual base addr
 parser.add_argument("-r", "--rebase", action="store_true", help="rebase loaded symbol file")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
+@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kbase(rebase=False) -> None:

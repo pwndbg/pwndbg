@@ -1,30 +1,11 @@
 from __future__ import annotations
 
 import argparse
-from argparse import RawTextHelpFormatter
 
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
-description = "Modify the flags register."
-epilog = """Examples:
-  On X86/X64:
-    setflag ZF 1        -- set zero flag
-    setflag CF 0        -- unset carry flag
-
-  On ARM:
-    setflag Z 0         -- unset the Z cpsr/xpsr flag
-
-  To see flags registers:
-    info reg eflags     -- on x86/x64
-    info reg cpsr/xpsr  -- on ARM (specific register may vary)
-
-(This command supports flags registers that are defined for architectures in the pwndbg/regs.py file)
-    """
-
-parser = argparse.ArgumentParser(
-    description=description, epilog=epilog, formatter_class=RawTextHelpFormatter
-)
+parser = argparse.ArgumentParser(description="Modify the flags register.")
 parser.add_argument("flag", type=str, help="Flag for which you want to change the value")
 parser.add_argument(
     "value",
@@ -33,7 +14,26 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["flag"], category=CommandCategory.REGISTER)
+@pwndbg.commands.Command(
+    parser,
+    aliases=["flag"],
+    category=CommandCategory.REGISTER,
+    examples="""
+On X86/X64:
+    setflag ZF 1        -- set zero flag
+    setflag CF 0        -- unset carry flag
+
+On ARM:
+    setflag Z 0         -- unset the Z cpsr/xpsr flag
+
+To see flags registers:
+    info reg eflags     -- on x86/x64
+    info reg cpsr/xpsr  -- on ARM (specific register may vary)
+    """,
+    notes="""
+This command supports flags registers that are defined for architectures in the pwndbg/regs.py file.
+    """,
+)
 def setflag(flag: str, value: int) -> None:
     register_set = pwndbg.aglib.regs.current
 

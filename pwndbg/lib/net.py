@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import binascii
 import socket
+import struct
 from typing import List
 
 import pwndbg.aglib.arch
@@ -27,6 +28,13 @@ TCP_STATUSES = {
 }
 
 
+def format_host_port(ip, port):
+    if ":" in ip and not ip.startswith("["):
+        return f"[{ip}]:{port}"
+    else:
+        return f"{ip}:{port}"
+
+
 class inode:
     inode: int | None = None
 
@@ -44,9 +52,7 @@ class Connection(inode):
     family: str | None = None
 
     def __str__(self) -> str:
-        return (
-            f"{self.family} {self.lhost}:{self.lport} => {self.rhost}:{self.rport} ({self.status})"
-        )
+        return f"{self.family} {format_host_port(self.lhost, self.lport)} => {format_host_port(self.rhost, self.rport)} ({self.status})"
 
     def __repr__(self) -> str:
         return f'Connection("{self}")'
@@ -62,7 +68,7 @@ class UnixSocket(inode):
         return f"UnixSocket({self})"
 
 
-def tcp(data: str) -> List[Connection]:
+def _tcp_parser(data: str, ip_family: socket.AddressFamily) -> List[Connection]:
     # For reference, see:
     # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
     """
@@ -120,9 +126,18 @@ def tcp(data: str) -> List[Connection]:
             host = binascii.unhexlify(host)
 
             if pwndbg.aglib.arch.endian == "little":
-                host = host[::-1]
+                if ip_family == socket.AF_INET:
+                    words = struct.unpack("<1I", host)
+                    host = struct.pack(">1I", *words)
+                elif ip_family == socket.AF_INET6:
+                    # The kernel outputs the IPv6 address as 4 little-endian 32-bit chunks.
+                    # This behavior is specific to little-endian kernels, such as x86.
+                    # On a big-endian kernel, the byte order would differ.
+                    # Reference: https://github.com/torvalds/linux/blob/a7c428ee8f59f171a3b57474f2bd5cee0ef1e036/net/ipv6/tcp_ipv6.c#L2153
+                    words = struct.unpack("<4I", host)
+                    host = struct.pack(">4I", *words)
 
-            host = socket.inet_ntop(socket.AF_INET, host)
+            host = socket.inet_ntop(ip_family, host)
             port = int(port, 16)
             return host, port
 
@@ -136,6 +151,14 @@ def tcp(data: str) -> List[Connection]:
         result.append(c)
 
     return result
+
+
+def tcp(data: str) -> List[Connection]:
+    return _tcp_parser(data, socket.AF_INET)
+
+
+def tcp6(data: str) -> List[Connection]:
+    return _tcp_parser(data, socket.AF_INET6)
 
 
 def unix(data: str) -> List[UnixSocket]:
@@ -191,7 +214,7 @@ NETLINK_TYPES = {
 
 class Netlink(inode):
     eth: int = 0
-    pid: int | None = None
+    portid: int | None = None
 
     def __str__(self) -> str:
         return NETLINK_TYPES.get(self.eth, "(unknown netlink)")
@@ -211,7 +234,7 @@ def netlink(data: str) -> List[Netlink]:
 
         n = Netlink()
         n.eth = int(fields[1])
-        n.pid = int(fields[2])
+        n.portid = int(fields[2])  # 'Pid' in Netlink context refers to Port ID, not Process ID
         n.inode = int(fields[9])
         result.append(n)
 

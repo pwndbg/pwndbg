@@ -105,12 +105,24 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         target = sys.argv[1]
 
+    from pwndbg.dbg.lldb.repl import PwndbgController
     from pwndbg.dbg.lldb.repl import run as run_repl
 
     if debug:
         print("[-] Launcher: Entering Pwndbg CLI")
 
-    run_repl([f"target create '{target}'"] if target else None, debug=debug)
+    def drive(startup: List[str] | None):
+        async def drive(c: PwndbgController):
+            if startup is not None:
+                for line in startup:
+                    await c.execute(line)
+
+            while True:
+                await c.interactive()
+
+        return drive
+
+    run_repl(drive([f"target create '{target}'"] if target else None), debug=debug)
 
     # Dispose of our debugger and terminate LLDB.
     lldb.SBDebugger.Destroy(debugger)

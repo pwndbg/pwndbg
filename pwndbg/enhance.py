@@ -14,7 +14,7 @@ from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.arch
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
@@ -74,10 +74,10 @@ def enhance(
     determine which order to print the fields.
 
     Arguments:
-        value(obj): Value to enhance
-        code(bool): Hint that indicates the value may be an instruction
-        safe_linking(bool): Whether this chain use safe-linking
-        enhance_string_len(int): The length of string to display for enhancement of the last pointer
+        value: Value to enhance
+        code: Hint that indicates the value may be an instruction
+        safe_linking: Whether this chain use safe-linking
+        enhance_string_len: The length of string to display for enhancement of the last pointer
     """
     value = int(value)
 
@@ -112,7 +112,7 @@ def enhance(
         rwx = exe = False
 
     if exe:
-        pwndbg_instr = pwndbg.aglib.disasm.one(value)
+        pwndbg_instr = pwndbg.aglib.disasm.disassembly.one(value)
         if pwndbg_instr:
             # For telescoping, we don't want the extra spaces between the mnemonic and operands
             # which are baked in during enhancement. This removes those spaces.

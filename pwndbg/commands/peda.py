@@ -14,7 +14,7 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
-@pwndbg.commands.ArgparsedCommand("Gets the current file.")
+@pwndbg.commands.Command("Gets the current file.", category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def getfile() -> None:
     print(repr(pwndbg.auxv.get().AT_EXECFN))
@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser(description="Continue execution until an addres
 parser.add_argument("target", type=int, help="Location to stop execution at")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.NEXT)
+@pwndbg.commands.Command(parser, category=CommandCategory.NEXT)
 def xuntil(target) -> None:
     try:
         addr = target
@@ -48,7 +48,3 @@ def xuntil(target) -> None:
         gdb.execute("continue", from_tty=False)
     else:
         gdb.execute("run", from_tty=False)
-
-
-xinfo = pwndbg.commands.context.context
-xprint = pwndbg.commands.telescope.telescope

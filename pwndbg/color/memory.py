@@ -75,9 +75,9 @@ def get(
     Returns a colorized string representing the provided address.
 
     Arguments:
-        address(int | pwndbg.dbg_mod.Value): Address to look up
-        text(str | None): Optional text to use in place of the address in the return value string.
-        prefix(str | None): Optional text to set at beginning in the return value string.
+        address: Address to look up
+        text: Optional text to use in place of the address in the return value string.
+        prefix: Optional text to set at beginning in the return value string.
     """
     address = int(address)
     page = pwndbg.aglib.vmmap.find(address)

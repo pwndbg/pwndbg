@@ -18,7 +18,7 @@ parser.add_argument(
 
 
 @pwndbg.commands.OnlyWithFile
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.INTEGRATIONS)
+@pwndbg.commands.Command(parser, category=CommandCategory.INTEGRATIONS)
 def ghidra(func) -> None:
     try:
         print(pwndbg.ghidra.decompile(func))

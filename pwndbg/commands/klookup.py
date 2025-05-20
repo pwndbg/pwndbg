@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(description="Lookup kernel symbols")
 parser.add_argument("symbol", type=str, help="Address or symbol name to lookup")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
+@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def klookup(symbol: str) -> None:

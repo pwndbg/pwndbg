@@ -42,7 +42,6 @@ def columns(rows, colors=None) -> None:
         print()
 
 
-# Subcommand that enables the tracker.
 parser = argparse.ArgumentParser(
     description="Controls GOT tracking",
 )
@@ -97,7 +96,7 @@ status.add_argument(
 status.set_defaults(mode="status")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX, command_name="track-got")
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX, command_name="track-got")
 @pwndbg.commands.OnlyWhenRunning
 def track_got(mode=None, soname=None, writable=False, fnname=None, address=None):
     if mode == "enable":

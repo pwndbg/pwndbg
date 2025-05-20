@@ -53,18 +53,11 @@ last_alive_state = False
 
 
 def show_hint() -> None:
-    funcs_list_str = ", ".join(
-        message.notice("$" + f.name) for f in pwndbg.gdblib.functions.functions
-    )
-
-    num_pwndbg_cmds = sum(
-        1 for _ in filter(lambda c: not (c.shell or c.is_alias), pwndbg.commands.commands)
-    )
-    num_shell_cmds = sum(1 for _ in filter(lambda c: c.shell, pwndbg.commands.commands))
     hint_lines = (
-        "loaded %i pwndbg commands and %i shell commands. Type %s for a list."
-        % (num_pwndbg_cmds, num_shell_cmds, message.notice("pwndbg [--shell | --all] [filter]")),
-        f"created {funcs_list_str} GDB functions (can be used with print/break)",
+        f"loaded {len(pwndbg.commands.commands)} pwndbg commands."
+        f" Type {message.notice('pwndbg [filter]')} for a list.",
+        f"created {len(pwndbg.gdblib.functions.functions)} GDB functions (can be used"
+        f" with print/break). Type {message.notice('help function')} to see them.",
     )
 
     for line in hint_lines:

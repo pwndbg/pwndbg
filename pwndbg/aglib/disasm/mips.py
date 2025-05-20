@@ -1,15 +1,3 @@
-# When single stepping in Unicorn with MIPS, the address it arrives at in Unicorn
-# is often incorrect with branches.
-# This is due to "Delay slots" - the instruction AFTER a branch is always executed
-# before the jump, and the Unicorn emulator respects this behavior.
-# This causes single stepping branches to not arrive at the correct instruction -
-# it will simply go to the next location in memory, not respecting the branch. It doesn't appear to be extremely consistent.
-# Unicorn doesn't have a workaround for this single stepping issue:
-# https://github.com/unicorn-engine/unicorn/issues/332
-#
-# The way to fix the issue this causes (incorrect instruction.next) is by implementing the
-# condition function to manually specify when a jump is taken. Our manual decision will override the emulator.
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -33,12 +21,57 @@ from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 if TYPE_CHECKING:
     from pwndbg.emu.emulator import Emulator
 
+# These branch instructions do not have a branch delay
+BRANCH_WITHOUT_DELAY_SLOT_INSTRUCTIONS = {
+    MIPS_INS_BC,
+    MIPS_INS_BALC,
+    MIPS_INS_JIALC,
+    MIPS_INS_JIC,
+    MIPS_INS_BLEZALC,
+    MIPS_INS_BGEZALC,
+    MIPS_INS_BGTZALC,
+    MIPS_INS_BLTZALC,
+    MIPS_INS_BEQZALC,
+    MIPS_INS_BNEZALC,
+    MIPS_INS_BLEZC,
+    MIPS_INS_BGEZC,
+    MIPS_INS_BGEUC,
+    MIPS_INS_BGEIC,
+    MIPS_INS_BGEUC,
+    MIPS_INS_BGEIUC,
+    MIPS_INS_BGTZC,
+    MIPS_INS_BLTZC,
+    MIPS_INS_BEQZC,
+    MIPS_INS_ALIAS_BEQZC,
+    MIPS_INS_BNEZC,
+    MIPS_INS_ALIAS_BNEZC,
+    MIPS_INS_BEQC,
+    MIPS_INS_ALIAS_BEQC,
+    MIPS_INS_BEQIC,
+    MIPS_INS_BNEC,
+    MIPS_INS_ALIAS_BNEC,
+    MIPS_INS_BNEIC,
+    MIPS_INS_BLTC,
+    MIPS_INS_BLTIC,
+    MIPS_INS_BLTUC,
+    MIPS_INS_BLTIUC,
+    MIPS_INS_BGEC,
+    MIPS_INS_BLTUC,
+    MIPS_INS_BNVC,
+    MIPS_INS_BOVC,
+    MIPS_INS_BRSC,
+    MIPS_INS_BALRSC,
+    MIPS_INS_BBEQZC,
+    MIPS_INS_BBNEZC,
+}
 
+# Instruction in branch delay slot is ignored if the branch it NOT taken
+# Currently unused
 BRANCH_LIKELY_INSTRUCTIONS = {
-    MIPS_INS_BC0TL,
-    MIPS_INS_BC1TL,
-    MIPS_INS_BC0FL,
     MIPS_INS_BC1FL,
+    MIPS_INS_ALIAS_BC1FL,
+    MIPS_INS_BC1TL,
+    MIPS_INS_ALIAS_BC1TL,
     MIPS_INS_BEQL,
     MIPS_INS_BGEZALL,
     MIPS_INS_BGEZL,
@@ -47,8 +80,9 @@ BRANCH_LIKELY_INSTRUCTIONS = {
     MIPS_INS_BLTZALL,
     MIPS_INS_BLTZL,
     MIPS_INS_BNEL,
+    MIPS_INS_ALIAS_BNEZL,
+    MIPS_INS_ALIAS_BEQZL,
 }
-
 
 CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
     MIPS_INS_BEQZ: lambda ops: ops[0] == 0,
@@ -62,6 +96,9 @@ CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
     MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
     MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
 }
+
+CONDITION_RESOLVERS[MIPS_INS_ALIAS_BEQZ] = CONDITION_RESOLVERS[MIPS_INS_BEQZ]
+CONDITION_RESOLVERS[MIPS_INS_ALIAS_BNEZ] = CONDITION_RESOLVERS[MIPS_INS_BNEZ]
 
 # These are instructions that have the first operand as the destination register.
 # They all do some computation and set the register to the result.
@@ -143,13 +180,14 @@ MIPS_BINARY_OPERATIONS = {
 
 
 # This class enhances 32-bit, 64-bit, and micro MIPS
-class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
-    def __init__(self, architecture: str) -> None:
+class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+    def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOVE
             MIPS_INS_MOVE: self._common_move_annotator,
+            MIPS_INS_ALIAS_MOVE: self._common_move_annotator,
             # LI
             MIPS_INS_LI: self._common_move_annotator,
             # LUI
@@ -207,12 +245,6 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        if instruction.id == MIPS_INS_JAL:
-            # Capstone bug - JAL with an immediate (jal 0x1000000) has no jump group in the list, so we add it manually
-            # See: https://github.com/capstone-engine/capstone/issues/2448
-            # And: https://github.com/capstone-engine/capstone/issues/1680
-            instruction.groups.add(CS_GRP_CALL)
-
         if len(instruction.operands) == 0:
             return InstructionCondition.UNDETERMINED
 
@@ -239,7 +271,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     @override
     def _resolve_target(self, instruction: PwndbgInstruction, emu: Emulator | None):
         if bool(instruction.groups & FORWARD_JUMP_GROUP) and not bool(
-            instruction.groups & BRANCH_LIKELY_INSTRUCTIONS
+            instruction.groups & BRANCH_WITHOUT_DELAY_SLOT_INSTRUCTIONS
         ):
             instruction.causes_branch_delay = True
 
@@ -259,6 +291,3 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if base is None:
             return None
         return base + op.mem.disp
-
-
-assistant = DisassemblyAssistant("mips")

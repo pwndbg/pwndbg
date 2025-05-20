@@ -92,6 +92,21 @@ def nproc() -> int:
     return val
 
 
+@requires_debug_syms(default=12)
+def npcplist() -> int:
+    """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
+    node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
+    zone = node_data.dereference()[0]["node_zones"][0]
+    # index 0 should always exist
+    if zone.type.has_field("per_cpu_pageset"):
+        lists = zone["per_cpu_pageset"]["lists"]
+        return len(lists)
+    if zone.type.has_field("pageset"):
+        lists = zone["pageset"]["pcp"]["lists"]
+        return len(lists)
+    return 0
+
+
 def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
     """Returns the first kernel mapping which contains the linux_banner"""
     base = kbase()

@@ -1,0 +1,63 @@
+name: Dev Docs
+on: [push, pull_request, workflow_dispatch]
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install gdb (needed for doc verification)
+        run: |
+          sudo apt update
+          sudo apt install -y gdb
+
+      - name: Verify docs are up to date with source
+        run: |
+          ./scripts/verify_docs.sh
+
+      - name: Update docs/index.md with README.md
+        # This can be a simple copy if https://github.com/github/markup/issues/994
+        # is solved.
+        run: ./scripts/generate_readme.sh
+
+      - name: Build site
+        run: |
+          # --only-group doesn't work with api-autonav (why?)
+          uv run --group docs mkdocs build --strict
+
+  deploy:
+    if: github.event_name == 'push' && contains(fromJson('["refs/heads/dev"]'), github.ref)
+    needs: check
+    name: Deploy dev docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Update docs/index.md with README.md
+        run: ./scripts/generate_readme.sh
+
+      - name: Deploy site
+        run: |
+          # mike pushes commits to the gh-pages branch
+          git config --global user.email "doc-bot@pwndbg.re"
+          git config --global user.name "DocBot"
+          git fetch --no-tags --prune --depth=1 origin +refs/heads/gh-pages:refs/remotes/origin/gh-pages
+          uv run --group docs mike deploy \
+            --update-aliases \
+            --push \
+            --remote origin \
+            dev

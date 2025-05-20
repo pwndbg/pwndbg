@@ -16,7 +16,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 def hex2ptr(hex_string) -> None:
     hex_string = hex_string.replace(" ", "")
     try:

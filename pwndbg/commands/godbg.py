@@ -43,7 +43,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     parser, category=CommandCategory.MEMORY, command_name="go-dump", aliases=["god"]
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -74,7 +74,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     parser, category=CommandCategory.MEMORY, command_name="go-type", aliases=["goty"]
 )
 @pwndbg.commands.OnlyWhenRunning

@@ -4,6 +4,7 @@
   python3 ? pkgs.python3,
   isDev ? false,
   isLLDB ? false,
+  isEditable ? false,
   ...
 }:
 let
@@ -13,6 +14,10 @@ let
 
   pyprojectOverlay = workspace.mkPyprojectOverlay {
     sourcePreference = "sdist";
+  };
+
+  editableOverlay = workspace.mkEditablePyprojectOverlay {
+    root = "$REPO_ROOT";
   };
 
   pkgsNeedSetuptools = [
@@ -63,6 +68,7 @@ let
     "types-tabulate"
     "types-pygments"
     "types-docutils"
+    "types-psutil"
     "types-gdb"
     "types-setuptools"
     "cryptography"
@@ -156,43 +162,14 @@ let
     capstone = pkgs.callPackage (
       {
         cmake,
-        fixDarwinDylibNames,
-        fetchFromGitHub,
         stdenv,
       }:
       prev.capstone.overrideAttrs (
         old:
-        lib.optionalAttrs ((isBuildSource old) && stdenv.hostPlatform.isDarwin) {
+        lib.optionalAttrs (isBuildSource old) {
           nativeBuildInputs = old.nativeBuildInputs ++ [
             cmake
-            fixDarwinDylibNames
           ];
-
-          preBuild = ''
-            sed -i 's/^IS_APPLE := .*$/IS_APPLE := 1/' ./src/Makefile
-
-            substituteInPlace ./setup.py \
-                --replace-fail "import sys" "import sys; sys.argv.extend(('--plat-name', 'any'))" || true
-          '';
-
-          # See: https://github.com/capstone-engine/capstone/issues/2621
-          postPatch = (
-            let
-              gitSrc = fetchFromGitHub {
-                owner = "capstone-engine";
-                repo = "capstone";
-                rev = old.version;
-                hash = "sha256-VGqqrixg7LaqRWTAEBzpC+gUTchncz3Oa2pSq8GLskI=";
-              };
-            in
-            ''
-              cp ${gitSrc}/capstone.pc.in src/
-              cp ${gitSrc}/capstone-config.cmake.in src/
-              cp ${gitSrc}/cmake_uninstall.cmake.in src/
-              cp ${gitSrc}/CPackConfig.txt src/
-              cp ${gitSrc}/CPackConfig.cmake src/
-            ''
-          );
         }
       )
     ) { };
@@ -203,6 +180,7 @@ let
         pkg-config,
         cctools,
         stdenv,
+        fetchFromGitHub,
       }:
       prev.unicorn.overrideAttrs (
         old:
@@ -220,6 +198,28 @@ let
           postPatch = lib.optionalString stdenv.hostPlatform.isDarwin ''
             substituteInPlace ./src/CMakeLists.txt \
                 --replace-fail 'set(CMAKE_C_COMPILER "/usr/bin/cc")' 'set(CMAKE_C_COMPILER "${stdenv.cc}/bin/cc")' || true
+
+            # Due to an issue with the Apple ARM64 Hypervisor on GitHub Actions,
+            # we need to force the `sprr` register check.
+            # Otherwise, Nix may cache broken builds.
+            # See:
+            # - https://github.com/actions/runner-images/issues/11127
+            # - https://github.com/unicorn-engine/unicorn/issues/2033
+            substituteInPlace ./src/qemu/configure \
+                --replace-fail "have_sprr_mrs='no'" "have_sprr_mrs='yes'"
+          '';
+        }
+        // lib.optionalAttrs stdenv.hostPlatform.isLoongArch64 {
+          # Remove this block after upgrading to unicorn 2.2.0
+          src = fetchFromGitHub {
+            owner = "unicorn-engine";
+            repo = "unicorn";
+            rev = "e867b08c66544ddf8cd62c1e36e8ff35d32c3e77";
+            hash = "sha256-vov6io2+RY8CZAoF0S00J2trlEEQHeMxw4HV8gm2Q2Y=";
+          };
+          sourceRoot = "source/bindings/python";
+          preBuild = ''
+            chmod -R +w ../../../
           '';
         }
       )
@@ -290,6 +290,30 @@ let
     python = python3;
   };
   pythonSet = baseSet.overrideScope overlays;
+  editablePythonSet = pythonSet.overrideScope (
+    lib.composeManyExtensions [
+      inputs.pyproject-build-systems.overlays.default
+      editableOverlay
+      pyprojectOverrides1
+      pyprojectOverrides2
+      (final: prev: {
+        pythonPkgsBuildHost = prev.pythonPkgsBuildHost.overrideScope (
+          lib.composeManyExtensions [
+            inputs.pyproject-build-systems.overlays.default
+          ]
+        );
+      })
+      (final: prev: {
+        pwndbg = prev.pwndbg.overrideAttrs (old: {
+          nativeBuildInputs =
+            old.nativeBuildInputs
+            ++ final.resolveBuildSystem {
+              editables = [ ];
+            };
+        });
+      })
+    ]
+  );
 
   pyenv = pythonSet.mkVirtualEnv "pwndbg-env" {
     pwndbg =
@@ -304,5 +328,17 @@ let
         # "lint"
       ];
   };
+
+  pyenvEditable = editablePythonSet.mkVirtualEnv "pwndbg-editable-env" {
+    pwndbg =
+      [ ]
+      ++ lib.optionals isLLDB [
+        "lldb"
+      ]
+      ++ lib.optionals isDev [
+        "dev"
+        "tests"
+      ];
+  };
 in
-pyenv
+if isEditable then pyenvEditable else pyenv

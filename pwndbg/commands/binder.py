@@ -396,7 +396,7 @@ class BinderVisitor:
 parser = argparse.ArgumentParser(description="Show Android Binder information")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.KERNEL)
+@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled

@@ -17,11 +17,11 @@ from pwndbg.color import disable_colors
 from pwndbg.color import message
 from pwndbg.color import theme
 
-pwndbg.config.add_param("syntax-highlight", True, "Source code / assembly syntax highlight")
+pwndbg.config.add_param("syntax-highlight", True, "source code / assembly syntax highlight")
 style = theme.add_param(
     "syntax-highlight-style",
     "monokai",
-    "Source code / assembly syntax highlight stylename of pygments module",
+    "source code / assembly syntax highlight stylename of pygments module",
 )
 
 formatter = pygments.formatters.Terminal256Formatter(style=str(style))

@@ -15,6 +15,9 @@ def test_to_signed():
     assert bit_math.to_signed(0xFFFF_FFFF, 32) == -1
     assert bit_math.to_signed(0x8000_0000, 32) == -(2**31)
 
+    # Ignore higher bits
+    assert bit_math.to_signed(0xF_FF, 8) == -1
+
 
 def test_lsl():
     assert bit_math.logical_shift_left(0b1000_0000, 1, 8) == 0

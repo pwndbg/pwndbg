@@ -9,9 +9,9 @@ import pwndbg.chain
 import pwndbg.commands
 import pwndbg.dbg
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Dumps the elements of a linked list.
 
 This command traverses the linked list beginning at a given element, dumping its
@@ -186,7 +186,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="plist")
+@pwndbg.commands.Command(parser, command_name="plist", category=CommandCategory.MISC)
 def plist(
     path: str,
     next: str,

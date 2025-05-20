@@ -6,6 +6,7 @@ from pwnlib.util.cyclic import cyclic
 
 import pwndbg.color.message as M
 import pwndbg.commands
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Spray memory with cyclic() generated values")
 parser.add_argument("addr", help="Address to spray")
@@ -30,7 +31,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def spray(addr, length, value, only_funcptrs) -> None:
     addr = int(addr)

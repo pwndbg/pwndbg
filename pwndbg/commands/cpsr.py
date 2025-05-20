@@ -16,7 +16,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     parser,
     aliases=["xpsr", "pstate"],
     category=CommandCategory.REGISTER,

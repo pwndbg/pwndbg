@@ -11,7 +11,7 @@ import pwnlib
 
 import pwndbg
 import pwndbg.aglib.arch
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
@@ -26,11 +26,11 @@ if pwndbg.dbg.is_gdblib_available():
 saved: Set[int] = set()
 
 
-def print_search_hit(address) -> None:
+def print_search_hit(address: int) -> None:
     """Prints out a single search hit.
 
     Arguments:
-        address(int): Address to print
+        address: Address to print
     """
     if not address:
         return
@@ -53,7 +53,6 @@ auto_save = pwndbg.config.add_param(
     "auto-save-search", False, 'automatically pass --save to "search" command'
 )
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Search memory for byte sequences, strings, pointers, and integer values.
 
 By default search results are cached. If you want to cache all results, but only print a subset, use --trunc-out. If you want to cache only a subset of results, and print the results immediately, use --limit. The latter is specially useful if you're searching a huge section of memory.
@@ -177,7 +176,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def search(
     type,

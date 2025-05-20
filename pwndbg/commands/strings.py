@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import argparse
-import re
 from typing import List
 
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.memory import Page
 
 parser = argparse.ArgumentParser(
     description="Extracts and displays ASCII strings from readable memory pages of the debugged process."
@@ -30,33 +28,21 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def strings(n: int = 4, page_names: List[str] = [], save_as: str = None):
-    # Extract pages with PROT_READ permission
-    readable_pages: List[Page] = [page for page in pwndbg.aglib.vmmap.get() if page.read]
+    # Get only readable pages and those that match the page_names filter
+    pages = (
+        p
+        for p in pwndbg.aglib.vmmap.get()
+        if p.read and ((not page_names) or any(name in p.objfile for name in page_names))
+    )
 
-    for page in readable_pages:
-        if page_names and not any(name in page.objfile for name in page_names):
-            continue  # skip if page does not belong to any of the specified mappings
+    f = open(save_as, "w") if save_as else None
 
-        count = page.memsz
-        start_address = page.vaddr
+    for page in pages:
+        for string in pwndbg.aglib.strings.yield_in_page(page, n):
+            print(string, file=f)
 
-        try:
-            data = pwndbg.aglib.memory.read(addr=start_address, count=count)
-        except pwndbg.dbg_mod.Error as e:
-            print(f"Skipping inaccessible page at {start_address:#x}: {e}")
-            continue  # skip if access is denied
-
-        # all strings in the `data`
-        strings: List[bytes] = re.findall(rb"[ -~]{%d,}" % n, data)
-        decoded_strings: List[str] = [s.decode("ascii", errors="ignore") for s in strings]
-
-        if not save_as:
-            for string in decoded_strings:
-                print(string)
-            continue
-
-        with open(save_as, "w") as f:
-            f.writelines(string + "\n" for string in decoded_strings)
+    if f:
+        f.close()

@@ -29,7 +29,8 @@ import pwndbg.color.message as M
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
-from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+from pwndbg.lib.arch import ArchDefinition
+from pwndbg.lib.arch import Platform
 from pwndbg.lib.regs import reg_sets
 
 T = TypeVar("T")
@@ -52,33 +53,6 @@ def rename_register(name: str, proc: LLDBProcess) -> str:
 
     # Nothing to change.
     return name
-
-
-class LLDBArch(pwndbg.dbg_mod.Arch):
-    def __init__(
-        self,
-        name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE,
-        ptrsize: int,
-        endian: Literal["little", "big"],
-    ):
-        self._endian = endian
-        self._name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE = name
-        self._ptrsize = ptrsize
-
-    @override
-    @property
-    def endian(self) -> Literal["little", "big"]:
-        return self._endian
-
-    @override
-    @property
-    def name(self) -> PWNDBG_SUPPORTED_ARCHITECTURES_TYPE:
-        return self._name
-
-    @override
-    @property
-    def ptrsize(self) -> int:
-        return self._ptrsize
 
 
 class LLDBRegisters(pwndbg.dbg_mod.Registers):
@@ -713,8 +687,8 @@ class OneShotAwaitable:
     def __init__(self, value: Any):
         self.value = value
 
-    def __await__(self) -> Generator[Any, Any, None]:
-        yield self.value
+    def __await__(self) -> Generator[Any, Any, Any]:
+        return (yield self.value)
 
 
 class YieldContinue:
@@ -939,7 +913,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         e = lldb.SBError()
         buffer = self.process.ReadMemory(address, size, e)
         if buffer:
-            return buffer
+            return bytearray(buffer)
         elif not partial:
             raise pwndbg.dbg_mod.Error(f"could not read {size:#x} bytes: {e}")
 
@@ -1473,7 +1447,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return [LLDBType(types.GetTypeAtIndex(i)) for i in range(types.GetSize())]
 
     @override
-    def arch(self) -> pwndbg.dbg_mod.Arch:
+    def arch(self) -> ArchDefinition:
         endian0 = self.process.GetByteOrder()
         endian1 = self.target.GetByteOrder()
 
@@ -1545,7 +1519,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # Pwndbg use a different name for riscv64.
             name = "rv64"
 
-        return LLDBArch(name, ptrsize0, endian)
+        return ArchDefinition(name=name, ptrsize=ptrsize0, endian=endian, platform=Platform.LINUX)
 
     @override
     def break_at(
@@ -1751,6 +1725,10 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def setup(self, *args, **kwargs):
+        import pwnlib.update
+
+        pwnlib.update.disabled = True
+
         self.exec_states = []
         self.event_handlers = {}
         self.controllers = []
@@ -2030,6 +2008,24 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         return True
 
     @override
+    def breakpoint_locations(self) -> List[pwndbg.dbg_mod.BreakpointLocation]:
+        inferior: LLDBProcess = self.selected_inferior()
+        if inferior is None:
+            return []
+
+        bps: List[lldb.SBBreakpoint] = inferior.target.breakpoints
+        locations: List[pwndbg.dbg_mod.BreakpointLocation] = []
+        for bp in bps:
+            if bp.IsValid() and bp.IsEnabled():
+                for location in bp.locations:
+                    locations.append(location.GetAddress().GetLoadAddress(inferior.target))
+        return locations
+
+    @override
+    def name(self) -> pwndbg.dbg_mod.DebuggerType:
+        return pwndbg.dbg_mod.DebuggerType.LLDB
+
+    @override
     def x86_disassembly_flavor(self) -> Literal["att", "intel"]:
         # Example:
         # (lldb) settings show target.x86-disassembly-flavor
@@ -2054,6 +2050,13 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     def get_cmd_window_size(self) -> Tuple[int, int]:
         return None, None
 
+    @override
+    @property
+    def pre_ctx_lines(self) -> int:
+        # We control the REPL, and we don't print any extra lines
+        return 0
+
+    @override
     def is_gdblib_available(self):
         return False
 

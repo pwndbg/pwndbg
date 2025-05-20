@@ -29,23 +29,17 @@ RISCV_LOAD_INSTRUCTIONS = {
     RISCV_INS_LHU: 2,
     RISCV_INS_LWU: 4,
     RISCV_INS_LD: 8,
+    RISCV_INS_C_LW: -4,
+    RISCV_INS_C_LWSP: -4,
+    RISCV_INS_C_LD: 8,
+    RISCV_INS_C_LDSP: 8,
 }
-
-# Due to a bug in Capstone, these instructions have incorrect operands to represent a memory address.
-# So we temporarily separate them to handle them differently
-# This will be fixed in Capstone 6 - https://github.com/capstone-engine/capstone/pull/2393
-# TODO: remove this when updating to Capstone 6
-RISCV_COMPRESSED_LOAD_INSTRUCTIONS = {RISCV_INS_C_LW: -4, RISCV_INS_C_LD: 8, RISCV_INS_C_LDSP: 8}
 
 RISCV_STORE_INSTRUCTIONS = {
     RISCV_INS_SB: 1,
     RISCV_INS_SH: 2,
     RISCV_INS_SW: 4,
     RISCV_INS_SD: 8,
-}
-
-# TODO: remove this when updating to Capstone 6
-RISCV_COMPRESSED_STORE_INSTRUCTIONS = {
     RISCV_INS_C_SW: 4,
     RISCV_INS_C_SWSP: 4,
     RISCV_INS_C_SD: 8,
@@ -119,7 +113,7 @@ RISCV_EMULATED_ANNOTATIONS = {
 }
 
 
-class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
         self.architecture = architecture
@@ -150,26 +144,6 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 instruction.operands[0].str,
                 instruction.operands[1].str,
             )
-        # TODO: remove this when updating to Capstone 6
-        elif instruction.id in RISCV_COMPRESSED_LOAD_INSTRUCTIONS:
-            # We need to manually resolve this now since Capstone doesn't properly represent
-            # memory operands for compressed instructions.
-            address = self._resolve_compressed_target_addr(instruction, emu)
-            if address is not None:
-                read_size = RISCV_COMPRESSED_LOAD_INSTRUCTIONS[instruction.id]
-
-                dest_str = f"[{MemoryColor.get_address_or_symbol(address)}]"
-
-                self._common_load_annotator(
-                    instruction,
-                    emu,
-                    address,
-                    abs(read_size),
-                    read_size < 0,
-                    pwndbg.aglib.arch.ptrsize,
-                    instruction.operands[0].str,
-                    dest_str,
-                )
         elif instruction.id in RISCV_STORE_INSTRUCTIONS:
             self._common_store_annotator(
                 instruction,
@@ -179,21 +153,6 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 RISCV_STORE_INSTRUCTIONS[instruction.id],
                 instruction.operands[1].str,
             )
-        elif instruction.id in RISCV_COMPRESSED_STORE_INSTRUCTIONS:
-            # TODO: remove this branch when updating to Capstone 6
-            address = self._resolve_compressed_target_addr(instruction, emu)
-
-            if address is not None:
-                dest_str = f"[{MemoryColor.get_address_or_symbol(address)}]"
-
-                self._common_store_annotator(
-                    instruction,
-                    emu,
-                    address,
-                    instruction.operands[0].before_value,
-                    RISCV_COMPRESSED_STORE_INSTRUCTIONS[instruction.id],
-                    dest_str,
-                )
         elif instruction.id in RISCV_MATH_INSTRUCTIONS:
             # We need this check, because some of these instructions can encoded as aliases
             # Example: NOP is an alias of ADDI where target is x0. In Capstone, the ID will still be that of ADDI but with no operands
@@ -232,22 +191,6 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.annotation = register_assign(
                 result_operand.str, MemoryColor.get_address_and_symbol(address)
             )
-
-    def _resolve_compressed_target_addr(
-        self, instruction: PwndbgInstruction, emu: Emulator
-    ) -> int | None:
-        """
-        Calculate the address used in a compressed load/store instruction.
-        None if address cannot be resolved.
-
-        TODO: remove this when updating to Capstone 6
-        """
-        _, disp, reg = instruction.operands
-
-        if disp.before_value is None or reg.before_value is None:
-            return None
-
-        return disp.before_value + reg.before_value
 
     def _is_condition_taken(
         self, instruction: PwndbgInstruction, emu: Emulator | None
@@ -348,7 +291,3 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if base is None:
             return None
         return base + op.mem.disp
-
-
-assistant_rv32 = DisassemblyAssistant("rv32")
-assistant_rv64 = DisassemblyAssistant("rv64")

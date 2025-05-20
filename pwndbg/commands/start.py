@@ -6,7 +6,6 @@ entry point.
 from __future__ import annotations
 
 import argparse
-from argparse import RawTextHelpFormatter
 from shlex import quote
 
 import pwndbg
@@ -20,6 +19,7 @@ import pwndbg.commands
 import pwndbg.dbg
 from pwndbg.commands import CommandCategory
 from pwndbg.dbg import BreakpointLocation
+from pwndbg.dbg import DebuggerType
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
@@ -40,8 +40,8 @@ def breakpoint_at_entry():
     bp = proc.break_at(BreakpointLocation(addr), internal=True)
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
-        await ec.cont(bp)
-        bp.remove()
+        with bp:
+            await ec.cont(bp)
 
     proc.dispatch_execution_controller(ctrl)
 
@@ -49,7 +49,6 @@ def breakpoint_at_entry():
 # Starting from 3rd paragraph, the description is
 # taken from the GDB's `starti` command description
 parser = argparse.ArgumentParser(
-    formatter_class=RawTextHelpFormatter,
     description="""
 Start the debugged program stopping at the first convenient location
 from this list: main, _main, start, _start, init or _init.
@@ -73,8 +72,12 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["main", "init"], category=CommandCategory.START)
-@pwndbg.commands.OnlyWithDbg("gdb")
+@pwndbg.commands.Command(
+    parser,
+    aliases=["main", "init"],
+    only_debuggers={DebuggerType.GDB},
+    category=CommandCategory.START,
+)
 @pwndbg.commands.OnlyWhenLocal
 def start(args=None) -> None:
     if args is None:
@@ -89,7 +92,7 @@ def start(args=None) -> None:
             continue
 
         gdb.Breakpoint(symbol, temporary=True)
-        gdb.execute(run, from_tty=False, to_string=True)
+        gdb.execute(run, from_tty=False)
         return
 
     # Try a breakpoint at the binary entry
@@ -99,7 +102,6 @@ def start(args=None) -> None:
 # Starting from 3rd paragraph, the description is
 # taken from the GDB's `starti` command description
 parser = argparse.ArgumentParser(
-    formatter_class=RawTextHelpFormatter,
     description="""
 Start the debugged program stopping at its entrypoint address.
 
@@ -124,7 +126,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
+@pwndbg.commands.Command(parser, category=CommandCategory.START)
 @pwndbg.commands.OnlyWithFile
 @pwndbg.commands.OnlyWhenLocal
 def entry(args=None) -> None:
@@ -147,11 +149,12 @@ def entry(args=None) -> None:
     breakpoint_at_entry()
 
 
-@pwndbg.commands.ArgparsedCommand(
-    "Alias for 'tbreak __libc_start_main; run'.", category=CommandCategory.START
+@pwndbg.commands.Command(
+    "Alias for 'tbreak __libc_start_main; run'.",
+    only_debuggers={DebuggerType.GDB},
+    category=CommandCategory.START,
 )
 @pwndbg.commands.OnlyWithFile
-@pwndbg.commands.OnlyWithDbg("gdb")
 @pwndbg.commands.OnlyWhenLocal
 def sstart() -> None:
     gdb.Breakpoint("__libc_start_main", temporary=True)

@@ -20,7 +20,7 @@ async def _nextjmp(ec: pwndbg.dbg_mod.ExecutionController):
         pwndbg.commands.context.context()
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Breaks at the next jump instruction.", aliases=["nextjump"], category=CommandCategory.NEXT
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -40,7 +40,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.NEXT)
+@pwndbg.commands.Command(parser, category=CommandCategory.NEXT)
 @pwndbg.commands.OnlyWhenRunning
 def nextcall(symbol_regex=None) -> None:
     """Breaks at the next call instruction"""
@@ -60,9 +60,7 @@ async def _nextret(ec: pwndbg.dbg_mod.ExecutionController):
         pwndbg.commands.context.context()
 
 
-@pwndbg.commands.ArgparsedCommand(
-    "Breaks at next return-like instruction.", category=CommandCategory.NEXT
-)
+@pwndbg.commands.Command("Breaks at next return-like instruction.", category=CommandCategory.NEXT)
 @pwndbg.commands.OnlyWhenRunning
 def nextret() -> None:
     """Breaks at next return-like instruction"""
@@ -85,7 +83,7 @@ async def _stepret(ec: pwndbg.dbg_mod.ExecutionController):
         continue
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Breaks at next return-like instruction by 'stepping' to it.", category=CommandCategory.NEXT
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -102,7 +100,7 @@ async def _nextproginstr(ec: pwndbg.dbg_mod.ExecutionController):
     await pwndbg.aglib.next.break_on_program_code(ec)
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Breaks at the next instruction that belongs to the running program.",
     category=CommandCategory.NEXT,
 )
@@ -115,7 +113,7 @@ parser = argparse.ArgumentParser(description="Breaks on the instruction after th
 parser.add_argument("addr", type=int, default=None, nargs="?", help="The address to break after.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, aliases=["so"], category=CommandCategory.NEXT)
+@pwndbg.commands.Command(parser, aliases=["so"], category=CommandCategory.NEXT)
 @pwndbg.commands.OnlyWhenRunning
 def stepover(addr=None) -> None:
     """Sets a breakpoint on the instruction after this one"""
@@ -141,7 +139,7 @@ async def _nextsyscall(ec: pwndbg.dbg_mod.ExecutionController):
         continue
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Breaks at the next syscall not taking branches.",
     aliases=["nextsc"],
     category=CommandCategory.NEXT,
@@ -161,8 +159,8 @@ async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController):
 
     while (
         pwndbg.aglib.proc.alive
-        and not (await pwndbg.aglib.next.break_next_interrupt(ec))
-        and (await pwndbg.aglib.next.break_next_branch(ec))
+        and not (await pwndbg.aglib.next.break_next_interrupt(ec, honor_current_branch=True))
+        and (await pwndbg.aglib.next.break_next_branch(ec, including_current=True))
     ):
         # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
         # We need to step so that we take this branch instead of ignoring it
@@ -170,7 +168,7 @@ async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController):
         continue
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Breaks at the next syscall by taking branches.",
     aliases=["stepsc"],
     category=CommandCategory.NEXT,
@@ -194,7 +192,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.NEXT)
+@pwndbg.commands.Command(parser, category=CommandCategory.NEXT)
 @pwndbg.commands.OnlyWhenRunning
 def stepuntilasm(mnemonic, op_str) -> None:
     if len(op_str) == 0:

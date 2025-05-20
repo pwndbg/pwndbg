@@ -184,3 +184,127 @@ def test_nearpc_opcode_invalid_config():
         )
     except gdb.error as e:
         assert expected == str(e)
+
+
+def test_nearpc_highlight_breakpoint(start_binary):
+    start_binary(SYSCALLS_BINARY)
+    gdb.execute("break *_start+5")
+    gdb.execute("break *_start+22")
+    dis = gdb.execute("nearpc", to_string=True)
+    expected = (
+        " ► 0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "b+ 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        "   0x400094 <_start+20>    syscall \n"
+        "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+    )
+    assert dis == expected
+
+    gdb.execute("stepi")
+    dis = gdb.execute("nearpc", to_string=True)
+    # When we stop on a breakpoint, we only highlight it (and not show the "b+" marker)
+    expected = (
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        " ► 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        "   0x400094 <_start+20>    syscall \n"
+        "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+    )
+    assert dis == expected
+
+    gdb.execute("stepi")
+    dis = gdb.execute("nearpc", to_string=True)
+    expected = (
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "b+ 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        "   0x400094 <_start+20>    syscall \n"
+        "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+    )
+    assert dis == expected
+
+    gdb.execute("disable breakpoint 1")
+    dis = gdb.execute("nearpc", to_string=True)
+    expected = (
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        "   0x400094 <_start+20>    syscall \n"
+        "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+    )
+    assert dis == expected
+
+    gdb.execute("enable breakpoint 1")
+    dis = gdb.execute("nearpc", to_string=True)
+    expected = (
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "b+ 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        "   0x400094 <_start+20>    syscall \n"
+        "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+    )
+    assert dis == expected
+
+    gdb.execute("delete breakpoint 1")
+    dis = gdb.execute("nearpc", to_string=True)
+    expected = (
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        "   0x400094 <_start+20>    syscall \n"
+        "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+    )
+    assert dis == expected
+
+    gdb.execute("delete breakpoint 2")
+    dis = gdb.execute("nearpc", to_string=True)
+    expected = (
+        "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
+        "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
+        " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
+        "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
+        "   0x400094 <_start+20>    syscall \n"
+        "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
+        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009d                add    byte ptr [rax], al\n"
+        "   0x40009f                add    byte ptr [rax], al\n"
+        "   0x4000a1                add    byte ptr [rax], al\n"
+        "   0x4000a3                add    byte ptr [rax], al\n"
+    )
+    assert dis == expected

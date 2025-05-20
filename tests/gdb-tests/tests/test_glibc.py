@@ -55,3 +55,20 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
         gdb.execute("break break_here")
         gdb.execute("continue")
         assert pwndbg.glibc.get_libc_filename_from_info_sharedlibrary() is None
+
+
+def test_set_glibc_version(start_binary):
+    # Needed for glibc.get_version() as it has @OnlyWhenRunning
+    start_binary(HEAP_MALLOC_CHUNK)
+
+    errmsg = "Invalid GLIBC version:"
+    err = gdb.execute("set glibc 2.31a", to_string=True)
+    assert err.startswith(errmsg)
+
+    err = gdb.execute("set glibc 2.31", to_string=True)
+    assert err == ""
+    assert pwndbg.glibc.get_version() == (2, 31)
+
+    err = gdb.execute("set glibc 2.34", to_string=True)
+    assert err == ""
+    assert pwndbg.glibc.get_version() == (2, 34)

@@ -49,8 +49,8 @@ X86_MATH_INSTRUCTIONS = {
 
 # This class handles enhancement for x86 and x86_64. This is because Capstone itself
 # represents both architectures using the same class
-class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
-    def __init__(self, architecture: str) -> None:
+class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+    def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
         self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
@@ -437,7 +437,3 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             sz += f"{abs(disp):#x}"
 
         return f"[{sz}]"
-
-
-assistant = DisassemblyAssistant("i386")
-assistant = DisassemblyAssistant("x86-64")

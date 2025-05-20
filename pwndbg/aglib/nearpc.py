@@ -5,7 +5,7 @@ from typing import List
 from capstone import *  # noqa: F403
 
 import pwndbg
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.regs
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
@@ -36,6 +36,7 @@ c = ColorConfig(
         ColorParamSpec("symbol", "normal", "color for nearpc command (symbol)"),
         ColorParamSpec("address", "normal", "color for nearpc command (address)"),
         ColorParamSpec("prefix", "none", "color for nearpc command (prefix marker)"),
+        ColorParamSpec("breakpoint", "red", "color for nearpc command (breakpoint marker)"),
         ColorParamSpec("syscall-name", "red", "color for nearpc command (resolved syscall name)"),
         ColorParamSpec("argument", "bold", "color for nearpc command (target argument)"),
         ColorParamSpec(
@@ -57,7 +58,11 @@ nearpc_branch_marker_contiguous = pwndbg.color.theme.add_param(
     "contiguous branch marker line for nearpc command",
 )
 pwndbg.color.theme.add_param("highlight-pc", True, "whether to highlight the current instruction")
+pwndbg.color.theme.add_param("highlight-breakpoints", True, "whether to highlight breakpoints")
 pwndbg.color.theme.add_param("nearpc-prefix", "►", "prefix marker for nearpc command")
+pwndbg.color.theme.add_param(
+    "nearpc-breakpoint-prefix", "b+", "breakpoint marker for nearpc command"
+)
 pwndbg.config.add_param("left-pad-disasm", True, "whether to left-pad disassembly")
 nearpc_lines = pwndbg.config.add_param(
     "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
@@ -140,7 +145,7 @@ def nearpc(
     #         for line in symtab.linetable():
     #             pc_to_linenos[line.pc].append(line.line)
 
-    instructions, index_of_pc = pwndbg.aglib.disasm.near(
+    instructions, index_of_pc = pwndbg.aglib.disasm.disassembly.near(
         pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache, linear=linear
     )
 
@@ -168,23 +173,45 @@ def nearpc(
 
     assembly_strings = D.instructions_and_padding(instructions)
 
+    breakpoint_locations = pwndbg.dbg.breakpoint_locations()
+
+    prefix_sign = pwndbg.config.nearpc_prefix
+    current_insn_prefix = f" {prefix_sign}"
+    current_insn_prefix = c.prefix(current_insn_prefix)
+    default_prefix = " " * (len(prefix_sign) + 1)
+    default_prefix = c.prefix(default_prefix)
+
+    breakpoint_sign = pwndbg.config.nearpc_breakpoint_prefix
+    breakpoint_prefix = breakpoint_sign.ljust(len(prefix_sign) + 1)
+    breakpoint_prefix = c.breakpoint(breakpoint_prefix)
+
     # Print out each instruction
     for i, (address_str, symbol, instr, asm) in enumerate(
         zip(addresses, symbols, instructions, assembly_strings)
     ):
-        prefix_sign = pwndbg.config.nearpc_prefix
-
         # Show prefix only on the specified address and don't show it while in repeat-mode
         # or when showing current instruction for the second time
         show_prefix = instr.address == pc and not repeat and i == index_of_pc
-        prefix = " %s" % (prefix_sign if show_prefix else " " * len(prefix_sign))
-        prefix = c.prefix(prefix)
+        is_breakpoint = False
+        if show_prefix:
+            prefix = current_insn_prefix
+        elif instr.address in breakpoint_locations:
+            # If the instruction is not the current instruction and a breakpoint,
+            # show the breakpoint sign
+            prefix = breakpoint_prefix
+            is_breakpoint = True
+        else:
+            prefix = default_prefix
 
+        # If this instruction is a breakpoint and not the current pc, highlight it.
+        if is_breakpoint and pwndbg.config.highlight_breakpoints:
+            address_str = c.breakpoint(address_str)
+            symbol = c.breakpoint(symbol)
         # Colorize address and symbol if not highlighted
         # symbol is fetched from gdb and it can be e.g. '<main+8>'
         # In case there are duplicate instances of an instruction (tight loop),
         # ones that the instruction pointer is not at stick out a little, to indicate the repetition
-        if not pwndbg.config.highlight_pc or instr.address != pc or repeat:
+        elif not pwndbg.config.highlight_pc or instr.address != pc or repeat:
             address_str = c.address(address_str)
             symbol = c.symbol(symbol)
         elif pwndbg.config.highlight_pc and i == index_of_pc:

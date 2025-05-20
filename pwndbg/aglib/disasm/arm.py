@@ -15,6 +15,7 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
+import pwndbg.aglib.saved_register_frames
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -78,37 +79,78 @@ ARM_MATH_INSTRUCTIONS = {
 
 ARM_SHIFT_INSTRUCTIONS = {
     ARM_INS_ASR: ">>s",
+    ARM_INS_ALIAS_ASR: ">>s",
     ARM_INS_LSR: ">>",
+    ARM_INS_ALIAS_LSR: ">>",
     ARM_INS_LSL: "<<",
+    ARM_INS_ALIAS_LSL: "<<",
+    ARM_INS_ROR: ">>r",
+    ARM_INS_ALIAS_ROR: ">>r",
+}
+
+# All of these instructions can write to the PC
+# https://developer.arm.com/documentation/ddi0406/cb/Application-Level-Architecture/Application-Level-Programmers--Model/ARM-core-registers/Writing-to-the-PC?lang=en
+# If they do write to PC, Capstone gives the instructions the `ARM_GRP_JUMP` group
+# Note that we don't have the flag-setting variants - "ands", "subs" - because these generate an illegal instruction interrupt at runtime
+ARM_CAN_WRITE_TO_PC_INSTRUCTIONS = {
+    ARM_INS_LDM,
+    ARM_INS_ALIAS_LDM,
+    ARM_INS_POP,
+    ARM_INS_ALIAS_POP,
+    ARM_INS_LDR,
+    ARM_INS_ADC,
+    ARM_INS_ADD,
+    ARM_INS_ADR,
+    ARM_INS_AND,
+    ARM_INS_ASR,
+    ARM_INS_ALIAS_ASR,
+    ARM_INS_BIC,
+    ARM_INS_EOR,
+    ARM_INS_LSL,
+    ARM_INS_ALIAS_LSL,
+    ARM_INS_LSR,
+    ARM_INS_ALIAS_LSR,
+    ARM_INS_MOV,
+    ARM_INS_MVN,
+    ARM_INS_ORR,
+    ARM_INS_ROR,
+    ARM_INS_ALIAS_ROR,
+    ARM_INS_RRX,
+    ARM_INS_ALIAS_RRX,
+    ARM_INS_RSB,
+    ARM_INS_RSC,
+    ARM_INS_SBC,
+    ARM_INS_SUB,
 }
 
 
-def first_op_is_pc(i: PwndbgInstruction) -> bool:
-    return i.operands[0].reg == ARM_REG_PC
+def itstate_from_cpsr(cpsr_value: int) -> int:
+    """
+    ITSTATE == If-Then execution state bits for the Thumb IT instruction
+    The ITSTATE bits are spread across 3 sections of Arm flags register to a total of 8 bits.
+    This function extracts them and reorders the bits into their logical order
+    - https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Level-Programmers--Model/Registers/The-special-purpose-program-status-registers--xPSR#:~:text=shows%20the%20assignment%20of%20the%20ICI/IT%20bits.
 
+    Bits of the flags register: EPSR[26:25]    EPSR[15:12]    EPSR[11:10]
+    Bits of ITSTATE:            IT[1:0]        IT[7:4]        IT[3:2]
 
-def ops_contain_pc(i: PwndbgInstruction) -> bool:
-    for op in i.operands:
-        if op.type == CS_OP_REG:
-            if op.reg == ARM_REG_PC:
-                return True
-    return False
+    The lower 5 bits has information that indicates the number of instructions in the IT Block.
+    The top 3 bits indicate the base condition of the block.
+    - https://developer.arm.com/documentation/ddi0406/cb/Application-Level-Architecture/Application-Level-Programmers--Model/Execution-state-registers/IT-block-state-register--ITSTATE?lang=en
 
+    If the value is zero, it means we are not in an IT block.
+    """
 
-ARM_CAN_WRITE_TO_PC: Dict[int, Callable[[PwndbgInstruction], bool]] = {
-    ARM_INS_ADD: first_op_is_pc,
-    ARM_INS_SUB: first_op_is_pc,
-    ARM_INS_SUBS: first_op_is_pc,
-    ARM_INS_MOV: first_op_is_pc,
-    ARM_INS_LDR: first_op_is_pc,
-    ARM_INS_POP: ops_contain_pc,
-    ARM_INS_LDM: ops_contain_pc,
-}
+    return (
+        ((cpsr_value >> 25) & 0b11)
+        | ((cpsr_value >> 10) & 0b11) << 2
+        | ((cpsr_value >> 12) & 0b1111) << 4
+    )
 
 
 # This class enhances both ARM A-profile and ARM M-profile (Cortex-M)
-class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
-    def __init__(self, architecture: str, flags_reg: Literal["cpsr", "xpsr"]) -> None:
+class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
+    def __init__(self, architecture, flags_reg: Literal["cpsr", "xpsr"]) -> None:
         super().__init__(architecture)
 
         self.flags_reg = flags_reg
@@ -178,23 +220,14 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 ARM_MATH_INSTRUCTIONS[instruction.id],
             )
         elif instruction.id in ARM_SHIFT_INSTRUCTIONS:
-            # If it's a constant shift
-            if len(instruction.operands) == 2:
+            # The encoding of shifts has changed between past Capstone versions: https://github.com/capstone-engine/capstone/pull/2638
+            # This check avoids a crash
+            if len(instruction.operands) == 3:
                 self._common_binary_op_annotator(
                     instruction,
                     emu,
                     instruction.operands[0],
                     instruction.operands[1].before_value_no_modifiers,
-                    instruction.operands[1].cs_op.shift.value,
-                    ARM_SHIFT_INSTRUCTIONS[instruction.id],
-                )
-            else:
-                # Register shift
-                self._common_binary_op_annotator(
-                    instruction,
-                    emu,
-                    instruction.operands[0],
-                    instruction.operands[1].before_value,
                     instruction.operands[2].before_value,
                     ARM_SHIFT_INSTRUCTIONS[instruction.id],
                 )
@@ -202,13 +235,31 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             self.annotation_handlers.get(instruction.id, lambda *a: None)(instruction, emu)
 
     @override
-    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
-        if instruction.id in ARM_CAN_WRITE_TO_PC:
-            instruction.declare_is_unconditional_jump = ARM_CAN_WRITE_TO_PC[instruction.id](
-                instruction
-            )
+    def _prepare(
+        self, instruction: PwndbgInstruction, emu: pwndbg.aglib.disasm.arch.Emulator
+    ) -> None:
+        if CS_GRP_INT in instruction.groups:
+            # https://github.com/capstone-engine/capstone/issues/2630
+            instruction.groups.remove(CS_GRP_CALL)
 
-        if instruction.cs_insn.cc == ARM_CC_AL:
+        # Disable Unicorn while in IT instruction blocks since Unicorn cannot be paused in it.
+        flags_value = pwndbg.aglib.regs[self.flags_reg]
+        it_state = itstate_from_cpsr(flags_value)
+
+        if (instruction.id == ARM_INS_IT or it_state != 0) and emu:
+            emu.valid = False
+
+    @override
+    def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
+        if ARM_GRP_JUMP in instruction.groups:
+            if instruction.id in ARM_CAN_WRITE_TO_PC_INSTRUCTIONS:
+                # Since Capstone V6, instructions that write to the PC are given the jump group.
+                # However, in Pwndbg code, unless stated otherwise, jumps are assumed to be conditional, so we set this attribute
+                # to indicate that this is an unconditional branch.
+                instruction.declare_is_unconditional_jump = True
+
+        # These condition codes indicate unconditionally/condition is not relevant
+        if instruction.cs_insn.cc in (ARM_CC_AL, ARMCC_UNDEF):
             if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
                 instruction.declare_conditional = False
             return InstructionCondition.UNDETERMINED
@@ -255,6 +306,14 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # and instead the CPU puts it into the Thumb mode register bit.
             # This means we have to clear the least significant bit of the target.
             target = target & ~1
+
+            if pwndbg.aglib.arch.name == "armcm" and target & 0xFF00_0000 == 0xFF00_0000:
+                # If the top 8-bits of the return address are 0xFF, this indicates we are returning from an exception,
+                # where the return address has been saved onto the stack
+                return pwndbg.aglib.saved_register_frames.ARM_CORTEX_M_EXCEPTION_STACK.read_saved_register(
+                    "pc"
+                )
+
         return target
 
     # Currently not used
@@ -325,7 +384,11 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # See "Operation" at the bottom of https://developer.arm.com/documentation/ddi0597/2024-03/Base-Instructions/LDR--literal---Load-Register--literal--
             base = align_down(4, base)
 
-        target = base + op.mem.disp
+        target = base
+
+        # On post index, the base pointer is incremented after the memory dereference
+        if not instruction.cs_insn.post_index:
+            target += op.mem.disp * (-1 if op.cs_op.subtracted else 1)
 
         # If there is an index register
         if op.mem.index != 0:
@@ -337,7 +400,7 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             if op.cs_op.shift.type != 0:
                 index = ARM_BIT_SHIFT_MAP[op.cs_op.shift.type](index, op.cs_op.shift.value, 32)
 
-            target += index * (-1 if op.cs_op.subtracted else 1)
+            target += index * op.mem.scale
 
         return target
 
@@ -362,8 +425,3 @@ class DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             )
 
         return target
-
-
-# Register the assistant for both ARM A-profile and ARM M-profile
-assistant = DisassemblyAssistant("arm", "cpsr")
-assistant = DisassemblyAssistant("armcm", "xpsr")

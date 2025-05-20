@@ -15,12 +15,12 @@ import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.commands.context
+import pwndbg.commands.telescope
 import pwndbg.dbg
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="Print out base address of the current Thread Local Storage (TLS).",
 )
 
@@ -32,11 +32,13 @@ parser.add_argument(
     help="Try to get the address of TLS by calling pthread_self().",
 )
 
+parser.add_argument("-a", "--all", action="store_true", help="Do not truncate the dump output.")
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenUserspace
-def tls(pthread_self=False) -> None:
+def tls(pthread_self=False, all: bool = False) -> None:
     tls_base = (
         pwndbg.aglib.tls.find_address_with_register()
         if not pthread_self
@@ -46,6 +48,46 @@ def tls(pthread_self=False) -> None:
         print(message.success("Thread Local Storage (TLS) base: %#x" % tls_base))
         print(message.success("TLS is located at:"))
         print(message.notice(pwndbg.aglib.vmmap.find(tls_base)))
+
+        # Displaying `dt tcbhead_t <tls_base>` if possible
+        # If not, we will dump the tls with telescope
+        output = str(pwndbg.aglib.dt.dt("tcbhead_t", addr=tls_base))
+
+        print(message.success("Dumping the address:"))
+        if output == "Type not found.":
+            pwndbg.commands.telescope.telescope(tls_base, 10)
+        else:
+            lines = output.splitlines()
+
+            if all or len(lines) <= 10:
+                print(message.notice(output))
+            else:
+                index = None
+                for i, line in enumerate(lines):
+                    if "__glibc_unused2" in line:
+                        index = i
+                        break
+
+                if index is not None:
+                    end_index = index + 2
+                    for line in lines[:end_index]:
+                        print(message.notice(line))
+                    print(message.notice("\t[...]"))
+                    print(
+                        message.hint(
+                            "Output truncated. Rerun with option -a to display the full output."
+                        )
+                    )
+                # In case there is a tcbhead_t but there is no __glibc_unused2
+                else:
+                    for line in lines[:10]:
+                        print(message.notice(line))
+                    print(message.notice("\t[...]"))
+                    print(
+                        message.hint(
+                            "Output truncated. Rerun with option -a to display the full output."
+                        )
+                    )
         return
     print(message.error("Couldn't find Thread Local Storage (TLS) base."))
     if not pthread_self:
@@ -58,7 +100,6 @@ def tls(pthread_self=False) -> None:
 
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="List all threads belonging to the selected inferior.",
 )
 group = parser.add_mutually_exclusive_group()
@@ -80,7 +121,7 @@ group.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenUserspace
 def threads(num_threads, respect_config) -> None:

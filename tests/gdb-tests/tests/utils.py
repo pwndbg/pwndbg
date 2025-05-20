@@ -54,13 +54,13 @@ def run_gdb_with_script(
     # The pwndbg banner shows number of loaded commands, it might differ between
     # testing environments, so lets change it to ###
     output = re.sub(
-        r"loaded [0-9]+ pwndbg commands and [0-9]+ shell commands",
-        r"loaded ### pwndbg commands and ### shell commands",
+        r"loaded [0-9]+ pwndbg commands",
+        r"loaded ### pwndbg commands",
         output,
     )
 
     # It also shows every single registered function, so we change it to xxx
     # so as to not break this test every time a new function is added
-    output = re.sub(r"created (\$\w+, )*\$\w+ GDB functions", r"created xxx GDB functions", output)
+    output = re.sub(r"created [0-9]+ GDB functions", r"created xxx GDB functions", output)
 
     return output

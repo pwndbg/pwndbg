@@ -27,16 +27,27 @@ def test_tls_address_and_command(start_binary, binary):
 
     assert pwndbg.aglib.tls.find_address_with_pthread_self() == expected_tls_address
 
-    assert (
-        gdb.execute("tls", to_string=True)
-        == f"""Thread Local Storage (TLS) base: {expected_tls_address:#x}
-TLS is located at:
-{pwndbg.aglib.vmmap.find(expected_tls_address)}\n"""
-    )
+    output = gdb.execute("tls", to_string=True)
 
+    assert f"Thread Local Storage (TLS) base: {expected_tls_address:#x}" in output
+    assert "TLS is located at:\n" and f"{pwndbg.aglib.vmmap.find(expected_tls_address)}\n" in output
+    assert "Output truncated. Rerun with option -a to display the full output." in output
+
+    output_pthread = gdb.execute("tls --pthread-self", to_string=True)
+
+    assert f"Thread Local Storage (TLS) base: {expected_tls_address:#x}" in output_pthread
     assert (
-        gdb.execute("tls --pthread-self", to_string=True)
-        == f"""Thread Local Storage (TLS) base: {expected_tls_address:#x}
-TLS is located at:
-{pwndbg.aglib.vmmap.find(expected_tls_address)}\n"""
+        "TLS is located at:"
+        and f"{pwndbg.aglib.vmmap.find(expected_tls_address)}\n" in output_pthread
     )
+    assert "Output truncated. Rerun with option -a to display the full output." in output_pthread
+
+    # Argument `-a`
+    output_all = gdb.execute("tls --all", to_string=True)
+
+    assert f"Thread Local Storage (TLS) base: {expected_tls_address:#x}" in output_all
+    assert (
+        "TLS is located at:\n"
+        and f"{pwndbg.aglib.vmmap.find(expected_tls_address)}\n" in output_all
+    )
+    assert "Output truncated. Rerun with option -a to display the full output." not in output_all

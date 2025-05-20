@@ -5,13 +5,14 @@ import argparse
 import pwndbg.chain
 import pwndbg.color as C
 import pwndbg.commands
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Dumps the arguments of a va_list.")
 parser.add_argument("addr", type=int, help="Address of the va_list")
 parser.add_argument("count", type=int, nargs="?", default=8, help="Number of arguments to dump")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def valist(addr: int, count: int) -> None:
     # The `va_list` struct looks like this:

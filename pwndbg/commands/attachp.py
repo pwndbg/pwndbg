@@ -24,11 +24,12 @@ _OPTIONS = [_NONE, _OLDEST, _NEWEST, _ASK]
 pwndbg.config.add_param(
     "attachp-resolution-method",
     _ASK,
-    f'how to determine the process to attach when multiple candidates exists ("{_OLDEST}", "{_NEWEST}", "{_NONE}" or "{_ASK}"(default))',
+    "how to determine the process to attach when multiple candidates exists",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=_OPTIONS,
 )
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Attaches to a given pid, process name, process found with partial argv match or to a device file.
 
 This command wraps the original GDB `attach` command to add the ability
@@ -56,19 +57,27 @@ parser.add_argument("--no-truncate", action="store_true", help="dont truncate co
 parser.add_argument("--retry", action="store_true", help="retry until a target is found")
 parser.add_argument("--user", type=str, default=None, help="username or uid to filter by")
 parser.add_argument(
+    "-e",
+    "--exact",
+    action="store_true",
+    help="get the pid only for an exact command name match",
+)
+parser.add_argument(
     "-a",
     "--all",
     action="store_true",
-    help="get pids for all matches (exact and partial cmdline etc)",
+    help="get pids also for partial cmdline matches etc",
 )
 parser.add_argument(
     "target",
+    nargs="?",
+    default=None,
     type=str,
-    help="pid, process name, part of cmdline to be matched or device file to attach to",
+    help="pid, process name, part of cmdline to be matched or device file to attach to (uses current loaded file name if not provided)",
 )
 
 
-def find_pids(target, user, all):
+def find_pids(target, user, exact, all):
     # Note: we can't use `ps -C <target>` because this does not accept process names with spaces
     # so target='a b' would actually match process names 'a' and 'b' here
     # so instead, we will filter by process name or full cmdline later on
@@ -111,14 +120,31 @@ def find_pids(target, user, all):
         elif target in args:
             pids_partial_match_args.append(pid)
 
-    if all:
+    if exact and all:
         return pids_exact_match_cmd + pids_partial_match_cmd + pids_partial_match_args
+    elif exact:
+        return pids_exact_match_cmd
+    elif all:
+        return pids_exact_match_cmd + pids_partial_match_cmd + pids_partial_match_args
+    else:
+        return pids_exact_match_cmd or pids_partial_match_cmd or pids_partial_match_args
 
-    return pids_exact_match_cmd or pids_partial_match_cmd or pids_partial_match_args
 
+@pwndbg.commands.Command(parser, category=CommandCategory.START)
+def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
+    # As a default, the user may want to attach to a binary name taken from currently loaded file name
+    if target is None:
+        bin_path = pwndbg.dbg.selected_inferior().main_module_name()
+        if bin_path is None:
+            print(
+                message.error(
+                    "No target name/pid/cmdline provided and no binary loaded in the debugger"
+                )
+            )
+            print(message.error("(could not find the process name to attach to)"))
+            return
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.START)
-def attachp(target, no_truncate, retry, all, user=None) -> None:
+        target = os.path.basename(bin_path)
     try:
         resolved_target = int(target)
     except ValueError:
@@ -138,7 +164,7 @@ def attachp(target, no_truncate, retry, all, user=None) -> None:
             resolved_target = target
 
         else:
-            pids = find_pids(target, user, all)
+            pids = find_pids(target, user, exact, all)
             if not pids and retry:
                 user_filter = "" if not user else f" and user={user}"
                 print(
@@ -147,7 +173,7 @@ def attachp(target, no_truncate, retry, all, user=None) -> None:
                     )
                 )
                 while not pids:
-                    pids = find_pids(target, user, all)
+                    pids = find_pids(target, user, exact, all)
 
             if not pids:
                 print(message.error(f"Process {target} not found"))
@@ -155,14 +181,6 @@ def attachp(target, no_truncate, retry, all, user=None) -> None:
 
             if len(pids) > 1:
                 method = pwndbg.config.attachp_resolution_method
-
-                if method not in _OPTIONS:
-                    print(
-                        message.warn(
-                            f'Invalid value for `attachp-resolution-method` config. Fallback to default value("{_ASK}").'
-                        )
-                    )
-                    method = _ASK
 
                 try:
                     ps_output = check_output(

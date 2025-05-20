@@ -25,6 +25,7 @@ let
       isLLDB
       ;
     isDev = true;
+    isEditable = true;
   };
   jemalloc-static = pkgs.jemalloc.overrideAttrs (
     finalAttrs: previousAttrs: {
@@ -51,7 +52,7 @@ let
 in
 {
   default = pkgs.mkShell {
-    NIX_CONFIG = "extra-experimental-features = nix-command flakes repl-flake";
+    NIX_CONFIG = "extra-experimental-features = nix-command flakes";
     # Anything not handled by the poetry env
     nativeBuildInputs =
       builtins.attrValues {
@@ -63,8 +64,7 @@ in
           gdb
           parallel
           qemu
-          netcat-openbsd
-          zig_0_10 # version match setup-dev.sh
+          zig_0_13 # version match setup-dev.sh
           go
 
           # for onegadget command
@@ -76,28 +76,27 @@ in
       }
       ++ [
         jemalloc-static
-        # from qemu-tests.sh
-        (pkgs.writeShellScriptBin "gdb-multiarch" ''
-          exec ${lib.getBin pkgs.gdb}/bin/gdb "$@"
-        '')
-        pkgs.pkgsCross.aarch64-multiplatform.buildPackages.binutils
-        pkgs.pkgsCross.riscv64.buildPackages.binutils
-        pkgs.pkgsCross.mipsel-linux-gnu.buildPackages.binutils
-        (pkgs.writeShellScriptBin "aarch64-linux-gnu-gcc" ''
-          exec ${lib.getBin pkgs.pkgsCross.aarch64-multiplatform.buildPackages.gcc}/bin/aarch64-unknown-linux-gnu-gcc "$@"
-        '')
-        (pkgs.writeShellScriptBin "riscv64-linux-gnu-gcc" ''
-          exec ${lib.getBin pkgs.pkgsCross.riscv64.buildPackages.gcc}/bin/riscv64-unknown-linux-gnu-gcc "$@"
-        '')
-
         pyEnv
+        (pkgs.writeShellScriptBin "pwndbg" ''
+          exec ${lib.getBin pkgs.gdb}/bin/gdb --quiet --nx --init-command="$REPO_ROOT/gdbinit.py" $@
+        '')
       ]
       ++ pkgs.lib.optionals isLLDB [
-        pkgs.lldb_19
+        pkgs.lldb_20
+        (pkgs.writeShellScriptBin "pwndbg-lldb" (
+          (lib.optionalString (!pkgs.stdenv.isDarwin) ''
+            export LLDB_DEBUGSERVER_PATH=${lib.makeBinPath [ pkgs.lldb_20 ]}/lldb-server
+          '')
+          + ''
+            exec ${lib.getBin pyEnv}/bin/python3 $REPO_ROOT/pwndbg-lldb.py $@
+          ''
+        ))
       ];
     shellHook = ''
-      export PWNDBG_VENV_PATH="PWNDBG_PLEASE_SKIP_VENV"
-      export ZIGPATH="${pkgs.lib.getBin pkgs.zig_0_10}/bin/"
+      export PWNDBG_NO_AUTOUPDATE=1
+      export PWNDBG_VENV_PATH="${pyEnv}"
+      export ZIGPATH="${pkgs.lib.getBin pkgs.zig_0_13}/bin/"
+      export REPO_ROOT=$(git rev-parse --show-toplevel)
     '';
   };
 }

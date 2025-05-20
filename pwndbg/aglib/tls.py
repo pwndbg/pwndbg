@@ -5,7 +5,7 @@ Getting Thread Local Storage (TLS) information.
 from __future__ import annotations
 
 import pwndbg.aglib.arch
-import pwndbg.aglib.disasm
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
@@ -37,7 +37,7 @@ def find_address_with_pthread_self() -> int:
     the pthread_self() function. The returned address points to the `struct tcbhead_t`,
     which serves as the header for TLS and thread-specific metadata.
     """
-    if pwndbg.aglib.arch.name not in ("x86-64", "i386", "arm", "aarch64"):
+    if pwndbg.aglib.arch.name not in ("x86-64", "i386", "arm", "aarch64", "loongarch64"):
         return 0
 
     result = __call_pthread_self()
@@ -50,6 +50,7 @@ def find_address_with_pthread_self() -> int:
     # i386: https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/i386/nptl/tls.h#L234
     # x86-64: https://elixir.bootlin.com/glibc/glibc-2.37/source/sysdeps/x86_64/nptl/tls.h#L181
     # arm: https://elixir.bootlin.com/glibc/latest/source/sysdeps/arm/nptl/tls.h#L76
+    # loongarch64: https://github.com/bminor/glibc/blob/1c9ac027a5deb6c3e026be0e88d38959529e6102/sysdeps/loongarch/nptl/tls.h#L64
     # For i386 and x86-64, the return value of the pthread_self() is the address of TLS, because the value is self reference of the TLS: https://elixir.bootlin.com/glibc/glibc-2.37/source/nptl/pthread_create.c#L671
     # But for arm, the implementation of THREAD_SELF is different, we need to add sizeof(struct pthread) to the result to get the address of TLS.
 
@@ -59,6 +60,12 @@ def find_address_with_pthread_self() -> int:
             # Type 'pthread' not found
             return 0
         result += pthread_type.sizeof
+    elif pwndbg.aglib.arch.name == "loongarch64":
+        pthread_type = pwndbg.aglib.typeinfo.load("struct pthread")
+        if pthread_type is None:
+            # Type 'pthread' not found
+            return 0
+        result += pthread_type.sizeof + pthread_type.alignof
 
     return result
 
@@ -83,4 +90,6 @@ def find_address_with_register() -> int:
         # kernel but it is available for an aarch32 program running under an arm64
         # kernel via the ptrace compat interface.
         return int(pwndbg.aglib.regs.tpidruro or 0)
+    elif pwndbg.aglib.arch.name == "loongarch64":
+        return int(pwndbg.aglib.regs.tp or 0)
     return 0

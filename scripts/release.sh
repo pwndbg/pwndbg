@@ -1,15 +1,33 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-# This script performs a release build similar to what CI/CD does
-# It just does everything at once :)
-#
-# It can be useful if one needs to build the release binaries manually
+set -ex
 
-O="--extra-experimental-features nix-command --extra-experimental-features flakes"
+OLD_VER="$1"
+NEW_VER="$2"
 
-nix build $O '.#pwndbg' -o result-pwndbg
-nix build $O '.#pwndbg-gdb-portable-rpm' -o dist-rpm
-nix build $O '.#pwndbg-gdb-portable-deb' -o dist-deb
-nix build $O '.#pwndbg-gdb-portable-apk' -o dist-apk
-nix build $O '.#pwndbg-gdb-portable-archlinux' -o dist-archlinux
-nix build $O '.#pwndbg-gdb-portable-tarball' -o dist-tarball
+portable_sed_replace() {
+    local arg1="$1"
+    local arg2="$2"
+    shift 2
+    local files=("$@")
+
+    if sed --version 2> /dev/null | grep -q "GNU"; then
+        for file in "${files[@]}"; do
+            sed -i "s@$arg1@$arg2@g" "$file"
+        done
+    else
+        for file in "${files[@]}"; do
+            sed -i '' "s@$arg1@$arg2@g" "$file"
+        done
+    fi
+}
+
+# Replace version in all places
+portable_sed_replace $OLD_VER $NEW_VER ./pyproject.toml
+portable_sed_replace $OLD_VER $NEW_VER ./pwndbg/lib/version.py
+portable_sed_replace $OLD_VER $NEW_VER ./README.md
+portable_sed_replace $OLD_VER $NEW_VER ./docs/setup.md
+portable_sed_replace $OLD_VER $NEW_VER ./docs/install.sh
+
+# Rebuild uv.lock file after version change
+uv lock

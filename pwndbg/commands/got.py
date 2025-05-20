@@ -24,7 +24,6 @@ from pwndbg.commands import CommandCategory
 from pwndbg.wrappers.readelf import RelocationType
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""Show the state of the Global Offset Table.
 
 Examples:
@@ -64,7 +63,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str) -> None:
     if pwndbg.aglib.qemu.is_qemu_usermode():

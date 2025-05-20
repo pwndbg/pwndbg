@@ -10,6 +10,7 @@ from pwnlib.util.cyclic import cyclic_find
 import pwndbg.aglib.arch
 import pwndbg.commands
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Cyclic pattern creator/finder.")
 
@@ -55,12 +56,11 @@ parser.add_argument(
     "filename",
     type=str,
     help="Name (path) of the file to save the cyclic pattern to",
-    default="",
     nargs="?",
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="cyclic")
+@pwndbg.commands.Command(parser, command_name="cyclic", category=CommandCategory.MISC)
 def cyclic_cmd(alphabet, length: Optional[int], lookup, count=100, filename="") -> None:
     if length is None:
         length = pwndbg.aglib.arch.ptrsize

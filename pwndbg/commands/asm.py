@@ -7,6 +7,7 @@ import pwnlib.context
 
 import pwndbg.commands
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Assemble shellcode into bytes")
 
@@ -55,7 +56,7 @@ input_group.add_argument(
 input_group.add_argument("-i", "--infile", default=None, type=str, help="Specify input file")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, command_name="asm")
+@pwndbg.commands.Command(parser, command_name="asm", category=CommandCategory.MISC)
 def asm(shellcode, format, arch, avoid, infile) -> None:
     if infile:
         print(message.warn("Going to read from file: " + infile))

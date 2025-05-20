@@ -15,7 +15,6 @@ import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
-    formatter_class=argparse.RawTextHelpFormatter,
     description="""
 Calls the mmap syscall and prints its resulting address.
 
@@ -140,7 +139,7 @@ def parse_str_or_int(val: Union[str, int], parser):
         raise TypeError(f"invalid type for value: {type(val)}")
 
 
-@pwndbg.commands.ArgparsedCommand(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
 def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=False) -> None:
     try:

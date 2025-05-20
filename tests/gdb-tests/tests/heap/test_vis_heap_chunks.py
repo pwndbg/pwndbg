@@ -24,7 +24,7 @@ def test_vis_heap_chunk_command(start_binary):
     # Just a sanity check...
     assert (heap_page.start & 0xFFF) == 0
 
-    result = gdb.execute("vis_heap_chunk 1", to_string=True).splitlines()
+    result = gdb.execute("vis-heap-chunk 1", to_string=True).splitlines()
 
     # We will use `heap_addr` variable to fill in proper addresses below
     heap_addr = heap_page.start
@@ -75,7 +75,7 @@ def test_vis_heap_chunk_command(start_binary):
     ## This time using `default-visualize-chunk-number` to set `count`, to make sure that the config can work
     gdb.execute("set default-visualize-chunk-number 1")
     assert pwndbg.config.default_visualize_chunk_number == 1
-    result = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
+    result = gdb.execute("vis-heap-chunk", to_string=True).splitlines()
     # No parameters were passed and top isn't reached so help text is shown
     no_params_help = "Not all chunks were shown, see `vis --help` for more information."
     assert result == expected + [no_params_help]
@@ -87,7 +87,7 @@ def test_vis_heap_chunk_command(start_binary):
     del result
 
     ## Test vis_heap_chunk with count=2
-    result2 = gdb.execute("vis_heap_chunk 2", to_string=True).splitlines()
+    result2 = gdb.execute("vis-heap-chunk 2", to_string=True).splitlines()
 
     # Note: we copy expected here but we truncate last line as it is easier
     # to provide it in full here
@@ -102,7 +102,7 @@ def test_vis_heap_chunk_command(start_binary):
     del result2
 
     ## Test vis_heap_chunk with count=3
-    result3 = gdb.execute("vis_heap_chunk 3", to_string=True).splitlines()
+    result3 = gdb.execute("vis-heap-chunk 3", to_string=True).splitlines()
 
     # Note: we copy expected here but we truncate last line as it is easier
     # to provide it in full here
@@ -117,7 +117,7 @@ def test_vis_heap_chunk_command(start_binary):
     del result3
 
     ## Test vis_heap_chunk with count=4
-    result4 = gdb.execute("vis_heap_chunk 4", to_string=True).splitlines()
+    result4 = gdb.execute("vis-heap-chunk 4", to_string=True).splitlines()
 
     # Since on this breakpoint we only have 4 chunks, the output should probably be the same?
     # TODO/FIXME: Shall we maybe print user that there are only 3 chunks?
@@ -126,7 +126,7 @@ def test_vis_heap_chunk_command(start_binary):
     del result4
 
     ## Test vis_heap_chunk with no flags
-    result_all = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
+    result_all = gdb.execute("vis-heap-chunk", to_string=True).splitlines()
     assert result_all == expected3
 
     del result_all
@@ -135,7 +135,7 @@ def test_vis_heap_chunk_command(start_binary):
     gdb.execute("continue")
 
     ## Test vis_heap_chunk with count=4 again
-    result4_b = gdb.execute("vis_heap_chunk 4", to_string=True).splitlines()
+    result4_b = gdb.execute("vis-heap-chunk 4", to_string=True).splitlines()
 
     expected4_b = expected3[:-1] + [
         "%#x\t0x0000000000000000\t0x0000000000000031\t........1......." % heap_iter(0),
@@ -150,7 +150,7 @@ def test_vis_heap_chunk_command(start_binary):
     del result4_b
 
     ## Test vis_heap_chunk with no flags
-    result_all2 = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
+    result_all2 = gdb.execute("vis-heap-chunk", to_string=True).splitlines()
     assert result_all2 == expected4_b
 
     del result_all2
@@ -159,7 +159,7 @@ def test_vis_heap_chunk_command(start_binary):
     ## Continue, so that alloc[1] is freed
     gdb.execute("continue")
 
-    result_all3 = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
+    result_all3 = gdb.execute("vis-heap-chunk", to_string=True).splitlines()
 
     # The tcache chunks have two fields: next and key
     # We are fetching it from the glibc's TLS tcache variable :)
@@ -206,18 +206,18 @@ def test_vis_heap_chunk_command(start_binary):
     gdb.execute("continue")
 
     # Get default result without max-visualize-chunk-size setting
-    default_result = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
+    default_result = gdb.execute("vis-heap-chunk", to_string=True).splitlines()
     assert len(default_result) > 0x300
 
     # Set max display size to 100 (no "0x" for misalignment)
     gdb.execute("set max-visualize-chunk-size 100")
 
-    omitted_result = gdb.execute("vis_heap_chunk", to_string=True).splitlines()
+    omitted_result = gdb.execute("vis-heap-chunk", to_string=True).splitlines()
     assert len(omitted_result) < 0x30
     for omitted_line in omitted_result:
         assert omitted_line in default_result or set(omitted_line) == {"."}
 
-    no_truncate_result = gdb.execute("vis_heap_chunk -n", to_string=True).splitlines()
+    no_truncate_result = gdb.execute("vis-heap-chunk -n", to_string=True).splitlines()
     assert no_truncate_result == default_result
 
     del default_result
@@ -227,7 +227,7 @@ def test_vis_heap_chunk_command(start_binary):
     # Continue, mock overflow changing the chunk size
     gdb.execute("continue")
 
-    overflow_result = gdb.execute("vis_heap_chunk", to_string=True)
+    overflow_result = gdb.execute("vis-heap-chunk", to_string=True)
     assert "\t0x0000000000000000\t0x4141414141414141\t........AAAAAAAA" in overflow_result
     assert len(overflow_result.splitlines()) < 0x500
 

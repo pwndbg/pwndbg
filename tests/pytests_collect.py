@@ -9,8 +9,7 @@ TESTS_PATH = os.environ.get("TESTS_PATH")
 
 if TESTS_PATH is None:
     print("'TESTS_PATH' environment variable not set. Failed to collect tests.")
-    sys.stdout.flush()
-    os._exit(1)
+    sys.exit(1)
 
 
 class CollectTestFunctionNames:
@@ -29,8 +28,7 @@ rv = pytest.main(["--collect-only", TESTS_PATH], plugins=[collector])
 
 if rv == pytest.ExitCode.INTERRUPTED:
     print("Failed to collect all tests, perhaps there is a syntax error in one of test files?")
-    sys.stdout.flush()
-    os._exit(1)
+    sys.exit(1)
 
 
 print("Listing collected tests:")
@@ -38,5 +36,4 @@ for nodeid in collector.collected:
     print("Test:", nodeid)
 
 # easy way to exit GDB session
-sys.stdout.flush()
-os._exit(0)
+sys.exit(0)

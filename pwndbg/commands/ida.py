@@ -18,7 +18,7 @@ from pwndbg.dbg import EventType
 from pwndbg.gdblib.functions import GdbFunction
 
 
-@pwndbg.commands.ArgparsedCommand(
+@pwndbg.commands.Command(
     "Synchronize IDA's cursor with GDB.", category=CommandCategory.INTEGRATIONS
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -41,7 +41,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def up(n=1) -> None:
     """
@@ -69,7 +69,11 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+# Since we are redefining a gdb command, we also redefine the original aliases.
+# These aliases ("do", "dow") are necessary to ensure consistency in the help system
+# and to pass the test_consistent_help test, which verifies that all commands and their
+# aliases are documented correctly. See issue #2961 for more details.
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC, aliases=["do", "dow"])
 @pwndbg.commands.OnlyWhenRunning
 def down(n=1) -> None:
     """
@@ -91,7 +95,7 @@ def down(n=1) -> None:
     j()
 
 
-@pwndbg.commands.ArgparsedCommand("Save the ida database.", category=CommandCategory.INTEGRATIONS)
+@pwndbg.commands.Command("Save the ida database.", category=CommandCategory.INTEGRATIONS)
 @pwndbg.integration.ida.withIDA
 def save_ida() -> None:
     """Save the IDA database"""
@@ -137,13 +141,73 @@ def save_ida() -> None:
 save_ida()
 
 
-@GdbFunction()
-def ida(name):
-    """Evaluate ida.LocByName() on the supplied value."""
-    name = name.string()
-    result = pwndbg.integration.ida.LocByName(name)
+def _ida_local(name: str) -> int | None:
+    if not pwndbg.aglib.proc.alive:
+        return None
 
-    if 0xFFFFE000 <= result <= 0xFFFFFFFF or 0xFFFFFFFFFFFFE000 <= result <= 0xFFFFFFFFFFFFFFFF:
+    pc = int(pwndbg.dbg.selected_frame().pc())
+    frame_id = pwndbg.integration.ida.GetFuncAttr(pc, pwndbg.integration.ida.idc.FUNCATTR_FRAME)  # type: ignore[attr-defined]
+    if frame_id == -1:
+        return None
+
+    stack_size = pwndbg.integration.ida.GetStrucSize(frame_id)
+
+    # workaround for bug in IDA 9 when looking up the " s" member offset raises
+    # AttributeError: module 'ida_typeinf' has no attribute 'FRAME_UDM_NAME_S'
+    saved_baseptr = pwndbg.integration.ida.GetMemberOffset(frame_id, "__saved_registers")
+    if saved_baseptr == -1:
+        saved_baseptr = pwndbg.integration.ida.GetMemberOffset(frame_id, " s")
+
+    for i in range(stack_size):
+        local_name = pwndbg.integration.ida.GetMemberName(frame_id, i)
+        if local_name != name:
+            continue
+
+        # Heuristic: Offset is relative to the base pointer or stack pointer
+        # depending on if IDA is detecting a saved frame pointer or not.
+        offset = pwndbg.integration.ida.GetMemberOffset(frame_id, local_name)
+        if offset == -1:
+            raise ValueError("ida.GetMemberOffset(%r) == -1" % local_name)
+        if saved_baseptr != -1:
+            return pwndbg.aglib.regs[pwndbg.aglib.regs.frame] + offset - saved_baseptr
+        return pwndbg.aglib.regs[pwndbg.aglib.regs.stack] + offset
+    return None
+
+
+@GdbFunction()
+def ida(name: gdb.Value) -> int:
+    """
+    Lookup a symbol's address by name from IDA.
+    Evaluate ida.LocByName() on the supplied value.
+
+    This functions doesn't see stack local variables.
+
+    Example:
+    ```
+    pwndbg> set integration-provider ida
+    Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:31337
+    Set which provider to use for integration features to 'ida'.
+    pwndbg> p main
+    No symbol "main" in current context.
+    pwndbg> p/x $ida("main")
+    $1 = 0x555555555645
+    pwndbg> b *$ida("main")
+    Breakpoint 2 at 0x555555555645
+    ```
+    """
+    name = name.string()
+
+    # Lookup local variables first
+    result = _ida_local(name)
+    if result is not None:
+        return result
+
+    result = pwndbg.integration.ida.LocByName(name)
+    if result is None:
+        raise ValueError("ida.LocByName(%r) == None" % name)
+
+    result_r = pwndbg.integration.ida.l2r(result)
+    if 0xFFFFE000 <= result_r <= 0xFFFFFFFF or 0xFFFFFFFFFFFFE000 <= result_r <= 0xFFFFFFFFFFFFFFFF:
         raise ValueError("ida.LocByName(%r) == BADADDR" % name)
 
     return result

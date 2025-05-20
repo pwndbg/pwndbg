@@ -14,6 +14,7 @@ import pwndbg.color.syntax_highlight
 import pwndbg.commands
 import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 # Keep old patches made so we can revert them
 patches: Dict[int, Tuple[bytearray, bytearray]] = {}
@@ -25,7 +26,7 @@ parser.add_argument("ins", type=str, help="instruction[s]")
 parser.add_argument("-q", "--quiet", action="store_true", help="don't print anything")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def patch(address: int, ins: str, quiet: bool) -> None:
     new_mem = asm(ins)
@@ -47,7 +48,7 @@ parser2 = argparse.ArgumentParser(description="Revert patch at given address.")
 parser2.add_argument("address", type=int, help="Address to revert patch on")
 
 
-@pwndbg.commands.ArgparsedCommand(parser2)
+@pwndbg.commands.Command(parser2, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def patch_revert(address: int) -> None:
     if not patches:
@@ -72,7 +73,7 @@ def patch_revert(address: int) -> None:
 parser3 = argparse.ArgumentParser(description="List all patches.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser3)
+@pwndbg.commands.Command(parser3, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def patch_list() -> None:
     if not patches:

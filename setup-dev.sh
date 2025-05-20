@@ -92,8 +92,22 @@ download_zig_binary() {
     # Install zig to current directory
     # We use zig to compile some test binaries as it is much easier than with gcc
 
-    ZIG_TAR_URL="https://ziglang.org/download/0.10.1/zig-linux-x86_64-0.10.1.tar.xz"
-    ZIG_TAR_SHA256="6699f0e7293081b42428f32c9d9c983854094bd15fee5489f12c4cf4518cc380"
+    TARGET_ZIG_VERSION="0.13.0"
+    ZIG_TAR_URL="https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz"
+    ZIG_TAR_SHA256="d45312e61ebcc48032b77bc4cf7fd6915c11fa16e4aad116b66c9468211230ea"
+
+    if command -v "${ZIGPATH}"/zig &> /dev/null; then
+        ZIG_VERSION=$("$ZIGPATH/zig" version)
+
+        if [ "${ZIG_VERSION}" = "${TARGET_ZIG_VERSION}" ]; then
+            echo "Zig is already installed. Skipping build and install."
+            return
+        else
+            echo "Old version of Zig installed (${ZIG_VERSION}). Installing version ${TARGET_ZIG_VERSION}."
+        fi
+    fi
+
+    echo "Downloading and installing Zig..."
     curl --output /tmp/zig.tar.xz "${ZIG_TAR_URL}"
     ACTUAL_SHA256=$(sha256sum /tmp/zig.tar.xz | cut -d' ' -f1)
     if [ "${ACTUAL_SHA256}" != "${ZIG_TAR_SHA256}" ]; then
@@ -104,6 +118,9 @@ download_zig_binary() {
     fi
 
     tar -C /tmp -xJf /tmp/zig.tar.xz
+
+    # Delete previous installation
+    rm -rf "${ZIGPATH}"
 
     mv /tmp/zig-linux-x86_64-* ${ZIGPATH} &> /dev/null || true
     echo "Zig installed to ${ZIGPATH}"
@@ -123,16 +140,9 @@ install_apt() {
         gdb \
         gdb-multiarch \
         parallel \
-        netcat-openbsd \
-        iproute2 \
         qemu-system-x86 \
         qemu-system-arm \
-        qemu-user \
-        gcc-aarch64-linux-gnu \
-        gcc-riscv64-linux-gnu \
-        gcc-arm-linux-gnueabihf \
-        gcc-mips-linux-gnu \
-        gcc-mips64-linux-gnuabi64
+        qemu-user
 
     # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
     if uname -m | grep -q x86_64; then
@@ -186,11 +196,6 @@ EOF
         gdb \
         parallel
 
-    # check if netcat exists first, as it might it may be installed from some other netcat packages
-    if [ ! -f /usr/bin/nc ]; then
-        sudo pacman -S --needed --noconfirm gnu-netcat
-    fi
-
     command -v go &> /dev/null || sudo pacman -S --noconfirm go
 
     download_zig_binary
@@ -221,29 +226,64 @@ install_dnf() {
 
 install_jemalloc() {
 
-    # Install jemalloc version 5.3.0
-    JEMALLOC_TAR_URL="https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2"
-    JEMALLOC_TAR_SHA256="2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa"
-    curl --location --output /tmp/jemalloc-5.3.0.tar.bz2 "${JEMALLOC_TAR_URL}"
-    ACTUAL_SHA256=$(sha256sum /tmp/jemalloc-5.3.0.tar.bz2 | cut -d' ' -f1)
-    if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
-        echo "Jemalloc binary checksum mismatch"
-        echo "Expected: ${JEMALLOC_TAR_SHA256}"
-        echo "Actual: ${ACTUAL_SHA256}"
-        exit 1
+    # Check if jemalloc is already installed
+    if command -v jemalloc-config &> /dev/null; then
+        echo "Jemalloc already installed. Skipping build and install."
+    else
+        echo "Jemalloc not found in system. Downloading, configuring, building, and installing..."
+
+        # Install jemalloc version 5.3.0
+        JEMALLOC_TAR_URL="https://github.com/jemalloc/jemalloc/releases/download/5.3.0/jemalloc-5.3.0.tar.bz2"
+        JEMALLOC_TAR_SHA256="2db82d1e7119df3e71b7640219b6dfe84789bc0537983c3b7ac4f7189aecfeaa"
+        JEMALLOC_TAR_PATH="/tmp/jemalloc-5.3.0.tar.bz2"
+        JEMALLOC_EXTRACT_PATH="/tmp/jemalloc-5.3.0"
+
+        # Check if jemalloc tarball already exists and has the correct checksum
+        if [ -f "${JEMALLOC_TAR_PATH}" ]; then
+            ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
+            if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
+                echo "Jemalloc tarball exists but has incorrect checksum. Re-downloading..."
+                curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+                ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
+                if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
+                    echo "Jemalloc binary checksum mismatch after re-download."
+                    echo "Expected: ${JEMALLOC_TAR_SHA256}"
+                    echo "Actual: ${ACTUAL_SHA256}"
+                    exit 1
+                fi
+            else
+                echo "Jemalloc tarball already exists and has correct checksum. Skipping download."
+            fi
+        else
+            echo "Downloading jemalloc..."
+            curl --location --output "${JEMALLOC_TAR_PATH}" "${JEMALLOC_TAR_URL}"
+            ACTUAL_SHA256=$(sha256sum "${JEMALLOC_TAR_PATH}" | cut -d' ' -f1)
+            if [ "${ACTUAL_SHA256}" != "${JEMALLOC_TAR_SHA256}" ]; then
+                echo "Jemalloc binary checksum mismatch"
+                echo "Expected: ${JEMALLOC_TAR_SHA256}"
+                echo "Actual: ${ACTUAL_SHA256}"
+                exit 1
+            fi
+        fi
+
+        # Check if jemalloc source code has already been extracted
+        if [ -d "${JEMALLOC_EXTRACT_PATH}" ]; then
+            echo "Jemalloc source code already extracted. Skipping extraction."
+        else
+            echo "Extracting jemalloc..."
+            tar -C /tmp -xf "${JEMALLOC_TAR_PATH}"
+        fi
+
+        pushd "${JEMALLOC_EXTRACT_PATH}"
+        ./configure
+        make
+        sudo make install
+        popd
+
+        echo "Jemalloc installation complete."
     fi
 
-    tar -C /tmp -xf /tmp/jemalloc-5.3.0.tar.bz2
-
     # TODO: autoconf needs to be installed with script as well?
-
-    pushd /tmp/jemalloc-5.3.0
-    ./configure
-    make
-    sudo make install
-    popd
-    echo "Jemalloc installed"
-
 }
 
 configure_venv() {
@@ -289,7 +329,7 @@ if linux; then
                 . /etc/os-release
                 echo ${VERSION_ID} version
             )
-            install_dnf $fedora_verion
+            install_dnf $fedora_version
             ;;
         *) # we can add more install command for each distros.
             echo "\"$distro\" is not supported distro. Will search for 'apt' or 'pacman' package managers."

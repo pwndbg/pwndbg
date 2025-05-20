@@ -1,6 +1,8 @@
 - [Development Basics](#development-basics)
+  - [Install from source GDB](#install-from-source-gdb)
+  - [Install from source LLDB](#install-from-source-lldb)
   - [Environment setup](#environment-setup)
-    - [Development using Nix](#development-using-nix)
+  - [Development using Nix](#development-using-nix)
   - [Testing](#testing)
   - [Writing Tests](#writing-tests)
   - [QEMU Tests](#qemu-tests)
@@ -26,6 +28,60 @@
 
 # Development Basics
 
+## Install from source GDB
+Installation from source is straightforward:
+```shell
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+./setup.sh
+```
+
+Pwndbg is supported on Ubuntu 22.04, and 24.04 with GDB 12.1 and later. We do not test
+on any older versions of Ubuntu, so `pwndbg` may not work on these versions.
+- For Ubuntu 20.04 use the [2024.08.29 release](https://github.com/pwndbg/pwndbg/releases/tag/2024.08.29)
+- For Ubuntu 18.04 use the [2023.07.17: ubuntu18.04-final release](https://github.com/pwndbg/pwndbg/releases/tag/2023.07.17)
+
+We may accept pull requests fixing issues in older versions on a case by case basis,
+please discuss this with us on [Discord][discord] first. You can also always checkout
+an older version of `pwndbg` from around the time the Ubuntu version you're interested
+in was still supported by Canonical, or you can attempt to build a newer version of GDB from source.
+
+Other Linux distributions are also supported via `setup.sh`, including:
+
+* Debian-based OSes (via apt-get)
+* Fedora and Red Hat (via dnf)
+* Clear (via swiped)
+* OpenSUSE LEAP (via zypper)
+* Arch and Manjaro (via community AUR packages)
+* Void (via xbps)
+* Gentoo (via emerge)
+
+If you use any Linux distribution other than Ubuntu, we recommend using the [latest available GDB](https://www.gnu.org/software/gdb/download/) built from source. You can build it as:
+```
+cd <gdb-sources-dir>
+mkdir build && cd build
+sudo apt install libgmp-dev libmpfr-dev libreadline-dev texinfo  # required by build
+../configure --disable-nls --disable-werror --with-system-readline --with-python=`which python3` --with-system-gdbinit=/etc/gdb/gdbinit --enable-targets=all
+make -j $(nproc)
+```
+
+## Install from source LLDB
+```shell
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+
+apt install -y lldb-19 liblldb-19-dev python3 python3-venv
+export PATH=/usr/lib/llvm-19/bin/:$PATH
+export LLDB_DEBUGSERVER_PATH=/usr/lib/llvm-19/bin/lldb-server
+
+python3 -m venv -- .venv
+./.venv/bin/pip install uv
+./.venv/bin/uv sync --extra lldb
+
+./.venv/bin/python3 ./pwndbg-lldb.py
+```
+This will work only for ubuntu 24.04
+
 ## Environment setup
 
 After installing `pwndbg` by running `setup.sh`, you additionally need to run `./setup-dev.sh` to install the necessary development dependencies.
@@ -44,12 +100,16 @@ If you'd like to use `docker compose`, you can run
 docker compose run -i main
 ```
 
-### Development using Nix
+## Development using Nix
 
-There is a development shell defined in the flake that should install all of the development requirements. To enter the
-environment run `nix develop` or automatically enter the environment using `direnv`.
+Pwndbg supports development with Nix which installs all the required
+development dependencies:
 
-When testing changes run `nix build .#pwndbg-dev` and use the copy of the files in the `results/` folder.
+1. Install Nix with [Determinate Nix Installer](https://github.com/DeterminateSystems/nix-installer?tab=readme-ov-file#determinate-nix-installer).
+
+2. Enter the development shell with `nix develop` or automate this with `direnv`.
+
+3. Run local changes with `pwndbg` or `pwndbg-lldb`. Run tests with `./tests.sh`.
 
 ## Testing
 
@@ -63,12 +123,25 @@ To run these tests, run [`./tests.sh`](./tests.sh). You can filter the tests to 
 
 To invoke cross-architecture tests, use `./qemu-tests.sh`, and to run unit tests, use `./unit-tests.sh`
 
+To run the tests in the same environment as the testing CI/CD, you can use the following Docker command.
+
+```sh
+# General test suite
+docker compose run --rm --build ubuntu24.04-mount ./tests.sh
+# Cross-architecture tests
+docker compose run --rm --build ubuntu24.04-mount ./qemu-tests.sh
+```
+
+This comes in handy particularly for cross-architecture tests because the Docker environment has all the cross-compilers installed. The active `pwndbg` directory is mounted, preventing the need for a full rebuild whenever you update the codebase.
+
+Remove the `-mount` if you want the tests to run from a clean slate (no files are mounted, meaning all binaries are recompiled each time).
+
 ## Writing Tests
 
-Each test is a Python function that runs inside of an isolated GDB session. 
-Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning of each test, 
-GDB will attach to a [`binary`](tests/gdb-tests/conftest.py) or connect to a [`QEMU instance`](tests/qemu-tests/conftest.py). 
-Each test runs some commands and uses Python `assert` statements to verify correctness. 
+Each test is a Python function that runs inside of an isolated GDB session.
+Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning of each test,
+GDB will attach to a [`binary`](tests/gdb-tests/conftest.py) or connect to a [`QEMU instance`](tests/qemu-tests/conftest.py).
+Each test runs some commands and uses Python `assert` statements to verify correctness.
 We can access `pwndbg` library code like `pwndbg.aglib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
 
 We can take a look at [`tests/gdb-tests/tests/test_symbol.py`](tests/gdb-tests/tests/test_symbol.py) for an example of a
@@ -151,7 +224,7 @@ parser = argparse.ArgumentParser(description="Command description.")
 parser.add_argument("arg", type=str, help="An example argument.")
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.Command(parser)
 def my_command(arg: str) -> None:
     """Print the argument"""
     print(f"Argument is {arg}")
@@ -420,7 +493,7 @@ Capstone will expose the most "simplified" one possible, and the underlying list
 
 When encountering an instruction that is behaving strangely (incorrect annotation, or there is a jump target when one shouldn't exist, or the target is incorrect), there are a couple routine things to check.
 
-1. Use the `dev_dump_instruction` command to print all the enhancement information. With no arguments, it will dump the info from the instruction at the current address. If given an address, it will pull from the instruction cache at the corresponding location.
+1. Use the `dev-dump-instruction` command to print all the enhancement information. With no arguments, it will dump the info from the instruction at the current address. If given an address, it will pull from the instruction cache at the corresponding location.
 
 If the issue is not related to branches, check the operands and the resolved values for registers and memory accesses. Verify that the values are correct - are the resolved memory locations correct? Step past the instruction and use instructions like `telescope` and `regs` to read memory and verify if the claim that the annotation is making is correct. For things like memory operands, you can try to look around the resolved memory location in memory to see the actual value that the instruction dereferenced, and see if the resolved memory location is simply off by a couple bytes.
 

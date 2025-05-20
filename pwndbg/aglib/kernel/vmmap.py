@@ -4,6 +4,7 @@ import os
 import random
 import string
 import subprocess
+import sys
 import tempfile
 from typing import List
 from typing import Tuple
@@ -112,6 +113,10 @@ class QemuMachine(Machine):
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
+        return ()
+
+    if sys.platform != "linux":
+        # QemuMachine requires access to /proc/{qemu-pid}/mem, which is only available on Linux
         return ()
 
     try:
@@ -276,10 +281,11 @@ kernel_vmmap_mode = pwndbg.config.add_param(
     "page-tables",
     "the method to get vmmap information when debugging via QEMU kernel",
     help_docstring="""\
-kernel-vmmap can be:
-page-tables    - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
-monitor        - use QEMU's `monitor info mem` to render vmmap
-none           - disable vmmap rendering; useful if rendering is particularly slow
+Values explained:
+
++ `page-tables` - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
++ `monitor` - use QEMU's `monitor info mem` to render vmmap
++ `none` - disable vmmap rendering; useful if rendering is particularly slow
 
 Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
 """,

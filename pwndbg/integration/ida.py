@@ -42,13 +42,11 @@ ida_rpc_host = pwndbg.config.add_param("ida-rpc-host", "127.0.0.1", "ida xmlrpc 
 ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
 ida_timeout = pwndbg.config.add_param("ida-timeout", 2, "time to wait for ida xmlrpc in seconds")
 
-xmlrpc.client.Marshaller.dispatch[int] = lambda _, v, w: w("<value><i8>%d</i8></value>" % v)
-
 
 _ida: xmlrpc.client.ServerProxy | None = None
 
 # to avoid printing the same exception multiple times, we store the last exception here
-_ida_last_exception = None
+_ida_last_exception: BaseException | None = None
 
 # to avoid checking the connection multiple times with no delay, we store the last time we checked it
 _ida_last_connection_check = 0
@@ -65,6 +63,9 @@ def init_ida_rpc_client() -> None:
     if pwndbg.integration.provider_name.value != "ida":
         return
 
+    xmlrpc.client.MAXINT = 10**100  # type: ignore[misc]
+    xmlrpc.client.MININT = -(10**100)  # type: ignore[misc]
+
     now = time.time()
     if _ida is None and (now - _ida_last_connection_check) < int(ida_timeout) + 5:
         return
@@ -78,6 +79,7 @@ def init_ida_rpc_client() -> None:
     try:
         _ida.here()
         print(message.success(f"Pwndbg successfully connected to Ida Pro xmlrpc: {addr}"))
+        idc._update()
     except TimeoutError:
         exception = sys.exc_info()
         _ida = None
@@ -118,7 +120,7 @@ def init_ida_rpc_client() -> None:
                     )
                 print(
                     message.notice("To disable IDA Pro integration invoke `")
-                    + message.hint("set ida-enabled off")
+                    + message.hint("set integration-provider none")
                     + message.notice("`")
                 )
 
@@ -226,6 +228,13 @@ def Name(addr: int):
 @pwndbg.lib.cache.cache_until("objfile")
 def GetFuncOffset(addr: int):
     rv = _ida.get_func_off_str(addr)
+    return rv
+
+
+@withIDA
+@takes_address
+def GetFuncAttr(addr: int, attr: int):
+    rv = _ida.get_func_attr(addr, attr)
     return rv
 
 
@@ -446,6 +455,13 @@ def GetStrucSize(sid):
 
 
 @withIDA
+@takes_address
+@pwndbg.lib.cache.cache_until("stop")
+def GetFrameId(addr):
+    return _ida.get_frame_id(addr)
+
+
+@withIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetMemberQty(sid):
     return _ida.get_member_qty(sid)
@@ -471,6 +487,12 @@ def GetMemberName(sid, offset):
 
 @withIDA
 @pwndbg.lib.cache.cache_until("stop")
+def GetMemberOffset(sid, member_name):
+    return _ida.get_member_offset(sid, member_name)
+
+
+@withIDA
+@pwndbg.lib.cache.cache_until("stop")
 def GetMemberFlag(sid, offset):
     return _ida.get_member_flag(sid, offset)
 
@@ -482,12 +504,15 @@ def GetStrucNextOff(sid, offset):
 
 
 class IDC:
-    query = "{k:v for k,v in globals()['idc'].__dict__.items() if type(v) in (int,long)}"
+    query = "{k:v for k,v in globals()['idc'].__dict__.items() if isinstance(v, int)}"
 
     def __init__(self) -> None:
         if available():
-            data: Dict[Any, Any] = _ida.eval(self.query)
-            self.__dict__.update(data)
+            self._update()
+
+    def _update(self) -> None:
+        data: Dict[Any, Any] = _ida.eval(self.query)
+        self.__dict__.update(data)
 
 
 idc = IDC()
@@ -553,8 +578,7 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
                 return Name(addr) or GetFuncOffset(addr) or None
         return None
 
-    @pwndbg.decorators.suppress_errors()
-    @withIDA
+    @pwndbg.decorators.suppress_errors(fallback=())
     def get_versions(self) -> Tuple[str, ...]:
         ida_versions = get_ida_versions()
 

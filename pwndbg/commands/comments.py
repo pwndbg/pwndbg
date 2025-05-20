@@ -5,6 +5,7 @@ from typing import Dict
 
 import pwndbg.commands
 from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Put comments in assembly code.")
 parser.add_argument(
@@ -15,7 +16,7 @@ parser.add_argument("comment", type=str, default=None, help="The text you want t
 file_lists: Dict[str, Dict[str, str]] = {}  # This saves all comments.
 
 
-@pwndbg.commands.ArgparsedCommand(parser)
+@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def comm(addr=None, comment=None) -> None:
     if addr is None:
