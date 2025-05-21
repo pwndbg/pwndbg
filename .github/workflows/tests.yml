@@ -89,7 +89,7 @@ jobs:
         path: ~/.cache/pip
         key: ${{ matrix.os }}-cache-pip
 
-    - name: Install dependencies
+    - name: Setup pwndbg
       run: |
         ./setup.sh
         ./setup-dev.sh
@@ -99,9 +99,9 @@ jobs:
         echo 'GDB py:'
         gdb --batch --quiet --nx --nh --ex 'py import sys; print(sys.version)'
         echo 'Installed py:'
-        uvx python -V
+        ./.venv/bin/python -V
         echo 'Installed packages:'
-        uv pip freeze
+        ./.venv/bin/pip freeze
 
     # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
     - name: Run tests
@@ -114,8 +114,8 @@ jobs:
     - name: Process coverage data
       if: matrix.os == 'ubuntu-22.04'
       run: |
-        uv run --group tests coverage combine
-        uv run --group tests coverage xml
+        ./.venv/bin/uv run --group tests coverage combine
+        ./.venv/bin/uv run --group tests coverage xml
 
     - name: "Upload coverage to Codecov"
       if: matrix.os == 'ubuntu-22.04'
@@ -133,7 +133,7 @@ jobs:
         path: ~/.cache/pip
         key: ${{ matrix.os }}-cache-pip
 
-    - name: Install dependencies
+    - name: Setup pwndbg
       run: |
         ./setup.sh
         ./setup-dev.sh
@@ -145,8 +145,8 @@ jobs:
 
     - name: Process coverage data
       run: |
-        uv run --group tests coverage combine
-        uv run --group tests coverage xml
+        ./.venv/bin/uv run --group tests coverage combine
+        ./.venv/bin/uv run --group tests coverage xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -163,7 +163,7 @@ jobs:
         path: ~/.cache/pip
         key: ${{ matrix.os }}-cache-pip
 
-    - name: Install dependencies
+    - name: Setup pwndbg
       run: |
         ./setup.sh
         ./setup-dev.sh
@@ -189,8 +189,8 @@ jobs:
 
     - name: Process coverage data
       run: |
-        uv run --group tests coverage combine
-        uv run --group tests coverage xml
+        ./.venv/bin/uv run --group tests coverage combine
+        ./.venv/bin/uv run --group tests coverage xml
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3

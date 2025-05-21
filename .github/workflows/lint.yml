@@ -17,17 +17,21 @@ jobs:
     timeout-minutes: 10
     steps:
     - uses: actions/checkout@v4
+
     - name: Cache for pip
       uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ matrix.os }}-cache-pip
 
+    - name: Install latest uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        version: "latest"
+
     - name: Install dependencies
       run: |
         sudo apt install -y shfmt curl
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        sudo ln -s $HOME/.local/bin/uv /usr/bin/uv
         uv sync --group lint --group dev
 
     - name: Run linters

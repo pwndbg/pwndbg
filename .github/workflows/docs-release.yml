@@ -19,10 +19,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
 
-      - name: Install uv and sync deps
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          sudo ln -s $HOME/.local/bin/uv /usr/bin/uv
+      - name: Install latest uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --group docs
 
       - name: Update docs/index.md with README.md
         run: ./scripts/generate-readme.sh
