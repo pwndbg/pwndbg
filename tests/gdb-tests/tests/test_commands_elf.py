@@ -263,12 +263,16 @@ def test_command_got_for_target_binary_and_loaded_library(binary_name):
 
 
 @pytest.mark.parametrize(
-    "binary_name,is_pie", ((PIE_BINARY_WITH_PLT, True), (NOPIE_BINARY_WITH_PLT, False), (NOPIE_I386_BINARY_WITH_PLT, True))
+    "binary_name,is_pie",
+    (
+        (PIE_BINARY_WITH_PLT, True),
+        (NOPIE_BINARY_WITH_PLT, False),
+        (NOPIE_I386_BINARY_WITH_PLT, True),
+    ),
 )
 def test_command_elf_with_relocation_address_if_pie(binary_name, is_pie):
     binary = tests.binaries.get(binary_name)
     gdb.execute(f"file {binary}")
-    binary_path = str(Path.cwd() / binary)
 
     try:
         gdb.execute("starti")
@@ -276,7 +280,7 @@ def test_command_elf_with_relocation_address_if_pie(binary_name, is_pie):
         pytest.skip("Test not supported on this platform.")
 
     elf_output = gdb.execute("elf", to_string=True).splitlines()
-    
+
     assert ("RELOCATED" in elf_output[0]) == is_pie
 
     # Check if every address returned is correct

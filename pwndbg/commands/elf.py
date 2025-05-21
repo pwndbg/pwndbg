@@ -4,19 +4,19 @@ from typing import List
 from typing import Tuple
 
 from elftools.elf.elffile import ELFFile
+from pwnlib.elf import ELF  # for PIE check
 
+import pwndbg.aglib.vmmap  # for address mapping
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
-from pwnlib.elf import ELF # for PIE check
-import pwndbg.aglib.vmmap # for address mapping
 
 @pwndbg.commands.Command(
     "Prints the section mappings contained in the ELF header.", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWithFile
-def elfsections() -> None:    
+def elfsections() -> None:
     local_path = pwndbg.aglib.file.get_proc_exe_file()
 
     # IF PIE is set and binary is in execution, save relocation base address.
@@ -44,15 +44,15 @@ def elfsections() -> None:
         sections.sort()
 
         # Header
-        print('ADDRESS', end='\t\t')
+        print("ADDRESS", end="\t\t")
         if pie_relocation:
-            print('RELOCATED', end='\t\t\t')
-        print(' SECTION')
+            print("RELOCATED", end="\t\t\t")
+        print(" SECTION")
 
         for start, end, name in sections:
-            print(f"{start:#x} - {end:#x}", end='\t')
+            print(f"{start:#x} - {end:#x}", end="\t")
             if pie_relocation:
-                print(f"{start + base_addr:#x} - {end + base_addr:#x}", end='\t')
+                print(f"{start + base_addr:#x} - {end + base_addr:#x}", end="\t")
             print(name)
 
 
