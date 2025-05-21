@@ -28,7 +28,7 @@ done
 
 set -o xtrace
 
-LINT_FILES="pwndbg tests *.py scripts/*.py"
+LINT_FILES="pwndbg tests *.py scripts"
 LINT_CMD="./.venv/bin/uv run --group lint --group dev"
 
 call_shfmt() {
