@@ -9,13 +9,24 @@ import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
+from pwnlib.elf import ELF # for PIE check
+import pwndbg.aglib.vmmap # for address mapping
 
 @pwndbg.commands.Command(
     "Prints the section mappings contained in the ELF header.", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWithFile
-def elfsections() -> None:
+def elfsections() -> None:    
     local_path = pwndbg.aglib.file.get_proc_exe_file()
+
+    # IF PIE is set and binary is in execution, save relocation base address.
+    pie_relocation = False
+    if pwndbg.aglib.proc.alive and ELF(local_path).pie:
+        for mapping in pwndbg.aglib.vmmap.get():
+            if mapping.objfile == local_path:
+                pie_relocation = True
+                base_addr = mapping.start
+                break
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
@@ -32,8 +43,17 @@ def elfsections() -> None:
 
         sections.sort()
 
+        # Header
+        print('ADDRESS', end='\t\t')
+        if pie_relocation:
+            print('RELOCATED', end='\t\t\t')
+        print(' SECTION')
+
         for start, end, name in sections:
-            print(f"{start:#x} - {end:#x} ", name)
+            print(f"{start:#x} - {end:#x}", end='\t')
+            if pie_relocation:
+                print(f"{start + base_addr:#x} - {end + base_addr:#x}", end='\t')
+            print(name)
 
 
 @pwndbg.commands.Command(

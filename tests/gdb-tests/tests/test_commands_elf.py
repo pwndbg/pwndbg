@@ -260,3 +260,58 @@ def test_command_got_for_target_binary_and_loaded_library(binary_name):
         r"GOT protection: (?:Partial|Full) RELRO \| Found 0 GOT entries passing the filter", out[10]
     )
     assert len(out) == 11
+
+
+@pytest.mark.parametrize(
+    "binary_name,is_pie", ((PIE_BINARY_WITH_PLT, True), (NOPIE_BINARY_WITH_PLT, False), (NOPIE_I386_BINARY_WITH_PLT, True))
+)
+def test_command_elf_with_relocation_address_if_pie(binary_name, is_pie):
+    binary = tests.binaries.get(binary_name)
+    gdb.execute(f"file {binary}")
+    binary_path = str(Path.cwd() / binary)
+
+    try:
+        gdb.execute("starti")
+    except gdb.error:
+        pytest.skip("Test not supported on this platform.")
+
+    elf_output = gdb.execute("elf", to_string=True).splitlines()
+    
+    assert ("RELOCATED" in elf_output[0]) == is_pie
+
+    # Check if every address returned is correct
+    if is_pie:
+        elf_sections = []
+        for line in elf_output[1:]:  # skip header
+            parts = line.split()
+            if len(parts) >= 5:
+                section = parts[6]
+                start_rel = int(parts[3], 16)
+                end_rel = int(parts[5], 16)
+                elf_sections.append((section, start_rel, end_rel))
+
+        # 3. Execute `info files`
+        info_output = gdb.execute("info files", to_string=True).splitlines()
+
+        # 4. Retrieve addresses
+        info_sections = []
+        for line in info_output[8:]:
+            match = re.match(r"\s*0x([0-9a-f]+) - 0x([0-9a-f]+) is (.+)", line)
+            if match:
+                start = int(match.group(1), 16)
+                end = int(match.group(2), 16)
+                section = match.group(3).strip()
+                info_sections.append((section, start, end))
+
+        # 5. Build dictionaries for comparison
+        elf_map = {name: (start, end) for name, start, end in elf_sections}
+        info_map = {name: (start, end) for name, start, end in info_sections}
+
+        common_sections = set(elf_map.keys()) & set(info_map.keys())
+
+        assert common_sections
+
+        for section in sorted(common_sections):
+            elf_start, elf_end = elf_map[section]
+            info_start, info_end = info_map[section]
+            assert elf_start == info_start and elf_end == info_end
