@@ -79,5 +79,9 @@ QEMU_ARGS+=(
     "${QEMU_ARGS_EXT[@]}"
 )
 
+if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+    PWNDBG_VENV_PATH="./.venv"
+fi
+
 echo "Waiting for GDB to attach (use 'ctrl-a x' to quit)"
-./.venv/bin/uv run $QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"
+"${PWNDBG_VENV_PATH}/bin/uv" run $QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"

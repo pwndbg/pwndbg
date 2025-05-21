@@ -15,7 +15,11 @@ basedir=$(dirname "$0")
 # Quick and dirty script to profile pwndbg using cProfile.
 make -C "${basedir}" test > /dev/null
 
-UV_RUN="./.venv/bin/uv run"
+if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+    PWNDBG_VENV_PATH="./.venv"
+fi
+
+UV_RUN="${PWNDBG_VENV_PATH}/bin/uv run"
 
 $UV_RUN gdb "${basedir}/test" \
     -ex "source ${basedir}/../gdbinit.py" \

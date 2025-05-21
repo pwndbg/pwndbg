@@ -106,7 +106,11 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Activate venv
-source "${ROOT_DIR}/.venv/bin/activate"
+if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+    PWNDBG_VENV_PATH="${ROOT_DIR}/.venv"
+fi
+
+source "${PWNDBG_VENV_PATH}/bin/activate"
 
 # Test if the port is already listening, possibly by other qemu instance. This
 # can cause unexpected test failures.
@@ -146,7 +150,7 @@ run_gdb() {
         fi
     fi
 
-    ./.venv/bin/uv run $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" \
+    "${PWNDBG_VENV_PATH}/bin/uv" run $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" \
         -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
     return $?
 }

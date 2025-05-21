@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
-TEST_CMD="./.venv/bin/uv run --group dev --group tests --all-extras"
+if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+    PWNDBG_VENV_PATH="./.venv"
+fi
+
+TEST_CMD="${PWNDBG_VENV_PATH}/bin/uv run --group dev --group tests --all-extras"
 
 COV=0
 # Run unit tests

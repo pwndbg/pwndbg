@@ -29,5 +29,9 @@ portable_sed_replace $OLD_VER $NEW_VER ./README.md
 portable_sed_replace $OLD_VER $NEW_VER ./docs/setup.md
 portable_sed_replace $OLD_VER $NEW_VER ./docs/install.sh
 
+if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+    PWNDBG_VENV_PATH="./.venv"
+fi
+
 # Rebuild uv.lock file after version change
-./.venv/bin/uv lock
+"${PWNDBG_VENV_PATH}/bin/uv" lock

@@ -287,12 +287,13 @@ install_jemalloc() {
 }
 
 configure_venv() {
-    ./.venv/bin/uv sync --all-groups --all-extras
-
-    # Create a developer marker file
     if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
         PWNDBG_VENV_PATH="./.venv"
     fi
+
+    "${PWNDBG_VENV_PATH}/bin/uv" sync --all-groups --all-extras
+
+    # Create a developer marker file
     DEV_MARKER_PATH="${PWNDBG_VENV_PATH}/dev.marker"
     touch "${DEV_MARKER_PATH}"
     echo "Developer marker created at ${DEV_MARKER_PATH}"

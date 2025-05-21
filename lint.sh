@@ -28,8 +28,12 @@ done
 
 set -o xtrace
 
+if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+    PWNDBG_VENV_PATH="./.venv"
+fi
+
 LINT_FILES="pwndbg tests *.py scripts"
-LINT_CMD="./.venv/bin/uv run --group lint --group dev"
+LINT_CMD="${PWNDBG_VENV_PATH}/bin/uv run --group lint --group dev"
 
 call_shfmt() {
     local FLAGS=$1

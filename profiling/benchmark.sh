@@ -4,7 +4,11 @@
 make test > /dev/null
 git log --abbrev-commit --pretty=oneline HEAD^..HEAD
 
-./.venv/bin/uv run gdb ./test \
+if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
+    PWNDBG_VENV_PATH="./.venv"
+fi
+
+"${PWNDBG_VENV_PATH}/bin/uv" run gdb ./test \
     -ex "source ../gdbinit.py" \
     -ex "b main" -ex "r" \
     -ex "python import timeit; print('      1ST RUN:', timeit.repeat('pwndbg.commands.context.context()', repeat=1, number=1, globals=globals())[0])" \
