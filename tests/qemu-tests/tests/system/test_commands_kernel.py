@@ -96,7 +96,9 @@ def get_slab_object_address():
     for cache in caches:
         cache_name = cache.name
         info = gdb.execute(f"slab info -v {cache_name}", to_string=True)
-        matches = re.findall(r"- (0x[0-9a-fA-F]+)", info)
+        ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
+        info = ansi_escape.sub("", info)
+        matches = re.findall(r"- \[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]+)", info)
         if len(matches) > 0:
             return (matches[0], cache_name)
     raise ValueError("Could not find any slab objects")
