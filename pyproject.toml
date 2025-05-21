@@ -73,6 +73,7 @@ docs = [
     # Used by mkdocstrings to format source.
     "ruff",
     "mike",
+    "mkdocs-awesome-nav",
 ]
 
 [tool.ruff]
