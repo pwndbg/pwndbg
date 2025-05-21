@@ -286,13 +286,12 @@ def test_command_elf_with_relocation_address_if_pie(binary_name, is_pie):
     # Check if every address returned is correct
     if is_pie:
         elf_sections = []
-        for line in elf_output[1:]:  # skip header
+        for line in elf_output[2:]:  # skip header
             parts = line.split()
-            if len(parts) >= 5:
-                section = parts[6]
-                start_rel = int(parts[3], 16)
-                end_rel = int(parts[5], 16)
-                elf_sections.append((section, start_rel, end_rel))
+            section = parts[6]
+            start_rel = int(parts[3], 16)
+            end_rel = int(parts[5], 16)
+            elf_sections.append((section, start_rel, end_rel))
 
         # 3. Execute `info files`
         info_output = gdb.execute("info files", to_string=True).splitlines()

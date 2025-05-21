@@ -5,6 +5,7 @@ from typing import Tuple
 
 from elftools.elf.elffile import ELFFile
 from pwnlib.elf import ELF  # for PIE check
+from tabulate import tabulate
 
 import pwndbg.aglib.vmmap  # for address mapping
 import pwndbg.commands
@@ -19,41 +20,37 @@ from pwndbg.commands import CommandCategory
 def elfsections() -> None:
     local_path = pwndbg.aglib.file.get_proc_exe_file()
 
-    # IF PIE is set and binary is in execution, save relocation base address.
-    pie_relocation = False
+    # If PIE is set and binary is in execution, get the relocation base address
+    base_addr = 0
     if pwndbg.aglib.proc.alive and ELF(local_path).pie:
-        for mapping in pwndbg.aglib.vmmap.get():
-            if mapping.objfile == local_path:
-                pie_relocation = True
-                base_addr = mapping.start
-                break
+        base_addr = next(
+            (p.start for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe),
+            0,
+        )
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
         sections = []
         for section in elffile.iter_sections():
             start = section["sh_addr"]
-
-            # Don't print sections that aren't mapped into memory
             if start == 0:
                 continue
-
             size = section["sh_size"]
-            sections.append((start, start + size, section.name))
+            end = start + size
+            row = [f"{start:#x} - {end:#x}"]
+            if base_addr != 0:
+                relocated_start = start + base_addr
+                relocated_end = end + base_addr
+                row.append(f"{relocated_start:#x} - {relocated_end:#x}")
+            row.append(section.name)
+            sections.append(row)
 
-        sections.sort()
+    headers = ["ADDRESS"]
+    if base_addr != 0:
+        headers.append("RELOCATED")
+    headers.append("SECTION")
 
-        # Header
-        print("ADDRESS", end="\t\t")
-        if pie_relocation:
-            print("RELOCATED", end="\t\t\t")
-        print(" SECTION")
-
-        for start, end, name in sections:
-            print(f"{start:#x} - {end:#x}", end="\t")
-            if pie_relocation:
-                print(f"{start + base_addr:#x} - {end + base_addr:#x}", end="\t")
-            print(name)
+    print(tabulate(sections, headers=headers))
 
 
 @pwndbg.commands.Command(
