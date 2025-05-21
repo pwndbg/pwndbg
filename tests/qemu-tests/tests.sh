@@ -11,6 +11,16 @@ CWD=$(dirname -- "$0")
 IMAGE_DIR="${CWD}/images"
 VMLINUX_LIST=($(basename -a "${IMAGE_DIR}"/vmlinux*))
 
+# Ensure we have images directory and directories inside
+if [ ! -d "$IMAGE_DIR" ]; then
+    echo "ERROR: The '$IMAGE_DIR' directory does not exist. Please run ./download_images.sh first"
+    exit 1
+fi
+if [ "${VMLINUX_LIST}" = "vmlinux*" ]; then
+    echo "ERROR: The '$IMAGE_DIR' directory does not contain any kernel images. Please run ./download_images.sh first"
+    exit 1
+fi
+
 ptrace_scope=$(cat /proc/sys/kernel/yama/ptrace_scope)
 if [[ $ptrace_scope -ne 0 && $(id -u) -ne 0 ]]; then
     cat << EOF
