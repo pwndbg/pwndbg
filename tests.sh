@@ -5,7 +5,7 @@
 glibc_version=$(ldd --version | sed -n '1s/([^)]*)//g; s/.* \([0-9]\+\.[0-9]\+\)$/\1/p')
 echo "glibc version: $glibc_version"
 
-TEST_CMD="uv run --group dev --group tests --all-extras"
+TEST_CMD="./.venv/bin/uv run --group dev --group tests --all-extras"
 
 # Run integration tests
 (cd tests && $TEST_CMD python3 tests.py $@)

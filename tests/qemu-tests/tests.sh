@@ -105,6 +105,9 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
+# Activate venv
+source "${ROOT_DIR}/.venv/bin/activate"
+
 # Test if the port is already listening, possibly by other qemu instance. This
 # can cause unexpected test failures.
 NETSTAT=$(which netstat)
@@ -143,7 +146,8 @@ run_gdb() {
         fi
     fi
 
-    $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
+    ./.venv/bin/uv run $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" \
+        -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
     return $?
 }
 

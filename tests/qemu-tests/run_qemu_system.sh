@@ -80,4 +80,4 @@ QEMU_ARGS+=(
 )
 
 echo "Waiting for GDB to attach (use 'ctrl-a x' to quit)"
-$QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"
+./.venv/bin/uv run $QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"

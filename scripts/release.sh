@@ -30,4 +30,4 @@ portable_sed_replace $OLD_VER $NEW_VER ./docs/setup.md
 portable_sed_replace $OLD_VER $NEW_VER ./docs/install.sh
 
 # Rebuild uv.lock file after version change
-uv lock
+./.venv/bin/uv lock

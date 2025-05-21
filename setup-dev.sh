@@ -8,7 +8,7 @@ echo "# --------------------------------------"
 
 help_and_exit() {
     echo "Usage: ./setup-dev.sh [--install-only]"
-    echo "  --install-only              install only distro dependencies without installing python-venv"
+    echo "  --install-only              install only distro dependencies without syncing the python venv"
     exit 1
 }
 
@@ -287,7 +287,7 @@ install_jemalloc() {
 }
 
 configure_venv() {
-    uv sync --all-groups --all-extras
+    ./.venv/bin/uv sync --all-groups --all-extras
 
     # Create a developer marker file
     if [[ -z "${PWNDBG_VENV_PATH}" ]]; then

@@ -225,13 +225,19 @@ if ! command -v uv 2>&1 > /dev/null; then
     fi
 fi
 
-# Create the Python virtual environment and install dependencies using uv
 if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="./.venv"
 fi
 
+# Create the python virtual environment
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
-uv venv $PWNDBG_VENV_PATH
+${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
+
+# Activate venv
+source ${PWNDBG_VENV_PATH}/bin/activate
+
+# Install uv inside the venv
+pip install uv
 
 # Install dependencies
 echo "Installing dependancies.."

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-TEST_CMD="uv run --group dev --group tests --all-extras"
+TEST_CMD="./.venv/bin/uv run --group dev --group tests --all-extras"
 
 COV=0
 # Run unit tests

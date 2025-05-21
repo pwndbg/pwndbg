@@ -29,7 +29,7 @@ done
 set -o xtrace
 
 LINT_FILES="pwndbg tests *.py scripts/*.py"
-LINT_CMD="uv run --group lint --group dev"
+LINT_CMD="./.venv/bin/uv run --group lint --group dev"
 
 call_shfmt() {
     local FLAGS=$1
@@ -39,7 +39,8 @@ call_shfmt() {
         # and allow spaces following a redirect
         $LINT_CMD shfmt ${FLAGS} -i 4 -bn -ci -sr -d ${SHFMT_FILES}
     else
-        echo "shfmt not installed, skipping"
+        echo "shfmt not installed, please install it"
+        exit 2
     fi
 }
 
