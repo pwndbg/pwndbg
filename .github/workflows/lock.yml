@@ -111,4 +111,4 @@ jobs:
       run: nix profile install --inputs-from . nixpkgs#uv
 
     - name: check uv.lock
-      run: ./.venv/bin/uv lock --locked
+      run: uv lock --locked
