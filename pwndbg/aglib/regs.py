@@ -52,7 +52,8 @@ def get_register(
 
     regs = regs_in_frame(frame)
 
-    return regs.by_name(name) or regs.by_name(name.upper())
+    value = regs.by_name(name)
+    return value if value is not None else regs.by_name(name.upper())
 
 
 @pwndbg.aglib.proc.OnlyWhenQemuKernel
