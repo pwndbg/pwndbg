@@ -271,16 +271,25 @@ def test_command_elf(binary_name, is_pie):
     gdb.execute("starti")
 
     out = gdb.execute("elf", to_string=True).splitlines()
-    assert len(out) == 24
+    assert len(out) == 25
 
-    for section in out[1:]:
+    # test for default
+    for section in out[2:]:
         assert re.match(
-            r"^\s*(0x[\da-fA-F]+)\s+(0x[\da-fA-F]+)\s+(0x[\da-fA-F]+)\s+(0x[\da-fA-F]+)\s+(0x[\da-fA-F]+)\s+\.([^\s]+)$",
+            r"^\s*0x[\da-fA-F]+\s+0x[\da-fA-F]+\s+(?:[RWX-]{3})\s+0x[\da-fA-F]+\s+\.([^\s]+)$",
             section,
         )
-        address = section.split()
         if is_pie:
-            assert int(address[0], 16) < int(address[2], 16)
-            assert address[2].startswith("0x55555555")
-        else:
-            assert address[0] == address[2]
+            address = section.split()
+            assert address[0].startswith("0x55555555")
+
+    # if this is a pie binary, test for --no-rebase
+    if is_pie:
+        out = gdb.execute("elf -R", to_string=True).splitlines()
+        assert len(out) == 25
+
+        for section in out[2:]:
+            assert re.match(
+                r"^\s*0x[\da-fA-F]+\s+0x[\da-fA-F]+\s+(?:[RWX-]{3})\s+0x[\da-fA-F]+\s+\.([^\s]+)$",
+                section,
+            )

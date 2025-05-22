@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from typing import List
 from typing import Tuple
 
@@ -7,16 +8,34 @@ from elftools.elf.elffile import ELFFile
 
 import pwndbg.aglib
 import pwndbg.aglib.proc
+import pwndbg.color.memory as M
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
+parser = argparse.ArgumentParser(
+    description="""Prints the section mappings contained in the ELF header.
+If binary not start or use --no-rebase, the section permission based on section flags.
 
-@pwndbg.commands.Command(
-    "Prints the section mappings contained in the ELF header.", category=CommandCategory.LINUX
+Examples:
+    elfsections
+    elfsections --no-rebase
+""",
 )
+
+parser.add_argument(
+    "-R",
+    "--no-rebase",
+    help="Print the non-rebased section address. ",
+    action="store_true",
+    default=False,
+    dest="no_rebase",
+)
+
+
+@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWithFile
-def elfsections() -> None:
+def elfsections(no_rebase: bool) -> None:
     local_path = pwndbg.aglib.file.get_proc_exe_file()
 
     bin_base_addr = 0
@@ -24,44 +43,72 @@ def elfsections() -> None:
     if pwndbg.aglib.proc.alive:
         bin_base_addr = pwndbg.aglib.proc.binary_base_addr
 
+    __SH_WRITE = 1 << 0
+    __SH_ALLOC = 1 << 1
+    __SH_EXEC = 1 << 2
+
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
         sections = []
         for section in elffile.iter_sections():
             start = section["sh_addr"]
+            privilege = section["sh_flags"]
 
             # Don't print sections that aren't mapped into memory
-            if start == 0:
+            # test in go sample: "gosample.x64/86", some sections have the address but don't have the SH_ALLOC flags
+            if not (privilege & __SH_ALLOC):
                 continue
 
             size = section["sh_size"]
 
             # rebase the address if we need
-            rel_start = bin_base_addr + start if start < bin_base_addr else start
-            rel_end = bin_base_addr + start + size if start < bin_base_addr else start + size
+            if not no_rebase:
+                start = bin_base_addr + start if start < bin_base_addr else start
 
-            sections.append(
-                [
-                    start,
-                    start + size,
-                    rel_start,
-                    rel_end,
-                    size,
-                    section.name,
-                ]
-            )
+            sections.append([start, start + size, size, section.name, privilege])
 
         sections.sort()
 
-        # table header
-        print(
-            f"{'Start':>18} {'End':>18} {'Rel Start':>18} {'Rel End':>18} {'Size':>10}  {'Name':<}"
-        )
+        # print legend
+        print(M.legend())
 
-        for start, end, rel_start, rel_end, size, name in sections:
-            print(
-                f"{start:>#18x} {end:>#18x} {rel_start:>#18x} {rel_end:>#18x} {size:>#10x}  {name:<}"
-            )
+        # table header
+        print(f"{'Start':>18} {'End':>18} {'Perm':>8} {'Size':>10}  {'Name':<}")
+
+        # if the binary is started, use the memory permission for the coloring
+        if pwndbg.aglib.proc.alive and not no_rebase:
+            for start, end, size, name, privilege in sections:
+                page = pwndbg.aglib.vmmap.find(start)
+
+                privilege_str = "R" if page.read else "-"
+                privilege_str += "W" if page.write else "-"
+                privilege_str += "X" if page.execute else "-"
+
+                print(
+                    M.get(
+                        start,
+                        text=f"{start:>#18x} {end:>#18x} {privilege_str:>8} {size:>#10x}  {name:<}",
+                    )
+                )
+        else:
+            # if the binary is not start, use the section flags for the coloring.
+            for start, end, size, name, privilege in sections:
+                color = M.c.rodata
+                privilege_str = "R"
+
+                if privilege & __SH_WRITE:
+                    privilege_str += "W"
+                    color = M.c.data
+                else:
+                    privilege_str += "-"
+
+                if privilege & __SH_EXEC:
+                    privilege_str += "X"
+                    color = M.c.code
+                else:
+                    privilege_str += "-"
+
+                print(color(f"{start:>#18x} {end:>#18x} {privilege_str:>8} {size:>#10x}  {name:<}"))
 
 
 @pwndbg.commands.Command(
