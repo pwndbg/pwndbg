@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
 # Benchmarks current and old version of pwndbg (provided as git commit)
 # Usage: bench.sh <old-commit>
 rm *.prof *.stats

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 source "$(dirname "$0")/../../scripts/common.sh"
 
