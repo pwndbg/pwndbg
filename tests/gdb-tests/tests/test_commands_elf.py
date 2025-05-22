@@ -263,17 +263,24 @@ def test_command_got_for_target_binary_and_loaded_library(binary_name):
 
 
 @pytest.mark.parametrize(
-    "binary_name,is_pie", ((PIE_BINARY_WITH_PLT, True), (NOPIE_BINARY_WITH_PLT, False))
+    "binary_name,is_pie", ((NOPIE_BINARY_WITH_PLT, False), (PIE_BINARY_WITH_PLT, True))
 )
-def test_command_elf(start_binary, binary_name, is_pie):
+def test_command_elf(binary_name, is_pie):
     binary = tests.binaries.get(binary_name)
     gdb.execute(f"file {binary}")
     gdb.execute("starti")
 
     out = gdb.execute("elf", to_string=True).splitlines()
-    assert len(out) == 23
+    assert len(out) == 24
 
-    for section in out:
-        assert re.match(r"0x[0-9a-f]+ - 0x[0-9a-f]+  .*", section)
+    for section in out[1:]:
+        assert re.match(
+            r"^\s*(0x[\da-fA-F]+)\s+(0x[\da-fA-F]+)\s+(0x[\da-fA-F]+)\s+(0x[\da-fA-F]+)\s+(0x[\da-fA-F]+)\s+\.([^\s]+)$",
+            section,
+        )
+        address = section.split()
         if is_pie:
-            assert section.startswith("0x55555555")
+            assert int(address[0], 16) < int(address[2], 16)
+            assert address[2].startswith("0x55555555")
+        else:
+            assert address[0] == address[2]

@@ -34,17 +34,34 @@ def elfsections() -> None:
             if start == 0:
                 continue
 
-            # Rebase the section address
-            if start < bin_base_addr:
-                start += bin_base_addr
-
             size = section["sh_size"]
-            sections.append((start, start + size, section.name))
+
+            # rebase the address if we need
+            rel_start = bin_base_addr + start if start < bin_base_addr else start
+            rel_end = bin_base_addr + start + size if start < bin_base_addr else start + size
+
+            sections.append(
+                [
+                    start,
+                    start + size,
+                    rel_start,
+                    rel_end,
+                    size,
+                    section.name,
+                ]
+            )
 
         sections.sort()
 
-        for start, end, name in sections:
-            print(f"{start:#x} - {end:#x} ", name)
+        # table header
+        print(
+            f"{'Start':>18} {'End':>18} {'Rel Start':>18} {'Rel End':>18} {'Size':>10}  {'Name':<}"
+        )
+
+        for start, end, rel_start, rel_end, size, name in sections:
+            print(
+                f"{start:>#18x} {end:>#18x} {rel_start:>#18x} {rel_end:>#18x} {size:>#10x}  {name:<}"
+            )
 
 
 @pwndbg.commands.Command(
