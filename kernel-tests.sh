@@ -17,7 +17,7 @@ if [ ! -d "$TESTING_KERNEL_IMAGES_DIR" ] || [ "$VMLINUX_LIST" = "vmlinux*" ]; th
 fi
 
 echo "Running tests..."
-./system-tests.sh
+./system-tests.sh $@
 
 exit_code=$?
 exit $exit_code
