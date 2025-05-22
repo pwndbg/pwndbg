@@ -39,8 +39,8 @@ def run_uv_install(
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
-def find_uv() -> Path | None:
-    binary_path = shutil.which("uv")
+def find_uv(venv_path: Path) -> Path | None:
+    binary_path = shutil.which("uv", path=venv_path / "bin")
     if binary_path is not None:
         return Path(binary_path)
 
@@ -67,7 +67,7 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
         return
 
     print("Detected outdated pwndbg dependencies (uv.lock). Updating.")
-    uv_path = find_uv()
+    uv_path = find_uv(venv_path)
     if uv_path is None:
         print(
             "'uv' was not found on the $PATH. Please ensure it is installed and on the path, "
