@@ -1049,3 +1049,23 @@ class DisassemblyAssistant:
             instruction.annotation = memory_or_register_assign(
                 target_operand.str, math_string, memory_assignment
             )
+
+
+def basic_enhance(ins: PwndbgInstruction) -> None:
+    # Apply syntax highlighting and inline symbol replacement
+    # Used in cases were we don't want to do the full enhancement process
+    # for performance reasons.
+    if pwndbg.config.syntax_highlight:
+        ins.asm_string = syntax_highlight(ins.asm_string)
+
+    if pwndbg.config.disasm_inline_symbols:
+        # Make inline replacements, so `jmp 0x400122` becomes `jmp function_name`
+        for op in ins.operands:
+            if op.type is CS_OP_IMM:
+                op.before_value = op.imm
+
+                if op.before_value >= 0:
+                    op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
+
+                if op.symbol:
+                    ins.asm_string = ins.asm_string.replace(hex(op.before_value), op.symbol)

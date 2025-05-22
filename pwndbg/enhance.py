@@ -112,8 +112,9 @@ def enhance(
         rwx = exe = False
 
     if exe:
-        pwndbg_instr = pwndbg.aglib.disasm.disassembly.one(value)
+        pwndbg_instr = pwndbg.aglib.disasm.disassembly.one_raw(value)
         if pwndbg_instr:
+            pwndbg.aglib.disasm.arch.basic_enhance(pwndbg_instr)
             # For telescoping, we don't want the extra spaces between the mnemonic and operands
             # which are baked in during enhancement. This removes those spaces.
             instr = " ".join(pwndbg_instr.asm_string.split())
