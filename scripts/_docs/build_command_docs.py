@@ -110,7 +110,7 @@ def convert_all_to_markdown(
         # Note about supported debuggers if the command isn't
         # available everywhere.
         if len(cmd_variants) != len(ALL_DEBUGGERS):
-            supported_list = ", ".join([x[0] for x in cmd_variants])
+            supported_list = ", ".join([x[0].upper() for x in cmd_variants])
             markdown += '<small style="color: lightgray;">'
             markdown += f"(only in {supported_list})"
             markdown += "</small>\n"

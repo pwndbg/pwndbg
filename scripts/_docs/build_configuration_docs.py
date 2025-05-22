@@ -52,7 +52,7 @@ def convert_to_markdown(scope: str, debugger_to_params: Dict[str, list[Extracted
         # Note about supported debuggers if the parameter isn't
         # available everywhere.
         if len(param_variants) != len(ALL_DEBUGGERS):
-            supported_list = ", ".join([x[0] for x in param_variants])
+            supported_list = ", ".join([x[0].upper() for x in param_variants])
             md = '<small style="color: lightgray;">'
             md += f"(only in {supported_list})"
             md += "</small>\n"
