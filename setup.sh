@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+source "$(dirname "$0")/scripts/common.sh"
+
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
@@ -206,30 +208,8 @@ if [[ -z "$is_supported" ]]; then
     exit 4
 fi
 
-# Check if uv is already installed
-if ! command -v uv 2>&1 > /dev/null; then
-    # Install uv
-    echo "Installing uv.."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    echo "If you wish to uninstall it follow the official instructions:"
-    echo "https://docs.astral.sh/uv/getting-started/installation/#uninstallation"
-    # Check if uv is now accessible from PATH
-    if ! command -v uv 2>&1 > /dev/null; then
-        # Add uv to PATH.
-        # Doing `source $HOME/.local/bin/env` does not
-        # change the outer shell's PATH and wouldn't work with our CI.
-        sudo ln -s $HOME/.local/bin/uv /usr/bin/uv
-        sudo ln -s $HOME/.local/bin/uvx /usr/bin/uvx
-        echo "and also run:"
-        echo "sudo rm /usr/bin/uv; sudo rm /usr/bin/uvx"
-    fi
-fi
-
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="./.venv"
-fi
-
 # Create the python virtual environment
+# We don't care about PWNDBG_PLEASE_SKIP_VENV here.
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
 ${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
 

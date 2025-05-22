@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+source "$(dirname "$0")/scripts/common.sh"
+
 echo "# --------------------------------------"
 echo "# Install testing tools."
 echo "# Only works with Ubuntu / APT or Arch / Pacman."
@@ -287,11 +289,7 @@ install_jemalloc() {
 }
 
 configure_venv() {
-    if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-        PWNDBG_VENV_PATH="./.venv"
-    fi
-
-    "${PWNDBG_VENV_PATH}/bin/uv" sync --all-groups --all-extras
+    $UV sync --all-groups --all-extras
 
     # Create a developer marker file
     DEV_MARKER_PATH="${PWNDBG_VENV_PATH}/dev.marker"

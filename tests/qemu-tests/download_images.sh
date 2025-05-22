@@ -2,8 +2,8 @@
 
 set -o errexit
 
-CWD=$(dirname -- "$0")
-OUT_DIR="${CWD}/images"
+SCRIPT_ABS_DIR="$(dirname "$(realpath "$0")")"
+OUT_DIR="${SCRIPT_ABS_DIR}/images"
 URL=${URL:-"https://github.com/pwndbg/linux-exploit-dev-env/releases/latest/download"}
 
 mkdir -p "${OUT_DIR}"

@@ -3,6 +3,8 @@
 #set -o errexit
 set -o pipefail
 
+source "$(dirname "$0")/../../scripts/common.sh"
+
 ROOT_DIR="$(readlink -f ../../)"
 GDB_INIT_PATH="$ROOT_DIR/gdbinit.py"
 COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
@@ -105,13 +107,6 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# Activate venv
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="${ROOT_DIR}/.venv"
-fi
-
-source "${PWNDBG_VENV_PATH}/bin/activate"
-
 # Test if the port is already listening, possibly by other qemu instance. This
 # can cause unexpected test failures.
 NETSTAT=$(which netstat)
@@ -150,7 +145,7 @@ run_gdb() {
         fi
     fi
 
-    "${PWNDBG_VENV_PATH}/bin/uv" run $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" \
+    $UV_RUN $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" \
         -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
     return $?
 }

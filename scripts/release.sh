@@ -2,6 +2,8 @@
 
 set -ex
 
+source "$(dirname "$0")/common.sh"
+
 OLD_VER="$1"
 NEW_VER="$2"
 
@@ -29,9 +31,5 @@ portable_sed_replace $OLD_VER $NEW_VER ./README.md
 portable_sed_replace $OLD_VER $NEW_VER ./docs/setup.md
 portable_sed_replace $OLD_VER $NEW_VER ./docs/install.sh
 
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="./.venv"
-fi
-
 # Rebuild uv.lock file after version change
-"${PWNDBG_VENV_PATH}/bin/uv" lock
+$UV lock

@@ -5,12 +5,10 @@ rm *.prof *.stats
 
 set -e
 
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="./.venv"
-fi
+source "$(dirname "$0")/../../scripts/common.sh"
 
-$GDB="${PWNDBG_VENV_PATH}/bin/uv run gdb --batch --ex 'entry'"
-$PYTHON="${PWNDBG_VENV_PATH}/bin/uv run python3"
+$GDB="${UV_RUN} gdb --batch --ex 'entry'"
+$PYTHON="${UV_RUN} python3"
 
 # Current code, benchmark 1
 $GDB --ex 'source gdbscript1.py' --args $(which python3) -c 'import sys; sys.exit(0)'

@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
+source "$(dirname "$0")/../../scripts/common.sh"
+
 ARCH=""
 KERNEL_TYPE=""
 CMDLINE=""
 
-CWD=$(dirname -- "$0")
-IMAGE_DIR="${CWD}/images"
+SCRIPT_ABS_DIR="$(dirname "$(realpath "$0")")"
+IMAGE_DIR="${SCRIPT_ABS_DIR}/images"
 
 KERNEL_LIST=($(basename -a "${IMAGE_DIR}"/vmlinux* | sed "s/vmlinux-//"))
 GDB_PORT=1234
@@ -79,10 +81,5 @@ QEMU_ARGS+=(
     "${QEMU_ARGS_EXT[@]}"
 )
 
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    # Note the path traversal
-    PWNDBG_VENV_PATH="${CWD}/../../.venv"
-fi
-
 echo "Waiting for GDB to attach (use 'ctrl-a x' to quit)"
-"${PWNDBG_VENV_PATH}/bin/uv" run $QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"
+$UV_RUN $QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"
