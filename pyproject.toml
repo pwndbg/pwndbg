@@ -16,6 +16,8 @@ dependencies = [
     "pyelftools>=0.29,<0.30",
     "pygments>=2.18.0,<3",
     "psutil>=6.1.1,<7",
+    # for the (unused) inform_unmet_dependencies function
+    "setuptools>=80.8.0",
     # Optional? only for 'ipi' command
     "ipython>=8.27.0,<9",
     # Optional? only for 'ropgadget' command
@@ -73,6 +75,7 @@ docs = [
     # Used by mkdocstrings to format source.
     "ruff",
     "mike",
+    "mkdocs-awesome-nav",
 ]
 
 [tool.ruff]

@@ -1,0 +1,14 @@
+# Managed by the awesome-nav plugin.
+# https://lukasgeiter.github.io/mkdocs-awesome-nav/
+# Allows us to specify the order of these pages (default is alphabetical)
+# without having to write the whole nav.
+nav:
+  - index.md
+  - setup.md
+  - commands
+  - functions
+  - configuration
+  - contributing
+  - misc
+  - reference
+  - blog

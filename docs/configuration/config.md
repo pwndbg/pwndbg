@@ -6,6 +6,7 @@
 # config
 
 ## **ai-anthropic-api-key**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Anthropic API key.
@@ -14,6 +15,7 @@ Defaults to ANTHROPIC_API_KEY environment variable if not set.
 
 **Default:** ''  
 ## **ai-history-size**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Maximum number of questions and answers to keep in the prompt.
@@ -22,6 +24,7 @@ Maximum number of questions and answers to keep in the prompt.
 
 **Default:** 3  
 ## **ai-max-tokens**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 The maximum number of tokens to return in the response.
@@ -30,6 +33,7 @@ Useful when limiting verbosity or conserving resources. Set to a lower value to 
 
 **Default:** 100  
 ## **ai-model**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 The name of the large language model to query.
@@ -38,6 +42,7 @@ Changing this affects the behavior, response quality, and cost (if applicable) o
 
 **Default:** 'gpt-3.5-turbo'  
 ## **ai-ollama-endpoint**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Ollama API endpoint.
@@ -46,6 +51,7 @@ Defaults to OLLAMA_ENDPOINT environment variable if not set.
 
 **Default:** ''  
 ## **ai-openai-api-key**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 OpenAI API key.
@@ -54,6 +60,7 @@ Will default to OPENAI_API_KEY environment variable if not set.
 
 **Default:** ''  
 ## **ai-show-usage**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Whether to show how many tokens are used with each OpenAI API call.
@@ -62,6 +69,7 @@ Whether to show how many tokens are used with each OpenAI API call.
 
 **Default:** off  
 ## **ai-stack-depth**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Rows of stack context to include in the prompt for the ai command.
@@ -70,6 +78,7 @@ Rows of stack context to include in the prompt for the ai command.
 
 **Default:** 16  
 ## **ai-temperature**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 The temperature specification for the LLM query.
@@ -78,6 +87,7 @@ This controls the degree of randomness in the response.
 
 **Default:** 0  
 ## **attachp-resolution-method**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 How to determine the process to attach when multiple candidates exists.
@@ -270,6 +280,7 @@ Number of lines to print in the stack context.
 
 **Default:** 8  
 ## **cymbol-editor**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Path to the editor for editing custom structures.
@@ -278,6 +289,7 @@ Path to the editor for editing custom structures.
 
 **Default:** ''  
 ## **debug-events**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Display internal event debugging info.
@@ -382,6 +394,7 @@ Print a full stacktrace for exceptions raised in pwndbg commands.
 
 **Default:** off  
 ## **gcc-compiler-path**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Path to the gcc/g++ toolchain for generating imported symbols.
@@ -390,6 +403,7 @@ Path to the gcc/g++ toolchain for generating imported symbols.
 
 **Default:** ''  
 ## **gdb-workaround-stop-event**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Asynchronous stop events to improve 'commands' functionality.
@@ -463,6 +477,7 @@ Line width of hexdump command.
 
 **Default:** 16  
 ## **ida-rpc-host**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Ida xmlrpc server address.
@@ -471,6 +486,7 @@ Ida xmlrpc server address.
 
 **Default:** '127.0.0.1'  
 ## **ida-rpc-port**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Ida xmlrpc server port.
@@ -479,6 +495,7 @@ Ida xmlrpc server port.
 
 **Default:** 31337  
 ## **ida-timeout**
+<small style="color: lightgray;">(only in GDB)</small>
 
 
 Time to wait for ida xmlrpc in seconds.
