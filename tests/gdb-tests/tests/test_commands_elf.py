@@ -269,7 +269,7 @@ def test_command_elf(start_binary, binary_name, is_pie):
     binary = tests.binaries.get(binary_name)
     gdb.execute(f"file {binary}")
     gdb.execute("starti")
-    
+
     out = gdb.execute("elf", to_string=True).splitlines()
     assert len(out) == 23
 
