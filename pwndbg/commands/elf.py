@@ -18,9 +18,8 @@ from pwndbg.commands import CommandCategory
 @pwndbg.commands.OnlyWithFile
 def elfsections() -> None:
     local_path = pwndbg.aglib.file.get_proc_exe_file()
-    
+
     bin_base_addr = 0
-    
     # Get the binary base address, for rebase the section address if we need.
     if pwndbg.aglib.proc.alive:
         bin_base_addr = pwndbg.aglib.proc.binary_base_addr
@@ -34,7 +33,7 @@ def elfsections() -> None:
             # Don't print sections that aren't mapped into memory
             if start == 0:
                 continue
-            
+
             # Rebase the section address
             if start < bin_base_addr:
                 start += bin_base_addr
