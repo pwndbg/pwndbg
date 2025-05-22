@@ -22,7 +22,7 @@ Values explained:
     enum_sequence=[DISABLED, DISABLED_DEADLOCK, ENABLED],
 )
 ```
-To understand it, let's also look at the signature of the `Config.add_param` function defined in `pwndbg.lib.config.py`:
+To understand it, let's also look at the signature of the `Config.add_param` function defined in `pwndbg/lib/config.py`:
 ```python
     def add_param(
         self,
@@ -55,29 +55,30 @@ It is therefore recommended to use a noun phrase rather than describe an action.
 The `set_show_doc` argument should be short because it is displayed with the `config` family of commands.
 ```text
 pwndbg> config
-Name                               Documentation                                                            Value (Default) 
+Name                               Documentation                                                            Value (Default)
 ----------------------------------------------------------------------------------------------------------------------------
-ai-anthropic-api-key               Anthropic API key                                                        '' 
-ai-history-size                    maximum number of questions and answers to keep in the prompt            3 
-ai-max-tokens                      the maximum number of tokens to return in the response                   100 
-ai-model                           the name of the large language model to query                            'gpt-3.5-turbo' 
-ai-ollama-endpoint                 Ollama API endpoint                                                      '' 
-ai-openai-api-key                  OpenAI API key                                                           '' 
-ai-show-usage                      whether to show how many tokens are used with each OpenAI API call       off 
-ai-stack-depth                     rows of stack context to include in the prompt for the ai command        16 
-ai-temperature                     the temperature specification for the LLM query                          0 
-attachp-resolution-method          how to determine the process to attach when multiple candidates exists   'ask' 
-auto-explore-auxv                  stack exploration for AUXV information; it may be really slow            'warn' 
-auto-explore-pages                 whether to try to infer page permissions when memory maps are missing    'warn' 
-auto-explore-stack                 stack exploration; it may be really slow                                 'warn' 
-auto-save-search                   automatically pass --save to "search" command                            off 
-bn-autosync                        whether to automatically run bn-sync every step                          off 
+ai-anthropic-api-key               Anthropic API key                                                        ''
+ai-history-size                    maximum number of questions and answers to keep in the prompt            3
+ai-max-tokens                      the maximum number of tokens to return in the response                   100
+ai-model                           the name of the large language model to query                            'gpt-3.5-turbo'
+ai-ollama-endpoint                 Ollama API endpoint                                                      ''
+ai-openai-api-key                  OpenAI API key                                                           ''
+ai-show-usage                      whether to show how many tokens are used with each OpenAI API call       off
+ai-stack-depth                     rows of stack context to include in the prompt for the ai command        16
+ai-temperature                     the temperature specification for the LLM query                          0
+attachp-resolution-method          how to determine the process to attach when multiple candidates exists   'ask'
+auto-explore-auxv                  stack exploration for AUXV information; it may be really slow            'warn'
+auto-explore-pages                 whether to try to infer page permissions when memory maps are missing    'warn'
+auto-explore-stack                 stack exploration; it may be really slow                                 'warn'
+auto-save-search                   automatically pass --save to "search" command                            off
+bn-autosync                        whether to automatically run bn-sync every step                          off
+[...]
 ```
 Because of the various contexts in which a parameter can be show, the first letter of the `set_show_doc` string should be lowercase (unless the first word is a name or an abbreviation) and there should be no punctuation at the end. This way, pwndbg and gdb can more easily modify the string to fit it into these contexts.
 ## help_docstring
 While `help_docstring` is not mandatory, it is highly recommended to use it. Put a detailed explanation of what the parameter does here, and explain any caveats. This string does not have a size limit and is shown with the following command in GDB:
 ```text
-pwndbg> help set gdb-workaround-stop-event 
+pwndbg> help set gdb-workaround-stop-event
 Set asynchronous stop events to improve 'commands' functionality.
 Note that this may cause unexpected behavior with pwndbg or gdb.execute.
 
@@ -87,7 +88,7 @@ Values explained:
 + `disabled-deadlock` - Disable only deadlock detection; deadlocks may still occur.
 + `enabled` - Enable asynchronous stop events; gdb.execute may behave unexpectedly (asynchronously).
 
-Default: 'disabled'  
+Default: 'disabled'
 Valid values: 'disabled', 'disabled-deadlock', 'enabled'
 ```
 Note that the last two lines are automatically generated by pwndbg.
@@ -96,7 +97,7 @@ Note that the last two lines are automatically generated by pwndbg.
 
 When writing this explanation, it is important to take into account how it will be displayed [in the documentation](https://pwndbg.re/pwndbg/dev/configuration/) after being parsed as markdown. See what `gdb-workaround-stop-event` looks like here: https://pwndbg.re/pwndbg/dev/configuration/config/#gdb-workaround-stop-event . If there wasn't an empty line between `Values explained:` and ``+ `disabled`..`` the list wouldn't have rendered properly.
 ## param_class
-This argument describes the type of the parameter. It will be used by GDB to perform input validation when the parameter is being set so it is important to set this to the correct value. The possible values are defined in `pwndbg.lib.config`, use the most restrictive one that fits:
+This argument describes the type of the parameter. It will be used by GDB to perform input validation when the parameter is being set so it is important to set this to the correct value. The possible values are defined in `pwndbg/lib/config.py`, use the most restrictive one that fits:
 ```python
 # Boolean value. True or False, same as in Python.
 PARAM_BOOLEAN = 0
