@@ -186,9 +186,6 @@ class TestStats:
             )
             if result:
                 test_status = result[0]
-                skip_reason = (
-                    process.stdout.split(test_status)[1].split("\n\n\x1b[33m")[0].replace("\n", "")
-                )
 
         if "FAIL" in test_status:
             self.fail_tests += 1
@@ -197,7 +194,10 @@ class TestStats:
             self.pass_tests += 1
         elif "SKIP" in test_status:
             self.skip_tests += 1
-        print(f"{test_case:<70} {test_status} {duration:.2f}s {skip_reason}")
+            skip_reason = " " + (
+                process.stdout.split(test_status)[1].split("\n\n\x1b[33m")[0].replace("\n", "")
+            )
+        print(f"{test_case:<70} {test_status} {duration:.2f}s{skip_reason}")
 
         # Only show the output of failed tests unless the verbose flag was used
         if args.verbose or "FAIL" in test_status:
