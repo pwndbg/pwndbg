@@ -80,7 +80,8 @@ QEMU_ARGS+=(
 )
 
 if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="./.venv"
+    # Note the path traversal
+    PWNDBG_VENV_PATH="${CWD}/../../.venv"
 fi
 
 echo "Waiting for GDB to attach (use 'ctrl-a x' to quit)"
