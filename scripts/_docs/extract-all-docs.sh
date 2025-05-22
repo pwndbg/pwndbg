@@ -2,6 +2,8 @@
 
 source "$(dirname "$0")/../common.sh"
 
+cd $PWNDBG_ABS_PATH
+
 # Extract from sources all the information necessary to build
 # the documentation. Do this from each debugger.
 
