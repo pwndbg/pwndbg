@@ -6,10 +6,7 @@ ARCH=""
 KERNEL_TYPE=""
 CMDLINE=""
 
-SCRIPT_ABS_DIR="$(dirname "$(realpath "$0")")"
-IMAGE_DIR="${SCRIPT_ABS_DIR}/images"
-
-KERNEL_LIST=($(basename -a "${IMAGE_DIR}"/vmlinux* | sed "s/vmlinux-//"))
+KERNEL_LIST=($(basename -a "${TESTING_KERNEL_IMAGES_DIR}"/vmlinux* | sed "s/vmlinux-//"))
 GDB_PORT=1234
 help_and_exit() {
     echo "Usage: $0 [options] [-- other qemu options]"
@@ -70,8 +67,8 @@ elif [ "$ARCH" == "x86_64" ]; then
     QEMU_ARGS=()
 fi
 
-KERNEL=$(echo ${IMAGE_DIR}/*Image-${KERNEL_NAME})
-ROOTFS=$(echo ${IMAGE_DIR}/*-${ARCH}.img)
+KERNEL=$(echo ${TESTING_KERNEL_IMAGES_DIR}/*Image-${KERNEL_NAME})
+ROOTFS=$(echo ${TESTING_KERNEL_IMAGES_DIR}/*-${ARCH}.img)
 
 QEMU_ARGS+=(
     -kernel $KERNEL
