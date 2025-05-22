@@ -5,6 +5,8 @@ from typing import Tuple
 
 from elftools.elf.elffile import ELFFile
 
+import pwndbg.aglib
+import pwndbg.aglib.proc
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -16,6 +18,12 @@ from pwndbg.commands import CommandCategory
 @pwndbg.commands.OnlyWithFile
 def elfsections() -> None:
     local_path = pwndbg.aglib.file.get_proc_exe_file()
+    
+    bin_base_addr = 0
+    
+    # Get the binary base address, for rebase the section address if we need.
+    if pwndbg.aglib.proc.alive:
+        bin_base_addr = pwndbg.aglib.proc.binary_base_addr
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
@@ -26,6 +34,10 @@ def elfsections() -> None:
             # Don't print sections that aren't mapped into memory
             if start == 0:
                 continue
+            
+            # Rebase the section address
+            if start < bin_base_addr:
+                start += bin_base_addr
 
             size = section["sh_size"]
             sections.append((start, start + size, section.name))
