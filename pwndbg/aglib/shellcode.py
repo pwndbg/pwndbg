@@ -68,7 +68,7 @@ async def exec_syscall(
 
 @contextlib.asynccontextmanager
 async def exec_shellcode(
-    ec: ExecutionController, blob, restore_context=True, disable_breakpoints=False
+    ec: ExecutionController, blob, restore_context=True, disable_breakpoints=False, steps=0
 ):
     """
     Tries executing the given blob of machine code in the current context of the
@@ -87,6 +87,13 @@ async def exec_shellcode(
     the caller must be careful to inject code that will (1) terminate and (2)
     not cause the inferior to misbehave. Otherwise, it is fairly easy to crash
     or currupt the memory in the inferior.
+
+    The `steps` argument may help in certain contexts like when running `exec_shellcode`
+    during Linux kernel debugging. When steps is bigger than 0, we use `stepi {steps}`
+    instead of `continue` command. This prevents Linux kernel from interrupting
+    the thread during shellcode execution with IRQ, which can cause deadlocks.
+    Care must be taken to provide proper `steps` value that execute all instructions
+    of the shellcode.
     """
 
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
@@ -123,30 +130,41 @@ async def exec_shellcode(
         would_skip_context = pwndbg.gdblib.prompt.context_shown
 
     # Execute.
-    target_address = starting_address + len(blob)
-    with pwndbg.dbg.selected_inferior().break_at(
-        BreakpointLocation(target_address), internal=True
-    ) as bp:
-        while True:
-            try:
-                await ec.cont(bp)
-                break
-            except CancelledError:
-                if disable_breakpoints:
-                    # We probably hit another breakpoint, but in this mode we're
-                    # supposed to ignore any breakpoints that aren't the one we put
-                    # at the end of the range, so just retry.
-                    continue
+    if steps == 0:
+        target_address = starting_address + len(blob)
+        with pwndbg.dbg.selected_inferior().break_at(
+            BreakpointLocation(target_address), internal=True
+        ) as bp:
+            while True:
+                try:
+                    await ec.cont(bp)
+                    break
+                except CancelledError:
+                    if disable_breakpoints:
+                        # We probably hit another breakpoint, but in this mode we're
+                        # supposed to ignore any breakpoints that aren't the one we put
+                        # at the end of the range, so just retry.
+                        continue
 
-                # We hit an external break, and we haven't been told to ignore it.
-                raise
+                    # We hit an external break, and we haven't been told to ignore it.
+                    raise
+    else:
+        # Note: This is a workaround: we should probably fix it one day
+        # Read the docstring 'Safety' note for more info.
+        try:
+            await ec.single_steps(steps)
+        except CancelledError:
+            print(f"exec_shellcode error: attempted to execute {steps} instruction but failed")
+            print("- reverting code and saved registers state")
+            print("- however, some state may have been corrupted by executed instructions")
 
     # Restore the state of the context skip.
     if pwndbg.dbg.is_gdblib_available():
         pwndbg.gdblib.prompt.context_shown = would_skip_context
 
     # Make sure we're in the right place.
-    assert pwndbg.aglib.regs.pc == target_address
+    if steps == 0:
+        assert pwndbg.aglib.regs.pc == target_address
 
     try:
         # Give the caller a chance to collect information from the environment

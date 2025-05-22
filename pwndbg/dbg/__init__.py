@@ -302,6 +302,21 @@ class MemoryMap:
 
 
 class ExecutionController:
+    async def single_steps(self, steps: int) -> None:
+        """
+        Steps N times.
+
+        Throws `CancelledError` if a breakpoint or watchpoint is hit, the program
+        exits, or if any other unexpected event that diverts execution happens
+        while fulfulling the step.
+
+        Debuggers may specialize the implementation to perform this operation
+        faster.
+        """
+        while steps > 0:
+            await self.single_step()
+            steps -= 1
+
     def single_step(self) -> Awaitable[None]:
         """
         Steps to the next instruction.
