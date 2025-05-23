@@ -175,7 +175,7 @@ reference_bin_nopie.out: reference-binary.c
 
 reference_bin_nopie.i386.out: reference-binary.c
 	@echo "[+] Building reference_bin_nopie.i386.out"
-	${ZIGCC} -fpie -target x86-linux-gnu -o reference_bin_nopie.i386.out reference-binary.c
+	${ZIGCC} -fno-pie -target x86-linux-gnu -o reference_bin_nopie.i386.out reference-binary.c
 
 symbol_1600_and_752.out: symbol_1600_and_752.cpp
 	${CXX} -O0 -ggdb -Wno-pmf-conversions symbol_1600_and_752.cpp -o symbol_1600_and_752.out
