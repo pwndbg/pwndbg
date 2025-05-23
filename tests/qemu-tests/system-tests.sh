@@ -107,16 +107,16 @@ done
 
 # Test if the port is already listening, possibly by other qemu instance. This
 # can cause unexpected test failures.
-NETSTAT=$(which netstat)
+NETSTAT=$(which netstat 2> /dev/null)
 if [[ -z "${NETSTAT}" ]]; then
-    NETSTAT=$(which ss)
+    NETSTAT=$(which ss 2> /dev/null)
 fi
 if [[ -z "${NETSTAT}" ]]; then
-    echo "WARNING: netstat/ss not found. Cannot check if port ${GDB_PORT} is already bound." >&2
+    echo "ERROR: netstat/ss not found. Cannot check if port ${GDB_PORT} is already bound." >&2
     exit 1
 else
     if [[ $(${NETSTAT} -tuln 2> /dev/null | grep ":${GDB_PORT}" | grep -c LISTEN) -ne 0 ]]; then
-        echo "WARNING: Port ${GDB_PORT} appears already bound. Please specify a different port with --gdb-port=<port>" >&2
+        echo "ERROR: Port ${GDB_PORT} appears already bound. Please specify a different port with --gdb-port=<port>" >&2
         exit 1
     fi
 fi

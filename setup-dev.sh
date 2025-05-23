@@ -144,7 +144,8 @@ install_apt() {
         parallel \
         qemu-system-x86 \
         qemu-system-arm \
-        qemu-user
+        qemu-user \
+        iproute2
 
     # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
     if uname -m | grep -q x86_64; then
@@ -197,6 +198,8 @@ EOF
         base-devel \
         gdb \
         parallel
+
+    # FIXME: add the necessary deps for testing
 
     command -v go &> /dev/null || sudo pacman -S --noconfirm go
 
