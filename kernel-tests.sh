@@ -4,6 +4,13 @@ source "$(dirname "$0")/scripts/common.sh"
 
 cd "${PWNDBG_ABS_PATH}/tests/qemu-tests"
 
+# Check if we have correct ptrace_scope
+ptrace_scope=$(cat /proc/sys/kernel/yama/ptrace_scope)
+if [[ $ptrace_scope -ne 0 && $(id -u) -ne 0 ]]; then
+    echo "Setting ptrace_scope to zero..."
+    echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
+fi
+
 # Check if we need to download kernel images
 VMLINUX_LIST=($(basename -a "${TESTING_KERNEL_IMAGES_DIR}"/vmlinux*))
 
