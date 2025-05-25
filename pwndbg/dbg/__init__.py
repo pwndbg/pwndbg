@@ -6,9 +6,10 @@ from __future__ import annotations
 
 import contextlib
 from enum import Enum
-from typing import Any, ContextManager
+from typing import Any
 from typing import Awaitable
 from typing import Callable
+from typing import ContextManager
 from typing import Coroutine
 from typing import Generator
 from typing import Iterator

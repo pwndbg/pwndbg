@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import contextlib
 from asyncio import CancelledError
-from typing import ContextManager, AsyncContextManager
+from typing import ContextManager
 
 import pwnlib.asm
 import pwnlib.shellcraft
@@ -114,6 +114,7 @@ def _ctx_registers(blob) -> ContextManager[int]:
 async def _execute_until_addr(ec: ExecutionController, target_address: int) -> None:
     if pwndbg.dbg.is_gdblib_available():
         from pwndbg.gdblib.scheduler import lock_scheduler as do_lock_scheduler
+
         lock_scheduler = do_lock_scheduler
         # GDB require to change scheduler
     else:
@@ -137,9 +138,7 @@ async def _execute_until_addr(ec: ExecutionController, target_address: int) -> N
 
 
 @contextlib.asynccontextmanager
-async def exec_shellcode(
-    ec: ExecutionController, blob
-):
+async def exec_shellcode(ec: ExecutionController, blob):
     """
     Tries executing the given blob of machine code in the current context of the
     inferior, optionally restoring the values of the registers as they were
