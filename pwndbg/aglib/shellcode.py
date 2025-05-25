@@ -136,7 +136,7 @@ async def exec_shellcode(
     try:
         # Execute.
         # if steps == 0:
-        pwndbg.aglib.regs.pc = starting_address + 0x2
+        pwndbg.aglib.regs.pc = starting_address
         with lock_scheduler():
             with pwndbg.dbg.selected_inferior().break_at(
                 BreakpointLocation(target_address), internal=True
