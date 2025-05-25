@@ -61,7 +61,7 @@ def x86_msr_read(msr: int) -> None:
         sc = pwnlib.asm.asm(f"""
             mov ecx, {msr}; rdmsr
         """)
-        async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc, steps=2, disable_breakpoints=True):
+        async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc, steps=2, disable_breakpoints=False):
             edx = int(pwndbg.aglib.regs["edx"]) << 32
             eax = int(pwndbg.aglib.regs["eax"])
             ret = edx + eax

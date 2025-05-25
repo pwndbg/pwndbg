@@ -145,7 +145,7 @@ async def exec_shellcode(
                     try:
                         await ec.cont(bp)
                         break
-                    except CancelledError:
+                    except CancelledError as e:
                         if disable_breakpoints:
                             # We probably hit another breakpoint, but in this mode we're
                             # supposed to ignore any breakpoints that aren't the one we put
@@ -153,12 +153,7 @@ async def exec_shellcode(
                             continue
 
                         # We hit an external break, and we haven't been told to ignore it.
-                        raise
-        # else:
-        #     # Note: This is a workaround: we should probably fix it one day
-        #     # Read the docstring 'Safety' note for more info.
-        #     pwndbg.aglib.regs.pc = starting_address + 0x2
-        #     await ec.single_steps(steps)
+                        raise from e
 
         # Make sure we're in the right place.
         assert pwndbg.aglib.regs.pc == target_address
