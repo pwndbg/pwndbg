@@ -133,28 +133,30 @@ async def exec_shellcode(
     target_address = starting_address + len(blob)
     try:
         # Execute.
-        if steps == 0:
-            with pwndbg.dbg.selected_inferior().break_at(
-                BreakpointLocation(target_address), internal=True
-            ) as bp:
-                while True:
-                    try:
-                        await ec.cont(bp)
-                        break
-                    except CancelledError:
-                        if disable_breakpoints:
-                            # We probably hit another breakpoint, but in this mode we're
-                            # supposed to ignore any breakpoints that aren't the one we put
-                            # at the end of the range, so just retry.
-                            continue
+        # if steps == 0:
+        pwndbg.aglib.regs.pc = starting_address + 0x2
 
-                        # We hit an external break, and we haven't been told to ignore it.
-                        raise
-        else:
-            # Note: This is a workaround: we should probably fix it one day
-            # Read the docstring 'Safety' note for more info.
-            pwndbg.aglib.regs.pc = starting_address + 0x2
-            await ec.single_steps(steps)
+        with pwndbg.dbg.selected_inferior().break_at(
+            BreakpointLocation(target_address), internal=True
+        ) as bp:
+            while True:
+                try:
+                    await ec.cont(bp)
+                    break
+                except CancelledError:
+                    if disable_breakpoints:
+                        # We probably hit another breakpoint, but in this mode we're
+                        # supposed to ignore any breakpoints that aren't the one we put
+                        # at the end of the range, so just retry.
+                        continue
+
+                    # We hit an external break, and we haven't been told to ignore it.
+                    raise
+        # else:
+        #     # Note: This is a workaround: we should probably fix it one day
+        #     # Read the docstring 'Safety' note for more info.
+        #     pwndbg.aglib.regs.pc = starting_address + 0x2
+        #     await ec.single_steps(steps)
 
         # Make sure we're in the right place.
         assert pwndbg.aglib.regs.pc == target_address
