@@ -130,7 +130,7 @@ async def exec_shellcode_with_stack(ec: pwndbg.dbg_mod.ExecutionController, blob
 
     try:
         async with pwndbg.aglib.shellcode.exec_shellcode(
-            ec, blob, restore_context=True, disable_breakpoints=True
+            ec, blob, restore_context=True
         ):
             stack_diff_size = stack_start_diff - pwndbg.aglib.regs.sp
 

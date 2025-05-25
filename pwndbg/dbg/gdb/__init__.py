@@ -1314,6 +1314,11 @@ def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
         return gdb.events.memory_changed
     elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
         return gdb.events.register_changed
+    elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
+        assert hasattr(
+            gdb.events, "suspend_all"
+        ), "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+        return gdb.events.suspend_all
 
     raise NotImplementedError(f"unknown event type {ty}")
 

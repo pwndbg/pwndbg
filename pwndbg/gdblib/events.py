@@ -96,6 +96,7 @@ class StartEvent:
 
 
 gdb.events.start = StartEvent()
+gdb.events.suspend_all = object()
 
 
 def _is_safe_event_packet():
@@ -282,7 +283,7 @@ def connect(
 
     @wraps(func)
     def caller(*a: P.args, **kw: P.kwargs) -> None:
-        if paused[event_handler]:
+        if paused[event_handler] or paused[gdb.events.suspend_all]:
             return None
 
         if debug:

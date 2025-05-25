@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import contextlib
 from enum import Enum
-from typing import Any
+from typing import Any, ContextManager
 from typing import Awaitable
 from typing import Callable
 from typing import Coroutine
@@ -1013,6 +1013,7 @@ class EventType(Enum):
           debugged. In GDB terminology, these are called `objfile`s.
     """
 
+    SUSPEND_ALL = -1
     START = 0
     STOP = 1
     EXIT = 2
@@ -1109,6 +1110,14 @@ class Debugger:
         This function my be used as a decorator.
         """
         raise NotImplementedError()
+
+    @contextlib.contextmanager
+    def ctx_suspend_events(self, ty: EventType) -> ContextManager[None]:
+        self.suspend_events(ty)
+        try:
+            yield
+        finally:
+            self.resume_events(ty)
 
     def suspend_events(self, ty: EventType) -> None:
         """

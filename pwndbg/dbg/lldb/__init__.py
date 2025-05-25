@@ -1986,7 +1986,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         if ty not in self.event_handlers:
             # No one cares about this event type.
             return
-        if self.suspended_events[ty]:
+        if self.suspended_events[ty] or self.suspended_events[pwndbg.dbg_mod.EventType.SUSPEND_ALL]:
             # This event has been suspended.
             return
 

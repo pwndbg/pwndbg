@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import contextlib
 from asyncio import CancelledError
+from typing import ContextManager, AsyncContextManager
 
 import pwnlib.asm
 import pwnlib.shellcraft
@@ -46,7 +47,6 @@ async def exec_syscall(
     arg3=None,
     arg4=None,
     arg5=None,
-    disable_breakpoints=False,
 ):
     """
     Tries executing the given syscall in the context of the inferior.
@@ -60,42 +60,24 @@ async def exec_syscall(
     async with exec_shellcode(
         ec,
         syscall_bin,
-        restore_context=True,
-        disable_breakpoints=disable_breakpoints,
     ):
         return _get_syscall_return_value()
 
 
-@contextlib.asynccontextmanager
-async def exec_shellcode(
-    ec: ExecutionController, blob, restore_context=True, disable_breakpoints=False, steps=0
-):
-    """
-    Tries executing the given blob of machine code in the current context of the
-    inferior, optionally restoring the values of the registers as they were
-    before the shellcode ran, as a means to allow for execution of the inferior
-    to continue uninterrupted. The value of the program counter is always
-    restored.
+@contextlib.contextmanager
+def _ctx_code(starting_address: int, blob) -> ContextManager[None]:
+    # Swap the code in the range with our shellcode.
+    existing_code = pwndbg.aglib.memory.read(starting_address, len(blob))
+    pwndbg.aglib.memory.write(starting_address, blob)
 
-    Additionally, the caller may specify an object to be called before the
-    context is restored, so that information stored in the registers after the
-    shellcode finishes can be retrieved. The return value of that call will be
-    returned by this function.
+    try:
+        yield
+    finally:
+        pwndbg.aglib.memory.write(starting_address, existing_code)
 
-    # Safety
-    Seeing as this function injects code directly into the inferior and runs it,
-    the caller must be careful to inject code that will (1) terminate and (2)
-    not cause the inferior to misbehave. Otherwise, it is fairly easy to crash
-    or currupt the memory in the inferior.
 
-    The `steps` argument may help in certain contexts like when running `exec_shellcode`
-    during Linux kernel debugging. When steps is bigger than 0, we use `stepi {steps}`
-    instead of `continue` command. This prevents Linux kernel from interrupting
-    the thread during shellcode execution with IRQ, which can cause deadlocks.
-    Care must be taken to provide proper `steps` value that execute all instructions
-    of the shellcode.
-    """
-
+@contextlib.contextmanager
+def _ctx_registers(blob) -> ContextManager[int]:
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
@@ -119,57 +101,72 @@ async def exec_shellcode(
             need at least {len(blob)} bytes, have {clearance} bytes available"
         )
 
-    # Swap the code in the range with our shellcode.
-    existing_code = pwndbg.aglib.memory.read(starting_address, len(blob))
-    pwndbg.aglib.memory.write(starting_address, blob)
-
-    # TODO: disable all events
-    # The continue we use here will trigger an event that would get the context
-    # prompt to show, regardless of the circumstances. We don't want that, so
-    # we preserve the state of the context skip.
-    if pwndbg.dbg.is_gdblib_available():
-        would_skip_context = pwndbg.gdblib.prompt.context_shown
-
-    from pwndbg.gdblib.scheduler import lock_scheduler
-
-    target_address = starting_address + len(blob)
     try:
-        # Execute.
-        # if steps == 0:
-        pwndbg.aglib.regs.pc = starting_address
-        with lock_scheduler():
-            with pwndbg.dbg.selected_inferior().break_at(
-                BreakpointLocation(target_address), internal=True
-            ) as bp:
-                while True:
-                    try:
-                        await ec.cont(bp)
-                        break
-                    except CancelledError:
-                        if disable_breakpoints:
-                            # We probably hit another breakpoint, but in this mode we're
-                            # supposed to ignore any breakpoints that aren't the one we put
-                            # at the end of the range, so just retry.
-                            continue
-
-                        # We hit an external break, and we haven't been told to ignore it.
-                        raise
-
-        # Make sure we're in the right place.
-        assert pwndbg.aglib.regs.pc == target_address
-
-        # Give the caller a chance to collect information from the environment
-        # before any of the context gets restored.
-        yield
+        yield starting_address
     finally:
         # Restore the code and the program counter and, if requested, the rest of
         # the registers.
-        pwndbg.aglib.memory.write(starting_address, existing_code)
         setattr(pwndbg.aglib.regs, register_set.pc, starting_address)
-        if restore_context:
-            for reg, val in registers.items():
-                setattr(pwndbg.aglib.regs, reg, val)
+        for reg, val in registers.items():
+            setattr(pwndbg.aglib.regs, reg, val)
 
-        # Restore the state of the context skip.
-        if pwndbg.dbg.is_gdblib_available():
-            pwndbg.gdblib.prompt.context_shown = would_skip_context
+
+async def _execute_until_addr(ec: ExecutionController, target_address: int) -> None:
+    if pwndbg.dbg.is_gdblib_available():
+        from pwndbg.gdblib.scheduler import lock_scheduler as do_lock_scheduler
+        lock_scheduler = do_lock_scheduler
+        # GDB require to change scheduler
+    else:
+        lock_scheduler = contextlib.nullcontext()
+
+    with lock_scheduler():
+        with pwndbg.dbg.selected_inferior().break_at(
+            BreakpointLocation(target_address), internal=True
+        ) as bp:
+            while True:
+                try:
+                    await ec.cont(bp)
+                    break
+                except CancelledError:
+                    # We probably hit another breakpoint, but in this mode we're
+                    # supposed to ignore any breakpoints that aren't the one we put
+                    # at the end of the range, so just retry.
+                    continue
+
+    assert pwndbg.aglib.regs.pc == target_address, "Target address is incorrect"
+
+
+@contextlib.asynccontextmanager
+async def exec_shellcode(
+    ec: ExecutionController, blob
+):
+    """
+    Tries executing the given blob of machine code in the current context of the
+    inferior, optionally restoring the values of the registers as they were
+    before the shellcode ran, as a means to allow for execution of the inferior
+    to continue uninterrupted. The value of the program counter is always
+    restored.
+
+    Additionally, the caller may specify an object to be called before the
+    context is restored, so that information stored in the registers after the
+    shellcode finishes can be retrieved. The return value of that call will be
+    returned by this function.
+
+    # Safety
+    Seeing as this function injects code directly into the inferior and runs it,
+    the caller must be careful to inject code that will (1) terminate and (2)
+    not cause the inferior to misbehave. Otherwise, it is fairly easy to crash
+    or currupt the memory in the inferior.
+    """
+
+    with _ctx_registers(blob) as starting_address:
+        target_address = starting_address + len(blob)
+        with _ctx_code(starting_address, blob):
+            try:
+                # TODO: disable GDB ugly output
+                with pwndbg.dbg.ctx_suspend_events(pwndbg.dbg_mod.EventType.SUSPEND_ALL):
+                    await _execute_until_addr(ec, target_address)
+
+                yield
+            finally:
+                pass
