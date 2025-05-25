@@ -24,7 +24,7 @@ class RawMemoryBinary(object):
         self.start_addr = start_addr
         self.__fileName = options.binary
         self.__rawBinary = None
-        self.cs = get_disassembler(pwndbg.aglib.regs.pc)
+        self.cs = get_disassembler(pwndbg.aglib.arch.get_capstone_constants(pwndbg.aglib.regs.pc))
 
         with open(self.__fileName, "rb") as fp:
             self.__rawBinary = fp.read()

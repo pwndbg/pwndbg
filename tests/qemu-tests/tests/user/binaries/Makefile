@@ -1,7 +1,7 @@
 .PHONY: all
 
-ZIGPATH        ?=     ../../../../../.zig
-ZIGCC		=	  $(ZIGPATH)/zig cc
+ZIGPATH ?= ../../../../../.zig
+ZIGCC =	$(ZIGPATH)/zig cc
 
 ARCHS = aarch64 arm riscv64 mips32 mipsel32 mips64 loongarch64 s390x powerpc32 powerpc64
 

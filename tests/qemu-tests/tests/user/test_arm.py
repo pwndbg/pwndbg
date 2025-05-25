@@ -745,10 +745,10 @@ def test_arm_it_block(qemu_assembly_run):
         "─────────────────[ DISASM / arm / thumb mode / set emulate on ]─────────────────\n"
         " ► 0x200bc <_start+8>     cmp    r0, #0     0x200bd - 0x0     CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
         "   0x200be <_start+10>    ittte  eq\n"
-        "   0x200c0 <_start+12>    movs   r1, #1     R1 => 1\n"
-        "   0x200c2 <_start+14>    movs   r2, #2     R2 => 2\n"
-        "   0x200c4 <_start+16>    movs   r2, #3     R2 => 3\n"
-        "   0x200c6 <_start+18>    movs   r1, #4     R1 => 4\n"
+        "   0x200c0 <_start+12>    moveq  r1, #1     R1 => 1\n"
+        "   0x200c2 <_start+14>    moveq  r2, #2     R2 => 2\n"
+        "   0x200c4 <_start+16>    moveq  r2, #3     R2 => 3\n"
+        "   0x200c6 <_start+18>    movne  r1, #4     R1 => 4\n"
         "   0x200c8 <_start+20>    nop    \n"
         "   0x200ca <_start+22>    nop    \n"
         "   0x200cc <_start+24>    nop    \n"
@@ -758,6 +758,25 @@ def test_arm_it_block(qemu_assembly_run):
     )
 
     assert dis_1 == expected_1
+
+
+def test_arm_it_block_step_into(qemu_assembly_run):
+    """
+    Tests 2 things:
+    - Stepping into the IT block doesn't break our usage Unicorn (some of the instructions would appear to be jumps if so)
+    - Instructions have IT mode suffixes
+
+    TODO:
+    - Fix suffixes not appearing here due to https://github.com/capstone-engine/capstone/issues/2702
+    - See comments in https://github.com/pwndbg/pwndbg/pull/2979
+    """
+    qemu_assembly_run(ARM_IT_BLOCK, "arm")
+
+    gdb.execute("si")
+    gdb.execute("si")
+
+    # Prime the instruction cache
+    gdb.execute("context disasm", to_string=True)
 
     # Now, ensure that once we step into the block, the disassembly is still correct.
     gdb.execute("si")
@@ -772,7 +791,7 @@ def test_arm_it_block(qemu_assembly_run):
         "─────────────────[ DISASM / arm / thumb mode / set emulate on ]─────────────────\n"
         "   0x200bc <_start+8>     cmp    r0, #0     0x200bd - 0x0     CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
         "   0x200be <_start+10>    ittte  eq\n"
-        "   0x200c0 <_start+12>    movs   r1, #1     R1 => 1\n"
+        "   0x200c0 <_start+12>    moveq  r1, #1     R1 => 1\n"
         " ► 0x200c2 <_start+14>    movs   r2, #2     R2 => 2\n"
         "   0x200c4 <_start+16>    movs   r2, #3     R2 => 3\n"
         "   0x200c6 <_start+18>    movs   r1, #4     R1 => 4\n"
@@ -807,10 +826,10 @@ def test_arm_it_block_cached_thumb_mode(qemu_assembly_run):
         "    ↓\n"
         "   0x200bc <_start+8>     cmp    r0, #0         0x200bd - 0x0     CPSR => 0x20000030 [ n z C v q j T e a i f ]\n"
         "   0x200be <_start+10>    ittte  eq\n"
-        "   0x200c0 <_start+12>    movs   r1, #1         R1 => 1\n"
-        "   0x200c2 <_start+14>    movs   r2, #2         R2 => 2\n"
-        "   0x200c4 <_start+16>    movs   r2, #3         R2 => 3\n"
-        "   0x200c6 <_start+18>    movs   r1, #4         R1 => 4\n"
+        "   0x200c0 <_start+12>    moveq  r1, #1         R1 => 1\n"
+        "   0x200c2 <_start+14>    moveq  r2, #2         R2 => 2\n"
+        "   0x200c4 <_start+16>    moveq  r2, #3         R2 => 3\n"
+        "   0x200c6 <_start+18>    movne  r1, #4         R1 => 4\n"
         "   0x200c8 <_start+20>    nop    \n"
         "   0x200ca <_start+22>    nop    \n"
         "   0x200cc <_start+24>    nop    \n"

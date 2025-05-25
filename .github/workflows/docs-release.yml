@@ -23,7 +23,7 @@ jobs:
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
 
       - name: Update docs/index.md with README.md
-        run: ./scripts/generate_readme.sh
+        run: ./scripts/generate-readme.sh
 
       - name: Deploy site
         run: |

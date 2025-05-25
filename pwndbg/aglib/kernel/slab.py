@@ -8,6 +8,7 @@ import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
+import pwndbg.color.message as M
 from pwndbg.aglib import kernel
 from pwndbg.aglib.kernel.macros import compound_head
 from pwndbg.aglib.kernel.macros import for_each_entry
@@ -87,6 +88,7 @@ class Freelist:
         self.random = random
 
     def __iter__(self) -> Generator[int, None, None]:
+        seen: set[int] = set()
         current_object = self.start_addr
         while current_object:
             addr = int(current_object)
@@ -94,12 +96,32 @@ class Freelist:
             current_object = pwndbg.aglib.memory.pvoid(addr + self.offset)
             if self.random:
                 current_object ^= self.random ^ swab(addr + self.offset)
+            if addr in seen:
+                # this can happen during exploit dev
+                print(
+                    M.warn(
+                        f"Cyclic slab freelist detected at {hex(addr)} when length is {len(seen)}"
+                    )
+                )
+                break
+            seen.add(addr)
 
     def __int__(self) -> int:
         return self.start_addr
 
     def __len__(self) -> int:
-        return sum(1 for _ in self)
+        seen: set[int] = set()
+        for addr in self:
+            if addr in seen:
+                # this can happen during exploit dev
+                print(
+                    M.warn(
+                        f"Cyclic slab freelist detected at {hex(addr)} when length is {len(seen)}"
+                    )
+                )
+                break
+            seen.add(addr)
+        return len(seen)
 
     def find_next(self, addr: int) -> int:
         freelist_iter = iter(self)
@@ -178,8 +200,43 @@ class SlabCache:
         return int(self._slab_cache["cpu_partial"])
 
     @property
+    def cpu_partial_slabs(self) -> int:
+        if self._slab_cache.dereference().type.has_field("cpu_partial_slabs"):
+            return int(self._slab_cache["cpu_partial_slabs"])
+        return None
+
+    @property
+    def min_partial(self) -> int:
+        return int(self._slab_cache["min_partial"])
+
+    @property
     def inuse(self) -> int:
-        return int(self._slab_cache["inuse"])
+        # somewhat mirrors libslub's implementation
+        # looks for per_cpu active lists and per_cpu and node partial lists
+        # no good way to track full slabs unless CONFIG_SLUB_DEBUG is enabled
+        #       which is typically not from what I have seen
+        cnt = 0
+        for cpu_cache in self.cpu_caches:
+            if cpu_cache.active_slab is not None:
+                cnt += cpu_cache.active_slab.inuse
+            for partial_slab in cpu_cache.partial_slabs:
+                cnt += partial_slab.inuse
+        for node_cache in self.node_caches:
+            for partial_slab in node_cache.partial_slabs:
+                cnt += partial_slab.inuse
+        return cnt
+
+    @property
+    def useroffset(self) -> int:
+        if not self._slab_cache.dereference().type.has_field("useroffset"):
+            return None
+        return int(self._slab_cache["useroffset"])
+
+    @property
+    def usersize(self) -> int:
+        if not self._slab_cache.dereference().type.has_field("usersize"):
+            return None
+        return int(self._slab_cache["usersize"])
 
     @property
     def __oo_x(self) -> int:
@@ -251,6 +308,14 @@ class NodeCache:
         ):
             ret.append(Slab(slab.dereference(), None, self.slab_cache, is_partial=True))
         return ret
+
+    @property
+    def nr_partial(self) -> int:
+        return int(self._node_cache["nr_partial"])
+
+    @property
+    def min_partial(self) -> int:
+        return self.slab_cache.min_partial
 
 
 class Slab:

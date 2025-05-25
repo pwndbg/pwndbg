@@ -23,6 +23,10 @@
   margin-top: 1em
 }
 
+.md-typeset h1 {
+  margin-bottom: 0.6em
+}
+
 [data-md-color-scheme="slate"] {
   --md-hue: 266; /* [0, 360] */
   --md-default-bg-color: hsla(var(--md-hue), 27.8%, 7.1%, 1);

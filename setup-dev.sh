@@ -293,7 +293,7 @@ configure_venv() {
     echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
 
     source "${PWNDBG_VENV_PATH}/bin/activate"
-    uv sync --all-groups --extra gdb
+    uv sync --all-groups --all-extras
 
     # Create a developer marker file
     DEV_MARKER_PATH="${PWNDBG_VENV_PATH}/dev.marker"

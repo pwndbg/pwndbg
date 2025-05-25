@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 import os
+from typing import Dict
+from typing import Tuple
+
+ALL_DEBUGGERS = ["gdb", "lldb"]
 
 
 def get_files_in_dir(directory) -> list[str]:
@@ -14,9 +18,9 @@ def get_files_in_dir(directory) -> list[str]:
     return file_paths
 
 
-def verify_existence(filenames: list[str], base_path: str) -> (list[str], list[str]):
+def verify_existence(filenames: list[str], base_path: str) -> Tuple[list[str], list[str]]:
     current = get_files_in_dir(base_path)
-    current = [base_path + x for x in current]
+    current = [os.path.join(base_path, x) for x in current]
 
     missing = [x for x in filenames if x not in current]
     extra = [x for x in current if x not in filenames]
@@ -80,3 +84,10 @@ def verify_files_simple(filename_to_markdown: Dict[str, str], skip: list[str] = 
                 return f"File {filename} differs from auto-generated output."
 
     return None
+
+
+def get_debugger() -> str:
+    debugger = os.getenv("PWNDBG_DOCGEN_DBGNAME")
+    assert debugger and "Use the PWNDBG_DOCGEN_DBGNAME env variable."
+    assert debugger in ALL_DEBUGGERS and "Debugger not defined in the ALL_DEBUGGERS array."
+    return debugger

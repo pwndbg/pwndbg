@@ -54,11 +54,13 @@ coverage.xml
 # Django stuff:
 *.log
 
-# Sphinx documentation
-docs/_build/
-
 # mkdocs
 site/
+
+# Documentation generation artifacts
+scripts/_docs/*_commands.json
+scripts/_docs/*_configuration.json
+scripts/_docs/*_functions.json
 
 # PyBuilder
 target/
