@@ -134,7 +134,7 @@ async def _execute_until_addr(ec: ExecutionController, target_address: int) -> N
                     # at the end of the range, so just retry.
                     continue
 
-    assert pwndbg.aglib.regs.pc == target_address, "Target address is incorrect"
+    assert pwndbg.dbg.selected_frame().pc() == target_address, "Target address is incorrect"
 
 
 @contextlib.asynccontextmanager
