@@ -24,7 +24,7 @@ X86_MSRS = {
 }
 
 
-COMMON_MSRS = {"x86": X86_MSRS, "x86-64": X86_MSRS}
+COMMON_MSRS = {"i386": X86_MSRS, "x86-64": X86_MSRS}
 
 
 def parse_msr(msr: str, arch: str) -> Optional[int]:
@@ -61,7 +61,7 @@ def x86_msr_read(msr: int) -> None:
         sc = pwnlib.asm.asm(f"""
             mov ecx, {msr}; rdmsr
         """)
-        async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc, steps=2):
+        async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc, steps=2, disable_breakpoints=True):
             edx = int(pwndbg.aglib.regs["edx"]) << 32
             eax = int(pwndbg.aglib.regs["eax"])
             ret = edx + eax
@@ -77,7 +77,7 @@ def x86_msr_write(msr: int, write_value: int) -> None:
         sc = pwnlib.asm.asm(f"""
             mov ecx, {msr}; mov eax, {eax}; mov edx, {edx}; wrmsr
         """)
-        async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc, steps=4):
+        async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc, steps=4, disable_breakpoints=True):
             return
 
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
@@ -86,7 +86,7 @@ def x86_msr_write(msr: int, write_value: int) -> None:
 def msr_read(msr: int) -> None:
     arch = pwndbg.aglib.arch.name
 
-    if arch == "x86" or arch == "x86-64":
+    if arch == "i386" or arch == "x86-64":
         x86_msr_read(msr)
     else:
         print(f"{arch} not supported")
@@ -95,7 +95,7 @@ def msr_read(msr: int) -> None:
 def msr_write(msr: int, write_value: int) -> None:
     arch = pwndbg.aglib.arch.name
 
-    if arch == "x86" or arch == "x86-64":
+    if arch == "i386" or arch == "x86-64":
         x86_msr_write(msr, write_value)
     else:
         print(f"{arch} not supported")

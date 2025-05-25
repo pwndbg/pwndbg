@@ -75,7 +75,7 @@ def test_command_slab_contains():
 
 
 @pytest.mark.skipif(
-    pwndbg.aglib.arch.name not in ["x86", "x86-64"],
+    pwndbg.aglib.arch.name not in ["i386", "x86-64"],
     reason="function page_offset is only implemented for x86",
 )
 def test_x64_extra_registers_under_kernel_mode():
@@ -105,7 +105,7 @@ def get_slab_object_address():
 
 
 @pytest.mark.skipif(
-    pwndbg.aglib.arch.name not in ["x86", "x86-64"],
+    pwndbg.aglib.arch.name not in ["i386", "x86-64"],
     reason="Unsupported architecture: msr tests only work on x86 and x86-64",
 )
 def test_command_msr_read():
@@ -115,7 +115,7 @@ def test_command_msr_read():
 
 
 @pytest.mark.skipif(
-    pwndbg.aglib.arch.name not in ["x86", "x86-64"],
+    pwndbg.aglib.arch.name not in ["i386", "x86-64"],
     reason="Unsupported architecture: msr tests only work on x86 and x86-64",
 )
 def test_command_msr_write():
@@ -130,7 +130,7 @@ def test_command_msr_write():
 
 @pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
 @pytest.mark.skipif(
-    pwndbg.aglib.arch.name not in ["x86", "x86-64"],
+    pwndbg.aglib.arch.name not in ["i386", "x86-64"],
     reason="function page_offset is only implemented for x86",
 )
 def test_command_buddydump():
