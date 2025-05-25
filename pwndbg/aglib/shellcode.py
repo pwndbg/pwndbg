@@ -118,7 +118,7 @@ async def _execute_until_addr(ec: ExecutionController, target_address: int) -> N
         lock_scheduler = do_lock_scheduler
         # GDB require to change scheduler
     else:
-        lock_scheduler = contextlib.nullcontext()
+        lock_scheduler = contextlib.nullcontext
 
     with lock_scheduler():
         with pwndbg.dbg.selected_inferior().break_at(
