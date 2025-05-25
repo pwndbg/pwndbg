@@ -96,7 +96,7 @@ def _ctx_registers() -> Iterator[int]:
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
     uncached_regs = pwndbg.dbg.selected_frame().regs()
-    registers = {reg: uncached_regs.by_name(reg) for reg in preserve_set}
+    registers = {reg: int(uncached_regs.by_name(reg)) for reg in preserve_set}
     starting_address = registers[register_set.pc]
 
     try:
