@@ -1440,7 +1440,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
                 f"alias -a {deprecated_cmd} = echo Use `{fixed_cmd}` instead (Pwndbg changed `_` to `-` in command names)\\n"
             )
 
-        for deprecated_cmd, new_cmd in [("pcplist", "buddydump")]:
+        for deprecated_cmd, new_cmd in (("pcplist", "buddydump"),):
             gdb.execute(
                 f"alias -a {deprecated_cmd} = echo deprecation warning for old name, use `{new_cmd}` instead\\n"
             )
