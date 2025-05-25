@@ -72,9 +72,7 @@ def x86_msr_write(msr: int, write_value: int) -> None:
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         eax = write_value & 0xFFFFFFFF
         edx = write_value >> 32
-        sc = pwnlib.asm.asm(f"""
-            mov ecx, {msr}; mov eax, {eax}; mov edx, {edx}; wrmsr
-        """)
+        sc = pwnlib.asm.asm(f"mov ecx, {msr}; mov eax, {eax}; mov edx, {edx}; wrmsr")
         async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc):
             return
 
