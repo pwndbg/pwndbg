@@ -130,10 +130,10 @@ async def exec_shellcode(
     if pwndbg.dbg.is_gdblib_available():
         would_skip_context = pwndbg.gdblib.prompt.context_shown
 
+    target_address = starting_address + len(blob)
     try:
         # Execute.
         if steps == 0:
-            target_address = starting_address + len(blob)
             with pwndbg.dbg.selected_inferior().break_at(
                 BreakpointLocation(target_address), internal=True
             ) as bp:
