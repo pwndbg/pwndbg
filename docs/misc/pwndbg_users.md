@@ -1,6 +1,6 @@
 # pwndbg in the wild
 
-Here is a non-exhaustive list of pwndbg mentions found in the wild. Feel free to open a PR to add more if you find them!
+Here is a non-exhaustive list of Pwndbg mentions found in the wild. Feel free to open a PR to add more if you find them!
 
 ## Talks
 +  [OffensiveCon24 - Eugene Rodionov, Zi Fan Tan and Gulshan Singh](https://www.youtube.com/watch?v=U-xSM159YLI&t=1859s)
