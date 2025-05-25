@@ -95,7 +95,8 @@ def _ctx_registers() -> Iterator[int]:
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
-    registers = {reg: pwndbg.aglib.regs[reg] for reg in preserve_set}
+    uncached_regs = pwndbg.dbg.selected_frame().regs()
+    registers = {reg: uncached_regs.by_name(reg) for reg in preserve_set}
     starting_address = registers[register_set.pc]
 
     try:
