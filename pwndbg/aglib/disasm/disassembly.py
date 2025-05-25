@@ -19,6 +19,7 @@ from capstone import *  # noqa: F403
 import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.aarch64
+import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.disasm.arm
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.disasm.loongarch64
@@ -98,11 +99,8 @@ emulated_arm_mode_cache: DefaultDict[int, int | None] = collections.defaultdict(
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_disassembler(address: int, cs_info: Tuple[int, int] = None):
-    if cs_info is not None:
-        arch, mode = cs_info
-    else:
-        arch, mode = pwndbg.aglib.arch.get_capstone_constants(address)
+def get_disassembler(cs_info: Tuple[int, int]):
+    arch, mode = cs_info
 
     mode |= CapstoneEndian[pwndbg.aglib.arch.endian]
 
@@ -136,9 +134,12 @@ def get_one_instruction(
 
     cs_info = pwndbg.aglib.arch.get_capstone_constants(address)
     if cs_info is None:
-        return ManualPwndbgInstruction(address)
+        instr = ManualPwndbgInstruction(address)
+        if enhance:
+            pwndbg.aglib.disasm.arch.basic_enhance(instr)
+        return instr
 
-    md = get_disassembler(address, cs_info)
+    md = get_disassembler(cs_info)
     data = pwndbg.aglib.memory.read(address, pwndbg.aglib.arch.max_instruction_size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
         pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins)

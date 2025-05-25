@@ -242,11 +242,13 @@ class CommandObj:
         self.pure_epilog = ""
 
         if self.examples:
+            assert "examples:" not in self.examples.lower()
             # Not putting '\n' in the notice() so .strip() works properly.
             self.epilog += "\n" + message.notice("Examples:") + "\n"
             self.epilog += self.examples + "\n"
 
         if self.notes:
+            assert "notes:" not in self.notes.lower()
             self.epilog += "\n" + message.notice("Notes:") + "\n"
             self.epilog += self.notes + "\n"
 

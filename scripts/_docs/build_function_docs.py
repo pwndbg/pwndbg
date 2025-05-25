@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import textwrap
 from typing import Dict
 from typing import Tuple
 
@@ -28,7 +29,7 @@ from scripts._docs.gen_docs_generic import verify_files_simple
 INTRO_TEXT = """
 pwndbg provides a set of functions which can be used during expression evaluation to
 quickly perform common calculations. These can even be passed to other commands as arguments.
-Currently, they only work in gdb.
+Currently, they **only work in gdb**.
 
 To see a list of all functions, including those built into gdb, use `help function`. To see
 the help of any given function use `help function function_name`. Function invokation must
@@ -60,6 +61,23 @@ pwndbg> tele '$environ("LANG")'
 """.strip()
 
 
+def get_signature_markdown(func: ExtractedFunction, debugger: str):
+    func_signature_code = f"""
+``` {{.python .no-copy}}
+{func.name}{func.signature}
+```
+"""
+    if (
+        " object at " in func.signature or "<" in func.signature
+    ):  # '>' is valid in type annotation (->)
+        print(f'Signature of {func.name} (from {debugger}) is rendered as "{func.signature}",')
+        print("please edit the sanitize_signature() function (in the extractor) to display")
+        print("the signature better in the docs.")
+        sys.exit(5)
+
+    return func_signature_code
+
+
 def convert_to_markdown(extracted: list[Tuple[str, list[ExtractedFunction]]]) -> Dict[str, str]:
     """
     Returns:
@@ -77,41 +95,44 @@ def convert_to_markdown(extracted: list[Tuple[str, list[ExtractedFunction]]]) ->
         all_functions.update([func.name for func in funcs])
 
     for func_name in sorted(all_functions):
-        # Make a list of all debuggers that know about this
-        # function. Make sure they all agree on the contents.
-        supported_debuggers: list[str] = []
-        func: ExtractedFunction | None = None
+        # Make a (debugger name, function) list in case some
+        # debuggers disagree on what some function should
+        # display. We won't add debuggers that don't have the
+        # function.
+        func_variants: list[Tuple[str, ExtractedFunction]] = []
 
         for debugger, dfuncs in extracted:
             # Slow but whatever
             for dfunc in dfuncs:
                 if func_name == dfunc.name:
-                    supported_debuggers.append(debugger)
-                    if not func:
-                        func = dfunc
-                    elif func != dfunc:
-                        print(f"Error: Debuggers don't agree on {func.name}")
-                        print(f"{supported_debuggers[0]} says: {func}\n")
-                        print(f"{debugger} says: {dfunc}")
-                        exit(10)
+                    func_variants.append((debugger, dfunc))
 
-        mdFile.new_paragraph(f"### **{func.name}**")
-        func_signature_code = f"""
-``` {{.python .no-copy}}
-{func.name}{func.signature}
-```
-"""
-        if (
-            " object at " in func.signature or "<" in func.signature
-        ):  # '>' is valid in type annotation (->)
-            print(f'Signature of {func.name} is rendered as "{func.signature}", please edit')
-            print("the sanitize_signature() function (in the extractor) to display the ")
-            print("signature better in the docs.")
-            sys.exit(5)
+        assert func_variants
 
-        mdFile.new_paragraph(func_signature_code)
-        mdFile.new_paragraph(func.docstring.replace("Example:", "#### Example"))
-        mdFile.new_paragraph("-" * 10)
+        mdFile.new_paragraph(f"### **{func_name}**")
+        # NOTE: We aren't saying anything about supported
+        # debuggers since all functions only work in gdb for now.
+
+        debuggers_agree = all(x[1] == func_variants[0][1] for x in func_variants)
+
+        if debuggers_agree:
+            mdFile.new_paragraph(get_signature_markdown(func_variants[0][1], debugger))
+            mdFile.new_paragraph(func_variants[0][1].docstring.replace("Example:", "#### Example"))
+        else:
+            for debugger, dfunc in sorted(func_variants):
+                # Content tabs
+                # https://squidfunk.github.io/mkdocs-material/reference/content-tabs/
+                mdFile.write(f'\n=== "{debugger.upper()}"')
+
+                sig = get_signature_markdown(dfunc, debugger)
+                sig = textwrap.indent(sig, "    ")
+                mdFile.new_paragraph(sig)
+
+                docs = dfunc.docstring.replace("Example:", "#### Example")
+                docs = textwrap.indent(docs, "    ")
+                mdFile.new_paragraph(docs)
+
+        mdFile.new_paragraph("----------")
 
     hide_nav = "---\nhide:\n  - navigation\n---\n"
     autogen_warning = (

@@ -85,7 +85,7 @@ additional customization to GDB settings before starting the binary, but if you 
 
 ## QEMU Tests
 
-Our `gdb-tests` run in x86. To debug other architectures, we use QEMU for emulation, and attach to its debug
+Our `gdb-tests` run in x86. To debug other architectures, we use QEMU for emulation and attach to its debug
 port. These tests are located in [`tests/qemu-tests/tests/user`](https://github.com/pwndbg/pwndbg/tree/dev/tests/qemu-tests/tests/user). Test creation is
 identical to our x86 tests - create a Python function with a Pytest fixture name as the parameter (it matches
 based on the name), and call the argument to start debugging a binary. The `qemu_assembly_run` fixture takes in

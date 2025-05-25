@@ -55,56 +55,96 @@ The address of mp_.
 **Default:** '0'  
 ## **resolve-heap-via-heuristic**
 
+=== "GDB"
 
-The strategy to resolve heap via heuristic.
+     The strategy to resolve heap via heuristic.
 
-Values explained:
+    Values explained:
 
-+ `auto` - pwndbg will try to use heuristics if debug symbols are missing
-+ `force` - pwndbg will always try to use heuristics, even if debug symbols are available
-+ `never` - pwndbg will never use heuristics to resolve the heap
+    + `auto` - pwndbg will try to use heuristics if debug symbols are missing
+    + `force` - pwndbg will always try to use heuristics, even if debug symbols are available
+    + `never` - pwndbg will never use heuristics to resolve the heap
 
-If the output of the heap related command produces errors with heuristics, you
-can try manually setting the libc symbol addresses.
-For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
-`global_max_fast`, `tcache` and `thread_arena` addresses.
+    If the output of the heap related command produces errors with heuristics, you
+    can try manually setting the libc symbol addresses.
+    For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
+    `global_max_fast`, `tcache` and `thread_arena` addresses.
 
-Note: pwndbg will generate more reliable results with proper debug symbols.
-Therefore, when debug symbols are missing, you should try to install them first
-if you haven't already.
+    Note: pwndbg will generate more reliable results with proper debug symbols.
+    Therefore, when debug symbols are missing, you should try to install them first
+    if you haven't already.
 
-They can probably be installed via the package manager of your choice.
-See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html .
+    They can probably be installed via the package manager of your choice.
+    See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html .
 
-E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and
-32-bit binaries):
-```bash
-sudo apt-get install libc6-dbg
-sudo dpkg --add-architecture i386
-sudo apt-get install libc-dbg:i386
-```
-If you used setup.sh on Arch based distro you'll need to do a power cycle or set
-environment variable manually like this:
-```bash
-export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
-```
+    E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and
+    32-bit binaries):
+    ```bash
+    sudo apt-get install libc6-dbg
+    sudo dpkg --add-architecture i386
+    sudo apt-get install libc-dbg:i386
+    ```
+    If you used setup.sh on Arch based distro you'll need to do a power cycle or set
+    environment variable manually like this:
+    ```bash
+    export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
+    ```
 
-In addition, even you have the debug symbols of libc, you might still see the
-following warning when debugging a multi-threaded program:
-```
-warning: Unable to find libthread_db matching inferior's thread library, thread
-debugging will not be available.
-```
+    In addition, even you have the debug symbols of libc, you might still see the
+    following warning when debugging a multi-threaded program:
+    ```
+    warning: Unable to find libthread_db matching inferior's thread library, thread
+    debugging will not be available.
+    ```
 
-You'll need to ensure that the correct `libthread_db.so` is loaded. To do this,
-set the search path using:
-```
-set libthread-db-search-path <path having correct libthread_db.so>
-```
-Then, restart your program to enable proper thread debugging.
+    You'll need to ensure that the correct `libthread_db.so` is loaded. To do this,
+    set the search path using:
+    ```
+    set libthread-db-search-path <path having correct libthread_db.so>
+    ```
+    Then, restart your program to enable proper thread debugging.
 
-**Default:** 'auto'  
-**Valid values:** 'auto', 'force', 'never'
+    **Default:** 'auto'  
+    **Valid values:** 'auto', 'force', 'never'
+=== "LLDB"
+
+     The strategy to resolve heap via heuristic.
+
+    Values explained:
+
+    + `auto` - pwndbg will try to use heuristics if debug symbols are missing
+    + `force` - pwndbg will always try to use heuristics, even if debug symbols are available
+    + `never` - pwndbg will never use heuristics to resolve the heap
+
+    If the output of the heap related command produces errors with heuristics, you
+    can try manually setting the libc symbol addresses.
+    For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
+    `global_max_fast`, `tcache` and `thread_arena` addresses.
+
+    Note: pwndbg will generate more reliable results with proper debug symbols.
+    Therefore, when debug symbols are missing, you should try to install them first
+    if you haven't already.
+
+    They can probably be installed via the package manager of your choice.
+    See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html .
+
+    E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and
+    32-bit binaries):
+    ```bash
+    sudo apt-get install libc6-dbg
+    sudo dpkg --add-architecture i386
+    sudo apt-get install libc-dbg:i386
+    ```
+    If you used setup.sh on Arch based distro you'll need to do a power cycle or set
+    environment variable manually like this:
+    ```bash
+    export DEBUGINFOD_URLS=https://debuginfod.archlinux.org
+    ```
+
+    **Default:** 'auto'  
+    **Valid values:** 'auto', 'force', 'never'
+----------
+
 ## **tcache**
 
 

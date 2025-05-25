@@ -28,14 +28,14 @@ import pwndbg.lib.config
 CLASS_MAPPING = {
     pwndbg.lib.config.PARAM_BOOLEAN: gdb.PARAM_BOOLEAN,
     pwndbg.lib.config.PARAM_AUTO_BOOLEAN: gdb.PARAM_AUTO_BOOLEAN,
+    pwndbg.lib.config.PARAM_INTEGER: gdb.PARAM_INTEGER,
     pwndbg.lib.config.PARAM_ZINTEGER: gdb.PARAM_ZINTEGER,
-    pwndbg.lib.config.PARAM_STRING: gdb.PARAM_STRING,
+    pwndbg.lib.config.PARAM_UINTEGER: gdb.PARAM_UINTEGER,
     pwndbg.lib.config.PARAM_ZUINTEGER: gdb.PARAM_ZUINTEGER,
+    pwndbg.lib.config.PARAM_ZUINTEGER_UNLIMITED: gdb.PARAM_ZUINTEGER_UNLIMITED,
+    pwndbg.lib.config.PARAM_STRING: gdb.PARAM_STRING,
     pwndbg.lib.config.PARAM_ENUM: gdb.PARAM_ENUM,
     pwndbg.lib.config.PARAM_OPTIONAL_FILENAME: gdb.PARAM_OPTIONAL_FILENAME,
-    pwndbg.lib.config.PARAM_ZUINTEGER_UNLIMITED: gdb.PARAM_ZUINTEGER_UNLIMITED,
-    pwndbg.lib.config.PARAM_INTEGER: gdb.PARAM_INTEGER,
-    pwndbg.lib.config.PARAM_UINTEGER: gdb.PARAM_UINTEGER,
 }
 
 

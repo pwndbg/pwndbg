@@ -45,9 +45,9 @@ When possible, we code aims to use emulation as little as possible. If there is 
 3.     mov    rax, rsi
 ```
 
-Instruction #1, the `lea` instruction, is already in the past - we pull our enhanced PwndbgInstruction for it from a cache.
+Instruction 1, the `lea` instruction, is already in the past - we pull our enhanced PwndbgInstruction for it from a cache.
 
-Instruction #2, the first `mov` instruction, is where the host process program counter is at. If we did `stepi` in GDB, this instruction would be executed. In this case, there is two ways we can determine the value that gets written to `rsi`.
+Instruction 2, the first `mov` instruction, is where the host process program counter is at. If we did `stepi` in GDB, this instruction would be executed. In this case, there is two ways we can determine the value that gets written to `rsi`.
 
 1. After stepping the emulator, read from the emulators `rsi` register.
 2. Given the context of the instruction, we know the value in `rsi` will come from `rax`. We can just read the `rax` register from the host. This avoids emulation.
@@ -56,7 +56,7 @@ The decision on which option to take is implemented in the annotation handler fo
 
 The reason we could do the second option, in this case, is because we could reason about the process state at the time this instruction would execute. This instruction is about to be executed (`Program PC == instruction.address`). We can safely read from `rax` from the host, knowing that the value we get is the true value it takes on when the instruction will execute. It must - there are no instructions in-between that could have mutated `rax`.
 
-However, this will not be the case while enhancing instruction #3 while we are paused at instruction #2. This instruction is in the future, and without emulation, we cannot safely reason about the operands in question. It is reading from `rsi`, which might be mutated from the current value that `rsi` has in the stopped process (and in this case, we happen to know that it will be mutated). We must use emulation to determine the `before_value` of `rsi` in this case, and can't just read from the host processes register set. This principle applies in general - future instructions must be emulated to be fully annotated. When emulation is disable, the annotations are not as detailed since we can't fully reason about process state for future instructions.
+However, this will not be the case while enhancing instruction 3 while we are paused at instruction 2. This instruction is in the future, and without emulation, we cannot safely reason about the operands in question. It is reading from `rsi`, which might be mutated from the current value that `rsi` has in the stopped process (and in this case, we happen to know that it will be mutated). We must use emulation to determine the `before_value` of `rsi` in this case, and can't just read from the host processes register set. This principle applies in general - future instructions must be emulated to be fully annotated. When emulation is disable, the annotations are not as detailed since we can't fully reason about process state for future instructions.
 
 ## What if the emulator fails?
 
@@ -123,7 +123,7 @@ Capstone will expose the most "simplified" one possible, and the underlying list
 
 When encountering an instruction that is behaving strangely (incorrect annotation, or there is a jump target when one shouldn't exist, or the target is incorrect), there are a couple routine things to check.
 
-1. Use the `dev-dump-instruction` command to print all the enhancement information. With no arguments, it will dump the info from the instruction at the current address. If given an address, it will pull from the instruction cache at the corresponding location.
+1\. Use the `dev-dump-instruction` command to print all the enhancement information. With no arguments, it will dump the info from the instruction at the current address. If given an address, it will pull from the instruction cache at the corresponding location.
 
 If the issue is not related to branches, check the operands and the resolved values for registers and memory accesses. Verify that the values are correct - are the resolved memory locations correct? Step past the instruction and use instructions like `telescope` and `regs` to read memory and verify if the claim that the annotation is making is correct. For things like memory operands, you can try to look around the resolved memory location in memory to see the actual value that the instruction dereferenced, and see if the resolved memory location is simply off by a couple bytes.
 
@@ -150,7 +150,7 @@ mov qword ptr [rsp], rsi at 0x55555555706c (size=4) (arch: x86)
         Call-like: False
 ```
 
-2. Use the Capstone disassembler to verify the number of operands the instruction groups.
+2\. Use the Capstone disassembler to verify the number of operands the instruction groups.
 
 Taken the raw instruction bytes and pass them to `cstool` to see the information that we are working with:
 
@@ -160,11 +160,12 @@ cstool -d mips 0x0400000c
 
 The number of operands may not match the visual appearance. You might also check the instruction groups, and verify that an instruction that we might consider a `call` has the Capstone `call` group. Capstone is not 100% correct in every single case in all architectures, so it's good to verify. Report a bug to Capstone if there appears to be an error, and in the meanwhile we can create a fix in Pwndbg to work around the current behavior.
 
-3. Check the state of the emulator.
+3\. Check the state of the emulator.
 
 Go to [pwndbg/emu/emulator.py](https://github.com/pwndbg/pwndbg/tree/dev/pwndbg/emu/emulator.py) and uncomment the `DEBUG = -1` line. This will enable verbose debug printing. The emulator will print it's current `pc` at every step, and indicate important events, like memory mappings. Likewise, in [pwndbg/aglib/disasm/arch.py](https://github.com/pwndbg/pwndbg/tree/dev/pwndbg/aglib/disasm/arch.py) you can set `DEBUG_ENHANCEMENT = True` to print register accesses to verify they are sane values.
 
 Potential bugs:
+
 - A register is 0 (may also be the source of a Unicorn segfault if used as a memory operand) - often means we are not copying the host processes register into the emulator. By default, we map register by name - if in pwndbg, it's called `rax`, then we find the UC constant named `U.x86_const.UC_X86_REG_RAX`. Sometimes, this default mapping doesn't work, sometimes do to differences in underscores (`FSBASE` vs `FS_BASE`). In these cases, we have to manually add the mapping.
 - Unexpected crash - the instruction at hand might require a 'coprocessor', or some information that is unavailable to Unicorn (it's QEMU under the hood).
 - Instructions are just no executing - we've seen this in the case of Arm Thumb instructions. There might be some specific API/way to invoke the emulator that is required for a certain processor state.

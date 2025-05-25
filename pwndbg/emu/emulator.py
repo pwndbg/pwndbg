@@ -827,7 +827,7 @@ class Emulator:
         )
         self.until_syscall_address = address
 
-    def single_step(self, pc=None) -> Tuple[int, int]:
+    def single_step(self, pc=None, check_instruction=False) -> Tuple[int, int]:
         """Steps one instruction.
 
         Yields:
@@ -844,22 +844,23 @@ class Emulator:
 
         pc = pc or self.pc
 
-        insn = pwndbg.aglib.disasm.disassembly.one_raw(pc)
+        if check_instruction or DEBUG & DEBUG_EXECUTING:
+            insn = pwndbg.aglib.disasm.disassembly.one_raw(pc)
 
-        # If we don't know how to disassemble, bail.
-        if insn is None:
-            debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
-            return self.last_single_step_result
+            # If we don't know how to disassemble, bail.
+            if insn is None:
+                debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
+                return self.last_single_step_result
 
-        if insn.id in BANNED_INSTRUCTIONS.get(self.arch, {}):
-            debug(DEBUG_EXECUTING, "Hit illegal instruction at %#x", pc)
-            return self.last_single_step_result
+            if insn.id in BANNED_INSTRUCTIONS.get(self.arch, {}):
+                debug(DEBUG_EXECUTING, "Hit illegal instruction at %#x", pc)
+                return self.last_single_step_result
 
-        debug(
-            DEBUG_EXECUTING,
-            "# Emulator attempting to single-step at %#x: %s %s",
-            (pc, insn.mnemonic, insn.op_str),
-        )
+            debug(
+                DEBUG_EXECUTING,
+                "# Instruction: attempting to single-step at %#x: %s %s",
+                (pc, insn.mnemonic, insn.op_str),
+            )
 
         try:
             self.single_step_hook_hit_count = 0
