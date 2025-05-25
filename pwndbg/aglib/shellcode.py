@@ -151,6 +151,8 @@ async def exec_shellcode(
     else:
         # Note: This is a workaround: we should probably fix it one day
         # Read the docstring 'Safety' note for more info.
+        pwndbg.aglib.regs.pc = starting_address + 0x2
+
         try:
             await ec.single_steps(steps)
         except CancelledError:
