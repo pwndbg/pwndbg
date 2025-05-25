@@ -59,8 +59,6 @@ def parse_range(msr_range: str, arch: str) -> Optional[Tuple[int, int]]:
 def x86_msr_read(msr: int) -> None:
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         sc = pwnlib.asm.asm(f"""
-        loop:
-            jmp loop;
             mov ecx, {msr}; rdmsr
         """)
         async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc, steps=2):
@@ -77,8 +75,6 @@ def x86_msr_write(msr: int, write_value: int) -> None:
         eax = write_value & 0xFFFFFFFF
         edx = write_value >> 32
         sc = pwnlib.asm.asm(f"""
-        loop:
-            jmp loop;
             mov ecx, {msr}; mov eax, {eax}; mov edx, {edx}; wrmsr
         """)
         async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc, steps=4):
