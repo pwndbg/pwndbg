@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import random
+import re
+
 import gdb
 import pytest
 
@@ -90,8 +93,6 @@ def test_x64_extra_registers_under_kernel_mode():
 def get_slab_object_address():
     """helper function to get the address of some kmalloc slab object
     and the associated slab cache name"""
-    import re
-
     caches = pwndbg.aglib.kernel.slab.caches()
     for cache in caches:
         cache_name = cache.name
@@ -133,6 +134,30 @@ def test_command_msr_write():
 )
 def test_command_buddydump():
     res = gdb.execute("buddydump", to_string=True)
-    assert (
-        "Order" in res and "Zone" in res and ("per_cpu_pageset" in res or "free_area" in res)
-    ) or res == "WARNING: Symbol 'node_data' not found\n"
+    if res == "WARNING: Symbol 'node_data' not found\n":
+        return
+    assert "Order" in res and "Zone" in res and ("per_cpu_pageset" in res or "free_area" in res)
+    ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
+    res = ansi_escape.sub("", res)
+    matches = re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16})", res)
+    for i in range(0, len(matches), 20):
+        match = int(matches[i], 16)
+        res = gdb.execute(f"bud -f {hex(match + random.randint(0, 0x1000 - 1))}", to_string=True)
+        res = ansi_escape.sub("", res)
+        _matches = re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16})", res)
+        assert len(_matches) == 1 and int(_matches[0], 16) == match
+    no_output = gdb.execute("buddydump -n 10", to_string=True)  # nonexistent node index
+    assert "No free pages with specified filters found." in no_output
+    filter_res = gdb.execute("bud -z DMA", to_string=True)
+    for name in ["DMA32", "Normal", "HighMem", "Movable", "Device"]:
+        assert f"Zone {name}" not in filter_res
+    filter_res = gdb.execute("bud -m Unmovable", to_string=True)
+    for name in ["Movable", "Reclaimable", "HighAtomic", "CMA", "Isolate"]:
+        assert f"- {name}" not in filter_res
+    filter_res = gdb.execute("bud -o 1", to_string=True)
+    for i in range(11):
+        if i == 1:
+            continue
+        assert f"Order {i}" not in filter_res
+    filter_res = gdb.execute("bud -p", to_string=True)
+    assert "free_area" not in filter_res

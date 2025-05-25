@@ -122,7 +122,7 @@ def check_find(counter: int, physmap_addr: int, pba: ParsedBuddyArgs, cbp: Curre
     if pba.find is None:
         return False
     start = physmap_addr
-    end = physmap_addr + (1 << cbp.order)
+    end = physmap_addr + 0x1000 * (1 << cbp.order)
     return pba.find >= start and pba.find < end
 
 
@@ -343,5 +343,5 @@ def buddydump(
             print_pcp_set(pba, cbp)
             if not pcp_only:
                 print_free_area(pba, cbp)
-        if not cbp.found:
-            log.warning("No free pages with specified filters found.")
+    if not cbp.found:
+        log.warning("No free pages with specified filters found.")
