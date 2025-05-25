@@ -123,52 +123,42 @@ async def exec_shellcode(
     existing_code = pwndbg.aglib.memory.read(starting_address, len(blob))
     pwndbg.aglib.memory.write(starting_address, blob)
 
+    # TODO: disable all events
     # The continue we use here will trigger an event that would get the context
     # prompt to show, regardless of the circumstances. We don't want that, so
     # we preserve the state of the context skip.
     if pwndbg.dbg.is_gdblib_available():
         would_skip_context = pwndbg.gdblib.prompt.context_shown
 
-    # Execute.
-    if steps == 0:
-        target_address = starting_address + len(blob)
-        with pwndbg.dbg.selected_inferior().break_at(
-            BreakpointLocation(target_address), internal=True
-        ) as bp:
-            while True:
-                try:
-                    await ec.cont(bp)
-                    break
-                except CancelledError:
-                    if disable_breakpoints:
-                        # We probably hit another breakpoint, but in this mode we're
-                        # supposed to ignore any breakpoints that aren't the one we put
-                        # at the end of the range, so just retry.
-                        continue
+    try:
+        # Execute.
+        if steps == 0:
+            target_address = starting_address + len(blob)
+            with pwndbg.dbg.selected_inferior().break_at(
+                BreakpointLocation(target_address), internal=True
+            ) as bp:
+                while True:
+                    try:
+                        await ec.cont(bp)
+                        break
+                    except CancelledError:
+                        if disable_breakpoints:
+                            # We probably hit another breakpoint, but in this mode we're
+                            # supposed to ignore any breakpoints that aren't the one we put
+                            # at the end of the range, so just retry.
+                            continue
 
-                    # We hit an external break, and we haven't been told to ignore it.
-                    raise
-    else:
-        # Note: This is a workaround: we should probably fix it one day
-        # Read the docstring 'Safety' note for more info.
-        # pwndbg.aglib.regs.pc = starting_address + 0x2
-
-        try:
+                        # We hit an external break, and we haven't been told to ignore it.
+                        raise
+        else:
+            # Note: This is a workaround: we should probably fix it one day
+            # Read the docstring 'Safety' note for more info.
+            pwndbg.aglib.regs.pc = starting_address + 0x2
             await ec.single_steps(steps)
-        except CancelledError:
-            print(f"exec_shellcode error: attempted to execute {steps} instruction but failed")
-            print("- reverting code and saved registers state")
-            print("- however, some state may have been corrupted by executed instructions")
 
-    # Restore the state of the context skip.
-    if pwndbg.dbg.is_gdblib_available():
-        pwndbg.gdblib.prompt.context_shown = would_skip_context
-
-    # Make sure we're in the right place.
-    if steps == 0:
+        # Make sure we're in the right place.
         assert pwndbg.aglib.regs.pc == target_address
 
-    try:
         # Give the caller a chance to collect information from the environment
         # before any of the context gets restored.
         yield
@@ -180,3 +170,7 @@ async def exec_shellcode(
         if restore_context:
             for reg, val in registers.items():
                 setattr(pwndbg.aglib.regs, reg, val)
+
+        # Restore the state of the context skip.
+        if pwndbg.dbg.is_gdblib_available():
+            pwndbg.gdblib.prompt.context_shown = would_skip_context
