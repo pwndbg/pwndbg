@@ -1994,9 +1994,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             try:
                 handler()
             except Exception as e:
-                import pwndbg.exception
+                from pwndbg.exception import handle as pwndbg_exception
 
-                pwndbg.exception.handle()
+                pwndbg_exception()
                 raise e
 
     @override

@@ -66,6 +66,23 @@ async def exec_syscall(
 
 @contextlib.contextmanager
 def _ctx_code(starting_address: int, blob) -> ContextManager[None]:
+    # Make sure the blob fits in the rest of the space we have in this page.
+    #
+    # NOTE: Technically, we could actually use anything from the whole page to
+    # all of the pages currently mapped as executable for this. There is no
+    # technical limitation stopping us from doing that, but seeing as doing it
+    # is harder to make sure it works correctly, we don't (for now, at least).
+    page = pwndbg.aglib.vmmap.find(starting_address)
+    assert page is not None
+
+    clearance = page.end - starting_address - len(blob) - 1
+    if clearance < 0:
+        # The page isn't large enough to hold our shellcode.
+        raise RuntimeError(
+            f"Not enough space to execute code as inferior: \
+            need at least {len(blob)} bytes, have {clearance} bytes available"
+        )
+
     # Swap the code in the range with our shellcode.
     existing_code = pwndbg.aglib.memory.read(starting_address, len(blob))
     pwndbg.aglib.memory.write(starting_address, blob)
@@ -83,23 +100,6 @@ def _ctx_registers(blob) -> ContextManager[int]:
 
     registers = {reg: pwndbg.aglib.regs[reg] for reg in preserve_set}
     starting_address = registers[register_set.pc]
-
-    # Make sure the blob fits in the rest of the space we have in this page.
-    #
-    # NOTE: Technically, we could actually use anything from the whole page to
-    # all of the pages currently mapped as executable for this. There is no
-    # technical limitation stopping us from doing that, but seeing as doing it
-    # is harder to make sure it works correctly, we don't (for now, at least).
-    page = pwndbg.aglib.vmmap.find(starting_address)
-    assert page is not None
-
-    clearance = page.end - starting_address - len(blob) - 1
-    if clearance < 0:
-        # The page isn't large enough to hold our shellcode.
-        raise RuntimeError(
-            f"Not enough space to execute code as inferior: \
-            need at least {len(blob)} bytes, have {clearance} bytes available"
-        )
 
     try:
         yield starting_address

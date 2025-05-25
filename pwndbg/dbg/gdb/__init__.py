@@ -984,13 +984,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
 class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override
-    async def single_steps(self, steps: int):
-        gdb.execute(f"si {steps}")
-
-        if "It stopped after being stepped" not in gdb.execute("info program", to_string=True):
-            raise CancelledError()
-
-    @override
     async def single_step(self):
         gdb.execute("si")
 
