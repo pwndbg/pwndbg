@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import contextlib
 from asyncio import CancelledError
-from typing import ContextManager
+from typing import Iterator
 
 import pwnlib.asm
 import pwnlib.shellcraft
@@ -22,9 +22,6 @@ import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 from pwndbg.dbg import BreakpointLocation
 from pwndbg.dbg import ExecutionController
-
-if pwndbg.dbg.is_gdblib_available():
-    import pwndbg.gdblib.prompt
 
 
 def _get_syscall_return_value():
@@ -65,7 +62,7 @@ async def exec_syscall(
 
 
 @contextlib.contextmanager
-def _ctx_code(starting_address: int, blob) -> ContextManager[None]:
+def _ctx_code(starting_address: int, blob) -> Iterator[None]:
     # Make sure the blob fits in the rest of the space we have in this page.
     #
     # NOTE: Technically, we could actually use anything from the whole page to
@@ -94,7 +91,7 @@ def _ctx_code(starting_address: int, blob) -> ContextManager[None]:
 
 
 @contextlib.contextmanager
-def _ctx_registers(blob) -> ContextManager[int]:
+def _ctx_registers() -> Iterator[int]:
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
@@ -112,28 +109,18 @@ def _ctx_registers(blob) -> ContextManager[int]:
 
 
 async def _execute_until_addr(ec: ExecutionController, target_address: int) -> None:
-    if pwndbg.dbg.is_gdblib_available():
-        from pwndbg.gdblib.scheduler import lock_scheduler as do_lock_scheduler
-
-        lock_scheduler = do_lock_scheduler
-        # GDB require to change scheduler
-    else:
-        lock_scheduler = contextlib.nullcontext
-        # TODO: lldb tez potrzebuje thread lock do continue z jednego threada
-
-    with lock_scheduler():
-        with pwndbg.dbg.selected_inferior().break_at(
-            BreakpointLocation(target_address), internal=True
-        ) as bp:
-            while True:
-                try:
-                    await ec.cont(bp)
-                    break
-                except CancelledError:
-                    # We probably hit another breakpoint, but in this mode we're
-                    # supposed to ignore any breakpoints that aren't the one we put
-                    # at the end of the range, so just retry.
-                    continue
+    with pwndbg.dbg.selected_inferior().break_at(
+        BreakpointLocation(target_address), internal=True
+    ) as bp:
+        while True:
+            try:
+                await ec.cont_selected_thread(bp)
+                break
+            except CancelledError:
+                # We probably hit another breakpoint, but in this mode we're
+                # supposed to ignore any breakpoints that aren't the one we put
+                # at the end of the range, so just retry.
+                continue
 
     assert pwndbg.dbg.selected_frame().pc() == target_address, "Target address is incorrect"
 
@@ -159,11 +146,10 @@ async def exec_shellcode(ec: ExecutionController, blob):
     or currupt the memory in the inferior.
     """
 
-    with _ctx_registers(blob) as starting_address:
+    with _ctx_registers() as starting_address:
         target_address = starting_address + len(blob)
         with _ctx_code(starting_address, blob):
             try:
-                # TODO: disable GDB ugly output
                 with pwndbg.dbg.ctx_suspend_events(pwndbg.dbg_mod.EventType.SUSPEND_ALL):
                     await _execute_until_addr(ec, target_address)
 
