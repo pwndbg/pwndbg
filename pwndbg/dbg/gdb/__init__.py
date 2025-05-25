@@ -1672,7 +1672,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
             return pwndbg.gdblib.events.reg_changed
         elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
-            return pwndbg.gdblib.events.suspend_all
+            raise RuntimeError("not supported")
 
     @override
     def suspend_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
