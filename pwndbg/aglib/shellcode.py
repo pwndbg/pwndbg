@@ -119,6 +119,7 @@ async def _execute_until_addr(ec: ExecutionController, target_address: int) -> N
         # GDB require to change scheduler
     else:
         lock_scheduler = contextlib.nullcontext
+        # TODO: lldb tez potrzebuje thread lock do continue z jednego threada
 
     with lock_scheduler():
         with pwndbg.dbg.selected_inferior().break_at(

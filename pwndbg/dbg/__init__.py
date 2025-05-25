@@ -682,7 +682,7 @@ class Type:
         """
         if self.code == pwndbg.dbg_mod.TypeCode.ARRAY:
             return self.sizeof // self.target().sizeof
-        return self.sizeof
+        return 0
 
     @property
     def sizeof(self) -> int:
