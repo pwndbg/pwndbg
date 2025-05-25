@@ -158,7 +158,7 @@ Taken the raw instruction bytes and pass them to `cstool` to see the information
 cstool -d mips 0x0400000c
 ```
 
-The number of operands may not match the visual appearance. You might also check the instruction groups, and verify that an instruction that we might consider a `call` has the Capstone `call` group. Capstone is not 100% correct in every single case in all architectures, so it's good to verify. Report a bug to Capstone if there appears to be an error, and in the meanwhile we can create a fix in pwndbg to work around the current behavior.
+The number of operands may not match the visual appearance. You might also check the instruction groups, and verify that an instruction that we might consider a `call` has the Capstone `call` group. Capstone is not 100% correct in every single case in all architectures, so it's good to verify. Report a bug to Capstone if there appears to be an error, and in the meanwhile we can create a fix in Pwndbg to work around the current behavior.
 
 3\. Check the state of the emulator.
 
