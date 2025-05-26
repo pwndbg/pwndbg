@@ -28,7 +28,7 @@ This is incredibly useful when stepping through jump tables, PLT entries, and RO
 
 ## Context
 
-A useful summary of the current execution context is printed every time GDB stops (e.g. breakpoint or single-step), displaying all registers, the stack, call frames, disassembly, and additionally recursively dereferencing all pointers.  All memory addresses are color-coded to the type of memory they represent.
+A useful summary of the current execution context is printed every time the debugger stops (e.g. breakpoint or single-step), displaying all registers, the stack, call frames, disassembly, and additionally recursively dereferencing all pointers.  All memory addresses are color-coded to the type of memory they represent.
 
 ![](assets/caps/context.png)
 
@@ -47,14 +47,14 @@ All function call sites are annotated with the arguments to those functions.  Th
 
 ### Splitting / Layouting Context
 
-The context sections can be distributed among different tty by using the `contextoutput` command. Thus, if you want to make better use of some of the empty space in the default pwndbg output, you can split the panes in your terminal and redirect the various contexts among them.
+The context sections can be distributed among different tty by using the `contextoutput` command. Thus, if you want to make better use of some of the empty space in the default Pwndbg output, you can split the panes in your terminal and redirect the various contexts among them.
 
 ![](assets/caps/context_splitting.png)
 
 See [Splitting the Context](misc/splitting-the-context.md) for more information.
 
 ### GDB TUI
-The context sections are available as native [GDB TUI](https://sourceware.org/gdb/current/onlinedocs/gdb.html/TUI.html) windows named `pwndbg_[sectionname]`. There are some predefined layouts coming with pwndbg which you can select using `layout pwndbg` or `layout pwndbg_code`.
+The context sections are available as native [GDB TUI](https://sourceware.org/gdb/current/onlinedocs/gdb.html/TUI.html) windows named `pwndbg_[sectionname]`. There are some predefined layouts coming with Pwndbg which you can select using `layout pwndbg` or `layout pwndbg_code`.
 
 ![](assets/caps/context_tui.png)
 
@@ -101,43 +101,33 @@ See *some* of the commands for glibc malloc:
 ![](assets/caps/heap_try_free.png)
 ![](assets/caps/heap_find_fake_fast.png){ style="width: 70%;" }
 
+## LLDB
+
+While most other GDB plugins are well *GDB plugins*, Pwndbg's implementation is debugger-agnostic. You can use Pwndbg with LLDB!
+
+![](assets/caps/lldb.png){ style="width: 70%;" }
+
+## Windbg Compatibility
+
+For those coming from a Windows background, Pwndbg has a complete Windbg compatibility layer.  You can `dd`, `dps`, `eq`, and even `eb $rip 90` to your heart's content.
+
+![](assets/caps/windbg.png){ style="width: 70%;" }
+
 ## Go Debugging
 
 Pwndbg has support for dumping complex Go values like maps and slices, including automatically parsing out type layouts in certain cases.
 
 See the [Go debugging guide](misc/go-debugging.md) for more information.
 
-## QEMU Compatibility
+## So many commands
 
-Pwndbg is designed to work with minimally-implemented or otherwise debugger-hostile implementations of the GDB Serial Protocol.  One such implementation is that used by QEMU User-Mode Emulation (`qemu-user`) which is frequently used by CTF players to execute and debug cross-architecture binaries.
-
-Vanilla GDB, PEDA, and GEF all fail terribly in this scenario.
-
-#### GEF
-
-![](assets/caps/qemu_gef.png)
-
-#### PEDA
-
-![](assets/caps/qemu_peda.png)
-
-#### Vanilla GDB
-
-![](assets/caps/qemu_vanilla.png)
-
-#### Pwndbg
-
-However, Pwndbg works around the limitations of the GDB stub to give you the best debugger environment possible.
-
-![](assets/caps/qemu_pwndbg.png)
-
-## Process State Inspection
+### Process State Inspection
 
 Use the `procinfo` command in order to inspect the current process state, like UID, GID, Groups, SELinux context, and open file descriptors!  Pwndbg works particularly well with remote GDB debugging like with Android phones, which PEDA, GEF, and vanilla GDB choke on.
 
 ![](assets/caps/procinfo.png)
 
-## ROP Gadgets
+### ROP Gadgets
 
 Pwndbg makes using ROPGadget easy with the actual addresses in the process.
 
@@ -145,22 +135,22 @@ Just use the `rop` command!
 
 ![](assets/caps/rop_grep.png)
 
-## Search
+### Search
 
 Pwndbg makes searching the target memory space easy, with a complete and easy-to-use interface.  Whether you're searching for bytes, strings, or various sizes of integer values or pointers, it's a simple command away.
 
 ![](assets/caps/search.png)
 
-## Finding Leaks
+### Finding Leaks
 ![](assets/caps/leakfind.png)
 Finding leak chains can be done using the `leakfind` command. It recursively inspects address ranges for pointers, and reports on all pointers found.
 
 
-## Telescope
+### Telescope
 
 Inspecting memory dumps is easy with the `telescope` command.  It recursively dereferences a range of memory, letting you see everything at once.  As an added bonus, Pwndbg checks all of the available registers to see if they point into the memory range.
 
-## Virtual Memory Maps
+### Virtual Memory Maps
 
 Pwndbg enhances the standard memory map listing, and allows easy searching.
 
@@ -169,9 +159,3 @@ Pwndbg enhances the standard memory map listing, and allows easy searching.
 ![](assets/caps/vmmap_pc.png)
 ![](assets/caps/vmmap_register.png)
 ![](assets/caps/vmmap_stack.png)
-
-## Windbg Compatibility
-
-Pwndbg has a complete windbg compatibility layer.  You can `dd`, `dps`, `eq`, and even `eb eip 90` to your heart's content.
-
-![](assets/caps/windbg.png)
