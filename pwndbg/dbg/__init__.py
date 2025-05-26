@@ -321,17 +321,24 @@ class MemoryMap:
     def _create_page_lookup_table(self) -> None:
         lookup: dict[int, pwndbg.lib.memory.Page] = {}
 
-        MAX_VIRTUAL_PAGE_COUNT = 4000
+        MAX_LOOKUP_TABLE_SIZE = 20_000
+        current_size = 0
 
         PAGE_SIZE = pwndbg.lib.memory.PAGE_SIZE
         for page in self.ranges():
-            if page.memsz // PAGE_SIZE > MAX_VIRTUAL_PAGE_COUNT:
-                # In case there is a gigantic page in memory (likely added with vmmap-add),
-                # creating the lookup table will take more space than is worth it.
+            if current_size + (page.memsz // PAGE_SIZE) > MAX_LOOKUP_TABLE_SIZE:
+                # In case there are a ton of virtual pages, running this loop to create
+                # those entries has a performance cost itself
+                # TODO: fallback to a binary search method
                 return
 
-            for addr in range(page.start, page.end, PAGE_SIZE):
-                lookup[addr // PAGE_SIZE] = page
+            if page.memsz % PAGE_SIZE != 0:
+                # Page is not aligned to a size of PAGE_SIZE
+                return
+
+            for page_index in range(page.start // PAGE_SIZE, page.end // PAGE_SIZE):
+                current_size += 1
+                lookup[page_index] = page
 
         self.page_lookup_table = lookup
 
