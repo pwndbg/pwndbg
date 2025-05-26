@@ -135,7 +135,7 @@ class KernelVmmap:
     def handle_offsets(self):
         prev_objfile, base = "", 0
         for page in self.pages:
-            if page.objfile != self.KERNELBSS and prev_objfile != page.objfile:
+            if page.objfile != self.KERNELRO and prev_objfile != page.objfile:
                 prev_objfile = page.objfile
                 base = page.start
             page.offset = page.start - base
