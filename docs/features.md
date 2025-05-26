@@ -54,36 +54,27 @@ You can add expressions to be watched by the context. Those expressions are eval
 
 ![](assets/caps/cwatch_infoargs.png)
 
-See [commands/context/contextwatch.md] for more information.
+See [`contextwatch`](commands/context/contextwatch.md) for more information.
+
+## Integrations
 
 ### Ghidra
 
-With the help of [radare2](https://github.com/radareorg/radare2) or [rizin](https://github.com/rizinorg/rizin) it is possible to show the
-decompiled source code of the ghidra decompiler.
+With the help of [radare2](https://github.com/radareorg/radare2) or [rizin](https://github.com/rizinorg/rizin) it is possible to show the decompiled source code of the ghidra decompiler.
 
-However, this comes with some prerequisites.
-* First: you have to have installed radare2 or rizin and it must be found by gdb (within path)
-* Second: you have to install the ghidra plugin for radare2
-  [r2ghidra](https://github.com/radareorg/r2ghidra) or install the ghidra plugin for rizin [rz-ghidra](https://github.com/rizinorg/rz-ghidra)
+See [Ghidra Integration](misc/ghidra-integration.md) for more information.
 
-* Third: r2pipe has to be installed in the python-context gdb is using (or if you are using rizin, install rzpipe instead)
+### IDA Pro/Binary Ninja
 
-The decompiled source be shown as part of the context by adding `ghidra` to `set context-sections`
-or by calling `ctx-ghidra [function]` manually.
+Pwndbg is capable of integrating with IDA Pro or Binary Ninja by installing an XMLRPC server in the decompiler as a plugin, and then querying it for information.
 
-Be warned, the first call to both radare2/r2ghidra and rizin/rz-ghidra are rather slow! Subsequent requests for decompiled
-source will be faster. And it does take up some resources as the radare2/rizin instance is kept by r2pipe/rzpipe
-to enable faster subsequent analysis.
+This allows extraction of comments, decompiled lines of source, breakpoints, symbols, and synchronized debugging (single-steps update the cursor in the decompiler).
 
-With those performance penalties it is reasonable to not have it launch always. Therefore it includes
-an option to only start it when required with `set context-ghidra`:
+![](assets/caps/ida_comments.png)
+![](assets/caps/ida_function.png)
+![](assets/caps/ida_integration.png)
 
-* `set context-ghidra always`: always trigger the ghidra context
-* `set context-ghidra never`: never trigger the ghidra context except when called manually
-* `set context-ghidra if-no-source`: invoke ghidra if no source code is available
-
-Remark: the plugin tries to guess the correct current line and mark it with "-->", but it might
-get it wrong.
+See the [Binary Ninja integration guide](misc/binja-integration.md) for setup information.
 
 ## Disassembly
 
@@ -126,18 +117,6 @@ Pwndbg enables introspection of the glibc allocator, ptmalloc2, via a handful of
 ![](assets/caps/heap_topchunk.png)
 ![](assets/caps/heap_fake_fast.png)
 ![](assets/caps/heap_try_free.png)
-
-## IDA Pro/Binary Ninja Integration
-
-Pwndbg is capable of integrating with IDA Pro or Binary Ninja by installing an XMLRPC server in the decompiler as a plugin, and then querying it for information.
-
-This allows extraction of comments, decompiled lines of source, breakpoints, symbols, and synchronized debugging (single-steps update the cursor in the decompiler).
-
-![](assets/caps/ida_comments.png)
-![](assets/caps/ida_function.png)
-![](assets/caps/ida_integration.png)
-
-See the [Binary Ninja integration guide](misc/binja-integration.md) for setup information.
 
 ## Go Debugging
 
