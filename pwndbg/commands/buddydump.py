@@ -113,7 +113,7 @@ parser.add_argument(
 
 def static_str_arr(name: str) -> List[str]:
     arr = pwndbg.aglib.symbol.lookup_symbol(name).dereference()
-    return [arr[i].string() for i in range(len(arr))]
+    return [arr[i].string() for i in range(arr.type.array_len)]
 
 
 def check_find(counter: int, physmap_addr: int, pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
@@ -258,7 +258,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     free_area = pba.zone["free_area"]
     cbp.sections[1] = ("free_area", None)
-    for order in range(len(free_area)):
+    for order in range(free_area.type.array_len):
         if pba.order is not None and pba.order != order:
             continue
         cbp.freelists = free_area[order]["free_list"]

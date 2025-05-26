@@ -1271,15 +1271,6 @@ class GDBValue(pwndbg.dbg_mod.Value):
         except gdb.error as e:
             raise pwndbg.dbg_mod.Error(e)
 
-    @override
-    def __len__(self):
-        try:
-            if self.type.code == pwndbg.dbg_mod.TypeCode.ARRAY:
-                return self.type.sizeof // self.type.target().sizeof
-            return self.type.sizeof
-        except gdb.error as e:
-            raise pwndbg.dbg_mod.Error(e)
-
 
 def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
     """

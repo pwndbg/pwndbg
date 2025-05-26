@@ -675,6 +675,15 @@ class Type:
         raise NotImplementedError()
 
     @property
+    def array_len(self) -> int:
+        """
+        Get array length of this type.
+        """
+        if self.code == pwndbg.dbg_mod.TypeCode.ARRAY:
+            return self.sizeof // self.target().sizeof
+        return 0
+
+    @property
     def sizeof(self) -> int:
         """
         The size of this type, in bytes.
@@ -952,12 +961,6 @@ class Value:
         structure types, this is the field with the given name. For array types,
         this is the field at the given index. For pointer types, this is the
         value of `*(ptr+idx)`.
-        """
-        raise NotImplementedError()
-
-    def __len__(self) -> int:
-        """
-        Return len(self).
         """
         raise NotImplementedError()
 
