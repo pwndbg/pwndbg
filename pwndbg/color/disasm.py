@@ -41,8 +41,10 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     # If we know the conditional is taken, mark it as taken.
     if ins.condition == InstructionCondition.TRUE or ins.is_conditional_jump_taken:
         asm = on("✔ ") + asm
+    elif ins.condition == InstructionCondition.FALSE:
+        asm = off('✘ ') + asm
     else:
-        asm = "  " + asm
+        asm = f"  {asm}"
 
     return asm
 
