@@ -1652,6 +1652,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
             return pwndbg.gdblib.events.mem_changed
         elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
             return pwndbg.gdblib.events.reg_changed
+        elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
+            raise RuntimeError("invalid usage, this event is not supported")
 
     @override
     def suspend_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
