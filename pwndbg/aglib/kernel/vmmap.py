@@ -31,12 +31,13 @@ class KernelVmmap:
     KERNELLAND = "kernel [.text]"
     KERNELRO = "kernel [.rodata]"
     KERNELBSS = "kernel [.bss]"
+    KERNELDRIVER = "kernel [loadable driver]"
 
     def __init__(self, pages: List[pwndbg.lib.memory.Page]):
         self.pages = pages
-        # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
         if not pwndbg.aglib.kernel.has_debug_syms():
             return
+        # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
         physmap = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
         vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
         vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
@@ -88,7 +89,7 @@ class KernelVmmap:
             if kernel_idx is None and page.objfile == self.KERNELLAND:
                 kernel_idx = i
         self.handle_user_pages(user_idx)
-        self.handle_kernel_text_pages(kernel_idx)
+        self.handle_kernel_pages(kernel_idx)
         self.handle_offsets()
 
     def handle_user_pages(self, user_idx):
@@ -111,7 +112,7 @@ class KernelVmmap:
             else:
                 base_offset = page.start
 
-    def handle_kernel_text_pages(self, kernel_idx):
+    def handle_kernel_pages(self, kernel_idx):
         if kernel_idx is None:
             return
         has_loadable_driver = False
@@ -127,14 +128,15 @@ class KernelVmmap:
             if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
                 page.objfile = "kernel [stack]"
             if has_loadable_driver:
-                page.objfile = "loadable driver"
+                page.objfile = self.KERNELDRIVER
             if page.execute and page.start != self.kbase:
-                page.objfile = "loadable driver"
+                page.objfile = self.KERNELDRIVER
                 has_loadable_driver = True
 
     def handle_offsets(self):
         prev_objfile, base = "", 0
         for page in self.pages:
+            # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
             if page.objfile != self.KERNELRO and prev_objfile != page.objfile:
                 prev_objfile = page.objfile
                 base = page.start
