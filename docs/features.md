@@ -14,6 +14,18 @@ hide:
 
 Pwndbg has a great deal of useful features. You can a see all available commands at any time by typing the `pwndbg` command or by checking the [Commands section](commands/index.md) of the documentation. For configuration and theming see the [Configuration section](configuration/index.md). Below is a subset of commands which are easy to capture in screenshots.
 
+## Disassembly and Emulation
+
+Pwndbg leverages the [capstone](https://github.com/capstone-engine/capstone) and [unicorn](https://github.com/unicorn-engine/unicorn) engines, along with its own instrospection, to display, annotate and emulate instructions.
+
+Operands of instructions are resolved, conditions evaluated, and only the instructions that will actually be executed are shown.
+
+![](assets/caps/disasm_example.png)
+
+This is incredibly useful when stepping through jump tables, PLT entries, and ROPping.
+
+![](assets/caps/emulation_rop.png)
+
 ## Context
 
 A useful summary of the current execution context is printed every time GDB stops (e.g. breakpoint or single-step), displaying all registers, the stack, call frames, disassembly, and additionally recursively dereferencing all pointers.  All memory addresses are color-coded to the type of memory they represent.
@@ -70,73 +82,30 @@ Pwndbg is capable of integrating with IDA Pro or Binary Ninja by installing an X
 
 This allows extraction of comments, decompiled lines of source, breakpoints, symbols, and synchronized debugging (single-steps update the cursor in the decompiler).
 
-![](assets/caps/ida_comments.png)
-![](assets/caps/ida_function.png)
-![](assets/caps/ida_integration.png)
+![](assets/caps/ida_context.png){ style="width: 70%;" }
 
 See the [Binary Ninja integration guide](misc/binja-integration.md) for setup information.
 
-## Disassembly
-
-Pwndbg uses assets/capstone Engine to display disassembled instructions, but also leverages its introspection into the instruction to extract memory targets and condition codes.
-
-All absolute jumps are folded away, only displaying relevant instructions.
-
-![](assets/caps/disasm_taken_folded.png)
-
-Additionally, if the current instruction is conditional, Pwndbg displays whether or not it is evaluated with a green check or a red X, and folds away instructions as necessary.
-
-![](assets/caps/disasm_taken_after.png)
-![](assets/caps/disasm_taken_before.png)
-![](assets/caps/disasn_taken_false.png)
-
-## Emulation
-
-Pwndbg leverages Unicorn Engine in order to only show instructions which will actually be emulated.  At each debugger stop (e.g. breakpoint or single-step) the next few instructions are silently emulated, and only instructions which will actually be executed are displayed.
-
-This is incredibly useful when stepping through jump tables, PLT entries, and even while ROPping!
-
-![](assets/caps/emulate_vs_disasm.png)
-![](assets/caps/emulation_plt.png)
-![](assets/caps/emulation_rop.png)
-
 ## Heap Inspection
 
-Pwndbg enables introspection of the glibc allocator, ptmalloc2, via a handful of introspection functions.
+Pwndbg provides commands for inspecting the heap and the allocator's state. Currently supported are:
 
-![](assets/caps/heap_arena.png)
-![](assets/caps/heap_mp.png)
-![](assets/caps/heap_bins.png)
-![](assets/caps/heap_fastbins.png)
-![](assets/caps/heap_unsorted.png)
-![](assets/caps/heap_smallbins.png)
-![](assets/caps/heap_largebins.png)
-![](assets/caps/heap_heap.png)
-![](assets/caps/heap_heap2.png)
-![](assets/caps/heap_mallocchunk.png)
-![](assets/caps/heap_topchunk.png)
-![](assets/caps/heap_fake_fast.png)
++ [glibc malloc](commands/index.md#glibc-ptmalloc2-heap)
++ [jemalloc](commands/index.md#jemalloc-heap)
++ [linux's buddy allocator](commands/kernel/buddydump.md)
++ [linux's SLUB allocator](commands/kernel/slab.md)
+
+See *some* of the commands for glibc malloc:
+![](assets/caps/heap_vis.png){ style="width: 70%;" }
+![](assets/caps/heap_hi_bins.png){ style="width: 70%;" }
 ![](assets/caps/heap_try_free.png)
+![](assets/caps/heap_find_fake_fast.png){ style="width: 70%;" }
 
 ## Go Debugging
 
 Pwndbg has support for dumping complex Go values like maps and slices, including automatically parsing out type layouts in certain cases.
 
 See the [Go debugging guide](misc/go-debugging.md) for more information.
-
-## Configuration, customization
-
-There are two commands to set various options:
-
-* `theme` - to set particular output color/style
-![](assets/caps/theme.png)
-
-* `config` - to set parameters like whether to emulate code near current instruction, ida rpc connection info, hexdump bytes/width (and more)
-![](assets/caps/config.png)
-
-Of course you can generate and put it in `.gdbinit` after pwndbg initialization to keep it persistent between pwngdb sessions.
-
-This can be seen and achieved by `configfile`/`themefile` commands.
 
 ## QEMU Compatibility
 

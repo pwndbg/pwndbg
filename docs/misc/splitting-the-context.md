@@ -1,7 +1,7 @@
 # Splitting / Layouting Context
 
 i.e. doing this:
-![](../assets/caps2/context_splitting.png)
+![](../assets/caps/context_splitting.png)
 
 In Pwndbg, the context sections can be distributed among different tty by using the [`contextoutput`](../commands/context/contextoutput.md) command. Example:
 ```
@@ -9,7 +9,6 @@ contextoutput stack /path/to/tty true
 ```
 
 If you use a terminal or multiplexer that supports scripted pane splitting, you can write a Python script that will create the panes and distribute them to your liking whenever you start pwndbg.
-
 
 For instance, for tmux, you could write something like this:
 ```python
