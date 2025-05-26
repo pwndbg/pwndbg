@@ -187,17 +187,10 @@ def read_pointer_width(addr: int) -> int:
     """
     Read one pointer-width integer at the specified address.
 
-    :raises: pwndbg.dbg_mod.Error
+    Raises:
+        pwndbg.dbg_mod.Error: if memory read fails.
     """
     return pwndbg.aglib.arch.unpack(read(addr, pwndbg.aglib.arch.ptrsize))
-
-
-# def pvoid(addr: int) -> int:
-#     """pvoid(addr) -> int
-
-#     Read one pointer from the specified address.
-#     """
-#     return readtype(pwndbg.aglib.typeinfo.pvoid, addr)
 
 
 def u8(addr: int) -> int:
