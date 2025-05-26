@@ -313,6 +313,7 @@ class ExecutionController:
 
         FIXME GDB:
         On GDB `stepi` will execute other threads. On LLDB not.
+        Please use `set scheduler-locking step`
         """
         raise NotImplementedError()
 
