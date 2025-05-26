@@ -89,7 +89,7 @@ All the documentation is written in markdown files in the `./docs/` folder. The 
 In general, for your PR to be accepted you will only need to [Update the auto-generated documentation](#update-the-auto-generated-documentation).
 
 ### Update the auto-generated documentation
-The `./docs/commands`, `./docs/functions`, and `./docs/configuration` folders are automatically generated[^1] by extracting the necessary information from the source code. If your changes modify things like a command's description, a configuration's valid values, a [convenience function's](https://pwndbg.re/pwndbg/dev/functions/) arguments - i.e. pretty much anything that's user-facing - you must run
+The `./docs/commands`, `./docs/functions`, and `./docs/configuration` folders are automatically generated[^1] by extracting the necessary information from the source code. If your changes modify things like a command's description, a configuration's valid values, a [convenience function's](../functions/index.md) arguments - i.e. pretty much anything that's user-facing - you must run
 ```{.bash .copy}
 ./scripts/generate-docs.sh
 ```
