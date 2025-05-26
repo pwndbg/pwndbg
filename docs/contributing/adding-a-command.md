@@ -13,7 +13,7 @@ def my_command(arg: str) -> None:
     """Print the argument"""
     print(f"Argument is {arg}")
 ```
-Next, import this file in the `load_commands` function in `pwndbg/commands/__init__.py`. 
+Next, import this file in the `load_commands` function in `pwndbg/commands/__init__.py`.
 
 That's all you need to get it working!
 ```text
@@ -58,7 +58,7 @@ We are using [`argparse.ArgumentParser`](https://docs.python.org/3/library/argpa
 parser = argparse.ArgumentParser(description="Modify the flags register.")
 
 parser.add_argument(
-	"flag", 
+	"flag",
 	type=str,
 	help="Flag for which you want to change the value"
  )
@@ -184,4 +184,4 @@ Feel free to add more of these decorators yourself!
 
 Another very important one is `OnlyWithArch`, defined in `pwndbg/aglib/proc.py`. Does your command work on all architectures? If not, make sure to specify this decorator and pass in the architectures which you do support.
 ## Actually implementing the command
-There is no single right way to do it. You will want to read the source of some similar commands and see how they work. Check out the [general developer notes](2-dev-notes.md), and feel free to ask a question on the [discord server](https://discord.gg/x47DssnGwm). Good luck!
+There is no single right way to do it. You will want to read the source of some similar commands and see how they work. Check out the [general developer notes](dev-notes.md), and feel free to ask a question on the [discord server](https://discord.gg/x47DssnGwm). Good luck!
