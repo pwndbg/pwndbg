@@ -17,7 +17,8 @@ dependencies = [
     "pygments>=2.18.0,<3",
     "psutil>=6.1.1,<7",
     # Optional? only for 'ipi' command
-    "ipython>=8.27.0,<9",
+    # New version is broken when using with portable release
+    "ipython==8.32.0",
     # Optional? only for 'ropgadget' command
     "ropgadget==7.3",
     # Optional? only for 'ai' commands
