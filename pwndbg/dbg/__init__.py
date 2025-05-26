@@ -1001,6 +1001,7 @@ class EventType(Enum):
           debugged. In GDB terminology, these are called `objfile`s.
     """
 
+    SUSPEND_ALL = -1
     START = 0
     STOP = 1
     EXIT = 2
@@ -1097,6 +1098,19 @@ class Debugger:
         This function my be used as a decorator.
         """
         raise NotImplementedError()
+
+    @contextlib.contextmanager
+    def ctx_suspend_events(self, ty: EventType) -> Iterator[None]:
+        """
+        Context manager for temporarily suspending and resuming the delivery of events
+        of a given type.
+        """
+
+        self.suspend_events(ty)
+        try:
+            yield
+        finally:
+            self.resume_events(ty)
 
     def suspend_events(self, ty: EventType) -> None:
         """
