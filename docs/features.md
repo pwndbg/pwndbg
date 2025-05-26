@@ -149,10 +149,10 @@ Finding leak chains can be done using the [`leakfind`](commands/memory/leakfind.
 ### Telescope
 Inspecting memory dumps is easy with the [`telescope`](commands/memory/telescope.md) command.  It recursively dereferences a range of memory, letting you see everything at once.  As an added bonus, Pwndbg checks all of the available registers to see if they point into the memory range.
 
-![](assets/caps/telescope.png)
+![](assets/caps/telescope.png){ style="width: 70%;" }
 
 ### Virtual Memory Maps
 Pwndbg enhances the standard memory map listing and allows easy searching with [`vmmap`](commands/memory/vmmap.md).
 
-![](assets/caps/vmmap.png)
-![](assets/caps/vmmap_rip.png)
+![](assets/caps/vmmap.png){ style="width: 70%;" }
+![](assets/caps/vmmap_rip.png){ style="width: 70%;" }
