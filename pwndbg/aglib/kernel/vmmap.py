@@ -98,7 +98,7 @@ class KernelVmmap:
             if page.objfile != self.USERLAND:
                 break
             diff = page.start - base_offset
-            if diff > 0x1000000:
+            if diff > 0x100000:
                 if diff > 0x100000000000:
                     if page.execute:
                         page.objfile = "[library] userland"
@@ -106,6 +106,8 @@ class KernelVmmap:
                         page.objfile = "[stack] userland"
                 else:
                     page.objfile = "[heap] userland"
+            else:
+                base_offset = page.start
 
     def handle_kernel_text_pages(self, kernel_idx):
         if kernel_idx is None:
