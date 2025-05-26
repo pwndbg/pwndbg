@@ -332,7 +332,7 @@ class MemoryMap:
                 # TODO: fallback to a binary search method
                 return
 
-            if page.memsz % PAGE_SIZE != 0:
+            if page.memsz % PAGE_SIZE != 0 or page.start % PAGE_SIZE != 0:
                 # Page is not aligned to a size of PAGE_SIZE
                 return
 
