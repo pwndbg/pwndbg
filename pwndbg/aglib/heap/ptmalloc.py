@@ -2034,7 +2034,9 @@ class HeuristicHeap(
             self._thread_cache = tps(thread_cache_via_config)
             return self._thread_cache
         elif thread_cache_via_symbol:
-            thread_cache_struct_addr = pwndbg.aglib.memory.read_pointer_width(thread_cache_via_symbol)
+            thread_cache_struct_addr = pwndbg.aglib.memory.read_pointer_width(
+                thread_cache_via_symbol
+            )
             if thread_cache_struct_addr:
                 self._thread_cache = tps(int(thread_cache_struct_addr))
                 return self._thread_cache

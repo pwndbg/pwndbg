@@ -10,8 +10,8 @@ from typing import Dict
 from typing import List
 
 import pwndbg
-import pwndbg.aglib.vmmap
 import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
 from pwndbg.chain import c as C

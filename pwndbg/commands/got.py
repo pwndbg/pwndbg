@@ -9,10 +9,10 @@ from elftools.elf.elffile import ELFFile
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.file
+import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
-import pwndbg.aglib.memory
 import pwndbg.chain
 import pwndbg.color.memory as M
 import pwndbg.commands

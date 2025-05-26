@@ -106,7 +106,9 @@ def canary(all) -> None:
 
         # Verify the value at the TLS address matches our computed canary
         try:
-            tls_canary = pwndbg.aglib.memory.read_pointer_width(tls_addr) & (pwndbg.aglib.arch.ptrmask ^ 0xFF)
+            tls_canary = pwndbg.aglib.memory.read_pointer_width(tls_addr) & (
+                pwndbg.aglib.arch.ptrmask ^ 0xFF
+            )
             if tls_canary != global_canary:
                 print(message.warn("Warning: TLS canary value doesn't match global canary!"))
         except Exception:

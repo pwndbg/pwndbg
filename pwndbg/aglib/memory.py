@@ -189,9 +189,8 @@ def read_pointer_width(addr: int) -> int:
 
     :raises: pwndbg.dbg_mod.Error
     """
-    return pwndbg.aglib.arch.unpack(
-        read(addr, pwndbg.aglib.arch.ptrsize)
-    )
+    return pwndbg.aglib.arch.unpack(read(addr, pwndbg.aglib.arch.ptrsize))
+
 
 # def pvoid(addr: int) -> int:
 #     """pvoid(addr) -> int
