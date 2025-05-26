@@ -142,7 +142,7 @@ def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
 
     sp = pwndbg.aglib.regs.sp + (n * pwndbg.aglib.arch.ptrsize)
 
-    return int(pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.ppvoid, sp))
+    return pwndbg.aglib.memory.read_pointer_width(sp)
 
 
 def arguments(abi: pwndbg.lib.abi.ABI | None = None):

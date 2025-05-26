@@ -256,7 +256,7 @@ def telescope(
 
         # Buffer repeating values.
         if skip_repeating_values:
-            value = pwndbg.aglib.memory.pvoid(addr)
+            value = pwndbg.aglib.memory.read_pointer_width(addr)
             if (
                 last == value
                 and addr != input_address

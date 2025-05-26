@@ -164,7 +164,7 @@ def kcmdline() -> str:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("saved_command_line")
     assert addr is not None, "Symbol saved_command_line not exists"
 
-    cmdline_addr = pwndbg.aglib.memory.pvoid(addr)
+    cmdline_addr = pwndbg.aglib.memory.read_pointer_width(addr)
     return pwndbg.aglib.memory.string(cmdline_addr).decode("ascii")
 
 

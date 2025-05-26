@@ -183,12 +183,22 @@ def uint(addr: int) -> int:
     return readtype(pwndbg.aglib.typeinfo.uint, addr)
 
 
-def pvoid(addr: int) -> int:
-    """pvoid(addr) -> int
-
-    Read one pointer from the specified address.
+def read_pointer_width(addr: int) -> int:
     """
-    return readtype(pwndbg.aglib.typeinfo.pvoid, addr)
+    Read one pointer-width integer at the specified address.
+
+    :raises: pwndbg.dbg_mod.Error
+    """
+    return pwndbg.aglib.arch.unpack(
+        read(addr, pwndbg.aglib.arch.ptrsize)
+    )
+
+# def pvoid(addr: int) -> int:
+#     """pvoid(addr) -> int
+
+#     Read one pointer from the specified address.
+#     """
+#     return readtype(pwndbg.aglib.typeinfo.pvoid, addr)
 
 
 def u8(addr: int) -> int:
