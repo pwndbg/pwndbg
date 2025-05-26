@@ -288,6 +288,13 @@ class MemoryMap:
     A wrapper around a sequence of memory ranges
     """
 
+    pages: tuple[pwndbg.lib.memory.Page, ...]
+    page_lookup_table: dict[int, pwndbg.lib.memory.Page] | None = None
+
+    def __init__(self, pages: Sequence[pwndbg.lib.memory.Page]):
+        self.pages = tuple(pages)
+        self._create_page_lookup_table()
+
     def is_qemu(self) -> bool:
         """
         Returns whether this memory map was generated from a QEMU target.
@@ -298,7 +305,35 @@ class MemoryMap:
         """
         Returns all ranges in this memory map.
         """
-        raise NotImplementedError()
+        return self.pages
+
+    def lookup_page(self, address: int) -> pwndbg.lib.memory.Page | None:
+        if self.page_lookup_table is not None:
+            return self.page_lookup_table.get(address // pwndbg.lib.memory.PAGE_SIZE)
+        else:
+            # Fallback to naive lookup method
+            for page in self.pages:
+                if address in page:
+                    return page
+
+        return None
+
+    def _create_page_lookup_table(self) -> None:
+        lookup: dict[int, pwndbg.lib.memory.Page] = {}
+
+        MAX_VIRTUAL_PAGE_COUNT = 4000
+
+        PAGE_SIZE = pwndbg.lib.memory.PAGE_SIZE
+        for page in self.ranges():
+            if page.memsz // PAGE_SIZE > MAX_VIRTUAL_PAGE_COUNT:
+                # In case there is a gigantic page in memory (likely added with vmmap-add),
+                # creating the lookup table will take more space than is worth it.
+                return
+
+            for addr in range(page.start, page.end, PAGE_SIZE):
+                lookup[addr // PAGE_SIZE] = page
+
+        self.page_lookup_table = lookup
 
 
 class ExecutionController:

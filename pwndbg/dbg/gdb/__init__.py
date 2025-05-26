@@ -233,16 +233,12 @@ class GDBThread(pwndbg.dbg_mod.Thread):
 
 class GDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
     def __init__(self, qemu: bool, pages: Sequence[pwndbg.lib.memory.Page]):
+        super().__init__(pages)
         self.qemu = qemu
-        self.pages = pages
 
     @override
     def is_qemu(self) -> bool:
         return self.qemu
-
-    @override
-    def ranges(self) -> Sequence[pwndbg.lib.memory.Page]:
-        return self.pages
 
 
 # While this implementation allows breakpoints to be deleted, enabled and
