@@ -34,3 +34,40 @@ def find(address: int | pwndbg.dbg_mod.Value | None) -> pwndbg.lib.memory.Page |
             return page
 
     return pwndbg.aglib.vmmap_custom.explore(address)
+
+
+def find_kbase(pages) -> int | None:
+    arch_name = pwndbg.aglib.arch.name
+
+    address = 0
+
+    if arch_name == "x86-64":
+        address = pwndbg.aglib.kernel.get_idt_entries()[0].offset
+    elif arch_name == "aarch64":
+        address = pwndbg.aglib.regs.vbar
+    else:
+        return None
+
+    mappings = pages
+    for mapping in mappings:
+        # TODO: Check alignment
+
+        # only search in kernel mappings:
+        # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
+        if mapping.vaddr & (0xFFFF << 48) == 0:
+            continue
+
+        if not mapping.execute:
+            continue
+
+        if address in mapping:
+            return mapping.vaddr
+
+    return None
+
+
+@pwndbg.lib.cache.cache_until("start")
+def kbase():
+    print("here")
+    pages = get()
+    return find_kbase(pages)

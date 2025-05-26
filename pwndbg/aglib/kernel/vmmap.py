@@ -20,9 +20,114 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.kernel
 import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
+import pwndbg.aglib.vmmap
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+
+
+class KernelVmmap:
+    USERLAND = "userland"
+    KERNELLAND = "kernel text"
+
+    def __init__(self, pages: List[pwndbg.lib.memory.Page]):
+        self.pages = pages
+        # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
+        if not pwndbg.aglib.kernel.has_debug_syms():
+            return
+        physmap = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
+        vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
+        vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
+        self.kbase = kbase = pwndbg.aglib.vmmap.find_kbase(pages)
+        if kbase is None:
+            return
+        self.sections = [
+            (self.USERLAND, 0),
+            ("physmap", physmap),
+            ("vmalloc", vmalloc),
+            ("vmemmap", vmemmap),
+            # TODO: find better ways to handle the following constants
+            #   I cound not find kernel symbols that reference their values
+            #   the actual region base may differ but the region always falls within the below range
+            #   even if KASLR is enabled
+            ("cpu entry", 0xFFFFFE0000000000),
+            ("rand cpu entry", 0xFFFFFE0000001000),
+            ("%esp fixup stacks", 0xFFFFFF0000000000),
+            ("EFI", 0xFFFFFFEF00000000),
+            (self.KERNELLAND, kbase),
+            ("fixmap", 0xFFFFFFFFFF000000),
+            ("legacy abi", 0xFFFFFFFFFF600000),
+            (None, 0xFFFFFFFFFFFFFFFF),
+        ]
+
+    def get_name(self, addr: int) -> str:
+        for i in range(len(self.sections) - 1):
+            name, cur = self.sections[i]
+            _, next = self.sections[i + 1]
+            if addr >= cur and addr < next:
+                return name
+        return None
+
+    def adjust(self):
+        if not pwndbg.aglib.kernel.has_debug_syms():
+            return
+        for page in self.pages:
+            name = self.get_name(page.start)
+            if name is not None:
+                page.objfile = name
+        user_idx, kernel_idx = None, None
+        for i, page in enumerate(self.pages):
+            if user_idx is None and page.objfile == self.USERLAND:
+                user_idx = i
+            if kernel_idx is None and page.objfile == self.KERNELLAND:
+                kernel_idx = i
+        self.handle_user_pages(user_idx)
+        self.handle_kernel_text_pages(kernel_idx)
+        self.handle_offsets()
+
+    def handle_user_pages(self, user_idx):
+        if user_idx is None:
+            return
+        base_offset = self.pages[user_idx].start
+        for i in range(user_idx, len(self.pages)):
+            page = self.pages[i]
+            if page.objfile != self.USERLAND:
+                break
+            diff = page.start - base_offset
+            if diff > 0x1000000:
+                if diff > 0x100000000000:
+                    if page.execute:
+                        page.objfile = "[library] userland"
+                    elif page.rw:
+                        page.objfile = "[stack] userland"
+                else:
+                    page.objfile = "[heap] userland"
+
+    def handle_kernel_text_pages(self, kernel_idx):
+        if kernel_idx is None:
+            return
+        has_loadable_driver = False
+        for i in range(kernel_idx, len(self.pages)):
+            page = self.pages[i]
+            if page.objfile != self.KERNELLAND:
+                break
+            if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
+                page.objfile = "[stack] kernelland"
+            if has_loadable_driver:
+                page.objfile = "loadable driver"
+            if page.execute and page.start != self.kbase:
+                page.objfile = "loadable driver"
+                has_loadable_driver = True
+
+    def handle_offsets(self):
+        prev_objfile, base = "", 0
+        for page in self.pages:
+            if prev_objfile != page.objfile:
+                prev_objfile = page.objfile
+                base = page.start
+            page.offset = page.start - base
+            if len(str(page.offset)) > 7:
+                page.offset = 0
 
 
 # Most of QemuMachine code was inherited from gdb-pt-dump thanks to Martin Radev (@martinradev)
@@ -177,7 +282,8 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
             flags |= 1
         objfile = f"[pt_{hex(start)[2:-3]}]"
         retpages.append(pwndbg.lib.memory.Page(start, size, flags, 0, objfile))
-
+    kv = KernelVmmap(retpages)
+    kv.adjust()
     return tuple(retpages)
 
 
