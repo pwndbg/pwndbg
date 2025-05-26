@@ -28,7 +28,9 @@ import pwndbg.lib.memory
 
 class KernelVmmap:
     USERLAND = "userland"
-    KERNELLAND = "kernel text"
+    KERNELLAND = "kernel [.text]"
+    KERNELRO = "kernel [.rodata]"
+    KERNELBSS = "kernel [.bss]"
 
     def __init__(self, pages: List[pwndbg.lib.memory.Page]):
         self.pages = pages
@@ -52,7 +54,7 @@ class KernelVmmap:
             #   even if KASLR is enabled
             ("cpu entry", 0xFFFFFE0000000000),
             ("rand cpu entry", 0xFFFFFE0000001000),
-            ("%esp fixup stacks", 0xFFFFFF0000000000),
+            ("%esp fixup", 0xFFFFFF0000000000),
             ("EFI", 0xFFFFFFEF00000000),
             (self.KERNELLAND, kbase),
             ("fixmap", 0xFFFFFFFFFF000000),
@@ -101,11 +103,11 @@ class KernelVmmap:
             if diff > 0x100000:
                 if diff > 0x100000000000:
                     if page.execute:
-                        page.objfile = "[library] userland"
+                        page.objfile = "userland [library]"
                     elif page.rw:
-                        page.objfile = "[stack] userland"
+                        page.objfile = "userland [stack]"
                 else:
-                    page.objfile = "[heap] userland"
+                    page.objfile = "userland [heap]"
             else:
                 base_offset = page.start
 
@@ -117,8 +119,13 @@ class KernelVmmap:
             page = self.pages[i]
             if page.objfile != self.KERNELLAND:
                 break
+            if not page.execute:
+                if page.write:
+                    page.objfile = self.KERNELBSS
+                else:
+                    page.objfile = self.KERNELRO
             if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
-                page.objfile = "[stack] kernelland"
+                page.objfile = "kernel [stack]"
             if has_loadable_driver:
                 page.objfile = "loadable driver"
             if page.execute and page.start != self.kbase:
@@ -128,11 +135,11 @@ class KernelVmmap:
     def handle_offsets(self):
         prev_objfile, base = "", 0
         for page in self.pages:
-            if prev_objfile != page.objfile:
+            if page.objfile != self.KERNELBSS and prev_objfile != page.objfile:
                 prev_objfile = page.objfile
                 base = page.start
             page.offset = page.start - base
-            if len(str(page.offset)) > 7:
+            if len(hex(page.offset)) > 9:
                 page.offset = 0
 
 
