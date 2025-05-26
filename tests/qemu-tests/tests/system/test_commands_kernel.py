@@ -136,20 +136,32 @@ def test_command_msr_write():
 )
 def test_command_buddydump():
     res = gdb.execute("buddydump", to_string=True)
-    if res == "WARNING: Symbol 'node_data' not found\n":
+    NOFREEPAGE = "No free pages with specified filters found.\n"
+    if res == "WARNING: Symbol 'node_data' not found\n" or NOFREEPAGE == res:
         return
+    # this indicates the buddy allocator contains at least one entry
     assert "Order" in res and "Zone" in res and ("per_cpu_pageset" in res or "free_area" in res)
+
     ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
     res = ansi_escape.sub("", res)
+    # find the starting addresses of all entries within the freelists
     matches = re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16})", res)
     for i in range(0, len(matches), 20):
+        # check every 20 elements so tests do not take too long
         match = int(matches[i], 16)
         res = gdb.execute(f"bud -f {hex(match + random.randint(0, 0x1000 - 1))}", to_string=True)
         res = ansi_escape.sub("", res)
         _matches = re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16})", res)
+        # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
+        # even if the address is not aligned
         assert len(_matches) == 1 and int(_matches[0], 16) == match
-    no_output = gdb.execute("buddydump -n 10", to_string=True)  # nonexistent node index
-    assert "No free pages with specified filters found." in no_output
+
+    # nonexistent node index should not contain any entries
+    no_output = gdb.execute("buddydump -n 10", to_string=True)
+    assert NOFREEPAGE == no_output
+
+    # below checks are for filters
+    # for example, if a zone name is specified, other zones should not be present
     filter_res = gdb.execute("bud -z DMA", to_string=True)
     for name in ["DMA32", "Normal", "HighMem", "Movable", "Device"]:
         assert f"Zone {name}" not in filter_res
