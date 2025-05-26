@@ -2001,7 +2001,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             try:
                 handler()
             except Exception as e:
-                import pwndbg.exception  # import handle as pwndbg_exception
+                from pwndbg.exception import handle as pwndbg_exception
 
                 pwndbg_exception()
                 raise e
