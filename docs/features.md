@@ -121,41 +121,38 @@ See the [Go debugging guide](misc/go-debugging.md) for more information.
 
 ## So many commands
 
+Go take a look at [Commands](commands/index.md)! Here is some cool stuff you can do to get you started.
+
 ### Process State Inspection
 
-Use the `procinfo` command in order to inspect the current process state, like UID, GID, Groups, SELinux context, and open file descriptors!  Pwndbg works particularly well with remote GDB debugging like with Android phones, which PEDA, GEF, and vanilla GDB choke on.
+Use the [`procinfo`](commands/process/procinfo.md) command in order to inspect the current process state, like UID, GID, Groups, SELinux context, and open file descriptors! Pwndbg works particularly well with remote GDB debugging like with Android phones.
 
 ![](assets/caps/procinfo.png)
 
 ### ROP Gadgets
 
-Pwndbg makes using ROPGadget easy with the actual addresses in the process.
+Tools for finding rop gadgets statically don't know about everything that will be loaded into the address space and they can make mistakes about which addresses will actually end up executable. You can now rop at runtime with Pwndbg's [`rop`](commands/integrations/rop.md) and [`ropper`](commands/integrations/ropper.md).
 
-Just use the `rop` command!
-
-![](assets/caps/rop_grep.png)
+![](assets/caps/rop_grep.png){ style="width: 70%;" }
 
 ### Search
 
-Pwndbg makes searching the target memory space easy, with a complete and easy-to-use interface.  Whether you're searching for bytes, strings, or various sizes of integer values or pointers, it's a simple command away.
+Pwndbg makes [`search`](commands/memory/search.md)ing the target memory space easy, with a complete and easy-to-use interface.  Whether you're searching for bytes, strings, or various sizes of integer values or pointers, it's a simple command away.
 
 ![](assets/caps/search.png)
 
 ### Finding Leaks
-![](assets/caps/leakfind.png)
-Finding leak chains can be done using the `leakfind` command. It recursively inspects address ranges for pointers, and reports on all pointers found.
+Finding leak chains can be done using the [`leakfind`](commands/memory/leakfind.md) command. It recursively inspects address ranges for pointers, and reports on all pointers found.
 
+![](assets/caps/leakfind.png)
 
 ### Telescope
+Inspecting memory dumps is easy with the [`telescope`](commands/memory/telescope.md) command.  It recursively dereferences a range of memory, letting you see everything at once.  As an added bonus, Pwndbg checks all of the available registers to see if they point into the memory range.
 
-Inspecting memory dumps is easy with the `telescope` command.  It recursively dereferences a range of memory, letting you see everything at once.  As an added bonus, Pwndbg checks all of the available registers to see if they point into the memory range.
+![](assets/caps/telescope.png)
 
 ### Virtual Memory Maps
-
-Pwndbg enhances the standard memory map listing, and allows easy searching.
+Pwndbg enhances the standard memory map listing and allows easy searching with [`vmmap`](commands/memory/vmmap.md).
 
 ![](assets/caps/vmmap.png)
-![](assets/caps/vmmap2.png)
-![](assets/caps/vmmap_pc.png)
-![](assets/caps/vmmap_register.png)
-![](assets/caps/vmmap_stack.png)
+![](assets/caps/vmmap_rip.png)
