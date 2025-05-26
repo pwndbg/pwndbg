@@ -61,9 +61,13 @@ class KernelVmmap:
         ]
 
     def get_name(self, addr: int) -> str:
+        if addr is None:
+            return None
         for i in range(len(self.sections) - 1):
             name, cur = self.sections[i]
             _, next = self.sections[i + 1]
+            if cur is None or next is None:
+                continue
             if addr >= cur and addr < next:
                 return name
         return None
