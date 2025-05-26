@@ -34,6 +34,7 @@ class KernelVmmap:
     KERNELDRIVER = "kernel [loadable driver]"
 
     def __init__(self, pages: List[pwndbg.lib.memory.Page]):
+        self.sections = None
         self.pages = pages
         if not pwndbg.aglib.kernel.has_debug_syms():
             return
@@ -64,7 +65,7 @@ class KernelVmmap:
         ]
 
     def get_name(self, addr: int) -> str:
-        if addr is None:
+        if addr is None or self.sections is None:
             return None
         for i in range(len(self.sections) - 1):
             name, cur = self.sections[i]
@@ -360,12 +361,15 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     global monitor_info_mem_not_warned
     pages: List[pwndbg.lib.memory.Page] = []
+    prev_end, prev_flags, range_start = 0, 0, None
     for line in lines:
         dash_idx = line.index("-")
         space_idx = line.index(" ")
         rspace_idx = line.rindex(" ")
 
         start = int(line[:dash_idx], 16)
+        if range_start is None:
+            range_start = start
         end = int(line[dash_idx + 1 : space_idx], 16)
         size = int(line[space_idx + 1 : rspace_idx], 16)
         if end - start != size and monitor_info_mem_not_warned:
@@ -391,9 +395,15 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
         # QEMU does not expose X/NX bit, see #685
         # if 'x' in perm: flags |= 1
         flags |= 1
+        # coalescing needed for it to be useful
+        if prev_flags != flags or start - prev_end > 0x10000:
+            pages.append(pwndbg.lib.memory.Page(range_start, prev_end - range_start, prev_flags, 0, "<qemu>"))
+            range_start = start
+        prev_end, prev_flags = end, flags
+    pages.append(pwndbg.lib.memory.Page(range_start, prev_end - range_start, prev_flags, 0, "<qemu>"))
 
-        pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
-
+    kv = KernelVmmap(pages)
+    kv.adjust()
     return tuple(pages)
 
 
