@@ -13,7 +13,7 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
-from pwndbg.color.message import on
+from pwndbg.color.message import on, off
 
 c = ColorConfig(
     "disasm",
