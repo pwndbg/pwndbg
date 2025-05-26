@@ -86,7 +86,7 @@
 -  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
 -  [msr](kernel/msr.md) - Read or write to Model Specific Register (MSR)
--  [slab](kernel/slab.md) - Prints information about the slab allocator
+-  [slab](kernel/slab.md) - Prints information about the linux kernel's slab allocator SLUB.
 
 ## Linux/libc/ELF
 
