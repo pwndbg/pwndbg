@@ -42,7 +42,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     if ins.condition == InstructionCondition.TRUE or ins.is_conditional_jump_taken:
         asm = on("✔ ") + asm
     elif ins.condition == InstructionCondition.FALSE:
-        asm = off('✘ ') + asm
+        asm = off("✘ ") + asm
     else:
         asm = f"  {asm}"
 
