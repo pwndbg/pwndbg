@@ -5,6 +5,10 @@
          <lastmod>2025-05-26</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/features/</loc>
+         <lastmod>2025-05-26</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/setup/</loc>
          <lastmod>2025-05-26</lastmod>
     </url>
@@ -829,23 +833,39 @@
          <lastmod>2025-05-26</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/binja_integration/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/misc/binja-integration/</loc>
          <lastmod>2025-05-26</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/env_vars/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/misc/env-vars/</loc>
          <lastmod>2025-05-26</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/go_debugging/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/misc/gdb-lldb-commands/</loc>
          <lastmod>2025-05-26</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/pwndbg_users/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/misc/gdb-tui/</loc>
          <lastmod>2025-05-26</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/pycharm_debugging/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/misc/ghidra-integration/</loc>
+         <lastmod>2025-05-26</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/misc/go-debugging/</loc>
+         <lastmod>2025-05-26</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/misc/pwndbg-users/</loc>
+         <lastmod>2025-05-26</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/misc/pycharm-debugging/</loc>
+         <lastmod>2025-05-26</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/misc/splitting-the-context/</loc>
          <lastmod>2025-05-26</lastmod>
     </url>
     <url>
