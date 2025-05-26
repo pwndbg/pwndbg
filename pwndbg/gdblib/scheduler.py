@@ -22,8 +22,10 @@ def lock_scheduler() -> Iterator[None]:
     old_config = gdb.parameter("scheduler-locking")
     if old_config != "on":
         gdb.execute("set scheduler-locking on")
-        yield
-        gdb.execute(f"set scheduler-locking {old_config}")
+        try:
+            yield
+        finally:
+            gdb.execute(f"set scheduler-locking {old_config}")
     else:
         yield
 

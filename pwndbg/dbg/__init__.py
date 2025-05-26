@@ -309,12 +309,28 @@ class ExecutionController:
         Throws `CancelledError` if a breakpoint or watchpoint is hit, the program
         exits, or if any other unexpected event that diverts execution happens
         while fulfulling the step.
+
+        FIXME GDB:
+        On GDB `stepi` will execute other threads. On LLDB not.
+        Please use `set scheduler-locking step`
         """
         raise NotImplementedError()
 
     def cont(self, until: StopPoint) -> Awaitable[None]:
         """
         Continues execution until the given breakpoint or whatchpoint is hit.
+        Continues execution on all threads.
+
+        Throws `CancelledError` if a breakpoint or watchpoint is hit that is not
+        the one given in `until`, the program exits, or if any other unexpected
+        event happens.
+        """
+        raise NotImplementedError()
+
+    def cont_selected_thread(self, until: StopPoint) -> Awaitable[None]:
+        """
+        Continues execution on single thread until the given breakpoint or whatchpoint is hit.
+        Continues execution on selected thread.
 
         Throws `CancelledError` if a breakpoint or watchpoint is hit that is not
         the one given in `until`, the program exits, or if any other unexpected
