@@ -985,6 +985,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override
     async def single_step(self):
+        # TODO: disable GDB ugly output
         gdb.execute("si")
 
         # Check if the program stopped because of the step we just took. If it
@@ -995,7 +996,25 @@ class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
 
     @override
     async def cont(self, until: pwndbg.dbg_mod.StopPoint):
+        # TODO: disable GDB ugly output
         gdb.execute("continue")
+
+        # Check if the program stopped because of the breakpoint we were given,
+        # and, just like for the single step, propagate a cancellation error if
+        # it stopped for any other reason.
+        assert isinstance(until, GDBStopPoint)
+        if f"It stopped at breakpoint {until.inner.number}" not in gdb.execute(
+            "info program", to_string=True
+        ):
+            raise CancelledError()
+
+    @override
+    async def cont_selected_thread(self, until: pwndbg.dbg_mod.StopPoint):
+        from pwndbg.gdblib.scheduler import lock_scheduler
+
+        with lock_scheduler():
+            # TODO: disable GDB ugly output
+            gdb.execute("continue")
 
         # Check if the program stopped because of the breakpoint we were given,
         # and, just like for the single step, propagate a cancellation error if

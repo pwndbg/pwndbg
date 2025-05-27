@@ -363,9 +363,25 @@ class ProcessDriver:
                     continue
 
             elif isinstance(step, YieldContinue):
+                threads_suspended = []
+                if step.selected_thread:
+                    thread = self.process.GetSelectedThread()
+                    for t in self.process.threads:
+                        if t.id == thread.id:
+                            continue
+                        if not t.is_suspended:
+                            t.Suspend()
+                            threads_suspended.append(t)
+
                 # Continue the process and wait for the next stop-like event.
                 self.process.Continue()
                 healthy, event = self._run_until_next_stop()
+
+                if threads_suspended:
+                    for t in threads_suspended:
+                        if t.IsValid():
+                            t.Resume()
+
                 if not healthy:
                     # The process exited, Cancel the execution controller.
                     exception = CancelledError()

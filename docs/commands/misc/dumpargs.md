@@ -6,7 +6,7 @@ usage: dumpargs [-h] [-f]
 
 ```
 
-Prints determined arguments for call instruction.
+Prints determined arguments for call/syscall instruction.
 
 **Alias:** args
 ### Optional arguments
