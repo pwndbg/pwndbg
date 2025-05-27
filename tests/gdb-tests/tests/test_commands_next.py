@@ -53,7 +53,7 @@ def test_command_nextproginstr(start_binary):
     ("nextcall", "nextjump", "nextproginstr", "nextret", "nextsyscall", "stepret", "stepsyscall"),
 )
 def test_next_command_doesnt_freeze_crashed_binary(start_binary, command):
-    start_binary(REFERENCE_BINARY)
+    start_binary(CRASH_SIMPLE_BINARY)
 
     # The nextproginstr won't step if we are already on the binary address
     # and interestingly, other commands won't step if the address can't be disassemblied
