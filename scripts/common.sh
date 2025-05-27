@@ -9,7 +9,7 @@ if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
 fi
 
 if [[ "$PWNDBG_VENV_PATH" == "PWNDBG_PLEASE_SKIP_VENV" ]]; then
-    # We are using the dependancies as installed on the system
+    # We are using the dependencies as installed on the system
     # so we shouldn't use uv (and can't, since it's not installed).
     UV=""
     UV_RUN=""
