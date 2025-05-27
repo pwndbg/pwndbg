@@ -17,12 +17,14 @@ from typing import Tuple
 from typing import TypeVar
 
 from typing_extensions import ParamSpec
+from typing_extensions import override
 
 import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
+import pwndbg.color.message as message
 import pwndbg.exception
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
@@ -81,6 +83,39 @@ class InvalidDebuggerError(Exception):
     pass
 
 
+class CommandFormatter(argparse.RawDescriptionHelpFormatter):
+    """
+    The formatter_class that is passed to argparse for all
+    commands.
+
+    Subclassing this isn't officially supported, but there
+    isn't a good alternative.
+    """
+
+    @override
+    def _get_help_string(self, action):
+        # Yoinked from argparse.ArgumentDefaultsHelpFormatter with
+        # the added ` and action.default not in (None, False)` check.
+        help_ = action.help
+        if help_ is None:
+            help_ = ""
+
+        if "%(default)" not in help_:
+            is_false_bool = (
+                action.type is bool or isinstance(action.default, bool)
+            ) and not action.default
+            is_none = action.default is None
+            if action.default is not argparse.SUPPRESS and not (is_false_bool or is_none):
+                defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
+                if action.option_strings or action.nargs in defaulting_nargs:
+                    if action.type is str:
+                        help_ += " (default: '%(default)s')"
+                    else:
+                        help_ += " (default: %(default)s)"
+
+        return help_
+
+
 class CommandObj:
     """
     Represents a command that can be invoked from the
@@ -105,6 +140,8 @@ class CommandObj:
         command_name: str | None,
         category: CommandCategory,
         aliases: List[str],
+        examples: str,
+        notes: str,
         /,  # All parameters must be passed in positionally
     ) -> None:
         assert function
@@ -131,6 +168,8 @@ class CommandObj:
         self.category = category
 
         self.aliases = aliases
+        self.examples = examples.strip()
+        self.notes = notes.strip()
 
         assert parser
         self.parser = parser
@@ -183,21 +222,12 @@ class CommandObj:
             elif action.type is None:
                 action.type = fix_reraise_arg
 
-        class GoodFormatter(
-            argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter
-        ):
-            pass
-
         assert (
             self.parser.formatter_class is argparse.HelpFormatter
             and "All pwndbg commands should use the same formatter."
         )
 
-        # FIXME: The defaults are not currently reflected in the docs.
-        self.parser.formatter_class = GoodFormatter
-
-        # Generate command help (after we have selected the formatter)
-        self.help_str = self.parser.format_help()
+        self.parser.formatter_class = CommandFormatter
 
         # Used by `pwndbg [filter]`
         assert (
@@ -205,7 +235,50 @@ class CommandObj:
             and self.parser.description.strip()
             and "A command must contain a description."
         )
-        self.description = self.parser.description.strip()
+        self.description = self.parser.description = self.parser.description.strip()
+
+        # Build the actual epilog from the examples, notes and passed epilog.
+        self.epilog = ""
+        self.pure_epilog = ""
+
+        if self.examples:
+            assert "examples:" not in self.examples.lower()
+            # Not putting '\n' in the notice() so .strip() works properly.
+            self.epilog += "\n" + message.notice("Examples:") + "\n"
+            self.epilog += self.examples + "\n"
+
+        if self.notes:
+            assert "notes:" not in self.notes.lower()
+            self.epilog += "\n" + message.notice("Notes:") + "\n"
+            self.epilog += self.notes + "\n"
+
+        if self.parser.epilog:
+            self.pure_epilog = self.parser.epilog.strip()
+            pure_epilog_low = self.pure_epilog.lower()
+            assert (
+                self.examples
+                or not ("examples:" in pure_epilog_low or "example:" in pure_epilog_low)
+                and "Put command examples in pwndbg.commands.Command(examples=your_example)."
+            )
+            assert (
+                self.notes
+                or not ("notes:" in pure_epilog_low or "note:" in pure_epilog_low)
+                and "Put command notes in pwndbg.commands.Command(notes=your_note)."
+            )
+
+            self.epilog += "\n" + self.pure_epilog + "\n"
+
+        if self.aliases:
+            alias_txt = "Alias" + ("es" if len(self.aliases) > 1 else "") + ": "
+            self.epilog += "\n" + message.notice(alias_txt)
+            self.epilog += ", ".join(self.aliases) + "\n"
+
+        # Update the parser so the help is correctly generated.
+        self.parser.epilog = self.epilog = self.epilog.strip()
+
+        # Generate command help (after stripping the parser's variables
+        # and defining a formatter).
+        self.help_str = self.parser.format_help()
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
@@ -290,6 +363,8 @@ class Command:
         category: CommandCategory,
         command_name: str | None = None,
         aliases: List[str] = [],
+        examples: str = "",
+        notes: str = "",
         only_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
         exclude_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
     ) -> None:
@@ -303,6 +378,8 @@ class Command:
         self.category = category
         self.command_name = command_name
         self.aliases = aliases
+        self.examples = examples
+        self.notes = notes
         self.only_debuggers = only_debuggers
         self.exclude_debuggers = exclude_debuggers
 
@@ -341,6 +418,8 @@ class Command:
             self.command_name,
             self.category,
             self.aliases,
+            self.examples,
+            self.notes,
         )
 
 
@@ -776,6 +855,7 @@ def load_commands() -> None:
     import pwndbg.commands.auxv
     import pwndbg.commands.binder
     import pwndbg.commands.binja
+    import pwndbg.commands.buddydump
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
@@ -811,12 +891,12 @@ def load_commands() -> None:
     import pwndbg.commands.misc
     import pwndbg.commands.mmap
     import pwndbg.commands.mprotect
+    import pwndbg.commands.msr
     import pwndbg.commands.nearpc
     import pwndbg.commands.next
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.patch
-    import pwndbg.commands.pcplist
     import pwndbg.commands.pie
     import pwndbg.commands.plist
     import pwndbg.commands.probeleak

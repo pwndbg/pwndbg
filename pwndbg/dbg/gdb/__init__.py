@@ -4,6 +4,7 @@ import re
 from asyncio import CancelledError
 from contextlib import contextmanager
 from contextlib import nullcontext
+from pathlib import Path
 from typing import Any
 from typing import Coroutine
 from typing import Generator
@@ -232,16 +233,12 @@ class GDBThread(pwndbg.dbg_mod.Thread):
 
 class GDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
     def __init__(self, qemu: bool, pages: Sequence[pwndbg.lib.memory.Page]):
+        super().__init__(pages)
         self.qemu = qemu
-        self.pages = pages
 
     @override
     def is_qemu(self) -> bool:
         return self.qemu
-
-    @override
-    def ranges(self) -> Sequence[pwndbg.lib.memory.Page]:
-        return self.pages
 
 
 # While this implementation allows breakpoints to be deleted, enabled and
@@ -984,6 +981,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override
     async def single_step(self):
+        # TODO: disable GDB ugly output
         gdb.execute("si")
 
         # Check if the program stopped because of the step we just took. If it
@@ -994,7 +992,25 @@ class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
 
     @override
     async def cont(self, until: pwndbg.dbg_mod.StopPoint):
+        # TODO: disable GDB ugly output
         gdb.execute("continue")
+
+        # Check if the program stopped because of the breakpoint we were given,
+        # and, just like for the single step, propagate a cancellation error if
+        # it stopped for any other reason.
+        assert isinstance(until, GDBStopPoint)
+        if f"It stopped at breakpoint {until.inner.number}" not in gdb.execute(
+            "info program", to_string=True
+        ):
+            raise CancelledError()
+
+    @override
+    async def cont_selected_thread(self, until: pwndbg.dbg_mod.StopPoint):
+        from pwndbg.gdblib.scheduler import lock_scheduler
+
+        with lock_scheduler():
+            # TODO: disable GDB ugly output
+            gdb.execute("continue")
 
         # Check if the program stopped because of the breakpoint we were given,
         # and, just like for the single step, propagate a cancellation error if
@@ -1297,11 +1313,68 @@ def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
         return gdb.events.memory_changed
     elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
         return gdb.events.register_changed
+    elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
+        assert hasattr(
+            gdb.events, "suspend_all"
+        ), "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+        return gdb.events.suspend_all
 
     raise NotImplementedError(f"unknown event type {ty}")
 
 
 class GDB(pwndbg.dbg_mod.Debugger):
+    def _disable_gdbinit_loading(self) -> Tuple[bool, bool]:
+        import os
+
+        import psutil
+
+        disable_home_gdbinit = 0
+        disable_any_gdbinit = 0
+        proc = psutil.Process(os.getpid())
+        for arg in proc.cmdline():
+            if arg in ("-args", "--args"):
+                break
+            if arg in ("-nh", "--nh"):
+                disable_home_gdbinit += 1
+            elif arg in ("-nx", "--nx", "-n", "--n"):
+                disable_any_gdbinit += 1
+
+        if disable_any_gdbinit == 0:
+            # The `--nx` option is added only in pwndbg-portable mode.
+            # This check allows using OLD syntax, eg: `source /path/to/pwndbg/gdbinit.py`, from ~/.gdbinit
+            return True, True
+
+        return disable_any_gdbinit >= 2, disable_home_gdbinit >= 1
+
+    def _load_gdbinit(self):
+        # Emulate how `gdb` loads `.gdbinit` files (home and local)
+        disable_any, disable_home = self._disable_gdbinit_loading()
+        if disable_any:
+            return
+
+        home_file = Path("~/.gdbinit").expanduser().resolve()
+        local_file = Path("./.gdbinit").resolve()
+
+        def load_source(file_path: str):
+            try:
+                gdb.execute(f"source {file_path}")
+            except gdb.error as e:
+                print(e)
+
+        is_home_loaded = False
+        if not disable_home and home_file.exists():
+            load_source("~/.gdbinit")
+            is_home_loaded = True
+
+        disable_local = not gdb.parameter("auto-load local-gdbinit")
+        should_load_local = (
+            not disable_local
+            and local_file.exists()
+            and not (is_home_loaded and home_file.samefile(local_file))
+        )
+        if should_load_local:
+            load_source("./.gdbinit")
+
     @override
     def setup(self):
         import pwnlib.update
@@ -1324,6 +1397,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         prompt.set_prompt()
 
         pre_commands = """
+        set auto-load safe-path /
         set confirm off
         set verbose off
         set pagination off
@@ -1377,6 +1451,11 @@ class GDB(pwndbg.dbg_mod.Debugger):
                 f"alias -a {deprecated_cmd} = echo Use `{fixed_cmd}` instead (Pwndbg changed `_` to `-` in command names)\\n"
             )
 
+        for deprecated_cmd, new_cmd in (("pcplist", "buddydump"),):
+            gdb.execute(
+                f"alias -a {deprecated_cmd} = echo deprecation warning for old name, use `{new_cmd}` instead\\n"
+            )
+
         # This may throw an exception, see pwndbg/pwndbg#27
         try:
             gdb.execute("set disassembly-flavor intel")
@@ -1399,6 +1478,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
         prompt.show_hint()
 
         from pwndbg.dbg.gdb import debug_sym
+
+        self._load_gdbinit()
 
     @override
     def add_command(
@@ -1591,6 +1672,8 @@ class GDB(pwndbg.dbg_mod.Debugger):
             return pwndbg.gdblib.events.mem_changed
         elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
             return pwndbg.gdblib.events.reg_changed
+        elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
+            raise RuntimeError("invalid usage, this event is not supported")
 
     @override
     def suspend_events(self, ty: pwndbg.dbg_mod.EventType) -> None:

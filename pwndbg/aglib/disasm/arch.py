@@ -27,6 +27,7 @@ from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 # Emulator currently requires GDB, and we only use it here for type checking.
@@ -695,6 +696,20 @@ class DisassemblyAssistant:
             # Only bother doing the symbol lookup if this is a jump
             instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
 
+        # Now that we have determined the target, if it was a conditional branch,
+        # go back and correct the instruction condition to reflect the branch decision of the emulator
+        # in case we didn't manually determine the condition.
+        if (
+            jump_emu
+            and instruction.condition == InstructionCondition.UNDETERMINED
+            and instruction.is_conditional_jump
+        ):
+            # At this point we know the emulator was used to determine
+            # the conditional branch
+            instruction.condition = boolean_to_instruction_condition(
+                instruction.is_conditional_jump_taken
+            )
+
         if (
             instruction.operands
             and instruction.operands[0].before_value
@@ -1049,3 +1064,23 @@ class DisassemblyAssistant:
             instruction.annotation = memory_or_register_assign(
                 target_operand.str, math_string, memory_assignment
             )
+
+
+def basic_enhance(ins: PwndbgInstruction) -> None:
+    # Apply syntax highlighting and inline symbol replacement
+    # Used in cases were we don't want to do the full enhancement process
+    # for performance reasons.
+    if pwndbg.config.syntax_highlight:
+        ins.asm_string = syntax_highlight(ins.asm_string)
+
+    if pwndbg.config.disasm_inline_symbols:
+        # Make inline replacements, so `jmp 0x400122` becomes `jmp function_name`
+        for op in ins.operands:
+            if op.type is CS_OP_IMM:
+                op.before_value = op.imm
+
+                if op.before_value >= 0:
+                    op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
+
+                if op.symbol:
+                    ins.asm_string = ins.asm_string.replace(hex(op.before_value), op.symbol)

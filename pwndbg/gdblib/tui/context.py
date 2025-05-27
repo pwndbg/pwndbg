@@ -13,6 +13,7 @@ from pwndbg.commands.context import context
 from pwndbg.commands.context import context_sections
 from pwndbg.commands.context import contextoutput
 from pwndbg.commands.context import resetcontextoutput
+from pwndbg.gdblib import gdb_version
 
 
 class ContextTUIWindow:
@@ -133,7 +134,7 @@ class ContextTUIWindow:
     def _receive_context_output(self, data: str):
         if not self._verify_enabled_state():
             return
-        self._lines = data.split("\n")
+        self._lines = data.strip("\n").split("\n")
         self._blank_line_lengths = [
             len(self._ansi_escape_regex.sub("", line)) for line in self._lines
         ]
@@ -187,19 +188,23 @@ class ContextTUIWindow:
                 char_count += 1
             colored_idx += 1
         return (
-            (
-                ansi_escape_before_start
-                + line[colored_start_idx:colored_end_idx]
-                + ansi_escape_after_end
-                # Workaround for display bug in GDB TUI ANSI escape sequence translation.
-                # Only resetting the foreground or background colors results in
-                # generating wrong colors in the TUI.
-                # The workaround is to avoid the sequences that only reset the colors
-                # and replace them with a full reset sequence.
-                # It resets other styling attributes like bold too but it's better
-                # than having wrong colors.
-                # https://github.com/pwndbg/pwndbg/issues/2654
-            )
+            ansi_escape_before_start
+            + line[colored_start_idx:colored_end_idx]
+            + ansi_escape_after_end
+        )
+
+    # Workaround for display bug in GDB TUI ANSI escape sequence translation.
+    # Only resetting the foreground or background colors results in
+    # generating wrong colors in the TUI.
+    # The workaround is to avoid the sequences that only reset the colors
+    # and replace them with a full reset sequence.
+    # It resets other styling attributes like bold too but it's better
+    # than having wrong colors.
+    # https://github.com/pwndbg/pwndbg/issues/2654
+    if gdb_version < (16, 3):
+        ___ansi_substr = _ansi_substr
+        _ansi_substr = (
+            lambda *a, **kw: ContextTUIWindow.___ansi_substr(*a, **kw)
             .replace("\x1b[39m", "\x1b[0m")
             .replace("\x1b[49m", "\x1b[0m")
             .replace("\x1b[39;49m", "\x1b[0m")

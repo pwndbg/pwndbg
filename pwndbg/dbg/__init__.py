@@ -288,6 +288,11 @@ class MemoryMap:
     A wrapper around a sequence of memory ranges
     """
 
+    pages: tuple[pwndbg.lib.memory.Page, ...]
+
+    def __init__(self, pages: Sequence[pwndbg.lib.memory.Page]):
+        self.pages = tuple(pages)
+
     def is_qemu(self) -> bool:
         """
         Returns whether this memory map was generated from a QEMU target.
@@ -298,7 +303,24 @@ class MemoryMap:
         """
         Returns all ranges in this memory map.
         """
-        raise NotImplementedError()
+        return self.pages
+
+    def lookup_page(self, address: int) -> pwndbg.lib.memory.Page | None:
+        # Binary search for the page
+        lo = 0
+        hi = len(self.pages) - 1
+        while lo <= hi:
+            mid = (hi + lo) // 2
+            page = self.pages[mid]
+            if page.start <= address:
+                if address < page.end:
+                    return page
+
+                lo = mid + 1
+            else:
+                hi = mid - 1
+
+        return None
 
 
 class ExecutionController:
@@ -309,12 +331,28 @@ class ExecutionController:
         Throws `CancelledError` if a breakpoint or watchpoint is hit, the program
         exits, or if any other unexpected event that diverts execution happens
         while fulfulling the step.
+
+        FIXME GDB:
+        On GDB `stepi` will execute other threads. On LLDB not.
+        Please use `set scheduler-locking step`
         """
         raise NotImplementedError()
 
     def cont(self, until: StopPoint) -> Awaitable[None]:
         """
         Continues execution until the given breakpoint or whatchpoint is hit.
+        Continues execution on all threads.
+
+        Throws `CancelledError` if a breakpoint or watchpoint is hit that is not
+        the one given in `until`, the program exits, or if any other unexpected
+        event happens.
+        """
+        raise NotImplementedError()
+
+    def cont_selected_thread(self, until: StopPoint) -> Awaitable[None]:
+        """
+        Continues execution on single thread until the given breakpoint or whatchpoint is hit.
+        Continues execution on selected thread.
 
         Throws `CancelledError` if a breakpoint or watchpoint is hit that is not
         the one given in `until`, the program exits, or if any other unexpected
@@ -675,6 +713,15 @@ class Type:
         raise NotImplementedError()
 
     @property
+    def array_len(self) -> int:
+        """
+        Get array length of this type.
+        """
+        if self.code == pwndbg.dbg_mod.TypeCode.ARRAY:
+            return self.sizeof // self.target().sizeof
+        return 0
+
+    @property
     def sizeof(self) -> int:
         """
         The size of this type, in bytes.
@@ -992,6 +1039,7 @@ class EventType(Enum):
           debugged. In GDB terminology, these are called `objfile`s.
     """
 
+    SUSPEND_ALL = -1
     START = 0
     STOP = 1
     EXIT = 2
@@ -1088,6 +1136,19 @@ class Debugger:
         This function my be used as a decorator.
         """
         raise NotImplementedError()
+
+    @contextlib.contextmanager
+    def ctx_suspend_events(self, ty: EventType) -> Iterator[None]:
+        """
+        Context manager for temporarily suspending and resuming the delivery of events
+        of a given type.
+        """
+
+        self.suspend_events(ty)
+        try:
+            yield
+        finally:
+            self.resume_events(ty)
 
     def suspend_events(self, ty: EventType) -> None:
         """

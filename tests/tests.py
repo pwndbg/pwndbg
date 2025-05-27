@@ -177,7 +177,7 @@ class TestStats:
             # Serial mode does not capture stdout, so it's not possible to check the result
             return
 
-        test_status = "FAIL"
+        test_status, skip_reason = "FAIL", ""
         if process.returncode == 0:
             result = re.search(
                 r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)",
@@ -194,7 +194,10 @@ class TestStats:
             self.pass_tests += 1
         elif "SKIP" in test_status:
             self.skip_tests += 1
-        print(f"{test_case:<70} {test_status} {duration:.2f}s")
+            skip_reason = " " + (
+                process.stdout.split(test_status)[1].split("\n\n\x1b[33m")[0].replace("\n", "")
+            )
+        print(f"{test_case:<70} {test_status} {duration:.2f}s{skip_reason}")
 
         # Only show the output of failed tests unless the verbose flag was used
         if args.verbose or "FAIL" in test_status:

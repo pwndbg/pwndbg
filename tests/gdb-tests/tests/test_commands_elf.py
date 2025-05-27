@@ -18,7 +18,7 @@ def test_commands_plt_gotplt_got_when_no_sections(start_binary):
     start_binary(NO_SECTS_BINARY)
 
     # elf.py commands
-    assert gdb.execute("plt", to_string=True) == "Could not find section .plt\n"
+    assert gdb.execute("plt", to_string=True) == "No .plt.* sections found\n"
     assert gdb.execute("gotplt", to_string=True) == "Could not find section .got.plt\n"
 
     # got.py command
@@ -40,7 +40,7 @@ def test_command_plt(binary_name, is_pie):
     out = gdb.execute("plt", to_string=True).splitlines()
 
     assert len(out) == 2
-    assert re.match(r"Section \.plt 0x[0-9a-f]+-0x[0-9a-f]+:", out[0])
+    assert re.match(r"Section \.plt 0x[0-9a-f]+ - 0x[0-9a-f]+:", out[0])
     assert re.match(r"0x[0-9a-f]+: puts@plt", out[1])
 
     gdb.execute("starti")
@@ -53,7 +53,7 @@ def test_command_plt(binary_name, is_pie):
         assert out == out2
 
     assert len(out2) == 2
-    assert re.match(r"Section \.plt 0x[0-9a-f]+-0x[0-9a-f]+:", out2[0])
+    assert re.match(r"Section \.plt 0x[0-9a-f]+ - 0x[0-9a-f]+:", out2[0])
     assert re.match(r"0x[0-9a-f]+: puts@plt", out2[1])
 
 
@@ -260,3 +260,36 @@ def test_command_got_for_target_binary_and_loaded_library(binary_name):
         r"GOT protection: (?:Partial|Full) RELRO \| Found 0 GOT entries passing the filter", out[10]
     )
     assert len(out) == 11
+
+
+@pytest.mark.parametrize(
+    "binary_name,is_pie", ((NOPIE_BINARY_WITH_PLT, False), (PIE_BINARY_WITH_PLT, True))
+)
+def test_command_elf(binary_name, is_pie):
+    binary = tests.binaries.get(binary_name)
+    gdb.execute(f"file {binary}")
+    gdb.execute("starti")
+
+    out = gdb.execute("elf", to_string=True).splitlines()
+    assert len(out) == 25
+
+    # test for default
+    for section in out[2:]:
+        assert re.match(
+            r"^\s*0x[\da-fA-F]+\s+0x[\da-fA-F]+\s+(?:[RWX-]{3})\s+0x[\da-fA-F]+\s+\.([^\s]+)$",
+            section,
+        )
+        if is_pie:
+            address = section.split()
+            assert address[0].startswith("0x55555555")
+
+    # if this is a pie binary, test for --no-rebase
+    if is_pie:
+        out = gdb.execute("elf -R", to_string=True).splitlines()
+        assert len(out) == 25
+
+        for section in out[2:]:
+            assert re.match(
+                r"^\s*0x[\da-fA-F]+\s+0x[\da-fA-F]+\s+(?:[RWX-]{3})\s+0x[\da-fA-F]+\s+\.([^\s]+)$",
+                section,
+            )

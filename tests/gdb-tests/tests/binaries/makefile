@@ -175,7 +175,21 @@ reference_bin_nopie.out: reference-binary.c
 
 reference_bin_nopie.i386.out: reference-binary.c
 	@echo "[+] Building reference_bin_nopie.i386.out"
-	${ZIGCC} -fpie -target x86-linux-gnu -o reference_bin_nopie.i386.out reference-binary.c
+	${ZIGCC} -fno-pie -target x86-linux-gnu -o reference_bin_nopie.i386.out reference-binary.c
 
 symbol_1600_and_752.out: symbol_1600_and_752.cpp
 	${CXX} -O0 -ggdb -Wno-pmf-conversions symbol_1600_and_752.cpp -o symbol_1600_and_752.out
+
+canary.x86-64.out: canary.x86-64.c
+	@echo "[+] Building canary.x86-64.out"
+	${ZIGCC} \
+	${CFLAGS} \
+	-target x86_64-linux-gnu \
+	-o canary.x86-64.out canary.x86-64.c
+
+canary.i386.out: canary.i386.c
+	@echo "[+] Building canary.i386.out"
+	${ZIGCC} \
+	${CFLAGS} \
+	-target x86-linux-gnu \
+	-o canary.i386.out canary.i386.c

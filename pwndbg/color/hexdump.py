@@ -34,31 +34,31 @@ config_highlight_group_lsb = theme.add_param(
 
 
 def normal(x: str) -> str:
-    return generateColorFunction(config.hexdump_normal_color)(x)
+    return config_normal.color_function(x)
 
 
 def printable(x: str) -> str:
-    return generateColorFunction(config.hexdump_printable_color)(x)
+    return config_printable.color_function(x)
 
 
 def zero(x: str) -> str:
-    return generateColorFunction(config.hexdump_zero_color)(x)
+    return config_zero.color_function(x)
 
 
 def special(x: str) -> str:
-    return generateColorFunction(config.hexdump_special_color)(x)
+    return config_special.color_function(x)
 
 
 def offset(x: str) -> str:
-    return generateColorFunction(config.hexdump_offset_color)(x)
+    return config_offset.color_function(x)
 
 
 def address(x: str) -> str:
-    return generateColorFunction(config.hexdump_address_color)(x)
+    return config_address.color_function(x)
 
 
 def separator(x: str) -> str:
-    return generateColorFunction(config.hexdump_separator_color)(x)
+    return config_separator.color_function(x)
 
 
 def highlight_group_lsb(x: str) -> str:

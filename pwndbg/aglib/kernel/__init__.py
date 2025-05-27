@@ -92,6 +92,21 @@ def nproc() -> int:
     return val
 
 
+@requires_debug_syms(default=12)
+def npcplist() -> int:
+    """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
+    node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
+    zone = node_data.dereference()[0]["node_zones"][0]
+    # index 0 should always exist
+    if zone.type.has_field("per_cpu_pageset"):
+        lists = zone["per_cpu_pageset"]["lists"]
+        return lists.type.array_len
+    if zone.type.has_field("pageset"):
+        lists = zone["pageset"]["pcp"]["lists"]
+        return lists.type.array_len
+    return 0
+
+
 def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
     """Returns the first kernel mapping which contains the linux_banner"""
     base = kbase()
@@ -274,6 +289,10 @@ class ArchOps(ABC):
     def page_to_pfn(self, page: int) -> int:
         raise NotImplementedError()
 
+    @property
+    def page_offset(self) -> int:
+        raise NotImplementedError()
+
     def virt_to_pfn(self, virt: int) -> int:
         return phys_to_pfn(virt_to_phys(virt))
 
@@ -285,6 +304,9 @@ class ArchOps(ABC):
 
     def page_to_phys(self, page: int) -> int:
         return pfn_to_phys(page_to_pfn(page))
+
+    def page_to_physmap(self, page: int) -> int:
+        return page_to_phys(page) + self.page_offset
 
     def virt_to_page(self, virt: int) -> int:
         return pfn_to_page(virt_to_pfn(virt))
@@ -361,6 +383,27 @@ class i386Ops(x86Ops):
 
 class x86_64Ops(x86Ops):
     def __init__(self) -> None:
+        self.STRUCT_PAGE_SIZE = pwndbg.aglib.typeinfo.load("struct page").sizeof
+        self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
+        self.phys_base = 0x1000000
+
+        try:
+            self.START_KERNEL_map = pwndbg.aglib.kernel.kbase()
+        except Exception:
+            print("WARNING: an error ocurred when retrieving kbase")
+            self.START_KERNEL_map = None
+
+        if self.START_KERNEL_map is None:
+            # put this here in case kbase also returns None
+            self.START_KERNEL_map = 0xFFFFFFFF80000000
+
+        if pwndbg.aglib.kernel.has_debug_syms():
+            # if there are debug symbols
+            self._PAGE_OFFSET = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
+            self.VMEMMAP_START = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
+            if self._PAGE_OFFSET is not None and self.VMEMMAP_START is not None:
+                return
+
         if self.uses_5lvl_paging():
             # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L41
             self._PAGE_OFFSET = 0xFF11000000000000
@@ -371,12 +414,6 @@ class x86_64Ops(x86Ops):
             self._PAGE_OFFSET = 0xFFFF888000000000
             # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/pgtable_64_types.h#L130
             self.VMEMMAP_START = 0xFFFFEA0000000000
-
-        self.STRUCT_PAGE_SIZE = pwndbg.aglib.typeinfo.load("struct page").sizeof
-        self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
-
-        self.START_KERNEL_map = 0xFFFFFFFF80000000
-        self.phys_base = 0x1000000
 
     @property
     def ptr_size(self) -> int:
@@ -609,6 +646,14 @@ def page_to_phys(page: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.page_to_phys(page)
+    else:
+        raise NotImplementedError()
+
+
+def page_to_physmap(page: int) -> int:
+    ops = arch_ops()
+    if ops:
+        return ops.page_to_physmap(page)
     else:
         raise NotImplementedError()
 

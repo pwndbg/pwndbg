@@ -19,7 +19,7 @@ def rreload(module, _exclude_mods=None) -> None:
         if "pwndbg" in module:
             del sys.modules[module]
 
-    # Mark that we are reloading; this is used to prevent ArgparsedCommand from
+    # Mark that we are reloading; this is used to prevent the Command decorator from
     # erroring out on re-registering the same commands we had registered before
     gdb.pwndbg_is_reloading = True
     importlib.import_module("pwndbg")

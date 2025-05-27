@@ -119,7 +119,7 @@ let
 
               touch $out/share/pwndbg/.skip-venv
               makeWrapper ${gdb}/bin/gdb $out/bin/${pwndbgName} \
-                --add-flags "--quiet --early-init-eval-command=\"set auto-load safe-path /\" --command=$out/share/pwndbg/gdbinit.py"
+                --add-flags "--quiet --nx --init-command=$out/share/pwndbg/gdbinit.py"
             ''
         );
 

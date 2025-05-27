@@ -324,12 +324,9 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if instruction.id in (X86_INS_JMP, X86_INS_RET, X86_INS_CALL):
             return InstructionCondition.UNDETERMINED
 
-        # We can't reason about anything except the current instruction
-        if instruction.address != pwndbg.aglib.regs.pc:
-            return InstructionCondition.UNDETERMINED
-
-        efl = pwndbg.aglib.regs.eflags
+        efl = self._read_register_name(instruction, "eflags", emu)
         if efl is None:
+            # We can't reason about the value of flags register
             return InstructionCondition.UNDETERMINED
 
         cf = efl & (1 << 0)
