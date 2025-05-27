@@ -30,7 +30,7 @@ def hash_file(file_path: str | Path) -> str:
 def run_uv_install(
     binary_path: os.PathLike[str], src_root: Path, dev: bool = False
 ) -> Tuple[str, str, int]:
-    # We don't want to quietly uninstall dependancies by just specifying
+    # We don't want to quietly uninstall dependencies by just specifying
     # `--extra lldb` so we will be conservative and pull all extras in.
     command: List[str] = [str(binary_path), "sync", "--all-extras"]
     if dev:
