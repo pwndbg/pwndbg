@@ -289,7 +289,6 @@ class MemoryMap:
     """
 
     pages: tuple[pwndbg.lib.memory.Page, ...]
-    page_lookup_table: dict[int, pwndbg.lib.memory.Page] | None = None
 
     def __init__(self, pages: Sequence[pwndbg.lib.memory.Page]):
         self.pages = tuple(pages)
