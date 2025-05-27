@@ -308,7 +308,6 @@ class MemoryMap:
 
     def lookup_page(self, address: int) -> pwndbg.lib.memory.Page | None:
         # Binary search for the page
-
         lo = 0
         hi = len(self.pages) - 1
         while lo <= hi:
