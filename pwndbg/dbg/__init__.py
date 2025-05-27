@@ -293,7 +293,6 @@ class MemoryMap:
 
     def __init__(self, pages: Sequence[pwndbg.lib.memory.Page]):
         self.pages = tuple(pages)
-        self._create_page_lookup_table()
 
     def is_qemu(self) -> bool:
         """
@@ -308,39 +307,22 @@ class MemoryMap:
         return self.pages
 
     def lookup_page(self, address: int) -> pwndbg.lib.memory.Page | None:
-        if self.page_lookup_table is not None:
-            return self.page_lookup_table.get(address // pwndbg.lib.memory.PAGE_SIZE)
-        else:
-            # Fallback to naive lookup method
-            for page in self.pages:
-                if address in page:
+        # Binary search for the page
+
+        lo = 0
+        hi = len(self.pages) - 1
+        while lo <= hi:
+            mid = (hi + lo) // 2
+            page = self.pages[mid]
+            if page.start <= address:
+                if address < page.end:
                     return page
 
+                lo = mid + 1
+            else:
+                hi = mid - 1
+
         return None
-
-    def _create_page_lookup_table(self) -> None:
-        lookup: dict[int, pwndbg.lib.memory.Page] = {}
-
-        MAX_LOOKUP_TABLE_SIZE = 20_000
-        current_size = 0
-
-        PAGE_SIZE = pwndbg.lib.memory.PAGE_SIZE
-        for page in self.ranges():
-            if current_size + (page.memsz // PAGE_SIZE) > MAX_LOOKUP_TABLE_SIZE:
-                # In case there are a ton of virtual pages, running this loop to create
-                # those entries has a performance cost itself
-                # TODO: fallback to a binary search method
-                return
-
-            if page.memsz % PAGE_SIZE != 0 or page.start % PAGE_SIZE != 0:
-                # Page is not aligned to a size of PAGE_SIZE
-                return
-
-            for page_index in range(page.start // PAGE_SIZE, page.end // PAGE_SIZE):
-                current_size += 1
-                lookup[page_index] = page
-
-        self.page_lookup_table = lookup
 
 
 class ExecutionController:
