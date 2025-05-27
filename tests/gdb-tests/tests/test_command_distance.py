@@ -19,7 +19,6 @@ def test_command_distance(start_binary):
     # Test if it works with symbols
     rip = pwndbg.aglib.regs.rip
 
-    # TODO/FIXME: We should not need to int() here
     main = pwndbg.aglib.symbol.lookup_symbol_addr("main")
     break_here = pwndbg.aglib.symbol.lookup_symbol_addr("break_here")
 
