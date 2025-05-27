@@ -698,9 +698,11 @@ class YieldContinue:
     """
 
     target: LLDBStopPoint
+    selected_thread: bool
 
-    def __init__(self, target: LLDBStopPoint):
+    def __init__(self, target: LLDBStopPoint, selected_thread: bool = False):
         self.target = target
+        self.selected_thread = selected_thread
 
 
 class YieldSingleStep:
@@ -724,6 +726,11 @@ class LLDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     def cont(self, target: pwndbg.dbg_mod.StopPoint) -> Awaitable[None]:
         assert isinstance(target, LLDBStopPoint)
         return OneShotAwaitable(YieldContinue(target))
+
+    @override
+    def cont_selected_thread(self, target: pwndbg.dbg_mod.StopPoint) -> Awaitable[None]:
+        assert isinstance(target, LLDBStopPoint)
+        return OneShotAwaitable(YieldContinue(target, selected_thread=True))
 
 
 # Our execution controller doesn't need to change between uses, as all the state
@@ -1982,7 +1989,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         if ty not in self.event_handlers:
             # No one cares about this event type.
             return
-        if self.suspended_events[ty]:
+        if self.suspended_events[ty] or self.suspended_events[pwndbg.dbg_mod.EventType.SUSPEND_ALL]:
             # This event has been suspended.
             return
 
@@ -1990,9 +1997,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             try:
                 handler()
             except Exception as e:
-                import pwndbg.exception
+                from pwndbg.exception import handle as pwndbg_exception
 
-                pwndbg.exception.handle()
+                pwndbg_exception()
                 raise e
 
     @override

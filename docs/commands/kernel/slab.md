@@ -6,7 +6,7 @@ usage: slab [-h] {list,info,contains} ...
 
 ```
 
-Prints information about the slab allocator
+Prints information about the linux kernel's slab allocator SLUB.
 ### Positional arguments
 
 |Positional Argument|Help|

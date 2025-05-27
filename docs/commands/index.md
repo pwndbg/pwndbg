@@ -86,7 +86,7 @@
 -  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
 -  [msr](kernel/msr.md) - Read or write to Model Specific Register (MSR)
--  [slab](kernel/slab.md) - Prints information about the slab allocator
+-  [slab](kernel/slab.md) - Prints information about the linux kernel's slab allocator SLUB.
 
 ## Linux/libc/ELF
 
@@ -143,7 +143,7 @@
 -  [cymbol](misc/cymbol.md) - Add, show, load, edit, or delete custom structures in plain C.
 -  [down](misc/down.md) - Select and print stack frame called by this one.
 -  [dt](misc/dt.md) - Dump out information on a type (e.g. ucontext_t).
--  [dumpargs](misc/dumpargs.md) - Prints determined arguments for call instruction.
+-  [dumpargs](misc/dumpargs.md) - Prints determined arguments for call/syscall instruction.
 -  [getfile](misc/getfile.md) - Gets the current file.
 -  [hex2ptr](misc/hex2ptr.md) - Converts a space-separated hex string to a little-endian address.
 -  [hijack-fd](misc/hijack-fd.md) - Replace a file descriptor of a debugged process.

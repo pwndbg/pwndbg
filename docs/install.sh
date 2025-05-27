@@ -33,7 +33,7 @@ for cmd in wget tar xz uname mktemp rm mkdir ln grep; do
 done
 
 if [ -n "$missing" ]; then
-    echoerr "Error: The following required commands are missing: $missing"
+    echoerr "Error: The following required commands are missing: ${YELLOW}$missing"
     echoerr "Please install the missing commands and try again."
     exit 1
 fi
@@ -194,7 +194,15 @@ URL="https://github.com/pwndbg/pwndbg/releases/download/${VERSION}/${FILE}"
 trap "rm -rf $TEMP_DIR" EXIT
 
 echoinfo "Downloading... ${URL}"
-wget -q --show-progress "$URL" -O "$TEMP_DIR/$FILE" || {
+
+# 'wget' on BusyBox don't support progress options
+if wget --help 2>&1 | grep -qi 'busybox'; then
+    WGET_CMD="wget -q"
+else
+    WGET_CMD="wget -q --show-progress"
+fi
+
+$WGET_CMD "$URL" -O "$TEMP_DIR/$FILE" || {
     echoerr "Problem with downloading the file. Please check your internet connection or try again."
     exit 1
 }

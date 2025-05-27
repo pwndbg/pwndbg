@@ -564,7 +564,21 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, aliases=["ctx-watch", "cwatch"], category=CommandCategory.CONTEXT)
+@pwndbg.commands.Command(
+    parser,
+    aliases=["ctx-watch", "cwatch"],
+    category=CommandCategory.CONTEXT,
+    examples="""
+For watching variables/expressions:
+    cwatch BUF
+    cwatch ITEMS[0]
+
+For running commands:
+    cwatch execute "ds BUF"
+    cwatch execute "x/20x $rsp"
+    cwatch execute "info args"
+    """,
+)
 def contextwatch(expression, cmd) -> None:
     expressions.append((expression, cmd))
 
