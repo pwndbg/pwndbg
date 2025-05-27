@@ -23,7 +23,7 @@ jobs:
 
       - name: Install lldb
         run: |
-          # https://pwndbg.re/pwndbg/dev/contributing/1-setup-pwndbg-dev/#running-with-lldb
+          # https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/#running-with-lldb
           sudo apt update
           sudo apt install -y gdb lldb-19 liblldb-19-dev
           echo "/usr/lib/llvm-19/bin/" >> $GITHUB_PATH
