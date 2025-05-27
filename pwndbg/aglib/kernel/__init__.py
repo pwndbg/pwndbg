@@ -100,10 +100,10 @@ def npcplist() -> int:
     # index 0 should always exist
     if zone.type.has_field("per_cpu_pageset"):
         lists = zone["per_cpu_pageset"]["lists"]
-        return len(lists)
+        return lists.type.array_len
     if zone.type.has_field("pageset"):
         lists = zone["pageset"]["pcp"]["lists"]
-        return len(lists)
+        return lists.type.array_len
     return 0
 
 

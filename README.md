@@ -10,7 +10,7 @@
 with a focus on features needed by low-level software developers, hardware hackers,
 reverse-engineers and exploit developers.
 
-It has a boatload of features, see [FEATURES.md](https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md)
+It has a boatload of features, see our [Features page](https://pwndbg.re/pwndbg/latest/features/)
 and [CHEATSHEET][CHEATSHEET] (feel free to print it!). If you have any questions you may read the
 [documentation](https://pwndbg.re/pwndbg/latest/) or asks us in our [Discord server](https://discord.gg/x47DssnGwm).
 
