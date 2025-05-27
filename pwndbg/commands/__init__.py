@@ -528,8 +528,7 @@ def fix_int_reraise_arg(arg) -> int:
             address_value = int(fix_reraise_arg(f"&{arg}"))
             colored_arg = message.notice(f"&{arg}")
             suggestion = f"\nDid you mean to use {colored_arg} ? (&{arg} = {address_value:#x})"
-        except:
-            raise
+        except Exception:
             suggestion = ""
         raise argparse.ArgumentTypeError(
             f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}{suggestion}"
