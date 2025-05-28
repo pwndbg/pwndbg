@@ -74,19 +74,10 @@ class KernelVmmap:
         return None
 
     def adjust(self):
-        espstack_start, espstack_end = None, None
         for i, page in enumerate(self.pages):
             name = self.get_name(page.start)
             if name is not None:
                 page.objfile = name
-            if name == self.ESPSTACK and espstack_start is None:
-                espstack_start = i
-            elif name != self.ESPSTACK and espstack_start is not None and espstack_end is None:
-                espstack_end = i - 1
-        if espstack_start is not None and espstack_end is not None:
-            # removing those entries because they are not useful
-            for i in range(espstack_end, espstack_start - 1, -1):
-                del self.pages[i]
         user_idx, kernel_idx = None, None
         for i, page in enumerate(self.pages):
             if user_idx is None and page.objfile == self.USERLAND:
@@ -115,6 +106,7 @@ class KernelVmmap:
                 else:
                     page.objfile = "userland [heap]"
             else:
+                # page.objfile += f"_{hex(i)[2:]}"
                 base_offset = page.start
 
     def handle_kernel_pages(self, kernel_idx):
@@ -393,9 +385,8 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
             flags |= 4
         if "w" in perm:
             flags |= 2
-        # QEMU does not expose X/NX bit, see #685
-        # if 'x' in perm: flags |= 1
-        flags |= 1
+        if "x" in perm:
+            flags |= 1
         pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
     kv = KernelVmmap(pages)

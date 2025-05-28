@@ -68,6 +68,5 @@ def find_kbase(pages) -> int | None:
 
 @pwndbg.lib.cache.cache_until("start")
 def kbase():
-    print("here")
     pages = get()
     return find_kbase(pages)
