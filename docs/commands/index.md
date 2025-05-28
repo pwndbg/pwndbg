@@ -14,7 +14,7 @@
 
 ## Context
 
--  [context](context/context.md) - Print out the current register, instruction, and stack context.
+-  [context](context/context.md) - Print out the currently enabled context sections.
 -  [contextnext](context/contextnext.md) - Select next entry in context history.
 -  [contextoutput](context/contextoutput.md) - Sets the output of a context section.
 -  [contextprev](context/contextprev.md) - Select previous entry in context history.
