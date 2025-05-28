@@ -74,7 +74,7 @@ See [`contextwatch`](commands/context/contextwatch.md) for more information.
 
 With the help of [radare2](https://github.com/radareorg/radare2) or [rizin](https://github.com/rizinorg/rizin) it is possible to show the decompiled source code of the ghidra decompiler.
 
-See [Ghidra Integration](tutorials/ghidra-integration.md) for more information.
+See [Ghidra Integration](tutorials/decompiler-integration/ghidra-integration.md) for more information.
 
 ### IDA Pro/Binary Ninja
 
@@ -84,7 +84,7 @@ This allows extraction of comments, decompiled lines of source, breakpoints, sym
 
 ![](assets/caps/ida_context.png){ style="width: 70%;" }
 
-See the [Binary Ninja integration guide](tutorials/binja-integration.md) for setup information.
+See [Binary Ninja Integration](tutorials/decompiler-integration/binja-integration.md) or [IDA Integration](tutorials/decompiler-integration/ida-integration.md) for setup information.
 
 ## Heap Inspection
 
