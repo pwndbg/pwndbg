@@ -34,7 +34,7 @@ def run_uv_install(
     # `--extra lldb` so we will be conservative and pull all extras in.
     command: List[str] = [str(binary_path), "sync", "--all-extras"]
     if dev:
-        command.extend(("--all-groups",))
+        command.append("--all-groups")
     result = subprocess.run(command, capture_output=True, text=True, cwd=src_root)
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
