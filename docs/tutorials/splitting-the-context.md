@@ -8,7 +8,7 @@ In Pwndbg, the context sections can be distributed among different tty by using 
 contextoutput stack /path/to/tty true
 ```
 
-If you use a terminal or multiplexer that supports scripted pane splitting, you can write a Python script that will create the panes and distribute them to your liking whenever you start pwndbg.
+If you use a terminal or multiplexer that supports scripted pane splitting, you can write a Python script that will create the panes and distribute them to your liking whenever you start Pwndbg.
 
 For instance, for tmux, you could write something like this:
 ```python

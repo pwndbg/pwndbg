@@ -286,7 +286,7 @@ def fsbase(offset: gdb.Value = gdb.Value(0)) -> int:
     [...]
     ```
     FS will usually point to the start of the TLS. If you're not providing an
-    offset, it is usually easier to use gdb's builtin $fs_base variable.
+    offset, it is usually easier to use GDB's builtin $fs_base variable.
     """
     if pwndbg.aglib.arch.name not in ("i386", "x86-64"):
         raise gdb.GdbError("This function is only valid on i386 and x86-64.")
@@ -318,7 +318,7 @@ def gsbase(offset: gdb.Value = gdb.Value(0)) -> int:
     pwndbg> p $gsbase() == $gs_base
     $2 = 1
     ```
-    If you're not providing an offset, it is usually easier to use gdb's
+    If you're not providing an offset, it is usually easier to use GDB's
     builtin $gs_base variable.
     """
     if pwndbg.aglib.arch.name not in ("i386", "x86-64"):

@@ -332,7 +332,7 @@ Maximum number of threads displayed by the context command.
 ## **context-output**
 
 
-Where pwndbg should output ("stdout" or file/tty).
+Where Pwndbg should output ("stdout" or file/tty).
 
 
 
@@ -520,7 +520,7 @@ Whether to debug exceptions raised in Pwndbg commands.
 ## **exception-verbose**
 
 
-Print a full stacktrace for exceptions raised in pwndbg commands.
+Print a full stacktrace for exceptions raised in Pwndbg commands.
 
 
 
@@ -546,7 +546,7 @@ Path to the gcc/g++ toolchain for generating imported symbols.
 
 Asynchronous stop events to improve 'commands' functionality.
 
-Note that this may cause unexpected behavior with pwndbg or gdb.execute.
+Note that this may cause unexpected behavior with Pwndbg or gdb.execute.
 
 Values explained:
 

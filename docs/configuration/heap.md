@@ -79,16 +79,16 @@ The address of mp_.
 
     Values explained:
 
-    + `auto` - pwndbg will try to use heuristics if debug symbols are missing
-    + `force` - pwndbg will always try to use heuristics, even if debug symbols are available
-    + `never` - pwndbg will never use heuristics to resolve the heap
+    + `auto` - Pwndbg will try to use heuristics if debug symbols are missing
+    + `force` - Pwndbg will always try to use heuristics, even if debug symbols are available
+    + `never` - Pwndbg will never use heuristics to resolve the heap
 
     If the output of the heap related command produces errors with heuristics, you
     can try manually setting the libc symbol addresses.
     For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
     `global_max_fast`, `tcache` and `thread_arena` addresses.
 
-    Note: pwndbg will generate more reliable results with proper debug symbols.
+    Note: Pwndbg will generate more reliable results with proper debug symbols.
     Therefore, when debug symbols are missing, you should try to install them first
     if you haven't already.
 
@@ -130,16 +130,16 @@ The address of mp_.
 
     Values explained:
 
-    + `auto` - pwndbg will try to use heuristics if debug symbols are missing
-    + `force` - pwndbg will always try to use heuristics, even if debug symbols are available
-    + `never` - pwndbg will never use heuristics to resolve the heap
+    + `auto` - Pwndbg will try to use heuristics if debug symbols are missing
+    + `force` - Pwndbg will always try to use heuristics, even if debug symbols are available
+    + `never` - Pwndbg will never use heuristics to resolve the heap
 
     If the output of the heap related command produces errors with heuristics, you
     can try manually setting the libc symbol addresses.
     For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
     `global_max_fast`, `tcache` and `thread_arena` addresses.
 
-    Note: pwndbg will generate more reliable results with proper debug symbols.
+    Note: Pwndbg will generate more reliable results with proper debug symbols.
     Therefore, when debug symbols are missing, you should try to install them first
     if you haven't already.
 

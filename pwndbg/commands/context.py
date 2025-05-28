@@ -157,7 +157,7 @@ config_clear_screen = pwndbg.config.add_param(
     "context-clear-screen", False, "whether to clear the screen before printing the context"
 )
 config_output = pwndbg.config.add_param(
-    "context-output", "stdout", 'where pwndbg should output ("stdout" or file/tty)'
+    "context-output", "stdout", 'where Pwndbg should output ("stdout" or file/tty)'
 )
 config_context_sections = pwndbg.config.add_param(
     "context-sections",

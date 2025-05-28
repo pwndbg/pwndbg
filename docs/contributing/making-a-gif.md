@@ -1,8 +1,8 @@
-# Making a pwndbg gif
+# Making a Pwndbg gif
 
 ## The rundown
 
-If you wish to make a gif of your terminal while using pwndbg (usually to add an example of some command/workflow to the website) you should use [charmbracelet/vhs](https://github.com/charmbracelet/vhs). This ensures a consistent look to the gifs throughout the documentation, makes them easily updateable when UI changes are made, and just makes them more easily reproducable and modifiable in general.
+If you wish to make a gif of your terminal while using Pwndbg (usually to add an example of some command/workflow to the website) you should use [charmbracelet/vhs](https://github.com/charmbracelet/vhs). This ensures a consistent look to the gifs throughout the documentation, makes them easily updateable when UI changes are made, and just makes them more easily reproducable and modifiable in general.
 
 The workflow to creating a gif is simple. Start a recording:
 ```{.bash .copy}
@@ -94,7 +94,7 @@ If the setup for the gif is not highly involved, you may want to use a Dockerfil
 # https://github.com/charmbracelet/vhs
 FROM ghcr.io/charmbracelet/vhs
 
-# Install pwndbg
+# Install Pwndbg
 RUN apt update && apt install -y git \
     && git clone https://github.com/pwndbg/pwndbg.git /pwndbg \
     && cd /pwndbg \

@@ -2,7 +2,7 @@
 
 ![](../assets/caps/context_tui.png)
 
-The context sections are available as native [GDB TUI](https://sourceware.org/gdb/current/onlinedocs/gdb.html/TUI.html) windows named `pwndbg_[sectionname]`. There are some predefined layouts coming with pwndbg which you can select using `layout pwndbg` or `layout pwndbg_code`.
+The context sections are available as native [GDB TUI](https://sourceware.org/gdb/current/onlinedocs/gdb.html/TUI.html) windows named `pwndbg_[sectionname]`. There are some predefined layouts coming with Pwndbg which you can select using `layout pwndbg` or `layout pwndbg_code`.
 
 Use `focus cmd` to focus the command window and have the arrow keys scroll through the command history again. `tui disable` to disable TUI mode and go back to CLI mode when running commands with longer output. `ctrl-x + a` toggles between TUI and CLI mode quickly. Hold shift to ignore the TUI mouse integration and use the mouse normally to select text or copy data.
 

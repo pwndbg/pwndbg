@@ -7,7 +7,7 @@ usage: configfile [-h] [--show-all]
 
 ```
 
-Generates a configuration file for the current pwndbg options.
+Generates a configuration file for the current Pwndbg options.
 ### Optional arguments
 
 |Short|Long|Help|

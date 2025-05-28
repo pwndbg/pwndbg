@@ -61,7 +61,7 @@ def get_config_parameters(scope: Scope, filter_pattern: str):
     return values
 
 
-parser = argparse.ArgumentParser(description="Shows pwndbg-specific configuration.")
+parser = argparse.ArgumentParser(description="Shows Pwndbg-specific configuration.")
 parser.add_argument(
     "filter_pattern",
     type=str,
@@ -117,13 +117,13 @@ def config(filter_pattern) -> None:
 
 
 configfile_parser = argparse.ArgumentParser(
-    description="Generates a configuration file for the current pwndbg options."
+    description="Generates a configuration file for the current Pwndbg options."
 )
 configfile_parser.add_argument(
     "--show-all", action="store_true", help="Display all configuration options."
 )
 
-parser = argparse.ArgumentParser(description="Shows pwndbg-specific theme configuration.")
+parser = argparse.ArgumentParser(description="Shows Pwndbg-specific theme configuration.")
 parser.add_argument(
     "filter_pattern",
     type=str,
@@ -146,7 +146,7 @@ if pwndbg.dbg.is_gdblib_available():
 
 
 themefile_parser = argparse.ArgumentParser(
-    description="Generates a configuration file for the current pwndbg theme options."
+    description="Generates a configuration file for the current Pwndbg theme options."
 )
 themefile_parser.add_argument(
     "--show-all", action="store_true", help="Force displaying of all theme options."

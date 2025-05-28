@@ -10,19 +10,19 @@ hide:
 # Functions
 
 
-pwndbg provides a set of functions which can be used during expression evaluation to
+Pwndbg provides a set of functions which can be used during expression evaluation to
 quickly perform common calculations. These can even be passed to other commands as arguments.
 Currently, they **only work in gdb**.
 
-To see a list of all functions, including those built into gdb, use `help function`. To see
-the help of any given function use `help function function_name`. Function invokation must
+To see a list of all functions, including those built into GDB, use `help function`. To see
+the help of any given function use `help function function_name`. Function invocation must
 include a preceding $ sign and must include brackets. For instance, invoke the `environ`
 function like so:
 ```
 pwndbg> p $environ("LANG")
 $2 = (signed char *) 0x7fffffffe6da "LANG=en_US.UTF-8"
 ```
-If the result of the function is being passed to a pwndbg command, make sure to either escape
+If the result of the function is being passed to a Pwndbg command, make sure to either escape
 the function argument's quotes, or put the whole function call in quotes.
 ```
 pwndbg> tele $environ("LANG")
@@ -40,7 +40,7 @@ pwndbg> tele '$environ("LANG")'
 02:0010│  0x7fffffffe6df ◂— 0x4e49475542454400
 [...]
 ```
-## pwndbg functions
+## Pwndbg functions
 
 ### **argc**
 
@@ -306,7 +306,7 @@ Canary    = 0x4da926e1668e5a00 (may be incorrect on != glibc)
 [...]
 ```
 FS will usually point to the start of the TLS. If you're not providing an
-offset, it is usually easier to use gdb's builtin $fs_base variable.
+offset, it is usually easier to use GDB's builtin $fs_base variable.
 
 ----------
 
@@ -339,7 +339,7 @@ pwndbg> tele $gsbase()
 pwndbg> p $gsbase() == $gs_base
 $2 = 1
 ```
-If you're not providing an offset, it is usually easier to use gdb's
+If you're not providing an offset, it is usually easier to use GDB's
 builtin $gs_base variable.
 
 ----------

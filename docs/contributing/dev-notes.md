@@ -4,7 +4,7 @@
 
 Feel free to update the list below!
 
-* If you want to play with pwndbg functions under GDB, you can always use GDB's `pi` which launches python interpreter or just `py <some python line>`.
+* If you want to play with Pwndbg functions under GDB, you can always use GDB's `pi` which launches python interpreter or just `py <some python line>`.
 
 * If you want to do the same in LLDB, you should type `lldb`, followed by `script`, which brings up an interactive Python REPL. Don't forget to `import pwndbg`!
 
@@ -16,9 +16,9 @@ Feel free to update the list below!
 
 * The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's and LLDB's prompt hook, which are defined, respectively, in `pwndbg/gdblib/prompt.py` as `prompt_hook_on_stop`, and in `pwndb/dbg/lldb/hooks.py` as `prompt_hook`.
 
-* We change a bit GDB settings - this can be seen in `pwndbg/dbg/gdb.py` under `GDB.setup` - there are also imports for all pwndbg submodules.
+* We change a bit GDB settings - this can be seen in `pwndbg/dbg/gdb.py` under `GDB.setup` - there are also imports for all Pwndbg submodules.
 
-* pwndbg has its own event system, and thanks to it we can set up code to be invoked in response to them. The event types and the conditions in which they occurr are defined and documented in the `EventType` enum, and functions are registered to be called on events with the `@pwndbg.dbg.event_handler` decorator. Both the enum and the decorator are documented in `pwndbg/dbg/__init__.py`.
+* Pwndbg has its own event system, and thanks to it we can set up code to be invoked in response to them. The event types and the conditions in which they occurr are defined and documented in the `EventType` enum, and functions are registered to be called on events with the `@pwndbg.dbg.event_handler` decorator. Both the enum and the decorator are documented in `pwndbg/dbg/__init__.py`.
 
 * We have a caching mechanism (["memoization"](https://en.wikipedia.org/wiki/Memoization)) which we use through Python's decorators - those are defined in `pwndbg/lib/cache.py` - just check its usages
 
@@ -31,21 +31,21 @@ Feel free to update the list below!
 
 * We have a wrapper for handling exceptions that are thrown by commands - defined in `pwndbg/exception.py` - current approach seems to work fine - by using `set exception-verbose on` - we get a stacktrace. If we want to debug stuff we can always do `set exception-debugger on`.
 
-* Some of pwndbg's functionality require us to have an instance of `pwndbg.dbg.Value` - the problem with that is that there is no way to define our own types in either GDB or LLDB - we have to ask the debugger if it detected a particular type in this particular binary (that sucks). We do that in `pwndbg/aglib/typeinfo.py` and it works most of the time. The known bug with that is that it might not work properly for Golang binaries compiled with debugging symbols.
+* Some of Pwndbg's functionality require us to have an instance of `pwndbg.dbg.Value` - the problem with that is that there is no way to define our own types in either GDB or LLDB - we have to ask the debugger if it detected a particular type in this particular binary (that sucks). We do that in `pwndbg/aglib/typeinfo.py` and it works most of the time. The known bug with that is that it might not work properly for Golang binaries compiled with debugging symbols.
 
 ## Support for Multiple Debuggers
 
 Pwndbg is a tool that supports multiple debuggers, and so using debugger-specific functionality
 outside of `pwndbg.dbg.X` is generally discouraged, with one imporant caveat, that we will get into
-later. When adding code to pwndbg, one must be careful with the functionality being used.
+later. When adding code to Pwndbg, one must be careful with the functionality being used.
 
 ### The Debugger API
 
 Our support for multiple debuggers is primarily achieved through use of the Debugger API, found
 under `pwndbg/dbg/`, which defines a terse set of debugging primitives that can then be built upon
-by the rest of pwndbg. It comprises two parts: the interface, and the implementations. The interface
+by the rest of Pwndbg. It comprises two parts: the interface, and the implementations. The interface
 contains the abstract classes and the types that lay out the "shape" of the functionality that may
-be used by the rest of pwndbg, and the implementations, well, _implement_ the interface on top of each
+be used by the rest of Pwndbg, and the implementations, well, _implement_ the interface on top of each
 supported debugger.
 
 As a matter of clarity, it makes sense to think of the Debugger API as a debugger-agnostic version
@@ -75,18 +75,18 @@ functionality that is both too broad for a single command, and that can be share
 debuggers. Things like QEMU handling, ELF and dynamic section parsing, operating system functionality,
 disassembly with capstone, heap analysis, and more, all belong in `aglib`.
 
-In order to facilitate the process of porting pwndbg to the debugger-agnostic interfaces, and also
+In order to facilitate the process of porting Pwndbg to the debugger-agnostic interfaces, and also
 because of its historical roots, `aglib` is intended to export the exact same functionality provided
 by `gdblib`, but on top of a debugger-agnostic foundation.
 
 If it helps, one may think of `aglib` like a `pwndbglib`. It takes the debugging primitives provided
 by the Debugger API and builds the more complex and interesting bits of functionality found in
-pwndbg on top of them.
+Pwndbg on top of them.
 
 ### Mappings from GDB and LLDB to the Debugger API
 
 Here are some things one may want to do, along with how they can be achieved in the GDB, LLDB, and
-pwndbg Debugger APIs.
+Pwndbg Debugger APIs.
 
 === "GDB"
     Setting a breakpoint at an address:
@@ -143,7 +143,7 @@ should ideally be placed in a separate location from the rest of the commands in
 
 ## Porting public tools
 
-If porting a public tool to pwndbg, please make a point of crediting the original author. This can be added to [CREDITS.md](https://github.com/pwndbg/pwndbg/blob/dev/CREDITS.md) noting the original author/inspiration, and linking to the original tool/article. Also please be sure that the license of the original tool is suitable to porting into pwndbg, such as MIT.
+If porting a public tool to Pwndbg, please make a point of crediting the original author. This can be added to [CREDITS.md](https://github.com/pwndbg/pwndbg/blob/dev/CREDITS.md) noting the original author/inspiration, and linking to the original tool/article. Also please be sure that the license of the original tool is suitable to porting into Pwndbg, such as MIT.
 
 ## Minimum Supported Versions
 

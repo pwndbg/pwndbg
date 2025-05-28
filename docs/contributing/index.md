@@ -1,11 +1,11 @@
 # Contributing Guide
 
 ## Contributing Overview
-Thank you for your interest in contributing to pwndbg!
+Thank you for your interest in contributing to Pwndbg!
 
 Note that while it is recommended that your pull request (PR) links to an issue (which can be used for discussing the bug / feature), you do not need to be assigned to it - just create the PR and it will be reviewed.
 
-To start, [install pwndbg from source and set it up for development](setup-pwndbg-dev.md).
+To start, [install Pwndbg from source and set it up for development](setup-pwndbg-dev.md).
 For common tasks see:
 
 + [Adding a command](adding-a-command.md)
@@ -14,7 +14,7 @@ For common tasks see:
 
 Regardless of the contents of your PR, you will need to [lint](#linting) and [test](#running-tests) your code so make sure to read those sections. It is also likely you will need to [update the documentation](#updating-documentation).
 
-Read [General developer notes](dev-notes.md) to get more familiar with the various systems in place in pwndbg. If you have any questions don't hesitate to ask us on our [discord server](https://discord.gg/x47DssnGwm)!
+Read [General developer notes](dev-notes.md) to get more familiar with the various systems in place in Pwndbg. If you have any questions don't hesitate to ask us on our [discord server](https://discord.gg/x47DssnGwm)!
 ## Linting
 The `lint.sh` script runs isort, ruff, shfmt, and vermin. isort and ruff (mostly) are able to automatically fix any issues they detect. You may apply all available fixes by running
 ```{.bash .copy}
@@ -27,7 +27,7 @@ When submitting a PR, the continuous integration (CI) job defined in `.github/wo
 
 It is recommended to enable the pre-push git hook to run the lint if you haven't already done so. You may re-run `./setup-dev.sh` to set it.
 ## Running tests
-Your PR will not be merged without passing the testing CI. Moreover, it is highly recommended you write a new test or update an existing test whenever adding new functionality to pwndbg. To see how to do this, check out [Writing tests](writing-tests.md).
+Your PR will not be merged without passing the testing CI. Moreover, it is highly recommended you write a new test or update an existing test whenever adding new functionality to Pwndbg. To see how to do this, check out [Writing tests](writing-tests.md).
 
 To run the tests in the same environment as the testing CI, you can use the following docker commands.
 ```{.bash .copy}
@@ -58,7 +58,7 @@ Then simply run the test by adding the `--nix` flag:
 ./tests.sh --nix [filter]
 ```
 #### Running without docker
-If you wish to improve pwndbg support for your distribution (or the testing infrastructure) you may run the testing suite without the docker container.
+If you wish to improve Pwndbg support for your distribution (or the testing infrastructure) you may run the testing suite without the docker container.
 
 The commands are analogous to the docker commands.
 ```{.bash .copy}

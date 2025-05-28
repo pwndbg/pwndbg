@@ -1,6 +1,6 @@
-# Setup pwndbg for Development
+# Setup Pwndbg for Development
 
-## Installing pwndbg from source
+## Installing Pwndbg from source
 
 Run the following:
 ```{.bash .copy}
@@ -19,7 +19,7 @@ Officially supported is Ubuntu 22.04 and later, but the setup script also suppor
 * Gentoo (via emerge)
 
 !!! tip
-    If you have an older ubuntu version you may still use pwndbg:
+    If you have an older ubuntu version you may still use Pwndbg:
 
     - for Ubuntu 20.04 use the [2024.08.29 release](https://github.com/pwndbg/pwndbg/releases/tag/2024.08.29)
     - for Ubuntu 18.04 use the [2023.07.17: ubuntu18.04-final release](https://github.com/pwndbg/pwndbg/releases/tag/2023.07.17)
@@ -36,7 +36,7 @@ cd gdb-build
 ../binutils-gdb/configure --enable-option-checking --disable-nls --disable-werror --with-system-readline --with-python=$(which python3) --with-system-gdbinit=/etc/gdb/gdbinit --enable-targets=all --disable-binutils --disable-ld --disable-gold --disable-gas --disable-sim --disable-gprof
 make -j $(nproc)
 ```
-Since the `./setup.sh` script made it so you source pwndbg from your `~/.gdbinit`, pwndbg will start up automatically any time you run `gdb`.
+Since the `./setup.sh` script made it so you source Pwndbg from your `~/.gdbinit`, Pwndbg will start up automatically any time you run `gdb`.
 
 ### Running with LLDB
 Pwndbg requires LLDB 19 or later. You can get it like this on Ubuntu 24.04:
@@ -52,14 +52,14 @@ so you can invoke it as `lldb`. Also export this environment variable:
 export LLDB_DEBUGSERVER_PATH=/usr/lib/llvm-19/bin/lldb-server
 ```
 Pwndbg doesn't use the `lldb` driver binary directly, it drives its own REPL and interacts with LLDB through liblldb.
-You can run pwndbg with lldb by running:
+You can run Pwndbg with LLDB by running:
 ```{.bash .copy}
 uv run python pwndbg-lldb.py [binary-to-debug]
 ```
 
 ## The development environment
 
-After installing pwndbg like described above, there are a few ways to set up the development environment. The simplest one is by running:
+After installing Pwndbg like described above, there are a few ways to set up the development environment. The simplest one is by running:
 ```{.bash .copy}
 ./setup-dev.sh
 ```

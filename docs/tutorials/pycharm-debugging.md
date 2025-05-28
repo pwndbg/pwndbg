@@ -4,7 +4,7 @@ Debugging with PyCharm
 In order to debug code with PyCharm you need to configure [remote debugging](https://www.jetbrains.com/help/pycharm/remote-debugging-with-product.html#remote-interpreter).
 
 PyCharm will start a remote debugging server which will listen for connections
-and pwndbg will then connect to that server, on startup.
+and Pwndbg will then connect to that server, on startup.
 
 Configuring the debugging server
 --------------------------------
@@ -16,13 +16,13 @@ Select `Run -> Edit Configurations` and follow the instructions there :)
 * Optionally, add a path mapping: `pycharm/pwndbg/dir=machine/pwndbg/dir`
 * Uncheck `suspend after connect`
 
-Configuring pwndbg
+Configuring Pwndbg
 ------------------
 
 * Select `Run -> Edit Configurations` and install the packages described in that
 window.
 * `pip install pydevd-pycharm~=<your_pycharm_version>`
-* Add the following code somewhere where it will execute on gdb startup:
+* Add the following code somewhere where it will execute on GDB startup:
 ```python
 import pydevd_pycharm
 pydevd_pycharm.settrace('<your_IP>', port=<port>, stdoutToServer=True, stderrToServer=True)
@@ -32,7 +32,7 @@ Debugging
 ---------
 
 1. Start the debugging server in PyCharm
-2. Run pwndbg
+2. Run Pwndbg
 
 WSL2
 ----

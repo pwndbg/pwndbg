@@ -5,7 +5,7 @@ hide:
 
 <!--
   This document should give an overview of some of the most interesting
-  features pwndbg has to offer. Use a lot of screenshots and recordings.
+  features Pwndbg has to offer. Use a lot of screenshots and recordings.
   Don't go too much in-depth - it is better to write a tutorial in another
   page of the docs and simply link to it.
 -->

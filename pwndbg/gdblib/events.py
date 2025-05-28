@@ -38,7 +38,7 @@ gdb_workaround_stop_event = config.add_param(
     DISABLED,
     "asynchronous stop events to improve 'commands' functionality",
     help_docstring=f"""
-Note that this may cause unexpected behavior with pwndbg or gdb.execute.
+Note that this may cause unexpected behavior with Pwndbg or gdb.execute.
 
 Values explained:
 
