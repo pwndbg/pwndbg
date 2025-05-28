@@ -264,11 +264,10 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 instruction.declare_conditional = False
             return InstructionCondition.UNDETERMINED
 
-        # We can't reason about anything except the current instruction
-        if instruction.address != pwndbg.aglib.regs.pc:
+        value = self._read_register_name(instruction, self.flags_reg, emu)
+        if value is None:
+            # We can't reason about the value of flags register
             return InstructionCondition.UNDETERMINED
-
-        value = pwndbg.aglib.regs[self.flags_reg]
 
         N = (value >> 31) & 1
         Z = (value >> 30) & 1

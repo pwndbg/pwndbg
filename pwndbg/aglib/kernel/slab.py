@@ -93,7 +93,7 @@ class Freelist:
         while current_object:
             addr = int(current_object)
             yield current_object
-            current_object = pwndbg.aglib.memory.pvoid(addr + self.offset)
+            current_object = pwndbg.aglib.memory.read_pointer_width(addr + self.offset)
             if self.random:
                 current_object ^= self.random ^ swab(addr + self.offset)
             if addr in seen:

@@ -201,7 +201,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             elif pc_is_at_instruction:
                 # Attempt to read from the top of the stack
                 try:
-                    value = pwndbg.aglib.memory.pvoid(pwndbg.aglib.regs.sp)
+                    value = pwndbg.aglib.memory.read_pointer_width(pwndbg.aglib.regs.sp)
                     instruction.annotation = register_assign(
                         reg_operand.str, MemoryColor.get_address_and_symbol(value)
                     )

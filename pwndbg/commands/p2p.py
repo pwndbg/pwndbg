@@ -68,7 +68,7 @@ parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mappin
 
 def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
     try:
-        pointee = pwndbg.aglib.memory.pvoid(ptr)
+        pointee = pwndbg.aglib.memory.read_pointer_width(ptr)
     except Exception:
         return None
 

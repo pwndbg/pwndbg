@@ -513,11 +513,7 @@ class DisassemblyAssistant:
                 page = pwndbg.aglib.vmmap.find(address)
                 if page and not page.write:
                     try:
-                        address = int(
-                            pwndbg.aglib.memory.get_typed_pointer_value(
-                                pwndbg.aglib.typeinfo.ppvoid, address
-                            )
-                        )
+                        address = pwndbg.aglib.memory.read_pointer_width(address)
                         address &= pwndbg.aglib.arch.ptrmask
                         address_list.append(address)
                     except pwndbg.dbg_mod.Error:

@@ -634,16 +634,12 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
 class LLDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
     def __init__(self, pages: List[pwndbg.lib.memory.Page]):
-        self.pages = pages
+        super().__init__(pages)
 
     @override
     def is_qemu(self) -> bool:
         # TODO/FIXME: Figure a way to detect QEMU later.
         return False
-
-    @override
-    def ranges(self) -> List[pwndbg.lib.memory.Page]:
-        return self.pages
 
 
 class LLDBStopPoint(pwndbg.dbg_mod.StopPoint):

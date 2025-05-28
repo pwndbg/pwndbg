@@ -49,6 +49,7 @@ from capstone.sparc import SPARC_INS_JMPL
 from capstone.systemz import SYSTEMZ_INS_B
 from capstone.systemz import SYSTEMZ_INS_BAL
 from capstone.systemz import SYSTEMZ_INS_BALR
+from capstone.x86 import X86_INS_CALL
 from capstone.x86 import X86_INS_JMP
 from capstone.x86 import X86Op
 from typing_extensions import override
@@ -60,7 +61,7 @@ from pwndbg.dbg import DisassembledInstruction
 # The Capstone RET and CALL groups are also used to filter CALL and RET types when we check for unconditional jumps,
 # so we don't need to manually specify those for each architecture
 UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
-    CS_ARCH_X86: {X86_INS_JMP},
+    CS_ARCH_X86: {X86_INS_CALL, X86_INS_JMP},
     CS_ARCH_MIPS: {
         MIPS_INS_J,
         MIPS_INS_JR,

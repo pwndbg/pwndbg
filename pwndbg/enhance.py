@@ -128,7 +128,7 @@ def enhance(
     if value + pwndbg.aglib.arch.ptrsize > page.end:
         return E.integer(int_str(value))
 
-    intval = int(pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.pvoid, value))
+    intval = pwndbg.aglib.memory.read_pointer_width(value)
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval

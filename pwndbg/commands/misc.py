@@ -42,7 +42,9 @@ def _get_errno() -> int:
     # So we have to check the got.plt entry first before calling it
     errno_loc_gotplt = pwndbg.aglib.symbol.lookup_symbol_addr("__errno_location@got.plt")
     if errno_loc_gotplt is not None:
-        page_loaded = pwndbg.aglib.vmmap.find(pwndbg.aglib.memory.pvoid(errno_loc_gotplt))
+        page_loaded = pwndbg.aglib.vmmap.find(
+            pwndbg.aglib.memory.read_pointer_width(errno_loc_gotplt)
+        )
         if page_loaded is None:
             raise pwndbg.dbg_mod.Error(
                 "Could not determine error code automatically: the __errno_location@got.plt has no valid address yet (perhaps libc.so hasn't been loaded yet?)"

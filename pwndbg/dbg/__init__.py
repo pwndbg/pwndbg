@@ -288,6 +288,11 @@ class MemoryMap:
     A wrapper around a sequence of memory ranges
     """
 
+    pages: tuple[pwndbg.lib.memory.Page, ...]
+
+    def __init__(self, pages: Sequence[pwndbg.lib.memory.Page]):
+        self.pages = tuple(pages)
+
     def is_qemu(self) -> bool:
         """
         Returns whether this memory map was generated from a QEMU target.
@@ -298,7 +303,24 @@ class MemoryMap:
         """
         Returns all ranges in this memory map.
         """
-        raise NotImplementedError()
+        return self.pages
+
+    def lookup_page(self, address: int) -> pwndbg.lib.memory.Page | None:
+        # Binary search for the page
+        lo = 0
+        hi = len(self.pages) - 1
+        while lo <= hi:
+            mid = (hi + lo) // 2
+            page = self.pages[mid]
+            if page.start <= address:
+                if address < page.end:
+                    return page
+
+                lo = mid + 1
+            else:
+                hi = mid - 1
+
+        return None
 
 
 class ExecutionController:

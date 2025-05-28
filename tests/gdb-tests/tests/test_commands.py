@@ -16,6 +16,7 @@ disallowed_commands = {
     "ipi",
     # takes too long
     "nextproginstr",
+    "stepsyscall",
 }
 
 filtered_commands = command_names - disallowed_commands
