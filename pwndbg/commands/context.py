@@ -705,10 +705,11 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser,
-     aliases=["ctx"],
-     category=CommandCategory.CONTEXT,
-     notes="""
+@pwndbg.commands.Command(
+    parser,
+    aliases=["ctx"],
+    category=CommandCategory.CONTEXT,
+    notes="""
 To see more commands related to context control run:
 ```
 pwndbg -c context
@@ -717,7 +718,8 @@ To see context configuration run:
 ```
 config context
 ```
-""")
+""",
+)
 def context(subcontext=None, enabled=None) -> None:
     """
     Print out the current register, instruction, and stack context.
