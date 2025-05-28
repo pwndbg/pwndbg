@@ -24,7 +24,7 @@ minimal information. The year is 2025, and core debuggers still lack many user-f
 features such as a robust hexdump command. Windbg users are completely lost when they
 occasionally need to bump into GDB or LLDB.
 
-Pwndbg is a Python module which sits on top of GDB or LLDB. It provides a suite
+Pwndbg is a Python module which can be loaded into GDB or run as a driver for liblldb. It provides a suite
 of utilities and enhancements that fill the gaps left by these debuggers, smoothing out
 rough edges and making them more user-friendly.
 
