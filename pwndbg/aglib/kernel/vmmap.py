@@ -32,6 +32,7 @@ class KernelVmmap:
     KERNELRO = "kernel [.rodata]"
     KERNELBSS = "kernel [.bss]"
     KERNELDRIVER = "kernel [.driver .bpf]"
+    ESPSTACK = "%esp fixup"
 
     def __init__(self, pages: List[pwndbg.lib.memory.Page]):
         self.pages = pages
@@ -52,7 +53,7 @@ class KernelVmmap:
             #   even if KASLR is enabled
             ("cpu entry", 0xFFFFFE0000000000),
             ("rand cpu entry", 0xFFFFFE0000001000),
-            ("%esp fixup", 0xFFFFFF0000000000),
+            (self.ESPSTACK, 0xFFFFFF0000000000),
             ("EFI", 0xFFFFFFEF00000000),
             (self.KERNELLAND, kbase),
             ("fixmap", 0xFFFFFFFFFF000000),
@@ -73,10 +74,19 @@ class KernelVmmap:
         return None
 
     def adjust(self):
-        for page in self.pages:
+        espstack_start, espstack_end = None, None
+        for i, page in enumerate(self.pages):
             name = self.get_name(page.start)
             if name is not None:
                 page.objfile = name
+            if name == self.ESPSTACK and espstack_start is None:
+                espstack_start = i
+            elif name != self.ESPSTACK and espstack_start is not None and espstack_end is None:
+                espstack_end = i - 1
+        if espstack_start is not None and espstack_end is not None:
+            # removing those entries because they are not useful
+            for i in range(espstack_end, espstack_start - 1, -1):
+                del self.pages[i]
         user_idx, kernel_idx = None, None
         for i, page in enumerate(self.pages):
             if user_idx is None and page.objfile == self.USERLAND:
@@ -355,15 +365,12 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     global monitor_info_mem_not_warned
     pages: List[pwndbg.lib.memory.Page] = []
-    prev_end, prev_flags, range_start = 0, 0, None
     for line in lines:
         dash_idx = line.index("-")
         space_idx = line.index(" ")
         rspace_idx = line.rindex(" ")
 
         start = int(line[:dash_idx], 16)
-        if range_start is None:
-            range_start = start
         end = int(line[dash_idx + 1 : space_idx], 16)
         size = int(line[space_idx + 1 : rspace_idx], 16)
         if end - start != size and monitor_info_mem_not_warned:
@@ -389,12 +396,7 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
         # QEMU does not expose X/NX bit, see #685
         # if 'x' in perm: flags |= 1
         flags |= 1
-        # coalescing needed for it to be useful
-        if prev_flags != flags or start - prev_end > 0x10000:
-            pages.append(pwndbg.lib.memory.Page(range_start, prev_end - range_start, prev_flags, 0, "<qemu>"))
-            range_start = start
-        prev_end, prev_flags = end, flags
-    pages.append(pwndbg.lib.memory.Page(range_start, prev_end - range_start, prev_flags, 0, "<qemu>"))
+        pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
     kv = KernelVmmap(pages)
     kv.adjust()
