@@ -34,15 +34,11 @@ See [installation instructions](https://pwndbg.re/pwndbg/latest/setup).
 
 ## What about ...?
 
-Many other projects from the past (e.g., [gdbinit][gdbinit], [PEDA][PEDA]) and present
-(e.g. [GEF][GEF], [bata24/GEF][bata24/GEF]) exist to fill some of these gaps. Each provides
-an excellent experience and great features -- but they're difficult to extend (some are
-unmaintained, and all are a single [103KB][gdbinit2], [195KB][peda.py], [423KB][gef.py],
-or [4.12MB][bata24/gef.py] file (respectively)).
-
-Pwndbg exists not only to replace all of its predecessors, but also to have a clean
-implementation that runs quickly and is resilient against all the weird corner cases
-that come up.
+Many past ([gdbinit][gdbinit], [PEDA][PEDA]) and present projects ([GEF][GEF],
+[bata24/GEF][bata24/GEF]) offer great features, but are hard to extend and packaged
+as large single files ([103KB][gdbinit2], [195KB][peda.py], [423KB][gef.py],
+[4.12MB][bata24/gef.py]). Pwndbg aims to replace them with a faster, cleaner, and
+more robust implementation.
 
 [gdbinit]: https://github.com/gdbinit/Gdbinit
 [gdbinit2]: https://github.com/gdbinit/Gdbinit/blob/master/gdbinit
