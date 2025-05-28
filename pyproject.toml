@@ -16,8 +16,6 @@ dependencies = [
     "pyelftools>=0.29,<0.30",
     "pygments>=2.18.0,<3",
     "psutil>=6.1.1,<7",
-    # for the (unused) inform_unmet_dependencies function
-    "setuptools>=80.8.0",
     # We install uv to the venv
     "uv>=0.7.6",
     # Optional? only for 'ipi' command
