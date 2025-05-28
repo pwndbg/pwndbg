@@ -51,14 +51,14 @@ The context sections can be distributed among different tty by using the `contex
 
 ![](assets/caps/context_splitting.png)
 
-See [Splitting the Context](misc/splitting-the-context.md) for more information.
+See [Splitting the Context](tutorials/splitting-the-context.md) for more information.
 
 ### GDB TUI
 The context sections are available as native [GDB TUI](https://sourceware.org/gdb/current/onlinedocs/gdb.html/TUI.html) windows named `pwndbg_[sectionname]`. There are some predefined layouts coming with Pwndbg which you can select using `layout pwndbg` or `layout pwndbg_code`.
 
 ![](assets/caps/context_tui.png)
 
-See [GDB TUI](misc/gdb-tui.md) for more information.
+See [GDB TUI](tutorials/gdb-tui.md) for more information.
 
 ### Watch Expressions
 
@@ -74,7 +74,7 @@ See [`contextwatch`](commands/context/contextwatch.md) for more information.
 
 With the help of [radare2](https://github.com/radareorg/radare2) or [rizin](https://github.com/rizinorg/rizin) it is possible to show the decompiled source code of the ghidra decompiler.
 
-See [Ghidra Integration](misc/ghidra-integration.md) for more information.
+See [Ghidra Integration](tutorials/ghidra-integration.md) for more information.
 
 ### IDA Pro/Binary Ninja
 
@@ -84,7 +84,7 @@ This allows extraction of comments, decompiled lines of source, breakpoints, sym
 
 ![](assets/caps/ida_context.png){ style="width: 70%;" }
 
-See the [Binary Ninja integration guide](misc/binja-integration.md) for setup information.
+See the [Binary Ninja integration guide](tutorials/binja-integration.md) for setup information.
 
 ## Heap Inspection
 
@@ -117,7 +117,7 @@ For those coming from a Windows background, Pwndbg has a complete Windbg compati
 
 Pwndbg has support for dumping complex Go values like maps and slices, including automatically parsing out type layouts in certain cases.
 
-See the [Go debugging guide](misc/go-debugging.md) for more information.
+See the [Go debugging guide](tutorials/go-debugging.md) for more information.
 
 ## So many commands
 

@@ -1,4 +1,4 @@
-# Ghidra Integration
+# Ghidra
 
 With the help of [radare2](https://github.com/radareorg/radare2) or [rizin](https://github.com/rizinorg/rizin) it is possible to show the decompiled source code of the ghidra decompiler.
 

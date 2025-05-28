@@ -1,4 +1,4 @@
-# Integrating Binary Ninja with pwndbg
+# Binary Ninja
 ## Requirements
 You need at least the personal edition of Binary Ninja (only tested on version 4.0+) that runs at least Python 3.10 for plugins.
 
