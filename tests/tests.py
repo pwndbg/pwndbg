@@ -165,6 +165,7 @@ def run_test(
 
 class TestStats:
     def __init__(self):
+        self.total_duration = 0
         self.fail_tests = 0
         self.pass_tests = 0
         self.skip_tests = 0
@@ -196,6 +197,9 @@ class TestStats:
             skip_reason = " " + (
                 process.stdout.split(test_status)[1].split("\n\n\x1b[33m")[0].replace("\n", "")
             )
+
+        self.total_duration += duration
+
         print(f"{test_case:<70} {test_status} {duration:.2f}s{skip_reason}")
 
         # Only show the output of failed tests unless the verbose flag was used
@@ -212,19 +216,15 @@ def run_tests_and_print_stats(
     gdbinit_path: str,
     test_dir_path: str,
 ):
-    start = time.time()
     stats = TestStats()
-
-    if args.cov:
-        print("Running tests with coverage")
+    start = time.time()
 
     if args.serial:
         for test in tests_list:
             result = run_test(test, args, gdb_path, gdbinit_path, reserve_port())
             stats.handle_test_result(result, args, test_dir_path)
     else:
-        print("")
-        print("Running tests in parallel")
+        print("\nRunning tests in parallel")
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for test in tests_list:
                 executor.submit(
@@ -234,15 +234,15 @@ def run_tests_and_print_stats(
                 )
 
     end = time.time()
-    seconds = int(end - start)
-    print(f"Tests completed in {seconds} seconds")
+    duration = end - start
     print("")
     print("*********************************")
     print("********* TESTS SUMMARY *********")
     print("*********************************")
-    print(f"Tests Passed: {stats.pass_tests}")
+    print(f"Time Spent   : {duration:.2f}s (cumulative: {stats.total_duration:.2f}s)")
+    print(f"Tests Passed : {stats.pass_tests}")
     print(f"Tests Skipped: {stats.skip_tests}")
-    print(f"Tests Failed: {stats.fail_tests}")
+    print(f"Tests Failed : {stats.fail_tests}")
 
     if stats.fail_tests != 0:
         print("\nFailing tests:")
