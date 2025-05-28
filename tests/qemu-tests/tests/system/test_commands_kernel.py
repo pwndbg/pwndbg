@@ -133,14 +133,14 @@ def test_command_kernel_vmmap():
     res = gdb.execute("vmmap", to_string=True)
     assert any(
         key in res
-        for key in [
+        for key in (
             "kernel [.text]",
             "kernel [.rodata]",
             "kernel [.bss]",
             "kernel [stack]",
             "physmap",
             "vmemmap",
-        ]
+        )
     )
 
 

@@ -31,22 +31,18 @@ class KernelVmmap:
     KERNELLAND = "kernel [.text]"
     KERNELRO = "kernel [.rodata]"
     KERNELBSS = "kernel [.bss]"
-    KERNELDRIVER = "kernel [loadable driver]"
+    KERNELDRIVER = "kernel [.driver .bpf]"
 
     def __init__(self, pages: List[pwndbg.lib.memory.Page]):
-        self.sections = None
         self.pages = pages
-        if not pwndbg.aglib.kernel.has_debug_syms():
-            return
         # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
         physmap = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
         vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
         vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
         self.kbase = kbase = pwndbg.aglib.vmmap.find_kbase(pages)
-        if kbase is None:
-            return
-        self.sections = [
+        self.sections = (
             (self.USERLAND, 0),
+            (None, 0x8000000000000000),
             ("physmap", physmap),
             ("vmalloc", vmalloc),
             ("vmemmap", vmemmap),
@@ -62,7 +58,7 @@ class KernelVmmap:
             ("fixmap", 0xFFFFFFFFFF000000),
             ("legacy abi", 0xFFFFFFFFFF600000),
             (None, 0xFFFFFFFFFFFFFFFF),
-        ]
+        )
 
     def get_name(self, addr: int) -> str:
         if addr is None or self.sections is None:
@@ -77,8 +73,6 @@ class KernelVmmap:
         return None
 
     def adjust(self):
-        if not pwndbg.aglib.kernel.has_debug_syms():
-            return
         for page in self.pages:
             name = self.get_name(page.start)
             if name is not None:
