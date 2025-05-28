@@ -14,7 +14,7 @@ CRASH_SIMPLE_BINARY = tests.binaries.get("crash_simple.out.hardcoded")
 NEXT_COMMANDS = (
     "pc",
     "nextcall",
-    "nextjump",
+    "nextjmp",
     "nextproginstr",
     "nextret",
     "nextsyscall",
