@@ -13,17 +13,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
 
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Install latest uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
 
-      - name: Setup the necessary deps
+      - name: Install dependencies
+        run: uv sync --group docs --all-extras
+
+      - name: Install lldb
         run: |
-          # https://github.com/pwndbg/pwndbg/blob/dev/DEVELOPING.md#install-from-source-lldb
+          # https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/#running-with-lldb
           sudo apt update
           sudo apt install -y gdb lldb-19 liblldb-19-dev
           echo "/usr/lib/llvm-19/bin/" >> $GITHUB_PATH
           echo "/usr/lib/llvm-19/bin/lldb-server" >> $GITHUB_PATH
-          uv sync --extra lldb --group docs
 
       - name: Verify docs are up to date with source
         run: |
@@ -48,8 +52,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
 
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Install latest uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --group docs
 
       - name: Update docs/index.md with README.md
         run: ./scripts/generate-readme.sh

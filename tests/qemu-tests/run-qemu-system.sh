@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
+source "$(dirname "$0")/../../scripts/common.sh"
+
 ARCH=""
 KERNEL_TYPE=""
 CMDLINE=""
 
-CWD=$(dirname -- "$0")
-IMAGE_DIR="${CWD}/images"
-
-KERNEL_LIST=($(basename -a "${IMAGE_DIR}"/vmlinux* | sed "s/vmlinux-//"))
+KERNEL_LIST=($(basename -a "${TESTING_KERNEL_IMAGES_DIR}"/vmlinux* | sed "s/vmlinux-//"))
 GDB_PORT=1234
 help_and_exit() {
     echo "Usage: $0 [options] [-- other qemu options]"
@@ -68,8 +67,8 @@ elif [ "$ARCH" == "x86_64" ]; then
     QEMU_ARGS=()
 fi
 
-KERNEL=$(echo ${IMAGE_DIR}/*Image-${KERNEL_NAME})
-ROOTFS=$(echo ${IMAGE_DIR}/*-${ARCH}.img)
+KERNEL=$(echo ${TESTING_KERNEL_IMAGES_DIR}/*Image-${KERNEL_NAME})
+ROOTFS=$(echo ${TESTING_KERNEL_IMAGES_DIR}/*-${ARCH}.img)
 
 QEMU_ARGS+=(
     -kernel $KERNEL
@@ -80,4 +79,4 @@ QEMU_ARGS+=(
 )
 
 echo "Waiting for GDB to attach (use 'ctrl-a x' to quit)"
-$QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"
+$UV_RUN $QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"

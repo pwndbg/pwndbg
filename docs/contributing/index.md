@@ -34,7 +34,9 @@ To run the tests in the same environment as the testing CI, you can use the foll
 # General (x86_64) test suite
 docker compose run --rm --build ubuntu24.04-mount ./tests.sh
 # Cross-architecture tests
-docker compose run --rm --build ubuntu24.04-mount ./qemu-tests.sh
+docker compose run --rm --build ubuntu24.04-mount ./crossarch-tests.sh
+# Kernel tests (x86_64 and aarch64)
+docker compose run --rm --build ubuntu24.04-mount ./kernel-tests.sh
 # Unit tests
 docker compose run --rm --build ubuntu24.04-mount ./unit-tests.sh
 ```
@@ -42,11 +44,9 @@ This comes in handy particularly for cross-architecture tests because the docker
 
 Remove the `-mount` if you want the tests to run from a clean slate (no files are mounted, meaning all binaries are recompiled each time).
 
-If you wish to focus on some failing tests, you can filter the tests to run by providing an argument to the script, such as `<docker..> ./tests.sh heap`, which will only run tests that contain "heap" in the name. See `./tests.sh --help` for more information and other options. You can also do this with the cross-arch tests.
+If you wish to focus on some failing tests, you can filter the tests to run by providing an argument to the script, such as `<docker..> ./tests.sh heap`, which will only run tests that contain "heap" in the name. See `./tests.sh --help` for more information and other options. You can also do this with the cross-arch and kernel tests.
 
 If you want to, you may also [run the tests with nix](#running-tests-with-nix) or [run them bare](#running-without-docker).
-
-TODO: Create a script for running kernel tests instead of running them with `./tests/qemu-tests/tests.sh`.
 
 #### Running tests with nix
 You will need to build a nix-compatible `gdbinit.py` file, which you can do with
@@ -65,22 +65,11 @@ The commands are analogous to the docker commands.
 # General (x86_64) test suite
 ./tests.sh
 # Cross-architecture tests
-./qemu-tests.sh
+./crossarch-tests.sh
+# Kernel tests (x86_64 and aarch64)
+./kernel-tests.sh
 # Unit tests
 ./unit-tests.sh
-```
-
-To run the kernel tests you will need to install the appropriate qemu-system packages for your distribution. Then download the kernel images with
-```{.bash .copy}
-./tests/qemu-tests/download_images.sh
-```
-set ptrace_scope to zero with
-```{.bash .copy}
-echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope
-```
-and run the kernel tests with
-```{.bash .copy}
-cd ./tests/qemu-tests/ && ./tests.sh
 ```
 
 ## Updating Documentation

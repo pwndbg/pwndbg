@@ -16,6 +16,8 @@ dependencies = [
     "pyelftools>=0.29,<0.30",
     "pygments>=2.18.0,<3",
     "psutil>=6.1.1,<7",
+    # We install uv to the venv
+    "uv>=0.7.6",
     # Optional? only for 'ipi' command
     "ipython>=8.27.0,<9",
     # Optional? only for 'ropgadget' command

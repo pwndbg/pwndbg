@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+source "$(dirname "$0")/scripts/common.sh"
+
 echo "# --------------------------------------"
 echo "# Install testing tools."
 echo "# Only works with Ubuntu / APT or Arch / Pacman."
@@ -8,7 +10,7 @@ echo "# --------------------------------------"
 
 help_and_exit() {
     echo "Usage: ./setup-dev.sh [--install-only]"
-    echo "  --install-only              install only distro dependencies without installing python-venv"
+    echo "  --install-only              install only distro dependencies without syncing the python venv"
     exit 1
 }
 
@@ -142,7 +144,8 @@ install_apt() {
         parallel \
         qemu-system-x86 \
         qemu-system-arm \
-        qemu-user
+        qemu-user \
+        iproute2
 
     # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
     if uname -m | grep -q x86_64; then
@@ -195,6 +198,8 @@ EOF
         base-devel \
         gdb \
         parallel
+
+    # FIXME: add the necessary deps for testing
 
     command -v go &> /dev/null || sudo pacman -S --noconfirm go
 
@@ -287,13 +292,7 @@ install_jemalloc() {
 }
 
 configure_venv() {
-    if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-        PWNDBG_VENV_PATH="./.venv"
-    fi
-    echo "Using virtualenv from path: ${PWNDBG_VENV_PATH}"
-
-    source "${PWNDBG_VENV_PATH}/bin/activate"
-    uv sync --all-groups --all-extras
+    $UV sync --all-groups --all-extras
 
     # Create a developer marker file
     DEV_MARKER_PATH="${PWNDBG_VENV_PATH}/dev.marker"

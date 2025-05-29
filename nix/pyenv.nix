@@ -133,6 +133,7 @@ let
     # paramiko is only used in pwntools for pwnlib.tubes.ssh
     paramiko = dummy;
     pip = dummy;
+    uv = dummy;
 
     psutil = pkgs.callPackage (
       {

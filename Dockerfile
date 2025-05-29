@@ -29,6 +29,10 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     apt-get update && \
     apt-get install -y vim
 
+# setup.sh needs scripts/common.sh
+RUN mkdir scripts
+ADD ./scripts/common.sh /pwndbg/scripts/
+
 ADD ./setup.sh /pwndbg/
 ADD ./uv.lock /pwndbg/
 ADD ./pyproject.toml /pwndbg/
