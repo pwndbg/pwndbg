@@ -142,9 +142,10 @@ Pwndbg makes [`search`](commands/memory/search.md)ing the target memory space ea
 ![](assets/caps/search.png)
 
 ### Finding Leaks
-Finding leak chains can be done using the [`leakfind`](commands/memory/leakfind.md) command. It recursively inspects address ranges for pointers, and reports on all pointers found.
+Finding leak chains can be done using the [`leakfind`](commands/memory/leakfind.md) and [`probeleak`](commands/memory/probeleak.md) commands. They recursively inspect address ranges for pointers, and report on all pointers found.
 
 ![](assets/caps/leakfind.png)
+![](assets/caps/probeleak.png)
 
 ### Telescope
 Inspecting memory dumps is easy with the [`telescope`](commands/memory/telescope.md) command.  It recursively dereferences a range of memory, letting you see everything at once.  As an added bonus, Pwndbg checks all of the available registers to see if they point into the memory range.
