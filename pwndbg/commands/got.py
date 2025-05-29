@@ -25,14 +25,7 @@ from pwndbg.commands import CommandCategory
 from pwndbg.wrappers.readelf import RelocationType
 
 parser = argparse.ArgumentParser(
-    description="""Show the state of the Global Offset Table.
-
-Examples:
-    got
-    got puts
-    got -p libc
-    got -a
-""",
+    description="Show the state of the Global Offset Table.",
 )
 group = parser.add_mutually_exclusive_group()
 group.add_argument(
@@ -64,7 +57,16 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.LINUX,
+    examples="""
+got
+got puts
+got -p libc
+got -a
+""",
+)
 @pwndbg.commands.OnlyWhenRunning
 def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str) -> None:
     if pwndbg.aglib.qemu.is_qemu_usermode():

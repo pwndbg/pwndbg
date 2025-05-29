@@ -16,10 +16,6 @@ from pwndbg.commands import CommandCategory
 parser = argparse.ArgumentParser(
     description="""Prints the section mappings contained in the ELF header.
 If binary not start or use --no-rebase, the section permission based on section flags.
-
-Examples:
-    elfsections
-    elfsections --no-rebase
 """,
 )
 
@@ -33,7 +29,14 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.LINUX,
+    examples="""
+elfsections
+elfsections --no-rebase
+""",
+)
 @pwndbg.commands.OnlyWithFile
 def elfsections(no_rebase: bool) -> None:
     local_path = pwndbg.aglib.file.get_proc_exe_file()

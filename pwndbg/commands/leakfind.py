@@ -57,11 +57,8 @@ def dbg_print_map(maps) -> None:
 parser = argparse.ArgumentParser(
     description="""
 Attempt to find a leak chain given a starting address.
-Scans memory near the given address, looks for pointers, and continues that process to attempt to find leaks.
 
-Example: leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6. This would look for any chains of leaks \
-that point to a section in filename which begin near $rsp, are never 0x48 bytes further from a known pointer, \
-and are a maximum length of 6.
+Scans memory near the given address, looks for pointers, and continues that process to attempt to find leaks.
 """,
 )
 parser.add_argument(
@@ -112,7 +109,16 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MEMORY,
+    examples="""
+pwndbg> leakfind $rsp --page_name=filename --max_offset=0x48 --max_depth=6.
+This would look for any chains of leaks that point to a section in filename
+which begin near $rsp, are never 0x48 bytes further from a known pointer,
+and are a maximum length of 6.
+""",
+)
 @pwndbg.commands.OnlyWhenRunning
 def leakfind(
     address=None,

@@ -19,12 +19,6 @@ Calls the mprotect syscall and prints its result value.
 Note that the mprotect syscall may fail for various reasons
 (see `man mprotect`) and a non-zero error return value
 can be decoded with the `errno <value>` command.
-
-Examples:
-    mprotect $rsp 4096 PROT_READ|PROT_WRITE|PROT_EXEC
-    mprotect $rsp 4096 rwx
-    mprotect $rsp 4096 7
-    mprotect some_symbol 0x1000 PROT_NONE
 """,
 )
 parser.add_argument(
@@ -90,7 +84,16 @@ def prot_val_to_str(protval: int) -> str:
     return "|".join(ret)
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MEMORY,
+    examples="""
+mprotect $rsp 4096 PROT_READ|PROT_WRITE|PROT_EXEC
+mprotect $rsp 4096 rwx
+mprotect $rsp 4096 7
+mprotect some_symbol 0x1000 PROT_NONE
+""",
+)
 @pwndbg.commands.OnlyWhenRunning
 def mprotect(addr, length, prot) -> None:
     prot_int = prot_str_to_val(prot)

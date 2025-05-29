@@ -146,17 +146,11 @@ parser = argparse.ArgumentParser(
     description="""Replace a file descriptor of a debugged process.
 
 The new file descriptor can point to:
+
 - a file
 - a pipe
 - a socket
 - a device, etc.
-
-Examples:
-1. Redirect STDOUT to a file:
-   `hijack-fd 1 /dev/null`
-
-2. Redirect STDERR to a socket:
-   `hijack-fd 2 tcp://localhost:8888`
 """,
 )
 
@@ -268,7 +262,17 @@ For sockets, the following formats are allowed:
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MISC, command_name="hijack-fd")
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MISC,
+    examples="""
+1. Redirect STDOUT to a file:
+   `hijack-fd 1 /dev/null`
+
+2. Redirect STDERR to a socket:
+   `hijack-fd 2 tcp://localhost:8888`
+    """,
+)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.commands.OnlyWhenUserspace
 def hijack_fd(fdnum: int, newfile: PARSED_FILE_ARG) -> None:

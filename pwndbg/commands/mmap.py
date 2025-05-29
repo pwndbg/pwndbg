@@ -23,25 +23,13 @@ Note that the mmap syscall may fail for various reasons
 will not be a valid pointer.
 
 PROT values: NONE (0), READ (1), WRITE (2), EXEC (4)
+
 MAP values: SHARED (1), PRIVATE (2), SHARED_VALIDATE (3), FIXED (0x10),
             ANONYMOUS (0x20)
 
 Flags and protection values can be either a string containing the names of the
 flags or permissions or a single number corresponding to the bitwise OR of the
 protection and flag numbers.
-
-Examples:
-    mmap 0x0 4096 PROT_READ|PROT_WRITE|PROT_EXEC MAP_PRIVATE|MAP_ANONYMOUS -1 0
-     - Maps a new private+anonymous page with RWX permissions at a location
-       decided by the kernel.
-
-    mmap 0x0 4096 PROT_READ MAP_PRIVATE 10 0
-     - Maps 4096 bytes of the file pointed to by file descriptor number 10 with
-       read permission at a location decided by the kernel.
-
-    mmap 0xdeadbeef 0x1000
-     - Maps a new private+anonymous page with RWX permissions at a page boundary
-       near 0xdeadbeef.
 """,
 )
 parser.add_argument(
@@ -139,7 +127,23 @@ def parse_str_or_int(val: Union[str, int], parser):
         raise TypeError(f"invalid type for value: {type(val)}")
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MEMORY,
+    examples="""
+mmap 0x0 4096 PROT_READ|PROT_WRITE|PROT_EXEC MAP_PRIVATE|MAP_ANONYMOUS -1 0
+ - Maps a new private+anonymous page with RWX permissions at a location
+   decided by the kernel.
+
+mmap 0x0 4096 PROT_READ MAP_PRIVATE 10 0
+ - Maps 4096 bytes of the file pointed to by file descriptor number 10 with
+   read permission at a location decided by the kernel.
+
+mmap 0xdeadbeef 0x1000
+ - Maps a new private+anonymous page with RWX permissions at a page boundary
+   near 0xdeadbeef.
+""",
+)
 @pwndbg.commands.OnlyWhenRunning
 def mmap(addr, length, prot=7, flags=0x22, fd=-1, offset=0, quiet=False, force=False) -> None:
     try:
