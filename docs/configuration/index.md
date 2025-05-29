@@ -1,5 +1,7 @@
 # Configuration
 
+Pwndbg can be configured in various ways. You can tune features, control what it displays, how it displays it, and even what is going on under the hood.
+
 There are three "scopes" of configuration parameters currently:
 
 1. [the config scope](./config.md) - for generic parameters
