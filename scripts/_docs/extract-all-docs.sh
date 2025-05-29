@@ -1,10 +1,12 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
+source "$(dirname "$0")/../common.sh"
 
 # Extract from sources all the information necessary to build
 # the documentation. Do this from each debugger.
 
 export PWNDBG_DOCGEN_DBGNAME="gdb"
-uv run --group docs gdb --batch -nx -ix ./gdbinit.py \
+$UV_RUN_DOCS gdb --batch -nx -ix ./gdbinit.py \
     -iex "set exception-verbose on" \
     -ix ./scripts/_docs/extract_command_docs.py \
     -ix ./scripts/_docs/extract_configuration_docs.py \
@@ -13,7 +15,7 @@ uv run --group docs gdb --batch -nx -ix ./gdbinit.py \
 
 export PWNDBG_DOCGEN_DBGNAME="lldb"
 {
-    uv run --group docs --extra lldb python pwndbg-lldb.py << EOF
+    $UV_RUN_DOCS python pwndbg-lldb.py << EOF
 set show-tips off
 command script import ./scripts/_docs/extract_command_docs.py
 command script import ./scripts/_docs/extract_configuration_docs.py

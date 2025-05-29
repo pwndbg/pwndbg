@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
+source "$(dirname "$0")/../../scripts/common.sh"
+
 ARCH=""
 KERNEL_TYPE=""
 CMDLINE=""
 
-CWD=$(dirname -- "$0")
-IMAGE_DIR="${CWD}/images"
+SCRIPT_ABS_DIR="$(dirname "$(realpath "$0")")"
+IMAGE_DIR="${SCRIPT_ABS_DIR}/images"
 
 KERNEL_LIST=($(basename -a "${IMAGE_DIR}"/vmlinux* | sed "s/vmlinux-//"))
 GDB_PORT=1234
@@ -80,4 +82,4 @@ QEMU_ARGS+=(
 )
 
 echo "Waiting for GDB to attach (use 'ctrl-a x' to quit)"
-$QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"
+$UV_RUN $QEMU_BIN ${QEMU_ARGS[@]} -append "${CMDLINE}"

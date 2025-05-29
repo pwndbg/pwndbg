@@ -10,6 +10,7 @@ from typing import Dict
 from typing import List
 
 import pwndbg
+import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
@@ -162,7 +163,7 @@ def leakfind(
         ):
             try:
                 cur_addr &= pwndbg.aglib.arch.ptrmask
-                result = int(pwndbg.aglib.memory.pvoid(cur_addr))
+                result = int(pwndbg.aglib.memory.read_pointer_width(cur_addr))
                 if result in visited_map or result in visited_set:
                     continue
                 visited_map[result] = (

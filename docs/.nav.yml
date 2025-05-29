@@ -5,6 +5,7 @@
 nav:
   - index.md
   - setup.md
+  - features.md
   - commands
   - functions
   - configuration

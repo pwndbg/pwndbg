@@ -26,19 +26,19 @@ When installing with GDB, you may also download a package to install through you
 
 RPM-based Systems (CentOS/Alma/Rocky/RHEL):
 ```{.bash .copy}
-dnf install ./pwndbg-2025.04.18.x86_64.rpm
+dnf install ./pwndbg-2025.05.28.x86_64.rpm
 ```
 DEB-based Systems (Debian/Ubuntu/Kali):
 ```{.bash .copy}
-apt install ./pwndbg_2025.04.18_amd64.deb
+apt install ./pwndbg_2025.05.28_amd64.deb
 ```
 Alpine:
 ```{.bash .copy}
-apk add --allow-untrusted ./pwndbg_2025.04.18_x86_64.apk
+apk add --allow-untrusted ./pwndbg_2025.05.28_x86_64.apk
 ```
 Arch Linux:
 ```{.bash .copy}
-pacman -U ./pwndbg-2025.04.18-1-x86_64.pkg.tar.zst
+pacman -U ./pwndbg-2025.05.28-1-x86_64.pkg.tar.zst
 ```
 
 ## Installing pwndbg-lldb
@@ -77,4 +77,4 @@ or
 depending on which version you installed. You may add the appropriate file to your shell's PATH.
 
 ## Installing from source
-See [contributing/Installing pwndbg from source](contributing/1-setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section.
+See [contributing/Installing pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section.

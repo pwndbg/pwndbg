@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source "$(dirname "$0")/scripts/common.sh"
+
 COV=0
 # Run unit tests
 for arg in "$@"; do
@@ -10,9 +12,9 @@ for arg in "$@"; do
 done
 
 if [ $COV -eq 1 ]; then
-    coverage run -m pytest tests/unit-tests
+    $UV_RUN_TEST coverage run -m pytest tests/unit-tests
 else
-    pytest tests/unit-tests
+    $UV_RUN_TEST pytest tests/unit-tests
 fi
 
 exit_code=$((exit_code + $?))

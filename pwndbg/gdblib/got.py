@@ -272,7 +272,7 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
     def should_stop(self) -> bool:
         # Read the new branch target, and update the redirection target of the
         # tracker accordingly.
-        new_target = pwndbg.aglib.memory.pvoid(self.entry)
+        new_target = pwndbg.aglib.memory.read_pointer_width(self.entry)
         if new_target == self.tracker.trapped_address:
             # The write to this range from within GDB that we do at the end of
             # this function can cause this watchpoint to trigger again.

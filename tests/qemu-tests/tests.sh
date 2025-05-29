@@ -3,6 +3,8 @@
 #set -o errexit
 set -o pipefail
 
+source "$(dirname "$0")/../../scripts/common.sh"
+
 ROOT_DIR="$(readlink -f ../../)"
 GDB_INIT_PATH="$ROOT_DIR/gdbinit.py"
 COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
@@ -143,7 +145,8 @@ run_gdb() {
         fi
     fi
 
-    $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
+    $UV_RUN $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" \
+        -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
     return $?
 }
 

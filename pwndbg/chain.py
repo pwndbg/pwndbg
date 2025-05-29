@@ -80,9 +80,7 @@ def get(
             if not is_pagefault_supported and not pwndbg.aglib.vmmap.find(address):
                 break
 
-            next_address = int(
-                pwndbg.aglib.memory.get_typed_pointer_value(pwndbg.aglib.typeinfo.ppvoid, address)
-            )
+            next_address = pwndbg.aglib.memory.read_pointer_width(address)
             address = next_address ^ ((address >> 12) if safe_linking else 0)
             address &= pwndbg.aglib.arch.ptrmask
             result.append(address)

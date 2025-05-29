@@ -129,9 +129,7 @@ async def exec_shellcode_with_stack(ec: pwndbg.dbg_mod.ExecutionController, blob
     original_stack = pwndbg.aglib.memory.read(stack_start, stack_size)
 
     try:
-        async with pwndbg.aglib.shellcode.exec_shellcode(
-            ec, blob, restore_context=True, disable_breakpoints=True
-        ):
+        async with pwndbg.aglib.shellcode.exec_shellcode(ec, blob):
             stack_diff_size = stack_start_diff - pwndbg.aglib.regs.sp
 
             # Make sure stack is not corrupted somehow

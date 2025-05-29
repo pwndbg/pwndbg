@@ -100,10 +100,10 @@ def npcplist() -> int:
     # index 0 should always exist
     if zone.type.has_field("per_cpu_pageset"):
         lists = zone["per_cpu_pageset"]["lists"]
-        return len(lists)
+        return lists.type.array_len
     if zone.type.has_field("pageset"):
         lists = zone["pageset"]["pcp"]["lists"]
-        return len(lists)
+        return lists.type.array_len
     return 0
 
 
@@ -164,7 +164,7 @@ def kcmdline() -> str:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("saved_command_line")
     assert addr is not None, "Symbol saved_command_line not exists"
 
-    cmdline_addr = pwndbg.aglib.memory.pvoid(addr)
+    cmdline_addr = pwndbg.aglib.memory.read_pointer_width(addr)
     return pwndbg.aglib.memory.string(cmdline_addr).decode("ascii")
 
 
