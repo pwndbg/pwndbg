@@ -219,7 +219,7 @@ def test_aarch64_conditional_jump_output(qemu_assembly_run):
         "   0x1010140 <C>         ✔ tbnz   w2, #3, D                   <D>\n"
         "    ↓\n"
         "   0x1010148 <D>           cmp    x2, x3       0xa - 0x0     CPSR => 0x20000000 [ n z C v q pan il d a i f el:0 sp ]\n"
-        "   0x101014c <D+4>         b.eq   E                           <E>\n"
+        "   0x101014c <D+4>       ✘ b.eq   E                           <E>\n"
         " \n"
         "   0x1010150 <D+8>         nop    \n"
         "   0x1010154 <E>         ✔ b.ne   F                           <F>\n"
