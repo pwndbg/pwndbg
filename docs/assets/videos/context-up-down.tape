@@ -10,7 +10,7 @@ Set Height 1080
 Set TypingSpeed 100ms
 
 Sleep 1s
-Type "gdb /bin/sh --quiet"
+Type "pwndbg /bin/sh"
 Enter
 Sleep 2s
 Type "start"
