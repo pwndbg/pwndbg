@@ -2,1806 +2,1806 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/features/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/setup/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/blog/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/blog/2022/08/21/pwndbg-coding-sprints-report/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/breakpoint/break-if-not-taken/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/breakpoint/break-if-taken/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/breakpoint/breakrva/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/breakpoint/ignore/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/context/context/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/context/contextnext/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/context/contextoutput/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/context/contextprev/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/context/contextsearch/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/context/contextunwatch/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/context/contextwatch/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/context/regs/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/developer/dev-dump-instruction/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/developer/log-level/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/disassemble/emulate/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/disassemble/nearpc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/arena/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/arenas/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/bins/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/fastbins/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/find-fake-fast/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/heap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/hi/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/largebins/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/malloc-chunk/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/mp/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/smallbins/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/tcache/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/tcachebins/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/top-chunk/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/try-free/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/unsortedbin/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/glibc_ptmalloc2_heap/vis-heap-chunks/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/ai/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/bn-sync/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/decomp/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/j/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/r2/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/r2pipe/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/rop/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/ropper/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/rz/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/rzpipe/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/integrations/save-ida/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/jemalloc_heap/jemalloc-extent-info/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/jemalloc_heap/jemalloc-find-extent/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/jemalloc_heap/jemalloc-heap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/binder/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/buddydump/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/kbase/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/kchecksec/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/kcmdline/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/kconfig/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/klookup/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-dump/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-chains/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-exprs/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-flowtables/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-objects/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-rules/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-sets/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/knft-list-tables/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/kversion/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/msr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/slab/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/argc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/argv/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/aslr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/auxv-explore/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/auxv/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/elfsections/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/envp/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/errno/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/got/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/gotplt/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/libcinfo/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/linkmap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/onegadget/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/piebase/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/plt/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/strings/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/threads/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/tls/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/track-got/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/track-heap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/distance/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/dump-register-frame/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/gdt/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/go-dump/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/go-type/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/hexdump/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/leakfind/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/memfrob/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/mmap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/mprotect/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/p2p/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/probeleak/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/search/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/telescope/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap-add/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap-clear/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap-explore/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/vmmap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/xinfo/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/memory/xor/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/asm/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/checksec/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/comm/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/cyclic/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/cymbol/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/down/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/dt/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/dumpargs/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/getfile/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/hex2ptr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/hijack-fd/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/ipi/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/patch-list/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/patch-revert/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/patch/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/plist/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/sigreturn/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/spray/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/tips/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/up/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/valist/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/misc/vmmap-load/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/process/killthreads/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/process/pid/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/process/procinfo/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/bugreport/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/config/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/configfile/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/heap-config/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/memoize/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/profiler/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/pwndbg/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/reinit-pwndbg/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/reload/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/theme/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/themefile/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/pwndbg/version/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/register/cpsr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/register/fsbase/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/register/gsbase/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/register/setflag/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/stack/canary/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/stack/retaddr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/stack/stack-explore/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/stack/stack/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/stack/stackf/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/start/attachp/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/start/entry/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/start/sstart/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/start/start/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/nextcall/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/nextjmp/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/nextproginstr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/nextret/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/nextsyscall/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/stepover/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/stepret/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/stepsyscall/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/stepuntilasm/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/step_next_continue/xuntil/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/bc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/bd/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/be/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/bl/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/bp/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/da/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/db/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/dc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/dd/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/dds/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/dq/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/ds/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/dw/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/eb/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/ed/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/eq/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/ew/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/ez/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/eza/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/go/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/k/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/ln/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/pc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/windbg/peb/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/configuration/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/configuration/config/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/configuration/heap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/configuration/theme/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/contributing/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/contributing/adding-a-command/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/contributing/adding-a-parameter/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/contributing/dev-notes/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/contributing/improving-annotations/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/contributing/making-a-gif/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/contributing/setup-pwndbg-dev/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/contributing/writing-tests/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/functions/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/misc/binja-integration/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/misc/env-vars/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/misc/gdb-lldb-commands/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/misc/gdb-tui/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/misc/ghidra-integration/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/misc/go-debugging/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/misc/pwndbg-users/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/misc/pycharm-debugging/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/misc/splitting-the-context/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/arch/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/argv/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/ctypes/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/aarch64/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/arch/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/arm/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/disassembly/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/instruction/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/loongarch64/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/mips/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/ppc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/riscv/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/sparc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/disasm/x86/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/dt/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/dynamic/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/elf/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/file/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/godbg/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/heap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/heap/heap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/heap/jemalloc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/heap/ptmalloc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/heap/structs/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/kallsyms/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/macros/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/nftables/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/rbtree/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/slab/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/vmmap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/memory/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/nearpc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/next/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/onegadget/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/proc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/qemu/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/regs/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/remote/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/saved_register_frames/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/shellcode/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/stack/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/strings/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/symbol/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/tls/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/typeinfo/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/vmmap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/vmmap_custom/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/arguments/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/auxv/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/chain/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/context/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/disasm/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/enhance/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/hexdump/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/memory/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/message/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/syntax_highlight/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/telescope/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/color/theme/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/ai/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/argv/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/aslr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/asm/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/attachp/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/auxv/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/binder/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/binja/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/binja_functions/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/branch/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/buddydump/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/canary/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/checksec/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/comments/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/config/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/context/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/cpsr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/cyclic/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/cymbol/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/dev/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/distance/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/dt/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/dumpargs/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/elf/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/flags/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/gdt/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/ghidra/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/godbg/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/got/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/got_tracking/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/hex2ptr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/hexdump/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/hijack_fd/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/ida/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/ignore/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/integration/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/ipython_interactive/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/jemalloc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/kbase/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/kchecksec/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/kcmdline/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/kconfig/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/killthreads/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/klookup/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/knft/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/kversion/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/leakfind/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/libcinfo/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/linkmap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/memoize/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/misc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/mmap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/mprotect/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/msr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/nearpc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/next/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/onegadget/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/p2p/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/patch/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/peda/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/pie/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/plist/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/probeleak/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/procinfo/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/profiler/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/ptmalloc2/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/ptmalloc2_tracking/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/radare2/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/reload/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/retaddr/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/rizin/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/rop/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/ropper/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/saved_register_frames/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/search/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/segments/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/sigreturn/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/slab/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/spray/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/start/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/strings/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/telescope/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/tips/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/tls/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/valist/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/version/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/vmmap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/windbg/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/xinfo/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/xor/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/gdb/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/gdb/debug_sym/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/gdb/symbol/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/lldb/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/lldb/hooks/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/lldb/pset/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/lldb/repl/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/lldb/repl/io/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/lldb/repl/proc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/lldb/repl/readline/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/dbg/lldb/util/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/decorators/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/emu/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/emu/emulator/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/enhance/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/exception/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/bpoint/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/config/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/events/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/functions/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/got/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/hooks/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/info/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/prompt/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/ptmalloc2_tracking/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/scheduler/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/shellcode/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/symbol/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/tui/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/tui/context/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/tui/control/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/gdblib/vmmap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/ghidra/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/glibc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/hexdump/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/integration/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/integration/binja/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/integration/ida/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/abi/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/android/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/arch/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/cache/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/common/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/config/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/disasm/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/disasm/helpers/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/elftypes/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/exception/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/funcparser/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/functions/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/functions_data/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/gcc/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/heap/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/heap/helpers/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/kernel/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/kernel/kconfig/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/kernel/structs/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/memory/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/net/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/regs/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/stdio/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/strings/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/tempfile/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/tips/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/version/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/lib/which/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/log/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/profiling/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/radare2/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/rizin/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/search/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/ui/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/wrappers/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/wrappers/checksec/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/wrappers/readelf/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/blog/archive/2022/</loc>
-         <lastmod>2025-05-28</lastmod>
+         <lastmod>2025-05-29</lastmod>
     </url>
 </urlset>
