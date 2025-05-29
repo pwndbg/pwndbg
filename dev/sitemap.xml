@@ -833,39 +833,43 @@
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/binja-integration/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/env-vars/</loc>
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/env-vars/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/gdb-lldb-commands/</loc>
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/gdb-lldb-commands/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/gdb-tui/</loc>
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/gdb-tui/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/go-debugging/</loc>
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/ghidra-integration/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/pwndbg-users/</loc>
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/go-debugging/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/pycharm-debugging/</loc>
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/pwndbg-users/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/splitting-the-context/</loc>
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/pycharm-debugging/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/decompiler-integration/binja-integration/</loc>
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/pwndbg/latest/misc/splitting-the-context/</loc>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/decompiler-integration/ghidra-integration/</loc>
+         <lastmod>2025-05-29</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/decompiler-integration/ida-integration/</loc>
          <lastmod>2025-05-29</lastmod>
     </url>
     <url>
