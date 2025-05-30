@@ -8,8 +8,8 @@ usage: profiler [-h] {start,stop} ...
 
 Utilities for profiling Pwndbg.
 
-Check out the ./profiling folder for other useful utilities.
-Use ./profiling/print_stats.py to generate a report from a .pstats file.
+Check out the `./profiling` folder for other useful utilities.
+Use `./profiling/print_stats.py` to generate a report from a `.pstats` file.
 ### Positional arguments
 
 |Positional Argument|Help|
