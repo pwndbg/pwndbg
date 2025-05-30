@@ -38,7 +38,7 @@ gdb_workaround_stop_event = config.add_param(
     DISABLED,
     "asynchronous stop events to improve 'commands' functionality",
     help_docstring=f"""
-Note that this may cause unexpected behavior with pwndbg or gdb.execute.
+Note that this may cause unexpected behavior with Pwndbg or gdb.execute.
 
 Values explained:
 
@@ -97,6 +97,7 @@ class StartEvent:
 
 
 gdb.events.start = StartEvent()
+gdb.events.suspend_all = object()
 
 
 def _is_safe_event_packet():
@@ -283,7 +284,7 @@ def connect(
 
     @wraps(func)
     def caller(*a: P.args, **kw: P.kwargs) -> None:
-        if paused[event_handler]:
+        if paused[event_handler] or paused[gdb.events.suspend_all]:
             return None
 
         if debug:

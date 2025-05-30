@@ -24,7 +24,7 @@ X86_MSRS = {
 }
 
 
-COMMON_MSRS = {"x86": X86_MSRS, "x86-64": X86_MSRS}
+COMMON_MSRS = {"i386": X86_MSRS, "x86-64": X86_MSRS}
 
 
 def parse_msr(msr: str, arch: str) -> Optional[int]:
@@ -82,7 +82,7 @@ def x86_msr_write(msr: int, write_value: int) -> None:
 def msr_read(msr: int) -> None:
     arch = pwndbg.aglib.arch.name
 
-    if arch == "x86" or arch == "x86-64":
+    if arch == "i386" or arch == "x86-64":
         x86_msr_read(msr)
     else:
         print(f"{arch} not supported")
@@ -91,7 +91,7 @@ def msr_read(msr: int) -> None:
 def msr_write(msr: int, write_value: int) -> None:
     arch = pwndbg.aglib.arch.name
 
-    if arch == "x86" or arch == "x86-64":
+    if arch == "i386" or arch == "x86-64":
         x86_msr_write(msr, write_value)
     else:
         print(f"{arch} not supported")

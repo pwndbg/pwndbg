@@ -7,6 +7,8 @@ description: >
   Report of the two coding sprints with Pwndbg
 ---
 
+(originally posted on https://disconnect3d.pl/2022/08/21/pwndbg-coding-sprints/)
+
 This blog post is a report of the two coding sprints for the [Pwndbg project](https://github.com/pwndbg/pwndbg) that I organized first on the EuroPython 2022 conference and then, taking inspiration from the previous one, in the Hackerspace Kraków, located in Cracow, Poland.
 
 PS: If you are only looking for a list of things done, scroll down!

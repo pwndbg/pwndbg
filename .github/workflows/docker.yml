@@ -1,4 +1,4 @@
-name: Docker build
+name: Test Docker
 on:
   pull_request:
     paths:

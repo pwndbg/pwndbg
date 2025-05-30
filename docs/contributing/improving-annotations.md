@@ -1,6 +1,6 @@
 # Improving Annotations
 
-Alongside the disassembled instructions in the dashboard, pwndbg also has the ability to display annotations - text that contains relevent information regarding the execution of the instruction. For example, on the x86 `MOV` instruction, we can display the concrete value that gets placed into the destination register. Likewise, we can indicate the results of mathematical operations and memory accesses. The annotation in question is always dependent on the exact instruction being annotated - we handle it in a case-by-case basis.
+Alongside the disassembled instructions in the dashboard, Pwndbg also has the ability to display annotations - text that contains relevent information regarding the execution of the instruction. For example, on the x86 `MOV` instruction, we can display the concrete value that gets placed into the destination register. Likewise, we can indicate the results of mathematical operations and memory accesses. The annotation in question is always dependent on the exact instruction being annotated - we handle it in a case-by-case basis.
 
 The main hurdle in providing annotations is determining what each instruction does, getting the relevent CPU registers and memory that are accessed, and then resolving concrete values of the operands. We call the process of determining this information "enhancement", as we enhance the information provided natively by GDB.
 
@@ -166,7 +166,7 @@ Go to [pwndbg/emu/emulator.py](https://github.com/pwndbg/pwndbg/tree/dev/pwndbg/
 
 Potential bugs:
 
-- A register is 0 (may also be the source of a Unicorn segfault if used as a memory operand) - often means we are not copying the host processes register into the emulator. By default, we map register by name - if in pwndbg, it's called `rax`, then we find the UC constant named `U.x86_const.UC_X86_REG_RAX`. Sometimes, this default mapping doesn't work, sometimes do to differences in underscores (`FSBASE` vs `FS_BASE`). In these cases, we have to manually add the mapping.
+- A register is 0 (may also be the source of a Unicorn segfault if used as a memory operand) - often means we are not copying the host processes register into the emulator. By default, we map register by name - if in Pwndbg, it's called `rax`, then we find the UC constant named `U.x86_const.UC_X86_REG_RAX`. Sometimes, this default mapping doesn't work, sometimes do to differences in underscores (`FSBASE` vs `FS_BASE`). In these cases, we have to manually add the mapping.
 - Unexpected crash - the instruction at hand might require a 'coprocessor', or some information that is unavailable to Unicorn (it's QEMU under the hood).
 - Instructions are just no executing - we've seen this in the case of Arm Thumb instructions. There might be some specific API/way to invoke the emulator that is required for a certain processor state.
 

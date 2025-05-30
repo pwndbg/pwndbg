@@ -7,7 +7,7 @@ usage: themefile [-h] [--show-all]
 
 ```
 
-Generates a configuration file for the current pwndbg theme options.
+Generates a configuration file for the current Pwndbg theme options.
 ### Optional arguments
 
 |Short|Long|Help|

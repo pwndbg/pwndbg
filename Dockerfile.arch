@@ -27,6 +27,10 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     pacman -S --noconfirm vim && \
     pacman -Scc --noconfirm
 
+# setup.sh needs scripts/common.sh
+RUN mkdir scripts
+ADD ./scripts/common.sh /pwndbg/scripts/
+
 ADD ./setup.sh /pwndbg/
 ADD ./uv.lock /pwndbg/
 ADD ./pyproject.toml /pwndbg/

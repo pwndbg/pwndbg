@@ -13,6 +13,7 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
+from pwndbg.color.message import off
 from pwndbg.color.message import on
 
 c = ColorConfig(
@@ -41,8 +42,10 @@ def one_instruction(ins: PwndbgInstruction) -> str:
     # If we know the conditional is taken, mark it as taken.
     if ins.condition == InstructionCondition.TRUE or ins.is_conditional_jump_taken:
         asm = on("✔ ") + asm
+    elif ins.condition == InstructionCondition.FALSE:
+        asm = off("✘ ") + asm
     else:
-        asm = "  " + asm
+        asm = f"  {asm}"
 
     return asm
 

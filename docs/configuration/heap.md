@@ -13,6 +13,9 @@ Glibc version for heap heuristics resolution (e.g. 2.31).
 
 
 **Default:** ''  
+
+----------
+
 ## **global-max-fast**
 
 
@@ -21,6 +24,9 @@ The address of global_max_fast.
 
 
 **Default:** '0'  
+
+----------
+
 ## **heap-corruption-check-limit**
 
 
@@ -29,6 +35,9 @@ Amount of chunks to traverse for the bin corruption check.
 The bins are traversed both forwards and backwards.
 
 **Default:** 64  
+
+----------
+
 ## **heap-dereference-limit**
 
 
@@ -37,6 +46,9 @@ Number of chunks to dereference in each bin.
 
 
 **Default:** 8  
+
+----------
+
 ## **main-arena**
 
 
@@ -45,6 +57,9 @@ The address of main_arena.
 
 
 **Default:** '0'  
+
+----------
+
 ## **mp**
 
 
@@ -53,6 +68,9 @@ The address of mp_.
 
 
 **Default:** '0'  
+
+----------
+
 ## **resolve-heap-via-heuristic**
 
 === "GDB"
@@ -61,16 +79,16 @@ The address of mp_.
 
     Values explained:
 
-    + `auto` - pwndbg will try to use heuristics if debug symbols are missing
-    + `force` - pwndbg will always try to use heuristics, even if debug symbols are available
-    + `never` - pwndbg will never use heuristics to resolve the heap
+    + `auto` - Pwndbg will try to use heuristics if debug symbols are missing
+    + `force` - Pwndbg will always try to use heuristics, even if debug symbols are available
+    + `never` - Pwndbg will never use heuristics to resolve the heap
 
     If the output of the heap related command produces errors with heuristics, you
     can try manually setting the libc symbol addresses.
     For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
     `global_max_fast`, `tcache` and `thread_arena` addresses.
 
-    Note: pwndbg will generate more reliable results with proper debug symbols.
+    Note: Pwndbg will generate more reliable results with proper debug symbols.
     Therefore, when debug symbols are missing, you should try to install them first
     if you haven't already.
 
@@ -112,16 +130,16 @@ The address of mp_.
 
     Values explained:
 
-    + `auto` - pwndbg will try to use heuristics if debug symbols are missing
-    + `force` - pwndbg will always try to use heuristics, even if debug symbols are available
-    + `never` - pwndbg will never use heuristics to resolve the heap
+    + `auto` - Pwndbg will try to use heuristics if debug symbols are missing
+    + `force` - Pwndbg will always try to use heuristics, even if debug symbols are available
+    + `never` - Pwndbg will never use heuristics to resolve the heap
 
     If the output of the heap related command produces errors with heuristics, you
     can try manually setting the libc symbol addresses.
     For this, see the `heap_config` command output and set the `main_arena`, `mp_`,
     `global_max_fast`, `tcache` and `thread_arena` addresses.
 
-    Note: pwndbg will generate more reliable results with proper debug symbols.
+    Note: Pwndbg will generate more reliable results with proper debug symbols.
     Therefore, when debug symbols are missing, you should try to install them first
     if you haven't already.
 
@@ -143,6 +161,7 @@ The address of mp_.
 
     **Default:** 'auto'  
     **Valid values:** 'auto', 'force', 'never'
+
 ----------
 
 ## **tcache**
@@ -153,6 +172,9 @@ The address pointed by tcache.
 
 
 **Default:** '0'  
+
+----------
+
 ## **thread-arena**
 
 
@@ -161,3 +183,5 @@ The address pointed by thread_arena.
 
 
 **Default:** '0'  
+
+----------

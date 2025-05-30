@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+source "$(dirname "$0")/scripts/common.sh"
+
 # If we are a root in a container and `sudo` doesn't exist
 # lets overwrite it with a function that just executes things passed to sudo
 # (yeah it won't work for sudo executed with flags)
@@ -206,20 +208,20 @@ if [[ -z "$is_supported" ]]; then
     exit 4
 fi
 
-# Create the Python virtual environment and install dependencies using uv
-if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
-    PWNDBG_VENV_PATH="./.venv"
-fi
+# Create the python virtual environment
+# We don't care about PWNDBG_PLEASE_SKIP_VENV here.
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
-
 ${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
+
+# Activate venv
 source ${PWNDBG_VENV_PATH}/bin/activate
 
-# Install uv
+# Install uv inside the venv
 pip install uv
 
 # Install dependencies
-uv sync --extra gdb
+echo "Installing dependancies.."
+uv sync --extra gdb --extra lldb --quiet
 
 if [ -z "$UPDATE_MODE" ]; then
     if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then
@@ -229,5 +231,6 @@ if [ -z "$UPDATE_MODE" ]; then
         echo "source $PWD/gdbinit.py" >> ~/.gdbinit
         echo "[*] Added 'source $PWD/gdbinit.py' to ~/.gdbinit so that Pwndbg will be loaded on every launch of GDB."
     fi
-    echo "Please set the PWNDBG_NO_AUTOUPDATE environment variable to any value to disable the automatic updating of dependencies when Pwndbg is loaded."
+    echo "Please set the PWNDBG_NO_AUTOUPDATE environment variable to any value"
+    echo "to disable the automatic updating of dependencies when Pwndbg is loaded."
 fi

@@ -1221,7 +1221,7 @@ def try_free(addr: str | int) -> None:
     # check hook
     free_hook = pwndbg.aglib.symbol.lookup_symbol_addr("__free_hook")
     if free_hook is not None:
-        if pwndbg.aglib.memory.pvoid(free_hook) != 0:
+        if pwndbg.aglib.memory.read_pointer_width(free_hook) != 0:
             print(message.success("__libc_free: will execute __free_hook"))
 
     # free(0) has no effect
@@ -1341,7 +1341,7 @@ def try_free(addr: str | int) -> None:
             print(message.notice("Tcache checks"))
             e = addr + 2 * size_sz
             e += allocator.tcache_entry.keys().index("key") * ptr_size
-            e = pwndbg.aglib.memory.pvoid(e)
+            e = pwndbg.aglib.memory.read_pointer_width(e)
             tcache_addr = int(allocator.thread_cache.address)
             if e == tcache_addr:
                 # todo, actually do checks

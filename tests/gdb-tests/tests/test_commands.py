@@ -14,8 +14,15 @@ BINARY = tests.binaries.get("heap_bins.out")
 disallowed_commands = {
     # requires user input
     "ipi",
-    # takes too long
+    # Already tested by other tests & takes too long
+    "pc",
+    "nextcall",
+    "nextjump",
     "nextproginstr",
+    "nextret",
+    "nextsyscall",
+    "stepret",
+    "stepsyscall",
 }
 
 filtered_commands = command_names - disallowed_commands

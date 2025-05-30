@@ -5,10 +5,11 @@
 nav:
   - index.md
   - setup.md
+  - features.md
   - commands
   - functions
   - configuration
   - contributing
-  - misc
+  - tutorials
   - reference
   - blog

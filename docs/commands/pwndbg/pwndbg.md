@@ -6,7 +6,7 @@ usage: pwndbg [-h] [-c CATEGORY_ | --list-categories] [filter_pattern]
 
 ```
 
-Prints out a list of all pwndbg commands.
+Prints out a list of all Pwndbg commands.
 ### Positional arguments
 
 |Positional Argument|Help|

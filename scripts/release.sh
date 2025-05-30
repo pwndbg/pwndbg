@@ -2,6 +2,8 @@
 
 set -ex
 
+source "$(dirname "$0")/common.sh"
+
 OLD_VER="$1"
 NEW_VER="$2"
 
@@ -30,4 +32,4 @@ portable_sed_replace $OLD_VER $NEW_VER ./docs/setup.md
 portable_sed_replace $OLD_VER $NEW_VER ./docs/install.sh
 
 # Rebuild uv.lock file after version change
-uv lock
+$UV lock

@@ -57,7 +57,7 @@ class CommandCategory(str, Enum):
     KERNEL = "Kernel"
     INTEGRATIONS = "Integrations"
     WINDBG = "WinDbg"
-    PWNDBG = "pwndbg"
+    PWNDBG = "Pwndbg"
     SHELL = "Shell"
     DEV = "Developer"
 

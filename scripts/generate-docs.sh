@@ -1,4 +1,8 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
+source "$(dirname "$0")/common.sh"
+
+cd $PWNDBG_ABS_PATH
 
 # Extract the documentation.
 echo "Extracting docs.."

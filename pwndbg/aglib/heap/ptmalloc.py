@@ -1570,10 +1570,10 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
                 "thread_arena", prefer_static=True
             )
             if thread_arena_addr:
-                thread_arena_value = pwndbg.aglib.memory.pvoid(thread_arena_addr)
+                thread_arena_value = pwndbg.aglib.memory.read_pointer_width(thread_arena_addr)
                 # thread_arena might be NULL if the thread doesn't allocate arena yet
                 if thread_arena_value:
-                    return Arena(pwndbg.aglib.memory.pvoid(thread_arena_addr))
+                    return Arena(pwndbg.aglib.memory.read_pointer_width(thread_arena_addr))
             return None
         else:
             return self.main_arena
@@ -1585,7 +1585,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         """
         if self.has_tcache():
             if self.multithreaded:
-                tcache_addr = pwndbg.aglib.memory.pvoid(
+                tcache_addr = pwndbg.aglib.memory.read_pointer_width(
                     pwndbg.aglib.symbol.lookup_symbol_addr("tcache", prefer_static=True)
                 )
                 if tcache_addr == 0:
@@ -1925,7 +1925,7 @@ class HeuristicHeap(
                 and offset % pwndbg.aglib.arch.ptrsize == 0
                 and pwndbg.aglib.memory.is_readable_address(offset + tls_address)
             ):
-                guess = pwndbg.aglib.memory.pvoid(offset + tls_address)
+                guess = pwndbg.aglib.memory.read_pointer_width(offset + tls_address)
                 if validator(guess):
                     return guess, offset + tls_address
         return None
@@ -1947,7 +1947,7 @@ class HeuristicHeap(
             for addr in search_range:
                 if pwndbg.aglib.memory.is_readable_address(addr):
                     reading = True
-                    guess = pwndbg.aglib.memory.pvoid(addr)
+                    guess = pwndbg.aglib.memory.read_pointer_width(addr)
                     if validator(guess):
                         return guess, addr
                 elif reading:
@@ -1961,7 +1961,7 @@ class HeuristicHeap(
             "thread_arena", prefer_static=True
         )
         if thread_arena_via_symbol:
-            thread_arena_value = pwndbg.aglib.memory.pvoid(thread_arena_via_symbol)
+            thread_arena_value = pwndbg.aglib.memory.read_pointer_width(thread_arena_via_symbol)
             return Arena(thread_arena_value) if thread_arena_value else None
         thread_arena_via_config = int(str(pwndbg.config.thread_arena), 0)
         if thread_arena_via_config:
@@ -2034,7 +2034,9 @@ class HeuristicHeap(
             self._thread_cache = tps(thread_cache_via_config)
             return self._thread_cache
         elif thread_cache_via_symbol:
-            thread_cache_struct_addr = pwndbg.aglib.memory.pvoid(thread_cache_via_symbol)
+            thread_cache_struct_addr = pwndbg.aglib.memory.read_pointer_width(
+                thread_cache_via_symbol
+            )
             if thread_cache_struct_addr:
                 self._thread_cache = tps(int(thread_cache_struct_addr))
                 return self._thread_cache

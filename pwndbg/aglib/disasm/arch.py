@@ -27,6 +27,7 @@ from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 # Emulator currently requires GDB, and we only use it here for type checking.
@@ -512,11 +513,7 @@ class DisassemblyAssistant:
                 page = pwndbg.aglib.vmmap.find(address)
                 if page and not page.write:
                     try:
-                        address = int(
-                            pwndbg.aglib.memory.get_typed_pointer_value(
-                                pwndbg.aglib.typeinfo.ppvoid, address
-                            )
-                        )
+                        address = pwndbg.aglib.memory.read_pointer_width(address)
                         address &= pwndbg.aglib.arch.ptrmask
                         address_list.append(address)
                     except pwndbg.dbg_mod.Error:
@@ -694,6 +691,20 @@ class DisassemblyAssistant:
         if instruction.has_jump_target and instruction.target >= 0:
             # Only bother doing the symbol lookup if this is a jump
             instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
+
+        # Now that we have determined the target, if it was a conditional branch,
+        # go back and correct the instruction condition to reflect the branch decision of the emulator
+        # in case we didn't manually determine the condition.
+        if (
+            jump_emu
+            and instruction.condition == InstructionCondition.UNDETERMINED
+            and instruction.is_conditional_jump
+        ):
+            # At this point we know the emulator was used to determine
+            # the conditional branch
+            instruction.condition = boolean_to_instruction_condition(
+                instruction.is_conditional_jump_taken
+            )
 
         if (
             instruction.operands

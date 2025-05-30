@@ -8,7 +8,15 @@ import pwndbg.color.message as MessageColor
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
-parser = argparse.ArgumentParser(description="Dump internal PwndbgInstruction attributes.")
+parser = argparse.ArgumentParser(
+    description="""
+Dump internal PwndbgInstruction attributes.
+
+Useful for debugging the disassembly and annotation subsystems
+in Pwndbg. See https://pwndbg.re/pwndbg/dev/contributing/improving-annotations/#bug-root-cause
+for more information.
+"""
+)
 
 # We don't have a parser to pass in true/false in arguments, so there are two args to force the enabling/disabling of emulation
 parser.add_argument(

@@ -7,6 +7,10 @@ usage: dev-dump-instruction [-h] [-e] [-n] [address]
 ```
 
 Dump internal PwndbgInstruction attributes.
+
+Useful for debugging the disassembly and annotation subsystems
+in Pwndbg. See https://pwndbg.re/pwndbg/dev/contributing/improving-annotations/#bug-root-cause
+for more information.
 ### Positional arguments
 
 |Positional Argument|Help|
