@@ -244,7 +244,7 @@ def physmap_base() -> int:
         if result is not None:
             return result
     if guess_physmap:
-        result = pwndbg.aglib.vmmap.physmap_base()
+        result = pwndbg.aglib.vmmap.guess_physmap_base()
         if result is not None:
             return result
         print(M.warn("physmap base cannot be guessed, resort to default"))

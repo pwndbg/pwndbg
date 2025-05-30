@@ -43,7 +43,7 @@ def find(address: int | pwndbg.dbg_mod.Value | None) -> pwndbg.lib.memory.Page |
     return pwndbg.aglib.vmmap_custom.explore(address)
 
 
-def physmap_base() -> int | None:
+def guess_physmap_base() -> int | None:
     # this is mostly true
     # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
     for page in get():
