@@ -83,7 +83,7 @@ def pagewalk(vaddr, entry=None):
             print(M.warn(f"Exception {e} while page walking"))
             entry = 0
         if entry == 0:
-            print(M.warn("page is not mapped"))
+            print(M.warn("address is not mapped"))
             return
     virtual = base + (entry & entry_mask) + offset
     print(f"pagewalk result: {C.green(hex(virtual))} [phys: {C.yellow(hex(virtual - base))}]")
