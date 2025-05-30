@@ -12,17 +12,20 @@ from typing import TypeVar
 
 from typing_extensions import ParamSpec
 
+import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
+import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
+from pwndbg import config
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
 
@@ -228,6 +231,30 @@ def kbase() -> int | None:
     return None
 
 
+guess_physmap = config.add_param(
+    "guess-physmap",
+    False,
+    "Should guess physmap base address when debug symbols are not present",
+)
+
+
+def physmap_base() -> int:
+    if has_debug_syms():
+        result = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
+        if result is not None:
+            return result
+    if guess_physmap:
+        result = pwndbg.aglib.vmmap.physmap_base()
+        if result is not None:
+            return result
+        print(M.warn("physmap base cannot be guessed, resort to default"))
+    else:
+        print(M.warn("guess-physmap is set to false, not guessing physmap address"))
+    if pwndbg.aglib.kernel.uses_5lvl_paging():
+        return 0xFF11000000000000
+    return 0xFFFF888000000000
+
+
 def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.
@@ -289,6 +316,10 @@ class ArchOps(ABC):
     def page_to_pfn(self, page: int) -> int:
         raise NotImplementedError()
 
+    @staticmethod
+    def uses_5lvl_paging() -> bool:
+        raise NotImplementedError()
+
     @property
     def page_offset(self) -> int:
         raise NotImplementedError()
@@ -341,6 +372,10 @@ class x86Ops(ArchOps):
     @property
     @abstractmethod
     def page_offset(self) -> int:
+        raise NotImplementedError()
+
+    @staticmethod
+    def uses_5lvl_paging() -> bool:
         raise NotImplementedError()
 
     @staticmethod
@@ -399,7 +434,7 @@ class x86_64Ops(x86Ops):
 
         if pwndbg.aglib.kernel.has_debug_syms():
             # if there are debug symbols
-            self._PAGE_OFFSET = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
+            self._PAGE_OFFSET = pwndbg.aglib.kernel.physmap_base()
             self.VMEMMAP_START = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
             if self._PAGE_OFFSET is not None and self.VMEMMAP_START is not None:
                 return
@@ -703,6 +738,14 @@ def paging_enabled() -> bool:
         # page 41, satp.MODE, bits: 60,61,62,63
         # "When satp.MODE=0x0, supervisor virtual addresses are equal to supervisor physical addresses"
         return int(pwndbg.aglib.regs.satp) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
+    else:
+        raise NotImplementedError()
+
+
+def uses_5lvl_paging() -> bool:
+    ops = arch_ops()
+    if ops:
+        return ops.uses_5lvl_paging()
     else:
         raise NotImplementedError()
 

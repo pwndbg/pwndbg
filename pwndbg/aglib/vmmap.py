@@ -41,3 +41,12 @@ def find(address: int | pwndbg.dbg_mod.Value | None) -> pwndbg.lib.memory.Page |
         return page
 
     return pwndbg.aglib.vmmap_custom.explore(address)
+
+
+def physmap_base() -> int | None:
+    # this is mostly true
+    # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
+    for page in get():
+        if page.start & (1 << 63) > 0:
+            return page.start
+    return None
