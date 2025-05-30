@@ -1,6 +1,8 @@
 """
-Allows describing functions, specifically enumerating arguments which
-may be passed in a combination of registers and stack values.
+Function and syscall argument formatting.
+
+Enumerates arguments which may be passed in a combination of
+registers and stack values.
 """
 
 from __future__ import annotations

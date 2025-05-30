@@ -1,6 +1,7 @@
 """
-Given an address in memory which does not contain a pointer elsewhere
-into memory, attempt to describe the data as best as possible.
+Attempt to describe the data at a memory address as best as possible.
+
+Only when the data is not a pointer.
 
 Currently prints out code, integers, or strings, in a best-effort manner
 dependent on page permissions, the contents of the data, and any

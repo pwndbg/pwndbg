@@ -1,3 +1,7 @@
+"""
+Dereference and format pointer chains.
+"""
+
 from __future__ import annotations
 
 from typing import List

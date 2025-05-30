@@ -1,3 +1,9 @@
+"""
+Pwndbg command implementations.
+
+As well as various command-handling logic.
+"""
+
 from __future__ import annotations
 
 import argparse

@@ -1,3 +1,10 @@
+"""
+Performs handling of the linux auxiliary vector.
+
+https://www.man7.org/linux/man-pages/man3/getauxval.3.html
+https://lwn.net/Articles/519085/
+"""
+
 from __future__ import annotations
 
 import re

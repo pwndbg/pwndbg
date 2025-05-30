@@ -1,3 +1,7 @@
+"""
+Radare2 integration with r2pipe.
+"""
+
 from __future__ import annotations
 
 import pwndbg.aglib.elf
