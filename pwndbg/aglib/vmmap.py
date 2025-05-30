@@ -77,3 +77,12 @@ def find_kbase(pages) -> int | None:
 def kbase():
     pages = get()
     return find_kbase(pages)
+
+
+def guess_physmap_base() -> int | None:
+    # this is mostly true
+    # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
+    for page in get():
+        if page.start & (1 << 63) > 0:
+            return page.start
+    return None
