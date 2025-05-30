@@ -157,3 +157,24 @@ Pwndbg enhances the standard memory map listing and allows easy searching with [
 
 ![](assets/caps/vmmap.png){ style="width: 70%;" }
 ![](assets/caps/vmmap_rip.png){ style="width: 70%;" }
+
+### Tracking glibc heap allocations
+It can be very useful to see allocations happening in real time. It can give us a good idea of what the allocation pattern of a program looks like, and allows us to make informed decisions on how to optimize or attack it. The [`track-heap`](commands/linux_libc_elf/track-heap.md) command does just that.
+
+<video style="width: 80%;" autoplay loop muted playsinline alt="track-heap example">
+  <source src="../assets/videos/track-heap.webm" type="video/webm">
+  <source src="../assets/videos/track-heap.mp4" type="video/mp4">
+</video>
+
+### Tracking the GOT
+The Procedure Linkage Table (PLT) and Global Offset Table (GOT) are very interesting exploitation targets since they contain many often-accessed function pointers. You can track how your program goes through the GOT using the [`track-got`](commands/linux_libc_elf/track-got.md) command.
+
+<video autoplay loop muted playsinline alt="track-got example">
+  <source src="../assets/videos/track-got.webm" type="video/webm">
+  <source src="../assets/videos/track-got.mp4" type="video/mp4">
+</video>
+
+### Attach to a process by name
+The days of running pidof in a different terminal are over. Use [`attachp`](commands/start/attachp.md) to attach to any process by name, pid, arguments or device file!
+
+![](assets/caps/attachp.png){ style="width: 70%;" }
