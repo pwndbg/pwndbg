@@ -1236,7 +1236,7 @@ wheels = [
 
 [[package]]
 name = "pwndbg"
-version = "2025.5.28"
+version = "2025.5.30"
 source = { editable = "." }
 dependencies = [
     { name = "capstone" },

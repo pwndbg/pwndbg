@@ -26,19 +26,19 @@ When installing with GDB, you may also download a package to install through you
 
 RPM-based Systems (CentOS/Alma/Rocky/RHEL):
 ```{.bash .copy}
-dnf install ./pwndbg-2025.05.28.x86_64.rpm
+dnf install ./pwndbg-2025.05.30.x86_64.rpm
 ```
 DEB-based Systems (Debian/Ubuntu/Kali):
 ```{.bash .copy}
-apt install ./pwndbg_2025.05.28_amd64.deb
+apt install ./pwndbg_2025.05.30_amd64.deb
 ```
 Alpine:
 ```{.bash .copy}
-apk add --allow-untrusted ./pwndbg_2025.05.28_x86_64.apk
+apk add --allow-untrusted ./pwndbg_2025.05.30_x86_64.apk
 ```
 Arch Linux:
 ```{.bash .copy}
-pacman -U ./pwndbg-2025.05.28-1-x86_64.pkg.tar.zst
+pacman -U ./pwndbg-2025.05.30-1-x86_64.pkg.tar.zst
 ```
 
 ## Installing pwndbg-lldb
