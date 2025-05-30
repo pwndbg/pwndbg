@@ -5,21 +5,19 @@ set -o pipefail
 
 source "$(dirname "$0")/../../scripts/common.sh"
 
-ROOT_DIR="$(readlink -f ../../)"
+ROOT_DIR=$PWNDBG_ABS_PATH
 GDB_INIT_PATH="$ROOT_DIR/gdbinit.py"
 COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
 
-CWD=$(dirname -- "$0")
-IMAGE_DIR="${CWD}/images"
-VMLINUX_LIST=($(basename -a "${IMAGE_DIR}"/vmlinux*))
+VMLINUX_LIST=($(basename -a "${TESTING_KERNEL_IMAGES_DIR}"/vmlinux*))
 
-# Ensure we have images directory and directories inside
-if [ ! -d "$IMAGE_DIR" ]; then
-    echo "ERROR: The '$IMAGE_DIR' directory does not exist. Please run ./download_images.sh first"
+# Ensure we have kimages directory and directories inside
+if [ ! -d "$TESTING_KERNEL_IMAGES_DIR" ]; then
+    echo "ERROR: The '$TESTING_KERNEL_IMAGES_DIR' directory does not exist. Please run ./download-kernel-images.sh first"
     exit 1
 fi
 if [ "${VMLINUX_LIST}" = "vmlinux*" ]; then
-    echo "ERROR: The '$IMAGE_DIR' directory does not contain any kernel images. Please run ./download_images.sh first"
+    echo "ERROR: The '$TESTING_KERNEL_IMAGES_DIR' directory does not contain any kernel images. Please run ./download-kernel-images.sh first"
     exit 1
 fi
 
@@ -36,7 +34,7 @@ EOF
 fi
 
 help_and_exit() {
-    echo "Usage: ./tests.sh [-p|--pdb] [-c|--cov] [--nix] [--gdb-port=<port>] [-Q|--preserve-qemu-image] [<test-name-filter>]"
+    echo "Usage: ./system-tests.sh [-p|--pdb] [-c|--cov] [--nix] [--gdb-port=<port>] [-Q|--preserve-qemu-image] [<test-name-filter>]"
     echo "  -p,  --pdb                  enable pdb (Python debugger) post mortem debugger on failed tests"
     echo "  -c,  --cov                  enable codecov"
     echo "  -v,  --verbose              display all test output instead of just failing test output"
@@ -109,16 +107,16 @@ done
 
 # Test if the port is already listening, possibly by other qemu instance. This
 # can cause unexpected test failures.
-NETSTAT=$(which netstat)
+NETSTAT=$(which netstat 2> /dev/null)
 if [[ -z "${NETSTAT}" ]]; then
-    NETSTAT=$(which ss)
+    NETSTAT=$(which ss 2> /dev/null)
 fi
 if [[ -z "${NETSTAT}" ]]; then
-    echo "WARNING: netstat/ss not found. Cannot check if port ${GDB_PORT} is already bound." >&2
+    echo "ERROR: netstat/ss not found. Cannot check if port ${GDB_PORT} is already bound." >&2
     exit 1
 else
     if [[ $(${NETSTAT} -tuln 2> /dev/null | grep ":${GDB_PORT}" | grep -c LISTEN) -ne 0 ]]; then
-        echo "WARNING: Port ${GDB_PORT} appears already bound. Please specify a different port with --gdb-port=<port>" >&2
+        echo "ERROR: Port ${GDB_PORT} appears already bound. Please specify a different port with --gdb-port=<port>" >&2
         exit 1
     fi
 fi
@@ -170,7 +168,7 @@ init_gdb() {
     local kernel_version="$2"
     local arch="$3"
 
-    gdb_connect_qemu=(-ex "file ${IMAGE_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :${GDB_PORT}")
+    gdb_connect_qemu=(-ex "file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :${GDB_PORT}")
     # using 'rest_init' instead of 'start_kernel' to make sure that kernel
     # initialization has progressed sufficiently for testing purposes
     gdb_args=("${gdb_connect_qemu[@]}" -ex 'break *rest_init' -ex 'continue')
@@ -183,7 +181,7 @@ run_test() {
     local kernel_version="$3"
     local arch="$4"
 
-    gdb_connect_qemu=(-ex "file ${IMAGE_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :${GDB_PORT}")
+    gdb_connect_qemu=(-ex "file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :${GDB_PORT}")
     gdb_args=("${gdb_connect_qemu[@]}" --command ../pytests_launcher.py)
     if [ ${RUN_CODECOV} -ne 0 ]; then
         gdb_args=(-ex 'py import coverage;coverage.process_startup()' "${gdb_args[@]}")
@@ -247,7 +245,7 @@ test_system() {
 
     # NOTE: If you run simultaneous tests or left an image lying around via -Q, this
     # will hang due to failure to obtain lock. But will see the error message...
-    "${CWD}/run_qemu_system.sh" --kernel="${kernel_type}-${kernel_version}-${arch}" --gdb-port="${GDB_PORT}" -- "${qemu_args[@]}" > /dev/null &
+    "./run-qemu-system.sh" --kernel="${kernel_type}-${kernel_version}-${arch}" --gdb-port="${GDB_PORT}" -- "${qemu_args[@]}" > /dev/null &
     QEMU_PID=$!
     init_gdb "${kernel_type}" "${kernel_version}" "${arch}"
     start=$(date +%s)

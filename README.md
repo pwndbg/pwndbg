@@ -24,9 +24,9 @@ minimal information. The year is 2025, and core debuggers still lack many user-f
 features such as a robust hexdump command. Windbg users are completely lost when they
 occasionally need to bump into GDB or LLDB.
 
-Pwndbg is a Python module which is loaded directly into GDB or LLDB. It provides a suite
-of utilities and enhancements that fill the gaps left by these debuggers, smoothing out
-rough edges and making them more user-friendly.
+Pwndbg is a Python module which can be loaded into GDB or run as a REPL interface for LLDB.
+It provides a suite of utilities and enhancements that fill the gaps left by these debuggers,
+smoothing out rough edges and making them more user-friendly.
 
 ## Installation
 
@@ -34,23 +34,20 @@ See [installation instructions](https://pwndbg.re/pwndbg/latest/setup).
 
 ## What about ...?
 
-Many other projects from the past (e.g., [gdbinit][gdbinit], [PEDA][PEDA]) and present
-(e.g. [GEF][GEF]) exist to fill some of these gaps. Each provides an excellent experience
-and great features -- but they're difficult to extend (some are unmaintained, and all
-are a single [100KB][gdbinit2], [200KB][peda.py], or [363KB][gef.py] file (respectively)).
-
-Pwndbg exists not only to replace all of its predecessors, but also to have a clean
-implementation that runs quickly and is resilient against all the weird corner cases
-that come up.
+Many past ([gdbinit][gdbinit], [PEDA][PEDA]) and present projects ([GEF][GEF],
+[bata24/GEF][bata24/GEF]) offer great features, but are hard to extend and are packaged
+as large single files ([103KB][gdbinit2], [195KB][peda.py], [423KB][gef.py],
+[4.12MB][bata24/gef.py]). Pwndbg aims to replace them with a faster, cleaner, and
+more robust implementation.
 
 [gdbinit]: https://github.com/gdbinit/Gdbinit
 [gdbinit2]: https://github.com/gdbinit/Gdbinit/blob/master/gdbinit
-
 [PEDA]: https://github.com/longld/peda
 [peda.py]: https://github.com/longld/peda/blob/master/peda.py
-
 [GEF]: https://github.com/hugsy/gef
-[gef.py]: https://github.com/hugsy/gef/blob/master/gef.py
+[gef.py]: https://github.com/hugsy/gef/blob/main/gef.py
+[bata24/GEF]: https://github.com/bata24/gef
+[bata24/gef.py]: https://github.com/bata24/gef/blob/dev/gef.py
 
 ## When to Use GDB or LLDB?
 

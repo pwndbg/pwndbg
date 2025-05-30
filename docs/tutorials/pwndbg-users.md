@@ -1,4 +1,4 @@
-# pwndbg in the wild
+# Pwndbg in the wild
 
 Here is a non-exhaustive list of Pwndbg mentions found in the wild. Feel free to open a PR to add more if you find them!
 

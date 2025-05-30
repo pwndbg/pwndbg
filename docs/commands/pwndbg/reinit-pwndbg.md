@@ -7,7 +7,7 @@ usage: reinit-pwndbg [-h]
 
 ```
 
-Makes pwndbg reinitialize all state.
+Makes Pwndbg reinitialize all state.
 ### Optional arguments
 
 |Short|Long|Help|

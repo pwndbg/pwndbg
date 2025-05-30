@@ -1,6 +1,7 @@
-# Debugging Go with pwndbg
+# Debugging Go with Pwndbg
 ## Basics
 The `go-dump` command can be used to dump Go values during debugging. It takes the form `go-dump type address_expression`, and supports many different types with the same syntax as Go:
+
 - Integer types: `int`, `int8`, `int16`, `int32`, `int64`, `int128`, and their `uint` counterparts
 - Misc types: `bool`, `rune`, `uintptr`, `string`
 - Floating point types: `float32`, `float64`

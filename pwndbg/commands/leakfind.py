@@ -65,7 +65,11 @@ and are a maximum length of 6.
 """,
 )
 parser.add_argument(
-    "address", nargs="?", default="$sp", help="Starting address to find a leak chain from"
+    "address",
+    type=pwndbg.commands.AddressExpr,
+    nargs="?",
+    default="$sp",
+    help="Starting address to find a leak chain from",
 )
 parser.add_argument(
     "-p",
@@ -119,17 +123,12 @@ def leakfind(
     negative_offset: int = 0x0,
 ):
     if address is None:
-        raise argparse.ArgumentTypeError("No starting address provided.")
-
-    address = int(address)
-
-    foundPages = pwndbg.aglib.vmmap.find(address)
-
-    if not foundPages:
-        raise argparse.ArgumentTypeError("Starting address is not mapped.")
+        print("No start address provided.")
+        return
 
     if not pwndbg.aglib.memory.peek(address):
-        raise argparse.ArgumentTypeError("Unable to read from starting address.")
+        print("Unable to read from starting address.")
+        return
 
     # Just warn the user that a large depth might be slow.
     # Probably worth checking offset^depth < threshold. Do this when more benchmarking is established.
@@ -143,9 +142,9 @@ def leakfind(
     # parent_start_address is an address that a previous address pointed to.
     # We need to store both so that we can nicely create our leak chain.
     visited_map = {}
-    visited_set = {int(address)}
+    visited_set = {address}
     address_queue: "queue.Queue[int]" = queue.Queue()
-    address_queue.put(int(address))
+    address_queue.put(address)
     depth = 0
     time_to_depth_increase = 0
 

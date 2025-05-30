@@ -6,7 +6,7 @@ usage: config [-h] [filter_pattern]
 
 ```
 
-Shows pwndbg-specific configuration.
+Shows Pwndbg-specific configuration.
 ### Positional arguments
 
 |Positional Argument|Help|

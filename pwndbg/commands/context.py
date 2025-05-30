@@ -157,7 +157,7 @@ config_clear_screen = pwndbg.config.add_param(
     "context-clear-screen", False, "whether to clear the screen before printing the context"
 )
 config_output = pwndbg.config.add_param(
-    "context-output", "stdout", 'where pwndbg should output ("stdout" or file/tty)'
+    "context-output", "stdout", 'where Pwndbg should output ("stdout" or file/tty)'
 )
 config_context_sections = pwndbg.config.add_param(
     "context-sections",
@@ -673,7 +673,14 @@ def context_ghidra(target=sys.stdout, with_banner=True, width=None):
 
 
 parser = argparse.ArgumentParser(
-    description="Print out the current register, instruction, and stack context."
+    description="""
+Print out the currently enabled context sections.
+
+This is the text that gets printed on every stop. It can be useful
+to run this command manually when you change some process/debugger
+state but don't want to step/continue (e.g. after using the `down`
+and `up` commands).
+"""
 )
 parser.add_argument(
     "subcontext",
@@ -698,7 +705,21 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, aliases=["ctx"], category=CommandCategory.CONTEXT)
+@pwndbg.commands.Command(
+    parser,
+    aliases=["ctx"],
+    category=CommandCategory.CONTEXT,
+    notes="""
+To see more commands related to context control run:
+```
+pwndbg -c context
+```
+To see context configuration run:
+```
+config context
+```
+""",
+)
 def context(subcontext=None, enabled=None) -> None:
     """
     Print out the current register, instruction, and stack context.

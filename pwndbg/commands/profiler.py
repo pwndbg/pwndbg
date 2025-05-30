@@ -9,7 +9,7 @@ import argparse
 import pwndbg.profiling
 from pwndbg.commands import CommandCategory
 
-parser = argparse.ArgumentParser(description="Utilities for profiling pwndbg.")
+parser = argparse.ArgumentParser(description="Utilities for profiling Pwndbg.")
 subparsers = parser.add_subparsers(dest="command")
 parser_start = subparsers.add_parser("start", prog="profiler start")
 parser_stop = subparsers.add_parser("stop", prog="profiler stop")

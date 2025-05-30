@@ -1,13 +1,13 @@
-# Ghidra Integration
+# Ghidra
 
 With the help of [radare2](https://github.com/radareorg/radare2) or [rizin](https://github.com/rizinorg/rizin) it is possible to show the decompiled source code of the ghidra decompiler.
 
 However, this comes with some prerequisites.
 
-* First: you have to have installed radare2 or rizin and it must be found by gdb (within path)
+* First: you have to have installed radare2 or rizin and it must be found by GDB (within path)
 * Second: you have to install the ghidra plugin for radare2
   [r2ghidra](https://github.com/radareorg/r2ghidra) or install the ghidra plugin for rizin [rz-ghidra](https://github.com/rizinorg/rz-ghidra)
-* Third: r2pipe has to be installed in the python-context gdb is using (or if you are using rizin, install rzpipe instead)
+* Third: r2pipe has to be installed in the python-context GDB is using (or if you are using rizin, install rzpipe instead)
 
 The decompiled source be shown as part of the context by adding `ghidra` to `set context-sections`
 or by calling `ctx-ghidra [function]` manually.

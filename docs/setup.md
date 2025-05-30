@@ -5,7 +5,7 @@ hide:
 
 # Setup
 
-There are multiple ways to install pwndbg, depending on whether you want to use it [with GDB](#installing-pwndbg-gdb), [with LLDB](#installing-pwndbg-lldb), use a [portable release](#download-the-portable-version), or install it [from source](#installing-from-source).
+There are multiple ways to install Pwndbg, depending on whether you want to use it [with GDB](#installing-pwndbg-gdb), [with LLDB](#installing-pwndbg-lldb), use a [portable release](#download-the-portable-version), or install it [from source](#installing-from-source).
 
 ## Installing pwndbg-gdb
 Install via curl/sh (Linux/macOS)
@@ -62,11 +62,11 @@ nix shell github:pwndbg/pwndbg#pwndbg-lldb
 ```
 
 ## Download the Portable Version
-You can download a portable release on the [pwndbg releases page](https://github.com/pwndbg/pwndbg/releases). There are seperate releases for GDB and LLDB. Use the first table to pick the appropriate download for your system architecture. You can then unpack the archive with:
+You can download a portable release on the [Pwndbg releases page](https://github.com/pwndbg/pwndbg/releases). There are seperate releases for GDB and LLDB. Use the first table to pick the appropriate download for your system architecture. You can then unpack the archive with:
 ```{.bash .copy}
 tar -v -xf <archive-name>
 ```
-And run pwndbg with
+And run Pwndbg with
 ```bash
 ./pwndbg/bin/pwndbg
 ```
@@ -77,4 +77,4 @@ or
 depending on which version you installed. You may add the appropriate file to your shell's PATH.
 
 ## Installing from source
-See [contributing/Installing pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section.
+See [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section.

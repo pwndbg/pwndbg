@@ -5,11 +5,11 @@
 !!! note
     This is written under the assumption you already know how to [run the tests](../contributing/index.md#running-tests).
 
-In pwndbg we have four types of tests: extensive x86_64 gdb tests, cross-architecture tests, linux kernel tests
+In Pwndbg we have four types of tests: extensive x86_64 GDB tests, cross-architecture tests, linux kernel tests
 and unit-tests. They are all located in subdirectories of [`./tests`](https://github.com/pwndbg/pwndbg/tree/dev/tests).
 
-The x86_64 tests encompass most of the pwndbg testing suite. If your tests do not belong in any of the other
-categories, they should go here. Since we do not yet perform testing on lldb, these are run from inside gdb
+The x86_64 tests encompass most of the Pwndbg testing suite. If your tests do not belong in any of the other
+categories, they should go here. Since we do not yet perform testing on LLDB, these are run from inside GDB
 and are located in the [`./tests/gdb-tests`](https://github.com/pwndbg/pwndbg/tree/dev/tests/gdb-tests/)
 directory. They can be run with `./tests.sh -t gdb` (this is the default option).
 
@@ -49,7 +49,7 @@ Each test is a Python function that runs inside of an isolated GDB session.
 Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning of each test,
 GDB will attach to a [`binary`](https://github.com/pwndbg/pwndbg/tree/dev/tests/gdb-tests/conftest.py)
 or connect to a [`QEMU instance`](https://github.com/pwndbg/pwndbg/tree/dev/tests/qemu-tests/conftest.py).
-Each test runs some commands and uses Python `assert` statements to verify correctness. We can access pwndbg
+Each test runs some commands and uses Python `assert` statements to verify correctness. We can access Pwndbg
 library code like `pwndbg.aglib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
 
 We can take a look at [`tests/gdb-tests/tests/test_symbol.py`](https://github.com/pwndbg/pwndbg/tree/dev/tests/gdb-tests/tests/test_symbol.py)

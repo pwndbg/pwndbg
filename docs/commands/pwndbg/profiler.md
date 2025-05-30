@@ -6,7 +6,7 @@ usage: profiler [-h] {start,stop} ...
 
 ```
 
-Utilities for profiling pwndbg.
+Utilities for profiling Pwndbg.
 ### Positional arguments
 
 |Positional Argument|Help|

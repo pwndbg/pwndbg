@@ -7,7 +7,7 @@ usage: reload [-h]
 
 ```
 
-Reload pwndbg.
+Reload Pwndbg.
 ### Optional arguments
 
 |Short|Long|Help|

@@ -76,7 +76,7 @@ def errno_(err) -> None:
     print(f"Errno {err}: {msg}")
 
 
-parser = argparse.ArgumentParser(description="Prints out a list of all pwndbg commands.")
+parser = argparse.ArgumentParser(description="Prints out a list of all Pwndbg commands.")
 
 cat_group = parser.add_mutually_exclusive_group()
 cat_group.add_argument(

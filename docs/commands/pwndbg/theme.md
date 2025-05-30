@@ -6,7 +6,7 @@ usage: theme [-h] [filter_pattern]
 
 ```
 
-Shows pwndbg-specific theme configuration.
+Shows Pwndbg-specific theme configuration.
 ### Positional arguments
 
 |Positional Argument|Help|

@@ -14,6 +14,9 @@ Anthropic API key.
 Defaults to ANTHROPIC_API_KEY environment variable if not set.
 
 **Default:** ''  
+
+----------
+
 ## **ai-history-size**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -23,6 +26,9 @@ Maximum number of questions and answers to keep in the prompt.
 
 
 **Default:** 3  
+
+----------
+
 ## **ai-max-tokens**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -32,6 +38,9 @@ The maximum number of tokens to return in the response.
 Useful when limiting verbosity or conserving resources. Set to a lower value to restrict output.
 
 **Default:** 100  
+
+----------
+
 ## **ai-model**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -41,6 +50,9 @@ The name of the large language model to query.
 Changing this affects the behavior, response quality, and cost (if applicable) of AI responses.
 
 **Default:** 'gpt-3.5-turbo'  
+
+----------
+
 ## **ai-ollama-endpoint**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -50,6 +62,9 @@ Ollama API endpoint.
 Defaults to OLLAMA_ENDPOINT environment variable if not set.
 
 **Default:** ''  
+
+----------
+
 ## **ai-openai-api-key**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -59,6 +74,9 @@ OpenAI API key.
 Will default to OPENAI_API_KEY environment variable if not set.
 
 **Default:** ''  
+
+----------
+
 ## **ai-show-usage**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -68,6 +86,9 @@ Whether to show how many tokens are used with each OpenAI API call.
 
 
 **Default:** off  
+
+----------
+
 ## **ai-stack-depth**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -77,6 +98,9 @@ Rows of stack context to include in the prompt for the ai command.
 
 
 **Default:** 16  
+
+----------
+
 ## **ai-temperature**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -86,6 +110,9 @@ The temperature specification for the LLM query.
 This controls the degree of randomness in the response.
 
 **Default:** 0  
+
+----------
+
 ## **attachp-resolution-method**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -96,6 +123,9 @@ How to determine the process to attach when multiple candidates exists.
 
 **Default:** 'ask'  
 **Valid values:** 'none', 'oldest', 'newest', 'ask'
+
+----------
+
 ## **auto-explore-auxv**
 
 
@@ -105,6 +135,9 @@ Stack exploration for AUXV information; it may be really slow.
 
 **Default:** 'warn'  
 **Valid values:** 'warn', 'yes', 'no'
+
+----------
+
 ## **auto-explore-pages**
 
 
@@ -114,6 +147,9 @@ This command can cause errors.
 
 **Default:** 'warn'  
 **Valid values:** 'yes', 'warn', 'no'
+
+----------
+
 ## **auto-explore-stack**
 
 
@@ -123,6 +159,9 @@ Stack exploration; it may be really slow.
 
 **Default:** 'warn'  
 **Valid values:** 'warn', 'yes', 'no'
+
+----------
+
 ## **auto-save-search**
 
 
@@ -131,6 +170,9 @@ Automatically pass --save to "search" command.
 
 
 **Default:** off  
+
+----------
+
 ## **bn-autosync**
 
 
@@ -139,6 +181,9 @@ Whether to automatically run bn-sync every step.
 
 
 **Default:** off  
+
+----------
+
 ## **bn-il-level**
 
 
@@ -148,6 +193,9 @@ The IL level to use when displaying Binary Ninja decompilation.
 
 **Default:** 'hlil'  
 **Valid values:** 'disasm', 'llil', 'mlil', 'hlil'
+
+----------
+
 ## **bn-rpc-host**
 
 
@@ -156,6 +204,9 @@ Binary Ninja XML-RPC server host.
 
 
 **Default:** '127.0.0.1'  
+
+----------
+
 ## **bn-rpc-port**
 
 
@@ -164,6 +215,9 @@ Binary Ninja XML-RPC server port.
 
 
 **Default:** 31337  
+
+----------
+
 ## **bn-timeout**
 
 
@@ -172,6 +226,9 @@ Time to wait for Binary Ninja XML-RPC, in seconds.
 
 
 **Default:** 2  
+
+----------
+
 ## **context-backtrace-lines**
 
 
@@ -180,6 +237,9 @@ Number of lines to print in the backtrace context.
 
 
 **Default:** 8  
+
+----------
+
 ## **context-clear-screen**
 
 
@@ -188,6 +248,9 @@ Whether to clear the screen before printing the context.
 
 
 **Default:** off  
+
+----------
+
 ## **context-code-lines**
 
 
@@ -196,6 +259,9 @@ Number of source code lines to print by the context command.
 
 
 **Default:** 10  
+
+----------
+
 ## **context-code-tabstop**
 
 
@@ -204,6 +270,9 @@ Number of spaces that a <tab> in the source code counts for.
 
 
 **Default:** 8  
+
+----------
+
 ## **context-disasm-lines**
 
 
@@ -212,6 +281,9 @@ Number of additional lines to print in the disasm context.
 
 
 **Default:** 10  
+
+----------
+
 ## **context-ghidra**
 
 
@@ -221,6 +293,9 @@ Doing this is slow and requires radare2/r2pipe or rizin/rzpipe.
 
 **Default:** 'never'  
 **Valid values:** 'always', 'never', 'if-no-source'
+
+----------
+
 ## **context-history-size**
 
 
@@ -229,6 +304,9 @@ Number of context history entries to store.
 
 
 **Default:** 50  
+
+----------
+
 ## **context-integration-decompile**
 
 
@@ -237,6 +315,9 @@ Whether context should fall back to decompilation with no source code.
 
 
 **Default:** on  
+
+----------
+
 ## **context-max-threads**
 
 
@@ -245,14 +326,20 @@ Maximum number of threads displayed by the context command.
 
 
 **Default:** 4  
+
+----------
+
 ## **context-output**
 
 
-Where pwndbg should output ("stdout" or file/tty).
+Where Pwndbg should output ("stdout" or file/tty).
 
 
 
 **Default:** 'stdout'  
+
+----------
+
 ## **context-reserve-lines**
 
 
@@ -263,6 +350,9 @@ It doesn't take into account line-wrapping due to insufficient terminal width.
 
 **Default:** 'if-ctx-fits'  
 **Valid values:** 'never', 'if-ctx-fits', 'always'
+
+----------
+
 ## **context-sections**
 
 
@@ -271,6 +361,9 @@ Which context sections are displayed (controls order).
 
 
 **Default:** 'regs disasm code ghidra stack backtrace expressions threads heap_tracker'  
+
+----------
+
 ## **context-stack-lines**
 
 
@@ -279,6 +372,9 @@ Number of lines to print in the stack context.
 
 
 **Default:** 8  
+
+----------
+
 ## **cymbol-editor**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -288,6 +384,9 @@ Path to the editor for editing custom structures.
 
 
 **Default:** ''  
+
+----------
+
 ## **debug-events**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -297,6 +396,9 @@ Display internal event debugging info.
 
 
 **Default:** off  
+
+----------
+
 ## **default-visualize-chunk-number**
 
 
@@ -305,6 +407,9 @@ Default number of chunks to visualize.
 
 
 **Default:** 10  
+
+----------
+
 ## **dereference-limit**
 
 
@@ -313,6 +418,9 @@ Max number of pointers to dereference in a chain.
 
 
 **Default:** 5  
+
+----------
+
 ## **disasm-annotations**
 
 
@@ -321,6 +429,9 @@ Display annotations for instructions.
 
 
 **Default:** on  
+
+----------
+
 ## **disasm-inline-symbols**
 
 
@@ -329,6 +440,9 @@ Replacing constant operands with their symbol in the disassembly.
 
 
 **Default:** on  
+
+----------
+
 ## **disasm-telescope-depth**
 
 
@@ -337,6 +451,9 @@ Depth of telescope for disasm annotations.
 
 
 **Default:** 3  
+
+----------
+
 ## **disasm-telescope-string-length**
 
 
@@ -345,6 +462,9 @@ The number of characters in strings to display in disasm annotations.
 
 
 **Default:** 50  
+
+----------
+
 ## **emulate**
 
 
@@ -361,6 +481,9 @@ Emulation requires >1GB RAM being available on the system and ability to allocat
 
 **Default:** 'on'  
 **Valid values:** 'on', 'off', 'jumps-only'
+
+----------
+
 ## **emulate-annotations**
 
 
@@ -369,6 +492,9 @@ Unicorn emulation for instruction annotations.
 Refers to register and memory value annotations.
 
 **Default:** on  
+
+----------
+
 ## **emulate-future-annotations**
 
 
@@ -377,6 +503,9 @@ Unicorn emulation for future instruction's annotations.
 
 
 **Default:** on  
+
+----------
+
 ## **exception-debugger**
 
 
@@ -385,14 +514,20 @@ Whether to debug exceptions raised in Pwndbg commands.
 
 
 **Default:** off  
+
+----------
+
 ## **exception-verbose**
 
 
-Print a full stacktrace for exceptions raised in pwndbg commands.
+Print a full stacktrace for exceptions raised in Pwndbg commands.
 
 
 
 **Default:** off  
+
+----------
+
 ## **gcc-compiler-path**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -402,13 +537,16 @@ Path to the gcc/g++ toolchain for generating imported symbols.
 
 
 **Default:** ''  
+
+----------
+
 ## **gdb-workaround-stop-event**
 <small style="color: lightgray;">(only in GDB)</small>
 
 
 Asynchronous stop events to improve 'commands' functionality.
 
-Note that this may cause unexpected behavior with pwndbg or gdb.execute.
+Note that this may cause unexpected behavior with Pwndbg or gdb.execute.
 
 Values explained:
 
@@ -418,6 +556,9 @@ Values explained:
 
 **Default:** 'disabled'  
 **Valid values:** 'disabled', 'disabled-deadlock', 'enabled'
+
+----------
+
 ## **go-dump-indent-amount**
 
 
@@ -426,6 +567,9 @@ The indent amount for go-dump pretty printing.
 
 
 **Default:** 4  
+
+----------
+
 ## **go-dump-line-width**
 
 
@@ -434,6 +578,9 @@ The soft line width for go-dump pretty printing.
 
 
 **Default:** 80  
+
+----------
+
 ## **hexdump-bytes**
 
 
@@ -442,6 +589,9 @@ Number of bytes printed by hexdump command.
 
 
 **Default:** 64  
+
+----------
+
 ## **hexdump-group-use-big-endian**
 
 
@@ -450,6 +600,9 @@ Use big-endian within each group of bytes in hexdump command.
 When `on`, use big-endian within each group of bytes. Only applies to raw bytes, not the ASCII part. See also hexdump-highlight-group-lsb.
 
 **Default:** off  
+
+----------
+
 ## **hexdump-group-width**
 
 
@@ -458,6 +611,9 @@ Number of bytes grouped in hexdump command.
 If -1, the architecture's pointer size is used.
 
 **Default:** -1  
+
+----------
+
 ## **hexdump-limit-mb**
 
 
@@ -468,6 +624,9 @@ Set the maximum size in megabytes (MB) that the `hexdump` command will attempt t
     Set to 0 for unlimited (use with caution).
 
 **Default:** 10  
+
+----------
+
 ## **hexdump-width**
 
 
@@ -476,6 +635,9 @@ Line width of hexdump command.
 
 
 **Default:** 16  
+
+----------
+
 ## **ida-rpc-host**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -485,6 +647,9 @@ Ida xmlrpc server address.
 
 
 **Default:** '127.0.0.1'  
+
+----------
+
 ## **ida-rpc-port**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -494,6 +659,9 @@ Ida xmlrpc server port.
 
 
 **Default:** 31337  
+
+----------
+
 ## **ida-timeout**
 <small style="color: lightgray;">(only in GDB)</small>
 
@@ -503,6 +671,9 @@ Time to wait for ida xmlrpc in seconds.
 
 
 **Default:** 2  
+
+----------
+
 ## **integration-function-lookup**
 
 
@@ -511,6 +682,9 @@ Use integration to look up function type signatures.
 
 
 **Default:** on  
+
+----------
+
 ## **integration-provider**
 
 
@@ -520,6 +694,9 @@ Which provider to use for integration features.
 
 **Default:** 'none'  
 **Valid values:** 'none', 'binja', 'ida'
+
+----------
+
 ## **integration-smart-enhance**
 
 
@@ -528,6 +705,9 @@ Use integration to determine when to disassemble during enhancing.
 
 
 **Default:** on  
+
+----------
+
 ## **integration-symbol-lookup**
 
 
@@ -536,6 +716,9 @@ Whether to use integration to look up unknown symbols.
 
 
 **Default:** on  
+
+----------
+
 ## **kernel-vmmap**
 
 
@@ -551,6 +734,9 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 **Default:** 'page-tables'  
 **Valid values:** 'page-tables', 'monitor', 'none'
+
+----------
+
 ## **left-pad-disasm**
 
 
@@ -559,6 +745,9 @@ Whether to left-pad disassembly.
 
 
 **Default:** on  
+
+----------
+
 ## **max-visualize-chunk-size**
 
 
@@ -567,6 +756,9 @@ Max display size for heap chunks visualization (0 for display all).
 
 
 **Default:** 0  
+
+----------
+
 ## **nearpc-integration-comments**
 
 
@@ -575,6 +767,9 @@ Whether to show comments from integration provider.
 
 
 **Default:** on  
+
+----------
+
 ## **nearpc-lines**
 
 
@@ -583,6 +778,9 @@ Number of additional lines to print for the nearpc command.
 
 
 **Default:** 10  
+
+----------
+
 ## **nearpc-num-opcode-bytes**
 
 
@@ -591,6 +789,9 @@ Number of opcode bytes to print for each instruction.
 
 
 **Default:** 0  
+
+----------
+
 ## **nearpc-opcode-separator-bytes**
 
 
@@ -599,6 +800,9 @@ Number of spaces between opcode bytes.
 
 
 **Default:** 1  
+
+----------
+
 ## **nearpc-show-args**
 
 
@@ -607,6 +811,9 @@ Whether to show call arguments below instruction.
 
 
 **Default:** on  
+
+----------
+
 ## **r2decompiler**
 
 
@@ -616,6 +823,9 @@ Framework that your ghidra plugin installed.
 
 **Default:** 'radare2'  
 **Valid values:** 'radare2', 'rizin'
+
+----------
+
 ## **safe-linking**
 
 
@@ -625,6 +835,9 @@ Whether glibc uses safe-linking.
 
 **Default:** auto  
 **Valid values:** on, off, auto.
+
+----------
+
 ## **show-compact-regs**
 
 
@@ -633,6 +846,9 @@ Whether to show a compact register view with columns.
 
 
 **Default:** off  
+
+----------
+
 ## **show-compact-regs-columns**
 
 
@@ -641,6 +857,9 @@ The number of columns (0 for dynamic number of columns).
 
 
 **Default:** 2  
+
+----------
+
 ## **show-compact-regs-min-width**
 
 
@@ -649,6 +868,9 @@ The minimum width of each column.
 
 
 **Default:** 20  
+
+----------
+
 ## **show-compact-regs-separation**
 
 
@@ -657,6 +879,9 @@ The number of spaces separating columns.
 
 
 **Default:** 4  
+
+----------
+
 ## **show-flags**
 
 
@@ -665,6 +890,9 @@ Whether to show flags registers.
 
 
 **Default:** off  
+
+----------
+
 ## **show-retaddr-reg**
 
 
@@ -673,6 +901,9 @@ Whether to show return address register.
 
 
 **Default:** on  
+
+----------
+
 ## **show-tips**
 
 
@@ -681,6 +912,9 @@ Whether to display the tip of the day on startup.
 
 
 **Default:** on  
+
+----------
+
 ## **syntax-highlight**
 
 
@@ -689,6 +923,9 @@ Source code / assembly syntax highlight.
 
 
 **Default:** on  
+
+----------
+
 ## **telescope-dont-skip-registers**
 
 
@@ -697,6 +934,9 @@ Don't skip a repeated line if a registers points to it.
 
 
 **Default:** on  
+
+----------
+
 ## **telescope-frame-print-retaddr**
 
 
@@ -705,6 +945,9 @@ Print one pointer past the stack frame.
 
 
 **Default:** on  
+
+----------
+
 ## **telescope-framepointer-offset**
 
 
@@ -713,6 +956,9 @@ Print offset to framepointer for each address, if sufficiently small.
 
 
 **Default:** on  
+
+----------
+
 ## **telescope-lines**
 
 
@@ -721,6 +967,9 @@ Number of lines to printed by the telescope command.
 
 
 **Default:** 8  
+
+----------
+
 ## **telescope-skip-repeating-val**
 
 
@@ -729,6 +978,9 @@ Whether to skip repeating values of the telescope command.
 
 
 **Default:** on  
+
+----------
+
 ## **telescope-skip-repeating-val-min**
 
 
@@ -737,6 +989,9 @@ Minimum amount of repeated values before skipping lines.
 
 
 **Default:** 3  
+
+----------
+
 ## **vmmap-prefer-relpaths**
 
 
@@ -745,3 +1000,5 @@ Show relative paths by default in vmmap.
 
 
 **Default:** on  
+
+----------

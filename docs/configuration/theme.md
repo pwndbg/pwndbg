@@ -13,6 +13,9 @@ Color for backtrace (address).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **backtrace-frame-label**
 
 
@@ -21,6 +24,9 @@ Frame number label for backtrace.
 
 
 **Default:** ''  
+
+----------
+
 ## **backtrace-frame-label-color**
 
 
@@ -29,6 +35,9 @@ Color for backtrace (frame label).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **backtrace-prefix**
 
 
@@ -37,6 +46,9 @@ Prefix for current backtrace label.
 
 
 **Default:** '►'  
+
+----------
+
 ## **backtrace-prefix-color**
 
 
@@ -45,6 +57,9 @@ Color for prefix of current backtrace label.
 
 
 **Default:** 'none'  
+
+----------
+
 ## **backtrace-symbol-color**
 
 
@@ -53,6 +68,9 @@ Color for backtrace (symbol).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **banner-color**
 
 
@@ -61,6 +79,9 @@ Color for banner line.
 
 
 **Default:** 'blue'  
+
+----------
+
 ## **banner-separator**
 
 
@@ -69,6 +90,9 @@ Repeated banner separator character.
 
 
 **Default:** '─'  
+
+----------
+
 ## **banner-title-color**
 
 
@@ -77,6 +101,9 @@ Color for banner title.
 
 
 **Default:** 'none'  
+
+----------
+
 ## **banner-title-position**
 
 
@@ -86,6 +113,9 @@ Banner title position.
 
 **Default:** 'center'  
 **Valid values:** 'center', 'left', 'right'
+
+----------
+
 ## **banner-title-surrounding-left**
 
 
@@ -94,6 +124,9 @@ Banner title surrounding char (left side).
 
 
 **Default:** '[ '  
+
+----------
+
 ## **banner-title-surrounding-right**
 
 
@@ -102,6 +135,9 @@ Banner title surrounding char (right side).
 
 
 **Default:** ' ]'  
+
+----------
+
 ## **bn-decomp-style**
 
 
@@ -111,6 +147,9 @@ Decompilation highlight theme for Binary Ninja.
 
 **Default:** 'dark'  
 **Valid values:** 'dark', 'light'
+
+----------
+
 ## **chain-arrow-color**
 
 
@@ -119,6 +158,9 @@ Color of chain formatting (arrow).
 
 
 **Default:** 'normal'  
+
+----------
+
 ## **chain-arrow-left**
 
 
@@ -127,6 +169,9 @@ Left arrow of chain formatting.
 
 
 **Default:** '◂—'  
+
+----------
+
 ## **chain-arrow-right**
 
 
@@ -135,6 +180,9 @@ Right arrow of chain formatting.
 
 
 **Default:** '—▸'  
+
+----------
+
 ## **chain-contiguous-marker**
 
 
@@ -143,6 +191,9 @@ Contiguous marker of chain formatting.
 
 
 **Default:** '...'  
+
+----------
+
 ## **chain-contiguous-marker-color**
 
 
@@ -151,6 +202,9 @@ Color of chain formatting (contiguous marker).
 
 
 **Default:** 'normal'  
+
+----------
+
 ## **code-prefix**
 
 
@@ -159,6 +213,9 @@ Prefix marker for 'context code' command.
 
 
 **Default:** '►'  
+
+----------
+
 ## **code-prefix-color**
 
 
@@ -167,6 +224,9 @@ Color for 'context code' command (prefix marker).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **comment-color**
 
 
@@ -175,6 +235,9 @@ Color for comment.
 
 
 **Default:** 'gray'  
+
+----------
+
 ## **context-flag-bracket-color**
 
 
@@ -183,6 +246,9 @@ Color for flags register (bracket).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **context-flag-changed-color**
 
 
@@ -191,6 +257,9 @@ Color for flags register (flag changed).
 
 
 **Default:** 'underline'  
+
+----------
+
 ## **context-flag-set-color**
 
 
@@ -199,6 +268,9 @@ Color for flags register (flag set).
 
 
 **Default:** 'green,bold'  
+
+----------
+
 ## **context-flag-unset-color**
 
 
@@ -207,6 +279,9 @@ Color for flags register (flag unset).
 
 
 **Default:** 'red'  
+
+----------
+
 ## **context-flag-value-color**
 
 
@@ -215,6 +290,9 @@ Color for flags register (register value).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **context-register-changed-color**
 
 
@@ -223,6 +301,9 @@ Color for registers label (change marker).
 
 
 **Default:** 'red'  
+
+----------
+
 ## **context-register-changed-marker**
 
 
@@ -231,6 +312,9 @@ Change marker for registers label.
 
 
 **Default:** '*'  
+
+----------
+
 ## **context-register-color**
 
 
@@ -239,6 +323,9 @@ Color for registers label.
 
 
 **Default:** 'bold'  
+
+----------
+
 ## **disable-colors**
 
 
@@ -247,6 +334,9 @@ Whether to color the output or not.
 
 
 **Default:** off  
+
+----------
+
 ## **disasm-branch-color**
 
 
@@ -255,6 +345,9 @@ Color for disasm (branch/call instruction).
 
 
 **Default:** 'bold'  
+
+----------
+
 ## **enhance-comment-color**
 
 
@@ -263,6 +356,9 @@ Color of value enhance (comment).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **enhance-integer-value-color**
 
 
@@ -271,6 +367,9 @@ Color of value enhance (integer).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **enhance-string-value-color**
 
 
@@ -279,6 +378,9 @@ Color of value enhance (string).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **enhance-unknown-color**
 
 
@@ -287,6 +389,9 @@ Color of value enhance (unknown value).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **go-dump-debug**
 
 
@@ -295,6 +400,9 @@ Color for 'go-dump' command's debug info when --debug is specified.
 
 
 **Default:** 'blue'  
+
+----------
+
 ## **hexdump-address-color**
 
 
@@ -303,6 +411,9 @@ Color for hexdump command (address label).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **hexdump-ascii-block-separator**
 
 
@@ -311,6 +422,9 @@ Block separator char of the hexdump command.
 
 
 **Default:** '│'  
+
+----------
+
 ## **hexdump-byte-separator**
 
 
@@ -319,6 +433,9 @@ Separator of single bytes in hexdump (does NOT affect group separator).
 
 
 **Default:** ' '  
+
+----------
+
 ## **hexdump-colorize-ascii**
 
 
@@ -327,6 +444,9 @@ Whether to colorize the hexdump command ascii section.
 
 
 **Default:** on  
+
+----------
+
 ## **hexdump-highlight-group-lsb**
 
 
@@ -335,6 +455,9 @@ Highlight LSB of each group.
 Applies only if hexdump-use-big-endian actually changes byte order.
 
 **Default:** 'underline'  
+
+----------
+
 ## **hexdump-normal-color**
 
 
@@ -343,6 +466,9 @@ Color for hexdump command (normal bytes).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **hexdump-offset-color**
 
 
@@ -351,6 +477,9 @@ Color for hexdump command (offset label).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **hexdump-printable-color**
 
 
@@ -359,6 +488,9 @@ Color for hexdump command (printable characters).
 
 
 **Default:** 'bold'  
+
+----------
+
 ## **hexdump-separator-color**
 
 
@@ -367,6 +499,9 @@ Color for hexdump command (group separator).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **hexdump-special-color**
 
 
@@ -375,6 +510,9 @@ Color for hexdump command (special bytes).
 
 
 **Default:** 'yellow'  
+
+----------
+
 ## **hexdump-zero-color**
 
 
@@ -383,6 +521,9 @@ Color for hexdump command (zero bytes).
 
 
 **Default:** 'red'  
+
+----------
+
 ## **highlight-breakpoints**
 
 
@@ -391,6 +532,9 @@ Whether to highlight breakpoints.
 
 
 **Default:** on  
+
+----------
+
 ## **highlight-color**
 
 
@@ -399,6 +543,9 @@ Color added to highlights like source/pc.
 
 
 **Default:** 'green,bold'  
+
+----------
+
 ## **highlight-pc**
 
 
@@ -407,6 +554,9 @@ Whether to highlight the current instruction.
 
 
 **Default:** on  
+
+----------
+
 ## **highlight-source**
 
 
@@ -415,6 +565,9 @@ Whether to highlight the closest source line.
 
 
 **Default:** on  
+
+----------
+
 ## **memory-code-color**
 
 
@@ -423,6 +576,9 @@ Color for executable memory.
 
 
 **Default:** 'red'  
+
+----------
+
 ## **memory-data-color**
 
 
@@ -431,6 +587,9 @@ Color for all other writable memory.
 
 
 **Default:** 'purple'  
+
+----------
+
 ## **memory-guard-color**
 
 
@@ -439,6 +598,9 @@ Color added to all guard pages (no perms).
 
 
 **Default:** 'cyan'  
+
+----------
+
 ## **memory-heap-color**
 
 
@@ -447,6 +609,9 @@ Color for heap memory.
 
 
 **Default:** 'blue'  
+
+----------
+
 ## **memory-rodata-color**
 
 
@@ -455,6 +620,9 @@ Color for all read only memory.
 
 
 **Default:** 'normal'  
+
+----------
+
 ## **memory-stack-color**
 
 
@@ -463,6 +631,9 @@ Color for stack memory.
 
 
 **Default:** 'yellow'  
+
+----------
+
 ## **memory-wx-color**
 
 
@@ -471,6 +642,9 @@ Color added to all WX memory.
 
 
 **Default:** 'underline'  
+
+----------
+
 ## **message-breakpoint-color**
 
 
@@ -479,6 +653,9 @@ Color of breakpoint messages.
 
 
 **Default:** 'yellow'  
+
+----------
+
 ## **message-debug-color**
 
 
@@ -487,6 +664,9 @@ Color of debug messages.
 
 
 **Default:** 'blue'  
+
+----------
+
 ## **message-error-color**
 
 
@@ -495,6 +675,9 @@ Color of error messages.
 
 
 **Default:** 'red'  
+
+----------
+
 ## **message-exit-color**
 
 
@@ -503,6 +686,9 @@ Color of exit messages.
 
 
 **Default:** 'red'  
+
+----------
+
 ## **message-hint-color**
 
 
@@ -511,6 +697,9 @@ Color of hint and marker messages.
 
 
 **Default:** 'yellow'  
+
+----------
+
 ## **message-info-color**
 
 
@@ -519,6 +708,9 @@ Color of info messages.
 
 
 **Default:** 'white'  
+
+----------
+
 ## **message-notice-color**
 
 
@@ -527,6 +719,9 @@ Color of notice messages.
 
 
 **Default:** 'purple'  
+
+----------
+
 ## **message-signal-color**
 
 
@@ -535,6 +730,9 @@ Color of signal messages.
 
 
 **Default:** 'bold,red'  
+
+----------
+
 ## **message-status-off-color**
 
 
@@ -543,6 +741,9 @@ Color of off status messages.
 
 
 **Default:** 'red'  
+
+----------
+
 ## **message-status-on-color**
 
 
@@ -551,6 +752,9 @@ Color of on status messages.
 
 
 **Default:** 'green'  
+
+----------
+
 ## **message-success-color**
 
 
@@ -559,6 +763,9 @@ Color of success messages.
 
 
 **Default:** 'green'  
+
+----------
+
 ## **message-system-color**
 
 
@@ -567,6 +774,9 @@ Color of system messages.
 
 
 **Default:** 'light-red'  
+
+----------
+
 ## **message-warning-color**
 
 
@@ -575,6 +785,9 @@ Color of warning messages.
 
 
 **Default:** 'yellow'  
+
+----------
+
 ## **nearpc-address-color**
 
 
@@ -583,6 +796,9 @@ Color for nearpc command (address).
 
 
 **Default:** 'normal'  
+
+----------
+
 ## **nearpc-argument-color**
 
 
@@ -591,6 +807,9 @@ Color for nearpc command (target argument).
 
 
 **Default:** 'bold'  
+
+----------
+
 ## **nearpc-branch-marker**
 
 
@@ -599,6 +818,9 @@ Branch marker line for nearpc command.
 
 
 **Default:** '    ↓'  
+
+----------
+
 ## **nearpc-branch-marker-color**
 
 
@@ -607,6 +829,9 @@ Color for nearpc command (branch marker line).
 
 
 **Default:** 'normal'  
+
+----------
+
 ## **nearpc-branch-marker-contiguous**
 
 
@@ -615,6 +840,9 @@ Contiguous branch marker line for nearpc command.
 
 
 **Default:** ' '  
+
+----------
+
 ## **nearpc-breakpoint-color**
 
 
@@ -623,6 +851,9 @@ Color for nearpc command (breakpoint marker).
 
 
 **Default:** 'red'  
+
+----------
+
 ## **nearpc-breakpoint-prefix**
 
 
@@ -631,6 +862,9 @@ Breakpoint marker for nearpc command.
 
 
 **Default:** 'b+'  
+
+----------
+
 ## **nearpc-integration-comments-color**
 
 
@@ -639,6 +873,9 @@ Color for nearpc command (integration comments).
 
 
 **Default:** 'bold'  
+
+----------
+
 ## **nearpc-prefix**
 
 
@@ -647,6 +884,9 @@ Prefix marker for nearpc command.
 
 
 **Default:** '►'  
+
+----------
+
 ## **nearpc-prefix-color**
 
 
@@ -655,6 +895,9 @@ Color for nearpc command (prefix marker).
 
 
 **Default:** 'none'  
+
+----------
+
 ## **nearpc-symbol-color**
 
 
@@ -663,6 +906,9 @@ Color for nearpc command (symbol).
 
 
 **Default:** 'normal'  
+
+----------
+
 ## **nearpc-syscall-name-color**
 
 
@@ -671,6 +917,9 @@ Color for nearpc command (resolved syscall name).
 
 
 **Default:** 'red'  
+
+----------
+
 ## **prompt-alive-color**
 
 
@@ -679,6 +928,9 @@ Prompt alive color.
 
 
 **Default:** 'bold,green'  
+
+----------
+
 ## **prompt-color**
 
 
@@ -687,6 +939,9 @@ Prompt color.
 
 
 **Default:** 'bold,red'  
+
+----------
+
 ## **syntax-highlight-style**
 
 
@@ -695,6 +950,9 @@ Source code / assembly syntax highlight stylename of pygments module.
 
 
 **Default:** 'monokai'  
+
+----------
+
 ## **telescope-offset-color**
 
 
@@ -703,6 +961,9 @@ Color of the telescope command (offset prefix).
 
 
 **Default:** 'normal'  
+
+----------
+
 ## **telescope-offset-delimiter**
 
 
@@ -711,6 +972,9 @@ Offset delimiter of the telescope command.
 
 
 **Default:** ':'  
+
+----------
+
 ## **telescope-offset-delimiter-color**
 
 
@@ -719,6 +983,9 @@ Color of the telescope command (offset delimiter).
 
 
 **Default:** 'normal'  
+
+----------
+
 ## **telescope-offset-separator**
 
 
@@ -727,6 +994,9 @@ Offset separator of the telescope command.
 
 
 **Default:** '│'  
+
+----------
+
 ## **telescope-offset-separator-color**
 
 
@@ -735,6 +1005,9 @@ Color of the telescope command (offset separator).
 
 
 **Default:** 'normal'  
+
+----------
+
 ## **telescope-register-color**
 
 
@@ -743,6 +1016,9 @@ Color of the telescope command (register).
 
 
 **Default:** 'bold'  
+
+----------
+
 ## **telescope-repeating-marker**
 
 
@@ -751,6 +1027,9 @@ Repeating values marker of the telescope command.
 
 
 **Default:** '... ↓'  
+
+----------
+
 ## **telescope-repeating-marker-color**
 
 
@@ -759,3 +1038,5 @@ Color of the telescope command (repeating values marker).
 
 
 **Default:** 'normal'  
+
+----------
