@@ -743,6 +743,12 @@ def paging_enabled() -> bool:
 
 
 def uses_5lvl_paging() -> bool:
+    if not has_debug_syms():
+        pages = pwndbg.aglib.vmmap.get()
+        for page in pages:
+            if page.start & (1 << 63) > 0:
+                return page.start < (0xFFF << (4 * 13))
+        return False
     ops = arch_ops()
     if ops:
         return ops.uses_5lvl_paging()

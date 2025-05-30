@@ -187,18 +187,23 @@ def test_command_pagewalk():
         # no kbase? fine
         pages = pwndbg.aglib.vmmap.get()
         address = pages[0].start
+    if not pwndbg.aglib.kernel.has_debug_syms():
+        # even if no debug symbols, still gracefully handle it
+        res = gdb.execute(f"pagewalk {hex(address)}")
+        # now let's guess the phymap base and should work as intended
+        res = gdb.execute("set guess-physmap on")
     res = gdb.execute(f"pagewalk {hex(address)}", to_string=True)
     assert "PMD" in res  # Page Size is only set for PMDe or PTe
     res = res.splitlines()[-1]
-    match = re.find(r"0x[0-9a-fA-F]{16}", res)
+    match = re.findall(r"0x[0-9a-fA-F]{16}", res)[0]
     physmap_addr = int(match, 16)
     # compare the first 0x100 bytes of the page (e.g. first kernel image page) with its physmap conterpart
     expected = pwndbg.aglib.memory.read(address, 0x100)
     actual = pwndbg.aglib.memory.read(physmap_addr, 0x100)
     assert all(expected[i] == actual[i] for i in range(0x100))
     # make sure that when using cr3 for pgd, it still works
-    res2 = gdb.execute(f"pagewalk {address} --pgd $cr3", to_string=True)
+    res2 = gdb.execute(f"pagewalk {hex(address)} --pgd $cr3", to_string=True).splitlines()[-1]
     assert res == res2
     # test non nonexistent address
     res = gdb.execute("pagewalk 0", to_string=True)
-    assert res == "address is not mapped"
+    assert res.splitlines()[-1] == "address is not mapped"

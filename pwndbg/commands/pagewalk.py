@@ -10,8 +10,8 @@ from pwndbg.commands import CommandCategory
 from pwndbg.lib.regs import BitFlags
 
 parser = argparse.ArgumentParser(description="Performs pagewalk.")
-parser.add_argument("vaddr", type=int, help="virtual address to walk")
-parser.add_argument("--pgd", dest="entry", type=int, default=None, help="")
+parser.add_argument("vaddr", type=str, help="virtual address to walk")
+parser.add_argument("--pgd", dest="entry", type=str, default=None, help="")
 
 
 pageflags = BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("W", 1), ("P", 0)])
@@ -38,6 +38,7 @@ def pg_indices(vaddr, nr_level):
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def pagewalk(vaddr, entry=None):
+    vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     # https://blog.zolutal.io/understanding-paging/
     base = pwndbg.aglib.kernel.physmap_base()
     level = 4
@@ -61,7 +62,7 @@ def pagewalk(vaddr, entry=None):
     if entry is None:
         entry = pwndbg.aglib.regs["cr3"]
     else:
-        entry = pwndbg.dbg.selected_frame().evaluate_expression(entry)
+        entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
     if entry > base:
         # user inputted a physmap address as pointer to pgd
         entry -= base
@@ -76,11 +77,11 @@ def pagewalk(vaddr, entry=None):
         idx = (vaddr & (0x1FF << shift)) >> shift
         entry = 0
         try:
-            table = pwndbg.aglib.memory.get_typed_pointer("ulong", cur)
+            table = pwndbg.aglib.memory.get_typed_pointer("unsigned long", cur)
             entry = int(table[idx])
             print_pagetable_entry(names[i], entry, cur)
         except Exception as e:
-            print(M.warn(f"Exception {e} while page walking"))
+            print(M.warn(f"Exception while page walking: {e}"))
             entry = 0
         if entry == 0:
             print(M.warn("address is not mapped"))
