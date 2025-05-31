@@ -30,19 +30,6 @@ function highlightPrompts() {
   });
 }
 
-// Initial run.
-highlightPrompts();
-
-const observer = new MutationObserver(() => {
-  highlightPrompts();
-});
-
-// FIXME: Not the best thing for performance but can't figure
-// out a better way.
-// https://github.com/squidfunk/mkdocs-material/discussions/8240
-observer.observe(document.documentElement, {
-  childList: true,
-  subtree: true,
-  attributes: true,
-  characterData: true
-});
+// Run on page load.
+// https://squidfunk.github.io/mkdocs-material/customization/#additional-javascript
+document$.subscribe(highlightPrompts)
