@@ -37,6 +37,7 @@ def pg_indices(vaddr, nr_level):
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
+@pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
 def pagewalk(vaddr, entry=None):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     # https://blog.zolutal.io/understanding-paging/
