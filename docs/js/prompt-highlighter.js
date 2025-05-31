@@ -1,18 +1,48 @@
-document.addEventListener("DOMContentLoaded", () => {
+function highlightPrompts() {
   document.querySelectorAll('pre > code').forEach(codeBlock => {
-    const lines = codeBlock.textContent.split('\n');
+    if (codeBlock.dataset.promptProcessed) return;
+    codeBlock.dataset.promptProcessed = 'true';
 
-    const newHtml = lines.map(line => {
-      const match = line.match(/^(pwndbg>|>)(.*)/);
+    // Match `pwndbg>` and `>`.
+    const lines = codeBlock.querySelectorAll('span[id^="__span"]');
+
+    lines.forEach(lineEl => {
+      const text = lineEl.textContent;
+      const match = text.match(/^(pwndbg>|>)(.*)/);
       if (match) {
         const prompt = match[1];
         const rest = match[2];
-        return `<div class="code-line"><span class="pwndbg-prompt">${prompt}</span><span class="pwndbg-cmd">${rest}</span></div>`;
-      } else {
-        return line
-      }
-    }).join('<br>');
 
-    codeBlock.innerHTML = newHtml;
+        lineEl.innerHTML = '';
+
+        const promptSpan = document.createElement('span');
+        promptSpan.className = 'pwndbg-prompt';
+        promptSpan.textContent = prompt;
+
+        const contentSpan = document.createElement('span');
+        contentSpan.className = 'pwndbg-cmd';
+        contentSpan.textContent = rest;
+
+        lineEl.appendChild(promptSpan);
+        lineEl.appendChild(contentSpan);
+      }
+    });
   });
+}
+
+// Initial run.
+highlightPrompts();
+
+const observer = new MutationObserver(() => {
+  highlightPrompts();
+});
+
+// FIXME: Not the best thing for performance but can't figure
+// out a better way.
+// https://github.com/squidfunk/mkdocs-material/discussions/8240
+observer.observe(document.documentElement, {
+  childList: true,
+  subtree: true,
+  attributes: true,
+  characterData: true
 });
