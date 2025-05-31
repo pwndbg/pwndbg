@@ -82,7 +82,7 @@ The `./docs/commands`, `./docs/functions`, and `./docs/configuration` folders ar
 ```{.bash .copy}
 ./scripts/generate-docs.sh
 ```
-to update the documentation. Commit these changes in a separate commit.
+to update the documentation. You need to have a supported version of GDB *and* [LLDB installed](setup-pwndbg-dev.md#running-with-lldb) for this to work. Commit these changes in a separate commit.
 
 If you forget to do that the CI will detect a discrepency between the documentation and source code (using the `./scripts/verify-docs.sh` script, which you may also invoke yourself) and prevent your PR from being merged (until you push new changes, re-running the CI).
 
