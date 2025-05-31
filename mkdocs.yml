@@ -56,7 +56,7 @@ theme:
     - search.share
 # https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/#code-actions
     # Adds an edit button to every page that links to the repository.
-    - content.action.edit
+    # - content.action.edit
 # Extra
     # Sync the content tab selection across the whole site (based on label).
     - content.tabs.link
