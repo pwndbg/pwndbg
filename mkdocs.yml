@@ -179,6 +179,9 @@ extra_css:
   - stylesheets/extra.css
   - stylesheets/mkdocstrings.css
 
+extra_javascript:
+  - js/prompt-highlighter.js
+
 markdown_extensions:
 # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/
   - abbr
