@@ -14,7 +14,7 @@ It has a boatload of features, see our [Features page](https://pwndbg.re/pwndbg/
 and [CHEATSHEET][CHEATSHEET] (feel free to print it!). If you have any questions you may read the
 [documentation](https://pwndbg.re/pwndbg/latest/) or asks us in our [Discord server](https://discord.gg/x47DssnGwm).
 
-[CHEATSHEET]: https://drive.google.com/file/d/16t9MV8KTFXK7oX_CzXhmDdaVnjT8IYM4/view?usp=drive_link
+[CHEATSHEET]: https://pwndbg.re/pwndbg/latest/CHEATSHEET.pdf
 
 ## Why?
 
