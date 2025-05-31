@@ -142,7 +142,6 @@ class CommandObj:
         aliases: List[str],
         examples: str,
         notes: str,
-        archs: List[str] | None,
         /,  # All parameters must be passed in positionally
     ) -> None:
         assert function
@@ -167,7 +166,6 @@ class CommandObj:
 
         assert category
         self.category = category
-        self.archs = archs
 
         self.aliases = aliases
         self.examples = examples.strip()
@@ -288,10 +286,6 @@ class CommandObj:
             log.error("Pwndbg commands require a target binary to be selected")
             return
 
-        if self.archs is not None and pwndbg.aglib.arch.name not in self.archs:
-            log.error(f"The CPU architecutre must be one of {self.archs}")
-            return
-
         # Put the arguments through the debugger
         try:
             arg_list = pwndbg.dbg.lex_args(argument)
@@ -373,7 +367,6 @@ class Command:
         notes: str = "",
         only_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
         exclude_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
-        archs: List[str] = None,
     ) -> None:
         # Setup an ArgumentParser even if we were only passed a description.
         if isinstance(parser_or_desc, str):
@@ -389,7 +382,6 @@ class Command:
         self.notes = notes
         self.only_debuggers = only_debuggers
         self.exclude_debuggers = exclude_debuggers
-        self.archs = archs
 
     def __call__(self, function: Callable[..., Any]) -> CommandObj:
         # Since this is the __call__ of a parametrized decorator, it is
@@ -428,7 +420,6 @@ class Command:
             self.aliases,
             self.examples,
             self.notes,
-            self.archs,
         )
 
 

@@ -178,8 +178,8 @@ def test_command_buddydump():
 
 
 @pytest.mark.skipif(
-    pwndbg.aglib.arch.name not in ["x86-64"],
-    reason="pagewalk is only fully implemented for x64",
+    pwndbg.aglib.arch.name not in ["i386", "x86-64"],
+    reason="pagewalk is only fully implemented for x86 (partially relies on cr3)",
 )
 def test_command_pagewalk():
     address = pwndbg.aglib.kernel.kbase()
