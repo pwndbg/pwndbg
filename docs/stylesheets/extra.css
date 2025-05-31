@@ -97,7 +97,10 @@ label.md-nav__link {
 
 /* Highlight the `pwndbg>` prompt in code blocks. */
 .pwndbg-prompt {
-  color: #bd4545;
+  /* Desaturated red.
+    color: #bd4545; */
+  /* #00AA00 is the default alive prompt. */
+  color: #239923;
   font-weight: bold;
 }
 
