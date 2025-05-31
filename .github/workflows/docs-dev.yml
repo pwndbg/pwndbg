@@ -34,7 +34,7 @@ jobs:
           ./scripts/verify-docs.sh
 
       - name: Update docs/index.md with README.md
-        run: python ./scripts/generate-readme.py
+        run: uv run ./scripts/generate-readme.py
 
       - name: Build site
         run: |
@@ -59,7 +59,7 @@ jobs:
         run: uv sync --group docs
 
       - name: Update docs/index.md with README.md
-        run: python ./scripts/generate-readme.py
+        run: uv run ./scripts/generate-readme.py
 
       - name: Deploy site
         run: |
