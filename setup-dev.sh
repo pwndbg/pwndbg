@@ -349,3 +349,25 @@ if linux; then
         configure_venv
     fi
 fi
+
+# LLDB is needed for docs generation. Tell the user
+# if they don't have it installed or if it's an unsupported version.
+if ! command -v lldb &> /dev/null; then
+    echo "WARNING: lldb not found in PATH, some functionality"
+    echo "(e.g. docs generation) will not be available."
+    echo "See installation instructions:"
+    echo "https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/#running-with-lldb"
+else
+    version=$(lldb --version | awk '{print $3}')
+    major_version=${version%%.*}
+
+    if [ "$major_version" -ge 19 ]; then
+        echo "Supported LLDB installed. All good!"
+    else
+        echo "WARNING: lldb found in PATH, but the version is too old."
+        echo "Installed: ${version}. Supported: >= 19."
+        echo "Some functionality (e.g. docs generation) will not be available."
+        echo "See installation instructions:"
+        echo "https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/#running-with-lldb"
+    fi
+fi
