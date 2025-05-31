@@ -34,7 +34,7 @@ def pg_indices(vaddr, nr_level):
     return result
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
+@pwndbg.commands.Command(parser, category=CommandCategory.KERNEL, archs=["x86-64"])
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def pagewalk(vaddr, entry=None):
