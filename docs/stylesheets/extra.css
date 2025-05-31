@@ -94,3 +94,18 @@ label.md-nav__link {
   background: var(--md-code-bg-color);
   padding: 5px;
 }
+
+/* Highlight the `pwndbg>` prompt in code blocks. */
+.pwndbg-prompt {
+  color: #e23939;
+  font-weight: bold;
+}
+
+.pwndbg-cmd {
+  font-weight: bold;
+}
+
+pre > code .code-line {
+  white-space: pre;    /* preserve spaces */
+  font-family: monospace;
+}
