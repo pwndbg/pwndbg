@@ -388,8 +388,9 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
             flags |= 4
         if "w" in perm:
             flags |= 2
-        if "x" in perm:
-            flags |= 1
+        if len(perm) == 4: # if the qemu version displays if the page is executable
+            if "x" in perm:
+                flags |= 1
         pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
     kv = KernelVmmap(pages)
