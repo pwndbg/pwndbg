@@ -17,10 +17,6 @@ from pwndbg import dbg as dbg_mod
 from pwndbg.dbg import dbg as dbg
 
 __version__ = pwndbg.lib.version.__version__
-"""
-Pwndbg version.
-"""
+"""Pwndbg version."""
 version = __version__
-"""
-Pwndbg version.
-"""
+"""Pwndbg version."""
