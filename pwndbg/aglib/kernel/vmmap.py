@@ -36,6 +36,9 @@ class KernelVmmap:
 
     def __init__(self, pages: List[pwndbg.lib.memory.Page]):
         self.pages = pages
+        self.sections = None
+        if not pwndbg.aglib.kernel.has_debug_syms():
+            return
         # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
         physmap = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
         vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
