@@ -61,10 +61,15 @@ parser.add_argument(
     parser,
     category=CommandCategory.LINUX,
     examples="""
-got
-got puts
-got -p libc
-got -a
+> got
+    Print all writable GOT entries in the executable.
+> got -r puts
+    Print all GOT entries that contain the string "puts".
+> got -p libc
+    Print all writable GOT entries used by libc. (And any other loaded
+    object files that contain the string "libc" in their path).
+> got -ra
+    Print all GOT entries in the address space.
 """,
 )
 @pwndbg.commands.OnlyWhenRunning
