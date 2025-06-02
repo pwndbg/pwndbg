@@ -47,7 +47,11 @@ def find(address: int | pwndbg.dbg_mod.Value | None) -> pwndbg.lib.memory.Page |
     return pwndbg.aglib.vmmap_custom.explore(address)
 
 
-def pagewalk(target, level, entry) -> List[Tuple[int | None, int | None]]:
+@pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
+def pagewalk(target, entry=None) -> List[Tuple[int | None, int | None]]:
+    level = 4
+    if pwndbg.aglib.kernel.uses_5lvl_paging():
+        level = 5
     base = pwndbg.aglib.kernel.physmap_base()
     if entry is None:
         entry = pwndbg.aglib.regs["cr3"]
