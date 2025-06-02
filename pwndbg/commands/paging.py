@@ -41,7 +41,6 @@ def pg_indices(vaddr, nr_level):
 def pagewalk(vaddr, entry=None):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     # https://blog.zolutal.io/understanding-paging/
-    base = pwndbg.aglib.kernel.physmap_base()
     level = 4
     names = (
         "Page",
@@ -60,35 +59,18 @@ def pagewalk(vaddr, entry=None):
             "PUD",
             "PGD",
         )
-    if entry is None:
-        entry = pwndbg.aglib.regs["cr3"]
-    else:
-        entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
-    if entry > base:
-        # user inputted a physmap address as pointer to pgd
-        entry -= base
-    offset = 0
-    entry_mask = ~((1 << 12) - 1) & ((1 << 51) - 1)
+    entries = pwndbg.aglib.vmmap.pagewalk(vaddr, level, entry)
     for i in range(level, 0, -1):
-        cur = (entry & entry_mask) + base
-        if entry & (1 << 7) > 0:
+        entry, vaddr = entries[i]
+        if entry is None:
             break
-        shift = (i - 1) * 9 + 12
-        offset = vaddr & ((1 << shift) - 1)
-        idx = (vaddr & (0x1FF << shift)) >> shift
-        entry = 0
-        try:
-            table = pwndbg.aglib.memory.get_typed_pointer("unsigned long", cur)
-            entry = int(table[idx])
-            print_pagetable_entry(names[i], entry, cur)
-        except Exception as e:
-            print(M.warn(f"Exception while page walking: {e}"))
-            entry = 0
-        if entry == 0:
-            print(M.warn("address is not mapped"))
-            return
-    virtual = base + (entry & entry_mask) + offset
-    print(f"pagewalk result: {C.green(hex(virtual))} [phys: {C.yellow(hex(virtual - base))}]")
+        print_pagetable_entry(names[i], entry, vaddr)
+    _, vaddr = entries[0]
+    if vaddr is None:
+        print(M.warn("address is not mapped"))
+        return
+    phys = vaddr - pwndbg.aglib.kernel.physmap_base()
+    print(f"pagewalk result: {C.green(hex(vaddr))} [phys: {C.yellow(hex(phys))}]")
 
 
 p2v_parser = argparse.ArgumentParser(
@@ -99,6 +81,7 @@ p2v_parser.add_argument("paddr", type=str, help="")
 
 @pwndbg.commands.Command(p2v_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
 def p2v(paddr):
     paddr = pwndbg.dbg.selected_frame().evaluate_expression(paddr)
@@ -113,6 +96,7 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 
 @pwndbg.commands.Command(v2p_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
 def v2p(vaddr):
     vaddr = pwndbg.dbg.selected_frame().evaluate_expression(vaddr)
