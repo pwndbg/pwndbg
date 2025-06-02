@@ -107,9 +107,9 @@ While most other GDB plugins are well *GDB plugins*, Pwndbg's implementation is 
 
 ![](assets/caps/lldb.png){ style="width: 70%;" }
 
-## Windbg Compatibility
+## WinDbg Compatibility
 
-For those coming from a Windows background, Pwndbg has a complete Windbg compatibility layer.  You can `dd`, `dps`, `eq`, and even `eb $rip 90` to your heart's content.
+For those coming from a Windows background, Pwndbg has a complete WinDbg compatibility layer.  You can `dd`, `dps`, `eq`, and even `eb $rip 90` to your heart's content.
 
 ![](assets/caps/windbg.png){ style="width: 70%;" }
 

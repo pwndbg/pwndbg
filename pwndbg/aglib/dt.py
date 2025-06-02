@@ -1,5 +1,5 @@
 """
-Prints structures in a manner similar to Windbg's "dt" command.
+Prints structures in a manner similar to WinDbg's "dt" command.
 """
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ def dt(
     obj: pwndbg.dbg_mod.Value | None = None,
 ) -> str:
     """
-    Dump out a structure type Windbg style.
+    Dump out a structure type WinDbg style.
     """
     # Return value is a list of strings.of
     # We concatenate at the end.

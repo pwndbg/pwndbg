@@ -236,10 +236,10 @@
 -  [ew](windbg/ew.md) - Write hex words at the specified address.
 -  [ez](windbg/ez.md) - Write a string at the specified address.
 -  [eza](windbg/eza.md) - Write a string at the specified address.
--  [go](windbg/go.md) - Windbg compatibility alias for 'continue' command.
+-  [go](windbg/go.md) - WinDbg compatibility alias for 'continue' command.
 -  [k](windbg/k.md) - Print a backtrace (alias 'bt').
 -  [ln](windbg/ln.md) - List the symbols nearest to the provided value.
--  [pc](windbg/pc.md) - Windbg compatibility alias for 'nextcall' command.
+-  [pc](windbg/pc.md) - WinDbg compatibility alias for 'nextcall' command.
 -  [peb](windbg/peb.md) - Not be windows.
 
 ## jemalloc Heap

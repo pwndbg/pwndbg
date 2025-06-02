@@ -7,7 +7,7 @@ usage: go [-h]
 
 ```
 
-Windbg compatibility alias for 'continue' command.
+WinDbg compatibility alias for 'continue' command.
 ### Optional arguments
 
 |Short|Long|Help|

@@ -1,5 +1,5 @@
 """
-Compatibility functionality for Windbg users.
+Compatibility functionality for WinDbg users.
 """
 
 from __future__ import annotations
@@ -425,12 +425,12 @@ if pwndbg.dbg.is_gdblib_available():
         gdb.execute("bt")
 
     @pwndbg.commands.Command(
-        "Windbg compatibility alias for 'continue' command.", category=CommandCategory.WINDBG
+        "WinDbg compatibility alias for 'continue' command.", category=CommandCategory.WINDBG
     )
     @pwndbg.commands.OnlyWhenRunning
     def go() -> None:
         """
-        Windbg compatibility alias for 'continue' command.
+        WinDbg compatibility alias for 'continue' command.
         """
         gdb.execute("continue")
 
@@ -469,11 +469,11 @@ def peb() -> None:
 
 
 @pwndbg.commands.Command(
-    "Windbg compatibility alias for 'nextcall' command.", category=CommandCategory.WINDBG
+    "WinDbg compatibility alias for 'nextcall' command.", category=CommandCategory.WINDBG
 )
 @pwndbg.commands.OnlyWhenRunning
 def pc():
     """
-    Windbg compatibility alias for 'nextcall' command.
+    WinDbg compatibility alias for 'nextcall' command.
     """
     return pwndbg.commands.next.nextcall()
