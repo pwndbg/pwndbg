@@ -59,7 +59,7 @@ def pagewalk(vaddr, entry=None):
             "PUD",
             "PGD",
         )
-    entries = pwndbg.aglib.vmmap.pagewalk(vaddr, level, entry)
+    entries = pwndbg.aglib.vmmap.pagewalk(vaddr, entry)
     for i in range(level, 0, -1):
         entry, vaddr = entries[i]
         if entry is None:
