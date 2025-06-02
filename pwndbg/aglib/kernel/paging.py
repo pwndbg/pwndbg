@@ -90,7 +90,7 @@ def kbase():
 
 
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
-def pagewalk(target, entry=None) -> List[Tuple[int | None, int | None]]:
+def pagewalk(target, entry=None) -> Tuple[Tuple[int | None, int | None], ...]:
     level = 4
     if uses_5lvl_paging():
         level = 5
@@ -118,10 +118,10 @@ def pagewalk(target, entry=None) -> List[Tuple[int | None, int | None]]:
             print(M.warn(f"Exception while page walking: {e}"))
             entry = 0
         if entry == 0:
-            return result
+            return tuple(result)
         result[i] = (entry, vaddr)
     result[0] = (None, (entry & ENTRYMASK) + base + offset)
-    return result
+    return tuple(result)
 
 
 def guess_physmap_base() -> int | None:
