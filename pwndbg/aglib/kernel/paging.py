@@ -77,8 +77,6 @@ def physmap_base() -> int:
         if result is not None:
             return result
         print(M.warn("physmap base cannot be guessed, resort to default"))
-    else:
-        print(M.warn("guess-physmap is set to false, not guessing physmap address"))
     if uses_5lvl_paging():
         return 0xFF11000000000000
     return 0xFFFF888000000000
