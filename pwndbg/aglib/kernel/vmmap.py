@@ -434,15 +434,9 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
         if process_pages:
             for page in pages:
                 pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
-                _, vaddr = pgwalk_res[0]
-                if vaddr is None:
-                    print(M.error("vmmap uses pagewalk to determine x bit for a page, but failed"))
-                    break  # TODO: consider continue instead of break?
-                for _, entry in pgwalk_res:
-                    if entry is not None:
-                        page.flags ^= entry >> 63
-                        break
-
+                entry, vaddr = pgwalk_res[0]
+                if entry >> 63 == 0:
+                    page.flags |= 1
     if pages is None:
         return ()
     if process_pages:

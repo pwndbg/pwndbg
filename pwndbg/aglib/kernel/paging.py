@@ -87,6 +87,7 @@ def kbase():
     return find_kbase(get_memory_map_raw())
 
 
+@pwndbg.lib.cache.cache_until("stop")
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
 def pagewalk(target, entry=None) -> Tuple[Tuple[int | None, int | None], ...]:
     level = 4
@@ -118,7 +119,7 @@ def pagewalk(target, entry=None) -> Tuple[Tuple[int | None, int | None], ...]:
         if entry == 0:
             return tuple(result)
         result[i] = (entry, vaddr)
-    result[0] = (None, (entry & ENTRYMASK) + base + offset)
+    result[0] = (entry, (entry & ENTRYMASK) + base + offset)
     return tuple(result)
 
 
