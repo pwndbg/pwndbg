@@ -9,3 +9,6 @@ Here is a non-exhaustive list of Pwndbg mentions found in the wild. Feel free to
 + [Intro to pwndbg - CTF Cookbook by SloppyJoePirates CTF Writeups](https://www.youtube.com/watch?v=5judobmDBKI)
 + [Intro to Binary Exploitation (Pwn) by CryptoCat](https://youtu.be/wa3sMSdLyHw?list=PLHUKi1UlEgOIc07Rfk2Jgb5fZbxDPec94&t=730)
 + [Bug A Day #8 - pwndbg #2 by Bug-A-Day](https://www.youtube.com/watch?v=mmkewHlDv9I)
+
+## Scripts
++ [CVE-2022-24834 exploit by ptr-yudai](https://github.com/RICSecLab/exploit-poc-public/blob/main/CVE-2022-24834/exploit.py#L49)
