@@ -49,7 +49,7 @@ def pagewalk(vaddr, entry=None):
         "PUD",
         "PGD",
     )
-    if pwndbg.aglib.kernel.uses_5lvl_paging():
+    if pwndbg.aglib.vmmap.uses_5lvl_paging():
         level = 5
         names = (
             "Page",
@@ -69,7 +69,7 @@ def pagewalk(vaddr, entry=None):
     if vaddr is None:
         print(M.warn("address is not mapped"))
         return
-    phys = vaddr - pwndbg.aglib.kernel.physmap_base()
+    phys = vaddr - pwndbg.aglib.vmmap.physmap_base()
     print(f"pagewalk result: {C.green(hex(vaddr))} [phys: {C.yellow(hex(phys))}]")
 
 
