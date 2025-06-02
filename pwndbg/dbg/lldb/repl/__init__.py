@@ -63,6 +63,7 @@ from pwndbg.dbg import EventType
 from pwndbg.dbg.lldb import LLDB
 from pwndbg.dbg.lldb import LLDBProcess
 from pwndbg.dbg.lldb import OneShotAwaitable
+from pwndbg.dbg.lldb.pset import InvalidParse
 from pwndbg.dbg.lldb.pset import pget
 from pwndbg.dbg.lldb.pset import pset
 from pwndbg.dbg.lldb.repl.io import IODriver
@@ -263,6 +264,13 @@ def print_warn(msg: str, *args):
     Print a warning message in the style of the LLDB CLI.
     """
     print(message.warn("warn:"), msg, *args)
+
+
+def print_hint(msg: str, *args):
+    """
+    Print a hint message in the style of the LLDB CLI.
+    """
+    print(message.hint("hint:"), msg, *args)
 
 
 @wrap_with_history
@@ -529,11 +537,26 @@ def exec_repl_command(
             print("Usage: set <name> <value>")
             warn = True
         else:
-            warn = not pset(bits[1], bits[2])
+            param = pget(bits[1])
+            if param is None:
+                print_error(f"unknown setting '{bits[1]}'")
+                warn = True
+            else:
+                try:
+                    pset(param, bits[2])
+                except InvalidParse as e:
+                    print_error(f"invalid value '{bits[2]}' for setting '{bits[1]}': {e}")
+                    warn = True
 
         if warn:
-            print_warn(
-                "The 'set' command is used exclusively for Pwndbg settings. If you meant to change LLDB settings, use the fully spelled-out 'settings' command, instead."
+            print_hint(
+                "Use the 'config', 'theme' and 'help set' commands to see what settings are available."
+            )
+            print_hint(
+                "Use the 'help set <name>' command to see information about a specific setting."
+            )
+            print_hint(
+                "If you meant to change LLDB settings, use the fully spelled-out 'settings' command, instead."
             )
 
         return True
@@ -559,13 +582,12 @@ def exec_repl_command(
             for scope in pwndbg.lib.config.Scope:
                 print()
                 print(f"Configuration parameters - {scope._name_}:")
-                pwndbg.commands.config.display_config(
-                    "", pwndbg.lib.config.Scope.config, show_hints=False
-                )
+                pwndbg.commands.config.display_config("", scope, show_hints=False)
         else:
             # Show information about a single parameter.
             param = pget(bits[2])
             if param is None:
+                print_error(f"unknown setting '{bits[2]}'")
                 warn = True
             else:
                 print(f"Set {param.set_show_doc}.")
@@ -576,10 +598,9 @@ def exec_repl_command(
                     print(param.help_docstring)
 
         if warn:
-            print(
-                message.warn(
-                    "The 'set' command is used exclusively for Pwndbg settings. If you meant to see help for LLDB settings, use the fully spelled-out 'settings' command, instead."
-                )
+            print_hint("Use the 'help set' command to see what settings are available for Pwndbg.")
+            print_hint(
+                "If you meant to see help for LLDB settings, see the fully spelled-out 'settings' command, instead."
             )
 
         return True
