@@ -185,7 +185,7 @@ monitor_info_mem_not_warned = True
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_monitor_info_mem(process_pages) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Returns Linux memory maps information by parsing `monitor info mem` output
     from QEMU kernel GDB stub.
@@ -294,7 +294,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 )
 
 
-def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -310,6 +310,6 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     if kernel_vmmap_mode == "page-tables":
         return kernel_vmmap_via_page_tables()
     elif kernel_vmmap_mode == "monitor":
-        return kernel_vmmap_via_monitor_info_mem(process_pages)
+        return kernel_vmmap_via_monitor_info_mem()
 
     return ()
