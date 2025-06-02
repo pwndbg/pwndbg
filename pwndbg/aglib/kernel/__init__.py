@@ -202,7 +202,7 @@ def is_kaslr_enabled() -> bool:
 
 @pwndbg.lib.cache.cache_until("start")
 def kbase() -> int | None:
-    return pwndbg.aglib.vmmap.kbase()
+    return pwndbg.aglib.kernel.paging.kbase()
 
 
 def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:

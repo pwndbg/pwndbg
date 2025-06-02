@@ -18,6 +18,7 @@ from pt.pt_x86_64_parse import PT_x86_64_Backend
 import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
@@ -34,7 +35,7 @@ class KernelVmmap:
     KERNELDRIVER = "kernel [.driver .bpf]"
     ESPSTACK = "%esp fixup"
 
-    def __init__(self, pages: List[pwndbg.lib.memory.Page]):
+    def __init__(self, pages: Tuple[pwndbg.lib.memory.Page, ...]):
         self.pages = pages
         self.sections = None
         if not pwndbg.aglib.kernel.has_debug_syms():
@@ -43,7 +44,7 @@ class KernelVmmap:
         physmap = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
         vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
         vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
-        self.kbase = kbase = pwndbg.aglib.vmmap.find_kbase(pages)
+        self.kbase = kbase = pwndbg.aglib.kernel.paging.find_kbase(pages)
         self.sections = (
             (self.USERLAND, 0),
             (None, 0x8000000000000000),
@@ -231,7 +232,7 @@ class QemuMachine(Machine):
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_page_tables() -> List[pwndbg.lib.memory.Page]:
+def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -297,14 +298,14 @@ def kernel_vmmap_via_page_tables() -> List[pwndbg.lib.memory.Page]:
             flags |= 1
         objfile = f"[pt_{hex(start)[2:-3]}]"
         retpages.append(pwndbg.lib.memory.Page(start, size, flags, 0, objfile))
-    return retpages
+    return tuple(retpages)
 
 
 monitor_info_mem_not_warned = True
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_monitor_info_mem(process_pages) -> List[pwndbg.lib.memory.Page]:
+def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Returns Linux memory maps information by parsing `monitor info mem` output
     from QEMU kernel GDB stub.
@@ -389,19 +390,9 @@ def kernel_vmmap_via_monitor_info_mem(process_pages) -> List[pwndbg.lib.memory.P
         if len(perm) == 4:  # if the qemu version displays if the page is executable
             if "x" in perm:
                 flags |= 1
-        elif process_pages:
-            pgwalk_res = pwndbg.aglib.kernel,paging.pagewalk(start)
-            _, vaddr = pgwalk_res[0]
-            if vaddr is None:
-                print(M.error("vmmap uses pagewalk to determine x bit for a page, but failed"))
-                break # TODO: consider continue instead of break?
-            for _, entry in pgwalk_res:
-                if entry is not None:
-                    flags |= entry >> 63
-                    break
         pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
-    return pages
+    return tuple(pages)
 
 
 kernel_vmmap_mode = pwndbg.config.add_param(
@@ -422,7 +413,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 )
 
 
-def kernel_vmmap(process_pages = True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -439,7 +430,18 @@ def kernel_vmmap(process_pages = True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     if kernel_vmmap_mode == "page-tables":
         pages = kernel_vmmap_via_page_tables()
     elif kernel_vmmap_mode == "monitor":
-        pages = kernel_vmmap_via_monitor_info_mem(process_pages)
+        pages = kernel_vmmap_via_monitor_info_mem()
+        if process_pages:
+            for page in pages:
+                pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
+                _, vaddr = pgwalk_res[0]
+                if vaddr is None:
+                    print(M.error("vmmap uses pagewalk to determine x bit for a page, but failed"))
+                    break  # TODO: consider continue instead of break?
+                for _, entry in pgwalk_res:
+                    if entry is not None:
+                        page.flags ^= entry >> 63
+                        break
 
     if pages is None:
         return ()
