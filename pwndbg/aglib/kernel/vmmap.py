@@ -391,6 +391,16 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
         if len(perm) == 4:  # if the qemu version displays if the page is executable
             if "x" in perm:
                 flags |= 1
+        else:
+            pgwalk_res = pwndbg.aglib.vmmap.pagewalk(start)
+            _, vaddr = pgwalk_res[0]
+            if vaddr is None:
+                print(M.error("vmmap uses pagewalk to determine x bit for a page, but failed"))
+                break # TODO: consider continue instead of break?
+            for _, entry in pgwalk_res:
+                if entry is not None:
+                    flags |= entry >> 63
+                    break
         pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
     kv = KernelVmmap(pages)
