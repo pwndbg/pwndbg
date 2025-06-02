@@ -62,6 +62,7 @@ from pwndbg.color import message
 from pwndbg.dbg import EventType
 from pwndbg.dbg.lldb import LLDB
 from pwndbg.dbg.lldb import OneShotAwaitable
+from pwndbg.dbg.lldb.pset import pget
 from pwndbg.dbg.lldb.pset import pset
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import get_io_driver
@@ -504,6 +505,52 @@ def exec_repl_command(
             print(
                 message.warn(
                     "The 'set' command is used exclusively for Pwndbg settings. If you meant to change LLDB settings, use the fully spelled-out 'settings' command, instead."
+                )
+            )
+
+        return True
+
+    if (
+        (bits[0] == "h" or (bits[0].startswith("hel") and "help".startswith(bits[0])))
+        and len(bits) >= 2
+        and bits[1] == "set"
+    ):
+        # This is 'help set'
+        #
+        # We override this command to provide help for the 'set' command
+        # override.
+        warn = False
+        if len(bits) > 3:
+            print("Usage: help set [name]")
+            warn = True
+        elif len(bits) == 2:
+            # In LLDB style, list all valid settings.
+            print("Set a Pwndbg configuration parameter.")
+            print()
+            print("Syntax: set <name> <value>")
+            for scope in pwndbg.lib.config.Scope:
+                print()
+                print(f"Configuration parameters - {scope._name_}:")
+                pwndbg.commands.config.display_config(
+                    "", pwndbg.lib.config.Scope.config, show_hints=False
+                )
+        else:
+            # Show information about a single parameter.
+            param = pget(bits[2])
+            if param is None:
+                warn = True
+            else:
+                print(f"Set {param.set_show_doc}.")
+                print()
+                print(f"Syntax: set {param.name} <value>")
+                print()
+                if param.help_docstring:
+                    print(param.help_docstring)
+
+        if warn:
+            print(
+                message.warn(
+                    "The 'set' command is used exclusively for Pwndbg settings. If you meant to see help for LLDB settings, use the fully spelled-out 'settings' command, instead."
                 )
             )
 

@@ -71,7 +71,9 @@ parser.add_argument(
 )
 
 
-def display_config(filter_pattern: str, scope: Scope, has_file_command: bool = True) -> None:
+def display_config(
+    filter_pattern: str, scope: Scope, has_file_command: bool = True, show_hints: bool = True
+) -> None:
     values = get_config_parameters(scope, filter_pattern)
 
     if not values:
@@ -97,18 +99,19 @@ def display_config(filter_pattern: str, scope: Scope, has_file_command: bool = T
 
         print_row(v.name, value, default, v.set_show_doc, longest_optname, longest_doc)
 
-    print(
-        hint(
-            f"You can set a {scope.name} variable with `set <{scope.name}-var> <value>`, and read more about it with `help set <{scope.name}-var>`."
-        )
-    )
-    if has_file_command:
+    if show_hints:
         print(
             hint(
-                f"You can generate a configuration file using `{scope.name}file` "
-                "- then put it in your .gdbinit after initializing pwndbg."
+                f"You can set a {scope.name} variable with `set <{scope.name}-var> <value>`, and read more about it with `help set <{scope.name}-var>`."
             )
         )
+        if has_file_command:
+            print(
+                hint(
+                    f"You can generate a configuration file using `{scope.name}file` "
+                    "- then put it in your .gdbinit after initializing pwndbg."
+                )
+            )
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PWNDBG)
