@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.regs
 import pwndbg.color as C
 import pwndbg.color.message as M
@@ -49,7 +50,7 @@ def pagewalk(vaddr, entry=None):
         "PUD",
         "PGD",
     )
-    if pwndbg.aglib.kernel.uses_5lvl_paging():
+    if pwndbg.aglib.kernel.paging.uses_5lvl_paging():
         level = 5
         names = (
             "Page",
@@ -59,7 +60,7 @@ def pagewalk(vaddr, entry=None):
             "PUD",
             "PGD",
         )
-    entries = pwndbg.aglib.vmmap.pagewalk(vaddr, entry)
+    entries = pwndbg.aglib.kernel.paging.pagewalk(vaddr, entry)
     for i in range(level, 0, -1):
         entry, vaddr = entries[i]
         if entry is None:
@@ -69,7 +70,7 @@ def pagewalk(vaddr, entry=None):
     if vaddr is None:
         print(M.warn("address is not mapped"))
         return
-    phys = vaddr - pwndbg.aglib.kernel.physmap_base()
+    phys = vaddr - pwndbg.aglib.kernel.paging.physmap_base()
     print(f"pagewalk result: {C.green(hex(vaddr))} [phys: {C.yellow(hex(phys))}]")
 
 
