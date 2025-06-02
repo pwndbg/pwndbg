@@ -304,7 +304,7 @@ monitor_info_mem_not_warned = True
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_monitor_info_mem() -> List[pwndbg.lib.memory.Page]:
+def kernel_vmmap_via_monitor_info_mem(process_pages) -> List[pwndbg.lib.memory.Page]:
     """
     Returns Linux memory maps information by parsing `monitor info mem` output
     from QEMU kernel GDB stub.
@@ -389,8 +389,8 @@ def kernel_vmmap_via_monitor_info_mem() -> List[pwndbg.lib.memory.Page]:
         if len(perm) == 4:  # if the qemu version displays if the page is executable
             if "x" in perm:
                 flags |= 1
-        else:
-            pgwalk_res = pwndbg.aglib.vmmap.pagewalk(start)
+        elif process_pages:
+            pgwalk_res = pwndbg.aglib.kernel,paging.pagewalk(start)
             _, vaddr = pgwalk_res[0]
             if vaddr is None:
                 print(M.error("vmmap uses pagewalk to determine x bit for a page, but failed"))
@@ -422,7 +422,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 )
 
 
-def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap(process_pages = True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -439,12 +439,12 @@ def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if kernel_vmmap_mode == "page-tables":
         pages = kernel_vmmap_via_page_tables()
     elif kernel_vmmap_mode == "monitor":
-        pages = kernel_vmmap_via_monitor_info_mem()
+        pages = kernel_vmmap_via_monitor_info_mem(process_pages)
 
     if pages is None:
         return ()
-    
-    kv = KernelVmmap(pages)
-    kv.adjust()
+    if process_pages:
+        kv = KernelVmmap(pages)
+        kv.adjust()
 
     return tuple(pages)

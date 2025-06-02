@@ -15,7 +15,7 @@ ENTRYMASK = ~((1 << 12) - 1) & ((1 << 51) - 1)
 
 @pwndbg.lib.cache.cache_until("start", "stop")
 def get_memory_map_raw() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    return pwndbg.aglib.kernel.vmmap.kernel_vmmap()
+    return pwndbg.aglib.kernel.vmmap.kernel_vmmap(False)
 
 
 def find_kbase(pages) -> int | None:
