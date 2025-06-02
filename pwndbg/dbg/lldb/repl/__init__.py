@@ -514,6 +514,26 @@ def exec_repl_command(
         run_ipython_shell()
         return True
 
+    if (
+        bits[0] == pwndbg.commands.start.entry.command_name
+        or bits[0] in pwndbg.commands.start.entry.aliases
+    ):
+        # 'entry' is actually a Pwndbg command. For convenience, we launch the
+        # process on its behalf, before letting it run.
+        #
+        # In the LLDB back-end, there is no proper mechanism to make a process
+        # start from inside of a command, as there is in GDB. Ideally, we'd
+        # rework `ProcessDriver` so that it lets us do that with an execution
+        # controller, but that is quite a bit of work to fix a single command,
+        # when using an override is enough to achieve the same goal.
+        #
+        # In any case, we should consider doing it if this proves to be too janky.
+        if not driver.has_process():
+            process_launch(driver, relay, ["-s"], dbg)
+
+        # This intentionally falls through. We want LLDB to do the rest of the
+        # work of processing 'entry'.
+
     # The command hasn't matched any of our filtered commands, just let LLDB
     # handle it normally. Either in the context of the process, if we have
     # one, or just in a general context.
