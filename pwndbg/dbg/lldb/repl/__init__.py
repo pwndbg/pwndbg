@@ -61,6 +61,7 @@ import pwndbg.dbg.lldb
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 from pwndbg.dbg.lldb import LLDB
+from pwndbg.dbg.lldb import LLDBProcess
 from pwndbg.dbg.lldb import OneShotAwaitable
 from pwndbg.dbg.lldb.pset import pset
 from pwndbg.dbg.lldb.repl.io import IODriver
@@ -129,7 +130,25 @@ class EventRelay(EventHandler):
         self.dbg._trigger_event(EventType.START)
 
     @override
-    def suspended(self):
+    def suspended(self, event: lldb.SBEvent):
+        # The event might have originated from a different source than the user
+        # currently has selected. Move focus to the where the event happened.
+        #
+        # state-changed events have no thread associated with them, and so
+        # SBThread::GetThreadFromEvent does not work. Interrogate each thread in
+        # the process and look for the most interesting one.
+        proc = lldb.SBProcess.GetProcessFromEvent(event)
+        for thread in proc.threads:
+            # Currently the one considered most interesting is simply the first
+            # that has any reason at all to be stopped.
+            if thread.stop_reason == lldb.eStopReasonNone:
+                continue
+
+            if proc.GetSelectedThread().idx != thread.idx:
+                print(message.notice(f"[Switched to Thread {thread.id}]"))
+                assert proc.SetSelectedThread(thread)
+            break
+
         self.dbg._trigger_event(EventType.STOP)
 
     @override
