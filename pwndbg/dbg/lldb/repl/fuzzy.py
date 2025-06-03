@@ -1,3 +1,8 @@
+# Licensed under the MIT License
+# Modified from https://github.com/lebr0nli/GEP
+# Copyright (c) 2022 Alan Li
+# Copyright (c) 2025 Zhi-Qiang Zhou
+
 import lldb
 
 import atexit, os, re, threading, sys, tempfile, shutil
