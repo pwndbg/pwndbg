@@ -108,7 +108,11 @@ def get_disassembler(cs_info: Tuple[int, int]):
 
     flavor = pwndbg.dbg.x86_disassembly_flavor()
     try:
-        cs.syntax = CapstoneSyntax[flavor]
+        # On other architectures than x86 and x86-64 the arguments aren't swapped
+        if pwndbg.aglib.arch.name in ("i386", "x86-64"):
+            cs.syntax = CapstoneSyntax[flavor]
+        else:
+            cs.syntax = CapstoneSyntax["intel"]
     except CsError:
         pass
     cs.detail = True
