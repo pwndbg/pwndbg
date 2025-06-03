@@ -68,6 +68,10 @@ from pwndbg.dbg.lldb.pset import pset
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import get_io_driver
 from pwndbg.dbg.lldb.repl.proc import EventHandler
+from pwndbg.dbg.lldb.repl.proc import LaunchResultConnected
+from pwndbg.dbg.lldb.repl.proc import LaunchResultEarlyExit
+from pwndbg.dbg.lldb.repl.proc import LaunchResultError
+from pwndbg.dbg.lldb.repl.proc import LaunchResultSuccess
 from pwndbg.dbg.lldb.repl.proc import ProcessDriver
 from pwndbg.dbg.lldb.repl.readline import PROMPT
 from pwndbg.dbg.lldb.repl.readline import enable_readline
@@ -957,9 +961,15 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         os.getcwd(),
     )
 
-    if not result.success:
-        print_error(f"could not launch process: {result.description}")
-        return
+    match result:
+        case LaunchResultError(what, disconnected):
+            print_error(f"could not launch process: {what.description}")
+            if disconnected:
+                print_warn("disconnected")
+            return
+        case LaunchResultEarlyExit():
+            print_warn("process exited early")
+            return
 
     # Continue execution if the user hasn't requested for a stop at the entry
     # point of the process. And handle necessary events.
@@ -1030,14 +1040,20 @@ def _attach_with_info(
 
     result = driver.attach(
         auto.target,
-        io_driver,
         info,
     )
 
-    if not result.success:
-        print_error(f"could not attach to process: {result.description}")
-        auto.close()
-        return
+    match result:
+        case LaunchResultError(what, disconnected):
+            print_error(f"could not attatch to process: {what.description}")
+            if disconnected:
+                print_warn("disconnected")
+            auto.close()
+            return
+        case LaunchResultEarlyExit():
+            print_warn("process exited early")
+            auto.close()
+            return
 
     # Continue execution if the user has requested it.
     if cont:
@@ -1134,10 +1150,20 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
         return
 
     io_driver = get_io_driver()
-    error = driver.connect(auto.target, io_driver, args.remoteurl, "gdb-remote")
+    result = driver.connect(auto.target, io_driver, args.remoteurl, "gdb-remote")
 
-    if not error.success:
-        print_error(f"could not connect to remote process: {error.description}")
+    error = False
+    match result:
+        case LaunchResultError(what, disconnected):
+            print_error(f"could not connect to remote: {what.description}")
+            if disconnected:
+                print_warn("disconnected")
+            error = True
+        case LaunchResultEarlyExit():
+            print_warn("remote exited early")
+            error = True
+
+    if error:
         auto.close()
         return
 
