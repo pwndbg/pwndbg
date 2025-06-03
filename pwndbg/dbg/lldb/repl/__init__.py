@@ -68,9 +68,15 @@ from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import get_io_driver
 from pwndbg.dbg.lldb.repl.proc import EventHandler
 from pwndbg.dbg.lldb.repl.proc import ProcessDriver
-from pwndbg.dbg.lldb.repl.readline import PROMPT
-from pwndbg.dbg.lldb.repl.readline import enable_readline
-from pwndbg.dbg.lldb.repl.readline import wrap_with_history
+from pwndbg.dbg.lldb.repl.fuzzy import HAS_FZF
+if HAS_FZF:
+    from pwndbg.dbg.lldb.repl.fuzzy import PROMPT
+    from pwndbg.dbg.lldb.repl.fuzzy import get_prompt_session
+    from pwndbg.dbg.lldb.repl.fuzzy import wrap_with_history
+else:
+    from pwndbg.dbg.lldb.repl.readline import PROMPT
+    from pwndbg.dbg.lldb.repl.readline import enable_readline
+    from pwndbg.dbg.lldb.repl.readline import wrap_with_history
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 
@@ -257,7 +263,10 @@ def run(
     assert isinstance(pwndbg.dbg, LLDB)
     dbg: LLDB = pwndbg.dbg
 
-    enable_readline(dbg)
+    if HAS_FZF:
+        session = get_prompt_session(dbg)
+    else:
+        enable_readline(dbg)
 
     # We're gonna be dealing with process events ourselves, so we'll want to run
     # LLDB in asynchronous mode.
@@ -308,12 +317,17 @@ def run(
                 print("[-] REPL: Prompt next command from user interactively")
 
             try:
-                line = input(PROMPT)
+                if HAS_FZF:
+                    line = session.prompt(message=PROMPT)
+                else:
+                    line = input(PROMPT)
                 # If the input is empty (i.e., 'Enter'), use the previous command
                 if line:
                     last_command = line
                 else:
                     line = last_command
+            except KeyboardInterrupt:
+                continue
             except EOFError:
                 # Exit the REPL if there's nothing else to run.
                 last_exc = asyncio.CancelledError()
