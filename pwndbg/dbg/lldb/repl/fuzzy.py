@@ -59,7 +59,7 @@ def get_lldb_completes(dbg: LLDB, query: str = "") -> list[str]:
     matches = lldb.SBStringList()
     _num_matches = interp.HandleCompletion(query, len(query), 0, -1, matches)
     proposals = [matches.GetStringAtIndex(i) for i in range(1, matches.GetSize())]
-    return [i for i in proposals]
+    return proposals
 
 
 def safe_get_help_docs(dbg: LLDB, command: str) -> str | None:
