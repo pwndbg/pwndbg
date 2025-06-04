@@ -204,11 +204,11 @@ class FzfTabCompletePreviewThread(threading.Thread):
     """
 
     def __init__(
-       self,
-       fifo_input_path: str,
-       fifo_output_path: str,
-       completion_help_docs: dict[int, str],
-       **kwargs,
+        self,
+        fifo_input_path: str,
+        fifo_output_path: str,
+        completion_help_docs: dict[int, str],
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.fifo_input_path = fifo_input_path
@@ -289,10 +289,10 @@ class LLDBCompleter(Completer):
             if not completion.startswith(target_text):
                 continue
             display_meta = (
-                None
-                if not should_get_all_help_docs
-                else safe_get_help_docs(self.dbg, completion) or None
-             )
+               None
+               if not should_get_all_help_docs
+               else safe_get_help_docs(self.dbg, completion) or None
+            )
             # remove some prefix of raw completion
             completion = completion[cursor_idx_in_completion:]
             # display readable completion based on the text before cursor
