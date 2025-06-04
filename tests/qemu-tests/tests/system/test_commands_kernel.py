@@ -132,17 +132,25 @@ def test_command_msr_write():
 @pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
 def test_command_kernel_vmmap():
     res = gdb.execute("vmmap", to_string=True)
-    assert any(
+    assert all(
         key in res
         for key in (
-            "kernel [.text]",
-            "kernel [.rodata]",
-            "kernel [.bss]",
-            "kernel [stack]",
+            "vmalloc",
+            "fixmap",
             "physmap",
             "vmemmap",
         )
     )
+    if pwndbg.aglib.arch.name == "x86-64":
+        assert all(
+            key in res
+            for key in (
+                "kernel [.text]",
+                "kernel [.rodata]",
+                "kernel [.bss]",
+                "kernel [stack]",
+            )
+        )
 
 
 @pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
