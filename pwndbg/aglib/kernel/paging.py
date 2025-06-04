@@ -68,11 +68,11 @@ guess_physmap = config.add_param(
 
 
 def physmap_base() -> int:
-    if pwndbg.aglib.kernel.has_debug_syms():
+    if pwndbg.aglib.kernel.has_debug_syms() and pwndbg.aglib.arch.name == "x86-64":
         result = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
         if result is not None:
             return result
-    if guess_physmap:
+    if guess_physmap or pwndbg.aglib.arch.name == "aarch64":
         result = guess_physmap_base()
         if result is not None:
             return result

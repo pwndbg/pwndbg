@@ -40,7 +40,7 @@ class KernelVmmap:
         self.sections = None
         if not pwndbg.aglib.kernel.has_debug_syms():
             return
-        physmap = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
+        physmap = pwndbg.aglib.kernel.paging.physmap_base()
         vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
         vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
         self.kbase = kbase = pwndbg.aglib.kernel.paging.find_kbase(pages)
@@ -67,18 +67,28 @@ class KernelVmmap:
                 (None, 0xFFFFFFFFFFFFFFFF),
             )
         if pwndbg.aglib.arch.name == "aarch64":
-            # https://www.kernel.org/doc/html/v5.8/arm64/memory.html
-            # only the 4 lvl paging mode for now
-            self.sections = (
-                (self.USERLAND, 0),
-                (None, 0xFFFF000000000000),
-                ("physmap", physmap),  # kernel text is probably here
-                (self.KERNELDRIVER, 0xFFFFA00000000000),
-                ("vmalloc", vmalloc),
-                ("PCI", 0xFFFFFDFFFEC00000),
-                ("vmemmap", vmemmap),
-                (None, 0xFFFFFFFFFFFFFFFF),
-            )
+            # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
+            # https://elixir.bootlin.com/linux/v6.15/source/arch/arm64/mm/ptdump.c#L351
+            sections = [(self.USERLAND, 0)]
+            address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
+            value = 0
+            name = None
+            for i in range(20):
+                value = pwndbg.aglib.memory.u64(address_markers + i * 0x10)
+                if value > 0:
+                    name_ptr = pwndbg.aglib.memory.u64(address_markers + i * 0x10 + 8)
+                    name = None
+                    if name_ptr > 0:
+                        name = pwndbg.aglib.memory.string(name_ptr).decode()
+                        name = name.split(" ")[0].lower()
+                        if "end" in name:
+                            name = None
+                        if name == "linear":
+                            name = "physmap"
+                sections.append((name, value))
+                if value == 0xFFFFFFFFFFFFFFFF:
+                    break
+            self.sections = tuple(sections)
 
     def get_name(self, addr: int) -> str:
         if addr is None or self.sections is None:
@@ -141,13 +151,13 @@ class KernelVmmap:
                     page.objfile = self.KERNELBSS
                 else:
                     page.objfile = self.KERNELRO
-            if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
-                page.objfile = "kernel [stack]"
             if has_loadable_driver:
                 page.objfile = self.KERNELDRIVER
             if page.execute and page.start != self.kbase:
                 page.objfile = self.KERNELDRIVER
                 has_loadable_driver = True
+            if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
+                page.objfile = "kernel [stack]"
 
     def handle_offsets(self):
         prev_objfile, base = "", 0
@@ -450,7 +460,7 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
             for page in pages:
                 pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
                 entry, vaddr = pgwalk_res[0]
-                if entry >> 63 == 0:
+                if entry and entry >> 63 == 0:
                     page.flags |= 1
     if pages is None:
         return ()
