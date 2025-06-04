@@ -40,30 +40,45 @@ class KernelVmmap:
         self.sections = None
         if not pwndbg.aglib.kernel.has_debug_syms():
             return
-        # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
         physmap = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
         vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
         vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
         self.kbase = kbase = pwndbg.aglib.kernel.paging.find_kbase(pages)
-        self.sections = (
-            (self.USERLAND, 0),
-            (None, 0x8000000000000000),
-            ("physmap", physmap),
-            ("vmalloc", vmalloc),
-            ("vmemmap", vmemmap),
-            # TODO: find better ways to handle the following constants
-            #   I cound not find kernel symbols that reference their values
-            #   the actual region base may differ but the region always falls within the below range
-            #   even if KASLR is enabled
-            ("cpu entry", 0xFFFFFE0000000000),
-            ("rand cpu entry", 0xFFFFFE0000001000),
-            (self.ESPSTACK, 0xFFFFFF0000000000),
-            ("EFI", 0xFFFFFFEF00000000),
-            (self.KERNELLAND, kbase),
-            ("fixmap", 0xFFFFFFFFFF000000),
-            ("legacy abi", 0xFFFFFFFFFF600000),
-            (None, 0xFFFFFFFFFFFFFFFF),
-        )
+        if pwndbg.aglib.arch.name == "x86-64":
+            # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
+            # works for v5.x and v6.x
+            self.sections = (
+                (self.USERLAND, 0),
+                (None, 0x8000000000000000),
+                ("physmap", physmap),
+                ("vmalloc", vmalloc),
+                ("vmemmap", vmemmap),
+                # TODO: find better ways to handle the following constants
+                #   I cound not find kernel symbols that reference their values
+                #   the actual region base may differ but the region always falls within the below range
+                #   even if KASLR is enabled
+                ("cpu entry", 0xFFFFFE0000000000),
+                ("rand cpu entry", 0xFFFFFE0000001000),
+                (self.ESPSTACK, 0xFFFFFF0000000000),
+                ("EFI", 0xFFFFFFEF00000000),
+                (self.KERNELLAND, kbase),
+                ("fixmap", 0xFFFFFFFFFF000000),
+                ("legacy abi", 0xFFFFFFFFFF600000),
+                (None, 0xFFFFFFFFFFFFFFFF),
+            )
+        if pwndbg.aglib.arch.name == "aarch64":
+            # https://www.kernel.org/doc/html/v5.8/arm64/memory.html
+            # only the 4 lvl paging mode for now
+            self.sections = (
+                (self.USERLAND, 0),
+                (None, 0xFFFF000000000000),
+                ("physmap", physmap),  # kernel text is probably here
+                (self.KERNELDRIVER, 0xFFFFA00000000000),
+                ("vmalloc", vmalloc),
+                ("PCI", 0xFFFFFDFFFEC00000),
+                ("vmemmap", vmemmap),
+                (None, 0xFFFFFFFFFFFFFFFF),
+            )
 
     def get_name(self, addr: int) -> str:
         if addr is None or self.sections is None:
@@ -431,7 +446,7 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
         pages = kernel_vmmap_via_page_tables()
     elif kernel_vmmap_mode == "monitor":
         pages = kernel_vmmap_via_monitor_info_mem()
-        if process_pages:
+        if process_pages and pwndbg.aglib.arch.name == "x86-64":
             for page in pages:
                 pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
                 entry, vaddr = pgwalk_res[0]
