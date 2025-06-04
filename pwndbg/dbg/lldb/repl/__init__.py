@@ -61,6 +61,7 @@ import pwndbg.dbg.lldb
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 from pwndbg.dbg.lldb import LLDB
+from pwndbg.dbg.lldb import LLDBProcess
 from pwndbg.dbg.lldb import OneShotAwaitable
 from pwndbg.dbg.lldb.pset import pget
 from pwndbg.dbg.lldb.pset import pset
@@ -130,7 +131,25 @@ class EventRelay(EventHandler):
         self.dbg._trigger_event(EventType.START)
 
     @override
-    def suspended(self):
+    def suspended(self, event: lldb.SBEvent):
+        # The event might have originated from a different source than the user
+        # currently has selected. Move focus to the where the event happened.
+        #
+        # state-changed events have no thread associated with them, and so
+        # SBThread::GetThreadFromEvent does not work. Interrogate each thread in
+        # the process and look for the most interesting one.
+        proc = lldb.SBProcess.GetProcessFromEvent(event)
+        for thread in proc.threads:
+            # Currently the one considered most interesting is simply the first
+            # that has any reason at all to be stopped.
+            if thread.stop_reason == lldb.eStopReasonNone:
+                continue
+
+            if proc.GetSelectedThread().idx != thread.idx:
+                print(message.notice(f"[Switched to Thread {thread.id}]"))
+                assert proc.SetSelectedThread(thread)
+            break
+
         self.dbg._trigger_event(EventType.STOP)
 
     @override
@@ -568,6 +587,26 @@ def exec_repl_command(
         # Spawn IPython shell, easy for debugging
         run_ipython_shell()
         return True
+
+    if (
+        bits[0] == pwndbg.commands.start.entry.command_name
+        or bits[0] in pwndbg.commands.start.entry.aliases
+    ):
+        # 'entry' is actually a Pwndbg command. For convenience, we launch the
+        # process on its behalf, before letting it run.
+        #
+        # In the LLDB back-end, there is no proper mechanism to make a process
+        # start from inside of a command, as there is in GDB. Ideally, we'd
+        # rework `ProcessDriver` so that it lets us do that with an execution
+        # controller, but that is quite a bit of work to fix a single command,
+        # when using an override is enough to achieve the same goal.
+        #
+        # In any case, we should consider doing it if this proves to be too janky.
+        if not driver.has_process():
+            process_launch(driver, relay, ["-s"], dbg)
+
+        # This intentionally falls through. We want LLDB to do the rest of the
+        # work of processing 'entry'.
 
     # The command hasn't matched any of our filtered commands, just let LLDB
     # handle it normally. Either in the context of the process, if we have

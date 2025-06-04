@@ -12,12 +12,15 @@ from typing import TypeVar
 
 from typing_extensions import ParamSpec
 
+import pwndbg
 import pwndbg.aglib.arch
+import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
+import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
@@ -399,7 +402,7 @@ class x86_64Ops(x86Ops):
 
         if pwndbg.aglib.kernel.has_debug_syms():
             # if there are debug symbols
-            self._PAGE_OFFSET = pwndbg.aglib.symbol.lookup_symbol_value("page_offset_base")
+            self._PAGE_OFFSET = pwndbg.aglib.kernel.paging.physmap_base()
             self.VMEMMAP_START = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
             if self._PAGE_OFFSET is not None and self.VMEMMAP_START is not None:
                 return

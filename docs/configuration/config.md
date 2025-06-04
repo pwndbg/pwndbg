@@ -581,6 +581,17 @@ The soft line width for go-dump pretty printing.
 
 ----------
 
+## **guess-physmap**
+
+
+Should guess physmap base address when debug symbols are not present.
+
+
+
+**Default:** off  
+
+----------
+
 ## **hexdump-bytes**
 
 

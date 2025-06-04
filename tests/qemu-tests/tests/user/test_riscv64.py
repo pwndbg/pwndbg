@@ -143,6 +143,17 @@ def test_riscv64_compressed_loads(qemu_assembly_run):
     assert dis == expected
 
 
+def test_att_syntax_non_x86(qemu_assembly_run):
+    """
+    https://github.com/pwndbg/pwndbg/issues/3073
+
+    `set disassembly-flavor att` should not have an effect on the disassembly or enhancement of non-x86 architectures.
+    """
+
+    gdb.execute("set disassembly-flavor att")
+    test_riscv64_compressed_loads(qemu_assembly_run)
+
+
 RISCV64_JUMPS = f"""
 {RISCV64_PREAMBLE}
 li t0, 4

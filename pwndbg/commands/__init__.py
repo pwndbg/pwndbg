@@ -921,6 +921,7 @@ def load_commands() -> None:
     import pwndbg.commands.next
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
+    import pwndbg.commands.paging
     import pwndbg.commands.patch
     import pwndbg.commands.pie
     import pwndbg.commands.plist

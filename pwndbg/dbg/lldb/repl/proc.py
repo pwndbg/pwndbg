@@ -35,7 +35,7 @@ class EventHandler:
         """
         pass
 
-    def suspended(self):
+    def suspended(self, cause: lldb.SBEvent):
         """
         This function is called when the execution of a process is suspended.
         """
@@ -206,7 +206,7 @@ class ProcessDriver:
                         # The process has stopped, so we're done processing events
                         # for the time being. Trigger the stopped event and return.
                         if fire_events:
-                            self.eh.suspended()
+                            self.eh.suspended(event)
                         expected = True
                         break
 
