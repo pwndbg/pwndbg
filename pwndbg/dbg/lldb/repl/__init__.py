@@ -318,7 +318,10 @@ def run(
 
             try:
                 if HAS_FZF:
-                    line = session.prompt(message=PROMPT)
+                    try:
+                        line = session.prompt(message=PROMPT)
+                    except KeyboardInterrupt:
+                        continue
                 else:
                     line = input(PROMPT)
                 # If the input is empty (i.e., 'Enter'), use the previous command
@@ -326,8 +329,6 @@ def run(
                     last_command = line
                 else:
                     line = last_command
-            except KeyboardInterrupt:
-                continue
             except EOFError:
                 # Exit the REPL if there's nothing else to run.
                 last_exc = asyncio.CancelledError()

@@ -58,10 +58,11 @@ def safe_get_help_docs(dbg: LLDB, command: str) -> str | None:
     """
     A wrapper for gdb.execute('help <command>', to_string=True), but return None if gdb raise an exception.
     """
-    try:
-        return dbg._execute_lldb_command("help %s" % command).strip()
-    except Exception:
-        return None
+    interp: lldb.SBCommandInterpreter = dbg.debugger.GetCommandInterpreter()
+    add_to_history = False
+    result = lldb.SBCommandReturnObject()
+    interp.HandleCommand(f"help {command}", result, add_to_history)
+    return result.GetOutput()
 
 
 def should_get_help_docs(dbg: LLDB, completion: str) -> bool:
@@ -285,23 +286,20 @@ def wrap_with_history(function: Callable) -> Callable:
 def get_prompt_session(dbg):
     bindings = KeyBindings()
 
-    if HAS_FZF:
-        # key binding for fzf history search
-        bindings.add("c-r")(fzf_reverse_search)
-        # key binding for fzf tab completion
-        fifo_in, fifo_out = create_preview_fifos()
-        preview = "echo {n} > %s\ncat %s" % (fifo_in, fifo_out)
-        bindings.add("c-i")(
-            functools.partial(
-                fzf_tab_autocomplete,
-                dbg=dbg,
-                preview=preview,
-                fifo_in=fifo_in,
-                fifo_out=fifo_out,
-            )
+    # key binding for fzf history search
+    bindings.add("c-r")(fzf_reverse_search)
+    # key binding for fzf tab completion
+    fifo_in, fifo_out = create_preview_fifos()
+    preview = "echo {n} > %s\ncat %s" % (fifo_in, fifo_out)
+    bindings.add("c-i")(
+        functools.partial(
+            fzf_tab_autocomplete,
+            dbg=dbg,
+            preview=preview,
+            fifo_in=fifo_in,
+            fifo_out=fifo_out,
         )
-    else:
-        print("Install fzf for better experience with pwndbg")
+    )
     
     return PromptSession(
         history=LLDBHistory(HISTORY_FILE, ignore_duplicates=1),
