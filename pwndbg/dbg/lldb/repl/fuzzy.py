@@ -3,13 +3,18 @@
 # Copyright (c) 2022 Alan Li
 # Copyright (c) 2025 Zhi-Qiang Zhou
 
-import lldb
-
-import atexit, os, re, threading, sys, tempfile, shutil
+import atexit
 import functools
-
-from typing import Iterator, Callable
-from subprocess import PIPE, Popen
+import os
+import re
+import shutil
+import sys
+import tempfile
+import threading
+from subprocess import PIPE
+from subprocess import Popen
+from typing import Callable
+from typing import Iterator
 
 from prompt_toolkit import ANSI
 from prompt_toolkit import PromptSession
@@ -19,10 +24,11 @@ from prompt_toolkit.completion import Completer
 from prompt_toolkit.completion import Completion
 from prompt_toolkit.document import Document
 from prompt_toolkit.history import FileHistory
-from prompt_toolkit.key_binding import KeyPressEvent
 from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.key_binding import KeyPressEvent
 from prompt_toolkit.output import create_output
 
+import lldb
 from pwndbg.dbg.lldb import LLDB
 
 # global variables

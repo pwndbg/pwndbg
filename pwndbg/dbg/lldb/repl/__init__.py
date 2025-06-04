@@ -68,6 +68,9 @@ from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import get_io_driver
 from pwndbg.dbg.lldb.repl.proc import EventHandler
 from pwndbg.dbg.lldb.repl.proc import ProcessDriver
+from pwndbg.lib.tips import color_tip
+from pwndbg.lib.tips import get_tip_of_the_day
+
 from pwndbg.dbg.lldb.repl.fuzzy import HAS_FZF
 if HAS_FZF:
     from pwndbg.dbg.lldb.repl.fuzzy import PROMPT
@@ -77,8 +80,6 @@ else:
     from pwndbg.dbg.lldb.repl.readline import PROMPT
     from pwndbg.dbg.lldb.repl.readline import enable_readline
     from pwndbg.dbg.lldb.repl.readline import wrap_with_history
-from pwndbg.lib.tips import color_tip
-from pwndbg.lib.tips import get_tip_of_the_day
 
 show_tip = pwndbg.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"
