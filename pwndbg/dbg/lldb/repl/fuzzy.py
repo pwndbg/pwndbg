@@ -16,9 +16,9 @@ import threading
 from subprocess import PIPE
 from subprocess import Popen
 from typing import Callable
+from typing import Iterator
 from typing import ParamSpec
 from typing import TypeVar
-from typing import Iterator
 
 import lldb
 from prompt_toolkit import ANSI
