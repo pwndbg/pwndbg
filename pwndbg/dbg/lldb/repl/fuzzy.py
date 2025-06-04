@@ -54,7 +54,7 @@ FZF_PRVIEW_WINDOW_ARGS = (
 )
 
 
-def get_lldb_completes(dbg: LLDB, query: str="") -> list[str]:
+def get_lldb_completes(dbg: LLDB, query: str = "") -> list[str]:
     interp: lldb.SBCommandInterpreter = dbg.debugger.GetCommandInterpreter()
     matches = lldb.SBStringList()
     _num_matches = interp.HandleCompletion(query, len(query), 0, -1, matches)
@@ -101,7 +101,9 @@ def create_fzf_process(query: str, preview: str = "", pre_cmd: str = "") -> Pope
     if query.startswith("!"):
         # ! in the beginning of query means we want to run the command directly for fzf
         query = "^" + query
-    cmd: tuple[str, ...] = FZF_RUN_CMD + ("--query", query) + ("--prompt", "> \x1b[35m" + pre_cmd + "\x1b[0m")
+    cmd: tuple[str, ...] = (
+        FZF_RUN_CMD + ("--query", query) + ("--prompt", "> \x1b[35m" + pre_cmd + "\x1b[0m")
+    )
     if preview:
         cmd += FZF_PRVIEW_WINDOW_ARGS
         cmd += ("--preview", preview)
@@ -148,7 +150,9 @@ def fzf_reverse_search(event: KeyPressEvent) -> None:
     run_in_terminal(_fzf_reverse_search)
 
 
-def fzf_tab_autocomplete(event: KeyPressEvent, dbg: LLDB, preview: str, fifo_in: str, fifo_out: str) -> None:
+def fzf_tab_autocomplete(
+    event: KeyPressEvent, dbg: LLDB, preview: str, fifo_in: str, fifo_out: str
+) -> None:
     """
     Tab autocomplete with fzf.
     """
@@ -157,17 +161,19 @@ def fzf_tab_autocomplete(event: KeyPressEvent, dbg: LLDB, preview: str, fifo_in:
         target_text = (
             event.app.current_buffer.document.text_before_cursor.lstrip()
         )  # Ignore leading whitespaces
-        if ' ' in target_text:
-            pre_cmd = ' '.join([i for i in target_text.split(' ')[:-1] if i != ' ']) + ' '
+        if " " in target_text:
+            pre_cmd = " ".join([i for i in target_text.split(' ')[:-1] if i != ' ']) + ' '
         else:
-            pre_cmd = ''
+            pre_cmd = ""
 
         all_completions, should_get_all_help_docs = get_lldb_completion_and_status(dbg, pre_cmd)
         if not all_completions:
             return
 
-        query = target_text[len(pre_cmd):]
-        p = create_fzf_process(query, preview=preview if should_get_all_help_docs else None, pre_cmd=pre_cmd)
+        query = target_text[len(pre_cmd) :]
+        p = create_fzf_process(
+            query, preview=preview if should_get_all_help_docs else None, pre_cmd=pre_cmd
+        )
         completion_help_docs = {}
         for i, completion in enumerate(all_completions):
             p.stdin.write(completion + "\n")
@@ -179,7 +185,7 @@ def fzf_tab_autocomplete(event: KeyPressEvent, dbg: LLDB, preview: str, fifo_in:
         t.stop()
         if stdout:
             event.app.current_buffer.delete_before_cursor(len(query))
-            event.app.current_buffer.insert_text(stdout.rstrip() + ' ')
+            event.app.current_buffer.insert_text(stdout.rstrip() + " ")
 
     run_in_terminal(_fzf_tab_autocomplete)
 
@@ -264,7 +270,9 @@ class LLDBCompleter(Completer):
         target_text = document.text_before_cursor.lstrip()  # Ignore leading whitespaces
 
         cursor_idx_in_completion = len(target_text)
-        all_completions, should_get_all_help_docs = get_lldb_completion_and_status(target_text, self.dbg)
+        all_completions, should_get_all_help_docs = get_lldb_completion_and_status(
+            target_text, self.dbg
+        )
         if not all_completions:
             return
 
@@ -285,6 +293,7 @@ def wrap_with_history(function: Callable) -> Callable:
     @functools.wraps(function)
     def _wrapped(*a, **kw):
         return function(*a, **kw)
+
     return _wrapped
 
 
@@ -305,11 +314,11 @@ def get_prompt_session(dbg):
             fifo_out=fifo_out,
         )
     )
-    
+
     return PromptSession(
         history=LLDBHistory(HISTORY_FILE, ignore_duplicates=1),
         completer=LLDBCompleter(dbg),
         complete_while_typing=False,
         key_bindings=bindings,
-        output=create_output(stdout=sys.__stdout__)
+        output=create_output(stdout=sys.__stdout__),
     )
