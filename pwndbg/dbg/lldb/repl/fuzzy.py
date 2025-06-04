@@ -55,9 +55,6 @@ def get_lldb_completes(dbg: LLDB, query: str="") -> list[str]:
 
 
 def safe_get_help_docs(dbg: LLDB, command: str) -> str | None:
-    """
-    A wrapper for gdb.execute('help <command>', to_string=True), but return None if gdb raise an exception.
-    """
     interp: lldb.SBCommandInterpreter = dbg.debugger.GetCommandInterpreter()
     add_to_history = False
     result = lldb.SBCommandReturnObject()
