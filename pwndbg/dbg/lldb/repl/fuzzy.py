@@ -16,6 +16,8 @@ import threading
 from subprocess import PIPE
 from subprocess import Popen
 from typing import Callable
+from typing import ParamSpec
+from typing import TypeVar
 from typing import Iterator
 
 import lldb
@@ -34,6 +36,9 @@ from prompt_toolkit.output import create_output
 from pwndbg.dbg.lldb import LLDB
 
 # global variables
+P = ParamSpec("P")
+T = TypeVar("T")
+
 HAS_FZF = shutil.which("fzf") is not None
 PROMPT = ANSI("\x1b[34mpwndbg-lldb> ")
 HISTORY_FILE = os.path.expanduser("~/.pwndbg_history")
@@ -92,7 +97,7 @@ def get_lldb_completion_and_status(dbg: LLDB, query: str) -> tuple[list[str], bo
     return all_completions, should_get_all_help_docs
 
 
-def create_fzf_process(query: str, preview: str = "", pre_cmd: str = "") -> Popen:
+def create_fzf_process(query: str, preview: str = "", pre_cmd: str = "") -> Popen[str]:
     """
     Create a fzf process with given query and preview command.
     """
@@ -199,7 +204,7 @@ class FzfTabCompletePreviewThread(threading.Thread):
     """
 
     def __init__(
-        self, fifo_input_path: str, fifo_output_path: str, completion_help_docs: dict, **kwargs
+        self, fifo_input_path: str, fifo_output_path: str, completion_help_docs: dict[int, str], **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.fifo_input_path = fifo_input_path
@@ -271,7 +276,7 @@ class LLDBCompleter(Completer):
 
         cursor_idx_in_completion = len(target_text)
         all_completions, should_get_all_help_docs = get_lldb_completion_and_status(
-            target_text, self.dbg
+            self.dbg, target_text
         )
         if not all_completions:
             return
@@ -280,7 +285,7 @@ class LLDBCompleter(Completer):
             if not completion.startswith(target_text):
                 continue
             display_meta = (
-                None if not should_get_all_help_docs else safe_get_help_docs(completion) or None
+                None if not should_get_all_help_docs else safe_get_help_docs(self.dbg, completion) or None
             )
             # remove some prefix of raw completion
             completion = completion[cursor_idx_in_completion:]
@@ -289,9 +294,9 @@ class LLDBCompleter(Completer):
             yield Completion(completion, display=display, display_meta=display_meta)
 
 
-def wrap_with_history(function: Callable) -> Callable:
+def wrap_with_history(function: Callable[P, T]) -> Callable[P, T]:
     @functools.wraps(function)
-    def _wrapped(*a, **kw):
+    def _wrapped(*a: P.args, **kw: P.kwargs) -> T:
         return function(*a, **kw)
 
     return _wrapped
@@ -316,7 +321,7 @@ def get_prompt_session(dbg):
     )
 
     return PromptSession(
-        history=LLDBHistory(HISTORY_FILE, ignore_duplicates=1),
+        history=LLDBHistory(HISTORY_FILE, ignore_duplicates=True),
         completer=LLDBCompleter(dbg),
         complete_while_typing=False,
         key_bindings=bindings,
