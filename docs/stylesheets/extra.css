@@ -94,3 +94,21 @@ label.md-nav__link {
   background: var(--md-code-bg-color);
   padding: 5px;
 }
+
+/* Highlight the `pwndbg>` prompt in code blocks. */
+.pwndbg-prompt {
+  /* Desaturated red.
+    color: #bd4545; */
+  /* #00AA00 is the default alive prompt. */
+  color: #239923;
+  font-weight: bold;
+}
+
+.pwndbg-cmd {
+  color: #dddddd
+}
+
+pre > code .code-line {
+  white-space: pre;    /* preserve spaces */
+  font-family: monospace;
+}

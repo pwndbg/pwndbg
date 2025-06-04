@@ -15,7 +15,7 @@ ENTRYMASK = ~((1 << 12) - 1) & ((1 << 51) - 1)
 
 @pwndbg.lib.cache.cache_until("start", "stop")
 def get_memory_map_raw() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    return pwndbg.aglib.kernel.vmmap.kernel_vmmap(False)
+    return pwndbg.aglib.kernel.vmmap.kernel_vmmap()
 
 
 def find_kbase(pages) -> int | None:
@@ -77,6 +77,8 @@ def physmap_base() -> int:
         if result is not None:
             return result
         print(M.warn("physmap base cannot be guessed, resort to default"))
+    else:
+        print(M.warn("guess-physmap is set to false, not guessing physmap address"))
     if uses_5lvl_paging():
         return 0xFF11000000000000
     return 0xFFFF888000000000
@@ -87,9 +89,8 @@ def kbase():
     return find_kbase(get_memory_map_raw())
 
 
-@pwndbg.lib.cache.cache_until("stop")
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
-def pagewalk(target, entry=None) -> Tuple[Tuple[int | None, int | None], ...]:
+def pagewalk(target, entry=None) -> List[Tuple[int | None, int | None]]:
     level = 4
     if uses_5lvl_paging():
         level = 5
@@ -117,10 +118,10 @@ def pagewalk(target, entry=None) -> Tuple[Tuple[int | None, int | None], ...]:
             print(M.warn(f"Exception while page walking: {e}"))
             entry = 0
         if entry == 0:
-            return tuple(result)
+            return result
         result[i] = (entry, vaddr)
-    result[0] = (entry, (entry & ENTRYMASK) + base + offset)
-    return tuple(result)
+    result[0] = (None, (entry & ENTRYMASK) + base + offset)
+    return result
 
 
 def guess_physmap_base() -> int | None:

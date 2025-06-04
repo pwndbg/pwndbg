@@ -38,7 +38,7 @@ if [ -n "$missing" ]; then
     exit 1
 fi
 
-VERSION="2025.05.28"
+VERSION="2025.05.30"
 TYPE=""
 ROOTLESS=false
 
@@ -150,8 +150,8 @@ case "$OS" in
             aarch64) FILE="${BINARY_NAME}_${VERSION}_arm64-portable.tar.xz" ;;
             armv7*) FILE="${BINARY_NAME}_${VERSION}_armv7-portable.tar.xz" ;;
             riscv64) FILE="${BINARY_NAME}_${VERSION}_riscv64-portable.tar.xz" ;;
-            powerpc64) FILE="${BINARY_NAME}_${VERSION}_powerpc64-portable.tar.xz" ;;
-            powerpc64le) FILE="${BINARY_NAME}_${VERSION}_powerpc64le-portable.tar.xz" ;;
+            ppc64) FILE="${BINARY_NAME}_${VERSION}_powerpc64-portable.tar.xz" ;;
+            ppc64le) FILE="${BINARY_NAME}_${VERSION}_powerpc64le-portable.tar.xz" ;;
             s390x) FILE="${BINARY_NAME}_${VERSION}_s390x-portable.tar.xz" ;;
             loongarch64) FILE="${BINARY_NAME}_${VERSION}_loongarch64-portable.tar.xz" ;;
             *)

@@ -34,9 +34,7 @@ jobs:
           ./scripts/verify-docs.sh
 
       - name: Update docs/index.md with README.md
-        # This can be a simple copy if https://github.com/github/markup/issues/994
-        # is solved.
-        run: ./scripts/generate-readme.sh
+        run: uv run ./scripts/generate-readme.py
 
       - name: Build site
         run: |
@@ -61,7 +59,7 @@ jobs:
         run: uv sync --group docs
 
       - name: Update docs/index.md with README.md
-        run: ./scripts/generate-readme.sh
+        run: uv run ./scripts/generate-readme.py
 
       - name: Deploy site
         run: |

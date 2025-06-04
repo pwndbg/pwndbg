@@ -9,7 +9,14 @@ import argparse
 import pwndbg.profiling
 from pwndbg.commands import CommandCategory
 
-parser = argparse.ArgumentParser(description="Utilities for profiling Pwndbg.")
+parser = argparse.ArgumentParser(
+    description="""
+Utilities for profiling Pwndbg.
+
+Check out the `./profiling` folder for other useful utilities.
+Use `./profiling/print_stats.py` to generate a report from a `.pstats` file.
+"""
+)
 subparsers = parser.add_subparsers(dest="command")
 parser_start = subparsers.add_parser("start", prog="profiler start")
 parser_stop = subparsers.add_parser("stop", prog="profiler stop")

@@ -25,7 +25,7 @@ PWNDBG_TIPS: List[str] = [
     "The `set show-flags on` setting will display CPU flags register in the regs context panel",
     "GDB and Pwndbg parameters can be shown or set with `show <param>` and `set <param> <value>` GDB commands",
     "Use Pwndbg's `config` and `theme` commands to tune its configuration and theme colors!",
-    "Pwndbg mirrors some of Windbg commands like `eq`, `ew`, `ed`, `eb`, `es`, `dq`, `dw`, `dd`, `db`, `ds` for writing and reading memory",
+    "Pwndbg mirrors some of WinDbg commands like `eq`, `ew`, `ed`, `eb`, `es`, `dq`, `dw`, `dd`, `db`, `ds` for writing and reading memory",
     "Pwndbg resolves kernel memory maps by parsing page tables (default) or via `monitor info mem` QEMU gdbstub command (use `set kernel-vmmap-via-page-tables off` for that)",
     "Use the `vmmap` command for a better & colored memory maps display (than the GDB's `info proc mappings`)",
     "Use the `telescope` command to dereference a given address/pointer multiple times (if the dereferenced value is a valid ptr; see `config telescope` to configure its behavior)",

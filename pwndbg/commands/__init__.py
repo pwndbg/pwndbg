@@ -1,3 +1,9 @@
+"""
+Pwndbg command implementations.
+
+As well as various command-handling logic.
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -205,6 +211,14 @@ class CommandObj:
         command_names.add(self.command_name)
         commands.append(self)
 
+    @staticmethod
+    def has_notes_string(text: str) -> bool:
+        return any(nt in text.lower() for nt in ("note:", "notes:"))
+
+    @staticmethod
+    def has_examples_string(text: str) -> bool:
+        return any(ex in text.lower() for ex in ("example:", "examples:"))
+
     def initialize_parser(self):
         # Set parser.prog so the help is generated properly.
         self.parser.prog = self.command_name
@@ -237,35 +251,46 @@ class CommandObj:
         )
         self.description = self.parser.description = self.parser.description.strip()
 
+        assert (
+            not self.has_examples_string(self.description)
+            and "Put examples into pwndbg.commands.Command(examples=your_example)."
+        )
+        assert (
+            not self.has_notes_string(self.description)
+            and "Put notes into pwndbg.commands.Command(notes=your_note)."
+        )
+
         # Build the actual epilog from the examples, notes and passed epilog.
         self.epilog = ""
         self.pure_epilog = ""
 
         if self.examples:
-            assert "examples:" not in self.examples.lower()
+            assert (
+                not self.has_examples_string(self.examples)
+                and "No need, `Examples:` is added automatically."
+            )
             # Not putting '\n' in the notice() so .strip() works properly.
             self.epilog += "\n" + message.notice("Examples:") + "\n"
             self.epilog += self.examples + "\n"
 
         if self.notes:
-            assert "notes:" not in self.notes.lower()
+            assert (
+                not self.has_notes_string(self.notes)
+                and "No need, `Notes:` is added automatically."
+            )
             self.epilog += "\n" + message.notice("Notes:") + "\n"
             self.epilog += self.notes + "\n"
 
         if self.parser.epilog:
             self.pure_epilog = self.parser.epilog.strip()
-            pure_epilog_low = self.pure_epilog.lower()
             assert (
-                self.examples
-                or not ("examples:" in pure_epilog_low or "example:" in pure_epilog_low)
-                and "Put command examples in pwndbg.commands.Command(examples=your_example)."
+                not self.has_examples_string(self.pure_epilog)
+                and "Put examples into pwndbg.commands.Command(examples=your_example)."
             )
             assert (
-                self.notes
-                or not ("notes:" in pure_epilog_low or "note:" in pure_epilog_low)
-                and "Put command notes in pwndbg.commands.Command(notes=your_note)."
+                not self.has_notes_string(self.pure_epilog)
+                and "Put notes into pwndbg.commands.Command(notes=your_note)."
             )
-
             self.epilog += "\n" + self.pure_epilog + "\n"
 
         if self.aliases:

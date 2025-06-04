@@ -254,7 +254,9 @@ def attachp(target, no_truncate, retry, exact, all, user=None) -> None:
                         return
                     elif method == _ASK:
                         while True:
-                            msg = message.notice(f"which process to attach?(1-{len(proc_infos)}) ")
+                            msg = message.notice(
+                                f"Which process to attach to? (1-{len(proc_infos)}) "
+                            )
                             try:
                                 inp = input(msg).strip()
                             except EOFError:

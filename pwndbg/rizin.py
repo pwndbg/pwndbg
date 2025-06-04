@@ -1,3 +1,7 @@
+"""
+Rizin integration with rzpipe.
+"""
+
 from __future__ import annotations
 
 import pwndbg.aglib.elf

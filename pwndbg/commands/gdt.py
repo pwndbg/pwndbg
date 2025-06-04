@@ -13,11 +13,9 @@ parser = argparse.ArgumentParser(
     description="""Decode X86-64 GDT entries at address
 
 See also:
+
 * https://wiki.osdev.org/Global_Descriptor_Table
 * https://wiki.osdev.org/GDT_Tutorial
-
-Note:
-In 64-bit mode, the Base and Limit values are ignored, each descriptor covers the entire linear address space regardless of what they are set to.
 """,
 )
 
@@ -32,7 +30,14 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MEMORY,
+    notes="""
+In 64-bit mode, the Base and Limit values are ignored, each descriptor covers
+the entire linear address space regardless of what they are set to.
+""",
+)
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
 def gdt(address, count) -> None:

@@ -1,3 +1,7 @@
+"""
+Specific command output wrappers.
+"""
+
 from __future__ import annotations
 
 import functools

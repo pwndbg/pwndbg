@@ -1092,6 +1092,7 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
         pwndbg.lib.cache.clear_caches()
+        pwndbg.aglib.disasm.disassembly.computed_instruction_cache.clear()
 
     result = try_emulate_if_bug_disable(
         lambda: pwndbg.aglib.nearpc.nearpc(

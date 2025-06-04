@@ -134,9 +134,9 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
 
         language = gdb.execute("show language", to_string=True)
         if "rust" in language:
-            loc = f"*({chunk.address:#x} as *mut [u8;{chunk.size}])"
+            loc = f"*({chunk.address:#x} as *mut [u8;{chunk.size:#x}])"
         else:
-            loc = f"*(char[{chunk.size}]*){chunk.address:#x}"
+            loc = f"*(char[{chunk.size:#x}]*){chunk.address:#x}"
 
         super().__init__(loc, type=gdb.BP_WATCHPOINT, internal=True)
 
@@ -153,7 +153,7 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
             # We explicitly allow this operation.
             return False
 
-        msg = f"Possible use-after-free in {self.chunk.size}-byte chunk at address {self.chunk.address:#x}"
+        msg = f"Possible use-after-free in {self.chunk.size:#x}-byte chunk at address {self.chunk.address:#x}"
         print(f"[!] {msg}")
 
         global stop_on_error
@@ -166,7 +166,7 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
 class AllocChunkWatchpoint(gdb.Breakpoint):
     def __init__(self, chunk: Chunk) -> None:
         self.chunk = chunk
-        super().__init__(f"*(char[{chunk.size}]*){chunk.address:#x}", internal=True)
+        super().__init__(f"*(char[{chunk.size:#x}]*){chunk.address:#x}", internal=True)
 
     def stop(self) -> bool:
         return False
@@ -434,7 +434,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
 
         chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
-        print(f"[*] {self.name} -> {ret_ptr:#x}, {chunk.size} bytes real size")
+        print(f"[*] {self.name} -> {ret_ptr:#x}, {chunk.size:#x} bytes real size")
 
         self.tracker.exit_memory_management()
         return False
@@ -524,7 +524,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
         print(
-            f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size} bytes real size"
+            f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
         )
         return False
 

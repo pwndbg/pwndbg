@@ -61,7 +61,9 @@ import pwndbg.dbg.lldb
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 from pwndbg.dbg.lldb import LLDB
+from pwndbg.dbg.lldb import LLDBProcess
 from pwndbg.dbg.lldb import OneShotAwaitable
+from pwndbg.dbg.lldb.pset import pget
 from pwndbg.dbg.lldb.pset import pset
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import get_io_driver
@@ -129,7 +131,25 @@ class EventRelay(EventHandler):
         self.dbg._trigger_event(EventType.START)
 
     @override
-    def suspended(self):
+    def suspended(self, event: lldb.SBEvent):
+        # The event might have originated from a different source than the user
+        # currently has selected. Move focus to the where the event happened.
+        #
+        # state-changed events have no thread associated with them, and so
+        # SBThread::GetThreadFromEvent does not work. Interrogate each thread in
+        # the process and look for the most interesting one.
+        proc = lldb.SBProcess.GetProcessFromEvent(event)
+        for thread in proc.threads:
+            # Currently the one considered most interesting is simply the first
+            # that has any reason at all to be stopped.
+            if thread.stop_reason == lldb.eStopReasonNone:
+                continue
+
+            if proc.GetSelectedThread().idx != thread.idx:
+                print(message.notice(f"[Switched to Thread {thread.id}]"))
+                assert proc.SetSelectedThread(thread)
+            break
+
         self.dbg._trigger_event(EventType.STOP)
 
     @override
@@ -229,6 +249,20 @@ class PwndbgController:
         output of the command being available.
         """
         return OneShotAwaitable(YieldExecDirect(command, True, False))
+
+
+def print_error(msg: str, *args):
+    """
+    Print an error message in the style of the LLDB CLI.
+    """
+    print(message.error("error:"), msg, *args)
+
+
+def print_warn(msg: str, *args):
+    """
+    Print a warning message in the style of the LLDB CLI.
+    """
+    print(message.warn("warn:"), msg, *args)
 
 
 @wrap_with_history
@@ -351,10 +385,8 @@ def exec_repl_command(
 
     # Let the user get an LLDB prompt if they so desire.
     if bits[0] == "lldb":
-        print(
-            message.warn(
-                "You are now entering LLDB mode. In this mode, certain commands may cause Pwndbg to break. Proceed with caution."
-            )
+        print_warn(
+            "You are now entering LLDB mode. In this mode, certain commands may cause Pwndbg to break. Proceed with caution."
         )
         dbg.debugger.RunCommandInterpreter(
             True, False, lldb.SBCommandInterpreterRunOptions(), 0, False, False
@@ -413,10 +445,8 @@ def exec_repl_command(
         if not test(bits[0]):
             continue
 
-        print(
-            message.error(
-                f"The '{name}' command is not supported. Use the 'lldb' command to enter LLDB mode and try again."
-            )
+        print_error(
+            f"The '{name}' command is not supported. Use the 'lldb' command to enter LLDB mode and try again."
         )
 
         found_barred = True
@@ -501,9 +531,53 @@ def exec_repl_command(
             warn = not pset(bits[1], bits[2])
 
         if warn:
+            print_warn(
+                "The 'set' command is used exclusively for Pwndbg settings. If you meant to change LLDB settings, use the fully spelled-out 'settings' command, instead."
+            )
+
+        return True
+
+    if (
+        (bits[0] == "h" or (bits[0].startswith("hel") and "help".startswith(bits[0])))
+        and len(bits) >= 2
+        and bits[1] == "set"
+    ):
+        # This is 'help set'
+        #
+        # We override this command to provide help for the 'set' command
+        # override.
+        warn = False
+        if len(bits) > 3:
+            print("Usage: help set [name]")
+            warn = True
+        elif len(bits) == 2:
+            # In LLDB style, list all valid settings.
+            print("Set a Pwndbg configuration parameter.")
+            print()
+            print("Syntax: set <name> <value>")
+            for scope in pwndbg.lib.config.Scope:
+                print()
+                print(f"Configuration parameters - {scope._name_}:")
+                pwndbg.commands.config.display_config(
+                    "", pwndbg.lib.config.Scope.config, show_hints=False
+                )
+        else:
+            # Show information about a single parameter.
+            param = pget(bits[2])
+            if param is None:
+                warn = True
+            else:
+                print(f"Set {param.set_show_doc}.")
+                print()
+                print(f"Syntax: set {param.name} <value>")
+                print()
+                if param.help_docstring:
+                    print(param.help_docstring)
+
+        if warn:
             print(
                 message.warn(
-                    "The 'set' command is used exclusively for Pwndbg settings. If you meant to change LLDB settings, use the fully spelled-out 'settings' command, instead."
+                    "The 'set' command is used exclusively for Pwndbg settings. If you meant to see help for LLDB settings, use the fully spelled-out 'settings' command, instead."
                 )
             )
 
@@ -513,6 +587,26 @@ def exec_repl_command(
         # Spawn IPython shell, easy for debugging
         run_ipython_shell()
         return True
+
+    if (
+        bits[0] == pwndbg.commands.start.entry.command_name
+        or bits[0] in pwndbg.commands.start.entry.aliases
+    ):
+        # 'entry' is actually a Pwndbg command. For convenience, we launch the
+        # process on its behalf, before letting it run.
+        #
+        # In the LLDB back-end, there is no proper mechanism to make a process
+        # start from inside of a command, as there is in GDB. Ideally, we'd
+        # rework `ProcessDriver` so that it lets us do that with an execution
+        # controller, but that is quite a bit of work to fix a single command,
+        # when using an override is enough to achieve the same goal.
+        #
+        # In any case, we should consider doing it if this proves to be too janky.
+        if not driver.has_process():
+            process_launch(driver, relay, ["-s"], dbg)
+
+        # This intentionally falls through. We want LLDB to do the rest of the
+        # work of processing 'entry'.
 
     # The command hasn't matched any of our filtered commands, just let LLDB
     # handle it normally. Either in the context of the process, if we have
@@ -551,10 +645,8 @@ def exec_repl_command(
     dbg.controllers.clear()
 
     if coroutine_fail_warn:
-        print(
-            message.warn(
-                "Exceptions occurred execution controller processing. Debugging will likely be unreliable going forward."
-            )
+        print_warn(
+            "Exceptions occurred execution controller processing. Debugging will likely be unreliable going forward."
         )
 
     return True
@@ -578,7 +670,7 @@ def parse(args: List[str], parser: argparse.ArgumentParser, unsupported: List[st
     varsargs = vars(args)
     for unsup in unsupported:
         if varsargs[unsup.replace("-", "_")]:
-            print(message.error(f"Pwndbg does not support --{unsup} yet"))
+            print_error(f"Pwndbg does not support --{unsup} yet")
             return None
 
     return args
@@ -662,15 +754,13 @@ def target_create(args: List[str], dbg: LLDB) -> None:
         return
 
     if dbg.debugger.GetNumTargets() > 0:
-        print(
-            message.error(
-                "Pwndbg does not support multiple targets. Please remove the current target with 'target delete' and try again."
-            )
+        print_error(
+            "Pwndbg does not support multiple targets. Please remove the current target with 'target delete' and try again."
         )
         return
 
     if args.platform and args.platform not in {"qemu-user"}:
-        print(message.error("Pwndbg does currently support platforms: qemu-user"))
+        print_error("Pwndbg does currently support platforms: qemu-user")
         return
 
     if args.arch:
@@ -678,7 +768,7 @@ def target_create(args: List[str], dbg: LLDB) -> None:
 
     triple = _get_target_triple(dbg.debugger, args.filename)
     if not triple:
-        print(message.error(f"could not detect triple for '{args.filename}'"))
+        print_error(f"could not detect triple for '{args.filename}'")
         return
 
     if args.platform == "qemu-user":
@@ -698,7 +788,7 @@ def target_create(args: List[str], dbg: LLDB) -> None:
         args.filename, triple, args.platform, True, error
     )
     if not error.success or not target.IsValid():
-        print(message.error(f"could not create target for '{args.filename}': {error.description}"))
+        print_error(f"could not create target for '{args.filename}': {error.description}")
         return
 
     dbg.debugger.SetSelectedTarget(target)
@@ -754,11 +844,11 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
     targets = dbg.debugger.GetNumTargets()
     assert targets < 2
     if targets == 0:
-        print(message.error("error: no target, create one using the 'target create' command"))
+        print_error("no target, create one using the 'target create' command")
         return
 
     if driver.has_process():
-        print(message.error("error: a process is already being debugged"))
+        print_error("a process is already being debugged")
         return
 
     target: lldb.SBTarget = dbg.debugger.GetTargetAtIndex(0)
@@ -779,7 +869,7 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
     )
 
     if not result.success:
-        print(message.error(f"Could not launch process: {result.description}"))
+        print_error(f"could not launch process: {result.description}")
         return
 
     # Continue execution if the user hasn't requested for a stop at the entry
@@ -833,13 +923,13 @@ def _attach_with_info(
     targets = dbg.debugger.GetNumTargets()
     assert targets < 2
     if targets == 0:
-        print(message.error("error: no target, create one using the 'target create' command"))
+        print_error("no target, create one using the 'target create' command")
         return
 
     # TODO/FIXME: This should ask:
     # 'There is a running process, detach from it and attach?: [Y/n]'
     if driver.has_process():
-        print(message.error("error: a process is already being debugged"))
+        print_error("a process is already being debugged")
         return
 
     io_driver = get_io_driver()
@@ -851,7 +941,7 @@ def _attach_with_info(
     )
 
     if not result.success:
-        print(message.error(f"Could not attach to process: {result.description}"))
+        print_error(f"could not attach to process: {result.description}")
         return
 
     # Continue execution if the user has requested it.
@@ -898,7 +988,7 @@ def attach(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB)
     Note: for some reason, `attach` does not really take a regex for process name.
     """
     if len(args) != 1:
-        print(message.error("Expected 1 argument: <pid> or <name>"))
+        print_error("expected 1 argument: <pid> or <name>")
         return
     arg = args[0]
 
@@ -930,15 +1020,13 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
         return
 
     if "plugin" not in args or args.plugin != "gdb-remote":
-        print(
-            message.error(
-                "Pwndbg only supports the gdb-remote plugin for 'process connect'. Please specify it with the '-p gdb-remote' argument."
-            )
+        print_error(
+            "Pwndbg only supports the gdb-remote plugin for 'process connect'. Please specify it with the '-p gdb-remote' argument."
         )
         return
 
     if driver.has_connection():
-        print(message.error("error: debugger is already connected"))
+        print_error("debugger is already connected")
         return
 
     target = dbg.debugger.GetSelectedTarget()
@@ -967,10 +1055,8 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
 
         target = dbg.debugger.CreateTarget(None, triple, None, True, error)
         if not error.success or not target.IsValid():
-            print(
-                message.error(
-                    f"error: could not automatically create target for 'process connect': {error.description}"
-                )
+            print_error(
+                f"could not automatically create target for 'process connect': {error.description}"
             )
             return
 
@@ -984,7 +1070,7 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
     error = driver.connect(target, io_driver, args.remoteurl, "gdb-remote")
 
     if not error.success:
-        print(message.error(f"error: could not connect to remote process: {error.description}"))
+        print_error(f"could not connect to remote process: {error.description}")
         if created_target:
             # Delete the target we previously created.
             assert dbg.debugger.DeleteTarget(
@@ -1018,17 +1104,17 @@ def gdb_remote(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: L
         url = parts[0]
         port = parts[1]
     else:
-        print(message.error(f"error: unknown URL format '{args.remoteurl}'"))
+        print_error(f"unknown URL format '{args.remoteurl}'")
         return
 
     try:
         port = int(port, 10)
     except ValueError:
-        print(message.error(f"error: could not interpret '{port}' as port number"))
+        print_error(f"could not interpret '{port}' as port number")
         return
 
     if url is None:
-        print(message.warn("hostname not given, using 'localhost'"))
+        print_warn("hostname not given, using 'localhost'")
         url = "localhost"
 
     process_connect(driver, relay, ["-p", "gdb-remote", f"connect://{url}:{port}"], dbg)
@@ -1048,7 +1134,7 @@ def continue_process(driver: ProcessDriver, args: List[str], dbg: LLDB) -> None:
         return
 
     if not driver.has_process():
-        print(message.error("error: no process"))
+        print_error("no process")
         return
 
     driver.cont()

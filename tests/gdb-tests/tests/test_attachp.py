@@ -166,8 +166,8 @@ def test_attachp_command_attaches_to_procname_resolve_ask(launched_sleep_binary)
     regex += r"-+  -+  -+  -+  -+\n"
     regex += r" 1 +([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
     regex += r" 2 +([0-9]+) +(\S+) +[0-9:-]+ +(.*)\n"
-    regex += r"which process to attach\?\(1-2\) "
-    regex += r"which process to attach\?\(1-2\) "
+    regex += r"Which process to attach to\? \(1-2\) "
+    regex += r"Which process to attach to\? \(1-2\) "
     matches = re.search(regex, result).groups()
 
     expected = (

@@ -187,6 +187,7 @@ let
         chmod -R +w $out
 
         # copy extra files
+        mkdir -p $out/pwndbg/share/
         cp -rf ${lib.getLib pkgs.ncurses}/share/terminfo/ $out/pwndbg/share/
 
         # fix ipython autocomplete

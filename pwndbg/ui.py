@@ -57,7 +57,7 @@ def addrsz(address) -> str:
 
 
 def get_window_size(target=sys.stdout):
-    fallback = (int(os.environ.get("LINES", 20)), int(os.environ.get("COLUMNS", 80)))
+    fallback = (int(os.environ.get("LINES", 24)), int(os.environ.get("COLUMNS", 80)))
     if not target.isatty():
         return fallback
     if os.environ.get("PWNDBG_IN_TEST") is not None:
@@ -71,7 +71,7 @@ def get_window_size(target=sys.stdout):
 
     try:
         term = os.get_terminal_size(target.fileno())
-        return term.lines, term.columns
+        return term.lines or fallback[0], term.columns or fallback[1]
     except Exception:
         pass
 

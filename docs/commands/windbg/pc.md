@@ -6,7 +6,7 @@ usage: pc [-h]
 
 ```
 
-Windbg compatibility alias for 'nextcall' command.
+WinDbg compatibility alias for 'nextcall' command.
 ### Optional arguments
 
 |Short|Long|Help|

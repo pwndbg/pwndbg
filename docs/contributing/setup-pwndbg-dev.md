@@ -65,6 +65,9 @@ After installing Pwndbg like described above, there are a few ways to set up the
 ```
 but you can also use the [docker container](#development-from-docker) or [develop using nix](#development-using-nix).
 
+!!! note
+    For a proper development environment you must be able to run Pwndbg with both GDB and LLDB, otherwise you won't be able to use some important development features (like doc generation).
+
 ### Development from docker
 You can create a Docker image with everything already installed for you. You can use docker compose
 ```{.bash .copy}

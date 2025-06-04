@@ -107,9 +107,9 @@ While most other GDB plugins are well *GDB plugins*, Pwndbg's implementation is 
 
 ![](assets/caps/lldb.png){ style="width: 70%;" }
 
-## Windbg Compatibility
+## WinDbg Compatibility
 
-For those coming from a Windows background, Pwndbg has a complete Windbg compatibility layer.  You can `dd`, `dps`, `eq`, and even `eb $rip 90` to your heart's content.
+For those coming from a Windows background, Pwndbg has a complete WinDbg compatibility layer.  You can `dd`, `dps`, `eq`, and even `eb $rip 90` to your heart's content.
 
 ![](assets/caps/windbg.png){ style="width: 70%;" }
 
@@ -127,7 +127,8 @@ Go take a look at [Commands](commands/index.md)! Here is some cool stuff you can
 
 Use the [`procinfo`](commands/process/procinfo.md) command in order to inspect the current process state, like UID, GID, Groups, SELinux context, and open file descriptors! Pwndbg works particularly well with remote GDB debugging like with Android phones.
 
-![](assets/caps/procinfo.png)
+![](assets/caps/procinfo.png){ style="width: 50%;" }
+![](assets/caps/procinfo_curl.png){ style="width: 50%;" }
 
 ### ROP Gadgets
 
@@ -142,9 +143,10 @@ Pwndbg makes [`search`](commands/memory/search.md)ing the target memory space ea
 ![](assets/caps/search.png)
 
 ### Finding Leaks
-Finding leak chains can be done using the [`leakfind`](commands/memory/leakfind.md) command. It recursively inspects address ranges for pointers, and reports on all pointers found.
+Finding leak chains can be done using the [`leakfind`](commands/memory/leakfind.md) and [`probeleak`](commands/memory/probeleak.md) commands. They recursively inspect address ranges for pointers, and report on all pointers found.
 
 ![](assets/caps/leakfind.png)
+![](assets/caps/probeleak.png)
 
 ### Telescope
 Inspecting memory dumps is easy with the [`telescope`](commands/memory/telescope.md) command.  It recursively dereferences a range of memory, letting you see everything at once.  As an added bonus, Pwndbg checks all of the available registers to see if they point into the memory range.
@@ -156,3 +158,24 @@ Pwndbg enhances the standard memory map listing and allows easy searching with [
 
 ![](assets/caps/vmmap.png){ style="width: 70%;" }
 ![](assets/caps/vmmap_rip.png){ style="width: 70%;" }
+
+### Tracking glibc heap allocations
+It can be very useful to see allocations happening in real time. It can give us a good idea of what the allocation pattern of a program looks like, and allows us to make informed decisions on how to optimize or attack it. The [`track-heap`](commands/linux_libc_elf/track-heap.md) command does just that.
+
+<video style="width: 80%;" autoplay loop muted playsinline alt="track-heap example">
+  <source src="../assets/videos/track-heap.webm" type="video/webm">
+  <source src="../assets/videos/track-heap.mp4" type="video/mp4">
+</video>
+
+### Tracking the GOT
+The Procedure Linkage Table (PLT) and Global Offset Table (GOT) are very interesting exploitation targets since they contain many often-accessed function pointers. You can track how your program goes through the GOT using the [`track-got`](commands/linux_libc_elf/track-got.md) command.
+
+<video autoplay loop muted playsinline alt="track-got example">
+  <source src="../assets/videos/track-got.webm" type="video/webm">
+  <source src="../assets/videos/track-got.mp4" type="video/mp4">
+</video>
+
+### Attach to a process by name
+The days of running pidof in a different terminal are over. Use [`attachp`](commands/start/attachp.md) to attach to any process by name, pid, arguments or device file!
+
+![](assets/caps/attachp.png){ style="width: 70%;" }

@@ -1,3 +1,7 @@
+"""
+Text colorizing and theme configuration logic.
+"""
+
 from __future__ import annotations
 
 import os
