@@ -162,7 +162,7 @@ def fzf_tab_autocomplete(
             event.app.current_buffer.document.text_before_cursor.lstrip()
         )  # Ignore leading whitespaces
         if " " in target_text:
-            pre_cmd = " ".join([i for i in target_text.split(' ')[:-1] if i != ' ']) + ' '
+            pre_cmd = " ".join([i for i in target_text.split(" ")[:-1] if i != " "]) + " "
         else:
             pre_cmd = ""
 
