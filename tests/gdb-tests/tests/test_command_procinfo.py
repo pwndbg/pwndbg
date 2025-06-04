@@ -21,7 +21,7 @@ class TCPServerThread(threading.Thread):
         )
         try:
             self.sock.bind((ip, port))
-        except:
+        except OSError:
             pytest.skip(f"Could not bind to {ip}:{port}.")
         self.port = self.sock.getsockname()[1]
         self.sock.listen(1)
