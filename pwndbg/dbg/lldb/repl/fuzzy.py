@@ -3,6 +3,8 @@
 # Copyright (c) 2022 Alan Li
 # Copyright (c) 2025 Zhi-Qiang Zhou
 
+from __future__ import annotations
+
 import atexit
 import functools
 import os
@@ -16,6 +18,7 @@ from subprocess import Popen
 from typing import Callable
 from typing import Iterator
 
+import lldb
 from prompt_toolkit import ANSI
 from prompt_toolkit import PromptSession
 from prompt_toolkit.application import run_in_terminal
@@ -28,7 +31,6 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.key_binding import KeyPressEvent
 from prompt_toolkit.output import create_output
 
-import lldb
 from pwndbg.dbg.lldb import LLDB
 
 # global variables
