@@ -142,15 +142,15 @@ def test_command_kernel_vmmap():
         )
     )
     if pwndbg.aglib.arch.name == "x86-64":
-        assert all(
+        assert any(
             key in res
-            # those two needs to be commented out cuz kernel is not fully initialized
+            # this needs to be `any` because kernel is not fully initialized
             # when the test is run (qemu-system takes >3 seconds to fully setup for linux)
             for key in (
                 "kernel [.text]",
-                # "kernel [.rodata]",
+                "kernel [.rodata]",
                 "kernel [.bss]",
-                # "kernel [stack]",
+                "kernel [stack]",
             )
         )
 

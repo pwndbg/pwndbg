@@ -459,6 +459,7 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     elif kernel_vmmap_mode == "monitor":
         pages = kernel_vmmap_via_monitor_info_mem()
         if process_pages and pwndbg.aglib.arch.name == "x86-64":
+            # TODO: check version here when QEMU displays the x bit for x64
             for page in pages:
                 pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
                 entry, vaddr = pgwalk_res[0]
