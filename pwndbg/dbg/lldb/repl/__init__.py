@@ -939,8 +939,9 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         return
 
     target: lldb.SBTarget = dbg.debugger.GetTargetAtIndex(0)
-    # Make sure the LLDB driver knows that this is a local process.
-    dbg._current_process_is_gdb_remote = False
+
+    # Make sure LLDB knows the correct remote or local status of this launch.
+    dbg._current_process_is_gdb_remote = driver.has_connection()
 
     if target.GetPlatform().GetName() == "qemu-user":
         # Force qemu-user as remote, pwndbg depends on that, eg: for download procfs files
@@ -1023,6 +1024,9 @@ def _attach_with_info(
         print_error(f"could not create empty target for attaching: {auto.error.description}")
         auto.close()
         return
+
+    # Make sure LLDB knows the correct remote or local status of this attach.
+    dbg._current_process_is_gdb_remote = driver.has_connection()
 
     result = driver.attach(
         auto.target,
