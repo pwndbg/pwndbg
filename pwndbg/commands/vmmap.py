@@ -14,7 +14,6 @@ from elftools.elf.elffile import ELFFile
 import pwndbg.aglib.arch
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
-import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as M
@@ -50,7 +49,7 @@ def print_vmmap_table_header() -> None:
     prefer_relpaths = "on" if pwndbg.config.vmmap_prefer_relpaths else "off"
     width = 2 + 2 * pwndbg.aglib.arch.ptrsize
     print(
-        f"{'Start':>{width}} {'End':>{width}} {'Perm'} {'Size':>8} {'Offset':>7} "
+        f"{'Start':>{width}} {'End':>{width}} {'Perm'} {'Size':>8} {'Offset':>6} "
         f"{'File'} (set vmmap-prefer-relpaths {prefer_relpaths})"
     )
 

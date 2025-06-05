@@ -18,159 +18,11 @@ from pt.pt_x86_64_parse import PT_x86_64_Backend
 import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.kernel
-import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
-import pwndbg.aglib.vmmap
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-
-
-class KernelVmmap:
-    USERLAND = "userland"
-    KERNELLAND = "kernel [.text]"
-    KERNELRO = "kernel [.rodata]"
-    KERNELBSS = "kernel [.bss]"
-    KERNELDRIVER = "kernel [.driver .bpf]"
-    ESPSTACK = "%esp fixup"
-
-    def __init__(self, pages: Tuple[pwndbg.lib.memory.Page, ...]):
-        self.pages = pages
-        self.sections = None
-        if not pwndbg.aglib.kernel.has_debug_syms():
-            return
-        self.kbase = kbase = pwndbg.aglib.kernel.paging.find_kbase(pages)
-        if pwndbg.aglib.arch.name == "x86-64":
-            # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
-            # works for v5.x and v6.x
-            physmap = pwndbg.aglib.kernel.paging.physmap_base()
-            vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
-            vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
-            self.sections = (
-                (self.USERLAND, 0),
-                (None, 0x8000000000000000),
-                ("physmap", physmap),
-                ("vmalloc", vmalloc),
-                ("vmemmap", vmemmap),
-                # TODO: find better ways to handle the following constants
-                #   I cound not find kernel symbols that reference their values
-                #   the actual region base may differ but the region always falls within the below range
-                #   even if KASLR is enabled
-                ("cpu entry", 0xFFFFFE0000000000),
-                ("rand cpu entry", 0xFFFFFE0000001000),
-                (self.ESPSTACK, 0xFFFFFF0000000000),
-                ("EFI", 0xFFFFFFEF00000000),
-                (self.KERNELLAND, kbase),
-                ("fixmap", 0xFFFFFFFFFF000000),
-                ("legacy abi", 0xFFFFFFFFFF600000),
-                (None, 0xFFFFFFFFFFFFFFFF),
-            )
-        if pwndbg.aglib.arch.name == "aarch64":
-            # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
-            # https://elixir.bootlin.com/linux/v6.15/source/arch/arm64/mm/ptdump.c#L351
-            # TODO: I don't think those are necessarily accurate when KASLR is enabled
-            #       but I'm not familiar with ARM enough quite yet to find better ways
-            sections = [(self.USERLAND, 0)]
-            address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
-            value = 0
-            name = None
-            for i in range(20):
-                value = pwndbg.aglib.memory.u64(address_markers + i * 0x10)
-                if value > 0:
-                    name_ptr = pwndbg.aglib.memory.u64(address_markers + i * 0x10 + 8)
-                    name = None
-                    if name_ptr > 0:
-                        name = pwndbg.aglib.memory.string(name_ptr).decode()
-                        name = name.split(" ")[0].lower()
-                        if "end" in name:
-                            name = None
-                        if name == "linear":
-                            name = "physmap"
-                sections.append((name, value))
-                if value == 0xFFFFFFFFFFFFFFFF:
-                    break
-            self.sections = tuple(sections)
-
-    def get_name(self, addr: int) -> str:
-        if addr is None or self.sections is None:
-            return None
-        for i in range(len(self.sections) - 1):
-            name, cur = self.sections[i]
-            _, next = self.sections[i + 1]
-            if cur is None or next is None:
-                continue
-            if addr >= cur and addr < next:
-                return name
-        return None
-
-    def adjust(self):
-        for i, page in enumerate(self.pages):
-            name = self.get_name(page.start)
-            if name is not None:
-                page.objfile = name
-        user_idx, kernel_idx = None, None
-        for i, page in enumerate(self.pages):
-            if user_idx is None and page.objfile == self.USERLAND:
-                user_idx = i
-            if kernel_idx is None and page.objfile == self.KERNELLAND:
-                kernel_idx = i
-        self.handle_user_pages(user_idx)
-        self.handle_kernel_pages(kernel_idx)
-        self.handle_offsets()
-
-    def handle_user_pages(self, user_idx):
-        if user_idx is None:
-            return
-        base_offset = self.pages[user_idx].start
-        for i in range(user_idx, len(self.pages)):
-            page = self.pages[i]
-            if page.objfile != self.USERLAND:
-                break
-            diff = page.start - base_offset
-            if diff > 0x100000:
-                if diff > 0x100000000000:
-                    if page.execute:
-                        page.objfile = "userland [library]"
-                    elif page.rw:
-                        page.objfile = "userland [stack]"
-                else:
-                    page.objfile = "userland [heap]"
-            else:
-                # page.objfile += f"_{hex(i)[2:]}"
-                base_offset = page.start
-
-    def handle_kernel_pages(self, kernel_idx):
-        if kernel_idx is None:
-            return
-        has_loadable_driver = False
-        for i in range(kernel_idx, len(self.pages)):
-            page = self.pages[i]
-            if page.objfile != self.KERNELLAND:
-                break
-            if not page.execute:
-                if page.write:
-                    page.objfile = self.KERNELBSS
-                else:
-                    page.objfile = self.KERNELRO
-            if has_loadable_driver:
-                page.objfile = self.KERNELDRIVER
-            if page.execute and page.start != self.kbase:
-                page.objfile = self.KERNELDRIVER
-                has_loadable_driver = True
-            if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
-                page.objfile = "kernel [stack]"
-
-    def handle_offsets(self):
-        prev_objfile, base = "", 0
-        for page in self.pages:
-            # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
-            if page.objfile != self.KERNELRO and prev_objfile != page.objfile:
-                prev_objfile = page.objfile
-                base = page.start
-            page.offset = page.start - base
-            if len(hex(page.offset)) > 9:
-                page.offset = 0
 
 
 # Most of QemuMachine code was inherited from gdb-pt-dump thanks to Martin Radev (@martinradev)
@@ -325,6 +177,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
             flags |= 1
         objfile = f"[pt_{hex(start)[2:-3]}]"
         retpages.append(pwndbg.lib.memory.Page(start, size, flags, 0, objfile))
+
     return tuple(retpages)
 
 
@@ -414,9 +267,10 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
             flags |= 4
         if "w" in perm:
             flags |= 2
-        if len(perm) == 4:  # if the qemu version displays if the page is executable
-            if "x" in perm:
-                flags |= 1
+        # QEMU does not expose X/NX bit, see #685
+        # if 'x' in perm: flags |= 1
+        flags |= 1
+
         pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
     return tuple(pages)
@@ -440,7 +294,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 )
 
 
-def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -453,22 +307,9 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     ):
         return ()
 
-    pages = None
     if kernel_vmmap_mode == "page-tables":
-        pages = kernel_vmmap_via_page_tables()
+        return kernel_vmmap_via_page_tables()
     elif kernel_vmmap_mode == "monitor":
-        pages = kernel_vmmap_via_monitor_info_mem()
-        if process_pages and pwndbg.aglib.arch.name == "x86-64":
-            # TODO: check version here when QEMU displays the x bit for x64
-            for page in pages:
-                pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
-                entry, vaddr = pgwalk_res[0]
-                if entry and entry >> 63 == 0:
-                    page.flags |= 1
-    if pages is None:
-        return ()
-    if process_pages:
-        kv = KernelVmmap(pages)
-        kv.adjust()
+        return kernel_vmmap_via_monitor_info_mem()
 
-    return tuple(pages)
+    return ()

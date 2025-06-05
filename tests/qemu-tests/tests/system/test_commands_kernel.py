@@ -130,32 +130,6 @@ def test_command_msr_write():
 
 
 @pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
-def test_command_kernel_vmmap():
-    res = gdb.execute("vmmap", to_string=True)
-    assert all(
-        key in res
-        for key in (
-            "vmalloc",
-            "fixmap",
-            "physmap",
-            "vmemmap",
-        )
-    )
-    if pwndbg.aglib.arch.name == "x86-64":
-        assert any(
-            key in res
-            # this needs to be `any` because kernel is not fully initialized
-            # when the test is run (qemu-system takes >3 seconds to fully setup for linux)
-            for key in (
-                "kernel [.text]",
-                "kernel [.rodata]",
-                "kernel [.bss]",
-                "kernel [stack]",
-            )
-        )
-
-
-@pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
 @pytest.mark.skipif(
     pwndbg.aglib.arch.name not in ["i386", "x86-64"],
     reason="function page_offset is only implemented for x86",

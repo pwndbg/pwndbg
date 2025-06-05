@@ -148,7 +148,7 @@ class Page:
         else:
             objfile = self.objfile
         width = 2 + 2 * pwndbg.aglib.arch.ptrsize
-        return f"{self.vaddr:#{width}x} {self.vaddr + self.memsz:#{width}x} {self.permstr} {self.memsz:8x} {self.offset:7x} {objfile or ''}"
+        return f"{self.vaddr:#{width}x} {self.vaddr + self.memsz:#{width}x} {self.permstr} {self.memsz:8x} {self.offset:6x} {objfile or ''}"
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.__str__()!r})"

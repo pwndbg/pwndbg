@@ -88,12 +88,10 @@ def get(
         color = normal
     elif "[stack" in page.objfile:
         color = c.stack
+    elif "[heap" in page.objfile:
+        color = c.heap
     elif page.execute:
         color = c.code
-    elif not page.write:
-        color = c.rodata
-    elif any(keyword in page.objfile for keyword in ("[heap", "physmap", "vmalloc")):
-        color = c.heap
     elif page.rw:
         color = c.data
     elif page.is_guard:
