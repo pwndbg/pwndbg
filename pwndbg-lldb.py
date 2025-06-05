@@ -2,11 +2,29 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import re
 import subprocess
 import sys
 from typing import List
+
+PARSER = argparse.ArgumentParser(prog="pwndbg-lldb")
+PARSER.add_argument("-v", "--verbose", action="store_true", help="Enable debug output")
+PARSER.add_argument("target", nargs="?")
+parser_attach = PARSER.add_mutually_exclusive_group()
+parser_attach.add_argument(
+    "-n", "--attach-name", help="Tells the debugger to attach to a process with the given name."
+)
+parser_attach.add_argument(
+    "-p", "--attach-pid", help="Tells the debugger to attach to a process with the given pid."
+)
+PARSER.add_argument(
+    "-w",
+    "--wait-for",
+    action="store_true",
+    help="Tells the debugger to wait for a process with the given pid or name to launch before attaching.",
+)
 
 
 def find_lldb_version() -> List[int]:
@@ -41,7 +59,8 @@ def find_lldb_python_path() -> str:
 
 
 if __name__ == "__main__":
-    debug = "PWNDBG_LLDB_DEBUG" in os.environ
+    args = PARSER.parse_args()
+    debug = args.verbose
 
     # Find the path for the LLDB Python bindings.
     path = find_lldb_python_path()
@@ -96,20 +115,49 @@ if __name__ == "__main__":
         print("[-] Launcher: Initializing Pwndbg")
     lldbinit.main(debugger, lldb_version[0], lldb_version[1], debug=debug)
 
-    # Run our REPL until the user decides to leave.
-    if len(sys.argv) > 2:
-        print(f"Usage: {sys.argv[0]} [filename]", file=sys.stderr)
-        sys.exit(1)
-
-    target = None
-    if len(sys.argv) == 2:
-        target = sys.argv[1]
-
     from pwndbg.dbg.lldb.repl import PwndbgController
+    from pwndbg.dbg.lldb.repl import print_error
+    from pwndbg.dbg.lldb.repl import print_warn
     from pwndbg.dbg.lldb.repl import run as run_repl
 
     if debug:
         print("[-] Launcher: Entering Pwndbg CLI")
+
+    # Prepare the startup commands.
+    startup = []
+    if args.target:
+        # DEVIATION: The LLDB CLI silently ignores any target information passed
+        # to it when using either '--attach-name' or '--attach-pid', but Pwndbg
+        # unconditionally uses it, with a warning.
+        startup = [f"target create '{args.target}'"]
+
+    if args.attach_name is not None:
+        wait = "--waitfor" if args.wait_for else ""
+        startup.append(f'process attach --name "{args.attach_name}" {wait}')
+    elif args.attach_pid is not None:
+        # DEVIATION: While the LLDB CLI accepts '--wait-for' in combination with
+        # both '--attach-name' and '--attach-pid', it silently ignores it when
+        # used with the latter. Pwndbg prints out a warning, instead.
+        if args.wait_for:
+            print_warn("'--wait-for' has no effect when used with '--attach-pid'")
+
+        startup.append(f'process attach --pid "{args.attach_pid}"')
+    else:
+        if args.wait_for:
+            # Ideally, we would have `ArgumentParser` do this for us, but
+            # nesting argument groups has been deprecated since Python 3.11, and
+            # the deprecation message suggests it was never even supported in
+            # the first place :/
+            print_error(
+                "'--wait-for' must be used in combination with either '--attach-name' or '--attach-pid'"
+            )
+            PARSER.print_usage()
+            sys.exit(1)
+
+    if (args.attach_pid is not None or args.attach_name is not None) and args.target:
+        print_warn(
+            "have both a target and an attach request, your target may be overwritten on attach"
+        )
 
     def drive(startup: List[str] | None):
         async def drive(c: PwndbgController):
@@ -122,7 +170,7 @@ if __name__ == "__main__":
 
         return drive
 
-    run_repl(drive([f"target create '{target}'"] if target else None), debug=debug)
+    run_repl(drive(startup), debug=debug)
 
     # Dispose of our debugger and terminate LLDB.
     lldb.SBDebugger.Destroy(debugger)
