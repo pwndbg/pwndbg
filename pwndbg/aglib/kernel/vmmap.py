@@ -45,6 +45,8 @@ class KernelVmmap:
             # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
             # works for v5.x and v6.x
             physmap = pwndbg.aglib.kernel.paging.physmap_base()
+            if physmap is None:  # what??
+                return
             vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
             vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
             self.sections = (
@@ -71,8 +73,10 @@ class KernelVmmap:
             # https://elixir.bootlin.com/linux/v6.15/source/arch/arm64/mm/ptdump.c#L351
             # TODO: I don't think those are necessarily accurate when KASLR is enabled
             #       but I'm not familiar with ARM enough quite yet to find better ways
-            sections = [(self.USERLAND, 0)]
             address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
+            if address_markers is None:
+                return
+            sections = [(self.USERLAND, 0)]
             value = 0
             name = None
             for i in range(20):
