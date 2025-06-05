@@ -39,7 +39,6 @@ from pwndbg.dbg.lldb import LLDB
 P = ParamSpec("P")
 T = TypeVar("T")
 
-HAS_FZF = shutil.which("fzf") is not None
 PROMPT = ANSI("\x1b[34mpwndbg-lldb> ")
 HISTORY_FILE = os.path.expanduser("~/.pwndbg_history")
 
@@ -101,8 +100,6 @@ def create_fzf_process(query: str, preview: str = "", pre_cmd: str = "") -> Pope
     """
     Create a fzf process with given query and preview command.
     """
-    if not HAS_FZF:
-        raise ValueError("fzf is not installed")
     if query.startswith("!"):
         # ! in the beginning of query means we want to run the command directly for fzf
         query = "^" + query

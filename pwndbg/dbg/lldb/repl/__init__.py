@@ -40,6 +40,7 @@ import argparse
 import asyncio
 import os
 import re
+import shutil
 import signal
 import sys
 import threading
@@ -64,7 +65,6 @@ from pwndbg.dbg.lldb import LLDB
 from pwndbg.dbg.lldb import OneShotAwaitable
 from pwndbg.dbg.lldb.pset import pget
 from pwndbg.dbg.lldb.pset import pset
-from pwndbg.dbg.lldb.repl.fuzzy import HAS_FZF
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import get_io_driver
 from pwndbg.dbg.lldb.repl.proc import EventHandler
@@ -72,6 +72,7 @@ from pwndbg.dbg.lldb.repl.proc import ProcessDriver
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 
+HAS_FZF = shutil.which("fzf") is not None
 if HAS_FZF:
     from pwndbg.dbg.lldb.repl.fuzzy import PROMPT
     from pwndbg.dbg.lldb.repl.fuzzy import get_prompt_session
