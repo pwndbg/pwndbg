@@ -1027,8 +1027,6 @@ def _attach_with_info(
         print_error("a process is already being debugged")
         return
 
-    io_driver = get_io_driver()
-
     auto = AutoTarget(dbg)
     if not auto:
         print_error(f"could not create empty target for attaching: {auto.error.description}")
