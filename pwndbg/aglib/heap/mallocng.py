@@ -4,11 +4,12 @@ https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng
 """
 
 from __future__ import annotations
+
 from typing import List
-import math
+
 import pwndbg
-import pwndbg.aglib.memory as memory
 import pwndbg.aglib.arch
+import pwndbg.aglib.memory as memory
 import pwndbg.aglib.typeinfo as typeinfo
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
@@ -20,17 +21,54 @@ IB = 4
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L12
 # Describes the possible sizes a slot can be. These are `/ UNIT`.
 size_classes: List[int] = [
-    1, 2, 3, 4, 5, 6, 7, 8,
-    9, 10, 12, 15,
-    18, 20, 25, 31,
-    36, 42, 50, 63,
-    72, 84, 102, 127,
-    146, 170, 204, 255,
-    292, 340, 409, 511,
-    584, 682, 818, 1023,
-    1169, 1364, 1637, 2047,
-    2340, 2730, 3276, 4095,
-    4680, 5460, 6552, 8191,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    12,
+    15,
+    18,
+    20,
+    25,
+    31,
+    36,
+    42,
+    50,
+    63,
+    72,
+    84,
+    102,
+    127,
+    146,
+    170,
+    204,
+    255,
+    292,
+    340,
+    409,
+    511,
+    584,
+    682,
+    818,
+    1023,
+    1169,
+    1364,
+    1637,
+    2047,
+    2340,
+    2730,
+    3276,
+    4095,
+    4680,
+    5460,
+    6552,
+    8191,
 ]
 
 # Shorthand
@@ -43,6 +81,7 @@ class Group:
 
     https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L17
     """
+
     def __init__(self, addr: int) -> None:
         self.addr = addr
 
@@ -76,6 +115,7 @@ class Slot:
     The class operates under the assumption the address given
     to it is valid and readable.
     """
+
     def __init__(self, p: int) -> None:
         # The start of user memory. It may
         # not be the actual start of the slot.
@@ -122,7 +162,7 @@ class Slot:
     def group(self) -> Group:
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L139
         if self._group is None:
-            self._group = Group(self.p - UNIT*self.offset - UNIT)
+            self._group = Group(self.p - UNIT * self.offset - UNIT)
 
         return self._group
 
@@ -170,6 +210,7 @@ class Meta:
     The metadata of a group.
     https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L24
     """
+
     def __init__(self, addr: int) -> None:
         self.addr = addr
 
@@ -263,9 +304,11 @@ class Meta:
 
         return self._stride
 
+
 class MetaArea:
     def __init__(self, addr: int) -> None:
         self.addr = addr
 
-class Mallocng():
+
+class Mallocng:
     pass
