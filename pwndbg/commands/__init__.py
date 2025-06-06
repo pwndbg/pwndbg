@@ -906,6 +906,7 @@ def load_commands() -> None:
     import pwndbg.commands.kchecksec
     import pwndbg.commands.kcmdline
     import pwndbg.commands.kconfig
+    import pwndbg.commands.kdmesg
     import pwndbg.commands.klookup
     import pwndbg.commands.knft
     import pwndbg.commands.kversion
