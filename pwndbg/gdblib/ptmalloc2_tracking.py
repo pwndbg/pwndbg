@@ -199,6 +199,9 @@ class Tracker:
         self.free_watchpoints: Dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: Dict[int, bool] = {}
 
+        self.alloc_ids: Dict[int, int] = {}
+        self.next_id: int = 1
+
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num
         if thread not in self.memory_management_calls:
@@ -341,6 +344,8 @@ class Tracker:
             traceback.print_exc()
 
         self.alloc_chunks[chunk.address] = chunk
+        self.alloc_ids[chunk.address] = self.next_id
+        self.next_id += 1
 
     def free(self, address: int) -> bool:
         if address not in self.alloc_chunks:
@@ -352,6 +357,9 @@ class Tracker:
 
         self.free_chunks[chunk.address] = chunk
         self.free_watchpoints[chunk.address] = wp
+
+        if address in self.alloc_ids:
+            del self.alloc_ids[address]
 
         return True
 
@@ -434,7 +442,8 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
 
         chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
-        print(f"[*] {self.name} -> {ret_ptr:#x}, {chunk.size:#x} bytes real size")
+        id_ = self.tracker.alloc_ids.get(ret_ptr, '?')
+        print(f"[*] {self.name} -> {ret_ptr:#x}, {chunk.size:#x} bytes real size (id={id_})")
 
         self.tracker.exit_memory_management()
         return False
@@ -522,9 +531,11 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
 
         malloc()
         self.tracker.exit_memory_management()
-
+        
+        id_ = self.tracker.alloc_ids.get(ret_ptr, '?')
         print(
-            f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
+    
+            f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size (id={id_})"
         )
         return False
 
@@ -582,7 +593,8 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
         self.tracker.exit_memory_management()
 
-        print(f"[*] free({self.ptr:#x})")
+        id_ = self.tracker.alloc_ids.get(self.ptr, '?')
+        print(f"[*] free({self.ptr:#x})(id={id_})")
         return False
 
     def out_of_scope(self) -> None:
