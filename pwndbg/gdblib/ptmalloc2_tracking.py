@@ -358,9 +358,6 @@ class Tracker:
         self.free_chunks[chunk.address] = chunk
         self.free_watchpoints[chunk.address] = wp
 
-        if address in self.alloc_ids:
-            del self.alloc_ids[address]
-
         return True
 
 
@@ -442,7 +439,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
 
         chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
-        id_ = self.tracker.alloc_ids.get(ret_ptr, '?')
+        id_ = self.tracker.alloc_ids.get(ret_ptr, "?")
         print(f"[*] {self.name} -> {ret_ptr:#x}, {chunk.size:#x} bytes real size (id={id_})")
 
         self.tracker.exit_memory_management()
@@ -531,10 +528,9 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
 
         malloc()
         self.tracker.exit_memory_management()
-        
-        id_ = self.tracker.alloc_ids.get(ret_ptr, '?')
+
+        id_ = self.tracker.alloc_ids.get(ret_ptr, "?")
         print(
-    
             f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size (id={id_})"
         )
         return False
@@ -591,10 +587,10 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
                 last_issue = message.error(msg)
             return stop_on_error
 
-        self.tracker.exit_memory_management()
+        id_ = self.tracker.alloc_ids.pop(self.ptr, "?")
+        print(f"[*] free({self.ptr:#x}) (id={id_})")
 
-        id_ = self.tracker.alloc_ids.get(self.ptr, '?')
-        print(f"[*] free({self.ptr:#x})(id={id_})")
+        self.tracker.exit_memory_management()
         return False
 
     def out_of_scope(self) -> None:
