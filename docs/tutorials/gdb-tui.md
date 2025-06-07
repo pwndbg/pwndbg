@@ -8,6 +8,6 @@ Use `focus cmd` to focus the command window and have the arrow keys scroll throu
 
 To create [your own layout](https://sourceware.org/gdb/current/onlinedocs/gdb.html/TUI-Commands.html) and selecting it use normal `tui new-layout` syntax like:
 ```
-tui new-layout pwndbg_custom {-horizontal { { -horizontal { pwndbg_code 1 pwndbg_disasm 1 } 2 { {-horizontal pwndbg_legend 8 pwndbg_control 2 } 0 pwndbg_regs 1 pwndbg_stack 1 } 3 } 7 cmd 3 } 3 { pwndbg_backtrace 2 pwndbg_threads 1 pwndbg_expressions 2 } 1 } 1 status 1
+tui new-layout pwndbg_custom {-horizontal { { -horizontal { pwndbg_code 1 pwndbg_disasm 1 } 2 { {-horizontal pwndbg_legend 8 pwndbg_control 2 } 0 pwndbg_regs 1 pwndbg_stack 1 } 3 } 7 cmd 3 } 3 { pwndbg_backtrace 2 pwndbg_expressions 2 pwndbg_threads 1 } 1 } 1 status 1
 layout pwndbg_custom
 ```

@@ -18,7 +18,7 @@ def setup() -> None:
             "     { -horizontal pwndbg_legend 8 pwndbg_control 2 } 0 pwndbg_regs 1 pwndbg_stack 1 "
             "   } 3 "
             "  } 7 cmd 3 "
-            " } 3 { pwndbg_backtrace 2 pwndbg_threads 1 pwndbg_expressions 2 } 1 "
+            " } 3 { pwndbg_backtrace 2 pwndbg_expressions 2 pwndbg_threads 1 } 1 "
             "} 1 status 1"
         ),
         (
@@ -31,7 +31,7 @@ def setup() -> None:
             "     { -horizontal pwndbg_legend 8 pwndbg_control 2 } 0 pwndbg_regs 1 pwndbg_stack 1 "
             "   } 3 "
             "  } 7 cmd 3 "
-            " } 3 { pwndbg_backtrace 2 pwndbg_threads 1 pwndbg_expressions 2 } 1 "
+            " } 3 { pwndbg_backtrace 2 pwndbg_expressions 2 pwndbg_threads 1 } 1 "
             "} 1 status 1"
         ),
     ]
