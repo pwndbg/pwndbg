@@ -249,7 +249,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         # For ease, for x86 we will assume Intel syntax (destination operand first).
         # However, Capstone will disassemble using the `set disassembly-flavor` preference,
         # and the order of operands are read left to right into the .operands array. So we flip operand order if AT&T
-        if self.cs_insn._cs.syntax == CS_OPT_SYNTAX_ATT:
+        if self.cs_insn._cs.arch == CS_ARCH_X86 and self.cs_insn._cs.syntax == CS_OPT_SYNTAX_ATT:
             self.cs_insn.operands.reverse()
 
         self.operands: List[EnhancedOperand] = [EnhancedOperand(op) for op in self.cs_insn.operands]

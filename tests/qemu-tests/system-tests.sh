@@ -58,7 +58,7 @@ if [[ $# -gt 3 ]]; then
     help_and_exit
 fi
 
-USE_PDB=0
+PDB=0
 TEST_NAME_FILTER=""
 RUN_CODECOV=0
 VERBOSE=0
@@ -70,7 +70,7 @@ RUN_IN_NIX=0
 while [[ $# -gt 0 ]]; do
     case $1 in
         -p | --pdb)
-            USE_PDB=1
+            PDB=1
             echo "Will run tests with Python debugger"
             ;;
         -c | --cov)
@@ -123,7 +123,8 @@ fi
 
 run_gdb() {
     local arch="$1"
-    shift
+    local should_drop_to_pdb=$2
+    shift 2
 
     if [ $RUN_IN_NIX -eq 1 ]; then
         gdb_load_pwndbg=()
@@ -143,15 +144,23 @@ run_gdb() {
         fi
     fi
 
-    $UV_RUN $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" \
-        -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
+    if [ $should_drop_to_pdb -eq 1 ]; then
+        # $GDB --nx --nh "${gdb_load_pwndbg[@]}" \
+        #   -ex "set exception-verbose on" "$@"
+        echo "Run: "
+        echo "$GDB --nx --nh ${gdb_load_pwndbg[@]} -ex \"set exception-debugger on\" -ex \"file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}\" -ex \"target remote :${GDB_PORT}\""
+        read -p "Press enter to continue"
+    else
+        $UV_RUN $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" \
+            -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
+    fi
     return $?
 }
 
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
 gdb_args=(--command ../pytests_collect.py)
-TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/tests/qemu-tests/tests/system" run_gdb "x86_64" "${gdb_args[@]}")
+TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/tests/qemu-tests/tests/system" run_gdb "x86_64" 0 "${gdb_args[@]}")
 
 if [ $? -eq 1 ]; then
     echo -E "$TESTS_COLLECT_OUTPUT"
@@ -172,7 +181,7 @@ init_gdb() {
     # using 'rest_init' instead of 'start_kernel' to make sure that kernel
     # initialization has progressed sufficiently for testing purposes
     gdb_args=("${gdb_connect_qemu[@]}" -ex 'break *rest_init' -ex 'continue')
-    run_gdb "${arch}" "${gdb_args[@]}" > /dev/null 2>&1
+    run_gdb "${arch}" 0 "${gdb_args[@]}" > /dev/null 2>&1
 }
 
 run_test() {
@@ -180,6 +189,7 @@ run_test() {
     local kernel_type="$2"
     local kernel_version="$3"
     local arch="$4"
+    local should_drop_to_pdb=$5
 
     gdb_connect_qemu=(-ex "file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :${GDB_PORT}")
     gdb_args=("${gdb_connect_qemu[@]}" --command ../pytests_launcher.py)
@@ -190,13 +200,13 @@ run_test() {
     SRC_DIR=$ROOT_DIR \
         COVERAGE_FILE=$ROOT_DIR/.cov/coverage \
         COVERAGE_PROCESS_START=$COVERAGERC_PATH \
-        USE_PDB="${USE_PDB}" \
+        USE_PDB="$should_drop_to_pdb" \
         PWNDBG_LAUNCH_TEST="qemu-tests/${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
         PWNDBG_ARCH="${arch}" \
         PWNDBG_KERNEL_TYPE="${kernel_type}" \
         PWNDBG_KERNEL_VERSION="${kernel_version}" \
-        run_gdb "${arch}" "${gdb_args[@]}"
+        run_gdb "${arch}" $should_drop_to_pdb "${gdb_args[@]}"
     return $?
 }
 
@@ -216,16 +226,19 @@ process_output() {
 
     printf '%-70s %s\n' $testname $result
 
-    if [[ "$result" =~ FAIL ]]; then
-        FAILED_TESTS+=("$testname")
-    fi
-
     # Only show the output of failed tests unless the verbose flag was used
     if [[ $VERBOSE -eq 1 || "$result" =~ FAIL ]]; then
         echo ""
         echo "$output"
         echo ""
     fi
+
+    if [[ "$result" =~ FAIL ]]; then
+        FAILED_TESTS+=("$testname")
+        return 1
+    fi
+
+    return 0
 }
 
 test_system() {
@@ -251,8 +264,11 @@ test_system() {
     start=$(date +%s)
 
     for t in "${TESTS_LIST[@]}"; do
-        output=$(run_test "$t" "${kernel_type}" "${kernel_version}" "${arch}")
+        output=$(run_test "$t" "${kernel_type}" "${kernel_version}" "${arch}" 0)
         process_output "$output"
+        if [ $? -eq 1 ] && [ $PDB -eq 1 ]; then
+            run_test "$t" "${kernel_type}" "${kernel_version}" "${arch}" 1
+        fi
     done
 
     end=$(date +%s)

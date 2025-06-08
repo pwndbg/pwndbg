@@ -19,7 +19,10 @@ class TCPServerThread(threading.Thread):
         self.sock = socket.socket(
             socket.AF_INET6 if ":" in ip else socket.AF_INET, socket.SOCK_STREAM
         )
-        self.sock.bind((ip, port))
+        try:
+            self.sock.bind((ip, port))
+        except OSError:
+            pytest.skip(f"Could not bind to {ip}:{port}.")
         self.port = self.sock.getsockname()[1]
         self.sock.listen(1)
 

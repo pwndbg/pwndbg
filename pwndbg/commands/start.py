@@ -134,11 +134,18 @@ def entry(args=None) -> None:
         args = []
 
     if pwndbg.dbg.is_gdblib_available():
+        # If this is GDB, just start the process ourselves.
         run = "starti " + " ".join(map(quote, args))
         gdb.execute(run, from_tty=False)
     else:
-        # TODO: LLDB, In the future, we should handle `run -s` here to automate setup.
-        # For now, we only support stopping at the entry breakpoint.
+        # For now, there is no debugger-agnostic way to start a process from
+        # inside a command, so the best we can do is expect that the back-end
+        # picks up that this command is being called, and starts the process on
+        # our behalf, and error out if it does not.
+        #
+        # `pwndbg-lldb` implements starting as a partial command override in the CLI.
+        #
+        # TODO: In the future, we should handle starts using an in-command mechanism.
         if not pwndbg.aglib.proc.alive:
             print(
                 M.error(

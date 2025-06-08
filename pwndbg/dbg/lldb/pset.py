@@ -4,7 +4,6 @@ from typing import Any
 from typing import Optional
 
 import pwndbg
-import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.lib.config as cfg
 
@@ -16,20 +15,13 @@ def pget(name: str) -> Optional[pwndbg.lib.config.Parameter]:
     return pwndbg.config.params.get(name.replace("-", "_"))
 
 
-def pset(name: str, value: str) -> bool:
+def pset(param: pwndbg.lib.config.Parameter, value: str):
     """
     Parses and sets a Pwndbg configuration value.
-    """
-    param = pget(name)
-    if param is None:
-        print(message.error(f"Unknown setting '{name}'"))
-        return False
 
-    try:
-        new_value = parse_value(param, value)
-    except InvalidParse as e:
-        print(message.error(f"Invalid value '{value}' for setting '{name}': {e}"))
-        return False
+    Raises `InvalidParse` if the value is not valid.
+    """
+    new_value = parse_value(param, value)
 
     param.value = new_value
     for trigger in pwndbg.config.triggers[param.name]:
