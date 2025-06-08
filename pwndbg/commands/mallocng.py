@@ -4,10 +4,19 @@ Commands that help with debugging musl's allocator, mallocng.
 
 from __future__ import annotations
 
+import argparse
+from typing import Dict
+from typing import List
+from typing import Tuple
+
 import pwndbg
-import pwndbg.aglib.heap
+import pwndbg.aglib.heap.mallocng as mallocng
+import pwndbg.aglib.memory as memory
 import pwndbg.color as C
+import pwndbg.color.message as message
 from pwndbg.commands import CommandCategory
+from pwndbg.lib.pretty_print import Property
+from pwndbg.lib.pretty_print import PropertyPrinter
 
 
 @pwndbg.commands.Command(
@@ -144,3 +153,65 @@ def mallocng_explain() -> None:
     # TODO: explain what a slot looks like.
 
     print(txt)
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Dump all information about a slot, given it's user address.
+    """,
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="The start of user memory. Referred to as `p` in the source.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-uslot"],
+)
+def mallocng_user_slot(address: int) -> None:
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {hex(address)} not readable."))
+        return
+
+    slot = mallocng.Slot(address)
+
+    pp = PropertyPrinter()
+    pp.start_section("slab")
+    pp.set_padding(7)
+    pp.add(
+        [
+            Property(name="group", value=slot.group.addr, is_addr=True),
+            Property(name="meta", value=slot.meta.addr, is_addr=True),
+        ]
+    )
+    pp.end_section()
+
+    pp.start_section("general")
+    pp.set_padding(2)
+    pp.add(
+        [
+            Property(name="start", value=slot.start, is_addr=True),
+            Property(name="end", value=slot.end, is_addr=True),
+            Property(name="stride", value=slot.meta.stride),
+            Property(name="user start", value=slot.p, is_addr=True),
+            Property(name="user size", value=slot.user_size),
+        ]
+    )
+    pp.end_section()
+
+    pp.start_section("in-band")
+    pp.set_padding(4)
+    pp.add(
+        [
+            Property(name="offset", value=slot.offset),
+            Property(name="index", value=slot.idx),
+            Property(name="reserved", value=slot.reserved),
+        ]
+    )
+    pp.end_section()
+
+    pp.print()
