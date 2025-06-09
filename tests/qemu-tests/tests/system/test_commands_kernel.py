@@ -30,6 +30,14 @@ def test_command_kconfig():
     res = gdb.execute("kconfig IKCONFIG", to_string=True)
     assert "CONFIG_IKCONFIG = y" in res
 
+def test_command_kdmesg():
+    if not pwndbg.aglib.kernel.has_debug_syms():
+        res = gdb.execute("kdmesg", to_string=True)
+        assert "may only be run when debugging a Linux kernel with debug" in res
+        return
+        
+    res = gdb.execute("kdmesg", to_string=True)
+    assert "Linux version" in res
 
 def test_command_kversion():
     res = gdb.execute("kversion", to_string=True)
