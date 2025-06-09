@@ -12,6 +12,7 @@ from typing import Tuple
 import pwndbg
 import pwndbg.aglib.heap.mallocng as mallocng
 import pwndbg.aglib.memory as memory
+import pwndbg.aglib.typeinfo as typeinfo
 import pwndbg.color as C
 import pwndbg.color.message as message
 from pwndbg.commands import CommandCategory
@@ -155,6 +156,67 @@ def mallocng_explain() -> None:
     print(txt)
 
 
+def dump_group(group: mallocng.Group) -> str:
+    group_range = "@ " + C.memory.get(group.addr) + " - " + C.memory.get(group.addr + group.group_size)
+
+    pp = PropertyPrinter()
+    pp.start_section("group", group_range)
+    pp.set_padding(2)
+    pp.add(
+        [
+            Property(name="meta", value=group.meta.addr, is_addr=True),
+            Property(name="active_idx", value=group.active_idx),
+            Property(name="storage", value=group.storage, is_addr=True,
+                     extra="(start of slots)"),
+        ]
+    )
+    pp.write("---\n")
+    pp.set_padding(3)
+    pp.add(
+        [
+            Property(name="group size", value=group.group_size),
+        ]
+    )
+    pp.end_section()
+    return pp.dump()
+
+def dump_meta(meta: mallocng.Meta) -> str:
+    int_size = str(typeinfo.sint.sizeof * 8)
+    avail_binary = "0b" + format(meta.avail_mask, f"0{int_size}b")
+    freed_binary = "0b" + format(meta.freed_mask, f"0{int_size}b")
+
+    pp = PropertyPrinter()
+    pp.start_section("meta", "@ " + C.memory.get(meta.addr))
+    pp.set_padding(2)
+    pp.add(
+        [
+            Property(name="prev", value=meta.prev, is_addr=True),
+            Property(name="next", value=meta.next, is_addr=True),
+            Property(name="mem", value=meta.mem, is_addr=True,
+                     extra="(the group)"),
+            Property(name="avail_mask", value=meta.avail_mask,
+                     extra=avail_binary),
+            Property(name="freed_mask", value=meta.freed_mask,
+                     extra=freed_binary),
+            Property(name="last_idx", value=meta.last_idx,
+                     extra="(index of last slot)"),
+            Property(name="freeable", value=str(bool(meta.freeable))),
+            Property(name="sizeclass", value=meta.sizeclass),
+            Property(name="maplen", value=meta.maplen)
+        ]
+    )
+    pp.write("---\n")
+    pp.set_padding(3)
+    pp.add(
+        [
+            Property(name="cnt", value=meta.cnt, extra="(the number of slots)"),
+            Property(name="slot size", value=meta.slot_size, extra='(aka "stride")'),
+        ]
+    )
+    pp.end_section()
+    return pp.dump()
+
+
 parser = argparse.ArgumentParser(
     description="""
 Dump all information about a slot, given it's user address.
@@ -165,14 +227,19 @@ parser.add_argument(
     type=int,
     help="The start of user memory. Referred to as `p` in the source.",
 )
-
+parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    help="Print out all information. Including meta and group data."
+)
 
 @pwndbg.commands.Command(
     parser,
     category=CommandCategory.MUSL,
     aliases=["ng-uslot"],
 )
-def mallocng_user_slot(address: int) -> None:
+def mallocng_user_slot(address: int, all: bool) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {hex(address)} not readable."))
         return
@@ -180,15 +247,17 @@ def mallocng_user_slot(address: int) -> None:
     slot = mallocng.Slot(address)
 
     pp = PropertyPrinter()
-    pp.start_section("slab")
-    pp.set_padding(7)
-    pp.add(
-        [
-            Property(name="group", value=slot.group.addr, is_addr=True),
-            Property(name="meta", value=slot.meta.addr, is_addr=True),
-        ]
-    )
-    pp.end_section()
+
+    if not all:
+        pp.start_section("slab")
+        pp.set_padding(7)
+        pp.add(
+            [
+                Property(name="group", value=slot.group.addr, is_addr=True),
+                Property(name="meta", value=slot.meta.addr, is_addr=True),
+            ]
+        )
+        pp.end_section()
 
     pp.start_section("general")
     pp.set_padding(2)
@@ -215,3 +284,7 @@ def mallocng_user_slot(address: int) -> None:
     pp.end_section()
 
     pp.print()
+
+    if all:
+        print(dump_group(slot.group), end="")
+        print(dump_meta(slot.meta), end="")
