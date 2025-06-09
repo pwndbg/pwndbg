@@ -5,9 +5,6 @@ Commands that help with debugging musl's allocator, mallocng.
 from __future__ import annotations
 
 import argparse
-from typing import Dict
-from typing import List
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.heap.mallocng as mallocng
@@ -157,7 +154,9 @@ def mallocng_explain() -> None:
 
 
 def dump_group(group: mallocng.Group) -> str:
-    group_range = "@ " + C.memory.get(group.addr) + " - " + C.memory.get(group.addr + group.group_size)
+    group_range = (
+        "@ " + C.memory.get(group.addr) + " - " + C.memory.get(group.addr + group.group_size)
+    )
 
     pp = PropertyPrinter()
     pp.start_section("group", group_range)
@@ -166,8 +165,7 @@ def dump_group(group: mallocng.Group) -> str:
         [
             Property(name="meta", value=group.meta.addr, is_addr=True),
             Property(name="active_idx", value=group.active_idx),
-            Property(name="storage", value=group.storage, is_addr=True,
-                     extra="(start of slots)"),
+            Property(name="storage", value=group.storage, is_addr=True, extra="(start of slots)"),
         ]
     )
     pp.write("---\n")
@@ -179,6 +177,7 @@ def dump_group(group: mallocng.Group) -> str:
     )
     pp.end_section()
     return pp.dump()
+
 
 def dump_meta(meta: mallocng.Meta) -> str:
     int_size = str(typeinfo.sint.sizeof * 8)
@@ -192,17 +191,13 @@ def dump_meta(meta: mallocng.Meta) -> str:
         [
             Property(name="prev", value=meta.prev, is_addr=True),
             Property(name="next", value=meta.next, is_addr=True),
-            Property(name="mem", value=meta.mem, is_addr=True,
-                     extra="(the group)"),
-            Property(name="avail_mask", value=meta.avail_mask,
-                     extra=avail_binary),
-            Property(name="freed_mask", value=meta.freed_mask,
-                     extra=freed_binary),
-            Property(name="last_idx", value=meta.last_idx,
-                     extra="(index of last slot)"),
+            Property(name="mem", value=meta.mem, is_addr=True, extra="(the group)"),
+            Property(name="avail_mask", value=meta.avail_mask, extra=avail_binary),
+            Property(name="freed_mask", value=meta.freed_mask, extra=freed_binary),
+            Property(name="last_idx", value=meta.last_idx, extra="(index of last slot)"),
             Property(name="freeable", value=str(bool(meta.freeable))),
             Property(name="sizeclass", value=meta.sizeclass),
-            Property(name="maplen", value=meta.maplen)
+            Property(name="maplen", value=meta.maplen),
         ]
     )
     pp.write("---\n")
@@ -219,7 +214,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
 
 parser = argparse.ArgumentParser(
     description="""
-Dump all information about a slot, given it's user address.
+Dump all information about a slot, given its user address.
     """,
 )
 parser.add_argument(
@@ -231,8 +226,9 @@ parser.add_argument(
     "-a",
     "--all",
     action="store_true",
-    help="Print out all information. Including meta and group data."
+    help="Print out all information. Including meta and group data.",
 )
+
 
 @pwndbg.commands.Command(
     parser,
@@ -288,3 +284,55 @@ def mallocng_user_slot(address: int, all: bool) -> None:
     if all:
         print(dump_group(slot.group), end="")
         print(dump_meta(slot.meta), end="")
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Print out information about a mallocng meta at a given address.
+    """,
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="The address of the meta object.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-meta"],
+)
+def mallocng_meta(address: int) -> None:
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {hex(address)} not readable."))
+        return
+
+    meta = mallocng.Meta(address)
+    print(dump_meta(meta), end="")
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Print out information about a mallocng group at a given address.
+    """,
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="The address of the group object.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-group"],
+)
+def mallocng_group(address: int) -> None:
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {hex(address)} not readable."))
+        return
+
+    group = mallocng.Group(address)
+    print(dump_group(group), end="")
