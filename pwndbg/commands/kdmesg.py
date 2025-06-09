@@ -6,7 +6,7 @@ It iterates through the records in the ring buffer to print each record like a d
 This command supports only the "new" kernel ring buffer implementation that is present in kernel versions 5.10+.
 https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d594d8f411d47bf7b583ec3474b11fec348c88bb
 
-This implementation is based on the Linux kernel's `printk_ringbuffer` structure as defined in:
+This implementation read information from the Linux kernel's `printk_ringbuffer` structure as defined in:
 https://github.com/torvalds/linux/blob/19272b37aa4f83ca52bdf9c16d5d81bdd1354494/kernel/printk/printk_ringbuffer.h
 """
 
@@ -33,24 +33,26 @@ def kdmesg() -> None:
         return
 
     try:
-        # Read printk_ringbuffer structure
+        # Read printk_ringbuffer structure, which contains a desc_ring and text_data_ring.
+        # This struct contains metadata for accessing the ring buffer.
         printk_ringbuffer_type = pwndbg.aglib.memory.get_typed_pointer_value(
             "struct printk_ringbuffer", prb_addr
         )
         desc_ring_addr = printk_ringbuffer_type["desc_ring"].address
         text_data_ring_addr = printk_ringbuffer_type["text_data_ring"].address
 
-        # Read prb_desc_ring and prb_data_ring structures
+        # Read prb_desc_ring structures, which contain metadata about the ring buffer descriptors.
         desc_ring_type = pwndbg.aglib.memory.get_typed_pointer_value(
             "struct prb_desc_ring", desc_ring_addr
         )
         desc_ring_count = 1 << int(desc_ring_type["count_bits"])
 
-        # Find addresses and sizes of descs and infos
+        # Find addresses and sizes of descs and infos, neede
         descs = int(desc_ring_type["descs"])
         infos = int(desc_ring_type["infos"])
 
-        # Read prb_data_ring structure, calculate text data size and address
+        # Read prb_data_ring structure, calculate text data size and address.
+        # This struct contains the actual text data for the printk messages.
         text_data_ring_type = pwndbg.aglib.memory.get_typed_pointer_value(
             "struct prb_data_ring", text_data_ring_addr
         )
@@ -62,6 +64,7 @@ def kdmesg() -> None:
         desc_flags_mask = 3 << desc_flags_shift
         desc_id_mask = ~desc_flags_mask
 
+        # We wish to iterate from tail to head, so we need to find the tail_id and head_id.
         head_id = int(desc_ring_type["head_id"]["counter"])
         tail_id = int(desc_ring_type["tail_id"]["counter"])
 
@@ -70,14 +73,14 @@ def kdmesg() -> None:
         prb_desc_size = pwndbg.aglib.typeinfo.load("struct prb_desc").sizeof
         printk_info_size = pwndbg.aglib.typeinfo.load("struct printk_info").sizeof
 
-        # Iterate through each record
+        # Iterate through each record from tail to head.
         while True:
             ind = did % desc_ring_count
             desc = pwndbg.aglib.memory.get_typed_pointer_value(
                 "struct prb_desc", descs + prb_desc_size * ind
             )
 
-            # Skip non-committed or non-finalized records
+            # Skip non-committed or non-finalized records, indicated by the state variable.
             state = 3 & (int(desc["state_var"]["counter"]) >> desc_flags_shift)
             if state != 1 and state != 2:  # desc_committed or desc_finalized
                 if did == head_id:
@@ -92,7 +95,7 @@ def kdmesg() -> None:
                 "struct printk_info", infos + printk_info_size * ind
             )
 
-            # Read text data
+            # Read text data from the text_data_ring.
             if begin & 1 == 1:
                 text = ""
             else:
@@ -108,10 +111,9 @@ def kdmesg() -> None:
                 text_data = pwndbg.aglib.memory.read(text_data_addr + text_start, text_len)
                 text = text_data.decode(encoding="utf8", errors="replace")
 
-            time_stamp = int(info["ts_nsec"])
-
+            # Format and print the message.
             for line in text.splitlines():
-                print(f"[{time_stamp / 1000000000:12.6f}] {line}")
+                print(f"[{int(info["ts_nsec"]) / 1000000000:12.6f}] {line}")
 
             if did == head_id:
                 break
