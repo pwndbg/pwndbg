@@ -39,6 +39,12 @@ class Group:
     A group is an array of slots.
 
     https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L17
+    struct group {
+      struct meta *meta;
+      unsigned char active_idx:5;
+      char pad[UNIT - sizeof(struct meta *) - 1];
+      unsigned char storage[];
+    };
     """
 
     def __init__(self, addr: int) -> None:
@@ -47,8 +53,29 @@ class Group:
         self._meta = None
         self._active_idx = None
 
+    def preload(self) -> None:
+        """
+        Read all the necessary process memory to populate the group's
+        fields.
+
+        Do this if you know you will be using most of the
+        fields of the group. It will be faster, since we can do one
+        reads instead of two small ones. You may also catch
+        inaccessible memory exceptions here and not worry about it later.
+
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
+        data = memory.read(self.addr, pwndbg.aglib.arch.ptrsize + 1)
+        self._meta = Meta(pwndbg.aglib.arch.unpack(data[: pwndbg.aglib.arch.ptrsize]))
+        self._active_idx = data[-1] & 0b11111
+
     @property
     def meta(self) -> Meta:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._meta is None:
             self._meta = Meta(memory.read_pointer_width(self.addr))
 
@@ -56,6 +83,10 @@ class Group:
 
     @property
     def active_idx(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._active_idx is None:
             self._active_idx = memory.u8(self.addr + pwndbg.aglib.arch.ptrsize) & 0b11111
 
@@ -77,26 +108,61 @@ class Slot:
     """
     The "unit of allocation" (analogous to glibc's "chunk").
     There is no struct in the source code that describes it.
-
-    The class operates under the assumption the address given
-    to it is valid and readable.
     """
 
     def __init__(self, p: int) -> None:
         # The start of user memory. It may
         # not be the actual start of the slot.
-        self.p = p
-        self._offset = None
-        self._idx = None
+        self.p: int = p
+        self._offset: int = None
+        self._idx: int = None
         # Not exactly sure what this is.
-        self._check4 = None
+        self._check4: int = None
 
-        self._group = None
-        self._meta = None
-        self._reserved = None
+        self._group: Group = None
+        self._meta: Meta = None
+        self._reserved: int = None
+
+    def preload(self) -> None:
+        """
+        Read all the necessary process memory to populate the slot's
+        fields.
+
+        Do this if you know you will be using most of the
+        fields of the slot. It will be faster, since we can do a few
+        big reads instead of many small ones. You may also catch
+        inaccessible memory exceptions here and not worry about it later.
+
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
+        # Read all the in-band data.
+        inband_data = memory.read(self.p - 8, 8)
+
+        self._check4 = inband_data[4]
+        self._idx = inband_data[5] & 31
+        if self._check4:
+            self._offset = int.from_bytes(inband_data[0:4], pwndbg.aglib.arch.endian, signed=False)
+        else:
+            self._offset = int.from_bytes(inband_data[6:8], pwndbg.aglib.arch.endian, signed=False)
+
+        # Read the group's meta pointer.
+        _ = self.meta
+
+        self._reserved = inband_data[5] >> 5
+        if self._reserved == 5:
+            # self.end doesn't need a read.
+            self._reserved = memory.u32(self.end - 4)
+
+        # All the other fields are calculated without
+        # memory reads.
 
     @property
     def check4(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L134
         if self._check4 is None:
             self._check4 = memory.u8(self.p - 4)
@@ -105,6 +171,10 @@ class Slot:
 
     @property
     def offset(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L132
         if self._offset is None:
             if self.check4:
@@ -118,6 +188,10 @@ class Slot:
 
     @property
     def idx(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L133
         if self._idx is None:
             self._idx = memory.u8(self.p - 3) & 31
@@ -134,6 +208,10 @@ class Slot:
 
     @property
     def meta(self) -> Meta:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L140
         if self._meta is None:
             self._meta = Meta(memory.read_pointer_width(self.group.addr))
@@ -152,6 +230,10 @@ class Slot:
 
     @property
     def reserved(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L161
         # Lots of asserts here..
         if self._reserved is None:
@@ -174,24 +256,85 @@ class Slot:
 class Meta:
     """
     The metadata of a group.
+
     https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L24
+    struct meta {
+      struct meta *prev, *next;
+      struct group *mem;
+      volatile int avail_mask, freed_mask;
+      uintptr_t last_idx:5;
+      uintptr_t freeable:1;
+      uintptr_t sizeclass:6;
+      uintptr_t maplen:8*sizeof(uintptr_t)-12;
+    };
     """
 
     def __init__(self, addr: int) -> None:
-        self.addr = addr
+        self.addr: int = addr
 
-        self._prev = self._next = None
-        self._mem = None
-        self._avail_mask = self._freed_mask = None
-        self._last_idx = None
-        self._freeable = None
-        self._sizeclass = None
-        self._maplen = None
+        self._prev: int = None
+        self._next: int = None
+        self._mem: int = None
+        self._avail_mask: int = None
+        self._freed_mask: int = None
+        self._last_idx: int = None
+        self._freeable: int = None
+        self._sizeclass: int = None
+        self._maplen: int = None
 
-        self._stride = None
+        self._stride: int = None
+
+    def preload(self) -> None:
+        """
+        Read all the necessary process memory to populate the meta's
+        fields.
+
+        Do this if you know you will be using most of the
+        fields of the meta. It will be faster, since we can do a one
+        big read instead of many small ones. You may also catch
+        inaccessible memory exceptions here and not worry about it later.
+
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
+        ptrsize = pwndbg.aglib.arch.ptrsize
+        endian = pwndbg.aglib.arch.endian
+
+        # Read the whole struct.
+        data = memory.read(self.addr, ptrsize * 3 + 2 * INT_SIZE + 8 * ptrsize)
+
+        cur_offset = 0
+        self._prev = pwndbg.aglib.arch.unpack(data[cur_offset:ptrsize])
+        cur_offset += ptrsize
+        self._next = pwndbg.aglib.arch.unpack(data[cur_offset : (cur_offset + ptrsize)])
+        cur_offset += ptrsize
+        self._mem = pwndbg.aglib.arch.unpack(data[cur_offset : (cur_offset + ptrsize)])
+        cur_offset += ptrsize
+        self._avail_mask = int.from_bytes(
+            data[cur_offset : (cur_offset + INT_SIZE)], endian, signed=False
+        )
+        cur_offset += INT_SIZE
+        self._freed_mask = int.from_bytes(
+            data[cur_offset : (cur_offset + INT_SIZE)], endian, signed=False
+        )
+        cur_offset += INT_SIZE
+        # I think this is how I should read a bitfield.
+        # http://mjfrazer.org/mjfrazer/bitfields/
+        flags = int.from_bytes(data[cur_offset : (cur_offset + ptrsize)], endian, signed=False)
+        self._last_idx = flags & 0b11111
+        self._freeable = (flags >> 5) & 1
+        self._sizeclass = (flags >> 6) & 0b111111
+        self._maplen = flags >> 12
+
+        # All the other fields are calculated without
+        # memory reads.
 
     @property
     def prev(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._prev is None:
             self._prev = memory.read_pointer_width(self.addr)
 
@@ -199,6 +342,10 @@ class Meta:
 
     @property
     def next(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._next is None:
             self._next = memory.read_pointer_width(self.addr + pwndbg.aglib.arch.ptrsize)
 
@@ -206,6 +353,10 @@ class Meta:
 
     @property
     def mem(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._mem is None:
             self._mem = memory.read_pointer_width(self.addr + pwndbg.aglib.arch.ptrsize * 2)
 
@@ -213,60 +364,94 @@ class Meta:
 
     @property
     def avail_mask(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._avail_mask is None:
-            self._avail_mask = memory.sint(self.addr + pwndbg.aglib.arch.ptrsize * 3)
+            # While the type is technically a signed int, it makes more
+            # sense to interpret it as unsigned semantically.
+            self._avail_mask = memory.uint(self.addr + pwndbg.aglib.arch.ptrsize * 3)
 
         return self._avail_mask
 
     @property
     def freed_mask(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._freed_mask is None:
             offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE
-            self._freed_mask = memory.sint(self.addr + offset)
+            # Technically signed.
+            self._freed_mask = memory.uint(self.addr + offset)
 
         return self._freed_mask
 
     @property
     def last_idx(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._last_idx is None:
             offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE * 2
-            self._last_idx = memory.u8(self.addr + offset) & 0b11111
+            # reading pointer width so it works regardless of endianness
+            self._last_idx = memory.read_pointer_width(self.addr + offset) & 0b11111
 
         return self._last_idx
 
     @property
     def freeable(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._freeable is None:
             offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE * 2
-            self._freeable = (memory.u8(self.addr + offset) >> 5) & 1
+            self._freeable = (memory.read_pointer_width(self.addr + offset) >> 5) & 1
 
         return self._freeable
 
     @property
     def sizeclass(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._sizeclass is None:
             offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE * 2
-            self._sizeclass = (memory.u16(self.addr + offset) >> 6) & 0b111111
+            self._sizeclass = (memory.read_pointer_width(self.addr + offset) >> 6) & 0b111111
 
         return self._sizeclass
 
     @property
     def maplen(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._maplen is None:
-            offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE * 2 + 1
-            sz_bits = pwndbg.aglib.arch.ptrsize * 8 - 12
-            self._maplen = (memory.u64(self.addr + offset) >> 4) & ((1 << sz_bits) - 1)
+            offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE * 2
+            self._maplen = memory.read_pointer_width(self.addr + offset) >> 12
 
         return self._maplen
 
     @property
     def stride(self):
+        """
+        Returns -1 if sizeclass >= len(size_classes).
+        """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L175
         if self._stride is None:
             if not self.last_idx and self.maplen:
                 self._stride = self.maplen * 4096 - UNIT
             else:
-                self._stride = UNIT * size_classes[self.sizeclass]
+                if self.sizeclass < len(size_classes):
+                    self._stride = UNIT * size_classes[self.sizeclass]
+                else:
+                    # The meta is corrupted.
+                    self._stride = -1
 
         return self._stride
 
@@ -282,8 +467,14 @@ class Meta:
     def slot_size(self):
         """
         The size of a slot in this group, in bytes.
+
+        Returns -1 if sizeclass >= len(size_classes).
         """
-        return size_classes[self.sizeclass] * UNIT
+        if self.sizeclass < len(size_classes):
+            return size_classes[self.sizeclass] * UNIT
+        else:
+            # The meta is corrupted.
+            return -1
 
 class MetaArea:
     def __init__(self, addr: int) -> None:
