@@ -292,10 +292,13 @@ def mallocng_user_slot(address: int, all: bool) -> None:
         pp.add(
             [
                 Property(name="start", value=slot.start, is_addr=True),
-                Property(name="end", value=slot.end, is_addr=True),
-                Property(name="stride", value=slot.meta.stride),
-                Property(name="user start", value=slot.p, is_addr=True),
-                Property(name="user size", value=slot.user_size),
+                Property(name="user start", value=slot.p, is_addr=True, extra="(aka `p`)"),
+                Property(name="end", value=slot.end, is_addr=True, extra="(start + stride - 4)"),
+                Property(
+                    name="stride", value=slot.meta.stride, extra="(distance between adjacent slots)"
+                ),
+                Property(name="user size", value=slot.user_size, extra='(aka "nominal size", `n`)'),
+                Property(name="slack", value=slot.slack, extra="(slot's unused memory / 0x10)"),
             ]
         )
         pp.end_section()
@@ -304,9 +307,14 @@ def mallocng_user_slot(address: int, all: bool) -> None:
     pp.set_padding(4)
     pp.add(
         [
-            Property(name="offset", value=slot.offset),
-            Property(name="index", value=slot.idx),
-            Property(name="reserved", value=slot.reserved),
+            Property(name="offset", value=slot.offset, extra="(distance to first slot / 0x10)"),
+            Property(name="index", value=slot.idx, extra="(index of slot in its group)"),
+            Property(name="reserved", value=slot.reserved, extra="(end - p - n)"),
+            Property(
+                name="rnd-off",
+                value=slot.internal_offset,
+                extra="(prevents double free, (p - start) / 0x10)",
+            ),
         ]
     )
     pp.end_section()
