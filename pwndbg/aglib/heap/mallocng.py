@@ -106,6 +106,13 @@ class Group:
     def storage(self) -> int:
         return self.addr + UNIT
 
+    @property
+    def group_size(self) -> int:
+        """
+        The size of this group, in bytes.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L234
+        return self.meta.stride * self.meta.cnt + UNIT
 
 class Slot:
     """
@@ -304,6 +311,20 @@ class Meta:
 
         return self._stride
 
+    @property
+    def cnt(self):
+        """
+        Number of slots in the group.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L60
+        return self.last_idx + 1
+
+    @property
+    def slot_size(self):
+        """
+        The size of a slot in this group, in bytes.
+        """
+        return size_classes[self.sizeclass] * UNIT
 
 class MetaArea:
     def __init__(self, addr: int) -> None:
