@@ -1,3 +1,15 @@
+"""
+Display the kernel ring buffer (dmesg) contents.
+This command reads the `printk_ringbuffer` structure, which stores printk messages.
+It iterates through the records in the ring buffer to print each record like a dmesg log.
+
+This command supports only the "new" kernel ring buffer implementation that is present in kernel versions 5.10+.
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d594d8f411d47bf7b583ec3474b11fec348c88bb
+
+This implementation is based on the Linux kernel's `printk_ringbuffer` structure as defined in:
+https://github.com/torvalds/linux/blob/19272b37aa4f83ca52bdf9c16d5d81bdd1354494/kernel/printk/printk_ringbuffer.h
+"""
+
 from __future__ import annotations
 
 import pwndbg.color.message as message
@@ -21,19 +33,25 @@ def kdmesg() -> None:
         return
 
     try:
+
+        # Read printk_ringbuffer structure
         printk_ringbuffer_type = pwndbg.aglib.memory.get_typed_pointer_value(
             "struct printk_ringbuffer", prb_addr
         )
         desc_ring_addr = printk_ringbuffer_type["desc_ring"].address
         text_data_ring_addr = printk_ringbuffer_type["text_data_ring"].address
 
+        # Read prb_desc_ring and prb_data_ring structures
         desc_ring_type = pwndbg.aglib.memory.get_typed_pointer_value(
             "struct prb_desc_ring", desc_ring_addr
         )
         desc_ring_count = 1 << int(desc_ring_type["count_bits"])
+
+        # Find addresses and sizes of descs and infos
         descs = int(desc_ring_type["descs"])
         infos = int(desc_ring_type["infos"])
 
+        # Read prb_data_ring structure, calculate text data size and address
         text_data_ring_type = pwndbg.aglib.memory.get_typed_pointer_value(
             "struct prb_data_ring", text_data_ring_addr
         )
@@ -53,17 +71,12 @@ def kdmesg() -> None:
         prb_desc_size = pwndbg.aglib.typeinfo.load("struct prb_desc").sizeof
         printk_info_size = pwndbg.aglib.typeinfo.load("struct printk_info").sizeof
 
+        # Iterate through each record
         while True:
             ind = did % desc_ring_count
+            desc = pwndbg.aglib.memory.get_typed_pointer_value("struct prb_desc", descs + prb_desc_size * ind)
 
-            desc_off = prb_desc_size * ind
-            info_off = printk_info_size * ind
-
-            desc_addr = descs + desc_off
-            info_addr = infos + info_off
-
-            desc = pwndbg.aglib.memory.get_typed_pointer_value("struct prb_desc", desc_addr)
-
+            # Skip non-committed or non-finalized records
             state = 3 & (int(desc["state_var"]["counter"]) >> desc_flags_shift)
             if state != 1 and state != 2:  # desc_committed or desc_finalized
                 if did == head_id:
@@ -74,8 +87,9 @@ def kdmesg() -> None:
             begin = int(desc["text_blk_lpos"]["begin"]) % text_data_sz
             end = int(desc["text_blk_lpos"]["next"]) % text_data_sz
 
-            info = pwndbg.aglib.memory.get_typed_pointer_value("struct printk_info", info_addr)
+            info = pwndbg.aglib.memory.get_typed_pointer_value("struct printk_info", infos + printk_info_size * ind)
 
+            # Read text data
             if begin & 1 == 1:
                 text = ""
             else:
