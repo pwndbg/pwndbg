@@ -113,7 +113,7 @@ def kdmesg() -> None:
 
             # Format and print the message.
             for line in text.splitlines():
-                print(f"[{int(info["ts_nsec"]) / 1000000000:12.6f}] {line}")
+                print(f"[{int(info['ts_nsec']) / 1000000000:12.6f}] {line}")
 
             if did == head_id:
                 break
