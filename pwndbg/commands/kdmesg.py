@@ -33,7 +33,6 @@ def kdmesg() -> None:
         return
 
     try:
-
         # Read printk_ringbuffer structure
         printk_ringbuffer_type = pwndbg.aglib.memory.get_typed_pointer_value(
             "struct printk_ringbuffer", prb_addr
@@ -74,7 +73,9 @@ def kdmesg() -> None:
         # Iterate through each record
         while True:
             ind = did % desc_ring_count
-            desc = pwndbg.aglib.memory.get_typed_pointer_value("struct prb_desc", descs + prb_desc_size * ind)
+            desc = pwndbg.aglib.memory.get_typed_pointer_value(
+                "struct prb_desc", descs + prb_desc_size * ind
+            )
 
             # Skip non-committed or non-finalized records
             state = 3 & (int(desc["state_var"]["counter"]) >> desc_flags_shift)
@@ -87,7 +88,9 @@ def kdmesg() -> None:
             begin = int(desc["text_blk_lpos"]["begin"]) % text_data_sz
             end = int(desc["text_blk_lpos"]["next"]) % text_data_sz
 
-            info = pwndbg.aglib.memory.get_typed_pointer_value("struct printk_info", infos + printk_info_size * ind)
+            info = pwndbg.aglib.memory.get_typed_pointer_value(
+                "struct printk_info", infos + printk_info_size * ind
+            )
 
             # Read text data
             if begin & 1 == 1:
