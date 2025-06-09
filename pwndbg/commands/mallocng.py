@@ -242,31 +242,63 @@ def mallocng_user_slot(address: int, all: bool) -> None:
 
     slot = mallocng.Slot(address)
 
+    try:
+        slot.preload()
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error("Error while reading slot: " + str(e)))
+        return
+
+    read_success: bool = True
+
+    try:
+        slot.group.preload()
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error("Error while reading group: " + str(e)))
+        read_success = False
+
+    try:
+        slot.meta.preload()
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error("Error while reading meta: " + str(e)))
+        read_success = False
+
+    if not read_success:
+        print(message.info("Only showing partial information."))
+        all = False
+
     pp = PropertyPrinter()
 
     if not all:
         pp.start_section("slab")
         pp.set_padding(7)
+        if read_success:
+            pp.add(
+                [
+                    Property(name="group", value=slot.group.addr, is_addr=True),
+                    Property(name="meta", value=slot.meta.addr, is_addr=True),
+                ]
+            )
+        else:
+            pp.add(
+                [
+                    Property(name="group", value=slot.group.addr, is_addr=True),
+                ]
+            )
+        pp.end_section()
+
+    if read_success:
+        pp.start_section("general")
+        pp.set_padding(2)
         pp.add(
             [
-                Property(name="group", value=slot.group.addr, is_addr=True),
-                Property(name="meta", value=slot.meta.addr, is_addr=True),
+                Property(name="start", value=slot.start, is_addr=True),
+                Property(name="end", value=slot.end, is_addr=True),
+                Property(name="stride", value=slot.meta.stride),
+                Property(name="user start", value=slot.p, is_addr=True),
+                Property(name="user size", value=slot.user_size),
             ]
         )
         pp.end_section()
-
-    pp.start_section("general")
-    pp.set_padding(2)
-    pp.add(
-        [
-            Property(name="start", value=slot.start, is_addr=True),
-            Property(name="end", value=slot.end, is_addr=True),
-            Property(name="stride", value=slot.meta.stride),
-            Property(name="user start", value=slot.p, is_addr=True),
-            Property(name="user size", value=slot.user_size),
-        ]
-    )
-    pp.end_section()
 
     pp.start_section("in-band")
     pp.set_padding(4)
@@ -309,6 +341,13 @@ def mallocng_meta(address: int) -> None:
         return
 
     meta = mallocng.Meta(address)
+
+    try:
+        meta.preload()
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(str(e)))
+        return
+
     print(dump_meta(meta), end="")
 
 
@@ -335,4 +374,11 @@ def mallocng_group(address: int) -> None:
         return
 
     group = mallocng.Group(address)
+
+    try:
+        group.preload()
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(str(e)))
+        return
+
     print(dump_group(group), end="")
