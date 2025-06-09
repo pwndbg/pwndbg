@@ -75,6 +75,7 @@
 -  [kchecksec](kernel/kchecksec.md) - Checks for kernel hardening configuration options.
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
 -  [kconfig](kernel/kconfig.md) - Outputs the kernel config (requires CONFIG_IKCONFIG).
+-  [kdmesg](kernel/kdmesg.md) - Displays the kernel ring buffer (dmesg) contents.
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
 -  [knft-dump](kernel/knft-dump.md) - Dump all nftables: tables, chains, rules, expressions
 -  [knft-list-chains](kernel/knft-list-chains.md) - Dump netfilter chains form a specific table
