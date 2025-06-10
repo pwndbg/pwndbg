@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 import re
+import time
 
 import gdb
 import pytest
@@ -40,6 +41,9 @@ def test_command_kdmesg():
     res = gdb.execute("kdmesg", to_string=True)
     assert "Linux version" in res
 
+    res = gdb.execute("kdmesg -T", to_string=True)
+    ctime_regex = r"(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}"
+    assert any(re.match(ctime_regex, line) for line in res.splitlines())
 
 def test_command_kversion():
     res = gdb.execute("kversion", to_string=True)
