@@ -282,6 +282,7 @@ parser.add_argument(
     category=CommandCategory.MUSL,
     aliases=["ng-uslot"],
 )
+@pwndbg.commands.OnlyWhenRunning
 def mallocng_user_slot(address: int, all: bool) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {hex(address)} not readable."))
@@ -405,6 +406,7 @@ parser.add_argument(
     category=CommandCategory.MUSL,
     aliases=["ng-meta"],
 )
+@pwndbg.commands.OnlyWhenRunning
 def mallocng_meta(address: int) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {hex(address)} not readable."))
@@ -445,6 +447,7 @@ parser.add_argument(
     category=CommandCategory.MUSL,
     aliases=["ng-group"],
 )
+@pwndbg.commands.OnlyWhenRunning
 def mallocng_group(address: int) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {hex(address)} not readable."))
