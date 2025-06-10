@@ -391,7 +391,7 @@ def mallocng_user_slot(address: int, all: bool) -> None:
 
 parser = argparse.ArgumentParser(
     description="""
-Print out information about a mallocng meta at a given address.
+Print out information about a mallocng group given the address of its meta.
     """,
 )
 parser.add_argument(
@@ -432,7 +432,7 @@ def mallocng_meta(address: int) -> None:
 
 parser = argparse.ArgumentParser(
     description="""
-Print out information about a mallocng group at a given address.
+Print out information about a mallocng group at the given address.
     """,
 )
 parser.add_argument(
