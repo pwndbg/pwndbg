@@ -14,16 +14,28 @@ from __future__ import annotations
 
 import pwndbg.color.message as message
 import pwndbg.commands
+import argparse
+import time
 
+parser = argparse.ArgumentParser(
+    description="Displays the kernel ring buffer (dmesg) contents."
+)
+
+parser.add_argument(
+    "-T",
+    "--ctime",
+    action="store_true",
+    help="Print human-readable timestamps."
+)
 
 @pwndbg.commands.Command(
-    "Displays the kernel ring buffer (dmesg) contents.",
+    parser,
     category=pwndbg.commands.CommandCategory.KERNEL,
 )
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelDebugSyms
-def kdmesg() -> None:
+def kdmesg(ctime: bool = False) -> None:
     prb_addr = pwndbg.aglib.symbol.lookup_symbol_addr("printk_rb_static")
 
     if prb_addr is None:
@@ -112,8 +124,12 @@ def kdmesg() -> None:
                 text = text_data.decode(encoding="utf8", errors="replace")
 
             # Format and print the message.
-            for line in text.splitlines():
-                print(f"[{int(info['ts_nsec']) / 1000000000:12.6f}] {line}")
+            if ctime:
+                for line in text.splitlines():
+                    print(f"[{time.ctime(int(info['ts_nsec']) / 1e9)}] {line}")
+            else:
+                for line in text.splitlines():
+                    print(f"[{int(info['ts_nsec']) / 1e9:12.6f}] {line}")
 
             if did == head_id:
                 break
