@@ -121,6 +121,15 @@ def kdmesg(ctime: bool = False) -> None:
             # Format and print the message.
             if ctime:
                 tk_core_addr = pwndbg.aglib.symbol.lookup_symbol_addr("tk_core")
+
+                if tk_core_addr is None:
+                    print(
+                        message.error(
+                            "The tk_core symbol was not found. This may indicate that the kernel is an older version or that the symbol is not available in the current build."
+                        )
+                    )
+                    return
+                    
                 tk_core = pwndbg.aglib.memory.get_typed_pointer_value(
                     "struct tk_data", tk_core_addr
                 )
