@@ -61,22 +61,35 @@ class PropertyPrinter:
         """
         Add a group of properties that should be aligned.
         """
-        max_name_len = max(len(self.name_color_func(prop.name)) for prop in prop_group)
+        # Transform prop values to string representation
+        for prop in prop_group:
+            if isinstance(prop.value, int):
+                if prop.use_hex:
+                    prop.value = hex(prop.value)
+                else:
+                    prop.value = str(prop.value)
+
+        # Get max lengths to calculate proper ljust
+        max_name_len = max(len(prop.name) for prop in prop_group)
+        # max_value_len = max(len(prop.value) for prop in prop_group)
+        # Use constant so it works between different groups
+        max_value_len = 16
 
         for prop in prop_group:
             self.text += self.indent_level * self.indent_size * " "
+
             colored_name = self.name_color_func(prop.name) + ":"
-            self.text += colored_name.ljust(max_name_len + 1, " ")
+            self.text += color.ljust_colored(colored_name, max_name_len + 1)
+
             self.text += self.padding * " "
 
             if prop.is_addr:
-                self.text += color.memory.get(prop.value)
+                base = 16 if prop.use_hex else 10
+                colored_val = color.memory.get(int(prop.value, base))
             else:
-                if isinstance(prop.value, int) and prop.use_hex:
-                    val = hex(prop.value)
-                else:
-                    val = prop.value
-                self.text += self.value_color_func(val)
+                colored_val = self.value_color_func(prop.value)
+
+            self.text += color.ljust_colored(colored_val, max_value_len)
 
             if isinstance(prop.extra, str):
                 self.text += "  " + prop.extra
@@ -85,13 +98,11 @@ class PropertyPrinter:
                 assert isinstance(prop.extra, list)
                 assert len(prop.extra) > 1
 
-                pure_max_name_len = max(len(prop.name) for prop in prop_group)
-
                 self.text += "  " + prop.extra[0]
                 for i in range(1, len(prop.extra)):
                     self.text += "\n"
                     self.text += self.indent_level * self.indent_size * " "
-                    self.text += (pure_max_name_len + 1) * " "
+                    self.text += (max_name_len + 1) * " "
                     self.text += self.padding * " "
                     self.text += max_value_len * " "
                     self.text += "  " + prop.extra[i]
