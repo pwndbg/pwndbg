@@ -129,7 +129,7 @@ def kdmesg(ctime: bool = False) -> None:
                         )
                     )
                     return
-                    
+
                 tk_core = pwndbg.aglib.memory.get_typed_pointer_value(
                     "struct tk_data", tk_core_addr
                 )
