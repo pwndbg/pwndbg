@@ -121,7 +121,9 @@ def kdmesg(ctime: bool = False) -> None:
             # Format and print the message.
             if ctime:
                 tk_core_addr = pwndbg.aglib.symbol.lookup_symbol_addr("tk_core")
-                tk_core = pwndbg.aglib.memory.get_typed_pointer_value("struct tk_data", tk_core_addr)
+                tk_core = pwndbg.aglib.memory.get_typed_pointer_value(
+                    "struct tk_data", tk_core_addr
+                )
                 epoch_time = int(tk_core["timekeeper"]["xtime_sec"])
 
                 for line in text.splitlines():
