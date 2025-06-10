@@ -261,7 +261,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
 
 parser = argparse.ArgumentParser(
     description="""
-Dump all information about a slot, given its user address.
+Dump information about a mallocng slot, given its user address.
     """,
 )
 parser.add_argument(
@@ -418,6 +418,13 @@ def mallocng_meta(address: int) -> None:
         print(message.error(str(e)))
         return
 
+    try:
+        group = mallocng.Group(meta.mem)
+        group.preload()
+        print(dump_group(group), end="")
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(f"Failed loading group: {e}"))
+
     print(dump_meta(meta), end="")
 
 
@@ -452,3 +459,11 @@ def mallocng_group(address: int) -> None:
         return
 
     print(dump_group(group), end="")
+
+    try:
+        meta = group.meta
+        meta.preload()
+        print(dump_meta(meta), end="")
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(f"Failed loading meta: {str(e)}"))
+        return
