@@ -7,6 +7,7 @@ from typing import List
 from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.commands
@@ -69,7 +70,7 @@ parser.add_argument(
     "--zone",
     type=str,
     dest="zone",
-    choices=["DMA", "DMA32", "Normal", "HighMem", "Movable", "Device"],
+    choices=pwndbg.aglib.kernel.symbol.zone_names,
     default=None,
     help="Displays/searches lists only in the specified zone.",
 )
@@ -85,7 +86,7 @@ parser.add_argument(
     "--mtype",
     type=str,
     dest="mtype",
-    choices=["Unmovable", "Movable", "Reclaimable", "HighAtomic", "CMA", "Isolate"],
+    choices=pwndbg.aglib.kernel.symbol.migratetype_names,
     default=None,
     help="Displays/searches lists only with the specified mtype.",
 )
@@ -207,9 +208,9 @@ def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 
 def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     freelists, nr_types = cbp.freelists, cbp.nr_types
-    mtypes = static_str_arr("migratetype_names")
+    mtypes = pwndbg.aglib.kernel.symbol.migratetype_names
     if nr_types is None:
-        nr_types = len(mtypes)
+        nr_types = pwndbg.aglib.kernel.symbol.nmtypes()
     for i in range(nr_types):
         cbp.mtype = mtypes[i]
         if pba.mtype is not None and cbp.mtype != pba.mtype:
@@ -235,7 +236,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     if pcp is None or pcp_lists is None:
         log.warning("cannot find pcplist")
         return
-    nr_pcp_lists = pwndbg.aglib.kernel.npcplist()
+    nr_pcp_lists = pwndbg.aglib.kernel.symbol.npcplist()
     for i in range(0, nr_pcp_lists, MIGRATE_PCPTYPES):
         # https://elixir.bootlin.com/linux/v6.13.12/source/include/linux/mmzone.h#L660
         order = i // MIGRATE_PCPTYPES
@@ -317,7 +318,7 @@ v
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def buddydump(
     zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, node: int, find: int
@@ -326,6 +327,9 @@ def buddydump(
     if not node_data:
         log.warning("WARNING: Symbol 'node_data' not found")
         return
+    if not pwndbg.aglib.kernel.has_debug_info():
+        pwndbg.aglib.kernel.symbol.load_buddydump_typeinfo()
+        node_data = pwndbg.aglib.memory.get_typed_pointer("node_data_t", node_data)
     pba = ParsedBuddyArgs(None, order, mtype, cpu, find)
     cbp = CurrentBuddyParams(
         [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, False
@@ -335,10 +339,11 @@ def buddydump(
         if node is not None and node_idx != node:
             continue
         zones = node_data.dereference()[node_idx]["node_zones"]
-        for i, name in enumerate(static_str_arr("zone_names")):
+        for i in range(pwndbg.aglib.kernel.symbol.nzones()):
+            pba.zone = zones[i]
+            name = pwndbg.aglib.memory.string(int(zones[i]["name"])).decode()
             if zone is not None and zone != name:
                 continue
-            pba.zone = zones[i]
             cbp.sections[0] = (f"Zone {name}", None)
             print_pcp_set(pba, cbp)
             if not pcp_only:

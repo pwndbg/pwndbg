@@ -38,7 +38,7 @@ class KernelVmmap:
     def __init__(self, pages: Tuple[pwndbg.lib.memory.Page, ...]):
         self.pages = pages
         self.sections = None
-        if not pwndbg.aglib.kernel.has_debug_syms():
+        if not pwndbg.aglib.kernel.has_debug_symbols():
             return
         self.kbase = kbase = pwndbg.aglib.kernel.paging.find_kbase(pages)
         if pwndbg.aglib.arch.name == "x86-64":
@@ -47,8 +47,8 @@ class KernelVmmap:
             physmap = pwndbg.aglib.kernel.paging.physmap_base()
             if physmap is None:  # what??
                 return
-            vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
-            vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
+            vmalloc = pwndbg.aglib.kernel.symbol.try_symbol_u64("vmalloc_base")
+            vmemmap = pwndbg.aglib.kernel.symbol.try_symbol_u64("vmemmap_base")
             self.sections = (
                 (self.USERLAND, 0),
                 (None, 0x8000000000000000),

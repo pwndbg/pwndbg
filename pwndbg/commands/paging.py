@@ -74,6 +74,10 @@ def pagewalk(vaddr, entry=None):
     print(f"pagewalk result: {C.green(hex(vaddr))} [phys: {C.yellow(hex(phys))}]")
 
 
+def paging_print_helper(name, addr):
+    print(f"{C.green(name)}: {C.yellow(hex(pwndbg.aglib.kernel.phys_to_virt(int(addr))))}")
+
+
 p2v_parser = argparse.ArgumentParser(
     description="Translate physical address to its corresponding virtual address."
 )
@@ -82,11 +86,12 @@ p2v_parser.add_argument("paddr", type=str, help="")
 
 @pwndbg.commands.Command(p2v_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def p2v(paddr):
     paddr = pwndbg.dbg.selected_frame().evaluate_expression(paddr)
-    return pwndbg.aglib.kernel.phys_to_virt(int(paddr))
+    vaddr = pwndbg.aglib.kernel.phys_to_virt(int(paddr))
+    paging_print_helper("Virtual address", vaddr)
 
 
 v2p_parser = argparse.ArgumentParser(
@@ -97,8 +102,26 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 
 @pwndbg.commands.Command(v2p_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def v2p(vaddr):
     vaddr = pwndbg.dbg.selected_frame().evaluate_expression(vaddr)
-    return pwndbg.aglib.kernel.virt_to_phys(int(vaddr))
+    paddr = pwndbg.aglib.kernel.virt_to_phys(int(vaddr))
+    paging_print_helper("Physical address", paddr)
+
+
+page2v_parser = argparse.ArgumentParser(
+    description="Converting a pointer to a `struct page` to the actual address of the page"
+)
+page2v_parser.add_argument("page", type=str, help="")
+
+
+@pwndbg.commands.Command(page2v_parser, category=CommandCategory.KERNEL)
+@pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWhenPagingEnabled
+@pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
+def page2v(page):
+    page = pwndbg.dbg.selected_frame().evaluate_expression(page)
+    page = pwndbg.aglib.kernel.page_to_virt(int(page))
+    paging_print_helper("Page", page)

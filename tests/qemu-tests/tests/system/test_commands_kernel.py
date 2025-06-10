@@ -37,7 +37,7 @@ def test_command_kversion():
 
 
 def test_command_slab_list():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab list", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
@@ -47,11 +47,12 @@ def test_command_slab_list():
 
 
 def test_command_slab_info():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab info kmalloc-512", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
 
+    pwndbg.aglib.kernel.symbol.load_slab_typeinfo()
     for cache in pwndbg.aglib.kernel.slab.caches():
         cache_name = cache.name
         res = gdb.execute(f"slab info -v {cache_name}", to_string=True)
@@ -65,11 +66,12 @@ def test_command_slab_info():
 
 
 def test_command_slab_contains():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab contains 0x123", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
 
+    pwndbg.aglib.kernel.symbol.load_slab_typeinfo()
     # retrieve a valid slab object address (first address from freelist)
     addr, slab_cache = get_slab_object_address()
 
@@ -129,7 +131,9 @@ def test_command_msr_write():
     gdb.execute(f"msr MSR_LSTAR -w {prev_msr_lstar}")
 
 
-@pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
+@pytest.mark.skipif(
+    not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
+)
 def test_command_kernel_vmmap():
     res = gdb.execute("vmmap", to_string=True)
     assert all(
@@ -155,7 +159,9 @@ def test_command_kernel_vmmap():
         )
 
 
-@pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
+@pytest.mark.skipif(
+    not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
+)
 @pytest.mark.skipif(
     pwndbg.aglib.arch.name not in ["i386", "x86-64"],
     reason="function page_offset is only implemented for x86",
@@ -198,6 +204,12 @@ def test_command_buddydump():
     for i in range(11):
         if i == 1:
             continue
+    for name in ["Movable", "Reclaimable", "HighAtomic", "CMA", "Isolate"]:
+        assert f"- {name}" not in filter_res
+    filter_res = gdb.execute("bud -o 1", to_string=True)
+    for i in range(11):
+        if i == 1:
+            continue
         assert f"Order {i}" not in filter_res
     filter_res = gdb.execute("bud -p", to_string=True)
     assert "free_area" not in filter_res
@@ -213,7 +225,7 @@ def test_command_pagewalk():
         # no kbase? fine
         pages = pwndbg.aglib.vmmap.get()
         address = pages[0].start
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_symbols():
         # even if no debug symbols, still gracefully handle it
         res = gdb.execute(f"pagewalk {hex(address)}")
         # now let's guess the phymap base and should work as intended

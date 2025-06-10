@@ -50,7 +50,7 @@ def find_kbase(pages) -> int | None:
 
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
 def uses_5lvl_paging() -> bool:
-    if pwndbg.aglib.kernel.has_debug_syms():
+    if pwndbg.aglib.kernel.has_debug_info():
         ops: pwndbg.aglib.kernel.x86_64Ops = pwndbg.aglib.kernel.arch_ops()
         return ops.uses_5lvl_paging()
     pages = get_memory_map_raw()
@@ -68,7 +68,7 @@ guess_physmap = config.add_param(
 
 
 def physmap_base() -> int:
-    if pwndbg.aglib.kernel.has_debug_syms() and pwndbg.aglib.arch.name == "x86-64":
+    if pwndbg.aglib.kernel.has_debug_symbols() and pwndbg.aglib.arch.name == "x86-64":
         result = pwndbg.aglib.symbol.lookup_symbol_addr("page_offset_base")
         if pwndbg.aglib.memory.peek(result):
             result = pwndbg.aglib.memory.u64(result)

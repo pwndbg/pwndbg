@@ -40,7 +40,16 @@ def BIT(shift: int):
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def has_debug_syms() -> bool:
+def has_debug_symbols() -> bool:
+    # Check for an arbitrary type and symbol name that are not likely to change
+    return (
+        pwndbg.aglib.symbol.lookup_symbol_addr("commit_creds") is not None
+        and pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner") is not None
+    )
+
+
+@pwndbg.lib.cache.cache_until("objfile")
+def has_debug_info() -> bool:
     # Check for an arbitrary type and symbol name that are not likely to change
     return (
         pwndbg.aglib.typeinfo.load("struct file") is not None
@@ -48,7 +57,7 @@ def has_debug_syms() -> bool:
     )
 
 
-# NOTE: This implies requires_debug_syms(), as it is needed for kconfig() to return non-None
+# NOTE: This implies requires_debug_info(), as it is needed for kconfig() to return non-None
 def requires_kconfig(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
     def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
         @functools.wraps(f)
@@ -68,11 +77,11 @@ def requires_kconfig(default: D = None) -> Callable[[Callable[P, T]], Callable[P
     return decorator
 
 
-def requires_debug_syms(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
+def requires_debug_symbols(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
     def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
         @functools.wraps(f)
         def func(*args: P.args, **kwargs: P.kwargs) -> T | D:
-            if has_debug_syms():
+            if has_debug_symbols():
                 return f(*args, **kwargs)
 
             # If the user doesn't want an exception thrown when debug symbols are
@@ -87,27 +96,31 @@ def requires_debug_syms(default: D = None) -> Callable[[Callable[P, T]], Callabl
     return decorator
 
 
-@requires_debug_syms(default=1)
+def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
+    def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
+        @functools.wraps(f)
+        def func(*args: P.args, **kwargs: P.kwargs) -> T | D:
+            if has_debug_info():
+                return f(*args, **kwargs)
+
+            # If the user doesn't want an exception thrown when debug symbols are
+            # not available, they can instead provide a default return value
+            if default is not None:
+                return default
+
+            raise Exception(f"Function {f.__name__} requires .debug_info section")
+
+        return func
+
+    return decorator
+
+
+@requires_debug_info(default=1)
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
     val = pwndbg.aglib.symbol.lookup_symbol_value("nr_cpu_ids")
     assert val is not None, "Symbol nr_cpu_ids not exists"
     return val
-
-
-@requires_debug_syms(default=12)
-def npcplist() -> int:
-    """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
-    node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
-    zone = node_data.dereference()[0]["node_zones"][0]
-    # index 0 should always exist
-    if zone.type.has_field("per_cpu_pageset"):
-        lists = zone["per_cpu_pageset"]["lists"]
-        return lists.type.array_len
-    if zone.type.has_field("pageset"):
-        lists = zone["pageset"]["pcp"]["lists"]
-        return lists.type.array_len
-    return 0
 
 
 def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
@@ -129,7 +142,7 @@ def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
 
 
 def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
-    if has_debug_syms():
+    if has_debug_info():
         config_start = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data")
         config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
     else:
@@ -161,7 +174,7 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
     return _kconfig
 
 
-@requires_debug_syms(default="")
+@requires_debug_info(default="")
 @pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("saved_command_line")
@@ -173,7 +186,7 @@ def kcmdline() -> str:
 
 @pwndbg.lib.cache.cache_until("start")
 def kversion() -> str:
-    if has_debug_syms():
+    if has_debug_symbols():
         version_addr = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
         assert version_addr is not None, "Symbol linux_banner not exists"
     else:
@@ -181,6 +194,19 @@ def kversion() -> str:
         version_addr = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))[0]
 
     return pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
+
+
+def is_earlier_than_version(their_version: str) -> bool:
+    our_version = kversion().split(" ")[2]
+    our_parts = tuple(map(int, our_version.split("-")[0].split(".")))
+    their_parts = tuple(map(int, their_version.split(".")))
+    assert len(our_parts) == len(their_parts)
+    for i in range(len(our_parts)):
+        if our_parts[i] > their_parts[i]:
+            return False
+        elif our_parts[i] < their_parts[i]:
+            return True
+    return False  # they are the same version
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -374,10 +400,10 @@ class x86_64Ops(x86Ops):
             # put this here in case kbase also returns None
             self.START_KERNEL_map = 0xFFFFFFFF80000000
 
-        if pwndbg.aglib.kernel.has_debug_syms():
+        if pwndbg.aglib.kernel.has_debug_symbols():
             # if there are debug symbols
             self._PAGE_OFFSET = pwndbg.aglib.kernel.paging.physmap_base()
-            self.VMEMMAP_START = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
+            self.VMEMMAP_START = pwndbg.aglib.kernel.symbol.try_symbol_u64("vmemmap_base")
             if self._PAGE_OFFSET is not None and self.VMEMMAP_START is not None:
                 return
 
@@ -405,7 +431,7 @@ class x86_64Ops(x86Ops):
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L50
         return 12
 
-    @requires_debug_syms()
+    @requires_debug_symbols()
     def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
@@ -433,7 +459,7 @@ class x86_64Ops(x86Ops):
         return (page - self.VMEMMAP_START) >> self.STRUCT_PAGE_SHIFT
 
     @staticmethod
-    @requires_debug_syms()
+    @requires_debug_info()
     def cpu_feature_capability(feature: int) -> bool:
         boot_cpu_data = pwndbg.aglib.symbol.lookup_symbol("boot_cpu_data")
         assert boot_cpu_data is not None, "Symbol boot_cpu_data not exists"
@@ -443,7 +469,7 @@ class x86_64Ops(x86Ops):
         return (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
 
     @staticmethod
-    @requires_debug_syms()
+    @requires_debug_info(False)  # TODO: REMOVE this default value
     def uses_5lvl_paging() -> bool:
         # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
         X86_FEATURE_LA57 = 16 * 32 + 16
@@ -491,7 +517,7 @@ class Aarch64Ops(ArchOps):
     def page_size(self) -> int:
         return 1 << self.PAGE_SHIFT
 
-    @requires_debug_syms()
+    @requires_debug_symbols()
     def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
@@ -684,7 +710,7 @@ def paging_enabled() -> bool:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
+@requires_debug_info(1)
 def num_numa_nodes() -> int:
     """Returns the number of NUMA nodes that are online on the system"""
     kc = kconfig()

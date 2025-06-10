@@ -5,6 +5,11 @@ from collections import UserDict
 from typing import Any
 from typing import Dict
 
+import gdb
+
+import pwndbg.aglib.kernel
+import pwndbg.aglib.symbol
+
 
 def parse_config(config_text: bytes) -> Dict[str, str]:
     res: Dict[str, str] = {}
@@ -59,3 +64,79 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     def __getattr__(self, name: str):
         return self.get(name)
+
+
+class StaticAnalysisKconfig:
+    @property
+    def CONFIG_SLUB_TINY(self) -> bool:
+        if pwndbg.aglib.kernel.is_earlier_than_version("6.2.0"):
+            return False
+        if pwndbg.aglib.symbol.lookup_symbol("flushwq") is None:
+            return True
+        return False
+
+    @property
+    def CONFIG_SLUB_CPU_PARTIAL(self) -> bool:
+        if pwndbg.aglib.kernel.is_earlier_than_version("6.8.0"):
+            if pwndbg.aglib.symbol.lookup_symbol("unfreeze_partials") is not None:
+                return True
+            if pwndbg.aglib.symbol.lookup_symbol("__unfreeze_partials") is not None:
+                return True
+            return False
+        if pwndbg.aglib.symbol.lookup_symbol("__put_partials") is None:
+            return False
+        return True
+
+    @property
+    def CONFIG_MEMCG(self) -> bool:
+        if pwndbg.aglib.symbol.lookup_symbol("kpagecgroup_proc_ops") is None:
+            return False
+        return True
+
+    @property
+    def CONFIG_SLAB_FREELIST_RANDOM(self) -> bool:
+        if pwndbg.aglib.symbol.lookup_symbol("init_cache_random_seq") is None:
+            return False
+        return True
+
+    @property
+    def CONFIG_HARDENED_USERCOPY(self) -> bool:
+        if pwndbg.aglib.symbol.lookup_symbol("__check_heap_object") is None:
+            return False
+        return True
+
+    @property
+    def CONFIG_SLAB_FREELIST_HARDENED(self) -> bool:
+        if pwndbg.aglib.symbol.lookup_symbol("kmem_cache_open") is not None:
+            if "get_random" in gdb.execute("disass kmem_cache_open", to_string=True):
+                return True
+        if pwndbg.aglib.symbol.lookup_symbol("do_kmem_cache_create") is not None:
+            if "get_random" in gdb.execute("disass do_kmem_cache_create", to_string=True):
+                return True
+        if pwndbg.aglib.symbol.lookup_symbol("__kmem_cache_create") is not None:
+            if "get_random" in gdb.execute("disass __kmem_cache_create", to_string=True):
+                return True
+        return False
+
+    @property
+    def CONFIG_NUMA(self) -> bool:
+        if pwndbg.aglib.symbol.lookup_symbol("proc_pid_numa_maps_op") is None:
+            return False
+        return True
+
+    @property
+    def CONFIG_KASAN_GENERIC(self) -> bool:
+        # TODO: have a kernel build that tests this
+        if pwndbg.aglib.kernel.is_earlier_than_version("5.11.0"):
+            if pwndbg.aglib.symbol.lookup_symbol("kasan_cache_create") is None:
+                return False
+            return True
+        if pwndbg.aglib.symbol.lookup_symbol("__kasan_cache_create") is None:
+            return False
+        return True
+
+    @property
+    def CONFIG_SMP(self) -> bool:
+        if pwndbg.aglib.symbol.lookup_symbol("pcpu_get_vm_areas") is None:
+            return False
+        return True

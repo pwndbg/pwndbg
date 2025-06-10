@@ -20,6 +20,8 @@ def caches() -> Generator[SlabCache, None, None]:
     if slab_caches is None:
         # Symbol not found
         return
+    if not kernel.has_debug_info():
+        slab_caches = pwndbg.aglib.memory.get_typed_pointer("struct list_head", slab_caches)
 
     slab_caches = slab_caches.dereference()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
@@ -31,6 +33,8 @@ def get_cache(target_name: str) -> SlabCache | None:
     if slab_caches is None:
         # Symbol not found
         return None
+    if not kernel.has_debug_info():
+        slab_caches = pwndbg.aglib.memory.get_typed_pointer("struct list_head", slab_caches)
 
     slab_caches = slab_caches.dereference()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
@@ -91,7 +95,15 @@ class Freelist:
         seen: set[int] = set()
         current_object = self.start_addr
         while current_object:
-            addr = int(current_object)
+            try:
+                addr = int(current_object)
+            except Exception:
+                print(
+                    M.warn(
+                        f"Corrupted slab freelist detected at {hex(current_object)} when length is {len(seen)}"
+                    )
+                )
+                break
             yield current_object
             current_object = pwndbg.aglib.memory.read_pointer_width(addr + self.offset)
             if self.random:
@@ -358,10 +370,8 @@ class Slab:
     def inuse(self) -> int:
         inuse = int(self._slab["inuse"])
         if not self.is_partial:
-            # `inuse` will always equal `objects` for the active slab, so we
-            # need to subtract the length of the freelists
-            for freelist in self.freelists:
-                inuse -= len(freelist)
+            # I believe only the cpu freelist is considered "inuse" similar to glibc's tcache
+            inuse -= len(self.cpu_cache.freelist)
         return inuse
 
     @property
@@ -403,7 +413,7 @@ class Slab:
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
     """Find the slab cache associated with the provided address."""
     min_pfn = 0
-    max_pfn = pwndbg.aglib.symbol.lookup_symbol_value("max_pfn")
+    max_pfn = pwndbg.aglib.kernel.symbol.try_symbol_u64("max_pfn")
     assert max_pfn is not None, "Symbol max_pfn not found"
 
     page_size = kernel.page_size()
