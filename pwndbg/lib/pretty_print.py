@@ -20,7 +20,7 @@ class Property:
 
     name: str
     value: Any
-    extra: str = ""
+    extra: str | List[str] = ""
     is_addr: bool = False
     use_hex: bool = True
 
@@ -78,7 +78,23 @@ class PropertyPrinter:
                     val = prop.value
                 self.text += self.value_color_func(val)
 
-            self.text += " " + prop.extra
+            if isinstance(prop.extra, str):
+                self.text += "  " + prop.extra
+            else:
+                # list of strings, we want each one under the other
+                assert isinstance(prop.extra, list)
+                assert len(prop.extra) > 1
+
+                pure_max_name_len = max(len(prop.name) for prop in prop_group)
+
+                self.text += "  " + prop.extra[0]
+                for i in range(1, len(prop.extra)):
+                    self.text += "\n"
+                    self.text += self.indent_level * self.indent_size * " "
+                    self.text += (pure_max_name_len + 1) * " "
+                    self.text += self.padding * " "
+                    self.text += max_value_len * " "
+                    self.text += "  " + prop.extra[i]
 
             self.text += "\n"
 
