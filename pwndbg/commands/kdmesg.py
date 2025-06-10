@@ -12,21 +12,16 @@ https://github.com/torvalds/linux/blob/19272b37aa4f83ca52bdf9c16d5d81bdd1354494/
 
 from __future__ import annotations
 
-import pwndbg.color.message as message
-import pwndbg.commands
 import argparse
 import time
 
-parser = argparse.ArgumentParser(
-    description="Displays the kernel ring buffer (dmesg) contents."
-)
+import pwndbg.color.message as message
+import pwndbg.commands
 
-parser.add_argument(
-    "-T",
-    "--ctime",
-    action="store_true",
-    help="Print human-readable timestamps."
-)
+parser = argparse.ArgumentParser(description="Displays the kernel ring buffer (dmesg) contents.")
+
+parser.add_argument("-T", "--ctime", action="store_true", help="Print human-readable timestamps.")
+
 
 @pwndbg.commands.Command(
     parser,
