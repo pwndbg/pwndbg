@@ -130,6 +130,10 @@ def kdmesg(ctime: bool = False) -> None:
                     )
                     return
 
+                if pwndbg.aglib.typeinfo.load("struct tk_data") is None:
+                    print(message.error("`struct tk_data` is not defined in the current debug symbols."))
+                    return
+
                 tk_core = pwndbg.aglib.memory.get_typed_pointer_value(
                     "struct tk_data", tk_core_addr
                 )
