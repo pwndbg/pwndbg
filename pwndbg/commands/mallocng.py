@@ -154,9 +154,17 @@ def mallocng_explain() -> None:
 
 
 def dump_group(group: mallocng.Group) -> str:
-    group_range = (
-        "@ " + C.memory.get(group.addr) + " - " + C.memory.get(group.addr + group.group_size)
-    )
+    try:
+        # May fail on corrupt meta.
+        group_size = group.group_size
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error("Error while reading meta: " + str(e)))
+        print(C.bold("Cannot determine group size."))
+        group_size = -1
+
+    group_range = "@ " + C.memory.get(group.addr)
+    if group_size != -1:
+        group_range += " - " + C.memory.get(group.addr + group_size)
 
     pp = PropertyPrinter()
     pp.start_section("group", group_range)
@@ -165,16 +173,19 @@ def dump_group(group: mallocng.Group) -> str:
         [
             Property(name="meta", value=group.meta.addr, is_addr=True),
             Property(name="active_idx", value=group.active_idx),
-            Property(name="storage", value=group.storage, is_addr=True, extra="(start of slots)"),
+            Property(name="storage", value=group.storage, is_addr=True, extra="start of slots"),
         ]
     )
-    pp.write("---\n")
-    pp.set_padding(3)
-    pp.add(
-        [
-            Property(name="group size", value=group.group_size),
-        ]
-    )
+
+    if group_size != -1:
+        pp.write("---\n")
+        pp.set_padding(3)
+        pp.add(
+            [
+                Property(name="group size", value=group_size),
+            ]
+        )
+
     pp.end_section()
     return pp.dump()
 
@@ -191,10 +202,10 @@ def dump_meta(meta: mallocng.Meta) -> str:
         [
             Property(name="prev", value=meta.prev, is_addr=True),
             Property(name="next", value=meta.next, is_addr=True),
-            Property(name="mem", value=meta.mem, is_addr=True, extra="(the group)"),
+            Property(name="mem", value=meta.mem, is_addr=True, extra="the group"),
             Property(name="avail_mask", value=meta.avail_mask, extra=avail_binary),
             Property(name="freed_mask", value=meta.freed_mask, extra=freed_binary),
-            Property(name="last_idx", value=meta.last_idx, extra="(index of last slot)"),
+            Property(name="last_idx", value=meta.last_idx, extra="index of last slot"),
             Property(name="freeable", value=str(bool(meta.freeable))),
             Property(name="sizeclass", value=meta.sizeclass),
             Property(name="maplen", value=meta.maplen),
@@ -204,12 +215,48 @@ def dump_meta(meta: mallocng.Meta) -> str:
     pp.set_padding(3)
     pp.add(
         [
-            Property(name="cnt", value=meta.cnt, extra="(the number of slots)"),
-            Property(name="slot size", value=meta.slot_size, extra='(aka "stride")'),
+            Property(name="cnt", value=meta.cnt, extra="the number of slots"),
+            Property(name="slot size", value=meta.slot_size, extra='aka "stride"'),
         ]
     )
     pp.end_section()
-    return pp.dump()
+
+    output = pp.dump()
+
+    if not meta.freeable:
+        # When mapped object files contain unused memory, they are donated
+        # to the heap. See https://elixir.bootlin.com/musl/v1.2.5/source/ldso/dynlink.c#L600
+        # and https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L36 .
+        # Only in this case is `meta.freeable = 0;`
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L25
+        output += C.bold("\nGroup donated by ld as unused part of ")
+
+        try:
+            mapping = pwndbg.aglib.vmmap.find(mallocng.Group(meta.mem).addr)
+        except pwndbg.dbg_mod.Error as e:
+            print(message.error(f"Could not fetch parent group: {str(e)}"))
+            mapping = None
+
+        if mapping is None:
+            output += C.red("<cannot determine>")
+        else:
+            output += C.bold(f'"{mapping.objfile}"')
+
+        output += C.bold(".\n")
+
+    elif not meta.last_idx and meta.maplen:
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L177
+        output += C.bold("\nGroup allocated with mmap().\n")
+    else:
+        output += C.bold("\nGroup nested in slot of another group")
+        try:
+            parent_group = mallocng.Slot(mallocng.Group(meta.mem).addr).group.addr
+            output += " (" + C.memory.get(parent_group) + ")"
+        except pwndbg.dbg_mod.Error as e:
+            print(message.error(f"Could not fetch parent group: {str(e)}"))
+        output += C.bold(".\n")
+
+    return output
 
 
 parser = argparse.ArgumentParser(
@@ -292,31 +339,46 @@ def mallocng_user_slot(address: int, all: bool) -> None:
         pp.add(
             [
                 Property(name="start", value=slot.start, is_addr=True),
-                Property(name="user start", value=slot.p, is_addr=True, extra="(aka `p`)"),
-                Property(name="end", value=slot.end, is_addr=True, extra="(start + stride - 4)"),
+                Property(name="user start", value=slot.p, is_addr=True, extra="aka `p`"),
+                Property(name="end", value=slot.end, is_addr=True, extra="start + stride - 4"),
                 Property(
-                    name="stride", value=slot.meta.stride, extra="(distance between adjacent slots)"
+                    name="stride", value=slot.meta.stride, extra="distance between adjacent slots"
                 ),
-                Property(name="user size", value=slot.user_size, extra='(aka "nominal size", `n`)'),
-                Property(name="slack", value=slot.slack, extra="(slot's unused memory / 0x10)"),
+                Property(name="user size", value=slot.user_size, extra='aka "nominal size", `n`'),
+                Property(name="slack", value=slot.slack, extra="slot's unused memory / 0x10"),
             ]
         )
         pp.end_section()
 
     pp.start_section("in-band")
     pp.set_padding(4)
-    pp.add(
-        [
-            Property(name="offset", value=slot.offset, extra="(distance to first slot / 0x10)"),
-            Property(name="index", value=slot.idx, extra="(index of slot in its group)"),
-            Property(name="reserved", value=slot.reserved, extra="(end - p - n)"),
+
+    reserved_extra = ["end - p - n", ""]
+    if slot.reserved >= 5:
+        reserved_extra[1] = "located near slot end"
+        if slot.reserved == 6:
+            reserved_extra.append("this slot is a nested group")
+    else:
+        reserved_extra[1] = "located in slot header"
+
+    inband_group = [
+        Property(name="offset", value=slot.offset, extra="distance to first slot / 0x10"),
+        Property(name="index", value=slot.idx, extra="index of slot in its group"),
+        Property(name="reserved", value=slot.reserved, extra=reserved_extra),
+    ]
+
+    if read_success:
+        # While it is technically saved in-band, there is no way
+        # for us to locate it without metadata.
+        inband_group.append(
             Property(
                 name="rnd-off",
                 value=slot.internal_offset,
-                extra="(prevents double free, (p - start) / 0x10)",
+                extra="prevents double free, (p - start) / 0x10",
             ),
-        ]
-    )
+        )
+
+    pp.add(inband_group)
     pp.end_section()
 
     pp.print()

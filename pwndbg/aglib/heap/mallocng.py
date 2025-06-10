@@ -100,6 +100,9 @@ class Group:
     def group_size(self) -> int:
         """
         The size of this group, in bytes.
+
+        Raises:
+            pwndbg.dbg_mod.Error: When reading meta fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L234
         return self.meta.stride * self.meta.cnt + UNIT
@@ -148,6 +151,10 @@ class Slot:
 
         # Read the group's meta pointer.
         _ = self.meta
+        # Need this loaded for lots of fields,
+        # but we will let it be since we want to be able to
+        # say stuff about this slot even with a corrupt meta.
+        # _ = self.meta.stride
 
         self._reserved = inband_data[5] >> 5
         if self._reserved == 5:
@@ -225,6 +232,10 @@ class Slot:
 
     @property
     def end(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading meta fails.
+        """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L109
         return self.start + self.meta.stride - IB
 
@@ -245,13 +256,40 @@ class Slot:
 
     @property
     def nominal_size(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading meta fails.
+        """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L159
         return self.end - self.reserved - self.p
 
     @property
     def user_size(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading meta fails.
+        """
         return self.nominal_size
 
+    @property
+    def slack(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading meta fails.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L199
+        return (self.meta.stride - self.nominal_size - IB) // UNIT
+
+    @property
+    def internal_offset(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading meta fails.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L204
+        # Not sure why musl saves it, it doesn't seem to use it.
+        # We can calculate it more easily than musl does:
+        return (self.p - self.start) // UNIT
 
 class Meta:
     """
