@@ -10,7 +10,7 @@ from typing import List
 import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory as memory
-import pwndbg.aglib.typeinfo as typeinfo
+import pwndbg.aglib.typeinfo
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
 # Slot granularity.
@@ -30,8 +30,10 @@ size_classes: List[int] = [
 ]
 # fmt: on
 
+
 # Shorthand
-INT_SIZE = typeinfo.sint.sizeof
+def int_size():
+    return pwndbg.aglib.typeinfo.sint.sizeof
 
 
 class Group:
@@ -339,7 +341,7 @@ class Meta:
         endian = pwndbg.aglib.arch.endian
 
         # Read the whole struct.
-        data = memory.read(self.addr, ptrsize * 3 + 2 * INT_SIZE + 8 * ptrsize)
+        data = memory.read(self.addr, ptrsize * 3 + 2 * int_size() + 8 * ptrsize)
 
         cur_offset = 0
         self._prev = pwndbg.aglib.arch.unpack(data[cur_offset:ptrsize])
@@ -349,13 +351,13 @@ class Meta:
         self._mem = pwndbg.aglib.arch.unpack(data[cur_offset : (cur_offset + ptrsize)])
         cur_offset += ptrsize
         self._avail_mask = int.from_bytes(
-            data[cur_offset : (cur_offset + INT_SIZE)], endian, signed=False
+            data[cur_offset : (cur_offset + int_size())], endian, signed=False
         )
-        cur_offset += INT_SIZE
+        cur_offset += int_size()
         self._freed_mask = int.from_bytes(
-            data[cur_offset : (cur_offset + INT_SIZE)], endian, signed=False
+            data[cur_offset : (cur_offset + int_size())], endian, signed=False
         )
-        cur_offset += INT_SIZE
+        cur_offset += int_size()
         # I think this is how I should read a bitfield.
         # http://mjfrazer.org/mjfrazer/bitfields/
         flags = int.from_bytes(data[cur_offset : (cur_offset + ptrsize)], endian, signed=False)
@@ -420,7 +422,7 @@ class Meta:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
         if self._freed_mask is None:
-            offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE
+            offset = pwndbg.aglib.arch.ptrsize * 3 + int_size()
             # Technically signed.
             self._freed_mask = memory.uint(self.addr + offset)
 
@@ -433,7 +435,7 @@ class Meta:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
         if self._last_idx is None:
-            offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE * 2
+            offset = pwndbg.aglib.arch.ptrsize * 3 + int_size() * 2
             # reading pointer width so it works regardless of endianness
             self._last_idx = memory.read_pointer_width(self.addr + offset) & 0b11111
 
@@ -446,7 +448,7 @@ class Meta:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
         if self._freeable is None:
-            offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE * 2
+            offset = pwndbg.aglib.arch.ptrsize * 3 + int_size() * 2
             self._freeable = (memory.read_pointer_width(self.addr + offset) >> 5) & 1
 
         return self._freeable
@@ -458,7 +460,7 @@ class Meta:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
         if self._sizeclass is None:
-            offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE * 2
+            offset = pwndbg.aglib.arch.ptrsize * 3 + int_size() * 2
             self._sizeclass = (memory.read_pointer_width(self.addr + offset) >> 6) & 0b111111
 
         return self._sizeclass
@@ -470,7 +472,7 @@ class Meta:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
         if self._maplen is None:
-            offset = pwndbg.aglib.arch.ptrsize * 3 + INT_SIZE * 2
+            offset = pwndbg.aglib.arch.ptrsize * 3 + int_size() * 2
             self._maplen = memory.read_pointer_width(self.addr + offset) >> 12
 
         return self._maplen
