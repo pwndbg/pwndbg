@@ -6,6 +6,7 @@ https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng
 from __future__ import annotations
 
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import pwndbg
@@ -535,6 +536,174 @@ class MetaArea:
         self.addr = addr
 
 
+class MallocContext:
+    """
+    The global object that holds all allocator state.
+
+    https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L41
+    struct malloc_context {
+      uint64_t secret;
+    #ifndef PAGESIZE
+      size_t pagesize;
+    #endif
+      int init_done;
+      unsigned mmap_counter;
+      struct meta *free_meta_head;
+      struct meta *avail_meta;
+      size_t avail_meta_count, avail_meta_area_count, meta_alloc_shift;
+      struct meta_area *meta_area_head, *meta_area_tail;
+      unsigned char *avail_meta_areas;
+      struct meta *active[48];
+      size_t usage_by_class[48];
+      uint8_t unmap_seq[32], bounces[32];
+      uint8_t seq;
+      uintptr_t brk;
+    };
+    """
+
+    def __init__(self, addr: int) -> None:
+        self.addr: int = addr
+
+        self.secret: int = 0
+        self.pagesize: int = 0
+        self.init_done: int = 0
+        self.mmap_counter: int = 0
+        self.free_meta_head: int = 0
+        self.avail_meta: int = 0
+        self.avail_meta_count: int = 0
+        self.avail_meta_area_count: int = 0
+        self.meta_alloc_shift: int = 0
+        self.meta_area_head: int = 0
+        self.meta_area_tail: int = 0
+        self.avail_meta_areas: int = 0
+        self.active: List[int] = []
+        self.usage_by_class: List[int] = []
+        self.unmap_seq: List[int] = []
+        self.bounces: List[int] = []
+        self.seq: int = 0
+        self.brk: int = 0
+
+        # We will always load() since we read this object
+        # only once - there is no performance benefit to lazy
+        # evaluation.
+        self.load()
+
+    def load(self):
+        ptrsize = pwndbg.aglib.arch.ptrsize
+        size_tsize = pwndbg.aglib.typeinfo.size_t.sizeof
+        unsignedsize = pwndbg.aglib.typeinfo.uint.sizeof
+        uint8size = pwndbg.aglib.typeinfo.uint8.sizeof
+        endian = pwndbg.aglib.arch.endian
+
+        # sizeof(__malloc_context) gives 0x3A0 when it doesn't have the
+        # pagesize field (the usual case). We will read 0x3B0 in case it does.
+        data: bytearray = memory.read(self.addr, 0x3B0)
+
+        cur_offset = 0
+        self.secret = pwndbg.aglib.arch.unpack(data[cur_offset:ptrsize])
+        cur_offset += ptrsize
+
+        # We will read `int` bytes past the `secret`. The `init_done` field can only contain
+        # values 0 and 1, so if we get that we know the struct doesn't have the pagesize field.
+        # If it contains a value > 1 it must be describing a page size.
+        something = int.from_bytes(
+            data[cur_offset : (cur_offset + int_size())], endian, signed=True
+        )
+        self.has_pagesize_field = something > 1
+
+        if self.has_pagesize_field:
+            self.pagesize = int.from_bytes(
+                data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
+            )
+            cur_offset += size_tsize
+
+            self.init_done = int.from_bytes(
+                data[cur_offset : (cur_offset + int_size())], endian, signed=True
+            )
+            cur_offset += int_size()
+        else:
+            self.init_done = something
+            cur_offset += int_size()
+
+        self.mmap_counter = int.from_bytes(
+            data[cur_offset : (cur_offset + unsignedsize)], endian, signed=False
+        )
+        cur_offset += unsignedsize
+        self.free_meta_head = int.from_bytes(
+            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
+        )
+        cur_offset += ptrsize
+        self.avail_meta = int.from_bytes(
+            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
+        )
+        cur_offset += ptrsize
+        self.avail_meta_count = int.from_bytes(
+            data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
+        )
+        cur_offset += size_tsize
+        self.avail_meta_area_count = int.from_bytes(
+            data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
+        )
+        cur_offset += size_tsize
+        self.meta_alloc_shift = int.from_bytes(
+            data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
+        )
+        cur_offset += size_tsize
+        self.meta_area_head = int.from_bytes(
+            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
+        )
+        cur_offset += ptrsize
+        self.meta_area_tail = int.from_bytes(
+            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
+        )
+        cur_offset += ptrsize
+        self.avail_meta_areas = int.from_bytes(
+            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
+        )
+        cur_offset += ptrsize
+
+        assert len(size_classes) == 48
+
+        for i in range(len(size_classes)):
+            cur_active = int.from_bytes(
+                data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
+            )
+            cur_offset += ptrsize
+            self.active.append(cur_active)
+
+        for i in range(len(size_classes)):
+            cur_usage = int.from_bytes(
+                data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
+            )
+            cur_offset += size_tsize
+            self.usage_by_class.append(cur_usage)
+
+        for i in range(32):
+            cur_seq = int.from_bytes(
+                data[cur_offset : (cur_offset + uint8size)], endian, signed=False
+            )
+            cur_offset += uint8size
+            self.unmap_seq.append(cur_seq)
+
+        for i in range(32):
+            cur_bounce = int.from_bytes(
+                data[cur_offset : (cur_offset + uint8size)], endian, signed=False
+            )
+            cur_offset += uint8size
+            self.bounces.append(cur_bounce)
+
+        self.seq = int.from_bytes(data[cur_offset : (cur_offset + uint8size)], endian, signed=False)
+        cur_offset += uint8size
+
+        # Adjust for alignment
+        cur_offset += ptrsize - uint8size
+
+        self.brk = int.from_bytes(data[cur_offset : (cur_offset + ptrsize)], endian, signed=False)
+        cur_offset += ptrsize
+
+        assert cur_offset == (0x3B0 if self.has_pagesize_field else 0x3A0)
+
+
 class Mallocng:
     """
     Tracks the allocator state.
@@ -542,7 +711,8 @@ class Mallocng:
     By leveraging the __malloc_context symbol.
 
     Attributes:
-        ctx: Address of the __malloc_context object.
+        ctx_addr: Address of the __malloc_context object.
+        ctx: Object representing __malloc_context.
         secret: The secret the allocator uses for security checks.
     """
 
@@ -550,22 +720,26 @@ class Mallocng:
     secret: int
 
     def __init__(self):
-        self.ctx = 0
-        self.has_debug_syms = False
-        self.secret = 0
-        self.hope = True
+        self.ctx_addr: int = 0
+        self.ctx: Optional[MallocContext] = None
+        self.has_debug_syms: bool = False
+        self.secret: int = 0
+        self.hope: bool = True
 
         self.set_ctx_addr()
+
+        if self.ctx_addr and self.hope:
+            self.ctx = MallocContext(self.ctx_addr)
 
     def set_ctx_addr(self):
         """
         Find where the __malloc_context global symbol is. Try using debug information,
         but if it isn't available try using a heuristic.
         """
-        self.ctx = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
-        if self.ctx is not None:
+        self.ctx_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
+        if self.ctx_addr is not None:
             self.has_debug_syms = True
-            self.secret = memory.read_pointer_width(self.ctx)
+            self.secret = memory.read_pointer_width(self.ctx_addr)
             return
 
         # No debug information :(
@@ -587,7 +761,7 @@ class Mallocng:
 
         # There are going to be multiple matches. We don't
         # want those on the stack (actual AT_RANDOM) or heap
-        # (structures copying the secret) but either from the libc.so
+        # (structures copying the secret). We want it either from the libc.so
         # mapping (if musl is dynamically linked) or the executable's
         # mapping (if musl is statically linked).
         possible: List[Tuple[int, str]] = []
@@ -601,19 +775,19 @@ class Mallocng:
         if not possible:
             print(message.error("Couldn't find __malloc_context, even with heuristic."))
             print(message.error("Musl mallocng commands will not work."))
-            self.ctx = 0
+            self.ctx_addr = 0
             self.hope = False
             return
 
         if pwndbg.dbg.selected_inferior().is_dynamically_linked():
             for addr, mapname in possible:
                 if mapname.endswith("libc.so"):
-                    self.ctx = addr
+                    self.ctx_addr = addr
                     return
 
             for addr, mapname in possible:
                 if mapname.contains("libc"):
-                    self.ctx = addr
+                    self.ctx_addr = addr
                     return
 
             print(message.warn("Couldn't find __malloc_context in a 'libc' mapping,"))
@@ -629,10 +803,10 @@ class Mallocng:
             # Statically linked.
             # TODO: We should find the Executable Object in the mappings
             # and use that to determine which match is correct. Not sure
-            # how to do that though.
+            # how to do that though so fall through for now.
             pass
 
-        self.ctx = possible[0][0]
+        self.ctx_addr = possible[0][0]
 
     def libc_has_debug_syms(self) -> bool:
         return self.has_debug_syms
