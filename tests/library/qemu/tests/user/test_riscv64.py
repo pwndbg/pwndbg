@@ -309,7 +309,7 @@ def test_riscv64_jump_chain(qemu_assembly_run):
     assert dis == expected
 
 
-REFERENCE_BINARY = user.binaries.get("reference-binary.riscv64.out")
+REFERENCE_BINARY = user.get_binary("reference-binary.riscv64.out")
 
 
 def test_riscv64_reference(qemu_start_binary):

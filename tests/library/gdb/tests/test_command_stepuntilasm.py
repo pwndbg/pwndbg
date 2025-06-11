@@ -5,7 +5,7 @@ import gdb
 import pwndbg.aglib.regs
 import tests
 
-STEPUNTILASM_X64_BINARY = tests.binaries.get("stepuntilasm_x64.out")
+STEPUNTILASM_X64_BINARY = tests.get_binary("stepuntilasm_x64.out")
 
 
 def test_command_untilasm_x64(start_binary):

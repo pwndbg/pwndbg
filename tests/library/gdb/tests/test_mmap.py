@@ -8,7 +8,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.lib.memory
 import tests
 
-USE_FDS_BINARY = tests.binaries.get("use-fds.out")
+USE_FDS_BINARY = tests.get_binary("use-fds.out")
 
 
 def test_mmap_executes_properly(start_binary):

@@ -5,7 +5,7 @@ import gdb
 import pwndbg.color.message
 import tests
 
-BINARY = tests.binaries.get("reference-binary.out")
+BINARY = tests.get_binary("reference-binary.out")
 
 
 def prepare_prompt(is_proc_alive):

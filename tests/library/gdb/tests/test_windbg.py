@@ -7,8 +7,8 @@ import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 import tests
 
-MEMORY_BINARY = tests.binaries.get("memory.out")
-X86_BINARY = tests.binaries.get("gosample.x86")
+MEMORY_BINARY = tests.get_binary("memory.out")
+X86_BINARY = tests.get_binary("gosample.x86")
 
 data_addr = "0x400081"
 

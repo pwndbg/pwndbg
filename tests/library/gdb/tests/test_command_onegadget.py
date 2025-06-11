@@ -8,8 +8,8 @@ import pytest
 import pwndbg.glibc
 import tests
 
-X86_64_BINARY = tests.binaries.get("onegadget.x86-64.out")
-I386_BINARY = tests.binaries.get("onegadget.i386.out")
+X86_64_BINARY = tests.get_binary("onegadget.x86-64.out")
+I386_BINARY = tests.get_binary("onegadget.i386.out")
 
 X86_64_ONEGADGET_OUTPUT = """\
 0x80bd0 posix_spawn(rbx+0xe0, "/bin/sh", rdx, rbp, rsp+0x60, environ)

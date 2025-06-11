@@ -721,7 +721,7 @@ def test_aarch64_shift_instructions(qemu_assembly_run):
     assert dis == expected
 
 
-REFERENCE_BINARY = user.binaries.get("reference-binary.aarch64.out")
+REFERENCE_BINARY = user.get_binary("reference-binary.aarch64.out")
 
 
 def test_aarch64_reference(qemu_start_binary):

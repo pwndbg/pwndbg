@@ -6,7 +6,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.stack
 import tests
 
-REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
+REFERENCE_BINARY = tests.get_binary("reference-binary.out")
 
 
 def test_callstack_readable(start_binary):

@@ -4,7 +4,7 @@ import gdb
 
 import tests
 
-MMAP_GAPS_BINARY = tests.binaries.get("mmap_gaps.out")
+MMAP_GAPS_BINARY = tests.get_binary("mmap_gaps.out")
 
 
 def test_dump_mmap_args(start_binary):

@@ -6,7 +6,7 @@ import gdb
 
 import tests
 
-HEAP_MALLOC_CHUNK = tests.binaries.get("heap_malloc_chunk.out")
+HEAP_MALLOC_CHUNK = tests.get_binary("heap_malloc_chunk.out")
 
 
 def test_command_dt_works_with_address(start_binary):

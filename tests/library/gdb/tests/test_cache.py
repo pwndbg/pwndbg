@@ -5,7 +5,7 @@ import tests
 from pwndbg.dbg import EventType
 from pwndbg.lib import cache
 
-BINARY = tests.binaries.get("reference-binary.out")
+BINARY = tests.get_binary("reference-binary.out")
 
 
 def test_cache_single_value(start_binary):

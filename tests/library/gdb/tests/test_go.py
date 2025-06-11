@@ -4,8 +4,8 @@ import gdb
 
 import tests
 
-GOSAMPLE_X64 = tests.binaries.get("gosample.x64")
-GOSAMPLE_X86 = tests.binaries.get("gosample.x86")
+GOSAMPLE_X64 = tests.get_binary("gosample.x64")
+GOSAMPLE_X86 = tests.get_binary("gosample.x86")
 
 
 def test_typeinfo_go_x64():

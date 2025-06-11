@@ -14,7 +14,7 @@ HELLO = [
     " Type help function to see them.",
 ]
 
-BINARY = tests.binaries.get("div_zero.out")
+BINARY = tests.get_binary("div_zero.out")
 CORE = "/tmp/pwndbg-tests-div-zero-core"
 
 

@@ -7,8 +7,8 @@ import pwndbg.aglib.tls
 import pwndbg.aglib.vmmap
 import tests
 
-TLS_X86_64_BINARY = tests.binaries.get("tls.x86-64.out")
-TLS_I386_BINARY = tests.binaries.get("tls.i386.out")
+TLS_X86_64_BINARY = tests.get_binary("tls.x86-64.out")
+TLS_I386_BINARY = tests.get_binary("tls.i386.out")
 
 
 # TODO: Support other architectures

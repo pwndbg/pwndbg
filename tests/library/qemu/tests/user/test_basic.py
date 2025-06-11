@@ -17,7 +17,7 @@ NUMBER_OF_STEPS = 1500
 # Step through a binary, running "ctx" each time the program stops
 # This is meant to detect crashes originating from the annotations/emulation code
 def helper(qemu_start_binary, filename: str, arch: str):
-    FILE = user.binaries.get(filename)
+    FILE = user.get_binary(filename)
 
     qemu_start_binary(FILE, arch)
 

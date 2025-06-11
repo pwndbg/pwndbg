@@ -3,7 +3,7 @@
 #set -o errexit
 set -o pipefail
 
-source "$(dirname "$0")/../../scripts/common.sh"
+source "$(dirname "$0")/../../../scripts/common.sh"
 
 ROOT_DIR=$PWNDBG_ABS_PATH
 GDB_INIT_PATH="$ROOT_DIR/gdbinit.py"
@@ -160,7 +160,7 @@ run_gdb() {
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
 gdb_args=(--command ../pytests_collect.py)
-TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/tests/qemu-tests/tests/system" run_gdb "x86_64" 0 "${gdb_args[@]}")
+TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/tests/library/qemu/tests/system" run_gdb "x86_64" 0 "${gdb_args[@]}")
 
 if [ $? -eq 1 ]; then
     echo -E "$TESTS_COLLECT_OUTPUT"
@@ -201,7 +201,7 @@ run_test() {
         COVERAGE_FILE=$ROOT_DIR/.cov/coverage \
         COVERAGE_PROCESS_START=$COVERAGERC_PATH \
         USE_PDB="$should_drop_to_pdb" \
-        PWNDBG_LAUNCH_TEST="qemu-tests/${test_case}" \
+        PWNDBG_LAUNCH_TEST="tests/library/qemu/${test_case}" \
         PWNDBG_DISABLE_COLORS=1 \
         PWNDBG_ARCH="${arch}" \
         PWNDBG_KERNEL_TYPE="${kernel_type}" \

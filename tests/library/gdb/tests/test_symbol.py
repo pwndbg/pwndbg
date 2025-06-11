@@ -5,7 +5,7 @@ import gdb
 import pwndbg.dbg
 import tests
 
-MANGLING_BINARY = tests.binaries.get("symbol_1600_and_752.out")
+MANGLING_BINARY = tests.get_binary("symbol_1600_and_752.out")
 
 
 def test_symbol_get(start_binary):

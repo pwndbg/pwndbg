@@ -7,7 +7,7 @@ import pwndbg.aglib.regs
 import tests
 from pwndbg.commands.xor import memfrob
 
-REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
+REFERENCE_BINARY = tests.get_binary("reference-binary.out")
 
 
 def test_command_xor_with_gdb_execute(start_binary):

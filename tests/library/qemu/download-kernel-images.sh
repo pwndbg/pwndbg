@@ -2,7 +2,7 @@
 
 set -o errexit
 
-source "$(dirname "$0")/../../scripts/common.sh"
+source "$(dirname "$0")/../../../scripts/common.sh"
 
 OUT_DIR=$TESTING_KERNEL_IMAGES_DIR
 URL=${URL:-"https://github.com/pwndbg/linux-exploit-dev-env/releases/latest/download"}

@@ -7,7 +7,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import tests
 
-HEAP_VIS = tests.binaries.get("heap_vis.out")
+HEAP_VIS = tests.get_binary("heap_vis.out")
 
 
 def test_vis_heap_chunk_command(start_binary):

@@ -11,7 +11,7 @@ import pwndbg.aglib.symbol
 import pwndbg.dbg
 import tests
 
-HEAP_FIND_FAKE_FAST = tests.binaries.get("heap_find_fake_fast.out")
+HEAP_FIND_FAKE_FAST = tests.get_binary("heap_find_fake_fast.out")
 
 target_address = None
 

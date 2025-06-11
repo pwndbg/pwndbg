@@ -10,7 +10,7 @@ import pytest
 import pwndbg.aglib.proc
 import tests
 
-REFERENCE_BINARY_NET = tests.binaries.get("reference-binary-net.out")
+REFERENCE_BINARY_NET = tests.get_binary("reference-binary-net.out")
 
 
 class TCPServerThread(threading.Thread):

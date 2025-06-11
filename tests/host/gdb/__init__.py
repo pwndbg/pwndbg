@@ -11,13 +11,20 @@ from typing import List
 from host import TestHost
 from host import TestResult
 from host import TestStatus
-from typing_extensions import override
 
 
 class GDBTestHost(TestHost):
-    def __init__(self, pwndbg_root: Path, pytest_root: Path, gdb_path: Path, use_gdbinit: bool):
+    def __init__(
+        self,
+        pwndbg_root: Path,
+        pytest_root: Path,
+        binaries_root: Path,
+        gdb_path: Path,
+        use_gdbinit: bool,
+    ):
         self._pwndbg_root = pwndbg_root
         self._pytest_root = pytest_root
+        self._binaries_root = binaries_root
         self._gdb_path = gdb_path
         self._use_gdbinit = use_gdbinit
 
@@ -34,7 +41,6 @@ class GDBTestHost(TestHost):
         gdb_args = ["--command", str(target)]
         if self._use_gdbinit:
             gdb_args.extend(["--init-command", str(self._pwndbg_root / "gdbinit.py")])
-
         return subprocess.run(
             [str(self._gdb_path), "--silent", "--nx", "--nh"]
             + gdb_args_before
@@ -43,9 +49,9 @@ class GDBTestHost(TestHost):
             env=env,
             capture_output=capture_output,
             text=True,
+            cwd=self._pwndbg_root,
         )
 
-    @override
     def run(
         self,
         case: str,
@@ -73,6 +79,7 @@ class GDBTestHost(TestHost):
         env["PWNDBG_DISABLE_COLORS"] = "1"
         env["GDB_INIT_PATH"] = str(self._pwndbg_root / "gdbinit.py")
         env["GDB_BIN_PATH"] = str(self._gdb_path)
+        env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
         if interactive:
             env["USE_PDB"] = "1"
 
@@ -88,14 +95,16 @@ class GDBTestHost(TestHost):
 
         # Determine high-granularity status from process output, if possible.
         stdout_status = None
+        stdout_context = None
         if not interactive:
             entries = re.search(
-                r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)",
+                r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)( .*::.* -)?( (.*))?",
                 result.stdout,
                 re.MULTILINE,
             )
             if entries:
-                stdout_status = entries[0]
+                stdout_status = entries[2]
+                stdout_context = entries[5]
 
         # If possible, augment the status with the high-granularity output.
         if stdout_status is not None:
@@ -121,24 +130,28 @@ class GDBTestHost(TestHost):
                         # Also a disegreement. Keep the low-granularity status.
                         pass
 
-        return TestResult(status, duration, result.stdout, result.stderr)
+        return TestResult(status, duration, result.stdout, result.stderr, stdout_context)
 
-    @override
     def collect(self) -> List[str]:
         # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
         # we decided to run each test in a separate GDB session
         target = self._pwndbg_root / "tests" / "host" / "gdb" / "pytests_collect.py"
 
         env = os.environ.copy()
-        env["TESTS_PATH"] = self._pytest_root
+        env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
+        env["TESTS_PATH"] = str(self._pytest_root)
 
         result = self._run_gdb(target, env=env)
         tests_collect_output = result.stdout
 
         if result.returncode != 0:
-            raise RuntimeError(f"collection command failed: {result.stderr}")
+            raise RuntimeError(f"collection command failed: {result.stderr} {result.stdout}")
 
         # Extract the test names from the output using regex
-        pattern = re.compile(rf"{str(self._pytest_root)}.*::.*")
+        #
+        # _run_gdb executes it in the current working directory, and so paths
+        # printed by pytest are relative to it.
+        path_spec = self._pytest_root.resolve().relative_to(self._pwndbg_root)
+        pattern = re.compile(rf"{path_spec}.*::.*")
         matches = pattern.findall(tests_collect_output)
         return list(matches)

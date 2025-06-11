@@ -11,7 +11,7 @@ if pwndbg.dbg.is_gdblib_available():
 
 import tests
 
-REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
+REFERENCE_BINARY = tests.get_binary("reference-binary.out")
 
 
 # Might be useful for future expansion of the test case

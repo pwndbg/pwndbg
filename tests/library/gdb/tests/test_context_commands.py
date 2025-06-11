@@ -12,11 +12,11 @@ import pwndbg.commands.canary
 import pwndbg.commands.context
 import tests
 
-REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
-USE_FDS_BINARY = tests.binaries.get("use-fds.out")
-TABSTOP_BINARY = tests.binaries.get("tabstop.out")
-SYSCALLS_BINARY = tests.binaries.get("syscalls-x64.out")
-MANGLING_BINARY = tests.binaries.get("symbol_1600_and_752.out")
+REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+USE_FDS_BINARY = tests.get_binary("use-fds.out")
+TABSTOP_BINARY = tests.get_binary("tabstop.out")
+SYSCALLS_BINARY = tests.get_binary("syscalls-x64.out")
+MANGLING_BINARY = tests.get_binary("symbol_1600_and_752.out")
 
 
 def test_context_disasm_show_fd_filepath(start_binary):
@@ -70,9 +70,7 @@ def test_context_disasm_show_fd_filepath(start_binary):
     line_call_read, line_fd, line_buf, line_nbytes, *_rest = lines_after_call_read
 
     line_fd = line_fd.strip()
-    assert re.match(
-        r"fd:\s+3 \([a-z/]*pwndbg/tests/gdb-tests/tests/binaries/use-fds.out\)", line_fd
-    )
+    assert re.match(r"fd:\s+3 \([a-z/]*pwndbg/tests/binaries/host/use-fds.out\)", line_fd)
 
     line_buf = line_buf.strip()
     assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0", line_buf)
@@ -347,7 +345,7 @@ def test_context_disasm_proper_render_on_mem_change_issue_1818(start_binary, pat
     assert "syscall" in new[10]
 
 
-ONE_GADGET_BINARY = tests.binaries.get("onegadget.x86-64.out")
+ONE_GADGET_BINARY = tests.get_binary("onegadget.x86-64.out")
 
 
 def test_context_disasm_fsbase_annotations(start_binary):
@@ -379,7 +377,7 @@ def test_context_disasm_fsbase_annotations(start_binary):
     assert found
 
 
-LONG_FUNCTION_X64_BINARY = tests.binaries.get("long_function_x64.out")
+LONG_FUNCTION_X64_BINARY = tests.get_binary("long_function_x64.out")
 
 
 def test_context_disasm_call_instruction_split(start_binary):

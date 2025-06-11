@@ -5,7 +5,7 @@ import gdb
 import pwndbg.aglib.regs
 import tests
 
-REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
+REFERENCE_BINARY = tests.get_binary("reference-binary.out")
 
 
 def test_flags_command(start_binary):

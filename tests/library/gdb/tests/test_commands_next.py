@@ -8,8 +8,8 @@ import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 import tests
 
-REFERENCE_BINARY = tests.binaries.get("reference-binary.out")
-CRASH_SIMPLE_BINARY = tests.binaries.get("crash_simple.out.hardcoded")
+REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+CRASH_SIMPLE_BINARY = tests.get_binary("crash_simple.out.hardcoded")
 
 NEXT_COMMANDS = (
     "pc",

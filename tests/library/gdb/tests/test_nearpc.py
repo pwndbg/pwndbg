@@ -5,7 +5,7 @@ import pytest
 
 import tests
 
-SYSCALLS_BINARY = tests.binaries.get("syscalls-x64.out")
+SYSCALLS_BINARY = tests.get_binary("syscalls-x64.out")
 
 OPCODE_BYTES_TESTS_EXPECTED_OUTPUT = {
     1: [

@@ -11,7 +11,7 @@ import pwndbg.glibc
 import tests
 
 # We used the same binary as heap tests since it will use libc, and many functions are mainly for debugging the heap
-HEAP_MALLOC_CHUNK = tests.binaries.get("heap_malloc_chunk.out")
+HEAP_MALLOC_CHUNK = tests.get_binary("heap_malloc_chunk.out")
 
 
 @pytest.mark.parametrize(

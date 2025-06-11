@@ -4,8 +4,8 @@ import pwndbg.aglib.regs
 import tests
 from pwndbg.aglib.nearpc import nearpc
 
-EMULATE_DISASM_BINARY = tests.binaries.get("emulate_disasm.out")
-EMULATE_DISASM_LOOP_BINARY = tests.binaries.get("emulate_disasm_loop.out")
+EMULATE_DISASM_BINARY = tests.get_binary("emulate_disasm.out")
+EMULATE_DISASM_LOOP_BINARY = tests.get_binary("emulate_disasm_loop.out")
 
 
 def test_emulate_disasm(start_binary):

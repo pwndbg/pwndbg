@@ -6,6 +6,7 @@ import multiprocessing
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -15,18 +16,18 @@ from subprocess import CompletedProcess
 from typing import List
 from typing import Tuple
 
-from host.gdb import GDBTestHost
-
 
 def main():
     args = parse_args()
+    coverage_out = None
     if args.cov:
         print("Will run codecov")
+        coverage_out = Path(".cov/coverage")
     if args.pdb:
         print("Will run tests in serial and with Python debugger")
         args.serial = True
 
-    local_pwndbg_root = (Path(os.path.dirname(__file__)) / ".." / "../").absolute()
+    local_pwndbg_root = (Path(os.path.dirname(__file__)) / ".." / "../").resolve()
     print(f"[*] Local Pwndbg root: {local_pwndbg_root}")
 
     # Build the binaries for the test group.
@@ -55,7 +56,9 @@ def main():
         sys.exit(0)
 
     # Actually run the tests.
-    run_tests_and_print_stats(host, args.test_name_filter, args.pdb, args.serial, args.verbose)
+    run_tests_and_print_stats(
+        host, args.test_name_filter, args.pdb, args.serial, args.verbose, coverage_out
+    )
 
 
 def run_tests_and_print_stats(
@@ -64,12 +67,19 @@ def run_tests_and_print_stats(
     pdb: bool,
     serial: bool,
     verbose: bool,
+    coverage_out: Path | None,
 ):
     """
     Runs all the tests made available by a given test host.
     """
     stats = TestStats()
     start = time.monotonic_ns()
+
+    # PDB tests always run in sequence.
+    if pdb and not serial:
+        print("WARNING: Python Debugger (PDB) requires serial execution, but the user has")
+        print("         requested parallel execution. Tests will *not* run in parallel.")
+        serial = True
 
     tests_list = host.collect()
     if regex_filter is not None:
@@ -79,15 +89,23 @@ def run_tests_and_print_stats(
     if serial:
         print("\nRunning tests in series")
         for test in tests_list:
-            result = host.run(test, None, pdb)
+            result = host.run(test, coverage_out, pdb)
             stats.handle_test_result(test, result, verbose)
     else:
         print("\nRunning tests in parallel")
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for test in tests_list:
                 executor.submit(host.run, test, None, pdb).add_done_callback(
-                    lambda future: stats.handle_test_result(test, future.result(), verbose)
+                    # `test=test` forces the variable to bind early. This will
+                    # change the type of the lambda, however, so we have to
+                    # assure MyPy we know what we're doing.
+                    lambda future, test=test: stats.handle_test_result(  # type: ignore[misc]
+                        test, future.result(), verbose
+                    )
                 )
+
+        # Return SIGINT to the default behavior.
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     end = time.monotonic_ns()
     duration = end - start
@@ -117,15 +135,13 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
         # Use pwndbg, as build by nix.
         use_gdbinit = False
         gdb_path = local_pwndbg_root / "result" / "bin" / "pwndbg"
-        pwndbg_root = local_pwndbg_root / "result" / "share" / "pwndbg/"
 
-        if not gdb_path.exists() or not pwndbg_root.exists():
+        if not gdb_path.exists():
             print("ERROR: No nix-compatible pwndbg found. Run nix build .#pwndbg-dev")
             sys.exit(1)
     elif args.group == Group.CROSS_ARCH:
         # Cross-arch requires 'gdb-multiarch'.
         use_gdbinit = True
-        pwndbg_root = local_pwndbg_root
         if (gdb_multiarch := shutil.which("gdb-multiarch")) is not None:
             gdb_path = Path(gdb_multiarch)
         else:
@@ -150,14 +166,21 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
     else:
         # Use the regular system GDB.
         use_gdbinit = True
-        pwndbg_root = local_pwndbg_root
         gdb_path_str = shutil.which("gdb")
         if gdb_path_str is None:
             print("ERROR: No 'gdb' executable in path")
             sys.exit(1)
         gdb_path = Path(gdb_path_str)
 
-    return GDBTestHost(pwndbg_root, local_pwndbg_root / args.group.library(), gdb_path, use_gdbinit)
+    from host.gdb import GDBTestHost
+
+    return GDBTestHost(
+        local_pwndbg_root,
+        local_pwndbg_root / args.group.library(),
+        local_pwndbg_root / args.group.binary_dir(),
+        gdb_path,
+        use_gdbinit,
+    )
 
 
 class TestStatus(Enum):
@@ -166,6 +189,9 @@ class TestStatus(Enum):
     XPASS = "XPASS"
     XFAIL = "XFAIL"
     SKIPPED = "SKIPPED"
+
+    def __str__(self):
+        return self._value_
 
 
 class TestResult:
@@ -177,9 +203,16 @@ class TestResult:
     "Standard Output of the test, if captured, `None` otherwise."
     stderr: str | None
     "Standard Error of the test, if captured, `None` otherwise."
+    context: str | None
+    "Extra context for the result, given as a human-readable textual description."
 
     def __init__(
-        self, status: TestStatus, duration_ns: int, stdout: str | None, stderr: str | None
+        self,
+        status: TestStatus,
+        duration_ns: int,
+        stdout: str | None,
+        stderr: str | None,
+        context: str | None,
     ):
         assert (stdout is None and stderr is None) or (
             stdout is not None and stderr is not None
@@ -189,6 +222,7 @@ class TestResult:
         self.duration_ns = duration_ns
         self.stdout = stdout
         self.stderr = stderr
+        self.context = context
 
 
 class TestHost:
@@ -226,6 +260,9 @@ class Group(Enum):
     DBG = "dbg"
     CROSS_ARCH = "cross-arch"
 
+    def __str__(self):
+        return self._value_
+
     def library(self) -> Path:
         """
         Subdirectory relative to the Pwndbg root containing the tests.
@@ -259,6 +296,9 @@ class Group(Enum):
 class Driver(Enum):
     GDB = "gdb"
 
+    def __str__(self):
+        return self._value_
+
     def can_run(self, grp: Group) -> bool:
         """
         Wether a given driver can run a given test group.
@@ -279,13 +319,11 @@ class Driver(Enum):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run tests.")
-    parser.add_argument(
-        "-g", "--group", choices=[str(group) for group in iter(Group)], type=Group, required=True
-    )
+    parser.add_argument("-g", "--group", choices=list(Group), type=Group, required=True)
     parser.add_argument(
         "-d",
         "--driver",
-        choices=[str(driver) for driver in iter(Driver)],
+        choices=list(Driver),
         type=Driver,
         required=True,
     )
@@ -415,7 +453,9 @@ class TestStats:
 
         self.total_duration += test_result.duration_ns
 
-        print(f"{case:<70} {test_result.status} {test_result.duration_ns / 1000000000:.2f}s")
+        print(
+            f"{case:<100} {test_result.status} {test_result.duration_ns / 1000000000:.2f}s {test_result.context if test_result.context else ''}"
+        )
 
         # Only show the output of failed tests unless the verbose flag was used
         if verbose or test_result.status == TestStatus.FAILED:

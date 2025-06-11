@@ -6,7 +6,7 @@ import gdb
 
 import tests
 
-LINKED_LISTS_BINARY = tests.binaries.get("linked-lists.out")
+LINKED_LISTS_BINARY = tests.get_binary("linked-lists.out")
 
 
 def startup(start_binary) -> None:
