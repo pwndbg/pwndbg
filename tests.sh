@@ -10,7 +10,7 @@ echo "glibc version: $glibc_version"
 # Run integration tests
 cd "${PWNDBG_ABS_PATH}/tests"
 
-$UV_RUN_TEST python3 tests.py $@
+$UV_RUN_TEST python3 host/__init__.py $@
 
 exit_code=$?
 exit $exit_code
