@@ -6,11 +6,13 @@ https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng
 from __future__ import annotations
 
 from typing import List
+from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory as memory
 import pwndbg.aglib.typeinfo
+import pwndbg.color.message as message
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
 # Slot granularity.
@@ -534,4 +536,103 @@ class MetaArea:
 
 
 class Mallocng:
-    pass
+    """
+    Tracks the allocator state.
+
+    By leveraging the __malloc_context symbol.
+
+    Attributes:
+        ctx: Address of the __malloc_context object.
+        secret: The secret the allocator uses for security checks.
+    """
+
+    ctx: int
+    secret: int
+
+    def __init__(self):
+        self.ctx = 0
+        self.has_debug_syms = False
+        self.secret = 0
+        self.hope = True
+
+        self.set_ctx_addr()
+
+    def set_ctx_addr(self):
+        """
+        Find where the __malloc_context global symbol is. Try using debug information,
+        but if it isn't available try using a heuristic.
+        """
+        self.ctx = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
+        if self.ctx is not None:
+            self.has_debug_syms = True
+            self.secret = memory.read_pointer_width(self.ctx)
+            return
+
+        # No debug information :(
+        self.has_debug_syms = False
+
+        # We will find the __malloc_context object by searching memory for
+        # the secret.
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L50
+        # Extract the secret first.
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/glue.h#L49
+        at_random = int(pwndbg.auxv.get()["AT_RANDOM"])
+        self.secret = memory.read_pointer_width(at_random + 8)
+
+        secret_matches = list(
+            pwndbg.search.search(
+                pwndbg.aglib.arch.pack(self.secret), executable=False, writable=True, aligned=8
+            )
+        )
+
+        # There are going to be multiple matches. We don't
+        # want those on the stack (actual AT_RANDOM) or heap
+        # (structures copying the secret) but either from the libc.so
+        # mapping (if musl is dynamically linked) or the executable's
+        # mapping (if musl is statically linked).
+        possible: List[Tuple[int, str]] = []
+        for sm in secret_matches:
+            mapping_name = pwndbg.aglib.vmmap.find(sm).objfile
+            if "[stack" in mapping_name or "[heap" in mapping_name:
+                continue
+
+            possible.append((sm, mapping_name))
+
+        if not possible:
+            print(message.error("Couldn't find __malloc_context, even with heuristic."))
+            print(message.error("Musl mallocng commands will not work."))
+            self.ctx = 0
+            self.hope = False
+            return
+
+        if pwndbg.dbg.selected_inferior().is_dynamically_linked():
+            for addr, mapname in possible:
+                if mapname.endswith("libc.so"):
+                    self.ctx = addr
+                    return
+
+            for addr, mapname in possible:
+                if mapname.contains("libc"):
+                    self.ctx = addr
+                    return
+
+            print(message.warn("Couldn't find __malloc_context in a 'libc' mapping,"))
+            print(message.warn(f"using mapping '{possible[0][1]}',"))
+            print(
+                message.warn(
+                    "and assuming __malloc_context is at "
+                    f"{pwndbg.color.memory.get(possible[0][0])}."
+                )
+            )
+            print(message.warn("The heap commands may be unreliable."))
+        else:
+            # Statically linked.
+            # TODO: We should find the Executable Object in the mappings
+            # and use that to determine which match is correct. Not sure
+            # how to do that though.
+            pass
+
+        self.ctx = possible[0][0]
+
+    def libc_has_debug_syms(self) -> bool:
+        return self.has_debug_syms
