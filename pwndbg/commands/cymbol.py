@@ -31,7 +31,6 @@ import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.commands
 import pwndbg.lib.config
-import pwndbg.lib.gcc
 import pwndbg.lib.tempfile
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -112,15 +111,11 @@ def generate_debug_symbols(
         subprocess.run(gcc_cmd, capture_output=True, check=True)
     except subprocess.CalledProcessError as exception:
         print(message.error(exception))
-        print(
-            message.error(
-                "Failed to compile the .c file with custom structures. Please fix any compilation errors there may be."
-            )
-        )
+        print(message.error("Failed to compile the .c file with custom structures. Please fix any compilation errors there may be."))
         return None
     except Exception as exception:
         print(message.error(exception))
-        print(message.error("An error occured while generating the debug symbols."))
+        print(message.error("An error occurred while generating the debug symbols."))
         return None
 
     return pwndbg_debug_symbols_output_file
@@ -149,7 +144,6 @@ def add_custom_structure(custom_structure_name: str) -> None:
 
     with open(pwndbg_custom_structure_path, "w") as f:
         f.write(custom_structures_source)
-
     # Avoid checking for file existance. Call the decorator wrapper directly.
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
@@ -193,12 +187,7 @@ def add_structure_from_header(header_file: str, custom_structure_name: str = Non
 @OnlyWhenStructFileExists
 def edit_custom_structure(custom_structure_name: str, custom_structure_path: str = "") -> None:
     # Lookup an editor to use for editing the custom structure.
-    editor_preference = os.getenv("EDITOR")
-    if not editor_preference:
-        editor_preference = os.getenv("VISUAL")
-    if not editor_preference:
-        editor_preference = "vi"
-
+    editor_preference = os.getenv("EDITOR") or os.getenv("VISUAL") or "vi"
     if cymbol_editor != "":
         editor_preference = cymbol_editor
 
@@ -208,14 +197,10 @@ def edit_custom_structure(custom_structure_name: str, custom_structure_path: str
             check=True,
         )
     except Exception:
-        print(message.error("An error occured during opening the source file."))
+        print(message.error("An error occurred during opening the source file."))
         print(message.error(f"Path to the custom structure: {custom_structure_path}"))
         print(message.error("Please try to manually edit the structure."))
-        print(
-            message.error(
-                '\nTry to set a path to an editor with:\n\tset "cymbol-editor" /usr/bin/nano'
-            )
-        )
+        print(message.error('\nTry to set a path to an editor with:\n\tset "cymbol-editor" /usr/bin/nano'))
         return
 
     input(message.notice("Press enter when finished editing."))
@@ -240,7 +225,6 @@ def load_custom_structure(custom_structure_name: str, custom_structure_path: str
     loaded_symbols[custom_structure_name] = pwndbg_debug_symbols_output_file
     print(message.success("Symbols are loaded!"))
 
-
 @OnlyWhenStructFileExists
 def show_custom_structure(custom_structure_name: str, custom_structure_path: str = "") -> None:
     # Call non-caching version of the function (thus .__wrapped__)
@@ -249,62 +233,19 @@ def show_custom_structure(custom_structure_name: str, custom_structure_path: str
     )
     print("\n".join(highlighted_source))
 
-
 parser = argparse.ArgumentParser(
     description="Add, show, load, edit, or delete custom structures in plain C."
 )
-parser.add_argument(
-    "-a",
-    "--add",
-    metavar="name",
-    help="Add a new custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-f",
-    "--file",
-    metavar="filepath",
-    help="Add a new custom structure from header file",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-r",
-    "--remove",
-    metavar="name",
-    help="Remove an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-e",
-    "--edit",
-    metavar="name",
-    help="Edit an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-l",
-    "--load",
-    metavar="name",
-    help="Load an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-s",
-    "--show",
-    metavar="name",
-    help="Show the source code of an existing custom structure",
-    default=None,
-    type=str,
-)
-
+parser.add_argument("-a", "--add", metavar="name", help="Add a new custom structure", default=None, type=str)
+parser.add_argument("-f", "--file", metavar="filepath", help="Add a new custom structure from header file", default=None, type=str)
+parser.add_argument("-r", "--remove", metavar="name", help="Remove an existing custom structure", default=None, type=str)
+parser.add_argument("-e", "--edit", metavar="name", help="Edit an existing custom structure", default=None, type=str)
+parser.add_argument("-l", "--load", metavar="name", help="Load an existing custom structure", default=None, type=str)
+parser.add_argument("-s", "--show", metavar="name", help="Show the source code of an existing custom structure", default=None, type=str)
+parser.add_argument("--show-all", action="store_true", help="List all available custom structures")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC)
-def cymbol(add: str, file: str, remove: str, edit: str, load: str, show: str) -> None:
+def cymbol(add: str, file: str, remove: str, edit: str, load: str, show: str, show_all: bool) -> None:
     if add:
         add_custom_structure(add)
     elif file:
@@ -317,5 +258,13 @@ def cymbol(add: str, file: str, remove: str, edit: str, load: str, show: str) ->
         load_custom_structure(load)
     elif show:
         show_custom_structure(show)
+    elif show_all:
+        struct_files = [f for f in os.listdir(pwndbg_cachedir) if f.endswith(".c")]
+        if not struct_files:
+            print(message.notice("No custom structures found."))
+        else:
+            print(message.success("Available custom structures:"))
+            for struct_file in struct_files:
+                print("  -", struct_file.replace(".c", ""))
     else:
         parser.print_help()
