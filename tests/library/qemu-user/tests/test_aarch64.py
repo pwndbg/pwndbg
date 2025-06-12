@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import gdb
-import user
 from capstone.aarch64_const import AARCH64_INS_BL
 
 import pwndbg.aglib.disasm.disassembly
@@ -9,6 +8,7 @@ import pwndbg.aglib.nearpc
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.dbg
+import tests
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 
 AARCH64_PREAMBLE = """
@@ -721,7 +721,7 @@ def test_aarch64_shift_instructions(qemu_assembly_run):
     assert dis == expected
 
 
-REFERENCE_BINARY = user.get_binary("reference-binary.aarch64.out")
+REFERENCE_BINARY = tests.get_binary("reference-binary.aarch64.out")
 
 
 def test_aarch64_reference(qemu_start_binary):

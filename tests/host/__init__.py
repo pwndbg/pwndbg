@@ -139,7 +139,7 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
         if not gdb_path.exists():
             print("ERROR: No nix-compatible pwndbg found. Run nix build .#pwndbg-dev")
             sys.exit(1)
-    elif args.group == Group.CROSS_ARCH:
+    elif args.group == Group.CROSS_ARCH_USER:
         # Cross-arch requires 'gdb-multiarch'.
         use_gdbinit = True
         if (gdb_multiarch := shutil.which("gdb-multiarch")) is not None:
@@ -258,7 +258,7 @@ class Group(Enum):
     GDB = "gdb"
     LLDB = "lldb"
     DBG = "dbg"
-    CROSS_ARCH = "cross-arch"
+    CROSS_ARCH_USER = "cross-arch-user"
 
     def __str__(self):
         return self._value_
@@ -274,7 +274,7 @@ class Group(Enum):
                 return Path("tests/library/lldb/")
             case Group.DBG:
                 return Path("tests/library/dbg/")
-            case Group.CROSS_ARCH:
+            case Group.CROSS_ARCH_USER:
                 return Path("tests/library/qemu-user/")
             case other:
                 raise AssertionError(f"group {other} is unaccounted for")
@@ -287,7 +287,7 @@ class Group(Enum):
         match self:
             case Group.GDB | Group.LLDB | Group.DBG:
                 return Path("tests/binaries/host/")
-            case Group.CROSS_ARCH:
+            case Group.CROSS_ARCH_USER:
                 return Path("tests/binaries/qemu-user/")
             case other:
                 raise AssertionError(f"group {other} is unaccounted for")
@@ -312,7 +312,7 @@ class Driver(Enum):
                         return False
                     case Group.DBG:
                         return True
-                    case Group.CROSS_ARCH:
+                    case Group.CROSS_ARCH_USER:
                         return True
         raise AssertionError(f"unaccounted for combination of driver '{self}' and group '{grp}'")
 
@@ -357,55 +357,6 @@ def parse_args():
         "test_name_filter", nargs="?", help="run only tests that match the regex", default=".*"
     )
     return parser.parse_args()
-
-
-def reserve_port(ip="127.0.0.1", port=0):
-    """
-    https://github.com/Yelp/ephemeral-port-reserve/blob/master/ephemeral_port_reserve.py
-
-    Bind to an ephemeral port, force it into the TIME_WAIT state, and unbind it.
-
-    This means that further ephemeral port alloctions won't pick this "reserved" port,
-    but subprocesses can still bind to it explicitly, given that they use SO_REUSEADDR.
-    By default on linux you have a grace period of 60 seconds to reuse this port.
-    To check your own particular value:
-    $ cat /proc/sys/net/ipv4/tcp_fin_timeout
-    60
-
-    By default, the port will be reserved for localhost (aka 127.0.0.1).
-    To reserve a port for a different ip, provide the ip as the first argument.
-    Note that IP 0.0.0.0 is interpreted as localhost.
-    """
-    import contextlib
-    import errno
-    from socket import SO_REUSEADDR
-    from socket import SOL_SOCKET
-    from socket import error as SocketError
-    from socket import socket
-
-    port = int(port)
-    with contextlib.closing(socket()) as s:
-        s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        try:
-            s.bind((ip, port))
-        except SocketError as e:
-            # socket.error: EADDRINUSE Address already in use
-            if e.errno == errno.EADDRINUSE and port != 0:
-                s.bind((ip, 0))
-            else:
-                raise
-
-        # the connect below deadlocks on kernel >= 4.4.0 unless this arg is greater than zero
-        s.listen(1)
-
-        sockname = s.getsockname()
-
-        # these three are necessary just to get the port into a TIME_WAIT state
-        with contextlib.closing(socket()) as s2:
-            s2.connect(sockname)
-            sock, _ = s.accept()
-            with contextlib.closing(sock):
-                return sockname[1]
 
 
 def ensure_zig_path(local_pwndbg_root: Path):

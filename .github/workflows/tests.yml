@@ -54,7 +54,7 @@ jobs:
     - name: Run cross-arch tests
       if: matrix.type == 'qemu-user-tests'
       run: |
-        ./tests.sh --nix --cov -d gdb -g cross-arch
+        ./tests.sh --nix --cov -d gdb -g cross-arch-user
 
     - name: Set up cache for QEMU images
       if: matrix.type == 'qemu-system-tests'
@@ -143,7 +143,7 @@ jobs:
 
     - name: Run cross-architecture tests
       run: |
-        ./crossarch-tests.sh --cov
+        ./tests.sh --cov -g cross-arch-user -d gdb
 
     - name: Process coverage data
       run: |
