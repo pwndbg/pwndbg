@@ -95,7 +95,7 @@ def run_tests_and_print_stats(
         print("\nRunning tests in parallel")
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             for test in tests_list:
-                executor.submit(host.run, test, None, pdb).add_done_callback(
+                executor.submit(host.run, test, coverage_out, pdb).add_done_callback(
                     # `test=test` forces the variable to bind early. This will
                     # change the type of the lambda, however, so we have to
                     # assure MyPy we know what we're doing.
