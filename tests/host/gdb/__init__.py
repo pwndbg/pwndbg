@@ -80,6 +80,7 @@ class GDBTestHost(TestHost):
         env["GDB_INIT_PATH"] = str(self._pwndbg_root / "gdbinit.py")
         env["GDB_BIN_PATH"] = str(self._gdb_path)
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
+        env["TEST_USE_GDBINIT"] = "1" if self._use_gdbinit else "0"
         if interactive:
             env["USE_PDB"] = "1"
 
