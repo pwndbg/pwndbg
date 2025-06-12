@@ -13,4 +13,4 @@ tests/**/binaries/div_zero_binary/binary
 !tests/**/binaries/*.go
 
 # ignore QEMU test images (could also be tainted)
-tests/library/qemu/images
+tests/library/qemu-*/images

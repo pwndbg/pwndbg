@@ -275,7 +275,7 @@ class Group(Enum):
             case Group.DBG:
                 return Path("tests/library/dbg/")
             case Group.CROSS_ARCH:
-                return Path("tests/library/qemu/")
+                return Path("tests/library/qemu-user/")
             case other:
                 raise AssertionError(f"group {other} is unaccounted for")
 
