@@ -112,6 +112,21 @@ class Group:
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L234
         return self.meta.stride * self.meta.cnt + UNIT
 
+    def set_meta(self, meta: Meta) -> None:
+        """
+        Sets the meta object for this group.
+
+        If the meta for this group is already calculated by the callee,
+        use this to prevent it from being wastefully recalculated.
+        """
+        self._meta = meta
+
+    def at_index(self, idx: int) -> int:
+        """
+        Get the address of the slot at index idx.
+        """
+        return self.storage + idx * self.meta.stride
+
 
 class Slot:
     """
@@ -375,12 +390,15 @@ class Meta:
         # I think this is how I should read a bitfield.
         # http://mjfrazer.org/mjfrazer/bitfields/
         flags = int.from_bytes(data[cur_offset : (cur_offset + ptrsize)], endian, signed=False)
+        cur_offset += ptrsize
         self._last_idx = flags & 0b11111
         self._freeable = (flags >> 5) & 1
         self._sizeclass = (flags >> 6) & 0b111111
         self._maplen = flags >> 12
 
-        # All the other fields are calculated without
+        assert cur_offset == Meta.sizeof()
+
+        # All other values are calculated without
         # memory reads.
 
     @property
@@ -530,6 +548,10 @@ class Meta:
             # The meta is corrupted.
             return -1
 
+    @staticmethod
+    def sizeof():
+        return 0x28
+
 
 class MetaArea:
     """
@@ -575,6 +597,13 @@ class MetaArea:
         cur_offset += int_size()
 
         assert cur_offset == 0x14
+
+    def at_index(self, idx: int) -> int:
+        """
+        Returns the address of the meta object located
+        at index idx.
+        """
+        return self.addr + 0x18 + idx * Meta.sizeof()
 
 
 class MallocContext:
@@ -851,3 +880,62 @@ class Mallocng:
 
     def libc_has_debug_syms(self) -> bool:
         return self.has_debug_syms
+
+    def containing(self, address: int) -> int:
+        """
+        Get the `start` of a slot which contains this address.
+
+        We say a slot "contains" an address, if the address is in
+        [slot.start, slot.start + meta.slot_size). Thus, this will
+        match the previous slot if you provide the address of the
+        header inband metadata of a slot.
+        """
+        meta_area_addr = self.ctx.meta_area_head
+        while meta_area_addr:
+            try:
+                meta_area = MetaArea(meta_area_addr)
+            except pwndbg.dbg_mod.Error as e:
+                # Can't get `next` if the main_area is corrupted.
+                print(
+                    message.error(
+                        f"Mallocng.containing: Could not read meta_area ({e}), returning early."
+                    )
+                )
+                return 0
+
+            # Iterate over all metas in the meta_area.
+            for i in range(meta_area.nslots):
+                try:
+                    meta = Meta(meta_area.at_index(i))
+                    if not meta.mem:
+                        # Skip unused metas.
+                        continue
+
+                    group = Group(meta.mem)
+                    group.set_meta(meta)
+                    group_end = group.addr + group.group_size
+
+                    # Check if our address is inside the group.
+                    if group.addr <= address < group_end:
+                        # Yes it is!
+                        if address < group.storage:
+                            # Bleh, the address is in the group's metadata
+                            # (or the first slot's metadata). What to do?
+                            # Let's just return the first slot..
+                            return group.storage
+
+                        # Calculate the correct slot.
+                        slot_idx = (address - group.storage) // meta.stride
+                        return group.at_index(slot_idx)
+                except pwndbg.dbg_mod.Error as e:
+                    print(
+                        message.error(
+                            "Mallocng.containing: Could not read/parse meta at"
+                            f" {hex(meta.addr)} ({e}), skipping it.."
+                        )
+                    )
+                    continue
+
+            meta_area_addr = meta_area.next
+
+        return 0
