@@ -31,6 +31,23 @@ def test_command_kconfig():
     assert "CONFIG_IKCONFIG = y" in res
 
 
+def test_command_kdmesg():
+    if not pwndbg.aglib.kernel.has_debug_syms():
+        res = gdb.execute("kdmesg", to_string=True)
+        assert "may only be run when debugging a Linux kernel with debug" in res
+        return
+
+    res = gdb.execute("kdmesg", to_string=True)
+    assert "Linux version" in res
+
+    res = gdb.execute("kdmesg -T", to_string=True)
+    ctime_regex = r"(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4}"
+    assert (
+        any(re.match(ctime_regex, line) for line in res.splitlines())
+        or "`struct tk_data` is not defined in the current debug symbols." in res
+    )
+
+
 def test_command_kversion():
     res = gdb.execute("kversion", to_string=True)
     assert "Linux version" in res
