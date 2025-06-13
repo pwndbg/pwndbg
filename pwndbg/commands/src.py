@@ -59,7 +59,7 @@ def src_debug(function: bool = False) -> None:
                     start_sal = gdb.find_pc_line(func_start)
                     if start_sal and start_sal.line:
                         print(f"  Function start line (from GDB): {start_sal.line}")
-        except:
+        except Exception:
             print("  Function: <unable to determine from debug info>")
 
         # Read source file
