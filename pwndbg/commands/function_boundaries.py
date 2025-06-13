@@ -5,15 +5,16 @@ Supports multiple programming languages through debug symbols and heuristics.
 
 from __future__ import annotations
 
+import os
 import re
 from enum import Enum
+from typing import Any
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
 
 import gdb
-
 
 
 class Language(Enum):
@@ -50,7 +51,7 @@ class FunctionBoundaryDetector:
         }
 
         # Language-specific patterns for function detection
-        self.patterns = {
+        self.patterns: Dict[Language, Dict[str, Any]] = {
             Language.C: {
                 "start": [
                     # Standard function definition
@@ -151,8 +152,6 @@ class FunctionBoundaryDetector:
 
     def detect_language(self, filename: str) -> Language:
         """Detect language from filename extension."""
-        import os
-
         ext = os.path.splitext(filename)[1].lower()
         return self.extension_map.get(ext, Language.UNKNOWN)
 
@@ -192,7 +191,7 @@ class FunctionBoundaryDetector:
                 else:
                     # Fallback: use block boundaries
                     end_addr = int(block.end)
-            except Exceptions:
+            except Exception:
                 return None
 
             # Convert addresses to line numbers
@@ -233,66 +232,99 @@ class FunctionBoundaryDetector:
         return self._find_brace_boundaries(lines, current_line, pattern_info)
 
     def _find_brace_boundaries(
-        self, lines: List[str], current_line: int, pattern_info: Dict
+        self,
+        lines: List[str],
+        current_line: int,
+        pattern_info: Dict[str, Any],
     ) -> Tuple[int, int]:
         """Find boundaries for brace-based languages (C, C++, Java, etc.)."""
         start_patterns = pattern_info["start"]
-        end_pattern = pattern_info["end"]
-        continuation_pattern = pattern_info.get("continuation")
 
-        # Search backward for function start
-        start_line = current_line
-        brace_count = 0
+        # Convert to 0-based indexing
+        current_idx = current_line - 1
+
+        # Step 1: Find function start by searching backwards
+        start_idx = current_idx
         found_start = False
 
-        for i in range(current_line - 1, -1, -1):
+        for i in range(current_idx, -1, -1):
             line = lines[i]
 
-            # Check for function start patterns
+            # Check each pattern
             for pattern in start_patterns:
                 if re.match(pattern, line):
-                    # Check if brace is on same line or next line
+                    # Found a potential function start
+                    # Look for the opening brace
                     if "{" in line:
-                        start_line = i + 1
+                        start_idx = i
                         found_start = True
                         break
-                    if continuation_pattern and i + 1 < len(lines):
-                        next_line = lines[i + 1]
-                        if re.match(continuation_pattern, next_line):
-                            start_line = i + 1
+                    # Check next few lines for opening brace
+                    for j in range(i, min(i + 3, len(lines))):
+                        if "{" in lines[j]:
+                            start_idx = i
                             found_start = True
                             break
-
+                    if found_start:
+                        break
             if found_start:
                 break
 
-            # Track braces to handle nested functions
-            brace_count += line.count("}") - line.count("{")
-            if brace_count > 0 and "{" in line:
-                # Likely found the opening brace of our function
-                start_line = i + 1
-                break
+        # If we didn't find a clear function start, look for any line with a brace
+        # that might be a function (has parentheses before it)
+        if not found_start:
+            for i in range(current_idx, -1, -1):
+                line = lines[i]
+                if "{" in line and "(" in line and ")" in line:
+                    start_idx = i
+                    break
+                if i > 0 and "{" in line:
+                    # Check if previous line has function signature
+                    prev_line = lines[i - 1]
+                    if "(" in prev_line and ")" in prev_line:
+                        start_idx = i - 1
+                        break
 
-        # Search forward for function end
-        end_line = current_line
+        # Step 2: Count braces from the start to find the end
         brace_count = 0
+        end_idx = start_idx
+        found_opening = False
 
-
-        # First, we need to find where we are in terms of braces
-        for i in range(start_line - 1, current_line):
+        for i in range(start_idx, len(lines)):
             line = lines[i]
-            brace_count += line.count("{") - line.count("}")
 
-        # Now search for the end
-        for i in range(current_line, len(lines)):
-            line = lines[i]
-            brace_count += line.count("{") - line.count("}")
+            # Simple comment stripping
+            if "//" in line:
+                line = line[: line.index("//")]
 
-            if brace_count == 0 and re.match(end_pattern, line):
-                end_line = i + 1
-                break
+            # Count braces character by character
+            for char in line:
+                if char == "{":
+                    brace_count += 1
+                    found_opening = True
+                elif char == "}":
+                    brace_count -= 1
 
-        return (start_line, end_line)
+                    # Function ends when braces balance back to 0
+                    if found_opening and brace_count == 0:
+                        end_idx = i
+                        # Convert back to 1-based indexing
+                        return (start_idx + 1, end_idx + 1)
+
+        # If we couldn't find a proper end, estimate it
+        if end_idx == start_idx:
+            # Look for the next function or end of file
+            for i in range(current_idx + 1, len(lines)):
+                line = lines[i]
+                # Check if this might be the start of another function
+                for pattern in start_patterns:
+                    if re.match(pattern, line):
+                        end_idx = i - 1
+                        return (start_idx + 1, end_idx + 1)
+            # Otherwise, include up to 50 lines or end of file
+            end_idx = min(start_idx + 50, len(lines) - 1)
+
+        return (start_idx + 1, end_idx + 1)
 
     def _find_python_boundaries(self, lines: List[str], current_line: int) -> Tuple[int, int]:
         """Find boundaries for Python functions using indentation."""
