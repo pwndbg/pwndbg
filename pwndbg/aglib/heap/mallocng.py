@@ -532,8 +532,49 @@ class Meta:
 
 
 class MetaArea:
+    """
+    Slabs that contain metas, linked in a singly-linked list.
+
+    https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L34
+    struct meta_area {
+      uint64_t check;
+      struct meta_area *next;
+      int nslots;
+      struct meta slots[];
+    };
+    """
+
     def __init__(self, addr: int) -> None:
-        self.addr = addr
+        self.addr: int = addr
+
+        self.check: int = 0
+        self.meta_area: int = 0
+        self.nslots: int = 0
+        # Alignment offsets it by 0x4
+        self.slots: int = self.addr + 0x18
+
+        self.load()
+
+    def load(self):
+        ptrsize = pwndbg.aglib.arch.ptrsize
+        uint64size = pwndbg.aglib.typeinfo.uint64.sizeof
+        endian = pwndbg.aglib.arch.endian
+
+        data: bytearray = memory.read(self.addr, 0x14)
+
+        cur_offset = 0
+        self.check = int.from_bytes(
+            data[cur_offset : (cur_offset + uint64size)], endian, signed=False
+        )
+        cur_offset += uint64size
+        self.next = pwndbg.aglib.arch.unpack(data[cur_offset : (cur_offset + ptrsize)])
+        cur_offset += ptrsize
+        self.nslots = int.from_bytes(
+            data[cur_offset : (cur_offset + int_size())], endian, signed=True
+        )
+        cur_offset += int_size()
+
+        assert cur_offset == 0x14
 
 
 class MallocContext:
@@ -600,7 +641,7 @@ class MallocContext:
         data: bytearray = memory.read(self.addr, 0x3B0)
 
         cur_offset = 0
-        self.secret = pwndbg.aglib.arch.unpack(data[cur_offset:ptrsize])
+        self.secret = pwndbg.aglib.arch.unpack(data[cur_offset : (cur_offset + ptrsize)])
         cur_offset += ptrsize
 
         # We will read `int` bytes past the `secret`. The `init_done` field can only contain
