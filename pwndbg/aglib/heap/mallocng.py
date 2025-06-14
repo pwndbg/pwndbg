@@ -794,29 +794,47 @@ class MallocContext:
 class Mallocng:
     """
     Tracks the allocator state.
-
     By leveraging the __malloc_context symbol.
 
-    Attributes:
-        ctx_addr: Address of the __malloc_context object.
-        ctx: Object representing __malloc_context.
-        secret: The secret the allocator uses for security checks.
+    Import this singleton class like:
+    from pwndbg.aglib.heap.mallocng import mallocng as ng
+
+    and make sure that you have run ng.init_if_needed()
+    before you used the object.
     """
 
-    ctx: int
-    secret: int
-
     def __init__(self):
+        self.finished_init: bool = False
+
         self.ctx_addr: int = 0
         self.ctx: Optional[MallocContext] = None
         self.has_debug_syms: bool = False
         self.secret: int = 0
         self.hope: bool = True
 
+    def init_if_needed(self):
+        """
+        We want this class to be a singleton, but also we can't
+        initialize it as soon as pwndbg is loaded.
+
+        Users of the object are responsible for calling this to
+        make sure the object is initialized.
+        """
+        if self.finished_init:
+            return
+
+        self.ctx_addr = 0
+        self.ctx = None
+        self.has_debug_syms = False
+        self.secret = 0
+        self.hope = True
+
         self.set_ctx_addr()
 
         if self.ctx_addr and self.hope:
             self.ctx = MallocContext(self.ctx_addr)
+
+        self.finished_init = True
 
     def set_ctx_addr(self):
         """
@@ -994,3 +1012,6 @@ class Mallocng:
                 return 0
             else:
                 return hit_slot.start
+
+
+mallocng = Mallocng()

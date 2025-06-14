@@ -12,6 +12,7 @@ import pwndbg.aglib.memory as memory
 import pwndbg.aglib.typeinfo as typeinfo
 import pwndbg.color as C
 import pwndbg.color.message as message
+from pwndbg.aglib.heap.mallocng import mallocng as ng
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.pretty_print import Property
 from pwndbg.lib.pretty_print import PropertyPrinter
@@ -470,3 +471,38 @@ def mallocng_group(address: int) -> None:
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"Failed loading meta: {e}"))
         return
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Find slot which contains the given address.
+Returns the `start` of the slot.
+    """,
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="The address to look for.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-find"],
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_find(address: int) -> None:
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {hex(address)} not readable."))
+        return
+
+    ng.init_if_needed()
+
+    slot_start = ng.containing(address)
+
+    if slot_start == 0:
+        print(message.info("No slot found containing that address."))
+        return
+
+    mallocng_user_slot(mallocng.Slot.from_start(slot_start).p, all=True)
