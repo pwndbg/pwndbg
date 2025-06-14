@@ -321,6 +321,23 @@ class Slot:
         # We can calculate it more easily than musl does:
         return (self.p - self.start) // UNIT
 
+    def contains_group(self) -> bool:
+        """
+        Does this slot nest a group?
+        """
+        return self.reserved == 6
+
+    @classmethod
+    def from_p(cls, p: int) -> "Slot":
+        return cls(p)
+
+    @classmethod
+    def from_start(cls, start: int) -> "Slot":
+        # Read the cyclic offset to calculate `p`.
+        off = memory.u16(start - 2)
+        p = start + off * UNIT
+        return cls(p)
+
 
 class Meta:
     """
@@ -890,6 +907,8 @@ class Mallocng:
         match the previous slot if you provide the address of the
         header inband metadata of a slot.
         """
+        hit_group: Optional[Group] = None
+
         meta_area_addr = self.ctx.meta_area_head
         while meta_area_addr:
             try:
@@ -918,15 +937,8 @@ class Mallocng:
                     # Check if our address is inside the group.
                     if group.addr <= address < group_end:
                         # Yes it is!
-                        if address < group.storage:
-                            # Bleh, the address is in the group's metadata
-                            # (or the first slot's metadata). What to do?
-                            # Let's just return the first slot..
-                            return group.storage
-
-                        # Calculate the correct slot.
-                        slot_idx = (address - group.storage) // meta.stride
-                        return group.at_index(slot_idx)
+                        hit_group = group
+                        break
                 except pwndbg.dbg_mod.Error as e:
                     print(
                         message.error(
@@ -936,6 +948,49 @@ class Mallocng:
                     )
                     continue
 
+            if hit_group:
+                break
+
             meta_area_addr = meta_area.next
 
-        return 0
+        if hit_group is None:
+            return 0
+
+        hit_slot: Optional[Slot] = None
+
+        try:
+            # Recursively go into deeper nested groups until we find a slot
+            # which doesn't house a group.
+            while hit_slot is None or hit_slot.contains_group():
+                if address < hit_group.storage:
+                    # Bleh, the address is in the group's header
+                    # (or the first slot's IB header). What to do?
+                    if hit_slot is not None:
+                        # If we are already in some slot, just return
+                        # that slot since we can't look any deeper.
+                        return hit_slot.start
+                    else:
+                        # We are in no slot.
+                        # We could return *some* information to the callee
+                        # but alas, let's be technically correct.
+                        return 0
+
+                # Calculate the correct inner slot.
+                slot_idx = (address - hit_group.storage) // hit_group.meta.stride
+
+                hit_slot = Slot.from_start(hit_group.at_index(slot_idx))
+                hit_group = Group(hit_slot.p)
+
+            return hit_slot.start
+
+        except pwndbg.dbg_mod.Error as e:
+            print(
+                message.error(
+                    "Mallocng.containing: Failed reading memory while traversing"
+                    f"nested groups ({e}), returning last valid slot."
+                )
+            )
+            if hit_slot is None:
+                return 0
+            else:
+                return hit_slot.start
