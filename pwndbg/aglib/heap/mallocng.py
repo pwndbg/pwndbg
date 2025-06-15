@@ -109,6 +109,7 @@ class Group:
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L234
         return self.meta.stride * self.meta.cnt + UNIT
 
+
 class Slot:
     """
     The "unit of allocation" (analogous to glibc's "chunk").
@@ -292,6 +293,7 @@ class Slot:
         # Not sure why musl saves it, it doesn't seem to use it.
         # We can calculate it more easily than musl does:
         return (self.p - self.start) // UNIT
+
 
 class Meta:
     """
@@ -515,6 +517,7 @@ class Meta:
         else:
             # The meta is corrupted.
             return -1
+
 
 class MetaArea:
     def __init__(self, addr: int) -> None:
