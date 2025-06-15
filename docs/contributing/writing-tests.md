@@ -43,7 +43,7 @@ options:
   -v, --verbose         display all test output instead of just failing test output
   -s, --serial          run tests one at a time instead of in parallel
   --nix                 run tests using built for nix environment
-  --collect-only        only show the output of test collection, don't run any tests```
+  --collect-only        only show the output of test collection, don't run any tests
 ```
 ## Writing tests
 
