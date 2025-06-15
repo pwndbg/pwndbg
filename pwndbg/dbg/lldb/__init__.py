@@ -868,17 +868,28 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
         pages = self.get_known_pages()
+        # TODO/FIXME: https://github.com/pwndbg/pwndbg/issues/3102
+        # We should not attempt to call kernel_vmmap or get_custom_pages
+        # if get_known_pages returns nothing, as this can lead to errors
+        # when those functions try to operate in an LLDB environment
+        # where they might not be fully compatible or where expected
+        # interfaces (like procfs for kernel_vmmap) are missing.
         if pages:
             return LLDBMemoryMap(pages)
+        else:
+            # If get_known_pages returns no pages, it's safer to return
+            # an empty map directly in LLDB, rather than risking errors
+            # by calling kernel_vmmap() or get_custom_pages().
+            return LLDBMemoryMap([])
 
-        from pwndbg.aglib.kernel.vmmap import kernel_vmmap
-        from pwndbg.aglib.vmmap_custom import get_custom_pages
+        # from pwndbg.aglib.kernel.vmmap import kernel_vmmap
+        # from pwndbg.aglib.vmmap_custom import get_custom_pages
 
-        pages: List[pwndbg.lib.memory.Page] = []
-        pages.extend(kernel_vmmap())
-        pages.extend(get_custom_pages())
-        pages.sort()
-        return LLDBMemoryMap(pages)
+        # pages: List[pwndbg.lib.memory.Page] = []
+        # pages.extend(kernel_vmmap())
+        # pages.extend(get_custom_pages())
+        # pages.sort()
+        # return LLDBMemoryMap(pages)
 
     def find_largest_range_len(
         self, min_search: int, max_search: int, test: Callable[[int], bool]
