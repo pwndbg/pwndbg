@@ -642,7 +642,7 @@ class ProcessDriver:
 
     def _attach_remote(self, pid: int) -> lldb.SBError:
         """
-        Attatch to a process in a remote debugserver.
+        Attach to a process in a remote debugserver.
         """
         if pid == 0:
             return lldb.SBError("PID of 0 or no PID was given")
