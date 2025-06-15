@@ -743,7 +743,7 @@ class ProcessDriver:
             )
             match result:
                 case _PollResultStopped():
-                    # The process has startarted. We can fire off the created event
+                    # The process has started. We can fire off the created event
                     # just fine.
                     self.eh.created()
                     return LaunchResultSuccess()
