@@ -119,7 +119,7 @@ class PropertyPrinter:
         """
         Print the built up string.
         """
-        print(self.text)
+        print(self.text, end="")
 
     def clear(self) -> None:
         """
@@ -146,14 +146,22 @@ class PropertyPrinter:
         """
         self.text += string
 
-    def start_section(self, title: str) -> None:
+    def start_section(self, title: str, preamble: str = "") -> None:
         """
         Start a named section of properties that will have
         increased indentation.
 
         Don't forget to call end_section()!
         """
-        self.text += self.section_color_func(title) + "\n"
+        self.text += " " * self.indent_level * self.indent_size
+        self.text += self.section_color_func(title)
+
+        if preamble:
+            self.text += "\n"
+            self.text += " " * (self.indent_level + 1) * self.indent_size
+            self.text += preamble
+
+        self.text += "\n"
         self.indent()
 
     def end_section(self) -> None:
