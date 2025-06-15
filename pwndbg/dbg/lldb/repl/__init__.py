@@ -1043,7 +1043,7 @@ def _attach_with_info(
 
     match result:
         case LaunchResultError(what, disconnected):
-            print_error(f"could not attatch to process: {what.description}")
+            print_error(f"could not attach to process: {what.description}")
             if disconnected:
                 print_warn("disconnected")
             auto.close()
