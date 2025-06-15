@@ -15,6 +15,8 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
+import pwndbg.aglib.nearpc
+import pwndbg.aglib.regs
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
@@ -469,11 +471,19 @@ def peb() -> None:
 
 
 @pwndbg.commands.Command(
-    "WinDbg compatibility alias for 'nextcall' command.", category=CommandCategory.WINDBG
+    "WinDbg compatibility alias. Displays instructions at the current program counter.",
+    category=CommandCategory.WINDBG
 )
 @pwndbg.commands.OnlyWhenRunning
 def pc():
     """
-    WinDbg compatibility alias for 'nextcall' command.
+    WinDbg compatibility alias. Displays instructions at the current program counter.
+    (Note: Official WinDbg 'pc' command steps to the next call; for that behavior, use 'nextcall' directly in GDB).
     """
-    return pwndbg.commands.next.nextcall()
+    # Ensure pwndbg.aglib.regs and pwndbg.aglib.nearpc are imported in the file.
+    # The function signature for pwndbg.aglib.nearpc.nearpc is:
+    # def nearpc(address=None, lines_count=None, emulate=False, repeat=False, use_cache=False, linear=True)
+    # We pass address=pwndbg.aglib.regs.pc and repeat=pc.repeat, using defaults for others.
+    output = pwndbg.aglib.nearpc.nearpc(address=pwndbg.aglib.regs.pc, repeat=pc.repeat)
+    if output:
+        print("\n".join(output))
