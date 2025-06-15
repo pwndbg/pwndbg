@@ -549,6 +549,10 @@
          <lastmod>2025-06-15</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/musl/mallocng-explain/</loc>
+         <lastmod>2025-06-15</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/process/killthreads/</loc>
          <lastmod>2025-06-15</lastmod>
     </url>
@@ -1350,6 +1354,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/linkmap/</loc>
+         <lastmod>2025-06-15</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/mallocng/</loc>
          <lastmod>2025-06-15</lastmod>
     </url>
     <url>
