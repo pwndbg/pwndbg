@@ -49,19 +49,19 @@ jobs:
     - name: Run tests
       if: matrix.type == 'tests'
       run: |
-        ./tests.sh --nix --cov
+        ./tests.sh --nix --cov -d gdb -g gdb
 
     - name: Run cross-arch tests
       if: matrix.type == 'qemu-user-tests'
       run: |
-        ./crossarch-tests.sh --nix --cov
+        ./tests.sh --nix --cov -d gdb -g cross-arch-user
 
     - name: Set up cache for QEMU images
       if: matrix.type == 'qemu-system-tests'
       id: qemu-cache
       uses: actions/cache@v3
       with:
-        path: ./tests/qemu-tests/kimages
+        path: ./tests/library/qemu-system/kimages
         key: ${{ matrix.os }}-cache-qemu-images
 
     - name: Download QEMU images
@@ -69,7 +69,7 @@ jobs:
       run: |
         # Would happen in the next step as well, but this way
         # it looks nicer in the CI.
-        ./tests/qemu-tests/download-kernel-images.sh
+        ./tests/library/qemu-system/download-kernel-images.sh
 
     - name: Run kernel tests
       if: matrix.type == 'qemu-system-tests'
@@ -110,7 +110,7 @@ jobs:
       run: |
         mkdir .cov
         sudo sysctl -w kernel.yama.ptrace_scope=0
-        ./tests.sh --cov
+        ./tests.sh --cov -d gdb -g gdb
         ./unit-tests.sh --cov
 
     - name: Process coverage data
@@ -143,7 +143,7 @@ jobs:
 
     - name: Run cross-architecture tests
       run: |
-        ./crossarch-tests.sh --cov
+        ./tests.sh --cov -g cross-arch-user -d gdb
 
     - name: Process coverage data
       run: |
@@ -175,12 +175,12 @@ jobs:
       id: qemu-cache
       uses: actions/cache@v3
       with:
-        path: ./tests/qemu-tests/kimages
+        path: ./tests/library/qemu-system/kimages
         key: ${{ matrix.os }}-cache-qemu-images
 
     - name: Download images
       run: |
-        ./tests/qemu-tests/download-kernel-images.sh
+        ./tests/library/qemu-system/download-kernel-images.sh
 
     # We set `kernel.yama.ptrace_scope=0` for `gdb-pt-dump`
     - name: Run kernel tests

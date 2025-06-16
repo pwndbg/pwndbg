@@ -4,7 +4,7 @@ __pycache__/
 
 # C extensions
 *.so
-!tests/**/binaries/glibcs/**/*.so
+!tests/binaries/**/glibcs/**/*.so
 
 # Distribution / packaging
 .Python
@@ -82,7 +82,7 @@ tests/**/binaries/div_zero_binary/binary
 !tests/**/binaries/*.go
 
 # QEMU test images
-tests/qemu-tests/kimages
+tests/library/qemu-system/kimages
 
 # VS Code files
 .vscode/

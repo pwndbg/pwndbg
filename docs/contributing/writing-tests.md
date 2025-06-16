@@ -10,22 +10,24 @@ and unit-tests. They are all located in subdirectories of [`./tests`](https://gi
 
 The x86_64 tests encompass most of the Pwndbg testing suite. If your tests do not belong in any of the other
 categories, they should go here. Since we do not yet perform testing on LLDB, these are run from inside GDB
-and are located in the [`./tests/gdb-tests`](https://github.com/pwndbg/pwndbg/tree/dev/tests/gdb-tests/)
-directory. They can be run with `./tests.sh -t gdb` (this is the default option).
+and are located in the [`./tests/library/gdb`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb/)
+directory. They can be run with `./tests.sh -d gdb -g gdb`.
 
 The cross-architecture tests are run using qemu-user emulation. They test architecture-specific logic and
-are located in the [`./tests/qemu-tests/tests/user`](https://github.com/pwndbg/pwndbg/tree/dev/tests/qemu-tests/tests/user)
-directory. They can be run with `./tests.sh -t cross-arch` (this is what `./qemu-tests.sh` does).
+are located in the [`./tests/library/qemu-user`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-user)
+directory. They can be run with `./tests.sh -d gdb -g cross-arch-user`.
 
-The linux kernel tests are run using qemu-system emulation. They are located in the [`./tests/qemu-tests/tests/system`](https://github.com/pwndbg/pwndbg/tree/dev/tests/qemu-tests/tests/system)
+The linux kernel tests are run using qemu-system emulation. They are located in the
+[`./tests/library/qemu-system`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-system)
 directory and run for a variety kernel configurations and architectures.
 
-The unit tests are not run from within a debugger, but rather directly with pytest. They are located in the [`./tests/unit-tests/`](https://github.com/pwndbg/pwndbg/tree/dev/tests/unit-tests)
+The unit tests are not run from within a debugger, but rather directly with pytest. They are located
+in the [`./tests/unit-tests/`](https://github.com/pwndbg/pwndbg/tree/dev/tests/unit-tests)
 directory.
 
 Here are the options supported by `./tests.sh` which you can get by running `./tests.sh -h`.
 ```
-usage: tests.py [-h] [-t {gdb,cross-arch}] [-p] [-c] [-v] [-s] [--nix] [--collect-only] [test_name_filter]
+usage: tests.py [-h] -g {gdb,dbg,cross-arch-user} -d {gdb} [-p] [-c] [-v] [-s] [--nix] [--collect-only] [test_name_filter]
 
 Run tests.
 
@@ -34,7 +36,8 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -t, --type {gdb,cross-arch}
+  -g {gdb,dbg,cross-arch-user}, --group {gdb,dbg,cross-arch-user}
+  -d {gdb}, --driver {gdb}
   -p, --pdb             enable pdb (Python debugger) post mortem debugger on failed tests
   -c, --cov             enable codecov
   -v, --verbose         display all test output instead of just failing test output
@@ -42,17 +45,16 @@ options:
   --nix                 run tests using built for nix environment
   --collect-only        only show the output of test collection, don't run any tests
 ```
-
 ## Writing tests
 
 Each test is a Python function that runs inside of an isolated GDB session.
 Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning of each test,
-GDB will attach to a [`binary`](https://github.com/pwndbg/pwndbg/tree/dev/tests/gdb-tests/conftest.py)
-or connect to a [`QEMU instance`](https://github.com/pwndbg/pwndbg/tree/dev/tests/qemu-tests/conftest.py).
+GDB will attach to a [`binary`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb/conftest.py)
+or connect to a [`QEMU instance`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-user/conftest.py).
 Each test runs some commands and uses Python `assert` statements to verify correctness. We can access Pwndbg
 library code like `pwndbg.aglib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
 
-We can take a look at [`tests/gdb-tests/tests/test_symbol.py`](https://github.com/pwndbg/pwndbg/tree/dev/tests/gdb-tests/tests/test_symbol.py)
+We can take a look at [`tests/library/gdb/tests/test_symbol.py`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb/tests/test_symbol.py)
 for an example of a simple test. Looking at a simplified version of the top-level code, we have this:
 
 ```python
@@ -60,7 +62,7 @@ import gdb
 import pwndbg
 import tests
 
-BINARY = tests.binaries.get("symbol_1600_and_752.out")
+BINARY = tests.get_binary("symbol_1600_and_752.out")
 ```
 
 Since these tests run inside GDB, we can import the `gdb` Python library. We also import the `tests` module,
@@ -85,9 +87,10 @@ additional customization to GDB settings before starting the binary, but if you 
 
 ## QEMU Tests
 
-Our `gdb-tests` run in x86. To debug other architectures, we use QEMU for emulation and attach to its debug
-port. These tests are located in [`tests/qemu-tests/tests/user`](https://github.com/pwndbg/pwndbg/tree/dev/tests/qemu-tests/tests/user). Test creation is
-identical to our x86 tests - create a Python function with a Pytest fixture name as the parameter (it matches
-based on the name), and call the argument to start debugging a binary. The `qemu_assembly_run` fixture takes in
-a Python string of assembly code, compiles it in the appropriate architecture, and runs it - no need to create
-an external file or edit a Makefile.
+Our `gdb` tests run in x86. To debug other architectures, we use QEMU for emulation and attach to its debug
+port. These tests are located in
+[`tests/library/qemu-user/tests`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-user/tests).
+Test creation is identical to our x86 tests - create a Python function with a Pytest fixture name as
+the parameter (it matches based on the name), and call the argument to start debugging a binary. The
+`qemu_assembly_run` fixture takes in a Python string of assembly code, compiles it in the
+appropriate architecture, and runs it - no need to create an external file or edit a Makefile.

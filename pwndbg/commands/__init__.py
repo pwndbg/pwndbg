@@ -54,6 +54,7 @@ class CommandCategory(str, Enum):
     JEMALLOC = "jemalloc Heap"
     BREAKPOINT = "Breakpoint"
     MEMORY = "Memory"
+    MUSL = "musl"
     STACK = "Stack"
     REGISTER = "Register"
     PROCESS = "Process"
@@ -920,12 +921,14 @@ def load_commands() -> None:
     import pwndbg.commands.kchecksec
     import pwndbg.commands.kcmdline
     import pwndbg.commands.kconfig
+    import pwndbg.commands.kdmesg
     import pwndbg.commands.klookup
     import pwndbg.commands.knft
     import pwndbg.commands.kversion
     import pwndbg.commands.leakfind
     import pwndbg.commands.libcinfo
     import pwndbg.commands.linkmap
+    import pwndbg.commands.mallocng
     import pwndbg.commands.memoize
     import pwndbg.commands.misc
     import pwndbg.commands.mmap
