@@ -9,8 +9,11 @@ from typing import List
 from typing import Optional
 from typing import Tuple
 
+from typing_extensions import override
+
 import pwndbg
 import pwndbg.aglib.arch
+import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory as memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
@@ -791,7 +794,7 @@ class MallocContext:
         assert cur_offset == (0x3B0 if self.has_pagesize_field else 0x3A0)
 
 
-class Mallocng:
+class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
     """
     Tracks the allocator state.
     By leveraging the __malloc_context symbol.
@@ -913,10 +916,12 @@ class Mallocng:
 
         self.ctx_addr = possible[0][0]
 
+    @override
     def libc_has_debug_syms(self) -> bool:
         return self.has_debug_syms
 
-    def containing(self, address: int) -> int:
+    @override
+    def containing(self, address: int, shallow: bool = False) -> int:
         """
         Get the `start` of a slot which contains this address.
 
@@ -924,6 +929,9 @@ class Mallocng:
         [slot.start, slot.start + meta.slot_size). Thus, this will
         match the previous slot if you provide the address of the
         header inband metadata of a slot.
+
+        If `shallow` is True, return the first slot hit without trying
+        to look for nested groups.
         """
         hit_group: Optional[Group] = None
 
@@ -978,8 +986,8 @@ class Mallocng:
 
         try:
             # Recursively go into deeper nested groups until we find a slot
-            # which doesn't house a group.
-            while hit_slot is None or hit_slot.contains_group():
+            # which doesn't house a group. Don't recurse after first hit if shallow = True.
+            while hit_slot is None or (not shallow and hit_slot.contains_group()):
                 if address < hit_group.storage:
                     # Bleh, the address is in the group's header
                     # (or the first slot's IB header). What to do?

@@ -484,6 +484,12 @@ parser.add_argument(
     type=int,
     help="The address to look for.",
 )
+parser.add_argument(
+    "-s",
+    "--shallow",
+    action="store_true",
+    help=("Return the outermost slot hit without going deeper even if this slot contains a group."),
+)
 
 
 @pwndbg.commands.Command(
@@ -492,14 +498,14 @@ parser.add_argument(
     aliases=["ng-find"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_find(address: int) -> None:
+def mallocng_find(address: int, shallow: bool = False) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {hex(address)} not readable."))
         return
 
     ng.init_if_needed()
 
-    slot_start = ng.containing(address)
+    slot_start = ng.containing(address, shallow)
 
     if slot_start == 0:
         print(message.info("No slot found containing that address."))
