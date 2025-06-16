@@ -146,11 +146,15 @@ class Slot:
         inband_data = memory.read(self.p - 8, 8)
 
         self._check4 = inband_data[4]
-        self._idx = inband_data[5] & 31
         if self._check4:
             self._offset = int.from_bytes(inband_data[0:4], pwndbg.aglib.arch.endian, signed=False)
         else:
             self._offset = int.from_bytes(inband_data[6:8], pwndbg.aglib.arch.endian, signed=False)
+        idxv = inband_data[5]
+        if idxv != 255:
+            self._idx = idxv & 31
+        else:
+            self._idx = 0
 
         # Read the group's meta pointer.
         _ = self.meta
@@ -204,7 +208,12 @@ class Slot:
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L133
         if self._idx is None:
-            self._idx = memory.u8(self.p - 3) & 31
+            v = memory.u8(self.p - 3)
+            if v != 255:
+                self._idx = v & 31
+            else:
+                # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L29
+                self._idx = 0
 
         return self._idx
 
