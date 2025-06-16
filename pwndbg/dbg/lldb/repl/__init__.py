@@ -1150,20 +1150,17 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
     io_driver = get_io_driver()
     result = driver.connect(auto.target, io_driver, args.remoteurl, "gdb-remote")
 
-    error = False
     match result:
         case LaunchResultError(what, disconnected):
             print_error(f"could not connect to remote: {what.description}")
             if disconnected:
                 print_warn("disconnected")
-            error = True
+            auto.close()
+            return
         case LaunchResultEarlyExit():
             print_warn("remote exited early")
-            error = True
-
-    if error:
-        auto.close()
-        return
+            auto.close()
+            return
 
     # Tell the debugger that the process was suspended, if there is a process.
     if driver.has_process():
