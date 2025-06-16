@@ -1,6 +1,6 @@
 """
 Displays information about kernel tasks. This command iterates through the kernel's task list
-and prints details about each task, including its address, PID, user space status, CPU, and name.
+and prints details about each task, including its address, PID, user space status, CPU, UID, GID, and name.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ parser.add_argument("task_name", nargs="?", type=str, help="A task name to searc
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelDebugSyms
 def ktask(task_name=None) -> None:
-    print(f"{'Address':>18} {'PID':>6} {'User':>4} {'CPU':>4} {'Name'}")
+    print(f"{'Address':>18} {'PID':>6} {'User':>4} {'CPU':>4} {'UID':>4} {'GID':>4} {'Name'}")
 
     # Look up the init_task symbol, which is the first task in the kernel's task list.
     init_task = pwndbg.aglib.symbol.lookup_symbol_addr("init_task")
@@ -62,7 +62,12 @@ def ktask(task_name=None) -> None:
                     pid = int(task_struct2["pid"])
                     user = "✓" if int(task_struct2["mm"]) != 0 else "✗"
                     cpu = int(task_struct2["thread_info"]["cpu"])
-                    print(f"{curr_task_hex:>18} {pid:>6} {user:>4} {cpu:>4} {comm:<7}")
+                    
+                    # Get UID and GID from the credentials structure
+                    uid = int(task_struct2["real_cred"]["uid"]["val"])
+                    gid = int(task_struct2["real_cred"]["gid"]["val"])
+                    
+                    print(f"{curr_task_hex:>18} {pid:>6} {user:>4} {cpu:>4} {uid:>6} {gid:>6} {comm:<7}")
 
                 curr_thread = curr_thread["next"]
 
