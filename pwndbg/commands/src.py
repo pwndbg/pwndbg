@@ -21,7 +21,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(
     parser,
-    aliases=["src-debug"],
+    aliases=["source"],
     category=pwndbg.commands.CommandCategory.CONTEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
