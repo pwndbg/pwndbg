@@ -51,7 +51,7 @@ def test_command_kdmesg():
 def test_command_kmod():
     if not pwndbg.aglib.kernel.has_debug_syms():
         res = gdb.execute("kmod", to_string=True)
-        assert "The modules symbol was not found." in res
+        assert "may only be run when debugging a Linux kernel with debug" in res
         return
 
     res = gdb.execute("kmod", to_string=True)
