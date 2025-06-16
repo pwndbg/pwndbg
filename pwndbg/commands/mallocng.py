@@ -280,10 +280,10 @@ parser.add_argument(
 @pwndbg.commands.Command(
     parser,
     category=CommandCategory.MUSL,
-    aliases=["ng-uslot"],
+    aliases=["ng-slotu"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_user_slot(address: int, all: bool) -> None:
+def mallocng_slot_user(address: int, all: bool) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {hex(address)} not readable."))
         return
