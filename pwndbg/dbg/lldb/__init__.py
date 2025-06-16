@@ -527,7 +527,12 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def string(self) -> str:
-        addr = self.inner.unsigned
+        if self.inner.type.IsArrayType():
+            # Array types need to have their address taken in LLDB.
+            addr = self.inner.AddressOf().unsigned
+        else:
+            addr = self.inner.unsigned
+
         error = lldb.SBError()
 
         # Read strings up to 4GB.

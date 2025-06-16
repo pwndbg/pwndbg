@@ -30,4 +30,4 @@ jobs:
       run: docker compose build ${{ matrix.images }}
 
     - name: Test on ${{ matrix.images }}
-      run: docker compose run ${{ matrix.images }} ./tests.sh
+      run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g gdb
