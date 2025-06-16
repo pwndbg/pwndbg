@@ -194,7 +194,7 @@ MAX_ORDER = 11
 
 
 def get_pcp_struct(pcp_sz) -> str:
-    kconfig = pwndbg.lib.kernel.kconfig.StaticAnalysisKconfig()
+    kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
     defs = []
     if not pwndbg.aglib.kernel.is_earlier_than_version("5.14.0"):
         if pwndbg.aglib.kernel.is_earlier_than_version("6.7.0"):
@@ -205,10 +205,9 @@ def get_pcp_struct(pcp_sz) -> str:
         defs.append("SINCE_V6_0")
     if not pwndbg.aglib.kernel.is_earlier_than_version("6.7.0"):
         defs.append("SINCE_V6_7")
-    if kconfig.CONFIG_NUMA:
-        defs.append("CONFIG_NUMA")
-    if kconfig.CONFIG_SMP:
-        defs.append("CONFIG_SMP")
+    for config in ("CONFIG_NUMA", "CONFIG_SMP",):
+        if config in kconfig:
+            defs.append(config)
     result = "\n".join(f"#define {s}" for s in defs)
     result += f"""
     struct per_cpu_pages {{
@@ -397,15 +396,16 @@ def kmem_cache_pad_sz(kconfig) -> int:
                 break
     assert distance, "can't find kmem_cache node"
     distance -= 0x18  # the name ptr + list_head
-    if kconfig.CONFIG_SLAB_FREELIST_HARDENED:
-        distance -= 8
-    if kconfig.CONFIG_NUMA:
-        distance -= 8
-    if kconfig.CONFIG_SLAB_FREELIST_RANDOM:
-        distance -= 8
-    if kconfig.CONFIG_KASAN_GENERIC:
-        distance -= 8
-    if kconfig.CONFIG_HARDENED_USERCOPY or pwndbg.aglib.kernel.is_earlier_than_version("6.2.0"):
+    configs = (
+        "CONFIG_SLAB_FREELIST_HARDENED",
+        "CONFIG_NUMA",
+        "CONFIG_SLAB_FREELIST_RANDOM",
+        "CONFIG_KASAN_GENERIC",
+    )
+    for config in configs:
+        if config in kconfig:
+            distance -= 8
+    if "CONFIG_HARDENED_USERCOPY" in kconfig or pwndbg.aglib.kernel.is_earlier_than_version("6.2.0"):
         distance -= 8
     return distance
 
@@ -486,26 +486,24 @@ def load_slab_typeinfo():
     if pwndbg.aglib.typeinfo.lookup_types("struct kmem_cache") is not None:
         return
     # this is the kmem_cache SLUB representation for all 5.x and 6.x
-    kconfig = pwndbg.lib.kernel.kconfig.StaticAnalysisKconfig()
+    kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
     defs = []
-    if kconfig.CONFIG_SLUB_TINY:
-        defs.append("CONFIG_SLUB_TINY")
     if pwndbg.aglib.kernel.is_earlier_than_version("6.2.0"):
         defs.append("BEFORE_V6_2")
     if pwndbg.aglib.kernel.is_earlier_than_version("5.19.0"):
         defs.append("BEFORE_V5_19")
-    if kconfig.CONFIG_SLUB_CPU_PARTIAL:
-        defs.append("CONFIG_SLUB_CPU_PARTIAL")
-    if kconfig.CONFIG_SLAB_FREELIST_HARDENED:
-        defs.append("CONFIG_SLAB_FREELIST_HARDENED")
-    if kconfig.CONFIG_NUMA:
-        defs.append("CONFIG_NUMA")
-    if kconfig.CONFIG_SLAB_FREELIST_RANDOM:
-        defs.append("CONFIG_SLAB_FREELIST_RANDOM")
-    if kconfig.CONFIG_KASAN_GENERIC:
-        defs.append("CONFIG_KASAN_GENERIC")
-    if kconfig.CONFIG_HARDENED_USERCOPY:
-        defs.append("CONFIG_HARDENED_USERCOPY")
+    configs = (
+        "CONFIG_SLUB_TINY", 
+        "CONFIG_SLUB_CPU_PARTIAL",
+        "CONFIG_SLAB_FREELIST_HARDENED",
+        "CONFIG_NUMA",
+        "CONFIG_SLAB_FREELIST_RANDOM",
+        "CONFIG_KASAN_GENERIC",
+        "CONFIG_HARDENED_USERCOPY"
+    )
+    for config in configs:
+        if config in kconfig:
+            defs.append(config)
     sz = kmem_cache_pad_sz(kconfig)
     result = "\n".join(f"#define {s}" for s in defs)
     result += COMMON_TYPES

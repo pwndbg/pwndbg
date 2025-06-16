@@ -626,7 +626,7 @@ def OnlyWithKernelDebugInfo(function: Callable[P, T]) -> Callable[P, Optional[T]
             return function(*a, **kw)
         else:
             log.error(
-                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with .debug_info."
+                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with debug info."
             )
             return None
 

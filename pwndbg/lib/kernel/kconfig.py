@@ -32,9 +32,29 @@ def config_to_key(name: str) -> str:
 
 
 class Kconfig(UserDict):  # type: ignore[type-arg]
-    def __init__(self, compressed_config: bytes, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, compressed_config: bytes | None, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.data = parse_compresed_config(compressed_config)
+        if compressed_config is not None:
+            self.data = parse_compresed_config(compressed_config)
+            return
+        if self.CONFIG_SLUB_TINY:
+            self.data["CONFIG_SLUB_TINY"] = "y"
+        if self.CONFIG_SLUB_CPU_PARTIAL:
+            self.data["CONFIG_SLUB_CPU_PARTIAL"] = "y"
+        if self.CONFIG_MEMCG:
+            self.data["CONFIG_MEMCG"] = "y"
+        if self.CONFIG_SLAB_FREELIST_RANDOM:
+            self.data["CONFIG_SLUB_CPU_PARTIAL"] = "y"
+        if self.CONFIG_HARDENED_USERCOPY:
+            self.data["CONFIG_HARDENED_USERCOPY"] = "y"
+        if self.CONFIG_SLAB_FREELIST_HARDENED:
+            self.data["CONFIG_SLAB_FREELIST_HARDENED"] = "y"
+        if self.CONFIG_NUMA:
+            self.data["CONFIG_NUMA"] = "y"
+        if self.CONFIG_KASAN_GENERIC:
+            self.data["CONFIG_KASAN_GENERIC"] = "y"
+        if self.CONFIG_SMP:
+            self.data["CONFIG_SMP"] = "y"
 
     def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
@@ -65,8 +85,6 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     def __getattr__(self, name: str):
         return self.get(name)
 
-
-class StaticAnalysisKconfig:
     @property
     def CONFIG_SLUB_TINY(self) -> bool:
         if pwndbg.aglib.kernel.is_earlier_than_version("6.2.0"):

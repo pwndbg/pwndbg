@@ -32,7 +32,7 @@ def test_command_kconfig():
 
 
 def test_command_kdmesg():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_info():
         res = gdb.execute("kdmesg", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
@@ -69,7 +69,8 @@ def test_command_slab_info():
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
 
-    pwndbg.aglib.kernel.symbol.load_slab_typeinfo()
+    if not pwndbg.aglib,kernel.has_debug_info():
+        pwndbg.aglib.kernel.symbol.load_slab_typeinfo()
     for cache in pwndbg.aglib.kernel.slab.caches():
         cache_name = cache.name
         res = gdb.execute(f"slab info -v {cache_name}", to_string=True)
