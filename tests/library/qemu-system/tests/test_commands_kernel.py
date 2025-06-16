@@ -47,6 +47,15 @@ def test_command_kdmesg():
         or "`struct tk_data` is not defined in the current debug symbols." in res
     )
 
+def test_command_kmod():
+    if not pwndbg.aglib.kernel.has_debug_syms():
+        res = gdb.execute("kmod", to_string=True)
+        assert "The modules symbol was not found." in res
+        return
+
+    res = gdb.execute("kmod", to_string=True)
+    assert "Kernel modules address found at" in res or "The modules symbol was not found." in res
+
 
 def test_command_kversion():
     res = gdb.execute("kversion", to_string=True)
