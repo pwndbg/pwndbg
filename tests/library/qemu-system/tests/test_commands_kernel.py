@@ -47,6 +47,15 @@ def test_command_kdmesg():
         or "`struct tk_data` is not defined in the current debug symbols." in res
     )
 
+def test_command_ksyscalls():
+    if not pwndbg.aglib.kernel.has_debug_syms():
+        res = gdb.execute("ksyscalls", to_string=True)
+        assert "may only be run when debugging a Linux kernel with debug" in res
+        return
+
+    res = gdb.execute("ksyscalls", to_string=True)
+    assert "entries found at" in res
+
 
 def test_command_kversion():
     res = gdb.execute("kversion", to_string=True)
