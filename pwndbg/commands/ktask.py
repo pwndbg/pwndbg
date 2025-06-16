@@ -62,12 +62,14 @@ def ktask(task_name=None) -> None:
                     pid = int(task_struct2["pid"])
                     user = "✓" if int(task_struct2["mm"]) != 0 else "✗"
                     cpu = int(task_struct2["thread_info"]["cpu"])
-                    
+
                     # Get UID and GID from the credentials structure
                     uid = int(task_struct2["real_cred"]["uid"]["val"])
                     gid = int(task_struct2["real_cred"]["gid"]["val"])
-                    
-                    print(f"{curr_task_hex:>18} {pid:>6} {user:>4} {cpu:>4} {uid:>6} {gid:>6} {comm:<7}")
+
+                    print(
+                        f"{curr_task_hex:>18} {pid:>6} {user:>4} {cpu:>4} {uid:>6} {gid:>6} {comm:<7}"
+                    )
 
                 curr_thread = curr_thread["next"]
 
