@@ -35,7 +35,7 @@ def ksyscalls(syscall_name=None) -> None:
             )
         )
 
-        print(f"Syscall table address with {sc_count} entries found at {hex(table_addr)}.\n")
+        print(f"Syscall table address with {sc_count} entries found at {table_addr:#x}.\n")
 
         size_ptr = pwndbg.aglib.arch.ptrsize
 
