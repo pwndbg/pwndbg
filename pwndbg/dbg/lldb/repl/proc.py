@@ -642,7 +642,7 @@ class ProcessDriver:
 
     def _attach_remote(self, pid: int) -> lldb.SBError:
         """
-        Attatch to a process in a remote debugserver.
+        Attach to a process in a remote debugserver.
         """
         if pid == 0:
             return lldb.SBError("PID of 0 or no PID was given")
@@ -743,7 +743,7 @@ class ProcessDriver:
             )
             match result:
                 case _PollResultStopped():
-                    # The process has startarted. We can fire off the created event
+                    # The process has started. We can fire off the created event
                     # just fine.
                     self.eh.created()
                     return LaunchResultSuccess()
