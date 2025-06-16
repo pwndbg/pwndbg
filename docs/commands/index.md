@@ -85,6 +85,7 @@
 -  [knft-list-rules](kernel/knft-list-rules.md) - Dump netfilter rules form a specific chain
 -  [knft-list-sets](kernel/knft-list-sets.md) - Dump netfilter sets from a specific table
 -  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
+-  [ktask](kernel/ktask.md) - Displays information about kernel tasks.
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
 -  [msr](kernel/msr.md) - Read or write to Model Specific Register (MSR)
 -  [p2v](kernel/p2v.md) - Translate physical address to its corresponding virtual address.
