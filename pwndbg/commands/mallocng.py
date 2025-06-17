@@ -487,6 +487,12 @@ parser.add_argument(
     help="The address to look for.",
 )
 parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    help="Print out all information. Including meta and group data.",
+)
+parser.add_argument(
     "-m",
     "--metadata",
     action="store_true",
@@ -509,7 +515,7 @@ parser.add_argument(
     aliases=["ng-find"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_find(address: int, metadata: bool = False, shallow: bool = False) -> None:
+def mallocng_find(address: int, all: bool = False, metadata: bool = False, shallow: bool = False) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {hex(address)} not readable."))
         return
@@ -522,4 +528,4 @@ def mallocng_find(address: int, metadata: bool = False, shallow: bool = False) -
         print(message.info("No slot found containing that address."))
         return
 
-    mallocng_slot_user(mallocng.Slot.from_start(slot_start).p, all=True)
+    mallocng_slot_user(mallocng.Slot.from_start(slot_start).p, all=all)
