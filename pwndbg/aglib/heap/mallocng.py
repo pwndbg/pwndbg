@@ -336,10 +336,23 @@ class Slot:
 
     @classmethod
     def from_start(cls, start: int) -> "Slot":
-        # Read the cyclic offset to calculate `p`.
-        off = memory.u16(start - 2)
-        p = start + off * UNIT
-        return cls(p)
+        idx_or_marker = memory.u8(start - 3)
+        if idx_or_marker == 224:
+            # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L217
+            # p is at an offset from start
+            # Read the cyclic offset to calculate it.
+            off = memory.u16(start - 2)
+            p = start + off * UNIT
+            obj = cls(p)
+        else:
+            p = start
+            obj = cls(p)
+
+        # FIXME: Not good if the slot is corrupted and we can't
+        # access the meta.
+        assert obj.start == start
+
+        return obj
 
 
 class Meta:
