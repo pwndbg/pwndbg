@@ -158,7 +158,7 @@ def dump_group(group: mallocng.Group) -> str:
         # May fail on corrupt meta.
         group_size = group.group_size
     except pwndbg.dbg_mod.Error as e:
-        print(message.error("Error while reading meta: " + str(e)))
+        print(message.error(f"Error while reading meta: {e}"))
         print(C.bold("Cannot determine group size."))
         group_size = -1
 
@@ -234,7 +234,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
         try:
             mapping = pwndbg.aglib.vmmap.find(mallocng.Group(meta.mem).addr)
         except pwndbg.dbg_mod.Error as e:
-            print(message.error(f"Could not fetch parent group: {str(e)}"))
+            print(message.error(f"Could not fetch parent group: {e}"))
             mapping = None
 
         if mapping is None:
@@ -253,7 +253,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
             parent_group = mallocng.Slot(mallocng.Group(meta.mem).addr).group.addr
             output += " (" + C.memory.get(parent_group) + ")"
         except pwndbg.dbg_mod.Error as e:
-            print(message.error(f"Could not fetch parent group: {str(e)}"))
+            print(message.error(f"Could not fetch parent group: {e}"))
         output += C.bold(".\n")
 
     return output
@@ -293,7 +293,7 @@ def mallocng_slot_user(address: int, all: bool) -> None:
     try:
         slot.preload()
     except pwndbg.dbg_mod.Error as e:
-        print(message.error("Error while reading slot: " + str(e)))
+        print(message.error(f"Error while reading slot: {e}"))
         return
 
     read_success: bool = True
@@ -301,13 +301,13 @@ def mallocng_slot_user(address: int, all: bool) -> None:
     try:
         slot.group.preload()
     except pwndbg.dbg_mod.Error as e:
-        print(message.error("Error while reading group: " + str(e)))
+        print(message.error(f"Error while reading group: {e}"))
         read_success = False
 
     try:
         slot.meta.preload()
     except pwndbg.dbg_mod.Error as e:
-        print(message.error("Error while reading meta: " + str(e)))
+        print(message.error(f"Error while reading meta: {e}"))
         read_success = False
 
     if not read_success:
@@ -468,5 +468,5 @@ def mallocng_group(address: int) -> None:
         meta.preload()
         print(dump_meta(meta), end="")
     except pwndbg.dbg_mod.Error as e:
-        print(message.error(f"Failed loading meta: {str(e)}"))
+        print(message.error(f"Failed loading meta: {e}"))
         return
