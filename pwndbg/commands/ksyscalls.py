@@ -9,7 +9,9 @@ import argparse
 import pwndbg.color.message as message
 import pwndbg.commands
 
-parser = argparse.ArgumentParser(description="Displays syscall table for kernel debugging.")
+parser = argparse.ArgumentParser(
+    description="Displays Linux syscall table, including names and addresses of syscalls."
+)
 
 parser.add_argument("syscall_name", nargs="?", type=str, help="A syscall name to search for")
 
@@ -51,11 +53,8 @@ def ksyscalls(syscall_name=None) -> None:
                 if symbol is None or syscall_name not in symbol:
                     continue
 
-            if symbol is None:
-                print(f"{i:>4} {hex(sc_addr):>18} {'<unknown>'}")
-                continue
-
-            print(f"{i:>4} {hex(sc_addr):>18} {symbol}")
+            print_entry = lambda: print(f"{i:>4} {hex(sc_addr):>18} {symbol or '<unknown>'}")
+            print_entry()
 
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"ERROR: {e}"))
