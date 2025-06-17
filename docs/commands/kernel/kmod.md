@@ -6,12 +6,12 @@ usage: kmod [-h] [module_name]
 
 ```
 
-Displays information about loaded kernel modules.
+Displays the loaded Linux kernel modules.
 ### Positional arguments
 
 |Positional Argument|Help|
 | :--- | :--- |
-|module_name|A module name substring to search for|
+|module_name|A module name substring to filter for|
 
 ### Optional arguments
 
