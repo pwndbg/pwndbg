@@ -6,7 +6,7 @@ usage: ksyscalls [-h] [syscall_name]
 
 ```
 
-Displays syscall table for kernel debugging.
+Displays Linux syscall table, including names and addresses of syscalls.
 ### Positional arguments
 
 |Positional Argument|Help|
