@@ -10,7 +10,7 @@ import argparse
 from tabulate import tabulate
 
 import pwndbg.commands
-from pwndbg.aglib.kernel.macros import container_of, for_each_entry
+from pwndbg.aglib.kernel.macros import for_each_entry
 
 parser = argparse.ArgumentParser(description="Displays the loaded Linux kernel modules.")
 parser.add_argument(
@@ -45,7 +45,7 @@ def kmod(module_name=None) -> None:
                 "utf-8", errors="ignore"
             )
 
-            # Calculate runtime memory footprint by summing sizes of MOD_TEXT, MOD_DATA, MOD_RODATA, MOD_RO_AFTER_INIT, 
+            # Calculate runtime memory footprint by summing sizes of MOD_TEXT, MOD_DATA, MOD_RODATA, MOD_RO_AFTER_INIT,
             # which excludes initialization sections that are freed after the module load. See `enum mod_mem_type` in kernel source.
             size = sum(int(module["mem"][i]["size"]) for i in range(4))
             uses = int(module["refcnt"]["counter"]) - 1
