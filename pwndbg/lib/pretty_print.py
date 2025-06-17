@@ -70,18 +70,24 @@ class PropertyPrinter:
                     prop.value = str(prop.value)
 
         # Get max lengths to calculate proper ljust
-        max_name_len = max(len(prop.name) for prop in prop_group)
+        # + 1 to account for the ":"
+        max_name_len = max(len(prop.name) for prop in prop_group) + 1
         # max_value_len = max(len(prop.value) for prop in prop_group)
         # Use constant so it works between different groups
         max_value_len = 16
 
+        indentation_str = self.indent_level * self.indent_size * " "
+        padding_str = self.padding * " "
+        name_pad_str = max_name_len * " "
+        val_pad_str = max_value_len * " "
+        extra_list_pad_str = indentation_str + name_pad_str + padding_str + val_pad_str
+
         for prop in prop_group:
-            self.text += self.indent_level * self.indent_size * " "
-
-            colored_name = self.name_color_func(prop.name) + ":"
-            self.text += color.ljust_colored(colored_name, max_name_len + 1)
-
-            self.text += self.padding * " "
+            self.text += (
+                indentation_str +
+                color.ljust_colored(self.name_color_func(prop.name) + ":", max_name_len) +
+                padding_str
+            )
 
             if prop.is_addr:
                 base = 16 if prop.use_hex else 10
@@ -101,10 +107,7 @@ class PropertyPrinter:
                 self.text += "  " + prop.extra[0]
                 for i in range(1, len(prop.extra)):
                     self.text += "\n"
-                    self.text += self.indent_level * self.indent_size * " "
-                    self.text += (max_name_len + 1) * " "
-                    self.text += self.padding * " "
-                    self.text += max_value_len * " "
+                    self.text += extra_list_pad_str
                     self.text += "  " + prop.extra[i]
 
             self.text += "\n"
