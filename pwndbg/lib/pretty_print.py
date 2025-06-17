@@ -84,9 +84,9 @@ class PropertyPrinter:
 
         for prop in prop_group:
             self.text += (
-                indentation_str +
-                color.ljust_colored(self.name_color_func(prop.name) + ":", max_name_len) +
-                padding_str
+                indentation_str
+                + color.ljust_colored(self.name_color_func(prop.name) + ":", max_name_len)
+                + padding_str
             )
 
             if prop.is_addr:
