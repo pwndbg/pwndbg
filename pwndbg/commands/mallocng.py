@@ -285,7 +285,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def mallocng_slot_user(address: int, all: bool) -> None:
     if not memory.is_readable_address(address):
-        print(message.error(f"Address {hex(address)} not readable."))
+        print(message.error(f"Address {address:#x} not readable."))
         return
 
     slot = mallocng.Slot(address)
@@ -409,7 +409,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def mallocng_meta(address: int) -> None:
     if not memory.is_readable_address(address):
-        print(message.error(f"Address {hex(address)} not readable."))
+        print(message.error(f"Address {address:#x} not readable."))
         return
 
     meta = mallocng.Meta(address)
@@ -450,7 +450,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def mallocng_group(address: int) -> None:
     if not memory.is_readable_address(address):
-        print(message.error(f"Address {hex(address)} not readable."))
+        print(message.error(f"Address {address:#x} not readable."))
         return
 
     group = mallocng.Group(address)
