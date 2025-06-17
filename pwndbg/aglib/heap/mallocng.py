@@ -921,14 +921,17 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         return self.has_debug_syms
 
     @override
-    def containing(self, address: int, shallow: bool = False) -> int:
+    def containing(self, address: int, metadata: bool = False, shallow: bool = False) -> int:
         """
         Get the `start` of a slot which contains this address.
 
         We say a slot "contains" an address, if the address is in
-        [slot.start, slot.start + meta.slot_size). Thus, this will
-        match the previous slot if you provide the address of the
-        header inband metadata of a slot.
+        [start, start + stride). Thus, this will match the previous
+        slot if you provide the address of the header inband metadata
+        of a slot.
+
+        If `metadata` is True, then we check [start - IB, end) for
+        containment.
 
         If `shallow` is True, return the first slot hit without trying
         to look for nested groups.
@@ -984,11 +987,15 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         hit_slot: Optional[Slot] = None
 
+        metadata_offset = IB if metadata else 0
+
         try:
             # Recursively go into deeper nested groups until we find a slot
             # which doesn't house a group. Don't recurse after first hit if shallow = True.
             while hit_slot is None or (not shallow and hit_slot.contains_group()):
-                if address < hit_group.storage:
+                valid_start = hit_group.storage - metadata_offset
+
+                if address < valid_start:
                     # Bleh, the address is in the group's header
                     # (or the first slot's IB header). What to do?
                     if hit_slot is not None:
@@ -1002,7 +1009,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         return 0
 
                 # Calculate the correct inner slot.
-                slot_idx = (address - hit_group.storage) // hit_group.meta.stride
+                slot_idx = (address - valid_start) // hit_group.meta.stride
 
                 hit_slot = Slot.from_start(hit_group.at_index(slot_idx))
                 hit_group = Group(hit_slot.p)
@@ -1013,7 +1020,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             print(
                 message.error(
                     "Mallocng.containing: Failed reading memory while traversing"
-                    f"nested groups ({e}), returning last valid slot."
+                    f" nested groups: {e}.\nReturning last valid slot."
                 )
             )
             if hit_slot is None:

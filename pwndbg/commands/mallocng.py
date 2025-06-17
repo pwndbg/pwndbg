@@ -476,7 +476,9 @@ def mallocng_group(address: int) -> None:
 parser = argparse.ArgumentParser(
     description="""
 Find slot which contains the given address.
-Returns the `start` of the slot.
+
+Returns the `start` of the slot. We say a slot 'contains'
+an address if the address is in [start, start + stride).
     """,
 )
 parser.add_argument(
@@ -485,10 +487,19 @@ parser.add_argument(
     help="The address to look for.",
 )
 parser.add_argument(
+    "-m",
+    "--metadata",
+    action="store_true",
+    help=(
+        "If the given address falls onto some in-band metadata, return the slot which owns that metadata."
+        " In other words, the containment check becomes [start - IB, end)."
+    ),
+)
+parser.add_argument(
     "-s",
     "--shallow",
     action="store_true",
-    help=("Return the outermost slot hit without going deeper even if this slot contains a group."),
+    help="Return the outermost slot hit without going deeper even if this slot contains a group.",
 )
 
 
@@ -498,14 +509,14 @@ parser.add_argument(
     aliases=["ng-find"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_find(address: int, shallow: bool = False) -> None:
+def mallocng_find(address: int, metadata: bool = False, shallow: bool = False) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {hex(address)} not readable."))
         return
 
     ng.init_if_needed()
 
-    slot_start = ng.containing(address, shallow)
+    slot_start = ng.containing(address, metadata, shallow)
 
     if slot_start == 0:
         print(message.info("No slot found containing that address."))
