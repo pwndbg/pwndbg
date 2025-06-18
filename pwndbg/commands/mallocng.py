@@ -293,19 +293,14 @@ def dump_meta(meta: mallocng.Meta) -> str:
     pp.add(
         [
             Property(name="cnt", value=meta.cnt, extra="the number of slots"),
-            Property(name="slot size", value=meta.slot_size, extra='aka "stride"'),
+            Property(name="stride", value=meta.stride),
         ]
     )
     pp.end_section()
 
     output = pp.dump()
 
-    if not meta.freeable:
-        # When mapped object files contain unused memory, they are donated
-        # to the heap. See https://elixir.bootlin.com/musl/v1.2.5/source/ldso/dynlink.c#L600
-        # and https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L36 .
-        # Only in this case is `meta.freeable = 0;`
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L25
+    if meta.is_donated:
         output += C.bold("\nGroup donated by ld as unused part of ")
 
         try:
@@ -321,10 +316,10 @@ def dump_meta(meta: mallocng.Meta) -> str:
 
         output += C.bold(".\n")
 
-    elif not meta.last_idx and meta.maplen:
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L177
+    elif meta.is_mmaped:
         output += C.bold("\nGroup allocated with mmap().\n")
     else:
+        assert meta.is_nested
         output += C.bold("\nGroup nested in slot of another group")
         try:
             parent_group = mallocng.Slot(mallocng.Group(meta.mem).addr).group.addr

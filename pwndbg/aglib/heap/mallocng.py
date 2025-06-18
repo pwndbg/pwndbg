@@ -541,6 +541,8 @@ class Meta:
 
         return self._maplen
 
+    # Semi-custom methods..
+
     @property
     def stride(self):
         """
@@ -559,6 +561,8 @@ class Meta:
 
         return self._stride
 
+    # Custom methods..
+
     @property
     def cnt(self):
         """
@@ -568,17 +572,34 @@ class Meta:
         return self.last_idx + 1
 
     @property
-    def slot_size(self):
+    def is_donated(self) -> bool:
         """
-        The size of a slot in this group, in bytes.
+        Returns whether the group object referred to by this meta has been
+        created by being donated by ld.
+        """
+        # When mapped object files contain unused memory, they are donated
+        # to the heap. See https://elixir.bootlin.com/musl/v1.2.5/source/ldso/dynlink.c#L600
+        # and https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L36 .
+        # Only in this case is `meta.freeable = 0;`
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L25
+        return not self.freeable
 
-        Returns -1 if sizeclass >= len(size_classes).
+    @property
+    def is_mmaped(self) -> bool:
         """
-        if self.sizeclass < len(size_classes):
-            return size_classes[self.sizeclass] * UNIT
-        else:
-            # The meta is corrupted.
-            return -1
+        Returns whether the group object referred to by this meta has been
+        created by being mmaped.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L177
+        return not self.is_donated and not self.last_idx and bool(self.maplen)
+
+    @property
+    def is_nested(self) -> bool:
+        """
+        Returns whether the group object referred to by this meta has been
+        created by being nested into a slot.
+        """
+        return not self.is_donated and not self.is_mmaped
 
     @staticmethod
     def sizeof():
