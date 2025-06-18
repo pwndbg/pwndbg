@@ -331,42 +331,12 @@ def dump_meta(meta: mallocng.Meta) -> str:
     return output
 
 
-parser = argparse.ArgumentParser(
-    description="""
-Dump information about a mallocng slot, given its user address.
-    """,
-)
-parser.add_argument(
-    "address",
-    type=int,
-    help="The start of user memory. Referred to as `p` in the source.",
-)
-parser.add_argument(
-    "-a",
-    "--all",
-    action="store_true",
-    help="Print out all information. Including meta and group data.",
-)
-
-
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.MUSL,
-    aliases=["ng-slotu"],
-)
-@pwndbg.commands.OnlyWhenRunning
-def mallocng_slot_user(address: int, all: bool) -> None:
-    if not memory.is_readable_address(address):
-        print(message.error(f"Address {address:#x} not readable."))
-        return
-
-    slot = mallocng.Slot(address)
-
+def dump_slot(slot: mallocng.Slot, all: bool) -> str:
     try:
         slot.preload()
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"Error while reading slot: {e}"))
-        return
+        return ""
 
     read_success: bool = True
 
@@ -483,11 +453,79 @@ def mallocng_slot_user(address: int, all: bool) -> None:
     pp.add(inband_group)
     pp.end_section()
 
-    pp.print()
+    output = pp.dump()
 
     if all:
-        print(dump_group(slot.group), end="")
-        print(dump_meta(slot.meta), end="")
+        output += dump_group(slot.group)
+        output += dump_meta(slot.meta)
+
+    return output
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Dump information about a mallocng slot, given its user address.
+    """,
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="The start of user memory. Referred to as `p` in the source.",
+)
+parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    help="Print out all information. Including meta and group data.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-slotu"],
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_slot_user(address: int, all: bool) -> None:
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {address:#x} not readable."))
+        return
+
+    slot = mallocng.Slot(address)
+    print(dump_slot(slot, all), end="")
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Dump information about a mallocng slot, given its start address.
+    """,
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="The start of the slot (not including IB).",
+)
+parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    help="Print out all information. Including meta and group data.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-slots"],
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_slot_start(address: int, all: bool) -> None:
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {address:#x} not readable."))
+        return
+
+    slot = mallocng.Slot.from_start(address)
+    print(dump_slot(slot, all), end="")
 
 
 parser = argparse.ArgumentParser(
