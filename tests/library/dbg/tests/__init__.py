@@ -11,11 +11,11 @@ from host import Controller
 def pwndbg_test(
     test: Callable[..., Coroutine[Any, Any, None]],
 ) -> Callable[..., None]:
-    @functools.wraps(test)
     def inner_test(*args, **kwargs):
         async def _test(controller: Controller) -> None:
             test(controller, *args, **kwargs)
 
+        print(f"[+] Launching test {test.__name__} asynchronously")
         host.start(_test)
         pass
 

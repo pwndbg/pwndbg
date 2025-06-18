@@ -10,12 +10,12 @@ from typing import Callable
 from typing import Coroutine
 from typing import List
 
-from host import Controller
 
-
-async def _run(ctrl: Any, outer: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:
+async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> None:
     # We only import this here, as pwndbg-lldb is responsible for setting Pwndbg
     # up on our behalf.
+    from host import Controller
+
     from pwndbg.dbg.lldb.repl import PwndbgController
 
     assert isinstance(ctrl, PwndbgController)
@@ -33,9 +33,10 @@ async def _run(ctrl: Any, outer: Callable[[Controller], Coroutine[Any, Any, None
     await outer(_LLDBController(ctrl))
 
 
-def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> None:
+def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
     # The import path is set up before this function is called.
     import host
+    from host import Controller
 
     launcher = importlib.import_module("pwndbg-lldb")
 
@@ -48,7 +49,7 @@ def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> None:
     # Run Pytest.
     import pytest
 
-    sys.exit(pytest.main(pytest_args, plugins=pytest_plugins))
+    return pytest.main(pytest_args, plugins=pytest_plugins)
 
 
 class Operation(Enum):
@@ -113,4 +114,10 @@ if __name__ == "__main__":
             pytest_plugins = None
 
     # Start the test, proper.
-    run(pytest_args, pytest_plugins)
+    status = run(pytest_args, pytest_plugins)
+
+    if op == Operation.COLLECT:
+        for nodeid in pytest_plugins[0].collected:
+            print(nodeid)
+
+    sys.exit(status)

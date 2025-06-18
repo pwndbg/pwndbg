@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import host
+import pytest
 from host import Controller
 
-from tests import pwndbg_test
 
+@pytest.mark.xfail
+def test_starts_no_decorator() -> None:
+    async def run(ctrl: Controller):
+        raise RuntimeError("should fail!")
 
-@pwndbg_test
-async def test_empty(ctrl: Controller) -> None:
-    pass
+    host.start(run)

@@ -36,7 +36,7 @@ def _collection_from_pytest(
     #
     # _run_gdb executes it in the current working directory, and so paths
     # printed by pytest are relative to it.
-    path_spec = pytest_root.resolve().relative_to(pwndbg_root)
+    path_spec = pytest_root.resolve().relative_to(pwndbg_root / "tests")
     pattern = re.compile(rf"{path_spec}.*::.*")
     matches = pattern.findall(tests_collect_output)
 

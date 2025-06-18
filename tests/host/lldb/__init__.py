@@ -52,7 +52,9 @@ class LLDBTestHost(TestHost):
         if test_name is not None:
             env["TEST_NAME"] = test_name
 
-        return subprocess.run([interpreter, str(target)], capture_output=capture, text=True)
+        return subprocess.run(
+            [interpreter, str(target)], capture_output=capture, text=True, env=env
+        )
 
     def collect(self) -> List[str]:
         result = self._launch("COLLECT", None, True)

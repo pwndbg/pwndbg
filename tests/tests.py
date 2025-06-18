@@ -29,7 +29,7 @@ def main():
         print("Will run tests in serial and with Python debugger")
         args.serial = True
 
-    local_pwndbg_root = (Path(os.path.dirname(__file__)) / ".." / "../").resolve()
+    local_pwndbg_root = (Path(os.path.dirname(__file__)) / "../").resolve()
     print(f"[*] Local Pwndbg root: {local_pwndbg_root}")
 
     # Build the binaries for the test group.
@@ -204,7 +204,7 @@ def get_lldb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost
 
     from host.lldb import LLDBTestHost
 
-    return LLDBTestHost(pwndbg_root, lldbinit_dir, local_pwndbg_root / args.group.library())
+    return LLDBTestHost(local_pwndbg_root, lldbinit_dir, local_pwndbg_root / args.group.library())
 
 
 class Group(Enum):
@@ -359,10 +359,10 @@ class TestStats:
 
     def handle_test_result(self, case: str, test_result: TestResult, verbose: bool):
         match test_result.status:
-            case TestStatus.FAILED | TestStatus.XFAIL:
+            case TestStatus.FAILED | TestStatus.XPASS:
                 self.fail_tests += 1
                 self.fail_tests_names.append(case)
-            case TestStatus.PASSED | TestStatus.XPASS:
+            case TestStatus.PASSED | TestStatus.XFAIL:
                 self.pass_tests += 1
             case TestStatus.SKIPPED:
                 self.skip_tests += 1
@@ -377,7 +377,11 @@ class TestStats:
         )
 
         # Only show the output of failed tests unless the verbose flag was used
-        if verbose or test_result.status == TestStatus.FAILED:
+        if (
+            verbose
+            or test_result.status == TestStatus.FAILED
+            or test_result.status == TestStatus.XPASS
+        ):
             print("")
             print(test_result.stderr)
             print(test_result.stdout)
