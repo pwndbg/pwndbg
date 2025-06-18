@@ -186,8 +186,9 @@ def main() -> None:
         )
 
     def drive(startup: List[str] | None):
-        async def drive(c): 
+        async def drive(c):
             from pwndbg.dbg.lldb.repl import PwndbgController
+
             assert isinstance(c, PwndbgController)
 
             if startup is not None:

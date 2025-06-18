@@ -50,6 +50,8 @@ def main():
     match args.driver:
         case Driver.GDB:
             host = get_gdb_host(args, local_pwndbg_root)
+        case Driver.LLDB:
+            host = get_lldb_host(args, local_pwndbg_root)
 
     # Handle the case in which the user only wants the collection to run.
     if args.collect_only:
@@ -185,6 +187,26 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
     )
 
 
+def get_lldb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
+    """
+    Build an LLDB-based test host.
+    """
+    if args.nix:
+        # Use pwndbg, as built by nix.
+        lldbinit_dir = local_pwndbg_root / "result" / "share" / "pwndbg/"
+
+        if not lldbinit_dir.exists():
+            print("ERROR: No nix-compatible pwndbg found. Run nix build .#pwndbg-lldb")
+            sys.exit(1)
+    else:
+        # Use the local version of pwndbg.
+        lldbinit_dir = local_pwndbg_root
+
+    from host.lldb import LLDBTestHost
+
+    return LLDBTestHost(pwndbg_root, lldbinit_dir, local_pwndbg_root / args.group.library())
+
+
 class Group(Enum):
     """
     Tests are divided into multiple groups.
@@ -230,6 +252,7 @@ class Group(Enum):
 
 class Driver(Enum):
     GDB = "gdb"
+    LLDB = "lldb"
 
     def __str__(self):
         return self._value_
@@ -249,6 +272,16 @@ class Driver(Enum):
                         return True
                     case Group.CROSS_ARCH_USER:
                         return True
+            case Driver.LLDB:
+                match grp:
+                    case Group.GDB:
+                        return False
+                    case Group.LLDB:
+                        return True
+                    case Group.DBG:
+                        return True
+                    case Group.CROSS_ARCH_USER:
+                        return False
         raise AssertionError(f"unaccounted for combination of driver '{self}' and group '{grp}'")
 
 
