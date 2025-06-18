@@ -202,8 +202,41 @@ class Slot:
         # return some information even if the meta is corrupt, so
         # we won't load that here.
 
-        # All the other fields are calculated without
-        # memory reads.
+        # Other fields are calculated without memory reads.
+
+    def preload_meta_dependants(self) -> None:
+        """
+        Preloads all fields that depend on a sane meta.
+
+        It generally only makes sense to run this after preload().
+        Calling this reduces the amount of process writes and centralizes
+        field exceptions to this function.
+
+        If both preload() and preload_meta_dependants() return without
+        exceptions, all the fields in this class are guaranteed to not
+        cause any more memory reads nor raise any more exceptions.
+
+        Raises:
+            pwndbg.dbg_mod.Error: When the meta is corrupt and/or
+                reading memory fails.
+        """
+        # Make sure stride is valid.
+        _ = self.meta.stride
+
+        # Read the start header only if we need to.
+        if self.start != self.p:
+            startheader = memory.read(self.start - 3, 3)
+            self._startn3 = int.from_bytes(startheader[0:1], pwndbg.aglib.arch.endian, signed=False)
+            self._cyclic_offset = int.from_bytes(
+                startheader[1:3], pwndbg.aglib.arch.endian, signed=False
+            )
+
+        # Read footer.
+        self._reserved = self.pn3 >> 5
+        if self._reserved == 5:
+            self._reserved = memory.u32(self.end - 4)
+
+        # Other fields are calculated without memory reads.
 
     @property
     def big_offset_check(self) -> int:

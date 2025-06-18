@@ -378,8 +378,14 @@ def mallocng_slot_user(address: int, all: bool) -> None:
 
     try:
         slot.meta.preload()
-    except pwndbg.dbg_mod.Error as e:
-        print(message.error(f"Error while reading meta: {e}"))
+        try:
+            slot.preload_meta_dependants()
+        except pwndbg.dbg_mod.Error as e1:
+            print(message.error(f"Error while loading slot fields that depend on the meta:\n{e1}"))
+            read_success = False
+
+    except pwndbg.dbg_mod.Error as e2:
+        print(message.error(f"Error while reading meta: {e2}"))
         read_success = False
 
     if not read_success:
