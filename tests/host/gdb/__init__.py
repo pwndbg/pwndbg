@@ -11,6 +11,8 @@ from typing import List
 from host import TestHost
 from host import TestResult
 from host import TestStatus
+from host import _collection_from_pytest
+from host import _result_from_pytest
 
 
 class GDBTestHost(TestHost):
@@ -86,47 +88,7 @@ class GDBTestHost(TestHost):
         )
         duration = time.monotonic_ns() - started_at
 
-        # Determine low-granularity status from process return code.
-        status = TestStatus.PASSED if result.returncode == 0 else TestStatus.FAILED
-
-        # Determine high-granularity status from process output, if possible.
-        stdout_status = None
-        stdout_context = None
-        if not interactive:
-            entries = re.search(
-                r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)( .*::.* -)?( (.*))?",
-                result.stdout,
-                re.MULTILINE,
-            )
-            if entries:
-                stdout_status = entries[2]
-                stdout_context = entries[5]
-
-        # If possible, augment the status with the high-granularity output.
-        if stdout_status is not None:
-            # Check the consistency between the values.
-            if status == TestStatus.FAILED and stdout_status != "FAILED":
-                # They disagree.
-                #
-                # In this case, we should believe the more accurate but
-                # lower-granularity status value. This may happen if the output
-                # of the test includes any of the words we match against.
-                pass
-            else:
-                match stdout_status:
-                    case "PASSED":
-                        status = TestStatus.PASSED
-                    case "SKIPPED":
-                        status = TestStatus.SKIPPED
-                    case "XPASS":
-                        status = TestStatus.XPASS
-                    case "XFAIL":
-                        status = TestStatus.XFAIL
-                    case _:
-                        # Also a disegreement. Keep the low-granularity status.
-                        pass
-
-        return TestResult(status, duration, result.stdout, result.stderr, stdout_context)
+        return _result_from_pytest(result, duration)
 
     def collect(self) -> List[str]:
         # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
@@ -138,16 +100,4 @@ class GDBTestHost(TestHost):
         env["TESTS_PATH"] = str(self._pytest_root)
 
         result = self._run_gdb(target, env=env)
-        tests_collect_output = result.stdout
-
-        if result.returncode != 0:
-            raise RuntimeError(f"collection command failed: {result.stderr} {result.stdout}")
-
-        # Extract the test names from the output using regex
-        #
-        # _run_gdb executes it in the current working directory, and so paths
-        # printed by pytest are relative to it.
-        path_spec = self._pytest_root.resolve().relative_to(self._pwndbg_root)
-        pattern = re.compile(rf"{path_spec}.*::.*")
-        matches = pattern.findall(tests_collect_output)
-        return list(matches)
+        return _collection_from_pytest(result, self._pwndbg_root, self._pytest_root)

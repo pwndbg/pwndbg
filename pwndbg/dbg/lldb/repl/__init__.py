@@ -287,7 +287,9 @@ def print_hint(msg: str, *args):
 
 @wrap_with_history
 def run(
-    controller: Callable[[PwndbgController], Coroutine[Any, Any, None]], debug: bool = False
+    controller: Callable[..., Coroutine[Any, Any, None]],
+    *args,
+    debug: bool = False,
 ) -> None:
     """
     Runs the Pwndbg CLI through the given asynchronous controller.
@@ -322,7 +324,7 @@ def run(
     show_greeting()
     last_command = ""
 
-    coroutine = controller(PwndbgController())
+    coroutine = controller(PwndbgController(), *args)
     last_result: Any = None
     last_exc: Exception | None = None
 
