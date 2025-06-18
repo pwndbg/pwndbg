@@ -432,23 +432,29 @@ def mallocng_slot_user(address: int, all: bool) -> None:
     pp.start_section("in-band")
     pp.set_padding(2)
 
-    reserved_extra = ["end - p - n", ""]
-    if slot.reserved >= 5:
-        reserved_extra[1] = "located near slot end"
-        if slot.reserved == 6:
-            reserved_extra.append("this slot is a nested group")
-    else:
-        reserved_extra[1] = "located in slot header"
+    reserved_extra = ["describes: end - p - n"]
+    if slot.reserved_in_header == 5:
+        reserved_extra.append("use ftr reserved")
+    elif slot.reserved_in_header == 6:
+        reserved_extra.append("a nested group is in this slot")
+    elif slot.reserved_in_header == 7:
+        reserved_extra.append("this should not be possible")
 
     inband_group = [
         Property(name="offset", value=slot.offset, extra="distance to first slot / 0x10"),
         Property(name="index", value=slot.idx, extra="index of slot in its group"),
-        Property(name="reserved", value=slot.reserved, extra=reserved_extra),
+        Property(name="hdr reserved", value=slot.reserved_in_header, extra=reserved_extra),
     ]
 
+    if slot.reserved_in_header == 5:
+        ftrsv = "NA (meta error)"
+        if read_success:
+            ftrsv = slot.reserved_in_footer
+
+        inband_group.append(Property(name="ftr reserved", value=ftrsv))
+
     if read_success:
-        # While it is technically saved in-band, there is no way
-        # for us to locate it without metadata.
+        # Start header fields.
         if slot.is_cyclic():
             cyc_val = slot.cyclic_offset
         else:

@@ -149,12 +149,12 @@ class Slot:
         # information.
         self._pn3: int = None
         self._idx: int = None
+        self._reserved_hd: int = None
         self._big_offset_check: int = None
         # ==
 
         # == The footer fields.
-        # reserved can also be in p[-3].
-        self._reserved: int = None
+        self._reserved_ft: int = None
         # ==
 
         # == The start header fields.
@@ -164,6 +164,7 @@ class Slot:
         self._startn3: int = None
         # ==
 
+        self._reserved: int = None
         self._group: Group = None
         self._meta: Meta = None
 
@@ -232,9 +233,10 @@ class Slot:
             )
 
         # Read footer.
-        self._reserved = self.pn3 >> 5
-        if self._reserved == 5:
-            self._reserved = memory.u32(self.end - 4)
+        if self.reserved_in_header != 5:
+            self._reserved_ft = -1
+        else:
+            self._reserved_ft = memory.u32(self.end - 4)
 
         # Other fields are calculated without memory reads.
 
@@ -270,6 +272,10 @@ class Slot:
 
     @property
     def pn3(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._pn3 is None:
             self._pn3 = memory.u8(self.p - 3)
 
@@ -277,6 +283,10 @@ class Slot:
 
     @property
     def startn3(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
         if self._startn3 is None:
             if self.p == self.start:
                 # No need to read memory twice.
@@ -347,17 +357,56 @@ class Slot:
         return self.start + self.meta.stride - IB
 
     @property
+    def reserved_in_header(self) -> int:
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L193
+        if self._reserved_hd is None:
+            self._reserved_hd = self.pn3 >> 5
+
+        return self._reserved_hd
+
+    @property
+    def reserved_in_footer(self) -> int:
+        """
+        Returns -1 if the value is invalid, i.e.
+        reserved_in_header() != 5.
+
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L161
+        if self._reserved_ft is None:
+            if self.reserved_in_header != 5:
+                self._reserved_ft = -1
+            else:
+                self._reserved_ft = memory.u32(self.end - 4)
+
+        return self._reserved_ft
+
+    @property
     def reserved(self) -> int:
         """
+        Returns 0 if reserved_in_header() == 6.
+        Returns -1 if reserved_in_header() == 7.
+
         Raises:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L161
         # Lots of asserts here..
         if self._reserved is None:
-            self._reserved = self.pn3 >> 5
-            if self._reserved == 5:
-                self._reserved = memory.u32(self.end - 4)
+            if self.reserved_in_header < 5:
+                self._reserved = self.reserved_in_header
+            elif self.reserved_in_header == 5:
+                self._reserved = self.reserved_in_footer
+            elif self.reserved_in_header == 6:
+                # See contains_group()
+                self._reserved = 0
+            else:
+                # Value forced due to bit-size.
+                assert self.reserved_in_header == 7
+                # Should never happen. It is possible for start[-3]
+                # to contain (7<<5) but p[-3] can't.
+                return -1
 
         return self._reserved
 
@@ -423,7 +472,7 @@ class Slot:
         Does this slot nest a group?
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L269
-        return self.reserved == 6
+        return self.reserved_in_header == 6
 
     @classmethod
     def from_p(cls, p: int) -> "Slot":
