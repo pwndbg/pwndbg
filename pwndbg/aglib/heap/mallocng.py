@@ -144,8 +144,7 @@ class Slot:
         self.p: int = p
         self._offset: int = None
         self._idx: int = None
-        # Not exactly sure what this is.
-        self._check4: int = None
+        self._big_offset_check: int = None
 
         self._group: Group = None
         self._meta: Meta = None
@@ -167,8 +166,8 @@ class Slot:
         # Read all the in-band data.
         inband_data = memory.read(self.p - 8, 8)
 
-        self._check4 = inband_data[4]
-        if self._check4:
+        self._big_offset_check = inband_data[4]
+        if self._big_offset_check:
             self._offset = int.from_bytes(inband_data[0:4], pwndbg.aglib.arch.endian, signed=False)
         else:
             self._offset = int.from_bytes(inband_data[6:8], pwndbg.aglib.arch.endian, signed=False)
@@ -194,16 +193,16 @@ class Slot:
         # memory reads.
 
     @property
-    def check4(self) -> int:
+    def big_offset_check(self) -> int:
         """
         Raises:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L134
-        if self._check4 is None:
-            self._check4 = memory.u8(self.p - 4)
+        if self._big_offset_check is None:
+            self._big_offset_check = memory.u8(self.p - 4)
 
-        return self._check4
+        return self._big_offset_check
 
     @property
     def offset(self) -> int:
@@ -213,10 +212,11 @@ class Slot:
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L132
         if self._offset is None:
-            if self.check4:
-                # assert(!offset);
+            if self.big_offset_check:
+                # This can only happen in aligned allocations, which is kind of
+                # weird. All allocations of this size are probably mmaped.
+                # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/aligned_alloc.c#L49
                 self._offest = memory.u32(self.p - 8)
-                # assert(offset > 0xffff);
             else:
                 self._offset = memory.u16(self.p - 2)
 
