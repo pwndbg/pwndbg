@@ -145,6 +145,13 @@ class Slot:
         self._offset: int = None
         self._idx: int = None
         self._big_offset_check: int = None
+        # p[-3]. Stores lot's of different kinds of
+        # information.
+        self._pn3: int = None
+
+        self._cyclic_offset: int = None
+        # start[-3]. Stores whether we are cyclic.
+        self._startn3: int = None
 
         self._group: Group = None
         self._meta: Meta = None
@@ -171,11 +178,7 @@ class Slot:
             self._offset = int.from_bytes(inband_data[0:4], pwndbg.aglib.arch.endian, signed=False)
         else:
             self._offset = int.from_bytes(inband_data[6:8], pwndbg.aglib.arch.endian, signed=False)
-        idxv = inband_data[5]
-        if idxv != 255:
-            self._idx = idxv & 31
-        else:
-            self._idx = 0
+        self._pn3 = inband_data[5]
 
         # Read the group's meta pointer.
         _ = self.meta
@@ -223,6 +226,24 @@ class Slot:
         return self._offset
 
     @property
+    def pn3(self) -> int:
+        if self._pn3 is None:
+            self._pn3 = memory.u8(self.p - 3)
+
+        return self._pn3
+
+    @property
+    def startn3(self) -> int:
+        if self._startn3 is None:
+            if self.p == self.start:
+                # No need to read memory twice.
+                self._startn3 = self.pn3
+            else:
+                self._startn3 = memory.u8(self.start - 3)
+
+        return self._startn3
+
+    @property
     def idx(self) -> int:
         """
         Raises:
@@ -230,12 +251,11 @@ class Slot:
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L133
         if self._idx is None:
-            v = memory.u8(self.p - 3)
-            if v != 255:
-                self._idx = v & 31
-            else:
+            if self.pn3 == 255:
                 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L29
                 self._idx = 0
+            else:
+                self._idx = self.pn3 & 31
 
         return self._idx
 
@@ -282,7 +302,7 @@ class Slot:
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L161
         # Lots of asserts here..
         if self._reserved is None:
-            self._reserved = memory.u8(self.p - 3) >> 5
+            self._reserved = self.pn3 >> 5
             if self._reserved == 5:
                 self._reserved = memory.u32(self.end - 4)
 
@@ -314,16 +334,36 @@ class Slot:
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L199
         return (self.meta.stride - self.nominal_size - IB) // UNIT
 
+    def is_cyclic(self) -> int:
+        """
+        Returns whether mallocng reports that p != start.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L217
+        # We could of course just do `return p != start`
+        # but we want to report the actual metadata in case the structure
+        # is partially corrupted.
+        return self.startn3 == 224
+
     @property
     def cyclic_offset(self) -> int:
         """
+        Returns zero if is_cyclic() is False.
+
         Raises:
             pwndbg.dbg_mod.Error: When reading meta fails.
         """
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L204
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L216
         # Not sure why musl saves it, it doesn't seem to use it.
-        # We can calculate it more easily than musl does:
-        return (self.p - self.start) // UNIT
+        # We could calculate it more easily than musl does `(self.p - self.start) // UNIT`
+        # but let's report the actual in-band metadata in case the structure
+        # is partially corrupted.
+        if self._cyclic_offset is None:
+            if self.is_cyclic():
+                self._cyclic_offset = memory.u16(self.start - 2)
+            else:
+                self._cyclic_offset = 0
+
+        return self._cyclic_offset
 
     def contains_group(self) -> bool:
         """
@@ -338,17 +378,18 @@ class Slot:
 
     @classmethod
     def from_start(cls, start: int) -> "Slot":
-        idx_or_marker = memory.u8(start - 3)
-        if idx_or_marker == 224:
-            # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L217
-            # p is at an offset from start
-            # Read the cyclic offset to calculate it.
+        # We need to check if we are cyclic or not.
+        # See is_cyclic() and cyclic_offset() logic.
+        sn3 = memory.u8(start - 3)
+        if sn3 == 224:
             off = memory.u16(start - 2)
             p = start + off * UNIT
             obj = cls(p)
+            obj._sn3 = sn3
         else:
             p = start
             obj = cls(p)
+            obj._sn3 = obj._pn3 = sn3
 
         # FIXME: Not good if the slot is corrupted and we can't
         # access the meta.

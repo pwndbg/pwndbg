@@ -443,10 +443,14 @@ def mallocng_slot_user(address: int, all: bool) -> None:
     if read_success:
         # While it is technically saved in-band, there is no way
         # for us to locate it without metadata.
+        if slot.is_cyclic():
+            cyc_val = slot.cyclic_offset
+        else:
+            cyc_val = "NA (not cyclic)"
         inband_group.append(
             Property(
                 name="cyclic offset",
-                value=slot.cyclic_offset,
+                value=cyc_val,
                 extra="prevents double free, (p - start) / 0x10",
             ),
         )
