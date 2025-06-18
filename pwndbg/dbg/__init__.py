@@ -922,7 +922,7 @@ class Value:
 
     def dereference(self) -> Value:
         """
-        If this is a pointer value, dereferences the pointer and returns a new
+        If this is a poitner value, dereferences the pointer and returns a new
         instance of Value, containing the value pointed to by this pointer.
         """
         raise NotImplementedError()
