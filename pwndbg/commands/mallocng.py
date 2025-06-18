@@ -245,7 +245,7 @@ def dump_group(group: mallocng.Group) -> str:
 
     pp = PropertyPrinter()
     pp.start_section("group", group_range)
-    pp.set_padding(2)
+    pp.set_padding(5)
     pp.add(
         [
             Property(name="meta", value=group.meta.addr, is_addr=True),
@@ -256,7 +256,7 @@ def dump_group(group: mallocng.Group) -> str:
 
     if group_size != -1:
         pp.write("---\n")
-        pp.set_padding(3)
+        pp.set_padding(5)
         pp.add(
             [
                 Property(name="group size", value=group_size),
@@ -274,7 +274,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
 
     pp = PropertyPrinter()
     pp.start_section("meta", "@ " + C.memory.get(meta.addr))
-    pp.set_padding(2)
+    pp.set_padding(5)
     pp.add(
         [
             Property(name="prev", value=meta.prev, is_addr=True),
@@ -289,7 +289,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
         ]
     )
     pp.write("---\n")
-    pp.set_padding(3)
+    pp.set_padding(9)
     pp.add(
         [
             Property(name="cnt", value=meta.cnt, extra="the number of slots"),
@@ -390,7 +390,7 @@ def mallocng_slot_user(address: int, all: bool) -> None:
 
     if not all:
         pp.start_section("slab")
-        pp.set_padding(7)
+        pp.set_padding(10)
         if read_success:
             pp.add(
                 [
@@ -408,7 +408,7 @@ def mallocng_slot_user(address: int, all: bool) -> None:
 
     if read_success:
         pp.start_section("general")
-        pp.set_padding(2)
+        pp.set_padding(5)
         pp.add(
             [
                 Property(name="start", value=slot.start, is_addr=True),
@@ -424,7 +424,7 @@ def mallocng_slot_user(address: int, all: bool) -> None:
         pp.end_section()
 
     pp.start_section("in-band")
-    pp.set_padding(4)
+    pp.set_padding(2)
 
     reserved_extra = ["end - p - n", ""]
     if slot.reserved >= 5:
@@ -445,8 +445,8 @@ def mallocng_slot_user(address: int, all: bool) -> None:
         # for us to locate it without metadata.
         inband_group.append(
             Property(
-                name="rnd-off",
-                value=slot.internal_offset,
+                name="cyclic offset",
+                value=slot.cyclic_offset,
                 extra="prevents double free, (p - start) / 0x10",
             ),
         )

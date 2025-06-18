@@ -315,7 +315,7 @@ class Slot:
         return (self.meta.stride - self.nominal_size - IB) // UNIT
 
     @property
-    def internal_offset(self) -> int:
+    def cyclic_offset(self) -> int:
         """
         Raises:
             pwndbg.dbg_mod.Error: When reading meta fails.
