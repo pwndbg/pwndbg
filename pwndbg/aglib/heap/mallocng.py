@@ -142,55 +142,65 @@ class Slot:
         # The start of user memory. It may
         # not be the actual start of the slot.
         self.p: int = p
+
+        # == The p header fields.
         self._offset: int = None
-        self._idx: int = None
-        self._big_offset_check: int = None
         # p[-3]. Stores lot's of different kinds of
         # information.
         self._pn3: int = None
+        self._idx: int = None
+        self._big_offset_check: int = None
+        # ==
 
+        # == The footer fields.
+        # reserved can also be in p[-3].
+        self._reserved: int = None
+        # ==
+
+        # == The start header fields.
+        self._start: int = None
         self._cyclic_offset: int = None
         # start[-3]. Stores whether we are cyclic.
         self._startn3: int = None
+        # ==
 
         self._group: Group = None
         self._meta: Meta = None
-        self._reserved: int = None
 
     def preload(self) -> None:
         """
         Read all the necessary process memory to populate the slot's
-        fields.
+        p header fields.
 
         Do this if you know you will be using most of the
         fields of the slot. It will be faster, since we can do a few
         big reads instead of many small ones. You may also catch
         inaccessible memory exceptions here and not worry about it later.
 
+        Fields dependant on the meta are not loaded - you will still
+        need to worry about exceptions coming from them.
+
         Raises:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
-        # Read all the in-band data.
-        inband_data = memory.read(self.p - 8, 8)
+        # == Read the p header.
+        pheader = memory.read(self.p - 8, 8)
 
-        self._big_offset_check = inband_data[4]
+        self._big_offset_check = pheader[4]
         if self._big_offset_check:
-            self._offset = int.from_bytes(inband_data[0:4], pwndbg.aglib.arch.endian, signed=False)
+            self._offset = int.from_bytes(pheader[0:4], pwndbg.aglib.arch.endian, signed=False)
         else:
-            self._offset = int.from_bytes(inband_data[6:8], pwndbg.aglib.arch.endian, signed=False)
-        self._pn3 = inband_data[5]
+            self._offset = int.from_bytes(pheader[6:8], pwndbg.aglib.arch.endian, signed=False)
+        self._pn3 = pheader[5]
+        # ==
 
         # Read the group's meta pointer.
         _ = self.meta
-        # Need this loaded for lots of fields,
-        # but we will let it be since we want to be able to
-        # say stuff about this slot even with a corrupt meta.
-        # _ = self.meta.stride
 
-        self._reserved = inband_data[5] >> 5
-        if self._reserved == 5:
-            # self.end doesn't need a read.
-            self._reserved = memory.u32(self.end - 4)
+        # To calculate footer and p header fields
+        # we need self.meta.stride. However we want to be able to
+        # return some information even if the meta is corrupt, so
+        # we won't load that here.
 
         # All the other fields are calculated without
         # memory reads.
@@ -281,8 +291,18 @@ class Slot:
 
     @property
     def start(self) -> int:
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L108
-        return self.group.storage + self.meta.stride * self.idx
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading meta fails.
+        """
+        # We have this if-statement so Slot.from_start() can
+        # populate _start, giving us lots of fields even with
+        # a corrupt meta.
+        if self._start is None:
+            # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L108
+            self._start = self.group.storage + self.meta.stride * self.idx
+
+        return self._start
 
     @property
     def end(self) -> int:
@@ -394,6 +414,8 @@ class Slot:
         # FIXME: Not good if the slot is corrupted and we can't
         # access the meta.
         assert obj.start == start
+
+        obj._start = start
 
         return obj
 
