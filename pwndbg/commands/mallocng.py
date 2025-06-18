@@ -668,4 +668,4 @@ def mallocng_find(
         print(message.info("No slot found containing that address."))
         return
 
-    mallocng_slot_user(mallocng.Slot.from_start(slot_start).p, all=all)
+    mallocng_slot_start(slot_start, all=all)
