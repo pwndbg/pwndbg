@@ -557,6 +557,18 @@
          <lastmod>2025-06-18</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/musl/mallocng-group/</loc>
+         <lastmod>2025-06-18</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/musl/mallocng-meta/</loc>
+         <lastmod>2025-06-18</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/musl/mallocng-slot-user/</loc>
+         <lastmod>2025-06-18</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/process/killthreads/</loc>
          <lastmod>2025-06-18</lastmod>
     </url>
@@ -994,6 +1006,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/heap/jemalloc/</loc>
+         <lastmod>2025-06-18</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/heap/mallocng/</loc>
          <lastmod>2025-06-18</lastmod>
     </url>
     <url>
