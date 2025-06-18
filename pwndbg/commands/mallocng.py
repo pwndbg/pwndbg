@@ -424,7 +424,12 @@ def mallocng_slot_user(address: int, all: bool) -> None:
                     name="stride", value=slot.meta.stride, extra="distance between adjacent slots"
                 ),
                 Property(name="user size", value=slot.user_size, extra='aka "nominal size", `n`'),
-                Property(name="slack", value=slot.slack, extra="slot's unused memory / 0x10"),
+                Property(
+                    name="slack",
+                    value=slot.slack,
+                    extra="slot's unused memory / 0x10",
+                    alt_value=(slot.slack * mallocng.UNIT),
+                ),
             ]
         )
         pp.end_section()
@@ -441,7 +446,12 @@ def mallocng_slot_user(address: int, all: bool) -> None:
         reserved_extra.append("this should not be possible")
 
     inband_group = [
-        Property(name="offset", value=slot.offset, extra="distance to first slot / 0x10"),
+        Property(
+            name="offset",
+            value=slot.offset,
+            extra="distance to first slot / 0x10",
+            alt_value=(slot.offset * mallocng.UNIT),
+        ),
         Property(name="index", value=slot.idx, extra="index of slot in its group"),
         Property(name="hdr reserved", value=slot.reserved_in_header, extra=reserved_extra),
     ]
@@ -457,13 +467,16 @@ def mallocng_slot_user(address: int, all: bool) -> None:
         # Start header fields.
         if slot.is_cyclic():
             cyc_val = slot.cyclic_offset
+            cyc_val_alt = cyc_val * mallocng.UNIT
         else:
-            cyc_val = "NA (not cyclic)"
+            cyc_val = "NA"
+            cyc_val_alt = "not cyclic"
         inband_group.append(
             Property(
                 name="cyclic offset",
                 value=cyc_val,
                 extra="prevents double free, (p - start) / 0x10",
+                alt_value=cyc_val_alt,
             ),
         )
 
