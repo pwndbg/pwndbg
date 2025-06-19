@@ -673,10 +673,10 @@ def mallocng_find(
 
     ng.init_if_needed()
 
-    slot_start = ng.containing(address, metadata, shallow)
+    grouped_slot, slot = ng.find_slot(address, metadata, shallow)
 
-    if slot_start == 0:
+    if slot is None:
         print(message.info("No slot found containing that address."))
         return
 
-    mallocng_slot_start(slot_start, all=all)
+    print(dump_slot(slot, all), end="")

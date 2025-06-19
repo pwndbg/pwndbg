@@ -563,6 +563,41 @@ class Slot:
         return obj
 
 
+class GroupedSlot:
+    """
+    This is *not* a mallocng concept, this is a pwndbg abstraction.
+
+    A Slot object uses its inband metadata to recover all its fields and
+    uncover more information about itself by locating its group and meta.
+    It works essentially the same way mallocng's free() works.
+
+    However, if a slot is freed or available, most of its in-band metadata
+    will be invalid and it will not be able to recover group and meta. But,
+    given the start of the slot, we can infer which group it belongs to and
+    what its index is by walking allocator state i.e. ctx i.e. by using
+    Mallocng.find_slot().
+
+    A GroupedSlot then describes all information we can glean about a slot
+    which is described by a (group, idx) pair. Many of its fields can be
+    completely different from a Slot at the same location. They are guaranteed
+    to be the same only if the slot is ALLOCATED and hasn't been corrupted.
+
+    Not all fields that are available in Slot are available in GroupedSlot.
+
+    Make sure the group you are passing to the constructor points to a valid meta
+    object.
+    """
+
+    def __init__(self, group: Group, idx: int) -> None:
+        self.group = group
+        self.meta = self.group.meta
+        self.idx = idx
+        self.stride = self.meta.stride
+        self.slot_state = self.meta.slotstate_at_index(self.idx)
+        self.start = self.group.storage + self.meta.stride * self.idx
+        self.end = self.start + self.stride - IB
+
+
 class Meta:
     """
     The metadata of a group.
@@ -1146,7 +1181,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
     def find_slot(
         self, address: int, metadata: bool = False, shallow: bool = False
-    ) -> Optional[Slot]:
+    ) -> Tuple[Optional[GroupedSlot], Optional[Slot]]:
         """
         Get the slot which contains this address.
 
@@ -1160,6 +1195,8 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         If `shallow` is True, return the first slot hit without trying
         to look for nested groups.
+
+        Returns (None, None) if nothing is found.
         """
         hit_group: Optional[Group] = None
 
@@ -1210,7 +1247,10 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         if hit_group is None:
             return None
 
+        # Need to read memory for the .contains_group() check.
         hit_slot: Optional[Slot] = None
+        # Contains extra information.
+        hit_grouped_slot: Optional[GroupedSlot] = None
 
         metadata_offset = IB if metadata else 0
 
@@ -1226,7 +1266,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     if hit_slot is not None:
                         # If we are already in some slot, just return
                         # that slot since we can't look any deeper.
-                        return hit_slot
+                        return hit_grouped_slot, hit_slot
                     else:
                         # We are in no slot.
                         # We could return *some* information to the callee
@@ -1236,21 +1276,18 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 # Calculate the correct inner slot.
                 slot_idx = (address - valid_start) // hit_group.meta.stride
 
-                hit_slot = Slot.from_start(hit_group.at_index(slot_idx))
-                # Allows FREED, AVAIL, and otherwise corrupted slots to recover
-                # information about their meta.
-                hit_slot.set_group(hit_group)
+                hit_grouped_slot = GroupedSlot(hit_group, slot_idx)
+                hit_slot = Slot.from_start(hit_grouped_slot.start)
 
                 # If the slot is not allocated, we know that we for sure can't
                 # recurse deeper.
-                hit_slotstate = hit_group.meta.slotstate_at_index(slot_idx)
-                if hit_slotstate != SlotState.ALLOCATED:
-                    return hit_slot
+                if hit_grouped_slot.slot_state != SlotState.ALLOCATED:
+                    return hit_grouped_slot, hit_slot
 
                 # Maybe there is a group inside this slot!
                 hit_group = Group(hit_slot.p)
 
-            return hit_slot
+            return hit_grouped_slot, hit_slot
 
         except pwndbg.dbg_mod.Error as e:
             print(
@@ -1260,7 +1297,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 )
             )
             # Could be None.
-            return hit_slot
+            return hit_grouped_slot, hit_slot
 
     @override
     def containing(self, address: int, metadata: bool = False, shallow: bool = False) -> int:
@@ -1268,7 +1305,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         Same as find_slot() but returns only the `start` address of the slot, or zero
         if no slot is found.
         """
-        found = self.find_slot(address, metadata, shallow)
+        found, _ = self.find_slot(address, metadata, shallow)
         if found is None:
             return 0
         else:
