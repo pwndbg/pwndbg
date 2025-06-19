@@ -5,6 +5,7 @@ https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -36,6 +37,14 @@ size_classes: List[int] = [
     4095, 4680, 5460, 6552, 8191,
 ]
 # fmt: on
+
+
+class SlotState(Enum):
+    UNKNOWN = 0
+    ALLOCATED = 1
+    FREED = 2
+    # Available - this slot has not yet been allocated.
+    AVAIL = 3
 
 
 # Shorthand
@@ -167,6 +176,7 @@ class Slot:
         self._reserved: int = None
         self._group: Group = None
         self._meta: Meta = None
+        self._slot_state: SlotState = None
 
     def preload(self) -> None:
         """
@@ -445,7 +455,7 @@ class Slot:
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L199
         return (self.meta.stride - self.nominal_size - IB) // UNIT
 
-    # non-local..
+    # custom..
 
     @property
     def group(self) -> Group:
@@ -467,6 +477,21 @@ class Slot:
 
         return self._meta
 
+    @property
+    def slot_state(self) -> SlotState:
+        if self._slot_state is None:
+            if self.pn3 == 0xFF:
+                self._slot_state = SlotState.FREED
+            else:
+                # FIXME: hmm how to architecture this
+                # I don't think theres a consistent way to figure this
+                # out locally. Note that we can't ask self.meta for our state,
+                # because if we are AVAIL, there is no way for us to recover
+                # the meta pointer.
+                self._slot_state = SlotState.UNKNOWN
+
+        return self._slot_state
+
     # checks..
 
     def is_cyclic(self) -> int:
@@ -485,6 +510,15 @@ class Slot:
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L269
         return self.reserved_in_header == 6
+
+    # external setters..
+
+    def set_slotstate(self, slotstate: SlotState) -> None:
+        """
+        It can be hard/impossible/slow for a Slot to figure out its
+        own allocation state. Use this to set it externally.
+        """
+        self._slot_state = slotstate
 
     # constructors..
 
@@ -506,10 +540,6 @@ class Slot:
             p = start
             obj = cls(p)
             obj._sn3 = obj._pn3 = sn3
-
-        # FIXME: Not good if the slot is corrupted and we can't
-        # access the meta.
-        assert obj.start == start
 
         obj._start = start
 
@@ -759,6 +789,15 @@ class Meta:
         created by being nested into a slot.
         """
         return not self.is_donated and not self.is_mmaped
+
+    def slotstate_at_index(self, idx: int) -> SlotState:
+        me = 1 << idx
+        if self.freed_mask & me:
+            return SlotState.FREED
+        elif self.avail_mask & me:
+            return SlotState.AVAIL
+        else:
+            return SlotState.ALLOCATED
 
     @staticmethod
     def sizeof():
@@ -1088,10 +1127,11 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
     def libc_has_debug_syms(self) -> bool:
         return self.has_debug_syms
 
-    @override
-    def containing(self, address: int, metadata: bool = False, shallow: bool = False) -> int:
+    def find_slot(
+        self, address: int, metadata: bool = False, shallow: bool = False
+    ) -> Optional[Slot]:
         """
-        Get the `start` of a slot which contains this address.
+        Get the slot which contains this address.
 
         We say a slot "contains" an address, if the address is in
         [start, start + stride). Thus, this will match the previous
@@ -1117,7 +1157,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         f"Mallocng.containing: Could not read meta_area ({e}), returning early."
                     )
                 )
-                return 0
+                return None
 
             # Iterate over all metas in the meta_area.
             for i in range(meta_area.nslots):
@@ -1151,7 +1191,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             meta_area_addr = meta_area.next
 
         if hit_group is None:
-            return 0
+            return None
 
         hit_slot: Optional[Slot] = None
 
@@ -1169,20 +1209,31 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     if hit_slot is not None:
                         # If we are already in some slot, just return
                         # that slot since we can't look any deeper.
-                        return hit_slot.start
+                        return hit_slot
                     else:
                         # We are in no slot.
                         # We could return *some* information to the callee
                         # but alas, let's be technically correct.
-                        return 0
+                        return None
 
                 # Calculate the correct inner slot.
                 slot_idx = (address - valid_start) // hit_group.meta.stride
 
                 hit_slot = Slot.from_start(hit_group.at_index(slot_idx))
+
+                # If the slot is not allocated, we know that we for sure can't
+                # recurse deeper.
+                hit_slotstate = hit_group.meta.slotstate_at_index(slot_idx)
+                hit_slot.set_slotstate(
+                    hit_slotstate
+                )  # Set the state in case we are returning this.
+                if hit_slotstate != SlotState.ALLOCATED:
+                    return hit_slot
+
+                # Maybe there is a group inside this slot!
                 hit_group = Group(hit_slot.p)
 
-            return hit_slot.start
+            return hit_slot
 
         except pwndbg.dbg_mod.Error as e:
             print(
@@ -1191,10 +1242,20 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     f" nested groups: {e}.\nReturning last valid slot."
                 )
             )
-            if hit_slot is None:
-                return 0
-            else:
-                return hit_slot.start
+            # Could be None.
+            return hit_slot
+
+    @override
+    def containing(self, address: int, metadata: bool = False, shallow: bool = False) -> int:
+        """
+        Same as find_slot() but returns only the `start` address of the slot, or zero
+        if no slot is found.
+        """
+        found = self.find_slot(address, metadata, shallow)
+        if found is None:
+            return 0
+        else:
+            return found.start
 
 
 mallocng = Mallocng()
