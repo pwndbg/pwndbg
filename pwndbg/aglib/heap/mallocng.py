@@ -487,16 +487,13 @@ class Slot:
             meta_says: SlotState = None
             try:
                 meta_says = self.meta.slotstate_at_index(self.idx)
-                if meta_says != SlotState.ALLOCATED:
-                    # This should never happen => something is corrupted.
-                    meta_says = None
             except pwndbg.dbg_mod.Error:
                 # We can't reach the meta. Either the slot is not allocated
                 # or it is allocated but the meta pointer is corrupted.
                 meta_says = None
 
-            if meta_says == SlotState.ALLOCATED:
-                self._slot_state = SlotState.ALLOCATED
+            if meta_says is not None:
+                self._slot_state = meta_says
             else:
                 # When a slot is freed, its p[-3] gets set to 0xFF so the
                 # offset to group start (and by extension, meta) is unrecoverable.
@@ -531,12 +528,14 @@ class Slot:
 
     # external setters..
 
-    def set_slotstate(self, slotstate: SlotState) -> None:
+    def set_group(self, group: Group) -> None:
         """
-        It can be hard/impossible/slow for a Slot to figure out its
-        own allocation state. Use this to set it externally.
+        If the slot is FREED or AVAIL, it is impossible for it to
+        recover the start of its group, and ergo its meta.
+
+        You can thus use this to set it externally.
         """
-        self._slot_state = slotstate
+        self._group = group
 
     # constructors..
 
@@ -1238,13 +1237,13 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 slot_idx = (address - valid_start) // hit_group.meta.stride
 
                 hit_slot = Slot.from_start(hit_group.at_index(slot_idx))
+                # Allows FREED, AVAIL, and otherwise corrupted slots to recover
+                # information about their meta.
+                hit_slot.set_group(hit_group)
 
                 # If the slot is not allocated, we know that we for sure can't
                 # recurse deeper.
                 hit_slotstate = hit_group.meta.slotstate_at_index(slot_idx)
-                hit_slot.set_slotstate(
-                    hit_slotstate
-                )  # Set the state in case we are returning this.
                 if hit_slotstate != SlotState.ALLOCATED:
                     return hit_slot
 
