@@ -112,7 +112,6 @@ class PropertyPrinter:
             else:
                 # list of strings, we want each one under the other
                 assert isinstance(prop.extra, list)
-                assert len(prop.extra) > 1
 
                 self.text += "  " + prop.extra[0]
                 for i in range(1, len(prop.extra)):
