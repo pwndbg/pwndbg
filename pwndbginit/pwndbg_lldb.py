@@ -62,16 +62,6 @@ def main():
     args = PARSER.parse_args()
     debug = args.verbose
 
-    try:
-        import lldb
-    except ImportError:
-        # Find the path for the LLDB Python bindings.
-        path = find_lldb_python_path()
-        sys.path.append(path)
-        if debug:
-            print(f"[-] Launcher: LLDB Python path: {path}")
-        import lldb
-
     # Older LLDB versions crash newer versions of CPython on import, so check
     # for it, and stop early with an error message.
     #
@@ -84,6 +74,16 @@ def main():
     if sys.version_info.minor >= 12 and lldb_version[0] <= 18:
         print("LLDB 18 and earlier is incompatible with Python 3.12 and later", file=sys.stderr)
         sys.exit(1)
+
+    try:
+        import lldb
+    except ImportError:
+        # Find the path for the LLDB Python bindings.
+        path = find_lldb_python_path()
+        sys.path.append(path)
+        if debug:
+            print(f"[-] Launcher: LLDB Python path: {path}")
+        import lldb
 
     # Start up LLDB and create a new debugger object.
     lldb.SBDebugger.Initialize()
