@@ -7,6 +7,7 @@ import os
 import re
 import subprocess
 import sys
+import shutil
 from typing import List
 
 PARSER = argparse.ArgumentParser(prog="pwndbg-lldb")
@@ -61,6 +62,9 @@ def find_lldb_python_path() -> str:
 def main():
     args = PARSER.parse_args()
     debug = args.verbose
+
+    if sys.platform == "linux" and "LLDB_DEBUGSERVER_PATH" not in os.environ:
+        os.environ["LLDB_DEBUGSERVER_PATH"] = shutil.which("lldb-server")
 
     # Older LLDB versions crash newer versions of CPython on import, so check
     # for it, and stop early with an error message.
