@@ -157,7 +157,7 @@ def main(debugger: lldb.SBDebugger, major: int, minor: int, debug: bool = False)
     pwndbg.dbg_mod.lldb.LLDB_VERSION = (major, minor)
 
     pwndbg.dbg = pwndbg.dbg_mod.lldb.LLDB()
-    pwndbg.dbg.setup(debugger, __name__, debug=debug)
+    pwndbg.dbg.setup(debugger, "pwndbglldbhandler", debug=debug)
 
     import pwndbg.profiling
 
