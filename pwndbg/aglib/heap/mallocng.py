@@ -40,11 +40,10 @@ size_classes: List[int] = [
 
 
 class SlotState(Enum):
-    UNKNOWN = 0
-    ALLOCATED = 1
-    FREED = 2
+    ALLOCATED = "allocated"
+    FREED = "freed"
     # Available - this slot has not yet been allocated.
-    AVAIL = 3
+    AVAIL = "available"
 
 
 # Shorthand
@@ -480,15 +479,34 @@ class Slot:
     @property
     def slot_state(self) -> SlotState:
         if self._slot_state is None:
-            if self.pn3 == 0xFF:
-                self._slot_state = SlotState.FREED
+            # The actual "source of truth" for slot allocation state is
+            # self.meta.slotstate_at_index() however we can only resolve
+            # the meta if the state is ALLOCATED.
+            # We will do a heuristic check that should be good in most cases.
+
+            meta_says: SlotState = None
+            try:
+                meta_says = self.meta.slotstate_at_index(self.idx)
+                if meta_says != SlotState.ALLOCATED:
+                    # This should never happen => something is corrupted.
+                    meta_says = None
+            except pwndbg.dbg_mod.Error:
+                # We can't reach the meta. Either the slot is not allocated
+                # or it is allocated but the meta pointer is corrupted.
+                meta_says = None
+
+            if meta_says == SlotState.ALLOCATED:
+                self._slot_state = SlotState.ALLOCATED
             else:
-                # FIXME: hmm how to architecture this
-                # I don't think theres a consistent way to figure this
-                # out locally. Note that we can't ask self.meta for our state,
-                # because if we are AVAIL, there is no way for us to recover
-                # the meta pointer.
-                self._slot_state = SlotState.UNKNOWN
+                # When a slot is freed, its p[-3] gets set to 0xFF so the
+                # offset to group start (and by extension, meta) is unrecoverable.
+                # We will check for this, although musl only ever sets this
+                # and never uses this as a source of truth.
+                if self.pn3 == 0xFF:
+                    # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L112
+                    self._slot_state = SlotState.FREED
+                else:
+                    self._slot_state = SlotState.AVAIL
 
         return self._slot_state
 

@@ -455,6 +455,17 @@ def dump_slot(slot: mallocng.Slot, all: bool) -> str:
 
     output = pp.dump()
 
+    slot_state_str = ""
+    match slot.slot_state:
+        case mallocng.SlotState.ALLOCATED:
+            slot_state_str = C.green(slot.slot_state.value)
+        case mallocng.SlotState.FREED:
+            slot_state_str = C.red(slot.slot_state.value)
+        case mallocng.SlotState.AVAIL:
+            slot_state_str = C.blue(slot.slot_state.value)
+
+    output += C.bold("\nThe slot is (probably) " + slot_state_str + ".\n")
+
     if all:
         output += dump_group(slot.group)
         output += dump_meta(slot.meta)
