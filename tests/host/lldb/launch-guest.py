@@ -27,7 +27,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self.pc = pc
 
         async def launch(self, binary: Path) -> None:
-            await self.pc.execute(f"taregt create {binary}")
+            await self.pc.execute(f"target create {binary}")
             await self.pc.execute("process launch -s")
 
     await outer(_LLDBController(ctrl))
@@ -72,7 +72,7 @@ class CollectTestFunctionNames:
 
 
 if __name__ == "__main__":
-    pwndbg_home = Path(os.environ["TEST_PWNDBG_HOME"])
+    pwndbg_home = Path(os.environ["TEST_PWNDBG_ROOT"])
 
     assert pwndbg_home.exists()
     assert pwndbg_home.is_dir()
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     op = Operation(os.environ["TEST_OPERATION"])
     match op:
         case Operation.COLLECT:
-            pytest_home = Path(os.environ["TEST_PYTEST_HOME"])
+            pytest_home = Path(os.environ["TEST_PYTEST_ROOT"])
             assert pytest_home.exists()
             assert pytest_home.is_dir()
 
@@ -111,6 +111,9 @@ if __name__ == "__main__":
             assert test_name
 
             pytest_args = [test_name, "-vvv", "-s", "--showlocals", "--color=yes"]
+            if os.environ["TEST_PDB_ON_FAIL"] == "1":
+                pytest_args.append("--pdb")
+
             pytest_plugins = None
 
     # Start the test, proper.

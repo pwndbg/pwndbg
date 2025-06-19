@@ -48,7 +48,6 @@ class GDBTestHost(TestHost):
             env=env,
             capture_output=capture_output,
             text=True,
-            cwd=self._pwndbg_root,
         )
 
     def run(
@@ -78,6 +77,7 @@ class GDBTestHost(TestHost):
         env["PWNDBG_DISABLE_COLORS"] = "1"
         env["GDB_BIN_PATH"] = str(self._gdb_path)
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
+        env["TEST_PWNDBG_ROOT"] = str(self._pwndbg_root)
         if interactive:
             env["USE_PDB"] = "1"
 
@@ -97,6 +97,7 @@ class GDBTestHost(TestHost):
 
         env = os.environ.copy()
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
+        env["TEST_PWNDBG_ROOT"] = str(self._pwndbg_root)
         env["TESTS_PATH"] = str(self._pytest_root)
 
         result = self._run_gdb(target, env=env)

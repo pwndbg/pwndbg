@@ -204,7 +204,12 @@ def get_lldb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost
 
     from host.lldb import LLDBTestHost
 
-    return LLDBTestHost(local_pwndbg_root, lldbinit_dir, local_pwndbg_root / args.group.library())
+    return LLDBTestHost(
+        local_pwndbg_root,
+        lldbinit_dir,
+        local_pwndbg_root / args.group.library(),
+        local_pwndbg_root / args.group.binary_dir(),
+    )
 
 
 class Group(Enum):

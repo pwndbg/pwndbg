@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import functools
+import os
 from inspect import signature
 from typing import Callable
 from typing import Coroutine
 
 import host
 from host import Controller
+
+BINARIES_PATH = os.environ.get("TEST_BINARIES_ROOT")
 
 
 def pwndbg_test(
@@ -27,3 +30,7 @@ def pwndbg_test(
     inner_test.__signature__ = sig
 
     return inner_test
+
+
+def get_binary(name: str) -> str:
+    return os.path.join(BINARIES_PATH, name)
