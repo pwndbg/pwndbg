@@ -16,6 +16,7 @@ def get_gdb_version(path: str) -> Tuple[str, str]:
         capture_output=True,
         text=True
     )
+    print(result.stdout)
     return tuple(result.stdout.strip().split(' ', 2))
 
 def main():
@@ -25,7 +26,7 @@ def main():
         gdb_path = shutil.which("gdb")
 
     if not gdb_path:
-        print(f"ERROR: Could not find gdb for pwndbg")
+        print(f"ERROR: Could not find gdb for pwndbg in {gdb_path}")
         sys.exit(1)
 
     envs = os.environ.copy()
