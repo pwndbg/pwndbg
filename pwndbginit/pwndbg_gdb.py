@@ -19,7 +19,14 @@ def get_gdb_version(path: str) -> Tuple[str, str]:
     return tuple(result.stdout.strip().split(' ', 2))
 
 def main():
-    gdb_path = shutil.which("gdb")
+    try:
+        from gdb_for_pwndbg.gdb import gdb_path
+    except ImportError:
+        gdb_path = shutil.which("gdb")
+
+    if not gdb_path:
+        print(f"ERROR: Could not find gdb for pwndbg")
+        sys.exit(1)
 
     envs = os.environ.copy()
     envs['PYTHONNOUSERSITE'] = '1'
