@@ -123,6 +123,7 @@ def skip_venv(src_root) -> bool:
     return (
         os.environ.get("PWNDBG_VENV_PATH") == "PWNDBG_PLEASE_SKIP_VENV"
         or (src_root / ".skip-venv").exists()
+        or not (src_root / "uv.lock").exists()
     )
 
 
@@ -139,7 +140,7 @@ def main(debugger: lldb.SBDebugger, major: int, minor: int, debug: bool = False)
         start_time = time.time()
         profiler.enable()
 
-    src_root = Path(__file__).parent.resolve()
+    src_root = Path(__file__).parent.parent.resolve()
     if not skip_venv(src_root):
         venv_path = get_venv_path(src_root)
         if not venv_path.exists():
