@@ -15,6 +15,7 @@ import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory as memory
+import pwndbg.aglib.stack
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 
@@ -889,9 +890,14 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # mapping (if musl is dynamically linked) or the executable's
         # mapping (if musl is statically linked).
         possible: List[Tuple[int, str]] = []
+        thread_stacks = pwndbg.aglib.stack.get()
+
         for sm in secret_matches:
+            if any(sm in stack_page for stack_page in thread_stacks.value()):
+                continue
+
             mapping_name = pwndbg.aglib.vmmap.find(sm).objfile
-            if "[stack" in mapping_name or "[heap" in mapping_name:
+            if "[heap" in mapping_name:
                 continue
 
             possible.append((sm, mapping_name))
