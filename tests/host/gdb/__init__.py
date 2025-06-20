@@ -48,6 +48,7 @@ class GDBTestHost(TestHost):
             env=env,
             capture_output=capture_output,
             text=True,
+            cwd=self._pwndbg_root,
         )
 
     def run(
@@ -101,4 +102,7 @@ class GDBTestHost(TestHost):
         env["TESTS_PATH"] = str(self._pytest_root)
 
         result = self._run_gdb(target, env=env)
-        return _collection_from_pytest(result, self._pwndbg_root, self._pytest_root)
+        names = _collection_from_pytest(result, self._pwndbg_root, self._pytest_root)
+
+        # We execute from Pwndbg root, so we need to prepend tests/ to the names.
+        return [f"tests/{name}" for name in names]
