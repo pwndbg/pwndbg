@@ -911,6 +911,7 @@ def load_commands() -> None:
     import pwndbg.commands.klookup
     import pwndbg.commands.kmod
     import pwndbg.commands.knft
+    import pwndbg.commands.ktask
     import pwndbg.commands.kversion
     import pwndbg.commands.leakfind
     import pwndbg.commands.libcinfo
