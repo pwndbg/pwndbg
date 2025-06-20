@@ -485,7 +485,7 @@ def dump_slot(
         # The grouped_slot will have accurate information on this,
         # no need for us to guess.
         output += C.bold(
-            "\nThe slot is (probably) " + get_colored_slot_state(slot.slot_state) + ".\n"
+            "\nThe slot is (probably) " + get_colored_slot_state(slot.slot_state) + ".\n\n"
         )
 
     if all:
