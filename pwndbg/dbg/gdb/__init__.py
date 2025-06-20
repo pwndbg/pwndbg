@@ -1475,11 +1475,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         config_mod.init_params()
 
-        prompt.show_hint()
-
         from pwndbg.dbg.gdb import debug_sym
 
         self._load_gdbinit()
+
+        # show_hint must be called after loading ~/.gdbinit, this order allow disabling show_hint
+        prompt.show_hint()
 
     @override
     def add_command(
