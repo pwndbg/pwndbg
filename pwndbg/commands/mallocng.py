@@ -13,10 +13,26 @@ import pwndbg.aglib.memory as memory
 import pwndbg.aglib.typeinfo as typeinfo
 import pwndbg.color as C
 import pwndbg.color.message as message
+from pwndbg import config
 from pwndbg.aglib.heap.mallocng import mallocng as ng
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.pretty_print import Property
 from pwndbg.lib.pretty_print import PropertyPrinter
+
+search_on_fail = config.add_param(
+    "ng-search-on-fail",
+    True,
+    "let the ng-slot* commands search the heap if necessary",
+    help_docstring="""
+For freed, avail(able) and corrupted slots, it may be
+impossible to recover the start of the group and meta.
+
+When this option is set to True, the ng-slotu and ng-slots
+commands will search the heap to try to find the correct meta/group.
+    """,
+    param_class=pwndbg.lib.config.PARAM_BOOLEAN,
+    scope=pwndbg.lib.config.Scope.heap,
+)
 
 
 @pwndbg.commands.Command(
@@ -540,6 +556,12 @@ def smart_dump_slot(
     output = ""
 
     if gslot is None:
+        if not search_on_fail:
+            output += "Could not load valid meta from local information.\n"
+            output += "Will not attempt to search the heap because ng-search-on-fail = False.\n\n"
+            output += dump_slot(slot, all, False, False)
+            return output
+
         # If it wasn't provided to us, let's try to search for it now.
         output += "Could not load valid meta from local information, searching the heap.. "
         ng.init_if_needed()
