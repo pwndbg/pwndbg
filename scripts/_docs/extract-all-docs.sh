@@ -8,7 +8,7 @@ cd $PWNDBG_ABS_PATH
 # the documentation. Do this from each debugger.
 
 export PWNDBG_DOCGEN_DBGNAME="gdb"
-$UV_RUN_DOCS --extra gdb --extra gdb pwndbg -nx --batch \
+$UV_RUN_DOCS --extra gdb pwndbg -nx --batch \
     -iex "set exception-verbose on" \
     -ix ./scripts/_docs/extract_command_docs.py \
     -ix ./scripts/_docs/extract_configuration_docs.py \

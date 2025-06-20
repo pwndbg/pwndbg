@@ -21,14 +21,6 @@ jobs:
       - name: Install dependencies
         run: uv sync --group docs --all-extras
 
-      - name: Install lldb
-        run: |
-          # https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/#running-with-lldb
-          sudo apt update
-          sudo apt install -y gdb lldb-19 liblldb-19-dev
-          echo "/usr/lib/llvm-19/bin/" >> $GITHUB_PATH
-          echo "/usr/lib/llvm-19/bin/lldb-server" >> $GITHUB_PATH
-
       - name: Verify docs are up to date with source
         run: |
           ./scripts/verify-docs.sh
