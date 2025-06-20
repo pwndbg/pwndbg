@@ -554,6 +554,7 @@ class Slot:
             obj = cls(p)
             obj._sn3 = sn3
         else:
+            # freed / avail slots will also go into this branch.
             p = start
             obj = cls(p)
             obj._sn3 = obj._pn3 = sn3

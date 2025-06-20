@@ -5,6 +5,7 @@ Commands that help with debugging musl's allocator, mallocng.
 from __future__ import annotations
 
 import argparse
+from typing import Optional
 
 import pwndbg
 import pwndbg.aglib.heap.mallocng as mallocng
@@ -331,43 +332,63 @@ def dump_meta(meta: mallocng.Meta) -> str:
     return output
 
 
-def dump_slot(slot: mallocng.Slot, all: bool) -> str:
-    try:
-        slot.preload()
-    except pwndbg.dbg_mod.Error as e:
-        print(message.error(f"Error while reading slot: {e}"))
-        return ""
+def get_colored_slot_state(ss: mallocng.SlotState) -> str:
+    match ss:
+        case mallocng.SlotState.ALLOCATED:
+            return C.green(ss.value)
+        case mallocng.SlotState.FREED:
+            return C.red(ss.value)
+        case mallocng.SlotState.AVAIL:
+            return C.blue(ss.value)
 
-    read_success: bool = True
 
-    try:
-        slot.group.preload()
-    except pwndbg.dbg_mod.Error as e:
-        print(message.error(f"Error while reading group: {e}"))
-        read_success = False
-
-    try:
-        slot.meta.preload()
-        try:
-            slot.preload_meta_dependants()
-        except pwndbg.dbg_mod.Error as e1:
-            print(message.error(f"Error while loading slot fields that depend on the meta:\n{e1}"))
-            read_success = False
-
-    except pwndbg.dbg_mod.Error as e2:
-        print(message.error(f"Error while reading meta: {e2}"))
-        read_success = False
-
-    if not read_success:
-        print(message.info("Only showing partial information."))
-        all = False
-
+def dump_grouped_slot(gslot: mallocng.GroupedSlot, all: bool) -> str:
     pp = PropertyPrinter()
 
     if not all:
         pp.start_section("slab")
         pp.set_padding(10)
-        if read_success:
+        pp.add(
+            [
+                Property(name="group", value=gslot.group.addr, is_addr=True),
+                Property(name="meta", value=gslot.meta.addr, is_addr=True),
+            ]
+        )
+        pp.end_section()
+
+    pp.start_section("slot")
+    pp.set_padding(6)
+    pp.add(
+        [
+            Property(name="start", value=gslot.start, is_addr=True),
+            Property(name="end", value=gslot.end, is_addr=True),
+            Property(name="index", value=gslot.idx),
+            Property(name="stride", value=gslot.stride),
+            Property(name="state", value=get_colored_slot_state(gslot.slot_state)),
+        ]
+    )
+    pp.end_section()
+
+    output = pp.dump()
+
+    if all:
+        output += dump_group(gslot.group)
+        output += dump_meta(gslot.meta)
+
+    return output
+
+
+def dump_slot(
+    slot: mallocng.Slot, all: bool, successful_preload: bool, will_dump_gslot: bool
+) -> str:
+    pp = PropertyPrinter()
+
+    all = all and successful_preload and not will_dump_gslot
+
+    if not all:
+        pp.start_section("slab")
+        pp.set_padding(10)
+        if successful_preload:
             pp.add(
                 [
                     Property(name="group", value=slot.group.addr, is_addr=True),
@@ -382,7 +403,7 @@ def dump_slot(slot: mallocng.Slot, all: bool) -> str:
             )
         pp.end_section()
 
-    if read_success:
+    if successful_preload:
         pp.start_section("general")
         pp.set_padding(5)
         pp.add(
@@ -428,12 +449,12 @@ def dump_slot(slot: mallocng.Slot, all: bool) -> str:
 
     if slot.reserved_in_header == 5:
         ftrsv = "NA (meta error)"
-        if read_success:
+        if successful_preload:
             ftrsv = slot.reserved_in_footer
 
         inband_group.append(Property(name="ftr reserved", value=ftrsv))
 
-    if read_success:
+    if successful_preload:
         # Start header fields.
         if slot.is_cyclic():
             cyc_val = slot.cyclic_offset
@@ -455,20 +476,95 @@ def dump_slot(slot: mallocng.Slot, all: bool) -> str:
 
     output = pp.dump()
 
-    slot_state_str = ""
-    match slot.slot_state:
-        case mallocng.SlotState.ALLOCATED:
-            slot_state_str = C.green(slot.slot_state.value)
-        case mallocng.SlotState.FREED:
-            slot_state_str = C.red(slot.slot_state.value)
-        case mallocng.SlotState.AVAIL:
-            slot_state_str = C.blue(slot.slot_state.value)
-
-    output += C.bold("\nThe slot is (probably) " + slot_state_str + ".\n")
+    if not will_dump_gslot:
+        # The grouped_slot will have accurate information on this,
+        # no need for us to guess.
+        output += C.bold(
+            "\nThe slot is (probably) " + get_colored_slot_state(slot.slot_state) + ".\n"
+        )
 
     if all:
         output += dump_group(slot.group)
         output += dump_meta(slot.meta)
+
+    return output
+
+
+def smart_dump_slot(
+    slot: mallocng.Slot, all: bool, gslot: Optional[mallocng.GroupedSlot] = None
+) -> str:
+    try:
+        slot.preload()
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(f"Error while reading slot: {e}"))
+        return ""
+
+    successful_preload: bool = True
+    err_msg = ""
+
+    try:
+        slot.group.preload()
+    except pwndbg.dbg_mod.Error as e:
+        err_msg = message.error(f"Error while reading group: {e}")
+        successful_preload = False
+
+    try:
+        slot.meta.preload()
+        try:
+            slot.preload_meta_dependants()
+        except pwndbg.dbg_mod.Error as e1:
+            err_msg = message.error(
+                f"Error while loading slot fields that depend on the meta:\n{e1}"
+            )
+            successful_preload = False
+
+    except pwndbg.dbg_mod.Error as e2:
+        err_msg = message.error(f"Error while reading meta: {e2}")
+        successful_preload = False
+
+    if successful_preload:
+        # If we successfully got the group and meta, using the grouped_slot won't
+        # give us any new information.
+        # (Unless the grouped_slot reports a different group than slot.group, which
+        # could be possible in exploitation I suppose).
+        return dump_slot(slot, all, True, False)
+
+    if not (slot._pn3 == 0xFF or slot._offset == 0):
+        # If the group/meta read failed because the slot is freed/avail,
+        # we won't throw an error. This is just a heuristic check for
+        # better UX. I'm using the private fields for the check so we
+        # don't accidentally cause an exception here if we are bordering
+        # unreadable memory.
+        print(err_msg)
+
+    output = ""
+
+    if gslot is None:
+        # If it wasn't provided to us, let's try to search for it now.
+        output += "Could not load valid meta from local information, searching the heap.. "
+        ng.init_if_needed()
+        gslot, fslot = ng.find_slot(slot.p, False, False)
+
+        if gslot is None:
+            output += "Not found.\n\n"
+            output += dump_slot(slot, all, False, False)
+            return output
+        else:
+            if fslot.p == slot.p:
+                output += "Found it.\n\n"
+            else:
+                output += "\nFound a slot with p @ " + C.memory.get(fslot.p) + "."
+                output += " The slot you are looking for\ndoesn't seem to exist. Maybe its group got freed?\n\n"
+                output += "Local memory:\n"
+                output += dump_slot(slot, all, False, False)
+                return output
+
+    # Now we have a valid gslot.
+
+    output += "Local slot memory:\n"
+    output += dump_slot(slot, all, False, True)
+    output += "\nSlot information from the group/meta:\n"
+    output += dump_grouped_slot(gslot, all)
 
     return output
 
@@ -503,7 +599,7 @@ def mallocng_slot_user(address: int, all: bool) -> None:
         return
 
     slot = mallocng.Slot(address)
-    print(dump_slot(slot, all), end="")
+    print(smart_dump_slot(slot, all, None), end="")
 
 
 parser = argparse.ArgumentParser(
@@ -536,7 +632,7 @@ def mallocng_slot_start(address: int, all: bool) -> None:
         return
 
     slot = mallocng.Slot.from_start(address)
-    print(dump_slot(slot, all), end="")
+    print(smart_dump_slot(slot, all, None), end="")
 
 
 parser = argparse.ArgumentParser(
@@ -679,4 +775,4 @@ def mallocng_find(
         print(message.info("No slot found containing that address."))
         return
 
-    print(dump_slot(slot, all), end="")
+    print(smart_dump_slot(slot, all, grouped_slot), end="")
