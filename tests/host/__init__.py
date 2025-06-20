@@ -153,9 +153,7 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
         if result.returncode == 3:
             gdb_path = Path(gdb_path_str)
         else:
-            print(
-                "ERROR: 'pwndbg' does not support cross architecture targets"
-            )
+            print("ERROR: 'pwndbg' does not support cross architecture targets")
             sys.exit(1)
     else:
         # Use the regular system GDB.
