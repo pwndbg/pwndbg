@@ -122,8 +122,7 @@ def get_venv_path(src_root: Path):
 def skip_venv(src_root) -> bool:
     return (
         os.environ.get("PWNDBG_VENV_PATH") == "PWNDBG_PLEASE_SKIP_VENV"
-        or (src_root / ".skip-venv").exists()
-        or not (src_root / "uv.lock").exists()
+        or not (src_root / ".pwndbg_root").exists()
     )
 
 

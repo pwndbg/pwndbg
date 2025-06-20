@@ -10,7 +10,7 @@ def build_id() -> str:
     """
     pwndbg_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     # If we install pwndbg into site-packages, then `gdbinit.py` is missing.
-    if not os.path.exists(os.path.join(pwndbg_dir, "gdbinit.py")):
+    if not os.path.exists(os.path.join(pwndbg_dir, ".pwndbg_root")):
         return ""
 
     try:
