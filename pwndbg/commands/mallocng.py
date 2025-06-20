@@ -524,19 +524,20 @@ def smart_dump_slot(
         err_msg = message.error(f"Error while reading group: {e}")
         successful_preload = False
 
-    try:
-        slot.meta.preload()
+    if successful_preload:
         try:
-            slot.preload_meta_dependants()
-        except pwndbg.dbg_mod.Error as e1:
-            err_msg = message.error(
-                f"Error while loading slot fields that depend on the meta:\n{e1}"
-            )
-            successful_preload = False
+            slot.meta.preload()
+            try:
+                slot.preload_meta_dependants()
+            except pwndbg.dbg_mod.Error as e1:
+                err_msg = message.error(
+                    f"Error while loading slot fields that depend on the meta:\n{e1}"
+                )
+                successful_preload = False
 
-    except pwndbg.dbg_mod.Error as e2:
-        err_msg = message.error(f"Error while reading meta: {e2}")
-        successful_preload = False
+        except pwndbg.dbg_mod.Error as e2:
+            err_msg = message.error(f"Error while reading meta: {e2}")
+            successful_preload = False
 
     if successful_preload:
         # If we successfully got the group and meta, using the grouped_slot won't

@@ -204,12 +204,10 @@ class Slot:
         self._pn3 = pheader[5]
         # ==
 
-        # Read the group's meta pointer.
-        _ = self.meta
-
-        # To calculate footer and p header fields
+        # To calculate footer and start header fields
         # we need self.meta.stride. However we want to be able to
-        # return some information even if the meta is corrupt, so
+        # return some information even if the meta is corrupt or
+        # unreachable (e.g. this slot is freed or avail), so
         # we won't load that here.
 
         # Other fields are calculated without memory reads.
@@ -1212,7 +1210,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         f"Mallocng.containing: Could not read meta_area ({e}), returning early."
                     )
                 )
-                return None
+                return (None, None)
 
             # Iterate over all metas in the meta_area.
             for i in range(meta_area.nslots):
@@ -1246,7 +1244,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             meta_area_addr = meta_area.next
 
         if hit_group is None:
-            return None
+            return (None, None)
 
         # Need to read memory for the .contains_group() check.
         hit_slot: Optional[Slot] = None
@@ -1272,7 +1270,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         # We are in no slot.
                         # We could return *some* information to the callee
                         # but alas, let's be technically correct.
-                        return None
+                        return (None, None)
 
                 # Calculate the correct inner slot.
                 slot_idx = (address - valid_start) // hit_group.meta.stride
