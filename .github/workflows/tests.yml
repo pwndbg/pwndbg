@@ -56,6 +56,8 @@ jobs:
       if: matrix.type == 'tests'
       run: |
         ./tests.sh --nix -d gdb -g gdb
+        ./tests.sh --nix -d gdb -g dbg
+        ./tests.sh --nix -d lldb -g dbg
 
     - name: Run cross-arch tests
       if: matrix.type == 'qemu-user-tests'
@@ -116,6 +118,8 @@ jobs:
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh -d gdb -g gdb
+        ./tests.sh -d gdb -g dbg
+        ./tests.sh -d lldb -g dbg
 
   qemu-user-tests:
     runs-on: [ubuntu-24.04]
