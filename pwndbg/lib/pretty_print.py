@@ -79,7 +79,9 @@ class PropertyPrinter:
                     prop.alt_value = str(prop.alt_value)
 
         indentation_str = self.indent_level * self.indent_size * " "
-        extra_list_pad_str = indentation_str + self.value_offset * " " + self.extra_offset * " "
+        extra_list_pad_str = (
+            indentation_str + self.value_offset * " " + "  " + self.extra_offset * " "
+        )
 
         for prop in prop_group:
             self.text += (
