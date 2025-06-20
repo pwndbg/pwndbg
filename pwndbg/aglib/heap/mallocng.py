@@ -328,6 +328,7 @@ class Slot:
         """
         Does this slot nest a group?
         """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L269
         return self.reserved == 6
 
     @classmethod
@@ -605,8 +606,7 @@ class MetaArea:
         self.check: int = 0
         self.meta_area: int = 0
         self.nslots: int = 0
-        # Alignment offsets it by 0x4
-        self.slots: int = self.addr + 0x18
+        self.slots: int = 0
 
         self.load()
 
@@ -615,7 +615,7 @@ class MetaArea:
         uint64size = pwndbg.aglib.typeinfo.uint64.sizeof
         endian = pwndbg.aglib.arch.endian
 
-        data: bytearray = memory.read(self.addr, 0x14)
+        data: bytearray = memory.read(self.addr, uint64size + ptrsize + int_size())
 
         cur_offset = 0
         self.check = int.from_bytes(
@@ -629,14 +629,17 @@ class MetaArea:
         )
         cur_offset += int_size()
 
-        assert cur_offset == 0x14
+        # Alignment adjustment
+        cur_offset += ptrsize - int_size()
+
+        self.slots = self.addr + cur_offset
 
     def at_index(self, idx: int) -> int:
         """
         Returns the address of the meta object located
         at index idx.
         """
-        return self.addr + 0x18 + idx * Meta.sizeof()
+        return self.slots + idx * Meta.sizeof()
 
 
 class MallocContext:
