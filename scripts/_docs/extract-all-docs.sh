@@ -8,7 +8,7 @@ cd $PWNDBG_ABS_PATH
 # the documentation. Do this from each debugger.
 
 export PWNDBG_DOCGEN_DBGNAME="gdb"
-$UV_RUN_DOCS --extra gdb pwndbg -nx --batch \
+$UV_RUN_DOCS pwndbg -nx --batch \
     -iex "set exception-verbose on" \
     -ix ./scripts/_docs/extract_command_docs.py \
     -ix ./scripts/_docs/extract_configuration_docs.py \
@@ -17,7 +17,7 @@ $UV_RUN_DOCS --extra gdb pwndbg -nx --batch \
 
 export PWNDBG_DOCGEN_DBGNAME="lldb"
 {
-    $UV_RUN_DOCS --extra lldb pwndbg-lldb << EOF
+    $UV_RUN_DOCS pwndbg-lldb << EOF
 set show-tips off
 command script import ./scripts/_docs/extract_command_docs.py
 command script import ./scripts/_docs/extract_configuration_docs.py
