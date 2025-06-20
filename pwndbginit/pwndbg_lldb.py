@@ -5,9 +5,9 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
-import shutil
 from typing import List
 
 PARSER = argparse.ArgumentParser(prog="pwndbg-lldb")
@@ -93,7 +93,9 @@ def main():
     lldb.SBDebugger.Initialize()
     debugger = lldb.SBDebugger.Create()
 
-    from pwndbginit import lldbinit, pwndbglldbhandler
+    from pwndbginit import lldbinit
+    from pwndbginit import pwndbglldbhandler
+
     debugger.HandleCommand(f"command script import {pwndbglldbhandler.__file__}")
 
     # Initialize the debugger, proper.
