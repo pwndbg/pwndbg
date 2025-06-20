@@ -137,10 +137,6 @@ run_gdb() {
         gdb_load_pwndbg=()
 
         GDB=pwndbg
-        if [ ! -x "$GDB" ]; then
-            echo "ERROR: No 'pwndbg' found. Please enter into venv?"
-            exit 1
-        fi
     fi
 
     if [ $should_drop_to_pdb -eq 1 ]; then
