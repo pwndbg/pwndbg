@@ -32,7 +32,7 @@ done
 
 set -o xtrace
 
-LINT_FILES="pwndbg tests *.py scripts"
+LINT_FILES="pwndbg pwndbginit tests *.py scripts"
 
 call_shfmt() {
     local FLAGS=$1
