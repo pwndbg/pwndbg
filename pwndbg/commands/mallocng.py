@@ -299,18 +299,15 @@ def dump_meta(meta: mallocng.Meta) -> str:
             Property(name="mem", value=meta.mem, is_addr=True, extra="the group"),
             Property(name="avail_mask", value=meta.avail_mask, extra=avail_binary),
             Property(name="freed_mask", value=meta.freed_mask, extra=freed_binary),
-            Property(name="last_idx", value=meta.last_idx, extra="index of last slot"),
+            Property(
+                name="last_idx",
+                value=meta.last_idx,
+                alt_value=f"cnt: {meta.cnt:#x}",
+                extra="index of last slot",
+            ),
             Property(name="freeable", value=str(bool(meta.freeable))),
-            Property(name="sizeclass", value=meta.sizeclass),
+            Property(name="sizeclass", value=meta.sizeclass, alt_value=f"stride: {meta.stride:#x}"),
             Property(name="maplen", value=meta.maplen),
-        ]
-    )
-    pp.write("---\n")
-    pp.set_padding(9)
-    pp.add(
-        [
-            Property(name="cnt", value=meta.cnt, extra="the number of slots"),
-            Property(name="stride", value=meta.stride),
         ]
     )
     pp.end_section()
