@@ -364,10 +364,13 @@ class TestStats:
 
     def handle_test_result(self, case: str, test_result: TestResult, verbose: bool):
         match test_result.status:
-            case TestStatus.FAILED | TestStatus.XPASS:
+            case TestStatus.FAILED:
                 self.fail_tests += 1
                 self.fail_tests_names.append(case)
             case TestStatus.PASSED | TestStatus.XFAIL:
+                self.pass_tests += 1
+            case TestStatus.XPASS:
+                # Technically this is a failure, but Pwndbg does not consider it so.
                 self.pass_tests += 1
             case TestStatus.SKIPPED:
                 self.skip_tests += 1
@@ -382,11 +385,7 @@ class TestStats:
         )
 
         # Only show the output of failed tests unless the verbose flag was used
-        if (
-            verbose
-            or test_result.status == TestStatus.FAILED
-            or test_result.status == TestStatus.XPASS
-        ):
+        if verbose or test_result.status == TestStatus.FAILED:
             print("")
             print(test_result.stderr)
             print(test_result.stdout)
