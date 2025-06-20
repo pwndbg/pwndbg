@@ -64,6 +64,7 @@ def main():
     debug = args.verbose
 
     if sys.platform == "linux" and "LLDB_DEBUGSERVER_PATH" not in os.environ:
+        # TODO: get from venv?
         os.environ["LLDB_DEBUGSERVER_PATH"] = shutil.which("lldb-server")
 
     # Older LLDB versions crash newer versions of CPython on import, so check

@@ -129,7 +129,8 @@ def fixup_paths(src_root: Path, venv_path: Path):
     sys.path.insert(0, str(src_root))
 
     # Push virtualenv's site-packages to the front
-    sys.path.remove(site_pkgs_path)
+    if site_pkgs_path in sys.path:
+        sys.path.remove(site_pkgs_path)
     sys.path.insert(1, site_pkgs_path)
 
 
