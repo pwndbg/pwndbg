@@ -9,7 +9,7 @@ def build_id() -> str:
     Returns pwndbg commit id if git is available.
     """
     pwndbg_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    # If we install pwndbg into site-packages, then `gdbinit.py` is missing.
+    # If we install pwndbg into site-packages, then `.pwndbg_root` is missing.
     if not os.path.exists(os.path.join(pwndbg_dir, ".pwndbg_root")):
         return ""
 
