@@ -26,6 +26,8 @@ import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
+from pwndbg.aglib.kernel.paging import AddressMarkers
+from pwndbg.lib.regs import BitFlags
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
 
@@ -116,7 +118,7 @@ def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
     if base is None:
         return None
 
-    for mapping in pwndbg.aglib.vmmap.get():
+    for mapping in pwndbg.aglib.kernel.paging.get_memory_map_raw():
         if mapping.vaddr < base:
             continue
 
@@ -202,7 +204,7 @@ def is_kaslr_enabled() -> bool:
 
 @pwndbg.lib.cache.cache_until("start")
 def kbase() -> int | None:
-    return pwndbg.aglib.kernel.paging.kbase()
+    return arch_markers().kbase
 
 
 def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
@@ -267,6 +269,17 @@ class ArchOps(ABC):
         raise NotImplementedError()
 
     @property
+    def STRUCT_PAGE_SIZE(self):
+        a = pwndbg.aglib.typeinfo.load("struct page")
+        if a is None:
+            return 0x40
+        return a.sizeof
+
+    @property
+    def STRUCT_PAGE_SHIFT(self):
+        return int(math.log2(self.STRUCT_PAGE_SIZE))
+
+    @property
     def page_offset(self) -> int:
         raise NotImplementedError()
 
@@ -326,19 +339,13 @@ class x86Ops(ArchOps):
 
 
 class i386Ops(x86Ops):
-    @requires_kconfig()
-    def __init__(self) -> None:
-        # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_32_types.h#L18
-        self._PAGE_OFFSET = int(kconfig()["CONFIG_PAGE_OFFSET"], 16)
-        self.START_KERNEL_map = self._PAGE_OFFSET
-
     @property
     def ptr_size(self) -> int:
         return 32
 
     @property
     def page_offset(self) -> int:
-        return self._PAGE_OFFSET
+        return arch_markers().physmap
 
     @property
     def page_shift(self) -> int:
@@ -360,37 +367,7 @@ class i386Ops(x86Ops):
 
 class x86_64Ops(x86Ops):
     def __init__(self) -> None:
-        self.STRUCT_PAGE_SIZE = pwndbg.aglib.typeinfo.load("struct page").sizeof
-        self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
         self.phys_base = 0x1000000
-
-        try:
-            self.START_KERNEL_map = pwndbg.aglib.kernel.kbase()
-        except Exception:
-            print("WARNING: an error ocurred when retrieving kbase")
-            self.START_KERNEL_map = None
-
-        if self.START_KERNEL_map is None:
-            # put this here in case kbase also returns None
-            self.START_KERNEL_map = 0xFFFFFFFF80000000
-
-        if pwndbg.aglib.kernel.has_debug_syms():
-            # if there are debug symbols
-            self._PAGE_OFFSET = pwndbg.aglib.kernel.paging.physmap_base()
-            self.VMEMMAP_START = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
-            if self._PAGE_OFFSET is not None and self.VMEMMAP_START is not None:
-                return
-
-        if self.uses_5lvl_paging():
-            # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L41
-            self._PAGE_OFFSET = 0xFF11000000000000
-            # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/pgtable_64_types.h#L131
-            self.VMEMMAP_START = 0xFFD4000000000000
-        else:
-            # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L42
-            self._PAGE_OFFSET = 0xFFFF888000000000
-            # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/pgtable_64_types.h#L130
-            self.VMEMMAP_START = 0xFFFFEA0000000000
 
     @property
     def ptr_size(self) -> int:
@@ -398,7 +375,7 @@ class x86_64Ops(x86Ops):
 
     @property
     def page_offset(self) -> int:
-        return self._PAGE_OFFSET
+        return arch_markers().physmap
 
     @property
     def page_shift(self) -> int:
@@ -418,19 +395,19 @@ class x86_64Ops(x86Ops):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
-        if virt < self.START_KERNEL_map:
+        if virt < arch_markers().kbase:
             return (virt - self.page_offset) % (1 << 64)
-        return ((virt - self.START_KERNEL_map) + self.phys_base) % (1 << 64)
+        return ((virt - arch_markers().kbase) + self.phys_base) % (1 << 64)
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (pfn << self.STRUCT_PAGE_SHIFT) + self.VMEMMAP_START
+        return (pfn << self.STRUCT_PAGE_SHIFT) + arch_markers().vmemmap
 
     def page_to_pfn(self, page: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (page - self.VMEMMAP_START) >> self.STRUCT_PAGE_SHIFT
+        return (page - arch_markers().vmemmap) >> self.STRUCT_PAGE_SHIFT
 
     @staticmethod
     @requires_debug_syms()
@@ -459,37 +436,11 @@ class x86_64Ops(x86Ops):
 
 
 class Aarch64Ops(ArchOps):
-    @requires_kconfig(default={})
-    def __init__(self) -> None:
-        page_type = pwndbg.aglib.typeinfo.load("struct page")
-        assert page_type is not None, "Type 'struct page' not exists"
-
-        self.STRUCT_PAGE_SIZE = page_type.sizeof
-        self.STRUCT_PAGE_SHIFT = int(math.log2(self.STRUCT_PAGE_SIZE))
-
-        self.VA_BITS = int(kconfig()["ARM64_VA_BITS"])
-        self.PAGE_SHIFT = int(kconfig()["CONFIG_ARM64_PAGE_SHIFT"])
-
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr("memstart_addr")
-        assert addr is not None, "Symbol memstart_addr not exists"
-
-        self.PHYS_OFFSET = pwndbg.aglib.memory.u(addr)
-        self.PAGE_OFFSET = (-1 << self.VA_BITS) + 2**64
-
-        VA_BITS_MIN = 48 if self.VA_BITS > 48 else self.VA_BITS
-        PAGE_END = (-1 << (VA_BITS_MIN - 1)) + 2**64
-        VMEMMAP_SIZE = (PAGE_END - self.PAGE_OFFSET) >> (self.PAGE_SHIFT - self.STRUCT_PAGE_SHIFT)
-
-        if pwndbg.aglib.kernel.krelease() >= (5, 11):
-            # Linux 5.11 changed the calculation for VMEMMAP_START
-            # https://elixir.bootlin.com/linux/v5.11/source/arch/arm64/include/asm/memory.h#L53
-            self.VMEMMAP_SHIFT = self.PAGE_SHIFT - self.STRUCT_PAGE_SHIFT
-            self.VMEMMAP_START = -(1 << (self.VA_BITS - self.VMEMMAP_SHIFT)) % (1 << 64)
-        else:
-            self.VMEMMAP_START = (-VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
+    def page_shift(self):
+        return arch_markers().page_shift
 
     def page_size(self) -> int:
-        return 1 << self.PAGE_SHIFT
+        return 1 << arch_markers().page_shift
 
     @requires_debug_syms()
     def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
@@ -504,30 +455,44 @@ class Aarch64Ops(ArchOps):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
-        return virt - self.PAGE_OFFSET
+        return virt - arch_markers().physmap
 
     def phys_to_virt(self, phys: int) -> int:
-        return phys + self.PAGE_OFFSET
+        return phys + arch_markers().physmap
 
     def phys_to_pfn(self, phys: int) -> int:
-        return phys >> self.PAGE_SHIFT
+        return phys >> arch_markers().page_shift
 
     def pfn_to_phys(self, pfn: int) -> int:
-        return pfn << self.PAGE_SHIFT
+        return pfn << arch_markers().page_shift
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (pfn << self.STRUCT_PAGE_SHIFT) + self.VMEMMAP_START
+        return (pfn << self.STRUCT_PAGE_SHIFT) + arch_markers().vmemmap
 
     def page_to_pfn(self, page: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (page - self.VMEMMAP_START) >> self.STRUCT_PAGE_SHIFT
+        return (page - arch_markers().vmemmap) >> self.STRUCT_PAGE_SHIFT
 
     @staticmethod
     def paging_enabled() -> bool:
         return int(pwndbg.aglib.regs.SCTLR) & BIT(0) != 0
+
+
+_arch_markers: AddressMarkers = None
+
+
+@pwndbg.lib.cache.cache_until("start")
+def arch_markers() -> AddressMarkers:
+    global _arch_markers
+    if _arch_markers is None:
+        if pwndbg.aglib.arch.name == "aarch64":
+            _arch_markers = pwndbg.aglib.kernel.paging.Aarch64Markers()
+        elif pwndbg.aglib.arch.name == "x86-64":
+            _arch_markers = pwndbg.aglib.kernel.paging.x86_64Markers()
+    return _arch_markers
 
 
 _arch_ops: ArchOps = None

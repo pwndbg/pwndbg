@@ -29,7 +29,7 @@ class BitFlags:
     flags: OrderedDict[str, Union[int, Tuple[int, int]]]
     value: int
 
-    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = [], value = None):
+    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = [], value=None):
         self.regname = ""
         self.flags = {}
         for name, bits in flags:
