@@ -262,7 +262,6 @@ def dump_group(group: mallocng.Group) -> str:
 
     pp = PropertyPrinter()
     pp.start_section("group", group_range)
-    pp.set_padding(5)
     pp.add(
         [
             Property(name="meta", value=group.meta.addr, is_addr=True),
@@ -273,7 +272,6 @@ def dump_group(group: mallocng.Group) -> str:
 
     if group_size != -1:
         pp.write("---\n")
-        pp.set_padding(5)
         pp.add(
             [
                 Property(name="group size", value=group_size),
@@ -291,7 +289,6 @@ def dump_meta(meta: mallocng.Meta) -> str:
 
     pp = PropertyPrinter()
     pp.start_section("meta", "@ " + C.memory.get(meta.addr))
-    pp.set_padding(5)
     pp.add(
         [
             Property(name="prev", value=meta.prev, is_addr=True),
@@ -360,7 +357,6 @@ def dump_grouped_slot(gslot: mallocng.GroupedSlot, all: bool) -> str:
 
     if not all:
         pp.start_section("slab")
-        pp.set_padding(10)
         pp.add(
             [
                 Property(name="group", value=gslot.group.addr, is_addr=True),
@@ -370,7 +366,6 @@ def dump_grouped_slot(gslot: mallocng.GroupedSlot, all: bool) -> str:
         pp.end_section()
 
     pp.start_section("slot")
-    pp.set_padding(6)
     pp.add(
         [
             Property(name="start", value=gslot.start, is_addr=True),
@@ -400,7 +395,6 @@ def dump_slot(
 
     if not all:
         pp.start_section("slab")
-        pp.set_padding(10)
         if successful_preload:
             pp.add(
                 [
@@ -418,7 +412,6 @@ def dump_slot(
 
     if successful_preload:
         pp.start_section("general")
-        pp.set_padding(5)
         pp.add(
             [
                 Property(name="start", value=slot.start, is_addr=True),
@@ -439,7 +432,6 @@ def dump_slot(
         pp.end_section()
 
     pp.start_section("in-band")
-    pp.set_padding(2)
 
     reserved_extra = ["describes: end - p - n"]
     if slot.reserved_in_header == 5:
