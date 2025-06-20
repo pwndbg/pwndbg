@@ -829,7 +829,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.ctx_addr: int = 0
         self.ctx: Optional[MallocContext] = None
         self.has_debug_syms: bool = False
-        self.secret: int = 0
+        self.secret: bytearray = b""
         self.hope: bool = True
 
     def init_if_needed(self):
@@ -846,7 +846,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.ctx_addr = 0
         self.ctx = None
         self.has_debug_syms = False
-        self.secret = 0
+        self.secret = b""
         self.hope = True
 
         self.set_ctx_addr()
@@ -864,7 +864,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.ctx_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
         if self.ctx_addr is not None:
             self.has_debug_syms = True
-            self.secret = memory.read_pointer_width(self.ctx_addr)
+            self.secret = memory.read(self.ctx_addr, 8)
             return
 
         # No debug information :(
@@ -876,12 +876,10 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # Extract the secret first.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/glue.h#L49
         at_random = int(pwndbg.auxv.get()["AT_RANDOM"])
-        self.secret = memory.read_pointer_width(at_random + 8)
+        self.secret = memory.read(at_random, 8)
 
         secret_matches = list(
-            pwndbg.search.search(
-                pwndbg.aglib.arch.pack(self.secret), executable=False, writable=True, aligned=8
-            )
+            pwndbg.search.search(self.secret, executable=False, writable=True, aligned=8)
         )
 
         # There are going to be multiple matches. We don't
