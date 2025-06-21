@@ -5,7 +5,7 @@ import os
 import re
 import subprocess
 
-gdb_bin_path = os.environ.get("GDB_BIN_PATH", "gdb")
+gdb_bin_path = os.environ.get("GDB_BIN_PATH", "pwndbg")
 
 
 def run_gdb_with_script(
@@ -23,7 +23,7 @@ def run_gdb_with_script(
     pybefore = ([pybefore] if isinstance(pybefore, str) else pybefore) or []
     pyafter = ([pyafter] if isinstance(pyafter, str) else pyafter) or []
 
-    command = [gdb_bin_path, "--silent", "--nx", "--nh"]
+    command = [gdb_bin_path, "--silent", "--nx"]
 
     for cmd in pybefore:
         command += ["--init-eval-command", cmd]

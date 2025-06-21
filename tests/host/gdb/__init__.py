@@ -39,7 +39,7 @@ class GDBTestHost(TestHost):
         gdb_args = ["--command", str(target)]
 
         return subprocess.run(
-            [str(self._gdb_path), "--silent", "--nx", "--nh"]
+            [str(self._gdb_path), "--silent", "--nx"]
             + gdb_args_before
             + gdb_args
             + ["--eval-command", "quit"],

@@ -148,7 +148,7 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
             print("ERROR: No 'pwndbg' executables in path")
             sys.exit(1)
 
-        result = subprocess.run([gdb_path_str, "-ex", supports_arches], capture_output=True)
+        result = subprocess.run([gdb_path_str, "-nx", "-ex", supports_arches], capture_output=True)
         # GDB supports cross architecture targets
         if result.returncode == 3:
             gdb_path = Path(gdb_path_str)
