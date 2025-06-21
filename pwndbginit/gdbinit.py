@@ -40,6 +40,7 @@ def check_doubleload():
 
 
 def main() -> None:
+    handler = init_logger()
     profiler = cProfile.Profile()
 
     start_time = None
@@ -49,8 +50,6 @@ def main() -> None:
 
     check_doubleload()
     verify_venv()
-
-    handler = init_logger()
 
     # Force UTF-8 encoding (to_string=True to skip output appearing to the user)
     try:
