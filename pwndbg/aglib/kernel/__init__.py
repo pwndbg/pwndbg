@@ -237,10 +237,6 @@ class ArchOps(ABC):
     # in the page_to_pfn() and pfn_to_page() methods in the future.
 
     @abstractmethod
-    def page_size(self) -> int:
-        raise NotImplementedError()
-
-    @abstractmethod
     def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu=None) -> pwndbg.dbg_mod.Value:
         raise NotImplementedError()
 
@@ -281,7 +277,15 @@ class ArchOps(ABC):
 
     @property
     def page_offset(self) -> int:
-        raise NotImplementedError()
+        return arch_markers().physmap
+
+    @property
+    def page_shift(self):
+        return arch_markers().page_shift
+
+    @property
+    def page_size(self) -> int:
+        return 1 << self.page_shift
 
     def virt_to_pfn(self, virt: int) -> int:
         return phys_to_pfn(virt_to_phys(virt))
@@ -306,9 +310,6 @@ class ArchOps(ABC):
 
 
 class x86Ops(ArchOps):
-    def page_size(self) -> int:
-        return 1 << self.page_shift
-
     def phys_to_virt(self, phys: int) -> int:
         return (phys + self.page_offset) % (1 << self.ptr_size)
 
@@ -323,16 +324,6 @@ class x86Ops(ArchOps):
     def ptr_size(self) -> int:
         raise NotImplementedError()
 
-    @property
-    @abstractmethod
-    def page_shift(self) -> int:
-        raise NotImplementedError()
-
-    @property
-    @abstractmethod
-    def page_offset(self) -> int:
-        raise NotImplementedError()
-
     @staticmethod
     def paging_enabled() -> bool:
         return int(pwndbg.aglib.regs.cr0) & BIT(31) != 0
@@ -342,15 +333,6 @@ class i386Ops(x86Ops):
     @property
     def ptr_size(self) -> int:
         return 32
-
-    @property
-    def page_offset(self) -> int:
-        return arch_markers().physmap
-
-    @property
-    def page_shift(self) -> int:
-        # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_types.h#L10
-        return 12
 
     def virt_to_phys(self, virt: int) -> int:
         return (virt - self.page_offset) % (1 << 32)
@@ -372,15 +354,6 @@ class x86_64Ops(x86Ops):
     @property
     def ptr_size(self) -> int:
         return 64
-
-    @property
-    def page_offset(self) -> int:
-        return arch_markers().physmap
-
-    @property
-    def page_shift(self) -> int:
-        # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/page_64_types.h#L50
-        return 12
 
     @requires_debug_syms()
     def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
@@ -436,12 +409,6 @@ class x86_64Ops(x86Ops):
 
 
 class Aarch64Ops(ArchOps):
-    def page_shift(self):
-        return arch_markers().page_shift
-
-    def page_size(self) -> int:
-        return 1 << arch_markers().page_shift
-
     @requires_debug_syms()
     def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
         if cpu is None:
@@ -515,7 +482,7 @@ def arch_ops() -> ArchOps:
 def page_size() -> int:
     ops = arch_ops()
     if ops:
-        return ops.page_size()
+        return ops.page_size
     else:
         raise NotImplementedError()
 
