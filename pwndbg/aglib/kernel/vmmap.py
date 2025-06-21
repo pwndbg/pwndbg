@@ -32,8 +32,8 @@ class KernelVmmap:
         self.pages = pages
         self.sections = None
         self.markers = pwndbg.aglib.kernel.arch_markers()
-        # if not pwndbg.aglib.kernel.has_debug_syms():
-        #     return
+        if not pwndbg.aglib.kernel.has_debug_syms():
+            return
         self.sections = self.markers.markers()
 
     def get_name(self, addr: int) -> str:

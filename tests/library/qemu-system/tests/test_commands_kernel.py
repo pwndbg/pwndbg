@@ -239,11 +239,6 @@ def test_command_pagewalk():
         # no kbase? fine
         pages = pwndbg.aglib.vmmap.get()
         address = pages[0].start
-    if not pwndbg.aglib.kernel.has_debug_syms():
-        # even if no debug symbols, still gracefully handle it
-        res = gdb.execute(f"pagewalk {hex(address)}")
-        # now let's guess the phymap base and should work as intended
-        res = gdb.execute("set guess-physmap on")
     res = gdb.execute(f"pagewalk {hex(address)}", to_string=True)
     assert "PMD" in res  # Page Size is only set for PMDe or PTe
     res = res.splitlines()[-1]
