@@ -59,12 +59,29 @@ def find_lldb_python_path() -> str:
     return folder
 
 
+def get_venv_bin_path():
+    bin_dir = "Scripts" if os.name == "nt" else "bin"
+    return os.path.join(sys.prefix, bin_dir)
+
+
+def prepend_venv_bin_to_path():
+    # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
+    venv_bin = get_venv_bin_path()
+    path_elements = os.environ.get("PATH", "").split(os.pathsep)
+    if venv_bin in path_elements:
+        return
+
+    path_elements.insert(0, venv_bin)
+    os.environ["PATH"] = os.pathsep.join(path_elements)
+
+
 def main():
+    prepend_venv_bin_to_path()
+
     args = PARSER.parse_args()
     debug = args.verbose
 
     if sys.platform == "linux" and "LLDB_DEBUGSERVER_PATH" not in os.environ:
-        # TODO: get from venv?
         os.environ["LLDB_DEBUGSERVER_PATH"] = shutil.which("lldb-server")
 
     # Older LLDB versions crash newer versions of CPython on import, so check

@@ -24,8 +24,33 @@ def get_gdb_version(path: str) -> Tuple[str, str]:
     return tuple(result.stdout.strip().split(" ", 2))
 
 
+def get_venv_bin_path():
+    bin_dir = "Scripts" if os.name == "nt" else "bin"
+    return os.path.join(sys.prefix, bin_dir)
+
+
+def prepend_venv_bin_to_path():
+    # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
+    venv_bin = get_venv_bin_path()
+    path_elements = os.environ.get("PATH", "").split(os.pathsep)
+    if venv_bin in path_elements:
+        return
+
+    path_elements.insert(0, venv_bin)
+    os.environ["PATH"] = os.pathsep.join(path_elements)
+
+
 def main():
-    gdb_argv = [sys.argv[0], "-q", "-nx", "-iex", "py import pwndbginit.gdbinit", *sys.argv[1:]]
+    prepend_venv_bin_to_path()
+
+    gdb_argv = [
+        sys.argv[0],
+        "-q",
+        "-nx",
+        "-iex",
+        "py import pwndbginit.gdbinit; pwndbginit.gdbinit.main_try()",
+        *sys.argv[1:],
+    ]
     sys.argv = gdb_argv
 
     try:
@@ -38,7 +63,7 @@ def main():
 
     gdb_path = shutil.which("gdb")
     if not gdb_path:
-        print(f"ERROR: Could not find gdb for pwndbg in {gdb_path}")
+        print("ERROR: Could not find 'gdb' binary")
         sys.exit(1)
 
     envs = os.environ.copy()
