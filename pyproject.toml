@@ -38,7 +38,7 @@ lldb = [
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
 ]
 gdb = [
-    "gdb-for-pwndbg>=16.2.5",
+    "gdb-for-pwndbg>=16.2.6",
 ]
 
 [dependency-groups]
