@@ -25,7 +25,7 @@ parser.add_argument(
     category=pwndbg.commands.CommandCategory.CONTEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
-def src_debug(function: bool = False) -> None:
+def src(function: bool = False) -> None:
     """Debug version of src to diagnose boundary detection."""
 
     try:

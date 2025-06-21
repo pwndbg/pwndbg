@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   base: &base-spec
     build: .
@@ -6,6 +8,7 @@ services:
       - seccomp:unconfined
     cap_add:
       - SYS_PTRACE
+
   main:
     <<: *base-spec
     volumes:
@@ -18,7 +21,7 @@ services:
       dockerfile: Dockerfile
       args:
         image: ubuntu:22.04
-  
+
   ubuntu24.04:
     <<: *base-spec
     build:
@@ -63,3 +66,24 @@ services:
       dockerfile: Dockerfile.arch
       args:
         image: archlinux:latest
+
+  hybrid:
+    <<: *base-spec
+    build:
+      context: .
+      dockerfile: Dockerfile.hybrid
+    volumes:
+      - .:/pwndbg
+    working_dir: /pwndbg
+    tty: true
+
+  lldb19:              
+    image: pwndbg/lldb19:jammy-base
+    platform: linux/amd64
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    working_dir: /pwndbg         
+    volumes:
+      - .:/pwndbg      

@@ -1,0 +1,33 @@
+####################################################################
+# Dockerfile.lldb19 – Ubuntu 24.04 + LLDB 19 (snapshot)           #
+####################################################################
+FROM ubuntu:24.04
+ARG  DEBIAN_FRONTEND=noninteractive
+
+# --- Stage 1: nur Basis-Tools, KEIN python3.10 --------------------
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        gnupg curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# --- Stage 2: Jammy-Repo + LLVM-19-Repo einbinden -----------------
+RUN echo "deb http://archive.ubuntu.com/ubuntu jammy main universe" \
+        > /etc/apt/sources.list.d/jammy.list && \
+    curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | \
+        gpg --dearmor -o /usr/share/keyrings/llvm.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] \
+         http://apt.llvm.org/jammy/ llvm-toolchain-jammy-19 main" \
+        > /etc/apt/sources.list.d/llvm19.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3.10 python3.10-minimal libpython3.10 \
+        python3.10-venv python3.10-distutils \
+        lldb-19 python3-lldb-19 && \
+    ln -sf /usr/bin/lldb-19 /usr/local/bin/lldb && \
+    # -------- Python-Default auf 3.10 umstellen -------------------
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 && \
+    # --------------------------------------------------------------
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/usr/bin:${PATH}"
+CMD ["lldb", "-v"]
