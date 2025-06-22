@@ -876,7 +876,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # Extract the secret first.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/glue.h#L49
         at_random = int(pwndbg.auxv.get()["AT_RANDOM"])
-        self.secret = memory.read(at_random, 8)
+        self.secret = memory.read(at_random + 8, 8)
 
         secret_matches = list(
             pwndbg.search.search(self.secret, executable=False, writable=True, aligned=8)
