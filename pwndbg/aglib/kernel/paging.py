@@ -259,18 +259,29 @@ class Aarch64Markers(AddressMarkers):
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self):
         shift = self.page_shift - self.STRUCT_PAGE_SHIFT
-        self.VMEMMAP_SIZE = (self.physmap_end - self.physmap) >> shift
+        self.VMEMMAP_SIZE = (self._page_end(self.va_bits_min) - self.physmap) >> shift
         if pwndbg.aglib.kernel.krelease() >= (6, 9):
-            for page in get_memory_map_raw():
-                if page.start >= -0x40000000 % (1 << 64):
-                    return page.start
+            # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L33
+            return (-0x40000000 % (1 << 64)) - self.VMEMMAP_SIZE
         if pwndbg.aglib.kernel.krelease() >= (5, 11):
             # Linux 5.11 changed the calculation for VMEMMAP_START
             # https://elixir.bootlin.com/linux/v5.11/source/arch/arm64/include/asm/memory.h#L53
-            self.VMEMMAP_SHIFT = self.page_shift - self.STRUCT_PAGE_SHIFT
-            return -(1 << (self.va_bits - self.VMEMMAP_SHIFT)) % (1 << 64)
-        self.VMEMMAP_SIZE = (self._page_end(self.va_bits_min) - self.physmap) >> shift
+            VMEMMAP_SHIFT = self.page_shift - self.STRUCT_PAGE_SHIFT
+            return -(1 << (self.va_bits - VMEMMAP_SHIFT)) % (1 << 64)
         return (-self.VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def pci(self):
+        if pwndbg.aglib.kernel.krelease() >= (6, 9):
+            pci = self.vmemmap + self.VMEMMAP_SIZE + 0x00800000
+            self.pci_end = pci + 0x01000000
+            return pci
+        if pwndbg.aglib.kernel.krelease() >= (5, 11):
+            self.pci_end = self.vmemmap - 0x00800000
+            return self.pci_end - 0x01000000
+        self.pci_end = self.vmemmap - 0x00200000
+        return self.pci_end - 0x01000000
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -321,10 +332,10 @@ class Aarch64Markers(AddressMarkers):
             (self.VMALLOC, self.vmalloc),  # same as module_end
             (self.VMEMMAP, self.vmemmap),
             (None, self.vmemmap + self.VMEMMAP_SIZE),
-            # TODO: the computation of the base addresses for PCI and fixmap is version dependent
-            #       don't really want to figure that out at the moment since they are not so important
-            # ("PCI", self.vmemmap + self.VMEMMAP_SIZE + 0x00800000),
-            # ("fixmap", -0x00800000 % (1<<64)),
+            ("pci", self.pci),
+            (None, self.pci_end),
+            # TODO: prob not entirely correct but the computation is too complicated
+            ("fixmap", self.pci_end),
             (None, 0xFFFFFFFFFFFFFFFF),
         )
 
