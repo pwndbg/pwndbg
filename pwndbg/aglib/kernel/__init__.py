@@ -382,31 +382,6 @@ class x86_64Ops(x86Ops):
         # FLATMEM or SPARSEMEM not (yet) implemented
         return (page - arch_markers().vmemmap) >> self.STRUCT_PAGE_SHIFT
 
-    @staticmethod
-    @requires_debug_syms()
-    def cpu_feature_capability(feature: int) -> bool:
-        boot_cpu_data = pwndbg.aglib.symbol.lookup_symbol("boot_cpu_data")
-        assert boot_cpu_data is not None, "Symbol boot_cpu_data not exists"
-        boot_cpu_data = boot_cpu_data.dereference()
-
-        capabilities = boot_cpu_data["x86_capability"]
-        return (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
-
-    @staticmethod
-    @requires_debug_syms()
-    def uses_5lvl_paging() -> bool:
-        # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
-        X86_FEATURE_LA57 = 16 * 32 + 16
-        # Separate to avoid using kconfig if possible
-        if not x86_64Ops.cpu_feature_capability(X86_FEATURE_LA57) or "no5lvl" in kcmdline():
-            return False
-        return x86_64Ops._kconfig_5lvl_paging()
-
-    @staticmethod
-    @requires_kconfig()
-    def _kconfig_5lvl_paging() -> bool:
-        return kconfig().get("CONFIG_X86_5LEVEL") == "y"
-
 
 class Aarch64Ops(ArchOps):
     @requires_debug_syms()

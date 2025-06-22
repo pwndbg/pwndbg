@@ -42,7 +42,7 @@ def pg_indices(vaddr, nr_level):
 def pagewalk(vaddr, entry=None):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     # https://blog.zolutal.io/understanding-paging/
-    level = 4
+    level = pwndbg.aglib.kernel.arch_markers().paging_level
     names = (
         "Page",
         "PT",
@@ -50,8 +50,7 @@ def pagewalk(vaddr, entry=None):
         "PUD",
         "PGD",
     )
-    if pwndbg.aglib.kernel.paging.uses_5lvl_paging():
-        level = 5
+    if level == 5:
         names = (
             "Page",
             "PT",

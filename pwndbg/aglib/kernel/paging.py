@@ -60,6 +60,10 @@ class AddressMarkers:
     def page_shift(self) -> int:
         raise NotImplementedError()
 
+    @property
+    def paging_level(self) -> int:
+        raise NotImplementedError()
+
     def markers_fallback(self) -> Tuple[Tuple[str, int], ...]:
         raise NotImplementedError()
 
@@ -145,6 +149,31 @@ class x86_64Markers(AddressMarkers):
     @property
     def page_shift(self) -> int:
         return 12
+
+    @property
+    def paging_level(self) -> int:
+        if pwndbg.aglib.kernel.has_debug_syms():
+            # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
+            X86_FEATURE_LA57 = 16 * 32 + 16
+            feature = X86_FEATURE_LA57
+            # Separate to avoid using kconfig if possible
+            boot_cpu_data = pwndbg.aglib.symbol.lookup_symbol("boot_cpu_data")
+            assert boot_cpu_data is not None, "Symbol boot_cpu_data not exists"
+            boot_cpu_data = boot_cpu_data.dereference()
+
+            capabilities = boot_cpu_data["x86_capability"]
+            cpu_feature_capability = (int(capabilities[feature // 32]) >> (feature % 32)) & 1 == 1
+            if not cpu_feature_capability or "no5lvl" in pwndbg.aglib.kernel.kcmdline():
+                return 4
+            return 5
+        # CONFIG_X86_5LEVEL is only a hint -- whether 5lvl paging is used depends on the hardware
+        # see also: https://www.kernel.org/doc/html/next/x86/x86_64/mm.html
+        pages = get_memory_map_raw()
+        for page in pages:
+            if pwndbg.aglib.memory.is_kernel(page.start):
+                if page.start < (0xFFF << (4 * 13)):
+                    return 5
+        return 4
 
     @pwndbg.lib.cache.cache_until("stop")
     def markers_fallback(self) -> Tuple[Tuple[str, int], ...]:
@@ -344,22 +373,8 @@ class Aarch64Markers(AddressMarkers):
 
 
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
-def uses_5lvl_paging() -> bool:
-    if pwndbg.aglib.kernel.has_debug_syms():
-        ops: pwndbg.aglib.kernel.x86_64Ops = pwndbg.aglib.kernel.arch_ops()
-        return ops.uses_5lvl_paging()
-    pages = get_memory_map_raw()
-    for page in pages:
-        if page.start & (1 << 63) > 0:
-            return page.start < (0xFFF << (4 * 13))
-    return False
-
-
-@pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
 def pagewalk(target, entry=None) -> List[Tuple[int | None, int | None]]:
-    level = 4
-    if uses_5lvl_paging():
-        level = 5
+    level = pwndbg.aglib.kernel.arch_markers().paging_level
     base = pwndbg.aglib.kernel.arch_markers().physmap
     if entry is None:
         entry = pwndbg.aglib.regs["cr3"]
