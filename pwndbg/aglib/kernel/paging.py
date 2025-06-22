@@ -64,9 +64,6 @@ class AddressMarkers:
     def paging_level(self) -> int:
         raise NotImplementedError()
 
-    def markers_fallback(self) -> Tuple[Tuple[str, int], ...]:
-        raise NotImplementedError()
-
     def adjust(self, name: str) -> str:
         raise NotImplementedError()
 
@@ -74,25 +71,7 @@ class AddressMarkers:
         raise NotImplementedError()
 
     def markers(self) -> Tuple[Tuple[str, int], ...]:
-        address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
-        if address_markers is not None:
-            sections = [(self.USERLAND, 0)]
-            value = 0
-            name = None
-            for i in range(20):
-                value = pwndbg.aglib.memory.u64(address_markers + i * self.addr_marker_sz)
-                name_ptr = pwndbg.aglib.memory.u64(address_markers + i * self.addr_marker_sz + 8)
-                name = None
-                if name_ptr > 0:
-                    name = pwndbg.aglib.memory.string(name_ptr).decode()
-                    name = self.adjust(name)
-                value = self.adjust_marker_value(name, value)
-                if value > 0:
-                    sections.append((name, value))
-                if value == 0xFFFFFFFFFFFFFFFF:
-                    break
-            return tuple(sections)
-        return self.markers_fallback()
+        raise NotImplementedError()
 
     def handle_kernel_pages(self, pages, kernel_idx):
         # this is arch dependent
@@ -176,7 +155,7 @@ class x86_64Markers(AddressMarkers):
         return 4
 
     @pwndbg.lib.cache.cache_until("stop")
-    def markers_fallback(self) -> Tuple[Tuple[str, int], ...]:
+    def markers(self) -> Tuple[Tuple[str, int], ...]:
         return (
             (self.USERLAND, 0),
             (None, 0x8000000000000000),
@@ -321,7 +300,25 @@ class Aarch64Markers(AddressMarkers):
             return 16
 
     @pwndbg.lib.cache.cache_until("stop")
-    def markers_fallback(self) -> Tuple[Tuple[str, int], ...]:
+    def markers(self) -> Tuple[Tuple[str, int], ...]:
+        address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
+        if address_markers is not None:
+            sections = [(self.USERLAND, 0)]
+            value = 0
+            name = None
+            for i in range(20):
+                value = pwndbg.aglib.memory.u64(address_markers + i * self.addr_marker_sz)
+                name_ptr = pwndbg.aglib.memory.u64(address_markers + i * self.addr_marker_sz + 8)
+                name = None
+                if name_ptr > 0:
+                    name = pwndbg.aglib.memory.string(name_ptr).decode()
+                    name = self.adjust(name)
+                value = self.adjust_marker_value(name, value)
+                if value > 0:
+                    sections.append((name, value))
+                if value == 0xFFFFFFFFFFFFFFFF:
+                    break
+            return tuple(sections)
         return (
             (self.USERLAND, 0),
             (None, 0x8000000000000000),
