@@ -888,10 +888,10 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # mapping (if musl is dynamically linked) or the executable's
         # mapping (if musl is statically linked).
         possible: List[Tuple[int, str]] = []
-        thread_stacks = pwndbg.aglib.stack.get()
+        thread_stacks = pwndbg.aglib.stack.get().values()
 
         for sm in secret_matches:
-            if any(sm in stack_page for stack_page in thread_stacks.value()):
+            if any(sm in stack_page for stack_page in thread_stacks):
                 continue
 
             mapping_name = pwndbg.aglib.vmmap.find(sm).objfile
