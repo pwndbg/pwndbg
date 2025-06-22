@@ -405,7 +405,7 @@ class Meta:
         endian = pwndbg.aglib.arch.endian
 
         # Read the whole struct.
-        data = memory.read(self.addr, ptrsize * 3 + 2 * int_size() + 8 * ptrsize)
+        data = memory.read(self.addr, Meta.sizeof())
 
         cur_offset = 0
         self._prev = pwndbg.aglib.arch.unpack(data[cur_offset:ptrsize])
@@ -585,7 +585,7 @@ class Meta:
 
     @staticmethod
     def sizeof():
-        return 0x28
+        return 2 * int_size() + 4 * pwndbg.aglib.arch.ptrsize
 
 
 class MetaArea:
@@ -690,6 +690,9 @@ class MallocContext:
         self.seq: int = 0
         self.brk: int = 0
 
+        self.sizeof: int = 0
+        self.has_pagesize_field: bool = False
+
         # We will always load() since we read this object
         # only once - there is no performance benefit to lazy
         # evaluation.
@@ -700,15 +703,22 @@ class MallocContext:
         size_tsize = pwndbg.aglib.typeinfo.size_t.sizeof
         unsignedsize = pwndbg.aglib.typeinfo.uint.sizeof
         uint8size = pwndbg.aglib.typeinfo.uint8.sizeof
+        uint64size = pwndbg.aglib.typeinfo.uint64.sizeof
         endian = pwndbg.aglib.arch.endian
 
-        # sizeof(__malloc_context) gives 0x3A0 when it doesn't have the
-        # pagesize field (the usual case). We will read 0x3B0 in case it does.
-        data: bytearray = memory.read(self.addr, 0x3B0)
+        # We will assume the struct has the pagesize field at first (even though it usually
+        # doesn't), which allows us to only do one memory read. This is 0x3A8 bytes on x86_64.
+        self.sizeof = uint64size + size_tsize + int_size() + unsignedsize + ptrsize * 2
+        self.sizeof += size_tsize * 3 + ptrsize * 2 + ptrsize + ptrsize * 48 + size_tsize * 48
+        self.sizeof += uint8size * 32 * 2 + uint8size + (ptrsize - uint8size) + ptrsize
+
+        data: bytearray = memory.read(self.addr, self.sizeof)
 
         cur_offset = 0
-        self.secret = pwndbg.aglib.arch.unpack(data[cur_offset : (cur_offset + ptrsize)])
-        cur_offset += ptrsize
+        self.secret = int.from_bytes(
+            data[cur_offset : (cur_offset + uint64size)], endian, signed=False
+        )
+        cur_offset += uint64size
 
         # We will read `int` bytes past the `secret`. The `init_done` field can only contain
         # values 0 and 1, so if we get that we know the struct doesn't have the pagesize field.
@@ -731,6 +741,8 @@ class MallocContext:
         else:
             self.init_done = something
             cur_offset += int_size()
+            # Fix our assumption, we don't have `size_t pagesize` field.
+            self.sizeof -= size_tsize
 
         self.mmap_counter = int.from_bytes(
             data[cur_offset : (cur_offset + unsignedsize)], endian, signed=False
@@ -808,7 +820,7 @@ class MallocContext:
         self.brk = int.from_bytes(data[cur_offset : (cur_offset + ptrsize)], endian, signed=False)
         cur_offset += ptrsize
 
-        assert cur_offset == (0x3B0 if self.has_pagesize_field else 0x3A0)
+        assert cur_offset == self.sizeof
 
 
 class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
@@ -861,10 +873,12 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         Find where the __malloc_context global symbol is. Try using debug information,
         but if it isn't available try using a heuristic.
         """
+        uint64size = pwndbg.aglib.typeinfo.uint64.sizeof
+
         self.ctx_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
         if self.ctx_addr is not None:
             self.has_debug_syms = True
-            self.secret = memory.read(self.ctx_addr, 8)
+            self.secret = memory.read(self.ctx_addr, uint64size)
             return
 
         # No debug information :(
@@ -876,10 +890,10 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # Extract the secret first.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/glue.h#L49
         at_random = int(pwndbg.auxv.get()["AT_RANDOM"])
-        self.secret = memory.read(at_random + 8, 8)
+        self.secret = memory.read(at_random + 8, uint64size)
 
         secret_matches = list(
-            pwndbg.search.search(self.secret, executable=False, writable=True, aligned=8)
+            pwndbg.search.search(self.secret, executable=False, writable=True, aligned=uint64size)
         )
 
         # There are going to be multiple matches. We don't
