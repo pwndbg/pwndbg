@@ -408,24 +408,21 @@ class Meta:
         data = memory.read(self.addr, Meta.sizeof())
 
         cur_offset = 0
-        self._prev = pwndbg.aglib.arch.unpack(data[cur_offset:ptrsize])
-        cur_offset += ptrsize
-        self._next = pwndbg.aglib.arch.unpack(data[cur_offset : (cur_offset + ptrsize)])
-        cur_offset += ptrsize
-        self._mem = pwndbg.aglib.arch.unpack(data[cur_offset : (cur_offset + ptrsize)])
-        cur_offset += ptrsize
-        self._avail_mask = int.from_bytes(
-            data[cur_offset : (cur_offset + int_size())], endian, signed=False
-        )
-        cur_offset += int_size()
-        self._freed_mask = int.from_bytes(
-            data[cur_offset : (cur_offset + int_size())], endian, signed=False
-        )
-        cur_offset += int_size()
+
+        def next_int(size: int, signed: bool = False) -> int:
+            nonlocal cur_offset
+            val = int.from_bytes(data[cur_offset : (cur_offset + size)], endian, signed=signed)
+            cur_offset += size
+            return val
+
+        self._prev = next_int(ptrsize)
+        self._next = next_int(ptrsize)
+        self._mem = next_int(ptrsize)
+        self._avail_mask = next_int(int_size())
+        self._freed_mask = next_int(int_size())
         # I think this is how I should read a bitfield.
         # http://mjfrazer.org/mjfrazer/bitfields/
-        flags = int.from_bytes(data[cur_offset : (cur_offset + ptrsize)], endian, signed=False)
-        cur_offset += ptrsize
+        flags = next_int(ptrsize)
         self._last_idx = flags & 0b11111
         self._freeable = (flags >> 5) & 1
         self._sizeclass = (flags >> 6) & 0b111111
@@ -619,16 +616,16 @@ class MetaArea:
         data: bytearray = memory.read(self.addr, uint64size + ptrsize + int_size())
 
         cur_offset = 0
-        self.check = int.from_bytes(
-            data[cur_offset : (cur_offset + uint64size)], endian, signed=False
-        )
-        cur_offset += uint64size
-        self.next = pwndbg.aglib.arch.unpack(data[cur_offset : (cur_offset + ptrsize)])
-        cur_offset += ptrsize
-        self.nslots = int.from_bytes(
-            data[cur_offset : (cur_offset + int_size())], endian, signed=True
-        )
-        cur_offset += int_size()
+
+        def next_int(size: int, signed: bool = False) -> int:
+            nonlocal cur_offset
+            val = int.from_bytes(data[cur_offset : (cur_offset + size)], endian, signed=signed)
+            cur_offset += size
+            return val
+
+        self.check = next_int(uint64size)
+        self.next = next_int(ptrsize)
+        self.nslots = next_int(int_size(), True)
 
         # Alignment adjustment
         cur_offset += ptrsize - int_size()
@@ -715,10 +712,14 @@ class MallocContext:
         data: bytearray = memory.read(self.addr, self.sizeof)
 
         cur_offset = 0
-        self.secret = int.from_bytes(
-            data[cur_offset : (cur_offset + uint64size)], endian, signed=False
-        )
-        cur_offset += uint64size
+
+        def next_int(size: int, signed: bool = False) -> int:
+            nonlocal cur_offset
+            val = int.from_bytes(data[cur_offset : (cur_offset + size)], endian, signed=signed)
+            cur_offset += size
+            return val
+
+        self.secret = next_int(uint64size)
 
         # We will read `int` bytes past the `secret`. The `init_done` field can only contain
         # values 0 and 1, so if we get that we know the struct doesn't have the pagesize field.
@@ -729,96 +730,49 @@ class MallocContext:
         self.has_pagesize_field = something > 1
 
         if self.has_pagesize_field:
-            self.pagesize = int.from_bytes(
-                data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
-            )
-            cur_offset += size_tsize
-
-            self.init_done = int.from_bytes(
-                data[cur_offset : (cur_offset + int_size())], endian, signed=True
-            )
-            cur_offset += int_size()
+            self.pagesize = next_int(size_tsize)
+            self.init_done = next_int(int_size(), True)
         else:
             self.init_done = something
             cur_offset += int_size()
+
             # Fix our assumption, we don't have `size_t pagesize` field.
             self.sizeof -= size_tsize
 
-        self.mmap_counter = int.from_bytes(
-            data[cur_offset : (cur_offset + unsignedsize)], endian, signed=False
-        )
-        cur_offset += unsignedsize
-        self.free_meta_head = int.from_bytes(
-            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
-        )
-        cur_offset += ptrsize
-        self.avail_meta = int.from_bytes(
-            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
-        )
-        cur_offset += ptrsize
-        self.avail_meta_count = int.from_bytes(
-            data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
-        )
-        cur_offset += size_tsize
-        self.avail_meta_area_count = int.from_bytes(
-            data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
-        )
-        cur_offset += size_tsize
-        self.meta_alloc_shift = int.from_bytes(
-            data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
-        )
-        cur_offset += size_tsize
-        self.meta_area_head = int.from_bytes(
-            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
-        )
-        cur_offset += ptrsize
-        self.meta_area_tail = int.from_bytes(
-            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
-        )
-        cur_offset += ptrsize
-        self.avail_meta_areas = int.from_bytes(
-            data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
-        )
-        cur_offset += ptrsize
+        self.mmap_counter = next_int(unsignedsize)
+        self.free_meta_head = next_int(ptrsize)
+        self.avail_meta = next_int(ptrsize)
+        self.avail_meta_count = next_int(size_tsize)
+        self.avail_meta_area_count = next_int(size_tsize)
+        self.meta_alloc_shift = next_int(size_tsize)
+        self.meta_area_head = next_int(ptrsize)
+        self.meta_area_tail = next_int(ptrsize)
+        self.avail_meta_areas = next_int(ptrsize)
 
         assert len(size_classes) == 48
 
         for i in range(len(size_classes)):
-            cur_active = int.from_bytes(
-                data[cur_offset : (cur_offset + ptrsize)], endian, signed=False
-            )
-            cur_offset += ptrsize
+            cur_active = next_int(ptrsize)
             self.active.append(cur_active)
 
         for i in range(len(size_classes)):
-            cur_usage = int.from_bytes(
-                data[cur_offset : (cur_offset + size_tsize)], endian, signed=False
-            )
-            cur_offset += size_tsize
+            cur_usage = next_int(size_tsize)
             self.usage_by_class.append(cur_usage)
 
         for i in range(32):
-            cur_seq = int.from_bytes(
-                data[cur_offset : (cur_offset + uint8size)], endian, signed=False
-            )
-            cur_offset += uint8size
+            cur_seq = next_int(uint8size)
             self.unmap_seq.append(cur_seq)
 
         for i in range(32):
-            cur_bounce = int.from_bytes(
-                data[cur_offset : (cur_offset + uint8size)], endian, signed=False
-            )
-            cur_offset += uint8size
+            cur_bounce = next_int(uint8size)
             self.bounces.append(cur_bounce)
 
-        self.seq = int.from_bytes(data[cur_offset : (cur_offset + uint8size)], endian, signed=False)
-        cur_offset += uint8size
+        self.seq = next_int(uint8size)
 
         # Adjust for alignment
         cur_offset += ptrsize - uint8size
 
-        self.brk = int.from_bytes(data[cur_offset : (cur_offset + ptrsize)], endian, signed=False)
-        cur_offset += ptrsize
+        self.brk = next_int(ptrsize)
 
         assert cur_offset == self.sizeof
 
