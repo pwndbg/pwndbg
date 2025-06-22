@@ -67,9 +67,6 @@ class AddressMarkers:
     def adjust(self, name: str) -> str:
         raise NotImplementedError()
 
-    def adjust_marker_value(self, name, value):
-        raise NotImplementedError()
-
     def markers(self) -> Tuple[Tuple[str, int], ...]:
         raise NotImplementedError()
 
@@ -97,6 +94,7 @@ class AddressMarkers:
 
 class x86_64Markers(AddressMarkers):
     def __init__(self):
+        self.kbase = self.kbase_helper(pwndbg.aglib.kernel.get_idt_entries()[0].offset)
         result = pwndbg.aglib.symbol.lookup_symbol_addr("page_offset_base")
         self.physmap = None
         if result is not None:
@@ -114,20 +112,27 @@ class x86_64Markers(AddressMarkers):
         #     self.PAGE_OFFSET = 0xFFFF888000000000
         #     # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/pgtable_64_types.h#L130
         #     self.VMEMMAP_START = 0xFFFFEA0000000000
-        self.vmalloc = None
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr("vmalloc_base")
-        if addr:
-            self.vmalloc = pwndbg.aglib.memory.u64(addr)
-        self.vmemmap = None
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr("vmemmap_base")
-        if addr:
-            self.vmemmap = pwndbg.aglib.memory.u64(addr)
-        self.kbase = self.kbase_helper(pwndbg.aglib.kernel.get_idt_entries()[0].offset)
         self.addr_marker_sz = 0x18
 
     @property
     def page_shift(self) -> int:
         return 12
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def vmalloc(self):
+        addr = pwndbg.aglib.symbol.lookup_symbol_addr("vmalloc_base")
+        if addr:
+            return pwndbg.aglib.memory.u64(addr)
+        return None
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def vmemmap(self):
+        addr = pwndbg.aglib.symbol.lookup_symbol_addr("vmemmap_base")
+        if addr:
+            return pwndbg.aglib.memory.u64(addr)
+        return None
 
     @property
     def paging_level(self) -> int:
@@ -188,17 +193,6 @@ class x86_64Markers(AddressMarkers):
         if " area" in name:
             return name[:-5]
         return name
-
-    def adjust_marker_value(self, name, value):
-        if value > 0:
-            return value
-        if name == self.VMALLOC:
-            return self.vmalloc
-        if name == self.VMEMMAP:
-            return self.vmemmap
-        if name == self.PHYSMAP:
-            return self.physmap
-        return value
 
     def handle_kernel_pages(self, pages, kernel_idx):
         kbase = self.kbase
@@ -313,7 +307,6 @@ class Aarch64Markers(AddressMarkers):
                 if name_ptr > 0:
                     name = pwndbg.aglib.memory.string(name_ptr).decode()
                     name = self.adjust(name)
-                value = self.adjust_marker_value(name, value)
                 if value > 0:
                     sections.append((name, value))
                 if value == 0xFFFFFFFFFFFFFFFF:
@@ -348,9 +341,6 @@ class Aarch64Markers(AddressMarkers):
         if self.VMALLOC in name:
             return self.VMALLOC
         return " ".join(name.strip().split()[:-1])
-
-    def adjust_marker_value(self, name, value):
-        return value
 
     def handle_kernel_pages(self, pages, kernel_idx):
         if kernel_idx is None:
