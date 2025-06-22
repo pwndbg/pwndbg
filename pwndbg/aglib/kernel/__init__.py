@@ -284,6 +284,10 @@ class ArchOps(ABC):
         return arch_markers().page_shift
 
     @property
+    def ptr_size(self):
+        raise NotImplementedError()
+
+    @property
     def page_size(self) -> int:
         return 1 << self.page_shift
 
@@ -384,6 +388,10 @@ class x86_64Ops(x86Ops):
 
 
 class Aarch64Ops(ArchOps):
+    @property
+    def ptr_size(self):
+        return 64
+
     @requires_debug_syms()
     def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
         if cpu is None:
@@ -452,6 +460,14 @@ def arch_ops() -> ArchOps:
             _arch_ops = i386Ops()
 
     return _arch_ops
+
+
+def ptr_size() -> int:
+    ops = arch_ops()
+    if ops:
+        return ops.ptr_size
+    else:
+        raise NotImplementedError()
 
 
 def page_size() -> int:
