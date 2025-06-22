@@ -77,6 +77,7 @@
 -  [kconfig](kernel/kconfig.md) - Outputs the kernel config (requires CONFIG_IKCONFIG).
 -  [kdmesg](kernel/kdmesg.md) - Displays the kernel ring buffer (dmesg) contents.
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
+-  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
 -  [knft-dump](kernel/knft-dump.md) - Dump all nftables: tables, chains, rules, expressions
 -  [knft-list-chains](kernel/knft-list-chains.md) - Dump netfilter chains form a specific table
 -  [knft-list-exprs](kernel/knft-list-exprs.md) - Dump only expressions from specific rule
