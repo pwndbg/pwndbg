@@ -51,16 +51,48 @@ def word_size() -> int:
     """
     Gets the Go word size for the current architecture.
 
-    Values taken from https://github.com/golang/go/blob/20b79fd5775c39061d949569743912ad5e58b0e7/src/go/types/sizes.go#L233-L252
+    Values taken from https://github.com/golang/go/blob/49cdf0c42e320dfed044baa551610f081eafb781/src/cmd/compile/internal/types2/sizes.go#L230-L249
     """
     return {
-        "i386": 4,
         "x86-64": 8,
-        "aarch64": 8,
+        "i386": 4,
+        # Go cannot target i8086
         "arm": 4,
-        "rv64": 8,
+        # Go cannot target armcm
+        "aarch64": 8,
         "powerpc": 8,
         "sparc": 8,
+        # Go cannot target rv32 (but gccgo can)
+        "rv64": 8,
+        "mips": pwndbg.aglib.arch.ptrsize,  # pwndbg uses mips for both 32 and 64 bit
+        "loongarch64": 8,
+        "s390x": 8,
+    }[pwndbg.aglib.arch.name]
+
+
+@pwndbg.lib.cache.cache_until("start", "stop", "objfile")
+def max_align() -> int:
+    """
+    Gets the Go maximum alignment for the current architecture.
+
+    Values taken from https://github.com/golang/go/blob/49cdf0c42e320dfed044baa551610f081eafb781/src/cmd/compile/internal/types2/sizes.go#L230-L249
+    """
+    # Note: gccgo has max alignment 8 for arm and mips, which is different from the default compiler
+    # Currently, no attempt is made to support gccgo, but it may be worth pursuing in the future
+    return {
+        "x86-64": 8,
+        "i386": 4,
+        # Go cannot target i8086
+        "arm": 4,
+        # Go cannot target armcm
+        "aarch64": 8,
+        "powerpc": 8,
+        "sparc": 8,
+        # Go cannot target rv32 (but gccgo can)
+        "rv64": 8,
+        "mips": pwndbg.aglib.arch.ptrsize,  # pwndbg uses mips for both 32 and 64 bit
+        "loongarch64": 8,
+        "s390x": 8,
     }[pwndbg.aglib.arch.name]
 
 
@@ -828,7 +860,7 @@ class BasicType(Type):
         return self.sz
 
     def align(self) -> int:
-        return self.algn
+        return min(self.algn, max_align())
 
     def get_typename(self) -> str:
         return self.name
@@ -932,7 +964,7 @@ class PointerType(Type):
         return word_size()
 
     def align(self) -> int:
-        return word_size()
+        return min(word_size(), max_align())
 
     def get_typename(self) -> str:
         return f"*{self.inner}"
@@ -1216,7 +1248,7 @@ class MapType(Type):
         return self.field_offsets()["$size"]
 
     def align(self) -> int:
-        return 8
+        return min(8, max_align())
 
     def get_typename(self) -> str:
         return f"map[{self.key}]{self.val}"
@@ -1266,7 +1298,9 @@ class StructType(Type):
 
     def align(self) -> int:
         if self.algn is None:
-            return max(ty.align() for (_, ty, _) in self.fields if isinstance(ty, Type))
+            return max(
+                (ty.align() for (_, ty, _) in self.fields if isinstance(ty, Type)), default=1
+            )
         return self.algn
 
     def get_typename(self) -> str:
