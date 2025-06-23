@@ -44,7 +44,7 @@ class AddressMarkers:
     addr_marker_sz: int
 
     @property
-    @pwndbg.lib.cache.cache_until("stop")
+    @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SIZE(self):
         a = pwndbg.aglib.typeinfo.load("struct page")
         if a is None:
@@ -53,7 +53,7 @@ class AddressMarkers:
         return a.sizeof
 
     @property
-    @pwndbg.lib.cache.cache_until("stop")
+    @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SHIFT(self):
         return int(math.log2(self.STRUCT_PAGE_SIZE))
 

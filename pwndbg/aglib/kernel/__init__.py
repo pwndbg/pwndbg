@@ -267,15 +267,12 @@ class ArchOps(ABC):
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SIZE(self):
-        a = pwndbg.aglib.typeinfo.load("struct page")
-        if a is None:
-            return 0x40
-        return a.sizeof
+        return arch_markers().STRUCT_PAGE_SIZE
 
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SHIFT(self):
-        return int(math.log2(self.STRUCT_PAGE_SIZE))
+        return arch_markers().STRUCT_PAGE_SHIFT
 
     @property
     def page_offset(self) -> int:
