@@ -909,6 +909,14 @@ class MetaArea:
         """
         return self.slots + idx * Meta.sizeof()
 
+    @property
+    def area_size(self) -> int:
+        """
+        Returns not the size of `struct meta_area` but rather
+        the size of the memory this object represents.
+        """
+        return (self.slots - self.addr) + self.nslots * Meta.sizeof()
+
 
 class MallocContext:
     """
@@ -1152,7 +1160,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     return
 
             for addr, mapname in possible:
-                if mapname.contains("libc"):
+                if "libc" in mapname:
                     self.ctx_addr = addr
                     return
 

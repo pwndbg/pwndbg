@@ -581,6 +581,28 @@ def smart_dump_slot(
     return output
 
 
+def dump_meta_area(meta_area: mallocng.MetaArea) -> str:
+    area_range = (
+        "@ "
+        + C.memory.get(meta_area.addr)
+        + " - "
+        + C.memory.get(meta_area.addr + meta_area.area_size)
+    )
+
+    pp = PropertyPrinter()
+
+    pp.start_section("meta_area", area_range)
+    pp.add(
+        [
+            Property(name="check", value=meta_area.check),
+            Property(name="next", value=meta_area.next, is_addr=True),
+            Property(name="nslots", value=meta_area.nslots),
+            Property(name="slots", value=meta_area.slots, is_addr=True),
+        ]
+    )
+    return pp.dump()
+
+
 parser = argparse.ArgumentParser(
     description="""
 Dump information about a mallocng slot, given its user address.
@@ -727,6 +749,37 @@ def mallocng_group(address: int) -> None:
         print(dump_meta(meta), end="")
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"Failed loading meta: {e}"))
+        return
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Print out information about a mallocng meta_area at the given address.
+    """,
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="The address of the meta_area object.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-metaarea"],
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_meta_area(address: int) -> None:
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {address:#x} not readable."))
+        return
+
+    try:
+        meta_area = mallocng.MetaArea(address)
+        print(dump_meta_area(meta_area), end="")
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(str(e)))
         return
 
 
