@@ -31,10 +31,10 @@ class KernelVmmap:
     def __init__(self, pages: Tuple[pwndbg.lib.memory.Page, ...]):
         self.pages = pages
         self.sections = None
-        self.markers = pwndbg.aglib.kernel.arch_markers()
+        self.pi = pwndbg.aglib.kernel.arch_paginginfo()
         if not pwndbg.aglib.kernel.has_debug_syms():
             return
-        self.sections = self.markers.markers()
+        self.sections = self.pi.markers()
 
     def get_name(self, addr: int) -> str:
         if addr is None or self.sections is None:
@@ -55,12 +55,12 @@ class KernelVmmap:
                 page.objfile = name
         user_idx, kernel_idx = None, None
         for i, page in enumerate(self.pages):
-            if user_idx is None and page.objfile == self.markers.USERLAND:
+            if user_idx is None and page.objfile == self.pi.USERLAND:
                 user_idx = i
-            if kernel_idx is None and self.markers.kbase in page:
+            if kernel_idx is None and self.pi.kbase in page:
                 kernel_idx = i
         self.handle_user_pages(user_idx)
-        self.markers.handle_kernel_pages(self.pages, kernel_idx)
+        self.pi.handle_kernel_pages(self.pages, kernel_idx)
         self.handle_offsets()
 
     def handle_user_pages(self, user_idx):
@@ -69,7 +69,7 @@ class KernelVmmap:
         base_offset = self.pages[user_idx].start
         for i in range(user_idx, len(self.pages)):
             page = self.pages[i]
-            if page.objfile != self.markers.USERLAND:
+            if page.objfile != self.pi.USERLAND:
                 break
             diff = page.start - base_offset
             if diff > 0x100000:
@@ -88,7 +88,7 @@ class KernelVmmap:
         prev_objfile, base = "", 0
         for page in self.pages:
             # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
-            if page.objfile != self.markers.KERNELRO and prev_objfile != page.objfile:
+            if page.objfile != self.pi.KERNELRO and prev_objfile != page.objfile:
                 prev_objfile = page.objfile
                 base = page.start
             page.offset = page.start - base

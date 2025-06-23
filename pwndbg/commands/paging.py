@@ -42,7 +42,7 @@ def pg_indices(vaddr, nr_level):
 def pagewalk(vaddr, entry=None):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     # https://blog.zolutal.io/understanding-paging/
-    level = pwndbg.aglib.kernel.arch_markers().paging_level
+    level = pwndbg.aglib.kernel.arch_paginginfo().paging_level
     names = (
         "Page",
         "PT",
@@ -69,7 +69,7 @@ def pagewalk(vaddr, entry=None):
     if vaddr is None:
         print(M.warn("address is not mapped"))
         return
-    phys = vaddr - pwndbg.aglib.kernel.arch_markers().physmap
+    phys = vaddr - pwndbg.aglib.kernel.arch_paginginfo().physmap
     print(f"pagewalk result: {C.green(hex(vaddr))} [phys: {C.yellow(hex(phys))}]")
 
 

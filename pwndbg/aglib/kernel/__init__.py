@@ -26,7 +26,7 @@ import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
-from pwndbg.aglib.kernel.paging import AddressMarkers
+from pwndbg.aglib.kernel.paging import ArchPagingInfo
 from pwndbg.lib.regs import BitFlags
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
@@ -204,7 +204,7 @@ def is_kaslr_enabled() -> bool:
 
 @pwndbg.lib.cache.cache_until("start")
 def kbase() -> int | None:
-    return arch_markers().kbase
+    return arch_paginginfo().kbase
 
 
 def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
@@ -267,20 +267,20 @@ class ArchOps(ABC):
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SIZE(self):
-        return arch_markers().STRUCT_PAGE_SIZE
+        return arch_paginginfo().STRUCT_PAGE_SIZE
 
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SHIFT(self):
-        return arch_markers().STRUCT_PAGE_SHIFT
+        return arch_paginginfo().STRUCT_PAGE_SHIFT
 
     @property
     def page_offset(self) -> int:
-        return arch_markers().physmap
+        return arch_paginginfo().physmap
 
     @property
     def page_shift(self):
-        return arch_markers().page_shift
+        return arch_paginginfo().page_shift
 
     @property
     def ptr_size(self):
@@ -371,19 +371,19 @@ class x86_64Ops(x86Ops):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
-        if virt < arch_markers().kbase:
+        if virt < arch_paginginfo().kbase:
             return (virt - self.page_offset) % (1 << 64)
-        return ((virt - arch_markers().kbase) + self.phys_base) % (1 << 64)
+        return ((virt - arch_paginginfo().kbase) + self.phys_base) % (1 << 64)
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (pfn << self.STRUCT_PAGE_SHIFT) + arch_markers().vmemmap
+        return (pfn << self.STRUCT_PAGE_SHIFT) + arch_paginginfo().vmemmap
 
     def page_to_pfn(self, page: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (page - arch_markers().vmemmap) >> self.STRUCT_PAGE_SHIFT
+        return (page - arch_paginginfo().vmemmap) >> self.STRUCT_PAGE_SHIFT
 
 
 class Aarch64Ops(ArchOps):
@@ -404,44 +404,44 @@ class Aarch64Ops(ArchOps):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
-        return virt - arch_markers().physmap
+        return virt - arch_paginginfo().physmap
 
     def phys_to_virt(self, phys: int) -> int:
-        return phys + arch_markers().physmap
+        return phys + arch_paginginfo().physmap
 
     def phys_to_pfn(self, phys: int) -> int:
-        return phys >> arch_markers().page_shift
+        return phys >> arch_paginginfo().page_shift
 
     def pfn_to_phys(self, pfn: int) -> int:
-        return pfn << arch_markers().page_shift
+        return pfn << arch_paginginfo().page_shift
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (pfn << self.STRUCT_PAGE_SHIFT) + arch_markers().vmemmap
+        return (pfn << self.STRUCT_PAGE_SHIFT) + arch_paginginfo().vmemmap
 
     def page_to_pfn(self, page: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (page - arch_markers().vmemmap) >> self.STRUCT_PAGE_SHIFT
+        return (page - arch_paginginfo().vmemmap) >> self.STRUCT_PAGE_SHIFT
 
     @staticmethod
     def paging_enabled() -> bool:
         return int(pwndbg.aglib.regs.SCTLR) & BIT(0) != 0
 
 
-_arch_markers: AddressMarkers = None
+_arch_paginginfo: ArchPagingInfo = None
 
 
 @pwndbg.lib.cache.cache_until("start")
-def arch_markers() -> AddressMarkers:
-    global _arch_markers
-    if _arch_markers is None:
+def arch_paginginfo() -> ArchPagingInfo:
+    global _arch_paginginfo
+    if _arch_paginginfo is None:
         if pwndbg.aglib.arch.name == "aarch64":
-            _arch_markers = pwndbg.aglib.kernel.paging.Aarch64Markers()
+            _arch_paginginfo = pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
         elif pwndbg.aglib.arch.name == "x86-64":
-            _arch_markers = pwndbg.aglib.kernel.paging.x86_64Markers()
-    return _arch_markers
+            _arch_paginginfo = pwndbg.aglib.kernel.paging.x86_64PagingInfo()
+    return _arch_paginginfo
 
 
 _arch_ops: ArchOps = None
