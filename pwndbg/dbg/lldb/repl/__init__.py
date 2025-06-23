@@ -46,6 +46,8 @@ import sys
 import threading
 from contextlib import contextmanager
 from io import BytesIO
+from io import TextIOBase
+from io import TextIOWrapper
 from typing import Any
 from typing import Awaitable
 from typing import BinaryIO
@@ -369,7 +371,7 @@ def run(
                 last_exc = asyncio.CancelledError()
                 continue
 
-            if not exec_repl_command(line, sys.stdout.buffer, dbg, driver, relay):
+            if not exec_repl_command(line, sys.stdout, dbg, driver, relay):
                 last_exc = asyncio.CancelledError()
                 continue
 
@@ -386,12 +388,12 @@ def run(
 
             if action._capture:
                 with BytesIO() as output:
-                    should_continue = exec_repl_command(action._command, output, dbg, driver, relay)
+                    should_continue = exec_repl_command(
+                        action._command, TextIOWrapper(output), dbg, driver, relay
+                    )
                     last_result = output.getvalue()
             else:
-                should_continue = exec_repl_command(
-                    action._command, sys.stdout.buffer, dbg, driver, relay
-                )
+                should_continue = exec_repl_command(action._command, sys.stdout, dbg, driver, relay)
 
             if not should_continue:
                 last_exc = asyncio.CancelledError()
@@ -400,13 +402,34 @@ def run(
 
 def exec_repl_command(
     line: str,
-    lldb_out_target: BinaryIO,
+    output_to,
     dbg: LLDB,
     driver: ProcessDriver,
     relay: EventRelay,
 ) -> bool:
     """
     Parses and runs the given command, returning whether the event loop should continue.
+    """
+    stdout = None
+    try:
+        stdout = sys.stdout
+        sys.stdout = output_to
+
+        return _exec_repl_command(line, output_to.buffer, dbg, driver, relay)
+    finally:
+        if stdout is not None:
+            sys.stdout = stdout
+
+
+def _exec_repl_command(
+    line: str,
+    lldb_out_target: BinaryIO,
+    dbg: LLDB,
+    driver: ProcessDriver,
+    relay: EventRelay,
+) -> bool:
+    """
+    Implementation for exec_repl_command
     """
 
     bits = lex_args(line)

@@ -30,6 +30,18 @@ class _GDBController(host.Controller):
         os.environ["COLUMNS"] = "80"
         gdb.execute("starti " + " ".join(args))
 
+    async def cont(self) -> None:
+        gdb.execute("continue")
+
+    async def execute(self, command: str) -> None:
+        gdb.execute(command)
+
+    async def execute_and_capture(self, command: str) -> str:
+        return gdb.execute(command, to_string=True)
+
+    async def step_instruction(self) -> None:
+        gdb.execute("stepi")
+
 
 def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:
     # The GDB controller is entirely synchronous, so keep advancing the

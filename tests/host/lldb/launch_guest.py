@@ -29,6 +29,20 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             await self.pc.execute(f"target create {binary}")
             await self.pc.execute("process launch -s")
 
+        async def cont(self) -> None:
+            await self.pc.execute("continue")
+
+        async def execute(self, command: str) -> None:
+            await self.pc.execute(command)
+
+        async def execute_and_capture(self, command: str) -> str:
+            return (await self.pc.execute_and_capture(command)).decode(
+                "utf-8", errors="surrogateescape"
+            )
+
+        async def step_instruction(self) -> None:
+            await self.pc.execute("thread step-inst")
+
     await outer(_LLDBController(ctrl))
 
 

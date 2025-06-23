@@ -156,6 +156,38 @@ class Controller:
         """
         raise NotImplementedError()
 
+    def execute_and_capture(self, command: str) -> Awaitable[str]:
+        """
+        Execute the given command and capture its output.
+
+        While this method is capable of executing any command supported by the
+        debugger, in with keeping tests debugger-agnostic, is should only ever
+        be used to invoke Pwndbg commands.
+        """
+        raise NotImplementedError()
+
+    def execute(self, command: str) -> Awaitable[None]:
+        """
+        Execute the given command.
+
+        While this method is capable of executing any command supported by the
+        debugger, in with keeping tests debugger-agnostic, is should only ever
+        be used to invoke Pwndbg commands.
+        """
+        raise NotImplementedError()
+
+    def cont(self) -> Awaitable[None]:
+        """
+        Resume execution until the next stop event.
+        """
+        raise NotImplementedError()
+
+    def step_instruction(self) -> Awaitable[None]:
+        """
+        Perform a step in the scope of a single instruction.
+        """
+        raise NotImplementedError()
+
 
 def start(controller: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:
     """
