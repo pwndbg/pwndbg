@@ -150,6 +150,15 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
                 assert vmmap[4:] == expected_map[4:]
                 continue
 
+            if vmmap[-1].endswith(".out.hardcoded"):
+                # addresses must match…
+                assert vmmap[:2] == expected_map[:2]
+                # size and offset must match…
+                assert vmmap[3:5] == expected_map[3:5]
+                # but allow execute-only perms
+                assert vmmap[2] in ("r-xp", "--xp", "---p")
+                continue
+
             assert vmmap[:-1] == expected_map[:-1]
             if vmmap[-1].startswith("load"):
                 continue
