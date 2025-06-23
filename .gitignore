@@ -99,3 +99,9 @@ result*
 
 # Vim
 *.swp
+*.tar
+*.tar.gz
+*.docker
+*.tar
+*.tar.gz
+*.docker
