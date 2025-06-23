@@ -260,6 +260,8 @@
 -  [mallocng-explain](musl/mallocng-explain.md) - Gives a quick explanation of musl's mallocng allocator.
 -  [mallocng-find](musl/mallocng-find.md) - Find slot which contains the given address.
 -  [mallocng-group](musl/mallocng-group.md) - Print out information about a mallocng group at the given address.
+-  [mallocng-malloc-context](musl/mallocng-malloc-context.md) - Print out the mallocng __malloc_context (ctx) object.
+-  [mallocng-meta-area](musl/mallocng-meta-area.md) - Print out a mallocng meta_area object at the given address.
 -  [mallocng-meta](musl/mallocng-meta.md) - Print out information about a mallocng group given the address of its meta.
 -  [mallocng-slot-start](musl/mallocng-slot-start.md) - Dump information about a mallocng slot, given its start address.
 -  [mallocng-slot-user](musl/mallocng-slot-user.md) - Dump information about a mallocng slot, given its user address.
