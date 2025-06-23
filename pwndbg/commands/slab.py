@@ -95,7 +95,8 @@ def slab(
             slab_contains(addr)
 
 
-def print_slab(slab: Slab, indent, verbose: bool, freelist: Freelist = None) -> None:
+
+def print_slab(slab: Slab, indent, verbose: bool, cpu_freelist: Freelist = None) -> None:
     indent.print(
         f"- {indent.prefix('Slab')} @ {indent.addr_hex(slab.virt_address)} [{indent.aux_hex(slab.slab_address)}]:"
     )
@@ -107,13 +108,17 @@ def print_slab(slab: Slab, indent, verbose: bool, freelist: Freelist = None) -> 
 
         idx = 0
         indexes = {}
-        if freelist is None:
-            freelist = slab.freelist
+        freelist = slab.freelist
         for addr in freelist:
             if addr in indexes:
                 break
             indexes[addr] = idx
             idx += 1
+        if cpu_freelist is not None:
+            for idx, addr in enumerate(cpu_freelist):
+                if addr in indexes:
+                    break
+                indexes[addr] = idx
 
         if verbose:
             with indent:
@@ -129,8 +134,18 @@ def print_slab(slab: Slab, indent, verbose: bool, freelist: Freelist = None) -> 
                     next_free = freelist.find_next(addr)
                     if next_free:
                         indent.print(f"{prefix} (next: {indent.aux_hex(next_free)})")
-                    else:
-                        indent.print(f"{prefix} (no next)")
+                        continue
+                    if cpu_freelist is not None:
+                        next_free = cpu_freelist.find_next(addr)
+                        if next_free:
+                            indent.print(
+                                f"{prefix} (next: {indent.aux_hex(next_free)}) [CPU cache]"
+                            )
+                            continue
+                        if addr in cpu_freelist:
+                            indent.print(f"{prefix} (no next) [CPU cache]")
+                            continue
+                    indent.print(f"{prefix} (no next)")
 
 
 def print_cpu_cache(
@@ -223,7 +238,7 @@ def slab_info(name: str, verbose: bool, cpu: int, node: int, active: bool, parti
         )
         indent.print(f"{indent.prefix('Align')}: {indent.aux_hex(slab_cache.align)}")
         indent.print(f"{indent.prefix('Object Size')}: {indent.aux_hex(slab_cache.object_size)}")
-        useroffset, usersize = slab_cache.useroffset, slab_cache.useroffset
+        useroffset, usersize = slab_cache.useroffset, slab_cache.usersize
         if useroffset is not None and usersize is not None:
             indent.print(f"{indent.prefix('Usercopy region offset')}: {useroffset}")
             indent.print(f"{indent.prefix('Usercopy region size')}: {usersize}")

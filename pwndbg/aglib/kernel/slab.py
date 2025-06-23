@@ -91,7 +91,15 @@ class Freelist:
         seen: set[int] = set()
         current_object = self.start_addr
         while current_object:
-            addr = int(current_object)
+            try:
+                addr = int(current_object)
+            except Exception:
+                print(
+                    M.warn(
+                        f"Corrupted slab freelist detected at {hex(current_object)} when length is {len(seen)}"
+                    )
+                )
+                break
             yield current_object
             current_object = pwndbg.aglib.memory.read_pointer_width(addr + self.offset)
             if self.random:
