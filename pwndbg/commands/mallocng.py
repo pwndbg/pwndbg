@@ -603,6 +603,62 @@ def dump_meta_area(meta_area: mallocng.MetaArea) -> str:
     return pp.dump()
 
 
+def dump_malloc_context(ctx: mallocng.MallocContext) -> str:
+    ctx_addr = "@ " + C.memory.get(ctx.addr)
+
+    pp = PropertyPrinter(22)
+    pp.start_section("ctx", ctx_addr)
+    props = [
+        Property(name="secret", value=ctx.secret),
+    ]
+    if ctx.has_pagesize_field:
+        props.append(
+            Property(name="pagesize", value=ctx.pagesize),
+        )
+
+    props.extend(
+        [
+            Property(name="init_done", value=ctx.init_done),
+            Property(name="mmap_counter", value=ctx.mmap_counter),
+            Property(name="free_meta_head", value=ctx.free_meta_head, is_addr=True),
+            Property(name="avail_meta", value=ctx.avail_meta, is_addr=True),
+            Property(name="avail_meta_count", value=ctx.avail_meta_count),
+            Property(name="avail_meta_area_count", value=ctx.avail_meta_area_count),
+            Property(name="meta_alloc_shift", value=ctx.meta_alloc_shift),
+            Property(name="meta_area_head", value=ctx.meta_area_head, is_addr=True),
+            Property(name="meta_area_tail", value=ctx.meta_area_tail, is_addr=True),
+            Property(name="avail_meta_areas", value=ctx.avail_meta_areas, is_addr=True),
+        ]
+    )
+
+    for i in range(len(ctx.active)):
+        if ctx.active[i] != 0:
+            props.append(Property(name=f"active[{i}]", value=ctx.active[i], is_addr=True))
+
+    for i in range(len(ctx.usage_by_class)):
+        if ctx.usage_by_class[i] != 0:
+            props.append(Property(name=f"usage_by_class[{i}]", value=ctx.usage_by_class[i]))
+
+    for i in range(len(ctx.unmap_seq)):
+        if ctx.unmap_seq[i] != 0:
+            props.append(Property(name=f"unmap_seq[{i}]", value=ctx.unmap_seq[i]))
+
+    for i in range(len(ctx.bounces)):
+        if ctx.bounces[i] != 0:
+            props.append(Property(name=f"bounces[{i}]", value=ctx.bounces[i]))
+
+    props.extend(
+        [
+            Property(name="seq", value=ctx.seq),
+            Property(name="brk", value=ctx.brk, is_addr=True),
+        ]
+    )
+
+    pp.add(props)
+
+    return pp.dump()
+
+
 parser = argparse.ArgumentParser(
     description="""
 Dump information about a mallocng slot, given its user address.
@@ -754,7 +810,7 @@ def mallocng_group(address: int) -> None:
 
 parser = argparse.ArgumentParser(
     description="""
-Print out information about a mallocng meta_area at the given address.
+Print out a mallocng meta_area object at the given address.
     """,
 )
 parser.add_argument(
@@ -781,6 +837,43 @@ def mallocng_meta_area(address: int) -> None:
     except pwndbg.dbg_mod.Error as e:
         print(message.error(str(e)))
         return
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Print out the mallocng __malloc_context (ctx) object.
+    """,
+)
+parser.add_argument(
+    "address",
+    nargs="?",
+    type=int,
+    help="Use the provided address instead of the one Pwndbg found.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-ctx"],
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_malloc_context(address: Optional[int] = None) -> None:
+    if address is None:
+        ng.init_if_needed()
+        ctx = ng.ctx
+    else:
+        if not memory.is_readable_address(address):
+            print(message.error(f"Address {address:#x} not readable."))
+            return
+
+        try:
+            ctx = mallocng.MallocContext(address)
+        except pwndbg.dbg_mod.Error as e:
+            print(message.error(str(e)))
+            return
+
+    print(dump_malloc_context(ctx), end="")
 
 
 parser = argparse.ArgumentParser(
