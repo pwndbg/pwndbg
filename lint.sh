@@ -4,6 +4,8 @@ set -o errexit
 
 source "$(dirname "$0")/scripts/common.sh"
 
+cd $PWNDBG_ABS_PATH
+
 help_and_exit() {
     echo "Usage: ./lint.sh [-f|--fix]"
     echo "  -f,  --fix         fix issues if possible"

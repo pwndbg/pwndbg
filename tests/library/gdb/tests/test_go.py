@@ -35,17 +35,24 @@ def helper_test_dump(start_binary, filename):
     start_binary(filename)
     gdb.execute("break gosample.go:6", to_string=True)
     gdb.execute("continue")
-    first = gdb.execute("go-dump any &x", to_string=True)
-    assert first.strip() == """(map[string]int) &{"a": 1, "b": 2, "c": 3}"""
+
+    dump = gdb.execute("go-dump any &x", to_string=True)
+    assert dump.strip() == """(map[uint8]uint64) &{1: 2, 3: 4, 5: 6}"""
     gdb.execute("continue")
-    second = gdb.execute("go-dump any &x", to_string=True)
+
+    dump = gdb.execute("go-dump any &x", to_string=True)
+    assert dump.strip() == """(map[string]int) &{"a": 1, "b": 2, "c": 3}"""
+    gdb.execute("continue")
+
+    dump = gdb.execute("go-dump any &x", to_string=True)
     assert (
-        second.strip()
+        dump.strip()
         == """([]struct { a int; b string }) [struct {a: 1, b: "first"}, struct {a: 2, b: "second"}]"""
     )
     gdb.execute("continue")
-    third = gdb.execute("go-dump -f 1 any &x", to_string=True)
-    assert third.strip() == """([3]complex64) [(1.1 + 2.2i), (-2.5 - 5.0i), (4.2 - 2.1i)]"""
+
+    dump = gdb.execute("go-dump -f 1 any &x", to_string=True)
+    assert dump.strip() == """([3]complex64) [(1.1 + 2.2i), (-2.5 - 5.0i), (4.2 - 2.1i)]"""
 
 
 def test_go_dumping_x64(start_binary):

@@ -44,6 +44,8 @@ def ksyscalls(syscall_name=None) -> None:
         print(f"{'':>4} {'Address':>18} {'Symbol'}")
 
         # Iterate through the syscall table entries.
+        print_entry = lambda: print(f"{i:>4} {hex(sc_addr):>18} {symbol or '<unknown>'}")
+        
         for i in range(sc_count):
             sc_addr = pwndbg.aglib.memory.read_pointer_width(table_addr + i * size_ptr)
 
@@ -53,7 +55,6 @@ def ksyscalls(syscall_name=None) -> None:
                 if symbol is None or syscall_name not in symbol:
                     continue
 
-            print_entry = lambda: print(f"{i:>4} {hex(sc_addr):>18} {symbol or '<unknown>'}")
             print_entry()
 
     except pwndbg.dbg_mod.Error as e:

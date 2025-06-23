@@ -1520,6 +1520,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         elif name == "arm64":
             # Apple uses a different name for AArch64 than we do.
             name = "aarch64"
+        elif name == "arm64e":
+            # Apple uses a different name for AArch64 than we do.
+            name = "aarch64"
         elif name == "riscv32":
             # Pwndbg use a different name for riscv32.
             name = "rv32"

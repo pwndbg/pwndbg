@@ -20,7 +20,7 @@ class Property:
 
     name: str
     value: Any
-    extra: str = ""
+    extra: str | List[str] = ""
     is_addr: bool = False
     use_hex: bool = True
 
@@ -61,24 +61,54 @@ class PropertyPrinter:
         """
         Add a group of properties that should be aligned.
         """
-        max_name_len = max(len(self.name_color_func(prop.name)) for prop in prop_group)
+        # Transform prop values to string representation
+        for prop in prop_group:
+            if isinstance(prop.value, int):
+                if prop.use_hex:
+                    prop.value = hex(prop.value)
+                else:
+                    prop.value = str(prop.value)
+
+        # Get max lengths to calculate proper ljust
+        # + 1 to account for the ":"
+        max_name_len = max(len(prop.name) for prop in prop_group) + 1
+        # max_value_len = max(len(prop.value) for prop in prop_group)
+        # Use constant so it works between different groups
+        max_value_len = 16
+
+        indentation_str = self.indent_level * self.indent_size * " "
+        padding_str = self.padding * " "
+        name_pad_str = max_name_len * " "
+        val_pad_str = max_value_len * " "
+        extra_list_pad_str = indentation_str + name_pad_str + padding_str + val_pad_str
 
         for prop in prop_group:
-            self.text += self.indent_level * self.indent_size * " "
-            colored_name = self.name_color_func(prop.name) + ":"
-            self.text += colored_name.ljust(max_name_len + 1, " ")
-            self.text += self.padding * " "
+            self.text += (
+                indentation_str
+                + color.ljust_colored(self.name_color_func(prop.name) + ":", max_name_len)
+                + padding_str
+            )
 
             if prop.is_addr:
-                self.text += color.memory.get(prop.value)
+                base = 16 if prop.use_hex else 10
+                colored_val = color.memory.get(int(prop.value, base))
             else:
-                if isinstance(prop.value, int) and prop.use_hex:
-                    val = hex(prop.value)
-                else:
-                    val = prop.value
-                self.text += self.value_color_func(val)
+                colored_val = self.value_color_func(prop.value)
 
-            self.text += " " + prop.extra
+            self.text += color.ljust_colored(colored_val, max_value_len)
+
+            if isinstance(prop.extra, str):
+                self.text += "  " + prop.extra
+            else:
+                # list of strings, we want each one under the other
+                assert isinstance(prop.extra, list)
+                assert len(prop.extra) > 1
+
+                self.text += "  " + prop.extra[0]
+                for i in range(1, len(prop.extra)):
+                    self.text += "\n"
+                    self.text += extra_list_pad_str
+                    self.text += "  " + prop.extra[i]
 
             self.text += "\n"
 
@@ -92,7 +122,7 @@ class PropertyPrinter:
         """
         Print the built up string.
         """
-        print(self.text)
+        print(self.text, end="")
 
     def clear(self) -> None:
         """
@@ -119,14 +149,22 @@ class PropertyPrinter:
         """
         self.text += string
 
-    def start_section(self, title: str) -> None:
+    def start_section(self, title: str, preamble: str = "") -> None:
         """
         Start a named section of properties that will have
         increased indentation.
 
         Don't forget to call end_section()!
         """
-        self.text += self.section_color_func(title) + "\n"
+        self.text += " " * self.indent_level * self.indent_size
+        self.text += self.section_color_func(title)
+
+        if preamble:
+            self.text += "\n"
+            self.text += " " * (self.indent_level + 1) * self.indent_size
+            self.text += preamble
+
+        self.text += "\n"
         self.indent()
 
     def end_section(self) -> None:
