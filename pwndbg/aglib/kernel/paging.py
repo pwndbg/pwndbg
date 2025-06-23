@@ -157,6 +157,7 @@ class x86_64PagingInfo(ArchPagingInfo):
         return (
             (self.USERLAND, 0),
             (None, 0x8000000000000000),
+            ("ldt remap", 0xFFFF880000000000 if self.paging_level == 4 else 0xFF10000000000000),
             (self.PHYSMAP, self.physmap),
             (self.VMALLOC, self.vmalloc),
             (self.VMEMMAP, self.vmemmap),
