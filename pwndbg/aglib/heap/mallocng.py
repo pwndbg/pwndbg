@@ -22,9 +22,9 @@ import pwndbg.color.message as message
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
 # Slot granularity.
-UNIT = 16
+UNIT: int = 16
 # Size of in-band metadata.
-IB = 4
+IB: int = 4
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L12
 # Describes the possible sizes a slot can be. These are `/ UNIT`.
@@ -47,7 +47,7 @@ class SlotState(Enum):
 
 
 # Shorthand
-def int_size():
+def int_size() -> int:
     return pwndbg.aglib.typeinfo.sint.sizeof
 
 
@@ -784,7 +784,7 @@ class Meta:
     # Semi-custom methods..
 
     @property
-    def stride(self):
+    def stride(self) -> int:
         """
         Returns -1 if sizeclass >= len(size_classes).
         """
@@ -804,7 +804,7 @@ class Meta:
     # Custom methods..
 
     @property
-    def cnt(self):
+    def cnt(self) -> int:
         """
         Number of slots in the group.
         """
@@ -851,7 +851,7 @@ class Meta:
             return SlotState.ALLOCATED
 
     @staticmethod
-    def sizeof():
+    def sizeof() -> int:
         return 2 * int_size() + 4 * pwndbg.aglib.arch.ptrsize
 
 
@@ -878,7 +878,7 @@ class MetaArea:
 
         self.load()
 
-    def load(self):
+    def load(self) -> None:
         ptrsize = pwndbg.aglib.arch.ptrsize
         uint64size = pwndbg.aglib.typeinfo.uint64.sizeof
         endian = pwndbg.aglib.arch.endian
@@ -965,7 +965,7 @@ class MallocContext:
         # evaluation.
         self.load()
 
-    def load(self):
+    def load(self) -> None:
         ptrsize = pwndbg.aglib.arch.ptrsize
         size_tsize = pwndbg.aglib.typeinfo.size_t.sizeof
         unsignedsize = pwndbg.aglib.typeinfo.uint.sizeof
@@ -1059,7 +1059,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
     before you used the object.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.finished_init: bool = False
 
         self.ctx_addr: int = 0
@@ -1068,7 +1068,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.secret: bytearray = b""
         self.hope: bool = True
 
-    def init_if_needed(self):
+    def init_if_needed(self) -> None:
         """
         We want this class to be a singleton, but also we can't
         initialize it as soon as pwndbg is loaded.
@@ -1092,7 +1092,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         self.finished_init = True
 
-    def set_ctx_addr(self):
+    def set_ctx_addr(self) -> None:
         """
         Find where the __malloc_context global symbol is. Try using debug information,
         but if it isn't available try using a heuristic.
