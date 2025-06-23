@@ -78,6 +78,15 @@ def mallocng_explain() -> None:
     txt += C.bold("  struct meta slots[];\n")
     txt += C.bold("};\n\n")
 
+    txt += (
+        "Two other important definitions are " + C.bold("IB") + " and " + C.bold("UNIT") + ".\n\n"
+    )
+
+    txt += "// the aforementioned slot alignment.\n"
+    txt += C.bold("#define UNIT 16\n")
+    txt += "// the size of the in-band metadata.\n"
+    txt += C.bold("#define IB 4\n\n")
+
     txt += "The allocator state is stored in the global `ctx` variable which is of\n"
     txt += "type `struct malloc_context`. It is accessible through the __malloc_context\n"
     txt += "symbol.\n\n"
@@ -149,7 +158,74 @@ def mallocng_explain() -> None:
 
     txt += diag
 
-    # TODO: explain what a slot looks like.
+    txt += f"""
+### What slots look like
+
+Unfortunately, musl doesn't provide a struct which describes the
+slot's in-band metadata. It does however use consistent variable
+names to describe the values saved in slots, so we will use those
+as well. Check the {C.bold('enframe()')} function in the source, it is very
+important.
+
+{C.bold('idx')} is the index of the slot within its group. The {C.bold("stride")} of
+a group is (generally) determined by the sizeclass as
+{C.bold("UNIT * size_classes[meta.sizeclass]")}. {C.bold("start")} is the starting
+address of the slot (the slot0, slot1, ... in the above diagram).
+The start of a slot with index i is {C.bold("group.storage + i * stride")}.
+The "nominal size" is the amount of memory the user requested with
+their malloc() call, in the source it is also referred to as {C.bold("n")}.
+
+For every slot in a group, the memory in [start - IB, start) contains
+some metadata that we will call the "start header". For this reason,
+the {C.bold("end")} of a slot is calculated as {C.bold("start + stride - IB")}. The
+{C.bold("slack")} of a slot is calculated as {C.bold("(stride - n - IB) / UNIT")} and
+describes the amount of unused memory within a slot.
+
+To prevent double-frees and exploitation attempts, the mallocng
+allocator performs "cycling" i.e. the actual start of user data
+(the pointer returned by malloc) can be at some offset from the
+{C.bold("start")} of the slot. The start of user data is called {C.bold("p")} and it
+is also UNIT aligned. We will call the distance between {C.bold("p")} and
+{C.bold("start")} the "cyclic offset" ({C.bold("off")} in code). When calculating
+the cyclic offset, mallocng ensures {C.bold("off <= slack")}.
+
+If a slot is in fact cycled, then that is stored in the start
+header as {C.bold("off = *(uint16_t*)(start-2)")} and {C.bold("start[-3] = 7 << 5")}.
+The {C.bold("start[-3]")} field acts as a flag.
+
+For every slot, the memory in [p - IB, p) contains some metadata.
+We will call this the "p header". If the slot is not cycled i.e.
+{C.bold("start == p")}, then [start - IB, start) will contain the p header
+fields and start[-3] >> 5 will *not* be 7.
+
+The value in {C.bold("*(uint16_t*)(p-2)")} is the {C.bold("offset")} from the slot's
+{C.bold("start")} to the start of the group (divided by UNIT). The value
+in {C.bold("p[-4]")} is either 0 or 1 and describes if a "big offset" should
+be used. It is usually zero and gets set to one only in some cases
+in aligned_alloc(). If it is 1, the offset is to be calculated as
+{C.bold("*(uint32_t *)(p - 8)")}.
+
+{C.bold("p[-3]")} contains multiple pieces of information. If {C.bold("p[-3] == 0xFF")}
+the slot is freed. Otherwise, the lower 5 bits of p[-3] describe
+the index of the slot in its group: {C.bold("idx = p[-3] & 31")}. The top
+3 bits desribed the {C.bold("reserved")} area size. This is the memory
+between the end of user memory and {C.bold("end")} i.e. {C.bold("reserved = end - p - n")}.
+
+We will call the value {C.bold("p[-3] >> 5")}, "hdr reserved" for "reserved as
+specified in the p header". It can happen however, that the value
+{C.bold("reserved = end - p - n")} is large and so doesn't fit in the three
+bits in p[-3]. In this case "hdr reserved" will be strictly 5, which
+denotes that we need to look at the slot's footer to read the actual
+value of {C.bold("reserved")}. As a special case, if {C.bold("p[-3] >> 5 == 6")} that
+doesn't describe the reserved size at all, but specifies that there
+is a group nested inside this slot. {C.bold("p[-3] >> 5")} will never be 7,
+contrary to {C.bold("start[-3] >> 5")}.
+
+The "footer" of a slot is the third and final area of a slot's
+memory where metadata is contained. This is the [end - 4, end)
+area. It only contains the reserved size as
+{C.bold("reserved = *(const uint32_t *)(end-4)")} when {C.bold("p[-3] >> 5 == 5")}.
+    """
 
     print(txt)
 
