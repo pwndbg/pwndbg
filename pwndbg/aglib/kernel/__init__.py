@@ -202,11 +202,6 @@ def is_kaslr_enabled() -> bool:
     return "nokaslr" not in kcmdline()
 
 
-@pwndbg.lib.cache.cache_until("start")
-def kbase() -> int | None:
-    return arch_paginginfo().kbase
-
-
 def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.
@@ -279,11 +274,19 @@ class ArchOps(ABC):
         return arch_paginginfo().physmap
 
     @property
-    def page_shift(self):
+    def page_shift(self) -> int:
         return arch_paginginfo().page_shift
 
     @property
-    def ptr_size(self):
+    def vmemmap(self) -> int:
+        return arch_paginginfo().vmemmap
+
+    @property
+    def kbase(self) -> int:
+        return arch_paginginfo().kbase
+
+    @property
+    def ptr_size(self) -> int:
         raise NotImplementedError()
 
     @property
@@ -371,19 +374,19 @@ class x86_64Ops(x86Ops):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
-        if virt < arch_paginginfo().kbase:
+        if virt < self.kbase:
             return (virt - self.page_offset) % (1 << 64)
-        return ((virt - arch_paginginfo().kbase) + self.phys_base) % (1 << 64)
+        return ((virt - self.kbase) + self.phys_base) % (1 << 64)
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (pfn << self.STRUCT_PAGE_SHIFT) + arch_paginginfo().vmemmap
+        return (pfn << self.STRUCT_PAGE_SHIFT) + self.vmemmap
 
     def page_to_pfn(self, page: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (page - arch_paginginfo().vmemmap) >> self.STRUCT_PAGE_SHIFT
+        return (page - self.vmemmap) >> self.STRUCT_PAGE_SHIFT
 
 
 class Aarch64Ops(ArchOps):
@@ -404,26 +407,26 @@ class Aarch64Ops(ArchOps):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
-        return virt - arch_paginginfo().physmap
+        return virt - self.page_offset
 
     def phys_to_virt(self, phys: int) -> int:
-        return phys + arch_paginginfo().physmap
+        return phys + self.page_offset
 
     def phys_to_pfn(self, phys: int) -> int:
-        return phys >> arch_paginginfo().page_shift
+        return phys >> self.page_shift
 
     def pfn_to_phys(self, pfn: int) -> int:
-        return pfn << arch_paginginfo().page_shift
+        return pfn << self.page_shift
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (pfn << self.STRUCT_PAGE_SHIFT) + arch_paginginfo().vmemmap
+        return (pfn << self.STRUCT_PAGE_SHIFT) + self.vmemmap
 
     def page_to_pfn(self, page: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
         # FLATMEM or SPARSEMEM not (yet) implemented
-        return (page - arch_paginginfo().vmemmap) >> self.STRUCT_PAGE_SHIFT
+        return (page - self.vmemmap) >> self.STRUCT_PAGE_SHIFT
 
     @staticmethod
     def paging_enabled() -> bool:
@@ -585,6 +588,15 @@ def virt_to_pfn(virt: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.virt_to_pfn(virt)
+    else:
+        raise NotImplementedError()
+
+
+@pwndbg.lib.cache.cache_until("start")
+def kbase() -> int | None:
+    ops = arch_ops()
+    if ops:
+        return ops.kbase
     else:
         raise NotImplementedError()
 
