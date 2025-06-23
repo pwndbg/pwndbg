@@ -48,6 +48,7 @@ class AddressMarkers:
     def STRUCT_PAGE_SIZE(self):
         a = pwndbg.aglib.typeinfo.load("struct page")
         if a is None:
+            # this has been the case for all v5 and v6 releases
             return 0x40
         return a.sizeof
 
