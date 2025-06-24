@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from host import Controller
 
-import pwndbg
 import tests
-from pwndbg.dbg import BreakpointLocation
 
 MMAP_GAPS_BINARY = tests.get_binary("mmap_gaps.out")
 
@@ -14,6 +12,9 @@ async def test_dump_mmap_args(ctrl: Controller):
     """
     Tests dumpargs command on an xmmap call
     """
+    import pwndbg
+    from pwndbg.dbg import BreakpointLocation
+
     await ctrl.launch(MMAP_GAPS_BINARY)
 
     # Run until main
@@ -30,7 +31,7 @@ async def test_dump_mmap_args(ctrl: Controller):
     # Stop on mmap(...)
     await ctrl.execute("nextcall")
 
-    out = await ctrl.execute_and_capture("dumpargs").splitlines()
+    out = (await ctrl.execute_and_capture("dumpargs")).splitlines()
     assert len(out) == 6
     assert out[0] == "        addr:      0xcafe0000"
     assert out[1] == "        len:       0x1000"

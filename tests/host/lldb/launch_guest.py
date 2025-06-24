@@ -48,6 +48,8 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
 
 def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
     # The import path is set up before this function is called.
+    os.environ["PWNDBG_DISABLE_COLORS"] = "1"
+
     from pwndbginit import pwndbg_lldb
 
     from ... import host
@@ -55,7 +57,7 @@ def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
 
     # Replace host.start with a proper implementation of the start command.
     def _start(outer: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:
-        pwndbg_lldb.launch(_run, outer, debug=True)
+        pwndbg_lldb.launch(_run, outer, debug=False)
 
     host.start = _start
 
