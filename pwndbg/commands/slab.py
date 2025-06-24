@@ -295,7 +295,12 @@ def slab_contains(address: str, verbose: bool) -> None:
                 print(M.warn("Did not finding containing slab."))
                 return
             desc = "[something went wrong]"
+            inuse = desc
             try:
+                if addr in slab.free_objects:
+                    inuse = "free"
+                elif addr in slab.objects:
+                    inuse = "in use"
                 if slab.is_cpu and not slab.is_partial:
                     desc = f"[active, cpu {slab.cpu_cache.cpu}]"
                 elif slab.is_cpu and slab.is_partial:
@@ -305,5 +310,6 @@ def slab_contains(address: str, verbose: bool) -> None:
             except Exception:
                 pass
             print("slab @", M.hint(f"{hex(slab.virt_address)}"), desc)
+            print("object is " + inuse)
     except Exception:
         print(M.warn("address does not belong to a SLUB cache"))
