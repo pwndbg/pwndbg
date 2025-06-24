@@ -387,11 +387,9 @@ def run(
                 print(f"{PROMPT}{action._command}")
 
             if action._capture:
-                with BytesIO() as output:
-                    should_continue = exec_repl_command(
-                        action._command, TextIOWrapper(output), dbg, driver, relay
-                    )
-                    last_result = output.getvalue()
+                with TextIOWrapper(BytesIO(), write_through=True) as output:
+                    should_continue = exec_repl_command(action._command, output, dbg, driver, relay)
+                    last_result = output.buffer.getvalue()
             else:
                 should_continue = exec_repl_command(action._command, sys.stdout, dbg, driver, relay)
 
@@ -411,14 +409,22 @@ def exec_repl_command(
     Parses and runs the given command, returning whether the event loop should continue.
     """
     stdout = None
+    lldb_out = None
     try:
         stdout = sys.stdout
+        lldb_out = dbg.debugger.GetOutputFile()
+
         sys.stdout = output_to
+        dbg.debugger.SetOutputFile(
+            lldb.SBFile.Create(output_to, borrow=True, force_io_methods=True)
+        )
 
         return _exec_repl_command(line, output_to.buffer, dbg, driver, relay)
     finally:
         if stdout is not None:
             sys.stdout = stdout
+        if lldb_out is not None:
+            dbg.debugger.SetOutputFile(lldb_out)
 
 
 def _exec_repl_command(
