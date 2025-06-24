@@ -111,6 +111,8 @@ def test_command_slab_contains():
 
     res = gdb.execute(f"slab contains {addr}", to_string=True)
     assert f"{addr} @ {slab_cache}" in res
+    res = gdb.execute(f"slab contains {addr} -v", to_string=True)
+    assert "cpu" in res or "node" in res
 
 
 @pytest.mark.skipif(

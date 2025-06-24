@@ -59,6 +59,9 @@ parser_info.add_argument(
 )
 
 parser_contains = subparsers.add_parser("contains", prog="slab contains")
+parser_contains.add_argument(
+    "-v", "--verbose", action="store_true", help="displays more information for the slab"
+)
 parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
 
 
@@ -92,8 +95,7 @@ def slab(
             slab_info(name, verbose, cpu, node, active, partial)
     elif command == "contains":
         for addr in addresses:
-            slab_contains(addr)
-
+            slab_contains(addr, verbose)
 
 
 def print_slab(slab: Slab, indent, verbose: bool, cpu_freelist: Freelist = None) -> None:
@@ -124,10 +126,11 @@ def print_slab(slab: Slab, indent, verbose: bool, cpu_freelist: Freelist = None)
             with indent:
                 free_objects = slab.free_objects
                 for addr in slab.objects:
-                    index = "0x--"
+                    prefix = f"- {indent.prefix('[0x--]')} {hex(addr)}"
                     if addr in indexes:
-                        index = f"0x{indexes[addr]:02}"
-                    prefix = f"- {indent.prefix(f'[{index}]')} {indent.addr_hex(addr)}"
+                        prefix = (
+                            f"- {indent.prefix(f'[0x{indexes[addr]:02}]')} {indent.addr_hex(addr)}"
+                        )
                     if addr not in free_objects:
                         indent.print(f"{prefix} (in-use)")
                         continue
@@ -230,9 +233,7 @@ def slab_info(name: str, verbose: bool, cpu: int, node: int, active: bool, parti
             indent.print(f"{indent.prefix('Flags')}: (none)")
 
         indent.print(f"{indent.prefix('Offset')}: {indent.aux_hex(slab_cache.offset)}")
-        indent.print(
-            f"{indent.prefix('Slab size')}: {indent.aux_hex(0x1000 << slab_cache.oo_order)}"
-        )
+        indent.print(f"{indent.prefix('Slab size')}: {indent.aux_hex(slab_cache.slab_size)}")
         indent.print(
             f"{indent.prefix('Size (without metadata)')}: {indent.aux_hex(slab_cache.size)}"
         )
@@ -274,7 +275,7 @@ def slab_list(filter_) -> None:
     print(tabulate(results, headers=["Name", "# Objects", "Size", "Obj Size", "# inuse", "order"]))
 
 
-def slab_contains(address: str) -> None:
+def slab_contains(address: str, verbose: bool) -> None:
     """prints the slab_cache associated with the provided address"""
 
     try:
@@ -288,5 +289,21 @@ def slab_contains(address: str) -> None:
     try:
         slab_cache = find_containing_slab_cache(addr)
         print(f"{addr:#x} @", M.hint(f"{slab_cache.name}"))
+        if verbose:
+            slab = slab_cache.find_containing_slab(addr)
+            if slab is None:
+                print(M.warn("Did not finding containing slab."))
+                return
+            desc = "[something went wrong]"
+            try:
+                if slab.is_cpu and not slab.is_partial:
+                    desc = f"[active, cpu {slab.cpu_cache.cpu}]"
+                elif slab.is_cpu and slab.is_partial:
+                    desc = f"[partial, cpu {slab.cpu_cache.cpu}]"
+                elif not slab.is_cpu and slab.is_partial:
+                    desc = f"[partial, node {slab.node_cache.node}]"
+            except Exception:
+                pass
+            print("slab @", M.hint(f"{hex(slab.virt_address)}"), desc)
     except Exception:
         print(M.warn("address does not belong to a SLUB cache"))
