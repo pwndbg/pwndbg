@@ -275,14 +275,14 @@ def slab_list(filter_) -> None:
 def slab_contains(address: str) -> None:
     """prints the slab_cache associated with the provided address"""
 
+    addr = None
     try:
-        parsed_addr = pwndbg.dbg.selected_frame().evaluate_expression(address)
+        addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address))
     except pwndbg.dbg_mod.Error as e:
         print(M.error(f"Could not parse '{address}'"))
         print(M.error(f"Message: {e}"))
         return
 
-    addr = int(pwndbg.aglib.memory.get_typed_pointer("void", parsed_addr))
     try:
         slab_cache = find_containing_slab_cache(addr)
         print(f"{addr:#x} @", M.hint(f"{slab_cache.name}"))
