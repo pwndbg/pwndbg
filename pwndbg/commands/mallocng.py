@@ -554,8 +554,12 @@ def smart_dump_slot(
 
         # If it wasn't provided to us, let's try to search for it now.
         output += "Could not load valid meta from local information, searching the heap.. "
-        ng.init_if_needed()
-        gslot, fslot = ng.find_slot(slot.p, False, False)
+
+        if not ng.init_if_needed():
+            output += message.error("\nCouldn't find the allocator, aborting the search. ")
+            gslot, fslot = None, None
+        else:
+            gslot, fslot = ng.find_slot(slot.p, False, False)
 
         if gslot is None:
             output += "Not found.\n\n"
@@ -860,7 +864,10 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def mallocng_malloc_context(address: Optional[int] = None) -> None:
     if address is None:
-        ng.init_if_needed()
+        if not ng.init_if_needed():
+            print(message.error("Couldn't find the allocator, aborting the command."))
+            return
+
         ctx = ng.ctx
     else:
         if not memory.is_readable_address(address):
@@ -925,7 +932,9 @@ def mallocng_find(
         print(message.error(f"Address {hex(address)} not readable."))
         return
 
-    ng.init_if_needed()
+    if not ng.init_if_needed():
+        print(message.error("Couldn't find the allocator, aborting the command."))
+        return
 
     grouped_slot, slot = ng.find_slot(address, metadata, shallow)
 

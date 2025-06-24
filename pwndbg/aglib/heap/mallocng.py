@@ -1076,16 +1076,21 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.secret: bytearray = b""
         self.hope: bool = True
 
-    def init_if_needed(self) -> None:
+    def init_if_needed(self) -> bool:
         """
         We want this class to be a singleton, but also we can't
         initialize it as soon as pwndbg is loaded.
 
         Users of the object are responsible for calling this to
         make sure the object is initialized.
+
+        Returns:
+            True if this object is successfully initialized (whether
+            now or before). False otherswise. If this returns False
+            you may not use this object for heap operations.
         """
         if self.finished_init:
-            return
+            return self.hope
 
         self.ctx_addr = 0
         self.ctx = None
@@ -1098,7 +1103,11 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         if self.ctx_addr and self.hope:
             self.ctx = MallocContext(self.ctx_addr)
 
-        self.finished_init = True
+        # We will try to reinitialize again if we failed now.
+        if self.hope:
+            self.finished_init = True
+
+        return self.hope
 
     def set_ctx_addr(self) -> None:
         """
