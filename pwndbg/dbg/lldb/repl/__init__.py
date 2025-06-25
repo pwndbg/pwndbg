@@ -891,27 +891,31 @@ def target_create(args: List[str], dbg: LLDB) -> None:
     if args.arch:
         dbg.debugger.SetDefaultArchitecture(args.arch)
 
-    triple = _get_target_triple(dbg.debugger, args.filename)
-    if not triple:
-        print_error(f"could not detect triple for '{args.filename}'")
-        return
-
-    if args.platform == "qemu-user":
-        arch = triple.split("-")[0]
-        # Without setting it qemu-user don't work ;(
-        dbg._execute_lldb_command(f"settings set platform.plugin.qemu-user.architecture {arch}")
-
-    if args.platform:
-        dbg.debugger.SetCurrentPlatform(args.platform)
-
     if args.sysroot:
         dbg.debugger.SetCurrentPlatformSDKRoot(args.sysroot)
 
     # Create the target with the debugger.
     error = lldb.SBError()
-    target: lldb.SBTarget = dbg.debugger.CreateTarget(
-        args.filename, triple, args.platform, True, error
-    )
+    if args.platform:
+        dbg.debugger.SetCurrentPlatform(args.platform)
+
+        # Having the platform specified requires that we specify the triple.
+        triple = _get_target_triple(dbg.debugger, args.filename)
+        if not triple:
+            print_error(f"could not detect triple for '{args.filename}'")
+            return
+
+        if args.platform == "qemu-user":
+            arch = triple.split("-")[0]
+            # Without setting it qemu-user don't work ;(
+            dbg._execute_lldb_command(f"settings set platform.plugin.qemu-user.architecture {arch}")
+
+        target: lldb.SBTarget = dbg.debugger.CreateTarget(
+            args.filename, triple, args.platform, True, error
+        )
+    else:
+        # Let LLDB figure out both the triple and the platform automatically.
+        target = dbg.debugger.CreateTarget(args.filename, None, None, True, error)
     if not error.success or not target.IsValid():
         print_error(f"could not create target for '{args.filename}': {error.description}")
         return
