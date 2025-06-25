@@ -899,7 +899,7 @@ def target_create(args: List[str], dbg: LLDB) -> None:
     if args.platform:
         dbg.debugger.SetCurrentPlatform(args.platform)
 
-        # Having the platform specified requies that we specify the triple.
+        # Having the platform specified requires that we specify the triple.
         triple = _get_target_triple(dbg.debugger, args.filename)
         if not triple:
             print_error(f"could not detect triple for '{args.filename}'")
