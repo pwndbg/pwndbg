@@ -254,7 +254,7 @@ class Driver(Enum):
 
     def can_run(self, grp: Group) -> bool:
         """
-        Wether a given driver can run a given test group.
+        Whether a given driver can run a given test group.
         """
         match self:
             case Driver.GDB:
