@@ -21,7 +21,10 @@ def get_gdb_version(path: str) -> Tuple[str, str]:
         capture_output=True,
         text=True,
     )
-    return tuple(result.stdout.strip().split(" ", 2))
+    parts = result.stdout.strip().split(" ", 1)
+    if len(parts) < 2:
+        parts.append("")
+    return parts[0], parts[1]
 
 
 def get_venv_bin_path():
@@ -54,7 +57,7 @@ def main():
     sys.argv = gdb_argv
 
     try:
-        from gdb_for_pwndbg.gdb import main
+        from gdb_for_pwndbg.gdb import main  # type: ignore[import-untyped]
 
         main()
         return
