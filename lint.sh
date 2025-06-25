@@ -32,7 +32,7 @@ done
 
 set -o xtrace
 
-LINT_FILES="pwndbg tests *.py scripts"
+LINT_FILES="pwndbg pwndbginit tests *.py scripts"
 
 call_shfmt() {
     local FLAGS=$1
@@ -71,5 +71,5 @@ $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LI
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then
-    $UV_RUN_LINT mypy pwndbg gdbinit.py lldbinit.py pwndbg-lldb.py tests/host
+    $UV_RUN_LINT mypy pwndbg pwndbginit tests/host
 fi

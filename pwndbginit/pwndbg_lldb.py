@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 from typing import List
@@ -58,16 +59,30 @@ def find_lldb_python_path() -> str:
     return folder
 
 
-if __name__ == "__main__":
+def get_venv_bin_path():
+    bin_dir = "Scripts" if os.name == "nt" else "bin"
+    return os.path.join(sys.prefix, bin_dir)
+
+
+def prepend_venv_bin_to_path():
+    # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
+    venv_bin = get_venv_bin_path()
+    path_elements = os.environ.get("PATH", "").split(os.pathsep)
+    if venv_bin in path_elements:
+        return
+
+    path_elements.insert(0, venv_bin)
+    os.environ["PATH"] = os.pathsep.join(path_elements)
+
+
+def main():
+    prepend_venv_bin_to_path()
+
     args = PARSER.parse_args()
     debug = args.verbose
 
-    # Find the path for the LLDB Python bindings.
-    path = find_lldb_python_path()
-    sys.path.append(path)
-
-    if debug:
-        print(f"[-] Launcher: LLDB Python path: {path}")
+    if sys.platform == "linux" and "LLDB_DEBUGSERVER_PATH" not in os.environ:
+        os.environ["LLDB_DEBUGSERVER_PATH"] = shutil.which("lldb-server")
 
     # Older LLDB versions crash newer versions of CPython on import, so check
     # for it, and stop early with an error message.
@@ -82,35 +97,26 @@ if __name__ == "__main__":
         print("LLDB 18 and earlier is incompatible with Python 3.12 and later", file=sys.stderr)
         sys.exit(1)
 
-    # Start up LLDB and create a new debugger object.
-    import lldb
+    try:
+        import lldb
+    except ImportError:
+        # Find the path for the LLDB Python bindings.
+        path = find_lldb_python_path()
+        sys.path.append(path)
+        if debug:
+            print(f"[-] Launcher: LLDB Python path: {path}")
+        import lldb
 
+    # Start up LLDB and create a new debugger object.
     lldb.SBDebugger.Initialize()
     debugger = lldb.SBDebugger.Create()
 
-    # Resolve the location of lldbinit.py based on the environment, if needed.
-    lldbinit_dir = os.path.dirname(sys.argv[0])
-    if "PWNDBG_LLDBINIT_DIR" in os.environ:
-        lldbinit_dir = os.environ["PWNDBG_LLDBINIT_DIR"]
-    lldbinit_dir = os.path.abspath(lldbinit_dir)
-    lldbinit_path = os.path.join(lldbinit_dir, "lldbinit.py")
+    from pwndbginit import lldbinit
+    from pwndbginit import pwndbglldbhandler
 
-    if debug:
-        print(f"[-] Launcher: Importing main LLDB module at '{lldbinit_path}'")
-
-    if not os.path.exists(lldbinit_path):
-        print(f"Could not find '{lldbinit_path}, please specify it with PWNDBG_LLDBINIT_DIR")
-        sys.exit(1)
-
-    if lldbinit_path not in sys.path:
-        sys.path.append(lldbinit_dir)
-
-    # Load the lldbinit module we just found.
-    debugger.HandleCommand(f"command script import {lldbinit_path}")
+    debugger.HandleCommand(f"command script import {pwndbglldbhandler.__file__}")
 
     # Initialize the debugger, proper.
-    import lldbinit
-
     if debug:
         print("[-] Launcher: Initializing Pwndbg")
     lldbinit.main(debugger, lldb_version[0], lldb_version[1], debug=debug)
@@ -175,3 +181,7 @@ if __name__ == "__main__":
     # Dispose of our debugger and terminate LLDB.
     lldb.SBDebugger.Destroy(debugger)
     lldb.SBDebugger.Terminate()
+
+
+if __name__ == "__main__":
+    main()

@@ -95,7 +95,7 @@ def slab(
             slab_contains(addr)
 
 
-def print_slab(slab: Slab, indent, verbose: bool, freelist: Freelist = None) -> None:
+def print_slab(slab: Slab, indent, verbose: bool, cpu_freelist: Freelist = None) -> None:
     indent.print(
         f"- {indent.prefix('Slab')} @ {indent.addr_hex(slab.virt_address)} [{indent.aux_hex(slab.slab_address)}]:"
     )
@@ -107,30 +107,45 @@ def print_slab(slab: Slab, indent, verbose: bool, freelist: Freelist = None) -> 
 
         idx = 0
         indexes = {}
-        if freelist is None:
-            freelist = slab.freelist
+        freelist = slab.freelist
         for addr in freelist:
             if addr in indexes:
                 break
             indexes[addr] = idx
             idx += 1
+        if cpu_freelist is not None:
+            for idx, addr in enumerate(cpu_freelist):
+                if addr in indexes:
+                    break
+                indexes[addr] = idx
 
         if verbose:
             with indent:
                 free_objects = slab.free_objects
                 for addr in slab.objects:
-                    index = "0x--"
+                    prefix = f"- {indent.prefix('[0x--]')} {hex(addr)}"
                     if addr in indexes:
-                        index = f"0x{indexes[addr]:02}"
-                    prefix = f"- {indent.prefix(f'[{index}]')} {indent.addr_hex(addr)}"
+                        prefix = (
+                            f"- {indent.prefix(f'[0x{indexes[addr]:02}]')} {indent.addr_hex(addr)}"
+                        )
                     if addr not in free_objects:
                         indent.print(f"{prefix} (in-use)")
                         continue
                     next_free = freelist.find_next(addr)
                     if next_free:
                         indent.print(f"{prefix} (next: {indent.aux_hex(next_free)})")
-                    else:
-                        indent.print(f"{prefix} (no next)")
+                        continue
+                    if cpu_freelist is not None:
+                        next_free = cpu_freelist.find_next(addr)
+                        if next_free:
+                            indent.print(
+                                f"{prefix} (next: {indent.aux_hex(next_free)}) [CPU cache]"
+                            )
+                            continue
+                        if addr in cpu_freelist:
+                            indent.print(f"{prefix} (no next) [CPU cache]")
+                            continue
+                    indent.print(f"{prefix} (no next)")
 
 
 def print_cpu_cache(
@@ -215,15 +230,13 @@ def slab_info(name: str, verbose: bool, cpu: int, node: int, active: bool, parti
             indent.print(f"{indent.prefix('Flags')}: (none)")
 
         indent.print(f"{indent.prefix('Offset')}: {indent.aux_hex(slab_cache.offset)}")
-        indent.print(
-            f"{indent.prefix('Slab size')}: {indent.aux_hex(0x1000 << slab_cache.oo_order)}"
-        )
+        indent.print(f"{indent.prefix('Slab size')}: {indent.aux_hex(slab_cache.slab_size)}")
         indent.print(
             f"{indent.prefix('Size (without metadata)')}: {indent.aux_hex(slab_cache.size)}"
         )
         indent.print(f"{indent.prefix('Align')}: {indent.aux_hex(slab_cache.align)}")
         indent.print(f"{indent.prefix('Object Size')}: {indent.aux_hex(slab_cache.object_size)}")
-        useroffset, usersize = slab_cache.useroffset, slab_cache.useroffset
+        useroffset, usersize = slab_cache.useroffset, slab_cache.usersize
         if useroffset is not None and usersize is not None:
             indent.print(f"{indent.prefix('Usercopy region offset')}: {useroffset}")
             indent.print(f"{indent.prefix('Usercopy region size')}: {usersize}")
@@ -262,16 +275,37 @@ def slab_list(filter_) -> None:
 def slab_contains(address: str) -> None:
     """prints the slab_cache associated with the provided address"""
 
+    addr = None
     try:
-        parsed_addr = pwndbg.dbg.selected_frame().evaluate_expression(address)
+        addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address))
     except pwndbg.dbg_mod.Error as e:
         print(M.error(f"Could not parse '{address}'"))
         print(M.error(f"Message: {e}"))
         return
 
-    addr = int(pwndbg.aglib.memory.get_typed_pointer("void", parsed_addr))
     try:
         slab_cache = find_containing_slab_cache(addr)
         print(f"{addr:#x} @", M.hint(f"{slab_cache.name}"))
+        slab = slab_cache.find_containing_slab(addr)
+        if slab is None:
+            print(M.warn("Did not finding containing slab."))
+            return
+        desc = "[something went wrong]"
+        inuse = desc
+        try:
+            if addr in slab.free_objects:
+                inuse = "free"
+            elif addr in slab.objects:
+                inuse = "in-use"
+            if slab.is_cpu and not slab.is_partial:
+                desc = f"[active, cpu {slab.cpu_cache.cpu}]"
+            elif slab.is_cpu and slab.is_partial:
+                desc = f"[partial, cpu {slab.cpu_cache.cpu}]"
+            elif not slab.is_cpu and slab.is_partial:
+                desc = f"[partial, node {slab.node_cache.node}]"
+        except Exception:
+            pass
+        print("slab:", M.hint(f"{hex(slab.virt_address)}"), desc)
+        print("status:", M.hint(inuse))
     except Exception:
         print(M.warn("address does not belong to a SLUB cache"))

@@ -44,17 +44,16 @@ jobs:
     - name: Setup
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
-        mkdir .cov
 
     - name: Run tests
       if: matrix.type == 'tests'
       run: |
-        ./tests.sh --nix --cov -d gdb -g gdb
+        ./tests.sh --nix -d gdb -g gdb
 
     - name: Run cross-arch tests
       if: matrix.type == 'qemu-user-tests'
       run: |
-        ./tests.sh --nix --cov -d gdb -g cross-arch-user
+        ./tests.sh --nix -d gdb -g cross-arch-user
 
     - name: Set up cache for QEMU images
       if: matrix.type == 'qemu-system-tests'
@@ -74,7 +73,7 @@ jobs:
     - name: Run kernel tests
       if: matrix.type == 'qemu-system-tests'
       run: |
-        ./kernel-tests.sh --nix --cov
+        ./kernel-tests.sh --nix
 
   tests:
     strategy:
@@ -108,20 +107,9 @@ jobs:
     # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
     - name: Run tests
       run: |
-        mkdir .cov
         sudo sysctl -w kernel.yama.ptrace_scope=0
-        ./tests.sh --cov -d gdb -g gdb
-        ./unit-tests.sh --cov
-
-    - name: Process coverage data
-      if: matrix.os == 'ubuntu-22.04'
-      run: |
-        ./.venv/bin/uv run --group tests coverage combine
-        ./.venv/bin/uv run --group tests coverage xml
-
-    - name: "Upload coverage to Codecov"
-      if: matrix.os == 'ubuntu-22.04'
-      uses: codecov/codecov-action@v3
+        ./tests.sh -d gdb -g gdb
+        ./unit-tests.sh
 
   qemu-user-tests:
     runs-on: [ubuntu-24.04]
@@ -139,19 +127,10 @@ jobs:
       run: |
         ./setup.sh
         ./setup-dev.sh
-        mkdir .cov
 
     - name: Run cross-architecture tests
       run: |
-        ./tests.sh --cov -g cross-arch-user -d gdb
-
-    - name: Process coverage data
-      run: |
-        ./.venv/bin/uv run --group tests coverage combine
-        ./.venv/bin/uv run --group tests coverage xml
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+        ./tests.sh -g cross-arch-user -d gdb
 
   qemu-system-tests:
     runs-on: [ubuntu-22.04]
@@ -169,7 +148,6 @@ jobs:
       run: |
         ./setup.sh
         ./setup-dev.sh
-        mkdir .cov
 
     - name: Set up cache for QEMU images
       id: qemu-cache
@@ -186,12 +164,4 @@ jobs:
     - name: Run kernel tests
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
-        ./kernel-tests.sh --cov
-
-    - name: Process coverage data
-      run: |
-        ./.venv/bin/uv run --group tests coverage combine
-        ./.venv/bin/uv run --group tests coverage xml
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+        ./kernel-tests.sh

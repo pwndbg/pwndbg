@@ -1,19 +1,14 @@
 from __future__ import annotations
 
-import cProfile
 import hashlib
+import logging
 import os
 import shutil
-import site
 import subprocess
 import sys
-import time
-from glob import glob
 from pathlib import Path
 from typing import List
 from typing import Tuple
-
-import lldb
 
 
 def hash_file(file_path: str | Path) -> str:
@@ -31,10 +26,11 @@ def run_uv_install(
     binary_path: os.PathLike[str], src_root: Path, dev: bool = False
 ) -> Tuple[str, str, int]:
     # We don't want to quietly uninstall dependencies by just specifying
-    # `--extra lldb` so we will be conservative and pull all extras in.
+    # `--extra gdb` so we will be conservative and pull all extras in.
     command: List[str] = [str(binary_path), "sync", "--all-extras"]
     if dev:
         command.append("--all-groups")
+    logging.debug(f"Updating deps with command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True, cwd=src_root)
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
@@ -57,10 +53,14 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
     uv_lock_hash_path = venv_path / "uv.lock.hash"
 
     current_hash = hash_file(src_root / "uv.lock")
+    logging.debug(f"Current uv.lock hash: {current_hash}")
 
     stored_hash = None
     if uv_lock_hash_path.exists():
         stored_hash = uv_lock_hash_path.read_text().strip()
+        logging.debug(f"Stored uv.lock hash: {stored_hash}")
+    else:
+        logging.debug("No stored hash found")
 
     # If the hashes don't match, update the dependencies
     if current_hash == stored_hash:
@@ -87,30 +87,6 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
         print(stderr, file=sys.stderr)
 
 
-def fixup_paths(src_root: Path, venv_path: Path):
-    site_pkgs_path = glob(str(venv_path / "lib/*/site-packages"))[0]
-
-    # add virtualenv's site-packages to sys.path and run .pth files
-    site.addsitedir(site_pkgs_path)
-
-    # remove existing, system-level site-packages from sys.path
-    for site_packages in site.getsitepackages():
-        if site_packages in sys.path:
-            sys.path.remove(site_packages)
-
-    # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
-    bin_path = str(venv_path / "bin")
-    os.environ["PATH"] = bin_path + os.pathsep + os.environ.get("PATH", "")
-
-    # Add pwndbg directory to sys.path so it can be imported
-    sys.path.insert(0, str(src_root))
-
-    # Push virtualenv's site-packages to the front
-    if site_pkgs_path in sys.path:
-        sys.path.remove(site_pkgs_path)
-    sys.path.insert(1, site_pkgs_path)
-
-
 def get_venv_path(src_root: Path):
     venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
     if venv_path_env:
@@ -122,46 +98,25 @@ def get_venv_path(src_root: Path):
 def skip_venv(src_root) -> bool:
     return (
         os.environ.get("PWNDBG_VENV_PATH") == "PWNDBG_PLEASE_SKIP_VENV"
-        or (src_root / ".skip-venv").exists()
+        or not (src_root / ".pwndbg_root").exists()
     )
 
 
-def main(debugger: lldb.SBDebugger, major: int, minor: int, debug: bool = False) -> None:
-    if "pwndbg" in sys.modules:
-        print("Detected double-loading of Pwndbg.")
-        print("This should not happen. Please report this issue if you're not sure how to fix it.")
-        sys.exit(1)
+def verify_venv():
+    src_root = Path(__file__).parent.parent.resolve()
+    if skip_venv(src_root):
+        return
 
-    profiler = cProfile.Profile()
+    venv_path = get_venv_path(src_root)
+    if not venv_path.exists():
+        print(
+            f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh",
+            flush=True,
+        )
+        os._exit(1)
 
-    start_time = None
-    if os.environ.get("PWNDBG_PROFILE") == "1":
-        start_time = time.time()
-        profiler.enable()
+    no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE") is not None
+    if no_auto_update:
+        return
 
-    src_root = Path(__file__).parent.resolve()
-    if not skip_venv(src_root):
-        venv_path = get_venv_path(src_root)
-        if not venv_path.exists():
-            print(f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh")
-            sys.exit(1)
-
-        no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE")
-        if no_auto_update is None:
-            update_deps(src_root, venv_path)
-        fixup_paths(src_root, venv_path)
-
-    import pwndbg  # noqa: F811
-    import pwndbg.dbg.lldb
-
-    pwndbg.dbg_mod.lldb.LLDB_VERSION = (major, minor)
-
-    pwndbg.dbg = pwndbg.dbg_mod.lldb.LLDB()
-    pwndbg.dbg.setup(debugger, __name__, debug=debug)
-
-    import pwndbg.profiling
-
-    pwndbg.profiling.init(profiler, start_time)
-    if os.environ.get("PWNDBG_PROFILE") == "1":
-        pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
-        pwndbg.profiling.profiler.start()
+    update_deps(src_root, venv_path)

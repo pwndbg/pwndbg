@@ -34,9 +34,12 @@ dependencies = [
 lldb = [
     # The LLDB REPL requires readline.
     'gnureadline>=8.2.10,<9; sys_platform != "win32"',
-    'pyreadline3>=3.5.4,<4; sys_platform == "win32"'
+    'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
+    "lldb-for-pwndbg>=21.1.6",
 ]
-gdb = []
+gdb = [
+    "gdb-for-pwndbg>=16.2.6",
+]
 
 [dependency-groups]
 dev = [
@@ -128,10 +131,14 @@ builtins-ignorelist = [
 ]
 
 [tool.hatch.build.targets.sdist]
-include = ["/pwndbg"]
+include = ["/pwndbg", "/pwndbginit"]
 
 [tool.hatch.build.targets.wheel]
-include = ["/pwndbg"]
+include = ["/pwndbg", "/pwndbginit"]
+
+[project.scripts]
+pwndbg = "pwndbginit.pwndbg_gdb:main"
+pwndbg-lldb = "pwndbginit.pwndbg_lldb:main"
 
 [build-system]
 requires = ["hatchling"]

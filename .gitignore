@@ -74,12 +74,12 @@ venv/
 
 # PyTest files
 .pytest_cache/
-tests/**/binaries/*.o
-tests/**/binaries/*.out
-tests/**/binaries/gosample.x*
-tests/**/binaries/div_zero_binary/core
-tests/**/binaries/div_zero_binary/binary
-!tests/**/binaries/*.go
+tests/binaries/**/*.o
+tests/binaries/**/*.out
+tests/binaries/**/gosample.x*
+tests/binaries/**/div_zero_binary/core
+tests/binaries/**/div_zero_binary/binary
+!tests/binaries/**/*.go
 
 # QEMU test images
 tests/library/qemu-system/kimages
