@@ -38,11 +38,14 @@ def get_binary(name: str) -> str:
 
 
 def break_at_sym(sym: str) -> None:
+    import pwndbg
+    from pwndbg.dbg import BreakpointLocation
     inf = pwndbg.dbg.selected_inferior()
     addr = inf.lookup_symbol(sym)
-    inf.break_at(BreakpointLocation(addr))
+    inf.break_at(BreakpointLocation(int(addr)))
 
 
 def get_expr(expr: str):
+    import pwndbg
     ctx = pwndbg.dbg.selected_frame() or pwndbg.dbg.selected_inferior()
     return ctx.evaluate_expression(expr)
