@@ -25,37 +25,38 @@ async def test_command_plist_dereference_limit_change_has_impact_on_plist(ctrl: 
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <node_a>:.*{\\s*
-  value = 0,\\s*
-  next = 0[xX][0-9a-fA-F]+( <node_b>)?\\s*
+  value = 0,?\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_b>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_b>:.*{\\s*
-  value = 1,\\s*
-  next = 0[xX][0-9a-fA-F]+( <node_c>)?\\s*
+  value = 1,?\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_c>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_c>:.*{\\s*
-  value = 2,\\s*
-  next = 0[xX][0-9a-fA-F]+( <node_d>)?\\s*
+  value = 2,?\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_d>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_d>:.*{\\s*
-  value = 3,\\s*
-  next = 0[xX][0-9a-fA-F]+( <node_e>)?\\s*
+  value = 3,?\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_e>)?,?\\s*
 }\\s*
 0[xX][0-9a-fA-F]+ <node_e>:.*{\\s*
-  value = 4,\\s*
-  next = 0[xX][0-9a-fA-F]+( <node_f>)\\s*
+  value = 4,?\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_f>)?,?\\s*
 }\
 """
     )
 
     result_str = await ctrl.execute_and_capture("plist node_a next")
+    print(result_str)
     assert expected_out.match(result_str) is not None
 
     await ctrl.execute("set dereference-limit 1")
     expected_out = re.compile(
         """\
-0[xX][0-9a-fA-F]+ <node_a>: {\\s*
-  value = 0,\\s*
-  next = 0[xX][0-9a-fA-F]+ <node_b>\\s*
+0[xX][0-9a-fA-F]+ <node_a>:.*{\\s*
+  value = 0,?\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_b>)?,?\\s*
 }\
 """
     )
