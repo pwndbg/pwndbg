@@ -24,25 +24,25 @@ async def test_command_plist_dereference_limit_change_has_impact_on_plist(ctrl: 
     await ctrl.execute("set dereference-limit 5")
     expected_out = re.compile(
         """\
-0[xX][0-9a-fA-F]+ <node_a>: {\\s*
+0[xX][0-9a-fA-F]+ <node_a>:.*{\\s*
   value = 0,\\s*
-  next = 0[xX][0-9a-fA-F]+ <node_b>\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_b>)?\\s*
 }\\s*
-0[xX][0-9a-fA-F]+ <node_b>: {\\s*
+0[xX][0-9a-fA-F]+ <node_b>:.*{\\s*
   value = 1,\\s*
-  next = 0[xX][0-9a-fA-F]+ <node_c>\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_c>)?\\s*
 }\\s*
-0[xX][0-9a-fA-F]+ <node_c>: {\\s*
+0[xX][0-9a-fA-F]+ <node_c>:.*{\\s*
   value = 2,\\s*
-  next = 0[xX][0-9a-fA-F]+ <node_d>\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_d>)?\\s*
 }\\s*
-0[xX][0-9a-fA-F]+ <node_d>: {\\s*
+0[xX][0-9a-fA-F]+ <node_d>:.*{\\s*
   value = 3,\\s*
-  next = 0[xX][0-9a-fA-F]+ <node_e>\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_e>)?\\s*
 }\\s*
-0[xX][0-9a-fA-F]+ <node_e>: {\\s*
+0[xX][0-9a-fA-F]+ <node_e>:.*{\\s*
   value = 4,\\s*
-  next = 0[xX][0-9a-fA-F]+ <node_f>\\s*
+  next = 0[xX][0-9a-fA-F]+( <node_f>)\\s*
 }\
 """
     )
