@@ -23,13 +23,20 @@ def hash_file(file_path: str | Path) -> str:
 
 
 def run_uv_install(
-    binary_path: os.PathLike[str], src_root: Path, dev: bool = False
+    binary_path: os.PathLike[str], src_root: Path, venv_path: Path, dev: bool = False
 ) -> Tuple[str, str, int]:
-    # We don't want to quietly uninstall dependencies by just specifying
-    # `--extra gdb` so we will be conservative and pull all extras in.
-    command: List[str] = [str(binary_path), "sync", "--all-extras"]
-    if dev:
-        command.append("--all-groups")
+    # Check if the package was installed using: `uv tool install --editable .[lldb,gdb]`
+    # Tools are located at: ${HOME}/.local/share/uv/tools/${TOOL_NAME}/uv-receipt.toml
+    is_tool_install = (venv_path / "uv-receipt.toml").exists()
+    if is_tool_install:
+        tool_name = venv_path.name
+        command: List[str] = [str(binary_path), "tool", "upgrade", tool_name]
+    else:
+        # We don't want to quietly uninstall dependencies by just specifying
+        # `--extra gdb` so we will be conservative and pull all extras in.
+        command: List[str] = [str(binary_path), "sync", "--all-extras"]
+        if dev:
+            command.append("--all-groups")
     logging.debug(f"Updating deps with command: {' '.join(command)}")
     result = subprocess.run(command, capture_output=True, text=True, cwd=src_root)
     return result.stdout.strip(), result.stderr.strip(), result.returncode
@@ -76,7 +83,7 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
         return
 
     dev_mode = is_dev_mode(venv_path)
-    stdout, stderr, return_code = run_uv_install(uv_path, src_root, dev=dev_mode)
+    stdout, stderr, return_code = run_uv_install(uv_path, src_root, venv_path, dev=dev_mode)
     if return_code == 0:
         uv_lock_hash_path.write_text(current_hash)
 
