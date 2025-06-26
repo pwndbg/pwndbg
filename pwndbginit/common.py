@@ -49,7 +49,8 @@ def is_dev_mode(venv_path: Path) -> bool:
     return (venv_path / "dev.marker").exists()
 
 
-def update_deps(src_root: Path, venv_path: Path) -> None:
+def update_deps(src_root: Path) -> None:
+    venv_path = Path(sys.prefix)
     uv_lock_hash_path = venv_path / "uv.lock.hash"
 
     current_hash = hash_file(src_root / "uv.lock")
@@ -87,36 +88,27 @@ def update_deps(src_root: Path, venv_path: Path) -> None:
         print(stderr, file=sys.stderr)
 
 
-def get_venv_path(src_root: Path):
-    venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
-    if venv_path_env:
-        return Path(venv_path_env).expanduser().resolve()
-    else:
-        return src_root / ".venv"
+def skip_autoupdate(src_root) -> bool:
+    no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE") is not None
+    if no_auto_update:
+        return True
 
+    # If pwndbg is installed in `/venv/lib/pythonX.Y/site-packages/pwndbg/`,
+    # the `.pwndbg_root` file will not exist because `src_root` will point to the
+    # `/venv/lib/pythonX.Y/site-packages/` directory, not the original source directory
+    #
+    # However, if pwndbg is installed in editable mode (our recommended way), this file will exist,
+    # and the condition will be False, allowing auto-update.
+    is_system_install = not (src_root / ".pwndbg_root").exists()
+    if is_system_install:
+        return True
 
-def skip_venv(src_root) -> bool:
-    return (
-        os.environ.get("PWNDBG_VENV_PATH") == "PWNDBG_PLEASE_SKIP_VENV"
-        or not (src_root / ".pwndbg_root").exists()
-    )
+    return False
 
 
 def verify_venv():
     src_root = Path(__file__).parent.parent.resolve()
-    if skip_venv(src_root):
+    if skip_autoupdate(src_root):
         return
 
-    venv_path = get_venv_path(src_root)
-    if not venv_path.exists():
-        print(
-            f"Cannot find Pwndbg virtualenv directory: {venv_path}. Please re-run setup.sh",
-            flush=True,
-        )
-        os._exit(1)
-
-    no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE") is not None
-    if no_auto_update:
-        return
-
-    update_deps(src_root, venv_path)
+    update_deps(src_root)
