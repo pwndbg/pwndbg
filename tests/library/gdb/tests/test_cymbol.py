@@ -57,12 +57,13 @@ def test_cymbol(start_binary):
     # Test whether the symbol is loaded on the lookup loaded_symbols dict.
     assert pwndbg.commands.cymbol.loaded_symbols.get("example") is not None
     # Test whether the returned type is what we expect (on x86-64).
+    # The spacing has been updated to match the new dt formatting.
     assert (
         "example_t\n"
-        "    +0x0000 a                    : int\n"
-        "    +0x0004 b                    : char [16]\n"
-        "    +0x0018 c                    : char *\n"
-        "    +0x0020 d                    : void *"
+        "    +0x0000    a               : int\n"
+        "    +0x0004    b               : char [16]\n"
+        "    +0x0018    c               : char *\n"
+        "    +0x0020    d               : void *"
     ) == pwndbg.aglib.dt.dt("example_t").strip()
 
     # Test whether unload_loaded_symbol() works properly.
@@ -122,20 +123,21 @@ def test_cymbol_header_file(start_binary):
     assert pwndbg.commands.cymbol.loaded_symbols.get(struct_name) is not None
 
     # Check if the structure types match what we expect (on x86-64)
+    # The spacing has been updated to match the new dt formatting.
     expected_outputs = {
         "example_A": (
             "example_A\n"
-            "    +0x0000 a                    : int\n"
-            "    +0x0004 b                    : char [16]\n"
-            "    +0x0018 c                    : char *\n"
-            "    +0x0020 d                    : void *"
+            "    +0x0000    a                : int\n"
+            "    +0x0004    b                : char [16]\n"
+            "    +0x0018    c                : char *\n"
+            "    +0x0020    d                : void *"
         ),
-        "example_B": ("example_B\n    +0x0000 X                    : uint16_t"),
+        "example_B": ("example_B\n    +0x0000    X                : uint16_t"),
         "example_C": (
             "example_C\n"
-            "    +0x0000 name                 : char [32]\n"
-            "    +0x0020 data                 : int *\n"
-            "    +0x0028 next                 : struct example_struct_a *"
+            "    +0x0000    name             : char [32]\n"
+            "    +0x0020    data             : int *\n"
+            "    +0x0028    next             : struct example_struct_a *"
         ),
     }
 
