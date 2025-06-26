@@ -12,16 +12,11 @@ async def test_dump_mmap_args(ctrl: Controller):
     """
     Tests dumpargs command on an xmmap call
     """
-    import pwndbg
-    from pwndbg.dbg import BreakpointLocation
 
     await ctrl.launch(MMAP_GAPS_BINARY)
 
     # Run until main
-    inf = pwndbg.dbg.selected_inferior()
-    main = inf.lookup_symbol("main")
-    inf.break_at(BreakpointLocation(int(main)))
-
+    tests.break_at_sym("main")
     await ctrl.cont()
 
     # Stop on xmmap(...)

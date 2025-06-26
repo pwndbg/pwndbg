@@ -35,3 +35,14 @@ def pwndbg_test[**T](
 
 def get_binary(name: str) -> str:
     return os.path.join(BINARIES_PATH, name)
+
+
+def break_at_sym(sym: str) -> None:
+    inf = pwndbg.dbg.selected_inferior()
+    addr = inf.lookup_symbol(sym)
+    inf.break_at(BreakpointLocation(addr))
+
+
+def get_expr(expr: str):
+    ctx = pwndbg.dbg.selected_frame() or pwndbg.dbg.selected_inferior()
+    return ctx.evaluate_expression(expr)
