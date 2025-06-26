@@ -10,7 +10,7 @@ if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="${PWNDBG_ABS_PATH}/.venv"
 fi
 
-if [[ "$PWNDBG_VENV_PATH" == "PWNDBG_PLEASE_SKIP_VENV" || "$PWNDBG_NO_UV" == "1" ]]; then
+if [[ "$PWNDBG_NO_UV" == "1" ]]; then
     # We are using the dependencies as installed on the system
     # so we shouldn't use uv (and can't, since it's not installed).
     UV=""
