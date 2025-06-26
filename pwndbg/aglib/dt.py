@@ -35,6 +35,8 @@ def dt(
     """
     Dump out a structure type WinDbg style.
     """
+    # Return value is a list of strings.of
+    # We concatenate at the end.
     rv: List[str] = []
 
     if obj and not name:
@@ -44,21 +46,26 @@ def dt(
             obj = obj.dereference()
         name = str(t)
 
+    # Lookup the type name specified by the user
     else:
         t = pwndbg.aglib.typeinfo.load(name)
 
     if not t:
         return "Type not found."
 
+    # If it's not a struct (e.g. int or char*), bail
     if t.strip_typedefs().code not in (
         pwndbg.dbg_mod.TypeCode.STRUCT,
         pwndbg.dbg_mod.TypeCode.UNION,
     ):
         return f"Not a structure: {t.strip_typedefs().name_to_human_readable}"
 
+    # If an address was specified, create a Value of the
+    # specified type at that address.
     if addr is not None:
         obj = pwndbg.aglib.memory.get_typed_pointer_value(t, addr)
 
+    # Header, optionally include the name
     header = name
     if obj:
         header = f"{header} @ {hex(int(obj.address))}"
@@ -67,6 +74,7 @@ def dt(
     iter_fields = [(field.name, field) for field in t.fields()]
 
     for field_name, field in iter_fields:
+        # Offset into the parent structure
         offset = field.bitpos // 8
         bitpos = field.bitpos % 8
         ftype = field.type.strip_typedefs()
@@ -91,6 +99,9 @@ def dt(
             except pwndbg.dbg_mod.Error as e:
                 return f"{e}\nIs the provided address near a page boundry?"
 
+        # Adjust trailing lines in 'extra' to line up
+        # This is necessary when there are nested structures.
+        # Ideally we'd expand recursively if the type is complex.
         extra_lines: List[str] = []
         for i, line in enumerate(str(extra).splitlines()):
             if i == 0:
