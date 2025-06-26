@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import os
 import sys
 from enum import Enum
@@ -38,11 +37,11 @@ def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
     import host
     from host import Controller
 
-    launcher = importlib.import_module("pwndbg-lldb")
+    from pwndbginit import pwndbg_lldb
 
     # Replace host.start with a proper implementation of the start command.
     def _start(outer: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:
-        launcher.launch(_run, outer, debug=True)
+        pwndbg_lldb.launch(_run, outer, debug=True)
 
     host.start = _start
 
