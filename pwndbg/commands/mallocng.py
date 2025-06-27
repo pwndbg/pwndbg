@@ -235,14 +235,22 @@ bits in p[-3]. In this case "hdr reserved" will be strictly 5, which
 denotes that we need to look at the slot's footer to read the actual
 value of {C.bold("reserved")}. As a special case, if {C.bold("p[-3] >> 5 == 6")} that
 doesn't describe the reserved size at all, but specifies that there
-is a group nested inside this slot. {C.bold("p[-3] >> 5")} will never be 7,
+is a group nested inside this slot. {C.bold("p[-3] >> 5")} should never be 7,
 contrary to {C.bold("start[-3] >> 5")}.
 
 The "footer" of a slot is the third and final area of a slot's
 memory where metadata is contained. This is the [end - 4, end)
 area. It only contains the reserved size as
 {C.bold("reserved = *(const uint32_t *)(end-4)")} when {C.bold("p[-3] >> 5 == 5")}.
-    """
+
+All of the above is only generally true for allocated slots. Mallocng
+ensures {C.bold("p[-3] = 0xFF")} and {C.bold("*(uint16_t *)(p - 2) = 0")} for freed slots,
+which makes the start of the slot's group (and thus meta) unreachable.
+Only in this case does {C.bold("p[-3] >> 5")} become 7. Available slots,
+i.e. those that haven't been allocated nor freed yet (but are ready
+for allocation), have almost no guarantees on their data and
+metadata contents.
+"""
 
     print(txt)
 
