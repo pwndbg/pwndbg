@@ -447,7 +447,7 @@ def dump_slot(
     elif slot.reserved_in_header == 6:
         reserved_extra.append("a nested group is in this slot")
     elif slot.reserved_in_header == 7:
-        reserved_extra.append("this should not be possible")
+        reserved_extra.append("free slot?")
 
     inband_group = [
         Property(

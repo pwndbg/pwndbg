@@ -420,8 +420,8 @@ class Slot:
             else:
                 # Value forced due to bit-size.
                 assert self.reserved_in_header == 7
-                # Should never happen. It is possible for start[-3]
-                # to contain (7<<5) but p[-3] can't.
+                # It is possible for start[-3] to contain (7<<5),
+                # but p[-3] shouldn't unless the slot is free.
                 return -1
 
         return self._reserved
