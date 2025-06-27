@@ -445,7 +445,7 @@ def dump_slot(
         Property(
             name="offset",
             value=slot.offset,
-            extra="distance to first slot / 0x10",
+            extra="distance to first slot start / 0x10",
             alt_value=(slot.offset * mallocng.UNIT),
         ),
         Property(name="index", value=slot.idx, extra="index of slot in its group"),
