@@ -34,7 +34,7 @@ def run_uv_install(
     else:
         # We don't want to quietly uninstall dependencies by just specifying
         # `--extra gdb` so we will be conservative and pull all extras in.
-        command: List[str] = [str(binary_path), "sync", "--all-extras"]
+        command = [str(binary_path), "sync", "--all-extras"]
         if dev:
             command.append("--all-groups")
     logging.debug(f"Updating deps with command: {' '.join(command)}")
