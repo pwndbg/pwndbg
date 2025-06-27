@@ -18,11 +18,13 @@ if [[ "$PWNDBG_NO_UV" == "1" ]]; then
     UV_RUN_TEST=""
     UV_RUN_LINT=""
     UV_RUN_DOCS=""
+    UV_RUN_MYPY=""
 else
     # We are going to use uv.
     UV="${PWNDBG_VENV_PATH}/bin/uv"
     UV_RUN="${UV} run"
     UV_RUN_TEST="${UV_RUN} --group dev --group tests --all-extras"
-    UV_RUN_LINT="${UV_RUN} --group dev --group lint"
+    UV_RUN_LINT="${UV_RUN} --group lint"
     UV_RUN_DOCS="${UV_RUN} --group docs --extra gdb --extra lldb"
+    UV_RUN_MYPY="${UV_RUN} --group dev --group lint --group tests --extra gdb --extra lldb"
 fi

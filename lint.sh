@@ -71,5 +71,5 @@ $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LI
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then
-    $UV_RUN_LINT mypy pwndbg pwndbginit tests/host
+    $UV_RUN_MYPY mypy pwndbg pwndbginit tests/host
 fi
