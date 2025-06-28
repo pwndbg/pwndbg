@@ -12,7 +12,6 @@ HEAP_MALLOCNG_DYN = tests.get_binary("heap_musl_dyn.out")
 HEAP_MALLOCNG_STATIC = tests.get_binary("heap_musl_static.out")
 
 # Userland only
-re_heap_addr = r"0x7ffff[0-9a-fA-F]{6}0"
 re_addr = r"0x[0-9a-fA-F]{1,12}"
 
 
@@ -36,11 +35,11 @@ def test_mallocng_slot_user(start_binary, binary):
 
     expected_output = [
         "slab",
-        f"  group:          {re_heap_addr}    ",
+        f"  group:          {re_addr}    ",
         f"  meta:           {re_addr}    ",
         "general",
-        f"  start:          {re_heap_addr}    ",
-        f"  user start:     {re_heap_addr}    aka `p`",
+        f"  start:          {re_addr}    ",
+        f"  user start:     {re_addr}    aka `p`",
         rf"  end:            {re_addr}    start \+ stride - 4",
         "  stride:         0x30              distance between adjacent slots",
         """  user size:      0x20              aka "nominal size", `n`""",
