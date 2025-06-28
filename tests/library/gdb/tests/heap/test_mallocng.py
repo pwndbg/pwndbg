@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import re
+
 import gdb
-import tests
 import pytest
+
 import pwndbg.color as color
+import tests
 
 HEAP_MALLOCNG_DYN = tests.get_binary("heap_musl_dyn.out")
 HEAP_MALLOCNG_STATIC = tests.get_binary("heap_musl_static.out")
@@ -23,7 +25,7 @@ def test_mallocng_slot_user(start_binary, binary):
     gdb.execute("break break_here")
 
     gdb.execute("continue")
-    gdb.execute("finish") # Get out of the break_here() function.
+    gdb.execute("finish")  # Get out of the break_here() function.
 
     # == Check generic command output ==
 
@@ -39,7 +41,7 @@ def test_mallocng_slot_user(start_binary, binary):
         "general",
         f"  start:          {re_heap_addr}    ",
         f"  user start:     {re_heap_addr}    aka `p`",
-        fr"  end:            {re_addr}    start \+ stride - 4",
+        rf"  end:            {re_addr}    start \+ stride - 4",
         "  stride:         0x30              distance between adjacent slots",
         """  user size:      0x20              aka "nominal size", `n`""",
         r"  slack:          0x0 \(0x0\)         slot's unused memory \/ 0x10",
@@ -52,7 +54,7 @@ def test_mallocng_slot_user(start_binary, binary):
         r"  cyclic offset:  NA \(not cyclic\)   prevents double free, \(p - start\) / 0x10",
         "",
         r"The slot is \(probably\) allocated.",
-        ]
+    ]
 
     for i in range(len(expected_output)):
         assert re.match(expected_output[i], buffer4_out[i])
@@ -107,11 +109,19 @@ def test_mallocng_slot_user(start_binary, binary):
         assert "ftr reserved" in buffer4_out[ftr_res_idx] and " 0x8b " in buffer4_out[ftr_res_idx]
 
     # Check cyclic
-    assert "cyclic offset" in buffer2_out[cyclic_idx] and " NA (not cyclic) " in buffer2_out[cyclic_idx]
+    assert (
+        "cyclic offset" in buffer2_out[cyclic_idx]
+        and " NA (not cyclic) " in buffer2_out[cyclic_idx]
+    )
     if binary == HEAP_MALLOCNG_STATIC:
-        assert "cyclic offset" in buffer4_out[cyclic_idx] and " 0x1 (0x10) " in buffer4_out[cyclic_idx]
+        assert (
+            "cyclic offset" in buffer4_out[cyclic_idx] and " 0x1 (0x10) " in buffer4_out[cyclic_idx]
+        )
     else:
-        assert "cyclic offset" in buffer4_out[cyclic_idx] and " NA (not cyclic) " in buffer4_out[cyclic_idx]
+        assert (
+            "cyclic offset" in buffer4_out[cyclic_idx]
+            and " NA (not cyclic) " in buffer4_out[cyclic_idx]
+        )
 
     # Check allocation status
     assert "slot is" in buffer2_out[status_idx] and " allocated." in buffer2_out[status_idx]
@@ -142,13 +152,16 @@ def test_mallocng_slot_user(start_binary, binary):
     # recover information about buffer2 (it essentially doesn't exist anymore).
     buffer2_out = color.strip(gdb.execute("ng-slotu buffer2", to_string=True))
     if binary == HEAP_MALLOCNG_DYN:
-        assert "Could not load valid meta from local information, searching the heap.." in buffer2_out
+        assert (
+            "Could not load valid meta from local information, searching the heap.." in buffer2_out
+        )
         assert "Found a slot with p @" in buffer2_out
         assert "doesn't seem to exist." in buffer2_out
         assert "Local memory:" in buffer2_out
     else:
         # The group got munmap()-ed.
         assert "not readable" in buffer2_out
+
 
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
