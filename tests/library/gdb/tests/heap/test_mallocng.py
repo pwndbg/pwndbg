@@ -287,3 +287,40 @@ def test_mallocng_meta(start_binary, binary):
     group_out = color.strip(gdb.execute(f"ng-group {group_addr}", to_string=True))
 
     assert meta_out == group_out
+
+
+@pytest.mark.parametrize(
+    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
+)
+def test_mallocng_malloc_context(start_binary, binary):
+    start_binary(binary)
+
+    # Check that we do not find it at the first program instruction
+    if binary == HEAP_MALLOCNG_DYN:
+        # Since our static binary is symbolicated, we would still find
+        # __malloc_context by simply looking up the symbol. So we only
+        # check this for the dynamically linked binary.
+
+        gdb.execute("starti")
+        # This is at _dlstart - the heap is uninitialized at this point.
+        ctx_out = color.strip(gdb.execute("ng-ctx", to_string=True))
+
+        assert "Couldn't find" in ctx_out
+        assert "will not work" in ctx_out
+        assert "aborting" in ctx_out
+
+    # == Check that we do find it at program entry
+    gdb.execute("entry")
+    # This is at _start. For a dynamically linked binary ld performed memory
+    # donation so the heap should be initialized at this point.
+    # For a statically linked binary, this won't happen but we will have access
+    # to the __malloc_context symbol.
+    # If we were testing on a stripped static binary this would fail as the
+    # heap would only get initialized after the first malloc() in main.
+    ctx_out = color.strip(gdb.execute("ng-ctx", to_string=True))
+    assert "Couldn't find" not in ctx_out
+    assert "will not work" not in ctx_out
+    assert "aborting" not in ctx_out
+
+    assert "ctx\n" in ctx_out
+    assert "init_done:" in ctx_out

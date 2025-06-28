@@ -108,6 +108,11 @@ heap_musl_dyn.out: heap_musl.c
 	@echo "[+] Building heap_musl_dyn.out"
 	${MUSLCC} -g3 -O0 heap_musl.c -o heap_musl_dyn.out
 
+# Ideally I would do:
+# strip heap_musl_static.out
+# here because it would ensure mallocng commands are tested on
+# a musl with no symbols. But that also makes it very hard to
+# write the tests.
 heap_musl_static.out: heap_musl.c
 	@echo "[+] Building heap_musl_static.out"
 	${MUSLCC} -g3 -O0 -static heap_musl.c -o heap_musl_static.out
