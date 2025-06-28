@@ -1054,6 +1054,29 @@ class MallocContext:
 
         assert cur_offset == self.sizeof
 
+    def looks_valid(self) -> bool:
+        """
+        Returns true if this object looks like a valid `struct malloc_context` object
+        describing an initialized heap. False otherwise.
+
+        This is used by `class Mallocng` to find the correct ctx object.
+
+        We consider it invalid if the heap reads as uninitialized because:
+        1. Performing this check filters out invalid ctx objects very well.
+        2. When musl is dynmically linked, due to the ld donation logic,
+           the heap will usually be initialized before the start of main().
+        """
+        print(f"{self.addr:#x} says {self.init_done}")
+
+        if self.init_done != 1:
+            return False
+
+        if self.secret <= 0x0000FFFFFFFFFFFF:
+            # 1 / 65536 chance this is a false negative.
+            return False
+
+        return True
+
 
 class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
     """
@@ -1123,6 +1146,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             return
 
         # No debug information :(
+        self.ctx_addr = 0
         self.has_debug_syms = False
 
         # We will find the __malloc_context object by searching memory for
@@ -1157,31 +1181,39 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         if not possible:
             print(message.error("Couldn't find __malloc_context, even with heuristic."))
-            print(message.error("Musl mallocng commands will not work."))
+            print(message.error("Musl mallocng commands will not work.\n"))
             self.ctx_addr = 0
             self.hope = False
             return
 
+        known_invalid: set[int] = set()
+
         if pwndbg.dbg.selected_inferior().is_dynamically_linked():
             for addr, mapname in possible:
                 if mapname.endswith("libc.so"):
-                    self.ctx_addr = addr
-                    return
+                    maybe_ctx = MallocContext(addr)
+                    if maybe_ctx.looks_valid():
+                        self.ctx_addr = addr
+                        self.ctx = maybe_ctx
+                        return
+                    else:
+                        known_invalid.add(addr)
 
             for addr, mapname in possible:
-                if "libc" in mapname:
-                    self.ctx_addr = addr
-                    return
+                if "libc" in mapname and addr not in known_invalid:
+                    maybe_ctx = MallocContext(addr)
+                    if maybe_ctx.looks_valid():
+                        self.ctx_addr = addr
+                        self.ctx = maybe_ctx
+                        return
+                    else:
+                        known_invalid.add(addr)
 
-            print(message.warn("Couldn't find __malloc_context in a 'libc' mapping,"))
-            print(message.warn(f"using mapping '{possible[0][1]}',"))
             print(
                 message.warn(
-                    "and assuming __malloc_context is at "
-                    f"{pwndbg.color.memory.get(possible[0][0])}."
+                    "Couldn't find __malloc_context in a 'libc' mapping, trying elsewhere."
                 )
             )
-            print(message.warn("The heap commands may be unreliable."))
         else:
             # Statically linked.
             # TODO: We should find the Executable Object in the mappings
@@ -1189,7 +1221,37 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # how to do that though so fall through for now.
             pass
 
-        self.ctx_addr = possible[0][0]
+        for addr, mapname in possible:
+            if addr not in known_invalid:
+                maybe_ctx = MallocContext(addr)
+                if maybe_ctx.looks_valid():
+                    self.ctx_addr = addr
+                    self.ctx = maybe_ctx
+                    break
+
+        if self.ctx_addr == 0 or self.ctx is None:
+            print(
+                message.error(
+                    "Couldn't find a valid looking __malloc_context, even with heuristic."
+                )
+            )
+            print(
+                message.error(
+                    "Musl mallocng commands will not work. Is the allocator initialized?\n"
+                )
+            )
+            self.ctx_addr = 0
+            self.ctx = None
+            self.hope = False
+            return
+
+        # Tell the user we found __malloc_context but in an unexpected place.
+        if pwndbg.dbg.selected_inferior().is_dynamically_linked():
+            print(
+                message.warn(
+                    f"Found a match @ {self.ctx_addr:#x}. A bit suspicious but we will roll with it.\n"
+                )
+            )
 
     @override
     def libc_has_debug_syms(self) -> bool:
