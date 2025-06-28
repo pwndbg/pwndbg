@@ -322,11 +322,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
     if meta.is_donated:
         output += C.bold("\nGroup donated by ld as unused part of ")
 
-        try:
-            mapping = pwndbg.aglib.vmmap.find(mallocng.Group(meta.mem).addr)
-        except pwndbg.dbg_mod.Error as e:
-            print(message.error(f"Could not fetch parent group: {e}"))
-            mapping = None
+        mapping = pwndbg.aglib.vmmap.find(meta.mem)
 
         if mapping is None:
             output += C.red("<cannot determine>")
