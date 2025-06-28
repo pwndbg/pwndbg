@@ -829,7 +829,9 @@ class Meta:
         created by being mmaped.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L177
-        return not self.is_donated and not self.last_idx and bool(self.maplen)
+        # The if-statement in the source also checks for !g->last_idx but in practice
+        # I've seen this value be non-zero for mmap()-ed groups, so we're leaving it out.
+        return not self.is_donated and bool(self.maplen)
 
     @property
     def is_nested(self) -> bool:
