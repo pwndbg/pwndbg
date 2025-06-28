@@ -266,3 +266,25 @@ def test_mallocng_group(start_binary, binary):
     else:
         assert "donated by ld" in cur_group_out[-1]
         assert "[anon" in cur_group_out[-1]
+
+
+@pytest.mark.parametrize(
+    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
+)
+def test_mallocng_meta(start_binary, binary):
+    start_binary(binary)
+
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+    gdb.execute("finish")
+
+    buffer1_out = color.strip(gdb.execute("ng-slotu buffer1", to_string=True))
+    meta_addr = int(re.search(r"meta:\s*(0x[0-9a-fA-F]+)", buffer1_out).group(1), 16)
+    group_addr = int(re.search(r"group:\s*(0x[0-9a-fA-F]+)", buffer1_out).group(1), 16)
+
+    # Check that the meta output is the same as the group output.
+    # They both print the same group and meta objects.
+    meta_out = color.strip(gdb.execute(f"ng-meta {meta_addr}", to_string=True))
+    group_out = color.strip(gdb.execute(f"ng-group {group_addr}", to_string=True))
+
+    assert meta_out == group_out
