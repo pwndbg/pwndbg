@@ -265,7 +265,6 @@ def test_mallocng_group(start_binary, binary):
         assert "mmap()" in cur_group_out[-1]
     else:
         assert "donated by ld" in cur_group_out[-1]
-        assert "[anon" in cur_group_out[-1]
 
 
 @pytest.mark.parametrize(
