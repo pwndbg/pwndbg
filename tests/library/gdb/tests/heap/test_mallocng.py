@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import List
 
 import gdb
 import pytest
@@ -53,7 +54,11 @@ def test_mallocng_slot_user(start_binary, binary):
         r"  cyclic offset:  NA \(not cyclic\)   prevents double free, \(p - start\) / 0x10",
         "",
         r"The slot is \(probably\) allocated.",
+        "",
+        "",
     ]
+
+    assert len(expected_output) == len(buffer4_out)
 
     for i in range(len(expected_output)):
         assert re.match(expected_output[i], buffer4_out[i])
@@ -189,3 +194,75 @@ def test_mallocng_slot_start(start_binary, binary):
         # Doing `ng-slots buffer5` will give you garbage since buffer5 is not
         # a valid slot start.
         assert slotu_buffer5_out != slots_buffer5_out
+
+
+@pytest.mark.parametrize(
+    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
+)
+def test_mallocng_group(start_binary, binary):
+    start_binary(binary)
+
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+    gdb.execute("finish")
+
+    # Fetch the group where buffer1 is in.
+
+    buffer1_out = color.strip(gdb.execute("ng-slotu buffer1", to_string=True))
+    group_addr = int(re.search(r"group:\s*(0x[0-9a-fA-F]+)", buffer1_out).group(1), 16)
+
+    # == Check command output looks good.
+
+    group1_out = color.strip(gdb.execute(f"ng-group {group_addr}", to_string=True)).splitlines()
+
+    expected_out = [
+        "group",
+        f"  @ {re_addr} - {re_addr}",
+        f"  meta:           {re_addr}    ",
+        "  active_idx:     0x9               ",
+        f"  storage:        {re_addr}    start of slots",
+        "---",
+        "  group size:     0x1f0             ",
+        "meta",
+        f"  @ {re_addr}",
+        f"  prev:           {re_addr}    ",
+        f"  next:           {re_addr}    ",
+        f"  mem:            {re_addr}    the group",
+        "  avail_mask:     0x3f8             0b00000000000000000000001111111000",
+        "  freed_mask:     0x0               0b00000000000000000000000000000000",
+        r"  last_idx:       0x9 \(cnt: 0xa\)    index of last slot",
+        "  freeable:       True              ",
+        r"  sizeclass:      0x2 \(stride: 0x30\)  ",
+        "  maplen:         0x0               ",
+        "",
+        rf"Group nested in slot of another group \({re_addr}\).",
+    ]
+
+    assert len(expected_out) == len(group1_out)
+
+    for i in range(len(expected_out)):
+        assert re.match(expected_out[i], group1_out[i])
+
+    # == Check group traversal is done properly.
+
+    assert "another group" in group1_out[-1]
+
+    # We are going to fetch parent groups recursively until
+    # we reach the outermost group which is either mmap()-ed in or
+    # has donated by ld.
+    cur_group_out: List[str] = group1_out
+    cur_group_addr: int = group_addr
+
+    while "another group" in cur_group_out[-1]:
+        cur_group_addr = int(
+            re.search(r"group \((0x[0-9a-fA-F]+)\)", cur_group_out[-1]).group(1), 16
+        )
+        cur_group_out = color.strip(
+            gdb.execute(f"ng-group {cur_group_addr}", to_string=True)
+        ).splitlines()
+
+    if binary == HEAP_MALLOCNG_STATIC:
+        assert "mmap()" in cur_group_out[-1]
+    else:
+        assert "donated by ld" in cur_group_out[-1]
+        assert "[anon" in cur_group_out[-1]
