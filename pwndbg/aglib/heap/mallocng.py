@@ -1093,8 +1093,6 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.ctx_addr: int = 0
         self.ctx: Optional[MallocContext] = None
         self.has_debug_syms: bool = False
-        self.secret: bytearray = b""
-        self.hope: bool = True
 
     def init_if_needed(self) -> bool:
         """
@@ -1111,30 +1109,24 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             you may not use this object for heap operations.
         """
         if self.finished_init:
-            if self.hope:
-                # Whoever called init_if_needed() needs to use the Mallocng
-                # class, which needs an up-to-date view of __malloc_context,
-                # so we will update it here.
-                self.ctx.load()
-
-            return self.hope
+            # Whoever called init_if_needed() needs to use the Mallocng
+            # class, which needs an up-to-date view of __malloc_context,
+            # so we will update it here.
+            self.ctx.load()
+            return True
 
         self.ctx_addr = 0
         self.ctx = None
         self.has_debug_syms = False
-        self.secret = b""
-        self.hope = True
 
+        # We will go in optimistically, and let set_ctx_addr() potentially
+        # prove us wrong.
+        self.finished_init = True
         self.set_ctx_addr()
 
-        if self.ctx_addr and self.hope:
-            self.ctx = MallocContext(self.ctx_addr)
+        # If we failed, we will try again next time.
 
-        # We will try to reinitialize again if we failed now.
-        if self.hope:
-            self.finished_init = True
-
-        return self.hope
+        return self.finished_init
 
     def set_ctx_addr(self) -> None:
         """
@@ -1146,7 +1138,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.ctx_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
         if self.ctx_addr is not None:
             self.has_debug_syms = True
-            self.secret = memory.read(self.ctx_addr, uint64size)
+            self.ctx = MallocContext(self.ctx_addr)
             return
 
         # No debug information :(
@@ -1159,10 +1151,10 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # Extract the secret first.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/glue.h#L49
         at_random = int(pwndbg.auxv.get()["AT_RANDOM"])
-        self.secret = memory.read(at_random + 8, uint64size)
+        secret = memory.read(at_random + 8, uint64size)
 
         secret_matches = list(
-            pwndbg.search.search(self.secret, executable=False, writable=True, aligned=uint64size)
+            pwndbg.search.search(secret, executable=False, writable=True, aligned=uint64size)
         )
 
         # There are going to be multiple matches. We don't
@@ -1187,7 +1179,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             print(message.error("Couldn't find __malloc_context, even with heuristic."))
             print(message.error("Musl mallocng commands will not work.\n"))
             self.ctx_addr = 0
-            self.hope = False
+            self.finished_init = False
             return
 
         known_invalid: set[int] = set()
@@ -1246,7 +1238,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             )
             self.ctx_addr = 0
             self.ctx = None
-            self.hope = False
+            self.finished_init = False
             return
 
         # Tell the user we found __malloc_context but in an unexpected place.
