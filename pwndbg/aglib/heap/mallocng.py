@@ -968,9 +968,6 @@ class MallocContext:
         self.sizeof: int = 0
         self.has_pagesize_field: bool = False
 
-        # We will always load() since we read this object
-        # only once - there is no performance benefit to lazy
-        # evaluation.
         self.load()
 
     def load(self) -> None:
@@ -1105,7 +1102,8 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         initialize it as soon as pwndbg is loaded.
 
         Users of the object are responsible for calling this to
-        make sure the object is initialized.
+        make sure the object is initialized. This also ensures
+        our view of the heap is up-to-date.
 
         Returns:
             True if this object is successfully initialized (whether
@@ -1113,6 +1111,12 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             you may not use this object for heap operations.
         """
         if self.finished_init:
+            if self.hope:
+                # Whoever called init_if_needed() needs to use the Mallocng
+                # class, which needs an up-to-date view of __malloc_context,
+                # so we will update it here.
+                self.ctx.load()
+
             return self.hope
 
         self.ctx_addr = 0
