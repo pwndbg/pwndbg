@@ -11,6 +11,9 @@ import pwndbg.lib.cache
 import pwndbg.lib.memory
 
 ENTRYMASK = ~((1 << 12) - 1) & ((1 << 51) - 1)
+# don't return None but rather an invalid value for address markers
+# this way arithmetic ops do not panic if physmap is not found
+INVALID_ADDR = 1 << 64
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
@@ -24,9 +27,7 @@ def guess_physmap():
     for page in get_memory_map_raw():
         if page.start and pwndbg.aglib.memory.is_kernel(page.start):
             return page.start
-    # don't return None but rather an impossible value
-    # this way arithmetic ops do not panic if physmap is not found
-    return 1 << 65
+    return INVALID_ADDR
 
 
 class ArchPagingInfo:
@@ -234,6 +235,14 @@ class Aarch64PagingInfo(ArchPagingInfo):
         # https://elixir.bootlin.com/linux/v6.13.12/source/arch/arm64/include/asm/memory.h#L47
         self.vmalloc = self.module_end
         self.kbase = self.kbase_helper(pwndbg.aglib.regs.vbar)
+        self.kversion = None
+        shift = self.page_shift - self.STRUCT_PAGE_SHIFT
+        self.VMEMMAP_SIZE = (self.module_start - self.physmap) >> shift
+        try:
+            # this is in case ptrace scope is enabled
+            self.kversion = pwndbg.aglib.kernel.krelease()
+        except Exception:
+            pass
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -250,12 +259,12 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self):
-        shift = self.page_shift - self.STRUCT_PAGE_SHIFT
-        self.VMEMMAP_SIZE = (self.module_start - self.physmap) >> shift
-        if pwndbg.aglib.kernel.krelease() >= (6, 9):
+        if self.kversion is None:
+            return INVALID_ADDR
+        if self.kversion >= (6, 9):
             # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L33
             return (-0x40000000 % (1 << 64)) - self.VMEMMAP_SIZE
-        if pwndbg.aglib.kernel.krelease() >= (5, 11):
+        if self.kversion >= (5, 11):
             # Linux 5.11 changed the calculation for VMEMMAP_START
             # https://elixir.bootlin.com/linux/v5.11/source/arch/arm64/include/asm/memory.h#L53
             VMEMMAP_SHIFT = self.page_shift - self.STRUCT_PAGE_SHIFT
@@ -265,11 +274,14 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def pci(self):
-        if pwndbg.aglib.kernel.krelease() >= (6, 9):
+        self.pci_end = INVALID_ADDR
+        if self.kversion is None:
+            return INVALID_ADDR
+        if self.kversion >= (6, 9):
             pci = self.vmemmap + self.VMEMMAP_SIZE + 0x00800000
             self.pci_end = pci + 0x01000000
             return pci
-        if pwndbg.aglib.kernel.krelease() >= (5, 11):
+        if self.kversion >= (5, 11):
             self.pci_end = self.vmemmap - 0x00800000
             return self.pci_end - 0x01000000
         self.pci_end = self.vmemmap - 0x00200000
