@@ -41,7 +41,7 @@ class LLDBTestHost(TestHost):
         capture: bool,
         pdb: bool,
     ) -> subprocess.CompletedProcess[str]:
-        target = self._pwndbg_root / "tests" / "host" / "lldb" / "launch-guest.py"
+        target = self._pwndbg_root / "tests/host/lldb/launch-guest.py"
 
         assert target.exists()
         assert target.is_file()
