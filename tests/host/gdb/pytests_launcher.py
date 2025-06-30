@@ -30,7 +30,7 @@ class _GDBController(host.Controller):
         synchronous.
         """
         os.environ["PWNDBG_IN_TEST"] = "1"
-        gdb.execute("file " + str(binary_path))
+        gdb.execute(f"file {binary_path}")
         gdb.execute("set exception-verbose on")
         gdb.execute("set width 80")
         gdb.execute("set context-reserve-lines never")
