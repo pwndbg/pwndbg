@@ -244,7 +244,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def kversion(self):
         try:
             return pwndbg.aglib.kernel.krelease()
-        except Exception as e:
+        except Exception:
             return None
 
     @property
