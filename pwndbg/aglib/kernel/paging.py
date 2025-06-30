@@ -234,7 +234,6 @@ class Aarch64PagingInfo(ArchPagingInfo):
         # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L56
         self.va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
         self.va_bits_min = 48 if self.va_bits > 48 else self.va_bits
-        self.physmap = guess_physmap()
         # https://elixir.bootlin.com/linux/v6.13.12/source/arch/arm64/include/asm/memory.h#L47
         module_start_wo_kaslr = (-1 << (self.va_bits_min - 1)) + 2**64
         self.vmalloc = module_start_wo_kaslr + 0x80000000
