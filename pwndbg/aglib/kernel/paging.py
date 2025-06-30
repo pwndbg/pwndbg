@@ -24,6 +24,9 @@ def guess_physmap():
     for page in get_memory_map_raw():
         if page.start and pwndbg.aglib.memory.is_kernel(page.start):
             return page.start
+    # don't return None but rather an impossible value
+    # this way arithmetic ops do not panic if physmap is not found
+    return 1 << 65
 
 
 class ArchPagingInfo:
@@ -224,35 +227,31 @@ class Aarch64PagingInfo(ArchPagingInfo):
         # if addr is None:
         #     return guess_physmap()
         # return pwndbg.aglib.memory.u(addr)
-        # return self._page_offset(self.va_bits)
+        # return (-1 << self.va_bits) + 2**64
         self.physmap = guess_physmap()
-        self.module_start = self._page_end(self.va_bits_min)
+        self.module_start = (-1 << (self.va_bits_min - 1)) + 2**64
         self.module_end = self.module_start + 0x80000000
         # https://elixir.bootlin.com/linux/v6.13.12/source/arch/arm64/include/asm/memory.h#L47
         self.vmalloc = self.module_end
         self.kbase = self.kbase_helper(pwndbg.aglib.regs.vbar)
-
-    def _page_offset(self, va):
-        return (-1 << va) + 2**64
-
-    def _page_end(self, va):
-        return (-1 << (va - 1)) + 2**64
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def physmap_end(self):
         res = None
         for page in get_memory_map_raw():
-            if page.end >= self._page_end(self.va_bits_min):
+            if page.end >= self.module_start:
                 break
             res = page.end
+        if res is None:
+            return guess_physmap()
         return res
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self):
         shift = self.page_shift - self.STRUCT_PAGE_SHIFT
-        self.VMEMMAP_SIZE = (self._page_end(self.va_bits_min) - self.physmap) >> shift
+        self.VMEMMAP_SIZE = (self.module_start - self.physmap) >> shift
         if pwndbg.aglib.kernel.krelease() >= (6, 9):
             # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L33
             return (-0x40000000 % (1 << 64)) - self.VMEMMAP_SIZE
