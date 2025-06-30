@@ -29,11 +29,11 @@ class LLDBTestHost(TestHost):
         self._use_lldbinit = use_lldbinit
 
     def _run_lldb(
-            self,
-            target: Path,
-            lldb_args_before: List[str] = [],
-            env=None,
-            capture_output=True,
+        self,
+        target: Path,
+        lldb_args_before: List[str] = [],
+        env=None,
+        capture_output=True,
     ) -> CompletedProcess[str]:
         env = os.environ if env is None else env
 
@@ -52,7 +52,6 @@ class LLDBTestHost(TestHost):
             cwd=self._pwndbg_root,
         )
 
-
     def run(
         self,
         case: str,
@@ -66,7 +65,8 @@ class LLDBTestHost(TestHost):
         lldb_args_before = []
         if coverage_out is not None:
             lldb_args_before = [
-                "--one-line", "script import sys;print(sys.path);import coverage;coverage.process_startup();",
+                "--one-line", 
+                "script import sys;print(sys.path);import coverage;coverage.process_startup();",
             ]
 
         # We pass parameters to `pytests_launcher` through environment variables.
@@ -155,3 +155,4 @@ class LLDBTestHost(TestHost):
         pattern = re.compile(rf"{path_spec}.*::.*")
         matches = pattern.findall(tests_collect_output)
         return list(matches)
+    

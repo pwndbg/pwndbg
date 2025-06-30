@@ -61,7 +61,6 @@ def main():
         host, args.test_name_filter, args.pdb, args.serial, args.verbose, coverage_out
     )
 
-
 def run_tests_and_print_stats(
     host: TestHost,
     regex_filter: str | None,
@@ -127,7 +126,6 @@ def run_tests_and_print_stats(
             print(f"- {test_case}")
         sys.exit(1)
 
-
 def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
     """
     Build a GDB-based test host.
@@ -183,6 +181,7 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
         use_gdbinit,
     )
 
+
 def get_lldb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
     """
     Build a LLDB-based test host.
@@ -217,6 +216,7 @@ def get_lldb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost
         lldb_path,
         use_lldbinit,
     )
+
 
 class TestStatus(Enum):
     PASSED = "PASSED"
@@ -331,6 +331,7 @@ class Group(Enum):
 class Driver(Enum):
     GDB = "gdb"
     LLDB = "lldb"
+
     def __str__(self):
         return self._value_
 
