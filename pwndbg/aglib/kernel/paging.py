@@ -16,7 +16,7 @@ ENTRYMASK = ~((1 << 12) - 1) & ((1 << 51) - 1)
 INVALID_ADDR = 1 << 64
 
 
-@pwndbg.lib.cache.cache_until("start", "stop")
+@pwndbg.lib.cache.cache_until("stop")
 def get_memory_map_raw() -> Tuple[pwndbg.lib.memory.Page, ...]:
     return pwndbg.aglib.kernel.vmmap.kernel_vmmap(False)
 
@@ -75,7 +75,7 @@ class ArchPagingInfo:
     def markers(self) -> Tuple[Tuple[str, int], ...]:
         raise NotImplementedError()
 
-    def handle_kernel_pages(self, pages, kernel_idx):
+    def handle_kernel_pages(self, pages):
         # this is arch dependent
         raise NotImplementedError()
 
@@ -192,7 +192,11 @@ class x86_64PagingInfo(ArchPagingInfo):
             return name[:-5]
         return name
 
-    def handle_kernel_pages(self, pages, kernel_idx):
+    def handle_kernel_pages(self, pages):
+        kernel_idx = None
+        for i, page in enumerate(pages):
+            if kernel_idx is None and self.kbase in page:
+                kernel_idx = i
         kbase = self.kbase
         if kernel_idx is None:
             return
@@ -219,64 +223,84 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def __init__(self):
         self.tcr_el1 = pwndbg.lib.regs.aarch64_tcr_flags
         self.tcr_el1.value = pwndbg.aglib.regs.TCR_EL1
-        self.va_bits = 64 - self.tcr_el1["T1SZ"]
         # TODO: this is probably not entirely correct
         # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L56
-        va_bits = self.va_bits
-        self.va_bits_min = 48 if va_bits > 48 else va_bits
+        self.va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
+        self.va_bits_min = 48 if self.va_bits > 48 else self.va_bits
         # addr = pwndbg.aglib.symbol.lookup_symbol_addr("memstart_addr")
         # if addr is None:
         #     return guess_physmap()
         # return pwndbg.aglib.memory.u(addr)
         # return (-1 << self.va_bits) + 2**64
         self.physmap = guess_physmap()
-        self.module_start = (-1 << (self.va_bits_min - 1)) + 2**64
-        self.module_end = self.module_start + 0x80000000
         # https://elixir.bootlin.com/linux/v6.13.12/source/arch/arm64/include/asm/memory.h#L47
-        self.vmalloc = self.module_end
+        module_start_wo_kaslr = (-1 << (self.va_bits_min - 1)) + 2**64
+        self.vmalloc = module_start_wo_kaslr + 0x80000000
         self.kbase = self.kbase_helper(pwndbg.aglib.regs.vbar)
-        self.kversion = None
         shift = self.page_shift - self.STRUCT_PAGE_SHIFT
-        self.VMEMMAP_SIZE = (self.module_start - self.physmap) >> shift
+        self.VMEMMAP_SIZE = (module_start_wo_kaslr - self.physmap) >> shift
+
+    @property
+    def kversion(self):
         try:
-            # this is in case ptrace scope is enabled
-            self.kversion = pwndbg.aglib.kernel.krelease()
-        except Exception:
-            pass
+            return pwndbg.aglib.kernel.krelease()
+        except Exception as e:
+            return None
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def physmap_end(self):
         res = None
         for page in get_memory_map_raw():
-            if page.end >= self.module_start:
+            if page.end >= self.vmalloc:
                 break
             res = page.end
         if res is None:
-            return guess_physmap()
+            return INVALID_ADDR
+        return res
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def module_start(self):
+        # this is only used for marking the end of module_start
+        self.module_end = -1
+        res = None
+        for page in get_memory_map_raw():
+            if page.start >= self.kbase:
+                break
+            if page.execute:
+                res = page.start
+        if res is None:
+            return INVALID_ADDR
+        prev = None
+        for page in get_memory_map_raw():
+            if page.start >= res:
+                if prev is not None and page.start > prev + 0x1000:
+                    break
+                prev = self.module_end = page.end
         return res
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self):
         if self.kversion is None:
-            return INVALID_ADDR
+            return None
         if self.kversion >= (6, 9):
             # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L33
-            return (-0x40000000 % (1 << 64)) - self.VMEMMAP_SIZE
+            return (-0x40000000 % INVALID_ADDR) - self.VMEMMAP_SIZE
         if self.kversion >= (5, 11):
             # Linux 5.11 changed the calculation for VMEMMAP_START
             # https://elixir.bootlin.com/linux/v5.11/source/arch/arm64/include/asm/memory.h#L53
             VMEMMAP_SHIFT = self.page_shift - self.STRUCT_PAGE_SHIFT
-            return -(1 << (self.va_bits - VMEMMAP_SHIFT)) % (1 << 64)
+            return -(1 << (self.va_bits - VMEMMAP_SHIFT)) % INVALID_ADDR
         return (-self.VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def pci(self):
-        self.pci_end = INVALID_ADDR
         if self.kversion is None:
-            return INVALID_ADDR
+            return None
+        self.pci_end = INVALID_ADDR
         if self.kversion >= (6, 9):
             pci = self.vmemmap + self.VMEMMAP_SIZE + 0x00800000
             self.pci_end = pci + 0x01000000
@@ -327,13 +351,14 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 if value == 0xFFFFFFFFFFFFFFFF:
                     break
             return tuple(sections)
+        if self.kversion is None:
+            return ()
         return (
             (self.USERLAND, 0),
             (None, 0x8000000000000000),
             (self.PHYSMAP, self.physmap),
             (None, self.physmap_end),
-            (self.KERNELDRIVER, self.module_start),
-            (self.VMALLOC, self.vmalloc),  # same as module_end
+            (self.VMALLOC, self.vmalloc),
             (self.VMEMMAP, self.vmemmap),
             (None, self.vmemmap + self.VMEMMAP_SIZE),
             ("pci", self.pci),
@@ -357,12 +382,15 @@ class Aarch64PagingInfo(ArchPagingInfo):
             return self.VMALLOC
         return " ".join(name.strip().split()[:-1])
 
-    def handle_kernel_pages(self, pages, kernel_idx):
-        if kernel_idx is None:
-            return
-        for i in range(kernel_idx, len(pages)):
+    def handle_kernel_pages(self, pages):
+        for i in range(len(pages)):
             page = pages[i]
-            if page.start < self.kbase or page.start > self.kbase + self.ksize:
+            if page.start < self.module_start or page.start > self.kbase + self.ksize:
+                continue
+            if self.module_start <= page.start < self.module_end:
+                page.objfile = self.KERNELDRIVER
+                continue
+            if page.start < self.kbase:
                 continue
             page.objfile = self.KERNELLAND
             if not page.execute:

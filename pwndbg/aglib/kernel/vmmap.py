@@ -49,25 +49,19 @@ class KernelVmmap:
         return None
 
     def adjust(self):
+        if self.pages is None or len(self.pages) == 0:
+            return
         for i, page in enumerate(self.pages):
             name = self.get_name(page.start)
             if name is not None:
                 page.objfile = name
-        user_idx, kernel_idx = None, None
-        for i, page in enumerate(self.pages):
-            if user_idx is None and page.objfile == self.pi.USERLAND:
-                user_idx = i
-            if kernel_idx is None and self.pi.kbase in page:
-                kernel_idx = i
-        self.handle_user_pages(user_idx)
-        self.pi.handle_kernel_pages(self.pages, kernel_idx)
+        self.handle_user_pages()
+        self.pi.handle_kernel_pages(self.pages)
         self.handle_offsets()
 
-    def handle_user_pages(self, user_idx):
-        if user_idx is None:
-            return
-        base_offset = self.pages[user_idx].start
-        for i in range(user_idx, len(self.pages)):
+    def handle_user_pages(self):
+        base_offset = self.pages[0].start
+        for i in range(len(self.pages)):
             page = self.pages[i]
             if page.objfile != self.pi.USERLAND:
                 break
