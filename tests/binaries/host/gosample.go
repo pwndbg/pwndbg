@@ -8,6 +8,7 @@ func testFunc(x interface{}) *interface{} {
 }
 
 func main() {
+	testFunc(map[uint8]uint64{1: 2, 3: 4, 5: 6})
 	testFunc(map[string]int{"a": 1, "b": 2, "c": 3})
 	testFunc([]struct {
 		a int

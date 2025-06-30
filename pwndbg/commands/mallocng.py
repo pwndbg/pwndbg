@@ -12,6 +12,7 @@ import pwndbg.aglib.memory as memory
 import pwndbg.aglib.typeinfo as typeinfo
 import pwndbg.color as C
 import pwndbg.color.message as message
+from pwndbg.aglib.heap.mallocng import mallocng as ng
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.pretty_print import Property
 from pwndbg.lib.pretty_print import PropertyPrinter
@@ -76,6 +77,15 @@ def mallocng_explain() -> None:
     txt += "  // start of the meta array\n"
     txt += C.bold("  struct meta slots[];\n")
     txt += C.bold("};\n\n")
+
+    txt += (
+        "Two other important definitions are " + C.bold("IB") + " and " + C.bold("UNIT") + ".\n\n"
+    )
+
+    txt += "// the aforementioned slot alignment.\n"
+    txt += C.bold("#define UNIT 16\n")
+    txt += "// the size of the in-band metadata.\n"
+    txt += C.bold("#define IB 4\n\n")
 
     txt += "The allocator state is stored in the global `ctx` variable which is of\n"
     txt += "type `struct malloc_context`. It is accessible through the __malloc_context\n"
@@ -148,7 +158,74 @@ def mallocng_explain() -> None:
 
     txt += diag
 
-    # TODO: explain what a slot looks like.
+    txt += f"""
+### What slots look like
+
+Unfortunately, musl doesn't provide a struct which describes the
+slot's in-band metadata. It does however use consistent variable
+names to describe the values saved in slots, so we will use those
+as well. Check the {C.bold('enframe()')} function in the source, it is very
+important.
+
+{C.bold('idx')} is the index of the slot within its group. The {C.bold("stride")} of
+a group is (generally) determined by the sizeclass as
+{C.bold("UNIT * size_classes[meta.sizeclass]")}. {C.bold("start")} is the starting
+address of the slot (the slot0, slot1, ... in the above diagram).
+The start of a slot with index i is {C.bold("group.storage + i * stride")}.
+The "nominal size" is the amount of memory the user requested with
+their malloc() call, in the source it is also referred to as {C.bold("n")}.
+
+For every slot in a group, the memory in [start - IB, start) contains
+some metadata that we will call the "start header". For this reason,
+the {C.bold("end")} of a slot is calculated as {C.bold("start + stride - IB")}. The
+{C.bold("slack")} of a slot is calculated as {C.bold("(stride - n - IB) / UNIT")} and
+describes the amount of unused memory within a slot.
+
+To prevent double-frees and exploitation attempts, the mallocng
+allocator performs "cycling" i.e. the actual start of user data
+(the pointer returned by malloc) can be at some offset from the
+{C.bold("start")} of the slot. The start of user data is called {C.bold("p")} and it
+is also UNIT aligned. We will call the distance between {C.bold("p")} and
+{C.bold("start")} the "cyclic offset" ({C.bold("off")} in code). When calculating
+the cyclic offset, mallocng ensures {C.bold("off <= slack")}.
+
+If a slot is in fact cycled, then that is stored in the start
+header as {C.bold("off = *(uint16_t*)(start-2)")} and {C.bold("start[-3] = 7 << 5")}.
+The {C.bold("start[-3]")} field acts as a flag.
+
+For every slot, the memory in [p - IB, p) contains some metadata.
+We will call this the "p header". If the slot is not cycled i.e.
+{C.bold("start == p")}, then [start - IB, start) will contain the p header
+fields and start[-3] >> 5 will *not* be 7.
+
+The value in {C.bold("*(uint16_t*)(p-2)")} is the {C.bold("offset")} from the slot's
+{C.bold("start")} to the start of the group (divided by UNIT). The value
+in {C.bold("p[-4]")} is either 0 or 1 and describes if a "big offset" should
+be used. It is usually zero and gets set to one only in some cases
+in aligned_alloc(). If it is 1, the offset is to be calculated as
+{C.bold("*(uint32_t *)(p - 8)")}.
+
+{C.bold("p[-3]")} contains multiple pieces of information. If {C.bold("p[-3] == 0xFF")}
+the slot is freed. Otherwise, the lower 5 bits of p[-3] describe
+the index of the slot in its group: {C.bold("idx = p[-3] & 31")}. The top
+3 bits desribed the {C.bold("reserved")} area size. This is the memory
+between the end of user memory and {C.bold("end")} i.e. {C.bold("reserved = end - p - n")}.
+
+We will call the value {C.bold("p[-3] >> 5")}, "hdr reserved" for "reserved as
+specified in the p header". It can happen however, that the value
+{C.bold("reserved = end - p - n")} is large and so doesn't fit in the three
+bits in p[-3]. In this case "hdr reserved" will be strictly 5, which
+denotes that we need to look at the slot's footer to read the actual
+value of {C.bold("reserved")}. As a special case, if {C.bold("p[-3] >> 5 == 6")} that
+doesn't describe the reserved size at all, but specifies that there
+is a group nested inside this slot. {C.bold("p[-3] >> 5")} will never be 7,
+contrary to {C.bold("start[-3] >> 5")}.
+
+The "footer" of a slot is the third and final area of a slot's
+memory where metadata is contained. This is the [end - 4, end)
+area. It only contains the reserved size as
+{C.bold("reserved = *(const uint32_t *)(end-4)")} when {C.bold("p[-3] >> 5 == 5")}.
+    """
 
     print(txt)
 
@@ -168,7 +245,7 @@ def dump_group(group: mallocng.Group) -> str:
 
     pp = PropertyPrinter()
     pp.start_section("group", group_range)
-    pp.set_padding(2)
+    pp.set_padding(5)
     pp.add(
         [
             Property(name="meta", value=group.meta.addr, is_addr=True),
@@ -179,7 +256,7 @@ def dump_group(group: mallocng.Group) -> str:
 
     if group_size != -1:
         pp.write("---\n")
-        pp.set_padding(3)
+        pp.set_padding(5)
         pp.add(
             [
                 Property(name="group size", value=group_size),
@@ -197,7 +274,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
 
     pp = PropertyPrinter()
     pp.start_section("meta", "@ " + C.memory.get(meta.addr))
-    pp.set_padding(2)
+    pp.set_padding(5)
     pp.add(
         [
             Property(name="prev", value=meta.prev, is_addr=True),
@@ -212,23 +289,18 @@ def dump_meta(meta: mallocng.Meta) -> str:
         ]
     )
     pp.write("---\n")
-    pp.set_padding(3)
+    pp.set_padding(9)
     pp.add(
         [
             Property(name="cnt", value=meta.cnt, extra="the number of slots"),
-            Property(name="slot size", value=meta.slot_size, extra='aka "stride"'),
+            Property(name="stride", value=meta.stride),
         ]
     )
     pp.end_section()
 
     output = pp.dump()
 
-    if not meta.freeable:
-        # When mapped object files contain unused memory, they are donated
-        # to the heap. See https://elixir.bootlin.com/musl/v1.2.5/source/ldso/dynlink.c#L600
-        # and https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L36 .
-        # Only in this case is `meta.freeable = 0;`
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L25
+    if meta.is_donated:
         output += C.bold("\nGroup donated by ld as unused part of ")
 
         try:
@@ -244,10 +316,10 @@ def dump_meta(meta: mallocng.Meta) -> str:
 
         output += C.bold(".\n")
 
-    elif not meta.last_idx and meta.maplen:
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L177
+    elif meta.is_mmaped:
         output += C.bold("\nGroup allocated with mmap().\n")
     else:
+        assert meta.is_nested
         output += C.bold("\nGroup nested in slot of another group")
         try:
             parent_group = mallocng.Slot(mallocng.Group(meta.mem).addr).group.addr
@@ -306,8 +378,14 @@ def mallocng_slot_user(address: int, all: bool) -> None:
 
     try:
         slot.meta.preload()
-    except pwndbg.dbg_mod.Error as e:
-        print(message.error(f"Error while reading meta: {e}"))
+        try:
+            slot.preload_meta_dependants()
+        except pwndbg.dbg_mod.Error as e1:
+            print(message.error(f"Error while loading slot fields that depend on the meta:\n{e1}"))
+            read_success = False
+
+    except pwndbg.dbg_mod.Error as e2:
+        print(message.error(f"Error while reading meta: {e2}"))
         read_success = False
 
     if not read_success:
@@ -318,7 +396,7 @@ def mallocng_slot_user(address: int, all: bool) -> None:
 
     if not all:
         pp.start_section("slab")
-        pp.set_padding(7)
+        pp.set_padding(10)
         if read_success:
             pp.add(
                 [
@@ -336,7 +414,7 @@ def mallocng_slot_user(address: int, all: bool) -> None:
 
     if read_success:
         pp.start_section("general")
-        pp.set_padding(2)
+        pp.set_padding(5)
         pp.add(
             [
                 Property(name="start", value=slot.start, is_addr=True),
@@ -346,36 +424,59 @@ def mallocng_slot_user(address: int, all: bool) -> None:
                     name="stride", value=slot.meta.stride, extra="distance between adjacent slots"
                 ),
                 Property(name="user size", value=slot.user_size, extra='aka "nominal size", `n`'),
-                Property(name="slack", value=slot.slack, extra="slot's unused memory / 0x10"),
+                Property(
+                    name="slack",
+                    value=slot.slack,
+                    extra="slot's unused memory / 0x10",
+                    alt_value=(slot.slack * mallocng.UNIT),
+                ),
             ]
         )
         pp.end_section()
 
     pp.start_section("in-band")
-    pp.set_padding(4)
+    pp.set_padding(2)
 
-    reserved_extra = ["end - p - n", ""]
-    if slot.reserved >= 5:
-        reserved_extra[1] = "located near slot end"
-        if slot.reserved == 6:
-            reserved_extra.append("this slot is a nested group")
-    else:
-        reserved_extra[1] = "located in slot header"
+    reserved_extra = ["describes: end - p - n"]
+    if slot.reserved_in_header == 5:
+        reserved_extra.append("use ftr reserved")
+    elif slot.reserved_in_header == 6:
+        reserved_extra.append("a nested group is in this slot")
+    elif slot.reserved_in_header == 7:
+        reserved_extra.append("this should not be possible")
 
     inband_group = [
-        Property(name="offset", value=slot.offset, extra="distance to first slot / 0x10"),
+        Property(
+            name="offset",
+            value=slot.offset,
+            extra="distance to first slot / 0x10",
+            alt_value=(slot.offset * mallocng.UNIT),
+        ),
         Property(name="index", value=slot.idx, extra="index of slot in its group"),
-        Property(name="reserved", value=slot.reserved, extra=reserved_extra),
+        Property(name="hdr reserved", value=slot.reserved_in_header, extra=reserved_extra),
     ]
 
+    if slot.reserved_in_header == 5:
+        ftrsv = "NA (meta error)"
+        if read_success:
+            ftrsv = slot.reserved_in_footer
+
+        inband_group.append(Property(name="ftr reserved", value=ftrsv))
+
     if read_success:
-        # While it is technically saved in-band, there is no way
-        # for us to locate it without metadata.
+        # Start header fields.
+        if slot.is_cyclic():
+            cyc_val = slot.cyclic_offset
+            cyc_val_alt = cyc_val * mallocng.UNIT
+        else:
+            cyc_val = "NA"
+            cyc_val_alt = "not cyclic"
         inband_group.append(
             Property(
-                name="rnd-off",
-                value=slot.internal_offset,
+                name="cyclic offset",
+                value=cyc_val,
                 extra="prevents double free, (p - start) / 0x10",
+                alt_value=cyc_val_alt,
             ),
         )
 
@@ -470,3 +571,63 @@ def mallocng_group(address: int) -> None:
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"Failed loading meta: {e}"))
         return
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Find slot which contains the given address.
+
+Returns the `start` of the slot. We say a slot 'contains'
+an address if the address is in [start, start + stride).
+    """,
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="The address to look for.",
+)
+parser.add_argument(
+    "-a",
+    "--all",
+    action="store_true",
+    help="Print out all information. Including meta and group data.",
+)
+parser.add_argument(
+    "-m",
+    "--metadata",
+    action="store_true",
+    help=(
+        "If the given address falls onto some in-band metadata, return the slot which owns that metadata."
+        " In other words, the containment check becomes [start - IB, end)."
+    ),
+)
+parser.add_argument(
+    "-s",
+    "--shallow",
+    action="store_true",
+    help="Return the outermost slot hit without going deeper even if this slot contains a group.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-find"],
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_find(
+    address: int, all: bool = False, metadata: bool = False, shallow: bool = False
+) -> None:
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {hex(address)} not readable."))
+        return
+
+    ng.init_if_needed()
+
+    slot_start = ng.containing(address, metadata, shallow)
+
+    if slot_start == 0:
+        print(message.info("No slot found containing that address."))
+        return
+
+    mallocng_slot_user(mallocng.Slot.from_start(slot_start).p, all=all)

@@ -6,7 +6,6 @@ set -o pipefail
 source "$(dirname "$0")/../../../scripts/common.sh"
 
 ROOT_DIR=$PWNDBG_ABS_PATH
-GDB_INIT_PATH="$ROOT_DIR/gdbinit.py"
 COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
 
 VMLINUX_LIST=($(basename -a "${TESTING_KERNEL_IMAGES_DIR}"/vmlinux*))
@@ -135,23 +134,19 @@ run_gdb() {
             exit 1
         fi
     else
-        gdb_load_pwndbg=(--command "$GDB_INIT_PATH")
+        gdb_load_pwndbg=()
 
-        if [[ "${arch}" == x86_64 ]]; then
-            GDB=gdb
-        else
-            GDB=gdb-multiarch
-        fi
+        GDB=pwndbg
     fi
 
     if [ $should_drop_to_pdb -eq 1 ]; then
-        # $GDB --nx --nh "${gdb_load_pwndbg[@]}" \
+        # $GDB --nx "${gdb_load_pwndbg[@]}" \
         #   -ex "set exception-verbose on" "$@"
         echo "Run: "
-        echo "$GDB --nx --nh ${gdb_load_pwndbg[@]} -ex \"set exception-debugger on\" -ex \"file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}\" -ex \"target remote :${GDB_PORT}\""
+        echo "$GDB --nx ${gdb_load_pwndbg[@]} -ex \"set exception-debugger on\" -ex \"file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}\" -ex \"target remote :${GDB_PORT}\""
         read -p "Press enter to continue"
     else
-        $UV_RUN $GDB --silent --nx --nh "${gdb_load_pwndbg[@]}" \
+        $UV_RUN_TEST $GDB --silent --nx "${gdb_load_pwndbg[@]}" \
             -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
     fi
     return $?

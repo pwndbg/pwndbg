@@ -209,7 +209,6 @@ if [[ -z "$is_supported" ]]; then
 fi
 
 # Create the python virtual environment
-# We don't care about PWNDBG_PLEASE_SKIP_VENV here.
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
 ${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
 

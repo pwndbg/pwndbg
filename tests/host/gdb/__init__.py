@@ -20,13 +20,11 @@ class GDBTestHost(TestHost):
         pytest_root: Path,
         binaries_root: Path,
         gdb_path: Path,
-        use_gdbinit: bool,
     ):
         self._pwndbg_root = pwndbg_root
         self._pytest_root = pytest_root
         self._binaries_root = binaries_root
         self._gdb_path = gdb_path
-        self._use_gdbinit = use_gdbinit
 
     def _run_gdb(
         self,
@@ -39,10 +37,9 @@ class GDBTestHost(TestHost):
 
         # Prepare the GDB command line.
         gdb_args = ["--command", str(target)]
-        if self._use_gdbinit:
-            gdb_args.extend(["--init-command", str(self._pwndbg_root / "gdbinit.py")])
+
         return subprocess.run(
-            [str(self._gdb_path), "--silent", "--nx", "--nh"]
+            [str(self._gdb_path), "--silent", "--nx"]
             + gdb_args_before
             + gdb_args
             + ["--eval-command", "quit"],
@@ -77,10 +74,8 @@ class GDBTestHost(TestHost):
         env["COVERAGE_PROCESS_START"] = str(self._pwndbg_root / "pyproject.toml")
         env["PWNDBG_LAUNCH_TEST"] = case
         env["PWNDBG_DISABLE_COLORS"] = "1"
-        env["GDB_INIT_PATH"] = str(self._pwndbg_root / "gdbinit.py")
         env["GDB_BIN_PATH"] = str(self._gdb_path)
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
-        env["TEST_USE_GDBINIT"] = "1" if self._use_gdbinit else "0"
         if interactive:
             env["USE_PDB"] = "1"
 
