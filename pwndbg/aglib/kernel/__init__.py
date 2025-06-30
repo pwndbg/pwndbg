@@ -592,7 +592,7 @@ def virt_to_pfn(virt: int) -> int:
         raise NotImplementedError()
 
 
-@pwndbg.lib.cache.cache_until("start")
+@pwndbg.lib.cache.cache_until("stop")
 def kbase() -> int | None:
     ops = arch_ops()
     if ops:

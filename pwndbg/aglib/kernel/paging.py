@@ -98,15 +98,22 @@ class ArchPagingInfo:
 
 
 class x86_64PagingInfo(ArchPagingInfo):
-    def __init__(self):
-        self.kbase = self.kbase_helper(pwndbg.aglib.kernel.get_idt_entries()[0].offset)
-        result = pwndbg.aglib.symbol.lookup_symbol_addr("page_offset_base")
-        self.physmap = None
-        if result is not None:
-            if pwndbg.aglib.memory.peek(result):
-                self.physmap = pwndbg.aglib.memory.u64(result)
-        if self.physmap is None:
-            self.physmap = guess_physmap()
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def physmap(self):
+        pob = pwndbg.aglib.symbol.lookup_symbol_addr("page_offset_base")
+        result = None
+        if pob is not None:
+            if pwndbg.aglib.memory.peek(pob):
+                result = pwndbg.aglib.memory.u64(pob)
+        if result is None:
+            return guess_physmap()
+        return result
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def kbase(self):
+        return self.kbase_helper(pwndbg.aglib.kernel.get_idt_entries()[0].offset)
 
     @property
     def page_shift(self) -> int:
@@ -227,20 +234,30 @@ class Aarch64PagingInfo(ArchPagingInfo):
         # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L56
         self.va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
         self.va_bits_min = 48 if self.va_bits > 48 else self.va_bits
+        self.physmap = guess_physmap()
+        # https://elixir.bootlin.com/linux/v6.13.12/source/arch/arm64/include/asm/memory.h#L47
+        module_start_wo_kaslr = (-1 << (self.va_bits_min - 1)) + 2**64
+        self.vmalloc = module_start_wo_kaslr + 0x80000000
+        shift = self.page_shift - self.STRUCT_PAGE_SHIFT
+        self.VMEMMAP_SIZE = (module_start_wo_kaslr - self.physmap) >> shift
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def physmap(self):
         # addr = pwndbg.aglib.symbol.lookup_symbol_addr("memstart_addr")
         # if addr is None:
         #     return guess_physmap()
         # return pwndbg.aglib.memory.u(addr)
         # return (-1 << self.va_bits) + 2**64
-        self.physmap = guess_physmap()
-        # https://elixir.bootlin.com/linux/v6.13.12/source/arch/arm64/include/asm/memory.h#L47
-        module_start_wo_kaslr = (-1 << (self.va_bits_min - 1)) + 2**64
-        self.vmalloc = module_start_wo_kaslr + 0x80000000
-        self.kbase = self.kbase_helper(pwndbg.aglib.regs.vbar)
-        shift = self.page_shift - self.STRUCT_PAGE_SHIFT
-        self.VMEMMAP_SIZE = (module_start_wo_kaslr - self.physmap) >> shift
+        return guess_physmap()
 
     @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def kbase(self):
+        return self.kbase_helper(pwndbg.aglib.regs.vbar)
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
     def kversion(self):
         try:
             return pwndbg.aglib.kernel.krelease()
