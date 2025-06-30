@@ -46,6 +46,20 @@ def break_at_sym(sym: str) -> None:
     inf.break_at(BreakpointLocation(int(addr)))
 
 
+async def launch_to(ctrl: Controller, target: str, sym: str) -> None:
+    import pwndbg
+    import pwndbg.aglib.regs
+    from pwndbg.dbg import BreakpointLocation
+
+    await ctrl.launch(target)
+
+    inf = pwndbg.dbg.selected_inferior()
+    addr = inf.lookup_symbol(sym)
+    if pwndbg.aglib.regs.pc != int(addr):
+        inf.break_at(BreakpointLocation(int(addr)))
+        await ctrl.cont()
+
+
 def get_expr(expr: str):
     import pwndbg
 

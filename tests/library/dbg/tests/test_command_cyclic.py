@@ -33,6 +33,8 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     """
     Tests lookup on a register
     """
+    from pwnlib.util.cyclic import cyclic
+
     import pwndbg.aglib.arch
     import pwndbg.aglib.regs
 
@@ -57,6 +59,8 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
     """
     Tests lookup on a memory address
     """
+    from pwnlib.util.cyclic import cyclic
+
     import pwndbg.aglib.arch
     import pwndbg.aglib.memory
     import pwndbg.aglib.regs
@@ -68,7 +72,7 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
     test_offset = 48
     pattern = cyclic(length=80, n=ptr_size)
     pwndbg.aglib.memory.write(addr, pattern)
-    out = await ctrl.execute_and_capture(f"cyclic -l '{{unsigned long}}{hex(addr + test_offset)}'")
+    out = await ctrl.execute_and_capture(f"cyclic -l '*(unsigned long*){hex(addr + test_offset)}'")
 
     assert out == (
         "Finding cyclic pattern of 8 bytes: b'gaaaaaaa' (hex: 0x6761616161616161)\n"
@@ -82,7 +86,7 @@ async def test_command_cyclic_wrong_alphabet(ctrl: Controller) -> None:
 
     out = await ctrl.execute_and_capture("cyclic -l 1234")
     assert out == (
-        "Finding cyclic pattern of 4 bytes: b'\\xd2\\x04\\x00\\x00' (hex: 0xd2040000)\n"
+        "Finding cyclic pattern of 8 bytes: b'\\xd2\\x04\\x00\\x00\\x00\\x00\\x00\\x00' (hex: 0xd204000000000000)\n"
         "Pattern contains characters not present in the alphabet\n"
     )
 
@@ -93,5 +97,5 @@ async def test_command_cyclic_wrong_length(ctrl: Controller) -> None:
 
     out = await ctrl.execute_and_capture("cyclic -l qwerty")
     assert out == (
-        "Lookup pattern must be 4 bytes (use `-n <length>` to lookup pattern of different length)\n"
+        "Lookup pattern must be 8 bytes (use `-n <length>` to lookup pattern of different length)\n"
     )

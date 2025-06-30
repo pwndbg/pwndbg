@@ -11,15 +11,16 @@ CONDBR_X64_BINARY = tests.get_binary("conditional_branch_breakpoints_x64.out")
 @tests.pwndbg_test
 @pytest.mark.parametrize("binary", [CONDBR_X64_BINARY], ids=["x86-64"])
 async def test_command_break_if_x64(ctrl: Controller, binary: str) -> None:
-
     """
     Tests the chain for a non-nested linked list
     """
+    import pwndbg
 
-    await ctrl.launch(binary)
+    if not pwndbg.dbg.is_gdblib_available():
+        # Not yet available outside GDB.
+        return
 
-    tests.break_at_sym("break_here")
-    await ctrl.cont()
+    await tests.launch_to(ctrl, binary, "break_here")
 
     tests.break_at_sym("break_here0")
     tests.break_at_sym("break_here1")
@@ -36,6 +37,8 @@ async def test_command_break_if_x64(ctrl: Controller, binary: str) -> None:
 
 
 async def continue_and_test_pc(ctrl: Controller, stop_label: str) -> None:
+    import pwndbg
+
     await ctrl.cont()
 
     address = int(pwndbg.dbg.selected_inferior().lookup_symbol(stop_label))

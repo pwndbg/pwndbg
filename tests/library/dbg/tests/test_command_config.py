@@ -19,7 +19,7 @@ async def test_config(ctrl: Controller) -> None:
     assert "'#' ('\u2500')" in (await ctrl.execute_and_capture("theme"))
 
     await ctrl.execute("set global-max-fast 0x80")
-    assert "'0x80' ('0')" in (await ctrl.execute("heap-config"))
+    assert "'0x80' ('0')" in (await ctrl.execute_and_capture("heap-config"))
 
 
 @tests.pwndbg_test
