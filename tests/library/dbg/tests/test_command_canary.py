@@ -1,0 +1,50 @@
+from __future__ import annotations
+
+import pytest
+
+import tests
+
+CANARY_X86_64_BINARY = tests.get_binary("canary.x86-64.out")
+CANARY_I386_BINARY = tests.get_binary("canary.i386.out")
+
+
+@tests.pwndbg_test
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "binary, reg_name",
+    [
+        (CANARY_X86_64_BINARY, "rax"),
+        (CANARY_I386_BINARY, "eax"),
+    ],
+    ids=["x86-64", "i386"],
+)
+async def test_command_canary(ctrl: Controller, binary: str, reg_name: str) -> None:
+    """
+    Tests the canary command for x86-64 and i386 architectures
+    """
+    import pwndbg
+    import pwndbg.aglib.memory
+    import pwndbg.aglib.regs
+
+    await ctrl.launch(binary)
+
+    tests.break_at_sym("main")
+    await ctrl.cont()
+    await ctrl.step_instruction()
+
+    register = getattr(pwndbg.aglib.regs, reg_name)
+    canary_value, at_random = pwndbg.commands.canary.canary_value()
+
+    raw = pwndbg.aglib.memory.read_pointer_width(at_random)
+    mask = pwndbg.aglib.arch.ptrmask ^ 0xFF
+    masked_raw = raw & mask
+
+    tls_addr = pwndbg.commands.canary.find_tls_canary_addr()
+    raw_tls = pwndbg.aglib.memory.read_pointer_width(tls_addr) & mask
+
+    # Check AT_RANDOM
+    assert masked_raw == canary_value
+    # Check TLS Canary
+    assert raw_tls == canary_value
+    # Check Canary
+    assert register == canary_value
