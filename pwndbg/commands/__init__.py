@@ -867,6 +867,7 @@ def load_commands() -> None:
         import pwndbg.commands.got_tracking
         import pwndbg.commands.ptmalloc2_tracking
         import pwndbg.commands.ida
+        import pwndbg.commands.src
         import pwndbg.commands.ignore
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.killthreads

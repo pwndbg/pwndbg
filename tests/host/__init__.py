@@ -48,8 +48,7 @@ def main():
     match args.driver:
         case Driver.GDB:
             host = get_gdb_host(args, local_pwndbg_root)
-        case Driver.LLDB:
-            host = get_lldb_host(args, local_pwndbg_root)
+
     # Handle the case in which the user only wants the collection to run.
     if args.collect_only:
         for test in host.collect():
@@ -60,6 +59,7 @@ def main():
     run_tests_and_print_stats(
         host, args.test_name_filter, args.pdb, args.serial, args.verbose, coverage_out
     )
+
 
 def run_tests_and_print_stats(
     host: TestHost,
@@ -126,6 +126,7 @@ def run_tests_and_print_stats(
             print(f"- {test_case}")
         sys.exit(1)
 
+
 def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
     """
     Build a GDB-based test host.
@@ -171,7 +172,7 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
             sys.exit(1)
         gdb_path = Path(gdb_path_str)
 
-    from .gdb import GDBTestHost
+    from host.gdb import GDBTestHost
 
     return GDBTestHost(
         local_pwndbg_root,
@@ -179,42 +180,6 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
         local_pwndbg_root / args.group.binary_dir(),
         gdb_path,
         use_gdbinit,
-    )
-
-
-def get_lldb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
-    """
-    Build a LLDB-based test host.
-    """
-    if args.nix:
-        # TODO: Add NIX support for LLDB later
-        print("ERROR: NIX support for LLDB not implemented yet")
-        sys.exit(1)
-    elif args.group == Group.CROSS_ARCH_USER:
-        # LLDB doesn't have lldb-multiarch, but regular LLDB supports multiple architectures
-        use_lldbinit = True
-        lldb_path_str = shutil.which("lldb")
-        if lldb_path_str is None:
-            print("ERROR: No 'lldb' executable in path")
-            sys.exit(1)
-        lldb_path = Path(lldb_path_str)
-    else:
-        # Use the regular system LLDB
-        use_lldbinit = True
-        lldb_path_str = shutil.which("lldb")
-        if lldb_path_str is None:
-            print("ERROR: No 'lldb' executable in path")
-            sys.exit(1)
-        lldb_path = Path(lldb_path_str)
-
-    from .lldb import LLDBTestHost
-
-    return LLDBTestHost(
-        local_pwndbg_root,
-        local_pwndbg_root / args.group.library(),
-        local_pwndbg_root / args.group.binary_dir(),
-        lldb_path,
-        use_lldbinit,
     )
 
 
@@ -330,7 +295,6 @@ class Group(Enum):
 
 class Driver(Enum):
     GDB = "gdb"
-    LLDB = "lldb"
 
     def __str__(self):
         return self._value_
@@ -350,18 +314,6 @@ class Driver(Enum):
                         return True
                     case Group.CROSS_ARCH_USER:
                         return True
-
-            case Driver.LLDB:
-                match grp:
-                    case Group.LLDB:
-                        return True
-                    case Group.GDB:
-                        return False
-                    case Group.DBG:
-                        return True
-                    case Group.CROSS_ARCH_USER:
-                        return True
-
         raise AssertionError(f"unaccounted for combination of driver '{self}' and group '{grp}'")
 
 
