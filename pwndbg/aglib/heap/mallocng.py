@@ -1272,6 +1272,8 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         Returns (None, None) if nothing is found.
         """
+        metadata_offset = IB if metadata else 0
+        # The group which contains a slot which contains `address`.
         hit_group: Optional[Group] = None
 
         meta_area_addr = self.ctx.meta_area_head
@@ -1297,10 +1299,13 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
                     group = Group(meta.mem)
                     group.set_meta(meta)
+
+                    valid_start = group.storage - metadata_offset
                     group_end = group.addr + group.group_size
 
-                    # Check if our address is inside the group.
-                    if group.addr <= address < group_end:
+                    # Check if our address is inside one of
+                    # the group's slots.
+                    if valid_start <= address < group_end:
                         # Yes it is!
                         hit_group = group
                         break
@@ -1326,8 +1331,6 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # Contains extra information.
         hit_grouped_slot: Optional[GroupedSlot] = None
 
-        metadata_offset = IB if metadata else 0
-
         try:
             # Recursively go into deeper nested groups until we find a slot
             # which doesn't house a group. Don't recurse after first hit if shallow = True.
@@ -1336,13 +1339,14 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
                 if address < valid_start:
                     # Bleh, the address is in the group's header
-                    # (or the first slot's IB header). What to do?
+                    # (or the first slot's start header). What to do?
                     if hit_slot is not None:
                         # If we are already in some slot, just return
                         # that slot since we can't look any deeper.
                         return hit_grouped_slot, hit_slot
                     else:
-                        # We are in no slot.
+                        # We are in no slot i.e. we are in the header of a
+                        # top level group (either mmap()ed or donated).
                         # We could return *some* information to the callee
                         # but alas, let's be technically correct.
                         return (None, None)
@@ -1360,6 +1364,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
                 # Maybe there is a group inside this slot!
                 hit_group = Group(hit_slot.p)
+
+            # FIXME: Actually if shallow=True it would make more sense
+            # to traverse upwards.
 
             return hit_grouped_slot, hit_slot
 
