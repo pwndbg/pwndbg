@@ -304,13 +304,17 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
     global monitor_info_mem_not_warned
     pages: List[pwndbg.lib.memory.Page] = []
     for line in lines:
-        dash_idx = line.index("-")
-        space_idx = line.index(" ")
-        rspace_idx = line.rindex(" ")
+        try:
+            dash_idx = line.index("-")
+            space_idx = line.index(" ")
+            rspace_idx = line.rindex(" ")
 
-        start = int(line[:dash_idx], 16)
-        end = int(line[dash_idx + 1 : space_idx], 16)
-        size = int(line[space_idx + 1 : rspace_idx], 16)
+            start = int(line[:dash_idx], 16)
+            end = int(line[dash_idx + 1 : space_idx], 16)
+            size = int(line[space_idx + 1 : rspace_idx], 16)
+        except Exception:
+            # invalid format
+            continue
         if end - start != size and monitor_info_mem_not_warned:
             print(
                 M.warn(
@@ -331,9 +335,8 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
             flags |= 4
         if "w" in perm:
             flags |= 2
-        if len(perm) == 4:  # if the qemu version displays if the page is executable
-            if "x" in perm:
-                flags |= 1
+        if "x" in perm:
+            flags |= 1
         pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
 
     return tuple(pages)
