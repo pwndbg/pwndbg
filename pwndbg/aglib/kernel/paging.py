@@ -88,9 +88,6 @@ class ArchPagingInfo:
             if not pwndbg.aglib.memory.is_kernel(mapping.vaddr):
                 continue
 
-            if not mapping.execute:
-                continue
-
             if address in mapping:
                 return mapping.vaddr
 
@@ -447,5 +444,5 @@ def pagewalk(target, entry=None) -> List[Tuple[int | None, int | None]]:
         if entry == 0:
             return result
         result[i] = (entry, vaddr)
-    result[0] = (None, (entry & ENTRYMASK) + base + offset)
+    result[0] = (entry, (entry & ENTRYMASK) + base + offset)
     return result

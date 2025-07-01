@@ -375,17 +375,19 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
         pages = kernel_vmmap_via_page_tables()
     elif kernel_vmmap_mode == "monitor":
         pages = kernel_vmmap_via_monitor_info_mem()
-        if process_pages and pwndbg.aglib.arch.name == "x86-64":
-            # TODO: check version here when QEMU displays the x bit for x64
-            for page in pages:
-                pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
-                entry, vaddr = pgwalk_res[0]
-                if entry and entry >> 63 == 0:
-                    page.flags |= 1
     if pages is None:
         return ()
     if process_pages:
         kv = KernelVmmap(pages)
         kv.adjust()
+        if kernel_vmmap_mode == "monitor" and pwndbg.aglib.arch.name == "x86-64":
+            # TODO: check version here when QEMU displays the x bit for x64
+            for page in pages:
+                if page.objfile == kv.pi.ESPSTACK:
+                    continue
+                pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
+                entry, _ = pgwalk_res[0]
+                if entry and entry >> 63 == 0:
+                    page.flags |= 1
 
     return tuple(pages)
