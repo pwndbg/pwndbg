@@ -235,7 +235,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         module_start_wo_kaslr = (-1 << (self.va_bits_min - 1)) + 2**64
         self.vmalloc = module_start_wo_kaslr + 0x80000000
         shift = self.page_shift - self.STRUCT_PAGE_SHIFT
-        self.VMEMMAP_SIZE = (module_start_wo_kaslr - self.physmap) >> shift
+        self.VMEMMAP_SIZE = (module_start_wo_kaslr - ((-1 << self.va_bits) + 2**64)) >> shift
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -244,7 +244,6 @@ class Aarch64PagingInfo(ArchPagingInfo):
         # if addr is None:
         #     return guess_physmap()
         # return pwndbg.aglib.memory.u(addr)
-        # return (-1 << self.va_bits) + 2**64
         return guess_physmap()
 
     @property
