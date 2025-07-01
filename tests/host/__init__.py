@@ -149,7 +149,7 @@ class TestHost:
 
 
 class Controller:
-    def launch(self, binary: Path) -> Awaitable[None]:
+    def launch(self, binary: Path, args: List[str] = []) -> Awaitable[None]:
         """
         Launch the binary with the given path, relative to the binaries folder
         for the calling test.

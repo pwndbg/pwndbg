@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Coroutine
+from typing import List
 
 import coverage
 import gdb
@@ -15,7 +16,7 @@ from ... import host
 
 
 class _GDBController(host.Controller):
-    async def launch(self, binary_path: Path) -> None:
+    async def launch(self, binary_path: Path, args: List[str] = []) -> None:
         """
         Launch the given binary.
 

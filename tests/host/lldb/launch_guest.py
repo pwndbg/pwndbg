@@ -25,9 +25,9 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
         def __init__(self, pc: PwndbgController):
             self.pc = pc
 
-        async def launch(self, binary: Path) -> None:
+        async def launch(self, binary: Path, args: List[str] = []) -> None:
             await self.pc.execute(f"target create {binary}")
-            await self.pc.execute("process launch -s")
+            await self.pc.execute("process launch -s -- " + " ".join(args))
 
         async def cont(self) -> None:
             await self.pc.execute("continue")
