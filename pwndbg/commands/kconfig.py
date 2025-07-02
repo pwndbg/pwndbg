@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.kernel
-import pwndbg.color.message as M
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
@@ -19,14 +18,6 @@ parser.add_argument("config_name", nargs="?", type=str, help="A config name to s
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kconfig(config_name=None) -> None:
     kconfig_ = pwndbg.aglib.kernel.kconfig()
-
-    if not kconfig_:
-        print(
-            M.warn(
-                "No kernel configuration found, make sure the kernel was built with CONFIG_IKCONFIG"
-            )
-        )
-        return
 
     if config_name:
         key = kconfig_.get_key(config_name)
