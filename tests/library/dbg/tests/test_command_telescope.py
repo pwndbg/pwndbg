@@ -4,9 +4,6 @@ import re
 
 from host import Controller
 
-import pwndbg.aglib.memory
-import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import tests
 
 TELESCOPE_BINARY = tests.get_binary("telescope_binary.out")
@@ -17,18 +14,18 @@ async def test_command_telescope(ctrl: Controller) -> None:
     """
     Tests simple telescope
     """
+    await ctrl.execute("set telescope-skip-repeating-val off")
     await tests.launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("up")
-
-    expected_str = await ctrl.execute_and_capture("print a")
-    expected_lines = expected_str.split("\n")
 
     result_str = await ctrl.execute_and_capture("telescope &a")
     result_lines = result_str.split("\n")
 
-    for i in range(4):
-        expected_addr = expected_lines[i + 1].split(" ")[4].strip(',"')
-        assert expected_addr in result_lines[i]
+    value = tests.get_expr("a")
+    fields = value.type.fields()
+    for i in range(len(fields)):
+        expected_addr = int(value.address) + fields[i].bitpos // 8
+        assert f"{expected_addr:x}" in result_lines[fields[i].bitpos // 64]
 
 
 @tests.pwndbg_test
@@ -36,18 +33,18 @@ async def test_command_telescope_reverse(ctrl: Controller) -> None:
     """
     Tests reversed telescope
     """
+    await ctrl.execute("set telescope-skip-repeating-val off")
     await tests.launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("up")
-
-    expected_str = await ctrl.execute_and_capture("print a")
-    expected_lines = expected_str.split("\n")
 
     result_str = await ctrl.execute_and_capture("telescope ((uint8_t*)&a)+0x38 -r")
     result_lines = result_str.split("\n")
 
-    for i in range(4):
-        expected_addr = expected_lines[i + 1].split(" ")[4].strip(',"')
-        assert expected_addr in result_lines[i]
+    value = tests.get_expr("a")
+    fields = value.type.fields()
+    for i in range(len(fields)):
+        expected_addr = int(value.address) + fields[i].bitpos // 8
+        assert f"{expected_addr:x}" in result_lines[fields[i].bitpos // 64]
 
 
 @tests.pwndbg_test
@@ -83,6 +80,8 @@ async def test_telescope_command_with_address_as_count(ctrl: Controller) -> None
 
 @tests.pwndbg_test
 async def test_telescope_command_with_address_as_count_and_reversed_flag(ctrl: Controller) -> None:
+    import pwndbg.aglib.regs
+
     await ctrl.launch(TELESCOPE_BINARY)
 
     out = (await ctrl.execute_and_capture("telescope -r 2")).splitlines()
@@ -118,6 +117,7 @@ async def test_command_telescope_frame(ctrl: Controller) -> None:
     """
     Tests telescope --frame
     """
+    import pwndbg.aglib.regs
 
     await tests.launch_to(ctrl, TELESCOPE_BINARY, "break_here")
 
@@ -136,6 +136,7 @@ async def test_command_telescope_frame_bp_below_sp(ctrl: Controller) -> None:
     """
     Tests telescope --frame when base pointer is below stack pointer
     """
+    import pwndbg.aglib.regs
 
     await tests.launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("memoize")  # turn off cache
@@ -152,6 +153,7 @@ async def test_command_telescope_frame_bp_sp_different_vmmaps(ctrl: Controller) 
     """
     Tests telescope --frame when base pointer and stack pointer are on different vmmap pages
     """
+    import pwndbg.aglib.regs
     import pwndbg.aglib.vmmap
 
     await tests.launch_to(ctrl, TELESCOPE_BINARY, "break_here")
@@ -160,7 +162,7 @@ async def test_command_telescope_frame_bp_sp_different_vmmaps(ctrl: Controller) 
     pages = pwndbg.aglib.vmmap.get()
 
     pwndbg.aglib.regs.sp = pages[0].start
-    pwndbg.aglib.regs.bp = pages[1].start
+    pwndbg.aglib.regs.rbp = pages[1].start
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
 

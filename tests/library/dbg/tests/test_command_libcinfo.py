@@ -21,7 +21,7 @@ async def test_command_libcinfo(ctrl: Controller) -> None:
     tests.break_at_sym("main")
     await ctrl.cont()
 
-    result = (await ctrl.execute_and_capture("libcinfo", to_string=True)).splitlines()
+    result = (await ctrl.execute_and_capture("libcinfo")).splitlines()
     assert len(result) == 2
     assert result[0].startswith("libc version: ")
     assert result[1].startswith("libc source link: https://ftp.gnu.org/gnu/libc/glibc-")

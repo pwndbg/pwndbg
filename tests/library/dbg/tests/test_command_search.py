@@ -205,7 +205,7 @@ async def test_command_search_asm(ctrl: Controller) -> None:
 
 
 @tests.pwndbg_test
-def test_command_set_breakpoint_search_asm(ctrl: Controller) -> None:
+async def test_command_set_breakpoint_search_asm(ctrl: Controller) -> None:
     """
     Tests setting breakpoints on found asm instructions
     """
