@@ -6,7 +6,9 @@ from typing import List
 import gdb
 import pytest
 
+import pwndbg
 import pwndbg.color as color
+import pwndbg.dbg
 import tests
 
 HEAP_MALLOCNG_DYN = tests.get_binary("heap_musl_dyn.out")
@@ -324,3 +326,51 @@ def test_mallocng_malloc_context(start_binary, binary):
 
     assert "ctx\n" in ctx_out
     assert "init_done:" in ctx_out
+
+
+@pytest.mark.parametrize(
+    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
+)
+def test_mallocng_find(start_binary, binary):
+    start_binary(binary)
+
+    gdb.execute("start")
+
+    # Check no slot found
+    find_out = color.strip(gdb.execute("ng-find $rip", to_string=True))
+    assert "No slot found containing that address.\n" == find_out
+
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+    gdb.execute("finish")
+
+    buffer1_addr = int(pwndbg.dbg.selected_frame().evaluate_expression("buffer1"))
+
+    # Check we find the slot in the simplest case of providing p.
+    find_out = color.strip(gdb.execute("ng-find buffer1", to_string=True))
+
+    assert "No slot found" not in find_out
+    start_addr = int(re.search(r"start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
+    user_addr = int(re.search(r"user start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
+    assert buffer1_addr == start_addr == user_addr
+
+    group_addr = int(re.search(r"group:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
+
+    # Hit the buffer1 header metadata
+    find_out = color.strip(gdb.execute("ng-find buffer1-1", to_string=True))
+
+    # We should hit the slot that holds buffer1's group.
+    hit_start_addr = int(re.search(r"start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
+    assert group_addr == hit_start_addr
+
+    # Hit the buffer1 header metadata but with -m
+    find_out = color.strip(gdb.execute("ng-find buffer1-1 --metadata", to_string=True))
+
+    # We should hit the buffer1 slot
+    hit_start_addr = int(re.search(r"start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
+    assert buffer1_addr == hit_start_addr
+
+    # Check that `--shallow` works. Note that `--all` prints the group allocation method.
+    find_out = color.strip(gdb.execute("ng-find buffer1 --shallow --all", to_string=True))
+    assert "donated by ld" in find_out or "mmap" in find_out
+    assert "nested" not in find_out.splitlines()[-1]
