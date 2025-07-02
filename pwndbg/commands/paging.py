@@ -42,7 +42,7 @@ def pg_indices(vaddr, nr_level):
 def pagewalk(vaddr, entry=None):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     # https://blog.zolutal.io/understanding-paging/
-    level = 4
+    level = pwndbg.aglib.kernel.arch_paginginfo().paging_level
     names = (
         "Page",
         "PT",
@@ -50,8 +50,7 @@ def pagewalk(vaddr, entry=None):
         "PUD",
         "PGD",
     )
-    if pwndbg.aglib.kernel.paging.uses_5lvl_paging():
-        level = 5
+    if level == 5:
         names = (
             "Page",
             "PT",
@@ -70,8 +69,12 @@ def pagewalk(vaddr, entry=None):
     if vaddr is None:
         print(M.warn("address is not mapped"))
         return
-    phys = vaddr - pwndbg.aglib.kernel.paging.physmap_base()
+    phys = vaddr - pwndbg.aglib.kernel.arch_paginginfo().physmap
     print(f"pagewalk result: {C.green(hex(vaddr))} [phys: {C.yellow(hex(phys))}]")
+
+
+def paging_print_helper(name, addr):
+    print(f"{C.green(name)}: {C.yellow(hex(pwndbg.aglib.kernel.phys_to_virt(int(addr))))}")
 
 
 p2v_parser = argparse.ArgumentParser(
@@ -86,7 +89,8 @@ p2v_parser.add_argument("paddr", type=str, help="")
 @pwndbg.commands.OnlyWhenPagingEnabled
 def p2v(paddr):
     paddr = pwndbg.dbg.selected_frame().evaluate_expression(paddr)
-    return pwndbg.aglib.kernel.phys_to_virt(int(paddr))
+    vaddr = pwndbg.aglib.kernel.phys_to_virt(int(paddr))
+    paging_print_helper("Virtual address", vaddr)
 
 
 v2p_parser = argparse.ArgumentParser(
@@ -101,4 +105,5 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 @pwndbg.commands.OnlyWhenPagingEnabled
 def v2p(vaddr):
     vaddr = pwndbg.dbg.selected_frame().evaluate_expression(vaddr)
-    return pwndbg.aglib.kernel.virt_to_phys(int(vaddr))
+    paddr = pwndbg.aglib.kernel.virt_to_phys(int(vaddr))
+    paging_print_helper("Physical address", paddr)

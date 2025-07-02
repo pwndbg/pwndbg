@@ -245,7 +245,7 @@ def dump_group(group: mallocng.Group) -> str:
 
     pp = PropertyPrinter()
     pp.start_section("group", group_range)
-    pp.set_padding(2)
+    pp.set_padding(5)
     pp.add(
         [
             Property(name="meta", value=group.meta.addr, is_addr=True),
@@ -256,7 +256,7 @@ def dump_group(group: mallocng.Group) -> str:
 
     if group_size != -1:
         pp.write("---\n")
-        pp.set_padding(3)
+        pp.set_padding(5)
         pp.add(
             [
                 Property(name="group size", value=group_size),
@@ -274,7 +274,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
 
     pp = PropertyPrinter()
     pp.start_section("meta", "@ " + C.memory.get(meta.addr))
-    pp.set_padding(2)
+    pp.set_padding(5)
     pp.add(
         [
             Property(name="prev", value=meta.prev, is_addr=True),
@@ -289,23 +289,18 @@ def dump_meta(meta: mallocng.Meta) -> str:
         ]
     )
     pp.write("---\n")
-    pp.set_padding(3)
+    pp.set_padding(9)
     pp.add(
         [
             Property(name="cnt", value=meta.cnt, extra="the number of slots"),
-            Property(name="slot size", value=meta.slot_size, extra='aka "stride"'),
+            Property(name="stride", value=meta.stride),
         ]
     )
     pp.end_section()
 
     output = pp.dump()
 
-    if not meta.freeable:
-        # When mapped object files contain unused memory, they are donated
-        # to the heap. See https://elixir.bootlin.com/musl/v1.2.5/source/ldso/dynlink.c#L600
-        # and https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L36 .
-        # Only in this case is `meta.freeable = 0;`
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L25
+    if meta.is_donated:
         output += C.bold("\nGroup donated by ld as unused part of ")
 
         try:
@@ -321,10 +316,10 @@ def dump_meta(meta: mallocng.Meta) -> str:
 
         output += C.bold(".\n")
 
-    elif not meta.last_idx and meta.maplen:
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L177
+    elif meta.is_mmaped:
         output += C.bold("\nGroup allocated with mmap().\n")
     else:
+        assert meta.is_nested
         output += C.bold("\nGroup nested in slot of another group")
         try:
             parent_group = mallocng.Slot(mallocng.Group(meta.mem).addr).group.addr
@@ -383,8 +378,14 @@ def mallocng_slot_user(address: int, all: bool) -> None:
 
     try:
         slot.meta.preload()
-    except pwndbg.dbg_mod.Error as e:
-        print(message.error(f"Error while reading meta: {e}"))
+        try:
+            slot.preload_meta_dependants()
+        except pwndbg.dbg_mod.Error as e1:
+            print(message.error(f"Error while loading slot fields that depend on the meta:\n{e1}"))
+            read_success = False
+
+    except pwndbg.dbg_mod.Error as e2:
+        print(message.error(f"Error while reading meta: {e2}"))
         read_success = False
 
     if not read_success:
@@ -395,7 +396,7 @@ def mallocng_slot_user(address: int, all: bool) -> None:
 
     if not all:
         pp.start_section("slab")
-        pp.set_padding(7)
+        pp.set_padding(10)
         if read_success:
             pp.add(
                 [
@@ -413,7 +414,7 @@ def mallocng_slot_user(address: int, all: bool) -> None:
 
     if read_success:
         pp.start_section("general")
-        pp.set_padding(2)
+        pp.set_padding(5)
         pp.add(
             [
                 Property(name="start", value=slot.start, is_addr=True),
@@ -423,36 +424,59 @@ def mallocng_slot_user(address: int, all: bool) -> None:
                     name="stride", value=slot.meta.stride, extra="distance between adjacent slots"
                 ),
                 Property(name="user size", value=slot.user_size, extra='aka "nominal size", `n`'),
-                Property(name="slack", value=slot.slack, extra="slot's unused memory / 0x10"),
+                Property(
+                    name="slack",
+                    value=slot.slack,
+                    extra="slot's unused memory / 0x10",
+                    alt_value=(slot.slack * mallocng.UNIT),
+                ),
             ]
         )
         pp.end_section()
 
     pp.start_section("in-band")
-    pp.set_padding(4)
+    pp.set_padding(2)
 
-    reserved_extra = ["end - p - n", ""]
-    if slot.reserved >= 5:
-        reserved_extra[1] = "located near slot end"
-        if slot.reserved == 6:
-            reserved_extra.append("this slot is a nested group")
-    else:
-        reserved_extra[1] = "located in slot header"
+    reserved_extra = ["describes: end - p - n"]
+    if slot.reserved_in_header == 5:
+        reserved_extra.append("use ftr reserved")
+    elif slot.reserved_in_header == 6:
+        reserved_extra.append("a nested group is in this slot")
+    elif slot.reserved_in_header == 7:
+        reserved_extra.append("this should not be possible")
 
     inband_group = [
-        Property(name="offset", value=slot.offset, extra="distance to first slot / 0x10"),
+        Property(
+            name="offset",
+            value=slot.offset,
+            extra="distance to first slot / 0x10",
+            alt_value=(slot.offset * mallocng.UNIT),
+        ),
         Property(name="index", value=slot.idx, extra="index of slot in its group"),
-        Property(name="reserved", value=slot.reserved, extra=reserved_extra),
+        Property(name="hdr reserved", value=slot.reserved_in_header, extra=reserved_extra),
     ]
 
+    if slot.reserved_in_header == 5:
+        ftrsv = "NA (meta error)"
+        if read_success:
+            ftrsv = slot.reserved_in_footer
+
+        inband_group.append(Property(name="ftr reserved", value=ftrsv))
+
     if read_success:
-        # While it is technically saved in-band, there is no way
-        # for us to locate it without metadata.
+        # Start header fields.
+        if slot.is_cyclic():
+            cyc_val = slot.cyclic_offset
+            cyc_val_alt = cyc_val * mallocng.UNIT
+        else:
+            cyc_val = "NA"
+            cyc_val_alt = "not cyclic"
         inband_group.append(
             Property(
-                name="rnd-off",
-                value=slot.internal_offset,
+                name="cyclic offset",
+                value=cyc_val,
                 extra="prevents double free, (p - start) / 0x10",
+                alt_value=cyc_val_alt,
             ),
         )
 

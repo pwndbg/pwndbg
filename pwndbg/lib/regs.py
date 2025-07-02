@@ -27,12 +27,14 @@ class BitFlags:
     #   - aarch64_sctlr_flags is used for "sctlr", "sctlr_el2", "sctlr_el3"
     regname: str
     flags: OrderedDict[str, Union[int, Tuple[int, int]]]
+    value: int
 
-    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
+    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = [], value=None):
         self.regname = ""
         self.flags = {}
         for name, bits in flags:
             self.flags[name] = bits
+        self.value = value
 
     def __getattr__(self, name):
         if name in {"regname"}:
@@ -40,7 +42,11 @@ class BitFlags:
         return getattr(self.flags, name)
 
     def __getitem__(self, key):
-        return self.flags[key]
+        r = self.flags[key]
+        if isinstance(r, int):
+            return (self.value >> r) & 1
+        s, e = r
+        return ((~((1 << s) - 1) & ((1 << e) - 1)) & self.value) >> s
 
     def __setitem__(self, key, value):
         self.flags[key] = value
@@ -525,6 +531,14 @@ aarch64_sctlr_flags = BitFlags(
     ]
 )
 
+aarch64_tcr_flags = BitFlags(
+    [
+        ("TG1", (30, 31)),
+        ("T1SZ", (16, 21)),
+        ("T0SZ", (0, 5)),
+    ]
+)
+
 aarch64_scr_flags = BitFlags(
     [
         ("HCE", 8),
@@ -593,6 +607,7 @@ aarch64 = RegisterSet(
         "spsr_el1": aarch64_cpsr_flags,
         "spsr_el2": aarch64_cpsr_flags,
         "spsr_el3": aarch64_cpsr_flags,
+        "tcr_el1": aarch64_tcr_flags,
     },
     # X29 is the frame pointer register (FP) but setting it
     # as frame here messes up the register order to the point

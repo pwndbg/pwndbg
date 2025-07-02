@@ -142,68 +142,105 @@ class Slot:
         # The start of user memory. It may
         # not be the actual start of the slot.
         self.p: int = p
-        self._offset: int = None
-        self._idx: int = None
-        # Not exactly sure what this is.
-        self._check4: int = None
 
+        # == The p header fields.
+        self._offset: int = None
+        # p[-3]. Stores lot's of different kinds of
+        # information.
+        self._pn3: int = None
+        self._idx: int = None
+        self._reserved_hd: int = None
+        self._big_offset_check: int = None
+        # ==
+
+        # == The footer fields.
+        self._reserved_ft: int = None
+        # ==
+
+        # == The start header fields.
+        self._start: int = None
+        self._cyclic_offset: int = None
+        # start[-3]. Stores whether we are cyclic.
+        self._startn3: int = None
+        # ==
+
+        self._reserved: int = None
         self._group: Group = None
         self._meta: Meta = None
-        self._reserved: int = None
 
     def preload(self) -> None:
         """
         Read all the necessary process memory to populate the slot's
-        fields.
+        p header fields.
 
         Do this if you know you will be using most of the
         fields of the slot. It will be faster, since we can do a few
         big reads instead of many small ones. You may also catch
         inaccessible memory exceptions here and not worry about it later.
 
+        Fields dependant on the meta are not loaded - you will still
+        need to worry about exceptions coming from them.
+
         Raises:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
-        # Read all the in-band data.
-        inband_data = memory.read(self.p - 8, 8)
+        # == Read the p header.
+        pheader = memory.read(self.p - 8, 8)
 
-        self._check4 = inband_data[4]
-        if self._check4:
-            self._offset = int.from_bytes(inband_data[0:4], pwndbg.aglib.arch.endian, signed=False)
+        self._big_offset_check = pheader[4]
+        if self._big_offset_check:
+            self._offset = int.from_bytes(pheader[0:4], pwndbg.aglib.arch.endian, signed=False)
         else:
-            self._offset = int.from_bytes(inband_data[6:8], pwndbg.aglib.arch.endian, signed=False)
-        idxv = inband_data[5]
-        if idxv != 255:
-            self._idx = idxv & 31
-        else:
-            self._idx = 0
+            self._offset = int.from_bytes(pheader[6:8], pwndbg.aglib.arch.endian, signed=False)
+        self._pn3 = pheader[5]
+        # ==
 
         # Read the group's meta pointer.
         _ = self.meta
-        # Need this loaded for lots of fields,
-        # but we will let it be since we want to be able to
-        # say stuff about this slot even with a corrupt meta.
-        # _ = self.meta.stride
 
-        self._reserved = inband_data[5] >> 5
-        if self._reserved == 5:
-            # self.end doesn't need a read.
-            self._reserved = memory.u32(self.end - 4)
+        # To calculate footer and p header fields
+        # we need self.meta.stride. However we want to be able to
+        # return some information even if the meta is corrupt, so
+        # we won't load that here.
 
-        # All the other fields are calculated without
-        # memory reads.
+        # Other fields are calculated without memory reads.
 
-    @property
-    def check4(self) -> int:
+    def preload_meta_dependants(self) -> None:
         """
+        Preloads all fields that depend on a sane meta.
+
+        It generally only makes sense to run this after preload().
+        Calling this reduces the amount of process writes and centralizes
+        field exceptions to this function.
+
+        If both preload() and preload_meta_dependants() return without
+        exceptions, all the fields in this class are guaranteed to not
+        cause any more memory reads nor raise any more exceptions.
+
         Raises:
-            pwndbg.dbg_mod.Error: When reading memory fails.
+            pwndbg.dbg_mod.Error: When the meta is corrupt and/or
+                reading memory fails.
         """
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L134
-        if self._check4 is None:
-            self._check4 = memory.u8(self.p - 4)
+        # Make sure stride is valid.
+        _ = self.meta.stride
 
-        return self._check4
+        # Read the start header only if we need to.
+        if self.start != self.p:
+            startheader = memory.read(self.start - 3, 3)
+            self._startn3 = int.from_bytes(startheader[0:1], pwndbg.aglib.arch.endian, signed=False)
+            self._cyclic_offset = int.from_bytes(
+                startheader[1:3], pwndbg.aglib.arch.endian, signed=False
+            )
+
+        # Read footer.
+        if self.reserved_in_header != 5:
+            self._reserved_ft = -1
+        else:
+            self._reserved_ft = memory.u32(self.end - 4)
+
+        # Other fields are calculated without memory reads.
+
+    # p header fields..
 
     @property
     def offset(self) -> int:
@@ -213,14 +250,26 @@ class Slot:
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L132
         if self._offset is None:
-            if self.check4:
-                # assert(!offset);
+            if self.big_offset_check:
+                # This can only happen in aligned allocations, which is kind of
+                # weird. All allocations of this size are probably mmaped.
+                # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/aligned_alloc.c#L49
                 self._offest = memory.u32(self.p - 8)
-                # assert(offset > 0xffff);
             else:
                 self._offset = memory.u16(self.p - 2)
 
         return self._offset
+
+    @property
+    def pn3(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
+        if self._pn3 is None:
+            self._pn3 = memory.u8(self.p - 3)
+
+        return self._pn3
 
     @property
     def idx(self) -> int:
@@ -230,39 +279,108 @@ class Slot:
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L133
         if self._idx is None:
-            v = memory.u8(self.p - 3)
-            if v != 255:
-                self._idx = v & 31
-            else:
+            if self.pn3 == 255:
                 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L29
                 self._idx = 0
+            else:
+                self._idx = self.pn3 & 31
 
         return self._idx
 
     @property
-    def group(self) -> Group:
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L139
-        if self._group is None:
-            self._group = Group(self.p - UNIT * self.offset - UNIT)
+    def reserved_in_header(self) -> int:
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L193
+        if self._reserved_hd is None:
+            self._reserved_hd = self.pn3 >> 5
 
-        return self._group
+        return self._reserved_hd
 
     @property
-    def meta(self) -> Meta:
+    def big_offset_check(self) -> int:
         """
         Raises:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L140
-        if self._meta is None:
-            self._meta = Meta(memory.read_pointer_width(self.group.addr))
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L134
+        if self._big_offset_check is None:
+            self._big_offset_check = memory.u8(self.p - 4)
 
-        return self._meta
+        return self._big_offset_check
+
+    # start header fields..
 
     @property
     def start(self) -> int:
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L108
-        return self.group.storage + self.meta.stride * self.idx
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading meta fails.
+        """
+        # We have this if-statement so Slot.from_start() can
+        # populate _start, giving us lots of fields even with
+        # a corrupt meta.
+        if self._start is None:
+            # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/free.c#L108
+            self._start = self.group.storage + self.meta.stride * self.idx
+
+        return self._start
+
+    @property
+    def cyclic_offset(self) -> int:
+        """
+        Returns zero if is_cyclic() is False.
+
+        Raises:
+            pwndbg.dbg_mod.Error: When reading meta fails.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L216
+        # Not sure why musl saves it, it doesn't seem to use it.
+        # We could calculate it more easily than musl does `(self.p - self.start) // UNIT`
+        # but let's report the actual in-band metadata in case the structure
+        # is partially corrupted.
+        if self._cyclic_offset is None:
+            if self.is_cyclic():
+                self._cyclic_offset = memory.u16(self.start - 2)
+            else:
+                self._cyclic_offset = 0
+
+        return self._cyclic_offset
+
+    @property
+    def startn3(self) -> int:
+        """
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
+        if self._startn3 is None:
+            if self.p == self.start:
+                # No need to read memory twice.
+                self._startn3 = self.pn3
+            else:
+                self._startn3 = memory.u8(self.start - 3)
+
+        return self._startn3
+
+    # footer fields..
+
+    @property
+    def reserved_in_footer(self) -> int:
+        """
+        Returns -1 if the value is invalid, i.e.
+        reserved_in_header() != 5.
+
+        Raises:
+            pwndbg.dbg_mod.Error: When reading memory fails.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L161
+        if self._reserved_ft is None:
+            if self.reserved_in_header != 5:
+                self._reserved_ft = -1
+            else:
+                self._reserved_ft = memory.u32(self.end - 4)
+
+        return self._reserved_ft
+
+    # code variables..
 
     @property
     def end(self) -> int:
@@ -276,15 +394,28 @@ class Slot:
     @property
     def reserved(self) -> int:
         """
+        Returns 0 if reserved_in_header() == 6.
+        Returns -1 if reserved_in_header() == 7.
+
         Raises:
             pwndbg.dbg_mod.Error: When reading memory fails.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L161
         # Lots of asserts here..
         if self._reserved is None:
-            self._reserved = memory.u8(self.p - 3) >> 5
-            if self._reserved == 5:
-                self._reserved = memory.u32(self.end - 4)
+            if self.reserved_in_header < 5:
+                self._reserved = self.reserved_in_header
+            elif self.reserved_in_header == 5:
+                self._reserved = self.reserved_in_footer
+            elif self.reserved_in_header == 6:
+                # See contains_group()
+                self._reserved = 0
+            else:
+                # Value forced due to bit-size.
+                assert self.reserved_in_header == 7
+                # Should never happen. It is possible for start[-3]
+                # to contain (7<<5) but p[-3] can't.
+                return -1
 
         return self._reserved
 
@@ -314,23 +445,48 @@ class Slot:
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L199
         return (self.meta.stride - self.nominal_size - IB) // UNIT
 
+    # non-local..
+
     @property
-    def internal_offset(self) -> int:
+    def group(self) -> Group:
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L139
+        if self._group is None:
+            self._group = Group(self.p - UNIT * self.offset - UNIT)
+
+        return self._group
+
+    @property
+    def meta(self) -> Meta:
         """
         Raises:
-            pwndbg.dbg_mod.Error: When reading meta fails.
+            pwndbg.dbg_mod.Error: When reading memory fails.
         """
-        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L204
-        # Not sure why musl saves it, it doesn't seem to use it.
-        # We can calculate it more easily than musl does:
-        return (self.p - self.start) // UNIT
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L140
+        if self._meta is None:
+            self._meta = Meta(memory.read_pointer_width(self.group.addr))
+
+        return self._meta
+
+    # checks..
+
+    def is_cyclic(self) -> int:
+        """
+        Returns whether mallocng reports that p != start.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L217
+        # We could of course just do `return p != start`
+        # but we want to report the actual metadata in case the structure
+        # is partially corrupted.
+        return self.startn3 == 224
 
     def contains_group(self) -> bool:
         """
         Does this slot nest a group?
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L269
-        return self.reserved == 6
+        return self.reserved_in_header == 6
+
+    # constructors..
 
     @classmethod
     def from_p(cls, p: int) -> "Slot":
@@ -338,21 +494,24 @@ class Slot:
 
     @classmethod
     def from_start(cls, start: int) -> "Slot":
-        idx_or_marker = memory.u8(start - 3)
-        if idx_or_marker == 224:
-            # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L217
-            # p is at an offset from start
-            # Read the cyclic offset to calculate it.
+        # We need to check if we are cyclic or not.
+        # See is_cyclic() and cyclic_offset() logic.
+        sn3 = memory.u8(start - 3)
+        if sn3 == 224:
             off = memory.u16(start - 2)
             p = start + off * UNIT
             obj = cls(p)
+            obj._sn3 = sn3
         else:
             p = start
             obj = cls(p)
+            obj._sn3 = obj._pn3 = sn3
 
         # FIXME: Not good if the slot is corrupted and we can't
         # access the meta.
         assert obj.start == start
+
+        obj._start = start
 
         return obj
 
@@ -541,6 +700,8 @@ class Meta:
 
         return self._maplen
 
+    # Semi-custom methods..
+
     @property
     def stride(self):
         """
@@ -559,6 +720,8 @@ class Meta:
 
         return self._stride
 
+    # Custom methods..
+
     @property
     def cnt(self):
         """
@@ -568,17 +731,34 @@ class Meta:
         return self.last_idx + 1
 
     @property
-    def slot_size(self):
+    def is_donated(self) -> bool:
         """
-        The size of a slot in this group, in bytes.
+        Returns whether the group object referred to by this meta has been
+        created by being donated by ld.
+        """
+        # When mapped object files contain unused memory, they are donated
+        # to the heap. See https://elixir.bootlin.com/musl/v1.2.5/source/ldso/dynlink.c#L600
+        # and https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L36 .
+        # Only in this case is `meta.freeable = 0;`
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/donate.c#L25
+        return not self.freeable
 
-        Returns -1 if sizeclass >= len(size_classes).
+    @property
+    def is_mmaped(self) -> bool:
         """
-        if self.sizeclass < len(size_classes):
-            return size_classes[self.sizeclass] * UNIT
-        else:
-            # The meta is corrupted.
-            return -1
+        Returns whether the group object referred to by this meta has been
+        created by being mmaped.
+        """
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L177
+        return not self.is_donated and not self.last_idx and bool(self.maplen)
+
+    @property
+    def is_nested(self) -> bool:
+        """
+        Returns whether the group object referred to by this meta has been
+        created by being nested into a slot.
+        """
+        return not self.is_donated and not self.is_mmaped
 
     @staticmethod
     def sizeof():

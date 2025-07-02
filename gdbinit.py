@@ -30,6 +30,10 @@ def fixup_paths(src_root: Path, venv_path: Path):
         sys.path.remove(site_pkgs_path)
     sys.path.insert(1, site_pkgs_path)
 
+    # sys.prefix must be changed to point to the virtual environment.
+    # This is what python expect: https://docs.python.org/3/library/sys.html#sys.prefix
+    sys.prefix = str(venv_path)
+
 
 def get_venv_path(src_root: Path):
     venv_path_env = os.environ.get("PWNDBG_VENV_PATH")

@@ -20,6 +20,7 @@ class Property:
 
     name: str
     value: Any
+    alt_value: Any = None
     extra: str | List[str] = ""
     is_addr: bool = False
     use_hex: bool = True
@@ -68,6 +69,11 @@ class PropertyPrinter:
                     prop.value = hex(prop.value)
                 else:
                     prop.value = str(prop.value)
+            if isinstance(prop.alt_value, int):
+                if prop.use_hex:
+                    prop.alt_value = hex(prop.alt_value)
+                else:
+                    prop.alt_value = str(prop.alt_value)
 
         # Get max lengths to calculate proper ljust
         # + 1 to account for the ":"
@@ -95,14 +101,17 @@ class PropertyPrinter:
             else:
                 colored_val = self.value_color_func(prop.value)
 
-            self.text += color.ljust_colored(colored_val, max_value_len)
+            colored_alt_val = ""
+            if prop.alt_value is not None:
+                colored_alt_val = " (" + self.value_color_func(prop.alt_value) + ")"
+
+            self.text += color.ljust_colored(colored_val + colored_alt_val, max_value_len)
 
             if isinstance(prop.extra, str):
                 self.text += "  " + prop.extra
             else:
                 # list of strings, we want each one under the other
                 assert isinstance(prop.extra, list)
-                assert len(prop.extra) > 1
 
                 self.text += "  " + prop.extra[0]
                 for i in range(1, len(prop.extra)):

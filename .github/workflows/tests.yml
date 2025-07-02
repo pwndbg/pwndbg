@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 40
     env:
       TMPDIR: /tmp
-      PWNDBG_VENV_PATH: PWNDBG_PLEASE_SKIP_VENV
+      PWNDBG_NO_UV: 1
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
