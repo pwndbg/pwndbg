@@ -93,6 +93,11 @@ class ArchPagingInfo:
 
         return None
 
+    def pagewalk(
+        self, arget, entry=None
+    ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
+        raise NotImplementedError()
+
 
 class x86_64PagingInfo(ArchPagingInfo):
     @property
@@ -221,6 +226,56 @@ class x86_64PagingInfo(ArchPagingInfo):
                 has_loadable_driver = True
             if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
                 page.objfile = "kernel [stack]"
+
+    def pagewalk(
+        self, target, entry=None
+    ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
+        # https://blog.zolutal.io/understanding-paging/
+        names = (
+            "Page",
+            "PT",
+            "PMD",
+            "PUD",
+            "PGD",
+        )
+        if self.paging_level == 5:
+            names = (
+                "Page",
+                "PT",
+                "PMD",
+                "P4D",
+                "PUD",
+                "PGD",
+            )
+        level = pwndbg.aglib.kernel.arch_paginginfo().paging_level
+        base = pwndbg.aglib.kernel.arch_paginginfo().physmap
+        if entry is None:
+            entry = pwndbg.aglib.regs["cr3"]
+        else:
+            entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
+        if entry > base:
+            # user inputted a physmap address as pointer to pgd
+            entry -= base
+        result: List[Tuple[int | None, int | None]] = [(None, None)] * (level + 1)
+        for i in range(level, 0, -1):
+            vaddr = (entry & ENTRYMASK) + base
+            if entry & (1 << 7) > 0:
+                break
+            shift = (i - 1) * 9 + 12
+            offset = target & ((1 << shift) - 1)
+            idx = (target & (0x1FF << shift)) >> shift
+            entry = 0
+            try:
+                table = pwndbg.aglib.memory.get_typed_pointer("unsigned long", vaddr)
+                entry = int(table[idx])
+            except Exception as e:
+                print(M.warn(f"Exception while page walking: {e}"))
+                entry = 0
+            if entry == 0:
+                return names, result
+            result[i] = (entry, vaddr)
+        result[0] = (entry, (entry & ENTRYMASK) + base + offset)
+        return names, result
 
 
 class Aarch64PagingInfo(ArchPagingInfo):
@@ -412,36 +467,3 @@ class Aarch64PagingInfo(ArchPagingInfo):
                     page.objfile = self.KERNELRO
             if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
                 page.objfile = "kernel [stack]"
-
-
-@pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
-def pagewalk(target, entry=None) -> List[Tuple[int | None, int | None]]:
-    level = pwndbg.aglib.kernel.arch_paginginfo().paging_level
-    base = pwndbg.aglib.kernel.arch_paginginfo().physmap
-    if entry is None:
-        entry = pwndbg.aglib.regs["cr3"]
-    else:
-        entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
-    if entry > base:
-        # user inputted a physmap address as pointer to pgd
-        entry -= base
-    result: List[Tuple[int | None, int | None]] = [(None, None)] * (level + 1)
-    for i in range(level, 0, -1):
-        vaddr = (entry & ENTRYMASK) + base
-        if entry & (1 << 7) > 0:
-            break
-        shift = (i - 1) * 9 + 12
-        offset = target & ((1 << shift) - 1)
-        idx = (target & (0x1FF << shift)) >> shift
-        entry = 0
-        try:
-            table = pwndbg.aglib.memory.get_typed_pointer("unsigned long", vaddr)
-            entry = int(table[idx])
-        except Exception as e:
-            print(M.warn(f"Exception while page walking: {e}"))
-            entry = 0
-        if entry == 0:
-            return result
-        result[i] = (entry, vaddr)
-    result[0] = (entry, (entry & ENTRYMASK) + base + offset)
-    return result

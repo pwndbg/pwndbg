@@ -26,15 +26,6 @@ def print_pagetable_entry(name: str, paddr: int | None, vaddr: int):
     print(f"{C.blue(name)} @ {C.yellow(hex(vaddr))} {flags}")
 
 
-def pg_indices(vaddr, nr_level):
-    result = [vaddr & (0x1000 - 1)]
-    vaddr >>= 12
-    for _ in range(nr_level):
-        result.append(vaddr & (0x1FF))
-        vaddr >>= 9
-    return result
-
-
 def page_type(page):
     page_type_val = pwndbg.aglib.memory.s32(page + 0x30)
     if page_type_val == -1:
@@ -71,26 +62,8 @@ def page_info(page):
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
 def pagewalk(vaddr, entry=None):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    # https://blog.zolutal.io/understanding-paging/
-    level = pwndbg.aglib.kernel.arch_paginginfo().paging_level
-    names = (
-        "Page",
-        "PT",
-        "PMD",
-        "PUD",
-        "PGD",
-    )
-    if level == 5:
-        names = (
-            "Page",
-            "PT",
-            "PMD",
-            "P4D",
-            "PUD",
-            "PGD",
-        )
-    entries = pwndbg.aglib.kernel.paging.pagewalk(vaddr, entry)
-    for i in range(level, 0, -1):
+    names, entries = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
+    for i in range(len(names) - 1, 0, -1):
         entry, vaddr = entries[i]
         if entry is None:
             break
