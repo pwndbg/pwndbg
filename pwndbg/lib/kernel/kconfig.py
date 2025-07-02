@@ -143,3 +143,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_SMP(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("pcpu_get_vm_areas") is not None
+
+    def update_with_file(self, file_path):
+        for line in open(file_path, "r").read().splitlines():
+            split = line.split("=")
+            if len(line) == 0 or line.startswith("#") or len(split) != 2:
+                continue
+            self.data[split[0]] = split[1]

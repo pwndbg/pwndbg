@@ -74,7 +74,7 @@
 -  [kbase](kernel/kbase.md) - Finds the kernel virtual base address.
 -  [kchecksec](kernel/kchecksec.md) - Checks for kernel hardening configuration options.
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
--  [kconfig](kernel/kconfig.md) - Outputs the kernel config (requires CONFIG_IKCONFIG).
+-  [kconfig](kernel/kconfig.md) - Outputs the kernel config.
 -  [kdmesg](kernel/kdmesg.md) - Displays the kernel ring buffer (dmesg) contents.
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
 -  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
