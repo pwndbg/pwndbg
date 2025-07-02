@@ -841,6 +841,28 @@ class Meta:
         """
         return not self.is_donated and not self.is_mmaped
 
+    def parent_group(self) -> int:
+        """
+        If this group is nested, returns the address of the group which
+        contains the slot in which this group is in. Otherwise, returns -1.
+        """
+        if not self.is_nested:
+            return -1
+
+        return Slot(Group(self.mem).addr).group.addr
+
+    def root_group(self) -> Group:
+        """
+        Returns the topmost/biggest parent group. It will never be a nested
+        group. If this group isn't nested, this group is returned.
+        """
+        cur: Group = Group(self.mem)
+
+        while cur.meta.is_nested:
+            cur = Slot(cur.addr).group
+
+        return cur
+
     def slotstate_at_index(self, idx: int) -> SlotState:
         me = 1 << idx
         if self.freed_mask & me:
@@ -1267,8 +1289,8 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         If `metadata` is True, then we check [start - IB, end) for
         containment.
 
-        If `shallow` is True, return the first slot hit without trying
-        to look for nested groups.
+        If `shallow` is True, return the biggest slot which contains this
+        address. The group that owns this slot will not be a nested group.
 
         Returns (None, None) if nothing is found.
         """
@@ -1331,10 +1353,31 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # Contains extra information.
         hit_grouped_slot: Optional[GroupedSlot] = None
 
+        if shallow:
+            backup_addr = hit_group.addr
+            try:
+                # Go up instead of recursing.
+                hit_group = hit_group.meta.root_group()
+                slot_idx = (
+                    address - (hit_group.storage - metadata_offset)
+                ) // hit_group.meta.stride
+                hit_grouped_slot = GroupedSlot(hit_group, slot_idx)
+                hit_slot = Slot.from_start(hit_grouped_slot.start)
+                return hit_grouped_slot, hit_slot
+            except pwndbg.dbg_mod.Error as e:
+                print(
+                    message.error(
+                        "Mallocng.containing: Failed reading memory while traversing"
+                        f" parent groups to satisfy shallow=True.\n{e}.\n"
+                        f"The initial match was for group @ {backup_addr}.\n"
+                    )
+                )
+                return (None, None)
+
         try:
             # Recursively go into deeper nested groups until we find a slot
-            # which doesn't house a group. Don't recurse after first hit if shallow = True.
-            while hit_slot is None or (not shallow and hit_slot.contains_group()):
+            # which doesn't house a group.
+            while hit_slot is None or hit_slot.contains_group():
                 valid_start = hit_group.storage - metadata_offset
 
                 if address < valid_start:
@@ -1343,13 +1386,12 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     if hit_slot is not None:
                         # If we are already in some slot, just return
                         # that slot since we can't look any deeper.
-                        return hit_grouped_slot, hit_slot
-                    else:
-                        # We are in no slot i.e. we are in the header of a
-                        # top level group (either mmap()ed or donated).
-                        # We could return *some* information to the callee
-                        # but alas, let's be technically correct.
-                        return (None, None)
+                        break
+                    # We are in no slot i.e. we are in the header of a
+                    # top level group (either mmap()ed or donated).
+                    # We could return *some* information to the callee
+                    # but alas, let's be technically correct.
+                    return (None, None)
 
                 # Calculate the correct inner slot.
                 slot_idx = (address - valid_start) // hit_group.meta.stride
@@ -1360,13 +1402,10 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 # If the slot is not allocated, we know that we for sure can't
                 # recurse deeper.
                 if hit_grouped_slot.slot_state != SlotState.ALLOCATED:
-                    return hit_grouped_slot, hit_slot
+                    break
 
                 # Maybe there is a group inside this slot!
                 hit_group = Group(hit_slot.p)
-
-            # FIXME: Actually if shallow=True it would make more sense
-            # to traverse upwards.
 
             return hit_grouped_slot, hit_slot
 

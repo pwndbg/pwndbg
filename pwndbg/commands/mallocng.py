@@ -337,7 +337,8 @@ def dump_meta(meta: mallocng.Meta) -> str:
         assert meta.is_nested
         output += C.bold("\nGroup nested in slot of another group")
         try:
-            parent_group = mallocng.Slot(mallocng.Group(meta.mem).addr).group.addr
+            parent_group = meta.parent_group()
+            assert parent_group != -1
             output += " (" + C.memory.get(parent_group) + ")"
         except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Could not fetch parent group: {e}"))
@@ -919,7 +920,10 @@ parser.add_argument(
     "-s",
     "--shallow",
     action="store_true",
-    help="Return the outermost slot hit without going deeper even if this slot contains a group.",
+    help=(
+        "Return the biggest slot which contains this address, don't recurse for smaller slots. The group "
+        " which owns this slot will not be a nested group."
+    ),
 )
 
 
