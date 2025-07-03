@@ -218,7 +218,7 @@ def test_aarch64_conditional_jump_output(qemu_assembly_run):
         "    ↓\n"
         "   0x1010140 <C>         ✔ tbnz   w2, #3, D                   <D>\n"
         "    ↓\n"
-        "   0x1010148 <D>           cmp    x2, x3       0xa - 0x0     CPSR => 0x20000000 [ n z C v q pan il d a i f el:0 sp ]\n"
+        "   0x1010148 <D>           cmp    x2, x3       0xa - 0x0     CPSR => 0x20000000 [ n z C v q pan il d a i f el sp ]\n"
         "   0x101014c <D+4>       ✘ b.eq   E                           <E>\n"
         " \n"
         "   0x1010150 <D+8>         nop    \n"
@@ -510,7 +510,7 @@ def test_aarch64_write_cpsr_when_zero(qemu_assembly_run):
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
         "   0x1010120 <_start>      mov    x19, #8     X19 => 8\n"
-        "   0x1010124 <_start+4>    cmn    x19, #8     8 + 8     CPSR => 0x0 [ n z c v q pan il d a i f el:0 sp ]\n"
+        "   0x1010124 <_start+4>    cmn    x19, #8     8 + 8     CPSR => 0x0 [ n z c v q pan il d a i f el sp ]\n"
         " ► 0x1010128 <_start+8>  ✔ b.ne   exit                        <exit>\n"
         "    ↓\n"
         "   0x1010140 <exit>        mov    x0, #0            X0 => 0\n"
@@ -735,7 +735,7 @@ def test_aarch64_reference(qemu_start_binary):
     gdb.execute("auxv", to_string=True)
     assert (
         gdb.execute("cpsr", to_string=True, from_tty=False).strip()
-        == "cpsr 0x0 [ n z c v q pan il d a i f el:0 sp ]"
+        == "cpsr 0x0 [ n z c v q pan il d a i f el sp ]"
     )
     gdb.execute("context", to_string=True)
     gdb.execute("hexdump", to_string=True)

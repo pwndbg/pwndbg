@@ -311,8 +311,11 @@ def test_command_paging():
     if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"
         buddy = int(matches[-1], 16)
         test_command_paging_helper("buddy", buddy)
-    res = gdb.execute("slab info -v -p kmalloc-32", to_string=True)
-    matches = get_slab_freelist_elements(res)
-    if len(matches) > 0:
-        slab = int(matches[-1].split()[-1], 16)
-        test_command_paging_helper("slab", slab)
+    if pwndbg.aglib.kernel.krelease() >= (6, 11):
+        # the slab marker is only added after v6.11
+        res = gdb.execute("slab info -v -p kmalloc-32", to_string=True)
+        matches = get_slab_freelist_elements(res)
+        if len(matches) > 0:
+            slab = int(matches[-1].split()[-1], 16)
+            test_command_paging_helper("slab", slab)
+        res = gdb.execute(f"pagewalk {kbase}")
