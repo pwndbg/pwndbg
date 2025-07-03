@@ -509,6 +509,23 @@ class Aarch64PagingInfo(ArchPagingInfo):
             if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
                 page.objfile = "kernel [stack]"
 
+    @property
+    @pwndbg.lib.cache.cache_until("start")
+    def kernel_phys_start(self):
+        found_system = False
+        try:
+            for line in pwndbg.dbg.selected_inferior().send_monitor("info mtree -f").splitlines():
+                line = line.strip()
+                if "Root memory region: system" in line:
+                    found_system = True
+                if found_system:
+                    split = line.split("-")
+                    if "ram" in line and len(split) > 1:
+                        return int(split[0], 16)
+        except Exception:
+            pass
+        return 0x40000000  # default
+
     def pagewalk(
         self, target, entry
     ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
@@ -519,7 +536,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             else:
                 entry = pwndbg.aglib.regs.TTBR0_EL1
         self.entry = entry
-        return names, self.pagewalk_helper(target, entry, 0x40000000)
+        return names, self.pagewalk_helper(target, entry, self.kernel_phys_start)
 
     def pageentry_flags(self, is_last) -> BitFlags:
         if is_last:
