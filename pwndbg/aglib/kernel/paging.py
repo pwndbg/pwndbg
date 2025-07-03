@@ -515,9 +515,9 @@ class Aarch64PagingInfo(ArchPagingInfo):
         names = tuple(["Page", "L3", "L2", "L1", "L0"][: self.paging_level + 1])
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
-                entry = pwndbg.aglib.regs["ttbr1_el1"]
+                entry = pwndbg.aglib.regs.TTBR1_EL1
             else:
-                entry = pwndbg.aglib.regs["ttbr0_el1"]
+                entry = pwndbg.aglib.regs.TTBR0_EL1
         self.entry = entry
         return names, self.pagewalk_helper(target, entry, 0x40000000)
 

@@ -609,6 +609,8 @@ aarch64 = RegisterSet(
         "spsr_el2": aarch64_cpsr_flags,
         "spsr_el3": aarch64_cpsr_flags,
         "tcr_el1": aarch64_tcr_flags,
+        "ttbr0_el1": BitFlags(),
+        "ttbr1_el1": BitFlags(),
     },
     # X29 is the frame pointer register (FP) but setting it
     # as frame here messes up the register order to the point

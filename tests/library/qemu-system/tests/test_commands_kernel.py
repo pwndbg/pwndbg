@@ -246,7 +246,7 @@ def test_command_pagewalk():
         name in res
         for name in (
             "PMD",  # Page Size is only set for PMDe or PTe
-            "l1",
+            "L1",
             "L3",
         )
     )
@@ -261,9 +261,9 @@ def test_command_pagewalk():
     pgd_ptr = "$cr3"
     if pwndbg.aglib.arch.name == "aarch64":
         if pwndbg.aglib.memory.is_kernel(address):
-            pgd_ptr = pwndbg.aglib.regs["ttbr1_el1"]
+            pgd_ptr = pwndbg.aglib.regs.TTBR1_EL1
         else:
-            pgd_ptr = pwndbg.aglib.regs["ttbr0_el1"]
+            pgd_ptr = pwndbg.aglib.regs.TTBR0_EL1
     res2 = gdb.execute(f"pagewalk {hex(address)} --pgd {pgd_ptr}", to_string=True).splitlines()[-1]
     assert res == res2
     # test non nonexistent address
