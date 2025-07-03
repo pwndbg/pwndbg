@@ -236,18 +236,20 @@ def test_command_buddydump():
     assert "free_area" not in filter_res
 
 
-@pytest.mark.skipif(
-    pwndbg.aglib.arch.name not in ["i386", "x86-64"],
-    reason="pagewalk is only fully implemented for x86 (partially relies on cr3)",
-)
 def test_command_pagewalk():
     address = pwndbg.aglib.kernel.kbase()
     if address is None:
-        # no kbase? fine
         pages = pwndbg.aglib.vmmap.get()
         address = pages[0].start
     res = gdb.execute(f"pagewalk {hex(address)}", to_string=True)
-    assert "PMD" in res  # Page Size is only set for PMDe or PTe
+    assert any(
+        name in res
+        for name in (
+            "PMD",  # Page Size is only set for PMDe or PTe
+            "l1",
+            "L3",
+        )
+    )
     res = res.splitlines()[-1]
     match = re.findall(r"0x[0-9a-fA-F]{16}", res)[0]
     physmap_addr = int(match, 16)
@@ -256,7 +258,13 @@ def test_command_pagewalk():
     actual = pwndbg.aglib.memory.read(physmap_addr, 0x100)
     assert all(expected[i] == actual[i] for i in range(0x100))
     # make sure that when using cr3 for pgd, it still works
-    res2 = gdb.execute(f"pagewalk {hex(address)} --pgd $cr3", to_string=True).splitlines()[-1]
+    pgd_ptr = "$cr3"
+    if pwndbg.aglib.arch.name == "aarch64":
+        if pwndbg.aglib.memory.is_kernel(address):
+            pgd_ptr = pwndbg.aglib.regs["ttbr1_el1"]
+        else:
+            pgd_ptr = pwndbg.aglib.regs["ttbr0_el1"]
+    res2 = gdb.execute(f"pagewalk {hex(address)} --pgd {pgd_ptr}", to_string=True).splitlines()[-1]
     assert res == res2
     # test non nonexistent address
     res = gdb.execute("pagewalk 0", to_string=True)

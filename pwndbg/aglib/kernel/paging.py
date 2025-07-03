@@ -528,4 +528,4 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     def should_stop_pagewalk(self, entry):
         # self.entry is set because the call chain
-        return (entry & 1 == 0) or ((entry & 3 == 1) and entry != self.entry)
+        return ((entry & 1 == 0) or (entry & 3 == 1)) and entry != self.entry
