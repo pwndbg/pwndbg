@@ -49,8 +49,13 @@ def page_type(page):
 
 
 def page_info(page):
-    refcount = pwndbg.aglib.memory.u32(page + 0x34)
-    print(f"{C.green('page')} @ {C.yellow(hex(page))} [{page_type(page)}, refcount: {refcount}]")
+    try:
+        refcount = pwndbg.aglib.memory.u32(page + 0x34)
+        print(
+            f"{C.green('page')} @ {C.yellow(hex(page))} [{page_type(page)}, refcount: {refcount}]"
+        )
+    except Exception:
+        print(M.warn("invalid page address"))
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
@@ -103,7 +108,7 @@ def p2v(paddr):
 
 
 v2p_parser = argparse.ArgumentParser(
-    description="Translate virtual address to its corresponding physical address."
+    description="Translate virtual address to its corresponding physmap address."
 )
 v2p_parser.add_argument("vaddr", type=str, help="")
 
@@ -115,9 +120,12 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def v2p(vaddr):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    paddr = pwndbg.aglib.kernel.virt_to_phys(vaddr)
-    paging_print_helper("Physical address", paddr)
-    page = pwndbg.aglib.kernel.virt_to_page(vaddr)
+    entry, paddr = pwndbg.aglib.kernel.pagewalk(vaddr)[1][0]  # more accurate
+    if not entry:
+        print(M.warn("virtual to page failed"))
+    paging_print_helper("Physmap address", paddr)
+    # paddr is the physmap address which is a virtual address
+    page = pwndbg.aglib.kernel.virt_to_page(paddr)
     page_info(page)
 
 
@@ -132,7 +140,7 @@ page_parser.add_argument("page", type=str, help="")
 @pwndbg.commands.OnlyWithKernelDebugSyms
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
-def page(page):
+def pageinfo(page):
     page = int(pwndbg.dbg.selected_frame().evaluate_expression(page))
     vaddr = pwndbg.aglib.kernel.page_to_virt(page)
     paging_print_helper("Virtual address", vaddr)

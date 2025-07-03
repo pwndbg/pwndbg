@@ -6,7 +6,7 @@ usage: v2p [-h] vaddr
 
 ```
 
-Translate virtual address to its corresponding physical address.
+Translate virtual address to its corresponding physmap address.
 ### Positional arguments
 
 |Positional Argument|Help|
