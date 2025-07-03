@@ -9,8 +9,8 @@ import pwndbg.aglib.vmmap_custom
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+from pwndbg.lib.regs import BitFlags
 
-ENTRYMASK = ~((1 << 12) - 1) & ((1 << 51) - 1)
 # don't return None but rather an invalid value for address markers
 # this way arithmetic ops do not panic if physmap is not found
 INVALID_ADDR = 1 << 64
@@ -46,6 +46,7 @@ class ArchPagingInfo:
     vmemmap: int
     kbase: int
     addr_marker_sz: int
+    va_bits: int
 
     @property
     @pwndbg.lib.cache.cache_until("start")
@@ -94,12 +95,52 @@ class ArchPagingInfo:
         return None
 
     def pagewalk(
-        self, arget, entry=None
+        self, target, entry
     ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
+        raise NotImplementedError()
+
+    def pagewalk_helper(
+        self, target, entry, kernel_phys_base=0
+    ) -> List[Tuple[int | None, int | None]]:
+        base = self.physmap
+        if entry > base:
+            # user inputted a physmap address as pointer to pgd
+            entry -= base
+        level = self.paging_level
+        result: List[Tuple[int | None, int | None]] = [(None, None)] * (level + 1)
+        page_shift = self.page_shift
+        ENTRYMASK = ~((1 << page_shift) - 1) & ((1 << self.va_bits) - 1)
+        for i in range(level, 0, -1):
+            vaddr = (entry & ENTRYMASK) + base - kernel_phys_base
+            if self.should_stop_pagewalk(entry):
+                break
+            shift = (i - 1) * (page_shift - 3) + page_shift
+            offset = target & ((1 << shift) - 1)
+            idx = (target & (0x1FF << shift)) >> shift
+            entry = 0
+            try:
+                table = pwndbg.aglib.memory.get_typed_pointer("unsigned long", vaddr)
+                entry = int(table[idx])
+            except Exception as e:
+                print(M.warn(f"Exception while page walking: {e}"))
+                entry = 0
+            if entry == 0:
+                return result
+            result[i] = (entry, vaddr)
+        result[0] = (entry, (entry & ENTRYMASK) + base + offset - kernel_phys_base)
+        return result
+
+    def pageentry_flags(self, level) -> BitFlags:
+        raise NotImplementedError()
+
+    def should_stop_pagewalk(self, is_last):
         raise NotImplementedError()
 
 
 class x86_64PagingInfo(ArchPagingInfo):
+    def __init__(self):
+        self.va_bits = 51  # TODO
+
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def physmap(self):
@@ -228,7 +269,7 @@ class x86_64PagingInfo(ArchPagingInfo):
                 page.objfile = "kernel [stack]"
 
     def pagewalk(
-        self, target, entry=None
+        self, target, entry
     ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
         # https://blog.zolutal.io/understanding-paging/
         names = (
@@ -247,35 +288,15 @@ class x86_64PagingInfo(ArchPagingInfo):
                 "PUD",
                 "PGD",
             )
-        level = pwndbg.aglib.kernel.arch_paginginfo().paging_level
-        base = pwndbg.aglib.kernel.arch_paginginfo().physmap
         if entry is None:
             entry = pwndbg.aglib.regs["cr3"]
-        else:
-            entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
-        if entry > base:
-            # user inputted a physmap address as pointer to pgd
-            entry -= base
-        result: List[Tuple[int | None, int | None]] = [(None, None)] * (level + 1)
-        for i in range(level, 0, -1):
-            vaddr = (entry & ENTRYMASK) + base
-            if entry & (1 << 7) > 0:
-                break
-            shift = (i - 1) * 9 + 12
-            offset = target & ((1 << shift) - 1)
-            idx = (target & (0x1FF << shift)) >> shift
-            entry = 0
-            try:
-                table = pwndbg.aglib.memory.get_typed_pointer("unsigned long", vaddr)
-                entry = int(table[idx])
-            except Exception as e:
-                print(M.warn(f"Exception while page walking: {e}"))
-                entry = 0
-            if entry == 0:
-                return names, result
-            result[i] = (entry, vaddr)
-        result[0] = (entry, (entry & ENTRYMASK) + base + offset)
-        return names, result
+        return names, self.pagewalk_helper(target, entry)
+
+    def pageentry_flags(self, is_last) -> BitFlags:
+        return BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("U", 2), ("W", 1), ("P", 0)])
+
+    def should_stop_pagewalk(self, entry):
+        return entry & (1 << 7) > 0
 
 
 class Aarch64PagingInfo(ArchPagingInfo):
@@ -391,13 +412,33 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift(self) -> int:
-        # TODO: this might be arm version dependent
-        if self.tcr_el1["TG1"] == 1:
+        if self.tcr_el1["TG1"] == 0b01:
             return 14
-        elif self.tcr_el1["TG1"] == 0:
+        elif self.tcr_el1["TG1"] == 0b10:
             return 12
-        else:
+        elif self.tcr_el1["TG1"] == 0b11:
             return 16
+        raise NotImplementedError()
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def page_shift_user(self) -> int:
+        if self.tcr_el1["TG0"] == 0b00:
+            return 12
+        elif self.tcr_el1["TG0"] == 0b01:
+            return 16
+        elif self.tcr_el1["TG0"] == 0b10:
+            return 14
+        raise NotImplementedError()
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def paging_level(self):
+        # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
+        if self.page_shift == 16:
+            return 2
+        # in some cases, not all addressing bits are used
+        return (self.va_bits - self.page_shift + (self.page_shift - 4)) // (self.page_shift - 3)
 
     @pwndbg.lib.cache.cache_until("stop")
     def markers(self) -> Tuple[Tuple[str, int], ...]:
@@ -467,3 +508,24 @@ class Aarch64PagingInfo(ArchPagingInfo):
                     page.objfile = self.KERNELRO
             if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
                 page.objfile = "kernel [stack]"
+
+    def pagewalk(
+        self, target, entry
+    ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
+        names = tuple(["Page", "L3", "L2", "L1", "L0"][: self.paging_level + 1])
+        if entry is None:
+            if pwndbg.aglib.memory.is_kernel(target):
+                entry = pwndbg.aglib.regs["ttbr1_el1"]
+            else:
+                entry = pwndbg.aglib.regs["ttbr0_el1"]
+        self.entry = entry
+        return names, self.pagewalk_helper(target, entry, 0x40000000)
+
+    def pageentry_flags(self, is_last) -> BitFlags:
+        if is_last:
+            return BitFlags([("UNX", 54), ("PNX", 53), ("AP", (6, 7))])
+        return BitFlags([("UNX", 60), ("PNX", 59), ("AP", (6, 7))])
+
+    def should_stop_pagewalk(self, entry):
+        # self.entry is set because the call chain
+        return (entry & 1 == 0) or ((entry & 3 == 1) and entry != self.entry)

@@ -8,17 +8,14 @@ import pwndbg.aglib.regs
 import pwndbg.color as C
 import pwndbg.color.message as M
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.regs import BitFlags
 
 parser = argparse.ArgumentParser(description="Performs pagewalk.")
 parser.add_argument("vaddr", type=str, help="virtual address to walk")
 parser.add_argument("--pgd", dest="entry", type=str, default=None, help="")
 
 
-pageflags = BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("W", 1), ("P", 0)])
-
-
-def print_pagetable_entry(name: str, paddr: int | None, vaddr: int):
+def print_pagetable_entry(name: str, paddr: int | None, vaddr: int, level: int, is_last: bool):
+    pageflags = pwndbg.aglib.kernel.arch_paginginfo().pageentry_flags(is_last)
     flags = ""
     arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
     if paddr is not None:
@@ -59,15 +56,21 @@ def page_info(page):
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.aglib.proc.OnlyWithArch(["x86-64"])
+@pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def pagewalk(vaddr, entry=None):
+    if entry is not None:
+        entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     names, entries = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
     for i in range(len(names) - 1, 0, -1):
         entry, vaddr = entries[i]
+        (
+            next,
+            _,
+        ) = entries[i - 1]
         if entry is None:
             break
-        print_pagetable_entry(names[i], entry, vaddr)
+        print_pagetable_entry(names[i], entry, vaddr, i, next is None or i == 1)
     _, vaddr = entries[0]
     if vaddr is None:
         print(M.warn("address is not mapped"))
