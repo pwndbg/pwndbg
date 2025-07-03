@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from typing import Dict
 from typing import List
 from typing import Tuple
 
@@ -47,6 +48,8 @@ class ArchPagingInfo:
     kbase: int
     addr_marker_sz: int
     va_bits: int
+    pagetable_cache: Dict[pwndbg.dbg_mod.Value, Dict[int, int]] = {}
+    pagetableptr_cache: Dict[int, pwndbg.dbg_mod.Value] = {}
 
     @property
     @pwndbg.lib.cache.cache_until("start")
@@ -119,8 +122,22 @@ class ArchPagingInfo:
             idx = (target & (0x1FF << shift)) >> shift
             entry = 0
             try:
-                table = pwndbg.aglib.memory.get_typed_pointer("unsigned long", vaddr)
-                entry = int(table[idx])
+                # with this optimization, roughly x2 as fast on average
+                # especially useful when parsing a large number of pages, e.g. set kernel-vmmap monitor
+                if vaddr not in self.pagetableptr_cache:
+                    self.pagetableptr_cache[vaddr] = pwndbg.aglib.memory.get_typed_pointer(
+                        "unsigned long", vaddr
+                    )
+                table = self.pagetableptr_cache[vaddr]
+                if table not in self.pagetable_cache:
+                    self.pagetable_cache[table] = {}
+                table_cache = self.pagetable_cache[table]
+                if idx not in table_cache:
+                    table_cache[idx] = int(table[idx])
+                entry = table_cache[idx]
+                # Prior to optimization:
+                # table = pwndbg.aglib.memory.get_typed_pointer("unsigned long", vaddr)
+                # entry = int(table[idx])
             except Exception as e:
                 print(M.warn(f"Exception while page walking: {e}"))
                 entry = 0
