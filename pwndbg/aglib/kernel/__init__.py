@@ -119,11 +119,11 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
         config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
     else:
         mapping = get_first_kernel_ro()
-        results = list(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]))
+        result = next(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]), None)
 
-        if len(results) != 0:
-            config_start = results[0] + len("IKCFG_ST")
-            config_end = list(pwndbg.search.search(b"IKCFG_ED", start=config_start))[0]
+        if result is not None:
+            config_start = result + len("IKCFG_ST")
+            config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
     if config_start is None or config_end is None:
         _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
         return _kconfig

@@ -147,6 +147,6 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     def update_with_file(self, file_path):
         for line in open(file_path, "r").read().splitlines():
             split = line.split("=")
-            if len(line) == 0 or line.startswith("#") or len(split) != 2:
+            if len(line) == 0 or line[0] == "#" or len(split) != 2:
                 continue
             self.data[split[0]] = split[1]
