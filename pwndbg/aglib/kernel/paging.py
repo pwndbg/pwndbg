@@ -156,7 +156,26 @@ class ArchPagingInfo:
 
 class x86_64PagingInfo(ArchPagingInfo):
     def __init__(self):
-        self.va_bits = 51  # TODO
+        self.va_bits = 51 if self.paging_level == 5 else 48
+        # https://blog.zolutal.io/understanding-paging/
+        self.pagetable_level_names = (
+            (
+                "Page",
+                "PT",
+                "PMD",
+                "PUD",
+                "PGD",
+            )
+            if self.paging_level == 4
+            else (
+                "Page",
+                "PT",
+                "PMD",
+                "P4D",
+                "PUD",
+                "PGD",
+            )
+        )
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -288,26 +307,9 @@ class x86_64PagingInfo(ArchPagingInfo):
     def pagewalk(
         self, target, entry
     ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
-        # https://blog.zolutal.io/understanding-paging/
-        names = (
-            "Page",
-            "PT",
-            "PMD",
-            "PUD",
-            "PGD",
-        )
-        if self.paging_level == 5:
-            names = (
-                "Page",
-                "PT",
-                "PMD",
-                "P4D",
-                "PUD",
-                "PGD",
-            )
         if entry is None:
             entry = pwndbg.aglib.regs["cr3"]
-        return names, self.pagewalk_helper(target, entry)
+        return self.pagetable_level_names, self.pagewalk_helper(target, entry)
 
     def pageentry_flags(self, is_last) -> BitFlags:
         return BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("U", 2), ("W", 1), ("P", 0)])
@@ -329,6 +331,13 @@ class Aarch64PagingInfo(ArchPagingInfo):
         self.vmalloc = module_start_wo_kaslr + 0x80000000
         shift = self.page_shift - self.STRUCT_PAGE_SHIFT
         self.VMEMMAP_SIZE = (module_start_wo_kaslr - ((-1 << self.va_bits) + 2**64)) >> shift
+        self.pagetable_level_names = (
+            "Page",
+            "L3",
+            "L2",
+            "L1",
+            "L0",
+        )
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -546,7 +555,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def pagewalk(
         self, target, entry
     ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
-        names = tuple(["Page", "L3", "L2", "L1", "L0"][: self.paging_level + 1])
+        names = tuple(self.pagetable_level_names[: self.paging_level + 1])
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
                 entry = pwndbg.aglib.regs.TTBR1_EL1
@@ -562,4 +571,4 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     def should_stop_pagewalk(self, entry):
         # self.entry is set because the call chain
-        return ((entry & 1 == 0) or (entry & 3 == 1)) and entry != self.entry
+        return (((entry & 1) == 0) or ((entry & 3) == 1)) and entry != self.entry

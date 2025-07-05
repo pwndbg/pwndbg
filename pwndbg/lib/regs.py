@@ -46,7 +46,7 @@ class BitFlags:
         if isinstance(r, int):
             return (self.value >> r) & 1
         s, e = r
-        return ((~((1 << s) - 1) & ((1 << e + 1) - 1)) & self.value) >> s
+        return ((~((1 << s) - 1) & ((1 << (e + 1)) - 1)) & self.value) >> s
 
     def __setitem__(self, key, value):
         self.flags[key] = value

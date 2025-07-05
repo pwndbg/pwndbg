@@ -13,6 +13,17 @@ parser = argparse.ArgumentParser(description="Performs pagewalk.")
 parser.add_argument("vaddr", type=str, help="virtual address to walk")
 parser.add_argument("--pgd", dest="entry", type=str, default=None, help="")
 
+PAGETYPES = (
+    "buddy",
+    "offline",
+    "table",
+    "guard",
+    "hugetlb",
+    "slab",
+    "zsmalloc",
+    "unaccepted",
+)
+
 
 def print_pagetable_entry(name: str, paddr: int | None, vaddr: int, level: int, is_last: bool):
     pageflags = pwndbg.aglib.kernel.arch_paginginfo().pageentry_flags(is_last)
@@ -24,13 +35,13 @@ def print_pagetable_entry(name: str, paddr: int | None, vaddr: int, level: int, 
 
 
 def page_type(page):
+    names = PAGETYPES
     page_type_val = pwndbg.aglib.memory.s32(page + 0x30)
     if page_type_val == -1:
         return "initialized"
     if page_type_val >= 0:
         return f"mapcount: {page_type_val}"
     page_type_val = pwndbg.aglib.memory.u32(page + 0x30)
-    names = ["buddy", "offline", "table", "guard", "hugetlb", "slab", "zsmalloc", "unaccepted"]
     if pwndbg.aglib.kernel.krelease() >= (6, 12):
         idx = (page_type_val >> 24) - 0xF0
         if idx < len(names):
@@ -54,7 +65,7 @@ def page_info(page):
         print(
             f"{C.green('page')} @ {C.yellow(hex(page))} [{page_type(page)}, refcount: {refcount}]"
         )
-    except Exception:
+    except (ValueError, TypeError):
         print(M.warn("invalid page address"))
 
 
