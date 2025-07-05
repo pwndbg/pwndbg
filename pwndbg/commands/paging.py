@@ -80,10 +80,7 @@ def pagewalk(vaddr, entry=None):
     names, entries = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
     for i in range(len(names) - 1, 0, -1):
         entry, vaddr = entries[i]
-        (
-            next,
-            _,
-        ) = entries[i - 1]
+        next, _ = entries[i - 1]
         if entry is None:
             break
         print_pagetable_entry(names[i], entry, vaddr, i, next is None or i == 1)

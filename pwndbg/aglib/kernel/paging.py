@@ -156,7 +156,7 @@ class ArchPagingInfo:
 
 class x86_64PagingInfo(ArchPagingInfo):
     def __init__(self):
-        self.va_bits = 51 if self.paging_level == 5 else 48
+        self.va_bits = 48 if self.paging_level == 4 else 51
         # https://blog.zolutal.io/understanding-paging/
         self.pagetable_level_names = (
             (
@@ -331,13 +331,29 @@ class Aarch64PagingInfo(ArchPagingInfo):
         self.vmalloc = module_start_wo_kaslr + 0x80000000
         shift = self.page_shift - self.STRUCT_PAGE_SHIFT
         self.VMEMMAP_SIZE = (module_start_wo_kaslr - ((-1 << self.va_bits) + 2**64)) >> shift
-        self.pagetable_level_names = (
-            "Page",
-            "L3",
-            "L2",
-            "L1",
-            "L0",
-        )
+        # correct for linux
+        if self.paging_level == 4:
+            self.pagetable_level_names = (
+                "Page",
+                "L3",
+                "L2",
+                "L1",
+                "L0",
+            )
+        elif self.paging_level == 3:
+            self.pagetable_level_names = (
+                "Page",
+                "L3",
+                "L2",
+                "L1",
+            )
+
+        elif self.paging_level == 2:
+            self.pagetable_level_names = (
+                "Page",
+                "L3",
+                "L2",
+            )
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -555,14 +571,15 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def pagewalk(
         self, target, entry
     ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
-        names = tuple(self.pagetable_level_names[: self.paging_level + 1])
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
                 entry = pwndbg.aglib.regs.TTBR1_EL1
             else:
                 entry = pwndbg.aglib.regs.TTBR0_EL1
         self.entry = entry
-        return names, self.pagewalk_helper(target, entry, self.kernel_phys_start)
+        return self.pagetable_level_names, self.pagewalk_helper(
+            target, entry, self.kernel_phys_start
+        )
 
     def pageentry_flags(self, is_last) -> BitFlags:
         if is_last:
