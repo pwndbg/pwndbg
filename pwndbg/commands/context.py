@@ -986,7 +986,6 @@ class RegisterContext:
         prefix = self.get_prefix(reg)
         desc = hex(val)
         if pwndbg.aglib.kernel.has_debug_symbols():
-            # TODO: phys_to_virt is bugged when kaslr is enabled, ptrace_scope is enabled, or if symbols are not present
             try:
                 virtual = pwndbg.aglib.kernel.phys_to_virt(val)
                 desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
@@ -998,6 +997,7 @@ class RegisterContext:
         val = self.get_register_value(reg)
         if val is None:
             return None
+        desc = ""
         desc = pwndbg.chain.format(val)
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"

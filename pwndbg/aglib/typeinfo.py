@@ -18,6 +18,7 @@ long: pwndbg.dbg_mod.Type
 uchar: pwndbg.dbg_mod.Type
 ushort: pwndbg.dbg_mod.Type
 uint: pwndbg.dbg_mod.Type
+sint: pwndbg.dbg_mod.Type
 void: pwndbg.dbg_mod.Type
 
 uint8: pwndbg.dbg_mod.Type
@@ -61,6 +62,9 @@ def update() -> None:
     module.uchar = lookup_types("unsigned char", "ubyte", "u8", "uint8")
     module.ushort = lookup_types("unsigned short", "ushort", "u16", "uint16", "uint16_t")
     module.uint = lookup_types("unsigned int", "uint", "u32", "uint32")
+    # Putting 'signed int' at the front is slow for kernel. Not sure how it's possible
+    # that type is missing. See PR #3115.
+    module.sint = lookup_types("int", "signed int", "signed")
     module.void = lookup_types("void", "()")
 
     module.uint8 = module.uchar

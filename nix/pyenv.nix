@@ -134,6 +134,8 @@ let
     paramiko = dummy;
     pip = dummy;
     uv = dummy;
+    gdb-for-pwndbg = dummy;
+    lldb-for-pwndbg = dummy;
 
     psutil = pkgs.callPackage (
       {
@@ -335,6 +337,9 @@ let
       [ ]
       ++ lib.optionals isLLDB [
         "lldb"
+      ]
+      ++ lib.optionals (!isLLDB) [
+        "gdb"
       ]
       ++ lib.optionals isDev [
         "dev"

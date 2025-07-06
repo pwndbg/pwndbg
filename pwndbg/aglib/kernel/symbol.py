@@ -14,14 +14,26 @@ from pwndbg.dbg import EventType
 #########################################
 
 
-@pwndbg.aglib.kernel.requires_debug_symbols(None)
-def try_symbol_u64(name: str) -> int:
-    if pwndbg.aglib.kernel.has_debug_info():
-        return pwndbg.aglib.symbol.lookup_symbol_value(name)
-    symbol = pwndbg.aglib.symbol.lookup_symbol_addr(name)
-    if symbol is None:
+# try getting value of a symbol as an unsigned integer
+def try_usymbol(name: str, size=pwndbg.aglib.kernel.ptr_size) -> int:
+    if not pwndbg.aglib.kernel.has_debug_symbols():
         return None
-    return pwndbg.aglib.memory.u64(symbol)
+    try:
+        if pwndbg.aglib.kernel.has_debug_info():
+            return pwndbg.aglib.symbol.lookup_symbol_value(name)
+        symbol = pwndbg.aglib.symbol.lookup_symbol_addr(name)
+        if symbol is None:
+            return None
+        if size == 8:
+            return pwndbg.aglib.memory.u(symbol)
+        if size == 16:
+            return pwndbg.aglib.memory.u16(symbol)
+        if size == 32:
+            return pwndbg.aglib.memory.u32(symbol)
+        return pwndbg.aglib.memory.u64(symbol)
+    except Exception:
+        # for kpti
+        return None
 
 
 # TODO: move nproc and npcplist here
@@ -49,7 +61,7 @@ def nmtypes() -> int:
 def npcplist() -> int:
     """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
     if not pwndbg.aglib.kernel.has_debug_info():
-        if pwndbg.aglib.kernel.is_earlier_than_version("5.14.0"):
+        if pwndbg.aglib.kernel.krelease() < (5, 14):
             return 3
         else:
             return 12
@@ -63,10 +75,6 @@ def npcplist() -> int:
         lists = zone["pageset"]["pcp"]["lists"]
         return lists.type.array_len
     return 0
-
-
-def is_kernel(addr):
-    return addr >> 63 == 1
 
 
 #########################################
@@ -161,17 +169,23 @@ enum pageflags {
 """
 
 
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-@pwndbg.lib.cache.cache_until("forever")  # so it only runs once
 def load_common_structs():
     if pwndbg.aglib.kernel.has_debug_info():
+        return
+    if pwndbg.aglib.typeinfo.lookup_types("struct page") is not None:
         return
     header_file_path = pwndbg.commands.cymbol.create_temp_header_file(COMMON_TYPES)
     pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "")
 
 
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
+def load_common_structs_on_load():
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        load_common_structs()
+
+
 #########################################
-# structurs relavent to buddydump
+# structurs relevant to buddydump
 #
 #########################################
 zone_names = (
@@ -194,18 +208,21 @@ MAX_ORDER = 11
 
 
 def get_pcp_struct(pcp_sz) -> str:
-    kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
+    kconfig = pwndbg.aglib.kernel.kconfig()
     defs = []
-    if not pwndbg.aglib.kernel.is_earlier_than_version("5.14.0"):
-        if pwndbg.aglib.kernel.is_earlier_than_version("6.7.0"):
+    if not pwndbg.aglib.kernel.krelease() < (5, 14):
+        if pwndbg.aglib.kernel.krelease() < (6, 7):
             defs.append("BETWEEN_V5_14_AND_V6_6")
     else:
         defs.append("BEFORE_V5_14")
-    if not pwndbg.aglib.kernel.is_earlier_than_version("6.0.0"):
+    if not pwndbg.aglib.kernel.krelease() < (6, 0):
         defs.append("SINCE_V6_0")
-    if not pwndbg.aglib.kernel.is_earlier_than_version("6.7.0"):
+    if not pwndbg.aglib.kernel.krelease() < (6, 7):
         defs.append("SINCE_V6_7")
-    for config in ("CONFIG_NUMA", "CONFIG_SMP",):
+    for config in (
+        "CONFIG_NUMA",
+        "CONFIG_SMP",
+    ):
         if config in kconfig:
             defs.append(config)
     result = "\n".join(f"#define {s}" for s in defs)
@@ -255,16 +272,16 @@ def get_pcp_struct(pcp_sz) -> str:
 def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     pcp_off, name_off, freelist_off, pcp_sz, zone_sz = None, None, None, None, None
     start_idx = 10
-    ptr = try_symbol_u64("node_data") + start_idx * 8
+    ptr = try_usymbol("node_data") + start_idx * 8
     for i in range(start_idx, 20):  # the pcp offset should exist in those range
         val = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
-        if is_kernel(val):
+        if pwndbg.aglib.memory.is_kernel(val):
             # we have found `zone_pgdat`
             pcp_off = (i + 1) * 8
             break
     assert pcp_off, "can't find pcp offset"
-    if pwndbg.aglib.kernel.is_earlier_than_version("5.14.0"):
+    if pwndbg.aglib.kernel.krelease() < (5, 14):
         pcp_ptr = pwndbg.aglib.kernel.per_cpu(
             pwndbg.aglib.memory.get_typed_pointer("struct page", pwndbg.aglib.memory.u64(ptr))
         )
@@ -296,7 +313,7 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
         cur = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
         # prev is the write cache padding followed by the freelist
-        if prev == 0 and is_kernel(cur):
+        if prev == 0 and pwndbg.aglib.memory.is_kernel(cur):
             freelist_off = (i + 1) * 8 + name_off
             break
         prev = cur
@@ -308,9 +325,9 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     for i in range(100):  # the pcp offset should exist in those range
         val = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
-        if is_kernel(val):
+        if pwndbg.aglib.memory.is_kernel(val):
             # we have found `zone_pgdat`
-            zone_sz = ptr - pcp_off - try_symbol_u64("node_data")
+            zone_sz = ptr - pcp_off - try_usymbol("node_data")
             break
     assert (
         zone_sz and zone_sz < 0x4000 and zone_sz & 0xF == 0
@@ -318,11 +335,11 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     return pcp_off, name_off, freelist_off, pcp_sz, zone_sz
 
 
-@pwndbg.lib.cache.cache_until("forever")  # so it only runs once
 @pwndbg.aglib.kernel.requires_debug_symbols()
 def load_buddydump_typeinfo():
     if pwndbg.aglib.typeinfo.lookup_types("struct pglist_data") is not None:
         return
+    load_common_structs()
 
     pglist_data = f"""
     typedef struct pglist_data {{
@@ -336,7 +353,7 @@ def load_buddydump_typeinfo():
     pcp_off, name_off, freearea_off, pcp_sz, zone_sz = find_zone_offsets()
     per_cpu_pages = get_pcp_struct(pcp_sz)
     zone = ""
-    if pwndbg.aglib.kernel.is_earlier_than_version("5.14.0"):
+    if pwndbg.aglib.kernel.krelease() < (5, 14):
         zone = "#define BEFORE_V5_14\n"
     zone += f"""
     struct zone {{
@@ -365,7 +382,7 @@ def load_buddydump_typeinfo():
 
 
 #########################################
-# structurs relavent to slab
+# structurs relevant to slab
 #
 #########################################
 
@@ -376,7 +393,7 @@ def kmem_cache_pad_sz(kconfig) -> int:
     # and the global var is also named "kmem_cache"
     name = "kmem_cache"
     name_off = None
-    kmem_cache = try_symbol_u64(name)
+    kmem_cache = try_usymbol(name)
     assert kmem_cache, "can't find kmem_cache"
     for i in range(0x20):
         val = pwndbg.aglib.memory.u64(kmem_cache + i * 8)
@@ -391,7 +408,11 @@ def kmem_cache_pad_sz(kconfig) -> int:
             nr_partial = pwndbg.aglib.memory.u64(val + 0x8)
             next = pwndbg.aglib.memory.u64(val + 0x10)
             prev = pwndbg.aglib.memory.u64(val + 0x18)
-            if nr_partial < 0x20 and is_kernel(next) and is_kernel(prev):
+            if (
+                nr_partial < 0x20
+                and pwndbg.aglib.memory.is_kernel(next)
+                and pwndbg.aglib.memory.is_kernel(prev)
+            ):
                 distance = i * 8
                 break
     assert distance, "can't find kmem_cache node"
@@ -405,16 +426,17 @@ def kmem_cache_pad_sz(kconfig) -> int:
     for config in configs:
         if config in kconfig:
             distance -= 8
-    if "CONFIG_HARDENED_USERCOPY" in kconfig or pwndbg.aglib.kernel.is_earlier_than_version("6.2.0"):
+    if "CONFIG_HARDENED_USERCOPY" in kconfig or pwndbg.aglib.kernel.krelease() < (6, 2):
         distance -= 8
+    assert distance < 0x1000, "cannot find kmem_cache padding size"
     return distance
 
 
 def kmem_cache_structs():
     to_define = None
-    if pwndbg.aglib.kernel.is_earlier_than_version("5.17.0"):
+    if pwndbg.aglib.kernel.krelease() < (5, 17):
         to_define = "BEFORE_V5_17"
-    elif pwndbg.aglib.kernel.is_earlier_than_version("6.8.0"):
+    elif pwndbg.aglib.kernel.krelease() < (6, 8):
         to_define = "BETWEEN_V5_17_AND_V6_7"
     else:
         to_define = "SINCE_V6_8"
@@ -480,26 +502,25 @@ def kmem_cache_structs():
     return result
 
 
-@pwndbg.lib.cache.cache_until("forever")  # so it only runs once
 @pwndbg.aglib.kernel.requires_debug_symbols()
 def load_slab_typeinfo():
     if pwndbg.aglib.typeinfo.lookup_types("struct kmem_cache") is not None:
         return
-    # this is the kmem_cache SLUB representation for all 5.x and 6.x
-    kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
+    load_common_structs()
+    kconfig = pwndbg.aglib.kernel.kconfig()
     defs = []
-    if pwndbg.aglib.kernel.is_earlier_than_version("6.2.0"):
+    if pwndbg.aglib.kernel.krelease() < (6, 2):
         defs.append("BEFORE_V6_2")
-    if pwndbg.aglib.kernel.is_earlier_than_version("5.19.0"):
+    if pwndbg.aglib.kernel.krelease() < (5, 19):
         defs.append("BEFORE_V5_19")
     configs = (
-        "CONFIG_SLUB_TINY", 
+        "CONFIG_SLUB_TINY",
         "CONFIG_SLUB_CPU_PARTIAL",
         "CONFIG_SLAB_FREELIST_HARDENED",
         "CONFIG_NUMA",
         "CONFIG_SLAB_FREELIST_RANDOM",
         "CONFIG_KASAN_GENERIC",
-        "CONFIG_HARDENED_USERCOPY"
+        "CONFIG_HARDENED_USERCOPY",
     )
     for config in configs:
         if config in kconfig:
@@ -508,6 +529,7 @@ def load_slab_typeinfo():
     result = "\n".join(f"#define {s}" for s in defs)
     result += COMMON_TYPES
     result += kmem_cache_structs()
+    # this is the kmem_cache SLUB representation for all 5.x and 6.x
     result += f"""
     struct kmem_cache {{
 #if !defined(CONFIG_SLUB_TINY) || defined(BEFORE_V6_2)
@@ -541,7 +563,7 @@ def load_slab_typeinfo():
         const char *name;		/* Name (only for display!) */
         struct list_head list;		/* List of slab caches */
 
-        char _pad1[{sz}]; // collapse the struct(s) that are version dependant and complex
+        char _pad1[{sz}]; // collapse the struct(s) that are version dependent and complex
 #ifdef CONFIG_SLAB_FREELIST_HARDENED
         unsigned long random;
 #endif
@@ -558,7 +580,7 @@ def load_slab_typeinfo():
         unsigned int useroffset;	/* Usercopy region offset */
         unsigned int usersize;		/* Usercopy region size */
 #endif
-        // make sure it has at least that many, sufficient for us
+        // ensure it has at least num_numa_nodes, sufficient for us
         struct kmem_cache_node *node[{pwndbg.aglib.kernel.num_numa_nodes()}];
     }};
     """

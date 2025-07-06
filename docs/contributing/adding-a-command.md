@@ -174,7 +174,8 @@ OnlyWhenLocal
 OnlyWithFile
 OnlyWhenQemuKernel
 OnlyWhenUserspace
-OnlyWithKernelDebugSyms
+OnlyWithKernelDebugInfo
+OnlyWithKernelDebugSymbols
 OnlyWhenPagingEnabled
 OnlyWithTcache
 OnlyWhenHeapIsInitialized

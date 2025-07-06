@@ -70,6 +70,10 @@ from pwndbg.dbg.lldb.pset import pset
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import get_io_driver
 from pwndbg.dbg.lldb.repl.proc import EventHandler
+from pwndbg.dbg.lldb.repl.proc import LaunchResultConnected
+from pwndbg.dbg.lldb.repl.proc import LaunchResultEarlyExit
+from pwndbg.dbg.lldb.repl.proc import LaunchResultError
+from pwndbg.dbg.lldb.repl.proc import LaunchResultSuccess
 from pwndbg.dbg.lldb.repl.proc import ProcessDriver
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
@@ -887,27 +891,31 @@ def target_create(args: List[str], dbg: LLDB) -> None:
     if args.arch:
         dbg.debugger.SetDefaultArchitecture(args.arch)
 
-    triple = _get_target_triple(dbg.debugger, args.filename)
-    if not triple:
-        print_error(f"could not detect triple for '{args.filename}'")
-        return
-
-    if args.platform == "qemu-user":
-        arch = triple.split("-")[0]
-        # Without setting it qemu-user don't work ;(
-        dbg._execute_lldb_command(f"settings set platform.plugin.qemu-user.architecture {arch}")
-
-    if args.platform:
-        dbg.debugger.SetCurrentPlatform(args.platform)
-
     if args.sysroot:
         dbg.debugger.SetCurrentPlatformSDKRoot(args.sysroot)
 
     # Create the target with the debugger.
     error = lldb.SBError()
-    target: lldb.SBTarget = dbg.debugger.CreateTarget(
-        args.filename, triple, args.platform, True, error
-    )
+    if args.platform:
+        dbg.debugger.SetCurrentPlatform(args.platform)
+
+        # Having the platform specified requires that we specify the triple.
+        triple = _get_target_triple(dbg.debugger, args.filename)
+        if not triple:
+            print_error(f"could not detect triple for '{args.filename}'")
+            return
+
+        if args.platform == "qemu-user":
+            arch = triple.split("-")[0]
+            # Without setting it qemu-user don't work ;(
+            dbg._execute_lldb_command(f"settings set platform.plugin.qemu-user.architecture {arch}")
+
+        target: lldb.SBTarget = dbg.debugger.CreateTarget(
+            args.filename, triple, args.platform, True, error
+        )
+    else:
+        # Let LLDB figure out both the triple and the platform automatically.
+        target = dbg.debugger.CreateTarget(args.filename, None, None, True, error)
     if not error.success or not target.IsValid():
         print_error(f"could not create target for '{args.filename}': {error.description}")
         return
@@ -995,9 +1003,15 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         os.getcwd(),
     )
 
-    if not result.success:
-        print_error(f"could not launch process: {result.description}")
-        return
+    match result:
+        case LaunchResultError(what, disconnected):
+            print_error(f"could not launch process: {what.description}")
+            if disconnected:
+                print_warn("disconnected")
+            return
+        case LaunchResultEarlyExit():
+            print_warn("process exited early")
+            return
 
     # Continue execution if the user hasn't requested for a stop at the entry
     # point of the process. And handle necessary events.
@@ -1055,8 +1069,6 @@ def _attach_with_info(
         print_error("a process is already being debugged")
         return
 
-    io_driver = get_io_driver()
-
     auto = AutoTarget(dbg)
     if not auto:
         print_error(f"could not create empty target for attaching: {auto.error.description}")
@@ -1068,14 +1080,20 @@ def _attach_with_info(
 
     result = driver.attach(
         auto.target,
-        io_driver,
         info,
     )
 
-    if not result.success:
-        print_error(f"could not attach to process: {result.description}")
-        auto.close()
-        return
+    match result:
+        case LaunchResultError(what, disconnected):
+            print_error(f"could not attach to process: {what.description}")
+            if disconnected:
+                print_warn("disconnected")
+            auto.close()
+            return
+        case LaunchResultEarlyExit():
+            print_warn("process exited early")
+            auto.close()
+            return
 
     # Continue execution if the user has requested it.
     if cont:
@@ -1172,12 +1190,19 @@ def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], d
         return
 
     io_driver = get_io_driver()
-    error = driver.connect(auto.target, io_driver, args.remoteurl, "gdb-remote")
+    result = driver.connect(auto.target, io_driver, args.remoteurl, "gdb-remote")
 
-    if not error.success:
-        print_error(f"could not connect to remote process: {error.description}")
-        auto.close()
-        return
+    match result:
+        case LaunchResultError(what, disconnected):
+            print_error(f"could not connect to remote: {what.description}")
+            if disconnected:
+                print_warn("disconnected")
+            auto.close()
+            return
+        case LaunchResultEarlyExit():
+            print_warn("remote exited early")
+            auto.close()
+            return
 
     # Tell the debugger that the process was suspended, if there is a process.
     if driver.has_process():

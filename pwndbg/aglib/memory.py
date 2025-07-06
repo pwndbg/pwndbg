@@ -269,6 +269,14 @@ def s64(addr: int) -> int:
     return readtype(pwndbg.aglib.typeinfo.int64, addr)
 
 
+def sint(addr: int) -> int:
+    """
+    Read one `signed int` from the specified
+    address.
+    """
+    return readtype(pwndbg.aglib.typeinfo.sint, addr)
+
+
 def cast_pointer(
     type: pwndbg.dbg_mod.Type, addr: int | pwndbg.dbg_mod.Value
 ) -> pwndbg.dbg_mod.Value:
@@ -433,3 +441,7 @@ def is_pagefault_supported() -> bool:
 
     # TODO: use a better detection method
     return pwndbg.dbg.selected_inferior().is_linux()
+
+
+def is_kernel(addr: int):
+    return addr >> 63 == 1

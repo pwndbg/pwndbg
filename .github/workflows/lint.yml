@@ -50,8 +50,8 @@ jobs:
         level: error
         # Change the current directory to run mypy command.
         # mypy command reads setup.cfg or other settings file in this path.
-        execute_command: uv run --group lint --group dev mypy
+        execute_command: uv run --group dev --group lint --group tests --extra gdb --extra lldb mypy
         install_types: false
-        target: pwndbg
+        target: pwndbg pwndbginit tests/host
         filter_mode: nofilter
         fail_on_error: true

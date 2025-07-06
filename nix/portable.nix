@@ -55,19 +55,13 @@ let
       export PATH="$dir/bin/:$PATH"
     '';
 
-  wrapperBinPwndbgGdbinit = pkgs.writeScript "pwndbg-wrapper-bin-gdbinit" ''
-    #!/bin/sh
-    dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
-    ${commonEnvs}
-    exec ${ldLoader} "$dir/exe/gdb" --quiet --early-init-eval-command="set auto-load safe-path /" --command=$dir/exe/gdbinit.py "$@"
-  '';
   wrapperBinPy =
     file:
     pkgs.writeScript "pwndbg-wrapper-bin-py" ''
       #!/bin/sh
       dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
       ${commonEnvs}
-      exec ${ldLoader} "$dir/exe/python3" "$dir/${file}" "$@"
+      exec -a "$0" ${ldLoader} "$dir/exe/python3" "$dir/${file}" "$@"
     '';
   wrapperBin =
     file:
@@ -75,9 +69,8 @@ let
       #!/bin/sh
       dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
       ${commonEnvs}
-      exec ${ldLoader} "$dir/${file}" "$@"
+      exec -a "$0" ${ldLoader} "$dir/${file}" "$@"
     '';
-  skipVenv = pkgs.writeScript "pwndbg-skip-venv" "";
 
   pwndbgGdbBundled = bundler (
     (lib.optionals (pkgs.libffi_portable != null) [
@@ -97,8 +90,14 @@ let
       "${lib.getBin gdb}/bin/gdb"
       "exe/gdb"
 
+      "${wrapperBin "exe/gdb"}"
+      "bin/gdb"
+
       "${gdb}/share/gdb/"
       "share/gdb/"
+
+      "${python3}/bin/python3"
+      "exe/python3"
 
       "${pwndbgVenv}/lib/"
       "lib/"
@@ -106,16 +105,10 @@ let
       "${python3}/lib/"
       "lib/"
 
-      "${pwndbg.src}/pwndbg/"
-      "lib/${python3.libPrefix}/site-packages/pwndbg/"
+      "${pwndbgVenv}/bin/pwndbg"
+      "exe/pwndbg"
 
-      "${pwndbg.src}/gdbinit.py"
-      "exe/gdbinit.py"
-
-      "${skipVenv}"
-      "exe/.skip-venv"
-
-      "${wrapperBinPwndbgGdbinit}"
+      "${wrapperBinPy "exe/pwndbg"}"
       "bin/pwndbg"
     ]
   );
@@ -144,25 +137,16 @@ let
       "${python3}/bin/python3"
       "exe/python3"
 
-      "${pwndbg.src}/pwndbg/"
-      "lib/${python3.libPrefix}/site-packages/pwndbg/"
-
-      "${pwndbg.src}/lldbinit.py"
-      "exe/lldbinit.py"
-
-      "${pwndbg.src}/pwndbg-lldb.py"
-      "exe/pwndbg-lldb.py"
-
-      "${skipVenv}"
-      "exe/.skip-venv"
-
       "${wrapperBin "exe/lldb-server"}"
       "bin/lldb-server"
 
       "${wrapperBin "exe/lldb"}"
       "bin/lldb"
 
-      "${wrapperBinPy "exe/pwndbg-lldb.py"}"
+      "${pwndbgVenv}/bin/pwndbg-lldb"
+      "exe/pwndbg-lldb"
+
+      "${wrapperBinPy "exe/pwndbg-lldb"}"
       "bin/pwndbg-lldb"
     ]
   );
@@ -172,7 +156,7 @@ let
     pkgsNative.runCommand "portable-${pwndbg.name}"
       {
         meta = {
-          name = pwndbg.meta.name;
+          name = pwndbg.name;
           version = pwndbg.version;
           architecture =
             if isLLDB then lldb.stdenv.targetPlatform.system else gdb.stdenv.targetPlatform.system;
