@@ -10,7 +10,6 @@ from typing import Callable
 from typing import Dict
 from typing import List
 from typing import NamedTuple
-from pwndbg.color import disable_colors
 from pwndbg.lib.config import Parameter
 
 from . import theme
