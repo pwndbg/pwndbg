@@ -286,7 +286,9 @@ def test_command_pagewalk():
     assert res.splitlines()[-1] == "address is not mapped"
 
 
-@pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
+@pytest.mark.skipif(
+    not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
+)
 def test_command_paging():
     def test_command_paging_helper(pagetype, addr):
         out = gdb.execute(f"v2p {addr}", to_string=True)
