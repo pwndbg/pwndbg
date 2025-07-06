@@ -858,7 +858,7 @@ parser.add_argument(
 @pwndbg.commands.Command(
     parser,
     category=CommandCategory.MUSL,
-    aliases=["ng-metaarea"],
+    aliases=["ng-metaarea", "ng-ma"],
 )
 @pwndbg.commands.OnlyWhenRunning
 def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:

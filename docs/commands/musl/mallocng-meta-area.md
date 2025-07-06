@@ -8,7 +8,7 @@ usage: mallocng-meta-area [-h] [-i INDEX] address
 
 Print out a mallocng meta_area object at the given address.
 
-**Alias:** ng-metaarea
+**Aliases:** ng-metaarea, ng-ma
 ### Positional arguments
 
 |Positional Argument|Help|
