@@ -5,6 +5,7 @@ Commands that help with debugging musl's allocator, mallocng.
 from __future__ import annotations
 
 import argparse
+import string
 from typing import Optional
 
 import pwndbg
@@ -506,8 +507,7 @@ def smart_dump_slot(
     try:
         slot.preload()
     except pwndbg.dbg_mod.Error as e:
-        print(message.error(f"Error while reading slot: {e}"))
-        return ""
+        return message.error(f"Error while reading slot: {e}")
 
     successful_preload: bool = True
     err_msg = ""
@@ -540,15 +540,15 @@ def smart_dump_slot(
         # could be possible in exploitation I suppose).
         return dump_slot(slot, all, True, False)
 
+    output = ""
+
     if not (slot._pn3 == 0xFF or slot._offset == 0):
         # If the group/meta read failed because the slot is freed/avail,
         # we won't throw an error. This is just a heuristic check for
         # better UX. I'm using the private fields for the check so we
         # don't accidentally cause an exception here if we are bordering
         # unreadable memory.
-        print(err_msg)
-
-    output = ""
+        output += err_msg + "\n"
 
     if gslot is None:
         if not search_on_fail:
@@ -995,3 +995,139 @@ def mallocng_find(
         return
 
     print(smart_dump_slot(slot, all, grouped_slot), end="")
+
+
+VALID_CHARS = list(map(ord, set(string.printable) - set("\t\r\n\x0c\x0b")))
+
+
+def bin_ascii(bs: bytearray):
+    return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
+
+
+def slot_color(state: mallocng.SlotState, last_color: str) -> str:
+    match state:
+        case mallocng.SlotState.ALLOCATED:
+            if last_color == pwndbg.color.BLUE:
+                return pwndbg.color.LIGHT_BLUE
+            return pwndbg.color.BLUE
+        case mallocng.SlotState.FREED:
+            if last_color == pwndbg.color.RED:
+                return pwndbg.color.LIGHT_RED
+            return pwndbg.color.RED
+        case mallocng.SlotState.AVAIL:
+            if last_color == pwndbg.color.GRAY:
+                return pwndbg.color.LIGHT_GRAY
+            return pwndbg.color.GRAY
+
+
+parser = argparse.ArgumentParser(
+    description="""Visualize slots in a group.""",
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="Address which is inside some slot.",
+)
+parser.add_argument(
+    "count",
+    type=int,
+    default=10,
+    nargs="?",  # Optional
+    help="The amount of slots to visualize.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-vis"],
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_visualize_slots(address: int, count: int = 10):
+    ptrsize = pwndbg.aglib.typeinfo.ptrsize
+
+    if ptrsize != 8:
+        print(message.error("This command only works on architectures where a pointer is 64 bits."))
+        return
+
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {address:#x} not readable."))
+        return
+
+    if not ng.init_if_needed():
+        print(message.error("Couldn't find the allocator, aborting the command."))
+        return
+
+    first_grouped_slot, first_slot = ng.find_slot(address, False, False)
+
+    if first_slot is None:
+        print(message.info("No slot found containing that address."))
+        return
+
+    group: mallocng.Group = first_grouped_slot.group
+    meta: mallocng.Meta = first_grouped_slot.meta
+    first_idx: int = first_grouped_slot.idx
+
+    print("group @ " + C.memory.get(group.addr))
+    print("meta @ " + C.memory.get(meta.addr))
+
+    if first_idx + count >= meta.cnt:
+        if count != 10:
+            # If the default was passed, no need to warn the user.
+            print(
+                message.info(
+                    f"Clamping count to {meta.cnt - first_idx} to not go over end of group."
+                )
+            )
+
+        count = meta.cnt - first_idx
+
+    print()
+
+    out: str = ""
+    last_color = "nothing"
+
+    # Iterate over slots
+    for idx in range(first_idx, first_idx + count):
+        start_address = group.at_index(idx)
+        next_start_address = start_address + meta.stride
+
+        if idx == first_idx:
+            slot = first_slot
+        else:
+            try:
+                slot = mallocng.Slot.from_start(start_address)
+                slot.preload()
+            except pwndbg.dbg_mod.Error as e:
+                print(
+                    message.error(
+                        f"Error while reading slot {idx} @ {C.memory.get(start_address)}: {e}"
+                    )
+                )
+                return
+
+        slot_state: mallocng.SlotState = meta.slotstate_at_index(idx)
+        cur_slot_color = slot_color(slot_state, last_color)
+
+        # FIXME: print metadata of first chunk
+
+        # Make the output line by line (advance 0x10 bytes at a time).
+        cur_address = start_address
+        while cur_address < next_start_address:
+            out += f"{cur_address:#x}"
+
+            line_bytes = pwndbg.aglib.memory.read(cur_address, ptrsize * 2)
+            leftptr = pwndbg.aglib.arch.unpack(line_bytes[:ptrsize])
+            rightptr = pwndbg.aglib.arch.unpack(line_bytes[ptrsize:])
+
+            line_out = f"\t0x{leftptr:0{ptrsize * 2}x}"
+            line_out += f"\t0x{rightptr:0{ptrsize * 2}x}"
+            line_out += f"\t{bin_ascii(line_bytes)}"
+
+            out += pwndbg.color.colorize(line_out, cur_slot_color) + "\n"
+
+            cur_address += 2 * ptrsize
+
+        last_color = cur_slot_color
+
+    print(out)
