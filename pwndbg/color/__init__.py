@@ -10,7 +10,7 @@ from typing import Callable
 from typing import Dict
 from typing import List
 from typing import NamedTuple
-
+from pwndbg.color import disable_colors
 from pwndbg.lib.config import Parameter
 
 from . import theme
@@ -50,86 +50,127 @@ none = str
 
 
 def normal(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, NORMAL)
 
 
 def black(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, BLACK)
 
 
 def red(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, RED)
 
-
 def green(x: str) -> str:
+    if disable_colors:
+       return str(x)
     return colorize(x, GREEN)
 
 
 def yellow(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, YELLOW)
 
 
 def blue(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, BLUE)
 
 
 def purple(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, PURPLE)
 
 
 def cyan(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, CYAN)
 
 
 def light_gray(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, LIGHT_GRAY)
 
 
 def foreground(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, FOREGROUND)
 
 
 def gray(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, GRAY)
 
 
 def light_red(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, LIGHT_RED)
 
 
 def light_green(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, LIGHT_GREEN)
 
 
 def light_yellow(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, LIGHT_YELLOW)
 
 
 def light_blue(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, LIGHT_BLUE)
 
 
 def light_purple(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, LIGHT_PURPLE)
 
 
 def light_cyan(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, LIGHT_CYAN)
 
 
 def white(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, WHITE)
 
 
 def bold(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, BOLD)
 
 
 def underline(x: str) -> str:
+    if disable_colors:
+        return str(x)
     return colorize(x, UNDERLINE)
 
 
 def colorize(x: str, color: str) -> str:
+    if disable_colors:
+        return str(x)
     return color + terminateWith(str(x), color) + NORMAL
 
 
