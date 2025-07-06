@@ -374,3 +374,37 @@ def test_mallocng_find(start_binary, binary):
     find_out = color.strip(gdb.execute("ng-find buffer1 --shallow --all", to_string=True))
     assert "donated by ld" in find_out or "mmap" in find_out
     assert "nested" not in find_out.splitlines()[-1]
+
+
+@pytest.mark.parametrize(
+    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
+)
+def test_mallocng_metaarea(start_binary, binary):
+    start_binary(binary)
+
+    gdb.execute("start")
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+    gdb.execute("finish")
+
+    context = color.strip(gdb.execute("ng-ctx", to_string=True))
+    secret = int(re.search(r"secret:\s*(0x[0-9a-fA-F]+)", context).group(1), 16)
+    meta_area_addr = int(re.search(r"meta_area_head:\s*(0x[0-9a-fA-F]+)", context).group(1), 16)
+
+    meta_area_out = color.strip(
+        gdb.execute(f"ng-metaarea {meta_area_addr:#x}", to_string=True)
+    ).splitlines()
+
+    expected_out = [
+        "meta_area",
+        f"  @ {meta_area_addr:#x} - {re_addr}",
+        f"  check:          {secret:#x}",
+        "  next:           0",
+        r"  nslots:         0x[0-9a-f]{2}",
+        f"  slots:          {re_addr}    ",
+    ]
+
+    assert len(expected_out) == len(meta_area_out)
+
+    for i in range(len(expected_out)):
+        assert re.match(expected_out[i], meta_area_out[i])
