@@ -127,6 +127,11 @@ def test_x64_extra_registers_under_kernel_mode():
         assert flag in res or flag.upper() in res
 
 
+def get_slab_freelist_elements(out):
+    out = pwndbg.color.strip(out)
+    return re.findall(r"- \[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]+)", out)
+
+
 def get_slab_object_address():
     """helper function to get the address of some kmalloc slab object
     and the associated slab cache name"""
@@ -134,9 +139,7 @@ def get_slab_object_address():
     for cache in caches:
         cache_name = cache.name
         info = gdb.execute(f"slab info -v {cache_name}", to_string=True)
-        ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
-        info = ansi_escape.sub("", info)
-        matches = re.findall(r"- \[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]+)", info)
+        matches = get_slab_freelist_elements(info)
         if len(matches) > 0:
             return (matches[0], cache_name)
     raise ValueError("Could not find any slab objects")
@@ -192,6 +195,11 @@ def test_command_kernel_vmmap():
         )
 
 
+def get_buddy_freelist_elements(out):
+    out = pwndbg.color.strip(out)
+    return re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16})", out)
+
+
 @pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
 def test_command_buddydump():
     res = gdb.execute("buddydump", to_string=True)
@@ -201,16 +209,13 @@ def test_command_buddydump():
     # this indicates the buddy allocator contains at least one entry
     assert "Order" in res and "Zone" in res and ("per_cpu_pageset" in res or "free_area" in res)
 
-    ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
-    res = ansi_escape.sub("", res)
     # find the starting addresses of all entries within the freelists
-    matches = re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16})", res)
+    matches = get_buddy_freelist_elements(res)
     for i in range(0, len(matches), 20):
         # check every 20 elements so tests do not take too long
         match = int(matches[i], 16)
         res = gdb.execute(f"bud -f {hex(match + random.randint(0, 0x1000 - 1))}", to_string=True)
-        res = ansi_escape.sub("", res)
-        _matches = re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16})", res)
+        _matches = get_buddy_freelist_elements(res)
         # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
         # even if the address is not aligned
         assert len(_matches) == 1 and int(_matches[0], 16) == match
@@ -236,28 +241,81 @@ def test_command_buddydump():
     assert "free_area" not in filter_res
 
 
-@pytest.mark.skipif(
-    pwndbg.aglib.arch.name not in ["i386", "x86-64"],
-    reason="pagewalk is only fully implemented for x86 (partially relies on cr3)",
-)
-def test_command_pagewalk():
-    address = pwndbg.aglib.kernel.kbase()
-    if address is None:
-        # no kbase? fine
-        pages = pwndbg.aglib.vmmap.get()
-        address = pages[0].start
-    res = gdb.execute(f"pagewalk {hex(address)}", to_string=True)
-    assert "PMD" in res  # Page Size is only set for PMDe or PTe
-    res = res.splitlines()[-1]
-    match = re.findall(r"0x[0-9a-fA-F]{16}", res)[0]
-    physmap_addr = int(match, 16)
+def check_0x100_bytes(address, physmap_addr):
     # compare the first 0x100 bytes of the page (e.g. first kernel image page) with its physmap conterpart
     expected = pwndbg.aglib.memory.read(address, 0x100)
     actual = pwndbg.aglib.memory.read(physmap_addr, 0x100)
     assert all(expected[i] == actual[i] for i in range(0x100))
+
+
+def test_command_pagewalk():
+    address = pwndbg.aglib.kernel.kbase()
+    if address is None:
+        pages = pwndbg.aglib.vmmap.get()
+        address = pages[0].start
+    res = gdb.execute(f"pagewalk {hex(address)}", to_string=True)
+    assert any(
+        name in res
+        for name in (
+            "PMD",  # Page Size is only set for PMDe or PTe
+            "L1",
+            "L3",
+        )
+    )
+    res = res.splitlines()[-1]
+    match = re.findall(r"0x[0-9a-fA-F]{16}", res)[0]
+    physmap_addr = int(match, 16)
+    check_0x100_bytes(address, physmap_addr)
     # make sure that when using cr3 for pgd, it still works
-    res2 = gdb.execute(f"pagewalk {hex(address)} --pgd $cr3", to_string=True).splitlines()[-1]
+    pgd_ptr = "$cr3"
+    if pwndbg.aglib.arch.name == "aarch64":
+        if pwndbg.aglib.memory.is_kernel(address):
+            pgd_ptr = pwndbg.aglib.regs.TTBR1_EL1
+        else:
+            pgd_ptr = pwndbg.aglib.regs.TTBR0_EL1
+    res2 = gdb.execute(f"pagewalk {hex(address)} --pgd {pgd_ptr}", to_string=True).splitlines()[-1]
     assert res == res2
     # test non nonexistent address
     res = gdb.execute("pagewalk 0", to_string=True)
     assert res.splitlines()[-1] == "address is not mapped"
+
+
+@pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
+def test_command_paging():
+    def test_command_paging_helper(pagetype, addr):
+        out = gdb.execute(f"v2p {addr}", to_string=True)
+        out = pwndbg.color.strip(out)
+        # pagetype should be correct
+        assert pagetype in out
+        page = int(out.splitlines()[1].split()[2], 16)
+        physmap_addr = int(out.splitlines()[0].split()[-1], 16)
+        # the first 0x100 bytes of the resolved address should match the original
+        check_0x100_bytes(addr, physmap_addr)
+        phys_addr = pwndbg.aglib.kernel.virt_to_phys(physmap_addr)
+        out = gdb.execute(f"p2v {phys_addr}", to_string=True)
+        out = pwndbg.color.strip(out)
+        # the virtual address should be the physmap address
+        assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
+        out = gdb.execute(f"pageinfo {page}", to_string=True)
+        out = pwndbg.color.strip(out)
+        # the virtual address should be the physmap address
+        assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
+
+    # kbase, slab, buddy, vmemmap
+    kbase = pwndbg.aglib.kernel.kbase()
+    test_command_paging_helper("initialized", kbase)
+    vmemmap = pwndbg.aglib.kernel.arch_paginginfo().vmemmap
+    test_command_paging_helper("initialized", vmemmap)
+    res = gdb.execute("buddydump", to_string=True)
+    matches = get_buddy_freelist_elements(res)
+    if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"
+        buddy = int(matches[-1], 16)
+        test_command_paging_helper("buddy", buddy)
+    if pwndbg.aglib.kernel.krelease() >= (6, 11):
+        # the slab marker is only added after v6.11
+        res = gdb.execute("slab info -v -p kmalloc-32", to_string=True)
+        matches = get_slab_freelist_elements(res)
+        if len(matches) > 0:
+            slab = int(matches[-1].split()[-1], 16)
+            test_command_paging_helper("slab", slab)
+        res = gdb.execute(f"pagewalk {kbase}")

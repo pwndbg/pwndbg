@@ -90,9 +90,10 @@
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
 -  [msr](kernel/msr.md) - Read or write to Model Specific Register (MSR)
 -  [p2v](kernel/p2v.md) - Translate physical address to its corresponding virtual address.
+-  [pageinfo](kernel/pageinfo.md) - Convert a pointer to a `struct page` to its corresponding virtual address.
 -  [pagewalk](kernel/pagewalk.md) - Performs pagewalk.
 -  [slab](kernel/slab.md) - Prints information about the linux kernel's slab allocator SLUB.
--  [v2p](kernel/v2p.md) - Translate virtual address to its corresponding physical address.
+-  [v2p](kernel/v2p.md) - Translate virtual address to its corresponding physmap address.
 
 ## Linux/libc/ELF
 

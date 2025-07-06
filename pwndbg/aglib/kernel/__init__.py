@@ -564,6 +564,14 @@ def kbase() -> int | None:
         raise NotImplementedError()
 
 
+def pagewalk(addr, entry=None):
+    pi = arch_paginginfo()
+    if pi:
+        return pi.pagewalk(addr, entry)
+    else:
+        raise NotImplementedError()
+
+
 def paging_enabled() -> bool:
     arch_name = pwndbg.aglib.arch.name
     if arch_name == "i386":
