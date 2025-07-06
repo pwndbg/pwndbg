@@ -846,6 +846,13 @@ parser.add_argument(
     type=int,
     help="The address of the meta_area object.",
 )
+parser.add_argument(
+    "-i",
+    "--index",
+    type=int,
+    default=None,
+    help="Print address of meta at given index (0-indexed).",
+)
 
 
 @pwndbg.commands.Command(
@@ -854,14 +861,24 @@ parser.add_argument(
     aliases=["ng-metaarea"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_meta_area(address: int) -> None:
+def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
         return
 
     try:
         meta_area = mallocng.MetaArea(address)
+
         print(dump_meta_area(meta_area), end="")
+
+        if index is not None:
+            print(f"\nMeta {index} is @ " + C.memory.get(meta_area.at_index(index)))
+            if index >= meta_area.nslots:
+                print(
+                    message.warn("Index is outside of meta area! ")
+                    + f"Meta area only hosts {meta_area.nslots} meta's."
+                )
+
     except pwndbg.dbg_mod.Error as e:
         print(message.error(str(e)))
         return
