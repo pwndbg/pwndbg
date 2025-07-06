@@ -816,6 +816,9 @@ def mallocng_group(address: int, index: Optional[int] = None) -> None:
     if index is None:
         print(dump_group(group), end="")
     else:
+        if index < 0:
+            print(message.error("Index is negative."))
+            return
         print(f"Start of slot {index} is @ " + C.memory.get(group.at_index(index)))
 
     try:
@@ -872,7 +875,12 @@ def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:
         print(dump_meta_area(meta_area), end="")
 
         if index is not None:
+            if index < 0:
+                print(message.error("\nIndex is negative."))
+                return
+
             print(f"\nMeta {index} is @ " + C.memory.get(meta_area.at_index(index)))
+
             if index >= meta_area.nslots:
                 print(
                     message.warn("Index is outside of meta area! ")
