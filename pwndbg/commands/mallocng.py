@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import string
+from typing import List
 from typing import Optional
 
 import pwndbg
@@ -1020,6 +1021,75 @@ def slot_color(state: mallocng.SlotState, last_color: str) -> str:
             return pwndbg.color.GRAY
 
 
+def colorize_pointer(
+    address: int, ptrvalue: int, state: mallocng.SlotState, slot: mallocng.Slot
+) -> str:
+    ptrsize = pwndbg.aglib.typeinfo.ptrsize
+    out = f"{ptrvalue:0{ptrsize * 2}x}"
+
+    if state != mallocng.SlotState.ALLOCATED:
+        # Nothing to do.
+        return out
+
+    # Are we in user data?
+    if slot.p <= address < slot.p + slot.nominal_size:
+        # Yes, bold the parts that are.
+        boldable_bytes = min(slot.p + slot.nominal_size - address, ptrsize)
+        plain_part = out[: (-2 * boldable_bytes)]
+        bold_part = pwndbg.color.bold(out[(-2 * boldable_bytes) :])
+        out = plain_part + bold_part
+
+    # Are we in the p header of this slot?
+    if address == slot.p - ptrsize:
+        offset_part = pwndbg.color.yellow(out[:4])
+        hdr_res_part = pwndbg.color.gray(out[4:6])
+        big_offset_part = pwndbg.color.black(out[6:8])
+        plain_part = out[8:]
+
+        out = offset_part + hdr_res_part + big_offset_part + plain_part
+
+    # Are we in the footer of this slot?
+    if address == slot.start + slot.meta.stride - ptrsize:
+        # Highlight ftr reserved if it is used.
+        if slot.reserved_in_header == 5:
+            plain_part = out[:8]
+            ftr_reserved_part = pwndbg.color.green(out[8:])
+            out = plain_part + ftr_reserved_part
+
+    return out
+
+
+def colorize_start_header_line(shline: str, state: mallocng.SlotState, slot: mallocng.Slot) -> str:
+    if state != mallocng.SlotState.ALLOCATED:
+        # Nothing to do.
+        return shline
+
+    splitline = shline.split("0x", maxsplit=3)
+    assert len(splitline) == 4
+    rightvalplus = splitline[3]
+
+    if slot.start != slot.p:
+        # A cycled slot. The offset has completely different meaning
+        # than in p header. The hdr_res has kinda~ different meaning.
+        offset_part = pwndbg.color.light_yellow(rightvalplus[:4])
+        hdr_res_part = pwndbg.color.light_gray(rightvalplus[4:6])
+    else:
+        offset_part = pwndbg.color.yellow(rightvalplus[:4])
+        hdr_res_part = pwndbg.color.gray(rightvalplus[4:6])
+
+    big_offset_part = pwndbg.color.black(rightvalplus[6:8])
+    plain_part = rightvalplus[8:]
+
+    out = (
+        f"{splitline[0]}0x{splitline[1]}0x{splitline[2]}0x"
+        + offset_part
+        + hdr_res_part
+        + big_offset_part
+        + plain_part
+    )
+    return out
+
+
 parser = argparse.ArgumentParser(
     description="""Visualize slots in a group.""",
 )
@@ -1084,8 +1154,17 @@ def mallocng_visualize_slots(address: int, count: int = 10):
 
     print()
 
-    out: str = ""
+    out: List[str] = []  # List of lines.
     last_color = "nothing"
+
+    # Add the line before the start of the first slot, to include its start header.
+    shline_addr = group.at_index(first_idx) - 2 * ptrsize
+    shline_bytes = pwndbg.aglib.memory.read(shline_addr, ptrsize * 2)
+    leftptr = pwndbg.aglib.arch.unpack(shline_bytes[:ptrsize])
+    rightptr = pwndbg.aglib.arch.unpack(shline_bytes[ptrsize:])
+    out.append(
+        f"{shline_addr:#x}\t0x{leftptr:0{ptrsize * 2}x}\t0x{rightptr:0{ptrsize * 2}x}\t{bin_ascii(shline_bytes)}"
+    )
 
     # Iterate over slots
     for idx in range(first_idx, first_idx + count):
@@ -1098,6 +1177,9 @@ def mallocng_visualize_slots(address: int, count: int = 10):
             try:
                 slot = mallocng.Slot.from_start(start_address)
                 slot.preload()
+                slot.set_group(group)
+                # Probably redundant, but just in case.
+                slot.preload_meta_dependants()
             except pwndbg.dbg_mod.Error as e:
                 print(
                     message.error(
@@ -1109,25 +1191,27 @@ def mallocng_visualize_slots(address: int, count: int = 10):
         slot_state: mallocng.SlotState = meta.slotstate_at_index(idx)
         cur_slot_color = slot_color(slot_state, last_color)
 
-        # FIXME: print metadata of first chunk
+        # Colorize the previous line which contains our start header.
+        out[-1] = colorize_start_header_line(out[-1], slot_state, slot)
 
         # Make the output line by line (advance 0x10 bytes at a time).
         cur_address = start_address
         while cur_address < next_start_address:
-            out += f"{cur_address:#x}"
-
             line_bytes = pwndbg.aglib.memory.read(cur_address, ptrsize * 2)
             leftptr = pwndbg.aglib.arch.unpack(line_bytes[:ptrsize])
             rightptr = pwndbg.aglib.arch.unpack(line_bytes[ptrsize:])
 
-            line_out = f"\t0x{leftptr:0{ptrsize * 2}x}"
-            line_out += f"\t0x{rightptr:0{ptrsize * 2}x}"
+            line_out = f"{cur_address:#x}"
+            line_out += "\t0x" + colorize_pointer(cur_address, leftptr, slot_state, slot)
+            line_out += "\t0x" + colorize_pointer(cur_address + ptrsize, rightptr, slot_state, slot)
             line_out += f"\t{bin_ascii(line_bytes)}"
 
-            out += pwndbg.color.colorize(line_out, cur_slot_color) + "\n"
+            line_out = pwndbg.color.colorize(line_out, cur_slot_color)
+
+            out.append(line_out)
 
             cur_address += 2 * ptrsize
 
         last_color = cur_slot_color
 
-    print(out)
+    print("\n".join(out))
