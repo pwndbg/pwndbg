@@ -1122,6 +1122,14 @@ def line_decoration(addr: int, slot_state: mallocng.SlotState, slot: mallocng.Sl
     )
 
 
+default_vis_count = pwndbg.config.add_param(
+    "ng-vis-count",
+    10,
+    "default count for ng-vis",
+    param_class=pwndbg.lib.config.PARAM_UINTEGER,
+    scope=pwndbg.lib.config.Scope.heap,
+)
+
 parser = argparse.ArgumentParser(
     description="""Visualize slots in a group.""",
 )
@@ -1133,7 +1141,7 @@ parser.add_argument(
 parser.add_argument(
     "count",
     type=int,
-    default=10,
+    default=default_vis_count,
     nargs="?",  # Optional
     help="The amount of slots to visualize.",
 )
@@ -1145,7 +1153,7 @@ parser.add_argument(
     aliases=["ng-vis"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_visualize_slots(address: int, count: int = 10):
+def mallocng_visualize_slots(address: int, count: int = default_vis_count):
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
 
     if ptrsize != 8:
@@ -1174,7 +1182,7 @@ def mallocng_visualize_slots(address: int, count: int = 10):
     print("meta @ " + C.memory.get(meta.addr))
 
     if first_idx + count >= meta.cnt:
-        if count != 10:
+        if count != default_vis_count:
             # If the default was passed, no need to warn the user.
             print(
                 message.info(
