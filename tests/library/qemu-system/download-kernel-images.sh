@@ -5,7 +5,8 @@ set -o errexit
 source "$(dirname "$0")/../../../scripts/common.sh"
 
 OUT_DIR=$TESTING_KERNEL_IMAGES_DIR
-URL=${URL:-"https://github.com/pwndbg/linux-exploit-dev-env/releases/latest/download"}
+# TODO: change this back
+URL=${URL:-"https://github.com/jxuanli/linux-exploit-dev-env/releases/latest/download"}
 
 mkdir -p "${OUT_DIR}"
 
