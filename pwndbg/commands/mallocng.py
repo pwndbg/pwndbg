@@ -1005,8 +1005,8 @@ def bin_ascii(bs: bytearray):
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
-state_alloc_color = C.BLUE
-state_alloc_color_alt = C.LIGHT_BLUE
+state_alloc_color = C.CYAN
+state_alloc_color_alt = C.BLUE
 state_freed_color = C.RED
 state_freed_color_alt = C.LIGHT_RED
 state_avail_color = C.GRAY
@@ -1029,10 +1029,10 @@ def slot_color(state: mallocng.SlotState, last_color: str) -> str:
             return state_avail_color
 
 
-vis_cyclic_offset_color = C.LIGHT_YELLOW
-vis_offset_color = C.YELLOW
-vis_cycled_mark_color = C.LIGHT_GRAY
-vis_pn3_reserved_color = C.GRAY
+vis_cyclic_offset_color = C.YELLOW
+vis_offset_color = C.LIGHT_YELLOW
+vis_cycled_mark_color = C.PURPLE
+vis_pn3_reserved_color = C.LIGHT_CYAN
 vis_big_offset_check_color = C.BLACK
 vis_ftr_reserved_color = C.GREEN
 
