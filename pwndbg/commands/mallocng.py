@@ -1005,20 +1005,36 @@ def bin_ascii(bs: bytearray):
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
+state_alloc_color = C.BLUE
+state_alloc_color_alt = C.LIGHT_BLUE
+state_freed_color = C.RED
+state_freed_color_alt = C.LIGHT_RED
+state_avail_color = C.GRAY
+state_avail_color_alt = C.LIGHT_GRAY
+
+
 def slot_color(state: mallocng.SlotState, last_color: str) -> str:
     match state:
         case mallocng.SlotState.ALLOCATED:
-            if last_color == pwndbg.color.BLUE:
-                return pwndbg.color.LIGHT_BLUE
-            return pwndbg.color.BLUE
+            if last_color == state_alloc_color:
+                return state_alloc_color_alt
+            return state_alloc_color
         case mallocng.SlotState.FREED:
-            if last_color == pwndbg.color.RED:
-                return pwndbg.color.LIGHT_RED
-            return pwndbg.color.RED
+            if last_color == state_freed_color:
+                return state_freed_color_alt
+            return state_freed_color
         case mallocng.SlotState.AVAIL:
-            if last_color == pwndbg.color.GRAY:
-                return pwndbg.color.LIGHT_GRAY
-            return pwndbg.color.GRAY
+            if last_color == state_avail_color:
+                return state_avail_color_alt
+            return state_avail_color
+
+
+vis_cyclic_offset_color = C.LIGHT_YELLOW
+vis_offset_color = C.YELLOW
+vis_cycled_mark_color = C.LIGHT_GRAY
+vis_pn3_reserved_color = C.GRAY
+vis_big_offset_check_color = C.BLACK
+vis_ftr_reserved_color = C.GREEN
 
 
 def colorize_pointer(
@@ -1036,24 +1052,24 @@ def colorize_pointer(
         # Yes, bold the parts that are.
         boldable_bytes = min(slot.p + slot.nominal_size - address, ptrsize)
         plain_part = out[: (-2 * boldable_bytes)]
-        bold_part = pwndbg.color.bold(out[(-2 * boldable_bytes) :])
+        bold_part = C.bold(out[(-2 * boldable_bytes) :])
         out = plain_part + bold_part
 
     # Are we in the p header of this slot?
     if address == slot.p - ptrsize:
-        offset_part = pwndbg.color.yellow(out[:4])
-        hdr_res_part = pwndbg.color.gray(out[4:6])
-        big_offset_part = pwndbg.color.black(out[6:8])
+        offset_part = C.colorize(out[:4], vis_offset_color)
+        pn3_part = C.colorize(out[4:6], vis_pn3_reserved_color)
+        big_offset_part = C.colorize(out[6:8], vis_big_offset_check_color)
         plain_part = out[8:]
 
-        out = offset_part + hdr_res_part + big_offset_part + plain_part
+        out = offset_part + pn3_part + big_offset_part + plain_part
 
     # Are we in the footer of this slot?
     if address == slot.start + slot.meta.stride - ptrsize:
         # Highlight ftr reserved if it is used.
         if slot.reserved_in_header == 5:
             plain_part = out[:8]
-            ftr_reserved_part = pwndbg.color.green(out[8:])
+            ftr_reserved_part = C.colorize(out[8:], vis_ftr_reserved_color)
             out = plain_part + ftr_reserved_part
 
     return out
@@ -1071,23 +1087,39 @@ def colorize_start_header_line(shline: str, state: mallocng.SlotState, slot: mal
     if slot.start != slot.p:
         # A cycled slot. The offset has completely different meaning
         # than in p header. The hdr_res has kinda~ different meaning.
-        offset_part = pwndbg.color.light_yellow(rightvalplus[:4])
-        hdr_res_part = pwndbg.color.light_gray(rightvalplus[4:6])
+        offset_part = C.colorize(rightvalplus[:4], vis_cyclic_offset_color)
+        sorpn3 = C.colorize(rightvalplus[4:6], vis_cycled_mark_color)
     else:
-        offset_part = pwndbg.color.yellow(rightvalplus[:4])
-        hdr_res_part = pwndbg.color.gray(rightvalplus[4:6])
+        offset_part = C.colorize(rightvalplus[:4], vis_offset_color)
+        sorpn3 = C.colorize(rightvalplus[4:6], vis_pn3_reserved_color)
 
-    big_offset_part = pwndbg.color.black(rightvalplus[6:8])
+    big_offset_part = C.colorize(rightvalplus[6:8], vis_big_offset_check_color)
     plain_part = rightvalplus[8:]
 
     out = (
         f"{splitline[0]}0x{splitline[1]}0x{splitline[2]}0x"
         + offset_part
-        + hdr_res_part
+        + sorpn3
         + big_offset_part
         + plain_part
     )
     return out
+
+
+def line_decoration(addr: int, slot_state: mallocng.SlotState, slot: mallocng.Slot) -> str:
+    """
+    Maybe append extra clarification to a line.
+
+    Currently only appends to p headers.
+    """
+    if slot_state != mallocng.SlotState.ALLOCATED:
+        return ""
+    if addr != slot.p - 2 * pwndbg.aglib.typeinfo.ptrsize:
+        return ""
+
+    return "   " + C.colorize(
+        f"{slot.idx} + ({slot.reserved_in_header} << 5)", vis_pn3_reserved_color
+    )
 
 
 parser = argparse.ArgumentParser(
@@ -1152,7 +1184,41 @@ def mallocng_visualize_slots(address: int, count: int = 10):
 
         count = meta.cnt - first_idx
 
-    print()
+    cyc_offset_part = C.colorize("cyclic offset", vis_cyclic_offset_color)
+    cycled_mark_part = C.colorize("cycled mark", vis_cycled_mark_color)
+    offset_part = C.colorize("offset", vis_offset_color)
+    pn3_part = C.colorize("p[-3] = idx + (hdr reserved << 5)", vis_pn3_reserved_color)
+    big_offset_part = C.colorize("big offset mark", vis_big_offset_check_color)
+    ftr_reserved_part = C.colorize("ftr reserved", vis_ftr_reserved_color)
+
+    legend = (
+        "LEGEND: "
+        + cyc_offset_part
+        + "; "
+        + cycled_mark_part
+        + "; "
+        + offset_part
+        + "; "
+        + pn3_part
+        + "; "
+        + big_offset_part
+        + "; "
+        + ftr_reserved_part
+        + "\n"
+    )
+    legend += (
+        "LEGEND: "
+        + C.colorize("allo", state_alloc_color)
+        + C.colorize("cated", state_alloc_color_alt)
+        + "; "
+        + C.colorize("fr", state_freed_color)
+        + C.colorize("eed", state_freed_color_alt)
+        + "; "
+        + C.colorize("avai", state_avail_color)
+        + C.colorize("lable", state_avail_color_alt)
+        + "\n"
+    )
+    print(legend)
 
     out: List[str] = []  # List of lines.
     last_color = "nothing"
@@ -1192,7 +1258,9 @@ def mallocng_visualize_slots(address: int, count: int = 10):
         cur_slot_color = slot_color(slot_state, last_color)
 
         # Colorize the previous line which contains our start header.
-        out[-1] = colorize_start_header_line(out[-1], slot_state, slot)
+        out[-1] = colorize_start_header_line(out[-1], slot_state, slot) + line_decoration(
+            start_address - 2 * ptrsize, slot_state, slot
+        )
 
         # Make the output line by line (advance 0x10 bytes at a time).
         cur_address = start_address
@@ -1207,6 +1275,7 @@ def mallocng_visualize_slots(address: int, count: int = 10):
             line_out += f"\t{bin_ascii(line_bytes)}"
 
             line_out = pwndbg.color.colorize(line_out, cur_slot_color)
+            line_out += line_decoration(cur_address, slot_state, slot)
 
             out.append(line_out)
 
