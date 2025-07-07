@@ -50,26 +50,6 @@ def has_debug_syms() -> bool:
     )
 
 
-# NOTE: This implies requires_debug_syms(), as it is needed for kconfig() to return non-None
-def requires_kconfig(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
-    def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
-        @functools.wraps(f)
-        def func(*args: P.args, **kwargs: P.kwargs) -> T | D:
-            if kconfig():
-                return f(*args, **kwargs)
-
-            # If the user doesn't want an exception thrown when CONFIG_IKCONFIG is
-            # not enabled, they can instead provide a default return value
-            if default is not None:
-                return default
-
-            raise Exception(f"Function {f.__name__} requires CONFIG_IKCONFIG enabled in kernel")
-
-        return func
-
-    return decorator
-
-
 def requires_debug_syms(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
     def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
         @functools.wraps(f)
@@ -130,36 +110,28 @@ def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
     return None
 
 
-def load_kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
+@pwndbg.lib.cache.cache_until("start")
+def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
+    global _kconfig
+    config_start, config_end = None, None
     if has_debug_syms():
         config_start = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data")
         config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
     else:
         mapping = get_first_kernel_ro()
-        results = list(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]))
+        result = next(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]), None)
 
-        if len(results) == 0:
-            return None
-
-        config_start = results[0] + len("IKCFG_ST")
-        config_end = list(pwndbg.search.search(b"IKCFG_ED", start=config_start))[0]
-
+        if result is not None:
+            config_start = result + len("IKCFG_ST")
+            config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
     if config_start is None or config_end is None:
-        return None
+        _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
+        return _kconfig
 
     config_size = config_end - config_start
 
     compressed_config = pwndbg.aglib.memory.read(config_start, config_size)
-    return pwndbg.lib.kernel.kconfig.Kconfig(compressed_config)
-
-
-@pwndbg.lib.cache.cache_until("start")
-def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
-    global _kconfig
-    if _kconfig is None:
-        _kconfig = load_kconfig()
-    elif len(_kconfig) == 0:
-        return None
+    _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(compressed_config)
     return _kconfig
 
 
@@ -191,15 +163,6 @@ def krelease() -> Tuple[int, ...]:
     if match:
         return tuple(int(x) for x in match.groups() if x)
     raise Exception("Linux version tuple not found")
-
-
-@requires_kconfig()
-@pwndbg.lib.cache.cache_until("start")
-def is_kaslr_enabled() -> bool:
-    if "CONFIG_RANDOMIZE_BASE" not in kconfig():
-        return False
-
-    return "nokaslr" not in kcmdline()
 
 
 def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
@@ -597,6 +560,14 @@ def kbase() -> int | None:
     ops = arch_ops()
     if ops:
         return ops.kbase
+    else:
+        raise NotImplementedError()
+
+
+def pagewalk(addr, entry=None):
+    pi = arch_paginginfo()
+    if pi:
+        return pi.pagewalk(addr, entry)
     else:
         raise NotImplementedError()
 

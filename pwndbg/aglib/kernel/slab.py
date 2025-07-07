@@ -157,12 +157,6 @@ class SlabCache:
 
     @property
     def random(self) -> int:
-        if not kernel.kconfig():
-            try:
-                return int(self._slab_cache["random"])
-            except pwndbg.dbg_mod.Error:
-                return 0
-
         return (
             int(self._slab_cache["random"]) if "SLAB_FREELIST_HARDENED" in kernel.kconfig() else 0
         )

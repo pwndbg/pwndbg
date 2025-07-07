@@ -388,7 +388,7 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
             for page in pages:
                 if page.objfile == kv.pi.ESPSTACK:
                     continue
-                pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
+                _, pgwalk_res = pwndbg.aglib.kernel.pagewalk(page.start)
                 entry, _ = pgwalk_res[0]
                 if entry and entry >> 63 == 0:
                     page.flags |= 1

@@ -46,7 +46,7 @@ class BitFlags:
         if isinstance(r, int):
             return (self.value >> r) & 1
         s, e = r
-        return ((~((1 << s) - 1) & ((1 << e) - 1)) & self.value) >> s
+        return ((~((1 << s) - 1) & ((1 << (e + 1)) - 1)) & self.value) >> s
 
     def __setitem__(self, key, value):
         self.flags[key] = value
@@ -485,7 +485,7 @@ aarch64_cpsr_flags = BitFlags(
         ("A", 8),
         ("I", 7),
         ("F", 6),
-        ("EL", (2, 2)),
+        ("EL", 2),
         ("SP", 0),
     ]
 )
@@ -535,6 +535,7 @@ aarch64_tcr_flags = BitFlags(
     [
         ("TG1", (30, 31)),
         ("T1SZ", (16, 21)),
+        ("TG0", (14, 15)),
         ("T0SZ", (0, 5)),
     ]
 )
@@ -608,6 +609,8 @@ aarch64 = RegisterSet(
         "spsr_el2": aarch64_cpsr_flags,
         "spsr_el3": aarch64_cpsr_flags,
         "tcr_el1": aarch64_tcr_flags,
+        "ttbr0_el1": BitFlags(),
+        "ttbr1_el1": BitFlags(),
     },
     # X29 is the frame pointer register (FP) but setting it
     # as frame here messes up the register order to the point
