@@ -92,6 +92,16 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         *,
         type: pwndbg.dbg_mod.SymbolLookupType = pwndbg.dbg_mod.SymbolLookupType.ANY,
     ) -> pwndbg.dbg_mod.Value | None:
+        # `symbol_name_at_address` encodes offsets as part of the name, handle
+        # that here.
+        offset = 0
+        try:
+            idx = name.rindex("+")
+            offset = int(name[idx:], 10)
+            name = name[:idx]
+        except ValueError:
+            pass
+
         # FIXME: how to sanitize symbol name better?
         if not re.match(r"^[a-zA-Z0-9_.:@*/$]+$", name):
             raise pwndbg.dbg_mod.Error(f"Symbol {name!r} contains invalid characters")
@@ -106,6 +116,9 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
             # Fallback because `evaluate_expression` may fail to resolve symbols for TLS variables.
             # This issue occurs on certain architectures (e.g., it works fine on x86_64 but fails on aarch64).
             value = self.proc.lookup_symbol(name, type=type)
+
+        if value is not None:
+            value += offset
 
         return value
 
@@ -1229,7 +1242,16 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if not ctx.IsValid() or not ctx.symbol.IsValid():
             return None
 
-        # TODO: In GDB, we return something like `main+0x10`, but in LLDB, we do not.
+        sym_addr = ctx.symbol.addr.GetLoadAddress(self.target)
+        assert (
+            sym_addr <= address
+        ), f"LLDB returned an out-of-range address {sym_addr:#x} for a requested symbol with address {address:#x}"
+
+        if sym_addr != address:
+            # Print the symbol name along with an offset value if the address we
+            # were given does not match up with the symbol exactly.
+            return f"{ctx.symbol.name}+{address - sym_addr}"
+
         return ctx.symbol.name
 
     def _resolve_tls_symbol(self, sym: lldb.SBSymbol) -> int | None:
