@@ -1007,8 +1007,14 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         e = lldb.SBError()
         count = self.process.WriteMemory(address, data, e)
-        if count < len(data) and not partial:
+        if (count < len(data) or not e.success) and not partial:
             raise pwndbg.dbg_mod.Error(f"could not write {len(data)} bytes: {e}")
+
+        # In some instances - eg. writing to the PC - writing may still have
+        # failed when we get here. Make sure we can read it back, to a point.
+        readback_len = min(len(data), 64)
+        if self.read_memory(address, readback_len) != data[:readback_len]:
+            raise pwndbg.dbg_mod.Error(f"could not write {len(data)} bytes: read-back failed")
 
         # We know some memory got changed.
         self.dbg._trigger_event(pwndbg.dbg_mod.EventType.MEMORY_CHANGED)
