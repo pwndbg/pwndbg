@@ -9,6 +9,8 @@ BINARY = tests.get_binary("reference-binary.out")
 
 
 async def run_tests(ctrl: Controller, stack: int, use_big_endian: bool, expected: str) -> None:
+    from pwnlib.util.cyclic import cyclic
+
     import pwndbg
     import pwndbg.aglib.memory
 
@@ -122,6 +124,9 @@ async def test_hexdump_limit_check(ctrl: Controller):
     """
     Tests that the hexdump command respects the hexdump-limit-mb settings.
     """
+    import pwndbg.aglib.regs
+    from pwndbg.dbg import Error
+
     await ctrl.launch(BINARY)
     sp = pwndbg.aglib.regs.rsp
 
@@ -133,8 +138,8 @@ async def test_hexdump_limit_check(ctrl: Controller):
 
     # 1. Test that count over the default limit raises PwndbgError
     print(f"Testing count over default limit ({count_over_limit} bytes)")
-    with pytest.raises(gdb.error, match="exceeds the current limit"):
-        gdb.execute(f"hexdump {sp} {count_over_limit}", to_string=True)
+    with pytest.raises(Error, match="exceeds the current limit"):
+        await ctrl.execute(f"hexdump {sp} {count_over_limit}")
     print(" -> Correctly raised error.")
 
     # 2. Test that count within the default limit works
@@ -142,7 +147,7 @@ async def test_hexdump_limit_check(ctrl: Controller):
     # We don't expect an error here. Just executing it is the test.
     # We could assert on the output, but simply not crashing/erroring is the main goal.
     try:
-        gdb.execute(f"hexdump {sp} {count_within_limit}", to_string=True)
+        await ctrl.execute(f"hexdump {sp} {count_within_limit}")
     except Exception as e:
         pytest.fail(f"Hexdump failed unexpectedly with count within limit: {e}")
     print(" -> Correctly executed.")
@@ -151,21 +156,18 @@ async def test_hexdump_limit_check(ctrl: Controller):
     new_limit_mb = 15
     count_over_default_under_new = (default_limit_mb + 1) * 1024 * 1024
     print(f"Setting limit to {new_limit_mb} MB and testing count {count_over_default_under_new}")
-    gdb.execute(f"set hexdump-limit-mb {new_limit_mb}")
+    await ctrl.execute(f"set hexdump-limit-mb {new_limit_mb}")
     try:
-        gdb.execute(f"hexdump {sp} {count_over_default_under_new}", to_string=True)
+        await ctrl.execute(f"hexdump {sp} {count_over_default_under_new}")
     except Exception as e:
         pytest.fail(f"Hexdump failed unexpectedly after increasing limit: {e}")
     print(" -> Correctly executed after increasing limit.")
 
     # 4. Test disabling the limit (set to 0) allows larger dumps
     print(f"Setting limit to 0 and testing count {count_over_default_under_new}")
-    gdb.execute("set hexdump-limit-mb 0")
+    await ctrl.execute("set hexdump-limit-mb 0")
     try:
-        gdb.execute(f"hexdump {sp} {count_over_default_under_new}", to_string=True)
+        await ctrl.execute(f"hexdump {sp} {count_over_default_under_new}")
     except Exception as e:
         pytest.fail(f"Hexdump failed unexpectedly after disabling limit: {e}")
     print(" -> Correctly executed after disabling limit.")
-
-    # Reset to default for subsequent tests if any
-    gdb.execute(f"set hexdump-limit-mb {default_limit_mb}")

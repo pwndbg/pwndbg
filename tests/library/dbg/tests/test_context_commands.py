@@ -92,7 +92,7 @@ async def test_empty_context_sections(ctrl: Controller, sections: str) -> None:
     # Actual test check
     await ctrl.execute(f"set context-sections {sections}")
     assert pwndbg.config.context_sections.value == ""
-    assert (await ctrl.execute_and_capture("context")) != ""
+    assert (await ctrl.execute_and_capture("context")) == ""
 
     # Bring back old values && sanity check
     await ctrl.execute(f"set context-sections {default_ctx_sects}")
@@ -201,7 +201,7 @@ async def test_context_disasm_syscalls_args_display(ctrl: Controller) -> None:
 async def test_context_disasm_syscalls_args_display_no_emulate(ctrl: Controller) -> None:
     await ctrl.execute("set emulate off")
 
-    await ctlr.launch(SYSCALLS_BINARY)
+    await ctrl.launch(SYSCALLS_BINARY)
 
     await ctrl.execute("nextsyscall")
     dis = await ctrl.execute_and_capture("context disasm")
@@ -402,7 +402,7 @@ async def test_context_disasm_call_instruction_split(ctrl: Controller) -> None:
     """
     import pwndbg.color
 
-    await ctlr.launch(LONG_FUNCTION_X64_BINARY)
+    await ctrl.launch(LONG_FUNCTION_X64_BINARY)
 
     # Call ctx so instructions get disassembled and cached
     await ctrl.execute("ctx")
@@ -478,6 +478,8 @@ async def test_context_hide_sections(ctrl: Controller) -> None:
 
 @tests.pwndbg_test
 async def test_context_history_prev_next(ctrl: Controller) -> None:
+    import pwndbg
+
     await ctrl.launch(LONG_FUNCTION_X64_BINARY)
 
     # Add two context outputs to the history
@@ -544,10 +546,8 @@ async def test_context_history_search(ctrl: Controller) -> None:
     tests.break_at_sym("break_here")
 
     await ctrl.cont()
-
-    await ctrl.execute("continue")
     await ctrl.execute("context")
-    await ctrl.execute("continue")
+    await ctrl.cont()
     await ctrl.execute("context")
 
     for _ in range(5):

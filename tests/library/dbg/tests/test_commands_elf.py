@@ -13,12 +13,13 @@ NOPIE_BINARY_WITH_PLT = "reference_bin_nopie.out"
 NOPIE_I386_BINARY_WITH_PLT = "reference_bin_nopie.i386.out"
 
 
-def test_commands_plt_gotplt_got_when_no_sections(start_binary):
-    start_binary(NO_SECTS_BINARY)
+@tests.pwndbg_test
+async def test_commands_plt_gotplt_got_when_no_sections(ctrl: Controller) -> None:
+    await ctrl.launch(NO_SECTS_BINARY)
 
     # elf.py commands
-    assert gdb.execute("plt", to_string=True) == "No .plt.* sections found\n"
-    assert gdb.execute("gotplt", to_string=True) == "Could not find section .got.plt\n"
+    assert (await ctrl.execute_and_capture("plt")) == "No .plt.* sections found\n"
+    assert (await ctrl.execute_and_capture("gotplt")) == "Could not find section .got.plt\n"
 
 
 @pytest.mark.parametrize(

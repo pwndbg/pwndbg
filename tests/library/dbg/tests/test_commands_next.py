@@ -49,13 +49,15 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
     assert pwndbg.aglib.regs.pc in main_page
 
     # Ensure that nextproginstr won't jump now
-    out = ctrl.execute("nextproginstr")
+    out = await ctrl.execute_and_capture("nextproginstr")
     assert out == "The pc is already at the binary objfile code. Not stepping.\n"
 
 
 @pytest.mark.parametrize("command", NEXT_COMMANDS)
 @tests.pwndbg_test
 async def test_next_command_doesnt_freeze_crashed_binary(ctrl: Controller, command: str) -> None:
+    import pwndbg.aglib.regs
+
     await ctrl.launch(CRASH_SIMPLE_BINARY)
 
     # The nextproginstr won't step if we are already on the binary address

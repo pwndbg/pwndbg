@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Coroutine
+from typing import Dict
 from typing import List
 
 
@@ -26,11 +27,14 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
         def __init__(self, pc: PwndbgController):
             self.pc = pc
 
-        async def launch(self, binary: Path, args: List[str] = []) -> None:
+        async def launch(
+            self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
+        ) -> None:
             await self.pc.execute("set context-reserve-lines never")
             await self.pc.execute(f"target create {binary}")
+            env_args = " ".join((f"-E{k}={v}" for k, v in env.items()))
             await self.pc.execute(
-                "process launch -s -- " + " ".join(shlex.quote(arg) for arg in args)
+                f"process launch {env_args} -s -- " + " ".join(shlex.quote(arg) for arg in args)
             )
 
         async def cont(self) -> None:

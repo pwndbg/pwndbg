@@ -55,8 +55,8 @@ async def test_mmap_executes_properly(ctrl: Controller) -> None:
         if page is None:
             break
         base_addr = page.end
-    output = gdb.execute(
-        f"mmap {base_addr:#x} {page_size} 7 MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE", to_string=True
+    output = await ctrl.execute_and_capture(
+        f"mmap {base_addr:#x} {page_size} 7 MAP_FIXED|MAP_ANONYMOUS|MAP_PRIVATE"
     )
     assert output.startswith("mmap syscall returned ")
     ptr = int(output.split(" returned ")[1].rstrip(), 16)

@@ -254,7 +254,7 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     )
     assert dis == expected
 
-    bp2.set_enabled(True)
+    bp1.set_enabled(True)
     dis = await ctrl.execute_and_capture("nearpc")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"

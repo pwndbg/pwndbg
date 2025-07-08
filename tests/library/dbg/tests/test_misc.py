@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import tests
+
 STACK_COMMANDS = [
     ("canary", [], "Stack", "Print out the current stack canary."),
     # The aliases 'do' and 'dow' were added to support the help consistency test.

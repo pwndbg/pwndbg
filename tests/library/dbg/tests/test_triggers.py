@@ -6,6 +6,7 @@ from unittest import mock
 from host import Controller
 
 import pwndbg.lib.config
+import tests
 
 
 async def set_param(ctrl: Controller, param_name: str, value: Any):
@@ -65,6 +66,7 @@ async def test_triggers(ctrl: Controller) -> None:
     #       must ensure this only happens after this test case has gone through
     #       all parameters that set color, or the test will likely fail.
     #
+    from pwndbg import config
 
     deferred = []
     for param_name, triggers in config.triggers.items():

@@ -16,7 +16,7 @@ async def test_tls_address_and_command(ctrl: Controller, binary: str):
     import pwndbg.aglib.tls
     import pwndbg.aglib.vmmap
 
-    await ctrl.launch(binary)
+    await tests.launch_to(ctrl, binary, "break_here")
 
     expected_tls_address = int(
         pwndbg.dbg.selected_frame().evaluate_expression("(void *)tls_address")

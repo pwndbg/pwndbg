@@ -9,9 +9,7 @@ GOSAMPLE_X86 = tests.get_binary("gosample.x86")
 
 
 async def helper_test_dump(ctrl: Controller, target: str) -> None:
-    gdb.execute("set environment GOMAXPROCS=1")
-
-    await ctrl.launch(filename, env={"GOMAXPROCS": "1"})
+    await ctrl.launch(target, env={"GOMAXPROCS": "1"})
 
     await ctrl.execute("b gosample.go:6")
     await ctrl.cont()
@@ -37,9 +35,9 @@ async def helper_test_dump(ctrl: Controller, target: str) -> None:
 
 @tests.pwndbg_test
 async def test_go_dumping_x64(ctrl: Controller) -> None:
-    await helper_test_dump(start_binary, GOSAMPLE_X64)
+    await helper_test_dump(ctrl, GOSAMPLE_X64)
 
 
 @tests.pwndbg_test
 async def test_go_dumping_x86(ctrl: Controller) -> None:
-    await helper_test_dump(start_binary, GOSAMPLE_X86)
+    await helper_test_dump(ctrl, GOSAMPLE_X86)
