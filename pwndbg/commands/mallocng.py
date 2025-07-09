@@ -435,7 +435,7 @@ def smart_dump_slot(
     return output
 
 
-def dump_meta_area(meta_area: mallocng.MetaArea) -> str:
+def dump_meta_area(meta_area: mallocng.MetaArea, dont_print_slots: bool = False) -> str:
     area_range = (
         "@ "
         + C.memory.get(meta_area.addr)
@@ -445,13 +445,20 @@ def dump_meta_area(meta_area: mallocng.MetaArea) -> str:
 
     pp = PropertyPrinter()
 
+    if dont_print_slots:
+        slots = ""
+        slots_is_addr = False
+    else:
+        slots = meta_area.slots
+        slots_is_addr = True
+
     pp.start_section("meta_area", area_range)
     pp.add(
         [
             Property(name="check", value=meta_area.check),
             Property(name="next", value=meta_area.next, is_addr=True),
             Property(name="nslots", value=meta_area.nslots),
-            Property(name="slots", value=meta_area.slots, is_addr=True),
+            Property(name="slots", value=slots, is_addr=slots_is_addr, extra="array of metas"),
         ]
     )
     return pp.dump()
@@ -1112,6 +1119,94 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
         last_color = cur_slot_color
 
     print("\n".join(out))
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Dump the mallocng heap.
+
+May produce lots of output.
+    """,
+)
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-dump"],
+    notes="""
+Since the command may produce lots of output, you may want to pipe it to
+less with `| ng-dump | less -R`.
+""",
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_dump() -> None:
+    ctx: mallocng.MallocContext = ng.ctx
+
+    try:
+        free_metas = ng.get_free_metas()
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(f"Failed traversing free meta chain. {e}"))
+        print(message.error("Meta allocation state may be wrong."))
+        free_metas = {}
+
+    meta_padding = " " * 10
+    slot_padding = " " * 15
+
+    # Iterate over all meta_areas
+    ma_addr = ctx.meta_area_head
+    while ma_addr != 0:
+        print()
+
+        try:
+            meta_area = mallocng.MetaArea(ma_addr)
+        except pwndbg.dbg_mod.Error as e:
+            print(message.error(f"Cannot read meta area @ {ma_addr:#x}: {e}"))
+            break
+
+        print(dump_meta_area(meta_area, dont_print_slots=True))
+
+        # Iterate over all metas in this meta_area
+        for i in range(0, meta_area.nslots):
+            meta_addr = meta_area.at_index(i)
+
+            # FIXME: Take the colors from ng-vis
+
+            if meta_addr in free_metas:
+                print(meta_padding + C.red(f"{meta_addr:#x}" + f" [{free_metas[meta_addr][0]}]"))
+            elif ng.meta_is_avail(meta_addr):
+                print(meta_padding + C.blue(f"{meta_addr:#x}"))
+            else:
+                print(meta_padding + C.green(f"{meta_addr:#x}"), end="")
+
+                try:
+                    meta = mallocng.Meta(meta_addr)
+                    meta.preload()
+                    group = mallocng.Group(meta.mem)
+                    meta.preload()
+                except pwndbg.dbg_mod.Error as e:
+                    print(message.error(f"Failed resolving meta / group data ({e}). Skipping.."))
+                    continue
+
+                print(f" -> group @ {group.addr:#x} (slot size: {meta.stride:#x})")
+
+                # Iterate over all slots in this group
+                idx = 0
+                while idx < meta.cnt:
+                    slot_addr = group.at_index(idx)
+                    sstate = meta.slotstate_at_index(idx)
+                    # FIXME: Take the colors from nv-vis.
+                    match sstate:
+                        case mallocng.SlotState.ALLOCATED:
+                            print(slot_padding + C.green(f"{slot_addr:#x}") + f" [{idx}]")
+                        case mallocng.SlotState.FREED:
+                            print(slot_padding + C.red(f"{slot_addr:#x}") + f" [{idx}]")
+                        case mallocng.SlotState.AVAIL:
+                            print(slot_padding + C.blue(f"{slot_addr:#x}") + f" [{idx}]")
+                    idx += 1
+
+                print()
+
+        ma_addr = meta_area.next
 
 
 @pwndbg.commands.Command(
