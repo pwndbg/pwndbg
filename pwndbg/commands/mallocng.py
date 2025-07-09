@@ -1136,6 +1136,10 @@ May produce lots of output.
     notes="""
 Since the command may produce lots of output, you may want to pipe it to
 less with `| ng-dump | less -R`.
+
+The [index] next to the metas is their index in the doubly linked list
+pointed to by ctx.freed_meta_head. The [index] next to the slots is
+the slot's index inside of its group (thus, these will always be sequential).
 """,
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -1155,8 +1159,6 @@ def mallocng_dump() -> None:
     # Iterate over all meta_areas
     ma_addr = ctx.meta_area_head
     while ma_addr != 0:
-        print()
-
         try:
             meta_area = mallocng.MetaArea(ma_addr)
         except pwndbg.dbg_mod.Error as e:
@@ -1207,6 +1209,7 @@ def mallocng_dump() -> None:
                 print()
 
         ma_addr = meta_area.next
+        print()
 
 
 @pwndbg.commands.Command(
