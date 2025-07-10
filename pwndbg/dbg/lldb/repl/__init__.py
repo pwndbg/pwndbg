@@ -957,7 +957,7 @@ def target_create(args: List[str], dbg: LLDB) -> None:
 
 
 process_launch_ap = argparse.ArgumentParser(add_help=False, prog="process launch")
-process_launch_ap.add_argument("-A", "--disable-aslr")
+process_launch_ap.add_argument("-A", "--disable-aslr", type=_bool_of_string, default=False)
 process_launch_ap.add_argument("-C", "--script-class")
 process_launch_ap.add_argument("-E", "--environment", action="append")
 process_launch_ap.add_argument("-P", "--plugin")
@@ -975,7 +975,6 @@ process_launch_ap.add_argument("-v", "--structured-data-value")
 process_launch_ap.add_argument("-w", "--working-dir")
 process_launch_ap.add_argument("run-args", nargs="*")
 process_launch_unsupported = [
-    "disable-aslr",
     "script-class",
     "plugin",
     "arch",
@@ -1032,6 +1031,7 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         + (args.environment if args.environment else []),
         launch_args,
         os.getcwd(),
+        args.disable_aslr,
     )
 
     match result:
