@@ -37,7 +37,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
         heap_addr += offset
         return heap_addr
 
-    def hexdump_16B(gdb_symbol):
+    async def hexdump_16B(gdb_symbol):
         from pwndbg.commands.ptmalloc2 import bin_ascii
 
         first, second = (await ctrl.execute_and_capture(f"x/16xb {gdb_symbol}")).splitlines()
@@ -46,10 +46,10 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
         return bin_ascii(first + second)
 
-    def vis_heap_line(heap_iter_offset=0x10, suffix=""):
+    async def vis_heap_line(heap_iter_offset=0x10, suffix=""):
         """Returns data to format a vis_heap_chunk line"""
         addr = heap_iter(heap_iter_offset)
-        hexdump = hexdump_16B(addr)
+        hexdump = await hexdump_16B(addr)
 
         nonlocal dq2
         dq1, dq2 = map(pwndbg.aglib.memory.u64, (addr, addr + 8))
@@ -59,7 +59,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
         return formatted
 
-    first_hexdump = hexdump_16B(hex(heap_page.start))
+    first_hexdump = await hexdump_16B(hex(heap_page.start))
 
     expected = [
         "",
@@ -87,7 +87,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     del result
 
     ## Test vis_heap_chunk with count=2
-    result2 = (await ctrl.execute("vis-heap-chunk 2")).splitlines()
+    result2 = (await ctrl.execute_and_capture("vis-heap-chunk 2")).splitlines()
 
     # Note: we copy expected here but we truncate last line as it is easier
     # to provide it in full here
@@ -109,7 +109,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     expected3 = expected2[:-1] + [
         "%#x\t0x0000000000000000\t0x0000000000000021\t........!......." % heap_iter(0),
         "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter(),
-        vis_heap_line(suffix="\t <-- Top chunk"),
+        await vis_heap_line(suffix="\t <-- Top chunk"),
     ]
     assert result3 == expected3
 
@@ -141,7 +141,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
         "%#x\t0x0000000000000000\t0x0000000000000031\t........1......." % heap_iter(0),
         "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter(),
         "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter(),
-        vis_heap_line(suffix="\t <-- Top chunk"),
+        await vis_heap_line(suffix="\t <-- Top chunk"),
     ]
 
     assert result4_b == expected4_b
@@ -166,7 +166,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     tcache_next = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[0]->next"))
     tcache_key = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[0]->key"))
 
-    tcache_hexdump = hexdump_16B("tcache->entries[0]")
+    tcache_hexdump = await hexdump_16B("tcache->entries[0]")
     freed_chunk = "{:#x}\t{:#018x}\t{:#018x}\t{}\t ".format(
         heap_iter(-0x40),
         tcache_next,
@@ -180,22 +180,22 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     expected_all3 = [""]
 
     # Add the biggest chunk, the one from libc
-    expected_all3.append(vis_heap_line(0))
+    expected_all3.append(await vis_heap_line(0))
 
     last_chunk_size = dq2
     for _ in range(last_chunk_size // 16):
-        expected_all3.append(vis_heap_line())
+        expected_all3.append(await vis_heap_line())
 
     last_chunk_size = dq2
     for _ in range(last_chunk_size // 16):
-        expected_all3.append(vis_heap_line())
-    expected_all3.append(vis_heap_line(suffix="\t <-- tcachebins[0x20][0/1]"))
+        expected_all3.append(await vis_heap_line())
+    expected_all3.append(await vis_heap_line(suffix="\t <-- tcachebins[0x20][0/1]"))
 
-    expected_all3.append(vis_heap_line())
+    expected_all3.append(await vis_heap_line())
     last_chunk_size = dq2
     for _ in range(last_chunk_size // 16 - 1):
-        expected_all3.append(vis_heap_line())
-    expected_all3.append(vis_heap_line(suffix="\t <-- Top chunk"))
+        expected_all3.append(await vis_heap_line())
+    expected_all3.append(await vis_heap_line(suffix="\t <-- Top chunk"))
 
     assert result_all3 == expected_all3
 

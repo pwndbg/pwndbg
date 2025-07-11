@@ -19,8 +19,10 @@ async def test_heap_bins(ctrl: Controller) -> None:
     import pwndbg.aglib.vmmap
     from pwndbg.aglib.heap.ptmalloc import BinType
 
+    await ctrl.launch(BINARY)
     await ctrl.execute("set context-output /dev/null")
-    await tests.launch_to(ctrl, BINARY, "breakpoint")
+    await ctrl.execute("b breakpoint")
+    await ctrl.cont()
 
     # check if all bins are empty at first
     allocator = pwndbg.aglib.heap.current

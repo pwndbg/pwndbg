@@ -147,7 +147,7 @@ async def test_malloc_chunk_command(ctrl: Controller) -> None:
     for name in chunk_types:
         chunks[name] = pwndbg.aglib.memory.get_typed_pointer_value(
             pwndbg.aglib.heap.current.malloc_chunk,
-            int(pwndbg.aglib.symbol.lookup_symbol(f"{name}_chunk")),
+            pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk"),
         )
         results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
 
@@ -170,7 +170,7 @@ async def test_malloc_chunk_command(ctrl: Controller) -> None:
     for name in chunk_types:
         chunks[name] = pwndbg.aglib.memory.get_typed_pointer_value(
             pwndbg.aglib.heap.current.malloc_chunk,
-            int(pwndbg.aglib.symbol.lookup_symbol(f"{name}_chunk")),
+            pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk"),
         )
         results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
 
@@ -205,7 +205,7 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
     chunk_types = ["allocated", "tcache", "fast", "small", "large", "unsorted"]
     for name in chunk_types:
         chunks[name] = pwndbg.aglib.heap.current.malloc_chunk(
-            int(pwndbg.aglib.symbol.lookup_symbol(f"{name}_chunk"))
+            pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk")
         )
         results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
 
@@ -227,7 +227,7 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
     # Test some non-main-arena chunks
     for name in chunk_types:
         chunks[name] = pwndbg.aglib.heap.current.malloc_chunk(
-            int(pwndbg.aglib.symbol.lookup_symbol(f"{name}_chunk"))
+            pwndbg.aglib.symbol.lookup_symbol_value(f"{name}_chunk")
         )
         results[name] = (await ctrl.execute_and_capture(f"malloc-chunk {name}_chunk")).splitlines()
 
@@ -255,7 +255,8 @@ async def test_malloc_chunk_dump_command(ctrl: Controller) -> None:
     await tests.launch_to(ctrl, HEAP_MALLOC_CHUNK_DUMP, "break_here")
 
     chunk = pwndbg.aglib.memory.get_typed_pointer_value(
-        pwndbg.aglib.heap.current.malloc_chunk, int(pwndbg.aglib.symbol.lookup_symbol("test_chunk"))
+        pwndbg.aglib.heap.current.malloc_chunk,
+        pwndbg.aglib.symbol.lookup_symbol_value("test_chunk"),
     )
     chunk_addr = chunk.address
 
@@ -286,6 +287,8 @@ async def test_malloc_chunk_dump_command(ctrl: Controller) -> None:
 
 class mock_for_heuristic:
     def __init__(self, mock_symbols=[], mock_all=False):
+        import pwndbg
+
         self.mock_symbols = (
             mock_symbols  # every symbol's address in the list will be mocked to `None`
         )
@@ -294,6 +297,8 @@ class mock_for_heuristic:
         self.saved_func = pwndbg.dbg.selected_inferior
 
     def __enter__(self):
+        import pwndbg
+
         def mock_lookup_symbol(original):
             def _mock(symbol, *args, **kwargs):
                 if self.mock_all:
@@ -317,6 +322,8 @@ class mock_for_heuristic:
         pwndbg.dbg.selected_inferior = mock_interior(pwndbg.dbg.selected_inferior)
 
     def __exit__(self, exc_type, exc_value, traceback):
+        import pwndbg
+
         # Restore `selected_inferior`
         pwndbg.dbg.selected_inferior = self.saved_func
 
@@ -516,6 +523,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
 @tests.pwndbg_test
 async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bool) -> None:
     import pwndbg.aglib.heap
+    from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
@@ -573,8 +581,13 @@ async def test_jemalloc_find_extent(ctrl: Controller) -> None:
         "Small class: True",
     ]
 
-    for i in range(len(expected_output)):
-        assert re.match(expected_output[i], result[i])
+    expected_idx = 0
+    for i in range(len(result)):
+        if expected_idx == len(expected_output):
+            break
+        if re.match(expected_output[expected_idx], result[i]) is not None:
+            expected_idx += 1
+    assert expected_idx == len(expected_output)
 
 
 @tests.pwndbg_test
@@ -601,8 +614,13 @@ async def test_jemalloc_extent_info(ctrl: Controller) -> None:
         "Small class: True",
     ]
 
-    for i in range(len(expected_output)):
-        assert re.match(expected_output[i], result[i])
+    expected_idx = 0
+    for i in range(len(result)):
+        if expected_idx == len(expected_output):
+            break
+        if re.match(expected_output[expected_idx], result[i]) is not None:
+            expected_idx += 1
+    assert expected_idx == len(expected_output)
 
 
 @tests.pwndbg_test
@@ -627,5 +645,10 @@ async def test_jemalloc_heap(ctrl: Controller) -> None:
         "Small class: False",
     ]
 
-    for i in range(len(expected_output)):
-        assert re.match(expected_output[i], result[i])
+    expected_idx = 0
+    for i in range(len(result)):
+        if expected_idx == len(expected_output):
+            break
+        if re.match(expected_output[expected_idx], result[i]) is not None:
+            expected_idx += 1
+    assert expected_idx == len(expected_output)

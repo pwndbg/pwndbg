@@ -54,7 +54,7 @@ async def test_find_fake_fast_command(ctrl: Controller) -> None:
 
     # Ensure memory at fake_chunk's heap_info struct isn't mapped.
     unmapped_heap_info = pwndbg.aglib.heap.ptmalloc.heap_for_ptr(
-        int(gdb.lookup_global_symbol("fake_chunk").value())
+        int(pwndbg.aglib.symbol.lookup_symbol_value("fake_chunk"))
     )
     assert pwndbg.aglib.memory.peek(unmapped_heap_info) is None
 

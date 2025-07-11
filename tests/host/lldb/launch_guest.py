@@ -55,7 +55,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             await self.pc.execute("thread step-out")
 
         async def select_thread(self, tid: int) -> None:
-            await self.pc.execute(f"thread select -t {tid}")
+            await self.pc.execute(f"thread select {tid}")
 
     await outer(_LLDBController(ctrl))
 

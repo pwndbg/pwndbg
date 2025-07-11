@@ -76,7 +76,7 @@ async def setup_heap(ctrl: Controller, bug_no: int) -> Dict[str, int]:
     except FileNotFoundError:
         pass
 
-    await ctrl.launch(HEAP_BINARY, args=[str(bug_no), f"> {OUTPUT_FILE}"])
+    await ctrl.launch(HEAP_BINARY, args=[str(bug_no), f"{OUTPUT_FILE}"])
     await ctrl.execute("b " + str(breakpoints[bug_no][0]))
     await ctrl.execute("b " + str(breakpoints[bug_no][1]))
 
