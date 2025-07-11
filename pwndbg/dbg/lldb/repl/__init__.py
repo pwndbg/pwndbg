@@ -417,22 +417,31 @@ def exec_repl_command(
     Parses and runs the given command, returning whether the event loop should continue.
     """
     stdout = None
+    stderr = None
     lldb_out = None
+    lldb_err = None
     try:
         stdout = sys.stdout
+        stderr = sys.stderr
         lldb_out = dbg.debugger.GetOutputFile()
+        lldb_err = dbg.debugger.GetErrorFile()
 
         sys.stdout = output_to
         dbg.debugger.SetOutputFile(
             lldb.SBFile.Create(output_to, borrow=True, force_io_methods=True)
         )
+        dbg.debugger.SetErrorFile(lldb.SBFile.Create(output_to, borrow=True, force_io_methods=True))
 
         return _exec_repl_command(line, output_to.buffer, dbg, driver, relay)
     finally:
         if stdout is not None:
             sys.stdout = stdout
+        if stderr is not None:
+            sys.stderr = stderr
         if lldb_out is not None:
             dbg.debugger.SetOutputFile(lldb_out)
+        if lldb_err is not None:
+            dbg.debugger.SetErrorFile(lldb_err)
 
 
 def _exec_repl_command(
