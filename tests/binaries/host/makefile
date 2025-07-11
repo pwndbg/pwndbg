@@ -14,7 +14,7 @@ COMPILED_ASM    =      $(SOURCES_ASM:.asm=.o)
 LINKED_ASM      =      $(SOURCES_ASM:.asm=.out)
 LDFLAGS         =
 EXTRA_FLAGS     =
-EXTRA_FLAGS_ASM =
+EXTRA_FLAGS_ASM =      -g -F dwarf
 
 GO              =      go
 SOURCES_GO      =      $(wildcard *.go)

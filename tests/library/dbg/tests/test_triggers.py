@@ -5,8 +5,9 @@ from unittest import mock
 
 from host import Controller
 
-import pwndbg.lib.config
 import tests
+
+REFERENCE_BINARY = tests.get_binary("reference-binary.out")
 
 
 async def set_param(ctrl: Controller, param_name: str, value: Any):
@@ -14,13 +15,16 @@ async def set_param(ctrl: Controller, param_name: str, value: Any):
 
 
 async def single_param(ctrl: Controller, param_name: str, triggers: Any):
+    import pwndbg
     from pwndbg import config
 
     p = getattr(config, param_name.replace("-", "_"))
 
     mock_triggers = []
-    for trigger in triggers:
-        mock_triggers.append(mock.Mock(side_effect=trigger))
+    # Side-effects of some `integration-provider` triggers require GDB.
+    if param_name != "integration-provider" or pwndbg.dbg.is_gdblib_available():
+        for trigger in triggers:
+            mock_triggers.append(mock.Mock(side_effect=trigger))
 
     orig_triggers = config.triggers[param_name]
     config.triggers[param_name] = mock_triggers
@@ -67,6 +71,9 @@ async def test_triggers(ctrl: Controller) -> None:
     #       all parameters that set color, or the test will likely fail.
     #
     from pwndbg import config
+
+    # Some triggers require an active inferior, so launch it.
+    await ctrl.launch(REFERENCE_BINARY)
 
     deferred = []
     for param_name, triggers in config.triggers.items():

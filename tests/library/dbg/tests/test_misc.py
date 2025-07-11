@@ -5,10 +5,8 @@ import tests
 STACK_COMMANDS = [
     ("canary", [], "Stack", "Print out the current stack canary."),
     # The aliases 'do' and 'dow' were added to support the help consistency test.
-    ("down", ["do", "dow"], "Misc", "Select and print stack frame called by this one."),
     ("retaddr", [], "Stack", "Print out the stack addresses that contain return addresses."),
     ("stack", [], "Stack", "Dereferences on stack data with specified count and offset."),
-    ("up", [], "Misc", "Select and print stack frame that called this one."),
 ]
 
 

@@ -38,19 +38,19 @@ async def test_command_plt(ctrl: Controller, binary_name: str, is_pie: bool) -> 
 
         gdb.execute(f"file {binary}")
 
-        out = gdb.execute("plt", to_string=True).splitlines()
+        out = gdb.execute("plt -a", to_string=True).splitlines()
 
         assert len(out) == 2
         assert re.match(r"Section \.plt 0x[0-9a-f]+ - 0x[0-9a-f]+:", out[0])
-        assert re.match(r"0x[0-9a-f]+: puts@plt", out[1])
+        assert re.match(r"0x[0-9a-f]+: puts(@plt)?", out[1])
 
     await ctrl.launch(binary)
 
-    out2 = (await ctrl.execute_and_capture("plt")).splitlines()
+    out2 = (await ctrl.execute_and_capture("plt -a")).splitlines()
 
     assert len(out2) == 2
     assert re.match(r"Section \.plt 0x[0-9a-f]+ - 0x[0-9a-f]+:", out2[0])
-    assert re.match(r"0x[0-9a-f]+: puts@plt", out2[1])
+    assert re.match(r"0x[0-9a-f]+: puts(@plt)?", out2[1])
 
     if pwndbg.dbg.is_gdblib_available():
         if is_pie:

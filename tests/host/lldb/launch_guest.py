@@ -34,7 +34,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             await self.pc.execute(f"target create {binary}")
             env_args = " ".join((f"-E{k}={v}" for k, v in env.items()))
             await self.pc.execute(
-                f"process launch {env_args} -s -- " + " ".join(shlex.quote(arg) for arg in args)
+                f"process launch -A true {env_args} -s -- " + " ".join(shlex.quote(arg) for arg in args)
             )
 
         async def cont(self) -> None:
@@ -98,6 +98,8 @@ class CollectTestFunctionNames:
 
 
 if __name__ == "__main__":
+    sys._pwndbg_unittest_run = True  # type: ignore[attr-defined]
+
     # Prepare the requested operation.
     op = Operation(os.environ["TEST_OPERATION"])
     match op:

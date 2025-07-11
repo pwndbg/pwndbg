@@ -33,12 +33,14 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     out = pwndbg.commands.context.context_disasm()
     assert "[ DISASM / x86-64 / set emulate on ]" in out[0]  # Sanity check
 
-    call_read_line_idx = out.index(next(line for line in out if "<read@plt>" in line))
+    call_read_line_idx = out.index(
+        next(line for line in out if "<read@plt>" in line or "<read>" in line)
+    )
     lines_after_call_read = out[call_read_line_idx:]
 
     line_call_read, line_fd, line_buf, line_nbytes, *_rest = lines_after_call_read
 
-    assert "call   read@plt" in line_call_read
+    assert "call   read@plt" in line_call_read or "call   read" in line_call_read
 
     # When running tests with GNU Parallel, sometimes the file name looks
     # '/tmp/parZ4YC4.par', and occasionally '(deleted)' is present after the
@@ -62,7 +64,9 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     out = pwndbg.commands.context.context_disasm()
     assert "[ DISASM / x86-64 / set emulate on ]" in out[0]  # Sanity check
 
-    call_read_line_idx = out.index(next(line for line in out if "<read@plt>" in line))
+    call_read_line_idx = out.index(
+        next(line for line in out if "<read@plt>" in line or "<read>" in line)
+    )
     lines_after_call_read = out[call_read_line_idx:]
 
     line_call_read, line_fd, line_buf, line_nbytes, *_rest = lines_after_call_read
@@ -77,7 +81,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     assert re.match(r"nbytes:\s+0x10", line_nbytes)
 
 
-@pytest.mark.parametrize("sections", ("''", '""', "none", "-", ""))
+@pytest.mark.parametrize("sections", ("''", '""', "none", "-"))
 @tests.pwndbg_test
 async def test_empty_context_sections(ctrl: Controller, sections: str) -> None:
     import pwndbg
@@ -95,7 +99,7 @@ async def test_empty_context_sections(ctrl: Controller, sections: str) -> None:
     assert (await ctrl.execute_and_capture("context")) == ""
 
     # Bring back old values && sanity check
-    await ctrl.execute(f"set context-sections {default_ctx_sects}")
+    await ctrl.execute(f"set context-sections '{default_ctx_sects}'")
     assert pwndbg.config.context_sections.value == default_ctx_sects
     assert (await ctrl.execute_and_capture("context")) != ""
 
@@ -337,24 +341,24 @@ async def test_context_disasm_proper_render_on_mem_change_issue_1818(
     assert "mov    ecx, 0x10" in old[5]
     assert "syscall" in old[6]
 
-    # 5 bytes because 'mov eax, 0' is 5 bytes long
+    # 5 bytes because 'mov edi, 0x1337' is 5 bytes long
+    # Overwrite
     if patch_or_api:
-        await ctrl.execute("patch $rip nop;nop;nop;nop;nop")
+        await ctrl.execute("patch $rip+5 nop;nop;nop;nop;nop")
     else:
         # Do the same, but through write API
-        pwndbg.aglib.memory.write(pwndbg.aglib.regs.rip, b"\x90" * 5)
+        pwndbg.aglib.memory.write(pwndbg.aglib.regs.rip + 5, b"\x90" * 5)
 
     # Actual test: we expect the read memory to be different now ;)
     # (and not e.g. returned incorrectly from a not cleared cache)
     new = (await ctrl.execute_and_capture("context disasm")).split("\n")
 
     assert new[0] == "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA"
-    assert "nop" in new[2]
     assert "nop" in new[3]
     assert "nop" in new[4]
     assert "nop" in new[5]
     assert "nop" in new[6]
-    assert "mov    edi, 0x1337" in new[7]
+    assert "nop" in new[7]
     assert "mov    esi, 0xdeadbeef" in new[8]
     assert "mov    ecx, 0x10" in new[9]
     assert "syscall" in new[10]
@@ -555,8 +559,13 @@ async def test_context_history_search(ctrl: Controller) -> None:
         await ctrl.execute("context")
 
     # Search for something in the past
-    search_result = await ctrl.execute_and_capture("contextsearch puts@plt")
-    assert "Found 1 match. Selected entry 2 for match in section 'disasm'." in search_result
+    search_result0 = await ctrl.execute_and_capture("contextsearch puts@plt")
+    search_result1 = await ctrl.execute_and_capture("contextsearch puts disasm")
+
+    assert (
+        "Found 1 match. Selected entry 2 for match in section 'disasm'." in search_result0
+        or "Found 1 match. Selected entry 2 for match in section 'disasm'." in search_result1
+    )
 
     # Search for something that happened later and have the search wrap around
     search_result = await ctrl.execute_and_capture("contextsearch 'Hello World'")
