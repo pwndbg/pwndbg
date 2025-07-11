@@ -1771,6 +1771,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     # return control to the user.
     controllers: List[Tuple[LLDBProcess, Coroutine[Any, Any, None]]]
 
+    # Relay used for exceptions originating from commands called through LLDB.
+    _exception_relay: BaseException | None
+
     @override
     def setup(self, *args, **kwargs):
         import pwnlib.update
@@ -1781,6 +1784,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.event_handlers = {}
         self.controllers = []
         self._current_process_is_gdb_remote = False
+        self._exception_relay = None
 
         import pwndbg
 
@@ -1809,6 +1813,15 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         pwndbg.commands.comments.init()
 
         import pwndbg.dbg.lldb.hooks
+
+    def relay_exceptions(self) -> None:
+        """
+        Relay an exception raised during an LLDB command handler.
+        """
+        e = self._exception_relay
+        self._exception_relay = None
+        if e is not None:
+            raise pwndbg.dbg_mod.Error(e)
 
     def _execute_lldb_command(self, command: str) -> str:
         result = lldb.SBCommandReturnObject()
@@ -1839,11 +1852,15 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                 pass
 
             def __call__(self, _, command, exe_context, result):
-                debugger.exec_states.append(exe_context)
-                handler(debugger, command, True)
-                assert (
-                    debugger.exec_states.pop() == exe_context
-                ), "Execution state mismatch on command handler"
+                try:
+                    debugger.exec_states.append(exe_context)
+                    handler(debugger, command, True)
+                    assert (
+                        debugger.exec_states.pop() == exe_context
+                    ), "Execution state mismatch on command handler"
+                except BaseException as e:
+                    debugger._exception_relay = e
+                    raise
 
         # LLDB is very particular with the object paths it will accept. It is at
         # its happiest when its pulling objects straight off the module that was

@@ -336,7 +336,7 @@ def run(
 
         try:
             if last_exc is not None:
-                coroutine.throw(last_exc)
+                action = coroutine.throw(last_exc)
             else:
                 action = coroutine.send(last_result)
         except StopIteration:
@@ -386,12 +386,20 @@ def run(
             if not action._prompt_silent:
                 print(f"{PROMPT}{action._command}")
 
-            if action._capture:
-                with TextIOWrapper(BytesIO(), write_through=True) as output:
-                    should_continue = exec_repl_command(action._command, output, dbg, driver, relay)
-                    last_result = output.buffer.getvalue()
-            else:
-                should_continue = exec_repl_command(action._command, sys.stdout, dbg, driver, relay)
+            try:
+                if action._capture:
+                    with TextIOWrapper(BytesIO(), write_through=True) as output:
+                        should_continue = exec_repl_command(
+                            action._command, output, dbg, driver, relay
+                        )
+                        last_result = output.buffer.getvalue()
+                else:
+                    should_continue = exec_repl_command(
+                        action._command, sys.stdout, dbg, driver, relay
+                    )
+            except BaseException as e:
+                last_exc = e
+                continue
 
             if not should_continue:
                 last_exc = asyncio.CancelledError()
@@ -687,6 +695,7 @@ def _exec_repl_command(
     # one, or just in a general context.
     if driver.has_process():
         driver.run_lldb_command(line, lldb_out_target)
+        dbg.relay_exceptions()
     else:
         ret = lldb.SBCommandReturnObject()
         dbg.debugger.GetCommandInterpreter().HandleCommand(line, ret)
@@ -700,6 +709,7 @@ def _exec_repl_command(
             if len(out) > 0:
                 lldb_out_target.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
                 lldb_out_target.write(b"\n")
+        dbg.relay_exceptions()
 
     # At this point, the last command might've queued up some execution
     # control procedures for us to chew on. Run them now.
