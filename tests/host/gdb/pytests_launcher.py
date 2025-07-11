@@ -56,6 +56,9 @@ class _GDBController(host.Controller):
     async def finish(self) -> None:
         gdb.execute("finish")
 
+    async def select_thread(self, tid: int) -> None:
+        gdb.execute(f"thread {tid}")
+
 
 def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:
     # The GDB controller is entirely synchronous, so keep advancing the

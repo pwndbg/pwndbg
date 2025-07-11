@@ -197,6 +197,12 @@ class Controller:
         """
         raise NotImplementedError()
 
+    def select_thread(self, tid: int) -> Awaitable[None]:
+        """
+        Select the thread with the given ID.
+        """
+        raise NotImplementedError()
+
 
 def start(controller: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:
     """
