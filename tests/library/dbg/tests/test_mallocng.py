@@ -398,3 +398,75 @@ async def test_mallocng_metaarea(ctrl: Controller, binary: str):
 
     for i in range(len(expected_out)):
         assert re.match(expected_out[i], meta_area_out[i])
+
+
+@pytest.mark.parametrize(
+    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
+)
+def test_mallocng_vis(start_binary, binary):
+    start_binary(binary)
+
+    gdb.execute("start")
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+    gdb.execute("continue")
+    gdb.execute("continue")
+    gdb.execute("finish")
+
+    vis_out = color.strip(gdb.execute("ng-vis buffer1", to_string=True)).splitlines()
+
+    expected_out = [
+        f"group @ {re_addr}",
+        f"meta @ {re_addr}",
+        "LEGEND: .*",
+        "LEGEND: .*",
+        "",
+        rf"{re_addr}0\t0x[0-9a-fA-F]{{16}}\t0x0000ff0000000009\t................",
+        rf"{re_addr}0\t0x0a0a0a0a0a0a0a0a\t0x0a0a0a0a0a0a0a0a\t................",
+        rf"{re_addr}0\t0x0a0a0a0a0a0a0a0a\t0x0a0a0a0a0a0a0a0a\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000ff000000000c\t................",
+        rf"{re_addr}0\t0x0b0b0b0b0b0b0b0b\t0x0b0b0b0b0b0b0b0b\t................",
+        rf"{re_addr}0\t0x0b0b0b0b0b0b0b0b\t0x0b0b0b0b0b0b0b0b\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0006a2000000000c\t................   2 \+ \(5 << 5\)",
+        rf"{re_addr}0\t0x0c0c0c0c0c0c0c0c\t0x0c0c0c0c0c0c0c0c\t................",
+        rf"{re_addr}0\t0x0c0c0c0c0c0c0c0c\t0x0c0c0c0c0c0c0c0c\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x000000000000000c\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+    ]
+
+    assert len(expected_out) == len(vis_out)
+
+    for i in range(len(expected_out)):
+        assert re.match(expected_out[i], vis_out[i])
+
+    # Make sure ng-vis properly resolves anywhere inside the slot.
+    # The stride of the group is 0x30.
+    vis_out2 = color.strip(gdb.execute("ng-vis buffer1+0x2F", to_string=True)).splitlines()
+    assert vis_out == vis_out2
+
+    # Step over the free(buffer3)
+    gdb.execute("next", to_string=True)
+    # Check that the output is not the same anymore since the group got freed.
+    # (Now the outer group will be printed.)
+    vis_out3 = color.strip(gdb.execute("ng-vis buffer1", to_string=True)).splitlines()
+    assert len(vis_out3) > len(vis_out)
