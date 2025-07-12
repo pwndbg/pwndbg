@@ -1155,6 +1155,8 @@ The [index] next to the metas is their index in the doubly linked list
 pointed to by ctx.freed_meta_head. The [index] next to the slots is
 the slot's index inside of its group (thus, these will always be sequential).
 
+Notice that the pointers in the output of this command aren't colored according
+to their mapping's color but rather according to the object's allocation status.
 Color legend: {C.colorize("allocated", state_alloc_color)}; """
         f'{C.colorize("freed", state_freed_color)}; {C.colorize("available", state_avail_color)}.'
     ),
