@@ -1005,15 +1005,15 @@ def bin_ascii(bs: bytearray):
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
-state_alloc_color = C.CYAN
-state_alloc_color_alt = C.BLUE
+state_alloc_color = C.BLUE
+state_alloc_color_alt = C.CYAN
 state_freed_color = C.RED
 state_freed_color_alt = C.LIGHT_RED
 state_avail_color = C.GRAY
 state_avail_color_alt = C.LIGHT_GRAY
 
 
-def slot_color(state: mallocng.SlotState, last_color: str) -> str:
+def slot_color(state: mallocng.SlotState, last_color: str = "") -> str:
     match state:
         case mallocng.SlotState.ALLOCATED:
             if last_color == state_alloc_color:
