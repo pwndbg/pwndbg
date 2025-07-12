@@ -228,6 +228,9 @@ def dump_grouped_slot(gslot: mallocng.GroupedSlot, all: bool) -> str:
 def dump_slot(
     slot: mallocng.Slot, all: bool, successful_preload: bool, will_dump_gslot: bool
 ) -> str:
+    if successful_preload:
+        assert not will_dump_gslot and "Why?"
+
     pp = PropertyPrinter()
 
     all = all and successful_preload and not will_dump_gslot
@@ -265,6 +268,10 @@ def dump_slot(
                     value=slot.slack,
                     extra="slot's unused memory / 0x10",
                     alt_value=(slot.slack * mallocng.UNIT),
+                ),
+                Property(
+                    name="state",
+                    value=get_colored_slot_state(slot.meta.slotstate_at_index(slot.idx)),
                 ),
             ]
         )
@@ -314,18 +321,22 @@ def dump_slot(
                 alt_value=cyc_val_alt,
             ),
         )
+    else:
+        # We haven't printed the slot state yet. Will we do it with a grouped slot?
+        if not will_dump_gslot:
+            # Nope, then let's go ahead and guess.
+            inband_group.append(
+                Property(
+                    name="state",
+                    value=get_colored_slot_state(slot.slot_state),
+                    extra="(probably, check the meta)",
+                )
+            )
 
     pp.add(inband_group)
     pp.end_section()
 
     output = pp.dump()
-
-    if not will_dump_gslot:
-        # The grouped_slot will have accurate information on this,
-        # no need for us to guess.
-        output += C.bold(
-            "\nThe slot is (probably) " + get_colored_slot_state(slot.slot_state) + ".\n"
-        )
 
     if all:
         output += "\n"
