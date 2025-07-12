@@ -1137,6 +1137,9 @@ Dump the mallocng heap.
 May produce lots of output.
     """,
 )
+parser.add_argument(
+    "-ma", "--meta-area", type=int, help="Dump only the meta area at the provided address."
+)
 
 
 @pwndbg.commands.Command(
@@ -1157,7 +1160,7 @@ Color legend: {C.colorize("allocated", state_alloc_color)}; """
     ),
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_dump() -> None:
+def mallocng_dump(meta_area: Optional[int] = None) -> None:
     if not ng.init_if_needed():
         print(message.error("Couldn't find the allocator, aborting the command."))
         return
@@ -1174,8 +1177,15 @@ def mallocng_dump() -> None:
     meta_padding = " " * 10
     slot_padding = " " * 15
 
-    # Iterate over all meta_areas
-    ma_addr = ctx.meta_area_head
+    # Rename variables for clarity.
+    specified_meta_area = meta_area
+    meta_area = None
+
+    if specified_meta_area is not None:
+        ma_addr = specified_meta_area
+    else:
+        # Iterate over all meta_areas
+        ma_addr = ctx.meta_area_head
     while ma_addr != 0:
         try:
             meta_area = mallocng.MetaArea(ma_addr)
@@ -1227,6 +1237,10 @@ def mallocng_dump() -> None:
 
         ma_addr = meta_area.next
         print()
+
+        if specified_meta_area is not None:
+            # Exit the loop since we're only printing one meta area.
+            break
 
 
 @pwndbg.commands.Command(
