@@ -1129,6 +1129,7 @@ May produce lots of output.
     """,
 )
 
+
 @pwndbg.commands.Command(
     parser,
     category=CommandCategory.MUSL,
@@ -1144,6 +1145,10 @@ the slot's index inside of its group (thus, these will always be sequential).
 )
 @pwndbg.commands.OnlyWhenRunning
 def mallocng_dump() -> None:
+    if not ng.init_if_needed():
+        print(message.error("Couldn't find the allocator, aborting the command."))
+        return
+
     ctx: mallocng.MallocContext = ng.ctx
 
     try:
