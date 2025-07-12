@@ -435,28 +435,37 @@ def smart_dump_slot(
     return output
 
 
-def dump_meta_area(meta_area: mallocng.MetaArea, dont_print_slots: bool = False) -> str:
-    area_range = (
-        "@ "
-        + C.memory.get(meta_area.addr)
-        + " - "
-        + C.memory.get(meta_area.addr + meta_area.area_size)
-    )
+def dump_meta_area(meta_area: mallocng.MetaArea, coming_from_dump: bool = False) -> str:
+    if coming_from_dump:
+        # We don't want users to wonder which colorings in ng-dump are according to
+        # state (allocated/avail/freed), and which are according to the memory mapping's color,
+        # so we will just disable address coloring here.
+        area_range = "@ " + hex(meta_area.addr) + " - " + hex(meta_area.addr + meta_area.area_size)
+    else:
+        area_range = (
+            "@ "
+            + C.memory.get(meta_area.addr)
+            + " - "
+            + C.memory.get(meta_area.addr + meta_area.area_size)
+        )
 
     pp = PropertyPrinter()
 
-    if dont_print_slots:
+    if coming_from_dump:
         slots = ""
         slots_is_addr = False
+        # Don't color according to mapping.
+        next_prop = Property(name="next", value=hex(meta_area.next), value_color_func=C.normal)
     else:
         slots = meta_area.slots
         slots_is_addr = True
+        next_prop = Property(name="next", value=meta_area.next, is_addr=True)
 
     pp.start_section("meta_area", area_range)
     pp.add(
         [
             Property(name="check", value=meta_area.check),
-            Property(name="next", value=meta_area.next, is_addr=True),
+            next_prop,
             Property(name="nslots", value=meta_area.nslots),
             Property(name="slots", value=slots, is_addr=slots_is_addr, extra="array of metas"),
         ]
@@ -1134,14 +1143,18 @@ May produce lots of output.
     parser,
     category=CommandCategory.MUSL,
     aliases=["ng-dump"],
-    notes="""
+    notes=(
+        f"""
 Since the command may produce lots of output, you may want to pipe it to
 less with `| ng-dump | less -R`.
 
 The [index] next to the metas is their index in the doubly linked list
 pointed to by ctx.freed_meta_head. The [index] next to the slots is
 the slot's index inside of its group (thus, these will always be sequential).
-""",
+
+Color legend: {C.colorize("allocated", state_alloc_color)}; """
+        f'{C.colorize("freed", state_freed_color)}; {C.colorize("available", state_avail_color)}.'
+    ),
 )
 @pwndbg.commands.OnlyWhenRunning
 def mallocng_dump() -> None:
@@ -1170,20 +1183,23 @@ def mallocng_dump() -> None:
             print(message.error(f"Cannot read meta area @ {ma_addr:#x}: {e}"))
             break
 
-        print(dump_meta_area(meta_area, dont_print_slots=True))
+        print(dump_meta_area(meta_area, coming_from_dump=True))
 
         # Iterate over all metas in this meta_area
         for i in range(0, meta_area.nslots):
             meta_addr = meta_area.at_index(i)
 
-            # FIXME: Take the colors from ng-vis
-
             if meta_addr in free_metas:
-                print(meta_padding + C.red(f"{meta_addr:#x}" + f" [{free_metas[meta_addr][0]}]"))
+                print(
+                    meta_padding
+                    + C.colorize(
+                        f"{meta_addr:#x}" + f" [{free_metas[meta_addr][0]}]", state_freed_color
+                    )
+                )
             elif ng.meta_is_avail(meta_addr):
-                print(meta_padding + C.blue(f"{meta_addr:#x}"))
+                print(meta_padding + C.colorize(f"{meta_addr:#x}", state_avail_color))
             else:
-                print(meta_padding + C.green(f"{meta_addr:#x}"), end="")
+                print(meta_padding + C.colorize(f"{meta_addr:#x}", state_alloc_color), end="")
 
                 try:
                     meta = mallocng.Meta(meta_addr)
@@ -1201,14 +1217,10 @@ def mallocng_dump() -> None:
                 while idx < meta.cnt:
                     slot_addr = group.at_index(idx)
                     sstate = meta.slotstate_at_index(idx)
-                    # FIXME: Take the colors from nv-vis.
-                    match sstate:
-                        case mallocng.SlotState.ALLOCATED:
-                            print(slot_padding + C.green(f"{slot_addr:#x}") + f" [{idx}]")
-                        case mallocng.SlotState.FREED:
-                            print(slot_padding + C.red(f"{slot_addr:#x}") + f" [{idx}]")
-                        case mallocng.SlotState.AVAIL:
-                            print(slot_padding + C.blue(f"{slot_addr:#x}") + f" [{idx}]")
+                    cur_slot_color = slot_color(sstate)
+                    print(
+                        slot_padding + C.colorize(f"{slot_addr:#x}", cur_slot_color) + f" [{idx}]"
+                    )
                     idx += 1
 
                 print()
