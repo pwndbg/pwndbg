@@ -482,3 +482,26 @@ async def test_mallocng_vis(ctrl: Controller, binary: str):
     # (Now the outer group will be printed.)
     vis_out3 = color.strip(await ctrl.execute_and_capture("ng-vis buffer1")).splitlines()
     assert len(vis_out3) > len(vis_out)
+
+
+@pytest.mark.parametrize(
+    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
+)
+def test_mallocng_dump(start_binary, binary):
+    start_binary(binary)
+
+    gdb.execute("start")
+    gdb.execute("break break_here")
+    gdb.execute("continue")
+    # gdb.execute("continue") # We aren't checking color.
+    # gdb.execute("continue")
+    gdb.execute("finish")
+
+    dump_out = gdb.execute("ng-dump", to_string=True)
+    assert "meta_area" in dump_out
+    assert "group @" in dump_out
+    assert "(slot size: 0x30)" in dump_out  # buffer{1,2,3}
+    assert "(slot size: 0x2a0)" in dump_out  # buffer{4,5}
+    # 10 slots in the buffer{1,2,3} group.
+    for idx in range(10):
+        assert f"[{idx}]" in dump_out
