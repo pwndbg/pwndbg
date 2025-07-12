@@ -36,6 +36,33 @@ commands will search the heap to try to find the correct meta/group.
     scope=pwndbg.lib.config.Scope.heap,
 )
 
+state_alloc_color = C.BLUE
+state_alloc_color_alt = C.CYAN
+state_freed_color = C.RED
+state_freed_color_alt = C.LIGHT_RED
+state_avail_color = C.GRAY
+state_avail_color_alt = C.LIGHT_GRAY
+
+
+def get_slot_color(state: mallocng.SlotState, last_color: str = "") -> str:
+    match state:
+        case mallocng.SlotState.ALLOCATED:
+            if last_color == state_alloc_color:
+                return state_alloc_color_alt
+            return state_alloc_color
+        case mallocng.SlotState.FREED:
+            if last_color == state_freed_color:
+                return state_freed_color_alt
+            return state_freed_color
+        case mallocng.SlotState.AVAIL:
+            if last_color == state_avail_color:
+                return state_avail_color_alt
+            return state_avail_color
+
+
+def get_colored_slot_state(ss: mallocng.SlotState) -> str:
+    return C.colorize(ss.value, get_slot_color(ss))
+
 
 @pwndbg.commands.Command(
     "Gives a quick explanation of musl's mallocng allocator.",
@@ -347,16 +374,6 @@ def dump_meta(meta: mallocng.Meta) -> str:
         output += C.bold(".\n")
 
     return output
-
-
-def get_colored_slot_state(ss: mallocng.SlotState) -> str:
-    match ss:
-        case mallocng.SlotState.ALLOCATED:
-            return C.green(ss.value)
-        case mallocng.SlotState.FREED:
-            return C.red(ss.value)
-        case mallocng.SlotState.AVAIL:
-            return C.blue(ss.value)
 
 
 def dump_grouped_slot(gslot: mallocng.GroupedSlot, all: bool) -> str:
@@ -1005,30 +1022,6 @@ def bin_ascii(bs: bytearray):
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
-state_alloc_color = C.BLUE
-state_alloc_color_alt = C.CYAN
-state_freed_color = C.RED
-state_freed_color_alt = C.LIGHT_RED
-state_avail_color = C.GRAY
-state_avail_color_alt = C.LIGHT_GRAY
-
-
-def slot_color(state: mallocng.SlotState, last_color: str = "") -> str:
-    match state:
-        case mallocng.SlotState.ALLOCATED:
-            if last_color == state_alloc_color:
-                return state_alloc_color_alt
-            return state_alloc_color
-        case mallocng.SlotState.FREED:
-            if last_color == state_freed_color:
-                return state_freed_color_alt
-            return state_freed_color
-        case mallocng.SlotState.AVAIL:
-            if last_color == state_avail_color:
-                return state_avail_color_alt
-            return state_avail_color
-
-
 vis_cyclic_offset_color = C.YELLOW
 vis_offset_color = C.LIGHT_YELLOW
 vis_cycled_mark_color = C.PURPLE
@@ -1263,7 +1256,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
                 return
 
         slot_state: mallocng.SlotState = meta.slotstate_at_index(idx)
-        cur_slot_color = slot_color(slot_state, last_color)
+        cur_slot_color = get_slot_color(slot_state, last_color)
 
         # Colorize the previous line which contains our start header.
         out[-1] = colorize_start_header_line(out[-1], slot_state, slot) + line_decoration(
