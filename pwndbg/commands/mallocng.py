@@ -1217,7 +1217,7 @@ def mallocng_dump() -> None:
                 while idx < meta.cnt:
                     slot_addr = group.at_index(idx)
                     sstate = meta.slotstate_at_index(idx)
-                    cur_slot_color = slot_color(sstate)
+                    cur_slot_color = get_slot_color(sstate)
                     print(
                         slot_padding + C.colorize(f"{slot_addr:#x}", cur_slot_color) + f" [{idx}]"
                     )
