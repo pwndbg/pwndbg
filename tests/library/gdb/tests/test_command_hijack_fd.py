@@ -82,7 +82,7 @@ def test_hijack_fd_file_redirection(start_binary):
 
     try:
         # Run until break_here
-        gdb.execute(f"xuntil &break_here")
+        gdb.execute("xuntil &break_here")
 
         # Hijack stdout (fd 1) to point to our temporary file
         result = gdb.execute(f"hijack-fd 1 {temp_file_path}", to_string=True)
@@ -120,7 +120,7 @@ def test_hijack_fd_socket_redirection(start_binary, ip_connect):
     try:
         start_binary(REFERENCE_BINARY)
 
-        gdb.execute(f"xuntil break_here")
+        gdb.execute("xuntil break_here")
 
         # Use URI style for IPv6, plain for IPv4
         if ":" in ip_connect:
@@ -156,7 +156,7 @@ def test_hijack_fd_udp_socket_redirection(start_binary):
     try:
         start_binary(REFERENCE_BINARY)
 
-        gdb.execute(f"xuntil break_here")
+        gdb.execute("xuntil break_here")
 
         # Hijack stderr (fd 2) to point to our UDP socket
         result = gdb.execute(f"hijack-fd 2 udp://127.0.0.1:{server.port}", to_string=True)
@@ -193,7 +193,7 @@ def test_hijack_fd_invalid_fd(start_binary):
     start_binary(REFERENCE_BINARY)
 
     # Run until break_here
-    gdb.execute(f"xuntil break_here")
+    gdb.execute("xuntil break_here")
 
     # Try to hijack an invalid file descriptor (negative number)
     result = gdb.execute("hijack-fd -1 /dev/null", to_string=True)
@@ -208,7 +208,7 @@ def test_hijack_fd_nonexistent_file(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    gdb.execute(f"xuntil break_here")
+    gdb.execute("xuntil break_here")
 
     # Use a path that can be created without root permissions
     test_file_path = "/tmp/nonexistent_test_file"
@@ -233,7 +233,7 @@ def test_hijack_fd_invalid_socket_address(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    gdb.execute(f"xuntil break_here")
+    gdb.execute("xuntil break_here")
 
     # Try to hijack to an invalid socket address
     result = gdb.execute("hijack-fd 2 invalid://address:port", to_string=True)
