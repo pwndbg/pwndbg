@@ -7,7 +7,34 @@ from typing import List
 from typing import Optional
 
 import pwndbg.color as color
+from pwndbg.color import theme
 
+config_property_name_color = theme.add_color_param(
+    "prop-name-color",
+    "bold",
+    "color used to highlight the name in name-value pairs",
+    help_docstring="""
+Used heavily in mallocng commands.
+"""
+)
+
+config_property_value_color = theme.add_color_param(
+    "prop-value-color",
+    "yellow",
+    "color used to highlight the value in name-value pairs",
+    help_docstring="""
+Used heavily in mallocng commands.
+"""
+)
+
+config_property_title_color = theme.add_color_param(
+    "prop-title-color",
+    "green",
+    "color used to highlight the title of name-value pair groups",
+    help_docstring="""
+Used heavily in mallocng commands.
+"""
+)
 
 @dataclass
 class Property:
@@ -82,13 +109,13 @@ def from_properties(
     """
 
     if name_color_func is None:
-        name_color_func = color.bold
+        name_color_func = config_property_name_color.color_function
 
     if value_color_func is None:
-        value_color_func = color.yellow
+        value_color_func = config_property_value_color.color_function
 
     if title_color_func is None:
-        title_color_func = color.green
+        title_color_func = config_property_title_color.color_function
 
     text = ""
 
