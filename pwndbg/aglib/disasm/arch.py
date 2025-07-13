@@ -330,7 +330,7 @@ class DisassemblyAssistant:
                     )
 
         # Execute the instruction
-        if jump_emu and None in jump_emu.single_step():
+        if jump_emu and None in jump_emu.single_step(instruction=instruction):
             # This branch is taken if stepping the emulator failed
             jump_emu = None
             emu = None
