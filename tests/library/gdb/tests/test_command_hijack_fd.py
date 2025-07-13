@@ -27,16 +27,18 @@ class TCPServerThread(threading.Thread):
             pytest.skip(f"Could not bind to {ip}:{port}.")
         self.port = self.sock.getsockname()[1]
         self.sock.listen(1)
+        self.stop_event = threading.Event()
 
     def stop(self):
+        self.stop_event.set()
         self.sock.close()
 
     def run(self):
         try:
-            # Accept one conn and sleep
+            # Accept one conn and wait for stop event
             conn, addr = self.sock.accept()
-            while True:
-                time.sleep(1)
+            while not self.stop_event.is_set():
+                time.sleep(0.1)
         except OSError:
             pass  # Socket closed
 
@@ -58,7 +60,7 @@ class UDPServerThread(threading.Thread):
     def run(self):
         try:
             # Wait for data with timeout
-            self.sock.settimeout(5)
+            self.sock.settimeout(1)
             data, addr = self.sock.recvfrom(1024)
             self.received_data = data
         except socket.timeout:
@@ -80,8 +82,7 @@ def test_hijack_fd_file_redirection(start_binary):
 
     try:
         # Run until break_here
-        gdb.execute("break break_here")
-        gdb.execute("continue")
+        gdb.execute(f"xuntil &break_here")
 
         # Hijack stdout (fd 1) to point to our temporary file
         result = gdb.execute(f"hijack-fd 1 {temp_file_path}", to_string=True)
@@ -119,9 +120,7 @@ def test_hijack_fd_socket_redirection(start_binary, ip_connect):
     try:
         start_binary(REFERENCE_BINARY)
 
-        # Run until break_here
-        gdb.execute("break break_here")
-        gdb.execute("continue")
+        gdb.execute(f"xuntil break_here")
 
         # Use URI style for IPv6, plain for IPv4
         if ":" in ip_connect:
@@ -157,9 +156,7 @@ def test_hijack_fd_udp_socket_redirection(start_binary):
     try:
         start_binary(REFERENCE_BINARY)
 
-        # Run until break_here
-        gdb.execute("break break_here")
-        gdb.execute("continue")
+        gdb.execute(f"xuntil break_here")
 
         # Hijack stderr (fd 2) to point to our UDP socket
         result = gdb.execute(f"hijack-fd 2 udp://127.0.0.1:{server.port}", to_string=True)
@@ -196,8 +193,7 @@ def test_hijack_fd_invalid_fd(start_binary):
     start_binary(REFERENCE_BINARY)
 
     # Run until break_here
-    gdb.execute("break break_here")
-    gdb.execute("continue")
+    gdb.execute(f"xuntil break_here")
 
     # Try to hijack an invalid file descriptor (negative number)
     result = gdb.execute("hijack-fd -1 /dev/null", to_string=True)
@@ -212,9 +208,7 @@ def test_hijack_fd_nonexistent_file(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    # Run until break_here
-    gdb.execute("break break_here")
-    gdb.execute("continue")
+    gdb.execute(f"xuntil break_here")
 
     # Use a path that can be created without root permissions
     test_file_path = "/tmp/nonexistent_test_file"
@@ -239,9 +233,7 @@ def test_hijack_fd_invalid_socket_address(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    # Run until break_here
-    gdb.execute("break break_here")
-    gdb.execute("continue")
+    gdb.execute(f"xuntil break_here")
 
     # Try to hijack to an invalid socket address
     result = gdb.execute("hijack-fd 2 invalid://address:port", to_string=True)
@@ -277,8 +269,7 @@ def test_hijack_fd_with_use_fds_binary(start_binary):
     start_binary(USE_FDS_BINARY)
 
     # Run until main
-    gdb.execute("break main")
-    gdb.execute("continue")
+    gdb.execute("start")
 
     # Stop after the open() call
     gdb.execute("nextcall")
