@@ -19,7 +19,7 @@ from pwndbg import config
 from pwndbg.aglib.heap.mallocng import mallocng as ng
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.pretty_print import Property
-from pwndbg.lib.pretty_print import PropertyPrinter
+from pwndbg.lib.pretty_print import from_properties
 
 search_on_fail = config.add_param(
     "ng-search-on-fail",
@@ -87,26 +87,26 @@ def dump_group(group: mallocng.Group) -> str:
     if group_size != -1:
         group_range += " - " + C.memory.get(group.addr + group_size)
 
-    pp = PropertyPrinter()
-    pp.start_section("group", group_range)
-    pp.add(
+    output = from_properties(
+        "group",
         [
             Property(name="meta", value=group.meta.addr, is_addr=True),
             Property(name="active_idx", value=group.active_idx),
             Property(name="storage", value=group.storage, is_addr=True, extra="start of slots"),
-        ]
+        ],
+        preamble=group_range,
     )
 
     if group_size != -1:
-        pp.write("---\n")
-        pp.add(
+        output += "---\n"
+        output += from_properties(
+            "",
             [
                 Property(name="group size", value=group_size),
-            ]
+            ],
         )
 
-    pp.end_section()
-    return pp.dump()
+    return output
 
 
 def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
@@ -119,9 +119,8 @@ def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
     avail_binary = "0b" + format(meta.avail_mask, f"0{int_size}b")
     freed_binary = "0b" + format(meta.freed_mask, f"0{int_size}b")
 
-    pp = PropertyPrinter()
-    pp.start_section("meta", "@ " + C.memory.get(meta.addr))
-    pp.add(
+    output = from_properties(
+        "meta",
         [
             Property(name="prev", value=meta.prev, is_addr=True),
             Property(name="next", value=meta.next, is_addr=True),
@@ -137,11 +136,9 @@ def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
             Property(name="freeable", value=str(bool(meta.freeable))),
             Property(name="sizeclass", value=meta.sizeclass, alt_value=f"stride: {meta.stride:#x}"),
             Property(name="maplen", value=meta.maplen),
-        ]
+        ],
+        preamble="@ " + C.memory.get(meta.addr),
     )
-    pp.end_section()
-
-    output = pp.dump()
 
     if meta.is_donated:
         output += C.bold("\nGroup donated by ld as unused part of ")
@@ -192,31 +189,27 @@ def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
 
 
 def dump_grouped_slot(gslot: mallocng.GroupedSlot, all: bool) -> str:
-    pp = PropertyPrinter()
+    output = ""
 
     if not all:
-        pp.start_section("slab")
-        pp.add(
+        output += from_properties(
+            "slab",
             [
                 Property(name="group", value=gslot.group.addr, is_addr=True),
                 Property(name="meta", value=gslot.meta.addr, is_addr=True),
-            ]
+            ],
         )
-        pp.end_section()
 
-    pp.start_section("slot")
-    pp.add(
+    output += from_properties(
+        "slot",
         [
             Property(name="start", value=gslot.start, is_addr=True),
             Property(name="end", value=gslot.end, is_addr=True),
             Property(name="index", value=gslot.idx),
             Property(name="stride", value=gslot.stride),
             Property(name="state", value=get_colored_slot_state(gslot.slot_state)),
-        ]
+        ],
     )
-    pp.end_section()
-
-    output = pp.dump()
 
     if all:
         output += dump_group(gslot.group)
@@ -231,30 +224,29 @@ def dump_slot(
     if successful_preload:
         assert not will_dump_gslot and "Why?"
 
-    pp = PropertyPrinter()
-
     all = all and successful_preload and not will_dump_gslot
+    output = ""
 
     if not all:
-        pp.start_section("slab")
         if successful_preload:
-            pp.add(
+            output += from_properties(
+                "slab",
                 [
                     Property(name="group", value=slot.group.addr, is_addr=True),
                     Property(name="meta", value=slot.meta.addr, is_addr=True),
-                ]
+                ],
             )
         else:
-            pp.add(
+            output += from_properties(
+                "slab",
                 [
                     Property(name="group", value=slot.group.addr, is_addr=True),
-                ]
+                ],
             )
-        pp.end_section()
 
     if successful_preload:
-        pp.start_section("general")
-        pp.add(
+        output += from_properties(
+            "general",
             [
                 Property(name="start", value=slot.start, is_addr=True),
                 Property(name="user start", value=slot.p, is_addr=True, extra="aka `p`"),
@@ -275,9 +267,6 @@ def dump_slot(
                 ),
             ]
         )
-        pp.end_section()
-
-    pp.start_section("in-band")
 
     reserved_extra = ["describes: end - p - n"]
     if slot.reserved_in_header == 5:
@@ -333,10 +322,7 @@ def dump_slot(
                 )
             )
 
-    pp.add(inband_group)
-    pp.end_section()
-
-    output = pp.dump()
+    output += from_properties("in-band", inband_group)
 
     if all:
         output += "\n"
@@ -449,8 +435,6 @@ def dump_meta_area(meta_area: mallocng.MetaArea, coming_from_dump: bool = False)
             + C.memory.get(meta_area.addr + meta_area.area_size)
         )
 
-    pp = PropertyPrinter()
-
     if coming_from_dump:
         slots = ""
         slots_is_addr = False
@@ -461,23 +445,21 @@ def dump_meta_area(meta_area: mallocng.MetaArea, coming_from_dump: bool = False)
         slots_is_addr = True
         next_prop = Property(name="next", value=meta_area.next, is_addr=True)
 
-    pp.start_section("meta_area", area_range)
-    pp.add(
+    output = from_properties(
+        "meta_area",
         [
             Property(name="check", value=meta_area.check),
             next_prop,
             Property(name="nslots", value=meta_area.nslots),
             Property(name="slots", value=slots, is_addr=slots_is_addr, extra="array of metas"),
-        ]
+        ],
+        preamble=area_range,
     )
-    return pp.dump()
+
+    return output
 
 
 def dump_malloc_context(ctx: mallocng.MallocContext) -> str:
-    ctx_addr = "@ " + C.memory.get(ctx.addr)
-
-    pp = PropertyPrinter(22)
-    pp.start_section("ctx", ctx_addr)
     props = [
         Property(name="secret", value=ctx.secret),
     ]
@@ -524,9 +506,10 @@ def dump_malloc_context(ctx: mallocng.MallocContext) -> str:
         ]
     )
 
-    pp.add(props)
+    ctx_addr = "@ " + C.memory.get(ctx.addr)
+    output = from_properties("ctx", props, preamble=ctx_addr, value_offset=22)
 
-    return pp.dump()
+    return output
 
 
 parser = argparse.ArgumentParser(
