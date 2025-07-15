@@ -22,11 +22,13 @@ This allows project-specific custom structures to persist between debugging sess
 Note on symbol name collisions:
 --------------------------------
 If a loaded custom structure defines a symbol (e.g., struct, typedef) that already exists in the binary or libraries,
-GDB may prioritize the original definition or behave unexpectedly. 
+GDB may prioritize the original definition or behave unexpectedly.
 
 It is advised to use unique names for your custom structures to avoid symbol conflicts.
 """
+
 from __future__ import annotations
+
 import argparse
 import functools
 import os
@@ -142,7 +144,7 @@ def generate_debug_symbols(
 def add_custom_structure(custom_structure_name: str, force=False):
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
 
-    if os.path.exists(pwndbg_custom_structure_path)and not force:
+    if os.path.exists(pwndbg_custom_structure_path) and not force:
         option = input(
             message.notice(
                 "A custom structure was found with the given name, would you like to overwrite it? [y/n] "
@@ -247,7 +249,7 @@ def remove_custom_structure(custom_structure_name: str, custom_structure_path: s
 Note on symbol name collisions:
 --------------------------------
 If a loaded custom structure defines a symbol (e.g., struct, typedef) that already exists in the binary or libraries,
-GDB may prioritize the original definition or behave unexpectedly. 
+GDB may prioritize the original definition or behave unexpectedly.
 
 It is advised to use unique names for your custom structures to avoid symbol conflicts.
 """
@@ -277,53 +279,49 @@ parser = argparse.ArgumentParser(
     description="Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit."
 )
 
-subparsers = parser.add_subparsers(
-    dest="subcommand" , help="Available subcommands" 
-)
+subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
 
-#------------- add ----------------
+# ------------- add ----------------
 
-add_parser = subparsers.add_parser("add",help="Add a custom structure")
+add_parser = subparsers.add_parser("add", help="Add a custom structure")
 add_parser.add_argument("name", help="Name of custom structure")
 
 
-#--- remove ---
-remove_parser = subparsers.add_parser("remove",help="Remove a custom structure")
+# --- remove ---
+remove_parser = subparsers.add_parser("remove", help="Remove a custom structure")
 remove_parser.add_argument("name", help="Name of custom structure")
 
 
-#--- edit ---
-edit_parser = subparsers.add_parser("edit",help="Edit a custom structure")
+# --- edit ---
+edit_parser = subparsers.add_parser("edit", help="Edit a custom structure")
 edit_parser.add_argument("name", help="Name of custom structure")
 
 
-#--- load ---
-load_parser = subparsers.add_parser("load",help="Load a custom structure")
+# --- load ---
+load_parser = subparsers.add_parser("load", help="Load a custom structure")
 load_parser.add_argument("name", help="Name of custom structure")
 
 
-#--- show ---
-show_parser = subparsers.add_parser("show",help="Show a custom structure")
-show_parser.add_argument("name",help="Name of custom structure")
+# --- show ---
+show_parser = subparsers.add_parser("show", help="Show a custom structure")
+show_parser.add_argument("name", help="Name of custom structure")
 
 
-#--- file ---
+# --- file ---
 file_parser = subparsers.add_parser("file", help="Add a structure from a header file")
 file_parser.add_argument("path", help="Path to header file")
-file_parser.add_argument("--name",  help="Optional structure name")
+file_parser.add_argument("--name", help="Optional structure name")
 
-#--- show-all ---
+# --- show-all ---
 show_all_parser = subparsers.add_parser("show-all", help="Show all stored structure")
 
 
-
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC)
-
-
-def cymbol(subcommand: str = None,
-            name: str = None,
-            path: str = None,
-        ):
+def cymbol(
+    subcommand: str = None,
+    name: str = None,
+    path: str = None,
+):
     if subcommand == "add":
         add_custom_structure(name)
     elif subcommand == "remove":
