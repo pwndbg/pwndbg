@@ -132,7 +132,9 @@ def base(name_pattern: gdb.Value | str) -> int:
     for p in pwndbg.aglib.vmmap.get():
         if name in p.objfile:
             return p.vaddr
-    raise ValueError(f"No mapping named {name}")
+
+    print(f"No mapping named '{name}'")
+    return 0
 
 
 @GdbFunction()
