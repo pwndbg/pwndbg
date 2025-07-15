@@ -1,6 +1,25 @@
 from __future__ import annotations
+import argparse
+import functools
+import os
+import subprocess
+import sys
+import tempfile
+from typing import Dict
+from typing import TypeVar
 
+import gdb
+from typing_extensions import ParamSpec
+from typing_extensions import Protocol
 
+import pwndbg
+import pwndbg.aglib.arch
+import pwndbg.commands
+import pwndbg.lib.config
+import pwndbg.lib.gcc
+import pwndbg.lib.tempfile
+from pwndbg.color import message
+from pwndbg.commands import CommandCategory
 
 """
 Add, load, show, edit, or delete symbols for custom structures.
@@ -28,27 +47,6 @@ This allows project-specific custom structures to persist between debugging sess
 """
 
 
-import argparse
-import functools
-import os
-import subprocess
-import sys
-import tempfile
-from typing import Dict
-from typing import TypeVar
-
-import gdb
-from typing_extensions import ParamSpec
-from typing_extensions import Protocol
-
-import pwndbg
-import pwndbg.aglib.arch
-import pwndbg.commands
-import pwndbg.lib.config
-import pwndbg.lib.gcc
-import pwndbg.lib.tempfile
-from pwndbg.color import message
-from pwndbg.commands import CommandCategory
 
 P = ParamSpec("P")
 T = TypeVar("T")
