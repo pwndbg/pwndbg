@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+
+
 """
 Add, load, show, edit, or delete symbols for custom structures.
 
@@ -12,7 +16,17 @@ favorite text editor. Otherwise cymbol exapnds $EDITOR and $VISUAL environment v
 to find the path to the default text editor.
 """
 
-from __future__ import annotations
+
+"""
+Usage in .gdbinit:
+-------------------
+You can load a structure automatically for a project by adding this to your .gdbinit file:
+
+    cymbol load <structure_name>
+
+This allows project-specific custom structures to persist between debugging sessions.
+"""
+
 
 import argparse
 import functools
@@ -126,10 +140,10 @@ def generate_debug_symbols(
     return pwndbg_debug_symbols_output_file
 
 
-def add_custom_structure(custom_structure_name: str) -> None:
+def add_custom_structure(custom_structure_name: str, force=False):
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
 
-    if os.path.exists(pwndbg_custom_structure_path):
+    if os.path.exists(pwndbg_custom_structure_path)and not force:
         option = input(
             message.notice(
                 "A custom structure was found with the given name, would you like to overwrite it? [y/n] "
@@ -230,6 +244,16 @@ def remove_custom_structure(custom_structure_name: str, custom_structure_path: s
     print(message.success("Symbols are removed!"))
 
 
+"""
+Note on symbol name collisions:
+--------------------------------
+If a loaded custom structure defines a symbol (e.g., struct, typedef) that already exists in the binary or libraries,
+GDB may prioritize the original definition or behave unexpectedly. 
+
+It is advised to use unique names for your custom structures to avoid symbol conflicts.
+"""
+
+
 @OnlyWhenStructFileExists
 def load_custom_structure(custom_structure_name: str, custom_structure_path: str = "") -> None:
     unload_loaded_symbol(custom_structure_name)
@@ -251,80 +275,69 @@ def show_custom_structure(custom_structure_name: str, custom_structure_path: str
 
 
 parser = argparse.ArgumentParser(
-    description="Add, show, load, edit, or delete custom structures in plain C."
+    description="Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit."
 )
-parser.add_argument(
-    "-a",
-    "--add",
-    metavar="name",
-    help="Add a new custom structure",
-    default=None,
-    type=str,
+
+subparsers = parser.add_subparsers(
+    dest="subcommand" , help="Available subcommands" 
 )
-parser.add_argument(
-    "-f",
-    "--file",
-    metavar="filepath",
-    help="Add a new custom structure from header file",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-r",
-    "--remove",
-    metavar="name",
-    help="Remove an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-e",
-    "--edit",
-    metavar="name",
-    help="Edit an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-l",
-    "--load",
-    metavar="name",
-    help="Load an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-s",
-    "--show",
-    metavar="name",
-    help="Show the source code of an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "--show-all",
-    help="Show names of all available custom structures",
-    action="store_true",
-)
+
+#------------- add ----------------
+
+add_parser = subparsers.add_parser("add",help="Add a custom structure")
+add_parser.add_argument("name", help="Name of custom structure")
+
+
+#--- remove ---
+remove_parser = subparsers.add_parser("remove",help="Remove a custom structure")
+remove_parser.add_argument("name", help="Name of custom structure")
+
+
+#--- edit ---
+edit_parser = subparsers.add_parser("edit",help="Edit a custom structure")
+edit_parser.add_argument("name", help="Name of custom structure")
+
+
+#--- load ---
+load_parser = subparsers.add_parser("load",help="Load a custom structure")
+load_parser.add_argument("name", help="Name of custom structure")
+
+
+#--- show ---
+show_parser = subparsers.add_parser("show",help="Show a custom structure")
+show_parser.add_argument("name",help="Name of custom structure")
+
+
+#--- file ---
+file_parser = subparsers.add_parser("file", help="Add a structure from a header file")
+file_parser.add_argument("path", help="Path to header file")
+file_parser.add_argument("--name",  help="Optional structure name")
+
+#--- show-all ---
+show_all_parser = subparsers.add_parser("show-all", help="Show all stored structure")
+
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC)
-def cymbol(
-    add: str, file: str, remove: str, edit: str, load: str, show: str, show_all: bool
-) -> None:
-    if add:
-        add_custom_structure(add)
-    elif file:
-        add_structure_from_header(file)
-    elif remove:
-        remove_custom_structure(remove)
-    elif edit:
-        edit_custom_structure(edit)
-    elif load:
-        load_custom_structure(load)
-    elif show:
-        show_custom_structure(show)
-    elif show_all:
+
+
+def cymbol(subcommand: str = None,
+            name: str = None,
+            path: str = None,
+        ):
+    if subcommand == "add":
+        add_custom_structure(name)
+    elif subcommand == "remove":
+        remove_custom_structure(name)
+    elif subcommand == "edit":
+        edit_custom_structure(name)
+    elif subcommand == "load":
+        load_custom_structure(name)
+    elif subcommand == "file":
+        add_structure_from_header(path, name)
+    elif subcommand == "show":
+        show_custom_structure(name)
+    elif subcommand == "show-all":
         print(message.notice("Available custom structure names:\n"))
         for file in os.listdir(pwndbg_cachedir):
             if file.endswith(".c"):
