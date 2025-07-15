@@ -1,3 +1,27 @@
+"""
+Add, load, show, edit, or delete symbols for custom structures.
+
+For the generation of the symbols g++/gcc is being used under the hood.
+
+In case of remote debugging a binary which is not native to your architecture it
+is advised to configure the 'gcc-config-path' config parameter to your own cross-platform
+gnu gcc compiled toolchain for your target architecture.
+
+You are advised to configure the 'cymbol-editor' config parameter to the path of your
+favorite text editor. Otherwise cymbol exapnds $EDITOR and $VISUAL environment variables
+to find the path to the default text editor.
+
+
+
+Usage in .gdbinit:
+-------------------
+You can load a structure automatically for a project by adding this to your .gdbinit file:
+
+    cymbol load <structure_name>
+
+This allows project-specific custom structures to persist between debugging sessions.
+"""
+
 from __future__ import annotations
 import argparse
 import functools
@@ -20,33 +44,6 @@ import pwndbg.lib.gcc
 import pwndbg.lib.tempfile
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-
-"""
-Add, load, show, edit, or delete symbols for custom structures.
-
-For the generation of the symbols g++/gcc is being used under the hood.
-
-In case of remote debugging a binary which is not native to your architecture it
-is advised to configure the 'gcc-config-path' config parameter to your own cross-platform
-gnu gcc compiled toolchain for your target architecture.
-
-You are advised to configure the 'cymbol-editor' config parameter to the path of your
-favorite text editor. Otherwise cymbol exapnds $EDITOR and $VISUAL environment variables
-to find the path to the default text editor.
-"""
-
-
-"""
-Usage in .gdbinit:
--------------------
-You can load a structure automatically for a project by adding this to your .gdbinit file:
-
-    cymbol load <structure_name>
-
-This allows project-specific custom structures to persist between debugging sessions.
-"""
-
-
 
 P = ParamSpec("P")
 T = TypeVar("T")
