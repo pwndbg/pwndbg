@@ -8,10 +8,8 @@ is advised to configure the 'gcc-config-path' config parameter to your own cross
 gnu gcc compiled toolchain for your target architecture.
 
 You are advised to configure the 'cymbol-editor' config parameter to the path of your
-favorite text editor. Otherwise cymbol exapnds $EDITOR and $VISUAL environment variables
+favorite text editor. Otherwise cymbol expands $EDITOR and $VISUAL environment variables
 to find the path to the default text editor.
-
-
 
 Usage in .gdbinit:
 -------------------
@@ -20,8 +18,14 @@ You can load a structure automatically for a project by adding this to your .gdb
     cymbol load <structure_name>
 
 This allows project-specific custom structures to persist between debugging sessions.
-"""
 
+Note on symbol name collisions:
+--------------------------------
+If a loaded custom structure defines a symbol (e.g., struct, typedef) that already exists in the binary or libraries,
+GDB may prioritize the original definition or behave unexpectedly. 
+
+It is advised to use unique names for your custom structures to avoid symbol conflicts.
+"""
 from __future__ import annotations
 import argparse
 import functools
