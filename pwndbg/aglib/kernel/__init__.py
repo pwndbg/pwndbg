@@ -54,7 +54,7 @@ def has_debug_symbols() -> bool:
 def has_debug_info() -> bool:
     # Check for an arbitrary type and symbol name that are not likely to change
     return (
-        pwndbg.aglib.typeinfo.load("struct file") is not None
+        pwndbg.aglib.typeinfo.load("struct pipe_buffer") is not None
         and pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner") is not None
     )
 

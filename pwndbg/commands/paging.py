@@ -51,6 +51,11 @@ def page_type(page):
         for i in range(len(names)):
             if page_type_val & (1 << (i + 24)) == 0:
                 return names[i]
+    if pwndbg.aglib.kernel.krelease() >= (6, 10):
+        names = names[:6]
+        for i in range(len(names)):
+            if page_type_val & (1 << (7 + i)) == 0:
+                return names[i]
     if pwndbg.aglib.kernel.krelease() >= (5, 0):
         names = names[:5]
         for i in range(len(names)):

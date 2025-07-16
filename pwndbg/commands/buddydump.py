@@ -7,6 +7,7 @@ from typing import List
 from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib.kernel.buddydump
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
@@ -328,7 +329,7 @@ def buddydump(
         log.warning("WARNING: Symbol 'node_data' not found")
         return
     if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.symbol.load_buddydump_typeinfo()
+        pwndbg.aglib.kernel.buddydump.load_buddydump_typeinfo()
         node_data = pwndbg.aglib.memory.get_typed_pointer("node_data_t", node_data)
     pba = ParsedBuddyArgs(None, order, mtype, cpu, find)
     cbp = CurrentBuddyParams(
