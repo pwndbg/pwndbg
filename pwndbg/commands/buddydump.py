@@ -44,6 +44,7 @@ class CurrentBuddyParams:
     # this is so that values can be cleanly passed around
     sections: List[Tuple[str, str]]
     indent: IndentContextManager
+    zone: str | None
     order: int
     mtype: str | None
     freelists: pwndbg.dbg_mod.Value | None
@@ -71,7 +72,6 @@ parser.add_argument(
     "--zone",
     type=str,
     dest="zone",
-    choices=pwndbg.aglib.kernel.symbol.zone_names,
     default=None,
     help="Displays/searches lists only in the specified zone.",
 )
@@ -87,7 +87,6 @@ parser.add_argument(
     "--mtype",
     type=str,
     dest="mtype",
-    choices=pwndbg.aglib.kernel.symbol.migratetype_names,
     default=None,
     help="Displays/searches lists only with the specified mtype.",
 )
@@ -209,7 +208,7 @@ def print_pglist(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 
 def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     freelists, nr_types = cbp.freelists, cbp.nr_types
-    mtypes = pwndbg.aglib.kernel.symbol.migratetype_names
+    mtypes = pwndbg.aglib.kernel.symbol.migratetype_names()
     if nr_types is None:
         nr_types = pwndbg.aglib.kernel.symbol.nmtypes()
     for i in range(nr_types):
@@ -223,15 +222,15 @@ def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     pcp = None
     pcp_lists = None
-    if pba.zone.type.has_field("per_cpu_pageset"):
-        pcp = per_cpu(pba.zone["per_cpu_pageset"], pba.cpu)
+    if cbp.zone.type.has_field("per_cpu_pageset"):
+        pcp = per_cpu(cbp.zone["per_cpu_pageset"], pba.cpu)
         pcp_lists = pcp["lists"]
         cbp.sections[1] = (
             "per_cpu_pageset",
             f"number of pages {cbp.indent.aux_hex(int(pcp['count']))}",
         )
-    elif pba.zone.type.has_field("pageset"):
-        pcp = per_cpu(pba.zone["pageset"], pba.cpu)
+    elif cbp.zone.type.has_field("pageset"):
+        pcp = per_cpu(cbp.zone["pageset"], pba.cpu)
         pcp_lists = pcp["pcp"]["lists"]
         cbp.sections[1] = ("per_cpu_pageset", None)
     if pcp is None or pcp_lists is None:
@@ -258,7 +257,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 
 
 def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
-    free_area = pba.zone["free_area"]
+    free_area = cbp.zone["free_area"]
     cbp.sections[1] = ("free_area", None)
     for order in range(free_area.type.array_len):
         if pba.order is not None and pba.order != order:
@@ -271,6 +270,18 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         )
         cbp.order = order
         print_mtypes(pba, cbp)
+
+
+def print_zones(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams, zones, pcp_only):
+    for i in range(pwndbg.aglib.kernel.symbol.nzones()):
+        cbp.zone = zones[i]
+        name = pwndbg.aglib.memory.string(int(zones[i]["name"])).decode()
+        if pba.zone is not None and pba.zone != name:
+            continue
+        cbp.sections[0] = (f"Zone {name}", None)
+        print_pcp_set(pba, cbp)
+        if not pcp_only:
+            print_free_area(pba, cbp)
 
 
 """
@@ -324,30 +335,26 @@ v
 def buddydump(
     zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, node: int, find: int
 ) -> None:
-    node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
+    node_data = pwndbg.aglib.kernel.node_data()
     if not node_data:
         log.warning("WARNING: Symbol 'node_data' not found")
         return
     if not pwndbg.aglib.kernel.has_debug_info():
         pwndbg.aglib.kernel.buddydump.load_buddydump_typeinfo()
         node_data = pwndbg.aglib.memory.get_typed_pointer("node_data_t", node_data)
-    pba = ParsedBuddyArgs(None, order, mtype, cpu, find)
+    pba = ParsedBuddyArgs(zone, order, mtype, cpu, find)
     cbp = CurrentBuddyParams(
-        [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, False
+        [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, None, False
     )
     for node_idx in range(kernel.num_numa_nodes()):
-        # only display one node per invocation is probably sufficient under most use cases
         if node is not None and node_idx != node:
             continue
-        zones = node_data.dereference()[node_idx]["node_zones"]
-        for i in range(pwndbg.aglib.kernel.symbol.nzones()):
-            pba.zone = zones[i]
-            name = pwndbg.aglib.memory.string(int(zones[i]["name"])).decode()
-            if zone is not None and zone != name:
-                continue
-            cbp.sections[0] = (f"Zone {name}", None)
-            print_pcp_set(pba, cbp)
-            if not pcp_only:
-                print_free_area(pba, cbp)
+        zones = None
+        if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+            # only display one node per invocation is probably sufficient under most use cases
+            zones = node_data.dereference()[node_idx]["node_zones"]
+        else:
+            zones = node_data["node_zones"]
+        print_zones(pba, cbp, zones, pcp_only)
     if not cbp.found:
         log.warning("No free pages with specified filters found.")

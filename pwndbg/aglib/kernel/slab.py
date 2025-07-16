@@ -17,27 +17,21 @@ from pwndbg.aglib.kernel.macros import swab
 
 
 def caches() -> Generator[SlabCache, None, None]:
-    slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
+    slab_caches = pwndbg.aglib.kernel.slab_caches()
     if slab_caches is None:
         # Symbol not found
         return
-    if not kernel.has_debug_info():
-        slab_caches = pwndbg.aglib.memory.get_typed_pointer("struct list_head", slab_caches)
 
-    slab_caches = slab_caches.dereference()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         yield SlabCache(slab_cache)
 
 
 def get_cache(target_name: str) -> SlabCache | None:
-    slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
+    slab_caches = pwndbg.aglib.kernel.slab_caches()
     if slab_caches is None:
         # Symbol not found
         return None
-    if not kernel.has_debug_info():
-        slab_caches = pwndbg.aglib.memory.get_typed_pointer("struct list_head", slab_caches)
 
-    slab_caches = slab_caches.dereference()
     for slab_cache in for_each_entry(slab_caches, "struct kmem_cache", "list"):
         if target_name == slab_cache["name"].string():
             return SlabCache(slab_cache)
@@ -471,8 +465,9 @@ def kmem_cache_pad_sz(kconfig) -> int:
     # and the global var is also named "kmem_cache"
     name = "kmem_cache"
     name_off = None
-    kmem_cache = pwndbg.aglib.kernel.symbol.try_usymbol(name)
-    assert kmem_cache, "can't find kmem_cache"
+    slab_caches = pwndbg.aglib.kernel.slab_caches()
+    assert slab_caches, "can't find slab_caches"
+    kmem_cache = int(slab_caches["prev"]) & ~0xFFF
     for i in range(0x20):
         val = pwndbg.aglib.memory.u64(kmem_cache + i * 8)
         if pwndbg.aglib.memory.string(val) == name.encode():
@@ -580,7 +575,6 @@ def kmem_cache_structs():
     return result
 
 
-@pwndbg.aglib.kernel.requires_debug_symbols()
 def load_slab_typeinfo():
     if pwndbg.aglib.typeinfo.lookup_types("struct kmem_cache") is not None:
         return
