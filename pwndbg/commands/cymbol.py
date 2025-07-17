@@ -161,7 +161,9 @@ def add_custom_structure(custom_structure_name: str) -> None:
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
 
-def add_structure_from_header(header_file: str, custom_structure_name: str = None) -> None:
+def add_structure_from_header(
+    header_file: str, custom_structure_name: str = None, overwrite=False
+) -> None:
     # Properly handle the provided or default name for the custom structure
     custom_structure_name = (
         custom_structure_name.strip()
@@ -175,7 +177,7 @@ def add_structure_from_header(header_file: str, custom_structure_name: str = Non
 
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
 
-    if os.path.exists(pwndbg_custom_structure_path):
+    if os.path.exists(pwndbg_custom_structure_path) and not overwrite:
         option = input(
             message.notice(f"Structure '{custom_structure_name}' already exists. Overwrite? [y/n] ")
         )

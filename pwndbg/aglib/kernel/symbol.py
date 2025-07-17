@@ -197,7 +197,9 @@ def load_common_structs():
     if pwndbg.aglib.typeinfo.lookup_types("struct page") is not None:
         return
     header_file_path = pwndbg.commands.cymbol.create_temp_header_file(COMMON_TYPES)
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "")
+    pwndbg.commands.cymbol.add_structure_from_header(
+        header_file_path, "common_kernel_structs", overwrite=True
+    )
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
