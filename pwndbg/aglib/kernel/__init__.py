@@ -74,7 +74,9 @@ def requires_debug_symbols(
             if default is not None:
                 return default
 
-            raise Exception(f"Function {f.__name__} requires debug symbols")
+            raise Exception(
+                f"Function {f.__name__} requires {'all' if checkall else 'any'} of the following debug symbols: {required}"
+            )
 
         return func
 

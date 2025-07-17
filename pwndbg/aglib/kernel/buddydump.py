@@ -114,7 +114,10 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     for i in range(20):
         char_ptr = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
-        if pwndbg.aglib.memory.string(char_ptr).decode() in pwndbg.aglib.kernel.symbol.zone_names:
+        if (
+            pwndbg.aglib.memory.string(char_ptr).decode()
+            in pwndbg.aglib.kernel.symbol.POSSIBLE_ZONE_NAMES
+        ):
             name_off = i * 8 + pcp_off  # plus 1 to skip over previous
             break
     assert name_off, "can't find name offset"

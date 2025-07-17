@@ -13,7 +13,7 @@ from pwndbg.dbg import EventType
 # helpers
 #
 #########################################
-zone_names = (
+POSSIBLE_ZONE_NAMES = (
     "DMA",
     "DMA32",
     "Normal",
@@ -64,9 +64,9 @@ def try_usymbol(name: str, size=pwndbg.aglib.kernel.ptr_size) -> int:
 @pwndbg.aglib.kernel.requires_debug_symbols(["zone_names"], default=4)
 def nzones() -> int:
     _zone_names = pwndbg.aglib.symbol.lookup_symbol_addr("zone_names")
-    for i in range(len(zone_names) + 1):
+    for i in range(len(POSSIBLE_ZONE_NAMES) + 1):
         char_ptr = pwndbg.aglib.memory.u64(_zone_names + i * 8)
-        if pwndbg.aglib.memory.string(char_ptr).decode() not in zone_names:
+        if pwndbg.aglib.memory.string(char_ptr).decode() not in POSSIBLE_ZONE_NAMES:
             return i
     assert False, "cannot determine the number of zones"
 
@@ -226,7 +226,9 @@ class ArchSymbols:
             return node_data
         if node_data is None:
             return None
-        return pwndbg.aglib.memory.get_typed_pointer("ulong", node_data)
+        if pwndbg.aglib.kernel.has_debug_info():
+            return pwndbg.aglib.memory.get_typed_pointer("struct pglist_data", node_data)
+        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", node_data)
 
     def slab_caches(self):
         slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
