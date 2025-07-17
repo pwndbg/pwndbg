@@ -271,6 +271,11 @@ add_parser.add_argument("name", help="Name of custom structure")
 add_parser.add_argument(
     "--force", action="store_true", help="Overwrite if structure already exists"
 )
+parser.add_argument(
+    "--show-all",
+    help="Show names of all available custom structures",
+    action="store_true",
+)
 
 remove_parser = subparsers.add_parser("remove", help="Remove a custom structure")
 remove_parser.add_argument("name", help="Name of custom structure")
@@ -302,7 +307,7 @@ The `cymbol` command loads custom C structs and symbols into GDB using GCC under
  Usage Example:
     cymbol file --force ./structs.h
 
- --force: 
+ --force:
     Use this flag to force symbol reloading, even if symbols with the same name already exist.
 
  Warning:

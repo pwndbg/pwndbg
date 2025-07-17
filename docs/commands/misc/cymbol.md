@@ -3,7 +3,7 @@
 <small style="color: lightgray;">(only in GDB)</small>
 
 ```text
-usage: cymbol [-h] {add,remove,edit,load,show,file,show-all} ...
+usage: cymbol [-h] [--show-all] {add,remove,edit,load,show,file,show-all} ...
 
 ```
 
@@ -19,6 +19,7 @@ Manage custom C structures in pwndbg. Supports project-specific auto-loading fro
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
+||--show-all|Show names of all available custom structures|
 
 ### Notes
 The `cymbol` command loads custom C structs and symbols into GDB using GCC under the hood.
@@ -26,7 +27,7 @@ The `cymbol` command loads custom C structs and symbols into GDB using GCC under
  Usage Example:
     cymbol file --force ./structs.h
 
- --force: 
+ --force:
     Use this flag to force symbol reloading, even if symbols with the same name already exist.
 
  Warning:
