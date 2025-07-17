@@ -182,21 +182,13 @@ def get_lldb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost
     Build an LLDB-based test host.
     """
     if args.nix:
-        # Use pwndbg, as built by nix.
-        lldbinit_dir = local_pwndbg_root / "result" / "share" / "pwndbg/"
-
-        if not lldbinit_dir.exists():
-            print("ERROR: No nix-compatible pwndbg found. Run nix build .#pwndbg-lldb")
-            sys.exit(1)
-    else:
-        # Use the local version of pwndbg.
-        lldbinit_dir = local_pwndbg_root
+        print("ERROR: Nix is currently not supported with driver LLDB")
+        sys.exit(1)
 
     from host.lldb import LLDBTestHost
 
     return LLDBTestHost(
         local_pwndbg_root,
-        lldbinit_dir,
         local_pwndbg_root / args.group.library(),
         local_pwndbg_root / args.group.binary_dir(),
     )

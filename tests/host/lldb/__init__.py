@@ -14,14 +14,9 @@ from host import _result_from_pytest
 
 
 class LLDBTestHost(TestHost):
-    def __init__(
-        self, pwndbg_root: Path, lldbinit_dir: Path, pytest_root: Path, binaries_root: Path
-    ):
+    def __init__(self, pwndbg_root: Path, pytest_root: Path, binaries_root: Path):
         assert pwndbg_root.exists()
         assert pwndbg_root.is_dir()
-
-        assert lldbinit_dir.exists()
-        assert lldbinit_dir.is_dir()
 
         assert pytest_root.exists()
         assert pytest_root.is_dir()
@@ -30,7 +25,6 @@ class LLDBTestHost(TestHost):
         assert binaries_root.is_dir()
 
         self._pwndbg_root = pwndbg_root
-        self._lldbinit_dir = lldbinit_dir
         self._pytest_root = pytest_root
         self._binaries_root = binaries_root
 
@@ -60,7 +54,6 @@ class LLDBTestHost(TestHost):
         env["TEST_PWNDBG_ROOT"] = str(self._pwndbg_root)
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
         env["TEST_PDB_ON_FAIL"] = "1" if pdb else "0"
-        env["PWNDBG_LLDBINIT_DIR"] = str(self._lldbinit_dir)
         if test_name is not None:
             env["TEST_NAME"] = test_name
 
