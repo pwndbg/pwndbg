@@ -31,7 +31,7 @@ MIGRATE_PCPTYPES = 3
 @dataclass
 class ParsedBuddyArgs:
     # stores the input options
-    zone: pwndbg.dbg_mod.Value | None
+    zone: str | None
     order: int | None
     mtype: str | None
     cpu: int | None
@@ -44,7 +44,7 @@ class CurrentBuddyParams:
     # this is so that values can be cleanly passed around
     sections: List[Tuple[str, str]]
     indent: IndentContextManager
-    zone: str | None
+    zone: pwndbg.dbg_mod.Value | None
     order: int
     mtype: str | None
     freelists: pwndbg.dbg_mod.Value | None

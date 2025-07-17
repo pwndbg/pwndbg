@@ -207,6 +207,13 @@ def load_common_structs_on_load():
 
 
 class ArchSymbols:
+    def disass(self, name):
+        sym = pwndbg.aglib.symbol.lookup_symbol(name)
+        if sym is None:
+            return None
+        disass = "\n".join(pwndbg.aglib.nearpc.nearpc(int(sym)))
+        return pwndbg.color.strip(disass)
+
     def regex(self, s, pattern):
         pattern = re.compile(pattern)
         return pattern.search(s)
@@ -246,48 +253,93 @@ class ArchSymbols:
 
 
 class x86_64Symbols(ArchSymbols):
-    def _node_data(self):
-        slab_next = pwndbg.aglib.symbol.lookup_symbol("first_online_pgdat")
-        if slab_next is None:
-            return None
-        disass = "\n".join(pwndbg.aglib.nearpc.nearpc(int(slab_next)))
-        disass = pwndbg.color.strip(disass)
+    # mov reg, [... - 0x...]
+    # the ``-0x...` is a kernel address displayed as a negative number
+    # returns the first 0x... as an int if exists
+    def dword_mov_reg_memoff(self, disass):
         result = self.regex(disass, r".*?\bmov.*\[.*-.*(0x[0-9a-f]+)\]")
         if result is not None:
             return (1 << 64) - int(result.group(1), 16)
-        result = self.regex(disass, r".*?\bmov.*(0x[0-9a-f]{16})")
-        if result is None:
-            return None
-        return int(result.group(1), 16)
+        return None
 
-    def _slab_caches(self):
-        slab_next = pwndbg.aglib.symbol.lookup_symbol("slab_next")
-        if slab_next is None:
-            return None
-        disass = "\n".join(pwndbg.aglib.nearpc.nearpc(int(slab_next)))
-        disass = pwndbg.color.strip(disass)
-        return int(self.regex(disass, r".*?\bmov\s+[^,]+,\s*(0x[0-9a-f]+)").group(1), 16)
-
-    def _per_cpu_offset(self):
-        nr_iowait_cpu = pwndbg.aglib.symbol.lookup_symbol("nr_iowait_cpu")
-        if nr_iowait_cpu is None:
-            return None
-        disass = "\n".join(pwndbg.aglib.nearpc.nearpc(int(nr_iowait_cpu)))
-        disass = pwndbg.color.strip(disass)
-        # ex: add    rax,QWORD PTR [rdi*8-0x5fdba960]
+    # add reg, [... - 0x...]
+    # the `-0x...`` is a kernel address displayed as a negative number
+    # returns the first 0x... as an int if exists
+    def dword_add_reg_memoff(self, disass):
         result = self.regex(disass, r".*?\badd.*\[.*-.*(0x[0-9a-f]+)\]")
         if result is not None:
             return (1 << 64) - int(result.group(1), 16)
-        # ex: mov    rax,0xabcd
-        result = self.regex(disass, r".*?\bmov.*(0x[0-9a-f]+)")
-        if result is None:
-            return None
-        return int(result.group(1), 16)
+        return None
+
+    # mov reg, <kernel address as a constant>
+    def qword_mov_reg_const(self, disass):
+        result = self.regex(disass, r".*?\bmov.*(0x[0-9a-f]{16})")
+        if result is not None:
+            return int(result.group(1), 16)
+        return None
+
+    def _node_data(self):
+        disass = self.disass("first_online_pgdat")
+        result = self.dword_mov_reg_memoff(disass)
+        if result is not None:
+            return result
+        return self.qword_mov_reg_const(disass)
+
+    def _slab_caches(self):
+        disass = self.disass("slab_next")
+        return self.qword_mov_reg_const(disass)
+
+    def _per_cpu_offset(self):
+        disass = self.disass("nr_iowait_cpu")
+        result = self.dword_add_reg_memoff(disass)
+        if result is not None:
+            return result
+        return self.qword_mov_reg_const(disass)
 
 
 class Aarch64Symbols(ArchSymbols):
+    # adrp x?, <kernel address>
+    # add x?, x?, #0x...
+    def qword_adrp_add_const(self, disass):
+        prev = ""
+        for line in disass.splitlines():
+            if "adrp" in prev and "add" in line:
+                result = self.regex(prev, r"\,\s*0x([0-9a-f]+)")
+                if result is None:
+                    return None
+                tmp = int(result.group(1), 16)
+                result = self.regex(line, r"#0x([0-9a-f]+)")
+                if result is None:
+                    return None
+                return tmp + int(result.group(1), 16)
+            prev = line
+        return None
+
     def _node_data(self):
-        raise NotImplementedError()
+        disass = self.disass("first_online_pgdat")
+        return self.qword_adrp_add_const(disass)
 
     def _slab_caches(self):
-        raise NotImplementedError()
+        disass = self.disass("slab_next")
+        result = self.qword_adrp_add_const(disass)
+        if result:
+            return result
+        # adrp x<num>, 0x....
+        # ...
+        # add x<num>, x<num>, #0x...
+        # ...
+        # add x1, x<num>, #0x...
+        pattern = re.compile(
+            r"adrp\s+x(\d+),\s+0x([0-9a-fA-F]+).*?\n"
+            r".*?add\s+x\1,\s+x\1,\s+#0x([0-9a-fA-F]+).*?\n"
+            r".*?add\s+x1,\s+x\1,\s+#0x([0-9a-fA-F]+)",
+            re.DOTALL,
+        )
+        m = pattern.search(disass)
+        if m is None:
+            return None
+        return sum([int(m.group(i), 16) for i in [2, 3, 4]])
+
+    def _per_cpu_offset(self):
+        disass = self.disass("nr_iowait_cpu")
+        return self.qword_adrp_add_const(disass)

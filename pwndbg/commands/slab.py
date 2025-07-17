@@ -235,7 +235,7 @@ def slab_info(name: str, verbose: bool, cpu: int, node: int, active: bool, parti
         indent.print(f"{indent.prefix('Offset')}: {indent.aux_hex(slab_cache.offset)}")
         indent.print(f"{indent.prefix('Slab size')}: {indent.aux_hex(slab_cache.slab_size)}")
         indent.print(
-            f"{indent.prefix('Size (without metadata)')}: {indent.aux_hex(slab_cache.size)}"
+            f"{indent.prefix('Size (including metadata)')}: {indent.aux_hex(slab_cache.size)}"
         )
         indent.print(f"{indent.prefix('Align')}: {indent.aux_hex(slab_cache.align)}")
         indent.print(f"{indent.prefix('Object Size')}: {indent.aux_hex(slab_cache.object_size)}")

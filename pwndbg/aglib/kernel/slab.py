@@ -585,6 +585,8 @@ def load_slab_typeinfo():
         defs.append("BEFORE_V6_2")
     if pwndbg.aglib.kernel.krelease() < (5, 19):
         defs.append("BEFORE_V5_19")
+    if pwndbg.aglib.kernel.krelease() >= (5, 16):
+        defs.append("SINCE_V5_16")
     configs = (
         "CONFIG_SLUB_TINY",
         "CONFIG_SLUB_CPU_PARTIAL",
@@ -617,8 +619,10 @@ def load_slab_typeinfo():
 #ifdef CONFIG_SLUB_CPU_PARTIAL
         /* Number of per cpu partial objects to keep around */
         unsigned int cpu_partial;
+#ifdef SINCE_V5_16
         /* Number of per cpu partial slabs to keep around */
         unsigned int cpu_partial_slabs;
+#endif
 #endif
         struct kmem_cache_order_objects oo;
         /* Allocation and freeing of slabs */

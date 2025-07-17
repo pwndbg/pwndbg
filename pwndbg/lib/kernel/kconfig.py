@@ -96,11 +96,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     @property
     def CONFIG_SLUB_CPU_PARTIAL(self) -> bool:
-        if pwndbg.aglib.kernel.krelease() < (6, 8):
-            if pwndbg.aglib.symbol.lookup_symbol("unfreeze_partials") is not None:
-                return True
-            return pwndbg.aglib.symbol.lookup_symbol("__unfreeze_partials") is not None
-        return pwndbg.aglib.symbol.lookup_symbol("__put_partials") is not None
+        return pwndbg.aglib.symbol.lookup_symbol("put_cpu_partial") is not None
 
     @property
     def CONFIG_MEMCG(self) -> bool:
