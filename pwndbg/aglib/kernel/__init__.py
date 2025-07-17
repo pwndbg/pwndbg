@@ -107,6 +107,7 @@ def nproc() -> int:
     return val
 
 
+@pwndbg.lib.cache.cache_until("stop")
 def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
     """Returns the first kernel mapping which contains the linux_banner"""
     base = kbase()
@@ -117,9 +118,9 @@ def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
         if mapping.vaddr < base:
             continue
 
-        results = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))
+        result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
 
-        if len(results) > 0:
+        if result:
             return mapping
 
     return None
@@ -169,7 +170,7 @@ def kversion() -> str:
     except Exception:
         pass
     mapping = get_first_kernel_ro()
-    version_addr = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))[0]
+    version_addr = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
     return pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
 
 
