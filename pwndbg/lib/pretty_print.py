@@ -34,12 +34,17 @@ class PropertyPrinter:
 
     def __init__(
         self,
+        value_offset: int = 14,
+        extra_offset: int = 16,
         *,
         name_color_func: Optional[Callable[[str], str]] = None,
         value_color_func: Optional[Callable[[str], str]] = None,
         section_color_func: Optional[Callable[[str], str]] = None,
         indent_size: int = 2,
     ):
+        self.value_offset = value_offset
+        self.extra_offset = extra_offset
+
         self.name_color_func = name_color_func
         if self.name_color_func is None:
             self.name_color_func = color.bold
@@ -53,9 +58,7 @@ class PropertyPrinter:
             self.section_color_func = color.green
 
         self.indent_size = indent_size
-
         self.indent_level = 0
-        self.padding = 2
         self.text = ""
 
     def add(self, prop_group: List[Property]) -> None:
@@ -75,24 +78,16 @@ class PropertyPrinter:
                 else:
                     prop.alt_value = str(prop.alt_value)
 
-        # Get max lengths to calculate proper ljust
-        # + 1 to account for the ":"
-        max_name_len = max(len(prop.name) for prop in prop_group) + 1
-        # max_value_len = max(len(prop.value) for prop in prop_group)
-        # Use constant so it works between different groups
-        max_value_len = 16
-
         indentation_str = self.indent_level * self.indent_size * " "
-        padding_str = self.padding * " "
-        name_pad_str = max_name_len * " "
-        val_pad_str = max_value_len * " "
-        extra_list_pad_str = indentation_str + name_pad_str + padding_str + val_pad_str
+        extra_list_pad_str = (
+            indentation_str + self.value_offset * " " + "  " + self.extra_offset * " "
+        )
 
         for prop in prop_group:
             self.text += (
                 indentation_str
-                + color.ljust_colored(self.name_color_func(prop.name) + ":", max_name_len)
-                + padding_str
+                + color.ljust_colored(self.name_color_func(prop.name) + ":", self.value_offset)
+                + "  "
             )
 
             if prop.is_addr:
@@ -105,7 +100,7 @@ class PropertyPrinter:
             if prop.alt_value is not None:
                 colored_alt_val = " (" + self.value_color_func(prop.alt_value) + ")"
 
-            self.text += color.ljust_colored(colored_val + colored_alt_val, max_value_len)
+            self.text += color.ljust_colored(colored_val + colored_alt_val, self.extra_offset)
 
             if isinstance(prop.extra, str):
                 self.text += "  " + prop.extra
@@ -181,10 +176,3 @@ class PropertyPrinter:
         End a section.
         """
         self.unindent()
-
-    def set_padding(self, pad: int) -> None:
-        """
-        Set the distance between the end of the longest
-        property name and the start of the value column.
-        """
-        self.padding = pad

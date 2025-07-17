@@ -31,6 +31,7 @@ import pwndbg.integration
 import pwndbg.lib.memory
 import pwndbg.lib.regs
 from pwndbg import color
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color.syntax_highlight import syntax_highlight
 
 if pwndbg.dbg.is_gdblib_available():
@@ -193,7 +194,7 @@ ARM_BANNED_INSTRUCTIONS = {
 # We stop emulation when hitting these instructions, since they depend on co-processors or other information
 # unavailable to the emulator
 BANNED_INSTRUCTIONS = {
-    "mips": {C.mips.MIPS_INS_RDHWR},
+    "mips": {C.mips.MIPS_INS_RDHWR, C.mips.MIPS_INS_ALIAS_RDHWR},
     "arm": ARM_BANNED_INSTRUCTIONS,
     "armcm": ARM_BANNED_INSTRUCTIONS,
     "aarch64": {C.aarch64.AARCH64_INS_MRS},
@@ -827,7 +828,7 @@ class Emulator:
         )
         self.until_syscall_address = address
 
-    def single_step(self, pc=None, check_instruction=False) -> Tuple[int, int]:
+    def single_step(self, pc=None, instruction: PwndbgInstruction | None = None) -> Tuple[int, int]:
         """Steps one instruction.
 
         Yields:
@@ -844,23 +845,23 @@ class Emulator:
 
         pc = pc or self.pc
 
-        if check_instruction or DEBUG & DEBUG_EXECUTING:
-            insn = pwndbg.aglib.disasm.disassembly.one_raw(pc)
+        if instruction is None:
+            instruction = pwndbg.aglib.disasm.disassembly.one_raw(pc)
 
             # If we don't know how to disassemble, bail.
-            if insn is None:
+            if instruction is None:
                 debug(DEBUG_EXECUTING, "Can't disassemble instruction at %#x", pc)
                 return self.last_single_step_result
 
-            if insn.id in BANNED_INSTRUCTIONS.get(self.arch, {}):
-                debug(DEBUG_EXECUTING, "Hit illegal instruction at %#x", pc)
-                return self.last_single_step_result
+        if instruction.id in BANNED_INSTRUCTIONS.get(self.arch, {}):
+            debug(DEBUG_EXECUTING, "Hit illegal instruction at %#x", pc)
+            return self.last_single_step_result
 
-            debug(
-                DEBUG_EXECUTING,
-                "# Instruction: attempting to single-step at %#x: %s %s",
-                (pc, insn.mnemonic, insn.op_str),
-            )
+        debug(
+            DEBUG_EXECUTING,
+            "# Instruction: attempting to single-step at %#x: %s %s",
+            (pc, instruction.mnemonic, instruction.op_str),
+        )
 
         try:
             self.single_step_hook_hit_count = 0
