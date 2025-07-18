@@ -4,9 +4,9 @@ import sys
 import types
 from unittest.mock import MagicMock
 
-from mocks.arch import MockAmd64Arch
-from mocks.config import Config
-from mocks.typeinfo import Amd64TypeInfo
+from .arch import MockAmd64Arch
+from .config import Config
+from .typeinfo import Amd64TypeInfo
 
 
 class AgLib(types.ModuleType):

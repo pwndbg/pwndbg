@@ -14,6 +14,8 @@ from pwndbg.lib.memory import round_down
 from pwndbg.lib.memory import round_up
 
 # Load the mocks for the `gdb` and `gdblib` modules
+from .mocks import gdb  # noqa: F401
+from .mocks import gdblib  # noqa: F401
 
 
 def test_basic_rounding():
