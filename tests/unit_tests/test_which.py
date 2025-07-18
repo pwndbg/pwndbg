@@ -12,12 +12,10 @@ sys.modules[module_name] = module
 import os
 import tempfile
 
-# Load the mocks for the `gdb` and `gdblib` modules
-import mocks.gdb
-import mocks.gdblib  # noqa: F401
-
 # We must import the function under test after all the mocks are imported
 from pwndbg.lib.which import which
+
+# Load the mocks for the `gdb` and `gdblib` modules
 
 
 def test_basic():
