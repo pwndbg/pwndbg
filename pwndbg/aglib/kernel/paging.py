@@ -179,9 +179,14 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     @pwndbg.lib.cache.cache_until("stop")
     def get_vmalloc_vmemmap_bases(self):
-        target = self.physmap.to_bytes(8, byteorder="little")
-        mapping = pwndbg.aglib.kernel.get_first_kernel_ro()
-        result = next(pwndbg.search.search(target, mappings=[mapping]), None)
+        result = None
+        try:
+            target = self.physmap.to_bytes(8, byteorder="little")
+            mapping = pwndbg.aglib.kernel.get_first_kernel_ro()
+            result = next(pwndbg.search.search(target, mappings=[mapping]), None)
+        except Exception as e:
+            print(e)
+            pass
         vmemmap, vmalloc = None, None
         if result is not None:
             vmemmap = pwndbg.aglib.memory.u64(result - 0x10)
