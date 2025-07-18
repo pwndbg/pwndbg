@@ -8,24 +8,10 @@ import re
 import shutil
 import subprocess
 import sys
+from typing import Any
+from typing import Callable
+from typing import Coroutine
 from typing import List
-
-PARSER = argparse.ArgumentParser(prog="pwndbg-lldb")
-PARSER.add_argument("-v", "--verbose", action="store_true", help="Enable debug output")
-PARSER.add_argument("target", nargs="?")
-parser_attach = PARSER.add_mutually_exclusive_group()
-parser_attach.add_argument(
-    "-n", "--attach-name", help="Tells the debugger to attach to a process with the given name."
-)
-parser_attach.add_argument(
-    "-p", "--attach-pid", help="Tells the debugger to attach to a process with the given pid."
-)
-PARSER.add_argument(
-    "-w",
-    "--wait-for",
-    action="store_true",
-    help="Tells the debugger to wait for a process with the given pid or name to launch before attaching.",
-)
 
 
 def find_lldb_version() -> List[int]:
@@ -59,27 +45,14 @@ def find_lldb_python_path() -> str:
     return folder
 
 
-def get_venv_bin_path():
-    bin_dir = "Scripts" if os.name == "nt" else "bin"
-    return os.path.join(sys.prefix, bin_dir)
-
-
-def prepend_venv_bin_to_path():
-    # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
-    venv_bin = get_venv_bin_path()
-    path_elements = os.environ.get("PATH", "").split(os.pathsep)
-    if venv_bin in path_elements:
-        return
-
-    path_elements.insert(0, venv_bin)
-    os.environ["PATH"] = os.pathsep.join(path_elements)
-
-
-def main():
-    prepend_venv_bin_to_path()
-
-    args = PARSER.parse_args()
-    debug = args.verbose
+def launch(
+    controller: Callable[..., Coroutine[Any, Any, None]],
+    *args,
+    debug: bool = False,
+) -> None:
+    """
+    Launch Pwndbg with the given controller.
+    """
 
     if sys.platform == "linux" and "LLDB_DEBUGSERVER_PATH" not in os.environ:
         os.environ["LLDB_DEBUGSERVER_PATH"] = shutil.which("lldb-server")
@@ -121,15 +94,62 @@ def main():
         print("[-] Launcher: Initializing Pwndbg")
     lldbinit.main(debugger, lldb_version[0], lldb_version[1], debug=debug)
 
-    from pwndbg.dbg.lldb.repl import PwndbgController
-    from pwndbg.dbg.lldb.repl import print_error
-    from pwndbg.dbg.lldb.repl import print_warn
     from pwndbg.dbg.lldb.repl import run as run_repl
 
     if debug:
         print("[-] Launcher: Entering Pwndbg CLI")
 
-    # Prepare the startup commands.
+    run_repl(controller, *args, debug=debug)
+
+    # Dispose of our debugger and terminate LLDB.
+    lldb.SBDebugger.Destroy(debugger)
+    lldb.SBDebugger.Terminate()
+
+
+def get_venv_bin_path():
+    bin_dir = "Scripts" if os.name == "nt" else "bin"
+    return os.path.join(sys.prefix, bin_dir)
+
+
+def prepend_venv_bin_to_path():
+    # Set virtualenv's bin path (needed for utility tools like ropper, pwntools etc)
+    venv_bin = get_venv_bin_path()
+    path_elements = os.environ.get("PATH", "").split(os.pathsep)
+    if venv_bin in path_elements:
+        return
+
+    path_elements.insert(0, venv_bin)
+    os.environ["PATH"] = os.pathsep.join(path_elements)
+
+
+def main() -> None:
+    """
+    Entry point for the pwndbg-lldb command line tool.
+    """
+    prepend_venv_bin_to_path()
+
+    # Parse the arguments we were given.
+    parser = argparse.ArgumentParser(prog="pwndbg-lldb")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug output")
+    parser.add_argument("target", nargs="?")
+    parser_attach = parser.add_mutually_exclusive_group()
+    parser_attach.add_argument(
+        "-n", "--attach-name", help="Tells the debugger to attach to a process with the given name."
+    )
+    parser_attach.add_argument(
+        "-p", "--attach-pid", help="Tells the debugger to attach to a process with the given pid."
+    )
+    parser.add_argument(
+        "-w",
+        "--wait-for",
+        action="store_true",
+        help="Tells the debugger to wait for a process with the given pid or name to launch before attaching.",
+    )
+
+    args = parser.parse_args()
+    debug = args.verbose
+
+    # Prepare the startup commands based on those arguments.
     startup = []
     if args.target:
         # DEVIATION: The LLDB CLI silently ignores any target information passed
@@ -145,7 +165,7 @@ def main():
         # both '--attach-name' and '--attach-pid', it silently ignores it when
         # used with the latter. Pwndbg prints out a warning, instead.
         if args.wait_for:
-            print_warn("'--wait-for' has no effect when used with '--attach-pid'")
+            print("warn: '--wait-for' has no effect when used with '--attach-pid'")
 
         startup.append(f'process attach --pid "{args.attach_pid}"')
     else:
@@ -154,19 +174,23 @@ def main():
             # nesting argument groups has been deprecated since Python 3.11, and
             # the deprecation message suggests it was never even supported in
             # the first place :/
-            print_error(
-                "'--wait-for' must be used in combination with either '--attach-name' or '--attach-pid'"
+            print(
+                "error: '--wait-for' must be used in combination with either '--attach-name' or '--attach-pid'"
             )
-            PARSER.print_usage()
+            parser.print_usage()
             sys.exit(1)
 
     if (args.attach_pid is not None or args.attach_name is not None) and args.target:
-        print_warn(
-            "have both a target and an attach request, your target may be overwritten on attach"
+        print(
+            "warn: have both a target and an attach request, your target may be overwritten on attach"
         )
 
     def drive(startup: List[str] | None):
-        async def drive(c: PwndbgController):
+        async def drive(c):
+            from pwndbg.dbg.lldb.repl import PwndbgController
+
+            assert isinstance(c, PwndbgController)
+
             if startup is not None:
                 for line in startup:
                     await c.execute(line)
@@ -176,11 +200,8 @@ def main():
 
         return drive
 
-    run_repl(drive(startup), debug=debug)
-
-    # Dispose of our debugger and terminate LLDB.
-    lldb.SBDebugger.Destroy(debugger)
-    lldb.SBDebugger.Terminate()
+    # Launch Pwndbg in interactive mode.
+    launch(drive(startup), debug=debug)
 
 
 if __name__ == "__main__":
