@@ -14,9 +14,9 @@ import time
 from enum import Enum
 from pathlib import Path
 
-from host import TestHost
-from host import TestResult
-from host import TestStatus
+from .host import TestHost
+from .host import TestResult
+from .host import TestStatus
 
 
 def main():
@@ -137,7 +137,7 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
     """
     if args.nix:
         # Use pwndbg, as build by nix.
-        gdb_path = local_pwndbg_root / "result" / "bin" / "pwndbg"
+        gdb_path = local_pwndbg_root / "result/bin/pwndbg"
 
         if not gdb_path.exists():
             print("ERROR: No nix-compatible pwndbg found. Run nix build .#pwndbg-dev")
@@ -167,7 +167,7 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
             sys.exit(1)
         gdb_path = Path(gdb_path_str)
 
-    from host.gdb import GDBTestHost
+    from .host.gdb import GDBTestHost
 
     return GDBTestHost(
         local_pwndbg_root,
@@ -185,7 +185,7 @@ def get_lldb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost
         print("ERROR: Nix is currently not supported with driver LLDB")
         sys.exit(1)
 
-    from host.lldb import LLDBTestHost
+    from .host.lldb import LLDBTestHost
 
     return LLDBTestHost(
         local_pwndbg_root,

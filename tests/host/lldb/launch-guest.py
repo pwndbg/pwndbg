@@ -13,9 +13,9 @@ from typing import List
 async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> None:
     # We only import this here, as pwndbg-lldb is responsible for setting Pwndbg
     # up on our behalf.
-    from ...host import Controller
-
     from pwndbg.dbg.lldb.repl import PwndbgController
+
+    from ...host import Controller
 
     assert isinstance(ctrl, PwndbgController)
 
@@ -34,10 +34,10 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
 
 def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
     # The import path is set up before this function is called.
+    from pwndbginit import pwndbg_lldb
+
     from ... import host
     from ...host import Controller
-
-    from pwndbginit import pwndbg_lldb
 
     # Replace host.start with a proper implementation of the start command.
     def _start(outer: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:

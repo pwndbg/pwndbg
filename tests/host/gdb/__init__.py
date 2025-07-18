@@ -81,7 +81,10 @@ class GDBTestHost(TestHost):
         # The test itself runs under GDB, spawned by this process, and prepared
         # by the `pytests_launcher` script.
         result = self._run_gdb(
-            "tests.host.gdb.pytests-launcher", gdb_args_before=gdb_args_before, env=env, capture_output=not interactive
+            "tests.host.gdb.pytests-launcher",
+            gdb_args_before=gdb_args_before,
+            env=env,
+            capture_output=not interactive,
         )
         duration = time.monotonic_ns() - started_at
 
