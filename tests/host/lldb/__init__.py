@@ -61,7 +61,10 @@ class LLDBTestHost(TestHost):
 
     def collect(self) -> List[str]:
         result = self._launch("COLLECT", None, True, False)
-        return _collection_from_pytest(result, self._pwndbg_root, self._pytest_root)
+        names = _collection_from_pytest(result, self._pwndbg_root, self._pytest_root)
+
+        # We execute from Pwndbg root, so we need to prepend tests/ to the names.
+        return [f"tests/{name}" for name in names]
 
     def run(self, case: str, coverage_out: Path | None, interactive: bool) -> TestResult:
         if coverage_out is not None:
