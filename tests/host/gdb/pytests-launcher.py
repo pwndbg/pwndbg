@@ -11,14 +11,7 @@ import coverage
 import gdb
 import pytest
 
-PWNDBG_ROOT = os.environ["TEST_PWNDBG_ROOT"]
-
-# Prepare the test host environment for the Debugger API tests.
-host_home = f"{PWNDBG_ROOT}/tests/"
-if host_home not in sys.path:
-    sys.path.append(host_home)
-
-import host
+from ... import host
 
 
 class _GDBController(host.Controller):
