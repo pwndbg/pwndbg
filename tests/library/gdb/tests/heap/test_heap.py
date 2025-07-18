@@ -10,8 +10,9 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg
-from .. import get_binary
 from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
+
+from .. import get_binary
 
 HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
 HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.out")

@@ -5,6 +5,7 @@ import gdb
 import pwndbg.aglib.symbol
 import pwndbg.color
 import pwndbg.dbg
+
 from . import get_binary
 
 RISCV64_PREAMBLE = """

@@ -10,6 +10,7 @@ import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.commands.canary
 import pwndbg.commands.context
+
 from . import get_binary
 
 REFERENCE_BINARY = get_binary("reference-binary.out")

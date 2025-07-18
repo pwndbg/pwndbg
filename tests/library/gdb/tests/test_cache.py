@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import pwndbg
-from . import get_binary
 from pwndbg.dbg import EventType
 from pwndbg.lib import cache
+
+from . import get_binary
 
 BINARY = get_binary("reference-binary.out")
 

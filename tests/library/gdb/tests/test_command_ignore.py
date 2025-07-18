@@ -3,6 +3,7 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.aglib.proc
+
 from . import get_binary
 
 REFERENCE_BINARY = get_binary("reference-binary.out")

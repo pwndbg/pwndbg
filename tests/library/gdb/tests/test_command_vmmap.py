@@ -6,6 +6,7 @@ import gdb
 import pytest
 
 import pwndbg.aglib.proc
+
 from . import get_binary
 
 GAPS_MAP_BINARY = get_binary("mmap_gaps.out")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.color.message
+
 from . import get_binary
 
 BINARY = get_binary("reference-binary.out")

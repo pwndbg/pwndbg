@@ -5,8 +5,9 @@ import os
 import gdb
 import pytest
 
-from . import get_binary
 from pwndbg.commands import command_names
+
+from . import get_binary
 
 BINARY = get_binary("heap_bins.out")
 

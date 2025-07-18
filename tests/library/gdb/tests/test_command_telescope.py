@@ -8,6 +8,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
+
 from . import get_binary
 
 TELESCOPE_BINARY = get_binary("telescope_binary.out")

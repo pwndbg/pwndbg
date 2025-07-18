@@ -8,8 +8,9 @@ import pwndbg.aglib.nearpc
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.dbg
-from . import get_binary
 from pwndbg.aglib.disasm.instruction import InstructionCondition
+
+from . import get_binary
 
 AARCH64_PREAMBLE = """
 .text

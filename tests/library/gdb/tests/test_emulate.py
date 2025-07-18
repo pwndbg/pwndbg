@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import pwndbg.aglib.regs
-from . import get_binary
 from pwndbg.aglib.nearpc import nearpc
+
+from . import get_binary
 
 EMULATE_DISASM_BINARY = get_binary("emulate_disasm.out")
 EMULATE_DISASM_LOOP_BINARY = get_binary("emulate_disasm_loop.out")

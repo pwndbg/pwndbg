@@ -5,6 +5,7 @@ import pytest
 
 import pwndbg.aglib.tls
 import pwndbg.aglib.vmmap
+
 from . import get_binary
 
 TLS_X86_64_BINARY = get_binary("tls.x86-64.out")

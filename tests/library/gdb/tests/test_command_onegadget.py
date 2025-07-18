@@ -6,6 +6,7 @@ import gdb
 import pytest
 
 import pwndbg.glibc
+
 from . import get_binary
 
 X86_64_BINARY = get_binary("onegadget.x86-64.out")

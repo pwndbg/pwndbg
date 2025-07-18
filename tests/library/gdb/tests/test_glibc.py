@@ -8,6 +8,7 @@ import gdb
 import pytest
 
 import pwndbg.glibc
+
 from . import get_binary
 
 # We used the same binary as heap tests since it will use libc, and many functions are mainly for debugging the heap

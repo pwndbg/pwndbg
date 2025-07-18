@@ -4,6 +4,7 @@ import gdb
 import pytest
 
 import pwndbg.aglib.regs
+
 from . import get_binary
 
 CONDBR_X64_BINARY = get_binary("conditional_branch_breakpoints_x64.out")

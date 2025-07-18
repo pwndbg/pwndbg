@@ -6,6 +6,7 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.lib.memory
+
 from . import get_binary
 
 USE_FDS_BINARY = get_binary("use-fds.out")

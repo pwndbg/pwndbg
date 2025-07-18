@@ -5,6 +5,7 @@ import gdb
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
+
 from . import get_binary
 
 MEMORY_BINARY = get_binary("memory.out")

@@ -9,6 +9,7 @@ import pwndbg.aglib.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.dbg
+
 from .. import get_binary
 
 HEAP_FIND_FAKE_FAST = get_binary("heap_find_fake_fast.out")

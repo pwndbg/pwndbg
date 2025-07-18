@@ -5,6 +5,7 @@ import time
 import gdb
 
 import pwndbg.dbg
+
 from . import get_binary
 
 REFERENCE_BINARY_THREADS = get_binary("multiple_threads.out")

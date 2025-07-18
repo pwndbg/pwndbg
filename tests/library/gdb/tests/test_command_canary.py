@@ -5,6 +5,7 @@ import pytest
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
+
 from . import get_binary
 
 CANARY_X86_64_BINARY = get_binary("canary.x86-64.out")

@@ -8,6 +8,7 @@ import pytest
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.heap
+
 from .. import get_binary
 
 HEAP_BINARY = get_binary("heap_bugs.out")

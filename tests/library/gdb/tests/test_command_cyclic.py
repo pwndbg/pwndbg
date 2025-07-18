@@ -6,6 +6,7 @@ from pwnlib.util.cyclic import cyclic
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
+
 from . import get_binary
 
 REFERENCE_BINARY = get_binary("reference-binary.out")

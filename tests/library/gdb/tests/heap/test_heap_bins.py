@@ -8,8 +8,9 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.dbg
-from .. import get_binary
 from pwndbg.aglib.heap.ptmalloc import BinType
+
+from .. import get_binary
 
 BINARY = get_binary("heap_bins.out")
 

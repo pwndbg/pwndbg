@@ -8,6 +8,7 @@ import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
+
 from . import get_binary
 
 BINARY = get_binary("reference-binary.out")

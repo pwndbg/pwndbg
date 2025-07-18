@@ -6,6 +6,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.dbg
+
 from . import get_binary
 
 REFERENCE_BINARY = get_binary("reference-binary.out")

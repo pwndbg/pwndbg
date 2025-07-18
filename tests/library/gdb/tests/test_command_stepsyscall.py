@@ -3,6 +3,7 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.aglib.regs
+
 from . import get_binary
 
 STEPSYSCALL_X64_BINARY = get_binary("stepsyscall_x64.out")

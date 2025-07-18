@@ -3,6 +3,7 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.dbg
+
 from . import get_binary
 
 MANGLING_BINARY = get_binary("symbol_1600_and_752.out")

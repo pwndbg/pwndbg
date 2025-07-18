@@ -6,6 +6,7 @@ import pytest
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
+
 from . import get_binary
 
 REFERENCE_BINARY = get_binary("reference-binary.out")

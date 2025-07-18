@@ -4,6 +4,7 @@ import gdb
 
 import pwndbg.aglib.proc
 import pwndbg.commands.context
+
 from . import get_binary
 
 # The tests in this file execute for a long time - they can take 5-15 minutes to run, depending on the machine
