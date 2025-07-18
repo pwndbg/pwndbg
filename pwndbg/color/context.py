@@ -103,7 +103,7 @@ def format_flags(value: int | None, flags: BitFlags, last: int | None = None):
             size = 1
         else:
             assert len(bit) == 2
-            size = bit[1]
+            size = bit[1] - bit[0] + 1
             bit = bit[0]
 
         mask = (1 << size) - 1
@@ -112,7 +112,10 @@ def format_flags(value: int | None, flags: BitFlags, last: int | None = None):
         # If the bitfield is larger than a single bit, we can't communicate the value
         # with just the case of the name, so append the actual value
         if size > 1:
-            name = f"{name}:{flag_val}"
+            if size == 2:
+                name = f"{name}:{flag_val:0{size}b}"
+            else:
+                name = f"{name}:{flag_val:#x}"
 
         if flag_val == 0:
             name = flag_unset(name.lower())

@@ -441,3 +441,7 @@ def is_pagefault_supported() -> bool:
 
     # TODO: use a better detection method
     return pwndbg.dbg.selected_inferior().is_linux()
+
+
+def is_kernel(addr: int):
+    return addr >> 63 == 1

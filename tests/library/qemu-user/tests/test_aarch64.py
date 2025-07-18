@@ -218,7 +218,7 @@ def test_aarch64_conditional_jump_output(qemu_assembly_run):
         "    ↓\n"
         "   0x1010140 <C>         ✔ tbnz   w2, #3, D                   <D>\n"
         "    ↓\n"
-        "   0x1010148 <D>           cmp    x2, x3       0xa - 0x0     CPSR => 0x20000000 [ n z C v q pan il d a i f el:0 sp ]\n"
+        "   0x1010148 <D>           cmp    x2, x3       0xa - 0x0     CPSR => 0x20000000 [ n z C v q pan il d a i f el sp ]\n"
         "   0x101014c <D+4>       ✘ b.eq   E                           <E>\n"
         " \n"
         "   0x1010150 <D+8>         nop    \n"
@@ -510,7 +510,7 @@ def test_aarch64_write_cpsr_when_zero(qemu_assembly_run):
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
         "   0x1010120 <_start>      mov    x19, #8     X19 => 8\n"
-        "   0x1010124 <_start+4>    cmn    x19, #8     8 + 8     CPSR => 0x0 [ n z c v q pan il d a i f el:0 sp ]\n"
+        "   0x1010124 <_start+4>    cmn    x19, #8     8 + 8     CPSR => 0x0 [ n z c v q pan il d a i f el sp ]\n"
         " ► 0x1010128 <_start+8>  ✔ b.ne   exit                        <exit>\n"
         "    ↓\n"
         "   0x1010140 <exit>        mov    x0, #0            X0 => 0\n"
@@ -721,6 +721,58 @@ def test_aarch64_shift_instructions(qemu_assembly_run):
     assert dis == expected
 
 
+AARCH64_BANNED_INSTRUCTION = f"""
+{AARCH64_PREAMBLE}
+mrs x3, TPIDR_EL0
+add x2,x3,x4
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+"""
+
+
+def test_aarch64_banned_instructions(qemu_assembly_run):
+    """
+    Certain instructions cannot be emulated, since they depend on coprocessors that Unicorn doesn't support,
+    or system registers that we cannot reliably know the values of.
+
+    This test ensures that we stop emulation in those cases.
+
+    This means that the "add" instruction should show no annotation,
+    since our emulation should have stopped meaning we cannot reason about that instruction.
+    """
+    qemu_assembly_run(AARCH64_BANNED_INSTRUCTION, "aarch64")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
+        " ► 0x1010120 <_start>       mrs    x3, TPIDR_EL0\n"
+        "   0x1010124 <_start+4>     add    x2, x3, x4\n"
+        "   0x1010128 <_start+8>     nop    \n"
+        "   0x101012c <_start+12>    nop    \n"
+        "   0x1010130 <_start+16>    nop    \n"
+        "   0x1010134 <_start+20>    nop    \n"
+        "   0x1010138 <_start+24>    nop    \n"
+        "   0x101013c <_start+28>    nop    \n"
+        "   0x1010140 <_start+32>    nop    \n"
+        "   0x1010144 <_start+36>    nop    \n"
+        "   0x1010148 <_start+40>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
 REFERENCE_BINARY = tests.get_binary("reference-binary.aarch64.out")
 
 
@@ -735,7 +787,7 @@ def test_aarch64_reference(qemu_start_binary):
     gdb.execute("auxv", to_string=True)
     assert (
         gdb.execute("cpsr", to_string=True, from_tty=False).strip()
-        == "cpsr 0x0 [ n z c v q pan il d a i f el:0 sp ]"
+        == "cpsr 0x0 [ n z c v q pan il d a i f el sp ]"
     )
     gdb.execute("context", to_string=True)
     gdb.execute("hexdump", to_string=True)
