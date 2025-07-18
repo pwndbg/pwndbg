@@ -5,10 +5,10 @@ import os
 import gdb
 import pytest
 
-import tests
+from . import get_binary
 from pwndbg.commands import command_names
 
-BINARY = tests.get_binary("heap_bins.out")
+BINARY = get_binary("heap_bins.out")
 
 # TODO: See if we can reduce the number of commands we need to skip
 disallowed_commands = {

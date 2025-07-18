@@ -3,9 +3,9 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.color.message
-import tests
+from . import get_binary
 
-BINARY = tests.get_binary("reference-binary.out")
+BINARY = get_binary("reference-binary.out")
 
 
 def prepare_prompt(is_proc_alive):

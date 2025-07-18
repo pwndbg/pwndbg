@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import gdb
 
-import tests
+from . import get_binary
 
-MMAP_GAPS_BINARY = tests.get_binary("mmap_gaps.out")
+MMAP_GAPS_BINARY = get_binary("mmap_gaps.out")
 
 
 def test_dump_mmap_args(start_binary):

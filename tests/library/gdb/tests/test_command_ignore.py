@@ -3,9 +3,9 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.aglib.proc
-import tests
+from . import get_binary
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
 
 
 def test_command_ignore_no_breakpoint_set():

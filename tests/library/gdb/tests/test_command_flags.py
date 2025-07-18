@@ -3,9 +3,9 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.aglib.regs
-import tests
+from . import get_binary
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
 
 
 def test_flags_command(start_binary):

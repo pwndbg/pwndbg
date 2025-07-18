@@ -8,7 +8,7 @@ import pwndbg.aglib.nearpc
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.dbg
-import tests
+from . import get_binary
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 
 AARCH64_PREAMBLE = """
@@ -773,7 +773,7 @@ def test_aarch64_banned_instructions(qemu_assembly_run):
     assert dis == expected
 
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.aarch64.out")
+REFERENCE_BINARY = get_binary("reference-binary.aarch64.out")
 
 
 def test_aarch64_reference(qemu_start_binary):

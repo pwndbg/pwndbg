@@ -12,9 +12,9 @@ for arg in "$@"; do
 done
 
 if [ $COV -eq 1 ]; then
-    $UV_RUN_TEST coverage run -m pytest tests/unit-tests
+    $UV_RUN_TEST coverage run -m pytest tests/unit_tests
 else
-    $UV_RUN_TEST pytest tests/unit-tests
+    $UV_RUN_TEST pytest tests/unit_tests
 fi
 
 exit_code=$((exit_code + $?))

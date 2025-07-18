@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import re
 
-import tests
+from . import get_binary
 from pwndbg.gdblib import gdb_version
 
 from .utils import run_gdb_with_script
@@ -14,7 +14,7 @@ HELLO = [
     " Type help function to see them.",
 ]
 
-BINARY = tests.get_binary("div_zero.out")
+BINARY = get_binary("div_zero.out")
 CORE = "/tmp/pwndbg-tests-div-zero-core"
 
 

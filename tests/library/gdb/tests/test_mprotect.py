@@ -4,9 +4,9 @@ import gdb
 
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
-import tests
+from . import get_binary
 
-SMALL_BINARY = tests.get_binary("crash_simple.out.hardcoded")
+SMALL_BINARY = get_binary("crash_simple.out.hardcoded")
 
 
 def test_mprotect_executes_properly(start_binary):

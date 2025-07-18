@@ -5,9 +5,9 @@ import time
 import gdb
 
 import pwndbg.dbg
-import tests
+from . import get_binary
 
-REFERENCE_BINARY_THREADS = tests.get_binary("multiple_threads.out")
+REFERENCE_BINARY_THREADS = get_binary("multiple_threads.out")
 
 
 def wait_until(predicate: callable, timeout: int = 10):

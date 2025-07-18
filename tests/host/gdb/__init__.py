@@ -36,7 +36,7 @@ class GDBTestHost(TestHost):
         env = os.environ if env is None else env
 
         # Prepare the GDB command line.
-        gdb_args = ["-ex", f"py import {target};"]
+        gdb_args = ["-ex", f"py import {target}"]
 
         return subprocess.run(
             [str(self._gdb_path), "--silent", "--nx"]
@@ -81,7 +81,7 @@ class GDBTestHost(TestHost):
         # The test itself runs under GDB, spawned by this process, and prepared
         # by the `pytests_launcher` script.
         result = self._run_gdb(
-            "tests.host.gdb.pytests-launcher",
+            "tests.host.gdb.pytests_launcher",
             gdb_args_before=gdb_args_before,
             env=env,
             capture_output=not interactive,
@@ -98,7 +98,7 @@ class GDBTestHost(TestHost):
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
         env["TESTS_PATH"] = str(self._pytest_root)
 
-        result = self._run_gdb("tests.host.gdb.pytests-collect", env=env)
+        result = self._run_gdb("tests.host.gdb.pytests_collect", env=env)
         names = _collection_from_pytest(result, self._pwndbg_root, self._pytest_root)
 
         # We execute from Pwndbg root, so we need to prepend tests/ to the names.

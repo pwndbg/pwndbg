@@ -219,7 +219,7 @@ class Group(Enum):
             case Group.DBG:
                 return Path("tests/library/dbg/")
             case Group.CROSS_ARCH_USER:
-                return Path("tests/library/qemu-user/")
+                return Path("tests/library/qemu_user/")
             case other:
                 raise AssertionError(f"group {other} is unaccounted for")
 
@@ -232,7 +232,7 @@ class Group(Enum):
             case Group.GDB | Group.LLDB | Group.DBG:
                 return Path("tests/binaries/host/")
             case Group.CROSS_ARCH_USER:
-                return Path("tests/binaries/qemu-user/")
+                return Path("tests/binaries/qemu_user/")
             case other:
                 raise AssertionError(f"group {other} is unaccounted for")
 

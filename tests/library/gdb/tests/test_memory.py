@@ -6,10 +6,10 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.dbg
-import tests
+from . import get_binary
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
-NESTED_STRUCTS_BINARY = tests.get_binary("nested_structs.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
+NESTED_STRUCTS_BINARY = get_binary("nested_structs.out")
 
 
 def test_memory_read_write(start_binary):

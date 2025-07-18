@@ -3,9 +3,9 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.aglib.regs
-import tests
+from . import get_binary
 
-STEPSYSCALL_X64_BINARY = tests.get_binary("stepsyscall_x64.out")
+STEPSYSCALL_X64_BINARY = get_binary("stepsyscall_x64.out")
 
 
 def test_command_stepsyscall(start_binary):

@@ -52,7 +52,7 @@ class LLDBTestHost(TestHost):
             env["TEST_NAME"] = test_name
 
         return subprocess.run(
-            [interpreter, "-m", "tests.host.lldb.launch-guest"],
+            [interpreter, "-m", "tests.host.lldb.launch_guest"],
             capture_output=capture,
             text=True,
             env=env,
