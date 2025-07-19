@@ -96,7 +96,7 @@ def rebase(addr: gdb.Value | int) -> int:
 
 
 @GdbFunction(only_when_running=True)
-def base(name_pattern: gdb.Value | str) -> int:
+def base(name_pattern: gdb.Value | str):
     """
     Return the base address of the first memory mapping containing the given name.
 
@@ -133,8 +133,7 @@ def base(name_pattern: gdb.Value | str) -> int:
         if name in p.objfile:
             return p.vaddr
 
-    print(f"No mapping named '{name}'")
-    return 0
+    raise gdb.GdbError(f"$base error: No mapping named '{name}'")
 
 
 @GdbFunction()
