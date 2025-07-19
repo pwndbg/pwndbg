@@ -301,10 +301,17 @@ parser.add_argument(
     default=None,
     type=str,
 )
+parser.add_argument(
+    "--show-all",
+    help="Show names of all available custom structures",
+    action="store_true",
+)
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC)
-def cymbol(add: str, file: str, remove: str, edit: str, load: str, show: str) -> None:
+def cymbol(
+    add: str, file: str, remove: str, edit: str, load: str, show: str, show_all: bool
+) -> None:
     if add:
         add_custom_structure(add)
     elif file:
@@ -317,5 +324,11 @@ def cymbol(add: str, file: str, remove: str, edit: str, load: str, show: str) ->
         load_custom_structure(load)
     elif show:
         show_custom_structure(show)
+    elif show_all:
+        print(message.notice("Available custom structure names:\n"))
+        for file in os.listdir(pwndbg_cachedir):
+            if file.endswith(".c"):
+                name = os.path.splitext(file)[0]
+                print(f"  - {name}")
     else:
         parser.print_help()

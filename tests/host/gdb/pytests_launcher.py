@@ -2,10 +2,55 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
+from typing import Any
+from typing import Callable
+from typing import Coroutine
 
 import coverage
+import gdb
 import pytest
 
+PWNDBG_ROOT = os.environ["TEST_PWNDBG_ROOT"]
+
+# Prepare the test host environment for the Debugger API tests.
+host_home = f"{PWNDBG_ROOT}/tests/"
+if host_home not in sys.path:
+    sys.path.append(host_home)
+
+import host
+
+
+class _GDBController(host.Controller):
+    async def launch(self, binary_path: Path) -> None:
+        """
+        Launch the given binary.
+
+        GDB hides the asynchronous heavy lifting from us, so this call is
+        synchronous.
+        """
+        os.environ["PWNDBG_IN_TEST"] = "1"
+        gdb.execute(f"file {binary_path}")
+        gdb.execute("set exception-verbose on")
+        gdb.execute("set width 80")
+        gdb.execute("set context-reserve-lines never")
+        os.environ["COLUMNS"] = "80"
+        gdb.execute("starti " + " ".join(args))
+
+
+def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:
+    # The GDB controller is entirely synchronous, so keep advancing the
+    # corountine unconditionally until it ends..
+    coroutine = outer(_GDBController())
+    try:
+        coroutine.send(None)
+    except StopIteration:
+        pass
+
+
+host.start = _start
+
+# Start the test, proper.
 use_pdb = os.environ.get("USE_PDB") == "1"
 
 sys._pwndbg_unittest_run = True  # type: ignore[attr-defined]

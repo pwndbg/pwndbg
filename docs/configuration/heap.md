@@ -71,6 +71,21 @@ The address of mp_.
 
 ----------
 
+## **ng-search-on-fail**
+
+
+Let the ng-slot* commands search the heap if necessary.
+
+For freed, avail(able) and corrupted slots, it may be
+impossible to recover the start of the group and meta.
+
+When this option is set to True, the ng-slotu and ng-slots
+commands will search the heap to try to find the correct meta/group.
+
+**Default:** on  
+
+----------
+
 ## **resolve-heap-via-heuristic**
 
 === "GDB"
