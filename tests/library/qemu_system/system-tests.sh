@@ -154,7 +154,7 @@ run_gdb() {
 
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
-gdb_args=("-ex" "py import sys,os; sys.path.append(os.getcwd()); import tests.host.gdb.pytests_collect")
+gdb_args=("-ex" "py import sys,os; sys.path.insert(0, os.getcwd()); import tests.host.gdb.pytests_collect")
 TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/tests/library/qemu_system/tests/" run_gdb "x86_64" 0 "${gdb_args[@]}")
 
 if [ $? -eq 1 ]; then
@@ -187,7 +187,7 @@ run_test() {
     local should_drop_to_pdb=$5
 
     gdb_connect_qemu=(-ex "file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :${GDB_PORT}")
-    gdb_args=("${gdb_connect_qemu[@]}" "-ex" "py import sys,os; sys.path.append(os.getcwd()); import tests.host.gdb.pytests_launcher")
+    gdb_args=("${gdb_connect_qemu[@]}" "-ex" "py import sys,os; sys.path.insert(0, os.getcwd()); import tests.host.gdb.pytests_launcher")
     if [ ${RUN_CODECOV} -ne 0 ]; then
         gdb_args=(-ex 'py import coverage;coverage.process_startup()' "${gdb_args[@]}")
     fi

@@ -36,7 +36,7 @@ class GDBTestHost(TestHost):
         env = os.environ if env is None else env
 
         # Prepare the GDB command line.
-        gdb_args = ["-ex", f"py import sys,os; sys.path.append(os.getcwd()); import {target}"]
+        gdb_args = ["-ex", f"py import sys,os; sys.path.insert(0, os.getcwd()); import {target}"]
 
         return subprocess.run(
             [str(self._gdb_path), "--silent", "--nx"]
