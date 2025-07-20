@@ -54,6 +54,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             self.data["CONFIG_KASAN_GENERIC"] = "y"
         if self.CONFIG_SMP:
             self.data["CONFIG_SMP"] = "y"
+        if self.CONFIG_CMA:
+            self.data["CONFIG_CMA"] = "y"
+        if self.CONFIG_MEMORY_ISOLATION:
+            self.data["CONFIG_MEMORY_ISOLATION"] = "y"
 
     def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
@@ -92,11 +96,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     @property
     def CONFIG_SLUB_CPU_PARTIAL(self) -> bool:
-        if pwndbg.aglib.kernel.krelease() < (6, 8):
-            if pwndbg.aglib.symbol.lookup_symbol("unfreeze_partials") is not None:
-                return True
-            return pwndbg.aglib.symbol.lookup_symbol("__unfreeze_partials") is not None
-        return pwndbg.aglib.symbol.lookup_symbol("__put_partials") is not None
+        return pwndbg.aglib.symbol.lookup_symbol("put_cpu_partial") is not None
 
     @property
     def CONFIG_MEMCG(self) -> bool:
@@ -131,7 +131,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     @property
     def CONFIG_NUMA(self) -> bool:
-        return pwndbg.aglib.symbol.lookup_symbol("proc_pid_numa_maps_op") is not None
+        return pwndbg.aglib.symbol.lookup_symbol("node_reclaim") is not None
 
     @property
     def CONFIG_KASAN_GENERIC(self) -> bool:
@@ -143,6 +143,14 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_SMP(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("pcpu_get_vm_areas") is not None
+
+    @property
+    def CONFIG_CMA(self) -> bool:
+        return pwndbg.aglib.symbol.lookup_symbol("init_cma_reserved_pageblock") is not None
+
+    @property
+    def CONFIG_MEMORY_ISOLATION(self) -> bool:
+        return pwndbg.aglib.symbol.lookup_symbol("start_isolate_page_range") is not None
 
     def update_with_file(self, file_path):
         for line in open(file_path, "r").read().splitlines():

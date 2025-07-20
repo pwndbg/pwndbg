@@ -19,7 +19,7 @@ parser.add_argument("task_name", nargs="?", type=str, help="A task name to searc
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 def ktask(task_name=None) -> None:
     print(f"{'Address':>18} {'PID':>6} {'User':>4} {'CPU':>4} {'UID':>4} {'GID':>4} {'Name'}")
 

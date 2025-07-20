@@ -177,6 +177,22 @@ class x86_64PagingInfo(ArchPagingInfo):
             )
         )
 
+    @pwndbg.lib.cache.cache_until("stop")
+    def get_vmalloc_vmemmap_bases(self):
+        result = None
+        try:
+            target = self.physmap.to_bytes(8, byteorder="little")
+            mapping = pwndbg.aglib.kernel.get_first_kernel_ro()
+            result = next(pwndbg.search.search(target, mappings=[mapping]), None)
+        except Exception as e:
+            print(e)
+            pass
+        vmemmap, vmalloc = None, None
+        if result is not None:
+            vmemmap = pwndbg.aglib.memory.u64(result - 0x10)
+            vmalloc = pwndbg.aglib.memory.u64(result - 0x8)
+        return vmalloc, vmemmap
+
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def physmap(self):
@@ -201,25 +217,30 @@ class x86_64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmalloc(self):
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr("vmalloc_base")
-        if addr:
-            return pwndbg.aglib.memory.u64(addr)
-        return None
+        result = pwndbg.aglib.kernel.symbol.try_usymbol("vmalloc_base")
+        if result is not None:
+            return result
+        result, _ = self.get_vmalloc_vmemmap_bases()
+        if result is not None:
+            return result
+        # resort to default
+        return 0xFF91000000000000 if self.paging_level == 5 else 0xFFFFC88000000000
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self):
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr("vmemmap_base")
-        if addr:
-            return pwndbg.aglib.memory.u64(addr)
+        result = pwndbg.aglib.kernel.symbol.try_usymbol("vmemmap_base")
+        if result is not None:
+            return result
+        _, result = self.get_vmalloc_vmemmap_bases()
+        if result is not None:
+            return result
         # resort to default
-        if self.paging_level == 5:
-            return 0xFFD4000000000000
-        return 0xFFFFEA0000000000
+        return 0xFFD4000000000000 if self.paging_level == 5 else 0xFFFFEA0000000000
 
     @property
     def paging_level(self) -> int:
-        if pwndbg.aglib.kernel.has_debug_syms():
+        if pwndbg.aglib.kernel.has_debug_info():
             # https://elixir.bootlin.com/linux/v6.2/source/arch/x86/include/asm/cpufeatures.h#L381
             X86_FEATURE_LA57 = 16 * 32 + 16
             feature = X86_FEATURE_LA57

@@ -32,7 +32,7 @@ def test_command_kconfig():
 
 
 def test_command_kdmesg():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_info():
         res = gdb.execute("kdmesg", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
@@ -49,7 +49,7 @@ def test_command_kdmesg():
 
 
 def test_command_kmod():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_info():
         res = gdb.execute("kmod", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
@@ -59,7 +59,7 @@ def test_command_kmod():
 
 
 def test_command_ktask():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_info():
         res = gdb.execute("ktask", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
@@ -73,7 +73,7 @@ def test_command_kversion():
 
 
 def test_command_slab_list():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab list", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
@@ -83,11 +83,12 @@ def test_command_slab_list():
 
 
 def test_command_slab_info():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab info kmalloc-512", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
-
+    if not pwndbg.aglib.kernel.has_debug_info():
+        pwndbg.aglib.kernel.slab.load_slab_typeinfo()
     for cache in pwndbg.aglib.kernel.slab.caches():
         cache_name = cache.name
         res = gdb.execute(f"slab info -v {cache_name}", to_string=True)
@@ -101,11 +102,12 @@ def test_command_slab_info():
 
 
 def test_command_slab_contains():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("slab contains 0x123", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
 
+    pwndbg.aglib.kernel.slab.load_slab_typeinfo()
     # retrieve a valid slab object address (first address from freelist)
     addr, slab_cache = get_slab_object_address()
 
@@ -169,7 +171,9 @@ def test_command_msr_write():
     gdb.execute(f"msr MSR_LSTAR -w {prev_msr_lstar}")
 
 
-@pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
+@pytest.mark.skipif(
+    not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
+)
 def test_command_kernel_vmmap():
     res = gdb.execute("vmmap", to_string=True)
     assert all(
@@ -200,7 +204,9 @@ def get_buddy_freelist_elements(out):
     return re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16})", out)
 
 
-@pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
+@pytest.mark.skipif(
+    not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
+)
 def test_command_buddydump():
     res = gdb.execute("buddydump", to_string=True)
     NOFREEPAGE = "No free pages with specified filters found.\n"
@@ -211,14 +217,12 @@ def test_command_buddydump():
 
     # find the starting addresses of all entries within the freelists
     matches = get_buddy_freelist_elements(res)
-    for i in range(0, len(matches), 20):
-        # check every 20 elements so tests do not take too long
-        match = int(matches[i], 16)
-        res = gdb.execute(f"bud -f {hex(match + random.randint(0, 0x1000 - 1))}", to_string=True)
-        _matches = get_buddy_freelist_elements(res)
-        # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
-        # even if the address is not aligned
-        assert len(_matches) == 1 and int(_matches[0], 16) == match
+    match = int(matches[0], 16)
+    res = gdb.execute(f"bud -f {hex(match + random.randint(0, 0x1000 - 1))}", to_string=True)
+    _matches = get_buddy_freelist_elements(res)
+    # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
+    # even if the address is not aligned
+    assert len(_matches) == 1 and int(_matches[0], 16) == match
 
     # nonexistent node index should not contain any entries
     no_output = gdb.execute("buddydump -n 10", to_string=True)
@@ -280,7 +284,9 @@ def test_command_pagewalk():
     assert res.splitlines()[-1] == "address is not mapped"
 
 
-@pytest.mark.skipif(not pwndbg.aglib.kernel.has_debug_syms(), reason="test requires debug symbols")
+@pytest.mark.skipif(
+    not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
+)
 def test_command_paging():
     def test_command_paging_helper(pagetype, addr):
         out = gdb.execute(f"v2p {addr}", to_string=True)
@@ -311,8 +317,8 @@ def test_command_paging():
     if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"
         buddy = int(matches[-1], 16)
         test_command_paging_helper("buddy", buddy)
-    if pwndbg.aglib.kernel.krelease() >= (6, 11):
-        # the slab marker is only added after v6.11
+    if pwndbg.aglib.kernel.krelease() >= (6, 10):
+        # the slab marker is only added after v6.10
         res = gdb.execute("slab info -v -p kmalloc-32", to_string=True)
         matches = get_slab_freelist_elements(res)
         if len(matches) > 0:

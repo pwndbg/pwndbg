@@ -60,6 +60,13 @@ loaded_symbols: Dict[str, str] = {}
 pwndbg_cachedir = pwndbg.lib.tempfile.cachedir("custom-symbols")
 
 
+def create_temp_header_file(content: str) -> str:
+    """Create a temporary header file with the given content."""
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".h") as tmp_file:
+        tmp_file.write(content.encode())
+        return tmp_file.name
+
+
 def unload_loaded_symbol(custom_structure_name: str) -> None:
     custom_structure_symbols_file = loaded_symbols.get(custom_structure_name)
     if custom_structure_symbols_file is not None:
@@ -109,7 +116,7 @@ def generate_debug_symbols(
     gcc_cmd = gcc_flags + gcc_extra_flags
 
     try:
-        subprocess.run(gcc_cmd, capture_output=True, check=True)
+        subprocess.run(gcc_cmd, check=True, text=True)
     except subprocess.CalledProcessError as exception:
         print(message.error(exception))
         print(
@@ -154,7 +161,9 @@ def add_custom_structure(custom_structure_name: str) -> None:
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
 
-def add_structure_from_header(header_file: str, custom_structure_name: str = None) -> None:
+def add_structure_from_header(
+    header_file: str, custom_structure_name: str = None, overwrite=False
+) -> None:
     # Properly handle the provided or default name for the custom structure
     custom_structure_name = (
         custom_structure_name.strip()
@@ -168,7 +177,7 @@ def add_structure_from_header(header_file: str, custom_structure_name: str = Non
 
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
 
-    if os.path.exists(pwndbg_custom_structure_path):
+    if os.path.exists(pwndbg_custom_structure_path) and not overwrite:
         option = input(
             message.notice(f"Structure '{custom_structure_name}' already exists. Overwrite? [y/n] ")
         )
