@@ -548,13 +548,11 @@ class Slot:
         sn3 = memory.u8(start - 3)
         if sn3 == 224:
             off = memory.u16(start - 2)
-            p = start + off * UNIT
-            obj = cls(p)
+            obj = cls(start + off * UNIT)
             obj._sn3 = sn3
         else:
             # freed / avail slots will also go into this branch.
-            p = start
-            obj = cls(p)
+            obj = cls(start)
             obj._sn3 = obj._pn3 = sn3
 
         obj._start = start
