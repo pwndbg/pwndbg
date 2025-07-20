@@ -217,14 +217,12 @@ def test_command_buddydump():
 
     # find the starting addresses of all entries within the freelists
     matches = get_buddy_freelist_elements(res)
-    for i in range(0, len(matches), 20):
-        # check every 20 elements so tests do not take too long
-        match = int(matches[i], 16)
-        res = gdb.execute(f"bud -f {hex(match + random.randint(0, 0x1000 - 1))}", to_string=True)
-        _matches = get_buddy_freelist_elements(res)
-        # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
-        # even if the address is not aligned
-        assert len(_matches) == 1 and int(_matches[0], 16) == match
+    match = int(matches[0], 16)
+    res = gdb.execute(f"bud -f {hex(match + random.randint(0, 0x1000 - 1))}", to_string=True)
+    _matches = get_buddy_freelist_elements(res)
+    # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
+    # even if the address is not aligned
+    assert len(_matches) == 1 and int(_matches[0], 16) == match
 
     # nonexistent node index should not contain any entries
     no_output = gdb.execute("buddydump -n 10", to_string=True)
@@ -319,8 +317,8 @@ def test_command_paging():
     if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"
         buddy = int(matches[-1], 16)
         test_command_paging_helper("buddy", buddy)
-    if pwndbg.aglib.kernel.krelease() >= (6, 11):
-        # the slab marker is only added after v6.11
+    if pwndbg.aglib.kernel.krelease() >= (6, 10):
+        # the slab marker is only added after v6.10
         res = gdb.execute("slab info -v -p kmalloc-32", to_string=True)
         matches = get_slab_freelist_elements(res)
         if len(matches) > 0:

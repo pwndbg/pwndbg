@@ -210,7 +210,7 @@ def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     freelists, nr_types = cbp.freelists, cbp.nr_types
     mtypes = pwndbg.aglib.kernel.symbol.migratetype_names()
     if nr_types is None:
-        nr_types = pwndbg.aglib.kernel.symbol.nmtypes()
+        nr_types = len(mtypes)
     for i in range(nr_types):
         cbp.mtype = mtypes[i]
         if pba.mtype is not None and cbp.mtype != pba.mtype:
