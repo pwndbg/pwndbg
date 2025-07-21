@@ -297,7 +297,7 @@ show_all_parser = subparsers.add_parser("show-all", help="Show all stored struct
     category=CommandCategory.MISC,
     notes="""
 
-The `cymbol` command loads custom C structs and symbols into GDB using GCC under the hood.
+The `cymbol` command loads custom C structs and symbols into the debugger using GCC under the hood.
 
  Usage Example:
     `cymbol file --force ./structs.h`
