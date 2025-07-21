@@ -21,7 +21,7 @@ Manage custom C structures in pwndbg. Supports project-specific auto-loading fro
 |-h|--help|show this help message and exit|
 
 ### Notes
-The `cymbol` command loads custom C structs and symbols into GDB using GCC under the hood.
+The `cymbol` command loads custom C structs and symbols into the debugger using GCC under the hood.
 
  Usage Example:
     `cymbol file --force ./structs.h`
