@@ -52,7 +52,7 @@ def detect_register_patterns(alphabet, length) -> None:
     print(f"{'Register':<12} {'Value':<20} {'Offset'}")
     print(f"{'----------':<12} {'------------------':<20} {'------'}")
     for reg, val, off in found_patterns:
-        print(f"{reg:<12} {hex(val):<20} {off}")
+        print(f"{reg:<12} {val:<#20x} {off}")
 
 
 parser = argparse.ArgumentParser(description="Cyclic pattern creator/finder.")
