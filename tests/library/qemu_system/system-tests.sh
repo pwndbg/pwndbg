@@ -4,6 +4,7 @@
 set -o pipefail
 
 source "$(dirname "$0")/../../../scripts/common.sh"
+cd $PWNDBG_ABS_PATH
 
 ROOT_DIR=$PWNDBG_ABS_PATH
 COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
