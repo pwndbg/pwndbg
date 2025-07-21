@@ -5,7 +5,8 @@ import gdb
 import pwndbg.aglib.symbol
 import pwndbg.color
 import pwndbg.dbg
-import tests
+
+from . import get_binary
 
 RISCV64_PREAMBLE = """
 .text
@@ -309,7 +310,7 @@ def test_riscv64_jump_chain(qemu_assembly_run):
     assert dis == expected
 
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.riscv64.out")
+REFERENCE_BINARY = get_binary("reference-binary.riscv64.out")
 
 
 def test_riscv64_reference(qemu_start_binary):

@@ -13,9 +13,9 @@ from typing import List
 async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> None:
     # We only import this here, as pwndbg-lldb is responsible for setting Pwndbg
     # up on our behalf.
-    from host import Controller
-
     from pwndbg.dbg.lldb.repl import PwndbgController
+
+    from ...host import Controller
 
     assert isinstance(ctrl, PwndbgController)
 
@@ -34,10 +34,10 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
 
 def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
     # The import path is set up before this function is called.
-    import host
-    from host import Controller
-
     from pwndbginit import pwndbg_lldb
+
+    from ... import host
+    from ...host import Controller
 
     # Replace host.start with a proper implementation of the start command.
     def _start(outer: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:
@@ -71,25 +71,6 @@ class CollectTestFunctionNames:
 
 
 if __name__ == "__main__":
-    pwndbg_home = Path(os.environ["TEST_PWNDBG_ROOT"])
-
-    assert pwndbg_home.exists()
-    assert pwndbg_home.is_dir()
-
-    pwndbg_home = pwndbg_home.resolve(strict=True)
-
-    host_home = pwndbg_home / "tests"
-
-    assert host_home.exists()
-    assert host_home.is_dir()
-
-    # Add to the path so we can access both Pwndbg and the testing host library.
-    if str(host_home) not in sys.path:
-        sys.path = [str(host_home)] + sys.path
-
-    if str(pwndbg_home) not in sys.path:
-        sys.path = [str(pwndbg_home)] + sys.path
-
     # Prepare the requested operation.
     op = Operation(os.environ["TEST_OPERATION"])
     match op:

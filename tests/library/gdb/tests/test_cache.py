@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import pwndbg
-import tests
 from pwndbg.dbg import EventType
 from pwndbg.lib import cache
 
-BINARY = tests.get_binary("reference-binary.out")
+from . import get_binary
+
+BINARY = get_binary("reference-binary.out")
 
 
 def test_cache_single_value(start_binary):

@@ -3,9 +3,10 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.dbg
-import tests
 
-MANGLING_BINARY = tests.get_binary("symbol_1600_and_752.out")
+from . import get_binary
+
+MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
 
 
 def test_symbol_get(start_binary):

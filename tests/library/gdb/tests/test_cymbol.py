@@ -9,9 +9,9 @@ import pwndbg.dbg
 if pwndbg.dbg.is_gdblib_available():
     import pwndbg.commands.cymbol
 
-import tests
+from . import get_binary
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
 
 
 # Might be useful for future expansion of the test case

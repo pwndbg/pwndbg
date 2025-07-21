@@ -4,14 +4,24 @@ import sys
 import types
 from unittest.mock import MagicMock
 
-from mocks.arch import MockAmd64Arch
-from mocks.config import Config
-from mocks.typeinfo import Amd64TypeInfo
+from .arch import MockAmd64Arch
+from .config import Config
+from .typeinfo import Amd64TypeInfo
 
 
-class AgLib(types.ModuleType):
+class GdbLibPrompt(types.ModuleType):
     def __init__(self, module_name):
         super().__init__(module_name)
+
+    def show_hint(self):
+        pass
+
+
+class GdbLib(types.ModuleType):
+    def __init__(self, module_name):
+        super().__init__(module_name)
+
+        self.gdb_version = (12, 0)
 
         self.config_mod = Config(module_name + ".config")
         self.arch = MockAmd64Arch(module_name + ".arch")
@@ -25,11 +35,14 @@ class AgLib(types.ModuleType):
         sys.modules[self.regs.__name__] = self.regs
         sys.modules[self.prompt.__name__] = self.prompt
 
+    def load_gdblib(self):
+        pass
 
-module_name = "pwndbg.aglib"
-module = AgLib(module_name)
+
+module_name = "pwndbg.gdblib"
+module = GdbLib(module_name)
 sys.modules[module_name] = module
 
 import pwndbg
 
-pwndbg.aglib = sys.modules["pwndbg.aglib"]
+pwndbg.gdblib = sys.modules["pwndbg.gdblib"]

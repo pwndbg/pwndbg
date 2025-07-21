@@ -8,8 +8,8 @@ from typing import Callable
 from typing import Concatenate
 from typing import Coroutine
 
-import host
-from host import Controller
+from .... import host
+from ....host import Controller
 
 BINARIES_PATH = os.environ.get("TEST_BINARIES_ROOT")
 

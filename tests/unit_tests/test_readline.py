@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import sys
 
-import mocks.gdb  # noqa: F401
-import mocks.gdblib  # noqa: F401
-
 import pwndbg  # noqa: F401
+
+from .mocks import gdb  # noqa: F401
+from .mocks import gdblib  # noqa: F401
 
 
 def test_readline_not_imported():

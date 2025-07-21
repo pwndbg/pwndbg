@@ -82,7 +82,7 @@ tests/binaries/**/div_zero_binary/binary
 !tests/binaries/**/*.go
 
 # QEMU test images
-tests/library/qemu-system/kimages
+tests/library/qemu_system/kimages
 
 # VS Code files
 .vscode/
