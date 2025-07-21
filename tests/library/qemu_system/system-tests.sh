@@ -4,7 +4,6 @@
 set -o pipefail
 
 source "$(dirname "$0")/../../../scripts/common.sh"
-cd $PWNDBG_ABS_PATH
 
 ROOT_DIR=$PWNDBG_ABS_PATH
 COVERAGERC_PATH="$ROOT_DIR/pyproject.toml"
@@ -147,8 +146,8 @@ run_gdb() {
         echo "$GDB --nx ${gdb_load_pwndbg[@]} -ex \"set exception-debugger on\" -ex \"file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}\" -ex \"target remote :${GDB_PORT}\""
         read -p "Press enter to continue"
     else
-        $UV_RUN_TEST $GDB --silent --nx "${gdb_load_pwndbg[@]}" \
-            -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
+        (cd $PWNDBG_ABS_PATH && $UV_RUN_TEST $GDB --silent --nx "${gdb_load_pwndbg[@]}" \
+            -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null)
     fi
     return $?
 }
