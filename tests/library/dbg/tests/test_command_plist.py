@@ -2,20 +2,23 @@ from __future__ import annotations
 
 import re
 
-import tests
+from . import break_at_sym
+from . import get_binary
+from . import get_expr
+from . import pwndbg_test
 
-LINKED_LISTS_BINARY = tests.get_binary("linked-lists.out")
+LINKED_LISTS_BINARY = get_binary("linked-lists.out")
 
 
 async def startup(ctrl: Controller):
     await ctrl.launch(LINKED_LISTS_BINARY)
 
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
     await ctrl.cont()
     await ctrl.execute("up")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_dereference_limit_change_has_impact_on_plist(ctrl: Controller):
     """
     Tests the plist command with different dereference limits
@@ -65,7 +68,7 @@ async def test_command_plist_dereference_limit_change_has_impact_on_plist(ctrl: 
     assert expected_out.match(result_str) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_unreached_sentinel_does_not_cause_null_deference(ctrl: Controller):
     """
     Tests the plist command with a sentinel set to an address that is not reached does
@@ -87,7 +90,7 @@ async def test_command_plist_unreached_sentinel_does_not_cause_null_deference(ct
     assert expected_out.match(result_str) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_invalid_address_deference_is_displayed_properly(ctrl: Controller):
     """
     Tests that the error message is displayed nicely when an incorrect address gets
@@ -107,7 +110,7 @@ Is the linked list corrupted or is the sentinel value wrong\\?\\s*
     assert expected_out.match(result_str) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_flat_with_offset(ctrl: Controller):
     """
     Tests the plist for a non-nested linked list with an arbitrary offset value
@@ -135,7 +138,7 @@ async def test_command_plist_flat_with_offset(ctrl: Controller):
     assert expected_out.match(result_str) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_flat_with_count(ctrl: Controller):
     """
     Tests the plist for a non-nested linked list with an arbitrary count value
@@ -163,7 +166,7 @@ async def test_command_plist_flat_with_count(ctrl: Controller):
     assert expected_out.match(result_str) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_flat_no_flags(ctrl: Controller):
     """
     Tests the plist for a non-nested linked list
@@ -199,7 +202,7 @@ async def test_command_plist_flat_no_flags(ctrl: Controller):
     assert expected_out.match(result_str) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_flat_field(ctrl: Controller):
     """
     Tests the plist command for a non-nested linked list with field flag
@@ -218,14 +221,14 @@ async def test_command_plist_flat_field(ctrl: Controller):
     assert expected_out.match(result_str) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_flat_sentinel(ctrl: Controller):
     """
     Tests the plist command for a non-nested linked list with field flag
     """
     await startup(ctrl)
 
-    sentinel = int(tests.get_expr("node_c").address)
+    sentinel = int(get_expr("node_c").address)
     expected_out = re.compile(
         """\
 0[xX][0-9a-fA-F]+ <node_a>:.*{\\s*
@@ -242,7 +245,7 @@ async def test_command_plist_flat_sentinel(ctrl: Controller):
     assert expected_out.match(result_str) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_nested_direct(ctrl: Controller):
     """
     Tests the plist for a nested linked list pointing to the outer structure
@@ -275,7 +278,7 @@ async def test_command_plist_nested_direct(ctrl: Controller):
     assert expected_out.match(result_str) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plist_nested_indirect(ctrl: Controller):
     """
     Tests the plist for a nested linked list pointing to the inner structure

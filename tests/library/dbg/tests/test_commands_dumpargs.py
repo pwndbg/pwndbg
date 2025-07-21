@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-MMAP_GAPS_BINARY = tests.get_binary("mmap_gaps.out")
+MMAP_GAPS_BINARY = get_binary("mmap_gaps.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_dump_mmap_args(ctrl: Controller):
     """
     Tests dumpargs command on an xmmap call
@@ -16,7 +17,7 @@ async def test_dump_mmap_args(ctrl: Controller):
     await ctrl.launch(MMAP_GAPS_BINARY)
 
     # Run until main
-    tests.break_at_sym("main")
+    break_at_sym("main")
     await ctrl.cont()
 
     # Stop on xmmap(...)

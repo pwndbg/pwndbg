@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import re
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
-import tests
-
-HEAP_MALLOC_CHUNK = tests.get_binary("heap_malloc_chunk.out")
+HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_dt_works_with_address(ctrl: Controller) -> None:
-    await tests.launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
 
     tcache = await ctrl.execute_and_capture("print tcache")
 
@@ -27,9 +28,9 @@ async def test_command_dt_works_with_address(ctrl: Controller) -> None:
     assert re.match(exp_regex, out)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_dt_works_with_no_address(ctrl: Controller) -> None:
-    await tests.launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
 
     out = await ctrl.execute_and_capture('dt "struct tcache_perthread_struct"')
 

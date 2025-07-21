@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
-import tests
-
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_callstack_readable(ctrl: Controller) -> None:
     import pwndbg.aglib.memory
     import pwndbg.aglib.stack
 
-    await tests.launch_to(ctrl, REFERENCE_BINARY, "break_here")
+    await launch_to(ctrl, REFERENCE_BINARY, "break_here")
 
     addresses = pwndbg.aglib.stack.callstack()
 

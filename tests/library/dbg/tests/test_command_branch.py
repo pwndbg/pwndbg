@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import pytest
-from host import Controller
 
-import tests
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
-CONDBR_X64_BINARY = tests.get_binary("conditional_branch_breakpoints_x64.out")
+CONDBR_X64_BINARY = get_binary("conditional_branch_breakpoints_x64.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 @pytest.mark.parametrize("binary", [CONDBR_X64_BINARY], ids=["x86-64"])
 async def test_command_break_if_x64(ctrl: Controller, binary: str) -> None:
     """
@@ -20,10 +23,10 @@ async def test_command_break_if_x64(ctrl: Controller, binary: str) -> None:
         # Not yet available outside GDB.
         return
 
-    await tests.launch_to(ctrl, binary, "break_here")
+    await launch_to(ctrl, binary, "break_here")
 
-    tests.break_at_sym("break_here0")
-    tests.break_at_sym("break_here1")
+    break_at_sym("break_here0")
+    break_at_sym("break_here1")
 
     await ctrl.execute("break-if-taken branch0")
     await ctrl.execute("break-if-taken branch1")

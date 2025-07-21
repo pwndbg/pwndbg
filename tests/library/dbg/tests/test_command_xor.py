@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_xor_with_dbg_execute(ctrl: Controller) -> None:
     """
     Tests simple xoring
@@ -24,7 +24,7 @@ async def test_command_xor_with_dbg_execute(ctrl: Controller) -> None:
     assert after == b"AAAAaaaa"
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_xor_with_int(ctrl: Controller) -> None:
     """
     Tests simple xoring
@@ -42,7 +42,7 @@ async def test_command_xor_with_int(ctrl: Controller) -> None:
     assert after == b"AAAAaaaa"
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_xor_with_hex(ctrl: Controller) -> None:
     """
     Tests simple xoring
@@ -61,7 +61,7 @@ async def test_command_xor_with_hex(ctrl: Controller) -> None:
     assert after == b"AAAAaaaa"
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_memfrob(ctrl: Controller) -> None:
     import pwndbg.aglib.memory
     import pwndbg.aglib.regs

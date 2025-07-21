@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-STEPSYSCALL_X64_BINARY = tests.get_binary("stepsyscall_x64.out")
+STEPSYSCALL_X64_BINARY = get_binary("stepsyscall_x64.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_stepsyscall(ctrl: Controller) -> None:
     import pwndbg.aglib.regs
     import pwndbg.aglib.symbol
@@ -24,7 +24,7 @@ async def test_command_stepsyscall(ctrl: Controller) -> None:
     assert pwndbg.aglib.regs.pc == address
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_nextsyscall(ctrl: Controller) -> None:
     import pwndbg.aglib.regs
     import pwndbg.aglib.symbol

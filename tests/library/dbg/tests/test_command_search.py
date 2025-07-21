@@ -2,21 +2,22 @@ from __future__ import annotations
 
 import re
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
-import tests
-
-SEARCH_BINARY = tests.get_binary("search_memory.out")
+SEARCH_BINARY = get_binary("search_memory.out")
 SEARCH_PATTERN = 0xD00DBEEF
 SEARCH_PATTERN2 = 0xABCDEF1234567890
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_literal(ctrl: Controller) -> None:
     """
     Searches for a string literal in a few different ways
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     # Perform three equivalent searches, and chop off the first line of verbosity.
     result0 = (await ctrl.execute_and_capture("search -t bytes Hello!")).splitlines()[1:]
@@ -30,12 +31,12 @@ async def test_command_search_literal(ctrl: Controller) -> None:
         assert re.match(".* .* 0x216f6c6c6548 /\\* 'Hello!' \\*/", line) is not None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_limit_single_page(ctrl: Cotnroller) -> None:
     """
     Tests simple search limit for single memory page
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     search_limit = 10
     result_str = await ctrl.execute_and_capture(
@@ -53,12 +54,12 @@ async def test_command_search_limit_single_page(ctrl: Cotnroller) -> None:
     assert result_value == hex(SEARCH_PATTERN)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_limit_multiple_pages(ctrl: Controller) -> None:
     """
     Tests simple search limit for multiple memory pages
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     def filter_results(line):
         return hex(SEARCH_PATTERN2).lower() in line.lower()
@@ -74,12 +75,12 @@ async def test_command_search_limit_multiple_pages(ctrl: Controller) -> None:
     assert result_count == search_limit
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_alignment(ctrl: Controller) -> None:
     """
     Tests aligned search
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     alignment = 8
     result_str = await ctrl.execute_and_capture(
@@ -91,12 +92,12 @@ async def test_command_search_alignment(ctrl: Controller) -> None:
             assert int(result_address, 16) % alignment == 0
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_step(ctrl: Controller) -> None:
     """
     Tests stepped search
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     step = 0x1000
     result_str = await ctrl.execute_and_capture(f"search --dword {SEARCH_PATTERN} -s {step} -w")
@@ -109,12 +110,12 @@ async def test_command_search_step(ctrl: Controller) -> None:
     assert result_count == 0x100
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_byte_width(ctrl: Controller) -> None:
     """
     Tests 1-byte search
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     result_str = await ctrl.execute_and_capture("search --byte 0xef -w")
     result_count = 0
@@ -125,12 +126,12 @@ async def test_command_search_byte_width(ctrl: Controller) -> None:
     assert result_count > 0x100
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_word_width(ctrl: Controller) -> None:
     """
     Tests 2-byte word search
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     result_str = await ctrl.execute_and_capture("search --word 0xbeef -w")
     result_count = 0
@@ -141,12 +142,12 @@ async def test_command_search_word_width(ctrl: Controller) -> None:
     assert result_count > 0x100
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_dword_width(ctrl: Controller) -> None:
     """
     Tests 4-byte dword search
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     result_str = await ctrl.execute_and_capture("search --dword 0xd00dbeef -w")
     result_count = 0
@@ -157,12 +158,12 @@ async def test_command_search_dword_width(ctrl: Controller) -> None:
     assert result_count > 0x100
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_qword_width(ctrl: Controller) -> None:
     """
     Tests 8-byte qword search
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     result_str = await ctrl.execute_and_capture("search --dword 0x00000000d00dbeef -w")
     result_count = 0
@@ -173,12 +174,12 @@ async def test_command_search_qword_width(ctrl: Controller) -> None:
     assert result_count > 0x100
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_rwx(ctrl: Controller) -> None:
     """
     Tests searching for rwx memory only
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     result_str = await ctrl.execute_and_capture("search --dword 0x00000000d00dbeef -w -x")
     result_count = 0
@@ -189,12 +190,12 @@ async def test_command_search_rwx(ctrl: Controller) -> None:
     assert result_count == 0
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_search_asm(ctrl: Controller) -> None:
     """
     Tests searching for asm instructions
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     result_str = await ctrl.execute_and_capture('search --asm "add rax, rdx" search_memory')
     result_count = 0
@@ -204,12 +205,12 @@ async def test_command_search_asm(ctrl: Controller) -> None:
     assert result_count == 2
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_set_breakpoint_search_asm(ctrl: Controller) -> None:
     """
     Tests setting breakpoints on found asm instructions
     """
-    await tests.launch_to(ctrl, SEARCH_BINARY, "break_here")
+    await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     result_str = await ctrl.execute_and_capture('search --asmbp "add rax, rdx" search_memory')
     result_count = 0

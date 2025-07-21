@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-import tests
+from . import get_binary
+from . import pwndbg_test
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_cyclic_value(ctrl: Controller) -> None:
     """
     Tests lookup on a constant value
@@ -28,7 +29,7 @@ async def test_command_cyclic_value(ctrl: Controller) -> None:
     )
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_cyclic_register(ctrl: Controller) -> None:
     """
     Tests lookup on a register
@@ -54,7 +55,7 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     )
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_cyclic_address(ctrl: Controller) -> None:
     """
     Tests lookup on a memory address
@@ -80,7 +81,7 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
     )
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_cyclic_wrong_alphabet(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -91,7 +92,7 @@ async def test_command_cyclic_wrong_alphabet(ctrl: Controller) -> None:
     )
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_cyclic_wrong_length(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 

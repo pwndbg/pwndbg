@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-BINARY = tests.get_binary("reference-binary.out")
+BINARY = get_binary("reference-binary.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_cache_single_value(ctrl: Controller) -> None:
     from pwndbg.lib import cache
 
@@ -38,7 +38,7 @@ async def test_cache_single_value(ctrl: Controller) -> None:
     assert foo() == x == 3
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_cache_args_kwargs_properly(ctrl: Controller) -> None:
     from pwndbg.lib import cache
 
@@ -77,7 +77,7 @@ async def test_cache_args_kwargs_properly(ctrl: Controller) -> None:
     assert foo(100, 200) == (6, 100, (200,), {}) and x == 6
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_cache_clear_has_priority(ctrl: Controller) -> None:
     import pwndbg
     from pwndbg.dbg import EventType

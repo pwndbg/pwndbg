@@ -5,11 +5,13 @@ import threading
 import time
 
 import pytest
-from host import Controller
 
-import tests
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import pwndbg_test
 
-REFERENCE_BINARY_NET = tests.get_binary("reference-binary-net.out")
+REFERENCE_BINARY_NET = get_binary("reference-binary-net.out")
 
 
 class TCPServerThread(threading.Thread):
@@ -38,7 +40,7 @@ class TCPServerThread(threading.Thread):
             pass  # Socket closed
 
 
-@tests.pwndbg_test
+@pwndbg_test
 @pytest.mark.parametrize("ip_connect", ["127.0.0.1", "::1"])
 async def test_command_procinfo_net(ctrl: Controller, ip_connect: str) -> None:
     import pwndbg.aglib.proc
@@ -52,7 +54,7 @@ async def test_command_procinfo_net(ctrl: Controller, ip_connect: str) -> None:
     bin_path = pwndbg.aglib.proc.exe
     pid = str(pwndbg.aglib.proc.pid)
 
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
     await ctrl.cont()
 
     result = await ctrl.execute_and_capture("procinfo")
@@ -70,7 +72,7 @@ async def test_command_procinfo_net(ctrl: Controller, ip_connect: str) -> None:
     server.stop()
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_procinfo_before_binary_start(ctrl: Controller) -> None:
     result = await ctrl.execute_and_capture("procinfo")
     assert (

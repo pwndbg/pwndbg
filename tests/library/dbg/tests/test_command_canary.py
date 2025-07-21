@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import pytest
 
-import tests
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
-CANARY_X86_64_BINARY = tests.get_binary("canary.x86-64.out")
-CANARY_I386_BINARY = tests.get_binary("canary.i386.out")
+CANARY_X86_64_BINARY = get_binary("canary.x86-64.out")
+CANARY_I386_BINARY = get_binary("canary.i386.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 @pytest.mark.integration
 @pytest.mark.parametrize(
     "binary, reg_name, skips",
@@ -26,7 +28,7 @@ async def test_command_canary(ctrl: Controller, binary: str, reg_name: str, skip
     import pwndbg.aglib.memory
     import pwndbg.aglib.regs
 
-    await tests.launch_to(ctrl, binary, "main")
+    await launch_to(ctrl, binary, "main")
 
     # The instruction that loads the canary is at the start of the function,
     # but it it not necessarily at any given fixed position, scan for it.

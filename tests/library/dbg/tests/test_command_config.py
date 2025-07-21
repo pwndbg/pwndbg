@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import re
 
-import tests
+from . import get_binary
+from . import pwndbg_test
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_config(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -22,7 +23,7 @@ async def test_config(ctrl: Controller) -> None:
     assert "'0x80' ('0')" in (await ctrl.execute_and_capture("heap-config"))
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_config_filtering(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -44,7 +45,7 @@ async def test_config_filtering(ctrl: Controller) -> None:
     )
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_config_filtering_missing(ctrl: Controller):
     await ctrl.launch(REFERENCE_BINARY)
 

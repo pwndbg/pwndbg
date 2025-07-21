@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_libcinfo(ctrl: Controller) -> None:
     """
     Tests the libcinfo command
@@ -18,7 +19,7 @@ async def test_command_libcinfo(ctrl: Controller) -> None:
     assert result == "Could not determine libc version.\n"
 
     # Continue until main, so the libc is actually loaded
-    tests.break_at_sym("main")
+    break_at_sym("main")
     await ctrl.cont()
 
     result = (await ctrl.execute_and_capture("libcinfo")).splitlines()

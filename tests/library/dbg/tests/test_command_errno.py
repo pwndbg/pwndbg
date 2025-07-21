@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from host import Controller
-
-import tests
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import pwndbg_test
 
 # We use the heap_vis binary as it enforces pthreads and so will have TLS on all distros
-REFERENCE_BINARY = tests.get_binary("heap_vis.out")
+REFERENCE_BINARY = get_binary("heap_vis.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_errno(ctrl: Controller) -> None:
     """
     Tests the errno command display
@@ -24,7 +25,7 @@ async def test_command_errno(ctrl: Controller) -> None:
         == "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
     ) or (result == "Errno 0: OK")
 
-    tests.break_at_sym("main")
+    break_at_sym("main")
     await ctrl.cont()
 
     result = await ctrl.execute_and_capture("errno")

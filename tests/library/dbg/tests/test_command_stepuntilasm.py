@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
-import tests
-
-STEPUNTILASM_X64_BINARY = tests.get_binary("stepuntilasm_x64.out")
+STEPUNTILASM_X64_BINARY = get_binary("stepuntilasm_x64.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_untilasm_x64(ctrl: Controller) -> None:
-    await tests.launch_to(ctrl, STEPUNTILASM_X64_BINARY, "break_here")
+    await launch_to(ctrl, STEPUNTILASM_X64_BINARY, "break_here")
 
     await run_and_verify(ctrl, "stop1", "nop")
     await run_and_verify(ctrl, "stop2", "xor rax, rax")
