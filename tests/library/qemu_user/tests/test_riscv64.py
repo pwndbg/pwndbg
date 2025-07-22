@@ -303,7 +303,7 @@ def test_riscv64_jump_chain(qemu_assembly_run):
         "   0x1001166 <end+2>     addi   a7, zero, 0x5d     A7 => 93 (0x0 + 0x5d)\n"
         "   0x100116a <end+6>     c.li   a0, 0              A0 => 0\n"
         "   0x100116c <end+8>     ecall   <SYS_exit>\n"
-        "   0x1001170             c.addiw s6, -0x10\n"
+        "   0x1001170             c.li   s0, 0x10           S0 => 0x10\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
