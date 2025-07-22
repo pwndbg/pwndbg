@@ -67,12 +67,6 @@ class LLDBTestHost(TestHost):
         return [f"tests/{name}" for name in names]
 
     def run(self, case: str, coverage_out: Path | None, interactive: bool) -> TestResult:
-        if coverage_out is not None:
-            # Do before PR is merged.
-            #
-            # TODO: Add CodeCov for the LLDB test driver
-            print("[-] Warning: LLDB does not yet support code coverage")
-
         beg = time.monotonic_ns()
         result = self._launch("RUN-TEST", case, not interactive, interactive)
         end = time.monotonic_ns()
