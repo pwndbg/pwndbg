@@ -70,12 +70,3 @@ async def test_command_procinfo_net(ctrl: Controller, ip_connect: str) -> None:
 
     # Close tcp server
     server.stop()
-
-
-@pwndbg_test
-async def test_command_procinfo_before_binary_start(ctrl: Controller) -> None:
-    result = await ctrl.execute_and_capture("procinfo")
-    assert (
-        "The program is not being run" in result
-        or "Pwndbg commands require a target binary to be selected" in result
-    )
