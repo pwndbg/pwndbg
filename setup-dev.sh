@@ -94,9 +94,9 @@ download_zig_binary() {
     # Install zig to current directory
     # We use zig to compile some test binaries as it is much easier than with gcc
 
-    TARGET_ZIG_VERSION="0.13.0"
-    ZIG_TAR_URL="https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz"
-    ZIG_TAR_SHA256="d45312e61ebcc48032b77bc4cf7fd6915c11fa16e4aad116b66c9468211230ea"
+    TARGET_ZIG_VERSION="0.14.1"
+    ZIG_TAR_URL="https://ziglang.org/download/0.14.1/zig-x86_64-linux-0.14.1.tar.xz"
+    ZIG_TAR_SHA256="24aeeec8af16c381934a6cd7d95c807a8cb2cf7df9fa40d359aa884195c4716c"
 
     if command -v "${ZIGPATH}"/zig &> /dev/null; then
         ZIG_VERSION=$("$ZIGPATH/zig" version)
@@ -124,7 +124,7 @@ download_zig_binary() {
     # Delete previous installation
     rm -rf "${ZIGPATH}"
 
-    mv /tmp/zig-linux-x86_64-* ${ZIGPATH} &> /dev/null || true
+    mv /tmp/zig-linux-* ${ZIGPATH} &> /dev/null || true
     echo "Zig installed to ${ZIGPATH}"
 }
 
@@ -302,7 +302,7 @@ configure_venv() {
 
 if osx; then
     echo "Not supported on macOS. Please use one of the alternative methods listed at:"
-    echo "https://github.com/pwndbg/pwndbg?tab=readme-ov-file#installing-gdb"
+    echo "https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/"
     exit 1
 fi
 

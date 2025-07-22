@@ -43,8 +43,7 @@ COMPILATION_TARGETS: list[COMPILATION_TARGETS_TYPE] = list(
 # Tuple contains (Zig target,extra_cli_args,qemu_suffix),
 COMPILE_AND_RUN_INFO: Dict[COMPILATION_TARGETS_TYPE, Tuple[str, Tuple[str, ...], str]] = {
     "aarch64": ("aarch64-freestanding", (), "aarch64"),
-    # TODO: when updating to newer version of Zig, this -mcpu option can be removed
-    "arm": ("arm-freestanding", ("-mcpu=cortex_a7",), "arm"),
+    "arm": ("arm-freestanding", (), "arm"),
     "riscv32": ("riscv32-freestanding", (), "riscv32"),
     "riscv64": ("riscv64-freestanding", (), "riscv64"),
     "mips32": ("mips-freestanding", (), "mips"),
