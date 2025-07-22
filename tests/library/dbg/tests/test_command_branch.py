@@ -20,7 +20,7 @@ async def test_command_break_if_x64(ctrl: Controller, binary: str) -> None:
     import pwndbg
 
     if not pwndbg.dbg.is_gdblib_available():
-        # Not yet available outside GDB.
+        pytest.skip("Not yet available outside GDB")
         return
 
     await launch_to(ctrl, binary, "break_here")
