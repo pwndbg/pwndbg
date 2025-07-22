@@ -124,7 +124,7 @@ download_zig_binary() {
     # Delete previous installation
     rm -rf "${ZIGPATH}"
 
-    mv /tmp/zig-linux-* ${ZIGPATH} &> /dev/null || true
+    mv /tmp/zig-* ${ZIGPATH} &> /dev/null || true
     echo "Zig installed to ${ZIGPATH}"
 }
 
