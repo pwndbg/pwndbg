@@ -69,7 +69,7 @@ heap_bugs.out: heap_bugs.c
 	${ZIGCC} \
 	${CFLAGS} \
 	-Wno-int-to-pointer-cast -Wno-int-conversion -Wno-unused-variable \
-	-target native-native-gnu.2.33 \
+	-target x86_64-linux-gnu.2.33 \
 	-Wl,-rpath=${GLIBC_2_33}:\
 	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
 	-o heap_bugs.out heap_bugs.c
@@ -78,7 +78,7 @@ heap_bugs.out: heap_bugs.c
 #heap_bins.out: heap_bins.c
 #	@echo "[+] Building heap_bins.out"
 #	${ZIGCC} \
-#	-target native-native-gnu.2.33 \
+#	-target x86_64-linux-gnu.2.33 \
 #	-Wl,-rpath=${GLIBC_2_33} \
 #	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
 #	-g -O0 -o heap_bins.out heap_bins.c
