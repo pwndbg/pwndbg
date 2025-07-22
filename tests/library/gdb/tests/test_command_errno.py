@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import gdb
 
-import tests
+from . import get_binary
 
 # We use the heap_vis binary as it enforces pthreads and so will have TLS on all distros
-REFERENCE_BINARY = tests.get_binary("heap_vis.out")
+REFERENCE_BINARY = get_binary("heap_vis.out")
 
 
 def test_command_errno(start_binary):

@@ -8,7 +8,7 @@ is advised to configure the 'gcc-config-path' config parameter to your own cross
 gnu gcc compiled toolchain for your target architecture.
 
 You are advised to configure the 'cymbol-editor' config parameter to the path of your
-favorite text editor. Otherwise cymbol exapnds $EDITOR and $VISUAL environment variables
+favorite text editor. Otherwise cymbol expands $EDITOR and $VISUAL environment variables
 to find the path to the default text editor.
 """
 
@@ -126,10 +126,10 @@ def generate_debug_symbols(
     return pwndbg_debug_symbols_output_file
 
 
-def add_custom_structure(custom_structure_name: str) -> None:
+def add_custom_structure(custom_structure_name: str, force=False):
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
 
-    if os.path.exists(pwndbg_custom_structure_path):
+    if os.path.exists(pwndbg_custom_structure_path) and not force:
         option = input(
             message.notice(
                 "A custom structure was found with the given name, would you like to overwrite it? [y/n] "
@@ -154,8 +154,9 @@ def add_custom_structure(custom_structure_name: str) -> None:
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
 
-def add_structure_from_header(header_file: str, custom_structure_name: str = None) -> None:
-    # Properly handle the provided or default name for the custom structure
+def add_structure_from_header(
+    header_file: str, custom_structure_name: str = None, force: bool = False
+) -> None:
     custom_structure_name = (
         custom_structure_name.strip()
         if custom_structure_name
@@ -169,11 +170,21 @@ def add_structure_from_header(header_file: str, custom_structure_name: str = Non
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
 
     if os.path.exists(pwndbg_custom_structure_path):
-        option = input(
-            message.notice(f"Structure '{custom_structure_name}' already exists. Overwrite? [y/n] ")
-        )
-        if option != "y":
-            return
+        if not force:
+            option = input(
+                message.notice(
+                    f"Structure '{custom_structure_name}' already exists. Overwrite? [y/n] "
+                )
+            )
+            if option.lower() != "y":
+                print(message.notice("Aborted by user."))
+                return
+        else:
+            print(
+                message.warn(
+                    f"Overwriting existing structure '{custom_structure_name}' due to --force flag."
+                )
+            )
 
     try:
         with open(header_file, "r") as src, open(pwndbg_custom_structure_path, "w") as f:
@@ -186,7 +197,6 @@ def add_structure_from_header(header_file: str, custom_structure_name: str = Non
         print(message.error(f"Failed to process header file: {e}"))
         return
 
-    # Avoid checking for file existance. Call the decorator wrapper directly.
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
 
@@ -251,84 +261,86 @@ def show_custom_structure(custom_structure_name: str, custom_structure_path: str
 
 
 parser = argparse.ArgumentParser(
-    description="Add, show, load, edit, or delete custom structures in plain C."
-)
-parser.add_argument(
-    "-a",
-    "--add",
-    metavar="name",
-    help="Add a new custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-f",
-    "--file",
-    metavar="filepath",
-    help="Add a new custom structure from header file",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-r",
-    "--remove",
-    metavar="name",
-    help="Remove an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-e",
-    "--edit",
-    metavar="name",
-    help="Edit an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-l",
-    "--load",
-    metavar="name",
-    help="Load an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "-s",
-    "--show",
-    metavar="name",
-    help="Show the source code of an existing custom structure",
-    default=None,
-    type=str,
-)
-parser.add_argument(
-    "--show-all",
-    help="Show names of all available custom structures",
-    action="store_true",
+    description="Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit."
 )
 
+subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
 
-@pwndbg.commands.Command(parser, category=CommandCategory.MISC)
+add_parser = subparsers.add_parser("add", help="Add a custom structure")
+add_parser.add_argument("name", help="Name of custom structure")
+add_parser.add_argument(
+    "--force", action="store_true", help="Overwrite if structure already exists"
+)
+
+remove_parser = subparsers.add_parser("remove", help="Remove a custom structure")
+remove_parser.add_argument("name", help="Name of custom structure")
+
+edit_parser = subparsers.add_parser("edit", help="Edit a custom structure")
+edit_parser.add_argument("name", help="Name of custom structure")
+
+load_parser = subparsers.add_parser("load", help="Load a custom structure")
+load_parser.add_argument("name", help="Name of custom structure")
+
+show_parser = subparsers.add_parser("show", help="Show a custom structure")
+show_parser.add_argument("name", help="Name of custom structure")
+
+file_parser = subparsers.add_parser("file", help="Add a structure from a header file")
+file_parser.add_argument("path", help="Path to header file")
+file_parser.add_argument("--name", help="Optional structure name")
+file_parser.add_argument("--force", action="store_true", help="Overwrite if exists")
+
+show_all_parser = subparsers.add_parser("show-all", help="Show all stored structure")
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MISC,
+    notes="""
+
+The `cymbol` command loads custom C structs and symbols into the debugger using GCC under the hood.
+
+ Usage Example:
+    `cymbol file --force ./structs.h`
+
+ --force:
+    Use this flag to force symbol reloading, even if symbols with the same name already exist.
+
+ Warning:
+    If a loaded structure defines a symbol that already exists, the debugger may prefer the original
+    symbol or behave unexpectedly. It’s recommended to use unique struct names to avoid
+    symbol conflicts.
+
+
+ Tip:
+    You can add this command to your `.gdbinit` file for automatic loading:
+        `cymbol file --force ./path/to/structs.h`
+
+""",
+)
 def cymbol(
-    add: str, file: str, remove: str, edit: str, load: str, show: str, show_all: bool
-) -> None:
-    if add:
-        add_custom_structure(add)
-    elif file:
-        add_structure_from_header(file)
-    elif remove:
-        remove_custom_structure(remove)
-    elif edit:
-        edit_custom_structure(edit)
-    elif load:
-        load_custom_structure(load)
-    elif show:
-        show_custom_structure(show)
-    elif show_all:
-        print(message.notice("Available custom structure names:\n"))
-        for file in os.listdir(pwndbg_cachedir):
-            if file.endswith(".c"):
-                name = os.path.splitext(file)[0]
-                print(f"  - {name}")
-    else:
-        parser.print_help()
+    subcommand: str = None,
+    name: str = None,
+    path: str = None,
+    force=False,
+):
+    match subcommand:
+        case "add":
+            add_custom_structure(name, force=force)
+        case "remove":
+            remove_custom_structure(name)
+        case "edit":
+            edit_custom_structure(name)
+        case "load":
+            load_custom_structure(name)
+        case "file":
+            add_structure_from_header(path, name, force=force)
+        case "show":
+            show_custom_structure(name)
+        case "show-all":
+            print(message.notice("Available custom structure names:\n"))
+            for file in os.listdir(pwndbg_cachedir):
+                if file.endswith(".c"):
+                    name = os.path.splitext(file)[0]
+                    print(f"  - {name}")
+        case _:
+            parser.print_help()

@@ -5,9 +5,10 @@ import gdb
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import tests
 
-HEAP_VIS = tests.get_binary("heap_vis.out")
+from .. import get_binary
+
+HEAP_VIS = get_binary("heap_vis.out")
 
 
 def test_vis_heap_chunk_command(start_binary):

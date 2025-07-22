@@ -5,10 +5,11 @@ import gdb
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
-import tests
 
-MEMORY_BINARY = tests.get_binary("memory.out")
-X86_BINARY = tests.get_binary("gosample.x86")
+from . import get_binary
+
+MEMORY_BINARY = get_binary("memory.out")
+X86_BINARY = get_binary("gosample.x86")
 
 data_addr = "0x400081"
 

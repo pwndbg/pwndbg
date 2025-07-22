@@ -3,9 +3,9 @@ from __future__ import annotations
 import gdb
 import pytest
 
-import tests
+from . import get_binary
 
-SYSCALLS_BINARY = tests.get_binary("syscalls-x64.out")
+SYSCALLS_BINARY = get_binary("syscalls-x64.out")
 
 OPCODE_BYTES_TESTS_EXPECTED_OUTPUT = {
     1: [

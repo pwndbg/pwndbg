@@ -146,16 +146,16 @@ run_gdb() {
         echo "$GDB --nx ${gdb_load_pwndbg[@]} -ex \"set exception-debugger on\" -ex \"file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}\" -ex \"target remote :${GDB_PORT}\""
         read -p "Press enter to continue"
     else
-        $UV_RUN_TEST $GDB --silent --nx "${gdb_load_pwndbg[@]}" \
-            -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null
+        (cd $PWNDBG_ABS_PATH && $UV_RUN_TEST $GDB --silent --nx "${gdb_load_pwndbg[@]}" \
+            -ex "set exception-verbose on" "$@" -ex "quit" 2> /dev/null)
     fi
     return $?
 }
 
 # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
 # we decided to run each test in a separate GDB session
-gdb_args=(--command ../../host/gdb/pytests_collect.py)
-TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/tests/library/qemu-system/tests/" TEST_PWNDBG_ROOT="${PWNDBG_ABS_PATH}" run_gdb "x86_64" 0 "${gdb_args[@]}")
+gdb_args=("-ex" "py import sys,os; sys.path.insert(0, os.getcwd()); import tests.host.gdb.pytests_collect")
+TESTS_COLLECT_OUTPUT=$(TESTS_PATH="$ROOT_DIR/tests/library/qemu_system/tests/" run_gdb "x86_64" 0 "${gdb_args[@]}")
 
 if [ $? -eq 1 ]; then
     echo -E "$TESTS_COLLECT_OUTPUT"
@@ -187,7 +187,7 @@ run_test() {
     local should_drop_to_pdb=$5
 
     gdb_connect_qemu=(-ex "file ${TESTING_KERNEL_IMAGES_DIR}/vmlinux-${kernel_type}-${kernel_version}-${arch}" -ex "target remote :${GDB_PORT}")
-    gdb_args=("${gdb_connect_qemu[@]}" --command ../../host/gdb/pytests_launcher.py)
+    gdb_args=("${gdb_connect_qemu[@]}" "-ex" "py import sys,os; sys.path.insert(0, os.getcwd()); import tests.host.gdb.pytests_launcher")
     if [ ${RUN_CODECOV} -ne 0 ]; then
         gdb_args=(-ex 'py import coverage;coverage.process_startup()' "${gdb_args[@]}")
     fi
@@ -201,7 +201,6 @@ run_test() {
         PWNDBG_ARCH="${arch}" \
         PWNDBG_KERNEL_TYPE="${kernel_type}" \
         PWNDBG_KERNEL_VERSION="${kernel_version}" \
-        TEST_PWNDBG_ROOT="${PWNDBG_ABS_PATH}" \
         run_gdb "${arch}" $should_drop_to_pdb "${gdb_args[@]}"
     return $?
 }

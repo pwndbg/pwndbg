@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import gdb
 
-import tests
+from . import get_binary
 
-GOSAMPLE_X64 = tests.get_binary("gosample.x64")
-GOSAMPLE_X86 = tests.get_binary("gosample.x86")
+GOSAMPLE_X64 = get_binary("gosample.x64")
+GOSAMPLE_X86 = get_binary("gosample.x86")
 
 
 def test_typeinfo_go_x64():
