@@ -24,9 +24,9 @@ CFLAGS.aarch64 = $(ALL_FLAGS) --target=aarch64-linux-musl
 CFLAGS.arm = $(ALL_FLAGS) --target=arm-linux-musleabihf
 # CFLAGS.riscv32 = $(ALL_FLAGS) --target=riscv32-linux-musl
 CFLAGS.riscv64 = $(ALL_FLAGS) --target=riscv64-linux-musl
-CFLAGS.mips32 = $(ALL_FLAGS) --target=mips-linux-musl # Big-endian MIPS
-CFLAGS.mipsel32 = $(ALL_FLAGS) --target=mipsel-linux-musl # Little-endian MIPS
-CFLAGS.mips64 = $(ALL_FLAGS) --target=mips64-linux-musl
+CFLAGS.mips32 = $(ALL_FLAGS) --target=mips-linux-musleabi # Big-endian MIPS
+CFLAGS.mipsel32 = $(ALL_FLAGS) --target=mipsel-linux-musleabi # Little-endian MIPS
+CFLAGS.mips64 = $(ALL_FLAGS) --target=mips64-linux-muslabi64
 # CFLAGS.loongarch64 = $(ALL_FLAGS) --target=loongarch64-linux-musl
 # CFLAGS.s390x = $(ALL_FLAGS) --target=s390x-linux-musl -mcpu=z13
 CFLAGS.powerpc32 = $(ALL_FLAGS) --target=powerpc-linux-musl
