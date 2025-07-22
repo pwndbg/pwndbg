@@ -151,13 +151,6 @@ let
         }
         // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
           NIX_CFLAGS_COMPILE = "-DkIOMainPortDefault=0";
-
-          buildInputs =
-            (old.buildInputs or [ ])
-            ++ lib.optionals stdenv.hostPlatform.isx86_64 [
-              darwin.apple_sdk.frameworks.CoreFoundation
-            ]
-            ++ [ darwin.apple_sdk.frameworks.IOKit ];
         }
       )
     ) { };
