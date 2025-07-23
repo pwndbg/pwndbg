@@ -28,7 +28,7 @@ def which(arch: ArchDefinition) -> List[str]:
         if arch.ptrsize == 32:
             return ["g++", "-m32"]
         elif arch.ptrsize == 64:
-            return ["g++", "-m32"]
+            return ["g++", "-m64"]
         else:
             raise ValueError(f"Unknown pointer size: {arch.ptrsize}")
 
