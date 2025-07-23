@@ -21,25 +21,24 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugInfo
+@pwndbg.commands.OnlyWithKernelDebugSymbols
 def kmod(module_name=None) -> None:
     # Look up the address of the `modules` symbol, containing the head of the linked list of kernel modules
-    modules_head = pwndbg.aglib.symbol.lookup_symbol_addr("modules")
-    if modules_head is None:
+    modules = pwndbg.aglib.kernel.modules()
+    if modules is None:
         print(
             "The modules symbol was not found. This may indicate that the symbol is not available in the current build."
         )
         return
 
-    print(f"Kernel modules address found at {modules_head:#x}.\n")
+    print(f"Kernel modules address found at {modules.address:#x}.\n")
 
     try:
         table = []
         headers = ["Address", "Name", "Size", "Used by"]
-        head = pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", modules_head)
 
         # Iterate through the linked list of modules using for_each_entry
-        for module in for_each_entry(head, "struct module", "list"):
+        for module in for_each_entry(modules, "struct module", "list"):
             addr = int(module["mem"][0]["base"])
             name = pwndbg.aglib.memory.string(int(module["name"].address)).decode(
                 "utf-8", errors="ignore"
