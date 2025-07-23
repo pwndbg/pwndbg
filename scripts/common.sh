@@ -4,7 +4,7 @@ _COMMON_ABS_DIR=$(realpath "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 # dirname of a directory gives the parent directory.
 PWNDBG_ABS_PATH=$(dirname $_COMMON_ABS_DIR)
 
-TESTING_KERNEL_IMAGES_DIR="${PWNDBG_ABS_PATH}/tests/library/qemu-system/kimages"
+TESTING_KERNEL_IMAGES_DIR="${PWNDBG_ABS_PATH}/tests/library/qemu_system/kimages"
 
 if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="${PWNDBG_ABS_PATH}/.venv"

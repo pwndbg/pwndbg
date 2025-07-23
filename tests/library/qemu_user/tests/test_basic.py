@@ -4,7 +4,8 @@ import gdb
 
 import pwndbg.aglib.proc
 import pwndbg.commands.context
-import tests
+
+from . import get_binary
 
 # The tests in this file execute for a long time - they can take 5-15 minutes to run, depending on the machine
 # They check for any crashes in the instruction enhancement code that may arise through
@@ -17,7 +18,7 @@ NUMBER_OF_STEPS = 1500
 # Step through a binary, running "ctx" each time the program stops
 # This is meant to detect crashes originating from the annotations/emulation code
 def helper(qemu_start_binary, filename: str, arch: str):
-    FILE = tests.get_binary(filename)
+    FILE = get_binary(filename)
 
     qemu_start_binary(FILE, arch)
 

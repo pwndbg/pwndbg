@@ -68,7 +68,7 @@ jobs:
       run: |
         # Would happen in the next step as well, but this way
         # it looks nicer in the CI.
-        ./tests/library/qemu-system/download-kernel-images.sh
+        ./tests/library/qemu_system/download-kernel-images.sh
 
     - name: Run kernel tests
       if: matrix.type == 'qemu-system-tests'
@@ -158,7 +158,7 @@ jobs:
 
     - name: Download images
       run: |
-        ./tests/library/qemu-system/download-kernel-images.sh
+        ./tests/library/qemu_system/download-kernel-images.sh
 
     # We set `kernel.yama.ptrace_scope=0` for `gdb-pt-dump`
     - name: Run kernel tests

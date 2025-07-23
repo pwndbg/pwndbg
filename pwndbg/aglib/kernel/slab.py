@@ -661,6 +661,4 @@ def load_slab_typeinfo():
     }};
     """
     header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(
-        header_file_path, "slab_structs", overwrite=True
-    )
+    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "slab_structs", True)

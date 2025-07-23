@@ -9,13 +9,13 @@ module_name = "pwndbg.commands"
 module = MagicMock(__name__=module_name, load_commands=lambda: None)
 sys.modules[module_name] = module
 
-# Load the mocks for the `gdb` and `gdblib` modules
-import mocks.gdb
-import mocks.gdblib  # noqa: F401
-
 # We must import the function under test after all the mocks are imported
 from pwndbg.lib.memory import round_down
 from pwndbg.lib.memory import round_up
+
+# Load the mocks for the `gdb` and `gdblib` modules
+from .mocks import gdb  # noqa: F401
+from .mocks import gdblib  # noqa: F401
 
 
 def test_basic_rounding():

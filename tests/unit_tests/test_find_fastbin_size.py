@@ -12,16 +12,15 @@ module_name = "pwndbg.commands"
 module = MagicMock(__name__=module_name, load_commands=lambda: None)
 sys.modules[module_name] = module
 
-# Load the mock for the `pwndbg.dbg` object and `aglib` module.
-import mocks.aglib
-import mocks.dbg
-
-# Load the mocks for the `gdb` and `gdblib` modules
-import mocks.gdb
-import mocks.gdblib  # noqa: F401
-
 # We must import the function under test after all the mocks are imported
 from pwndbg.lib.heap.helpers import find_fastbin_size
+
+# Load the mocks for the `gdb` and `gdblib` modules
+# Load the mock for the `pwndbg.dbg` object and `aglib` module.
+from .mocks import aglib  # noqa: F401
+from .mocks import dbg  # noqa: F401
+from .mocks import gdb  # noqa: F401
+from .mocks import gdblib  # noqa: F401
 
 
 def setup_mem(max_size, offsets):

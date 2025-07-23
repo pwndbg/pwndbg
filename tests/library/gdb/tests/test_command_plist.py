@@ -4,9 +4,9 @@ import re
 
 import gdb
 
-import tests
+from . import get_binary
 
-LINKED_LISTS_BINARY = tests.get_binary("linked-lists.out")
+LINKED_LISTS_BINARY = get_binary("linked-lists.out")
 
 
 def startup(start_binary) -> None:
