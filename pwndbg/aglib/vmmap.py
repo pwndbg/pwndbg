@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from typing import Tuple
 from typing import List
+from typing import Tuple
 
 import pwndbg
-import pwndbg.color.message as message
 import pwndbg.aglib.vmmap_custom
+import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.dbg import MemoryMap
