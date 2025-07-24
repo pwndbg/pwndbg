@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import List
 from typing import Tuple
 
 import pwndbg
@@ -52,24 +51,34 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
 
     Returns:
         The start of the memory region this address belongs to, or None if the address
-        is not mapped or a valid memory region couldn't be found.
+        is not mapped.
     """
     address = int(address)
     if address < 0:
         return None
 
-    page = find(address)
-    if page is None:
-        return None
+    mappings = sorted(pwndbg.aglib.vmmap.get(), key=lambda p: p.vaddr)
+    idx = -1
+    for i in range(len(mappings)):
+        if mappings[i].start <= address < mappings[i].end:
+            idx = i
+            break
 
-    file_name = page.objfile
-    objpages = filter(lambda p: p.objfile == file_name, pwndbg.aglib.vmmap.get())
-    sorted_pages: List[pwndbg.lib.memory.Page] = sorted(objpages, key=lambda p: p.vaddr)
-
-    # Check the region is contiguous. It can easily happen that it isn't, for instance
-    # something like "[anon:libc_malloc]" may be found all over the address space.
-    for i in range(len(sorted_pages) - 1):
-        if sorted_pages[i].end != sorted_pages[i + 1].start:
+    if idx == -1:
+        # Maybe we can find the page by exploring.
+        explored_page = pwndbg.aglib.vmmap_custom.explore(address)
+        if not explored_page:
             return None
 
-    return sorted_pages[0].start
+        # We know vmmap_custom.explore() can only find one page, it does
+        # not cascade a whole region so there is no need to look backwards.
+        return explored_page.start
+
+    # Look backwards from i to find all the mappings with the same name.
+    objname = mappings[i].objfile
+    while i > 0 and objname == mappings[i - 1].objfile:
+        i -= 1
+
+    # There might be other mappings with the name "objname" in the address space
+    # but they are not contiguous with us, so we don't care.
+    return mappings[i].start
