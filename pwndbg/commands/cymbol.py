@@ -137,7 +137,7 @@ def add_custom_structure(custom_structure_name: str, force=False):
     if os.path.exists(pwndbg_custom_structure_path) and not force:
         option = input(
             message.notice(
-                "A custom structure was found with the given name, would you like to overwrite it? [y/n] "
+                "A custom structure was found with the given name, would you like to overwrite it? [y/N] "
             )
         )
         if option != "y":
@@ -178,7 +178,7 @@ def add_structure_from_header(
         if not force:
             option = input(
                 message.notice(
-                    f"Structure '{custom_structure_name}' already exists. Overwrite? [y/n] "
+                    f"Structure '{custom_structure_name}' already exists. Overwrite? [y/N] "
                 )
             )
             if option.lower() != "y":
