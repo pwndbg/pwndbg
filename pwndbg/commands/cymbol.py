@@ -102,7 +102,12 @@ def generate_debug_symbols(
     ]
 
     # TODO: implement remote debugging support.
-    gcc_flags = pwndbg.lib.gcc.which(pwndbg.aglib.arch)
+    try:
+        gcc_flags = pwndbg.lib.gcc.which(pwndbg.aglib.arch)
+    except ValueError as _:
+        # The error message is already printed by pwntools.
+        return None
+
     if gcc_compiler_path != "":
         gcc_flags[0] = gcc_compiler_path  # type: ignore[call-overload]
 
