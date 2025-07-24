@@ -27,7 +27,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
 
         async def launch(self, binary: Path, args: List[str] = []) -> None:
             await self.pc.execute(f"target create {binary}")
-            await self.pc.execute("process launch -s -- " + " ".join(args))
+            await self.pc.execute("process launch -s -- " + " ".join(shlex.quote(arg) for arg in args))
 
         async def cont(self) -> None:
             await self.pc.execute("continue")
