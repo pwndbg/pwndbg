@@ -573,6 +573,14 @@
          <lastmod>2025-07-24</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/musl/mallocng-malloc-context/</loc>
+         <lastmod>2025-07-24</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/musl/mallocng-meta-area/</loc>
+         <lastmod>2025-07-24</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/musl/mallocng-meta/</loc>
          <lastmod>2025-07-24</lastmod>
     </url>
