@@ -70,6 +70,9 @@ MALLOC_NAME = "malloc"
 CALLOC_NAME = "calloc"
 REALLOC_NAME = "realloc"
 FREE_NAME = "free"
+event_colors = ["\033[91m", "\033[92m", "\033[93m", "\033[94m", "\033[95m", "\033[96m"]
+malloc_counter = 0
+free_counter = 0
 
 last_issue: str | None = None
 
@@ -90,6 +93,20 @@ def is_enabled() -> bool:
     assert all(installed) == any(installed)
 
     return any(installed)
+
+
+def colorize_malloc(ptr):
+    global malloc_counter
+    color = event_colors[malloc_counter % len(event_colors)]
+    malloc_counter += 1
+    return f"{color}{ptr}\033[0m"
+
+
+def colorize_free(ptr):
+    global free_counter
+    color = event_colors[free_counter % len(event_colors)]
+    free_counter += 1
+    return f"{color}{ptr}\033[0m"
 
 
 def resolve_address(name: str) -> int | None:
@@ -434,7 +451,8 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
 
         chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
-        print(f"[*] {self.name} -> {ret_ptr:#x}, {chunk.size:#x} bytes real size")
+        ptr_str = colorize_malloc(f"{ret_ptr:#x}")
+        print(f"[*] {self.name} -> {ptr_str}, {chunk.size:#x} bytes real size")
 
         self.tracker.exit_memory_management()
         return False
@@ -468,10 +486,11 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
         if requested_size == 0:
             # There's no right way to handle realloc(..., 0). C23 says it's
             # undefined behavior, and prior versions say it's implementation-
-            # defined. Either way, print a warning and do nothing.
+            # defined. Either way, print a warning and do nothing.'
+            ptr_str = colorize_free(f"{self.freed_pointer:#x}")
             print(
                 message.warn(
-                    f"[-] realloc({self.freed_pointer:#x}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
+                    f"[-] realloc({ptr_str}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
                 )
             )
             return False
@@ -488,6 +507,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
     def __init__(self, tracker, freed_ptr, requested_size) -> None:
         super().__init__(internal=True)
         self.freed_ptr = freed_ptr
+        self.freed_str = colorize_free(f"{self.freed_ptr:#x}")
         self.requested_size = requested_size
         self.tracker = tracker
 
@@ -511,7 +531,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
             malloc()
             self.tracker.exit_memory_management()
 
-            msg = f"realloc() to {self.requested_size} bytes with previously unknown pointer {self.freed_ptr:#x}"
+            msg = f"realloc() to {self.requested_size} bytes with previously unknown pointer {self.freed_str}"
             print(f"[!] {msg}")
 
             global stop_on_error
@@ -524,12 +544,12 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
         print(
-            f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
+            f"[*] realloc({self.freed_str}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
         )
         return False
 
     def out_of_scope(self) -> None:
-        print(message.warn(f"warning: could not follow free request for chunk {self.freed_ptr:#x}"))
+        print(message.warn(f"warning: could not follow free request for chunk {self.freed_str}"))
         self.tracker.exit_memory_management()
 
 
@@ -559,6 +579,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
     def __init__(self, tracker, ptr) -> None:
         super().__init__(internal=True)
         self.ptr = ptr
+        self.ptr_str = colorize_free(f"{self.ptr:#x}")
         self.tracker = tracker
 
     def stop(self):
@@ -572,7 +593,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
             # This is a chunk we'd never seen before.
             self.tracker.exit_memory_management()
 
-            msg = f"free() with previously unknown pointer {self.ptr:#x}"
+            msg = f"free() with previously unknown pointer {self.ptr_str}"
             print(f"[!] {msg}")
             global stop_on_error
             if stop_on_error:
@@ -582,11 +603,11 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
         self.tracker.exit_memory_management()
 
-        print(f"[*] free({self.ptr:#x})")
+        print(f"[*] free({self.ptr_str})")
         return False
 
     def out_of_scope(self) -> None:
-        print(message.warn(f"warning: could not follow free request for chunk {self.ptr:#x}"))
+        print(message.warn(f"warning: could not follow free request for chunk {self.ptr_str}"))
         self.tracker.exit_memory_management()
 
 
