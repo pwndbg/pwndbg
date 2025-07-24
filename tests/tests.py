@@ -38,7 +38,6 @@ def main():
     # building tests, even if the user has requested a nix-compatible test.
     #
     # Ideally, however, we would build the test targets as part of `nix verify`.
-    ensure_zig_path(local_pwndbg_root)
     make_all(local_pwndbg_root / args.group.binary_dir())
 
     if not args.driver.can_run(args.group):
@@ -312,14 +311,6 @@ def parse_args():
         "test_name_filter", nargs="?", help="run only tests that match the regex", default=".*"
     )
     return parser.parse_args()
-
-
-def ensure_zig_path(local_pwndbg_root: Path):
-    if "ZIGPATH" not in os.environ:
-        # If ZIGPATH is not set, set it to $pwd/.zig
-        # In Docker environment this should by default be set to /opt/zig
-        os.environ["ZIGPATH"] = str(local_pwndbg_root / ".zig")
-    print(f'[+] ZIGPATH set to {os.environ["ZIGPATH"]}')
 
 
 def make_all(path: Path, jobs: int = multiprocessing.cpu_count()):

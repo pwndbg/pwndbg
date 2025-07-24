@@ -1,5 +1,4 @@
-ZIGPATH        ?=     ../../../.zig
-ZIGCC		=	  $(ZIGPATH)/zig cc
+ZIGCC           =      uv run python3 -m ziglang cc
 
 CC              =	   gcc
 DEBUG           =	   1
