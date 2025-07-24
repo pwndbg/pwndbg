@@ -451,8 +451,19 @@
 </span><span id=__span-0-13><a id=__codelineno-0-13 name=__codelineno-0-13 href=#__codelineno-0-13></a>        <span class=s2>&quot;ttbr0_el1&quot;</span><span class=p>:</span> <span class=n><a class="autorefs autorefs-internal" title="            BitFlags (pwndbg.lib.regs.BitFlags)" href=#pwndbg.lib.regs.BitFlags>BitFlags</a></span><span class=p>(),</span>
 </span><span id=__span-0-14><a id=__codelineno-0-14 name=__codelineno-0-14 href=#__codelineno-0-14></a>        <span class=s2>&quot;ttbr1_el1&quot;</span><span class=p>:</span> <span class=n><a class="autorefs autorefs-internal" title="            BitFlags (pwndbg.lib.regs.BitFlags)" href=#pwndbg.lib.regs.BitFlags>BitFlags</a></span><span class=p>(),</span>
 </span><span id=__span-0-15><a id=__codelineno-0-15 name=__codelineno-0-15 href=#__codelineno-0-15></a>    <span class=p>},</span>
-</span><span id=__span-0-16><a id=__codelineno-0-16 name=__codelineno-0-16 href=#__codelineno-0-16></a>    <span class=n><span title=pwndbg.lib.regs.RegisterSet(gpr)>gpr</span></span><span class=o>=</span><span class=p>(</span>
-</span><span id=__span-0-17><a id=__codelineno-0-17 name=__codelineno-0-17 href=#__codelineno-0-17></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-16><a id=__codelineno-0-16 name=__codelineno-0-16 href=#__codelineno-0-16></a>    <span class=n><span title=pwndbg.lib.regs.RegisterSet(frame)>frame</span></span><span class=o>=</span><span class=n><a class="autorefs autorefs-internal" title="            Reg
+
+
+  
+      dataclass
+   (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;fp&quot;</span><span class=p>,</span> <span class=mi>8</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(subregisters)>subregisters</span></span><span class=o>=</span><span class=p>(</span><span class=n><a class="autorefs autorefs-internal" title="            Reg
+
+
+  
+      dataclass
+   (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w29&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
+</span><span id=__span-0-17><a id=__codelineno-0-17 name=__codelineno-0-17 href=#__codelineno-0-17></a>    <span class=n><span title=pwndbg.lib.regs.RegisterSet(gpr)>gpr</span></span><span class=o>=</span><span class=p>(</span>
+</span><span id=__span-0-18><a id=__codelineno-0-18 name=__codelineno-0-18 href=#__codelineno-0-18></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -463,7 +474,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w0&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-18><a id=__codelineno-0-18 name=__codelineno-0-18 href=#__codelineno-0-18></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-19><a id=__codelineno-0-19 name=__codelineno-0-19 href=#__codelineno-0-19></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -474,7 +485,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w1&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-19><a id=__codelineno-0-19 name=__codelineno-0-19 href=#__codelineno-0-19></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-20><a id=__codelineno-0-20 name=__codelineno-0-20 href=#__codelineno-0-20></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -485,7 +496,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w2&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-20><a id=__codelineno-0-20 name=__codelineno-0-20 href=#__codelineno-0-20></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-21><a id=__codelineno-0-21 name=__codelineno-0-21 href=#__codelineno-0-21></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -496,7 +507,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w3&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-21><a id=__codelineno-0-21 name=__codelineno-0-21 href=#__codelineno-0-21></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-22><a id=__codelineno-0-22 name=__codelineno-0-22 href=#__codelineno-0-22></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -507,7 +518,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w4&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-22><a id=__codelineno-0-22 name=__codelineno-0-22 href=#__codelineno-0-22></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-23><a id=__codelineno-0-23 name=__codelineno-0-23 href=#__codelineno-0-23></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -518,7 +529,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w5&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-23><a id=__codelineno-0-23 name=__codelineno-0-23 href=#__codelineno-0-23></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-24><a id=__codelineno-0-24 name=__codelineno-0-24 href=#__codelineno-0-24></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -529,7 +540,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w6&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-24><a id=__codelineno-0-24 name=__codelineno-0-24 href=#__codelineno-0-24></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-25><a id=__codelineno-0-25 name=__codelineno-0-25 href=#__codelineno-0-25></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -540,7 +551,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w7&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-25><a id=__codelineno-0-25 name=__codelineno-0-25 href=#__codelineno-0-25></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-26><a id=__codelineno-0-26 name=__codelineno-0-26 href=#__codelineno-0-26></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -551,7 +562,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w8&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-26><a id=__codelineno-0-26 name=__codelineno-0-26 href=#__codelineno-0-26></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-27><a id=__codelineno-0-27 name=__codelineno-0-27 href=#__codelineno-0-27></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -562,7 +573,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w9&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-27><a id=__codelineno-0-27 name=__codelineno-0-27 href=#__codelineno-0-27></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-28><a id=__codelineno-0-28 name=__codelineno-0-28 href=#__codelineno-0-28></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -573,7 +584,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w10&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-28><a id=__codelineno-0-28 name=__codelineno-0-28 href=#__codelineno-0-28></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-29><a id=__codelineno-0-29 name=__codelineno-0-29 href=#__codelineno-0-29></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -584,7 +595,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w11&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-29><a id=__codelineno-0-29 name=__codelineno-0-29 href=#__codelineno-0-29></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-30><a id=__codelineno-0-30 name=__codelineno-0-30 href=#__codelineno-0-30></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -595,7 +606,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w12&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-30><a id=__codelineno-0-30 name=__codelineno-0-30 href=#__codelineno-0-30></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-31><a id=__codelineno-0-31 name=__codelineno-0-31 href=#__codelineno-0-31></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -606,7 +617,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w13&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-31><a id=__codelineno-0-31 name=__codelineno-0-31 href=#__codelineno-0-31></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-32><a id=__codelineno-0-32 name=__codelineno-0-32 href=#__codelineno-0-32></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -617,7 +628,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w14&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-32><a id=__codelineno-0-32 name=__codelineno-0-32 href=#__codelineno-0-32></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-33><a id=__codelineno-0-33 name=__codelineno-0-33 href=#__codelineno-0-33></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -628,7 +639,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w15&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-33><a id=__codelineno-0-33 name=__codelineno-0-33 href=#__codelineno-0-33></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-34><a id=__codelineno-0-34 name=__codelineno-0-34 href=#__codelineno-0-34></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -639,7 +650,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w16&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-34><a id=__codelineno-0-34 name=__codelineno-0-34 href=#__codelineno-0-34></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-35><a id=__codelineno-0-35 name=__codelineno-0-35 href=#__codelineno-0-35></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -650,7 +661,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w17&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-35><a id=__codelineno-0-35 name=__codelineno-0-35 href=#__codelineno-0-35></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-36><a id=__codelineno-0-36 name=__codelineno-0-36 href=#__codelineno-0-36></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -661,7 +672,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w18&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-36><a id=__codelineno-0-36 name=__codelineno-0-36 href=#__codelineno-0-36></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-37><a id=__codelineno-0-37 name=__codelineno-0-37 href=#__codelineno-0-37></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -672,7 +683,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w19&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-37><a id=__codelineno-0-37 name=__codelineno-0-37 href=#__codelineno-0-37></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-38><a id=__codelineno-0-38 name=__codelineno-0-38 href=#__codelineno-0-38></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -683,7 +694,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w20&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-38><a id=__codelineno-0-38 name=__codelineno-0-38 href=#__codelineno-0-38></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-39><a id=__codelineno-0-39 name=__codelineno-0-39 href=#__codelineno-0-39></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -694,7 +705,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w21&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-39><a id=__codelineno-0-39 name=__codelineno-0-39 href=#__codelineno-0-39></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-40><a id=__codelineno-0-40 name=__codelineno-0-40 href=#__codelineno-0-40></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -705,7 +716,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w22&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-40><a id=__codelineno-0-40 name=__codelineno-0-40 href=#__codelineno-0-40></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-41><a id=__codelineno-0-41 name=__codelineno-0-41 href=#__codelineno-0-41></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -716,7 +727,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w23&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-41><a id=__codelineno-0-41 name=__codelineno-0-41 href=#__codelineno-0-41></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-42><a id=__codelineno-0-42 name=__codelineno-0-42 href=#__codelineno-0-42></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -727,7 +738,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w24&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-42><a id=__codelineno-0-42 name=__codelineno-0-42 href=#__codelineno-0-42></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-43><a id=__codelineno-0-43 name=__codelineno-0-43 href=#__codelineno-0-43></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -738,7 +749,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w25&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-43><a id=__codelineno-0-43 name=__codelineno-0-43 href=#__codelineno-0-43></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-44><a id=__codelineno-0-44 name=__codelineno-0-44 href=#__codelineno-0-44></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -749,7 +760,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w26&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-44><a id=__codelineno-0-44 name=__codelineno-0-44 href=#__codelineno-0-44></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-45><a id=__codelineno-0-45 name=__codelineno-0-45 href=#__codelineno-0-45></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -760,7 +771,7 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w27&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-45><a id=__codelineno-0-45 name=__codelineno-0-45 href=#__codelineno-0-45></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
+</span><span id=__span-0-46><a id=__codelineno-0-46 name=__codelineno-0-46 href=#__codelineno-0-46></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
 
 
   
@@ -771,17 +782,6 @@
   
       dataclass
    (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w28&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
-</span><span id=__span-0-46><a id=__codelineno-0-46 name=__codelineno-0-46 href=#__codelineno-0-46></a>        <span class=n><a class="autorefs autorefs-internal" title="            Reg
-
-
-  
-      dataclass
-   (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;x29&quot;</span><span class=p>,</span> <span class=mi>8</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(subregisters)>subregisters</span></span><span class=o>=</span><span class=p>(</span><span class=n><a class="autorefs autorefs-internal" title="            Reg
-
-
-  
-      dataclass
-   (pwndbg.lib.regs.Reg)" href=#pwndbg.lib.regs.Reg>Reg</a></span><span class=p>(</span><span class=s2>&quot;w29&quot;</span><span class=p>,</span> <span class=mi>4</span><span class=p>,</span> <span class=n><span title=pwndbg.lib.regs.Reg(zero_extend_writes)>zero_extend_writes</span></span><span class=o>=</span><span class=kc>True</span><span class=p>),)),</span>
 </span><span id=__span-0-47><a id=__codelineno-0-47 name=__codelineno-0-47 href=#__codelineno-0-47></a>    <span class=p>),</span>
 </span><span id=__span-0-48><a id=__codelineno-0-48 name=__codelineno-0-48 href=#__codelineno-0-48></a>    <span class=n><span title=pwndbg.lib.regs.RegisterSet(args)>args</span></span><span class=o>=</span><span class=p>(</span><span class=s2>&quot;x0&quot;</span><span class=p>,</span> <span class=s2>&quot;x1&quot;</span><span class=p>,</span> <span class=s2>&quot;x2&quot;</span><span class=p>,</span> <span class=s2>&quot;x3&quot;</span><span class=p>),</span>
 </span><span id=__span-0-49><a id=__codelineno-0-49 name=__codelineno-0-49 href=#__codelineno-0-49></a>    <span class=n><span title=pwndbg.lib.regs.RegisterSet(retval)>retval</span></span><span class=o>=</span><span class=s2>&quot;x0&quot;</span><span class=p>,</span>
