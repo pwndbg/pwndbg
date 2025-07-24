@@ -182,8 +182,7 @@ def can_connect() -> bool:
 def l2r(addr: int) -> int:
     region_start = pwndbg.aglib.vmmap.addr_region_start(addr)
     if region_start is None:
-        raise Exception("Couldn't calculate address region start. Is the address mapped?")
-
+        return 0
     result = (addr - region_start + base()) & pwndbg.aglib.arch.ptrmask
     return result
 
@@ -191,8 +190,7 @@ def l2r(addr: int) -> int:
 def r2l(addr: int) -> int:
     region_start = pwndbg.aglib.vmmap.addr_region_start(addr)
     if region_start is None:
-        raise Exception("Couldn't calculate address region start. Is the address mapped?")
-
+        return 0
     result = (addr - base() + region_start) & pwndbg.aglib.arch.ptrmask
     return result
 

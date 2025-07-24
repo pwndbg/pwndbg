@@ -5,7 +5,6 @@ from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.vmmap_custom
-import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.dbg import MemoryMap
@@ -67,10 +66,10 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
     objpages = filter(lambda p: p.objfile == file_name, pwndbg.aglib.vmmap.get())
     sorted_pages: List[pwndbg.lib.memory.Page] = sorted(objpages, key=lambda p: p.vaddr)
 
-    # Check the region is contiguous.
+    # Check the region is contiguous. It can easily happen that it isn't, for instance
+    # something like "[anon:libc_malloc]" may be found all over the address space.
     for i in range(len(sorted_pages) - 1):
         if sorted_pages[i].end != sorted_pages[i + 1].start:
-            print(message.error(f"Pages backed by {file_name} aren't contiguous."))
             return None
 
     return sorted_pages[0].start
