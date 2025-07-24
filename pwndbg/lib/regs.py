@@ -643,6 +643,7 @@ aarch64 = RegisterSet(
         Reg("x26", 8, subregisters=(Reg("w26", 4, zero_extend_writes=True),)),
         Reg("x27", 8, subregisters=(Reg("w27", 4, zero_extend_writes=True),)),
         Reg("x28", 8, subregisters=(Reg("w28", 4, zero_extend_writes=True),)),
+        # Note: x29 is FP (frame) and x30 is LR (retaddr) register
     ),
     args=("x0", "x1", "x2", "x3"),
     retval="x0",
