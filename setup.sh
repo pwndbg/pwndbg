@@ -219,7 +219,7 @@ source ${PWNDBG_VENV_PATH}/bin/activate
 pip install uv
 
 # Install dependencies
-echo "Installing dependancies.."
+echo "Installing dependencies.."
 uv sync --extra gdb --extra lldb --quiet
 
 if [ -z "$UPDATE_MODE" ]; then
