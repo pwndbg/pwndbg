@@ -110,7 +110,7 @@ parser.add_argument(
     metavar="seconds",
     type=int,
     default=2,
-    help="Timeout in seconds for --detect (default: 2)",
+    help="Timeout in seconds for --detect",
 )
 
 group = parser.add_mutually_exclusive_group(required=False)
