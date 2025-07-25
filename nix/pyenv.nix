@@ -10,7 +10,7 @@
 let
   lib = pkgs.lib;
   hacks = pkgs.callPackage inputs.pyproject-nix.build.hacks { };
-  workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = "${inputs.self}"; };
+  workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./..; };
 
   pyprojectOverlay = workspace.mkPyprojectOverlay {
     sourcePreference = "sdist";
@@ -111,8 +111,7 @@ let
       pkgName:
       prev.${pkgName}.overrideAttrs (old: {
         nativeBuildInputs =
-          old.nativeBuildInputs
-          ++ final.resolveBuildSystem (lib.genAttrs pydeps (name: [ ]));
+          old.nativeBuildInputs ++ final.resolveBuildSystem (lib.genAttrs pydeps (name: [ ]));
       })
     ));
 
@@ -136,6 +135,10 @@ let
     uv = dummy;
     gdb-for-pwndbg = dummy;
     lldb-for-pwndbg = dummy;
+    #    ziglang = dummy;
+    ziglang = prev.ziglang.override {
+      sourcePreference = "wheel";
+    };
 
     psutil = pkgs.callPackage (
       {
@@ -247,11 +250,12 @@ let
             cp -rf ${readlineStatic.dev}/include/readline/*.h ./readline/
             cp -rf ${readlineStatic.out}/lib/*.a ./readline/
           '';
-          buildInputs =
-            [ ncurses ]
-            ++ lib.optionals isCross [
-              python3
-            ];
+          buildInputs = [
+            ncurses
+          ]
+          ++ lib.optionals isCross [
+            python3
+          ];
         }
       )
     ) { };
