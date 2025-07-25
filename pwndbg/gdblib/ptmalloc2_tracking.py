@@ -70,9 +70,6 @@ MALLOC_NAME = "malloc"
 CALLOC_NAME = "calloc"
 REALLOC_NAME = "realloc"
 FREE_NAME = "free"
-event_colors = ["\033[91m", "\033[92m", "\033[93m", "\033[94m", "\033[95m", "\033[96m"]
-malloc_counter = 0
-free_counter = 0
 
 last_issue: str | None = None
 
@@ -94,20 +91,27 @@ def is_enabled() -> bool:
 
     return any(installed)
 
-
-def colorize_malloc(ptr):
-    global malloc_counter
-    color = event_colors[malloc_counter % len(event_colors)]
-    malloc_counter += 1
-    return f"{color}{ptr}\033[0m"
-
-
-def colorize_free(ptr):
-    global free_counter
-    color = event_colors[free_counter % len(event_colors)]
-    free_counter += 1
-    return f"{color}{ptr}\033[0m"
-
+#Mem colors stores the current pointer colors while pos colors stores the possible ptr colors.
+mem_colors = {}
+pos_colors = [
+pwndbg.color.red,
+pwndbg.color.green,
+pwndbg.color.yellow,
+pwndbg.color.blue,
+pwndbg.color.cyan
+]
+def colorize_ptr(ptr):
+    """
+    This function works by assigning a color to a specific memory pointer, storing the pointer
+    in a colors array and returning the colored pointer. If a color has already been stored for 
+    the given pointer, it will be returned.
+    """
+    if ptr in mem_colors:
+        color = mem_colors[ptr]
+    else:
+        color = pos_colors[len(mem_colors) % len(pos_colors)]
+        mem_colors[ptr] = color
+    return color(ptr)
 
 def resolve_address(name: str) -> int | None:
     """
@@ -451,7 +455,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
 
         chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
-        ptr_str = colorize_malloc(f"{ret_ptr:#x}")
+        ptr_str = colorize_ptr(f"{ret_ptr:#x}")
         print(f"[*] {self.name} -> {ptr_str}, {chunk.size:#x} bytes real size")
 
         self.tracker.exit_memory_management()
@@ -487,7 +491,7 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
             # There's no right way to handle realloc(..., 0). C23 says it's
             # undefined behavior, and prior versions say it's implementation-
             # defined. Either way, print a warning and do nothing.'
-            ptr_str = colorize_free(f"{self.freed_pointer:#x}")
+            ptr_str = colorize_ptr(f"{self.freed_pointer:#x}")
             print(
                 message.warn(
                     f"[-] realloc({ptr_str}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
@@ -507,7 +511,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
     def __init__(self, tracker, freed_ptr, requested_size) -> None:
         super().__init__(internal=True)
         self.freed_ptr = freed_ptr
-        self.freed_str = colorize_free(f"{self.freed_ptr:#x}")
+        self.freed_str = colorize_ptr(f"{self.freed_ptr:#x}")
         self.requested_size = requested_size
         self.tracker = tracker
 
@@ -579,7 +583,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
     def __init__(self, tracker, ptr) -> None:
         super().__init__(internal=True)
         self.ptr = ptr
-        self.ptr_str = colorize_free(f"{self.ptr:#x}")
+        self.ptr_str = colorize_ptr(f"{self.ptr:#x}")
         self.tracker = tracker
 
     def stop(self):
