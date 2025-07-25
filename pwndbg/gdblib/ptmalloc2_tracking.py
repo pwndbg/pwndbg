@@ -91,19 +91,22 @@ def is_enabled() -> bool:
 
     return any(installed)
 
-#Mem colors stores the current pointer colors while pos colors stores the possible ptr colors.
+
+# Mem colors stores the current pointer colors while pos colors stores the possible ptr colors.
 mem_colors = {}
 pos_colors = [
-pwndbg.color.red,
-pwndbg.color.green,
-pwndbg.color.yellow,
-pwndbg.color.blue,
-pwndbg.color.cyan
+    pwndbg.color.red,
+    pwndbg.color.green,
+    pwndbg.color.yellow,
+    pwndbg.color.blue,
+    pwndbg.color.cyan,
 ]
+
+
 def colorize_ptr(ptr):
     """
     This function works by assigning a color to a specific memory pointer, storing the pointer
-    in a colors array and returning the colored pointer. If a color has already been stored for 
+    in a colors array and returning the colored pointer. If a color has already been stored for
     the given pointer, it will be returned.
     """
     if ptr in mem_colors:
@@ -112,6 +115,7 @@ def colorize_ptr(ptr):
         color = pos_colors[len(mem_colors) % len(pos_colors)]
         mem_colors[ptr] = color
     return color(ptr)
+
 
 def resolve_address(name: str) -> int | None:
     """
@@ -232,9 +236,9 @@ class Tracker:
 
         # We don't support re-entry.
         if thread in self.memory_management_calls:
-            assert not self.memory_management_calls[
-                thread
-            ], f"in {name}(): re-entrant calls are not supported"
+            assert not self.memory_management_calls[thread], (
+                f"in {name}(): re-entrant calls are not supported"
+            )
 
         self.memory_management_calls[thread] = True
 
@@ -243,9 +247,9 @@ class Tracker:
 
         # Make sure we're not doing anything wrong.
         if thread in self.memory_management_calls:
-            assert self.memory_management_calls[
-                thread
-            ], "exit_memory_management_calls assert failed"
+            assert self.memory_management_calls[thread], (
+                "exit_memory_management_calls assert failed"
+            )
 
         self.memory_management_calls[thread] = False
 
@@ -274,9 +278,9 @@ class Tracker:
 
                 lo_heap = pwndbg.aglib.heap.ptmalloc.Heap(lo_addr)
                 hi_heap = pwndbg.aglib.heap.ptmalloc.Heap(hi_addr - 1)
-                assert (
-                    lo_heap.arena is not None and hi_heap.arena is not None
-                ), "malloc assert failed"
+                assert lo_heap.arena is not None and hi_heap.arena is not None, (
+                    "malloc assert failed"
+                )
 
                 # TODO: Can this ever actually fail in real world use?
                 #
@@ -296,9 +300,9 @@ class Tracker:
                 # than to let it become a bug.
                 #
                 # [0]: https://sourceware.org/glibc/wiki/MallocInternals
-                assert (
-                    lo_heap.start == hi_heap.start and lo_heap.end == hi_heap.end
-                ), "malloc assert start failed"
+                assert lo_heap.start == hi_heap.start and lo_heap.end == hi_heap.end, (
+                    "malloc assert start failed"
+                )
 
                 # Remove all of our old handlers.
                 for i in reversed(range(lo_i, hi_i)):
@@ -312,9 +316,9 @@ class Tracker:
                 # the heap in the range of affected chunks, and add the ones that
                 # are free.
                 allocator = pwndbg.aglib.heap.current
-                assert isinstance(
-                    allocator, pwndbg.aglib.heap.ptmalloc.GlibcMemoryAllocator
-                ), "malloc allocator assert failed"
+                assert isinstance(allocator, pwndbg.aglib.heap.ptmalloc.GlibcMemoryAllocator), (
+                    "malloc allocator assert failed"
+                )
                 bins_list = [
                     allocator.fastbins(lo_heap.arena.address),
                     allocator.smallbins(lo_heap.arena.address),
