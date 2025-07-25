@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import signal
 import string
 from typing import Optional
 
@@ -16,7 +17,13 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 
-def detect_register_patterns(alphabet, length) -> None:
+class TimeoutException(Exception):
+    """Custom exception for signal-based timeouts."""
+
+    pass
+
+
+def detect_register_patterns(alphabet, length, timeout) -> None:
     if not pwndbg.aglib.proc.alive:
         print(message.error("Error: Process is not running."))
         return
@@ -24,6 +31,11 @@ def detect_register_patterns(alphabet, length) -> None:
     ptr_size = pwndbg.aglib.arch.ptrsize
     endian = pwndbg.aglib.arch.endian
     found_patterns = []
+
+    def alarm_handler(signum, frame):
+        raise TimeoutException
+
+    original_handler = signal.signal(signal.SIGALRM, alarm_handler)
 
     current_arch_name = pwndbg.aglib.arch.name
     register_set = pwndbg.lib.regs.reg_sets[current_arch_name]
@@ -34,25 +46,43 @@ def detect_register_patterns(alphabet, length) -> None:
         if value is None:
             continue
 
-        value_bytes = value.to_bytes(ptr_size, endian)
-        offset = cyclic_find(value_bytes, alphabet=alphabet, n=length)
-        if offset != -1:
-            found_patterns.append((reg_name, value, offset))
+        try:
+            signal.alarm(timeout)
+            value_bytes = value.to_bytes(ptr_size, endian)
+            offset = cyclic_find(value_bytes, alphabet=alphabet, n=length)
+            if offset != -1:
+                found_patterns.append((reg_name, value, offset))
+        except TimeoutException:
+            found_patterns.append((reg_name, value, "SKIPPED (Timeout)"))
+        finally:
+            signal.alarm(0)
 
         if pwndbg.aglib.memory.is_readable_address(value):
-            mem_value = pwndbg.aglib.memory.read(value, length)
-            offset = cyclic_find(mem_value, alphabet=alphabet, n=length)
-            if offset != -1:
-                found_patterns.append((f"{reg_name}->", value, offset))
+            try:
+                signal.alarm(timeout)
+                mem_value = pwndbg.aglib.memory.read(value, length)
+                offset = cyclic_find(mem_value, alphabet=alphabet, n=length)
+                if offset != -1:
+                    found_patterns.append((f"{reg_name}->", value, offset))
+            except TimeoutException:
+                found_patterns.append((f"{reg_name}->", value, "<Timeout>"))
+            finally:
+                signal.alarm(0)
+
+    # Restore the original signal handler
+    signal.signal(signal.SIGALRM, original_handler)
 
     if not found_patterns:
         print(message.notice("No cyclic patterns found."))
         return
 
-    print(f"{'Register':<12} {'Value':<20} {'Offset'}")
-    print(f"{'----------':<12} {'------------------':<20} {'------'}")
+    max_reg_width = 2 + max(max(len(reg) for reg, _, _ in found_patterns), 10)
+    max_val_width = 2 + max(len(hex(val)) for _, val, _ in found_patterns)
+
+    print(f"{'Register':<{max_reg_width}} {'Value':<{max_val_width}} {'Offset'}")
+    print(f"{'----------':<{max_reg_width}} {'------------------':<{max_val_width}} {'------'}")
     for reg, val, off in found_patterns:
-        print(f"{reg:<12} {val:<#20x} {off}")
+        print(f"{reg:<{max_reg_width}} {val:<#{max_val_width}x} {off}")
 
 
 parser = argparse.ArgumentParser(description="Cyclic pattern creator/finder.")
@@ -74,6 +104,14 @@ parser.add_argument(
     help="Size of the unique subsequences (defaults to the pointer size for the current arch)",
 )
 
+parser.add_argument(
+    "-t",
+    "--timeout",
+    metavar="seconds",
+    type=int,
+    default=2,
+    help="Timeout in seconds for --detect (default: 2)",
+)
 
 group = parser.add_mutually_exclusive_group(required=False)
 group.add_argument(
@@ -111,12 +149,14 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, command_name="cyclic", category=CommandCategory.MISC)
-def cyclic_cmd(alphabet, length: Optional[int], lookup, detect, count=100, filename="") -> None:
+def cyclic_cmd(
+    alphabet, length: Optional[int], lookup, detect, count=100, filename="", timeout=2
+) -> None:
     if length is None:
         length = pwndbg.aglib.arch.ptrsize
 
     if detect:
-        detect_register_patterns(alphabet, length)
+        detect_register_patterns(alphabet, length, timeout)
         return
 
     if lookup:
