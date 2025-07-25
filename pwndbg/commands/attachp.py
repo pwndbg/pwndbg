@@ -281,6 +281,9 @@ def attachp(
             else:
                 resolved_target = pids[0]
 
+    if resolved_target is None:
+        return
+
     print(message.on(f"Attaching to {resolved_target}"))
     try:
         gdb.execute(f"attach {resolved_target}")
