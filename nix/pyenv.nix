@@ -288,6 +288,12 @@ let
 
   baseSet = pkgs.callPackage inputs.pyproject-nix.build.packages {
     python = python3;
+    stdenv = pkgs.stdenv.override {
+      targetPlatform = pkgs.stdenv.targetPlatform // {
+        # See https://en.wikipedia.org/wiki/MacOS_version_history#Releases for more background on version numbers.
+        darwinSdkVersion = "13.0";
+      };
+    };
   };
   pythonSet = baseSet.overrideScope overlays;
   editablePythonSet = pythonSet.overrideScope (
