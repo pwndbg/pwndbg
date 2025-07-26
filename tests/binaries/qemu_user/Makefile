@@ -1,6 +1,10 @@
 .PHONY: all
 
-ZIGCC =	uv run python3 -m ziglang cc
+ifeq ($(PWNDBG_NO_UV),1)
+ZIGCC = python3 -m ziglang cc
+else
+ZIGCC = uv run python3 -m ziglang cc
+endif
 
 ARCHS = aarch64 arm riscv64 mips32 mipsel32 mips64 loongarch64 s390x powerpc32 powerpc64
 

@@ -1,4 +1,8 @@
-ZIGCC           =      uv run python3 -m ziglang cc
+ifeq ($(PWNDBG_NO_UV),1)
+ZIGCC = python3 -m ziglang cc
+else
+ZIGCC = uv run python3 -m ziglang cc
+endif
 
 CC              =	   gcc
 DEBUG           =	   1
