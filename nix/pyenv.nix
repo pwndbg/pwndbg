@@ -135,7 +135,6 @@ let
     uv = dummy;
     gdb-for-pwndbg = dummy;
     lldb-for-pwndbg = dummy;
-    #    ziglang = dummy;
     ziglang = prev.ziglang.override {
       sourcePreference = "wheel";
     };
