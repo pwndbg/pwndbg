@@ -328,7 +328,7 @@ def make_all(path: Path, jobs: int = multiprocessing.cpu_count()):
             [
                 "make",
                 f"-j{jobs}",
-                "ZIGCC=" + os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                "ZIGCC=" + os.path.join(os.path.dirname(ziglang.__file__), "zig") + " cc",
                 "all",
             ],
             cwd=str(path),
