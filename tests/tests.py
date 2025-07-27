@@ -14,6 +14,8 @@ import time
 from enum import Enum
 from pathlib import Path
 
+import ziglang
+
 from .host import TestHost
 from .host import TestResult
 from .host import TestStatus
@@ -322,7 +324,15 @@ def make_all(path: Path, jobs: int = multiprocessing.cpu_count()):
 
     print(f"[+] make -C {path} -j{jobs} all")
     try:
-        subprocess.check_call(["make", f"-j{jobs}", "all"], cwd=str(path))
+        subprocess.check_call(
+            [
+                "make",
+                f"-j{jobs}",
+                "ZIGCC=" + os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                "all",
+            ],
+            cwd=str(path),
+        )
     except subprocess.CalledProcessError:
         sys.exit(1)
 
