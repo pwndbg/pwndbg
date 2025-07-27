@@ -38,7 +38,9 @@ apk add --allow-untrusted ./pwndbg_2025.05.30_x86_64.apk
 ```
 Arch Linux:
 ```{.bash .copy}
-pacman -U ./pwndbg-2025.05.30-1-x86_64.pkg.tar.zst
+pacman -S pwndbg
+# Make gdb load pwndbg on startup
+echo 'source /usr/share/pwndbg/gdbinit.py' >> ~/.gdbinit
 ```
 
 ## Installing pwndbg-lldb
