@@ -28,7 +28,6 @@ else
         UV="$(command -v uv)"
     else
         echo "Error: 'uv' binary not found." >&2
-        exit 1
     fi
     UV_RUN="${UV} run"
     UV_RUN_TEST="${UV_RUN} --group dev --group tests --all-extras"
