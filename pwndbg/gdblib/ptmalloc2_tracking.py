@@ -495,7 +495,7 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
         if requested_size == 0:
             # There's no right way to handle realloc(..., 0). C23 says it's
             # undefined behavior, and prior versions say it's implementation-
-            # defined. Either way, print a warning and do nothing.'
+            # defined. Either way, print a warning and do nothing.
             ptr_str = colorize_ptr(f"{self.freed_pointer:#x}")
             print(
                 message.warn(
