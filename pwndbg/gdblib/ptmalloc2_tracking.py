@@ -110,11 +110,6 @@ def colorize_ptr(ptr):
     in a colors array and returning the colored pointer. If a color has already been stored for
     the given pointer, it will be returned.
     """
-    if ptr in mem_colors:
-        color = mem_colors[ptr]
-    else:
-        color = pos_colors[len(mem_colors) % len(pos_colors)]
-        mem_colors[ptr] = color
     if color := mem_colors.get(ptr) is None:
         color = pos_colors[len(mem_colors) % len(pos_colors)]
         mem_colors[ptr] = color
