@@ -115,6 +115,9 @@ def colorize_ptr(ptr):
     else:
         color = pos_colors[len(mem_colors) % len(pos_colors)]
         mem_colors[ptr] = color
+    if color := mem_colors.get(ptr) is None:
+        color = pos_colors[len(mem_colors) % len(pos_colors)]
+        mem_colors[ptr] = color
     return color(ptr)
 
 
