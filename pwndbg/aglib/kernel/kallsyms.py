@@ -105,7 +105,7 @@ class Kallsyms:
         0xffffffff827b2fed:	"9"
         """
         sequence_to_find = b"".join(b"%c\0" % i for i in range(ord("0"), ord("9") + 1))
-        sequences_to_avoid = [b":\0", b"\0\0", b"\0\1", b"\0\2", b"ASCII\0"]
+        sequences_to_avoid = (b":\0", b"\0\0", b"\0\1", b"\0\2", b"ASCII\0")
 
         position = 0
 
