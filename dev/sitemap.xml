@@ -1049,6 +1049,10 @@
          <lastmod>2025-07-28</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/buddydump/</loc>
+         <lastmod>2025-07-28</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/kallsyms/</loc>
          <lastmod>2025-07-28</lastmod>
     </url>
@@ -1070,6 +1074,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/slab/</loc>
+         <lastmod>2025-07-28</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/symbol/</loc>
          <lastmod>2025-07-28</lastmod>
     </url>
     <url>
