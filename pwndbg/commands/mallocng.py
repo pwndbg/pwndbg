@@ -235,14 +235,22 @@ bits in p[-3]. In this case "hdr reserved" will be strictly 5, which
 denotes that we need to look at the slot's footer to read the actual
 value of {C.bold("reserved")}. As a special case, if {C.bold("p[-3] >> 5 == 6")} that
 doesn't describe the reserved size at all, but specifies that there
-is a group nested inside this slot. {C.bold("p[-3] >> 5")} will never be 7,
+is a group nested inside this slot. {C.bold("p[-3] >> 5")} should never be 7,
 contrary to {C.bold("start[-3] >> 5")}.
 
 The "footer" of a slot is the third and final area of a slot's
 memory where metadata is contained. This is the [end - 4, end)
 area. It only contains the reserved size as
 {C.bold("reserved = *(const uint32_t *)(end-4)")} when {C.bold("p[-3] >> 5 == 5")}.
-    """
+
+All of the above is only generally true for allocated slots. Mallocng
+ensures {C.bold("p[-3] = 0xFF")} and {C.bold("*(uint16_t *)(p - 2) = 0")} for freed slots,
+which makes the start of the slot's group (and thus meta) unreachable.
+Only in this case does {C.bold("p[-3] >> 5")} become 7. Available slots,
+i.e. those that haven't been allocated nor freed yet (but are ready
+for allocation), have almost no guarantees on their data and
+metadata contents.
+"""
 
     print(txt)
 
@@ -314,11 +322,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
     if meta.is_donated:
         output += C.bold("\nGroup donated by ld as unused part of ")
 
-        try:
-            mapping = pwndbg.aglib.vmmap.find(mallocng.Group(meta.mem).addr)
-        except pwndbg.dbg_mod.Error as e:
-            print(message.error(f"Could not fetch parent group: {e}"))
-            mapping = None
+        mapping = pwndbg.aglib.vmmap.find(meta.mem)
 
         if mapping is None:
             output += C.red("<cannot determine>")
@@ -333,7 +337,8 @@ def dump_meta(meta: mallocng.Meta) -> str:
         assert meta.is_nested
         output += C.bold("\nGroup nested in slot of another group")
         try:
-            parent_group = mallocng.Slot(mallocng.Group(meta.mem).addr).group.addr
+            parent_group = meta.parent_group()
+            assert parent_group != -1
             output += " (" + C.memory.get(parent_group) + ")"
         except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Could not fetch parent group: {e}"))
@@ -439,13 +444,13 @@ def dump_slot(
     elif slot.reserved_in_header == 6:
         reserved_extra.append("a nested group is in this slot")
     elif slot.reserved_in_header == 7:
-        reserved_extra.append("this should not be possible")
+        reserved_extra.append("free slot?")
 
     inband_group = [
         Property(
             name="offset",
             value=slot.offset,
-            extra="distance to first slot / 0x10",
+            extra="distance to first slot start / 0x10",
             alt_value=(slot.offset * mallocng.UNIT),
         ),
         Property(name="index", value=slot.idx, extra="index of slot in its group"),
@@ -554,8 +559,12 @@ def smart_dump_slot(
 
         # If it wasn't provided to us, let's try to search for it now.
         output += "Could not load valid meta from local information, searching the heap.. "
-        ng.init_if_needed()
-        gslot, fslot = ng.find_slot(slot.p, False, False)
+
+        if not ng.init_if_needed():
+            output += message.error("\nCouldn't find the allocator, aborting the search. ")
+            gslot, fslot = None, None
+        else:
+            gslot, fslot = ng.find_slot(slot.p, False, False)
 
         if gslot is None:
             output += "Not found.\n\n"
@@ -579,6 +588,84 @@ def smart_dump_slot(
     output += dump_grouped_slot(gslot, all)
 
     return output
+
+
+def dump_meta_area(meta_area: mallocng.MetaArea) -> str:
+    area_range = (
+        "@ "
+        + C.memory.get(meta_area.addr)
+        + " - "
+        + C.memory.get(meta_area.addr + meta_area.area_size)
+    )
+
+    pp = PropertyPrinter()
+
+    pp.start_section("meta_area", area_range)
+    pp.add(
+        [
+            Property(name="check", value=meta_area.check),
+            Property(name="next", value=meta_area.next, is_addr=True),
+            Property(name="nslots", value=meta_area.nslots),
+            Property(name="slots", value=meta_area.slots, is_addr=True),
+        ]
+    )
+    return pp.dump()
+
+
+def dump_malloc_context(ctx: mallocng.MallocContext) -> str:
+    ctx_addr = "@ " + C.memory.get(ctx.addr)
+
+    pp = PropertyPrinter(22)
+    pp.start_section("ctx", ctx_addr)
+    props = [
+        Property(name="secret", value=ctx.secret),
+    ]
+    if ctx.has_pagesize_field:
+        props.append(
+            Property(name="pagesize", value=ctx.pagesize),
+        )
+
+    props.extend(
+        [
+            Property(name="init_done", value=ctx.init_done),
+            Property(name="mmap_counter", value=ctx.mmap_counter),
+            Property(name="free_meta_head", value=ctx.free_meta_head, is_addr=True),
+            Property(name="avail_meta", value=ctx.avail_meta, is_addr=True),
+            Property(name="avail_meta_count", value=ctx.avail_meta_count),
+            Property(name="avail_meta_area_count", value=ctx.avail_meta_area_count),
+            Property(name="meta_alloc_shift", value=ctx.meta_alloc_shift),
+            Property(name="meta_area_head", value=ctx.meta_area_head, is_addr=True),
+            Property(name="meta_area_tail", value=ctx.meta_area_tail, is_addr=True),
+            Property(name="avail_meta_areas", value=ctx.avail_meta_areas, is_addr=True),
+        ]
+    )
+
+    for i in range(len(ctx.active)):
+        if ctx.active[i] != 0:
+            props.append(Property(name=f"active[{i}]", value=ctx.active[i], is_addr=True))
+
+    for i in range(len(ctx.usage_by_class)):
+        if ctx.usage_by_class[i] != 0:
+            props.append(Property(name=f"usage_by_class[{i}]", value=ctx.usage_by_class[i]))
+
+    for i in range(len(ctx.unmap_seq)):
+        if ctx.unmap_seq[i] != 0:
+            props.append(Property(name=f"unmap_seq[{i}]", value=ctx.unmap_seq[i]))
+
+    for i in range(len(ctx.bounces)):
+        if ctx.bounces[i] != 0:
+            props.append(Property(name=f"bounces[{i}]", value=ctx.bounces[i]))
+
+    props.extend(
+        [
+            Property(name="seq", value=ctx.seq),
+            Property(name="brk", value=ctx.brk, is_addr=True),
+        ]
+    )
+
+    pp.add(props)
+
+    return pp.dump()
 
 
 parser = argparse.ArgumentParser(
@@ -732,6 +819,77 @@ def mallocng_group(address: int) -> None:
 
 parser = argparse.ArgumentParser(
     description="""
+Print out a mallocng meta_area object at the given address.
+    """,
+)
+parser.add_argument(
+    "address",
+    type=int,
+    help="The address of the meta_area object.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-metaarea"],
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_meta_area(address: int) -> None:
+    if not memory.is_readable_address(address):
+        print(message.error(f"Address {address:#x} not readable."))
+        return
+
+    try:
+        meta_area = mallocng.MetaArea(address)
+        print(dump_meta_area(meta_area), end="")
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(str(e)))
+        return
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Print out the mallocng __malloc_context (ctx) object.
+    """,
+)
+parser.add_argument(
+    "address",
+    nargs="?",
+    type=int,
+    help="Use the provided address instead of the one Pwndbg found.",
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-ctx"],
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_malloc_context(address: Optional[int] = None) -> None:
+    if address is None:
+        if not ng.init_if_needed():
+            print(message.error("Couldn't find the allocator, aborting the command."))
+            return
+
+        ctx = ng.ctx
+    else:
+        if not memory.is_readable_address(address):
+            print(message.error(f"Address {address:#x} not readable."))
+            return
+
+        try:
+            ctx = mallocng.MallocContext(address)
+        except pwndbg.dbg_mod.Error as e:
+            print(message.error(str(e)))
+            return
+
+    print(dump_malloc_context(ctx), end="")
+
+
+parser = argparse.ArgumentParser(
+    description="""
 Find slot which contains the given address.
 
 Returns the `start` of the slot. We say a slot 'contains'
@@ -762,7 +920,10 @@ parser.add_argument(
     "-s",
     "--shallow",
     action="store_true",
-    help="Return the outermost slot hit without going deeper even if this slot contains a group.",
+    help=(
+        "Return the biggest slot which contains this address, don't recurse for smaller slots. The group "
+        " which owns this slot will not be a nested group."
+    ),
 )
 
 
@@ -779,7 +940,9 @@ def mallocng_find(
         print(message.error(f"Address {hex(address)} not readable."))
         return
 
-    ng.init_if_needed()
+    if not ng.init_if_needed():
+        print(message.error("Couldn't find the allocator, aborting the command."))
+        return
 
     grouped_slot, slot = ng.find_slot(address, metadata, shallow)
 

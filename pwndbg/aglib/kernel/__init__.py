@@ -666,6 +666,7 @@ def per_cpu_offset() -> pwndbg.dbg_mod.Value:
         return arch_symbols().per_cpu_offset()
     return None
 
+
 def modules() -> pwndbg.dbg_mod.Value:
     if arch_symbols() is not None:
         return arch_symbols().modules()

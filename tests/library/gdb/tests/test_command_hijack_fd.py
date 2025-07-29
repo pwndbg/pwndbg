@@ -9,10 +9,10 @@ import time
 import gdb
 import pytest
 
-import tests
+from . import get_binary
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
-USE_FDS_BINARY = tests.get_binary("use-fds.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
+USE_FDS_BINARY = get_binary("use-fds.out")
 
 
 class TCPServerThread(threading.Thread):

@@ -10,7 +10,7 @@
 let
   lib = pkgs.lib;
   hacks = pkgs.callPackage inputs.pyproject-nix.build.hacks { };
-  workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = "${inputs.self}"; };
+  workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./..; };
 
   pyprojectOverlay = workspace.mkPyprojectOverlay {
     sourcePreference = "sdist";
@@ -111,8 +111,7 @@ let
       pkgName:
       prev.${pkgName}.overrideAttrs (old: {
         nativeBuildInputs =
-          old.nativeBuildInputs
-          ++ final.resolveBuildSystem (lib.genAttrs pydeps (name: [ ]));
+          old.nativeBuildInputs ++ final.resolveBuildSystem (lib.genAttrs pydeps (name: [ ]));
       })
     ));
 
@@ -136,6 +135,9 @@ let
     uv = dummy;
     gdb-for-pwndbg = dummy;
     lldb-for-pwndbg = dummy;
+    ziglang = prev.ziglang.override {
+      sourcePreference = "wheel";
+    };
 
     psutil = pkgs.callPackage (
       {
@@ -151,13 +153,6 @@ let
         }
         // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
           NIX_CFLAGS_COMPILE = "-DkIOMainPortDefault=0";
-
-          buildInputs =
-            (old.buildInputs or [ ])
-            ++ lib.optionals stdenv.hostPlatform.isx86_64 [
-              darwin.apple_sdk.frameworks.CoreFoundation
-            ]
-            ++ [ darwin.apple_sdk.frameworks.IOKit ];
         }
       )
     ) { };
@@ -254,11 +249,12 @@ let
             cp -rf ${readlineStatic.dev}/include/readline/*.h ./readline/
             cp -rf ${readlineStatic.out}/lib/*.a ./readline/
           '';
-          buildInputs =
-            [ ncurses ]
-            ++ lib.optionals isCross [
-              python3
-            ];
+          buildInputs = [
+            ncurses
+          ]
+          ++ lib.optionals isCross [
+            python3
+          ];
         }
       )
     ) { };
@@ -291,6 +287,12 @@ let
 
   baseSet = pkgs.callPackage inputs.pyproject-nix.build.packages {
     python = python3;
+    stdenv = pkgs.stdenv.override {
+      targetPlatform = pkgs.stdenv.targetPlatform // {
+        # See https://en.wikipedia.org/wiki/MacOS_version_history#Releases for more background on version numbers.
+        darwinSdkVersion = "13.0";
+      };
+    };
   };
   pythonSet = baseSet.overrideScope overlays;
   editablePythonSet = pythonSet.overrideScope (

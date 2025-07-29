@@ -198,7 +198,7 @@ def load_common_structs():
         return
     header_file_path = pwndbg.commands.cymbol.create_temp_header_file(COMMON_TYPES)
     pwndbg.commands.cymbol.add_structure_from_header(
-        header_file_path, "common_kernel_structs", overwrite=True
+        header_file_path, "common_kernel_structs", True
     )
 
 

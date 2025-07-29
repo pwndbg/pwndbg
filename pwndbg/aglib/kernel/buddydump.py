@@ -203,6 +203,4 @@ def load_buddydump_typeinfo():
         pwndbg.aglib.kernel.symbol.COMMON_TYPES + free_area + zone + per_cpu_pages + pglist_data
     )
     header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(
-        header_file_path, "buddydump_structs", overwrite=True
-    )
+    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "buddydump_structs", True)

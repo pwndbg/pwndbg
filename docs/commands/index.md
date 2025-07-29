@@ -147,7 +147,7 @@
 -  [checksec](misc/checksec.md) - Prints out the binary security settings using `checksec`.
 -  [comm](misc/comm.md) - Put comments in assembly code.
 -  [cyclic](misc/cyclic.md) - Cyclic pattern creator/finder.
--  [cymbol](misc/cymbol.md) - Add, show, load, edit, or delete custom structures in plain C.
+-  [cymbol](misc/cymbol.md) - Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit.
 -  [down](misc/down.md) - Select and print stack frame called by this one.
 -  [dt](misc/dt.md) - Dump out information on a type (e.g. ucontext_t).
 -  [dumpargs](misc/dumpargs.md) - Prints determined arguments for call/syscall instruction.
@@ -260,6 +260,8 @@
 -  [mallocng-explain](musl/mallocng-explain.md) - Gives a quick explanation of musl's mallocng allocator.
 -  [mallocng-find](musl/mallocng-find.md) - Find slot which contains the given address.
 -  [mallocng-group](musl/mallocng-group.md) - Print out information about a mallocng group at the given address.
+-  [mallocng-malloc-context](musl/mallocng-malloc-context.md) - Print out the mallocng __malloc_context (ctx) object.
+-  [mallocng-meta-area](musl/mallocng-meta-area.md) - Print out a mallocng meta_area object at the given address.
 -  [mallocng-meta](musl/mallocng-meta.md) - Print out information about a mallocng group given the address of its meta.
 -  [mallocng-slot-start](musl/mallocng-slot-start.md) - Dump information about a mallocng slot, given its start address.
 -  [mallocng-slot-user](musl/mallocng-slot-user.md) - Dump information about a mallocng slot, given its user address.

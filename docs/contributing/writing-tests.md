@@ -18,11 +18,11 @@ are located in the [`./tests/library/qemu-user`](https://github.com/pwndbg/pwndb
 directory. They can be run with `./tests.sh -d gdb -g cross-arch-user`.
 
 The linux kernel tests are run using qemu-system emulation. They are located in the
-[`./tests/library/qemu-system`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-system)
+[`./tests/library/qemu_system`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-system)
 directory and run for a variety kernel configurations and architectures.
 
 The unit tests are not run from within a debugger, but rather directly with pytest. They are located
-in the [`./tests/unit-tests/`](https://github.com/pwndbg/pwndbg/tree/dev/tests/unit-tests)
+in the [`./tests/unit_tests/`](https://github.com/pwndbg/pwndbg/tree/dev/tests/unit-tests)
 directory.
 
 Here are the options supported by `./tests.sh` which you can get by running `./tests.sh -h`.

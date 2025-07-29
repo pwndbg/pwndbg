@@ -91,7 +91,7 @@ pwndbg> argv
 
 
 ``` {.python .no-copy}
-base(name_pattern: gdb.Value | str) -> int
+base(name_pattern: gdb.Value | str)
 ```
 
 

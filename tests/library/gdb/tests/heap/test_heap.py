@@ -10,11 +10,12 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg
-import tests
 from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
 
-HEAP_MALLOC_CHUNK = tests.get_binary("heap_malloc_chunk.out")
-HEAP_MALLOC_CHUNK_DUMP = tests.get_binary("heap_malloc_chunk_dump.out")
+from .. import get_binary
+
+HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
+HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.out")
 
 
 def generate_expected_malloc_chunk_output(chunks):
@@ -509,8 +510,8 @@ def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
 ##
 # Jemalloc Tests
 ##
-HEAP_JEMALLOC_EXTENT_INFO = tests.get_binary("heap_jemalloc_extent_info.out")
-HEAP_JEMALLOC_HEAP = tests.get_binary("heap_jemalloc_heap.out")
+HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.out")
+HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.out")
 re_match_valid_address = r"0x7ffff[0-9a-fA-F]{6,9}"
 
 
