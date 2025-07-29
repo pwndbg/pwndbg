@@ -135,9 +135,26 @@ let
     uv = dummy;
     gdb-for-pwndbg = dummy;
     lldb-for-pwndbg = dummy;
-    ziglang = prev.ziglang.override {
-      sourcePreference = "wheel";
-    };
+
+    # ziglang is only supported on few platforms
+    ziglang =
+      if
+        (
+          pkgs.stdenv.hostPlatform.isDarwin
+          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isx86)
+          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isAarch)
+          || (
+            pkgs.stdenv.hostPlatform.isLinux
+            && pkgs.stdenv.hostPlatform.isPower64
+            && pkgs.stdenv.hostPlatform.isLittleEndian
+          )
+        )
+      then
+        prev.ziglang.override {
+          sourcePreference = "wheel";
+        }
+      else
+        dummy;
 
     psutil = pkgs.callPackage (
       {
