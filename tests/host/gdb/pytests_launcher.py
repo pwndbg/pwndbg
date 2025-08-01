@@ -43,6 +43,9 @@ class _GDBController(host.Controller):
     async def step_instruction(self) -> None:
         gdb.execute("stepi")
 
+    async def finish(self) -> None:
+        gdb.execute("finish")
+
 
 def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:
     # The GDB controller is entirely synchronous, so keep advancing the

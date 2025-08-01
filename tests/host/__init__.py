@@ -188,6 +188,12 @@ class Controller:
         """
         raise NotImplementedError()
 
+    def finish(self) -> Awaitable[None]:
+        """
+        Resume execution; stop after the current function returns.
+        """
+        raise NotImplementedError()
+
 
 def start(controller: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:
     """

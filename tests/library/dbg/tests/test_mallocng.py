@@ -3,35 +3,37 @@ from __future__ import annotations
 import re
 from typing import List
 
-import gdb
 import pytest
 
 import pwndbg
 import pwndbg.color as color
 import pwndbg.dbg
-import tests
 
-HEAP_MALLOCNG_DYN = tests.get_binary("heap_musl_dyn.out")
-HEAP_MALLOCNG_STATIC = tests.get_binary("heap_musl_static.out")
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
+
+HEAP_MALLOCNG_DYN = get_binary("heap_musl_dyn.out")
+HEAP_MALLOCNG_STATIC = get_binary("heap_musl_static.out")
 
 # Userland only
 re_addr = r"0x[0-9a-fA-F]{1,12}"
 
 
+@pwndbg_test
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-def test_mallocng_slot_user(start_binary, binary):
-    start_binary(binary)
-
-    gdb.execute("break break_here")
-
-    gdb.execute("continue")
-    gdb.execute("finish")  # Get out of the break_here() function.
+async def test_mallocng_slot_user(ctrl: Controller, binary: str):
+    await launch_to(ctrl, binary, "break_here")
+    # Get out of the break_here() function.
+    await ctrl.finish()
 
     # == Check generic command output ==
 
-    buffer4_out = gdb.execute("ng-slotu buffer1", to_string=True).splitlines()
+    buffer4_out = (await ctrl.execute_and_capture("ng-slotu buffer1")).splitlines()
 
     # Strip the colors. FIXME: After #3142 is figured out.
     buffer4_out = [color.strip(x) for x in buffer4_out]
@@ -66,8 +68,8 @@ def test_mallocng_slot_user(start_binary, binary):
         assert re.match(expected_output[i], buffer4_out[i])
 
     # == Check various fields ==
-    buffer2_out = color.strip(gdb.execute("ng-slotu buffer2", to_string=True)).splitlines()
-    buffer4_out = color.strip(gdb.execute("ng-slotu buffer4", to_string=True)).splitlines()
+    buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2")).splitlines()
+    buffer4_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer4")).splitlines()
 
     stride_idx = 7
     user_size_idx = 8
@@ -134,11 +136,12 @@ def test_mallocng_slot_user(start_binary, binary):
     assert "slot is" in buffer4_out[status_idx] and " allocated." in buffer4_out[status_idx]
 
     # == Check command on free slots ==
-    gdb.execute("continue")
-    gdb.execute("continue")
-    gdb.execute("finish")
+    break_at_sym("break_here")
+    await ctrl.cont()
+    await ctrl.cont()
+    await ctrl.finish()
 
-    buffer2_out = color.strip(gdb.execute("ng-slotu buffer2", to_string=True))
+    buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2"))
 
     # Make sure we found the thingy even though it is invalid locally.
     assert (
@@ -151,12 +154,12 @@ def test_mallocng_slot_user(start_binary, binary):
     # Check we correctly detected slot state
     assert "state:          freed" in buffer2_out
 
-    gdb.execute("continue")
-    gdb.execute("finish")
+    await ctrl.cont()
+    await ctrl.finish()
 
     # Now buffer3 got free()'d and so did the group which contained buffer{1,2,3} so we cannot
     # recover information about buffer2 (it essentially doesn't exist anymore).
-    buffer2_out = color.strip(gdb.execute("ng-slotu buffer2", to_string=True))
+    buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2"))
     if binary == HEAP_MALLOCNG_DYN:
         assert (
             "Could not load valid meta from local information, searching the heap.." in buffer2_out
@@ -169,24 +172,21 @@ def test_mallocng_slot_user(start_binary, binary):
         assert "not readable" in buffer2_out
 
 
+@pwndbg_test
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-def test_mallocng_slot_start(start_binary, binary):
-    start_binary(binary)
-
-    gdb.execute("break break_here")
-
-    gdb.execute("continue")
-    gdb.execute("finish")
+async def test_mallocng_slot_start(ctrl: Controller, binary: str):
+    await launch_to(ctrl, binary, "break_here")
+    await ctrl.finish()
 
     # Check ng-slots is the same as ng-slotu when p == start
     # and that they aren't the same when p != start.
 
-    slotu_buffer2_out = color.strip(gdb.execute("ng-slotu buffer2", to_string=True))
-    slots_buffer2_out = color.strip(gdb.execute("ng-slots buffer2", to_string=True))
-    slotu_buffer5_out = color.strip(gdb.execute("ng-slotu buffer5", to_string=True))
-    slots_buffer5_out = color.strip(gdb.execute("ng-slots buffer5", to_string=True))
+    slotu_buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2"))
+    slots_buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slots buffer2"))
+    slotu_buffer5_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer5"))
+    slots_buffer5_out = color.strip(await ctrl.execute_and_capture("ng-slots buffer5"))
 
     assert "not cyclic" in slotu_buffer2_out
     assert slotu_buffer2_out == slots_buffer2_out
@@ -198,24 +198,22 @@ def test_mallocng_slot_start(start_binary, binary):
         assert slotu_buffer5_out != slots_buffer5_out
 
 
+@pwndbg_test
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-def test_mallocng_group(start_binary, binary):
-    start_binary(binary)
-
-    gdb.execute("break break_here")
-    gdb.execute("continue")
-    gdb.execute("finish")
+async def test_mallocng_group(ctrl: Controller, binary: str):
+    await launch_to(ctrl, binary, "break_here")
+    await ctrl.finish()
 
     # Fetch the group where buffer1 is in.
 
-    buffer1_out = color.strip(gdb.execute("ng-slotu buffer1", to_string=True))
+    buffer1_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer1"))
     group_addr = int(re.search(r"group:\s*(0x[0-9a-fA-F]+)", buffer1_out).group(1), 16)
 
     # == Check command output looks good.
 
-    group1_out = color.strip(gdb.execute(f"ng-group {group_addr}", to_string=True)).splitlines()
+    group1_out = color.strip(await ctrl.execute_and_capture(f"ng-group {group_addr}")).splitlines()
 
     expected_out = [
         "group",
@@ -260,7 +258,7 @@ def test_mallocng_group(start_binary, binary):
             re.search(r"group \((0x[0-9a-fA-F]+)\)", cur_group_out[-1]).group(1), 16
         )
         cur_group_out = color.strip(
-            gdb.execute(f"ng-group {cur_group_addr}", to_string=True)
+            await ctrl.execute_and_capture(f"ng-group {cur_group_addr}")
         ).splitlines()
 
     if binary == HEAP_MALLOCNG_STATIC:
@@ -269,33 +267,32 @@ def test_mallocng_group(start_binary, binary):
         assert "donated by ld" in cur_group_out[-1]
 
 
+@pwndbg_test
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-def test_mallocng_meta(start_binary, binary):
-    start_binary(binary)
+async def test_mallocng_meta(ctrl: Controller, binary: str):
+    await launch_to(ctrl, binary, "break_here")
+    await ctrl.finish()
 
-    gdb.execute("break break_here")
-    gdb.execute("continue")
-    gdb.execute("finish")
-
-    buffer1_out = color.strip(gdb.execute("ng-slotu buffer1", to_string=True))
+    buffer1_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer1"))
     meta_addr = int(re.search(r"meta:\s*(0x[0-9a-fA-F]+)", buffer1_out).group(1), 16)
     group_addr = int(re.search(r"group:\s*(0x[0-9a-fA-F]+)", buffer1_out).group(1), 16)
 
     # Check that the meta output is the same as the group output.
     # They both print the same group and meta objects.
-    meta_out = color.strip(gdb.execute(f"ng-meta {meta_addr}", to_string=True))
-    group_out = color.strip(gdb.execute(f"ng-group {group_addr}", to_string=True))
+    meta_out = color.strip(await ctrl.execute_and_capture(f"ng-meta {meta_addr}"))
+    group_out = color.strip(await ctrl.execute_and_capture(f"ng-group {group_addr}"))
 
     assert meta_out == group_out
 
 
+@pwndbg_test
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-def test_mallocng_malloc_context(start_binary, binary):
-    start_binary(binary)
+async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
+    await launch_to(ctrl, binary, "main")
 
     # Check that we do not find it at the first program instruction
     if binary == HEAP_MALLOCNG_DYN:
@@ -303,23 +300,23 @@ def test_mallocng_malloc_context(start_binary, binary):
         # __malloc_context by simply looking up the symbol. So we only
         # check this for the dynamically linked binary.
 
-        gdb.execute("starti")
+        await ctrl.execute("starti")
         # This is at _dlstart - the heap is uninitialized at this point.
-        ctx_out = color.strip(gdb.execute("ng-ctx", to_string=True))
+        ctx_out = color.strip(await ctrl.execute_and_capture("ng-ctx"))
 
         assert "Couldn't find" in ctx_out
         assert "will not work" in ctx_out
         assert "aborting" in ctx_out
 
     # == Check that we do find it at program entry
-    gdb.execute("entry")
+    await ctrl.execute("entry")
     # This is at _start. For a dynamically linked binary ld performed memory
     # donation so the heap should be initialized at this point.
     # For a statically linked binary, this won't happen but we will have access
     # to the __malloc_context symbol.
     # If we were testing on a stripped static binary this would fail as the
     # heap would only get initialized after the first malloc() in main.
-    ctx_out = color.strip(gdb.execute("ng-ctx", to_string=True))
+    ctx_out = color.strip(await ctrl.execute_and_capture("ng-ctx"))
     assert "Couldn't find" not in ctx_out
     assert "will not work" not in ctx_out
     assert "aborting" not in ctx_out
@@ -328,26 +325,22 @@ def test_mallocng_malloc_context(start_binary, binary):
     assert "init_done:" in ctx_out
 
 
+@pwndbg_test
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-def test_mallocng_find(start_binary, binary):
-    start_binary(binary)
-
-    gdb.execute("start")
+async def test_mallocng_find(ctrl: Controller, binary: str):
+    await launch_to(ctrl, binary, "break_here")
+    await ctrl.finish()
 
     # Check no slot found
-    find_out = color.strip(gdb.execute("ng-find $rip", to_string=True))
+    find_out = color.strip(await ctrl.execute_and_capture("ng-find $rip"))
     assert "No slot found containing that address.\n" == find_out
-
-    gdb.execute("break break_here")
-    gdb.execute("continue")
-    gdb.execute("finish")
 
     buffer1_addr = int(pwndbg.dbg.selected_frame().evaluate_expression("buffer1"))
 
     # Check we find the slot in the simplest case of providing p.
-    find_out = color.strip(gdb.execute("ng-find buffer1", to_string=True))
+    find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1"))
 
     assert "No slot found" not in find_out
     start_addr = int(re.search(r"start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
@@ -357,42 +350,39 @@ def test_mallocng_find(start_binary, binary):
     group_addr = int(re.search(r"group:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
 
     # Hit the buffer1 header metadata
-    find_out = color.strip(gdb.execute("ng-find buffer1-1", to_string=True))
+    find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1-1"))
 
     # We should hit the slot that holds buffer1's group.
     hit_start_addr = int(re.search(r"start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
     assert group_addr == hit_start_addr
 
     # Hit the buffer1 header metadata but with -m
-    find_out = color.strip(gdb.execute("ng-find buffer1-1 --metadata", to_string=True))
+    find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1-1 --metadata"))
 
     # We should hit the buffer1 slot
     hit_start_addr = int(re.search(r"start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
     assert buffer1_addr == hit_start_addr
 
     # Check that `--shallow` works. Note that `--all` prints the group allocation method.
-    find_out = color.strip(gdb.execute("ng-find buffer1 --shallow --all", to_string=True))
+    find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1 --shallow --all"))
     assert "donated by ld" in find_out or "mmap" in find_out
     assert "nested" not in find_out.splitlines()[-1]
 
 
+@pwndbg_test
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-def test_mallocng_metaarea(start_binary, binary):
-    start_binary(binary)
+async def test_mallocng_metaarea(ctrl: Controller, binary: str):
+    await launch_to(ctrl, binary, "break_here")
+    await ctrl.finish()
 
-    gdb.execute("start")
-    gdb.execute("break break_here")
-    gdb.execute("continue")
-    gdb.execute("finish")
-
-    context = color.strip(gdb.execute("ng-ctx", to_string=True))
+    context = color.strip(await ctrl.execute_and_capture("ng-ctx"))
     secret = int(re.search(r"secret:\s*(0x[0-9a-fA-F]+)", context).group(1), 16)
     meta_area_addr = int(re.search(r"meta_area_head:\s*(0x[0-9a-fA-F]+)", context).group(1), 16)
 
     meta_area_out = color.strip(
-        gdb.execute(f"ng-metaarea {meta_area_addr:#x}", to_string=True)
+        await ctrl.execute_and_capture(f"ng-metaarea {meta_area_addr:#x}")
     ).splitlines()
 
     expected_out = [

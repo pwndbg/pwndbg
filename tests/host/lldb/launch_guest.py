@@ -46,6 +46,9 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
         async def step_instruction(self) -> None:
             await self.pc.execute("thread step-inst")
 
+        async def finish(self) -> None:
+            await self.pc.execute("thread step-out")
+
     await outer(_LLDBController(ctrl))
 
 
