@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import re
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-MEMORY_BINARY = tests.get_binary("memory.out")
-X86_BINARY = tests.get_binary("gosample.x86")
+MEMORY_BINARY = get_binary("memory.out")
+X86_BINARY = get_binary("gosample.x86")
 
 data_addr = "0x401000"
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_windbg_dX_commands(ctrl: Controller) -> None:
     """
     Tests windbg compatibility commands that dump memory
@@ -232,7 +232,7 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     )
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_windbg_eX_commands(ctrl: Controller) -> None:
     """
     Tests windbg compatibility commands that write to memory
@@ -316,7 +316,7 @@ async def test_windbg_eX_commands(ctrl: Controller) -> None:
     assert pwndbg.aglib.memory.read(stack_last_qword_ea, 8) == b"\xef\xbe\xad\xde\xbe\xba\xfe\xca"
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_windbg_commands_x86(ctrl: Controller) -> None:
     """
     Tests windbg compatibility commands that dump memory

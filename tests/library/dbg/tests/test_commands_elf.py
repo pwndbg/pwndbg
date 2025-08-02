@@ -3,17 +3,18 @@ from __future__ import annotations
 import re
 
 import pytest
-from host import Controller
 
-import tests
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-NO_SECTS_BINARY = tests.get_binary("gosample.x86")
+NO_SECTS_BINARY = get_binary("gosample.x86")
 PIE_BINARY_WITH_PLT = "reference_bin_pie.out"
 NOPIE_BINARY_WITH_PLT = "reference_bin_nopie.out"
 NOPIE_I386_BINARY_WITH_PLT = "reference_bin_nopie.i386.out"
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_commands_plt_gotplt_got_when_no_sections(ctrl: Controller) -> None:
     await ctrl.launch(NO_SECTS_BINARY)
 
@@ -25,11 +26,11 @@ async def test_commands_plt_gotplt_got_when_no_sections(ctrl: Controller) -> Non
 @pytest.mark.parametrize(
     "binary_name,is_pie", ((PIE_BINARY_WITH_PLT, True), (NOPIE_BINARY_WITH_PLT, False))
 )
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_plt(ctrl: Controller, binary_name: str, is_pie: bool) -> None:
     import pwndbg
 
-    binary = tests.get_binary(binary_name)
+    binary = get_binary(binary_name)
 
     if pwndbg.dbg.is_gdblib_available():
         # Currently only GDB has pre-launch inferiors that let us run commands
@@ -62,9 +63,9 @@ async def test_command_plt(ctrl: Controller, binary_name: str, is_pie: bool) -> 
 @pytest.mark.parametrize(
     "binary_name,is_pie", ((NOPIE_BINARY_WITH_PLT, False), (PIE_BINARY_WITH_PLT, True))
 )
-@tests.pwndbg_test
+@pwndbg_test
 async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> None:
-    binary = tests.get_binary(binary_name)
+    binary = get_binary(binary_name)
 
     await ctrl.launch(binary)
 

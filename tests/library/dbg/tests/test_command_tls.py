@@ -1,22 +1,24 @@
 from __future__ import annotations
 
 import pytest
-from host import Controller
 
-import tests
+from ....host import Controller
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
-TLS_X86_64_BINARY = tests.get_binary("tls.x86-64.out")
-TLS_I386_BINARY = tests.get_binary("tls.i386.out")
+TLS_X86_64_BINARY = get_binary("tls.x86-64.out")
+TLS_I386_BINARY = get_binary("tls.i386.out")
 
 
 # TODO: Support other architectures
-@tests.pwndbg_test
+@pwndbg_test
 @pytest.mark.parametrize("binary", [TLS_X86_64_BINARY, TLS_I386_BINARY], ids=["x86-64", "i386"])
 async def test_tls_address_and_command(ctrl: Controller, binary: str):
     import pwndbg.aglib.tls
     import pwndbg.aglib.vmmap
 
-    await tests.launch_to(ctrl, binary, "break_here")
+    await launch_to(ctrl, binary, "break_here")
 
     expected_tls_address = int(
         pwndbg.dbg.selected_frame().evaluate_expression("(void *)tls_address")

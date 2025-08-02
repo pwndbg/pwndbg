@@ -4,12 +4,15 @@ import re
 from typing import Dict
 
 import pytest
-from host import Controller
 
-import tests
+from .....host import Controller
+from .. import break_at_sym
+from .. import get_binary
+from .. import launch_to
+from .. import pwndbg_test
 
-HEAP_MALLOC_CHUNK = tests.get_binary("heap_malloc_chunk.out")
-HEAP_MALLOC_CHUNK_DUMP = tests.get_binary("heap_malloc_chunk_dump.out")
+HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
+HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.out")
 
 
 def generate_expected_malloc_chunk_output(chunks: Dict[str, ...]) -> Dict[str, ...]:
@@ -132,14 +135,14 @@ def generate_expected_malloc_chunk_output(chunks: Dict[str, ...]) -> Dict[str, .
     return expected
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_malloc_chunk_command(ctrl: Controller) -> None:
     import pwndbg
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
-    await tests.launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
 
     chunks = {}
     results = {}
@@ -189,7 +192,7 @@ async def test_malloc_chunk_command(ctrl: Controller) -> None:
     assert results["large"] == expected["large"]
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
     import pwndbg
     import pwndbg.aglib.heap
@@ -197,7 +200,7 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
 
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     await ctrl.execute("set resolve-heap-via-heuristic force")
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
     await ctrl.cont()
 
     chunks = {}
@@ -246,13 +249,13 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
     assert results["large"] == expected["large"]
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_malloc_chunk_dump_command(ctrl: Controller) -> None:
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
-    await tests.launch_to(ctrl, HEAP_MALLOC_CHUNK_DUMP, "break_here")
+    await launch_to(ctrl, HEAP_MALLOC_CHUNK_DUMP, "break_here")
 
     chunk = pwndbg.aglib.memory.get_typed_pointer_value(
         pwndbg.aglib.heap.current.malloc_chunk,
@@ -328,7 +331,7 @@ class mock_for_heuristic:
         pwndbg.dbg.selected_inferior = self.saved_func
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_main_arena_heuristic(ctrl: Controller) -> None:
     import pwndbg.aglib.heap
     import pwndbg.aglib.symbol
@@ -336,7 +339,7 @@ async def test_main_arena_heuristic(ctrl: Controller) -> None:
 
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     await ctrl.execute("set resolve-heap-via-heuristic force")
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
     await ctrl.cont()
 
     # Use the debug symbol to get the address of `main_arena`
@@ -362,7 +365,7 @@ async def test_main_arena_heuristic(ctrl: Controller) -> None:
         assert pwndbg.aglib.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_mp_heuristic(ctrl: Controller) -> None:
     import pwndbg.aglib.heap
     import pwndbg.aglib.symbol
@@ -370,7 +373,7 @@ async def test_mp_heuristic(ctrl: Controller) -> None:
 
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     await ctrl.execute("set resolve-heap-via-heuristic force")
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
     await ctrl.cont()
 
     # Use the debug symbol to get the address of `mp_`
@@ -397,7 +400,7 @@ async def test_mp_heuristic(ctrl: Controller) -> None:
 @pytest.mark.parametrize(
     "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
 )
-@tests.pwndbg_test
+@pwndbg_test
 async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool) -> None:
     import pwndbg
     import pwndbg.aglib.heap
@@ -408,7 +411,7 @@ async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool)
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     await ctrl.execute("set resolve-heap-via-heuristic force")
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
     await ctrl.cont()
     if is_multi_threaded:
         await ctrl.cont()
@@ -448,7 +451,7 @@ async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool)
 @pytest.mark.parametrize(
     "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
 )
-@tests.pwndbg_test
+@pwndbg_test
 async def test_thread_arena_heuristic(ctrl: Controller, is_multi_threaded: bool) -> None:
     import pwndbg
     import pwndbg.aglib.heap
@@ -458,7 +461,7 @@ async def test_thread_arena_heuristic(ctrl: Controller, is_multi_threaded: bool)
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     await ctrl.execute("set resolve-heap-via-heuristic force")
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
     await ctrl.cont()
 
     if is_multi_threaded:
@@ -488,14 +491,14 @@ async def test_thread_arena_heuristic(ctrl: Controller, is_multi_threaded: bool)
         assert pwndbg.aglib.heap.current.thread_arena.address == thread_arena_via_debug_symbol
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
     import pwndbg.aglib.heap
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     await ctrl.execute("set resolve-heap-via-heuristic force")
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
     await ctrl.cont()
 
     # Use the debug symbol to find the address of `global_max_fast`
@@ -520,7 +523,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
 @pytest.mark.parametrize(
     "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
 )
-@tests.pwndbg_test
+@pwndbg_test
 async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bool) -> None:
     import pwndbg.aglib.heap
     from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
@@ -528,7 +531,7 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
     await ctrl.execute("set resolve-heap-via-heuristic force")
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
     await ctrl.cont()
     if is_multi_threaded:
         await ctrl.cont()
@@ -556,14 +559,14 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
 ##
 # Jemalloc Tests
 ##
-HEAP_JEMALLOC_EXTENT_INFO = tests.get_binary("heap_jemalloc_extent_info.out")
-HEAP_JEMALLOC_HEAP = tests.get_binary("heap_jemalloc_heap.out")
+HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.out")
+HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.out")
 re_match_valid_address = r"0x7ffff[0-9a-fA-F]{6,9}"
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_jemalloc_find_extent(ctrl: Controller) -> None:
-    await tests.launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
+    await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
 
     # run jemalloc extent_info command
     result = (await ctrl.execute_and_capture("jemalloc-find-extent ptr")).splitlines()
@@ -590,9 +593,9 @@ async def test_jemalloc_find_extent(ctrl: Controller) -> None:
     assert expected_idx == len(expected_output)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_jemalloc_extent_info(ctrl: Controller) -> None:
-    await tests.launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
+    await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
 
     find_extent_results = (await ctrl.execute_and_capture("jemalloc-find-extent ptr")).splitlines()
     extent_address = None
@@ -623,9 +626,9 @@ async def test_jemalloc_extent_info(ctrl: Controller) -> None:
     assert expected_idx == len(expected_output)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_jemalloc_heap(ctrl: Controller) -> None:
-    await tests.launch_to(ctrl, HEAP_JEMALLOC_HEAP, "break_here")
+    await launch_to(ctrl, HEAP_JEMALLOC_HEAP, "break_here")
 
     # run jemalloc extent_info command
     result = (await ctrl.execute_and_capture("jemalloc-heap")).splitlines()

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-GOSAMPLE_X64 = tests.get_binary("gosample.x64")
-GOSAMPLE_X86 = tests.get_binary("gosample.x86")
+GOSAMPLE_X64 = get_binary("gosample.x64")
+GOSAMPLE_X86 = get_binary("gosample.x86")
 
 
 async def helper_test_dump(ctrl: Controller, target: str) -> None:
@@ -33,11 +33,11 @@ async def helper_test_dump(ctrl: Controller, target: str) -> None:
     assert dump.strip() == """([3]complex64) [(1.1 + 2.2i), (-2.5 - 5.0i), (4.2 - 2.1i)]"""
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_go_dumping_x64(ctrl: Controller) -> None:
     await helper_test_dump(ctrl, GOSAMPLE_X64)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_go_dumping_x86(ctrl: Controller) -> None:
     await helper_test_dump(ctrl, GOSAMPLE_X86)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import tests
+from . import pwndbg_test
 
 STACK_COMMANDS = [
     ("canary", [], "Stack", "Print out the current stack canary."),
@@ -10,7 +10,7 @@ STACK_COMMANDS = [
 ]
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_list_and_filter_commands_filter(_ctrl: Controller):
     from pwndbg.commands.misc import list_and_filter_commands
 
@@ -18,7 +18,7 @@ async def test_list_and_filter_commands_filter(_ctrl: Controller):
         assert cmd in list_and_filter_commands("stack")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_list_and_filter_commands_full_list(_ctrl: Controller):
     import pwndbg.commands
     from pwndbg.commands.misc import list_and_filter_commands

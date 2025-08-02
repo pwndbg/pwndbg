@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import Any
 from unittest import mock
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
 
 
 async def set_param(ctrl: Controller, param_name: str, value: Any):
@@ -56,7 +56,7 @@ async def single_param(ctrl: Controller, param_name: str, triggers: Any):
     config.triggers[param_name] = orig_triggers
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_triggers(ctrl: Controller) -> None:
     # The behavior of some triggers depend on the value of other parameters!
     #

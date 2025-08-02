@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-SMALL_BINARY = tests.get_binary("crash_simple.out.hardcoded")
+SMALL_BINARY = get_binary("crash_simple.out.hardcoded")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_mprotect_executes_properly(ctrl: Controller) -> None:
     """
     Tests the mprotect command

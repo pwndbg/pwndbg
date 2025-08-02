@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from host import Controller
+from .....host import Controller
+from .. import get_binary
+from .. import launch_to
+from .. import pwndbg_test
 
-import tests
-
-BINARY = tests.get_binary("heap_bins.out")
+BINARY = get_binary("heap_bins.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_heap_bins(ctrl: Controller) -> None:
     """
     Tests pwndbg.aglib.heap bins commands
@@ -160,13 +161,13 @@ async def test_heap_bins(ctrl: Controller) -> None:
     await ctrl.execute("bins")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_largebins_size_range_64bit(ctrl: Controller) -> None:
     """
     Ensure the "largebins" command displays the correct largebin size ranges.
     This test targets 64-bit architectures.
     """
-    await tests.launch_to(ctrl, tests.get_binary("initialized_heap_x64.out"), "break_here")
+    await launch_to(ctrl, get_binary("initialized_heap_x64.out"), "break_here")
 
     command_output = (await ctrl.execute_and_capture("largebins --verbose")).splitlines()[1:]
 
@@ -240,13 +241,13 @@ async def test_largebins_size_range_64bit(ctrl: Controller) -> None:
         assert size_range.split(":")[0] == expected[bin_index]
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_largebins_size_range_32bit_big(ctrl: Controller) -> None:
     """
     Ensure the "largebins" command displays the correct largebin size ranges.
     This test targets 32-bit architectures with MALLOC_ALIGNMENT == 16.
     """
-    await tests.launch_to(ctrl, tests.get_binary("initialized_heap_i386_big.out"), "break_here")
+    await launch_to(ctrl, get_binary("initialized_heap_i386_big.out"), "break_here")
 
     command_output = (await ctrl.execute_and_capture("largebins --verbose")).splitlines()[1:]
 
@@ -320,13 +321,13 @@ async def test_largebins_size_range_32bit_big(ctrl: Controller) -> None:
         assert size_range.split(":")[0] == expected[bin_index]
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_smallbins_sizes_64bit(ctrl: Controller) -> None:
     """
     Ensure the "smallbins" command displays the correct smallbin sizes.
     This test targets 64-bit architectures.
     """
-    await tests.launch_to(ctrl, tests.get_binary("initialized_heap_x64.out"), "break_here")
+    await launch_to(ctrl, get_binary("initialized_heap_x64.out"), "break_here")
 
     command_output = (await ctrl.execute_and_capture("smallbins --verbose")).splitlines()[1:]
 
@@ -399,14 +400,14 @@ async def test_smallbins_sizes_64bit(ctrl: Controller) -> None:
         assert bin_size.split(":")[0] == expected[bin_index]
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_smallbins_sizes_32bit_big(ctrl: Controller) -> None:
     """
     Ensure the "smallbins" command displays the correct smallbin sizes.
     This test targets 32-bit architectures with MALLOC_ALIGNMENT == 16.
     """
 
-    await tests.launch_to(ctrl, tests.get_binary("initialized_heap_i386_big.out"), "break_here")
+    await launch_to(ctrl, get_binary("initialized_heap_i386_big.out"), "break_here")
 
     command_output = (await ctrl.execute_and_capture("smallbins --verbose")).splitlines()[1:]
 
@@ -479,7 +480,7 @@ async def test_smallbins_sizes_32bit_big(ctrl: Controller) -> None:
         assert bin_size.split(":")[0] == expected[bin_index]
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_heap_corruption_low_dereference(ctrl: Controller) -> None:
     """
     Tests that the bins corruption check doesn't report
@@ -488,7 +489,7 @@ async def test_heap_corruption_low_dereference(ctrl: Controller) -> None:
     """
 
     await ctrl.execute("set context-output /dev/null")
-    await tests.launch_to(ctrl, BINARY, "breakpoint")
+    await launch_to(ctrl, BINARY, "breakpoint")
 
     await ctrl.cont()
     await ctrl.cont()

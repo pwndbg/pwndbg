@@ -6,12 +6,13 @@ from typing import Dict
 from typing import Tuple
 
 import pytest
-from host import Controller
 
-import tests
+from .....host import Controller
+from .. import get_binary
+from .. import pwndbg_test
 
-HEAP_BINARY = tests.get_binary("heap_bugs.out")
-HEAP_CODE = tests.get_binary("heap_bugs.c")
+HEAP_BINARY = get_binary("heap_bugs.out")
+HEAP_CODE = get_binary("heap_bugs.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
 
@@ -93,7 +94,7 @@ async def setup_heap(ctrl: Controller, bug_no: int) -> Dict[str, int]:
     return chunks
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_invalid_overflow(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 1)
 
@@ -102,7 +103,7 @@ async def test_try_free_invalid_overflow(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_invalid_misaligned(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 2)
 
@@ -111,7 +112,7 @@ async def test_try_free_invalid_misaligned(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_invalid_size_minsize(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 3)
 
@@ -120,7 +121,7 @@ async def test_try_free_invalid_size_minsize(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_invalid_size_misaligned(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 4)
 
@@ -129,7 +130,7 @@ async def test_try_free_invalid_size_misaligned(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_double_free_tcache(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 5)
 
@@ -138,7 +139,7 @@ async def test_try_free_double_free_tcache(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_invalid_next_size_fast(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 6)
 
@@ -147,7 +148,7 @@ async def test_try_free_invalid_next_size_fast(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_double_free(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 7)
 
@@ -156,7 +157,7 @@ async def test_try_free_double_free(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_invalid_fastbin_entry(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 8)
 
@@ -165,7 +166,7 @@ async def test_try_free_invalid_fastbin_entry(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_double_free_or_corruption_top(ctrl: Controller) -> None:
     import pwndbg.aglib.arch
     import pwndbg.aglib.heap
@@ -182,7 +183,7 @@ async def test_try_free_double_free_or_corruption_top(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_double_free_or_corruption_out(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 10)
 
@@ -191,7 +192,7 @@ async def test_try_free_double_free_or_corruption_out(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_double_free_or_corruption_prev(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 11)
 
@@ -200,7 +201,7 @@ async def test_try_free_double_free_or_corruption_prev(ctrl: Controller) -> None
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_invalid_next_size_normal(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 12)
 
@@ -209,7 +210,7 @@ async def test_try_free_invalid_next_size_normal(ctrl: Controller) -> None:
     os.remove(OUTPUT_FILE)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_corrupted_consolidate_backward(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 13)
 
@@ -221,7 +222,7 @@ async def test_try_free_corrupted_consolidate_backward(ctrl: Controller) -> None
 @pytest.mark.skip(
     reason="Needs review. In the heap.py on the line 972 the condition is true always. The heap_bug.c file has the function: corrupted_unsorted_chunks()"
 )
-@tests.pwndbg_test
+@pwndbg_test
 async def test_try_free_corrupted_unsorted_chunks(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 14)
 

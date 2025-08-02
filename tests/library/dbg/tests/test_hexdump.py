@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import pytest
-from host import Controller
 
-import tests
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-BINARY = tests.get_binary("reference-binary.out")
+BINARY = get_binary("reference-binary.out")
 
 
 async def run_tests(ctrl: Controller, stack: int, use_big_endian: bool, expected: str) -> None:
@@ -34,7 +35,7 @@ async def run_tests(ctrl: Controller, stack: int, use_big_endian: bool, expected
         assert result == expected_result
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_hexdump(ctrl: Controller) -> None:
     import pwndbg
     import pwndbg.aglib.regs
@@ -65,7 +66,7 @@ async def test_hexdump(ctrl: Controller) -> None:
     await run_tests(ctrl, stack_addr, False, expected)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_hexdump_collapse_lines(ctrl: Controller) -> None:
     import pwndbg.aglib.memory
     import pwndbg.aglib.regs
@@ -93,7 +94,7 @@ async def test_hexdump_collapse_lines(ctrl: Controller) -> None:
     await hexdump_lines(10)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_hexdump_saved_address_and_offset(ctrl: Controller) -> None:
     import pwndbg.aglib.memory
     import pwndbg.aglib.regs
@@ -119,7 +120,7 @@ async def test_hexdump_saved_address_and_offset(ctrl: Controller) -> None:
     assert pwndbg.commands.hexdump.hexdump.offset == SIZE
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_hexdump_limit_check(ctrl: Controller):
     """
     Tests that the hexdump command respects the hexdump-limit-mb settings.

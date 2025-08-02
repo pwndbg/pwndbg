@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import pytest
-from host import Controller
 
-import tests
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-SYSCALLS_BINARY = tests.get_binary("syscalls-x64.out")
+SYSCALLS_BINARY = get_binary("syscalls-x64.out")
 
 OPCODE_BYTES_TESTS_EXPECTED_OUTPUT = {
     1: [
@@ -118,7 +119,7 @@ OPCODE_SEPERATOR_TESTS_EXPECTED_OUTPUT = {
 }
 
 
-@tests.pwndbg_test
+@pwndbg_test
 @pytest.mark.parametrize("opcode_bytes", (1, 2, 3, 4, 5))
 async def test_nearpc_opcode_bytes(ctrl: Controller, opcode_bytes: int) -> None:
     await ctrl.launch(SYSCALLS_BINARY)
@@ -145,7 +146,7 @@ async def test_nearpc_opcode_bytes(ctrl: Controller, opcode_bytes: int) -> None:
     assert dis == expected
 
 
-@tests.pwndbg_test
+@pwndbg_test
 @pytest.mark.parametrize("separator_bytes", (0, 1, 2))
 async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -> None:
     await ctrl.launch(SYSCALLS_BINARY)
@@ -174,7 +175,7 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
     assert dis == excepted
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
     from pwndbg.dbg import BreakpointLocation

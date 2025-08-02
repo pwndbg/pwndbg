@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-MANGLING_BINARY = tests.get_binary("symbol_1600_and_752.out")
+MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_symbol_get(ctrl: Controller) -> None:
     import pwndbg
 
     await ctrl.launch(MANGLING_BINARY)
-    tests.break_at_sym("break_here")
+    break_at_sym("break_here")
 
     async def get_next_ptr():
         await ctrl.cont()

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-USE_FDS_BINARY = tests.get_binary("use-fds.out")
+USE_FDS_BINARY = get_binary("use-fds.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_mmap_executes_properly(ctrl: Controller) -> None:
     """
     Tests the mmap command

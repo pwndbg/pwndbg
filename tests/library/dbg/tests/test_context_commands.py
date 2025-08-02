@@ -3,18 +3,21 @@ from __future__ import annotations
 import re
 
 import pytest
-from host import Controller
 
-import tests
+from ....host import Controller
+from . import break_at_sym
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
-USE_FDS_BINARY = tests.get_binary("use-fds.out")
-TABSTOP_BINARY = tests.get_binary("tabstop.out")
-SYSCALLS_BINARY = tests.get_binary("syscalls-x64.out")
-MANGLING_BINARY = tests.get_binary("symbol_1600_and_752.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
+USE_FDS_BINARY = get_binary("use-fds.out")
+TABSTOP_BINARY = get_binary("tabstop.out")
+SYSCALLS_BINARY = get_binary("syscalls-x64.out")
+MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     """
     Tests context disasm command and whether it shows properly opened fd filepath
@@ -25,7 +28,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     import pwndbg.commands.canary
     import pwndbg.commands.context
 
-    await tests.launch_to(ctrl, USE_FDS_BINARY, "main")
+    await launch_to(ctrl, USE_FDS_BINARY, "main")
 
     # Stop on read(0, ...) -> should show /dev/pts/X or pipe:X on CI
     await ctrl.execute("nextcall")
@@ -82,7 +85,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
 
 
 @pytest.mark.parametrize("sections", ("''", '""', "none", "-"))
-@tests.pwndbg_test
+@pwndbg_test
 async def test_empty_context_sections(ctrl: Controller, sections: str) -> None:
     import pwndbg
 
@@ -104,7 +107,7 @@ async def test_empty_context_sections(ctrl: Controller, sections: str) -> None:
     assert (await ctrl.execute_and_capture("context")) != ""
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_source_code_tabstop(ctrl: Controller) -> None:
     await ctrl.launch(TABSTOP_BINARY)
 
@@ -154,7 +157,7 @@ async def test_source_code_tabstop(ctrl: Controller) -> None:
     assert """10 \n""" in src
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_disasm_syscalls_args_display(ctrl: Controller) -> None:
     await ctrl.launch(SYSCALLS_BINARY)
 
@@ -201,7 +204,7 @@ async def test_context_disasm_syscalls_args_display(ctrl: Controller) -> None:
     )
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_disasm_syscalls_args_display_no_emulate(ctrl: Controller) -> None:
     await ctrl.execute("set emulate off")
 
@@ -250,7 +253,7 @@ async def test_context_disasm_syscalls_args_display_no_emulate(ctrl: Controller)
     )
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_backtrace_show_proper_symbol_names(ctrl: Controller) -> None:
     await ctrl.launch(MANGLING_BINARY)
 
@@ -288,7 +291,7 @@ async def test_context_backtrace_show_proper_symbol_names(ctrl: Controller) -> N
     assert backtrace[-1] == ""
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_disasm_works_properly_with_disasm_flavor_switch(ctrl: Controller) -> None:
     await ctrl.launch(SYSCALLS_BINARY)
 
@@ -323,7 +326,7 @@ async def test_context_disasm_works_properly_with_disasm_flavor_switch(ctrl: Con
 
 
 @pytest.mark.parametrize("patch_or_api", (True, False))
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_disasm_proper_render_on_mem_change_issue_1818(
     ctrl: Controller, patch_or_api: bool
 ) -> None:
@@ -364,10 +367,10 @@ async def test_context_disasm_proper_render_on_mem_change_issue_1818(
     assert "syscall" in new[10]
 
 
-ONE_GADGET_BINARY = tests.get_binary("onegadget.x86-64.out")
+ONE_GADGET_BINARY = get_binary("onegadget.x86-64.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_disasm_fsbase_annotations(ctrl: Controller) -> none:
     """
     This test checks that fsbase support in annotations is working properly.
@@ -379,7 +382,7 @@ async def test_context_disasm_fsbase_annotations(ctrl: Controller) -> none:
     Between compilations and between x86 vs x86_64, the exact instruction changes, but matches a regex pattern.
 
     """
-    await tests.launch_to(ctrl, ONE_GADGET_BINARY, "break_here")
+    await launch_to(ctrl, ONE_GADGET_BINARY, "break_here")
 
     # In view, there should now be the fs/gs memory reference
     output = (await ctrl.execute_and_capture("context disasm")).split("\n")
@@ -394,10 +397,10 @@ async def test_context_disasm_fsbase_annotations(ctrl: Controller) -> none:
     assert found
 
 
-LONG_FUNCTION_X64_BINARY = tests.get_binary("long_function_x64.out")
+LONG_FUNCTION_X64_BINARY = get_binary("long_function_x64.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_disasm_call_instruction_split(ctrl: Controller) -> None:
     """
     This checks for the following scenario:
@@ -439,7 +442,7 @@ async def test_context_disasm_call_instruction_split(ctrl: Controller) -> None:
     assert dis == expected
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_hide_sections(ctrl: Controller) -> None:
     await ctrl.launch(SYSCALLS_BINARY)
 
@@ -480,7 +483,7 @@ async def test_context_hide_sections(ctrl: Controller) -> None:
     assert "DISASM" in out
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_history_prev_next(ctrl: Controller) -> None:
     import pwndbg
 
@@ -541,13 +544,13 @@ async def test_context_history_prev_next(ctrl: Controller) -> None:
         gdb.execute("cunwatch 1")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_history_search(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
     await ctrl.execute("context")
 
-    tests.break_at_sym("main")
-    tests.break_at_sym("break_here")
+    break_at_sym("main")
+    break_at_sym("break_here")
 
     await ctrl.cont()
     await ctrl.execute("context")
@@ -587,7 +590,7 @@ async def test_context_history_search(ctrl: Controller) -> None:
     assert "Section 'nonexistent' not found in context history." in search_result
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_context_output_redirection(ctrl: Controller) -> None:
     import pwndbg.commands.context
 

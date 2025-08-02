@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import re
 
-from host import Controller
+from .....host import Controller
+from .. import get_binary
+from .. import launch_to
+from .. import pwndbg_test
 
-import tests
-
-HEAP_FIND_FAKE_FAST = tests.get_binary("heap_find_fake_fast.out")
+HEAP_FIND_FAKE_FAST = get_binary("heap_find_fake_fast.out")
 
 target_address = None
 
@@ -41,7 +42,7 @@ def check_no_results(result: str) -> None:
     assert len(matches) == 0
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_find_fake_fast_command(ctrl: Controller) -> None:
     import pwndbg
     import pwndbg.aglib.heap
@@ -50,11 +51,11 @@ async def test_find_fake_fast_command(ctrl: Controller) -> None:
 
     global target_address
 
-    await tests.launch_to(ctrl, HEAP_FIND_FAKE_FAST, "break_here")
+    await launch_to(ctrl, HEAP_FIND_FAKE_FAST, "break_here")
 
     # Ensure memory at fake_chunk's heap_info struct isn't mapped.
     unmapped_heap_info = pwndbg.aglib.heap.ptmalloc.heap_for_ptr(
-        int(pwndbg.aglib.symbol.lookup_symbol_value("fake_chunk"))
+        pwndbg.aglib.symbol.lookup_symbol_value("fake_chunk")
     )
     assert pwndbg.aglib.memory.peek(unmapped_heap_info) is None
 

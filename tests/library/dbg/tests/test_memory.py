@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import launch_to
+from . import pwndbg_test
 
-import tests
-
-REFERENCE_BINARY = tests.get_binary("reference-binary.out")
-NESTED_STRUCTS_BINARY = tests.get_binary("nested_structs.out")
+REFERENCE_BINARY = get_binary("reference-binary.out")
+NESTED_STRUCTS_BINARY = get_binary("nested_structs.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_memory_read_write(ctrl: Controller) -> None:
     """
     Tests simple pwndbg's memory read/write operations with different argument types
@@ -34,7 +35,7 @@ async def test_memory_read_write(ctrl: Controller) -> None:
     assert pwndbg.aglib.memory.read(stack_addr, len(val) + 4) == bytearray("Z" * 8 + "YYXX", "utf8")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_memory_peek_poke(ctrl: Controller) -> None:
     """
     This tests ensures that doing a peek, poke, peek round-robin operations
@@ -86,7 +87,7 @@ async def test_memory_peek_poke(ctrl: Controller) -> None:
     assert pwndbg.aglib.memory.peek(b"0") is None
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_fetch_struct_as_dictionary(ctrl: Controller) -> None:
     """
     Test pwndbg.aglib.memory.fetch_struct_as_dictionary()
@@ -95,7 +96,7 @@ async def test_fetch_struct_as_dictionary(ctrl: Controller) -> None:
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
-    await tests.launch_to(ctrl, NESTED_STRUCTS_BINARY, "break_here")
+    await launch_to(ctrl, NESTED_STRUCTS_BINARY, "break_here")
 
     expected_result = {
         "outer_x": 1,
@@ -115,7 +116,7 @@ async def test_fetch_struct_as_dictionary(ctrl: Controller) -> None:
     assert result == expected_result
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_fetch_struct_as_dictionary_include_filter(ctrl: Controller) -> None:
     """
     Test pwndbg.aglib.memory.fetch_struct_as_dictionary()
@@ -124,7 +125,7 @@ async def test_fetch_struct_as_dictionary_include_filter(ctrl: Controller) -> No
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
-    await tests.launch_to(ctrl, NESTED_STRUCTS_BINARY, "break_here")
+    await launch_to(ctrl, NESTED_STRUCTS_BINARY, "break_here")
 
     expected_result = {
         "outer_x": 1,
@@ -145,7 +146,7 @@ async def test_fetch_struct_as_dictionary_include_filter(ctrl: Controller) -> No
     assert result == expected_result
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_fetch_struct_as_dictionary_exclude_filter(ctrl: Controller) -> None:
     """
     Test pwndbg.aglib.memory.fetch_struct_as_dictionary()
@@ -155,7 +156,7 @@ async def test_fetch_struct_as_dictionary_exclude_filter(ctrl: Controller) -> No
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
-    await tests.launch_to(ctrl, NESTED_STRUCTS_BINARY, "break_here")
+    await launch_to(ctrl, NESTED_STRUCTS_BINARY, "break_here")
 
     expected_result = {
         "outer_y": 2,

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from host import Controller
+from ....host import Controller
+from . import get_binary
+from . import pwndbg_test
 
-import tests
-
-EMULATE_DISASM_BINARY = tests.get_binary("emulate_disasm.out")
-EMULATE_DISASM_LOOP_BINARY = tests.get_binary("emulate_disasm_loop.out")
+EMULATE_DISASM_BINARY = get_binary("emulate_disasm.out")
+EMULATE_DISASM_LOOP_BINARY = get_binary("emulate_disasm_loop.out")
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_emulate_disasm(ctrl: Controller) -> None:
     """
     Tests emulate command and its caching behavior
@@ -49,7 +49,7 @@ async def test_emulate_disasm(ctrl: Controller) -> None:
     compare_output_without_emu(disasm_without_emu_0x400080)
 
 
-@tests.pwndbg_test
+@pwndbg_test
 async def test_emulate_disasm_loop(ctrl: Controller) -> None:
     import pwndbg.aglib.regs
 
