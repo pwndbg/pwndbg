@@ -94,7 +94,7 @@ def clear_screen(out=sys.stdout) -> None:
 
 config_reserve_lines = pwndbg.config.add_param(
     "context-reserve-lines",
-    "if-ctx-fits" if os.environ.get("PWNDBG_DISABLE_COLORS", "0") != "1" else "never",
+    "if-ctx-fits",
     "when to reserve lines after the prompt to reduce context shake",
     help_docstring="""
 The "if-ctx-fits" setting only reserves lines if the whole context would still fit vertically in the current terminal window.

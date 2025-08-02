@@ -27,6 +27,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self.pc = pc
 
         async def launch(self, binary: Path, args: List[str] = []) -> None:
+            await self.pc.execute("set context-reserve-lines never")
             await self.pc.execute(f"target create {binary}")
             await self.pc.execute(
                 "process launch -s -- " + " ".join(shlex.quote(arg) for arg in args)
