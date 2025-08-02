@@ -22,15 +22,17 @@ gif = """
 
 def main():
     README_PATH = "README.md"
-    TARGET_PATH = "./docs/index.md"
+    TARGET_PATH = "docs/index.md"
 
     with open(README_PATH, "r") as readmefile:
         readme = readmefile.read()
+        
+        
+        if not readme.startswith("![repository-open-graph]("):
+          raise ValueError("The first line of the README.md has changed. Is it still safe to replace it?")
 
-        assert (
-            readme.splitlines()[0].startswith("![repository-open-graph](")
-            and "The first line of the README.md has changed. Is it still safe to replace it?"
-        )
+
+          
 
         # Delete the first line
         readme = readme.split("\n", 1)[1]
