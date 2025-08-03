@@ -250,7 +250,7 @@ class ArchSymbols:
         modules = pwndbg.aglib.symbol.lookup_symbol("modules")
         if modules:
             return modules
-        return pwndbg.aglib.get_typed_pointer(modules, "struct list_head")
+        return pwndbg.aglib.memory.get_typed_pointer("struct list_head", modules)
 
     def _node_data(self):
         raise NotImplementedError()
