@@ -61,7 +61,7 @@ def try_usymbol(name: str, size=pwndbg.aglib.kernel.ptr_size) -> int:
         return None
 
 
-@pwndbg.aglib.kernel.requires_debug_symbols(["zone_names"], default=4)
+@pwndbg.aglib.kernel.requires_debug_symbols("zone_names", default=4)
 def nzones() -> int:
     _zone_names = pwndbg.aglib.symbol.lookup_symbol_addr("zone_names")
     for i in range(len(POSSIBLE_ZONE_NAMES) + 1):
@@ -78,7 +78,7 @@ def nmtypes() -> int:
 def npcplist() -> int:
     """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
     if (
-        not pwndbg.aglib.kernel.has_debug_symbols(["node_zones"])
+        not pwndbg.aglib.kernel.has_debug_symbols("node_zones")
         or not pwndbg.aglib.kernel.has_debug_info()
     ):
         if pwndbg.aglib.kernel.krelease() < (5, 14):
