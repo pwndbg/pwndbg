@@ -143,6 +143,8 @@ let
           pkgs.stdenv.hostPlatform.isDarwin
           || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isx86)
           || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isAarch)
+          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isS390x)
+          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isRiscV64)
           || (
             pkgs.stdenv.hostPlatform.isLinux
             && pkgs.stdenv.hostPlatform.isPower64
