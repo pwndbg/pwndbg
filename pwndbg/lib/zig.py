@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os.path
-import subprocess
 from typing import Dict
 from typing import List
 from typing import Literal
@@ -9,7 +8,9 @@ from typing import Tuple
 
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
+from pwndbg.lib.arch import Platform
 
+# 'x86-64', 'little', 8)
 _arch_mapping: Dict[Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little", "big"], int], str] = {
     ("x86-64", "little", 8): "x86_64",
     ("i386", "little", 4): "x86",
@@ -36,12 +37,12 @@ _arch_mapping: Dict[Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little",
 }
 
 def _get_zig_target(arch: ArchDefinition) -> str | None:
-    if arch.platform == 'linux':
+    if arch.platform == Platform.LINUX:
         # "gnu", "gnuabin32", "gnuabi64", "gnueabi", "gnueabihf",
         # "gnuf32","gnusf", "gnux32", "gnuilp32",
         # TODO: support soft/hard float abi?
         osabi = "linux-gnu"
-    elif arch.platform == 'darwin':
+    elif arch.platform == Platform.DARWIN:
         osabi = "macos-none"
     else:
         return None
