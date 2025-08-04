@@ -173,6 +173,21 @@ class _ClassRwExtPtr:
         ptr = _ptrauth_strip(ptr)
         return _ClassRoPtr(ptr)
 
+    def methods(self) -> _ListArray[Method]:
+        return _ListArray(_MethodList, self._ptr + pwndbg.aglib.typeinfo.ptrsize)
+
+    def properties(self) -> _ListArray[ClassProperty]:
+        return _ListArray(_ClassPropertyList, self._ptr + 2 * pwndbg.aglib.typeinfo.ptrsize)
+
+    def demangled_name(self) -> bytes | None:
+        ptr = pwndbg.aglib.memory.read_pointer_width(self._ptr + 4 * pwndbg.aglib.typeinfo.ptrsize)
+        if ptr == 0:
+            return None
+        return pwndbg.aglib.memory.string(ptr)
+
+    def version(self) -> int:
+        return pwndbg.aglib.memory.u32(self._ptr + 5 * pwndbg.aglib.typeinfo.ptrsize)
+
 
 class _ClassRwPtr:
     RW_REALIZED = 1 << 31
@@ -279,7 +294,7 @@ class _EntList(Generic[T]):
 
 
 class _RelativeListOfListsEntry(Generic[T]):
-    def __init__(self, ty: Callable[[int], T], ptr: int):
+    def __init__(self, ty: Callable[[int], _EntList[T]], ptr: int):
         self._ptr = ptr
         self._ty = ty
 
@@ -289,7 +304,7 @@ class _RelativeListOfListsEntry(Generic[T]):
     def _list_offset(self) -> int:
         return pwndbg.aglib.memory.s64(self._ptr) >> 16
 
-    def get_list(self) -> T:
+    def get_list(self) -> _EntList[T]:
         return self._ty(self._ptr + self._list_offset())
 
 
@@ -297,7 +312,13 @@ class _RelativeListOfLists(
     _EntList[_RelativeListOfListsEntry[T] | None],
     Generic[T],
 ):
-    def __init__(self, ty: Callable[[int], T], ptr: int):
+    """
+    An array of relative pointers to lists.
+
+    This corresponds to the `relative_list_list_t` type in libobjc.
+    """
+
+    def __init__(self, ty: Callable[[int], _EntList[T]], ptr: int):
         super().__init__(ptr)
         self._ty = ty
 
@@ -316,6 +337,50 @@ class _RelativeListOfLists(
             return None
 
         return entry
+
+
+class _ListArray(Generic[T]):
+    """
+    A runtime-polymorphic array type for lists. May be a pointer to a list type,
+    an array of pointers, or a _RelativeListOfLists, distinguished by a tag in
+    a pointer.
+
+    Strangely for Apple, the tagged pointer to the final list is contained
+    inside the list array structure, rather than having the whole structure be
+    inlined into a pointer value. Suspiciously sane.
+
+    This corresponds to the `list_array_tt` type in libobjc.
+    """
+
+    def __init__(self, ty: Callable[[int], _EntList[T]], ptr: int):
+        self._ptr = ptr
+        self._ty = ty
+
+    def entries(self) -> Generator[T]:
+        raw_ptr = pwndbg.aglib.memory.read_pointer_width(self._ptr)
+
+        tag = raw_ptr & 3
+        ptr = raw_ptr & ~3
+
+        if ptr == 0:
+            return
+
+        if tag == 0:
+            # This is just a pointer to the list.
+            yield from self._ty(ptr).entries()
+        elif tag == 1:
+            # This is an array of lists.
+            count = pwndbg.aglib.memory.u32(ptr)
+            for i in range(count):
+                yield from self._ty(
+                    pwndbg.aglib.memory.read_pointer_width(
+                        ptr + 8 + i * pwndbg.aglib.typeinfo.ptrsize
+                    )
+                ).entries()
+        elif tag == 2:
+            # This is a relative list of lists.
+            for ll in _RelativeListOfLists(self._ty, ptr).entries():
+                yield from ll.get_list().entries()
 
 
 def _header_info_rw_is_image_loaded(index: int) -> bool:
@@ -491,6 +556,23 @@ class Class(Object):
             # FIXME: Should be `typing.assert_never`, needs Python 3.11
             assert False
 
+    def _rw_ext(self) -> _ClassRwExtPtr | None:
+        data = self._data_bits().data()
+        if isinstance(data, _ClassRoPtr):
+            return None
+        elif isinstance(data, _ClassRwPtr):
+            ro_or_rw_ext = data.ro_or_rw_ext()
+            if isinstance(ro_or_rw_ext, _ClassRwExtPtr):
+                return ro_or_rw_ext
+            elif isinstance(ro_or_rw_ext, _ClassRoPtr):
+                return None
+            else:
+                # FIXME: Should be `typing.assert_never`, needs Python 3.11
+                assert False
+        else:
+            # FIXME: Should be `typing.assert_never`, needs Python 3.11
+            assert False
+
     @property
     def superclass(self) -> Class | None:
         # MyPy fails if we don't check this a second time.
@@ -512,10 +594,13 @@ class Class(Object):
 
     @property
     def methods(self) -> Generator[Method]:
-        # Return the base methods.
-        yield from self._ro().methods()
-
-        # TODO: Return the methods added to a class at runtime.
+        if (rw_ext := self._rw_ext()) is not None:
+            # Return the methods added to the class at runtime from the Class
+            # R/W structure, which also include the base methods.
+            yield from rw_ext.methods().entries()
+        else:
+            # Return the base methods.
+            yield from self._ro().methods()
 
     @property
     def ivars(self) -> Generator[InstanceVariable]:
@@ -523,7 +608,13 @@ class Class(Object):
 
     @property
     def properties(self) -> Generator[ClassProperty]:
-        yield from self._ro().properties()
+        if (rw_ext := self._rw_ext()) is not None:
+            # Return the properties added to the class at runtime from the Class
+            # R/W structure, which also include the base properties.
+            yield from rw_ext.properties().entries()
+        else:
+            # Return the base properties.
+            yield from self._ro().properties()
 
     @property
     def is_metaclass(self) -> bool:
