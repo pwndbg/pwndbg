@@ -58,6 +58,8 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             self.data["CONFIG_CMA"] = "y"
         if self.CONFIG_MEMORY_ISOLATION:
             self.data["CONFIG_MEMORY_ISOLATION"] = "y"
+        if self.CONFIG_KASAN:
+            self.data["CONFIG_KASAN"] = "y"
 
     def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
@@ -136,9 +138,16 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_KASAN_GENERIC(self) -> bool:
         # TODO: have a kernel build that tests this
-        if pwndbg.aglib.kernel.krelease() < (5, 11):
+        if pwndbg.aglib.kernel.krelease() > (6, 1) or pwndbg.aglib.kernel.krelease() < (5, 11):
             return pwndbg.aglib.symbol.lookup_symbol("kasan_cache_create") is not None
         return pwndbg.aglib.symbol.lookup_symbol("__kasan_cache_create") is not None
+
+    @property
+    def CONFIG_KASAN(self) -> bool:
+        # TODO: have a kernel build that tests this
+        if self.CONFIG_KASAN_GENERIC:
+            return True
+        return pwndbg.aglib.symbol.lookup_symbol("__kasan_krealloc") is not None
 
     @property
     def CONFIG_SMP(self) -> bool:
