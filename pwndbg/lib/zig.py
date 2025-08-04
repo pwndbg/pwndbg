@@ -55,7 +55,7 @@ def _get_zig_target(arch: ArchDefinition) -> str | None:
 
 def flags(arch: ArchDefinition) -> List[str] | None:
     try:
-        import ziglang
+        import ziglang  # type: ignore[import-untyped]
     except ImportError:
         raise ValueError("Can't import ziglang")
 
