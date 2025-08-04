@@ -33,10 +33,10 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
 
     # == Check generic command output ==
 
-    buffer4_out = (await ctrl.execute_and_capture("ng-slotu buffer1")).splitlines()
+    buffer1_out = (await ctrl.execute_and_capture("ng-slotu buffer1")).splitlines()
 
     # Strip the colors. FIXME: After #3142 is figured out.
-    buffer4_out = [color.strip(x) for x in buffer4_out]
+    buffer1_out = [color.strip(x) for x in buffer1_out]
 
     expected_output = [
         "slab",
@@ -62,10 +62,10 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
         "",
     ]
 
-    assert len(expected_output) == len(buffer4_out)
+    assert len(expected_output) == len(buffer1_out)
 
     for i in range(len(expected_output)):
-        assert re.match(expected_output[i], buffer4_out[i])
+        assert re.match(expected_output[i], buffer1_out[i])
 
     # == Check various fields ==
     buffer2_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer2")).splitlines()
