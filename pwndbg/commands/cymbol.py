@@ -31,8 +31,8 @@ import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.commands
 import pwndbg.lib.config
-import pwndbg.lib.zig
 import pwndbg.lib.tempfile
+import pwndbg.lib.zig
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

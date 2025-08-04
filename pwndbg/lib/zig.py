@@ -1,7 +1,14 @@
-import subprocess
+from __future__ import annotations
+
 import os.path
-from typing import Dict, Tuple, Literal, List
-from pwndbg.lib.arch import ArchDefinition, PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+import subprocess
+from typing import Dict
+from typing import List
+from typing import Literal
+from typing import Tuple
+
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+from pwndbg.lib.arch import ArchDefinition
 
 _arch_mapping: Dict[Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little", "big"], int], str] = {
     ("x86-64", "little", 8): "x86_64",
@@ -34,8 +41,10 @@ def _get_zig_target(arch: ArchDefinition) -> str | None:
         # "gnuf32","gnusf", "gnux32", "gnuilp32",
         # TODO: support soft/hard float abi?
         osabi = "linux-gnu"
-    else:
+    elif arch.platform == 'darwin':
         osabi = "macos-none"
+    else:
+        return None
 
     arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize), None)
     if arch_mapping is None:
