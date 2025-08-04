@@ -42,19 +42,31 @@ def BIT(shift: int):
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def has_debug_syms() -> bool:
+def has_debug_symbols(required=[], checkall=True) -> bool:
+    if len(required) == 0:
+        return pwndbg.aglib.symbol.lookup_symbol("commit_creds") is not None
+    if checkall:
+        return all(pwndbg.aglib.symbol.lookup_symbol(sym) is not None for sym in required)
+    # check any
+    return any(pwndbg.aglib.symbol.lookup_symbol(sym) is not None for sym in required)
+
+
+@pwndbg.lib.cache.cache_until("objfile")
+def has_debug_info() -> bool:
     # Check for an arbitrary type and symbol name that are not likely to change
     return (
-        pwndbg.aglib.typeinfo.load("struct file") is not None
+        pwndbg.aglib.typeinfo.load("struct pipe_buffer") is not None
         and pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner") is not None
     )
 
 
-def requires_debug_syms(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
+def requires_debug_symbols(
+    required: List[str], checkall=False, default: D = None
+) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
     def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
         @functools.wraps(f)
         def func(*args: P.args, **kwargs: P.kwargs) -> T | D:
-            if has_debug_syms():
+            if has_debug_symbols(required, checkall):
                 return f(*args, **kwargs)
 
             # If the user doesn't want an exception thrown when debug symbols are
@@ -62,36 +74,42 @@ def requires_debug_syms(default: D = None) -> Callable[[Callable[P, T]], Callabl
             if default is not None:
                 return default
 
-            raise Exception(f"Function {f.__name__} requires debug symbols")
+            raise Exception(
+                f"Function {f.__name__} requires {'all' if checkall else 'any'} of the following debug symbols: {required}"
+            )
 
         return func
 
     return decorator
 
 
-@requires_debug_syms(default=1)
+def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
+    def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
+        @functools.wraps(f)
+        def func(*args: P.args, **kwargs: P.kwargs) -> T | D:
+            if has_debug_info():
+                return f(*args, **kwargs)
+
+            # If the user doesn't want an exception thrown when debug symbols are
+            # not available, they can instead provide a default return value
+            if default is not None:
+                return default
+
+            raise Exception(f"Function {f.__name__} requires .debug_info section")
+
+        return func
+
+    return decorator
+
+
+@requires_debug_symbols(["nr_cpu_ids"], default=1)
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
-    val = pwndbg.aglib.symbol.lookup_symbol_value("nr_cpu_ids")
-    assert val is not None, "Symbol nr_cpu_ids not exists"
+    val = pwndbg.aglib.kernel.symbol.try_usymbol("nr_cpu_ids", 32)
     return val
 
 
-@requires_debug_syms(default=12)
-def npcplist() -> int:
-    """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
-    node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
-    zone = node_data.dereference()[0]["node_zones"][0]
-    # index 0 should always exist
-    if zone.type.has_field("per_cpu_pageset"):
-        lists = zone["per_cpu_pageset"]["lists"]
-        return lists.type.array_len
-    if zone.type.has_field("pageset"):
-        lists = zone["pageset"]["pcp"]["lists"]
-        return lists.type.array_len
-    return 0
-
-
+@pwndbg.lib.cache.cache_until("stop")
 def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
     """Returns the first kernel mapping which contains the linux_banner"""
     base = kbase()
@@ -102,9 +120,9 @@ def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
         if mapping.vaddr < base:
             continue
 
-        results = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))
+        result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
 
-        if len(results) > 0:
+        if result:
             return mapping
 
     return None
@@ -114,7 +132,7 @@ def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
 def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
     global _kconfig
     config_start, config_end = None, None
-    if has_debug_syms():
+    if has_debug_info():
         config_start = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data")
         config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
     else:
@@ -135,25 +153,26 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
     return _kconfig
 
 
-@requires_debug_syms(default="")
+@requires_debug_symbols(["saved_command_line"], default="")
 @pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("saved_command_line")
-    assert addr is not None, "Symbol saved_command_line not exists"
-
     cmdline_addr = pwndbg.aglib.memory.read_pointer_width(addr)
     return pwndbg.aglib.memory.string(cmdline_addr).decode("ascii")
 
 
 @pwndbg.lib.cache.cache_until("start")
 def kversion() -> str:
-    if has_debug_syms():
-        version_addr = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
-        assert version_addr is not None, "Symbol linux_banner not exists"
-    else:
-        mapping = get_first_kernel_ro()
-        version_addr = list(pwndbg.search.search(b"Linux version", mappings=[mapping]))[0]
-
+    try:
+        if has_debug_symbols(["linux_banner"]):
+            version_addr = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
+            result = pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
+            assert len(result) > 0
+            return result
+    except Exception:
+        pass
+    mapping = get_first_kernel_ro()
+    version_addr = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
     return pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
 
 
@@ -324,13 +343,12 @@ class x86_64Ops(x86Ops):
     def ptr_size(self) -> int:
         return 64
 
-    @requires_debug_syms()
+    @requires_debug_symbols(["__per_cpu_offset", "nr_iowait_cpu"], checkall=False)
     def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
 
-        per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol_addr("__per_cpu_offset")
-        assert per_cpu_offset is not None, "Symbol __per_cpu_offset not found"
+        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -357,13 +375,12 @@ class Aarch64Ops(ArchOps):
     def ptr_size(self):
         return 64
 
-    @requires_debug_syms()
+    @requires_debug_symbols(["__per_cpu_offset", "nr_iowait_cpu"], checkall=False)
     def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
 
-        per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol_addr("__per_cpu_offset")
-        assert per_cpu_offset is not None, "Symbol __per_cpu_offset not exists"
+        per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
@@ -425,6 +442,20 @@ def arch_ops() -> ArchOps:
             _arch_ops = i386Ops()
 
     return _arch_ops
+
+
+_arch_symbols: pwndbg.aglib.kernel.symbol.ArchSymbols = None
+
+
+def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols:
+    global _arch_symbols
+    if _arch_symbols is None:
+        if pwndbg.aglib.arch.name == "aarch64":
+            _arch_symbols = pwndbg.aglib.kernel.symbol.Aarch64Symbols()
+        elif pwndbg.aglib.arch.name == "x86-64":
+            _arch_symbols = pwndbg.aglib.kernel.symbol.x86_64Symbols()
+
+    return _arch_symbols
 
 
 def ptr_size() -> int:
@@ -589,14 +620,17 @@ def paging_enabled() -> bool:
         raise NotImplementedError()
 
 
-@requires_debug_syms()
+@requires_debug_symbols(["node_states"], default=1)
 def num_numa_nodes() -> int:
     """Returns the number of NUMA nodes that are online on the system"""
     kc = kconfig()
-    if kc is None:
-        # if no config, we can still try one other way
+
+    if "CONFIG_NUMA" not in kc:
+        return 1
+
+    if "CONFIG_NODES_SHIFT" not in kc:
         node_states = pwndbg.aglib.symbol.lookup_symbol("node_states")
-        if node_states is None:
+        if node_states is None or not has_debug_info():
             return 1
         node_states = node_states.dereference()
 
@@ -604,14 +638,30 @@ def num_numa_nodes() -> int:
         node_mask = node_states[1]["bits"][0]
         return bin(int(node_mask)).count("1")
 
-    if "CONFIG_NUMA" not in kc:
-        return 1
-
     max_nodes = 1 << int(kc["CONFIG_NODES_SHIFT"])
     if max_nodes == 1:
         return 1
 
-    val = pwndbg.aglib.symbol.lookup_symbol_value("nr_online_nodes")
-    assert val is not None, "Symbol nr_online_nodes not found"
+    val = pwndbg.aglib.kernel.symbol.try_usymbol("nr_online_nodes", 32)
+    if val is None:
+        return 1
 
     return val
+
+
+def node_data() -> pwndbg.dbg_mod.Value:
+    if arch_symbols() is not None:
+        return arch_symbols().node_data()
+    return None
+
+
+def slab_caches() -> pwndbg.dbg_mod.Value:
+    if arch_symbols() is not None:
+        return arch_symbols().slab_caches()
+    return None
+
+
+def per_cpu_offset() -> pwndbg.dbg_mod.Value:
+    if arch_symbols is not None:
+        return arch_symbols().per_cpu_offset()
+    return None

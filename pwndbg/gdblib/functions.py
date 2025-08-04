@@ -96,7 +96,7 @@ def rebase(addr: gdb.Value | int) -> int:
 
 
 @GdbFunction(only_when_running=True)
-def base(name_pattern: gdb.Value | str) -> int:
+def base(name_pattern: gdb.Value | str):
     """
     Return the base address of the first memory mapping containing the given name.
 
@@ -132,7 +132,8 @@ def base(name_pattern: gdb.Value | str) -> int:
     for p in pwndbg.aglib.vmmap.get():
         if name in p.objfile:
             return p.vaddr
-    raise ValueError(f"No mapping named {name}")
+
+    raise gdb.GdbError(f"$base error: No mapping named '{name}'")
 
 
 @GdbFunction()

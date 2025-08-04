@@ -61,7 +61,7 @@ let
       #!/bin/sh
       dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
       ${commonEnvs}
-      exec -a "$0" ${ldLoader} "$dir/exe/python3" "$dir/${file}" "$@"
+      exec ${ldLoader} "$dir/exe/python3" "$dir/${file}" "$@"
     '';
   wrapperBin =
     file:
@@ -69,7 +69,7 @@ let
       #!/bin/sh
       dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
       ${commonEnvs}
-      exec -a "$0" ${ldLoader} "$dir/${file}" "$@"
+      exec ${ldLoader} "$dir/${file}" "$@"
     '';
 
   pwndbgGdbBundled = bundler (

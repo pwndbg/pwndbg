@@ -32,7 +32,7 @@ class KernelVmmap:
         self.pages = pages
         self.sections = None
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
-        if not pwndbg.aglib.kernel.has_debug_syms():
+        if self.pi and not pwndbg.aglib.kernel.has_debug_symbols():
             return
         self.sections = self.pi.markers()
 

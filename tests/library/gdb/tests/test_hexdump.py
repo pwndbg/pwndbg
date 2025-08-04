@@ -8,9 +8,10 @@ import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
-import tests
 
-BINARY = tests.get_binary("reference-binary.out")
+from . import get_binary
+
+BINARY = get_binary("reference-binary.out")
 
 
 def run_tests(stack, use_big_endian, expected):

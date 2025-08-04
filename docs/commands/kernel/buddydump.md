@@ -2,10 +2,8 @@
 # buddydump
 
 ```text
-usage: buddydump [-h] [-z {DMA,DMA32,Normal,HighMem,Movable,Device}]
-                 [-o ORDER]
-                 [-m {Unmovable,Movable,Reclaimable,HighAtomic,CMA,Isolate}]
-                 [-p] [-c CPU] [-n NODE] [-f FIND]
+usage: buddydump [-h] [-z ZONE] [-o ORDER] [-m MTYPE] [-p] [-c CPU] [-n NODE]
+                 [-f FIND]
 
 ```
 

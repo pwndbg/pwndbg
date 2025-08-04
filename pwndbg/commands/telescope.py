@@ -139,6 +139,9 @@ def telescope(
 
     # Allow invocation of telescope -f (--frame) to dump all addresses in a frame
     if frame:
+        if not pwndbg.aglib.regs.frame:
+            print("The frame register is not defined for this architecture.")
+            return
         sp = pwndbg.aglib.regs.sp
         bp = pwndbg.aglib.regs[pwndbg.aglib.regs.frame]
         if sp > bp:
@@ -225,7 +228,6 @@ def telescope(
 
     bp = None
     if print_framepointer_offset and pwndbg.aglib.regs.frame is not None:
-        # regs.frame can be None on aarch64
         bp = pwndbg.aglib.regs[pwndbg.aglib.regs.frame]
 
     for i, addr in enumerate(range(start, stop, step)):

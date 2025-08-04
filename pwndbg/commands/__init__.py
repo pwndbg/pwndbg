@@ -619,10 +619,24 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWhenUserspace
 
 
-def OnlyWithKernelDebugSyms(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWithKernelDebugInfo(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithKernelDebugSyms(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if pwndbg.aglib.kernel.has_debug_syms():
+    def _OnlyWithKernelDebugInfo(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        if pwndbg.aglib.kernel.has_debug_info():
+            return function(*a, **kw)
+        else:
+            log.error(
+                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with debug info."
+            )
+            return None
+
+    return _OnlyWithKernelDebugInfo
+
+
+def OnlyWithKernelDebugSymbols(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+    @functools.wraps(function)
+    def _OnlyWithKernelDebugSymbols(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        if pwndbg.aglib.kernel.has_debug_symbols():
             return function(*a, **kw)
         else:
             log.error(
@@ -630,7 +644,7 @@ def OnlyWithKernelDebugSyms(function: Callable[P, T]) -> Callable[P, Optional[T]
             )
             return None
 
-    return _OnlyWithKernelDebugSyms
+    return _OnlyWithKernelDebugSymbols
 
 
 def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:

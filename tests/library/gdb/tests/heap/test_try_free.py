@@ -8,10 +8,11 @@ import pytest
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.heap
-import tests
 
-HEAP_BINARY = tests.get_binary("heap_bugs.out")
-HEAP_CODE = tests.get_binary("heap_bugs.c")
+from .. import get_binary
+
+HEAP_BINARY = get_binary("heap_bugs.out")
+HEAP_CODE = get_binary("heap_bugs.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
 

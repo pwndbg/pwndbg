@@ -51,6 +51,11 @@ def page_type(page):
         for i in range(len(names)):
             if page_type_val & (1 << (i + 24)) == 0:
                 return names[i]
+    if pwndbg.aglib.kernel.krelease() >= (6, 10):
+        names = names[:6]
+        for i in range(len(names)):
+            if page_type_val & (1 << (7 + i)) == 0:
+                return names[i]
     if pwndbg.aglib.kernel.krelease() >= (5, 0):
         names = names[:5]
         for i in range(len(names)):
@@ -104,7 +109,7 @@ p2v_parser.add_argument("paddr", type=str, help="")
 
 @pwndbg.commands.Command(p2v_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def p2v(paddr):
@@ -123,7 +128,7 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 
 @pwndbg.commands.Command(v2p_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def v2p(vaddr):
@@ -145,7 +150,7 @@ page_parser.add_argument("page", type=str, help="")
 
 @pwndbg.commands.Command(page_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def pageinfo(page):

@@ -5,10 +5,11 @@ import pytest
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
-import tests
 
-CANARY_X86_64_BINARY = tests.get_binary("canary.x86-64.out")
-CANARY_I386_BINARY = tests.get_binary("canary.i386.out")
+from . import get_binary
+
+CANARY_X86_64_BINARY = get_binary("canary.x86-64.out")
+CANARY_I386_BINARY = get_binary("canary.i386.out")
 
 
 @pytest.mark.integration

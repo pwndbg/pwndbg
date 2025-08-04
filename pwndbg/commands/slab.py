@@ -14,6 +14,7 @@ from tabulate import tabulate
 
 import pwndbg
 import pwndbg.aglib.kernel.slab
+import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.color.message as M
 import pwndbg.commands
@@ -64,7 +65,7 @@ parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", h
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def slab(
     command,
@@ -77,6 +78,8 @@ def slab(
     partial_only=False,
     active_only=False,
 ) -> None:
+    if not pwndbg.aglib.kernel.has_debug_info():
+        pwndbg.aglib.kernel.slab.load_slab_typeinfo()
     if command == "list":
         slab_list(filter_)
     elif command == "info":
@@ -232,7 +235,7 @@ def slab_info(name: str, verbose: bool, cpu: int, node: int, active: bool, parti
         indent.print(f"{indent.prefix('Offset')}: {indent.aux_hex(slab_cache.offset)}")
         indent.print(f"{indent.prefix('Slab size')}: {indent.aux_hex(slab_cache.slab_size)}")
         indent.print(
-            f"{indent.prefix('Size (without metadata)')}: {indent.aux_hex(slab_cache.size)}"
+            f"{indent.prefix('Size (including metadata)')}: {indent.aux_hex(slab_cache.size)}"
         )
         indent.print(f"{indent.prefix('Align')}: {indent.aux_hex(slab_cache.align)}")
         indent.print(f"{indent.prefix('Object Size')}: {indent.aux_hex(slab_cache.object_size)}")

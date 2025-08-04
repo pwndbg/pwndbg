@@ -21,7 +21,7 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 def kmod(module_name=None) -> None:
     # Look up the address of the `modules` symbol, containing the head of the linked list of kernel modules
     modules_head = pwndbg.aglib.symbol.lookup_symbol_addr("modules")

@@ -191,6 +191,15 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                     # event.
                     self.proc.dbg._trigger_event(pwndbg.dbg_mod.EventType.REGISTER_CHANGED)
 
+                    # If we set the stack pointer, the inner object might have been invalidated, try
+                    # to restore it, as it should still be the selected frame.
+                    if (
+                        name in (reg_sets[pwndbg.aglib.arch.name].frame, "sp")
+                        and not self.inner.IsValid()
+                    ):
+                        self.inner = thread.GetSelectedFrame()
+                        assert self.inner.GetSP() == val
+
                     # Make sure we've caught and handled the special cases in which the inner object
                     # might be invalidated by the command.
                     assert self.inner.IsValid()

@@ -8,9 +8,10 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
-import tests
 
-TELESCOPE_BINARY = tests.get_binary("telescope_binary.out")
+from . import get_binary
+
+TELESCOPE_BINARY = get_binary("telescope_binary.out")
 
 
 def test_command_telescope(start_binary):
