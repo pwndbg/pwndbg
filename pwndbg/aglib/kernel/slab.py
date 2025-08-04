@@ -183,12 +183,17 @@ class SlabCache:
     @property
     def cpu_cache(self) -> CpuCache:
         """returns cpu cache associated to current thread"""
+        if not self._slab_cache.dereference().type.has_field("cpu_slab"):
+            return None
         cpu = pwndbg.dbg.selected_thread().index() - 1
         cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
         return CpuCache(cpu_cache, self, cpu)
 
     @property
     def cpu_caches(self) -> Generator[CpuCache, None, None]:
+        if not self._slab_cache.dereference().type.has_field("cpu_slab"):
+            yield None
+            return
         """returns cpu caches for all cpus"""
         for cpu in range(kernel.nproc()):
             cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
@@ -222,6 +227,8 @@ class SlabCache:
         #       which is typically not from what I have seen
         cnt = 0
         for cpu_cache in self.cpu_caches:
+            if cpu_cache is None:
+                continue
             if cpu_cache.active_slab is not None:
                 cnt += cpu_cache.active_slab.inuse
             for partial_slab in cpu_cache.partial_slabs:
@@ -257,6 +264,8 @@ class SlabCache:
 
     def find_containing_slab(self, address) -> Slab | None:
         for cpu_cache in self.cpu_caches:
+            if cpu_cache is None:
+                continue
             slab = cpu_cache.active_slab
             if slab is not None and address in slab:
                 return slab
@@ -517,6 +526,8 @@ def kmem_cache_structs():
     else:
         to_define = "SINCE_V6_2"
     result = f"#define {to_define}\n"
+    if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig():
+        result += "#define CONFIG_SLUB_CPU_PARTIAL\n"
     result += """
     struct kmem_cache_node {
         spinlock_t list_lock;
@@ -532,7 +543,6 @@ def kmem_cache_structs():
     };
     typedef unsigned int gfp_t;
     typedef unsigned int slab_flags_t;
-    // struct page is already defined in COMMON_TYPES
 #ifndef BEFORE_V5_17
     struct slab {
         unsigned long __page_flags;
@@ -541,10 +551,12 @@ def kmem_cache_structs():
 #endif
         union {
             struct list_head slab_list;
+#ifdef CONFIG_SLUB_CPU_PARTIAL
             struct {
                 struct slab *next;
                 int slabs;	/* Nr of slabs left */
             };
+#endif
         };
 #ifdef BETWEEN_V5_17_AND_V6_1
         struct kmem_cache *slab_cache;
@@ -561,19 +573,20 @@ def kmem_cache_structs():
         // rcu_head in later versions is not important for our purposes
         unsigned int __page_type;
         atomic_t __page_refcount;
+        /* memcg data unused in pwndbg */
     };
 #endif
-    struct kmem_cache_cpu {
+    """
+    result += f"""
+    struct kmem_cache_cpu {{
         void **freelist;	/* Pointer to next available object */
         unsigned long tid;	/* Globally unique transaction id */
-#ifdef BEFORE_V5_17
-        struct page *page;	/* The slab from which we are allocating */
-        struct page *partial;	/* Partially allocated frozen slabs */
-#else
-        struct slab *slab;	/* The slab from which we are allocating */
-        struct slab *partial;	/* Partially allocated frozen slabs */
+        struct {slab_struct_type()} *{slab_struct_type()};	/* The slab from which we are allocating */
+#ifdef CONFIG_SLUB_CPU_PARTIAL
+        struct {slab_struct_type()} *partial;	/* Partially allocated frozen slabs */
 #endif
-    };
+        /* irrelevant fields*/
+    }};
     """
     return result
 
