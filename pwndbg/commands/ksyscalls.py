@@ -36,7 +36,13 @@ def ksyscalls(syscall_name=None) -> None:
                 "sizeof(sys_call_table) / sizeof(void *)"
             )
         )
+    except pwndbg.dbg_mod.Error:
+        print(
+            "The sys_call_table symbol was not found. This may indicate that the symbol is not available in the current build."
+        )
+        return
 
+    try:
         print(f"Syscall table address with {sc_count} entries found at {table_addr:#x}.\n")
 
         size_ptr = pwndbg.aglib.arch.ptrsize

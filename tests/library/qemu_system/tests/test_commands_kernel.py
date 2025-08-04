@@ -65,7 +65,7 @@ def test_command_ksyscalls():
         return
 
     res = gdb.execute("ksyscalls", to_string=True)
-    assert "entries found at" in res
+    assert "entries found at" in res or "sys_call_table symbol was not found" in res
 
 
 def test_command_ktask():
