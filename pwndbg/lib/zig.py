@@ -10,7 +10,7 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 
-# 'x86-64', 'little', 8)
+# Supported architectures can be obtained using the command: `zig targets`
 _arch_mapping: Dict[Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little", "big"], int], str] = {
     ("x86-64", "little", 8): "x86_64",
     ("i386", "little", 4): "x86",
@@ -51,7 +51,7 @@ def _get_zig_target(arch: ArchDefinition) -> str | None:
     if arch_mapping is None:
         return None
 
-    return arch_mapping + '-' + osabi
+    return f"{arch_mapping}-{osabi}"
 
 
 def flags(arch: ArchDefinition) -> List[str] | None:
