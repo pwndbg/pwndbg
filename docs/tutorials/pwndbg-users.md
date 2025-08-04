@@ -3,7 +3,14 @@
 Here is a non-exhaustive list of Pwndbg mentions found in the wild. Feel free to open a PR to add more if you find them!
 
 ## Talks
-+  [OffensiveCon24 - Eugene Rodionov, Zi Fan Tan and Gulshan Singh](https://www.youtube.com/watch?v=U-xSM159YLI&t=1859s)
++ [EuroPython 2025 - Pwndbg: Low level debugging and exploit development with Python](https://ep2025.europython.eu/session/pwndbg-low-level-debugging-and-exploit-development-with-python) ([slides](https://docs.google.com/presentation/d/1m9yYOeHxkKznseTakYeKixOUcCEjk7e-goirNE93ISs/), [video](https://www.youtube.com/watch?v=hRvjre7AH-o&t=7100s))
++ [OffensiveCon24 - How to Fuzz Your Way to Android Universal Root: Attacking Android Binder - by Eugene Rodionov, Zi Fan Tan and Gulshan Singh](https://www.youtube.com/watch?v=U-xSM159YLI&t=1859s)
+
+## Blog posts
++ [Exodus Intelligence - Oops Safari, I think You Spilled Something!](https://blog.exodusintel.com/2025/08/04/oops-safari-i-think-you-spilled-something/)
++ [Trail of Bits - “Unstripping” binaries: Restoring debugging information in GDB with Pwndbg](https://blog.trailofbits.com/2024/09/06/unstripping-binaries-restoring-debugging-information-in-gdb-with-pwndbg/)
++ [Trail of Bits - A Winter’s Tale: Improving messages and types in GDB’s Python API](https://blog.trailofbits.com/2023/04/18/a-winters-tale-improving-types-and-messages-in-gdbs-python-api/)
++ [Exodus Intelligence - Patch-gapping Google Chrome](https://blog.exodusintel.com/2019/09/09/patch-gapping-chrome/)
 
 ## Videos
 + [Intro to pwndbg - CTF Cookbook by SloppyJoePirates CTF Writeups](https://www.youtube.com/watch?v=5judobmDBKI)
@@ -12,3 +19,6 @@ Here is a non-exhaustive list of Pwndbg mentions found in the wild. Feel free to
 
 ## Scripts
 + [CVE-2022-24834 exploit by ptr-yudai](https://github.com/RICSecLab/exploit-poc-public/blob/main/CVE-2022-24834/exploit.py#L49)
+
+## Magazine articles
++ ["Programista" polish programming magazine - Low level debugging with Pwndbg (in polish)](https://programistamag.pl/programista-42023-109-wrzesienpazdziernik-2023-debugowanie-niskopoziomowe-z-pwndbg/)
