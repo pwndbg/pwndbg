@@ -509,10 +509,10 @@ def kmem_cache_structs():
     to_define = None
     if pwndbg.aglib.kernel.krelease() < (5, 17):
         to_define = "BEFORE_V5_17"
-    elif pwndbg.aglib.kernel.krelease() < (6, 8):
-        to_define = "BETWEEN_V5_17_AND_V6_7"
+    elif pwndbg.aglib.kernel.krelease() < (6, 2):
+        to_define = "BETWEEN_V5_17_AND_V6_1"
     else:
-        to_define = "SINCE_V6_8"
+        to_define = "SINCE_V6_2"
     result = f"#define {to_define}\n"
     result += """
     struct kmem_cache_node {
@@ -533,7 +533,7 @@ def kmem_cache_structs():
 #ifndef BEFORE_V5_17
     struct slab {
         unsigned long __page_flags;
-#ifdef SINCE_V6_8
+#ifdef SINCE_V6_2
         struct kmem_cache *slab_cache;
 #endif
         union {
@@ -543,7 +543,7 @@ def kmem_cache_structs():
                 int slabs;	/* Nr of slabs left */
             };
         };
-#ifdef BETWEEN_V5_17_AND_V6_7
+#ifdef BETWEEN_V5_17_AND_V6_1
         struct kmem_cache *slab_cache;
 #endif
         void *freelist;		/* first free object */
