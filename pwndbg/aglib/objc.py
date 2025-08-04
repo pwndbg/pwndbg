@@ -122,12 +122,42 @@ class _ClassRoPtr:
     def flags(self) -> int:
         return pwndbg.aglib.memory.u32(self._ptr)
 
-    def base_methods(self) -> Generator[Method]:
+    def methods(self) -> Generator[Method]:
         ptr = pwndbg.aglib.memory.read_pointer_width(self._ptr + 32)
+
         if ptr & 1 == 0:
+            if ptr == 0:
+                return
             yield from _MethodList(ptr).entries()
         else:
+            if ptr & ~1 == 0:
+                # Not expected to happen, but better safe than sorry.
+                return
+
             list_of_lists = _RelativeListOfLists(_MethodList, ptr & ~1)
+            for lst in list_of_lists.entries():
+                if lst is None:
+                    continue
+                yield from lst.get_list().entries()
+
+    def ivars(self) -> Generator[InstanceVariable]:
+        ptr = pwndbg.aglib.memory.read_pointer_width(self._ptr + 0x30)
+        if ptr != 0:
+            yield from _IVarList(ptr).entries()
+
+    def properties(self) -> Generator[ClassProperty]:
+        ptr = pwndbg.aglib.memory.read_pointer_width(self._ptr + 0x40)
+        if ptr & 1 == 0:
+            if ptr == 0:
+                return
+
+            yield from _ClassPropertyList(ptr).entries()
+        else:
+            if ptr & ~1 == 0:
+                # Not expected to happen, but better safe than sorry.
+                return
+
+            list_of_lists = _RelativeListOfLists(_ClassPropertyList, ptr & ~1)
             for lst in list_of_lists.entries():
                 if lst is None:
                     continue
@@ -424,7 +454,7 @@ class Object:
         self._id = _decode_prog_id(addr)
 
     @property
-    def cls(self) -> Class:
+    def cls(self) -> Class | None:
         if isinstance(self._id, _IdRaw):
             isa = _IsaPtr(self._id.addr)
             return isa.get_class()
@@ -483,9 +513,107 @@ class Class(Object):
     @property
     def methods(self) -> Generator[Method]:
         # Return the base methods.
-        yield from self._ro().base_methods()
+        yield from self._ro().methods()
 
         # TODO: Return the methods added to a class at runtime.
+
+    @property
+    def ivars(self) -> Generator[InstanceVariable]:
+        yield from self._ro().ivars()
+
+    @property
+    def properties(self) -> Generator[ClassProperty]:
+        yield from self._ro().properties()
+
+    @property
+    def is_metaclass(self) -> bool:
+        return (self._ro().flags() & _ClassRoPtr.RO_META) != 0
+
+    @override
+    @property
+    def cls(self) -> Class | None:
+        if self.is_metaclass:
+            # Following this pointer in metaclasses is weird. Users are better
+            # served following the superclass chain, instead.
+            return None
+        return super().cls
+
+
+class InstanceVariable:
+    """
+    An Objective-C Instance Variable.
+
+    Instance Variables are NOT objects!
+    """
+
+    def __init__(self, ptr: int):
+        self._ptr = ptr
+
+    @property
+    def offset(self) -> int:
+        """
+        The offset in bytes of this value from the start of the object instance.
+        """
+        return pwndbg.aglib.memory.s32(pwndbg.aglib.memory.read_pointer_width(self._ptr))
+
+    @property
+    def name(self) -> bytes:
+        """
+        The name of this instance variable.
+        """
+        return pwndbg.aglib.memory.string(
+            pwndbg.aglib.memory.read_pointer_width(self._ptr + pwndbg.aglib.typeinfo.ptrsize)
+        )
+
+    @property
+    def typename(self) -> bytes:
+        """
+        The name of the type of this instance variable.
+        """
+        return pwndbg.aglib.memory.string(
+            pwndbg.aglib.memory.read_pointer_width(self._ptr + pwndbg.aglib.typeinfo.ptrsize * 2)
+        )
+
+    @property
+    def alignment(self) -> int:
+        """
+        The alignment of this instance variable, in bytes.
+        """
+        align_log2 = pwndbg.aglib.memory.u32(self._ptr + pwndbg.aglib.typeinfo.ptrsize * 3)
+
+        # All ones indicates the natural alignment of a pointer.
+        if align_log2 == 0xFFFFFFFF:
+            return pwndbg.aglib.typeinfo.ptrsize
+
+        return 1 << align_log2
+
+    @property
+    def size(self) -> int:
+        """
+        The size of this instance variable, in bytes.
+        """
+        return pwndbg.aglib.memory.u32(self._ptr + pwndbg.aglib.typeinfo.ptrsize * 3 + 4)
+
+
+class ClassProperty:
+    def __init__(self, ptr: int):
+        self._ptr = ptr
+
+    @property
+    def name(self) -> bytes:
+        """
+        The name of this class property.
+        """
+        return pwndbg.aglib.memory.string(pwndbg.aglib.memory.read_pointer_width(self._ptr))
+
+    @property
+    def value(self) -> bytes:
+        """
+        The value of this property.
+        """
+        return pwndbg.aglib.memory.string(
+            pwndbg.aglib.memory.read_pointer_width(self._ptr + pwndbg.aglib.typeinfo.ptrsize)
+        )
 
 
 class Selector:
@@ -649,3 +777,39 @@ class _MethodList(_EntList[Method]):
     @override
     def _from_ptr(self, ptr: int) -> Method:
         return Method(ptr)
+
+
+class _IVarList(_EntList[InstanceVariable]):
+    "IVar entity list."
+
+    _flags_mask = 0
+
+    @override
+    def _modify_pointer(self, ptr: int) -> int:
+        return ptr
+
+    @override
+    def _addr_from_ptr(self, ptr: int) -> int:
+        return ptr
+
+    @override
+    def _from_ptr(self, ptr: int) -> InstanceVariable:
+        return InstanceVariable(ptr)
+
+
+class _ClassPropertyList(_EntList[ClassProperty]):
+    "Class property entity list."
+
+    _flags_mask = 0
+
+    @override
+    def _modify_pointer(self, ptr: int) -> int:
+        return ptr
+
+    @override
+    def _addr_from_ptr(self, ptr: int) -> int:
+        return ptr
+
+    @override
+    def _from_ptr(self, ptr: int) -> ClassProperty:
+        return ClassProperty(ptr)
