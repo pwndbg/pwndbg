@@ -59,7 +59,7 @@ def test_command_kmod():
 
 
 def test_command_ksyscalls():
-    if not pwndbg.aglib.kernel.has_debug_syms():
+    if not pwndbg.aglib.kernel.has_debug_symbols():
         res = gdb.execute("ksyscalls", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
