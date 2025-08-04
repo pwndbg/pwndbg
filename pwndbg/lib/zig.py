@@ -61,7 +61,7 @@ def flags(arch: ArchDefinition) -> List[str] | None:
 
     zig_target = _get_zig_target(arch)
     if zig_target is None:
-        raise ValueError("Can't find ziglang target")
+        raise ValueError(f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})")
 
     return [
         os.path.join(os.path.dirname(ziglang.__file__), "zig"),
