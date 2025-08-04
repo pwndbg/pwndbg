@@ -659,7 +659,7 @@ def _exec_repl_command(
 
     if bits[0] == "ipi":
         # Spawn IPython shell, easy for debugging
-        run_ipython_shell()
+        run_ipython_shell(dbg)
         return True
 
     if (
@@ -832,7 +832,7 @@ class AutoTarget:
             ), "Could not delete the target we've just created. What?"
 
 
-def run_ipython_shell():
+def run_ipython_shell(dbg: LLDB):
     @contextmanager
     def switch_to_ipython_env():
         saved_excepthook = sys.excepthook
@@ -856,7 +856,11 @@ def run_ipython_shell():
 
         jedi.Interpreter._allow_descriptor_getattr_default = False
         IPython.embed(
-            colors="neutral", banner1="", confirm_exit=False, simple_prompt=False, user_ns=globals()
+            colors="neutral",
+            banner1="",
+            confirm_exit=False,
+            simple_prompt=False,
+            user_ns={"dbg": dbg, **globals()},
         )
 
     with switch_to_ipython_env():
