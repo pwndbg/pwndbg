@@ -207,6 +207,8 @@ class SlabCache:
 
     @property
     def cpu_partial(self) -> int:
+        if not self._slab_cache.dereference().type.has_field("cpu_partial"):
+            return None
         return int(self._slab_cache["cpu_partial"])
 
     @property
@@ -308,6 +310,8 @@ class CpuCache:
     @property
     def partial_slabs(self) -> List[Slab]:
         partial_slabs = []
+        if not self._cpu_cache.dereference().type.has_field("partial"):
+            return []
         cur_slab = self._cpu_cache["partial"]
         cur_slab_int = int(cur_slab)
         while cur_slab_int:
@@ -406,9 +410,9 @@ class Slab:
     def pobjects(self) -> int:
         if not self.is_partial:
             return 0
-        try:
+        if self._slab.dereference().type.has_field("pobjects"):
             return int(self._slab["pobjects"])
-        except pwndbg.dbg_mod.Error:
+        else:
             # calculate approx obj count in half-full slabs (as done in kernel)
             # Note, this is a very bad approximation and could/should probably
             # be replaced by a more accurate method
@@ -438,20 +442,6 @@ class Slab:
 
 
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
-    """Find the slab cache associated with the provided address."""
-    min_pfn = 0
-    max_pfn = pwndbg.aglib.kernel.symbol.try_usymbol("max_pfn")
-    assert max_pfn is not None, "Symbol max_pfn not found"
-
-    page_size = kernel.page_size()
-
-    start_addr = kernel.pfn_to_virt(min_pfn)
-    end_addr = kernel.pfn_to_virt(max_pfn + page_size)
-
-    if not start_addr <= addr < end_addr:
-        # address is out of range
-        return None
-
     page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
     head_page = compound_head(page)
 

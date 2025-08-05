@@ -275,7 +275,7 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 def print_zones(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams, zones, pcp_only):
     for i in range(pwndbg.aglib.kernel.symbol.nzones()):
         cbp.zone = zones[i]
-        name = pwndbg.aglib.memory.string(int(zones[i]["name"])).decode()
+        name = zones[i]["name"].string()
         if pba.zone is not None and pba.zone != name:
             continue
         cbp.sections[0] = (f"Zone {name}", None)

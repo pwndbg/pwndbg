@@ -224,13 +224,11 @@ def load_common_structs():
 #ifdef CONFIG_MEMCG
         unsigned long memcg_data;
 #endif
-#if defined(WANT_PAGE_VIRTUAL)
-        // never set for x86 and arm
+#if defined(WANT_PAGE_VIRTUAL) /* never set for x86 and arm */
         void *virtual;
 #endif /* WANT_PAGE_VIRTUAL */
 #ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS
-#ifndef BEFORE_V6_7
-        // TODO: seems never got set for all the kernel builds I have worked with
+#ifndef BEFORE_V6_7 /* TODO: seems never got set for all the kernel builds I have worked with */
         int _last_cpupid;
 #endif
 #endif

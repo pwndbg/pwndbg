@@ -94,7 +94,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     def CONFIG_SLUB_TINY(self) -> bool:
         if pwndbg.aglib.kernel.krelease() < (6, 2):
             return False
-        return pwndbg.aglib.symbol.lookup_symbol("flushwq") is None
+        return pwndbg.aglib.symbol.lookup_symbol("deactivate_slab") is None
 
     @property
     def CONFIG_SLUB_CPU_PARTIAL(self) -> bool:

@@ -312,5 +312,5 @@ def slab_contains(address: str) -> None:
             pass
         print("slab:", M.hint(f"{hex(slab.virt_address)}"), desc)
         print("status:", M.hint(inuse))
-    except Exception:
-        print(M.warn("address does not belong to a SLUB cache"))
+    except Exception as e:
+        print(M.warn(f"address does not belong to a SLUB cache: {e}"))
