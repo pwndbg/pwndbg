@@ -77,7 +77,7 @@ def setup_heap(start_binary, bug_no):
     except FileNotFoundError:
         pass
 
-    start_binary(HEAP_BINARY, str(bug_no), f"> {OUTPUT_FILE}")
+    start_binary(HEAP_BINARY, str(bug_no), OUTPUT_FILE)
     gdb.execute("break " + str(breakpoints[bug_no][0]))
     gdb.execute("break " + str(breakpoints[bug_no][1]))
 
