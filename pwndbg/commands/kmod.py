@@ -6,9 +6,13 @@ and displays information about each module. It can filter modules by a substring
 from __future__ import annotations
 
 import argparse
+from enum import Enum
+from typing import Tuple
 
 from tabulate import tabulate
 
+import pwndbg
+import pwndbg.color.message as M
 import pwndbg.commands
 from pwndbg.aglib.kernel.macros import for_each_entry
 
@@ -16,6 +20,129 @@ parser = argparse.ArgumentParser(description="Displays the loaded Linux kernel m
 parser.add_argument(
     "module_name", nargs="?", type=str, help="A module name substring to filter for"
 )
+
+
+class mod_mem_type(Enum):
+    # Calculate runtime memory footprint by summing sizes of MOD_TEXT, MOD_DATA, MOD_RODATA, MOD_RO_AFTER_INIT,
+    # which excludes initialization sections that are freed after the module load. See `enum mod_mem_type` in kernel source.
+    MOD_TEXT = 0
+    MOD_DATA = 1
+    MOD_RODATA = 2
+    MOD_RO_AFTER_INIT = 3
+    # MOD_INIT_TEXT,
+    # MOD_INIT_DATA,
+    # MOD_INIT_RODATA,
+    MOD_MEM_NUM_TYPES = 4
+
+
+# TODO: handle negative offsets
+def module_name_offset():
+    modules = pwndbg.aglib.kernel.modules()
+    if modules is None:
+        print(M.warn("Cound not find modules"))
+        return None
+    module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    for i in range(0x100):
+        offset = i * pwndbg.aglib.arch.ptrsize
+        try:
+            bs = pwndbg.aglib.memory.string(module + offset).decode("ascii")
+            if len(bs) < 2:
+                continue
+            return offset
+        except Exception:
+            pass
+    print(M.warn("Could not find module->name"))
+    return None
+
+
+def module_mem_offset() -> Tuple[int | None, int | None]:
+    modules = pwndbg.aglib.kernel.modules()
+    if modules is None:
+        print(M.warn("Cound not find modules"))
+        return None, None
+    module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    for i in range(0x100):
+        offset = i * pwndbg.aglib.arch.ptrsize
+        min_size = 0x8
+        if pwndbg.aglib.kernel.krelease() >= (6, 13):
+            min_size += 0x10
+        for module_memory_size in (
+            min_size,
+            min_size + 0x38,
+        ):
+            found = True
+            for mem_type in range(mod_mem_type.MOD_MEM_NUM_TYPES.value):
+                mem_ptr = module + offset + mem_type * module_memory_size
+                if pwndbg.aglib.memory.peek(mem_ptr) is None:
+                    found = False
+                    break
+                base = pwndbg.aglib.memory.read_pointer_width(mem_ptr)
+                if base == 0 or ((base & 0xFFF) != 0):
+                    found = False
+                    break
+                size_offset = pwndbg.aglib.arch.ptrsize
+                if pwndbg.aglib.kernel.krelease() >= (6, 13):
+                    size_offset += pwndbg.aglib.arch.ptrsize + 4
+                size = pwndbg.aglib.memory.u32(mem_ptr + size_offset)
+                if not 0 < size < 0x100000:
+                    found = False
+                    break
+            if found:
+                return offset, size_offset
+    print(M.warn("Cound not find module->mem"))
+    return None, None
+
+
+def module_layout_offset() -> Tuple[int | None, int | None]:
+    modules = pwndbg.aglib.kernel.modules()
+    if modules is None:
+        print(M.warn("Cound not find modules"))
+        return None, None
+    module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    for i in range(0x100):
+        offset = i * pwndbg.aglib.arch.ptrsize
+        ptr = module + offset
+        if pwndbg.aglib.memory.peek(ptr) is None:
+            continue
+        base = pwndbg.aglib.memory.read_pointer_width(ptr)
+        if base == 0 or ((base & 0xFFF) != 0):
+            continue
+        valid = True
+        for i in range(4):
+            size = pwndbg.aglib.memory.u32(ptr + pwndbg.aglib.arch.ptrsize * i)
+            if not 0 < size < 0x100000:
+                valid = False
+                break
+        if valid:
+            return offset, offset + pwndbg.aglib.arch.ptrsize
+    print(M.warn("Cound not find module->init_layout"))
+    return None, None
+
+
+def module_kallsyms_offset():
+    modules = pwndbg.aglib.kernel.modules()
+    if modules is None:
+        print(M.warn("Cound not find modules"))
+        return None, None
+    module = pwndbg.aglib.memory.read_pointer_width(int(modules))
+    for i in range(0x100):
+        offset = i * pwndbg.aglib.arch.ptrsize
+        ptr = module + offset
+        if pwndbg.aglib.memory.peek(ptr) is None:
+            continue
+        kallsyms = pwndbg.aglib.memory.read_pointer_width(ptr)
+        if kallsyms == 0 or ((kallsyms & 0xFFF) != 0):
+            continue
+        valid = True
+        for i in range(4):
+            size = pwndbg.aglib.memory.u32(ptr + pwndbg.aglib.arch.ptrsize * i)
+            if not 0 < size < 0x100000:
+                valid = False
+                break
+        if valid:
+            return offset
+    print(M.warn("Could not find module->kallsyms"))
+    return None
 
 
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
@@ -44,9 +171,9 @@ def kmod(module_name=None) -> None:
                 "utf-8", errors="ignore"
             )
 
-            # Calculate runtime memory footprint by summing sizes of MOD_TEXT, MOD_DATA, MOD_RODATA, MOD_RO_AFTER_INIT,
-            # which excludes initialization sections that are freed after the module load. See `enum mod_mem_type` in kernel source.
-            size = sum(int(module["mem"][i]["size"]) for i in range(4))
+            size = sum(
+                int(module["mem"][i]["size"]) for i in range(mod_mem_type.MOD_MEM_NUM_TYPES.value)
+            )
             uses = int(module["refcnt"]["counter"]) - 1
 
             # If module_name is provided, filter modules by name substring
@@ -54,7 +181,5 @@ def kmod(module_name=None) -> None:
                 table.append([f"{addr:#x}", name, size, uses])
 
         print(tabulate(table, headers=headers, tablefmt="simple"))
-    except Exception as e:
-        print(
-            f"An error occurred while retrieving kernel modules. It may not be supported by your kernel version or debug symbols: {e}"
-        )
+    except Exception:
+        pass
