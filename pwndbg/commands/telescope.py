@@ -284,7 +284,8 @@ def telescope(
 def regs_or_frame_offset(addr: int, bp: int | None, regs: Dict[int, str], longest_regs: int) -> str:
     # bp only set if print_framepointer_offset=True
     if bp is None or regs[addr] or not -0xFFF <= addr - bp <= 0xFFF:
-        return " " + T.register(regs[addr].ljust(longest_regs))
+        # We do .rjust(3) because some arches have two-letter registers.
+        return " " + T.register(regs[addr].ljust(longest_regs).rjust(3))
     else:
         # If offset to frame pointer as hex fits in hex 3 digits, print it
         return ("%+04x" % (addr - bp)).ljust(longest_regs + 1)
