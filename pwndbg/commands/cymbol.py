@@ -31,8 +31,8 @@ import pwndbg
 import pwndbg.aglib.arch
 import pwndbg.commands
 import pwndbg.lib.config
-import pwndbg.lib.gcc
 import pwndbg.lib.tempfile
+import pwndbg.lib.zig
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -108,17 +108,16 @@ def generate_debug_symbols(
         pwndbg_debug_symbols_output_file,
     ]
 
-    # TODO: implement remote debugging support.
-    try:
-        gcc_flags = pwndbg.lib.gcc.which(pwndbg.aglib.arch)
-    except ValueError as _:
-        # The error message is already printed by pwntools.
-        return None
-
     if gcc_compiler_path != "":
-        gcc_flags[0] = gcc_compiler_path  # type: ignore[call-overload]
+        compiler_flags = [gcc_compiler_path]
+    else:
+        try:
+            compiler_flags = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
+        except ValueError as exception:
+            print(message.error(exception))
+            return None
 
-    gcc_cmd = gcc_flags + gcc_extra_flags
+    gcc_cmd = compiler_flags + gcc_extra_flags
 
     try:
         subprocess.run(gcc_cmd, check=True, text=True)

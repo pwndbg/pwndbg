@@ -99,8 +99,21 @@ def _ctx_registers() -> Iterator[int]:
     registers = {reg: int(uncached_regs.by_name(reg)) for reg in preserve_set}
     starting_address = registers[register_set.pc]
 
+    # Advance by one instruction boundary.
+    #
+    # Some debuggers (LLDB) may fail to write to memory if any of the addresses
+    # being written to overlap the program counter. By aiming at the next valid
+    # instruction address, we avoid that issue.
+    shell_starting_address = starting_address + pwndbg.aglib.arch.instruction_alignment
+
+    # Failing this means our value for `instruction_alignment` is wrong.
+    assert shell_starting_address % pwndbg.aglib.arch.instruction_alignment == 0
+
     try:
-        yield starting_address
+        # Jump to the target address in preparation.
+        setattr(pwndbg.aglib.regs, register_set.pc, shell_starting_address)
+
+        yield shell_starting_address
     finally:
         # Restore the code and the program counter and, if requested, the rest of
         # the registers.

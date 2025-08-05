@@ -128,13 +128,25 @@ def gotplt() -> None:
 # These are derived from this list that GDB recognizes: https://github.com/bminor/binutils-gdb/blob/38d726a24c1a85abdb606e7ab6cefad17872aad7/bfd/elf64-x86-64.c#L5775-L5780
 PLT_SECTION_NAMES = (".plt", ".plt.sec", ".plt.got", ".plt.bnd")
 
+parser = argparse.ArgumentParser(
+    description="Prints any symbols found in Procedure Linkage Table sections if any exist.",
+)
+
+parser.add_argument(
+    "-a",
+    "--all-symbols",
+    help="Print all symbols, not just those that end in @plt",
+    action="store_true",
+    default=False,
+)
+
 
 @pwndbg.commands.Command(
-    "Prints any symbols found in Procedure Linkage Table sections if any exist.",
+    parser,
     category=CommandCategory.LINUX,
 )
 @pwndbg.commands.OnlyWithFile
-def plt() -> None:
+def plt(all_symbols: bool = False) -> None:
     local_path = pwndbg.aglib.file.get_proc_exe_file()
 
     bin_base_addr = 0
@@ -171,7 +183,7 @@ def plt() -> None:
     sections_found.sort(key=lambda x: x[1])
 
     for section_name, start, end in sections_found:
-        symbols = get_symbols_in_region(start, end, "@plt")
+        symbols = get_symbols_in_region(start, end, "" if all_symbols else "@plt")
 
         print(message.notice(f"Section {section_name} {start:#x} - {end:#x}:"))
 

@@ -410,7 +410,7 @@ class Slab:
     def pobjects(self) -> int:
         if not self.is_partial:
             return 0
-        if self._slab.dereference().type.has_field("pobjects"):
+        if self._slab.type.has_field("pobjects"):
             return int(self._slab["pobjects"])
         else:
             # calculate approx obj count in half-full slabs (as done in kernel)

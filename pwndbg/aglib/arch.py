@@ -79,6 +79,7 @@ class PwndbgArchitecture(ArchDefinition):
     ### All subclasses must provide values for the following attributes
 
     max_instruction_size: int
+    instruction_alignment: int
 
     ###
 
@@ -166,6 +167,7 @@ class PwndbgArchitecture(ArchDefinition):
 
 class AMD64Arch(PwndbgArchitecture):
     max_instruction_size = 16
+    instruction_alignment = 1
 
     def __init__(self) -> None:
         super().__init__("x86-64")
@@ -181,6 +183,7 @@ class i386Arch(PwndbgArchitecture):
     """
 
     max_instruction_size = 16
+    instruction_alignment = 1
 
     def __init__(self) -> None:
         super().__init__("i386")
@@ -196,6 +199,7 @@ class i8086Arch(PwndbgArchitecture):
     """
 
     max_instruction_size = 16
+    instruction_alignment = 1
 
     def __init__(self) -> None:
         super().__init__("i8086")
@@ -207,6 +211,7 @@ class i8086Arch(PwndbgArchitecture):
 
 class ArmArch(PwndbgArchitecture):
     max_instruction_size = 4
+    instruction_alignment = 4
 
     def __init__(self) -> None:
         super().__init__("arm")
@@ -237,6 +242,7 @@ class ArmCortexArch(PwndbgArchitecture):
     """
 
     max_instruction_size = 4
+    instruction_alignment = 4
 
     def __init__(self) -> None:
         super().__init__("armcm")
@@ -257,6 +263,7 @@ class ArmCortexArch(PwndbgArchitecture):
 
 class AArch64Arch(PwndbgArchitecture):
     max_instruction_size = 4
+    instruction_alignment = 4
 
     def __init__(self) -> None:
         super().__init__("aarch64")
@@ -268,6 +275,7 @@ class AArch64Arch(PwndbgArchitecture):
 
 class PowerPCArch(PwndbgArchitecture):
     max_instruction_size = 4
+    instruction_alignment = 4
 
     def __init__(self) -> None:
         super().__init__("powerpc")
@@ -279,6 +287,7 @@ class PowerPCArch(PwndbgArchitecture):
 
 class SparcArch(PwndbgArchitecture):
     max_instruction_size = 4
+    instruction_alignment = 4
 
     def __init__(self) -> None:
         super().__init__("sparc")
@@ -291,6 +300,7 @@ class SparcArch(PwndbgArchitecture):
 
 class RISCV32Arch(PwndbgArchitecture):
     max_instruction_size = 22
+    instruction_alignment = 4
 
     def __init__(self) -> None:
         super().__init__("rv32")
@@ -302,6 +312,7 @@ class RISCV32Arch(PwndbgArchitecture):
 
 class RISCV64Arch(PwndbgArchitecture):
     max_instruction_size = 22
+    instruction_alignment = 4
 
     def __init__(self) -> None:
         super().__init__("rv64")
@@ -313,6 +324,7 @@ class RISCV64Arch(PwndbgArchitecture):
 
 class MipsArch(PwndbgArchitecture):
     max_instruction_size = 8
+    instruction_alignment = 4
 
     def __init__(self) -> None:
         super().__init__("mips")
@@ -332,6 +344,7 @@ class MipsArch(PwndbgArchitecture):
 
 class Loongarch64Arch(PwndbgArchitecture):
     max_instruction_size = 4
+    instruction_alignment = 4
 
     def __init__(self) -> None:
         super().__init__("loongarch64")
@@ -343,6 +356,7 @@ class Loongarch64Arch(PwndbgArchitecture):
 
 class S390xArch(PwndbgArchitecture):
     max_instruction_size = 6
+    instruction_alignment = 2
 
     def __init__(self) -> None:
         super().__init__("s390x")

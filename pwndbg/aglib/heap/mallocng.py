@@ -1085,8 +1085,6 @@ class MallocContext:
         2. When musl is dynmically linked, due to the ld donation logic,
            the heap will usually be initialized before the start of main().
         """
-        print(f"{self.addr:#x} says {self.init_done}")
-
         if self.init_done != 1:
             return False
 

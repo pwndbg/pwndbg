@@ -836,7 +836,7 @@ def sloppy_gdb_parse(s: str) -> int | str:
     assert target, "Reached command expression evaluation with no frame or inferior"
 
     try:
-        val = target.evaluate_expression(s)
+        val = pwndbg.aglib.symbol.lookup_symbol(s) or target.evaluate_expression(s)
         if val.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
             return int(val.address)
         return int(val)
