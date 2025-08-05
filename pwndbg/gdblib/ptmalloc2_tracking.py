@@ -63,6 +63,7 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
+from pwndbg.lib.cache import cache_until
 from pwndbg.color import message
 
 LIBC_NAME = "libc.so.6"
@@ -125,6 +126,26 @@ def resolve_address(name: str) -> int | None:
         return None
 
     return address
+
+
+@cache_until("stop") 
+def get_heap_base():
+    """
+    Get the heap base once per run or until the cache is cleared.
+    """
+    return next((p for p in pwndbg.aglib.vmmap.get() if p.objfile == '[heap]'), None)
+
+
+
+def format_heap_offset(addr: int) -> str:
+    """
+    Format the provided address based on the heap base.
+    """
+    heap_base = get_heap_base()
+    if heap_base and heap_base.start <= addr < heap_base.end:
+        offset = addr - heap_base.start
+        return f"0x{addr:x} [heap+0x{offset:x}]"
+    return f"0x{addr:x}"
 
 
 class FreeChunkWatchpoint(gdb.Breakpoint):
@@ -434,7 +455,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
 
         chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
-        print(f"[*] {self.name} -> {ret_ptr:#x}, {chunk.size:#x} bytes real size")
+        print(f"[*] {self.name} -> {format_heap_offset(ret_ptr)}, {chunk.size:#x} bytes real size")
 
         self.tracker.exit_memory_management()
         return False
@@ -471,7 +492,7 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
             # defined. Either way, print a warning and do nothing.
             print(
                 message.warn(
-                    f"[-] realloc({self.freed_pointer:#x}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
+                    f"[-] realloc({format_heap_offset(self.freed_pointer)}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
                 )
             )
             return False
@@ -511,7 +532,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
             malloc()
             self.tracker.exit_memory_management()
 
-            msg = f"realloc() to {self.requested_size} bytes with previously unknown pointer {self.freed_ptr:#x}"
+            msg = f"realloc() to {self.requested_size} bytes with previously unknown pointer {format_heap_offset(self.freed_ptr)}"
             print(f"[!] {msg}")
 
             global stop_on_error
@@ -524,12 +545,12 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
         print(
-            f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
+            f"[*] realloc({format_heap_offset(self.freed_ptr)}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
         )
         return False
 
     def out_of_scope(self) -> None:
-        print(message.warn(f"warning: could not follow free request for chunk {self.freed_ptr:#x}"))
+        print(message.warn(f"warning: could not follow free request for chunk {format_heap_offset(self.freed_ptr)}"))
         self.tracker.exit_memory_management()
 
 
@@ -572,7 +593,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
             # This is a chunk we'd never seen before.
             self.tracker.exit_memory_management()
 
-            msg = f"free() with previously unknown pointer {self.ptr:#x}"
+            msg = f"free() with previously unknown pointer {format_heap_offset(self.ptr)}"
             print(f"[!] {msg}")
             global stop_on_error
             if stop_on_error:
@@ -582,11 +603,11 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
         self.tracker.exit_memory_management()
 
-        print(f"[*] free({self.ptr:#x})")
+        print(f"[*] free({format_heap_offset(self.ptr)})")
         return False
 
     def out_of_scope(self) -> None:
-        print(message.warn(f"warning: could not follow free request for chunk {self.ptr:#x}"))
+        print(message.warn(f"warning: could not follow free request for chunk {format_heap_offset(self.ptr)}"))
         self.tracker.exit_memory_management()
 
 
