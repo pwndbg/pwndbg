@@ -35,7 +35,8 @@ class mod_mem_type(Enum):
     MOD_MEM_NUM_TYPES = 4
 
 
-# TODO: handle negative offsets
+# TODO: handle potential negative offsets when CONFIG_RANDSTRUCT=y
+@pwndbg.lib.cache.cache_until("stop")
 def module_name_offset():
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
@@ -55,7 +56,8 @@ def module_name_offset():
     return None
 
 
-def module_mem_offset() -> Tuple[int | None, int | None]:
+@pwndbg.lib.cache.cache_until("stop")
+def module_mem_offset() -> Tuple[int | None, int | None, int | None]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
         print(M.warn("Cound not find modules"))
@@ -71,7 +73,7 @@ def module_mem_offset() -> Tuple[int | None, int | None]:
             min_size + 0x38,
         ):
             found = True
-            for mem_type in range(mod_mem_type.MOD_MEM_NUM_TYPES.value):
+            for mem_type in range(mod_mem_type.MOD_MEM_NUM_TYPES.value - 1):
                 mem_ptr = module + offset + mem_type * module_memory_size
                 if pwndbg.aglib.memory.peek(mem_ptr) is None:
                     found = False
@@ -88,11 +90,12 @@ def module_mem_offset() -> Tuple[int | None, int | None]:
                     found = False
                     break
             if found:
-                return offset, size_offset
+                return offset, module_memory_size, size_offset
     print(M.warn("Cound not find module->mem"))
     return None, None
 
 
+@pwndbg.lib.cache.cache_until("stop")
 def module_layout_offset() -> Tuple[int | None, int | None]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
@@ -101,7 +104,7 @@ def module_layout_offset() -> Tuple[int | None, int | None]:
     module = pwndbg.aglib.memory.read_pointer_width(int(modules))
     for i in range(0x100):
         offset = i * pwndbg.aglib.arch.ptrsize
-        ptr = module + offset
+        ptr = module + offset + pwndbg.aglib.arch.ptrsize
         if pwndbg.aglib.memory.peek(ptr) is None:
             continue
         base = pwndbg.aglib.memory.read_pointer_width(ptr)
@@ -109,7 +112,7 @@ def module_layout_offset() -> Tuple[int | None, int | None]:
             continue
         valid = True
         for i in range(4):
-            size = pwndbg.aglib.memory.u32(ptr + pwndbg.aglib.arch.ptrsize * i)
+            size = pwndbg.aglib.memory.u32(ptr + 4 * i)
             if not 0 < size < 0x100000:
                 valid = False
                 break
@@ -119,6 +122,7 @@ def module_layout_offset() -> Tuple[int | None, int | None]:
     return None, None
 
 
+@pwndbg.lib.cache.cache_until("stop")
 def module_kallsyms_offset():
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
@@ -131,16 +135,24 @@ def module_kallsyms_offset():
         if pwndbg.aglib.memory.peek(ptr) is None:
             continue
         kallsyms = pwndbg.aglib.memory.read_pointer_width(ptr)
-        if kallsyms == 0 or ((kallsyms & 0xFFF) != 0):
+        if pwndbg.aglib.memory.peek(kallsyms) is None or kallsyms == 0:
             continue
-        valid = True
-        for i in range(4):
-            size = pwndbg.aglib.memory.u32(ptr + pwndbg.aglib.arch.ptrsize * i)
-            if not 0 < size < 0x100000:
-                valid = False
-                break
-        if valid:
-            return offset
+        symtab = pwndbg.aglib.memory.read_pointer_width(kallsyms)
+        if pwndbg.aglib.memory.peek(symtab) is None:
+            continue
+        num_symtab = pwndbg.aglib.memory.read_pointer_width(kallsyms + pwndbg.aglib.arch.ptrsize * 1)
+        if pwndbg.aglib.memory.peek(num_symtab) is not None or num_symtab == 0:
+            continue
+        strtab = pwndbg.aglib.memory.read_pointer_width(kallsyms + pwndbg.aglib.arch.ptrsize * 2)
+        if pwndbg.aglib.memory.peek(strtab) is None:
+            continue
+        if pwndbg.aglib.kernel.krelease() >= (5, 2):
+            typetab = pwndbg.aglib.memory.read_pointer_width(
+                kallsyms + pwndbg.aglib.arch.ptrsize * 3
+            )
+            if pwndbg.aglib.memory.peek(typetab) is None:
+                continue
+        return offset
     print(M.warn("Could not find module->kallsyms"))
     return None
 
@@ -151,35 +163,59 @@ def module_kallsyms_offset():
 @pwndbg.commands.OnlyWithKernelDebugSymbols
 def kmod(module_name=None) -> None:
     # Look up the address of the `modules` symbol, containing the head of the linked list of kernel modules
-    modules = pwndbg.aglib.kernel.modules()
-    if modules is None:
+    modules_head = pwndbg.aglib.kernel.modules()
+    if modules_head is None:
         print(
             "The modules symbol was not found. This may indicate that the symbol is not available in the current build."
         )
         return
 
-    print(f"Kernel modules address found at {modules.address:#x}.\n")
+    print(f"Kernel modules address found at {modules_head:#x}.\n")
 
+    table = []
+    headers = ["Address", "Name", "Size", "Used by"]
     try:
-        table = []
-        headers = ["Address", "Name", "Size", "Used by"]
+        head = pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", modules_head)
 
         # Iterate through the linked list of modules using for_each_entry
-        for module in for_each_entry(modules, "struct module", "list"):
-            addr = int(module["mem"][0]["base"])
+        for module in for_each_entry(head, "struct module", "list"):
             name = pwndbg.aglib.memory.string(int(module["name"].address)).decode(
                 "utf-8", errors="ignore"
             )
 
-            size = sum(
-                int(module["mem"][i]["size"]) for i in range(mod_mem_type.MOD_MEM_NUM_TYPES.value)
-            )
+            addr, size = None, None
+            if pwndbg.aglib.kernel.krelease() >= (6, 4):
+                addr = int(module["mem"][0]["base"])
+                size = sum(int(module["mem"][i]["size"]) for i in range(mod_mem_type.MOD_MEM_NUM_TYPES.value))
+            else:
+                addr = int(module["init_layout"]["addr"])
+                size = module["init_layout"]["size"]
             uses = int(module["refcnt"]["counter"]) - 1
 
             # If module_name is provided, filter modules by name substring
             if not module_name or module_name in name:
                 table.append([f"{addr:#x}", name, size, uses])
+        return
 
-        print(tabulate(table, headers=headers, tablefmt="simple"))
     except Exception:
         pass
+    cur = pwndbg.aglib.memory.read_pointer_width(modules_head)
+    name_offset = module_name_offset()
+    # TODO: handle when kallsyms doesnt exist
+    while cur != modules_head:
+        name = pwndbg.aglib.memory.string(cur + name_offset).decode()
+        if pwndbg.aglib.kernel.krelease() >= (6, 4):
+            mem_offset, module_memory_size, size_offset = module_mem_offset()
+            addr = pwndbg.aglib.memory.read_pointer_width(cur + mem_offset)
+            size = 0
+            for i in range(mod_mem_type.MOD_MEM_NUM_TYPES.value):
+                ptr = cur + mem_offset +module_memory_size * i
+                size += pwndbg.aglib.memory.u32(ptr + size_offset)
+        else:
+            addr_offset, size_offset = module_layout_offset()
+            addr = pwndbg.aglib.memory.read_pointer_width(cur + addr_offset)
+            size = pwndbg.aglib.memory.u32(cur + size_offset)
+
+        table.append([f"{addr:#x}", name, size, "-"])
+        cur = pwndbg.aglib.memory.read_pointer_width(cur)
+    print(tabulate(table, headers=headers, tablefmt="simple"))

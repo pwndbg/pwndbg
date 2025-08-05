@@ -247,10 +247,10 @@ class ArchSymbols:
         return self._per_cpu_offset()
 
     def modules(self):
-        modules = pwndbg.aglib.symbol.lookup_symbol("modules")
+        modules = pwndbg.aglib.symbol.lookup_symbol_addr("modules")
         if modules:
             return modules
-        return pwndbg.aglib.memory.get_typed_pointer("struct list_head", modules)
+        return self._modules()
 
     def _node_data(self):
         raise NotImplementedError()
@@ -292,7 +292,10 @@ class x86_64Symbols(ArchSymbols):
         return None
 
     def qword_mov_reg_ripoff(self, disass):
-        result = self.regex(disass, r".*?(0x[0-9a-f]+).*?\bmov.*\[.*rip.*+.*(0x[0-9a-f]+)\]")
+        result = self.regex(
+            "".join(disass.splitlines()),
+            r".*?\bmov.*\[rip\s\+\s(0x[0-9a-f]+)\].*?(0x[0-9a-f]{16})\s\<",
+        )
         if result is not None:
             return int(result.group(1), 16) + int(result.group(2), 16)
         return None
