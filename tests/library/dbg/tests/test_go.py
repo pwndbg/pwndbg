@@ -35,9 +35,21 @@ async def helper_test_dump(ctrl: Controller, target: str) -> None:
 
 @pwndbg_test
 async def test_go_dumping_x64(ctrl: Controller) -> None:
+    import pwndbg
+    from pwndbg.dbg import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB:
+        pytest.skip("Go tests are not supported in LLDB")
+
     await helper_test_dump(ctrl, GOSAMPLE_X64)
 
 
 @pwndbg_test
 async def test_go_dumping_x86(ctrl: Controller) -> None:
+    import pwndbg
+    from pwndbg.dbg import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB:
+        pytest.skip("Go tests are not supported in LLDB")
+
     await helper_test_dump(ctrl, GOSAMPLE_X86)

@@ -43,8 +43,7 @@ async def test_hexdump(ctrl: Controller) -> None:
     await ctrl.launch(BINARY)
     pwndbg.config.hexdump_group_width.value = -1
 
-    # TODO: Setting theme options with Python isn't working
-    await ctrl.execute("set hexdump-byte-separator ''")
+    pwndbg.config.hexdump_byte_separator.value = ""
     stack_addr = pwndbg.aglib.regs.rsp - 0x100
 
     expected = [
