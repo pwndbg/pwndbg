@@ -81,56 +81,7 @@ osx() {
     uname | grep -iqs Darwin
 }
 
-set_zigpath() {
-    if [[ -z "$ZIGPATH" ]]; then
-        # If ZIGPATH is not set, set it
-        # In Docker environment this should by default be set to /opt/zig (APT) or /usr/bin (Pacman)
-        export ZIGPATH="$1"
-    fi
-    echo "ZIGPATH set to $ZIGPATH"
-}
-
-download_zig_binary() {
-    # Install zig to current directory
-    # We use zig to compile some test binaries as it is much easier than with gcc
-
-    TARGET_ZIG_VERSION="0.14.1"
-    ZIG_TAR_URL="https://ziglang.org/download/0.14.1/zig-x86_64-linux-0.14.1.tar.xz"
-    ZIG_TAR_SHA256="24aeeec8af16c381934a6cd7d95c807a8cb2cf7df9fa40d359aa884195c4716c"
-
-    if command -v "${ZIGPATH}"/zig &> /dev/null; then
-        ZIG_VERSION=$("$ZIGPATH/zig" version)
-
-        if [ "${ZIG_VERSION}" = "${TARGET_ZIG_VERSION}" ]; then
-            echo "Zig is already installed. Skipping build and install."
-            return
-        else
-            echo "Old version of Zig installed (${ZIG_VERSION}). Installing version ${TARGET_ZIG_VERSION}."
-        fi
-    fi
-
-    echo "Downloading and installing Zig..."
-    curl --output /tmp/zig.tar.xz "${ZIG_TAR_URL}"
-    ACTUAL_SHA256=$(sha256sum /tmp/zig.tar.xz | cut -d' ' -f1)
-    if [ "${ACTUAL_SHA256}" != "${ZIG_TAR_SHA256}" ]; then
-        echo "Zig binary checksum mismatch"
-        echo "Expected: ${ZIG_TAR_SHA256}"
-        echo "Actual: ${ACTUAL_SHA256}"
-        exit 1
-    fi
-
-    tar -C /tmp -xJf /tmp/zig.tar.xz
-
-    # Delete previous installation
-    rm -rf "${ZIGPATH}"
-
-    mv /tmp/zig-* ${ZIGPATH} &> /dev/null || true
-    echo "Zig installed to ${ZIGPATH}"
-}
-
 install_apt() {
-    set_zigpath "$(pwd)/.zig"
-
     sudo apt-get update || true
     sudo apt-get install -y \
         nasm \
@@ -145,7 +96,8 @@ install_apt() {
         qemu-system-x86 \
         qemu-system-arm \
         qemu-user \
-        iproute2
+        iproute2 \
+        musl-tools
 
     # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
     if uname -m | grep -q x86_64; then
@@ -159,13 +111,9 @@ install_apt() {
     fi
 
     command -v go &> /dev/null || sudo apt-get install -y golang
-
-    download_zig_binary
 }
 
 install_pacman() {
-    set_zigpath "$(pwd)/.zig"
-
     # add debug repo for glibc-debug if it doesn't already exist
     if ! grep -q "\[core-debug\]" /etc/pacman.conf; then
         cat << EOF | sudo tee -a /etc/pacman.conf
@@ -197,18 +145,15 @@ EOF
         wget \
         base-devel \
         gdb \
-        parallel
+        parallel \
+        musl
 
     # FIXME: add the necessary deps for testing
 
     command -v go &> /dev/null || sudo pacman -S --noconfirm go
-
-    download_zig_binary
 }
 
 install_dnf() {
-    set_zigpath "$(pwd)/.zig"
-
     sudo dnf upgrade || true
     sudo dnf install -y \
         nasm \
@@ -225,8 +170,6 @@ install_dnf() {
     if [[ "$1" != "" ]]; then
         sudo dnf install shfmt
     fi
-
-    download_zig_binary
 }
 
 install_jemalloc() {

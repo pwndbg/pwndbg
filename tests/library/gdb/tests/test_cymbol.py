@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import tempfile
 
 import pwndbg.aglib.dt
 import pwndbg.dbg
@@ -80,13 +79,6 @@ def test_cymbol(start_binary):
     check_symbol_existance("example_t")
 
 
-def create_temp_header_file(content: str) -> str:
-    """Create a temporary header file with the given content."""
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".h") as tmp_file:
-        tmp_file.write(content.encode())
-        return tmp_file.name
-
-
 def test_cymbol_header_file(start_binary):
     start_binary(REFERENCE_BINARY)
 
@@ -112,7 +104,7 @@ def test_cymbol_header_file(start_binary):
     """
 
     # Create a temporary header file
-    header_file_path = create_temp_header_file(header_content)
+    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(header_content)
 
     # Test adding structures from the header file
     struct_name = "example_t"

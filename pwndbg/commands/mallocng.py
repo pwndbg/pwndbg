@@ -235,14 +235,22 @@ bits in p[-3]. In this case "hdr reserved" will be strictly 5, which
 denotes that we need to look at the slot's footer to read the actual
 value of {C.bold("reserved")}. As a special case, if {C.bold("p[-3] >> 5 == 6")} that
 doesn't describe the reserved size at all, but specifies that there
-is a group nested inside this slot. {C.bold("p[-3] >> 5")} will never be 7,
+is a group nested inside this slot. {C.bold("p[-3] >> 5")} should never be 7,
 contrary to {C.bold("start[-3] >> 5")}.
 
 The "footer" of a slot is the third and final area of a slot's
 memory where metadata is contained. This is the [end - 4, end)
 area. It only contains the reserved size as
 {C.bold("reserved = *(const uint32_t *)(end-4)")} when {C.bold("p[-3] >> 5 == 5")}.
-    """
+
+All of the above is only generally true for allocated slots. Mallocng
+ensures {C.bold("p[-3] = 0xFF")} and {C.bold("*(uint16_t *)(p - 2) = 0")} for freed slots,
+which makes the start of the slot's group (and thus meta) unreachable.
+Only in this case does {C.bold("p[-3] >> 5")} become 7. Available slots,
+i.e. those that haven't been allocated nor freed yet (but are ready
+for allocation), have almost no guarantees on their data and
+metadata contents.
+"""
 
     print(txt)
 
@@ -314,11 +322,7 @@ def dump_meta(meta: mallocng.Meta) -> str:
     if meta.is_donated:
         output += C.bold("\nGroup donated by ld as unused part of ")
 
-        try:
-            mapping = pwndbg.aglib.vmmap.find(mallocng.Group(meta.mem).addr)
-        except pwndbg.dbg_mod.Error as e:
-            print(message.error(f"Could not fetch parent group: {e}"))
-            mapping = None
+        mapping = pwndbg.aglib.vmmap.find(meta.mem)
 
         if mapping is None:
             output += C.red("<cannot determine>")
@@ -333,7 +337,8 @@ def dump_meta(meta: mallocng.Meta) -> str:
         assert meta.is_nested
         output += C.bold("\nGroup nested in slot of another group")
         try:
-            parent_group = mallocng.Slot(mallocng.Group(meta.mem).addr).group.addr
+            parent_group = meta.parent_group()
+            assert parent_group != -1
             output += " (" + C.memory.get(parent_group) + ")"
         except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Could not fetch parent group: {e}"))
@@ -439,13 +444,13 @@ def dump_slot(
     elif slot.reserved_in_header == 6:
         reserved_extra.append("a nested group is in this slot")
     elif slot.reserved_in_header == 7:
-        reserved_extra.append("this should not be possible")
+        reserved_extra.append("free slot?")
 
     inband_group = [
         Property(
             name="offset",
             value=slot.offset,
-            extra="distance to first slot / 0x10",
+            extra="distance to first slot start / 0x10",
             alt_value=(slot.offset * mallocng.UNIT),
         ),
         Property(name="index", value=slot.idx, extra="index of slot in its group"),
@@ -915,7 +920,10 @@ parser.add_argument(
     "-s",
     "--shallow",
     action="store_true",
-    help="Return the outermost slot hit without going deeper even if this slot contains a group.",
+    help=(
+        "Return the biggest slot which contains this address, don't recurse for smaller slots. The group "
+        " which owns this slot will not be a nested group."
+    ),
 )
 
 

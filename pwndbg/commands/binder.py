@@ -398,7 +398,7 @@ parser = argparse.ArgumentParser(description="Show Android Binder information")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def binder():
     log.warning("This command is a work in progress and may not work as expected.")

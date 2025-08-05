@@ -13,13 +13,13 @@ from typing import Tuple
 
 import gdb
 import pytest
+import ziglang
 
 from pwndbg.lib import tempfile
 
 _start_binary_called = False
 
 QEMU_PORT: str | None = None
-ZIGPATH = os.environ.get("ZIGPATH")
 
 COMPILATION_TARGETS_TYPE = Literal[
     "aarch64",
@@ -124,10 +124,6 @@ def qemu_assembly_run():
     The `path` is returned from `make_elf_from_assembly` (provided by pwntools)
     """
 
-    if ZIGPATH is None:
-        raise Exception("ZIGPATH not defined")
-
-    PATH_TO_ZIG = os.path.join(ZIGPATH, "zig")
     ensure_qemu_port()
 
     qemu: subprocess.Popen = None
@@ -154,7 +150,7 @@ def qemu_assembly_run():
         # Build the binary with Zig
         compile_process = subprocess.run(
             [
-                PATH_TO_ZIG,
+                os.path.join(os.path.dirname(ziglang.__file__), "zig"),
                 "cc",
                 *extra_cli_args,
                 f"--target={zig_target}",

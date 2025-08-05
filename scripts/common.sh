@@ -21,7 +21,15 @@ if [[ "$PWNDBG_NO_UV" == "1" ]]; then
     UV_RUN_MYPY=""
 else
     # We are going to use uv.
-    UV="${PWNDBG_VENV_PATH}/bin/uv"
+    if [ -x "${PWNDBG_VENV_PATH}/bin/uv" ]; then
+        UV="${PWNDBG_VENV_PATH}/bin/uv"
+    elif command -v uv > /dev/null 2>&1; then
+        echo "Warning: Falling back to 'uv' found in PATH." >&2
+        UV="$(command -v uv)"
+    else
+        echo "Error: 'uv' binary not found." >&2
+        UV="${PWNDBG_VENV_PATH}/bin/uv"
+    fi
     UV_RUN="${UV} run"
     UV_RUN_TEST="${UV_RUN} --group dev --group tests --all-extras"
     UV_RUN_LINT="${UV_RUN} --group lint"

@@ -266,6 +266,7 @@ async def break_on_program_code(ec: pwndbg.dbg_mod.ExecutionController) -> bool:
         if proc.stopped_with_signal:
             return False
 
+        await break_next_ret(ec)
         await ec.single_step()
 
         for start, end in binary_exec_page_ranges:

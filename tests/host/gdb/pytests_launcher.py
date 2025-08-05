@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Coroutine
+from typing import List
 
 import coverage
 import gdb
@@ -15,7 +16,7 @@ from ... import host
 
 
 class _GDBController(host.Controller):
-    async def launch(self, binary_path: Path) -> None:
+    async def launch(self, binary_path: Path, args: List[str] = []) -> None:
         """
         Launch the given binary.
 
@@ -29,6 +30,21 @@ class _GDBController(host.Controller):
         gdb.execute("set context-reserve-lines never")
         os.environ["COLUMNS"] = "80"
         gdb.execute("starti " + " ".join(args))
+
+    async def cont(self) -> None:
+        gdb.execute("continue")
+
+    async def execute(self, command: str) -> None:
+        gdb.execute(command)
+
+    async def execute_and_capture(self, command: str) -> str:
+        return gdb.execute(command, to_string=True)
+
+    async def step_instruction(self) -> None:
+        gdb.execute("stepi")
+
+    async def finish(self) -> None:
+        gdb.execute("finish")
 
 
 def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:

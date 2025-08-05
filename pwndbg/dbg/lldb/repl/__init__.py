@@ -46,6 +46,8 @@ import sys
 import threading
 from contextlib import contextmanager
 from io import BytesIO
+from io import TextIOBase
+from io import TextIOWrapper
 from typing import Any
 from typing import Awaitable
 from typing import BinaryIO
@@ -334,7 +336,7 @@ def run(
 
         try:
             if last_exc is not None:
-                coroutine.throw(last_exc)
+                action = coroutine.throw(last_exc)
             else:
                 action = coroutine.send(last_result)
         except StopIteration:
@@ -369,7 +371,7 @@ def run(
                 last_exc = asyncio.CancelledError()
                 continue
 
-            if not exec_repl_command(line, sys.stdout.buffer, dbg, driver, relay):
+            if not exec_repl_command(line, sys.stdout, dbg, driver, relay):
                 last_exc = asyncio.CancelledError()
                 continue
 
@@ -384,14 +386,20 @@ def run(
             if not action._prompt_silent:
                 print(f"{PROMPT}{action._command}")
 
-            if action._capture:
-                with BytesIO() as output:
-                    should_continue = exec_repl_command(action._command, output, dbg, driver, relay)
-                    last_result = output.getvalue()
-            else:
-                should_continue = exec_repl_command(
-                    action._command, sys.stdout.buffer, dbg, driver, relay
-                )
+            try:
+                if action._capture:
+                    with TextIOWrapper(BytesIO(), write_through=True) as output:
+                        should_continue = exec_repl_command(
+                            action._command, output, dbg, driver, relay
+                        )
+                        last_result = output.buffer.getvalue()
+                else:
+                    should_continue = exec_repl_command(
+                        action._command, sys.stdout, dbg, driver, relay
+                    )
+            except BaseException as e:
+                last_exc = e
+                continue
 
             if not should_continue:
                 last_exc = asyncio.CancelledError()
@@ -400,13 +408,51 @@ def run(
 
 def exec_repl_command(
     line: str,
-    lldb_out_target: BinaryIO,
+    output_to,
     dbg: LLDB,
     driver: ProcessDriver,
     relay: EventRelay,
 ) -> bool:
     """
     Parses and runs the given command, returning whether the event loop should continue.
+    """
+    stdout = None
+    stderr = None
+    lldb_out = None
+    lldb_err = None
+    try:
+        stdout = sys.stdout
+        stderr = sys.stderr
+        lldb_out = dbg.debugger.GetOutputFile()
+        lldb_err = dbg.debugger.GetErrorFile()
+
+        sys.stdout = output_to
+        dbg.debugger.SetOutputFile(
+            lldb.SBFile.Create(output_to, borrow=True, force_io_methods=True)
+        )
+        dbg.debugger.SetErrorFile(lldb.SBFile.Create(output_to, borrow=True, force_io_methods=True))
+
+        return _exec_repl_command(line, output_to.buffer, dbg, driver, relay)
+    finally:
+        if stdout is not None:
+            sys.stdout = stdout
+        if stderr is not None:
+            sys.stderr = stderr
+        if lldb_out is not None:
+            dbg.debugger.SetOutputFile(lldb_out)
+        if lldb_err is not None:
+            dbg.debugger.SetErrorFile(lldb_err)
+
+
+def _exec_repl_command(
+    line: str,
+    lldb_out_target: BinaryIO,
+    dbg: LLDB,
+    driver: ProcessDriver,
+    relay: EventRelay,
+) -> bool:
+    """
+    Implementation for exec_repl_command
     """
 
     bits = lex_args(line)
@@ -658,6 +704,7 @@ def exec_repl_command(
     # one, or just in a general context.
     if driver.has_process():
         driver.run_lldb_command(line, lldb_out_target)
+        dbg.relay_exceptions()
     else:
         ret = lldb.SBCommandReturnObject()
         dbg.debugger.GetCommandInterpreter().HandleCommand(line, ret)
@@ -671,6 +718,7 @@ def exec_repl_command(
             if len(out) > 0:
                 lldb_out_target.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
                 lldb_out_target.write(b"\n")
+        dbg.relay_exceptions()
 
     # At this point, the last command might've queued up some execution
     # control procedures for us to chew on. Run them now.
@@ -928,7 +976,7 @@ def target_create(args: List[str], dbg: LLDB) -> None:
 
 
 process_launch_ap = argparse.ArgumentParser(add_help=False, prog="process launch")
-process_launch_ap.add_argument("-A", "--disable-aslr")
+process_launch_ap.add_argument("-A", "--disable-aslr", type=_bool_of_string, default=False)
 process_launch_ap.add_argument("-C", "--script-class")
 process_launch_ap.add_argument("-E", "--environment", action="append")
 process_launch_ap.add_argument("-P", "--plugin")
@@ -946,7 +994,6 @@ process_launch_ap.add_argument("-v", "--structured-data-value")
 process_launch_ap.add_argument("-w", "--working-dir")
 process_launch_ap.add_argument("run-args", nargs="*")
 process_launch_unsupported = [
-    "disable-aslr",
     "script-class",
     "plugin",
     "arch",
@@ -1003,6 +1050,7 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         + (args.environment if args.environment else []),
         launch_args,
         os.getcwd(),
+        args.disable_aslr,
     )
 
     match result:

@@ -63,7 +63,6 @@ in
           curl
           parallel
           qemu
-          zig # version match setup-dev.sh
           go
 
           # for onegadget command
@@ -85,7 +84,6 @@ in
       export PWNDBG_NO_AUTOUPDATE=1
       export PWNDBG_NO_UV=1
       export PWNDBG_VENV_PATH="${pyEnv}"
-      export ZIGPATH="${pkgs.lib.getBin pkgs.zig}/bin/"
       export REPO_ROOT=$(git rev-parse --show-toplevel)
     '';
   };

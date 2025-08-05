@@ -420,8 +420,8 @@ class Slot:
             else:
                 # Value forced due to bit-size.
                 assert self.reserved_in_header == 7
-                # Should never happen. It is possible for start[-3]
-                # to contain (7<<5) but p[-3] can't.
+                # It is possible for start[-3] to contain (7<<5),
+                # but p[-3] shouldn't unless the slot is free.
                 return -1
 
         return self._reserved
@@ -829,7 +829,9 @@ class Meta:
         created by being mmaped.
         """
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L177
-        return not self.is_donated and not self.last_idx and bool(self.maplen)
+        # The if-statement in the source also checks for !g->last_idx but in practice
+        # I've seen this value be non-zero for mmap()-ed groups, so we're leaving it out.
+        return not self.is_donated and bool(self.maplen)
 
     @property
     def is_nested(self) -> bool:
@@ -838,6 +840,28 @@ class Meta:
         created by being nested into a slot.
         """
         return not self.is_donated and not self.is_mmaped
+
+    def parent_group(self) -> int:
+        """
+        If this group is nested, returns the address of the group which
+        contains the slot in which this group is in. Otherwise, returns -1.
+        """
+        if not self.is_nested:
+            return -1
+
+        return Slot(Group(self.mem).addr).group.addr
+
+    def root_group(self) -> Group:
+        """
+        Returns the topmost/biggest parent group. It will never be a nested
+        group. If this group isn't nested, this group is returned.
+        """
+        cur: Group = Group(self.mem)
+
+        while cur.meta.is_nested:
+            cur = Slot(cur.addr).group
+
+        return cur
 
     def slotstate_at_index(self, idx: int) -> SlotState:
         me = 1 << idx
@@ -966,9 +990,6 @@ class MallocContext:
         self.sizeof: int = 0
         self.has_pagesize_field: bool = False
 
-        # We will always load() since we read this object
-        # only once - there is no performance benefit to lazy
-        # evaluation.
         self.load()
 
     def load(self) -> None:
@@ -1052,6 +1073,27 @@ class MallocContext:
 
         assert cur_offset == self.sizeof
 
+    def looks_valid(self) -> bool:
+        """
+        Returns true if this object looks like a valid `struct malloc_context` object
+        describing an initialized heap. False otherwise.
+
+        This is used by `class Mallocng` to find the correct ctx object.
+
+        We consider it invalid if the heap reads as uninitialized because:
+        1. Performing this check filters out invalid ctx objects very well.
+        2. When musl is dynmically linked, due to the ld donation logic,
+           the heap will usually be initialized before the start of main().
+        """
+        if self.init_done != 1:
+            return False
+
+        if self.secret <= 0x0000FFFFFFFFFFFF:
+            # 1 / 65536 chance this is a false negative.
+            return False
+
+        return True
+
 
 class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
     """
@@ -1071,8 +1113,6 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.ctx_addr: int = 0
         self.ctx: Optional[MallocContext] = None
         self.has_debug_syms: bool = False
-        self.secret: bytearray = b""
-        self.hope: bool = True
 
     def init_if_needed(self) -> bool:
         """
@@ -1080,7 +1120,8 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         initialize it as soon as pwndbg is loaded.
 
         Users of the object are responsible for calling this to
-        make sure the object is initialized.
+        make sure the object is initialized. This also ensures
+        our view of the heap is up-to-date.
 
         Returns:
             True if this object is successfully initialized (whether
@@ -1088,24 +1129,24 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             you may not use this object for heap operations.
         """
         if self.finished_init:
-            return self.hope
+            # Whoever called init_if_needed() needs to use the Mallocng
+            # class, which needs an up-to-date view of __malloc_context,
+            # so we will update it here.
+            self.ctx.load()
+            return True
 
         self.ctx_addr = 0
         self.ctx = None
         self.has_debug_syms = False
-        self.secret = b""
-        self.hope = True
 
+        # We will go in optimistically, and let set_ctx_addr() potentially
+        # prove us wrong.
+        self.finished_init = True
         self.set_ctx_addr()
 
-        if self.ctx_addr and self.hope:
-            self.ctx = MallocContext(self.ctx_addr)
+        # If we failed, we will try again next time.
 
-        # We will try to reinitialize again if we failed now.
-        if self.hope:
-            self.finished_init = True
-
-        return self.hope
+        return self.finished_init
 
     def set_ctx_addr(self) -> None:
         """
@@ -1117,10 +1158,11 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.ctx_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
         if self.ctx_addr is not None:
             self.has_debug_syms = True
-            self.secret = memory.read(self.ctx_addr, uint64size)
+            self.ctx = MallocContext(self.ctx_addr)
             return
 
         # No debug information :(
+        self.ctx_addr = 0
         self.has_debug_syms = False
 
         # We will find the __malloc_context object by searching memory for
@@ -1129,10 +1171,10 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # Extract the secret first.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/glue.h#L49
         at_random = int(pwndbg.auxv.get()["AT_RANDOM"])
-        self.secret = memory.read(at_random + 8, uint64size)
+        secret = memory.read(at_random + 8, uint64size)
 
         secret_matches = list(
-            pwndbg.search.search(self.secret, executable=False, writable=True, aligned=uint64size)
+            pwndbg.search.search(secret, executable=False, writable=True, aligned=uint64size)
         )
 
         # There are going to be multiple matches. We don't
@@ -1155,31 +1197,39 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         if not possible:
             print(message.error("Couldn't find __malloc_context, even with heuristic."))
-            print(message.error("Musl mallocng commands will not work."))
+            print(message.error("Musl mallocng commands will not work.\n"))
             self.ctx_addr = 0
-            self.hope = False
+            self.finished_init = False
             return
+
+        known_invalid: set[int] = set()
 
         if pwndbg.dbg.selected_inferior().is_dynamically_linked():
             for addr, mapname in possible:
                 if mapname.endswith("libc.so"):
-                    self.ctx_addr = addr
-                    return
+                    maybe_ctx = MallocContext(addr)
+                    if maybe_ctx.looks_valid():
+                        self.ctx_addr = addr
+                        self.ctx = maybe_ctx
+                        return
+                    else:
+                        known_invalid.add(addr)
 
             for addr, mapname in possible:
-                if "libc" in mapname:
-                    self.ctx_addr = addr
-                    return
+                if "libc" in mapname and addr not in known_invalid:
+                    maybe_ctx = MallocContext(addr)
+                    if maybe_ctx.looks_valid():
+                        self.ctx_addr = addr
+                        self.ctx = maybe_ctx
+                        return
+                    else:
+                        known_invalid.add(addr)
 
-            print(message.warn("Couldn't find __malloc_context in a 'libc' mapping,"))
-            print(message.warn(f"using mapping '{possible[0][1]}',"))
             print(
                 message.warn(
-                    "and assuming __malloc_context is at "
-                    f"{pwndbg.color.memory.get(possible[0][0])}."
+                    "Couldn't find __malloc_context in a 'libc' mapping, trying elsewhere."
                 )
             )
-            print(message.warn("The heap commands may be unreliable."))
         else:
             # Statically linked.
             # TODO: We should find the Executable Object in the mappings
@@ -1187,7 +1237,37 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # how to do that though so fall through for now.
             pass
 
-        self.ctx_addr = possible[0][0]
+        for addr, mapname in possible:
+            if addr not in known_invalid:
+                maybe_ctx = MallocContext(addr)
+                if maybe_ctx.looks_valid():
+                    self.ctx_addr = addr
+                    self.ctx = maybe_ctx
+                    break
+
+        if self.ctx_addr == 0 or self.ctx is None:
+            print(
+                message.error(
+                    "Couldn't find a valid looking __malloc_context, even with heuristic."
+                )
+            )
+            print(
+                message.error(
+                    "Musl mallocng commands will not work. Is the allocator initialized?\n"
+                )
+            )
+            self.ctx_addr = 0
+            self.ctx = None
+            self.finished_init = False
+            return
+
+        # Tell the user we found __malloc_context but in an unexpected place.
+        if pwndbg.dbg.selected_inferior().is_dynamically_linked():
+            print(
+                message.warn(
+                    f"Found a match @ {self.ctx_addr:#x}. A bit suspicious but we will roll with it.\n"
+                )
+            )
 
     @override
     def libc_has_debug_syms(self) -> bool:
@@ -1207,11 +1287,13 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         If `metadata` is True, then we check [start - IB, end) for
         containment.
 
-        If `shallow` is True, return the first slot hit without trying
-        to look for nested groups.
+        If `shallow` is True, return the biggest slot which contains this
+        address. The group that owns this slot will not be a nested group.
 
         Returns (None, None) if nothing is found.
         """
+        metadata_offset = IB if metadata else 0
+        # The group which contains a slot which contains `address`.
         hit_group: Optional[Group] = None
 
         meta_area_addr = self.ctx.meta_area_head
@@ -1237,10 +1319,13 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
                     group = Group(meta.mem)
                     group.set_meta(meta)
+
+                    valid_start = group.storage - metadata_offset
                     group_end = group.addr + group.group_size
 
-                    # Check if our address is inside the group.
-                    if group.addr <= address < group_end:
+                    # Check if our address is inside one of
+                    # the group's slots.
+                    if valid_start <= address < group_end:
                         # Yes it is!
                         hit_group = group
                         break
@@ -1266,26 +1351,45 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # Contains extra information.
         hit_grouped_slot: Optional[GroupedSlot] = None
 
-        metadata_offset = IB if metadata else 0
+        if shallow:
+            backup_addr = hit_group.addr
+            try:
+                # Go up instead of recursing.
+                hit_group = hit_group.meta.root_group()
+                slot_idx = (
+                    address - (hit_group.storage - metadata_offset)
+                ) // hit_group.meta.stride
+                hit_grouped_slot = GroupedSlot(hit_group, slot_idx)
+                hit_slot = Slot.from_start(hit_grouped_slot.start)
+                return hit_grouped_slot, hit_slot
+            except pwndbg.dbg_mod.Error as e:
+                print(
+                    message.error(
+                        "Mallocng.containing: Failed reading memory while traversing"
+                        f" parent groups to satisfy shallow=True.\n{e}.\n"
+                        f"The initial match was for group @ {backup_addr}.\n"
+                    )
+                )
+                return (None, None)
 
         try:
             # Recursively go into deeper nested groups until we find a slot
-            # which doesn't house a group. Don't recurse after first hit if shallow = True.
-            while hit_slot is None or (not shallow and hit_slot.contains_group()):
+            # which doesn't house a group.
+            while hit_slot is None or hit_slot.contains_group():
                 valid_start = hit_group.storage - metadata_offset
 
                 if address < valid_start:
                     # Bleh, the address is in the group's header
-                    # (or the first slot's IB header). What to do?
+                    # (or the first slot's start header). What to do?
                     if hit_slot is not None:
                         # If we are already in some slot, just return
                         # that slot since we can't look any deeper.
-                        return hit_grouped_slot, hit_slot
-                    else:
-                        # We are in no slot.
-                        # We could return *some* information to the callee
-                        # but alas, let's be technically correct.
-                        return (None, None)
+                        break
+                    # We are in no slot i.e. we are in the header of a
+                    # top level group (either mmap()ed or donated).
+                    # We could return *some* information to the callee
+                    # but alas, let's be technically correct.
+                    return (None, None)
 
                 # Calculate the correct inner slot.
                 slot_idx = (address - valid_start) // hit_group.meta.stride
@@ -1296,7 +1400,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 # If the slot is not allocated, we know that we for sure can't
                 # recurse deeper.
                 if hit_grouped_slot.slot_state != SlotState.ALLOCATED:
-                    return hit_grouped_slot, hit_slot
+                    break
 
                 # Maybe there is a group inside this slot!
                 hit_group = Group(hit_slot.p)
