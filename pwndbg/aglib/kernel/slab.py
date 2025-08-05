@@ -181,7 +181,7 @@ class SlabCache:
         return get_flags_list(int(self._slab_cache["flags"]))
 
     @property
-    def cpu_cache(self) -> CpuCache:
+    def cpu_cache(self) -> CpuCache | None:
         """returns cpu cache associated to current thread"""
         if not self._slab_cache.dereference().type.has_field("cpu_slab"):
             return None
@@ -192,7 +192,6 @@ class SlabCache:
     @property
     def cpu_caches(self) -> Generator[CpuCache, None, None]:
         if not self._slab_cache.dereference().type.has_field("cpu_slab"):
-            yield None
             return
         """returns cpu caches for all cpus"""
         for cpu in range(kernel.nproc()):
@@ -229,8 +228,6 @@ class SlabCache:
         #       which is typically not from what I have seen
         cnt = 0
         for cpu_cache in self.cpu_caches:
-            if cpu_cache is None:
-                continue
             if cpu_cache.active_slab is not None:
                 cnt += cpu_cache.active_slab.inuse
             for partial_slab in cpu_cache.partial_slabs:
@@ -266,8 +263,6 @@ class SlabCache:
 
     def find_containing_slab(self, address) -> Slab | None:
         for cpu_cache in self.cpu_caches:
-            if cpu_cache is None:
-                continue
             slab = cpu_cache.active_slab
             if slab is not None and address in slab:
                 return slab

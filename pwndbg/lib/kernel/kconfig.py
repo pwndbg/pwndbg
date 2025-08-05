@@ -92,7 +92,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     @property
     def CONFIG_SLUB_TINY(self) -> bool:
-        if pwndbg.aglib.kernel.krelease() < (6, 2):
+        if pwndbg.aglib.kernel.krelease() < (6, 2): # config added after v6.2
             return False
         return pwndbg.aglib.symbol.lookup_symbol("deactivate_slab") is None
 

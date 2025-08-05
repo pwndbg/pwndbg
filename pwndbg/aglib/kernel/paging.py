@@ -63,6 +63,7 @@ class ArchPagingInfo:
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SHIFT(self):
+        # needs to be rounded up (consider the layout of vmemmap)
         return math.ceil(math.log2(self.STRUCT_PAGE_SIZE))
 
     @property
