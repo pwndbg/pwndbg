@@ -1,9 +1,160 @@
 from __future__ import annotations
 
+import struct
+from typing import Callable
 from typing import Generator
+from typing import Generic
+from typing import Tuple
+from typing import TypeVar
 
 import pwndbg
 import pwndbg.aglib.memory
+
+
+def _uleb128(ptr: int) -> Tuple[int, int]:
+    """
+    Decode a ULEB128 value at the start of the given address, and return the
+    decoded number, along with how many bytes the entire number takes.
+    """
+    acc = 0
+    i = 0
+    while True:
+        byte = pwndbg.aglib.memory.u8(ptr + i)
+
+        acc |= (byte & 0x7F) << (7 * i)
+        if byte & 0x80 == 0:
+            # This is the terminator byte.
+            break
+
+        i += 1
+
+    return acc, i + 1
+
+
+class _RawTrie:
+    """
+    This is the untyped base implementation of Trie.
+    """
+
+    def __init__(self, ptr: int):
+        self._ptr = ptr
+
+    def _walk(
+        self,
+        offset: int,
+        acc: bytes,
+        edgesel: Callable[[bytes, bytes], bool],
+        nodesel: Callable[[bytes], bool],
+    ) -> Generator[Tuple[bytes, int, int]]:
+        """
+        Walk the trie.
+
+        Allows callers to select edges for exploration and nodes for yielding
+        through the `edgesel` and `nodesel` callables.
+
+        At every edge, this function will call `edgesel` with the currently
+        accumulated name and the name associated with the edge, and will take
+        action according to the value it returns. If it returns True, that edge
+        will be explored, otherwise, the edge will be ignored.
+
+        At every node, this function will call `nodesel` with the currently
+        accumulated name. If it returns True, the node will be yielded,
+        otherwise, it will be ignored.
+
+        Yielded node information consists of a tuple of (name, ptr, length),
+        where `name` is the name of the node, `ptr` is the address of the first
+        byte of its associated data, and `length` is the length of its
+        associated data, in bytes.
+        """
+        base = self._ptr + offset
+
+        node_data_len, node_data_len_len = _uleb128(base)
+        if node_data_len != 0 and nodesel(acc):
+            # The user selected this node, stop the walk here.
+            yield acc, base + node_data_len_len, node_data_len
+
+        cursor = base + node_data_len_len + node_data_len
+
+        # The number of children is NOT a ULEB128.
+        children = pwndbg.aglib.memory.u8(cursor)
+        cursor += 1
+
+        for _ in range(children):
+            name = pwndbg.aglib.memory.string(cursor)
+            cursor += len(name) + 1
+
+            child_offset, child_offset_len = _uleb128(cursor)
+            cursor += child_offset_len
+
+            if edgesel(acc, name):
+                yield from self._walk(child_offset, acc + name, edgesel, nodesel)
+
+            # The cursor is already at the next child.
+
+    def _get_raw(self, name: bytes) -> Tuple[bytes, int, int] | None:
+        """
+        Get the data associated with the node of given name, if it exists.
+        """
+
+        def nodesel(candidate: bytes) -> bool:
+            return candidate == name
+
+        def edgesel(acc: bytes, candidate: bytes) -> bool:
+            return name[len(acc) :].startswith(candidate)
+
+        return next(self._walk(0, b"", edgesel, nodesel), None)
+
+    def _entries_raw(self) -> Generator[Tuple[bytes, int, int]]:
+        """
+        List all the entries in the trie, along with their associated data.
+        """
+        yield from self._walk(0, b"", lambda _acc, _candidate: True, lambda _candidate: True)
+
+    def keys(self) -> Generator[bytes]:
+        """
+        List the name of all nodes in the trie.
+        """
+        yield from (name for name, _ptr, _size in self._entries_raw())
+
+
+T = TypeVar("T")
+
+
+class Trie(_RawTrie, Generic[T]):
+    """
+    Prefix Tree
+
+    The Mach-O format makes extensive use of prefix trees for any operation that
+    involves string-based loookup.
+    """
+
+    def __init__(self, ptr: int, ty: Callable[[int, int], T]):
+        super().__init__(ptr)
+        self._ty = ty
+
+    def get(self, name: bytes) -> T | None:
+        """
+        Get the data associated with the node of given name, if it exists.
+        """
+        _, ptr, size = self._get_raw(name)
+        return self._ty(ptr, size)
+
+    def entries(self) -> Generator[Tuple[bytes, T]]:
+        """
+        List all the entries in the trie, along with their associated data.
+        """
+        yield from ((name, self._ty(ptr, size)) for name, ptr, size in self._entries_raw())
+
+
+def _uleb128_ty(ptr: int, size: int) -> int:
+    "The type function of ULEB128 associated data, for use with Trie"
+
+    value, actual_size = _uleb128(ptr)
+
+    # Can fail if the type is wrong or the trie is corrupted.
+    assert size == actual_size, "Size mismatch while validating ULEB128"
+
+    return value
 
 
 class DyldSharedCacheMapping:
@@ -269,6 +420,14 @@ class DyldSharedCache:
     def __init__(self, addr: int):
         self.addr = addr
 
+        # Preload a few a few values, to speed things up later.
+        if self._header_size() <= 0x1C4:
+            self._images_base = self.addr + pwndbg.aglib.memory.u32(self.addr + 0x18)
+            self.image_count = pwndbg.aglib.memory.u32(self.addr + 0x1C)
+        else:
+            self._images_base = self.addr + pwndbg.aglib.memory.u32(self.addr + 0x1C0)
+            self.image_count = pwndbg.aglib.memory.u32(self.addr + 0x1C4)
+
     def _header_size(self) -> int:
         """
         The length of the shared cache header, in bytes.
@@ -313,12 +472,14 @@ class DyldSharedCache:
                     pwndbg.aglib.memory.u32(entry + 52),
                 )
 
+    @property
     def base(self) -> int:
         """
         The base virtual address of the DyLD Shared Cache.
         """
         return self.addr
 
+    @property
     def size(self) -> int:
         """
         The mapped size, in bytes, of the DyLD Shared Cache.
@@ -346,11 +507,77 @@ class DyldSharedCache:
 
             return end - start
 
+    @property
+    def slide(self) -> int:
+        "The slide value of the DyLD Shared Cache, in bytes."
+        mapping_ptr = self.base + self._header_size()
+        mapping_base = pwndbg.aglib.memory.u64(mapping_ptr)
+
+        # Make sure this is the start of the shared cache.
+        #
+        # Again, technically possible, but this breaks compatibility in a way
+        # that we have no idea how to deal with. Better to fail and figure out
+        # we're doing something wrong than have to track a random bug back to
+        # this point.
+        mapping_fileoff = pwndbg.aglib.memory.u64(mapping_ptr + 0x10)
+        assert (
+            mapping_fileoff == 0
+        ), "First mapping of the shared cache is not at the start of the shared cache"
+
+        slide = self.base - mapping_base
+        assert slide >= 0, "Slide value is negative, but we don't expect it to be"
+
+        return slide
+
+    @property
+    def image_index_trie(self) -> Trie[int] | None:
+        """
+        The trie of image indices, if available.
+        """
+        if self._header_size() <= 0x110:
+            return None
+
+        trie_unslid = pwndbg.aglib.memory.u64(self.addr + 0x108)
+        trie_ptr = trie_unslid + self.slide
+
+        return Trie(trie_ptr, _uleb128_ty)
+
+    def image_base(self, index: int):
+        assert self.image_count > index
+
+        return pwndbg.aglib.memory.u64(self._images_base + index * 0x20)
+
+    def image_name(self, index: int):
+        assert self.image_count > index
+
+        return pwndbg.aglib.memory.string(
+            self.addr + pwndbg.aglib.memory.u32(self._images_base + index * 0x20 + 0x18)
+        )
+
+    @property
+    def images(self) -> Generator[Tuple[bytes, int]]:
+        # This is a little convoluted, but this function is quite hot and
+        # calling the debugger can be quite slow, so pulling in the whole array
+        # at once goes a really long way.
+        #
+        # Yes, even with the extra logic. Python is slow, but it's not as
+        # slow as calling LLDB an extra time on every iteration.
+        data = pwndbg.aglib.memory.read(self._images_base, 0x20 * self.image_count)
+
+        for i in range(self.image_count):
+            base = i * 0x20
+            yield (
+                pwndbg.aglib.memory.string(
+                    self.addr + struct.unpack("<I", data[base + 0x18 : base + 0x1C])[0]
+                ),
+                struct.unpack("<Q", data[base : base + 8])[0],
+            )
+
     def is_address_in_shared_cache(self, addr: int) -> int:
         """
         Whether the given address is in the shared cache.
         """
-        return addr >= self.base() and addr < self.base() + self.size()
+        return addr >= self.base and addr < self.base + self.size
 
     def objc_builtin_selectors(self) -> DyldSharedCacheHashSet:
         """
