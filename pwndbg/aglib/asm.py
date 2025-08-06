@@ -3,7 +3,8 @@ from __future__ import annotations
 import pathlib
 from typing import List
 
-import pwnlib
+import pwnlib.context
+import pwnlib.data
 
 import pwndbg.aglib.arch
 import pwndbg.lib.zig
