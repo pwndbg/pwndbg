@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        type: [qemu-user-tests, qemu-system-tests, tests]
+        type: [qemu-user-tests, qemu-system-tests, tests, unit-tests]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     env:
@@ -46,6 +46,11 @@ jobs:
     - name: Setup
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
+
+    - name: Run tests
+      if: matrix.type == 'unit-tests'
+      run: |
+        ./unit-tests.sh
 
     - name: Run tests
       if: matrix.type == 'tests'
@@ -111,7 +116,6 @@ jobs:
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh -d gdb -g gdb
-        ./unit-tests.sh
 
   qemu-user-tests:
     runs-on: [ubuntu-24.04]
