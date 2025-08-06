@@ -64,6 +64,7 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
+from pwndbg.lib.cache import cache_until
 from pwndbg.color import message
 
 LIBC_NAME = "libc.so.6"
@@ -92,9 +93,6 @@ def is_enabled() -> bool:
 
     return any(installed)
 
-
-# Mem colors stores the current pointer colors while pos colors stores the possible ptr colors.
-mem_colors: dict[int, Callable[[int], str]] = {}
 pos_colors = [
     pwndbg.color.red,
     pwndbg.color.green,
@@ -104,16 +102,18 @@ pos_colors = [
 ]
 
 
-def colorize_ptr(ptr):
-    """
-    This function works by assigning a color to a specific memory pointer, storing the pointer
-    in a colors array and returning the colored pointer. If a color has already been stored for
-    the given pointer, it will be returned.
-    """
-    if color := mem_colors.get(ptr) is None:
-        color = pos_colors[len(mem_colors) % len(pos_colors)]
-        mem_colors[ptr] = color
-    return color(ptr)
+@cache_until("stop")
+def get_malloc_order() -> list[int]:
+    return []
+
+
+def colorize_ptr(ptr: int) -> Callable[[int], str]:
+    malloc_order = get_malloc_order()
+    if ptr not in malloc_order:
+        malloc_order.append(ptr)
+    index = malloc_order.index(ptr) % len(pos_colors)
+    color_func = pos_colors[index]
+    return color_func(f"0x{ptr:x}")
 
 
 def resolve_address(name: str) -> int | None:
