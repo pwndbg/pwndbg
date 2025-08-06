@@ -173,7 +173,6 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def search(
     type,
-    arch,
     asmbp,
     hex,
     executable,
