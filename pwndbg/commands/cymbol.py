@@ -190,12 +190,6 @@ def add_structure_from_header(
             if option.lower() != "y":
                 print(message.notice("Aborted by user."))
                 return
-        else:
-            print(
-                message.warn(
-                    f"Overwriting existing structure '{custom_structure_name}' due to --force flag."
-                )
-            )
 
     try:
         with open(header_file, "r") as src, open(pwndbg_custom_structure_path, "w") as f:
