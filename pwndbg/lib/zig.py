@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os.path
+import subprocess
+import tempfile
 from typing import Dict
 from typing import List
 from typing import Literal
@@ -36,6 +38,31 @@ _arch_mapping: Dict[Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little",
     ("s390x", "big", 8): "s390x",
 }
 
+_asm_header: Dict[str, str] = {
+    "x86_64": ".intel_syntax noprefix\n.global _start\n.section .text\n_start:\n",
+    "x86": ".intel_syntax noprefix\n.global _start\n.section .text\n_start:\n",
+    "mips": ".global _start\n.section .text\n_start:\n",
+    "mipsel": ".global _start\n.section .text\n_start:\n",
+    "mips64": ".global _start\n.section .text\n_start:\n",
+    "mips64el": ".global _start\n.section .text\n_start:\n",
+    "aarch64": ".global _start\n.section .text\n_start:\n",
+    "aarch64_be": ".global _start\n.section .text\n_start:\n",
+    "arm": ".global _start\n.section .text\n_start:\n",
+    "armeb": ".global _start\n.section .text\n_start:\n",
+    "thumb": ".global _start\n.section .text\n_start:\n",
+    "thumbeb": ".global _start\n.section .text\n_start:\n",
+    "riscv32": ".global _start\n.section .text\n_start:\n",
+    "riscv64": ".global _start\n.section .text\n_start:\n",
+    "sparc": ".global _start\n.section .text\n_start:\n",
+    "sparc64": ".global _start\n.section .text\n_start:\n",
+    "powerpc": ".global _start\n.section .text\n_start:\n",
+    "powerpcle": ".global _start\n.section .text\n_start:\n",
+    "powerpc64": ".global _start\n.section .text\n_start:\n",
+    "powerpc64le": ".global _start\n.section .text\n_start:\n",
+    "loongarch64": ".global _start\n.section .text\n_start:\n",
+    "s390x": ".global _start\n.section .text\n_start:\n",
+}
+
 def _get_zig_target(arch: ArchDefinition) -> str | None:
     if arch.platform == Platform.LINUX:
         # "gnu", "gnuabin32", "gnuabi64", "gnueabi", "gnueabihf",
@@ -54,7 +81,7 @@ def _get_zig_target(arch: ArchDefinition) -> str | None:
     return f"{arch_mapping}-{osabi}"
 
 
-def flags(arch: ArchDefinition) -> List[str] | None:
+def flags(arch: ArchDefinition) -> List[str]:
     try:
         import ziglang  # type: ignore[import-untyped]
     except ImportError:
@@ -70,3 +97,73 @@ def flags(arch: ArchDefinition) -> List[str] | None:
         "-target",
         zig_target,
     ]
+
+
+def asm(arch: ArchDefinition, data: str) -> bytes:
+    arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize), None)
+    if arch_mapping is None:
+        raise ValueError(f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})")
+
+    return _asm(arch_mapping, data)
+
+
+def _asm(arch_mapping: str, data: str) -> bytes:
+    try:
+        import ziglang
+    except ImportError:
+        raise ValueError("Can't import ziglang")
+
+    header = _asm_header.get(arch_mapping, None)
+    if header is None:
+        raise ValueError(f"Can't find asm header for target {arch_mapping}")
+
+    target = f'{arch_mapping}-freestanding'
+    with tempfile.TemporaryDirectory() as tmpdir:
+        asm_file = os.path.join(tmpdir, "input.S")
+        compiled_file = os.path.join(tmpdir, "out.elf")
+        bytecode_file = os.path.join(tmpdir, "out.bytecode")
+
+        with open(asm_file, "w") as f:
+            f.write(header)
+            f.write(data)
+
+        # Build the binary with Zig
+        compile_process = subprocess.run(
+            [
+                os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                "cc",
+                "-target",
+                target,
+                asm_file,
+                "-o",
+                compiled_file,
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+        if compile_process.returncode != 0:
+            raise Exception("Compilation error", compile_process.stdout, compile_process.stderr)
+
+        # Extract bytecode
+        # zig objcopy -O binary --only-section=.text out.o out.bin
+        objcopy_process = subprocess.run(
+            [
+                os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                "objcopy",
+                "-O",
+                "binary",
+                "--only-section=.text",
+                compiled_file,
+                bytecode_file,
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            universal_newlines=True,
+        )
+        if objcopy_process.returncode != 0:
+            raise Exception("Extracting bytecode error", objcopy_process.stdout, objcopy_process.stderr)
+
+        return open(bytecode_file, "rb").read()
