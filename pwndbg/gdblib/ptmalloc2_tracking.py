@@ -63,8 +63,8 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
-from pwndbg.lib.cache import cache_until
 from pwndbg.color import message
+from pwndbg.lib.cache import cache_until
 
 LIBC_NAME = "libc.so.6"
 MALLOC_NAME = "malloc"
@@ -128,13 +128,12 @@ def resolve_address(name: str) -> int | None:
     return address
 
 
-@cache_until("stop") 
+@cache_until("stop")
 def get_heap_base():
     """
     Get the heap base once per run or until the cache is cleared.
     """
-    return next((p for p in pwndbg.aglib.vmmap.get() if p.objfile == '[heap]'), None)
-
+    return next((p for p in pwndbg.aglib.vmmap.get() if p.objfile == "[heap]"), None)
 
 
 def format_heap_offset(addr: int) -> str:
@@ -550,7 +549,11 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         return False
 
     def out_of_scope(self) -> None:
-        print(message.warn(f"warning: could not follow free request for chunk {format_heap_offset(self.freed_ptr)}"))
+        print(
+            message.warn(
+                f"warning: could not follow free request for chunk {format_heap_offset(self.freed_ptr)}"
+            )
+        )
         self.tracker.exit_memory_management()
 
 
@@ -607,7 +610,11 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
         return False
 
     def out_of_scope(self) -> None:
-        print(message.warn(f"warning: could not follow free request for chunk {format_heap_offset(self.ptr)}"))
+        print(
+            message.warn(
+                f"warning: could not follow free request for chunk {format_heap_offset(self.ptr)}"
+            )
+        )
         self.tracker.exit_memory_management()
 
 
