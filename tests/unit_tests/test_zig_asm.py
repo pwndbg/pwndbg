@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pathlib
+import tempfile
+
 import pytest
 import unicorn as uc
 from unicorn import arm64_const
@@ -13,77 +16,112 @@ from unicorn import x86_const
 
 import pwndbg.lib.zig
 
+expected_value = 60
+include_text = f"""
+#define FROM_INCLUDE_VALUE {expected_value}
+"""
+
 regs_and_instr = {
-    "x86": ("mov eax, 60", uc.UC_ARCH_X86, uc.UC_MODE_32, None, x86_const.UC_X86_REG_EAX),
-    "x86_64": ("mov rax, 60", uc.UC_ARCH_X86, uc.UC_MODE_64, None, x86_const.UC_X86_REG_RAX),
+    "x86": (
+        "mov eax, FROM_INCLUDE_VALUE",
+        uc.UC_ARCH_X86,
+        uc.UC_MODE_32,
+        None,
+        x86_const.UC_X86_REG_EAX,
+    ),
+    "x86_64": (
+        "mov rax, FROM_INCLUDE_VALUE",
+        uc.UC_ARCH_X86,
+        uc.UC_MODE_64,
+        None,
+        x86_const.UC_X86_REG_RAX,
+    ),
     "mips": (
-        "li $a0, 60",
+        "li $a0, FROM_INCLUDE_VALUE",
         uc.UC_ARCH_MIPS,
         uc.UC_MODE_MIPS32 | uc.UC_MODE_BIG_ENDIAN,
         None,
         mips_const.UC_MIPS_REG_A0,
     ),
     "mipsel": (
-        "li $a0, 60",
+        "li $a0, FROM_INCLUDE_VALUE",
         uc.UC_ARCH_MIPS,
         uc.UC_MODE_MIPS32 | uc.UC_MODE_LITTLE_ENDIAN,
         None,
         mips_const.UC_MIPS_REG_A0,
     ),
     "mips64": (
-        "li $a0, 60",
+        "li $a0, FROM_INCLUDE_VALUE",
         uc.UC_ARCH_MIPS,
         uc.UC_MODE_MIPS64 | uc.UC_MODE_BIG_ENDIAN,
         None,
         mips_const.UC_MIPS_REG_A0,
     ),
     "mips64el": (
-        "li $a0, 60",
+        "li $a0, FROM_INCLUDE_VALUE",
         uc.UC_ARCH_MIPS,
         uc.UC_MODE_MIPS64 | uc.UC_MODE_LITTLE_ENDIAN,
         None,
         mips_const.UC_MIPS_REG_A0,
     ),
-    "arm": ("mov r0, #60", uc.UC_ARCH_ARM, uc.UC_MODE_ARM, None, arm_const.UC_ARM_REG_R0),
+    "arm": (
+        "mov r0, #FROM_INCLUDE_VALUE",
+        uc.UC_ARCH_ARM,
+        uc.UC_MODE_ARM,
+        None,
+        arm_const.UC_ARM_REG_R0,
+    ),
     "armeb": (
-        "mov r0, #60",
+        "mov r0, #FROM_INCLUDE_VALUE",
         uc.UC_ARCH_ARM,
         uc.UC_MODE_ARM | uc.UC_MODE_BIG_ENDIAN,
         None,
         arm_const.UC_ARM_REG_R0,
     ),
-    "thumb": ("mov r0, #60", uc.UC_ARCH_ARM, uc.UC_MODE_THUMB, None, arm_const.UC_ARM_REG_R0),
+    "thumb": (
+        "mov r0, #FROM_INCLUDE_VALUE",
+        uc.UC_ARCH_ARM,
+        uc.UC_MODE_THUMB,
+        None,
+        arm_const.UC_ARM_REG_R0,
+    ),
     "thumbeb": (
-        "mov r0, #60",
+        "mov r0, #FROM_INCLUDE_VALUE",
         uc.UC_ARCH_ARM,
         uc.UC_MODE_THUMB | uc.UC_MODE_BIG_ENDIAN,
         None,
         arm_const.UC_ARM_REG_R0,
     ),
-    "aarch64": ("mov x0, #60", uc.UC_ARCH_ARM64, uc.UC_MODE_ARM, None, arm64_const.UC_ARM64_REG_X0),
+    "aarch64": (
+        "mov x0, #FROM_INCLUDE_VALUE",
+        uc.UC_ARCH_ARM64,
+        uc.UC_MODE_ARM,
+        None,
+        arm64_const.UC_ARM64_REG_X0,
+    ),
     "aarch64_be": (
-        "mov x0, #60",
+        "mov x0, #FROM_INCLUDE_VALUE",
         uc.UC_ARCH_ARM64,
         uc.UC_MODE_ARM | uc.UC_MODE_BIG_ENDIAN,
         None,
         arm64_const.UC_ARM64_REG_X0,
     ),
     "riscv32": (
-        "li a0, 60",
+        "li a0, FROM_INCLUDE_VALUE",
         uc.UC_ARCH_RISCV,
         uc.UC_MODE_RISCV32,
         None,
         riscv_const.UC_RISCV_REG_A0,
     ),
     "riscv64": (
-        "li a0, 60",
+        "li a0, FROM_INCLUDE_VALUE",
         uc.UC_ARCH_RISCV,
         uc.UC_MODE_RISCV64,
         None,
         riscv_const.UC_RISCV_REG_A0,
     ),
     "s390x": (
-        "lghi %r2, 60",
+        "lghi %r2, FROM_INCLUDE_VALUE",
         uc.UC_ARCH_S390X,
         uc.UC_MODE_BIG_ENDIAN,
         s390x_const.UC_CPU_S390X_Z14,
@@ -92,42 +130,42 @@ regs_and_instr = {
     # FIXME: upstream bug, https://github.com/ziglang/zig/issues/23674
     # 'sparc':        ('mov 60,%i0', uc.UC_ARCH_SPARC, uc.UC_MODE_SPARC32 | uc.UC_MODE_BIG_ENDIAN, None, sparc_const.UC_SPARC_REG_I0),
     "sparc64": (
-        "mov 60,%i0",
+        "mov FROM_INCLUDE_VALUE,%i0",
         uc.UC_ARCH_SPARC,
         uc.UC_MODE_SPARC64 | uc.UC_MODE_BIG_ENDIAN,
         None,
         sparc_const.UC_SPARC_REG_I0,
     ),
     "powerpc": (
-        "li %r1, 60",
+        "li %r1, FROM_INCLUDE_VALUE",
         uc.UC_ARCH_PPC,
         uc.UC_MODE_32 | uc.UC_MODE_BIG_ENDIAN,
         ppc_const.UC_CPU_PPC32_7457A_V1_2,
         ppc_const.UC_PPC_REG_1,
     ),
     "powerpc64": (
-        "li %r1, 60",
+        "li %r1, FROM_INCLUDE_VALUE",
         uc.UC_ARCH_PPC,
         uc.UC_MODE_64 | uc.UC_MODE_BIG_ENDIAN,
         ppc_const.UC_CPU_PPC64_970_V2_2,
         ppc_const.UC_PPC_REG_1,
     ),
     "powerpcle": (
-        "li %r1, 60",
+        "li %r1, FROM_INCLUDE_VALUE",
         None,
         None,
         None,
         None,
     ),  # FIXME: UC_MODE_LITTLE_ENDIAN, Not supported by Unicorn
     "powerpc64le": (
-        "li %r1, 60",
+        "li %r1, FROM_INCLUDE_VALUE",
         None,
         None,
         None,
         None,
     ),  # FIXME: UC_MODE_LITTLE_ENDIAN, Not supported by Unicorn
     "loongarch64": (
-        "addi.d $r1, $r1, 60",
+        "addi.d $r1, $r1, FROM_INCLUDE_VALUE",
         None,
         None,
         None,
@@ -141,7 +179,10 @@ test_cases = list(regs_and_instr.keys())
 def test_zig_asm_compiles(arch):
     asm_line, uc_arch, uc_mode, uc_cpu, reg_id = regs_and_instr[arch]
 
-    bytecode = pwndbg.lib.zig._asm(arch, asm_line)
+    example_h = tempfile.mktemp(suffix="test.h")
+    open(example_h, "w").write(include_text)
+
+    bytecode = pwndbg.lib.zig._asm(arch, asm_line, includes=[pathlib.Path(example_h)])
     assert len(bytecode) > 0, "Bytecode too short"
 
     if uc_arch is None:
@@ -162,4 +203,4 @@ def test_zig_asm_compiles(arch):
 
     # Read result
     value = mu.reg_read(reg_id)
-    assert value == 60, "Value mismatch"
+    assert value == expected_value, "Value mismatch"
