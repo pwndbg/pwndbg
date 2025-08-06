@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.aglib.symbol
 import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib.symbol
 import pwndbg.color
 import pwndbg.dbg
 
@@ -95,7 +95,7 @@ two:
 
     jalr x1, 8(x2)
     nop
-    
+
 three:
     la x2, four
     jalr x2
@@ -113,6 +113,7 @@ end:
 {RISCV64_GRACEFUL_EXIT}
 """
 
+
 def test_riscv64_jalr_variants(qemu_assembly_run):
     """
     Ensure targets are resolved correctly for different variants of RISC-V JALR
@@ -122,7 +123,7 @@ def test_riscv64_jalr_variants(qemu_assembly_run):
     gdb.execute("stepuntilasm ret")
     ins = pwndbg.aglib.disasm.disassembly.emulate_one()
     assert ins.target_string == "two"
-    
+
     gdb.execute("stepuntilasm jalr")
     ins = pwndbg.aglib.disasm.disassembly.emulate_one()
     assert ins.target_string == "three"
