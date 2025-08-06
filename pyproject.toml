@@ -28,7 +28,8 @@ dependencies = [
     "rich>=13.7.1,<14",
     # Optional? only for qemu-system vmmap
     "pt",
-    # Optional? only for 'cymbol' command
+    # Optional? 'ziglang' must be optional, as it is not available on every platform.
+    # It is only used for the 'cymbol' command and some `asm` functionality.
     "ziglang==0.14.1",
 ]
 
