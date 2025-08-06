@@ -9,12 +9,12 @@ from typing import Set
 
 import pwndbg
 import pwndbg.aglib.arch
+import pwndbg.aglib.asm
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.enhance
-import pwndbg.lib.zig
 import pwndbg.search
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -243,7 +243,7 @@ def search(
         value += b"\x00"
 
     elif type == "asm" or asmbp:
-        value = pwndbg.lib.zig.asm(pwndbg.aglib.arch, value)
+        value = pwndbg.aglib.asm.asm(value)
 
     # `pwndbg.search.search` expects a `bytes` object for its pattern. Convert the string pattern we
     # were given to a bytes object by encoding it as an UTF-8 byte sequence. This matches the behavior

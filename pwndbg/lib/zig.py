@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os.path
+import pathlib
 import subprocess
 import tempfile
 from typing import Dict
@@ -38,29 +39,30 @@ _arch_mapping: Dict[Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little",
     ("s390x", "big", 8): "s390x",
 }
 
+_prefix_header = ".global _start\n.global __start\n.section .text\n_start:\n__start:\n"
 _asm_header: Dict[str, str] = {
-    "x86_64": ".intel_syntax noprefix\n.global _start\n.section .text\n_start:\n",
-    "x86": ".intel_syntax noprefix\n.global _start\n.section .text\n_start:\n",
-    "mips": ".global _start\n.section .text\n_start:\n",
-    "mipsel": ".global _start\n.section .text\n_start:\n",
-    "mips64": ".global _start\n.section .text\n_start:\n",
-    "mips64el": ".global _start\n.section .text\n_start:\n",
-    "aarch64": ".global _start\n.section .text\n_start:\n",
-    "aarch64_be": ".global _start\n.section .text\n_start:\n",
-    "arm": ".global _start\n.section .text\n_start:\n",
-    "armeb": ".global _start\n.section .text\n_start:\n",
-    "thumb": ".global _start\n.section .text\n_start:\n",
-    "thumbeb": ".global _start\n.section .text\n_start:\n",
-    "riscv32": ".global _start\n.section .text\n_start:\n",
-    "riscv64": ".global _start\n.section .text\n_start:\n",
-    "sparc": ".global _start\n.section .text\n_start:\n",
-    "sparc64": ".global _start\n.section .text\n_start:\n",
-    "powerpc": ".global _start\n.section .text\n_start:\n",
-    "powerpcle": ".global _start\n.section .text\n_start:\n",
-    "powerpc64": ".global _start\n.section .text\n_start:\n",
-    "powerpc64le": ".global _start\n.section .text\n_start:\n",
-    "loongarch64": ".global _start\n.section .text\n_start:\n",
-    "s390x": ".global _start\n.section .text\n_start:\n",
+    "x86_64": _prefix_header + ".intel_syntax noprefix\n",
+    "x86": _prefix_header + ".intel_syntax noprefix\n",
+    "mips": _prefix_header + ".set noreorder\n",
+    "mipsel": _prefix_header + ".set noreorder\n",
+    "mips64": _prefix_header + ".set noreorder\n",
+    "mips64el": _prefix_header + ".set noreorder\n",
+    "aarch64": _prefix_header,
+    "aarch64_be": _prefix_header,
+    "arm": _prefix_header + ".syntax unified\n",
+    "armeb": _prefix_header + ".syntax unified\n",
+    "thumb": _prefix_header + ".syntax unified\n",
+    "thumbeb": _prefix_header + ".syntax unified\n",
+    "riscv32": _prefix_header,
+    "riscv64": _prefix_header,
+    "sparc": _prefix_header,
+    "sparc64": _prefix_header,
+    "powerpc": _prefix_header,
+    "powerpcle": _prefix_header,
+    "powerpc64": _prefix_header,
+    "powerpc64le": _prefix_header,
+    "loongarch64": _prefix_header,
+    "s390x": _prefix_header,
 }
 
 def _get_zig_target(arch: ArchDefinition) -> str | None:
@@ -99,15 +101,15 @@ def flags(arch: ArchDefinition) -> List[str]:
     ]
 
 
-def asm(arch: ArchDefinition, data: str) -> bytes:
+def asm(arch: ArchDefinition, data: str, includes: List[pathlib.Path]=None) -> bytes:
     arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize), None)
     if arch_mapping is None:
         raise ValueError(f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})")
 
-    return _asm(arch_mapping, data)
+    return _asm(arch_mapping, data, includes)
 
 
-def _asm(arch_mapping: str, data: str) -> bytes:
+def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path]=None) -> bytes:
     try:
         import ziglang
     except ImportError:
@@ -117,13 +119,19 @@ def _asm(arch_mapping: str, data: str) -> bytes:
     if header is None:
         raise ValueError(f"Can't find asm header for target {arch_mapping}")
 
+    if includes is None:
+        includes = []
+
+    includes = ''.join(map(lambda path: f'#include "{path}"\n', includes))
     target = f'{arch_mapping}-freestanding'
+
     with tempfile.TemporaryDirectory() as tmpdir:
         asm_file = os.path.join(tmpdir, "input.S")
         compiled_file = os.path.join(tmpdir, "out.elf")
         bytecode_file = os.path.join(tmpdir, "out.bytecode")
 
         with open(asm_file, "w") as f:
+            f.write(includes)
             f.write(header)
             f.write(data)
 
@@ -147,7 +155,6 @@ def _asm(arch_mapping: str, data: str) -> bytes:
             raise Exception("Compilation error", compile_process.stdout, compile_process.stderr)
 
         # Extract bytecode
-        # zig objcopy -O binary --only-section=.text out.o out.bin
         objcopy_process = subprocess.run(
             [
                 os.path.join(os.path.dirname(ziglang.__file__), "zig"),
