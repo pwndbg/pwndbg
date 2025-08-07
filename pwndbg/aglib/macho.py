@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import struct
 from typing import Callable
 from typing import Generator
@@ -428,6 +429,11 @@ class DyldSharedCache:
             self._images_base = self.addr + pwndbg.aglib.memory.u32(self.addr + 0x1C0)
             self.image_count = pwndbg.aglib.memory.u32(self.addr + 0x1C4)
 
+        # Check whether the images are sorted by loading address.
+        self._images_sorted_by_address = all(
+            a[1] <= b[1] for a, b in itertools.pairwise(self.images)
+        )
+
     def _header_size(self) -> int:
         """
         The length of the shared cache header, in bytes.
@@ -572,6 +578,27 @@ class DyldSharedCache:
                 ),
                 struct.unpack("<Q", data[base : base + 8])[0],
             )
+
+    @property
+    def images_sorted(self) -> Generator[Tuple[bytes, int]]:
+        "Same as images, but guaranteed to be sorted by increasing base address"
+        if self._images_sorted_by_address:
+            # The images are naturally sorted by increasing base address.
+            #
+            # This should be true the _vast_ majority of the time, and perhaps
+            # even all the time. Just connect the generators.
+            yield from self.images
+        else:
+            # The images are sorted in some other order.
+            #
+            # This should be very rare, but we shoulnd't fail if it happens.
+            # Unlike the other cases in which we have to choose whether to fail
+            # at or gracefully handle a weird condition, libmacho doesn't seem
+            # to rely on this being the case.
+            images = list(self.images)
+            images.sort(key=lambda image: image[1])
+
+            yield from iter(images)
 
     def is_address_in_shared_cache(self, addr: int) -> int:
         """
