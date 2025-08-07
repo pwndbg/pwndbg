@@ -179,10 +179,10 @@ test_cases = list(regs_and_instr.keys())
 def test_zig_asm_compiles(arch):
     asm_line, uc_arch, uc_mode, uc_cpu, reg_id = regs_and_instr[arch]
 
-    example_h = tempfile.mktemp(suffix="test.h")
-    open(example_h, "w").write(include_text)
+    with tempfile.NamedTemporaryFile(mode="wt", suffix="test.h", delete=False) as example_h:
+        example_h.write(include_text)
 
-    bytecode = pwndbg.lib.zig._asm(arch, asm_line, includes=[pathlib.Path(example_h)])
+    bytecode = pwndbg.lib.zig._asm(arch, asm_line, includes=[pathlib.Path(example_h.name)])
     assert len(bytecode) > 0, "Bytecode too short"
 
     if uc_arch is None:

@@ -18,7 +18,6 @@ def _get_pwntools_includes() -> List[pathlib.Path]:
         / f"{pwnlib.context.context.arch}.h"
     )
     if not include.exists():
-        # log.warn_once("Could not find system include headers for %s-%s" % (arch,os))
         return []
     return [include]
 

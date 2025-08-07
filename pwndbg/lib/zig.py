@@ -41,14 +41,19 @@ _arch_mapping: Dict[Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little",
 
 _prefix_header = ".global _start\n.global __start\n.section .text\n_start:\n__start:\n"
 _asm_header: Dict[str, str] = {
+    # `.intel_syntax noprefix` forces the use of Intel assembly syntax instead of AT&T
     "x86_64": _prefix_header + ".intel_syntax noprefix\n",
     "x86": _prefix_header + ".intel_syntax noprefix\n",
+
+    # `.set noreorder` disables instruction reordering for MIPS to handle delay slots correctly
     "mips": _prefix_header + ".set noreorder\n",
     "mipsel": _prefix_header + ".set noreorder\n",
     "mips64": _prefix_header + ".set noreorder\n",
     "mips64el": _prefix_header + ".set noreorder\n",
     "aarch64": _prefix_header,
     "aarch64_be": _prefix_header,
+
+    # `.syntax unified` enables the unified assembly syntax for ARM/Thumb
     "arm": _prefix_header + ".syntax unified\n",
     "armeb": _prefix_header + ".syntax unified\n",
     "thumb": _prefix_header + ".syntax unified\n",
@@ -101,7 +106,7 @@ def flags(arch: ArchDefinition) -> List[str]:
     ]
 
 
-def asm(arch: ArchDefinition, data: str, includes: List[pathlib.Path]=None) -> bytes:
+def asm(arch: ArchDefinition, data: str, includes: List[pathlib.Path] | None=None) -> bytes:
     arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize), None)
     if arch_mapping is None:
         raise ValueError(f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})")
@@ -109,7 +114,7 @@ def asm(arch: ArchDefinition, data: str, includes: List[pathlib.Path]=None) -> b
     return _asm(arch_mapping, data, includes)
 
 
-def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path]=None) -> bytes:
+def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None=None) -> bytes:
     try:
         import ziglang
     except ImportError:
@@ -122,7 +127,7 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path]=None) -> byt
     if includes is None:
         includes = []
 
-    includes = ''.join(map(lambda path: f'#include "{path}"\n', includes))
+    includes = ''.join((f'#include "{path}"\n' for path in includes))
     target = f'{arch_mapping}-freestanding'
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -173,4 +178,5 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path]=None) -> byt
         if objcopy_process.returncode != 0:
             raise Exception("Extracting bytecode error", objcopy_process.stdout, objcopy_process.stderr)
 
-        return open(bytecode_file, "rb").read()
+        with open(bytecode_file, "rb") as f:
+            return f.read()
