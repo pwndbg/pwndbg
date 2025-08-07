@@ -40,7 +40,7 @@ Arch Linux:
 pacman -U ./pwndbg-2025.05.30-1-x86_64.pkg.tar.zst
 ```
 ### Distro packages
-You may want to install Pwndbg through your distribution's package manager. This installation method is **not officially supported** because we cannot control the versions of the python dependencies Pwndbg uses in this case. Please use any other installation method when reproducing bug reports (portable package is probably simplest in this case). If a bug reproduces with a distro package but not with any of the supported installation methods, please report it to the package maintainer; if the problem cannot be fixed, let us know and we will add it to the list of known issues below.
+You may want to install Pwndbg through your distribution's package manager. This installation method is **not officially supported** because we cannot control the versions of the python dependencies Pwndbg uses in this case. Please use any other installation method when reproducing bug reports (portable package is probably simplest in this case). If a bug reproduces with a distro package but not with any of the supported installation methods, please report it to the package maintainer; if the problem cannot be fixed, let us know and we will add it to a list of known issues below.
 
 === "Arch"
     ```{.bash .copy}
@@ -58,10 +58,6 @@ You may want to install Pwndbg through your distribution's package manager. This
     ```
 
 ----
-
-Known issues:
-
-+ We require `gnureadline` rather than Arch's `pyreadline3`. This causes tab completion to not work.
 
 ## Installing pwndbg-lldb
 These installation methods provide the
