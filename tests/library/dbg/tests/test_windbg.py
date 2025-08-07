@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import gdb
+import re
 
-import pwndbg.aglib.memory
-import pwndbg.aglib.regs
-import pwndbg.aglib.vmmap
-
+from ....host import Controller
 from . import get_binary
+from . import pwndbg_test
 
 MEMORY_BINARY = get_binary("memory.out")
 X86_BINARY = get_binary("gosample.x86")
@@ -14,34 +12,37 @@ X86_BINARY = get_binary("gosample.x86")
 data_addr = "0x401000"
 
 
-def test_windbg_dX_commands(start_binary):
+@pwndbg_test
+async def test_windbg_dX_commands(ctrl: Controller) -> None:
     """
     Tests windbg compatibility commands that dump memory
     like dq, dw, db, ds etc.
     """
-    start_binary(MEMORY_BINARY)
+    import pwndbg.aglib.regs
+
+    await ctrl.launch(MEMORY_BINARY)
 
     # Try to fail commands in different way
     for cmd_prefix in ("dq", "dd", "dw", "db"):
         # With a non-existent symbol
         cmd = cmd_prefix + " nonexistentsymbol"
-        assert gdb.execute(cmd, to_string=True) == (
+        assert (await ctrl.execute_and_capture(cmd)) == (
             "usage: XX [-h] address [count]\n"
             "XX: error: argument address: Incorrect address (or GDB expression): nonexistentsymbol\n"
         ).replace("XX", cmd_prefix)
 
         # With an invalid/unmapped address
         cmd = cmd_prefix + " 0"
-        assert gdb.execute(cmd, to_string=True) == "Could not access the provided address\n"
+        assert (await ctrl.execute_and_capture(cmd)) == "Could not access the provided address\n"
 
     #################################################
     #### dq command tests
     #################################################
     # Try `dq` with symbol, &symbol, 0x<address> and <address> without 0x prefix (treated as hex!)
-    dq1 = gdb.execute("dq data", to_string=True)
-    dq2 = gdb.execute("dq &data", to_string=True)
-    dq3 = gdb.execute(f"dq {data_addr}", to_string=True)
-    dq4 = gdb.execute(f"dq {data_addr.replace('0x', '')}", to_string=True)
+    dq1 = await ctrl.execute_and_capture("dq data")
+    dq2 = await ctrl.execute_and_capture("dq &data")
+    dq3 = await ctrl.execute_and_capture(f"dq {data_addr}")
+    dq4 = await ctrl.execute_and_capture(f"dq {data_addr.replace('0x', '')}")
     assert (
         dq1
         == dq2
@@ -56,9 +57,9 @@ def test_windbg_dX_commands(start_binary):
     )
 
     # Try `dq` with different counts
-    dq_count1 = gdb.execute("dq data 2", to_string=True)
-    dq_count2 = gdb.execute("dq &data 2", to_string=True)
-    dq_count3 = gdb.execute(f"dq {data_addr} 2", to_string=True)
+    dq_count1 = await ctrl.execute_and_capture("dq data 2")
+    dq_count2 = await ctrl.execute_and_capture("dq &data 2")
+    dq_count3 = await ctrl.execute_and_capture(f"dq {data_addr} 2")
     assert (
         dq_count1
         == dq_count2
@@ -66,38 +67,40 @@ def test_windbg_dX_commands(start_binary):
         == "0000000000401000     0000000000000000 0000000000000001\n"
     )
 
-    assert gdb.execute("dq data 1", to_string=True) == "0000000000401000     0000000000000000\n"
-    assert gdb.execute("dq data 3", to_string=True) == (
+    assert (
+        await ctrl.execute_and_capture("dq data 1")
+    ) == "0000000000401000     0000000000000000\n"
+    assert (await ctrl.execute_and_capture("dq data 3")) == (
         "0000000000401000     0000000000000000 0000000000000001\n"
         "0000000000401010     0000000100000002\n"
     )
 
     # Try 'dq' with count equal to a register, but lets set it before ;)
     # also note that we use `data2` here
-    assert gdb.execute("set $eax=4", to_string=True) == ""  # assert as a sanity check
-    assert gdb.execute("dq data2 $eax", to_string=True) == (
+    pwndbg.aglib.regs.eax = 4
+    assert (await ctrl.execute_and_capture("dq data2 $eax")) == (
         "0000000000401028     1122334455667788 0123456789abcdef\n"
         "0000000000401038     0000000000000000 ffffffffffffffff\n"
     )
 
     # See if we can repeat dq command (use count for shorter data)
-    assert gdb.execute("dq data2 2", to_string=True) == (
+    assert (await ctrl.execute_and_capture("dq data2 2")) == (
         "0000000000401028     1122334455667788 0123456789abcdef\n"
     )
 
     # TODO/FIXME: Can we test command repeating here? Neither passing `from_tty=True`
     # or setting `pwndbg.commands.windbg.dq.repeat = True` works here
-    # assert gdb.execute('dq data2 2', to_string=True, from_tty=True) == (
+    # assert await ctrl.execute_and_capture('dq data2 2') == (
     #    '00000000004000b9     0000000000000000 ffffffffffffffff\n'
     # )
 
     #################################################
     #### dd command tests
     #################################################
-    dd1 = gdb.execute("dd data", to_string=True)
-    dd2 = gdb.execute("dd &data", to_string=True)
-    dd3 = gdb.execute(f"dd {data_addr}", to_string=True)
-    dd4 = gdb.execute(f"dd {data_addr.replace('0x', '')}", to_string=True)
+    dd1 = await ctrl.execute_and_capture("dd data")
+    dd2 = await ctrl.execute_and_capture("dd &data")
+    dd3 = await ctrl.execute_and_capture(f"dd {data_addr}")
+    dd4 = await ctrl.execute_and_capture(f"dd {data_addr.replace('0x', '')}")
     assert (
         dd1
         == dd2
@@ -112,20 +115,20 @@ def test_windbg_dX_commands(start_binary):
     )
 
     # count tests
-    assert gdb.execute("dd data 4", to_string=True) == (
+    assert (await ctrl.execute_and_capture("dd data 4")) == (
         "0000000000401000     00000000 00000000 00000001 00000000\n"
     )
-    assert gdb.execute("dd data 3", to_string=True) == (
+    assert (await ctrl.execute_and_capture("dd data 3")) == (
         "0000000000401000     00000000 00000000 00000001\n"
     )
 
     #################################################
     #### dw command tests
     #################################################
-    dw1 = gdb.execute("dw data", to_string=True)
-    dw2 = gdb.execute("dw &data", to_string=True)
-    dw3 = gdb.execute(f"dw {data_addr}", to_string=True)
-    dw4 = gdb.execute(f"dw {data_addr.replace('0x', '')}", to_string=True)
+    dw1 = await ctrl.execute_and_capture("dw data")
+    dw2 = await ctrl.execute_and_capture("dw &data")
+    dw3 = await ctrl.execute_and_capture(f"dw {data_addr}")
+    dw4 = await ctrl.execute_and_capture(f"dw {data_addr.replace('0x', '')}")
     assert (
         dw1
         == dw2
@@ -140,25 +143,25 @@ def test_windbg_dX_commands(start_binary):
     )
 
     # count tests
-    assert gdb.execute("dw data 8", to_string=True) == (
+    assert (await ctrl.execute_and_capture("dw data 8")) == (
         "0000000000401000     0000 0000 0000 0000 0001 0000 0000 0000\n"
     )
 
-    assert gdb.execute("dw data 8/2", to_string=True) == (
+    assert (await ctrl.execute_and_capture("dw data 8/2")) == (
         "0000000000401000     0000 0000 0000 0000\n"
     )
 
-    assert gdb.execute("dw data $eax", to_string=True) == (
+    assert (await ctrl.execute_and_capture("dw data $eax")) == (
         "0000000000401000     0000 0000 0000 0000\n"
     )
 
     #################################################
     #### db command tests
     #################################################
-    db1 = gdb.execute("db data", to_string=True)
-    db2 = gdb.execute("db &data", to_string=True)
-    db3 = gdb.execute(f"db {data_addr}", to_string=True)
-    db4 = gdb.execute(f"db {data_addr.replace('0x', '')}", to_string=True)
+    db1 = await ctrl.execute_and_capture("db data")
+    db2 = await ctrl.execute_and_capture("db &data")
+    db3 = await ctrl.execute_and_capture(f"db {data_addr}")
+    db4 = await ctrl.execute_and_capture(f"db {data_addr.replace('0x', '')}")
     assert (
         db1
         == db2
@@ -173,19 +176,19 @@ def test_windbg_dX_commands(start_binary):
     )
 
     # count tests
-    assert gdb.execute("db data 31", to_string=True) == (
+    assert (await ctrl.execute_and_capture("db data 31")) == (
         "0000000000401000     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
         "0000000000401010     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
     )
-    assert gdb.execute("db data $ax", to_string=True) == ("0000000000401000     00 00 00 00\n")
+    assert (await ctrl.execute_and_capture("db data $ax")) == ("0000000000401000     00 00 00 00\n")
 
     #################################################
     #### dc command tests
     #################################################
-    dc1 = gdb.execute("dc data", to_string=True)
-    dc2 = gdb.execute("dc &data", to_string=True)
-    dc3 = gdb.execute(f"dc {data_addr}", to_string=True)
-    dc4 = gdb.execute(f"dc {data_addr.replace('0x', '')}", to_string=True)
+    dc1 = await ctrl.execute_and_capture("dc data")
+    dc2 = await ctrl.execute_and_capture("dc &data")
+    dc3 = await ctrl.execute_and_capture(f"dc {data_addr}")
+    dc4 = await ctrl.execute_and_capture(f"dc {data_addr.replace('0x', '')}")
     assert (
         dc1
         == dc2
@@ -197,44 +200,47 @@ def test_windbg_dX_commands(start_binary):
         )
     )
 
-    assert gdb.execute("dc data 3", to_string=True) == (
+    assert (await ctrl.execute_and_capture("dc data 3")) == (
         "+0000 0x401000  00 00 00                                          │...     │        │\n"
     )
 
     #################################################
     #### ds command tests
     #################################################
-    ds1 = gdb.execute("ds short_str", to_string=True)
-    ds2 = gdb.execute("ds &short_str", to_string=True)
-    ds3 = gdb.execute("ds 0x401058", to_string=True)
-    ds4 = gdb.execute("ds 401058", to_string=True)
+    ds1 = await ctrl.execute_and_capture("ds short_str")
+    ds2 = await ctrl.execute_and_capture("ds &short_str")
+    ds3 = await ctrl.execute_and_capture("ds 0x401058")
+    ds4 = await ctrl.execute_and_capture("ds 401058")
     assert ds1 == ds2 == ds3 == ds4 == "401058 'some cstring here'\n"
 
     # Check too low maxlen
-    assert gdb.execute("ds short_str 5", to_string=True) == (
+    assert (await ctrl.execute_and_capture("ds short_str 5")) == (
         "Max str len of 5 too low, changing to 256\n401058 'some cstring here'\n"
     )
 
     # Check output for a string longer than (the default) maxlen of 256
-    assert gdb.execute("ds long_str", to_string=True) == (
+    assert (await ctrl.execute_and_capture("ds long_str")) == (
         "40106a 'long string: "
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...'\n"
     )
 
     # Check impossible address
-    assert gdb.execute("ds 0", to_string=True) == (
+    assert (await ctrl.execute_and_capture("ds 0")) == (
         "Data at address can't be dereferenced or is not a printable null-terminated "
         "string or is too short.\n"
         "Perhaps try: db <address> <count> or hexdump <address>\n"
     )
 
 
-def test_windbg_eX_commands(start_binary):
+@pwndbg_test
+async def test_windbg_eX_commands(ctrl: Controller) -> None:
     """
     Tests windbg compatibility commands that write to memory
     like eq, ed, ew, eb etc.
     """
-    start_binary(MEMORY_BINARY)
+    import pwndbg
+
+    await ctrl.launch(MEMORY_BINARY)
 
     # Try to fail commands in different way
     for cmd_prefix in ("eq", "ed", "ew", "eb"):
@@ -255,34 +261,38 @@ def test_windbg_eX_commands(start_binary):
             ).replace("XX", cmd_prefix),
         )
 
-        assert gdb.execute(cmd, to_string=True) in expected_in
-        assert gdb.execute(cmd, to_string=True) in expected_in
+        assert (await ctrl.execute_and_capture(cmd)) in expected_in
+        assert (await ctrl.execute_and_capture(cmd)) in expected_in
 
         # With no data arguments provided
         cmd = cmd_prefix + " 0"
-        assert gdb.execute(cmd, to_string=True) == "Cannot write empty data into memory.\n"
+        assert (await ctrl.execute_and_capture(cmd)) == "Cannot write empty data into memory.\n"
 
         # With invalid/unmapped address 0
         cmd = cmd_prefix + " 0 1122"
-        assert gdb.execute(cmd, to_string=True) == ("Cannot access memory at address 0x0\n")
+        assert (await ctrl.execute_and_capture(cmd)) == ("Cannot access memory at address 0x0\n")
 
         # With invalid data which can't be parsed as hex
         cmd = cmd_prefix + " 0 x"
-        assert gdb.execute(cmd, to_string=True) == (
+        assert (await ctrl.execute_and_capture(cmd)) == (
             "Incorrect data format: it must all be a hex value (0x1234 or 1234, both "
             "interpreted as 0x1234)\n"
         )
     #########################################
     ### Test eq write
     #########################################
-    assert gdb.execute("eq $sp 0xcafebabe", to_string=True) == ""
-    assert "0x00000000cafebabe" in gdb.execute("x/xg $sp", to_string=True)
+    assert (await ctrl.execute_and_capture("eq $sp 0xcafebabe")) == ""
+    assert "0x00000000cafebabe" in (await ctrl.execute_and_capture("x/xg $sp"))
 
-    assert gdb.execute("eq $sp 0xbabe 0xcafe", to_string=True) == ""
-    assert "0x000000000000babe\t0x000000000000cafe" in gdb.execute("x/2xg $sp", to_string=True)
+    assert (await ctrl.execute_and_capture("eq $sp 0xbabe 0xcafe")) == ""
+    assert re.search(
+        "0x000000000000babe\\s+0x000000000000cafe", await ctrl.execute_and_capture("x/2xg $sp")
+    )
 
-    assert gdb.execute("eq $sp cafe000000000000 babe000000000000", to_string=True) == ""
-    assert "0xcafe000000000000\t0xbabe000000000000" in gdb.execute("x/2xg $sp", to_string=True)
+    assert (await ctrl.execute_and_capture("eq $sp cafe000000000000 babe000000000000")) == ""
+    assert re.search(
+        "0xcafe000000000000\\s+0xbabe000000000000", await ctrl.execute_and_capture("x/2xg $sp")
+    )
 
     # TODO/FIXME: implement tests for others (ed, ew, eb etc)
 
@@ -296,8 +306,8 @@ def test_windbg_eX_commands(start_binary):
     # Last possible address on stack where we can perform an 8-byte write
     stack_last_qword_ea = stack_page.end - 8
 
-    gdb_result = gdb.execute(
-        "eq %#x 0xCAFEBABEdeadbeef 0xABCD" % stack_last_qword_ea, to_string=True
+    gdb_result = (
+        await ctrl.execute_and_capture("eq %#x 0xCAFEBABEdeadbeef 0xABCD" % stack_last_qword_ea)
     ).split("\n")
     assert "Cannot access memory at address" in gdb_result[0]
     assert gdb_result[1] == "(Made 1 writes to memory; skipping further writes)"
@@ -306,12 +316,15 @@ def test_windbg_eX_commands(start_binary):
     assert pwndbg.aglib.memory.read(stack_last_qword_ea, 8) == b"\xef\xbe\xad\xde\xbe\xba\xfe\xca"
 
 
-def test_windbg_commands_x86(start_binary):
+@pwndbg_test
+async def test_windbg_commands_x86(ctrl: Controller) -> None:
     """
     Tests windbg compatibility commands that dump memory
     like dq, dw, db, ds etc.
     """
-    start_binary(X86_BINARY)
+    import pwndbg
+
+    await ctrl.launch(X86_BINARY)
 
     # Prepare memory
     pwndbg.aglib.memory.write(pwndbg.aglib.regs.esp, b"1234567890abcdef_")
@@ -322,7 +335,7 @@ def test_windbg_commands_x86(start_binary):
     #################################################
     #### dX command tests
     #################################################
-    db = gdb.execute("db $esp", to_string=True).splitlines()
+    db = (await ctrl.execute_and_capture("db $esp")).splitlines()
     assert db == [
         "%x     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66" % pwndbg.aglib.regs.esp,
         "%x     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" % (pwndbg.aglib.regs.esp + 16),
@@ -330,7 +343,7 @@ def test_windbg_commands_x86(start_binary):
         "%x     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a" % (pwndbg.aglib.regs.esp + 48),
     ]
 
-    dw = gdb.execute("dw $esp", to_string=True).splitlines()
+    dw = (await ctrl.execute_and_capture("dw $esp")).splitlines()
     assert dw == [
         "%x     3231 3433 3635 3837 3039 6261 6463 6665" % pwndbg.aglib.regs.esp,
         "%x     0000 0000 0000 0000 0000 0000 0000 0000" % (pwndbg.aglib.regs.esp + 16),
@@ -338,7 +351,7 @@ def test_windbg_commands_x86(start_binary):
         "%x     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a" % (pwndbg.aglib.regs.esp + 48),
     ]
 
-    dd = gdb.execute("dd $esp", to_string=True).splitlines()
+    dd = (await ctrl.execute_and_capture("dd $esp")).splitlines()
     assert dd == [
         "%x     34333231 38373635 62613039 66656463" % pwndbg.aglib.regs.esp,
         "%x     00000000 00000000 00000000 00000000" % (pwndbg.aglib.regs.esp + 16),
@@ -346,7 +359,7 @@ def test_windbg_commands_x86(start_binary):
         "%x     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a" % (pwndbg.aglib.regs.esp + 48),
     ]
 
-    dq = gdb.execute("dq $esp", to_string=True).splitlines()
+    dq = (await ctrl.execute_and_capture("dq $esp")).splitlines()
     assert dq == [
         "%x     3837363534333231 6665646362613039" % pwndbg.aglib.regs.esp,
         "%x     0000000000000000 0000000000000000" % (pwndbg.aglib.regs.esp + 16),
@@ -357,14 +370,14 @@ def test_windbg_commands_x86(start_binary):
     #################################################
     #### eX command tests
     #################################################
-    gdb.execute("eb $esp 00")
+    await ctrl.execute("eb $esp 00")
     assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 1) == b"\x00"
 
-    gdb.execute("ew $esp 4141")
+    await ctrl.execute("ew $esp 4141")
     assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 2) == b"\x41\x41"
 
-    gdb.execute("ed $esp 5252525252")
+    await ctrl.execute("ed $esp 5252525252")
     assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 4) == b"\x52" * 4
 
-    gdb.execute("eq $esp 1122334455667788")
+    await ctrl.execute("eq $esp 1122334455667788")
     assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 8) == b"\x88\x77\x66\x55\x44\x33\x22\x11"

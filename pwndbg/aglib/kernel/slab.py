@@ -40,7 +40,7 @@ def get_cache(target_name: str) -> SlabCache | None:
 
 def slab_struct_type() -> str:
     # In Linux kernel version 5.17 a slab struct was introduced instead of the previous page struct
-    if pwndbg.aglib.typeinfo.load("struct slab") is not None:
+    if pwndbg.aglib.kernel.krelease() >= (5, 17):
         return "slab"
     return "page"
 
@@ -181,14 +181,18 @@ class SlabCache:
         return get_flags_list(int(self._slab_cache["flags"]))
 
     @property
-    def cpu_cache(self) -> CpuCache:
+    def cpu_cache(self) -> CpuCache | None:
         """returns cpu cache associated to current thread"""
+        if not self._slab_cache.dereference().type.has_field("cpu_slab"):
+            return None
         cpu = pwndbg.dbg.selected_thread().index() - 1
         cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
         return CpuCache(cpu_cache, self, cpu)
 
     @property
     def cpu_caches(self) -> Generator[CpuCache, None, None]:
+        if not self._slab_cache.dereference().type.has_field("cpu_slab"):
+            return
         """returns cpu caches for all cpus"""
         for cpu in range(kernel.nproc()):
             cpu_cache = kernel.per_cpu(self._slab_cache["cpu_slab"], cpu=cpu)
@@ -202,12 +206,14 @@ class SlabCache:
 
     @property
     def cpu_partial(self) -> int:
+        if not self._slab_cache.dereference().type.has_field("cpu_partial"):
+            return None
         return int(self._slab_cache["cpu_partial"])
 
     @property
     def cpu_partial_slabs(self) -> int:
-        if self._slab_cache.dereference().type.has_field("cpu_partial_slabs"):
-            return int(self._slab_cache["cpu_partial_slabs"])
+        if self._slab_cache.dereference().type.has_field(f"cpu_partial_{slab_struct_type()}s"):
+            return int(self._slab_cache[f"cpu_partial_{slab_struct_type()}s"])
         return None
 
     @property
@@ -299,6 +305,8 @@ class CpuCache:
     @property
     def partial_slabs(self) -> List[Slab]:
         partial_slabs = []
+        if not self._cpu_cache.dereference().type.has_field("partial"):
+            return []
         cur_slab = self._cpu_cache["partial"]
         cur_slab_int = int(cur_slab)
         while cur_slab_int:
@@ -397,9 +405,9 @@ class Slab:
     def pobjects(self) -> int:
         if not self.is_partial:
             return 0
-        try:
+        if self._slab.type.has_field("pobjects"):
             return int(self._slab["pobjects"])
-        except pwndbg.dbg_mod.Error:
+        else:
             # calculate approx obj count in half-full slabs (as done in kernel)
             # Note, this is a very bad approximation and could/should probably
             # be replaced by a more accurate method
@@ -429,20 +437,6 @@ class Slab:
 
 
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
-    """Find the slab cache associated with the provided address."""
-    min_pfn = 0
-    max_pfn = pwndbg.aglib.kernel.symbol.try_usymbol("max_pfn")
-    assert max_pfn is not None, "Symbol max_pfn not found"
-
-    page_size = kernel.page_size()
-
-    start_addr = kernel.pfn_to_virt(min_pfn)
-    end_addr = kernel.pfn_to_virt(max_pfn + page_size)
-
-    if not start_addr <= addr < end_addr:
-        # address is out of range
-        return None
-
     page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
     head_page = compound_head(page)
 
@@ -494,11 +488,14 @@ def kmem_cache_pad_sz(kconfig) -> int:
         "CONFIG_SLAB_FREELIST_HARDENED",
         "CONFIG_NUMA",
         "CONFIG_SLAB_FREELIST_RANDOM",
-        "CONFIG_KASAN_GENERIC",
     )
     for config in configs:
         if config in kconfig:
             distance -= 8
+    if pwndbg.aglib.kernel.krelease() >= (6, 3):
+        distance -= 8 if "CONFIG_KASAN_GENERIC" in kconfig else 0
+    else:
+        distance -= 8 if "CONFIG_KASAN" in kconfig else 0
     if "CONFIG_HARDENED_USERCOPY" in kconfig or pwndbg.aglib.kernel.krelease() < (6, 2):
         distance -= 8
     assert distance < 0x1000, "cannot find kmem_cache padding size"
@@ -509,11 +506,13 @@ def kmem_cache_structs():
     to_define = None
     if pwndbg.aglib.kernel.krelease() < (5, 17):
         to_define = "BEFORE_V5_17"
-    elif pwndbg.aglib.kernel.krelease() < (6, 8):
-        to_define = "BETWEEN_V5_17_AND_V6_7"
+    elif pwndbg.aglib.kernel.krelease() < (6, 2):
+        to_define = "BETWEEN_V5_17_AND_V6_1"
     else:
-        to_define = "SINCE_V6_8"
+        to_define = "SINCE_V6_2"
     result = f"#define {to_define}\n"
+    if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig():
+        result += "#define CONFIG_SLUB_CPU_PARTIAL\n"
     result += """
     struct kmem_cache_node {
         spinlock_t list_lock;
@@ -529,21 +528,22 @@ def kmem_cache_structs():
     };
     typedef unsigned int gfp_t;
     typedef unsigned int slab_flags_t;
-    // struct page is already defined in COMMON_TYPES
 #ifndef BEFORE_V5_17
     struct slab {
         unsigned long __page_flags;
-#ifdef SINCE_V6_8
+#ifdef SINCE_V6_2
         struct kmem_cache *slab_cache;
 #endif
         union {
             struct list_head slab_list;
+#ifdef CONFIG_SLUB_CPU_PARTIAL
             struct {
                 struct slab *next;
                 int slabs;	/* Nr of slabs left */
             };
+#endif
         };
-#ifdef BETWEEN_V5_17_AND_V6_7
+#ifdef BETWEEN_V5_17_AND_V6_1
         struct kmem_cache *slab_cache;
 #endif
         void *freelist;		/* first free object */
@@ -558,19 +558,20 @@ def kmem_cache_structs():
         // rcu_head in later versions is not important for our purposes
         unsigned int __page_type;
         atomic_t __page_refcount;
+        /* memcg data unused in pwndbg */
     };
 #endif
-    struct kmem_cache_cpu {
+    """
+    result += f"""
+    struct kmem_cache_cpu {{
         void **freelist;	/* Pointer to next available object */
         unsigned long tid;	/* Globally unique transaction id */
-#ifdef BEFORE_V5_17
-        struct page *page;	/* The slab from which we are allocating */
-        struct page *partial;	/* Partially allocated frozen slabs */
-#else
-        struct slab *slab;	/* The slab from which we are allocating */
-        struct slab *partial;	/* Partially allocated frozen slabs */
+        struct {slab_struct_type()} *{slab_struct_type()};	/* The slab from which we are allocating */
+#ifdef CONFIG_SLUB_CPU_PARTIAL
+        struct {slab_struct_type()} *partial;	/* Partially allocated frozen slabs */
 #endif
-    };
+        /* irrelevant fields*/
+    }};
     """
     return result
 
@@ -583,10 +584,14 @@ def load_slab_typeinfo():
     defs = []
     if pwndbg.aglib.kernel.krelease() < (6, 2):
         defs.append("BEFORE_V6_2")
+    if pwndbg.aglib.kernel.krelease() >= (6, 3):
+        defs.append("SINCE_V6_3")
     if pwndbg.aglib.kernel.krelease() < (5, 19):
         defs.append("BEFORE_V5_19")
     if pwndbg.aglib.kernel.krelease() >= (5, 16):
         defs.append("SINCE_V5_16")
+    if pwndbg.aglib.kernel.krelease() >= (5, 9):
+        defs.append("SINCE_V5_9")
     configs = (
         "CONFIG_SLUB_TINY",
         "CONFIG_SLUB_CPU_PARTIAL",
@@ -595,6 +600,7 @@ def load_slab_typeinfo():
         "CONFIG_SLAB_FREELIST_RANDOM",
         "CONFIG_KASAN_GENERIC",
         "CONFIG_HARDENED_USERCOPY",
+        "CONFIG_KASAN",
     )
     for config in configs:
         if config in kconfig:
@@ -614,14 +620,16 @@ def load_slab_typeinfo():
         unsigned long min_partial;
         unsigned int size;		/* Object size including metadata */
         unsigned int object_size;	/* Object size without metadata */
+#if defined(SINCE_V5_9)
         struct reciprocal_value reciprocal_size;
+#endif
         unsigned int offset;		/* Free pointer offset */
 #ifdef CONFIG_SLUB_CPU_PARTIAL
         /* Number of per cpu partial objects to keep around */
         unsigned int cpu_partial;
 #ifdef SINCE_V5_16
         /* Number of per cpu partial slabs to keep around */
-        unsigned int cpu_partial_slabs;
+        unsigned int cpu_partial_{slab_struct_type()}s;
 #endif
 #endif
         struct kmem_cache_order_objects oo;
@@ -632,7 +640,7 @@ def load_slab_typeinfo():
 #endif
         gfp_t allocflags;		/* gfp flags to use on each alloc */
         int refcount;			/* Refcount for slab cache destroy */
-        void (*ctor)(void *object);	/* Object constructor */
+        void *ctor;	            /* Object constructor -- ignoring possible args */
         unsigned int inuse;		/* Offset to metadata */
         unsigned int align;		/* Alignment */
         unsigned int red_left_pad;	/* Left redzone padding size */
@@ -649,7 +657,7 @@ def load_slab_typeinfo():
 #ifdef CONFIG_SLAB_FREELIST_RANDOM
         unsigned int *random_seq;
 #endif
-#ifdef CONFIG_KASAN_GENERIC
+#if (defined(SINCE_V6_3) && defined(CONFIG_KASAN_GENERIC) || (!defined(SINCE_V6_3) && defined(CONFIG_KASAN)))
         char _pad2[8]; // the kasan_cache struct includes only 2 int's
 #endif
 #if defined(BEFORE_V6_2) || defined(CONFIG_HARDENED_USERCOPY)

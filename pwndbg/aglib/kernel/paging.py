@@ -63,7 +63,8 @@ class ArchPagingInfo:
     @property
     @pwndbg.lib.cache.cache_until("start")
     def STRUCT_PAGE_SHIFT(self):
-        return int(math.log2(self.STRUCT_PAGE_SIZE))
+        # needs to be rounded up (consider the layout of vmemmap)
+        return math.ceil(math.log2(self.STRUCT_PAGE_SIZE))
 
     @property
     def page_shift(self) -> int:
@@ -435,16 +436,21 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self):
         if self.kversion is None:
-            return None
+            return INVALID_ADDR
         if self.kversion >= (6, 9):
             # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L33
-            return (-0x40000000 % INVALID_ADDR) - self.VMEMMAP_SIZE
-        if self.kversion >= (5, 11):
+            result = (-0x40000000 % INVALID_ADDR) - self.VMEMMAP_SIZE
+        elif self.kversion >= (5, 11):
             # Linux 5.11 changed the calculation for VMEMMAP_START
             # https://elixir.bootlin.com/linux/v5.11/source/arch/arm64/include/asm/memory.h#L53
             VMEMMAP_SHIFT = self.page_shift - self.STRUCT_PAGE_SHIFT
-            return -(1 << (self.va_bits - VMEMMAP_SHIFT)) % INVALID_ADDR
-        return (-self.VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
+            result = -(1 << (self.va_bits - VMEMMAP_SHIFT)) % INVALID_ADDR
+        else:
+            result = (-self.VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
+        for page in get_memory_map_raw():
+            if page.start >= result:
+                return page.start
+        return INVALID_ADDR
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
