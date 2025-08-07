@@ -64,7 +64,6 @@ import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
 from pwndbg.color import message
-from pwndbg.lib.cache import cache_until
 
 LIBC_NAME = "libc.so.6"
 MALLOC_NAME = "malloc"
@@ -128,19 +127,11 @@ def resolve_address(name: str) -> int | None:
     return address
 
 
-@cache_until("stop")
-def get_heap_base():
-    """
-    Get the heap base once per run or until the cache is cleared.
-    """
-    return next((p for p in pwndbg.aglib.vmmap.get() if p.objfile == "[heap]"), None)
-
-
 def format_heap_offset(addr: int) -> str:
     """
     Format the provided address based on the heap base.
     """
-    heap_base = get_heap_base()
+    heap_base = next((p for p in pwndbg.aglib.vmmap.get() if p.objfile == "[heap]"), None)
     if heap_base and heap_base.start <= addr < heap_base.end:
         offset = addr - heap_base.start
         return f"0x{addr:x} [heap+0x{offset:x}]"
