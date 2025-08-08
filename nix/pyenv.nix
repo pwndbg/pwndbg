@@ -219,7 +219,7 @@ let
           '';
 
           # Remove this block after upgrading to unicorn 2.2.0
-          patches = (old.patches or [ ]) ++ [
+          patches = lib.optionals stdenv.hostPlatform.isDarwin [
             (fetchpatch {
               url = "https://github.com/unicorn-engine/unicorn/commit/79f910ea73220f4f603b6050593af86483573908.patch";
               hash = "sha256-AIMetsuYx1wz2KNtHcsyBfue+dBIDMVdqIiPaQ3xfgs=";
