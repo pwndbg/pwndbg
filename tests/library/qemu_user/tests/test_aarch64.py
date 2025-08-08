@@ -819,7 +819,7 @@ def test_memory_read_error_handling(qemu_assembly_run):
     # Find the first memory page where there is a gap after it
     stack_end_addr = -1
     page_prev = None
-    for page in pwndbg.dbg.selected_inferior().vmmap().ranges():
+    for page in pwndbg.aglib.vmmap.get_memory_map().ranges():
         if page_prev is not None and page_prev.end != page.start:
             stack_end_addr = page_prev.end
             break

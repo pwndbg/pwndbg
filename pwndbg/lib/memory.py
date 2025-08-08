@@ -67,12 +67,21 @@ class Page:
     - A path to a file, such as `/usr/lib/libc.so.6`
     """
 
-    def __init__(self, start: int, size: int, flags: int, offset: int, objfile: str = "") -> None:
+    in_darwin_shared_cache: bool
+    """
+    Whether this mapping is part of the Darwin Shared Cache.
+
+    This is an interesting property to know, as these entries may not be useful
+    to us at all times, and having an easy way to filter them out is helpful..
+    """
+
+    def __init__(self, start: int, size: int, flags: int, offset: int, objfile: str = "", in_darwin_shared_cache: bool = False) -> None:
         self.vaddr = start
         self.memsz = size
         self.flags = flags
         self.offset = offset
         self.objfile = objfile
+        self.in_darwin_shared_cache = in_darwin_shared_cache
 
         # if self.rwx:
         # self.flags = self.flags ^ 1
