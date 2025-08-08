@@ -1544,11 +1544,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # basically nothing we can do to help with this, so we error out.
             raise pwndbg.dbg_mod.Error("Unknown target architecture")
 
-        name = names[0]
-        if name == "x86_64":
+        arch_name = names[0]
+        if arch_name == "x86_64":
             # GDB and Pwndbg use a different name for x86_64.
-            name = "x86-64"
-        elif name == "arm":
+            arch_name = "x86-64"
+        elif arch_name == "arm":
             # LLDB doesn't distinguish between ARM Cortex-M and other varieties
             # of ARM. Pwndbg needs that distinction, so we attempt to detect
             # Cortex-M varieties by querying for the presence of the `xpsr`
@@ -1563,21 +1563,27 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             ), "Either all threads are Cortex-M or none are, Pwndbg doesn't know how to handle other cases"
 
             if any(has_xpsr):
-                name = "armcm"
-        elif name == "arm64":
+                arch_name = "armcm"
+        elif arch_name == "arm64":
             # Apple uses a different name for AArch64 than we do.
-            name = "aarch64"
-        elif name == "arm64e":
+            arch_name = "aarch64"
+        elif arch_name == "arm64e":
             # Apple uses a different name for AArch64 than we do.
-            name = "aarch64"
-        elif name == "riscv32":
+            arch_name = "aarch64"
+        elif arch_name == "riscv32":
             # Pwndbg use a different name for riscv32.
-            name = "rv32"
-        elif name == "riscv64":
+            arch_name = "rv32"
+        elif arch_name == "riscv64":
             # Pwndbg use a different name for riscv64.
-            name = "rv64"
+            arch_name = "rv64"
 
-        return ArchDefinition(name=name, ptrsize=ptrsize0, endian=endian, platform=Platform.LINUX)
+        # Distinguish Apple platforms, default to Linux otherwise.
+        if len(names) >= 2 and names[1] == "apple":
+            platform = Platform.DARWIN
+        else:
+            platform = Platform.LINUX
+
+        return ArchDefinition(name=arch_name, ptrsize=ptrsize0, endian=endian, platform=platform)
 
     @override
     def break_at(
