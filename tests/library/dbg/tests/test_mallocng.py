@@ -5,10 +5,6 @@ from typing import List
 
 import pytest
 
-import pwndbg
-import pwndbg.color as color
-import pwndbg.dbg
-
 from ....host import Controller
 from . import break_at_sym
 from . import get_binary
@@ -27,6 +23,8 @@ re_addr = r"0x[0-9a-fA-F]{1,12}"
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_slot_user(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     # Get out of the break_here() function.
     await ctrl.finish()
@@ -177,6 +175,8 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_slot_start(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
@@ -203,6 +203,8 @@ async def test_mallocng_slot_start(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_group(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
@@ -272,6 +274,8 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_meta(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
@@ -292,7 +296,9 @@ async def test_mallocng_meta(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
-    await launch_to(ctrl, binary, "main")
+    import pwndbg.color as color
+
+    await ctrl.launch(binary)
 
     # Check that we do not find it at the first program instruction
     if binary == HEAP_MALLOCNG_DYN:
@@ -300,7 +306,6 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
         # __malloc_context by simply looking up the symbol. So we only
         # check this for the dynamically linked binary.
 
-        await ctrl.execute("starti")
         # This is at _dlstart - the heap is uninitialized at this point.
         ctx_out = color.strip(await ctrl.execute_and_capture("ng-ctx"))
 
@@ -330,6 +335,9 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_find(ctrl: Controller, binary: str):
+    import pwndbg
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
@@ -374,6 +382,8 @@ async def test_mallocng_find(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_metaarea(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
