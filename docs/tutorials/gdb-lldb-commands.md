@@ -41,5 +41,5 @@ For users who are migrating from one debugger to another, here is a table compar
 | **Set Architecture**                          | `set architecture <arch>`              | `target create --arch <arch> <executable-file>`             |
 | **Show Settings**                             | `show <setting-name>`                  | `settings show <setting-name>`                              |
 | **Set File for Debugging**                    | `file <executable-file>`               | `target create <executable-file>`                           |
-| **Start the Program and Run One Instruction** | `starti`                               | `process launch --stop-at-entry`                            |
+| **Start the Program at the First Instruction**| `starti`                               | `process launch --stop-at-entry`                            |
 | **Enable ASLR**                               | `set disable-randomization off`        | `settings set target.disable-aslr false`                    |
