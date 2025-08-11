@@ -54,7 +54,7 @@ export LLDB_DEBUGSERVER_PATH=/usr/lib/llvm-19/bin/lldb-server
 Pwndbg doesn't use the `lldb` driver binary directly, it drives its own REPL and interacts with LLDB through liblldb.
 You can run Pwndbg with LLDB by running:
 ```{.bash .copy}
-uv run python pwndbginit/pwndbg_lldb.py [binary-to-debug]
+uv run pwndbg-lldb [binary-to-debug]
 ```
 
 ## The development environment
