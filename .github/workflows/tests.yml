@@ -106,6 +106,7 @@ jobs:
       run: |
         ./setup.sh
         ./setup-dev.sh
+        sudo apt-get install -y libc6-dev libxml2 lzma
 
     - name: Python version info
       run: |
