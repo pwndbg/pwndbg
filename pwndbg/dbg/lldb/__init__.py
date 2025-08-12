@@ -92,6 +92,16 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         *,
         type: pwndbg.dbg_mod.SymbolLookupType = pwndbg.dbg_mod.SymbolLookupType.ANY,
     ) -> pwndbg.dbg_mod.Value | None:
+        # `symbol_name_at_address` encodes offsets as part of the name, handle
+        # that here.
+        offset = 0
+        try:
+            idx = name.rindex("+")
+            offset = int(name[idx:], 10)
+            name = name[:idx]
+        except ValueError:
+            pass
+
         # FIXME: how to sanitize symbol name better?
         if not re.match(r"^[a-zA-Z0-9_.:@*/$]+$", name):
             raise pwndbg.dbg_mod.Error(f"Symbol {name!r} contains invalid characters")
@@ -106,6 +116,9 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
             # Fallback because `evaluate_expression` may fail to resolve symbols for TLS variables.
             # This issue occurs on certain architectures (e.g., it works fine on x86_64 but fails on aarch64).
             value = self.proc.lookup_symbol(name, type=type)
+
+        if value is not None:
+            value += offset
 
         return value
 
@@ -994,8 +1007,14 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         e = lldb.SBError()
         count = self.process.WriteMemory(address, data, e)
-        if count < len(data) and not partial:
+        if (count < len(data) or not e.success) and not partial:
             raise pwndbg.dbg_mod.Error(f"could not write {len(data)} bytes: {e}")
+
+        # In some instances - eg. writing to the PC - writing may still have
+        # failed when we get here. Make sure we can read it back, to a point.
+        readback_len = min(len(data), 64)
+        if self.read_memory(address, readback_len) != data[:readback_len]:
+            raise pwndbg.dbg_mod.Error(f"could not write {len(data)} bytes: read-back failed")
 
         # We know some memory got changed.
         self.dbg._trigger_event(pwndbg.dbg_mod.EventType.MEMORY_CHANGED)
@@ -1229,7 +1248,16 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if not ctx.IsValid() or not ctx.symbol.IsValid():
             return None
 
-        # TODO: In GDB, we return something like `main+0x10`, but in LLDB, we do not.
+        sym_addr = ctx.symbol.addr.GetLoadAddress(self.target)
+        assert (
+            sym_addr <= address
+        ), f"LLDB returned an out-of-range address {sym_addr:#x} for a requested symbol with address {address:#x}"
+
+        if sym_addr != address:
+            # Print the symbol name along with an offset value if the address we
+            # were given does not match up with the symbol exactly.
+            return f"{ctx.symbol.name}+{address - sym_addr}"
+
         return ctx.symbol.name
 
     def _resolve_tls_symbol(self, sym: lldb.SBSymbol) -> int | None:
@@ -1743,6 +1771,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     # return control to the user.
     controllers: List[Tuple[LLDBProcess, Coroutine[Any, Any, None]]]
 
+    # Relay used for exceptions originating from commands called through LLDB.
+    _exception_relay: BaseException | None
+
     @override
     def setup(self, *args, **kwargs):
         import pwnlib.update
@@ -1753,6 +1784,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.event_handlers = {}
         self.controllers = []
         self._current_process_is_gdb_remote = False
+        self._exception_relay = None
 
         import pwndbg
 
@@ -1781,6 +1813,15 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         pwndbg.commands.comments.init()
 
         import pwndbg.dbg.lldb.hooks
+
+    def relay_exceptions(self) -> None:
+        """
+        Relay an exception raised during an LLDB command handler.
+        """
+        e = self._exception_relay
+        self._exception_relay = None
+        if e is not None:
+            raise pwndbg.dbg_mod.Error(e)
 
     def _execute_lldb_command(self, command: str) -> str:
         result = lldb.SBCommandReturnObject()
@@ -1811,11 +1852,15 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                 pass
 
             def __call__(self, _, command, exe_context, result):
-                debugger.exec_states.append(exe_context)
-                handler(debugger, command, True)
-                assert (
-                    debugger.exec_states.pop() == exe_context
-                ), "Execution state mismatch on command handler"
+                try:
+                    debugger.exec_states.append(exe_context)
+                    handler(debugger, command, True)
+                    assert (
+                        debugger.exec_states.pop() == exe_context
+                    ), "Execution state mismatch on command handler"
+                except BaseException as e:
+                    debugger._exception_relay = e
+                    raise
 
         # LLDB is very particular with the object paths it will accept. It is at
         # its happiest when its pulling objects straight off the module that was

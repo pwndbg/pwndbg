@@ -58,6 +58,16 @@ def test_command_kmod():
     assert "Kernel modules address found at" in res or "The modules symbol was not found." in res
 
 
+def test_command_ksyscalls():
+    if not pwndbg.aglib.kernel.has_debug_symbols():
+        res = gdb.execute("ksyscalls", to_string=True)
+        assert "may only be run when debugging a Linux kernel with debug" in res
+        return
+
+    res = gdb.execute("ksyscalls", to_string=True)
+    assert "entries found at" in res or "sys_call_table symbol was not found" in res
+
+
 def test_command_ktask():
     if not pwndbg.aglib.kernel.has_debug_info():
         res = gdb.execute("ktask", to_string=True)

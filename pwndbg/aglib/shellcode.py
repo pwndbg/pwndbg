@@ -12,11 +12,11 @@ import contextlib
 from asyncio import CancelledError
 from typing import Iterator
 
-import pwnlib.asm
 import pwnlib.shellcraft
 
 import pwndbg
 import pwndbg.aglib.arch
+import pwndbg.aglib.asm
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
@@ -51,7 +51,7 @@ async def exec_syscall(
 
     # Build machine code that runs the requested syscall.
     syscall_asm = pwnlib.shellcraft.syscall(syscall, arg0, arg1, arg2, arg3, arg4, arg5)
-    syscall_bin = pwnlib.asm.asm(syscall_asm)
+    syscall_bin = pwndbg.aglib.asm.asm(syscall_asm)
 
     # Run the syscall and pass its return value onward to the caller.
     async with exec_shellcode(
@@ -99,8 +99,21 @@ def _ctx_registers() -> Iterator[int]:
     registers = {reg: int(uncached_regs.by_name(reg)) for reg in preserve_set}
     starting_address = registers[register_set.pc]
 
+    # Advance by one instruction boundary.
+    #
+    # Some debuggers (LLDB) may fail to write to memory if any of the addresses
+    # being written to overlap the program counter. By aiming at the next valid
+    # instruction address, we avoid that issue.
+    shell_starting_address = starting_address + pwndbg.aglib.arch.instruction_alignment
+
+    # Failing this means our value for `instruction_alignment` is wrong.
+    assert shell_starting_address % pwndbg.aglib.arch.instruction_alignment == 0
+
     try:
-        yield starting_address
+        # Jump to the target address in preparation.
+        setattr(pwndbg.aglib.regs, register_set.pc, shell_starting_address)
+
+        yield shell_starting_address
     finally:
         # Restore the code and the program counter and, if requested, the rest of
         # the registers.

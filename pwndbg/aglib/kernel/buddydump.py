@@ -150,11 +150,11 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
 
 
 def load_buddydump_typeinfo():
+    if pwndbg.aglib.typeinfo.lookup_types("struct pglist_data") is not None:
+        return
     nmtypes = pwndbg.aglib.kernel.symbol.nmtypes()
     nzones = pwndbg.aglib.kernel.symbol.nzones()
     if not nmtypes or not nzones:
-        return
-    if pwndbg.aglib.typeinfo.lookup_types("struct pglist_data") is not None:
         return
     pwndbg.aglib.kernel.symbol.load_common_structs()
 

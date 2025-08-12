@@ -586,7 +586,11 @@ class ProcessDriver:
         return LaunchResultSuccess()
 
     def _launch_remote(
-        self, env: List[str], args: List[str], working_dir: str | None
+        self,
+        env: List[str],
+        args: List[str],
+        working_dir: str | None,
+        extra_flags: int,
     ) -> lldb.SBError:
         """
         Launch a process in a remote debugserver.
@@ -605,7 +609,7 @@ class ProcessDriver:
             stdout,
             stderr,
             working_dir,
-            lldb.eLaunchFlagStopAtEntry,
+            lldb.eLaunchFlagStopAtEntry | extra_flags,
             True,
             error,
         )
@@ -618,6 +622,7 @@ class ProcessDriver:
         env: List[str],
         args: List[str],
         working_dir: str | None,
+        extra_flags: int,
     ) -> lldb.SBError:
         """
         Launch a process in the host system.
@@ -634,7 +639,7 @@ class ProcessDriver:
             stdout,
             stderr,
             working_dir,
-            lldb.eLaunchFlagStopAtEntry,
+            lldb.eLaunchFlagStopAtEntry | extra_flags,
             True,
             error,
         )
@@ -671,6 +676,7 @@ class ProcessDriver:
         env: List[str],
         args: List[str],
         working_dir: str | None,
+        disable_aslr: bool,
     ) -> LaunchResult:
         """
         Launches the process and handles startup events. Always stops on first
@@ -678,14 +684,18 @@ class ProcessDriver:
 
         Fires the created() event.
         """
+        extra_flags = 0
+        if disable_aslr:
+            extra_flags |= lldb.eLaunchFlagDisableASLR
+
         if self.has_connection():
-            result = self._enter(self._launch_remote, env, args, working_dir)
+            result = self._enter(self._launch_remote, env, args, working_dir, extra_flags)
             if isinstance(result, LaunchResultError):
                 result.disconnected = True
             return result
         else:
             self._prepare_listener_for(target)
-            return self._enter(self._launch_local, target, io, env, args, working_dir)
+            return self._enter(self._launch_local, target, io, env, args, working_dir, extra_flags)
 
     def attach(self, target: lldb.SBTarget, info: lldb.SBAttachInfo) -> LaunchResult:
         """

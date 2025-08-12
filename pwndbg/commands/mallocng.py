@@ -785,6 +785,13 @@ parser.add_argument(
     type=int,
     help="The address of the group object.",
 )
+parser.add_argument(
+    "-i",
+    "--index",
+    type=int,
+    default=None,
+    help="Print start address of slot at given index (0-indexed).",
+)
 
 
 @pwndbg.commands.Command(
@@ -793,7 +800,7 @@ parser.add_argument(
     aliases=["ng-group"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_group(address: int) -> None:
+def mallocng_group(address: int, index: Optional[int] = None) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
         return
@@ -806,14 +813,29 @@ def mallocng_group(address: int) -> None:
         print(message.error(str(e)))
         return
 
-    print(dump_group(group), end="")
+    if index is None:
+        print(dump_group(group), end="")
+    else:
+        if index < 0:
+            print(message.error("Index is negative."))
+            return
+        print(f"Start of slot {index} is @ " + C.memory.get(group.at_index(index)))
 
     try:
         meta = group.meta
         meta.preload()
-        print(dump_meta(meta), end="")
+
+        if index is None:
+            print(dump_meta(meta), end="")
+        elif index >= meta.cnt:
+            # If the index is outside of the group, warn the user.
+            print(
+                message.warn("Index is outside of group! ") + f"Group hosts only {meta.cnt} slots."
+            )
+
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"Failed loading meta: {e}"))
+        print("Cannot determine whether index is within group bounds.")
         return
 
 
@@ -827,22 +849,44 @@ parser.add_argument(
     type=int,
     help="The address of the meta_area object.",
 )
+parser.add_argument(
+    "-i",
+    "--index",
+    type=int,
+    default=None,
+    help="Print address of meta at given index (0-indexed).",
+)
 
 
 @pwndbg.commands.Command(
     parser,
     category=CommandCategory.MUSL,
-    aliases=["ng-metaarea"],
+    aliases=["ng-metaarea", "ng-ma"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_meta_area(address: int) -> None:
+def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
         return
 
     try:
         meta_area = mallocng.MetaArea(address)
+
         print(dump_meta_area(meta_area), end="")
+
+        if index is not None:
+            if index < 0:
+                print(message.error("\nIndex is negative."))
+                return
+
+            print(f"\nMeta {index} is @ " + C.memory.get(meta_area.at_index(index)))
+
+            if index >= meta_area.nslots:
+                print(
+                    message.warn("Index is outside of meta area! ")
+                    + f"Meta area only hosts {meta_area.nslots} meta's."
+                )
+
     except pwndbg.dbg_mod.Error as e:
         print(message.error(str(e)))
         return

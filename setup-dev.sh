@@ -96,7 +96,8 @@ install_apt() {
         qemu-system-x86 \
         qemu-system-arm \
         qemu-user \
-        iproute2
+        iproute2 \
+        musl-tools
 
     # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
     if uname -m | grep -q x86_64; then
@@ -144,7 +145,8 @@ EOF
         wget \
         base-devel \
         gdb \
-        parallel
+        parallel \
+        musl
 
     # FIXME: add the necessary deps for testing
 
