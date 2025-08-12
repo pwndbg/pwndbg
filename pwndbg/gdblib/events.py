@@ -122,6 +122,7 @@ queued_events: Deque[Callable[..., Any]] = deque()
 executing_event = False
 workaround_thread_conn = None
 
+
 def _update_start_event_state(event_type: Any):
     """
     Update the state of the StartEvent appropriately
