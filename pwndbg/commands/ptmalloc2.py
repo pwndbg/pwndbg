@@ -1105,68 +1105,90 @@ def vis_heap_chunks(
 
     bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
 
+    prev_line = None
+    repeat_count = 0
+
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
 
-        if stop - cursor > 0x10000:
-            has_huge_chunk = True
-        first_cut = True
-        # round down to align with 2*ptr_size
-        begin_addr = pwndbg.lib.memory.round_down(cursor, ptr_size << 1)
-        end_addr = pwndbg.lib.memory.round_down(stop, ptr_size << 1)
+        # Treat the start of a new coloured chunk as a "header" that should not be collapsed
+        if repeat_count > 0:
+            print(f"     .... (repeated {repeat_count + 1} times)")
+        prev_line = None
+        repeat_count = 0
 
-        while cursor != stop:
-            # skip the middle part of a huge chunk
-            if (
-                not no_truncate
-                and half_max_size > 0
-                and begin_addr + half_max_size <= cursor < end_addr - half_max_size
-            ):
-                if first_cut:
-                    out += "\n" + "." * len(hex(cursor))
-                    first_cut = False
-                cursor += ptr_size
-                continue
+        # Inner loop processes each line within the chunk 
+        while cursor < stop:
+            line_parts = []
+            line_cursor_start = cursor
 
-            if printed % 2 == 0:
-                out += "\n0x%x" % cursor
+            # Part 1: Address
+            line_parts.append(f"0x{cursor:x}")
 
-            data = pwndbg.aglib.memory.read(cursor, ptr_size)
-            cell = pwndbg.aglib.arch.unpack(data)
-            cell_hex = f"\t0x{cell:0{ptr_size * 2}x}"
+            # Part 2 & 3: Two hex values and their ASCII representation
+            hex_vals = []
+            ascii_vals = ""
+            # line_cursor_start = cursor
 
-            out += color_func(cell_hex)
-            printed += 1
+            for _ in range(2):
+                if cursor >= stop:
+                    hex_vals.append(" " * (pwndbg.aglib.arch.ptrsize * 2))
+                    continue
 
-            labels.extend(bin_labels_map.get(cursor, []))
-            if arena is not None and cursor == arena.top:
-                labels.append("Top chunk")
-                reached_top = True
+                try:
+                    data = pwndbg.aglib.memory.read(cursor, pwndbg.aglib.arch.ptrsize)
+                    cell = pwndbg.aglib.arch.unpack(data)
+                    hex_vals.append(f"0x{cell:0{pwndbg.aglib.arch.ptrsize*2}x}")
+                    ascii_vals += bin_ascii(data)
+                except pwndbg.lib.error.GdbError:
+                    hex_vals.append("?" * (pwndbg.aglib.arch.ptrsize * 2))
+                    ascii_vals += "?" * pwndbg.aglib.arch.ptrsize
+                
+                cursor += pwndbg.aglib.arch.ptrsize
 
-            asc += bin_ascii(data)
-            if printed % 2 == 0:
-                out += "\t" + color_func(asc) + ("\t <-- " + ", ".join(labels) if labels else "")
-                asc = ""
-                labels = []
+            line_parts.append("\t".join(hex_vals))
+            line_parts.append(color_func(ascii_vals))
 
-            cursor += ptr_size
+            # Part 4: Labels (Top chunk, bins, etc.)
+            current_labels = []
+            for i in range(2):
+                label_addr = line_cursor_start + i * pwndbg.aglib.arch.ptrsize
+                if label_addr >= stop: continue
 
-    if printed % 2 != 0:
-        # Alignment whitespace of ("0x" + "00" * ptr_size) length.
-        machine_word_string_length = 2 + (2 * ptr_size)
-        out += "\t" + " " * machine_word_string_length + "\t" + color_func(asc)
+                current_labels.extend(bin_labels_map.get(label_addr, []))
+                if arena is not None and label_addr == arena.top:
+                    current_labels.append("Top chunk")
+                    reached_top = True
+                
+            if current_labels:
+                line_parts.append("<-- " + ", ".join(sorted(list(set(current_labels)))))
+                
+            # Collapsing logic
+            current_line = "\t".join(line_parts[1:])
 
-    print(out)
+            if current_line == prev_line:
+                repeat_count += 1
+            else:
+                if repeat_count > 0:
+                    print(f"      .... (repeated {repeat_count + 1} times)")
+                    
+                print("\t".join(line_parts))
+                repeat_count = 0
+                prev_line = current_line
+            
+        if repeat_count > 0:
+            print(f"      .... (repeated {repeat_count + 1} times)")
 
     if reached_mapping_end:
         print(f"Reached end of memory mapping ({hex(heap_region.end)}).")
-
-    if has_huge_chunk and pwndbg.config.max_visualize_chunk_size == 0:
-        print(
-            message.warn(
-                "You can try `set max-visualize-chunk-size 0x500` and re-run this command.\n"
+    
+    if any(stop - start > 0x10000 for start, stop in zip(chunk_delims, chunk_delims[1:])):
+        if pwndbg.config.max_visualise_chunk_size != 0:
+            print(
+                message.warn(
+                    "Detected a large chunk. If output seems truncated, you can adjust `set max-visualize-chunk-size`."
+                )
             )
-        )
 
     if not reached_top and nothing_supplied:
         print(message.hint("Not all chunks were shown, see `vis --help` for more information."))
