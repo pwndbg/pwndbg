@@ -229,7 +229,7 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
             gdb.execute("", to_string=True)  # Trigger bug in gdb, it is like 'yield'
             executing_event = False
         elif event_type in (gdb.events.cont, gdb.events.new_thread):
-            # Workaround to crash gdb when used: `target extended-remote` + `attach`
+            # Workaround for crash in gdb when used: `target extended-remote` + `attach`
             # https://github.com/pwndbg/pwndbg/issues/3231
             global workaround_thread_conn
             conn = gdb.selected_inferior().connection
