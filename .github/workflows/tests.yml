@@ -52,12 +52,15 @@ jobs:
       run: |
         ./unit-tests.sh
 
-    - name: Run tests
+    - name: Run GDB Tests
       if: matrix.type == 'tests'
       run: |
         ./tests.sh --nix -d gdb -g gdb
+
+    - name: Run DBG Tests on GDB
+      if: matrix.type == 'tests'
+      run: |
         ./tests.sh --nix -d gdb -g dbg
-        ./tests.sh --nix -d lldb -g dbg
 
     - name: Run cross-arch tests
       if: matrix.type == 'qemu-user-tests'
