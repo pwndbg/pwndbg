@@ -15,53 +15,13 @@ import pwndbg.aglib.typeinfo
 MAX_ORDER = 11
 
 
-def get_pcp_struct(pcp_sz) -> str:
-    kconfig = pwndbg.aglib.kernel.kconfig()
-    defs = []
-    if not pwndbg.aglib.kernel.krelease() < (5, 14):
-        if pwndbg.aglib.kernel.krelease() < (6, 7):
-            defs.append("BETWEEN_V5_14_AND_V6_6")
-    else:
-        defs.append("BEFORE_V5_14")
-    if not pwndbg.aglib.kernel.krelease() < (6, 0):
-        defs.append("SINCE_V6_0")
-    if not pwndbg.aglib.kernel.krelease() < (6, 7):
-        defs.append("SINCE_V6_7")
-    for config in (
-        "CONFIG_NUMA",
-        "CONFIG_SMP",
-    ):
-        if config in kconfig:
-            defs.append(config)
-    result = "\n".join(f"#define {s}" for s in defs)
+def get_pcp_struct(pcp_pad, pcp_sz) -> str:
+    result = ""
+    if pwndbg.aglib.kernel.krelease() < (5, 14):
+        result += "#define BEFORE_V5_14"
     result += f"""
     struct per_cpu_pages {{
-#ifdef SINCE_V6_0
-        spinlock_t lock;/* Protects lists field, MOST OF THE TIME IT IS 4 BYTES */
-#endif
-        int count;		/* number of pages in the list */
-        int high;		/* high watermark, emptying needed */
-#ifdef SINCE_V6_7
-        int high_min;		/* min high watermark */
-        int high_max;		/* max high watermark */
-#endif
-        int batch;		/* chunk size for buddy add/remove */
-#ifdef SINCE_V6_7
-        u8 flags;		/* protected by pcp->lock */
-        u8 alloc_factor;	/* batch scaling factor during allocate */
-#ifdef CONFIG_NUMA
-        u8 expire;		/* When 0, remote pagesets are drained */
-#endif
-        short free_count;	/* consecutive free count */
-#endif
-#ifdef BETWEEN_V5_14_AND_V6_6
-        short free_factor;	/* batch scaling factor during free */
-#ifdef CONFIG_NUMA
-        short expire;		/* When 0, remote pagesets are drained */
-#endif
-#else
-
-#endif
+        char _pad[{pcp_pad}];
         /* Lists of pages, one per migrate type stored on the pcp-lists */
         struct list_head lists[{pwndbg.aglib.kernel.symbol.npcplist()}]; // constant is sufficient for now
     }};
@@ -77,14 +37,14 @@ def get_pcp_struct(pcp_sz) -> str:
     return result
 
 
-def find_zone_offsets() -> Tuple[int, int, int, int, int]:
-    pcp_off, name_off, freelist_off, pcp_sz, zone_sz = None, None, None, None, None
-    start_idx = 10
+def find_zone_offsets() -> Tuple[int, int, int, int, int, int]:
+    pcp_off, name_off, freelist_off, pcp_sz, pcp_pad, zone_sz = None, None, None, None, None, None
     node_data0 = pwndbg.aglib.kernel.node_data()
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
         node_data0 = node_data0.dereference()
-    ptr = int(node_data0) + start_idx * 8
-    for i in range(start_idx, 20):  # the pcp offset should exist in those range
+    node_data0 = int(node_data0)
+    ptr = node_data0
+    for i in range(20):  # the pcp offset should exist in those range
         val = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
         if pwndbg.aglib.memory.is_kernel(val):
@@ -92,6 +52,13 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
             pcp_off = (i + 1) * 8
             break
     assert pcp_off, "can't find pcp offset"
+    pcp_ptr = int(pwndbg.aglib.kernel.per_cpu(pwndbg.aglib.memory.u64(node_data0 + pcp_off)))
+    for i in range(6):
+        val = pwndbg.aglib.memory.u64(pcp_ptr + i * 8)
+        if pwndbg.aglib.memory.is_kernel(val):
+            pcp_pad = i * 8
+            break
+    assert pcp_pad, "can't find pcp pad"
     if pwndbg.aglib.kernel.krelease() < (5, 14):
         pcp_ptr = pwndbg.aglib.kernel.per_cpu(
             pwndbg.aglib.memory.get_typed_pointer("struct page", pwndbg.aglib.memory.u64(ptr))
@@ -126,8 +93,7 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     for i in range(1, 20):
         cur = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
-        # prev is the write cache padding followed by the freelist
-        if prev == 0 and pwndbg.aglib.memory.is_kernel(cur):
+        if not pwndbg.aglib.memory.is_kernel(prev) and pwndbg.aglib.memory.is_kernel(cur):
             freelist_off = (i + 1) * 8 + name_off
             break
         prev = cur
@@ -141,12 +107,12 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
         ptr += 8
         if pwndbg.aglib.memory.is_kernel(val):
             # we have found `zone_pgdat`
-            zone_sz = ptr - pcp_off - int(node_data0)
+            zone_sz = ptr - pcp_off - node_data0
             break
     assert (
         zone_sz and zone_sz < 0x4000 and zone_sz & 0xF == 0
     ), f"can't determine sizeof(struct zone) = {zone_sz}"  # just to make sure it is sane
-    return pcp_off, name_off, freelist_off, pcp_sz, zone_sz
+    return pcp_off, name_off, freelist_off, pcp_sz, pcp_pad, zone_sz
 
 
 def load_buddydump_typeinfo():
@@ -166,8 +132,8 @@ def load_buddydump_typeinfo():
         char _pad[];
     }} pg_data_t;
     """
-    pcp_off, name_off, freearea_off, pcp_sz, zone_sz = find_zone_offsets()
-    per_cpu_pages = get_pcp_struct(pcp_sz)
+    pcp_off, name_off, freearea_off, pcp_sz, pcp_pad, zone_sz = find_zone_offsets()
+    per_cpu_pages = get_pcp_struct(pcp_pad, pcp_sz)
     zone = ""
     if pwndbg.aglib.kernel.krelease() < (5, 14):
         zone = "#define BEFORE_V5_14\n"

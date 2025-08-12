@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Generator
 from typing import List
 from typing import Set
+from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.kernel.symbol
@@ -453,7 +454,7 @@ def find_containing_slab_cache(addr: int) -> SlabCache | None:
 #########################################
 
 
-def kmem_cache_pad_sz(kconfig) -> int:
+def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
     # find the distance between the first kmem_cache's name and its first node cache
     # the name for the first kmem_cache (most likely) has the name "kmem_cache"
     # and the global var is also named "kmem_cache"
@@ -461,27 +462,38 @@ def kmem_cache_pad_sz(kconfig) -> int:
     name_off = None
     slab_caches = pwndbg.aglib.kernel.slab_caches()
     assert slab_caches, "can't find slab_caches"
-    kmem_cache = int(slab_caches["prev"]) & ~0xFFF
+    kmem_cache = int(slab_caches["prev"]) & ~0xFF
+    print(hex(kmem_cache))
     for i in range(0x20):
         val = pwndbg.aglib.memory.u64(kmem_cache + i * 8)
         if pwndbg.aglib.memory.string(val) == name.encode():
             name_off = i * 8
             break
     assert name_off, "can't determine kmem_cache name offset"
-    distance = None
+    distance, node_cache_pad = None, None
     for i in range(3, 0x20):
+        val = pwndbg.aglib.memory.u32(kmem_cache + (i - 1) * 8 + name_off)
+        if val > 0x100:
+            continue
         val = pwndbg.aglib.memory.u64(kmem_cache + i * 8 + name_off)
-        if pwndbg.aglib.memory.peek(val):
-            nr_partial = pwndbg.aglib.memory.u64(val + 0x8)
-            next = pwndbg.aglib.memory.u64(val + 0x10)
-            prev = pwndbg.aglib.memory.u64(val + 0x18)
+        if pwndbg.aglib.memory.peek(val) is None:
+            continue
+        for j in range(0x8):
+            nr_partial = pwndbg.aglib.memory.u64(val)
+            next = pwndbg.aglib.memory.u64(val + 0x8)
+            prev = pwndbg.aglib.memory.u64(val + 0x10)
+            val += 0x8
             if (
                 nr_partial < 0x20
                 and pwndbg.aglib.memory.is_kernel(next)
                 and pwndbg.aglib.memory.is_kernel(prev)
             ):
                 distance = i * 8
+                node_cache_pad = j * 8
                 break
+        if distance is not None:
+            break
+    print(hex(distance + name_off))
     assert distance, "can't find kmem_cache node"
     distance -= 0x18  # the name ptr + list_head
     configs = (
@@ -499,10 +511,10 @@ def kmem_cache_pad_sz(kconfig) -> int:
     if "CONFIG_HARDENED_USERCOPY" in kconfig or pwndbg.aglib.kernel.krelease() < (6, 2):
         distance -= 8
     assert distance < 0x1000, "cannot find kmem_cache padding size"
-    return distance
+    return distance, node_cache_pad
 
 
-def kmem_cache_structs():
+def kmem_cache_structs(node_cache_pad):
     to_define = None
     if pwndbg.aglib.kernel.krelease() < (5, 17):
         to_define = "BEFORE_V5_17"
@@ -513,12 +525,14 @@ def kmem_cache_structs():
     result = f"#define {to_define}\n"
     if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SLUB_CPU_PARTIAL\n"
-    result += """
-    struct kmem_cache_node {
-        spinlock_t list_lock;
+    result += f"""
+    struct kmem_cache_node {{
+        char _pad[{node_cache_pad}];
         unsigned long nr_partial;
         struct list_head partial;
-    };
+    }};
+    """
+    result += """
     struct kmem_cache_order_objects {
         unsigned int x;
     };
@@ -605,10 +619,10 @@ def load_slab_typeinfo():
     for config in configs:
         if config in kconfig:
             defs.append(config)
-    sz = kmem_cache_pad_sz(kconfig)
+    sz, node_cache_pad = kmem_cache_pad_sz(kconfig)
     result = "\n".join(f"#define {s}" for s in defs)
     result += pwndbg.aglib.kernel.symbol.COMMON_TYPES
-    result += kmem_cache_structs()
+    result += kmem_cache_structs(node_cache_pad)
     # this is the kmem_cache SLUB representation for all 5.x and 6.x
     result += f"""
     struct kmem_cache {{
