@@ -203,6 +203,7 @@ class x86_64PagingInfo(ArchPagingInfo):
             for page in get_memory_map_raw():
                 if page.start and page.start >= min:
                     result = page.start
+                    break
         return result
 
     @property

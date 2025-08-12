@@ -365,6 +365,8 @@ class x86_64Ops(x86Ops):
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
+        if not hasattr(addr, "type"):
+            return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
@@ -403,6 +405,8 @@ class Aarch64Ops(ArchOps):
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
+        if not hasattr(addr, "type"):
+            return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
 
     def virt_to_phys(self, virt: int) -> int:
