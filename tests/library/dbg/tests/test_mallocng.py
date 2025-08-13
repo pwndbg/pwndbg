@@ -410,20 +410,21 @@ async def test_mallocng_metaarea(ctrl: Controller, binary: str):
         assert re.match(expected_out[i], meta_area_out[i])
 
 
+@pwndbg_test
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-def test_mallocng_vis(start_binary, binary):
-    start_binary(binary)
+async def test_mallocng_vis(ctrl: Controller, binary: str):
+    import pwndbg.color as color
 
-    gdb.execute("start")
-    gdb.execute("break break_here")
-    gdb.execute("continue")
-    gdb.execute("continue")
-    gdb.execute("continue")
-    gdb.execute("finish")
+    await launch_to(ctrl, binary, "break_here")
 
-    vis_out = color.strip(gdb.execute("ng-vis buffer1", to_string=True)).splitlines()
+    break_at_sym("break_here")
+    await ctrl.cont()
+    await ctrl.cont()
+    await ctrl.finish()
+
+    vis_out = color.strip(await ctrl.execute_and_capture("ng-vis buffer1")).splitlines()
 
     expected_out = [
         f"group @ {re_addr}",
@@ -471,12 +472,12 @@ def test_mallocng_vis(start_binary, binary):
 
     # Make sure ng-vis properly resolves anywhere inside the slot.
     # The stride of the group is 0x30.
-    vis_out2 = color.strip(gdb.execute("ng-vis buffer1+0x2F", to_string=True)).splitlines()
+    vis_out2 = color.strip(await ctrl.execute_and_capture("ng-vis buffer1+0x2F")).splitlines()
     assert vis_out == vis_out2
 
     # Step over the free(buffer3)
-    gdb.execute("next", to_string=True)
+    await ctrl.execute("next")
     # Check that the output is not the same anymore since the group got freed.
     # (Now the outer group will be printed.)
-    vis_out3 = color.strip(gdb.execute("ng-vis buffer1", to_string=True)).splitlines()
+    vis_out3 = color.strip(await ctrl.execute_and_capture("ng-vis buffer1")).splitlines()
     assert len(vis_out3) > len(vis_out)
