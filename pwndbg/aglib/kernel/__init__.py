@@ -221,7 +221,7 @@ class ArchOps(ABC):
     # in the page_to_pfn() and pfn_to_page() methods in the future.
 
     @abstractmethod
-    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu=None) -> pwndbg.dbg_mod.Value:
+    def per_cpu(self, addr: int | pwndbg.dbg_mod.Value, cpu=None) -> pwndbg.dbg_mod.Value:
         raise NotImplementedError()
 
     @abstractmethod
@@ -332,7 +332,9 @@ class i386Ops(x86Ops):
     def virt_to_phys(self, virt: int) -> int:
         return (virt - self.page_offset) % (1 << 32)
 
-    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
+    def per_cpu(
+        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
+    ) -> pwndbg.dbg_mod.Value:
         raise NotImplementedError()
 
     def pfn_to_page(self, pfn: int) -> int:
@@ -357,7 +359,9 @@ class x86_64Ops(x86Ops):
         ),
         checkall=False,
     )
-    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
+    def per_cpu(
+        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
+    ) -> pwndbg.dbg_mod.Value:
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
 
@@ -397,7 +401,9 @@ class Aarch64Ops(ArchOps):
         ),
         checkall=False,
     )
-    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
+    def per_cpu(
+        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
+    ) -> pwndbg.dbg_mod.Value:
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
 
@@ -497,7 +503,7 @@ def page_size() -> int:
         raise NotImplementedError()
 
 
-def per_cpu(addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
+def per_cpu(addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
     ops = arch_ops()
     if ops:
         return ops.per_cpu(addr, cpu)

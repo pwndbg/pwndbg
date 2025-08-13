@@ -454,6 +454,21 @@ def find_containing_slab_cache(addr: int) -> SlabCache | None:
 #########################################
 
 
+def kmem_cache_node_pad_sz(val):
+    for j in range(0x8):
+        nr_partial = pwndbg.aglib.memory.u64(val)
+        next = pwndbg.aglib.memory.u64(val + 0x8)
+        prev = pwndbg.aglib.memory.u64(val + 0x10)
+        val += 0x8
+        if (
+            nr_partial < 0x20
+            and pwndbg.aglib.memory.is_kernel(next)
+            and pwndbg.aglib.memory.is_kernel(prev)
+        ):
+            return j * 8
+    return None
+
+
 def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
     # find the distance between the first kmem_cache's name and its first node cache
     # the name for the first kmem_cache (most likely) has the name "kmem_cache"
@@ -469,28 +484,48 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
             name_off = i * 8
             break
     assert name_off, "can't determine kmem_cache name offset"
+    if pwndbg.aglib.kernel.krelease() >= (6, 2) and all(
+        config not in kconfig
+        for config in (
+            "CONFIG_HARDENED_USERCOPY",
+            "CONFIG_KASAN",
+        )
+    ):
+        if all(
+            config not in kconfig
+            for config in (
+                "CONFIG_SYSFS",  # TODO: add the func to handle this
+                "CONFIG_SLAB_FREELIST_HARDENED",
+                "CONFIG_NUMA",
+            )
+        ):
+            node_cache_pad = kmem_cache_node_pad_sz(
+                kmem_cache + name_off + 0x8 * 3
+            )  # name ptr + 2 list ptrs
+            assert node_cache_pad, "can't determine kmem cache node padding size"
+            distance = 8 if "CONFIG_SLAB_FREELIST_RANDOM" in kconfig else 0
+            return distance, node_cache_pad
+        elif "CONFIG_SLAB_FREELIST_RANDOM" in kconfig:
+            for i in range(3, 0x20):
+                ptr = kmem_cache + name_off + i * 8
+                val = pwndbg.aglib.memory.u64(ptr)
+                if pwndbg.aglib.memory.is_kernel(val):
+                    distance = (i + 1) * 8
+                    node_cache_pad = kmem_cache_node_pad_sz(kmem_cache + name_off + distance)
+                    assert node_cache_pad, "can't determine kmem cache node padding size"
+                    return distance, node_cache_pad
     distance, node_cache_pad = None, None
     for i in range(3, 0x20):
-        val = pwndbg.aglib.memory.u32(kmem_cache + (i - 1) * 8 + name_off)
-        if val > 0x1000000:
+        ptr = kmem_cache + name_off + i * 8
+        val = pwndbg.aglib.memory.u64(ptr - 8)
+        if pwndbg.aglib.memory.peek(val) is not None:
             continue
-        val = pwndbg.aglib.memory.u64(kmem_cache + i * 8 + name_off)
+        val = pwndbg.aglib.memory.u64(ptr)
         if pwndbg.aglib.memory.peek(val) is None:
             continue
-        for j in range(0x8):
-            nr_partial = pwndbg.aglib.memory.u64(val)
-            next = pwndbg.aglib.memory.u64(val + 0x8)
-            prev = pwndbg.aglib.memory.u64(val + 0x10)
-            val += 0x8
-            if (
-                nr_partial < 0x20
-                and pwndbg.aglib.memory.is_kernel(next)
-                and pwndbg.aglib.memory.is_kernel(prev)
-            ):
-                distance = i * 8
-                node_cache_pad = j * 8
-                break
-        if distance is not None:
+        node_cache_pad = kmem_cache_node_pad_sz(val)
+        if node_cache_pad is not None:
+            distance = i * 8
             break
     assert distance, "can't find kmem_cache node"
     distance -= 0x18  # the name ptr + list_head
@@ -531,6 +566,15 @@ def kmem_cache_structs(node_cache_pad):
     }};
     """
     result += """
+    struct kasan_cache {
+#if !defined(BETWEEN_V6_1_AND_V6_2) || (defined(BETWEEN_V6_1_AND_V6_2) && defined(CONFIG_KASAN_GENERIC))
+	    int alloc_meta_offset;
+	    int free_meta_offset;
+#endif
+#if defined(BETWEEN_V5_11_AND_V6_2)
+	    bool is_kmalloc;
+#endif
+    };
     struct kmem_cache_order_objects {
         unsigned int x;
     };
@@ -670,7 +714,7 @@ def load_slab_typeinfo():
         unsigned int *random_seq;
 #endif
 #if (defined(SINCE_V6_3) && defined(CONFIG_KASAN_GENERIC) || (!defined(SINCE_V6_3) && defined(CONFIG_KASAN)))
-        char _pad2[8]; // the kasan_cache struct includes only 2 int's
+        struct kasan_cache kasan_info;
 #endif
 #if defined(BEFORE_V6_2) || defined(CONFIG_HARDENED_USERCOPY)
         unsigned int useroffset;	/* Usercopy region offset */

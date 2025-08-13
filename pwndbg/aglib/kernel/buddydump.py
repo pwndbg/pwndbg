@@ -34,7 +34,7 @@ def get_pcp_struct(pcp_pad) -> str:
     return result
 
 
-def find_zone_offsets() -> Tuple[int, int, int, int, int, int]:
+def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     pcp_off, name_off, freelist_off, pcp_pad, zone_sz = None, None, None, None, None
     node_data0 = pwndbg.aglib.kernel.node_data()
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():

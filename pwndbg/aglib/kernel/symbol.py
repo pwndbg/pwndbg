@@ -109,18 +109,22 @@ typedef unsigned char u8;
 typedef char s8;
 typedef unsigned short u16;
 typedef unsigned int u32;
+typedef long long s64;
 #if UINTPTR_MAX == 0xffffffff
     typedef int16_t arch_word_t;
+    typedef struct {
+        int counter;
+    } atomic_t;
 #else
     typedef int32_t arch_word_t;
+    typedef struct {
+        s64 counter;
+    } atomic_t;
 #endif
 
 struct list_head {
     struct list_head *next, *prev;
 };
-typedef struct {
-	int counter;
-} atomic_t;
 struct kmem_cache;
 enum pageflags {
 	PG_locked,		/* Page is locked. Don't touch. */
