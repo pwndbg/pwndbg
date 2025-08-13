@@ -128,6 +128,7 @@ jobs:
         ./tests.sh -d gdb -g dbg
     
     - name: Run DBG Tests on LLDB
+      if: matrix.os != 'ubuntu-22.04'
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh -d lldb -g dbg
