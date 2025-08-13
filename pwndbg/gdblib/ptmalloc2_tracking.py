@@ -49,7 +49,6 @@ that were not made explicit.
 
 from __future__ import annotations
 
-from typing import Callable
 from typing import Dict
 from typing import List
 
@@ -64,7 +63,6 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
-from pwndbg.lib.cache import cache_until
 from pwndbg.color import message
 
 LIBC_NAME = "libc.so.6"
@@ -92,28 +90,6 @@ def is_enabled() -> bool:
     assert all(installed) == any(installed)
 
     return any(installed)
-
-pos_colors = [
-    pwndbg.color.red,
-    pwndbg.color.green,
-    pwndbg.color.yellow,
-    pwndbg.color.blue,
-    pwndbg.color.cyan,
-]
-
-
-@cache_until("stop")
-def get_malloc_order() -> list[int]:
-    return []
-
-
-def colorize_ptr(ptr: int) -> Callable[[int], str]:
-    malloc_order = get_malloc_order()
-    if ptr not in malloc_order:
-        malloc_order.append(ptr)
-    index = malloc_order.index(ptr) % len(pos_colors)
-    color_func = pos_colors[index]
-    return color_func(f"0x{ptr:x}")
 
 
 def resolve_address(name: str) -> int | None:
@@ -222,6 +198,7 @@ class Tracker:
         self.alloc_chunks: SortedDict[int, Chunk] = SortedDict()
         self.free_watchpoints: Dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: Dict[int, bool] = {}
+        self.colorized_heap_ptrs: Dict[int, str] = {}
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num
@@ -251,6 +228,45 @@ class Tracker:
             ], "exit_memory_management_calls assert failed"
 
         self.memory_management_calls[thread] = False
+
+    def colorize_ptr(self, ptr: int) -> str:
+        """
+        This function is used to color pointers.
+        """
+        # Possible colors array
+        pos_colors = [
+            pwndbg.color.red,
+            pwndbg.color.green,
+            pwndbg.color.yellow,
+            pwndbg.color.blue,
+            pwndbg.color.purple,
+            pwndbg.color.cyan,
+            pwndbg.color.light_gray,
+            pwndbg.color.gray,
+            pwndbg.color.light_red,
+            pwndbg.color.light_green,
+            pwndbg.color.light_yellow,
+            pwndbg.color.light_blue,
+            pwndbg.color.light_purple,
+            pwndbg.color.light_cyan,
+        ]
+
+        # Check cache first
+        if ptr in self.colorized_heap_ptrs:
+            return self.colorized_heap_ptrs[ptr]
+
+        # Compute color
+        malloc_order = list(self.colorized_heap_ptrs.keys())
+        if ptr not in malloc_order:
+            malloc_order.append(ptr)
+
+        index = malloc_order.index(ptr) % len(pos_colors)
+        color_func = pos_colors[index]
+        colored = color_func(f"0x{ptr:x}")
+
+        # Cache result
+        self.colorized_heap_ptrs[ptr] = colored
+        return colored
 
     def malloc(self, chunk: Chunk) -> None:
         # malloc()s may arbitrarily change the structure of freed blocks, to the
@@ -458,7 +474,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
 
         chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
-        ptr_str = colorize_ptr(f"{ret_ptr:#x}")
+        ptr_str = self.tracker.colorize_ptr(ret_ptr)
         print(f"[*] {self.name} -> {ptr_str}, {chunk.size:#x} bytes real size")
 
         self.tracker.exit_memory_management()
@@ -494,7 +510,7 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
             # There's no right way to handle realloc(..., 0). C23 says it's
             # undefined behavior, and prior versions say it's implementation-
             # defined. Either way, print a warning and do nothing.
-            ptr_str = colorize_ptr(f"{self.freed_pointer:#x}")
+            ptr_str = self.tracker.colorize_ptr(self.freed_pointer)
             print(
                 message.warn(
                     f"[-] realloc({ptr_str}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
@@ -514,7 +530,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
     def __init__(self, tracker, freed_ptr, requested_size) -> None:
         super().__init__(internal=True)
         self.freed_ptr = freed_ptr
-        self.freed_str = colorize_ptr(f"{self.freed_ptr:#x}")
+        self.freed_str = tracker.colorize_ptr(self.freed_ptr)
         self.requested_size = requested_size
         self.tracker = tracker
 
@@ -586,7 +602,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
     def __init__(self, tracker, ptr) -> None:
         super().__init__(internal=True)
         self.ptr = ptr
-        self.ptr_str = colorize_ptr(f"{self.ptr:#x}")
+        self.ptr_str = tracker.colorize_ptr(self.ptr)
         self.tracker = tracker
 
     def stop(self):
