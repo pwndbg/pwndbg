@@ -1162,17 +1162,21 @@ def vis_heap_chunks(
                 
             if current_labels:
                 line_parts.append("<-- " + ", ".join(sorted(list(set(current_labels)))))
+            
+            full_line = f"{line_parts[0]}\t{line_parts[1]}\t{line_parts[2]}"
+            if len(line_parts) > 3:
+                full_line += f"\t{line_parts[3]}"
+            
+            current_line = full_line.split('\t', 1)[1]
                 
             # Collapsing logic
-            current_line = "\t".join(line_parts[1:])
-
             if current_line == prev_line:
                 repeat_count += 1
             else:
                 if repeat_count > 0:
                     print(f"      .... (repeated {repeat_count + 1} times)")
                     
-                print("\t".join(line_parts))
+                print(full_line)
                 repeat_count = 0
                 prev_line = current_line
             
