@@ -11,7 +11,7 @@ from . import get_binary
 MEMORY_BINARY = get_binary("memory.out")
 X86_BINARY = get_binary("gosample.x86")
 
-data_addr = "0x400081"
+data_addr = "0x401000"
 
 
 def test_windbg_dX_commands(start_binary):
@@ -48,10 +48,10 @@ def test_windbg_dX_commands(start_binary):
         == dq3
         == dq4
         == (
-            "0000000000400081     0000000000000000 0000000000000001\n"
-            "0000000000400091     0000000100000002 0001000200030004\n"
-            "00000000004000a1     0102030405060708 1122334455667788\n"
-            "00000000004000b1     0123456789abcdef 0000000000000000\n"
+            "0000000000401000     0000000000000000 0000000000000001\n"
+            "0000000000401010     0000000100000002 0001000200030004\n"
+            "0000000000401020     0102030405060708 1122334455667788\n"
+            "0000000000401030     0123456789abcdef 0000000000000000\n"
         )
     )
 
@@ -63,26 +63,26 @@ def test_windbg_dX_commands(start_binary):
         dq_count1
         == dq_count2
         == dq_count3
-        == "0000000000400081     0000000000000000 0000000000000001\n"
+        == "0000000000401000     0000000000000000 0000000000000001\n"
     )
 
-    assert gdb.execute("dq data 1", to_string=True) == "0000000000400081     0000000000000000\n"
+    assert gdb.execute("dq data 1", to_string=True) == "0000000000401000     0000000000000000\n"
     assert gdb.execute("dq data 3", to_string=True) == (
-        "0000000000400081     0000000000000000 0000000000000001\n"
-        "0000000000400091     0000000100000002\n"
+        "0000000000401000     0000000000000000 0000000000000001\n"
+        "0000000000401010     0000000100000002\n"
     )
 
     # Try 'dq' with count equal to a register, but lets set it before ;)
     # also note that we use `data2` here
     assert gdb.execute("set $eax=4", to_string=True) == ""  # assert as a sanity check
     assert gdb.execute("dq data2 $eax", to_string=True) == (
-        "00000000004000a9     1122334455667788 0123456789abcdef\n"
-        "00000000004000b9     0000000000000000 ffffffffffffffff\n"
+        "0000000000401028     1122334455667788 0123456789abcdef\n"
+        "0000000000401038     0000000000000000 ffffffffffffffff\n"
     )
 
     # See if we can repeat dq command (use count for shorter data)
     assert gdb.execute("dq data2 2", to_string=True) == (
-        "00000000004000a9     1122334455667788 0123456789abcdef\n"
+        "0000000000401028     1122334455667788 0123456789abcdef\n"
     )
 
     # TODO/FIXME: Can we test command repeating here? Neither passing `from_tty=True`
@@ -104,19 +104,19 @@ def test_windbg_dX_commands(start_binary):
         == dd3
         == dd4
         == (
-            "0000000000400081     00000000 00000000 00000001 00000000\n"
-            "0000000000400091     00000002 00000001 00030004 00010002\n"
-            "00000000004000a1     05060708 01020304 55667788 11223344\n"
-            "00000000004000b1     89abcdef 01234567 00000000 00000000\n"
+            "0000000000401000     00000000 00000000 00000001 00000000\n"
+            "0000000000401010     00000002 00000001 00030004 00010002\n"
+            "0000000000401020     05060708 01020304 55667788 11223344\n"
+            "0000000000401030     89abcdef 01234567 00000000 00000000\n"
         )
     )
 
     # count tests
     assert gdb.execute("dd data 4", to_string=True) == (
-        "0000000000400081     00000000 00000000 00000001 00000000\n"
+        "0000000000401000     00000000 00000000 00000001 00000000\n"
     )
     assert gdb.execute("dd data 3", to_string=True) == (
-        "0000000000400081     00000000 00000000 00000001\n"
+        "0000000000401000     00000000 00000000 00000001\n"
     )
 
     #################################################
@@ -132,24 +132,24 @@ def test_windbg_dX_commands(start_binary):
         == dw3
         == dw4
         == (
-            "0000000000400081     0000 0000 0000 0000 0001 0000 0000 0000\n"
-            "0000000000400091     0002 0000 0001 0000 0004 0003 0002 0001\n"
-            "00000000004000a1     0708 0506 0304 0102 7788 5566 3344 1122\n"
-            "00000000004000b1     cdef 89ab 4567 0123 0000 0000 0000 0000\n"
+            "0000000000401000     0000 0000 0000 0000 0001 0000 0000 0000\n"
+            "0000000000401010     0002 0000 0001 0000 0004 0003 0002 0001\n"
+            "0000000000401020     0708 0506 0304 0102 7788 5566 3344 1122\n"
+            "0000000000401030     cdef 89ab 4567 0123 0000 0000 0000 0000\n"
         )
     )
 
     # count tests
     assert gdb.execute("dw data 8", to_string=True) == (
-        "0000000000400081     0000 0000 0000 0000 0001 0000 0000 0000\n"
+        "0000000000401000     0000 0000 0000 0000 0001 0000 0000 0000\n"
     )
 
     assert gdb.execute("dw data 8/2", to_string=True) == (
-        "0000000000400081     0000 0000 0000 0000\n"
+        "0000000000401000     0000 0000 0000 0000\n"
     )
 
     assert gdb.execute("dw data $eax", to_string=True) == (
-        "0000000000400081     0000 0000 0000 0000\n"
+        "0000000000401000     0000 0000 0000 0000\n"
     )
 
     #################################################
@@ -165,19 +165,19 @@ def test_windbg_dX_commands(start_binary):
         == db3
         == db4
         == (
-            "0000000000400081     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
-            "0000000000400091     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01 00\n"
-            "00000000004000a1     08 07 06 05 04 03 02 01 88 77 66 55 44 33 22 11\n"
-            "00000000004000b1     ef cd ab 89 67 45 23 01 00 00 00 00 00 00 00 00\n"
+            "0000000000401000     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
+            "0000000000401010     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01 00\n"
+            "0000000000401020     08 07 06 05 04 03 02 01 88 77 66 55 44 33 22 11\n"
+            "0000000000401030     ef cd ab 89 67 45 23 01 00 00 00 00 00 00 00 00\n"
         )
     )
 
     # count tests
     assert gdb.execute("db data 31", to_string=True) == (
-        "0000000000400081     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
-        "0000000000400091     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
+        "0000000000401000     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
+        "0000000000401010     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
     )
-    assert gdb.execute("db data $ax", to_string=True) == ("0000000000400081     00 00 00 00\n")
+    assert gdb.execute("db data $ax", to_string=True) == ("0000000000401000     00 00 00 00\n")
 
     #################################################
     #### dc command tests
@@ -192,13 +192,13 @@ def test_windbg_dX_commands(start_binary):
         == dc3
         == dc4
         == (
-            "+0000 0x400081  00 00 00 00 00 00 00 00                           "
+            "+0000 0x401000  00 00 00 00 00 00 00 00                           "
             "│........│        │\n"
         )
     )
 
     assert gdb.execute("dc data 3", to_string=True) == (
-        "+0000 0x400081  00 00 00                                          │...     │        │\n"
+        "+0000 0x401000  00 00 00                                          │...     │        │\n"
     )
 
     #################################################
@@ -206,18 +206,18 @@ def test_windbg_dX_commands(start_binary):
     #################################################
     ds1 = gdb.execute("ds short_str", to_string=True)
     ds2 = gdb.execute("ds &short_str", to_string=True)
-    ds3 = gdb.execute("ds 0x4000d9", to_string=True)
-    ds4 = gdb.execute("ds 4000d9", to_string=True)
-    assert ds1 == ds2 == ds3 == ds4 == "4000d9 'some cstring here'\n"
+    ds3 = gdb.execute("ds 0x401058", to_string=True)
+    ds4 = gdb.execute("ds 401058", to_string=True)
+    assert ds1 == ds2 == ds3 == ds4 == "401058 'some cstring here'\n"
 
     # Check too low maxlen
     assert gdb.execute("ds short_str 5", to_string=True) == (
-        "Max str len of 5 too low, changing to 256\n4000d9 'some cstring here'\n"
+        "Max str len of 5 too low, changing to 256\n401058 'some cstring here'\n"
     )
 
     # Check output for a string longer than (the default) maxlen of 256
     assert gdb.execute("ds long_str", to_string=True) == (
-        "4000eb 'long string: "
+        "40106a 'long string: "
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...'\n"
     )
 

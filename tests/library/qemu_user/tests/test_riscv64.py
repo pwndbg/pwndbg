@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.symbol
 import pwndbg.color
 import pwndbg.dbg
@@ -74,6 +75,66 @@ def test_riscv64_jalr(qemu_assembly_run):
     )
 
     assert dis == expected
+
+
+# .option norvc disables compressed instructions
+RISCV64_JALR_VARIANTS = f"""
+.option norvc
+{RISCV64_PREAMBLE}
+nop
+
+one:
+    la ra, two
+    jalr x0, x1, 0
+    nop
+
+two:
+    la x2, three
+    li x3, 8
+    sub x2, x2, x3
+
+    jalr x1, 8(x2)
+    nop
+
+three:
+    la x2, four
+    jalr x2
+    nop
+
+four:
+    la x2, end
+    li x3, 8
+    sub x2, x2, x3
+
+    jalr x2, 8
+    nop
+
+end:
+{RISCV64_GRACEFUL_EXIT}
+"""
+
+
+def test_riscv64_jalr_variants(qemu_assembly_run):
+    """
+    Ensure targets are resolved correctly for different variants of RISC-V JALR
+    """
+    qemu_assembly_run(RISCV64_JALR_VARIANTS, "riscv64")
+
+    gdb.execute("stepuntilasm ret")
+    ins = pwndbg.aglib.disasm.disassembly.emulate_one()
+    assert ins.target_string == "two"
+
+    gdb.execute("stepuntilasm jalr")
+    ins = pwndbg.aglib.disasm.disassembly.emulate_one()
+    assert ins.target_string == "three"
+
+    gdb.execute("stepuntilasm jalr")
+    ins = pwndbg.aglib.disasm.disassembly.emulate_one()
+    assert ins.target_string == "four"
+
+    gdb.execute("stepuntilasm jalr")
+    ins = pwndbg.aglib.disasm.disassembly.emulate_one()
+    assert ins.target_string == "end"
 
 
 RISCV64_COMPRESSED_LOAD_STORE = f"""

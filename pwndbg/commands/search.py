@@ -7,10 +7,9 @@ import os
 import struct
 from typing import Set
 
-import pwnlib
-
 import pwndbg
 import pwndbg.aglib.arch
+import pwndbg.aglib.asm
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
@@ -116,12 +115,6 @@ parser.add_argument(
     help="Search for an assembly instruction",
 )
 parser.add_argument(
-    "--arch",
-    choices=pwnlib.context.context.architectures.keys(),
-    type=str,
-    help="Target architecture",
-)
-parser.add_argument(
     "--asmbp", action="store_true", help="Set breakpoint for found assembly instruction"
 )
 parser.add_argument(
@@ -180,7 +173,6 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenRunning
 def search(
     type,
-    arch,
     asmbp,
     hex,
     executable,
@@ -201,9 +193,6 @@ def search(
         )
         next = False
         save = True
-
-    if not arch:
-        arch = pwnlib.context.context.arch
 
     # Initialize is_pointer to track whether the search type is a pointer
     is_pointer = None
@@ -254,8 +243,7 @@ def search(
         value += b"\x00"
 
     elif type == "asm" or asmbp:
-        bits_for_arch = pwnlib.context.context.architectures.get(arch, {}).get("bits")
-        value = pwnlib.asm.asm(value, arch=arch, bits=bits_for_arch)
+        value = pwndbg.aglib.asm.asm(value)
 
     # `pwndbg.search.search` expects a `bytes` object for its pattern. Convert the string pattern we
     # were given to a bytes object by encoding it as an UTF-8 byte sequence. This matches the behavior

@@ -4,9 +4,11 @@ global _start
 ; like dq, dd, dw, db, dc etc.
 ; So while the program does nothing, we create some data for testing those
 
+SECTION .text
 _start:
     nop
 
+SECTION .data
 data:
     dq 0x0
     dq 0x1

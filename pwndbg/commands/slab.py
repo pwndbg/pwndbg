@@ -50,7 +50,7 @@ parser_list.add_argument(
 parser_info = subparsers.add_parser("info", prog="slab info")
 parser_info.add_argument("names", metavar="name", type=str, nargs="+", help="")
 parser_info.add_argument("-v", "--verbose", action="store_true", help="")
-parser_info.add_argument("-c", "--cpu", type=int, default=False, help="CPU to display")
+parser_info.add_argument("-c", "--cpu", type=int, help="CPU to display")
 parser_info.add_argument("-n", "--node", type=int, help="")
 parser_info.add_argument(
     "-p", "--partial-only", action="store_true", help="only displays partial lists"
@@ -245,7 +245,7 @@ def slab_info(name: str, verbose: bool, cpu: int, node: int, active: bool, parti
             indent.print(f"{indent.prefix('Usercopy region size')}: {usersize}")
 
         for cpu_cache in slab_cache.cpu_caches:
-            if cpu_cache.cpu is not None and cpu_cache.cpu != cpu:
+            if cpu is not None and cpu_cache.cpu != cpu:
                 continue
             print_cpu_cache(cpu_cache, verbose, active, partial, indent)
 
@@ -310,5 +310,5 @@ def slab_contains(address: str) -> None:
             pass
         print("slab:", M.hint(f"{hex(slab.virt_address)}"), desc)
         print("status:", M.hint(inuse))
-    except Exception:
-        print(M.warn("address does not belong to a SLUB cache"))
+    except Exception as e:
+        print(M.warn(f"address does not belong to a SLUB cache: {e}"))

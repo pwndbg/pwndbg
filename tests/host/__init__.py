@@ -8,6 +8,7 @@ from typing import Any
 from typing import Awaitable
 from typing import Callable
 from typing import Coroutine
+from typing import Dict
 from typing import List
 
 
@@ -149,7 +150,9 @@ class TestHost:
 
 
 class Controller:
-    def launch(self, binary: Path, args: List[str] = []) -> Awaitable[None]:
+    def launch(
+        self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
+    ) -> Awaitable[None]:
         """
         Launch the binary with the given path, relative to the binaries folder
         for the calling test.
@@ -191,6 +194,12 @@ class Controller:
     def finish(self) -> Awaitable[None]:
         """
         Resume execution; stop after the current function returns.
+        """
+        raise NotImplementedError()
+
+    def select_thread(self, tid: int) -> Awaitable[None]:
+        """
+        Select the thread with the given ID.
         """
         raise NotImplementedError()
 

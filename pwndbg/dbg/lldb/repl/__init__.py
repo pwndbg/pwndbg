@@ -474,8 +474,7 @@ def _exec_repl_command(
     # Not allowed to have this be a regular command, because of LLDB.
     if "version".startswith(line) and line.startswith("ve"):
         pwndbg.commands.version.version_impl()
-        print()
-        # Don't return. We want the LLDB command to also run.
+        return True
 
     # There are interactive commands that `SBDebugger.HandleCommand` will
     # silently ignore. We have to implement them manually, here.

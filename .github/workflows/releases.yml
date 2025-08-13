@@ -66,6 +66,10 @@ jobs:
           pwndbg-gdb-portable-deb,
           pwndbg-gdb-portable-apk,
           pwndbg-gdb-portable-archlinux,
+          pwndbg-lldb-portable-rpm,
+          pwndbg-lldb-portable-deb,
+          pwndbg-lldb-portable-apk,
+          pwndbg-lldb-portable-archlinux,
         ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
