@@ -109,7 +109,6 @@ typedef unsigned char u8;
 typedef char s8;
 typedef unsigned short u16;
 typedef unsigned int u32;
-typedef unsigned int spinlock_t;
 #if UINTPTR_MAX == 0xffffffff
     typedef int16_t arch_word_t;
 #else
@@ -329,6 +328,15 @@ class x86_64Symbols(ArchSymbols):
             return int(result.group(1), 16)
         return None
 
+    def qword_mov_reg_ripoff(self, disass):
+        result = self.regex(
+            "".join(disass.splitlines()),
+            r".*?\bmov.*\[rip\s\+\s(0x[0-9a-f]+)\].*?(0x[0-9a-f]{16})\s\<",
+        )
+        if result is not None:
+            return int(result.group(1), 16) + int(result.group(2), 16)
+        return None
+
     def _node_data(self):
         disass = self.disass("first_online_pgdat")
         result = self.dword_mov_reg_memoff(disass)
@@ -345,7 +353,10 @@ class x86_64Symbols(ArchSymbols):
         result = self.dword_add_reg_memoff(disass)
         if result is not None:
             return result
-        return self.qword_mov_reg_const(disass)
+        result = self.qword_mov_reg_const(disass)
+        if result is not None:
+            return result
+        return self.qword_mov_reg_ripoff(disass)
 
 
 class Aarch64Symbols(ArchSymbols):

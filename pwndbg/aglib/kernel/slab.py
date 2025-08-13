@@ -463,7 +463,6 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
     slab_caches = pwndbg.aglib.kernel.slab_caches()
     assert slab_caches, "can't find slab_caches"
     kmem_cache = int(slab_caches["prev"]) & ~0xFF
-    print(hex(kmem_cache))
     for i in range(0x20):
         val = pwndbg.aglib.memory.u64(kmem_cache + i * 8)
         if pwndbg.aglib.memory.string(val) == name.encode():
@@ -473,7 +472,7 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
     distance, node_cache_pad = None, None
     for i in range(3, 0x20):
         val = pwndbg.aglib.memory.u32(kmem_cache + (i - 1) * 8 + name_off)
-        if val > 0x100:
+        if val > 0x1000000:
             continue
         val = pwndbg.aglib.memory.u64(kmem_cache + i * 8 + name_off)
         if pwndbg.aglib.memory.peek(val) is None:
@@ -493,7 +492,6 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
                 break
         if distance is not None:
             break
-    print(hex(distance + name_off))
     assert distance, "can't find kmem_cache node"
     distance -= 0x18  # the name ptr + list_head
     configs = (

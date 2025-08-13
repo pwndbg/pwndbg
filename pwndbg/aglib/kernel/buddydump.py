@@ -15,7 +15,7 @@ import pwndbg.aglib.typeinfo
 MAX_ORDER = 11
 
 
-def get_pcp_struct(pcp_pad, pcp_sz) -> str:
+def get_pcp_struct(pcp_pad) -> str:
     result = ""
     if pwndbg.aglib.kernel.krelease() < (5, 14):
         result += "#define BEFORE_V5_14"
@@ -27,10 +27,7 @@ def get_pcp_struct(pcp_pad, pcp_sz) -> str:
     }};
 #ifdef BEFORE_V5_14
     struct per_cpu_pageset {{
-        union {{
-            struct per_cpu_pages pcp;
-            char _pad[{pcp_sz}];
-        }};
+        struct per_cpu_pages pcp;
     }};
 #endif
     """
@@ -38,7 +35,7 @@ def get_pcp_struct(pcp_pad, pcp_sz) -> str:
 
 
 def find_zone_offsets() -> Tuple[int, int, int, int, int, int]:
-    pcp_off, name_off, freelist_off, pcp_sz, pcp_pad, zone_sz = None, None, None, None, None, None
+    pcp_off, name_off, freelist_off, pcp_pad, zone_sz = None, None, None, None, None
     node_data0 = pwndbg.aglib.kernel.node_data()
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
         node_data0 = node_data0.dereference()
@@ -59,25 +56,6 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int, int]:
             pcp_pad = i * 8
             break
     assert pcp_pad, "can't find pcp pad"
-    if pwndbg.aglib.kernel.krelease() < (5, 14):
-        pcp_ptr = pwndbg.aglib.kernel.per_cpu(
-            pwndbg.aglib.memory.get_typed_pointer("struct page", pwndbg.aglib.memory.u64(ptr))
-        )
-        first_pcp_ptr, second_pcp_ptr = None, None
-        prev = 0
-        for i in range(30):
-            addr = int(pcp_ptr) + i * 8
-            cur = pwndbg.aglib.memory.u64(addr)
-            if prev >> 56 == 0 and cur >> 56 == 0xFF:
-                if not first_pcp_ptr:
-                    first_pcp_ptr = addr
-                else:
-                    second_pcp_ptr = addr
-                    break
-            prev = cur
-        assert first_pcp_ptr and second_pcp_ptr, "can't determine pcp ptrs"
-        pcp_sz = second_pcp_ptr - first_pcp_ptr
-        assert 0 < pcp_sz < 0x100, "can't determine pcp_sz"
     for i in range(20):
         char_ptr = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
@@ -112,7 +90,7 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int, int]:
     assert (
         zone_sz and zone_sz < 0x4000 and zone_sz & 0xF == 0
     ), f"can't determine sizeof(struct zone) = {zone_sz}"  # just to make sure it is sane
-    return pcp_off, name_off, freelist_off, pcp_sz, pcp_pad, zone_sz
+    return pcp_off, name_off, freelist_off, pcp_pad, zone_sz
 
 
 def load_buddydump_typeinfo():
@@ -132,8 +110,8 @@ def load_buddydump_typeinfo():
         char _pad[];
     }} pg_data_t;
     """
-    pcp_off, name_off, freearea_off, pcp_sz, pcp_pad, zone_sz = find_zone_offsets()
-    per_cpu_pages = get_pcp_struct(pcp_pad, pcp_sz)
+    pcp_off, name_off, freearea_off, pcp_pad, zone_sz = find_zone_offsets()
+    per_cpu_pages = get_pcp_struct(pcp_pad)
     zone = ""
     if pwndbg.aglib.kernel.krelease() < (5, 14):
         zone = "#define BEFORE_V5_14\n"
