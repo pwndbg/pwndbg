@@ -455,8 +455,8 @@ def find_containing_slab_cache(addr: int) -> SlabCache | None:
 
 
 def kmem_cache_node_pad_sz(val):
-    for j in range(0x8):
-        nr_partial = pwndbg.aglib.memory.u64(val)
+    for j in range(0x10):
+        nr_partial = pwndbg.aglib.memory.u32(val)
         next = pwndbg.aglib.memory.u64(val + 0x8)
         prev = pwndbg.aglib.memory.u64(val + 0x10)
         val += 0x8
@@ -548,14 +548,7 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
 
 
 def kmem_cache_structs(node_cache_pad):
-    to_define = None
-    if pwndbg.aglib.kernel.krelease() < (5, 17):
-        to_define = "BEFORE_V5_17"
-    elif pwndbg.aglib.kernel.krelease() < (6, 2):
-        to_define = "BETWEEN_V5_17_AND_V6_1"
-    else:
-        to_define = "SINCE_V6_2"
-    result = f"#define {to_define}\n"
+    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SLUB_CPU_PARTIAL\n"
     result += f"""
@@ -567,12 +560,15 @@ def kmem_cache_structs(node_cache_pad):
     """
     result += """
     struct kasan_cache {
-#if !defined(BETWEEN_V6_1_AND_V6_2) || (defined(BETWEEN_V6_1_AND_V6_2) && defined(CONFIG_KASAN_GENERIC))
-	    int alloc_meta_offset;
-	    int free_meta_offset;
+#if !((KERNEL_VERSION(6, 1, 0) <= KVERSION && KVERSION < KERNEL_VERSION(6, 3, 0)))
+        int alloc_meta_offset;
+        int free_meta_offset;
+#elif defined(CONFIG_KASAN_GENERIC)
+        int alloc_meta_offset;
+        int free_meta_offset;
 #endif
-#if defined(BETWEEN_V5_11_AND_V6_2)
-	    bool is_kmalloc;
+#if KERNEL_VERSION(5, 11, 0) <= KVERSION && KVERSION < KERNEL_VERSION(6, 3, 0)
+        bool is_kmalloc;
 #endif
     };
     struct kmem_cache_order_objects {
@@ -584,10 +580,10 @@ def kmem_cache_structs(node_cache_pad):
     };
     typedef unsigned int gfp_t;
     typedef unsigned int slab_flags_t;
-#ifndef BEFORE_V5_17
+#if KVERSION >= KERNEL_VERSION(5, 17, 0)
     struct slab {
         unsigned long __page_flags;
-#ifdef SINCE_V6_2
+#if KVERSION >= KERNEL_VERSION(6, 2, 0)
         struct kmem_cache *slab_cache;
 #endif
         union {
@@ -599,7 +595,7 @@ def kmem_cache_structs(node_cache_pad):
             };
 #endif
         };
-#ifdef BETWEEN_V5_17_AND_V6_1
+#if KVERSION >= KERNEL_VERSION(5, 17, 0) && KVERSION < KERNEL_VERSION(6, 2, 0)
         struct kmem_cache *slab_cache;
 #endif
         void *freelist;		/* first free object */
@@ -638,16 +634,6 @@ def load_slab_typeinfo():
     pwndbg.aglib.kernel.symbol.load_common_structs()
     kconfig = pwndbg.aglib.kernel.kconfig()
     defs = []
-    if pwndbg.aglib.kernel.krelease() < (6, 2):
-        defs.append("BEFORE_V6_2")
-    if pwndbg.aglib.kernel.krelease() >= (6, 3):
-        defs.append("SINCE_V6_3")
-    if pwndbg.aglib.kernel.krelease() < (5, 19):
-        defs.append("BEFORE_V5_19")
-    if pwndbg.aglib.kernel.krelease() >= (5, 16):
-        defs.append("SINCE_V5_16")
-    if pwndbg.aglib.kernel.krelease() >= (5, 9):
-        defs.append("SINCE_V5_9")
     configs = (
         "CONFIG_SLUB_TINY",
         "CONFIG_SLUB_CPU_PARTIAL",
@@ -662,13 +648,14 @@ def load_slab_typeinfo():
         if config in kconfig:
             defs.append(config)
     sz, node_cache_pad = kmem_cache_pad_sz(kconfig)
-    result = "\n".join(f"#define {s}" for s in defs)
+    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
+    result += "\n".join(f"#define {s}" for s in defs)
     result += pwndbg.aglib.kernel.symbol.COMMON_TYPES
     result += kmem_cache_structs(node_cache_pad)
     # this is the kmem_cache SLUB representation for all 5.x and 6.x
     result += f"""
     struct kmem_cache {{
-#if !defined(CONFIG_SLUB_TINY) || defined(BEFORE_V6_2)
+#if !defined(CONFIG_SLUB_TINY) || KVERSION < KERNEL_VERSION(6, 2, 0)
         struct kmem_cache_cpu *cpu_slab;
 #endif
         /* Used for retrieving partial slabs, etc. */
@@ -676,14 +663,14 @@ def load_slab_typeinfo():
         unsigned long min_partial;
         unsigned int size;		/* Object size including metadata */
         unsigned int object_size;	/* Object size without metadata */
-#if defined(SINCE_V5_9)
+#if KVERSION >= KERNEL_VERSION(5, 9, 0)
         struct reciprocal_value reciprocal_size;
 #endif
         unsigned int offset;		/* Free pointer offset */
 #ifdef CONFIG_SLUB_CPU_PARTIAL
         /* Number of per cpu partial objects to keep around */
         unsigned int cpu_partial;
-#ifdef SINCE_V5_16
+#if KVERSION >= KERNEL_VERSION(5, 16, 0)
         /* Number of per cpu partial slabs to keep around */
         unsigned int cpu_partial_{slab_struct_type()}s;
 #endif
@@ -691,7 +678,7 @@ def load_slab_typeinfo():
         struct kmem_cache_order_objects oo;
         /* Allocation and freeing of slabs */
         struct kmem_cache_order_objects min;
-#ifdef BEFORE_V5_19
+#if KVERSION < KERNEL_VERSION(5, 19, 0)
         struct kmem_cache_order_objects max;
 #endif
         gfp_t allocflags;		/* gfp flags to use on each alloc */
@@ -713,10 +700,10 @@ def load_slab_typeinfo():
 #ifdef CONFIG_SLAB_FREELIST_RANDOM
         unsigned int *random_seq;
 #endif
-#if (defined(SINCE_V6_3) && defined(CONFIG_KASAN_GENERIC) || (!defined(SINCE_V6_3) && defined(CONFIG_KASAN)))
+#if (KVERSION >= KERNEL_VERSION(6, 3, 0) && defined(CONFIG_KASAN_GENERIC) || (KVERSION < KERNEL_VERSION(6, 3, 0) && defined(CONFIG_KASAN)))
         struct kasan_cache kasan_info;
 #endif
-#if defined(BEFORE_V6_2) || defined(CONFIG_HARDENED_USERCOPY)
+#if KVERSION < KERNEL_VERSION(6, 2, 0) || defined(CONFIG_HARDENED_USERCOPY)
         unsigned int useroffset;	/* Usercopy region offset */
         unsigned int usersize;		/* Usercopy region size */
 #endif

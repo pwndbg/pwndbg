@@ -99,12 +99,20 @@ def npcplist() -> int:
     return 0
 
 
+def kversion_cint(kversion=None):
+    if kversion is None:
+        kversion = pwndbg.aglib.kernel.krelease()
+        x, y, z = kversion
+    return (((x) * 65536) + ((y) * 256) + (z))
+
+
 #########################################
 # common structurs
 #
 #########################################
 COMMON_TYPES = """
 #include <stdint.h>
+#include <linux/version.h>
 typedef unsigned char u8;
 typedef char s8;
 typedef unsigned short u16;
@@ -148,6 +156,7 @@ enum pageflags {
 	PG_unevictable,		/* Page is "unevictable"  */
 	PG_dropbehind,		/* drop pages on IO completion */
 };
+
 """
 
 
@@ -157,21 +166,14 @@ def load_common_structs():
     if pwndbg.aglib.typeinfo.lookup_types("struct page") is not None:
         return
     defs = []
-    if pwndbg.aglib.kernel.krelease() < (5, 17):
-        defs.append("BEFORE_V5_17")
-    if pwndbg.aglib.kernel.krelease() < (5, 16):
-        defs.append("BEFORE_V5_16")
-    if pwndbg.aglib.kernel.krelease() < (6, 7):
-        defs.append("BEFORE_V6_7")
-    if pwndbg.aglib.kernel.krelease() >= (6, 1):
-        defs.append("SINCE_V6_1")
     for config in (
         "CONFIG_MEMCG",
         "CONFIG_KASAN",
     ):
         if config in pwndbg.aglib.kernel.kconfig():
             defs.append(config)
-    result = "\n".join(f"#define {s}" for s in defs)
+    result = f"#define KVERSION {kversion_cint()}\n"
+    result += "\n".join(f"#define {s}" for s in defs)
     result += COMMON_TYPES
     result += """
     struct page { // just a simplied page struct with relavent fields
@@ -191,14 +193,14 @@ def load_common_structs():
                     };
                 };
             };
-#ifdef BEFORE_V5_17
+#if KVERSION < KERNEL_VERSION(5, 17, 0)
             struct {	/* slab, slob and slub */
                 union {
                     struct list_head slab_list;
                     struct {	/* Partial pages */
                         struct page *next;
                         arch_word_t pages;	/* Nr of pages left */
-#ifdef BEFORE_V5_16
+#if KVERSION < KERNEL_VERSION(5, 16, 0)
                         arch_word_t pobjects;	/* Approximate count */
 #endif
                     };
@@ -230,17 +232,17 @@ def load_common_structs():
 #if defined(WANT_PAGE_VIRTUAL) /* never set for x86 and arm */
         void *virtual;
 #endif /* WANT_PAGE_VIRTUAL */
-#ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS
-#ifndef BEFORE_V6_7 /* TODO: seems never got set for all the kernel builds I have worked with */
+#ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS /* TODO: seems never got set for all the kernel builds I have worked with */
+#if KVERSION >= KERNEL_VERSION(6, 7, 0)
         int _last_cpupid;
 #endif
 #endif
-#if defined(CONFIG_KASAN) && defined(SINCE_V6_1)
+#if defined(CONFIG_KASAN) && KVERSION >= KERNEL_VERSION(6, 1, 0)
         struct page *kmsan_shadow;
         struct page *kmsan_origin;
 #endif
 #ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS
-#ifdef BEFORE_V6_7
+#ifdef KVERSION < KERNEL_VERSION(6, 7, 0)
         int _last_cpupid;
 #endif
 #endif

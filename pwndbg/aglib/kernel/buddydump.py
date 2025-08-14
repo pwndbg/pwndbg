@@ -16,16 +16,14 @@ MAX_ORDER = 11
 
 
 def get_pcp_struct(pcp_pad) -> str:
-    result = ""
-    if pwndbg.aglib.kernel.krelease() < (5, 14):
-        result += "#define BEFORE_V5_14"
+    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += f"""
     struct per_cpu_pages {{
         char _pad[{pcp_pad}];
         /* Lists of pages, one per migrate type stored on the pcp-lists */
         struct list_head lists[{pwndbg.aglib.kernel.symbol.npcplist()}]; // constant is sufficient for now
     }};
-#ifdef BEFORE_V5_14
+#ifdef KVERSION < KERNEL_VERSION(5, 14, 0)
     struct per_cpu_pageset {{
         struct per_cpu_pages pcp;
     }};
@@ -102,22 +100,18 @@ def load_buddydump_typeinfo():
         return
     pwndbg.aglib.kernel.symbol.load_common_structs()
 
-    pglist_data = f"""
-    typedef struct pglist_data {{
-        struct zone node_zones[{nzones}];
-        // ... the rest of the fields are not important
-        // but make the struct dynamic
-        char _pad[];
-    }} pg_data_t;
-    """
+    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
+    result += pwndbg.aglib.kernel.symbol.COMMON_TYPES
     pcp_off, name_off, freearea_off, pcp_pad, zone_sz = find_zone_offsets()
-    per_cpu_pages = get_pcp_struct(pcp_pad)
-    zone = ""
-    if pwndbg.aglib.kernel.krelease() < (5, 14):
-        zone = "#define BEFORE_V5_14\n"
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
-        zone += "#define CONFIG_NUMA\n"
-    zone += f"""
+        result += "#define CONFIG_NUMA\n"
+    result += f"""
+    struct free_area {{
+        struct list_head	free_list[{nmtypes}];
+        unsigned long		nr_free;
+    }};
+    """
+    result += f"""
 #ifdef CONFIG_NUMA
     typedef struct pglist_data *node_data_t[1]; // just support 1 node for now, the most common case
 #else
@@ -125,7 +119,7 @@ def load_buddydump_typeinfo():
 #endif
     struct zone {{
         char _pad1[{hex(pcp_off)}];
-#ifdef BEFORE_V5_14
+#ifdef KVERSION < KERNEL_VERSION(5, 14, 0)
         struct per_cpu_pageset *pageset;
 #else
         struct per_cpu_pages *per_cpu_pageset;
@@ -137,14 +131,12 @@ def load_buddydump_typeinfo():
         char _pad[{hex(zone_sz - freearea_off - (MAX_ORDER * (nmtypes * 0x10 + 8)))}];
     }};
     """
-    free_area = f"""
-    struct free_area {{
-        struct list_head	free_list[{nmtypes}];
-        unsigned long		nr_free;
-    }};
+    result += get_pcp_struct(pcp_pad)
+    result += f"""
+    typedef struct pglist_data {{
+        struct zone node_zones[{nzones}];
+        // ... the rest of the fields are not important
+    }} pg_data_t;
     """
-    result = (
-        pwndbg.aglib.kernel.symbol.COMMON_TYPES + free_area + zone + per_cpu_pages + pglist_data
-    )
     header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
     pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "buddydump_structs", True)
