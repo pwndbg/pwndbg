@@ -887,6 +887,54 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         return pages
 
+    def _process_vmmap_pages(
+        self, pages: List[pwndbg.lib.memory.Page]
+    ) -> List[pwndbg.lib.memory.Page]:
+        # Do a final, coalescing pass, for identical ranges that are sequential
+        # and contiguous to each other in the virtual address space, and join
+        # them into a single range.
+        #
+        # LLDB - particularly in macOS - may yield multiple ranges that describe
+        # contiguous sequential regions of virtual memory, but are otherwise
+        # identical. This seems to happen because LLDB internally distinguishes
+        # between different Mach-O sections. That information, however, is not
+        # made reliably available to us.
+        final_pages: List[pwndbg.lib.memory.Page] = []
+        start = None
+        end = None
+        for page in pages:
+            if start is None:
+                start = page
+                continue
+
+            target = end if end is not None else start
+            otherwise_equal = (
+                target.flags == page.flags
+                and target.objfile == page.objfile
+                and target.in_darwin_shared_cache == page.in_darwin_shared_cache
+            )
+
+            if target.end == page.start and otherwise_equal:
+                end = page
+            else:
+                final_pages.append(
+                    pwndbg.lib.memory.Page(
+                        start.start,
+                        target.end - start.start,
+                        start.flags,
+                        start.offset,
+                        start.objfile,
+                        start.in_darwin_shared_cache,
+                    )
+                )
+                start = page
+                end = None
+
+        if start is not None:
+            final_pages.append(start)
+
+        return final_pages
+
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
         from pwndbg.aglib.commpage import get_commpage_mappings
@@ -896,7 +944,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             pages.extend(get_commpage_mappings())
             pages.sort()
 
-            return LLDBMemoryMap(pages)
+            return LLDBMemoryMap(self._process_vmmap_pages(pages))
 
         from pwndbg.aglib.kernel.vmmap import kernel_vmmap
         from pwndbg.aglib.vmmap_custom import get_custom_pages
@@ -905,7 +953,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         pages.extend(kernel_vmmap())
         pages.extend(get_custom_pages())
         pages.sort()
-        return LLDBMemoryMap(pages)
+
+        return LLDBMemoryMap(self._process_vmmap_pages(pages))
 
     def find_largest_range_len(
         self, min_search: int, max_search: int, test: Callable[[int], bool]
