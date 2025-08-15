@@ -455,7 +455,7 @@ def find_containing_slab_cache(addr: int) -> SlabCache | None:
 
 
 def kmem_cache_node_pad_sz(val):
-    for j in range(0x10):
+    for j in range(8):
         nr_partial = pwndbg.aglib.memory.u32(val)
         next = pwndbg.aglib.memory.u64(val + 0x8)
         prev = pwndbg.aglib.memory.u64(val + 0x10)
@@ -567,7 +567,7 @@ def kmem_cache_structs(node_cache_pad):
         int alloc_meta_offset;
         int free_meta_offset;
 #endif
-#if KERNEL_VERSION(5, 11, 0) <= KVERSION && KVERSION < KERNEL_VERSION(6, 3, 0)
+#if KERNEL_VERSION(5, 12, 0) <= KVERSION && KVERSION < KERNEL_VERSION(6, 3, 0)
         bool is_kmalloc;
 #endif
     };
@@ -595,7 +595,7 @@ def kmem_cache_structs(node_cache_pad):
             };
 #endif
         };
-#if KVERSION >= KERNEL_VERSION(5, 17, 0) && KVERSION < KERNEL_VERSION(6, 2, 0)
+#if KVERSION < KERNEL_VERSION(6, 2, 0)
         struct kmem_cache *slab_cache;
 #endif
         void *freelist;		/* first free object */

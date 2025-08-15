@@ -103,7 +103,7 @@ def kversion_cint(kversion=None):
     if kversion is None:
         kversion = pwndbg.aglib.kernel.krelease()
         x, y, z = kversion
-    return (((x) * 65536) + ((y) * 256) + (z))
+    return ((x) * 65536) + ((y) * 256) + (z)
 
 
 #########################################
@@ -118,17 +118,15 @@ typedef char s8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 typedef long long s64;
+#define bool int
 #if UINTPTR_MAX == 0xffffffff
     typedef int16_t arch_word_t;
-    typedef struct {
-        int counter;
-    } atomic_t;
 #else
     typedef int32_t arch_word_t;
-    typedef struct {
-        s64 counter;
-    } atomic_t;
 #endif
+typedef struct {
+    int counter;
+} atomic_t;
 
 struct list_head {
     struct list_head *next, *prev;
@@ -242,7 +240,7 @@ def load_common_structs():
         struct page *kmsan_origin;
 #endif
 #ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS
-#ifdef KVERSION < KERNEL_VERSION(6, 7, 0)
+#if KVERSION < KERNEL_VERSION(6, 7, 0)
         int _last_cpupid;
 #endif
 #endif
