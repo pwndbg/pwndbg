@@ -55,14 +55,8 @@ def has_debug_symbols(required: str | Tuple[str, ...] = None, checkall=True) -> 
 @pwndbg.lib.cache.cache_until("objfile")
 def has_debug_info() -> bool:
     # Check for an arbitrary type and symbol name that are not likely to change
-    structs = (
-        "pipe_buffer",
-        "msg_msg",
-        "file",
-        "pid",
-    )
     return (
-        all(pwndbg.aglib.typeinfo.load(f"struct {s}") is not None for s in structs)
+        pwndbg.aglib.typeinfo.load("struct pipe_buffer") is not None
         and pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner") is not None
     )
 
