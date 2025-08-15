@@ -41,11 +41,9 @@ def BIT(shift: int):
     return 1 << shift
 
 
-def has_debug_symbols(required: str | Tuple[str, ...] = None, checkall=True) -> bool:
-    if required is None:
+def has_debug_symbols(*required: str, checkall: bool = True) -> bool:
+    if not required:
         required = ("commit_creds",)
-    if isinstance(required, str):
-        required = (required,)
     if checkall:
         return all(pwndbg.aglib.symbol.lookup_symbol(sym) is not None for sym in required)
     # check any
@@ -62,12 +60,12 @@ def has_debug_info() -> bool:
 
 
 def requires_debug_symbols(
-    required: str | Tuple[str, ...], checkall=False, default: D = None
+    *required: str, checkall=False, default: D = None
 ) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
     def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
         @functools.wraps(f)
         def func(*args: P.args, **kwargs: P.kwargs) -> T | D:
-            if has_debug_symbols(required, checkall):
+            if has_debug_symbols(*required, checkall=checkall):
                 return f(*args, **kwargs)
 
             # If the user doesn't want an exception thrown when debug symbols are
@@ -346,13 +344,7 @@ class x86_64Ops(x86Ops):
     def ptr_size(self) -> int:
         return 64
 
-    @requires_debug_symbols(
-        (
-            "__per_cpu_offset",
-            "nr_iowait_cpu",
-        ),
-        checkall=False,
-    )
+    @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
     ) -> pwndbg.dbg_mod.Value:
@@ -388,13 +380,7 @@ class Aarch64Ops(ArchOps):
     def ptr_size(self):
         return 64
 
-    @requires_debug_symbols(
-        (
-            "__per_cpu_offset",
-            "nr_iowait_cpu",
-        ),
-        checkall=False,
-    )
+    @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
     ) -> pwndbg.dbg_mod.Value:
