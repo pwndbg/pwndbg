@@ -42,8 +42,8 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
         from pwndbg.commands.ptmalloc2 import bin_ascii
 
         first, second = (await ctrl.execute_and_capture(f"x/16xb {gdb_symbol}")).splitlines()
-        first = [int(v, 16) for v in first.split(":")[1].split("\t")[1:]]
-        second = [int(v, 16) for v in second.split(":")[1].split("\t")[1:]]
+        first = [int(v, 16) for v in first.split(":")[1].split()]
+        second = [int(v, 16) for v in second.split(":")[1].split()]
 
         return bin_ascii(first + second)
 

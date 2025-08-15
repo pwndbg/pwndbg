@@ -38,10 +38,10 @@ lldb = [
     # The LLDB REPL requires readline.
     'gnureadline>=8.2.10,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg==20.1.5",
+    "lldb-for-pwndbg==20.1.8.post1",
 ]
 gdb = [
-    "gdb-for-pwndbg==16.3.0",
+    "gdb-for-pwndbg==16.3.0.post1",
 ]
 
 [dependency-groups]

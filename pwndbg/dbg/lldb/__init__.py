@@ -1249,6 +1249,12 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             return None
 
         sym_addr = ctx.symbol.addr.GetLoadAddress(self.target)
+        if sym_addr == lldb.LLDB_INVALID_ADDRESS:
+            # Unlikely. LLDB can return some truly insane matches sometimes. In
+            # this case, we could not find the load address of the symbol we
+            # matched. Act as if we found nothing.
+            return None
+
         assert (
             sym_addr <= address
         ), f"LLDB returned an out-of-range address {sym_addr:#x} for a requested symbol with address {address:#x}"

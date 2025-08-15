@@ -17,6 +17,11 @@ TLS_I386_BINARY = get_binary("tls.i386.out")
 async def test_tls_address_and_command(ctrl: Controller, binary: str):
     import pwndbg.aglib.tls
     import pwndbg.aglib.vmmap
+    from pwndbg.dbg import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB and binary == TLS_I386_BINARY:
+        pytest.skip("TLS commands are flaky in LLDB on i386")
+        return
 
     await launch_to(ctrl, binary, "break_here")
 

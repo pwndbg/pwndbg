@@ -86,6 +86,17 @@ commands will search the heap to try to find the correct meta/group.
 
 ----------
 
+## **ng-vis-count**
+
+
+Default count for ng-vis.
+
+
+
+**Default:** 10  
+
+----------
+
 ## **resolve-heap-via-heuristic**
 
 === "GDB"

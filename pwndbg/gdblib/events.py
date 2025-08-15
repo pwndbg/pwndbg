@@ -120,6 +120,7 @@ def _is_safe_event_thread():
 
 queued_events: Deque[Callable[..., Any]] = deque()
 executing_event = False
+workaround_thread_conn = None
 
 
 def _update_start_event_state(event_type: Any):
@@ -227,6 +228,19 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
             executing_event = True
             gdb.execute("", to_string=True)  # Trigger bug in gdb, it is like 'yield'
             executing_event = False
+        elif event_type in (gdb.events.cont, gdb.events.new_thread):
+            # Workaround for crash in gdb when used: `target extended-remote` + `attach`
+            # https://github.com/pwndbg/pwndbg/issues/3231
+            global workaround_thread_conn
+            conn = gdb.selected_inferior().connection
+            if (
+                isinstance(conn, gdb.RemoteTargetConnection)
+                and conn.type == "extended-remote"
+                and conn.is_valid()
+                and workaround_thread_conn != conn
+            ):
+                gdb.selected_inferior().threads()[0].switch()
+                workaround_thread_conn = conn
 
         while queued_events:
             queued_events.popleft()()

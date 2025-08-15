@@ -31,6 +31,9 @@ else
 CFLAGS         +=      -O1
 endif
 
+# LLDB does not support PLT symbolication with -fcf-protection :(
+CFLAGS         += -fcf-protection=none
+
 PWD=$(shell pwd)
 # Apparently we don't have this version? :(
 #GLIBC=/glibc_versions/2.29/tcache_x64
