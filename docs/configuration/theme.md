@@ -348,6 +348,28 @@ Color for disasm (branch/call instruction).
 
 ----------
 
+## **disasm-branch-off**
+
+
+Marker for branches that will NOT be taken.
+
+
+
+**Default:** '✘'  
+
+----------
+
+## **disasm-branch-on**
+
+
+Marker for branches that WILL be taken.
+
+
+
+**Default:** '✔'  
+
+----------
+
 ## **enhance-comment-color**
 
 
