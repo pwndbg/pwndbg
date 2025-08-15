@@ -15,23 +15,6 @@ import pwndbg.aglib.typeinfo
 MAX_ORDER = 11
 
 
-def get_pcp_struct(pcp_pad) -> str:
-    result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
-    result += f"""
-    struct per_cpu_pages {{
-        char _pad[{pcp_pad}];
-        /* Lists of pages, one per migrate type stored on the pcp-lists */
-        struct list_head lists[{pwndbg.aglib.kernel.symbol.npcplist()}]; // constant is sufficient for now
-    }};
-#ifdef KVERSION < KERNEL_VERSION(5, 14, 0)
-    struct per_cpu_pageset {{
-        struct per_cpu_pages pcp;
-    }};
-#endif
-    """
-    return result
-
-
 def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     pcp_off, name_off, freelist_off, pcp_pad, zone_sz = None, None, None, None, None
     node_data0 = pwndbg.aglib.kernel.node_data()
@@ -96,8 +79,8 @@ def load_buddydump_typeinfo():
         return
     nmtypes = pwndbg.aglib.kernel.symbol.nmtypes()
     nzones = pwndbg.aglib.kernel.symbol.nzones()
-    if not nmtypes or not nzones:
-        return
+    nnodes = pwndbg.aglib.kernel.num_numa_nodes()
+    npcplist = pwndbg.aglib.kernel.symbol.npcplist()
     pwndbg.aglib.kernel.symbol.load_common_structs()
 
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
@@ -112,26 +95,36 @@ def load_buddydump_typeinfo():
     }};
     """
     result += f"""
+    struct per_cpu_pages {{
+        char _pad[{pcp_pad}];
+        /* Lists of pages, one per migrate type stored on the pcp-lists */
+        struct list_head lists[{npcplist}]; // constant is sufficient for now
+    }};
+#if KVERSION < KERNEL_VERSION(5, 14, 0)
+    struct per_cpu_pageset {{
+        struct per_cpu_pages pcp;
+    }};
+#endif
+/* custom type for page list data */
 #ifdef CONFIG_NUMA
-    typedef struct pglist_data *node_data_t[1]; // just support 1 node for now, the most common case
+    typedef struct pglist_data *node_data_t[{nnodes}];
 #else
     typedef struct pglist_data node_data_t;
 #endif
     struct zone {{
-        char _pad1[{hex(pcp_off)}];
-#ifdef KVERSION < KERNEL_VERSION(5, 14, 0)
+        char _pad1[{pcp_off}];
+#if KVERSION < KERNEL_VERSION(5, 14, 0)
         struct per_cpu_pageset *pageset;
 #else
         struct per_cpu_pages *per_cpu_pageset;
 #endif
-        char _pad2[{hex(name_off - pcp_off - 8)}];
+        char _pad2[{name_off - pcp_off - 8}];
         char* name;
-        char _pad3[{hex(freearea_off - name_off - 8)}];
+        char _pad3[{freearea_off - name_off - 8}];
         struct free_area free_area[{MAX_ORDER}]; // just defaults to 11 is sufficient here
-        char _pad[{hex(zone_sz - freearea_off - (MAX_ORDER * (nmtypes * 0x10 + 8)))}];
+        char _pad[{zone_sz - freearea_off - (MAX_ORDER * (nmtypes * 0x10 + 8))}];
     }};
     """
-    result += get_pcp_struct(pcp_pad)
     result += f"""
     typedef struct pglist_data {{
         struct zone node_zones[{nzones}];
