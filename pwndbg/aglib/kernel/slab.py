@@ -494,7 +494,7 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
         if all(
             config not in kconfig
             for config in (
-                "CONFIG_SYSFS",  # TODO: add the func to handle this
+                "CONFIG_SYSFS",
                 "CONFIG_SLAB_FREELIST_HARDENED",
                 "CONFIG_NUMA",
             )
