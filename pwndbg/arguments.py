@@ -105,20 +105,19 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
     if func:
         args = func.args
-        if args[-1].name == "vararg":
-            if len(args) > 1:
-                format_value = pwndbg.enhance.enhance(argument(len(args) - 2, abi))
-                m = re.findall(
-                    r"%[-+ #0]?(?:[0-9]+|\*)?(?:\.(?:[0-9]+|\*))?(?:hh|h|l|ll|q|L|j|z|Z|t)?[diuoxXfFeEgGaAcsCSpn]",
-                    format_value,
-                )
-                vararg_cnt = len(m)
-                if vararg_cnt > 0:
-                    args.pop()
-                    args += [
-                        pwndbg.lib.functions.Argument("int", 0, argname(len(args) + i, abi))
-                        for i in range(vararg_cnt)
-                    ]
+        if len(args) > 1 and args[-1].name == "vararg":
+            format_value = pwndbg.enhance.enhance(argument(len(args) - 2, abi))
+            m = re.findall(
+                r"%[-+ #0]?(?:[0-9]+|\*)?(?:\.(?:[0-9]+|\*))?(?:hh|h|l|ll|q|L|j|z|Z|t)?[diuoxXfFeEgGaAcsCSpn]",
+                format_value,
+            )
+            vararg_cnt = len(m)
+            if vararg_cnt > 0:
+                args.pop()
+                args += [
+                    pwndbg.lib.functions.Argument("int", 0, argname(len(args) + i, abi))
+                    for i in range(vararg_cnt)
+                ]
     else:
         args = (
             pwndbg.lib.functions.Argument("int", 0, argname(i, abi)) for i in range(n_args_default)
