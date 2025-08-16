@@ -51,7 +51,7 @@ class ArchPagingInfo:
     pagetableptr_cache: Dict[int, pwndbg.dbg_mod.Value] = {}
 
     @property
-    @pwndbg.lib.cache.cache_until("forever")
+    @pwndbg.lib.cache.cache_until("objfile")
     def STRUCT_PAGE_SIZE(self):
         a = pwndbg.aglib.typeinfo.load("struct page")
         if a is None:
@@ -60,7 +60,7 @@ class ArchPagingInfo:
         return a.sizeof
 
     @property
-    @pwndbg.lib.cache.cache_until("forever")
+    @pwndbg.lib.cache.cache_until("objfile")
     def STRUCT_PAGE_SHIFT(self):
         # needs to be rounded up (consider the layout of vmemmap)
         return math.ceil(math.log2(self.STRUCT_PAGE_SIZE))
@@ -155,6 +155,7 @@ class ArchPagingInfo:
 
 
 class x86_64PagingInfo(ArchPagingInfo):
+    # constants are taken from https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
     def __init__(self):
         self.va_bits = 48 if self.paging_level == 4 else 51
         # https://blog.zolutal.io/understanding-paging/
