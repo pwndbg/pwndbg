@@ -7,6 +7,7 @@ registers and stack values.
 
 from __future__ import annotations
 
+import re
 from typing import List
 from typing import Tuple
 
@@ -29,7 +30,6 @@ import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
 from pwndbg.lib.functions import format_flags_argument
-import re
 
 
 def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
@@ -108,19 +108,20 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         if args[-1].name == "vararg":
             args.pop()
             if len(args) > 0:
-                format_value = pwndbg.enhance.enhance(
-                    argument(len(args) - 1, abi))
+                format_value = pwndbg.enhance.enhance(argument(len(args) - 1, abi))
                 vararg_cnt = 0
                 try:
                     vararg_cnt = int(format_value)
                 except ValueError:
                     m = re.findall(
                         r"%[-+ #0]?(?:[0-9]+|\*)?(?:\.(?:[0-9]+|\*))?(?:hh|h|ll|l|j|z|t|L)?[diuoxXfFeEgGaAcspn]",
-                        format_value
+                        format_value,
                     )
                     vararg_cnt = len(m)
-                args += [pwndbg.lib.functions.Argument("int", 0, argname(len(args) + i, abi))
-                         for i in range(vararg_cnt)]
+                args += [
+                    pwndbg.lib.functions.Argument("int", 0, argname(len(args) + i, abi))
+                    for i in range(vararg_cnt)
+                ]
     else:
         args = (
             pwndbg.lib.functions.Argument("int", 0, argname(i, abi)) for i in range(n_args_default)
