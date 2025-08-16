@@ -106,8 +106,8 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     if func:
         args = func.args
         if args[-1].name == "vararg":
-            args.pop()
-            if len(args) > 0:
+            if len(args) > 1:
+                args.pop()
                 format_value = pwndbg.enhance.enhance(argument(len(args) - 1, abi))
                 vararg_cnt = 0
                 try:
