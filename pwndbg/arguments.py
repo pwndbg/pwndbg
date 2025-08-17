@@ -74,7 +74,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     original_name = name or ""
 
     name = original_name.replace("isoc99_", "")  # __isoc99_sscanf
-    name = original_name.replace("@plt", "")  # getpwiod@plt
+    name = name.replace("@plt", "")  # getpwiod@plt
 
     # If we have particular `XXX_chk` function in our database, we use it.
     # Otherwise, we show args for its unchecked version.
