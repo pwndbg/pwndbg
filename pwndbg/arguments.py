@@ -39,7 +39,6 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
     Otherwise, returns None.
     """
-    n_args_default = 4
 
     if instruction is None:
         return []
@@ -72,12 +71,10 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     else:
         return []
 
-    result = []
-    name = name or ""
+    original_name = name or ""
 
-    sym = pwndbg.aglib.symbol.lookup_frame_symbol(name)
-    name = name.replace("isoc99_", "")  # __isoc99_sscanf
-    name = name.replace("@plt", "")  # getpwiod@plt
+    name = original_name.replace("isoc99_", "")  # __isoc99_sscanf
+    name = original_name.replace("@plt", "")  # getpwiod@plt
 
     # If we have particular `XXX_chk` function in our database, we use it.
     # Otherwise, we show args for its unchecked version.
@@ -87,17 +84,6 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         name = name.strip().lstrip("_")  # _malloc
 
     func = pwndbg.lib.functions.functions.get(name, None)
-
-    if sym:
-        try:
-            target_type = sym.type.target()
-        except Exception:
-            target_type = sym.type
-
-        if target_type and target_type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            func_args = target_type.func_arguments()
-            if func_args is not None:
-                n_args_default = len(func_args)
 
     # Try to grab the data out of IDA
     if not func and target:
@@ -119,14 +105,23 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
                     for i in range(vararg_cnt)
                 ]
     else:
+        n_args_default = 4
+        sym = pwndbg.aglib.symbol.lookup_frame_symbol(original_name)
+        if sym:
+            try:
+                target_type = sym.type.target()
+            except Exception:
+                target_type = sym.type
+
+            if target_type and target_type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+                func_args = target_type.func_arguments()
+                if func_args is not None:
+                    n_args_default = len(func_args)
         args = (
             pwndbg.lib.functions.Argument("int", 0, argname(i, abi)) for i in range(n_args_default)
         )
 
-    for i, arg in enumerate(args):
-        result.append((arg, argument(i, abi)))
-
-    return result
+    return [(arg, argument(i, abi)) for i, arg in enumerate(args)]
 
 
 def argname(n: int, abi: pwndbg.lib.abi.ABI) -> str:
