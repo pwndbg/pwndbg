@@ -32,11 +32,3 @@ def get_got_entry(local_path: str) -> Dict[RelocationType, List[str]]:
             if c.name in category:
                 entries[c].append(line)
     return entries
-
-
-@pwndbg.wrappers.OnlyWithCommand(cmd_name)
-def has_typeinfo(path: str = None):
-    if path is None:
-        path = pwndbg.aglib.proc.exe
-    readelf_out = pwndbg.wrappers.call_cmd(cmd_name, "-SW", path)
-    return "debug_info" in readelf_out
