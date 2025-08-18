@@ -1128,8 +1128,6 @@ def vis_heap_chunks(
             # Part 2 & 3: Two hex values and their ASCII representation
             hex_vals = []
             ascii_vals = ""
-            # line_cursor_start = cursor
-
             for _ in range(2):
                 if cursor >= stop:
                     hex_vals.append(" " * (pwndbg.aglib.arch.ptrsize * 2))
