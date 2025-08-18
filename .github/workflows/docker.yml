@@ -29,5 +29,15 @@ jobs:
     - name: Docker Build ${{ matrix.images }}
       run: docker compose build ${{ matrix.images }}
 
-    - name: Test on ${{ matrix.images }}
-      run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g gdb
+    - name: Run GDB Tests on ${{ matrix.images }}
+      run: |
+        docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g gdb
+    
+    - name: Run DBG Tests on GDB on ${{ matrix.images }}
+      run: |
+        docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
+
+    - name: Run DBG Tests on LLDB on ${{ matrix.images }}
+      run: |
+        docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
+        

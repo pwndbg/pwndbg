@@ -41,10 +41,9 @@ def BIT(shift: int):
     return 1 << shift
 
 
-@pwndbg.lib.cache.cache_until("objfile")
-def has_debug_symbols(required=[], checkall=True) -> bool:
-    if len(required) == 0:
-        return pwndbg.aglib.symbol.lookup_symbol("commit_creds") is not None
+def has_debug_symbols(*required: str, checkall: bool = True) -> bool:
+    if not required:
+        required = ("commit_creds",)
     if checkall:
         return all(pwndbg.aglib.symbol.lookup_symbol(sym) is not None for sym in required)
     # check any
@@ -61,12 +60,12 @@ def has_debug_info() -> bool:
 
 
 def requires_debug_symbols(
-    required: List[str], checkall=False, default: D = None
+    *required: str, checkall=False, default: D = None
 ) -> Callable[[Callable[P, T]], Callable[P, T | D]]:
     def decorator(f: Callable[P, T]) -> Callable[P, T | D]:
         @functools.wraps(f)
         def func(*args: P.args, **kwargs: P.kwargs) -> T | D:
-            if has_debug_symbols(required, checkall):
+            if has_debug_symbols(*required, checkall=checkall):
                 return f(*args, **kwargs)
 
             # If the user doesn't want an exception thrown when debug symbols are
@@ -75,7 +74,7 @@ def requires_debug_symbols(
                 return default
 
             raise Exception(
-                f"Function {f.__name__} requires {'all' if checkall else 'any'} of the following debug symbols: {required}"
+                f"Function {f.__name__} requires {'all' if checkall else 'any'} of the following symbols: {required}"
             )
 
         return func
@@ -102,7 +101,7 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
     return decorator
 
 
-@requires_debug_symbols(["nr_cpu_ids"], default=1)
+@requires_debug_symbols("nr_cpu_ids", default=1)
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
     val = pwndbg.aglib.kernel.symbol.try_usymbol("nr_cpu_ids", 32)
@@ -110,7 +109,7 @@ def nproc() -> int:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
+def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     """Returns the first kernel mapping which contains the linux_banner"""
     base = kbase()
     if base is None:
@@ -132,11 +131,11 @@ def get_first_kernel_ro() -> pwndbg.lib.memory.Page | None:
 def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
     global _kconfig
     config_start, config_end = None, None
-    if has_debug_info():
+    if has_debug_symbols():
         config_start = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data")
         config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
     else:
-        mapping = get_first_kernel_ro()
+        mapping = first_kernel_ro_page()
         result = next(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]), None)
 
         if result is not None:
@@ -153,7 +152,7 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
     return _kconfig
 
 
-@requires_debug_symbols(["saved_command_line"], default="")
+@requires_debug_symbols("saved_command_line", default="")
 @pwndbg.lib.cache.cache_until("start")
 def kcmdline() -> str:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("saved_command_line")
@@ -164,14 +163,14 @@ def kcmdline() -> str:
 @pwndbg.lib.cache.cache_until("start")
 def kversion() -> str:
     try:
-        if has_debug_symbols(["linux_banner"]):
+        if has_debug_symbols("linux_banner"):
             version_addr = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
             result = pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
             assert len(result) > 0
             return result
     except Exception:
         pass
-    mapping = get_first_kernel_ro()
+    mapping = first_kernel_ro_page()
     version_addr = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
     return pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
 
@@ -214,7 +213,7 @@ class ArchOps(ABC):
     # in the page_to_pfn() and pfn_to_page() methods in the future.
 
     @abstractmethod
-    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu=None) -> pwndbg.dbg_mod.Value:
+    def per_cpu(self, addr: int | pwndbg.dbg_mod.Value, cpu=None) -> pwndbg.dbg_mod.Value:
         raise NotImplementedError()
 
     @abstractmethod
@@ -325,7 +324,9 @@ class i386Ops(x86Ops):
     def virt_to_phys(self, virt: int) -> int:
         return (virt - self.page_offset) % (1 << 32)
 
-    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
+    def per_cpu(
+        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
+    ) -> pwndbg.dbg_mod.Value:
         raise NotImplementedError()
 
     def pfn_to_page(self, pfn: int) -> int:
@@ -343,8 +344,10 @@ class x86_64Ops(x86Ops):
     def ptr_size(self) -> int:
         return 64
 
-    @requires_debug_symbols(["__per_cpu_offset", "nr_iowait_cpu"], checkall=False)
-    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
+    @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
+    def per_cpu(
+        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
+    ) -> pwndbg.dbg_mod.Value:
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
 
@@ -352,7 +355,9 @@ class x86_64Ops(x86Ops):
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
-        return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
+        if isinstance(addr, pwndbg.dbg_mod.Value):
+            return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
+        return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
         if virt < self.kbase:
@@ -375,8 +380,10 @@ class Aarch64Ops(ArchOps):
     def ptr_size(self):
         return 64
 
-    @requires_debug_symbols(["__per_cpu_offset", "nr_iowait_cpu"], checkall=False)
-    def per_cpu(self, addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
+    @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
+    def per_cpu(
+        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
+    ) -> pwndbg.dbg_mod.Value:
         if cpu is None:
             cpu = pwndbg.dbg.selected_thread().index() - 1
 
@@ -384,7 +391,9 @@ class Aarch64Ops(ArchOps):
 
         offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
-        return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
+        if isinstance(addr, pwndbg.dbg_mod.Value):
+            return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
+        return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
         return virt - self.page_offset
@@ -474,7 +483,7 @@ def page_size() -> int:
         raise NotImplementedError()
 
 
-def per_cpu(addr: pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
+def per_cpu(addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
     ops = arch_ops()
     if ops:
         return ops.per_cpu(addr, cpu)
@@ -620,7 +629,7 @@ def paging_enabled() -> bool:
         raise NotImplementedError()
 
 
-@requires_debug_symbols(["node_states"], default=1)
+@requires_debug_symbols("node_states", default=1)
 def num_numa_nodes() -> int:
     """Returns the number of NUMA nodes that are online on the system"""
     kc = kconfig()

@@ -66,7 +66,7 @@ class OpportunisticTerminalControl:
         if fd == -1:
             try:
                 fd = os.open("/dev/tty", os.O_RDWR)
-            except (FileNotFoundError, PermissionError):
+            except (FileNotFoundError, PermissionError, OSError):
                 # Flop and die.
                 self.supported = False
                 return
@@ -403,7 +403,7 @@ class IODriverPseudoTerminal(IODriver):
                     termios.tcsetwinsize(self.manager, size)  # novm
 
                 signal.signal(signal.SIGWINCH, handle_sigwinch)
-            except FileNotFoundError:
+            except (FileNotFoundError, PermissionError, OSError):
                 print(
                     "warning: no terminal device in /dev/tty, expect no support for terminal sizes"
                 )

@@ -5,10 +5,6 @@ from typing import List
 
 import pytest
 
-import pwndbg
-import pwndbg.color as color
-import pwndbg.dbg
-
 from ....host import Controller
 from . import break_at_sym
 from . import get_binary
@@ -27,6 +23,8 @@ re_addr = r"0x[0-9a-fA-F]{1,12}"
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_slot_user(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     # Get out of the break_here() function.
     await ctrl.finish()
@@ -49,6 +47,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
         "  stride:         0x30              distance between adjacent slots",
         """  user size:      0x20              aka "nominal size", `n`""",
         r"  slack:          0x0 \(0x0\)         slot's unused memory \/ 0x10",
+        "  state:          allocated         ",
         "in-band",
         r"  offset:         0x[0-9] \(0x[0-9]{0,1}0\)         distance to first slot start \/ 0x10",
         r"  index:          0x0               index of slot in its group",
@@ -56,10 +55,6 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
         "                                    use ftr reserved",
         "  ftr reserved:   0xc               ",
         r"  cyclic offset:  NA \(not cyclic\)   prevents double free, \(p - start\) / 0x10",
-        "",
-        r"The slot is \(probably\) allocated.",
-        "",
-        "",
     ]
 
     assert len(expected_output) == len(buffer1_out)
@@ -74,12 +69,12 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
     stride_idx = 7
     user_size_idx = 8
     slack_idx = 9
-    offset_idx = 11
-    index_idx = 12
-    hdr_res_idx = 13
-    ftr_res_idx = 15
-    cyclic_idx = 16
-    status_idx = 18
+    state_idx = 10
+    offset_idx = 12
+    index_idx = 13
+    hdr_res_idx = 14
+    ftr_res_idx = 16
+    cyclic_idx = 17
 
     # Check stride
     assert "stride" in buffer2_out[stride_idx] and " 0x30 " in buffer2_out[stride_idx]
@@ -92,6 +87,10 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
     # Check slack
     assert "slack" in buffer2_out[slack_idx] and " 0x0 " in buffer2_out[slack_idx]
     assert "slack" in buffer4_out[slack_idx] and " 0x8 (0x80) " in buffer4_out[slack_idx]
+
+    # Check allocation status
+    assert "state" in buffer2_out[state_idx] and " allocated " in buffer2_out[state_idx]
+    assert "state" in buffer4_out[state_idx] and " allocated " in buffer4_out[state_idx]
 
     # Check offset
     assert "offset" in buffer2_out[offset_idx] and " 0x3 (0x30) " in buffer2_out[offset_idx]
@@ -130,10 +129,6 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
             "cyclic offset" in buffer4_out[cyclic_idx]
             and " NA (not cyclic) " in buffer4_out[cyclic_idx]
         )
-
-    # Check allocation status
-    assert "slot is" in buffer2_out[status_idx] and " allocated." in buffer2_out[status_idx]
-    assert "slot is" in buffer4_out[status_idx] and " allocated." in buffer4_out[status_idx]
 
     # == Check command on free slots ==
     break_at_sym("break_here")
@@ -177,6 +172,8 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_slot_start(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
@@ -203,6 +200,8 @@ async def test_mallocng_slot_start(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_group(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
@@ -236,6 +235,9 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
         "  maplen:         0x0               ",
         "",
         rf"Group nested in slot of another group \({re_addr}\).",
+        "",
+        "Slot statuses: UUUAAAAAAA",
+        r"  \(U: Inuse \(allocated\) / F: Freed / A: Available\)",
     ]
 
     assert len(expected_out) == len(group1_out)
@@ -244,8 +246,9 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
         assert re.match(expected_out[i], group1_out[i])
 
     # == Check group traversal is done properly.
+    pgline_idx = -4
 
-    assert "another group" in group1_out[-1]
+    assert "another group" in group1_out[pgline_idx]
 
     # We are going to fetch parent groups recursively until
     # we reach the outermost group which is either mmap()-ed in or
@@ -253,18 +256,18 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
     cur_group_out: List[str] = group1_out
     cur_group_addr: int = group_addr
 
-    while "another group" in cur_group_out[-1]:
+    while "another group" in cur_group_out[pgline_idx]:
         cur_group_addr = int(
-            re.search(r"group \((0x[0-9a-fA-F]+)\)", cur_group_out[-1]).group(1), 16
+            re.search(r"group \((0x[0-9a-fA-F]+)\)", cur_group_out[pgline_idx]).group(1), 16
         )
         cur_group_out = color.strip(
             await ctrl.execute_and_capture(f"ng-group {cur_group_addr}")
         ).splitlines()
 
     if binary == HEAP_MALLOCNG_STATIC:
-        assert "mmap()" in cur_group_out[-1]
+        assert "mmap()" in cur_group_out[pgline_idx]
     else:
-        assert "donated by ld" in cur_group_out[-1]
+        assert "donated by ld" in cur_group_out[pgline_idx]
 
 
 @pwndbg_test
@@ -272,6 +275,8 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_meta(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
@@ -292,7 +297,9 @@ async def test_mallocng_meta(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
-    await launch_to(ctrl, binary, "main")
+    import pwndbg.color as color
+
+    await ctrl.launch(binary)
 
     # Check that we do not find it at the first program instruction
     if binary == HEAP_MALLOCNG_DYN:
@@ -300,7 +307,6 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
         # __malloc_context by simply looking up the symbol. So we only
         # check this for the dynamically linked binary.
 
-        await ctrl.execute("starti")
         # This is at _dlstart - the heap is uninitialized at this point.
         ctx_out = color.strip(await ctrl.execute_and_capture("ng-ctx"))
 
@@ -330,6 +336,9 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_find(ctrl: Controller, binary: str):
+    import pwndbg
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
@@ -374,6 +383,8 @@ async def test_mallocng_find(ctrl: Controller, binary: str):
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
 async def test_mallocng_metaarea(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
@@ -398,3 +409,76 @@ async def test_mallocng_metaarea(ctrl: Controller, binary: str):
 
     for i in range(len(expected_out)):
         assert re.match(expected_out[i], meta_area_out[i])
+
+
+@pwndbg_test
+@pytest.mark.parametrize(
+    "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
+)
+async def test_mallocng_vis(ctrl: Controller, binary: str):
+    import pwndbg.color as color
+
+    await launch_to(ctrl, binary, "break_here")
+
+    break_at_sym("break_here")
+    await ctrl.cont()
+    await ctrl.cont()
+    await ctrl.finish()
+
+    vis_out = color.strip(await ctrl.execute_and_capture("ng-vis buffer1")).splitlines()
+
+    expected_out = [
+        f"group @ {re_addr}",
+        f"meta @ {re_addr}",
+        "LEGEND: .*",
+        "LEGEND: .*",
+        "",
+        rf"{re_addr}0\t0x[0-9a-fA-F]{{16}}\t0x0000ff0000000009\t................",
+        rf"{re_addr}0\t0x0a0a0a0a0a0a0a0a\t0x0a0a0a0a0a0a0a0a\t................",
+        rf"{re_addr}0\t0x0a0a0a0a0a0a0a0a\t0x0a0a0a0a0a0a0a0a\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000ff000000000c\t................",
+        rf"{re_addr}0\t0x0b0b0b0b0b0b0b0b\t0x0b0b0b0b0b0b0b0b\t................",
+        rf"{re_addr}0\t0x0b0b0b0b0b0b0b0b\t0x0b0b0b0b0b0b0b0b\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0006a2000000000c\t................   2 \+ \(5 << 5\)",
+        rf"{re_addr}0\t0x0c0c0c0c0c0c0c0c\t0x0c0c0c0c0c0c0c0c\t................",
+        rf"{re_addr}0\t0x0c0c0c0c0c0c0c0c\t0x0c0c0c0c0c0c0c0c\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x000000000000000c\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
+    ]
+
+    assert len(expected_out) == len(vis_out)
+
+    for i in range(len(expected_out)):
+        assert re.match(expected_out[i], vis_out[i])
+
+    # Make sure ng-vis properly resolves anywhere inside the slot.
+    # The stride of the group is 0x30.
+    vis_out2 = color.strip(await ctrl.execute_and_capture("ng-vis buffer1+0x2F")).splitlines()
+    assert vis_out == vis_out2
+
+    # Step over the free(buffer3)
+    await ctrl.execute("next")
+    # Check that the output is not the same anymore since the group got freed.
+    # (Now the outer group will be printed.)
+    vis_out3 = color.strip(await ctrl.execute_and_capture("ng-vis buffer1")).splitlines()
+    assert len(vis_out3) > len(vis_out)

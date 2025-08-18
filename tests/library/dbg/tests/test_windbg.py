@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
@@ -323,6 +325,13 @@ async def test_windbg_commands_x86(ctrl: Controller) -> None:
     like dq, dw, db, ds etc.
     """
     import pwndbg
+    from pwndbg.dbg import DebuggerType
+
+    if pwndbg.dbg.name() == DebuggerType.LLDB:
+        pytest.skip(
+            "LLDB does not properly support Go, and fails to resolve expressions such as `$esp`"
+        )
+        return
 
     await ctrl.launch(X86_BINARY)
 

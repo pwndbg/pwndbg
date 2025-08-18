@@ -230,7 +230,7 @@ def attachp(
 ) -> None:
     # As a default, the user may want to attach to a binary name taken from currently loaded file name
     if target is None:
-        bin_path = pwndbg.dbg.selected_inferior().main_module_name()
+        bin_path = pwndbg.aglib.proc.exe
         if bin_path is None:
             print(
                 message.error(

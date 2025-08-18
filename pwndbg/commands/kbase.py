@@ -37,11 +37,10 @@ def kbase(rebase=False) -> None:
     if not rebase:
         return
 
-    symbol_file = pwndbg.dbg.selected_inferior().main_module_name()
+    symbol_file = pwndbg.aglib.proc.exe
 
     if symbol_file:
         if pwndbg.dbg.is_gdblib_available():
-            gdb.execute("symbol-file")
             gdb.execute(f"add-symbol-file {symbol_file} {hex(base)}")
         else:
             print(M.error("Adding symbol not supported in LLDB yet"))

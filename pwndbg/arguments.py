@@ -7,6 +7,7 @@ registers and stack values.
 
 from __future__ import annotations
 
+import re
 from typing import List
 from typing import Tuple
 
@@ -38,7 +39,6 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
     Otherwise, returns None.
     """
-    n_args_default = 4
 
     if instruction is None:
         return []
@@ -71,11 +71,9 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     else:
         return []
 
-    result = []
-    name = name or ""
+    original_name = name or ""
 
-    sym = pwndbg.aglib.symbol.lookup_frame_symbol(name)
-    name = name.replace("isoc99_", "")  # __isoc99_sscanf
+    name = original_name.replace("isoc99_", "")  # __isoc99_sscanf
     name = name.replace("@plt", "")  # getpwiod@plt
 
     # If we have particular `XXX_chk` function in our database, we use it.
@@ -87,32 +85,43 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
     func = pwndbg.lib.functions.functions.get(name, None)
 
-    if sym:
-        try:
-            target_type = sym.type.target()
-        except Exception:
-            target_type = sym.type
-
-        if target_type and target_type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            func_args = target_type.func_arguments()
-            if func_args is not None:
-                n_args_default = len(func_args)
-
     # Try to grab the data out of IDA
     if not func and target:
         func = pwndbg.integration.provider.get_func_type(target)
 
     if func:
         args = func.args
+        if len(args) > 1 and args[-1].name == "vararg":
+            format_value = pwndbg.enhance.enhance(argument(len(args) - 2, abi))
+            m = re.findall(
+                r"%[-+ #0]?(?:[0-9]+|\*)?(?:\.(?:[0-9]+|\*))?(?:hh|h|l|ll|q|L|j|z|Z|t)?[diuoxXfFeEgGaAcsCSpn]",
+                format_value,
+            )
+            vararg_cnt = len(m)
+            if vararg_cnt > 0:
+                args.pop()
+                args += [
+                    pwndbg.lib.functions.Argument("int", 0, argname(len(args) + i, abi))
+                    for i in range(vararg_cnt)
+                ]
     else:
+        n_args_default = 4
+        sym = pwndbg.aglib.symbol.lookup_frame_symbol(original_name)
+        if sym:
+            try:
+                target_type = sym.type.target()
+            except Exception:
+                target_type = sym.type
+
+            if target_type and target_type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+                func_args = target_type.func_arguments()
+                if func_args is not None:
+                    n_args_default = len(func_args)
         args = (
             pwndbg.lib.functions.Argument("int", 0, argname(i, abi)) for i in range(n_args_default)
         )
 
-    for i, arg in enumerate(args):
-        result.append((arg, argument(i, abi)))
-
-    return result
+    return [(arg, argument(i, abi)) for i, arg in enumerate(args)]
 
 
 def argname(n: int, abi: pwndbg.lib.abi.ABI) -> str:

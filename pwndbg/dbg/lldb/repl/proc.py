@@ -537,9 +537,8 @@ class ProcessDriver:
         self.listener = lldb.SBListener("pwndbg.dbg.lldb.repl.proc.ProcessDriver")
         assert self.listener.IsValid()
 
-        self.listener.StartListeningForEventClass(
-            target.GetDebugger(),
-            lldb.SBTarget.GetBroadcasterClassName(),
+        self.listener.StartListeningForEvents(
+            target.broadcaster,
             lldb.SBTarget.eBroadcastBitModulesLoaded,
         )
 

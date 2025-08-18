@@ -225,14 +225,10 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     if cbp.zone.type.has_field("per_cpu_pageset"):
         pcp = per_cpu(cbp.zone["per_cpu_pageset"], pba.cpu)
         pcp_lists = pcp["lists"]
-        cbp.sections[1] = (
-            "per_cpu_pageset",
-            f"number of pages {cbp.indent.aux_hex(int(pcp['count']))}",
-        )
     elif cbp.zone.type.has_field("pageset"):
         pcp = per_cpu(cbp.zone["pageset"], pba.cpu)
         pcp_lists = pcp["pcp"]["lists"]
-        cbp.sections[1] = ("per_cpu_pageset", None)
+    cbp.sections[1] = ("per_cpu_pageset", None)
     if pcp is None or pcp_lists is None:
         log.warning("cannot find pcplist")
         return

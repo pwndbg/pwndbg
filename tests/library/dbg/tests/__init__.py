@@ -7,14 +7,17 @@ from typing import Any
 from typing import Callable
 from typing import Concatenate
 from typing import Coroutine
+from typing import ParamSpec
 
 from .... import host
 from ....host import Controller
 
 BINARIES_PATH = os.environ.get("TEST_BINARIES_ROOT")
 
+T = ParamSpec("T")
 
-def pwndbg_test[**T](
+
+def pwndbg_test(
     test: Callable[Concatenate[Controller, T], Coroutine[Any, Any, None]],
 ) -> Callable[T, None]:
     @functools.wraps(test)

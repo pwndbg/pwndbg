@@ -63,7 +63,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
 
 def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
     # The import path is set up before this function is called.
-    os.environ["PWNDBG_DISABLE_COLORS"] = "1"
+    os.environ["NO_COLOR"] = "1"
 
     from pwndbginit import pwndbg_lldb
 
