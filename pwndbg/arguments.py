@@ -83,7 +83,17 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         name = name.replace("_chk", "")
         name = name.strip().lstrip("_")  # _malloc
 
-    func = pwndbg.lib.functions.functions.get(name, None)
+    # Try to resolve an Objective-C method call.
+    #
+    # Checking this first keeps us from resolving these as simple calls to
+    # `objc_msgSend` and functions like it, which have definitions that are
+    # rather barren of semantics in comparison.
+    func = pwndbg.aglib.objc.try_resolve_call_at_current_pc(instruction)
+
+    if func is None:
+        # If more specific call information can't be determined, use the regular
+        # function resolution flow.
+        func = pwndbg.lib.functions.functions.get(name, None)
 
     # Try to grab the data out of IDA
     if not func and target:
