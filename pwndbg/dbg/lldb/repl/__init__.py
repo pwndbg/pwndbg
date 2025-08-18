@@ -71,12 +71,6 @@ from pwndbg.dbg.lldb.pset import pget
 from pwndbg.dbg.lldb.pset import pset
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import get_io_driver
-from pwndbg.dbg.lldb.repl.proc import EventHandler
-from pwndbg.dbg.lldb.repl.proc import LaunchResultConnected
-from pwndbg.dbg.lldb.repl.proc import LaunchResultEarlyExit
-from pwndbg.dbg.lldb.repl.proc import LaunchResultError
-from pwndbg.dbg.lldb.repl.proc import LaunchResultSuccess
-from pwndbg.dbg.lldb.repl.proc import ProcessDriver
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 
@@ -89,6 +83,42 @@ else:
     from pwndbg.dbg.lldb.repl.readline import PROMPT
     from pwndbg.dbg.lldb.repl.readline import enable_readline
     from pwndbg.dbg.lldb.repl.readline import wrap_with_history
+
+
+def print_error(msg: str, *args):
+    """
+    Print an error message in the style of the LLDB CLI.
+    """
+    print(message.error("error:"), msg, *args)
+
+
+def print_warn(msg: str, *args):
+    """
+    Print a warning message in the style of the LLDB CLI.
+    """
+    print(message.warn("warn:"), msg, *args)
+
+
+def print_hint(msg: str, *args):
+    """
+    Print a hint message in the style of the LLDB CLI.
+    """
+    print(message.hint("hint:"), msg, *args)
+
+
+def print_info(msg: str, *args):
+    """
+    Print an informative message in the style of the LLDB CLI.
+    """
+    print(message.info("info:"), msg, *args)
+
+
+from pwndbg.dbg.lldb.repl.proc import EventHandler
+from pwndbg.dbg.lldb.repl.proc import LaunchResultConnected
+from pwndbg.dbg.lldb.repl.proc import LaunchResultEarlyExit
+from pwndbg.dbg.lldb.repl.proc import LaunchResultError
+from pwndbg.dbg.lldb.repl.proc import LaunchResultSuccess
+from pwndbg.dbg.lldb.repl.proc import ProcessDriver
 
 show_tip = pwndbg.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"
@@ -264,27 +294,6 @@ class PwndbgController:
         output of the command being available.
         """
         return OneShotAwaitable(YieldExecDirect(command, True, False))
-
-
-def print_error(msg: str, *args):
-    """
-    Print an error message in the style of the LLDB CLI.
-    """
-    print(message.error("error:"), msg, *args)
-
-
-def print_warn(msg: str, *args):
-    """
-    Print a warning message in the style of the LLDB CLI.
-    """
-    print(message.warn("warn:"), msg, *args)
-
-
-def print_hint(msg: str, *args):
-    """
-    Print a hint message in the style of the LLDB CLI.
-    """
-    print(message.hint("hint:"), msg, *args)
 
 
 @wrap_with_history

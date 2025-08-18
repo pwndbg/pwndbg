@@ -13,6 +13,7 @@ import lldb
 import pwndbg
 from pwndbg.dbg.lldb import YieldContinue
 from pwndbg.dbg.lldb import YieldSingleStep
+from pwndbg.dbg.lldb.repl import print_info
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import IODriverPlainText
 
@@ -321,6 +322,18 @@ class ProcessDriver:
 
                         if fire_events:
                             self.eh.exited()
+
+                        if new_state == lldb.eStateExited:
+                            proc = lldb.SBProcess.GetProcessFromEvent(event)
+                            desc = (
+                                "" if not proc.exit_description else f" ({proc.exit_description})"
+                            )
+                            print_info(f"process exited with status {proc.exit_state}{desc}")
+                        elif new_state == lldb.eStateCrashed:
+                            print_info("process crashed")
+                        elif new_state == lldb.eStateDetached:
+                            print_info("process detached")
+
                         result = _PollResultExited(new_state)
                         break
 
