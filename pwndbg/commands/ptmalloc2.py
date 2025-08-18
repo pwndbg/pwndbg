@@ -1185,7 +1185,7 @@ def vis_heap_chunks(
         print(f"Reached end of memory mapping ({hex(heap_region.end)}).")
     
     if any(stop - start > 0x10000 for start, stop in zip(chunk_delims, chunk_delims[1:])):
-        if pwndbg.config.max_visualise_chunk_size != 0:
+        if pwndbg.config.max_visualize_chunk_size != 0:
             print(
                 message.warn(
                     "Detected a large chunk. If output seems truncated, you can adjust `set max-visualize-chunk-size`."
