@@ -108,7 +108,7 @@ def print_hint(msg: str, *args):
 
 def print_info(msg: str, *args):
     """
-    Print an informative message in the style of the LLDB CLI.
+    Print an information message in the style of the LLDB CLI.
     """
     print(message.info("info:"), msg, *args)
 
