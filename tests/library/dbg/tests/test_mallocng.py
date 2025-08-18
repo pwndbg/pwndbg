@@ -47,6 +47,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
         "  stride:         0x30              distance between adjacent slots",
         """  user size:      0x20              aka "nominal size", `n`""",
         r"  slack:          0x0 \(0x0\)         slot's unused memory \/ 0x10",
+        "  state:          allocated         ",
         "in-band",
         r"  offset:         0x[0-9] \(0x[0-9]{0,1}0\)         distance to first slot start \/ 0x10",
         r"  index:          0x0               index of slot in its group",
@@ -54,10 +55,6 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
         "                                    use ftr reserved",
         "  ftr reserved:   0xc               ",
         r"  cyclic offset:  NA \(not cyclic\)   prevents double free, \(p - start\) / 0x10",
-        "",
-        r"The slot is \(probably\) allocated.",
-        "",
-        "",
     ]
 
     assert len(expected_output) == len(buffer1_out)
@@ -72,12 +69,12 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
     stride_idx = 7
     user_size_idx = 8
     slack_idx = 9
-    offset_idx = 11
-    index_idx = 12
-    hdr_res_idx = 13
-    ftr_res_idx = 15
-    cyclic_idx = 16
-    status_idx = 18
+    state_idx = 10
+    offset_idx = 12
+    index_idx = 13
+    hdr_res_idx = 14
+    ftr_res_idx = 16
+    cyclic_idx = 17
 
     # Check stride
     assert "stride" in buffer2_out[stride_idx] and " 0x30 " in buffer2_out[stride_idx]
@@ -90,6 +87,10 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
     # Check slack
     assert "slack" in buffer2_out[slack_idx] and " 0x0 " in buffer2_out[slack_idx]
     assert "slack" in buffer4_out[slack_idx] and " 0x8 (0x80) " in buffer4_out[slack_idx]
+
+    # Check allocation status
+    assert "state" in buffer2_out[state_idx] and " allocated " in buffer2_out[state_idx]
+    assert "state" in buffer4_out[state_idx] and " allocated " in buffer4_out[state_idx]
 
     # Check offset
     assert "offset" in buffer2_out[offset_idx] and " 0x3 (0x30) " in buffer2_out[offset_idx]
@@ -128,10 +129,6 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
             "cyclic offset" in buffer4_out[cyclic_idx]
             and " NA (not cyclic) " in buffer4_out[cyclic_idx]
         )
-
-    # Check allocation status
-    assert "slot is" in buffer2_out[status_idx] and " allocated." in buffer2_out[status_idx]
-    assert "slot is" in buffer4_out[status_idx] and " allocated." in buffer4_out[status_idx]
 
     # == Check command on free slots ==
     break_at_sym("break_here")
@@ -238,6 +235,9 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
         "  maplen:         0x0               ",
         "",
         rf"Group nested in slot of another group \({re_addr}\).",
+        "",
+        "Slot statuses: UUUAAAAAAA",
+        r"  \(U: Inuse \(allocated\) / F: Freed / A: Available\)",
     ]
 
     assert len(expected_out) == len(group1_out)
@@ -246,8 +246,9 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
         assert re.match(expected_out[i], group1_out[i])
 
     # == Check group traversal is done properly.
+    pgline_idx = -4
 
-    assert "another group" in group1_out[-1]
+    assert "another group" in group1_out[pgline_idx]
 
     # We are going to fetch parent groups recursively until
     # we reach the outermost group which is either mmap()-ed in or
@@ -255,18 +256,18 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
     cur_group_out: List[str] = group1_out
     cur_group_addr: int = group_addr
 
-    while "another group" in cur_group_out[-1]:
+    while "another group" in cur_group_out[pgline_idx]:
         cur_group_addr = int(
-            re.search(r"group \((0x[0-9a-fA-F]+)\)", cur_group_out[-1]).group(1), 16
+            re.search(r"group \((0x[0-9a-fA-F]+)\)", cur_group_out[pgline_idx]).group(1), 16
         )
         cur_group_out = color.strip(
             await ctrl.execute_and_capture(f"ng-group {cur_group_addr}")
         ).splitlines()
 
     if binary == HEAP_MALLOCNG_STATIC:
-        assert "mmap()" in cur_group_out[-1]
+        assert "mmap()" in cur_group_out[pgline_idx]
     else:
-        assert "donated by ld" in cur_group_out[-1]
+        assert "donated by ld" in cur_group_out[pgline_idx]
 
 
 @pwndbg_test

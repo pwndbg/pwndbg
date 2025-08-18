@@ -145,7 +145,7 @@ def unstylize(x: str) -> str:
 
 disable_colors = theme.add_param(
     "disable-colors",
-    bool(os.environ.get("PWNDBG_DISABLE_COLORS")),
+    bool(os.environ.get("NO_COLOR")),
     "whether to color the output or not",
 )
 

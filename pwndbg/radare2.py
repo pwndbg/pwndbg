@@ -23,7 +23,7 @@ def r2pipe():
 
     Returns a r2pipe.open handle.
     """
-    filename = pwndbg.dbg.selected_inferior().main_module_name()
+    filename = pwndbg.aglib.proc.exe
     if not filename:
         raise Exception("Could not find objfile to create a r2pipe for")
 

@@ -44,7 +44,7 @@ class Kallsyms:
         self.kallsyms: Dict[str, Tuple[int, str]] = {}
         self.kbase = pwndbg.aglib.kernel.kbase()
 
-        mapping = pwndbg.aglib.kernel.get_first_kernel_ro()
+        mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
         assert mapping is not None, "kernel memory mappings are missing"
 
         self.r_base = mapping.vaddr

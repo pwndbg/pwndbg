@@ -432,6 +432,10 @@ class Slot:
         Raises:
             pwndbg.dbg_mod.Error: When reading meta fails.
         """
+        # Special case (probably) freed chunks:
+        if self.reserved == -1:
+            return 0
+
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L159
         return self.end - self.reserved - self.p
 
