@@ -53,11 +53,7 @@ def has_debug_symbols(required=[], checkall=True) -> bool:
 
 @pwndbg.lib.cache.cache_until("objfile")
 def has_debug_info() -> bool:
-    # Check for an arbitrary type and symbol name that are not likely to change
-    return (
-        pwndbg.aglib.typeinfo.load("struct pipe_buffer") is not None
-        and pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner") is not None
-    )
+    return pwndbg.wrappers.readelf.has_typeinfo()
 
 
 def requires_debug_symbols(
