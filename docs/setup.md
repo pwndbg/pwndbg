@@ -104,7 +104,7 @@ one to be run can get quite tiresome.
 In order to do this to all files at once, you may choose to run the following command, which removes
 the quarantine flag from all extracted files at once:
 
-```
+```{.bash .copy}
 xattr -rd com.apple.quarantine pwndbg
 ```
 
