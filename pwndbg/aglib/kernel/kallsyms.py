@@ -12,6 +12,7 @@ from pwnlib.util.packing import u64
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.kmod
 import pwndbg.aglib.memory
 import pwndbg.color.message as M
 import pwndbg.commands
@@ -80,6 +81,8 @@ class Kallsyms:
         self.names = self.find_names()
         self.kernel_addresses = self.get_kernel_addresses()
         self.parse_symbol_table()
+        for sym_name, sym_addr, sym_type in pwndbg.aglib.kernel.kmod.all_modules_kallsyms():
+            self.kallsyms[sym_name] = (sym_addr, sym_type)
         print(M.info(f"Found {len(self.kallsyms)} ksymbols"))
 
     def find_token_table(self) -> int:
