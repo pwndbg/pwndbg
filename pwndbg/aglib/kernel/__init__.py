@@ -171,13 +171,18 @@ def kversion() -> str:
     except Exception:
         pass
     mapping = first_kernel_ro_page()
+    if mapping is None:
+        return None
     version_addr = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
     return pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
 
 
 @pwndbg.lib.cache.cache_until("start")
-def krelease() -> Tuple[int, ...]:
-    match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", kversion())
+def krelease() -> Tuple[int, ...] | None:
+    _kversion = kversion()
+    if _kversion is None:
+        return None
+    match = re.search(r"Linux version (\d+)\.(\d+)(?:\.(\d+))?", _kversion)
     if match:
         return tuple(int(x) for x in match.groups() if x)
     raise Exception("Linux version tuple not found")

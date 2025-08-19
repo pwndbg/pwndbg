@@ -99,10 +99,12 @@ def npcplist() -> int:
     return 0
 
 
-def kversion_cint(kversion=None):
+def kversion_cint(kversion: Tuple[int, int, int] = None):
     if kversion is None:
         kversion = pwndbg.aglib.kernel.krelease()
-        x, y, z = kversion
+    if kversion is None or len(kversion) != 3:
+        return None
+    x, y, z = kversion
     return ((x) * 65536) + ((y) * 256) + (z)
 
 
@@ -159,7 +161,7 @@ enum pageflags {
 
 
 def load_common_structs():
-    if pwndbg.aglib.kernel.has_debug_info():
+    if pwndbg.aglib.kernel.has_debug_info() or not kversion_cint():
         return
     if pwndbg.aglib.typeinfo.lookup_types("struct page") is not None:
         return

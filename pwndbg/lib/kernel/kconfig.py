@@ -94,7 +94,8 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     @property
     def CONFIG_SLUB_TINY(self) -> bool:
-        if pwndbg.aglib.kernel.krelease() < (6, 2): # config added after v6.2
+        krelease = pwndbg.aglib.kernel.krelease()
+        if krelease is not None and krelease < (6, 2): # config added after v6.2
             return False
         return pwndbg.aglib.symbol.lookup_symbol("deactivate_slab") is None
 
@@ -140,7 +141,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_KASAN_GENERIC(self) -> bool:
         # TODO: have a kernel build that tests this
-        if pwndbg.aglib.kernel.krelease() > (6, 1) or pwndbg.aglib.kernel.krelease() < (5, 11):
+        krelease = pwndbg.aglib.kernel.krelease()
+        if krelease is None:
+            return False
+        if krelease > (6, 1) or krelease < (5, 11):
             return pwndbg.aglib.symbol.lookup_symbol("kasan_cache_create") is not None
         return pwndbg.aglib.symbol.lookup_symbol("__kasan_cache_create") is not None
 

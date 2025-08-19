@@ -548,6 +548,8 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
 
 
 def kmem_cache_structs(node_cache_pad):
+    if pwndbg.aglib.kernel.symbol.kversion_cint() is None:
+        return
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     if "CONFIG_SLUB_CPU_PARTIAL" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SLUB_CPU_PARTIAL\n"
@@ -630,6 +632,8 @@ def kmem_cache_structs(node_cache_pad):
 
 def load_slab_typeinfo():
     if pwndbg.aglib.typeinfo.lookup_types("struct kmem_cache") is not None:
+        return
+    if pwndbg.aglib.kernel.symbol.kversion_cint() is None:
         return
     pwndbg.aglib.kernel.symbol.load_common_structs()
     kconfig = pwndbg.aglib.kernel.kconfig()
