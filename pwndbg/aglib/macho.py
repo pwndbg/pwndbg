@@ -343,29 +343,33 @@ class DyldSharedCacheHashSet:
         self.mask = pwndbg.aglib.memory.u32(self._ptr + 0x10)
         self.salt = pwndbg.aglib.memory.u64(self._ptr + 0x18)
 
+        # Mask must always be one minus a power of two. If this fails, it hints
+        # that we loaded from an invalid address.
+        assert (self.mask + 1).bit_count() == 1
+
         # Name the offsets of elements in the dynamically-sized portion of the
         # structure (which starts at 0x420).
         self._checkbytes_offset = 0x420 + self.mask + 1
         self._offsets_offset = self._checkbytes_offset + self.capacity
+
+        # Preload the scramble and tab lists, to save on LLDB calls later on.
+        self._scramble = pwndbg.aglib.memory.read(self._ptr + 0x20, 0x400)
+        self._tab = pwndbg.aglib.memory.read(self._ptr + 0x420, self.mask + 1)
 
         # It is possible that the offsets array is not aligned. The code in
         # libmacho does not seem to care about this condition, but we should
         # probably watch out if it ever does arise in a real-world scenario.
         assert self._offsets_offset % 4 == 0, "Unaligned offset array in Mach-O perfect hash map"
 
-    def _scramble(self, index: int) -> int:
-        assert index < 256
-        return pwndbg.aglib.memory.u32(self._ptr + 0x20 + index * 4)
-
-    def _tab(self, index: int) -> int:
-        assert index & ~self.mask == 0
-        return pwndbg.aglib.memory.u8(self._ptr + 0x420 + index)
-
     def _index_of(self, key: bytes) -> int:
         lookup = _lookup8(key, self.salt)
-        return ((lookup >> self.shift) % 0x100000000) ^ self._scramble(
-            self._tab(lookup & self.mask)
-        )
+
+        tab = lookup & self.mask
+        tabbed = self._tab[tab]
+
+        scrambled = struct.unpack("<I", self._scramble[tabbed * 4 : (tabbed + 1) * 4])[0]
+
+        return ((lookup >> self.shift) % 0x100000000) ^ scrambled
 
     def lookup(self, key: bytes) -> int | None:
         """
@@ -422,12 +426,9 @@ class DyldSharedCache:
         self.addr = addr
 
         # Preload a few a few values, to speed things up later.
-        if self._header_size() <= 0x1C4:
-            self._images_base = self.addr + pwndbg.aglib.memory.u32(self.addr + 0x18)
-            self.image_count = pwndbg.aglib.memory.u32(self.addr + 0x1C)
-        else:
-            self._images_base = self.addr + pwndbg.aglib.memory.u32(self.addr + 0x1C0)
-            self.image_count = pwndbg.aglib.memory.u32(self.addr + 0x1C4)
+        images_offset = 0x18 if self._header_size() <= 0x1C4 else 0x1C0
+        self._images_base = self.addr + pwndbg.aglib.memory.u32(self.addr + images_offset)
+        self.image_count = pwndbg.aglib.memory.u32(self.addr + images_offset + 4)
 
         # Check whether the images are sorted by loading address.
         self._images_sorted_by_address = all(
