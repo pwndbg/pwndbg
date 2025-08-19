@@ -32,9 +32,8 @@ class KernelVmmap:
         self.pages = pages
         self.sections = None
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
-        if self.pi and not pwndbg.aglib.kernel.has_debug_symbols():
-            return
-        self.sections = self.pi.markers()
+        if self.pi and pwndbg.aglib.kernel.has_debug_symbols():
+            self.sections = self.pi.markers()
 
     def get_name(self, addr: int) -> str:
         if addr is None or self.sections is None:
@@ -44,7 +43,7 @@ class KernelVmmap:
             _, next = self.sections[i + 1]
             if cur is None or next is None:
                 continue
-            if addr >= cur and addr < next:
+            if cur <= addr < next:
                 return name
         return None
 
