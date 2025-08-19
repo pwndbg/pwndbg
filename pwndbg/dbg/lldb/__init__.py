@@ -1405,7 +1405,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         variables_types: Dict[Tuple[int, str], LLDBType] = {}
 
         if type in (pwndbg.dbg_mod.SymbolLookupType.VARIABLE, pwndbg.dbg_mod.SymbolLookupType.ANY):
-            variables: lldb.SBValueList = (objfile or self.target).FindGlobalVariables(name, 0)
+            if objfile:
+                variables: lldb.SBValueList = objfile.FindGlobalVariables(self.target, name, 0)
+            else:
+                variables: lldb.SBValueList = self.target.FindGlobalVariables(name, 0)
             var: lldb.SBValue
             for var in variables:
                 # LLDB[1] is attempting to resolve a TLS variable, but it fails with the following error:
