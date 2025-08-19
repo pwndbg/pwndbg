@@ -41,7 +41,8 @@ def get_shellcode_regs() -> ShellcodeRegs:
         (
             reg_name
             for reg_name in register_set.gpr
-            if reg_name not in syscall_abi.register_arguments + [syscall_abi.syscall_register]
+            if reg_name not in syscall_abi.register_arguments
+            and reg_name != syscall_abi.syscall_register
         )
     )
     assert (

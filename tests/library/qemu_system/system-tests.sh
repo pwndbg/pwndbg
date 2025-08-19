@@ -197,7 +197,7 @@ run_test() {
         COVERAGE_PROCESS_START=$COVERAGERC_PATH \
         USE_PDB="$should_drop_to_pdb" \
         PWNDBG_LAUNCH_TEST="${test_case}" \
-        PWNDBG_DISABLE_COLORS=1 \
+        NO_COLOR=1 \
         PWNDBG_ARCH="${arch}" \
         PWNDBG_KERNEL_TYPE="${kernel_type}" \
         PWNDBG_KERNEL_VERSION="${kernel_version}" \

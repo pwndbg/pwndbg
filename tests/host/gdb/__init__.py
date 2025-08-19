@@ -69,7 +69,7 @@ class GDBTestHost(TestHost):
         env["COVERAGE_FILE"] = str(coverage_out)
         env["COVERAGE_PROCESS_START"] = str(self._pwndbg_root / "pyproject.toml")
         env["PWNDBG_LAUNCH_TEST"] = case
-        env["PWNDBG_DISABLE_COLORS"] = "1"
+        env["NO_COLOR"] = "1"
         env["GDB_BIN_PATH"] = str(self._gdb_path)
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
         if interactive:

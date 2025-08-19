@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04]
-        type: [qemu-user-tests, qemu-system-tests, tests]
+        type: [qemu-user-tests, qemu-system-tests, tests, unit-tests]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     env:
@@ -48,9 +48,19 @@ jobs:
         sudo sysctl -w kernel.yama.ptrace_scope=0
 
     - name: Run tests
+      if: matrix.type == 'unit-tests'
+      run: |
+        ./unit-tests.sh
+
+    - name: Run GDB Tests
       if: matrix.type == 'tests'
       run: |
         ./tests.sh --nix -d gdb -g gdb
+
+    - name: Run DBG Tests on GDB
+      if: matrix.type == 'tests'
+      run: |
+        ./tests.sh --nix -d gdb -g dbg
 
     - name: Run cross-arch tests
       if: matrix.type == 'qemu-user-tests'
@@ -107,11 +117,21 @@ jobs:
         ./.venv/bin/pip freeze
 
     # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
-    - name: Run tests
+    - name: Run GDB Tests
       run: |
         sudo sysctl -w kernel.yama.ptrace_scope=0
         ./tests.sh -d gdb -g gdb
-        ./unit-tests.sh
+  
+    - name: Run DBG Tests on GDB
+      run: |
+        sudo sysctl -w kernel.yama.ptrace_scope=0
+        ./tests.sh -d gdb -g dbg
+    
+    - name: Run DBG Tests on LLDB
+      if: matrix.os != 'ubuntu-22.04'
+      run: |
+        sudo sysctl -w kernel.yama.ptrace_scope=0
+        ./tests.sh -d lldb -g dbg
 
   qemu-user-tests:
     runs-on: [ubuntu-24.04]

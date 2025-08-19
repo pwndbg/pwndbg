@@ -1,0 +1,18 @@
+name: "pwndbg-lldb"
+arch: "${ARCH}"
+platform: "linux"
+version: "${VERSION}"
+version_schema: none
+section: "default"
+priority: "extra"
+maintainer: "Dominik 'disconnect3d' Czarnota <dominik.b.czarnota+dc@gmail.com>"
+description: |
+  Exploit Development and Reverse Engineering with GDB Made Easy
+homepage: "https://github.com/pwndbg/pwndbg"
+license: "MIT"
+contents:
+- src: /usr/lib/pwndbg-lldb/bin/pwndbg-lldb
+  dst: /usr/bin/pwndbg-lldb
+  type: symlink
+- src: ./result/pwndbg
+  dst: /usr/lib/pwndbg-lldb

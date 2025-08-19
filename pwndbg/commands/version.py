@@ -54,7 +54,7 @@ def debugger_version():
 def all_versions():
     py_version = sys.version.replace("\n", " ")
     return (
-        f"Pwndbg:   {pwndbg.__version__}",
+        f"Pwndbg:   {pwndbg.__version__} ({os.uname().sysname})",
         f"Python:   {py_version}",
         debugger_version(),
         f"Capstone: {module_version('capstone')}",

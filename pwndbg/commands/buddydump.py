@@ -225,14 +225,10 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     if cbp.zone.type.has_field("per_cpu_pageset"):
         pcp = per_cpu(cbp.zone["per_cpu_pageset"], pba.cpu)
         pcp_lists = pcp["lists"]
-        cbp.sections[1] = (
-            "per_cpu_pageset",
-            f"number of pages {cbp.indent.aux_hex(int(pcp['count']))}",
-        )
     elif cbp.zone.type.has_field("pageset"):
         pcp = per_cpu(cbp.zone["pageset"], pba.cpu)
         pcp_lists = pcp["pcp"]["lists"]
-        cbp.sections[1] = ("per_cpu_pageset", None)
+    cbp.sections[1] = ("per_cpu_pageset", None)
     if pcp is None or pcp_lists is None:
         log.warning("cannot find pcplist")
         return
@@ -275,7 +271,7 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 def print_zones(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams, zones, pcp_only):
     for i in range(pwndbg.aglib.kernel.symbol.nzones()):
         cbp.zone = zones[i]
-        name = pwndbg.aglib.memory.string(int(zones[i]["name"])).decode()
+        name = zones[i]["name"].string()
         if pba.zone is not None and pba.zone != name:
             continue
         cbp.sections[0] = (f"Zone {name}", None)

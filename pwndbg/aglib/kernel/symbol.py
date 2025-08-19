@@ -61,7 +61,7 @@ def try_usymbol(name: str, size=pwndbg.aglib.kernel.ptr_size) -> int:
         return None
 
 
-@pwndbg.aglib.kernel.requires_debug_symbols(["zone_names"], default=4)
+@pwndbg.aglib.kernel.requires_debug_symbols("zone_names", default=4)
 def nzones() -> int:
     _zone_names = pwndbg.aglib.symbol.lookup_symbol_addr("zone_names")
     for i in range(len(POSSIBLE_ZONE_NAMES) + 1):
@@ -78,7 +78,7 @@ def nmtypes() -> int:
 def npcplist() -> int:
     """returns NR_PCP_LISTS (https://elixir.bootlin.com/linux/v6.13/source/include/linux/mmzone.h#L671)"""
     if (
-        not pwndbg.aglib.kernel.has_debug_symbols(["node_zones"])
+        not pwndbg.aglib.kernel.has_debug_symbols("node_zones")
         or not pwndbg.aglib.kernel.has_debug_info()
     ):
         if pwndbg.aglib.kernel.krelease() < (5, 14):
@@ -99,73 +99,41 @@ def npcplist() -> int:
     return 0
 
 
+def kversion_cint(kversion: Tuple[int, int, int] = None):
+    if kversion is None:
+        kversion = pwndbg.aglib.kernel.krelease()
+    if kversion is None or len(kversion) != 3:
+        return None
+    x, y, z = kversion
+    return ((x) * 65536) + ((y) * 256) + (z)
+
+
 #########################################
 # common structurs
 #
 #########################################
 COMMON_TYPES = """
 #include <stdint.h>
+#include <linux/version.h>
 typedef unsigned char u8;
 typedef char s8;
 typedef unsigned short u16;
 typedef unsigned int u32;
-typedef unsigned int spinlock_t;
+typedef long long s64;
+#define bool int
 #if UINTPTR_MAX == 0xffffffff
     typedef int16_t arch_word_t;
 #else
     typedef int32_t arch_word_t;
 #endif
+typedef struct {
+    int counter;
+} atomic_t;
 
 struct list_head {
     struct list_head *next, *prev;
 };
 struct kmem_cache;
-struct page { // just a simplied page struct with relavent fields
-    unsigned long flags;
-    union {
-        struct {
-            union {
-                struct {
-                    union {
-                        struct list_head lru;
-                        struct list_head buddy_list;
-                        struct list_head pcp_list;
-                    };
-                };
-                struct {	/* Tail pages of compound page */
-                    unsigned long compound_head;	/* Bit zero is set */
-                };
-            };
-        };
-        // for < v5.17
-        struct {	/* slab, slob and slub */
-			union {
-				struct list_head slab_list;
-				struct {	/* Partial pages */
-					struct page *next;
-					arch_word_t pages;	/* Nr of pages left */
-					arch_word_t pobjects;	/* Approximate count */
-				};
-			};
-			struct kmem_cache *slab_cache; /* not slob */
-			/* Double-word boundary */
-			void *freelist;		/* first free object */
-			union {
-				void *s_mem;	/* slab: first object */
-				unsigned long counters;		/* SLUB */
-				struct {			/* SLUB */
-					unsigned inuse:16;
-					unsigned objects:15;
-					unsigned frozen:1;
-				};
-			};
-		};
-        char _pad[0x40]; // the rest are not relavent to this project but needs to be 0x40 bytes
-    };
-};
-typedef struct {
-	int counter;
-} atomic_t;
 enum pageflags {
 	PG_locked,		/* Page is locked. Don't touch. */
 	PG_writeback,		/* Page is under writeback */
@@ -188,15 +156,99 @@ enum pageflags {
 	PG_unevictable,		/* Page is "unevictable"  */
 	PG_dropbehind,		/* drop pages on IO completion */
 };
+
 """
 
 
 def load_common_structs():
-    if pwndbg.aglib.kernel.has_debug_info():
+    if pwndbg.aglib.kernel.has_debug_info() or not kversion_cint():
         return
     if pwndbg.aglib.typeinfo.lookup_types("struct page") is not None:
         return
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(COMMON_TYPES)
+    defs = []
+    for config in (
+        "CONFIG_MEMCG",
+        "CONFIG_KASAN",
+    ):
+        if config in pwndbg.aglib.kernel.kconfig():
+            defs.append(config)
+    result = f"#define KVERSION {kversion_cint()}\n"
+    result += "\n".join(f"#define {s}" for s in defs)
+    result += COMMON_TYPES
+    result += """
+    struct page { // just a simplied page struct with relavent fields
+        unsigned long flags;
+        union {
+            struct {
+                union {
+                    struct {
+                        union {
+                            struct list_head lru;
+                            struct list_head buddy_list;
+                            struct list_head pcp_list;
+                        };
+                    };
+                    struct {	/* Tail pages of compound page */
+                        unsigned long compound_head;	/* Bit zero is set */
+                    };
+                };
+            };
+#if KVERSION < KERNEL_VERSION(5, 17, 0)
+            struct {	/* slab, slob and slub */
+                union {
+                    struct list_head slab_list;
+                    struct {	/* Partial pages */
+                        struct page *next;
+                        arch_word_t pages;	/* Nr of pages left */
+#if KVERSION < KERNEL_VERSION(5, 16, 0)
+                        arch_word_t pobjects;	/* Approximate count */
+#endif
+                    };
+                };
+                struct kmem_cache *slab_cache; /* not slob */
+                /* Double-word boundary */
+                void *freelist;		/* first free object */
+                union {
+                    void *s_mem;	/* slab: first object */
+                    unsigned long counters;		/* SLUB */
+                    struct {			/* SLUB */
+                        unsigned inuse:16;
+                        unsigned objects:15;
+                        unsigned frozen:1;
+                    };
+                };
+            };
+#endif
+            char _pad[0x28]; // the rest are not relavent to this project but needs to be 0x28 bytes
+        };
+        union {
+            atomic_t _mapcount;
+            unsigned int page_type;
+        };
+        atomic_t _refcount;
+#ifdef CONFIG_MEMCG
+        unsigned long memcg_data;
+#endif
+#if defined(WANT_PAGE_VIRTUAL) /* never set for x86 and arm */
+        void *virtual;
+#endif /* WANT_PAGE_VIRTUAL */
+#ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS /* TODO: seems never got set for all the kernel builds I have worked with */
+#if KVERSION >= KERNEL_VERSION(6, 7, 0)
+        int _last_cpupid;
+#endif
+#endif
+#if defined(CONFIG_KASAN) && KVERSION >= KERNEL_VERSION(6, 1, 0)
+        struct page *kmsan_shadow;
+        struct page *kmsan_origin;
+#endif
+#ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS
+#if KVERSION < KERNEL_VERSION(6, 7, 0)
+        int _last_cpupid;
+#endif
+#endif
+    };
+    """
+    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
     pwndbg.commands.cymbol.add_structure_from_header(
         header_file_path, "common_kernel_structs", True
     )
@@ -316,7 +368,10 @@ class x86_64Symbols(ArchSymbols):
         result = self.dword_add_reg_memoff(disass)
         if result is not None:
             return result
-        return self.qword_mov_reg_const(disass)
+        result = self.qword_mov_reg_const(disass)
+        if result is not None:
+            return result
+        return self.qword_mov_reg_ripoff(disass)
 
     def _modules(self):
         disass = self.disass("find_module_all")

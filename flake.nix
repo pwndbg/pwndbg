@@ -160,7 +160,17 @@
                 config = ./nix/bundle/nfpm.yaml;
               }
             )
-          )
+          ) //
+          mapKeysWithName (name: "pwndbg-lldb-portable-${name}") (
+              forPortables (
+                  packager:
+                  pkgUtil.${system}.buildPackagePFPM {
+                    inherit packager;
+                    drv = portableDrvLldb system;
+                    config = ./nix/bundle/nfpm-lldb.yaml;
+                  }
+                )
+            )
         );
       tarballDrv = system: {
         "pwndbg-gdb-portable-tarball" = pkgUtil.${system}.buildPackageTarball { drv = portableDrv system; };

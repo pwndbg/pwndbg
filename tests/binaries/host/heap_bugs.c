@@ -38,7 +38,9 @@ malloc_chunk *f_real = (malloc_chunk*)(f - 2*SIZE_SZ); \
 malloc_chunk *g_real = (malloc_chunk*)(g - 2*SIZE_SZ); \
 int *tmp; \
 int tmp2, tmp3; \
-printf("a=%p\nb=%p\nc=%p\nd=%p\ne=%p\nf=%p\ng=%p\n", a, b, c, d, e, f, g);
+fprintf(output_file, "a=%p\nb=%p\nc=%p\nd=%p\ne=%p\nf=%p\ng=%p\n", a, b, c, d, e, f, g);
+
+FILE *output_file;
 
 /*
 Every function MUST have two comments: "break1" and "break2"
@@ -215,12 +217,16 @@ void corrupted_unsorted_chunks() {
 
 
 int main(int argc, char const *argv[]) {
-    setvbuf(stdout, NULL, _IONBF, 0);
-
-    if (argc < 2) {
-        printf("Usage: %s bug_to_trigger\n", argv[0]);
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s bug_to_trigger output_file_name\n", argv[0]);
         return 1;
     }
+    output_file = fopen(argv[2], "wb");
+    if (output_file == NULL) {
+        fprintf(stderr, "error: Could not open file %s for writing\n", argv[2]);
+        return 1;
+    }
+    setvbuf(output_file, NULL, _IONBF, 0);
 
     int choice;
     sscanf(argv[1], "%d", &choice);
@@ -239,9 +245,9 @@ int main(int argc, char const *argv[]) {
         case 12: invalid_next_size_normal(); break;
         case 13: corrupted_consolidate_backward(); break;
         case 14: corrupted_unsorted_chunks(); break;
-        default: printf("Unknown\n");
+        default: fprintf(output_file, "Unknown\n");
     }
 
-    puts("END");
+    fprintf(output_file, "END");
     return 0;
 }

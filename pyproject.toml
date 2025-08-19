@@ -28,7 +28,8 @@ dependencies = [
     "rich>=13.7.1,<14",
     # Optional? only for qemu-system vmmap
     "pt",
-    # Optional? only for 'cymbol' command
+    # Optional? 'ziglang' must be optional, as it is not available on every platform.
+    # It is only used for the 'cymbol' command and some `asm` functionality.
     "ziglang==0.14.1",
 ]
 
@@ -37,10 +38,10 @@ lldb = [
     # The LLDB REPL requires readline.
     'gnureadline>=8.2.10,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg>=21.1.6",
+    "lldb-for-pwndbg==20.1.8.post1",
 ]
 gdb = [
-    "gdb-for-pwndbg>=16.2.6",
+    "gdb-for-pwndbg==16.3.0.post1",
 ]
 
 [dependency-groups]

@@ -12,9 +12,10 @@ from typing import Any
 from typing import Callable
 from typing import Coroutine
 from typing import List
+from typing import Tuple
 
 
-def find_lldb_version() -> List[int]:
+def find_lldb_version() -> Tuple[int, ...]:
     """
     Parses the version string given to us by the LLDB executable.
     """
@@ -25,7 +26,7 @@ def find_lldb_version() -> List[int]:
     output = lldb.stdout.decode("utf-8").strip()
     output = re.sub("[^0-9.]", "", output)
 
-    return [int(component) for component in output.split(".")]
+    return tuple(int(component) for component in output.split("."))
 
 
 def find_lldb_python_path() -> str:
@@ -64,7 +65,7 @@ def launch(
     lldb_version = find_lldb_version()
 
     if debug:
-        print(f"[-] Launcher: LLDB version {lldb_version[0]}.{lldb_version[1]}")
+        print(f"[-] Launcher: LLDB version {'.'.join(map(str, lldb_version))}")
 
     if sys.version_info.minor >= 12 and lldb_version[0] <= 18:
         print("LLDB 18 and earlier is incompatible with Python 3.12 and later", file=sys.stderr)
@@ -92,7 +93,7 @@ def launch(
     # Initialize the debugger, proper.
     if debug:
         print("[-] Launcher: Initializing Pwndbg")
-    lldbinit.main(debugger, lldb_version[0], lldb_version[1], debug=debug)
+    lldbinit.main(debugger, lldb_version, debug=debug)
 
     from pwndbg.dbg.lldb.repl import run as run_repl
 

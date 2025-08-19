@@ -58,6 +58,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             self.data["CONFIG_CMA"] = "y"
         if self.CONFIG_MEMORY_ISOLATION:
             self.data["CONFIG_MEMORY_ISOLATION"] = "y"
+        if self.CONFIG_KASAN:
+            self.data["CONFIG_KASAN"] = "y"
+        if self.CONFIG_SYSFS:
+            self.data["CONFIG_SYSFS"] = "y"
 
     def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
@@ -90,9 +94,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     @property
     def CONFIG_SLUB_TINY(self) -> bool:
-        if pwndbg.aglib.kernel.krelease() < (6, 2):
+        krelease = pwndbg.aglib.kernel.krelease()
+        if krelease is not None and krelease < (6, 2): # config added after v6.2
             return False
-        return pwndbg.aglib.symbol.lookup_symbol("flushwq") is None
+        return pwndbg.aglib.symbol.lookup_symbol("deactivate_slab") is None
 
     @property
     def CONFIG_SLUB_CPU_PARTIAL(self) -> bool:
@@ -136,9 +141,19 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_KASAN_GENERIC(self) -> bool:
         # TODO: have a kernel build that tests this
-        if pwndbg.aglib.kernel.krelease() < (5, 11):
+        krelease = pwndbg.aglib.kernel.krelease()
+        if krelease is None:
+            return False
+        if krelease > (6, 1) or krelease < (5, 11):
             return pwndbg.aglib.symbol.lookup_symbol("kasan_cache_create") is not None
         return pwndbg.aglib.symbol.lookup_symbol("__kasan_cache_create") is not None
+
+    @property
+    def CONFIG_KASAN(self) -> bool:
+        # TODO: have a kernel build that tests this
+        if self.CONFIG_KASAN_GENERIC:
+            return True
+        return pwndbg.aglib.symbol.lookup_symbol("__kasan_krealloc") is not None
 
     @property
     def CONFIG_SMP(self) -> bool:
@@ -151,6 +166,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_MEMORY_ISOLATION(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("start_isolate_page_range") is not None
+
+    @property
+    def CONFIG_SYSFS(self) -> bool:
+        return pwndbg.aglib.symbol.lookup_symbol("sysfs_kf_seq_show") is not None
 
     def update_with_file(self, file_path):
         for line in open(file_path, "r").read().splitlines():

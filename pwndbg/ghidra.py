@@ -108,7 +108,7 @@ def decompile(func=None):
         if pwndbg.dbg.is_gdblib_available():
             src_filename = pwndbg.gdblib.symbol.selected_frame_source_absolute_filename()
         if not src_filename:
-            filename = pwndbg.dbg.selected_inferior().main_module_name()
+            filename = pwndbg.aglib.proc.exe
             src_filename = filename + ".c" if os.path.basename(filename).find(".") < 0 else filename
         source = H.syntax_highlight(source, src_filename)
 

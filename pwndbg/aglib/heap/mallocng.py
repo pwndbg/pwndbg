@@ -432,6 +432,10 @@ class Slot:
         Raises:
             pwndbg.dbg_mod.Error: When reading meta fails.
         """
+        # Special case (probably) freed chunks:
+        if self.reserved == -1:
+            return 0
+
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L159
         return self.end - self.reserved - self.p
 
@@ -1085,8 +1089,6 @@ class MallocContext:
         2. When musl is dynmically linked, due to the ld donation logic,
            the heap will usually be initialized before the start of main().
         """
-        print(f"{self.addr:#x} says {self.init_done}")
-
         if self.init_done != 1:
             return False
 
