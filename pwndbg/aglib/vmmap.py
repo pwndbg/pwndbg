@@ -44,36 +44,15 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
                 final_pages.append(page)
                 continue
 
-            # It is not guaranteed that mappings will not partially overlap the
-            # shared cache at this stage, so we should check for and handle
-            # partial overlaps gracefully.
-            split_before = None
-            split_after = None
-            if page.start < shared_cache_start:
-                # Partial overlap at the left of the shared cache.
-                split_before = Page(
-                    page.start,
-                    shared_cache_start - page.start,
-                    page.flags,
-                    page.offset,
-                    page.objfile,
-                )
-                page.offset += shared_cache_start - page.start
-                page.vaddr = shared_cache_start
-
-            if page.end >= shared_cache_end:
-                # Partial overlap at the right of the shared cache.
-                split_after = Page(
-                    shared_cache_end,
-                    shared_cache_end - page.end + 1,
-                    page.flags,
-                    page.offset + shared_cache_end - page.start,
-                    page.objfile,
-                )
-                page.memsz = shared_cache_end - page.start
-
-            if split_before is not None:
-                final_pages.append(split_before)
+            # We do not support partial overlaps between other mappings and the
+            # shared cache.
+            #
+            # While conceptually there's nothing stopping these from happening,
+            # if we ever encounter such a situation, it likely means that we
+            # either got something wrong, or that Darwin/LLDB has changed in
+            # such a way that we are likely not able to gracefully handle.
+            #
+            assert page.start >= shared_cache_start and page.end <= shared_cache_end
 
             one_past_index = bisect.bisect_right(images_base, page.start)
             curr_base = page.start
@@ -111,9 +90,6 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
                 )
 
                 one_past_index += 1
-
-            if split_after is not None:
-                final_pages.append(split_after)
 
         return type(pages)(final_pages)
 
