@@ -423,7 +423,7 @@ class Slot:
                 assert self.reserved_in_header == 7
                 # It is possible for start[-3] to contain (7<<5),
                 # but p[-3] shouldn't unless the slot is free.
-                return -1
+                self._reserved = -1
 
         return self._reserved
 
@@ -433,8 +433,10 @@ class Slot:
         Raises:
             pwndbg.dbg_mod.Error: When reading meta fails.
         """
-        # Special case (probably) freed chunks:
+        # Special case (probably) freed slots (see Slot.reserved):
         if self.reserved == -1:
+            # Returning the value calculated below would confuse users
+            # as, semantically, the slot has no size.
             return 0
 
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L159
