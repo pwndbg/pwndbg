@@ -85,7 +85,7 @@ def kmod(module_name=None, path=None) -> None:
             pwndbg.dbg.selected_inferior().add_symbol_file(path, table[0][0])
             return
         if len(table) > 1:
-            print(M.warn("Multiple modules dectected with the given filter"))
+            print(M.warn("Multiple modules detected with the given filter"))
         else:
             print(M.warn("No modules detected with the given filter."))
         return

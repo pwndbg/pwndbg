@@ -296,13 +296,19 @@ class ArchSymbols:
         per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol("__per_cpu_offset")
         if per_cpu_offset is not None:
             return per_cpu_offset
-        return self._per_cpu_offset()
+        per_cpu_offset = self._per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
+        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", per_cpu_offset)
 
     def modules(self):
         modules = pwndbg.aglib.symbol.lookup_symbol_addr("modules")
         if modules:
             return modules
-        return self._modules()
+        modules = self._modules()
+        if modules is None:
+            return None
+        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", modules)
 
     def _node_data(self):
         raise NotImplementedError()
@@ -419,7 +425,7 @@ class Aarch64Symbols(ArchSymbols):
         m = pattern.search(disass)
         if m is None:
             return None
-        return sum([int(m.group(i), 16) for i in [2, 3, 4]])
+        return sum(int(m.group(i), 16) for i in [2, 3, 4])
 
     def _per_cpu_offset(self):
         disass = self.disass("nr_iowait_cpu")
@@ -441,4 +447,4 @@ class Aarch64Symbols(ArchSymbols):
         m = pattern.search(disass)
         if m is None:
             return None
-        return sum([int(m.group(i), 16) for i in [2, 3, 4]])
+        return sum(int(m.group(i), 16) for i in [2, 3, 4])
