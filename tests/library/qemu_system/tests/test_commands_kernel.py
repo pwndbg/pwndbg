@@ -49,9 +49,8 @@ def test_command_kdmesg():
 
 
 def test_command_kmod():
-    if not pwndbg.aglib.kernel.has_debug_info():
+    if not pwndbg.aglib.kernel.has_debug_symbols("find_module_all"):
         res = gdb.execute("kmod", to_string=True)
-        assert "may only be run when debugging a Linux kernel with debug" in res
         return
 
     res = gdb.execute("kmod", to_string=True)
