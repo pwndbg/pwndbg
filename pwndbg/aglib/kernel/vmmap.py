@@ -32,9 +32,8 @@ class KernelVmmap:
         self.pages = pages
         self.sections = None
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
-        if self.pi and not pwndbg.aglib.kernel.has_debug_symbols():
-            return
-        self.sections = self.pi.markers()
+        if self.pi and pwndbg.aglib.kernel.has_debug_symbols():
+            self.sections = self.pi.markers()
 
     def get_name(self, addr: int) -> str:
         if addr is None or self.sections is None:
@@ -44,12 +43,12 @@ class KernelVmmap:
             _, next = self.sections[i + 1]
             if cur is None or next is None:
                 continue
-            if addr >= cur and addr < next:
+            if cur <= addr < next:
                 return name
         return None
 
     def adjust(self):
-        if self.pages is None or len(self.pages) == 0:
+        if self.pi is None or self.pages is None or len(self.pages) == 0:
             return
         for i, page in enumerate(self.pages):
             name = self.get_name(page.start)
@@ -248,6 +247,84 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
 monitor_info_mem_not_warned = True
 
 
+def _parser_mem_info_line_x86(line: str) -> pwndbg.lib.memory.Page | None:
+    """
+    Example response from `info mem`:
+    ```
+    ffff903580000000-ffff903580099000 0000000000099000 -rw
+    ffff903580099000-ffff90358009b000 0000000000002000 -r-
+    ffff90358009b000-ffff903582200000 0000000002165000 -rw
+    ffff903582200000-ffff903582803000 0000000000603000 -r-
+    ```
+    """
+
+    dash_idx = line.index("-")
+    space_idx = line.index(" ")
+    rspace_idx = line.rindex(" ")
+
+    start = int(line[:dash_idx], 16)
+    end = int(line[dash_idx + 1 : space_idx], 16)
+    size = int(line[space_idx + 1 : rspace_idx], 16)
+    perm = line[rspace_idx + 1 :]
+
+    flags = 0
+    if "r" in perm:
+        flags |= 4
+    if "w" in perm:
+        flags |= 2
+    if "x" in perm:
+        flags |= 1
+
+    global monitor_info_mem_not_warned
+    if end - start != size and monitor_info_mem_not_warned:
+        print(
+            M.warn(
+                (
+                    "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                    "that end-start==size failed. The values are:\n"
+                    "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
+                    "Note that this warning will not show up again in this Pwndbg/GDB session."
+                )
+                % (end, start, size, end - start)
+            )
+        )
+        monitor_info_mem_not_warned = False
+
+    return pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>")
+
+
+def _parser_mem_info_line_riscv64(line: str) -> pwndbg.lib.memory.Page | None:
+    """
+    Example response from `info mem`:
+    ```
+    vaddr            paddr            size             attr
+    ---------------- ---------------- ---------------- -------
+    0000000000010000 00000000feece000 0000000000001000 r-xu-a-
+    0000000000011000 00000000fefeb000 0000000000002000 r-xu-a-
+    0000000000013000 00000000a0a7a000 0000000000002000 r-xu-a-
+    0000000000015000 00000000bfe02000 0000000000002000 r-xu-a-
+    ```
+    """
+
+    arr = line.split(" ", 3)
+    if len(arr) != 4:
+        raise ValueError("invalid line format")
+
+    start, _, size, perm = arr
+    start = int(start, 16)
+    size = int(size, 16)
+
+    flags = 0
+    if "r" in perm:
+        flags |= 4
+    if "w" in perm:
+        flags |= 2
+    if "x" in perm:
+        flags |= 1
+
+    return pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>")
+
+
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
@@ -260,13 +337,6 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     See also: https://github.com/pwndbg/pwndbg/pull/685
     (TODO: revisit with future QEMU versions)
-
-    # Example output from the command:
-    # pwndbg> monitor info mem
-    # ffff903580000000-ffff903580099000 0000000000099000 -rw
-    # ffff903580099000-ffff90358009b000 0000000000002000 -r-
-    # ffff90358009b000-ffff903582200000 0000000002165000 -rw
-    # ffff903582200000-ffff903582803000 0000000000603000 -r-
     """
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
@@ -275,69 +345,35 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
         monitor_info_mem = pwndbg.dbg.selected_inferior().send_monitor("info mem")
     except pwndbg.dbg_mod.Error:
         # Exception should not happen in new qemu, can we clean up it?
-        monitor_info_mem = None
-
-    is_error = monitor_info_mem is None or "unknown command" in monitor_info_mem
-    if is_error:
         # Older versions of QEMU/GDB may throw `gdb.error: "monitor" command
         # not supported by this target`. Newer versions will not throw, but will
-        # return a string starting with 'unknown command:'. We handle both of
-        # these cases in a `finally` block instead of an `except` block.
-        # TODO: Find out which other architectures don't support this command
-        if pwndbg.aglib.arch.name == "aarch64":
-            print(
-                M.error(
-                    f"The {pwndbg.aglib.arch.name} architecture does"
-                    " not support the `monitor info mem` command.\n"
-                    "Run `help show kernel-vmmap` for other options."
-                )
+        # return a string starting with 'unknown command:'.
+        monitor_info_mem = "unknown command"
+
+    parser_func = None
+    if pwndbg.aglib.arch.name in ("i386", "x86-64"):
+        parser_func = _parser_mem_info_line_x86
+    elif pwndbg.aglib.arch.name == "rv64":
+        parser_func = _parser_mem_info_line_riscv64
+
+    if parser_func is None or "unknown command" in monitor_info_mem:
+        print(
+            M.error(
+                f"The {pwndbg.aglib.arch.name} architecture does"
+                " not support the `monitor info mem` command.\n"
+                "Run `help show kernel-vmmap` for other options."
             )
+        )
         return ()
 
-    lines = monitor_info_mem.splitlines()
-
-    # Handle disabled PG
-    # This will prevent a crash on abstract architectures
-    if len(lines) == 1 and lines[0] == "PG disabled":
-        return ()
-
-    global monitor_info_mem_not_warned
     pages: List[pwndbg.lib.memory.Page] = []
-    for line in lines:
+    for line in monitor_info_mem.splitlines():
         try:
-            dash_idx = line.index("-")
-            space_idx = line.index(" ")
-            rspace_idx = line.rindex(" ")
-
-            start = int(line[:dash_idx], 16)
-            end = int(line[dash_idx + 1 : space_idx], 16)
-            size = int(line[space_idx + 1 : rspace_idx], 16)
+            page = parser_func(line)
         except Exception:
             # invalid format
             continue
-        if end - start != size and monitor_info_mem_not_warned:
-            print(
-                M.warn(
-                    (
-                        "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
-                        "that end-start==size failed. The values are:\n"
-                        "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
-                        "Note that this warning will not show up again in this Pwndbg/GDB session."
-                    )
-                    % (end, start, size, end - start)
-                )
-            )
-            monitor_info_mem_not_warned = False
-        perm = line[rspace_idx + 1 :]
-
-        flags = 0
-        if "r" in perm:
-            flags |= 4
-        if "w" in perm:
-            flags |= 2
-        if "x" in perm:
-            flags |= 1
-        pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
+        pages.append(page)
 
     return tuple(pages)
 

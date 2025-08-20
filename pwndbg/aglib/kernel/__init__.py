@@ -427,49 +427,33 @@ class Aarch64Ops(ArchOps):
         return int(pwndbg.aglib.regs.SCTLR) & BIT(0) != 0
 
 
-_arch_paginginfo: ArchPagingInfo = None
+@pwndbg.lib.cache.cache_until("start")
+def arch_paginginfo() -> ArchPagingInfo | None:
+    if pwndbg.aglib.arch.name == "aarch64":
+        return pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
+    elif pwndbg.aglib.arch.name == "x86-64":
+        return pwndbg.aglib.kernel.paging.x86_64PagingInfo()
+    return None
 
 
 @pwndbg.lib.cache.cache_until("start")
-def arch_paginginfo() -> ArchPagingInfo:
-    global _arch_paginginfo
-    if _arch_paginginfo is None:
-        if pwndbg.aglib.arch.name == "aarch64":
-            _arch_paginginfo = pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
-        elif pwndbg.aglib.arch.name == "x86-64":
-            _arch_paginginfo = pwndbg.aglib.kernel.paging.x86_64PagingInfo()
-    return _arch_paginginfo
-
-
-_arch_ops: ArchOps = None
+def arch_ops() -> ArchOps | None:
+    if pwndbg.aglib.arch.name == "aarch64":
+        return Aarch64Ops()
+    elif pwndbg.aglib.arch.name == "x86-64":
+        return x86_64Ops()
+    elif pwndbg.aglib.arch.name == "i386":
+        return i386Ops()
+    return None
 
 
 @pwndbg.lib.cache.cache_until("start")
-def arch_ops() -> ArchOps:
-    global _arch_ops
-    if _arch_ops is None:
-        if pwndbg.aglib.arch.name == "aarch64":
-            _arch_ops = Aarch64Ops()
-        elif pwndbg.aglib.arch.name == "x86-64":
-            _arch_ops = x86_64Ops()
-        elif pwndbg.aglib.arch.name == "i386":
-            _arch_ops = i386Ops()
-
-    return _arch_ops
-
-
-_arch_symbols: pwndbg.aglib.kernel.symbol.ArchSymbols = None
-
-
-def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols:
-    global _arch_symbols
-    if _arch_symbols is None:
-        if pwndbg.aglib.arch.name == "aarch64":
-            _arch_symbols = pwndbg.aglib.kernel.symbol.Aarch64Symbols()
-        elif pwndbg.aglib.arch.name == "x86-64":
-            _arch_symbols = pwndbg.aglib.kernel.symbol.x86_64Symbols()
-
-    return _arch_symbols
+def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols | None:
+    if pwndbg.aglib.arch.name == "aarch64":
+        return pwndbg.aglib.kernel.symbol.Aarch64Symbols()
+    elif pwndbg.aglib.arch.name == "x86-64":
+        return pwndbg.aglib.kernel.symbol.x86_64Symbols()
+    return None
 
 
 def ptr_size() -> int:

@@ -92,7 +92,7 @@ def module_layout_offset() -> Tuple[int | None, int | None]:
         print(M.warn("Could not find modules"))
         return None, None
     module = pwndbg.aglib.memory.read_pointer_width(int(modules))
-    for i in range(0x100): # enough to search through the struct
+    for i in range(0x100):  # enough to search through the struct
         offset = i * pwndbg.aglib.arch.ptrsize
         ptr = module + offset + pwndbg.aglib.arch.ptrsize
         if pwndbg.aglib.memory.peek(ptr) is None:
