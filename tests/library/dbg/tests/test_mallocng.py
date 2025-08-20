@@ -484,20 +484,15 @@ async def test_mallocng_vis(ctrl: Controller, binary: str):
     assert len(vis_out3) > len(vis_out)
 
 
+@pwndbg_test
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-def test_mallocng_dump(start_binary, binary):
-    start_binary(binary)
+async def test_mallocng_dump(ctrl: Controller, binary: str):
+    await launch_to(ctrl, binary, "break_here")
+    await ctrl.finish()
 
-    gdb.execute("start")
-    gdb.execute("break break_here")
-    gdb.execute("continue")
-    # gdb.execute("continue") # We aren't checking color.
-    # gdb.execute("continue")
-    gdb.execute("finish")
-
-    dump_out = gdb.execute("ng-dump", to_string=True)
+    dump_out = await ctrl.execute_and_capture("ng-dump")
     assert "meta_area" in dump_out
     assert "group @" in dump_out
     assert "(slot size: 0x30)" in dump_out  # buffer{1,2,3}
