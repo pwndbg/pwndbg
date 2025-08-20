@@ -9,10 +9,6 @@ import pwndbg.dbg
 from pwndbg import config
 from pwndbg.commands import CommandCategory
 
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
-
-
 parser = argparse.ArgumentParser(description="Finds the kernel virtual base address.")
 
 parser.add_argument("-r", "--rebase", action="store_true", help="rebase loaded symbol file")
@@ -40,9 +36,6 @@ def kbase(rebase=False) -> None:
     symbol_file = pwndbg.aglib.proc.exe
 
     if symbol_file:
-        if pwndbg.dbg.is_gdblib_available():
-            gdb.execute(f"add-symbol-file {symbol_file} {hex(base)}")
-        else:
-            print(M.error("Adding symbol not supported in LLDB yet"))
+        pwndbg.dbg.selected_inferior().add_symbol_file(symbol_file, base)
     else:
         print(M.error("No symbol file is currently loaded"))

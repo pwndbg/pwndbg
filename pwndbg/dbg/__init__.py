@@ -626,6 +626,12 @@ class Process:
         """
         raise NotImplementedError()
 
+    def add_symbol_file(self, path, base):
+        """
+        Adds a symbol file at base
+        """
+        raise NotImplementedError()
+
 
 class TypeCode(Enum):
     """

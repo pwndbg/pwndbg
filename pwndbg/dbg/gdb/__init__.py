@@ -976,6 +976,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 # We're done.
                 break
 
+    @override
+    def add_symbol_file(self, path, base):
+        gdb.execute(f"add-symbol-file {path} {base}")
+
 
 class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override
