@@ -774,6 +774,20 @@ Whether to left-pad disassembly.
 
 ----------
 
+## **max-decimal-number**
+
+
+Show all numbers greater than this in hex.
+
+For negative numbers, their apsolute value is used.
+
+Set the parameter to 'unlimited' if you want all values in decimal.
+Specially, set the parameter to zero if you want all values in hex.
+
+**Default:** 9  
+
+----------
+
 ## **max-visualize-chunk-size**
 
 

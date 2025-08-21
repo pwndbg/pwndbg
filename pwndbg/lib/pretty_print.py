@@ -5,9 +5,62 @@ from typing import Any
 from typing import Callable
 from typing import List
 from typing import Optional
+from typing import Tuple
 
+import pwndbg
 import pwndbg.color as color
 from pwndbg.color import theme
+
+
+max_decimal_number = pwndbg.config.add_param(
+    "max-decimal-number",
+    9,
+    "show all numbers greater than this in hex",
+    param_class=pwndbg.lib.config.PARAM_ZUINTEGER_UNLIMITED,
+    help_docstring="""
+For negative numbers, their apsolute value is used.
+
+Set the parameter to 'unlimited' if you want all values in decimal.
+Specially, set the parameter to zero if you want all values in hex.
+""",
+)
+
+
+def int_to_string(num: int) -> str:
+    """
+    Converts an integer value to string.
+
+    Decides whether to format it in decimal or
+    hex depending on the max-decimal-number config.
+    """
+    if max_decimal_number == -1:
+        return f"{num}"
+    elif max_decimal_number == 0:
+        return f"{num:#x}"
+    elif abs(num) > max_decimal_number:
+        return f"{num:#x}"
+    else:
+        return f"{num}"
+
+
+def int_pair_to_string(num1: int, num2: int) -> Tuple[str, str]:
+    """
+    Converts an integer pair to a string pair.
+
+    Decides whether to format them in decimal or
+    hex depending on the max-decimal-number config.
+
+    If either value should be hex, both are hex.
+    """
+    if max_decimal_number == -1:
+        return f"{num1}", f"{num2}"
+    elif max_decimal_number == 0:
+        return f"{num1:#x}", f"{num2:#x}"
+    elif abs(num1) > max_decimal_number or abs(num2) > max_decimal_number:
+        return f"{num1:#x}", f"{num2:#x}"
+    else:
+        return f"{num1}", f"{num2}"
+
 
 config_property_name_color = theme.add_color_param(
     "prop-name-color",
@@ -35,6 +88,7 @@ config_property_title_color = theme.add_color_param(
 Used heavily in mallocng commands.
 """
 )
+
 
 @dataclass
 class Property:
