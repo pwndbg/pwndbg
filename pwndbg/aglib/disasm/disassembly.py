@@ -46,6 +46,18 @@ CapstoneEndian = {
 
 CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}
 
+force_register_alias = pwndbg.config.add_param(
+    "disasm-reg-alias",
+    False,
+    "force the disassembly to use register aliases (e.g. aarch64 x29 -> fp)",
+    param_class=pwndbg.lib.config.PARAM_BOOLEAN,
+    help_docstring="""\
+The register aliasing is done by capstone, see:
+https://github.com/capstone-engine/capstone/blob/next/docs/cs_v6_release_guide.md#:~:text=None.-,Register%20alias,-Register%20alias%20
+
+Enabling this may make disassembly slower.
+""",
+)
 
 # Caching strategy:
 # To ensure we don't have stale register/memory information in our cached PwndbgInstruction,
@@ -109,6 +121,8 @@ def get_disassembler(cs_info: Tuple[int, int]):
     flavor = pwndbg.dbg.x86_disassembly_flavor()
     try:
         cs.syntax = CapstoneSyntax[flavor]
+        if force_register_alias:
+            cs.syntax |= CS_OPT_SYNTAX_CS_REG_ALIAS
     except CsError:
         pass
     cs.detail = True

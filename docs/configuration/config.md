@@ -443,6 +443,20 @@ Replacing constant operands with their symbol in the disassembly.
 
 ----------
 
+## **disasm-reg-alias**
+
+
+Force the disassembly to use register aliases (e.g. aarch64 x29 -> fp).
+
+The register aliasing is done by capstone, see:
+https://github.com/capstone-engine/capstone/blob/next/docs/cs_v6_release_guide.md#:~:text=None.-,Register%20alias,-Register%20alias%20
+
+Enabling this may make disassembly slower.
+
+**Default:** off  
+
+----------
+
 ## **disasm-telescope-depth**
 
 
