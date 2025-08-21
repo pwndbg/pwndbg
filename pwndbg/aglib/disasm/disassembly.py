@@ -324,7 +324,9 @@ def near(
     Disasms instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
     `show_prev_insns` makes this show previously cached instructions
-    (this is mostly used by context's disasm display, so user see what was previously)
+
+    This allows us to maintain a context of surrounding instructions while
+    single-stepping instructions.
     """
 
     pc = pwndbg.aglib.regs.pc
