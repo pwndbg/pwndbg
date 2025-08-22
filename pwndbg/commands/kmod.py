@@ -34,7 +34,7 @@ def kmod(module_name=None, path=None) -> None:
         )
         return
 
-    print(f"Kernel modules address found at {modules_head:#x}.\n")
+    print(f"Kernel modules address found at {int(modules_head):#x}.\n")
 
     table = []
     headers = ["Address", "Name", "Size", "Used by"]

@@ -648,24 +648,24 @@ def num_numa_nodes() -> int:
 
 
 def node_data() -> pwndbg.dbg_mod.Value:
-    if arch_symbols() is not None:
-        return arch_symbols().node_data()
+    if (syms := arch_symbols()) is not None:
+        return syms.node_data()
     return None
 
 
 def slab_caches() -> pwndbg.dbg_mod.Value:
-    if arch_symbols() is not None:
-        return arch_symbols().slab_caches()
+    if (syms := arch_symbols()) is not None:
+        return syms.slab_caches()
     return None
 
 
 def per_cpu_offset() -> pwndbg.dbg_mod.Value:
-    if arch_symbols() is not None:
-        return arch_symbols().per_cpu_offset()
+    if (syms := arch_symbols()) is not None:
+        return syms.per_cpu_offset()
     return None
 
 
 def modules() -> pwndbg.dbg_mod.Value:
-    if arch_symbols() is not None:
-        return arch_symbols().modules()
+    if (syms := arch_symbols()) is not None:
+        return syms.modules()
     return None

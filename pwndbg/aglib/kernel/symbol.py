@@ -302,7 +302,7 @@ class ArchSymbols:
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", per_cpu_offset)
 
     def modules(self):
-        modules = pwndbg.aglib.symbol.lookup_symbol_addr("modules")
+        modules = pwndbg.aglib.symbol.lookup_symbol("modules")
         if modules:
             return modules
         modules = self._modules()
