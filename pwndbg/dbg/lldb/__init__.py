@@ -893,12 +893,14 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if pages:
             return LLDBMemoryMap(pages)
 
+        from pwndbg.aglib.commpage import get_commpage_mappings
         from pwndbg.aglib.kernel.vmmap import kernel_vmmap
         from pwndbg.aglib.vmmap_custom import get_custom_pages
 
         pages: List[pwndbg.lib.memory.Page] = []
         pages.extend(kernel_vmmap())
         pages.extend(get_custom_pages())
+        pages.extend(get_commpage_mappings())
         pages.sort()
         return LLDBMemoryMap(pages)
 
