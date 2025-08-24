@@ -94,7 +94,7 @@ def get_debugger() -> str:
     return debugger
 
 
-def strip_ansii_color(x: str) -> str:
-    # In case some description etc. contains ANSII coloring, we need to
+def strip_ansi_color(x: str) -> str:
+    # In case some description etc. contains ANSI coloring, we need to
     # take that out since we do not render it properly on the website.
     return re.sub("\x1b\\[[\\d;]+m", "", x)
