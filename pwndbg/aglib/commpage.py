@@ -9,6 +9,7 @@ from typing import Tuple
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.commands
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.arch import Platform
 
@@ -227,16 +228,17 @@ def get_commpage_fields() -> Tuple[CommPageField, ...]:
     return _comm_fields.get(pwndbg.aglib.arch.name, ())
 
 
+@pwndbg.lib.cache.cache_until("start")
 def get_commpage_mappings() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if pwndbg.aglib.arch.platform != Platform.DARWIN:
         return ()
 
     start_rw = _comm_start_page_rw.get(pwndbg.aglib.arch.name, None)
-    if start_rw is None:
+    if start_rw is None or not pwndbg.aglib.memory.peek(start_rw):
         return ()
 
     start_ro = _comm_start_page_ro.get(pwndbg.aglib.arch.name, None)
-    if start_ro is None:
+    if start_ro is None or not pwndbg.aglib.memory.peek(start_ro):
         return (pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, "[commpage]"),)
 
     return (
