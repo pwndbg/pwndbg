@@ -15,6 +15,7 @@ from pwndbg.lib.arch import Platform
 rw_flags = os.R_OK | os.W_OK
 ro_flags = os.R_OK
 
+# docs: https://github.com/pwndbg/pwndbg/issues/3261
 _comm_start_page_rw = {
     "i386": 0xFFFF0000,
     "x86-64": 0x00007FFFFFE00000,
@@ -69,6 +70,8 @@ class CommPageField(NamedTuple):
 
 
 # fmt: off
+# docs: https://github.com/pwndbg/pwndbg/issues/3261
+# docs: https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/osfmk/arm/cpu_capabilities.h#L279-L384
 _fields_arm = (
     CommPageField(rw_flags, "?", "COMM_PAGE_SIGNATURE", 0x000, "First few bytes contain a signature", "16s"),
     CommPageField(rw_flags, "uint64", "COMM_PAGE_CPU_CAPABILITIES64", 0x010, "CPU capabilities (64-bit)", "Q"),
@@ -123,6 +126,9 @@ _fields_arm = (
     CommPageField(rw_flags, "uint8", "COMM_PAGE_APT_MSG_POLICY", 0x340, "APT message policy APT_MSG", "B"),
     CommPageField(rw_flags, "uint8", "COMM_PAGE_APT_ACTIVE", 0x341, "APT active status (infrequently mutated)", "B"),
 )
+
+# docs: https://github.com/pwndbg/pwndbg/issues/3261
+# docs: https://github.com/apple-oss-distributions/xnu/blob/e3723e1f17661b24996789d8afc084c0c3303b26/osfmk/i386/cpu_capabilities.h#L185-L248
 _fields_x86 = (
     CommPageField(rw_flags, "?", "COMM_PAGE_SIGNATURE", 0x000, "First 16 bytes contain a signature", "16s"),
     CommPageField(rw_flags, "uint64", "COMM_PAGE_CPU_CAPABILITIES64", 0x010, "CPU capabilities (64-bit)", "Q"),
