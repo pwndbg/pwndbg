@@ -73,6 +73,10 @@
          <lastmod>2025-08-24</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/darwin_libsystem_mach-o/commpage/</loc>
+         <lastmod>2025-08-24</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/developer/dev-dump-instruction/</loc>
          <lastmod>2025-08-24</lastmod>
     </url>
@@ -961,6 +965,10 @@
          <lastmod>2025-08-24</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/commpage/</loc>
+         <lastmod>2025-08-24</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/ctypes/</loc>
          <lastmod>2025-08-24</lastmod>
     </url>
@@ -1286,6 +1294,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/comments/</loc>
+         <lastmod>2025-08-24</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/commpage/</loc>
          <lastmod>2025-08-24</lastmod>
     </url>
     <url>
