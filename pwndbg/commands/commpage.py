@@ -46,8 +46,6 @@ def commpage(verbose: bool = False):
 
         if isinstance(val, bytes):
             val = pretty_bytes(val)
-            if isinstance(val, bytes) and len(val) >= 1:
-                val = repr(bytearray(val))
 
         rows = [comm.name, hex(comm.real_addr()), comm.ctype, str(val)]
         if verbose:
