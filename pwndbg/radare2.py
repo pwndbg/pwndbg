@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import pwndbg.aglib.elf
 import pwndbg.lib.cache
+from pwndbg.color import message
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -46,3 +47,14 @@ def r2pipe():
     if "pdg" not in r2.cmd("LD").split("\n"):
         raise Exception("radare2 plugin r2ghidra must be installed and available from r2")
     return r2
+
+
+def r2cmd(arguments) -> str:
+    try:
+        r2 = r2pipe()
+        r2.cmd(" ".join(arguments))
+    except ImportError:
+        return message.error("Could not import r2pipe python library. Is it installed?")
+    except Exception as e:
+        return message.error(e)
+    return ""

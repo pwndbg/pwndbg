@@ -20,7 +20,7 @@ if pwndbg.dbg.is_gdblib_available():
 from pwndbg.color import message
 
 decompiler = pwndbg.config.add_param(
-    "r2decompiler",
+    "decompiler",
     "radare2",
     "framework that your ghidra plugin installed",
     param_class=pwndbg.lib.config.PARAM_ENUM,

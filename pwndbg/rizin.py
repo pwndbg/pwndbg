@@ -7,6 +7,7 @@ from __future__ import annotations
 import pwndbg.aglib.elf
 import pwndbg.dbg
 import pwndbg.lib.cache
+from pwndbg.color import message
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -43,3 +44,14 @@ def rzpipe():
     if "ghidra" not in rz.cmd("Lc"):
         raise Exception("rizin plugin rzghidra must be installed and available from rz")
     return rz
+
+
+def rzcmd(arguments) -> str:
+    try:
+        rz = rzpipe()
+        rz.cmd(" ".join(arguments))
+    except ImportError:
+        return message.error("Could not import rzpipe python library. Is it installed?")
+    except Exception as e:
+        return message.error(e)
+    return ""

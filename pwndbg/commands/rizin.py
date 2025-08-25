@@ -9,7 +9,6 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.rizin
-from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Launches rizin.")
@@ -102,10 +101,4 @@ pwndbg> rzpipe pdf @ sym.main
 )
 @pwndbg.commands.OnlyWithFile
 def rzpipe(arguments) -> None:
-    try:
-        rz = pwndbg.rizin.rzpipe()
-        print(rz.cmd(" ".join(arguments)))
-    except ImportError:
-        print(message.error("Could not import rzpipe python library. Is it installed?"))
-    except Exception as e:
-        print(message.error(e))
+    print(pwndbg.rizin.rzcmd(arguments))
