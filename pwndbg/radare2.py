@@ -34,7 +34,10 @@ def r2pipe():
         flags = ["-e", "bin.cache=true", "-e", "bin.relocs.apply=true"]
         if (kbase := pwndbg.aglib.kernel.kbase()) and filename == pwndbg.aglib.proc.exe:
             flags.extend(
-                ["-e", "bin.baddr=" + hex(kbase - pwndbg.aglib.elf.get_elf_base(filename))]
+                [
+                    "-e",
+                    "bin.baddr=" + hex(kbase - pwndbg.aglib.elf.get_vmlinux_unrand_base(filename)),
+                ]
             )
         r2 = r2pipe.open(filename, flags)
     else:

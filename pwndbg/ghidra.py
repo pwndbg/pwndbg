@@ -17,7 +17,6 @@ import pwndbg.rizin
 if pwndbg.dbg.is_gdblib_available():
     import pwndbg.gdblib.symbol
 
-from pwndbg.color import message
 
 decompiler = pwndbg.config.add_param(
     "decompiler",
@@ -26,18 +25,6 @@ decompiler = pwndbg.config.add_param(
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=["radare2", "rizin"],
 )
-
-
-@pwndbg.config.trigger(decompiler)
-def set_decompiler() -> None:
-    if decompiler.value in ["radare2", "rizin"]:
-        return
-    print(
-        message.warn(
-            f"Invalid decompiler: `{decompiler.value}`, please select from radare2 or rizin"
-        )
-    )
-    decompiler.revert_default()
 
 
 def decompile(func=None):
