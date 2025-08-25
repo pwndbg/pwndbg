@@ -250,7 +250,7 @@ class Tracker:
         """
         Returns colored string of the provided pointer/address
         """
-        if colored_ptr := self.colorized_heap_ptrs.get(ptr)
+        if colored_ptr := self.colorized_heap_ptrs.get(ptr):
             return colored_ptr
 
         idx = len(self.colorized_heap_ptrs) % len(PTRS_COLORS)
