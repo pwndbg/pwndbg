@@ -254,7 +254,7 @@ class Tracker:
             return colored_ptr
 
         idx = len(self.colorized_heap_ptrs) % len(PTRS_COLORS)
-        colored = PTRS_COLORS[idx]
+        colored = PTRS_COLORS[idx](f"{ptr:#x}")
 
         self.colorized_heap_ptrs[ptr] = colored
 
