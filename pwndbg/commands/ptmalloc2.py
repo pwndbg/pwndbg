@@ -1111,7 +1111,7 @@ def vis_heap_chunks(
     # Some constants to not re-compute them in loop iterations
     ptrsize = pwndbg.aglib.arch.ptrsize
     ptrsize2 = ptrsize * 2
-    spaces = " " * ptrsize2
+    spaces2 = " " * ptrsize2
     question_marks = "?" * ptrsize
     question_marks2 = question_marks * 2
 
@@ -1124,7 +1124,7 @@ def vis_heap_chunks(
         prev_line = None
         repeat_count = 0
 
-        # Inner loop processes each line within the chunk 
+        # Inner loop processes each line within the chunk
         while cursor < stop:
             line_parts = []
             line_cursor_start = cursor
@@ -1137,7 +1137,7 @@ def vis_heap_chunks(
             ascii_vals = ""
             for _ in range(2):
                 if cursor >= stop:
-                    hex_vals.append(spaces)
+                    hex_vals.append(spaces2)
                     continue
 
                 try:
@@ -1148,7 +1148,7 @@ def vis_heap_chunks(
                 except pwndbg.lib.error.GdbError:
                     hex_vals.append(question_marks2)
                     ascii_vals += question_marks
-                
+
                 cursor += ptrsize
 
             line_parts.append("\t".join(hex_vals))
@@ -1158,13 +1158,14 @@ def vis_heap_chunks(
             current_labels = []
             for i in range(2):
                 label_addr = line_cursor_start + i * ptrsize
-                if label_addr >= stop: continue
+                if label_addr >= stop:
+                    continue
 
                 current_labels.extend(bin_labels_map.get(label_addr, []))
                 if arena is not None and label_addr == arena.top:
                     current_labels.append("Top chunk")
                     reached_top = True
-                
+
             if current_labels:
                 line_parts.append("<-- " + ", ".join(sorted(set(current_labels))))
             
@@ -1173,14 +1174,14 @@ def vis_heap_chunks(
                 full_line += f"\t{line_parts[3]}"
             
             current_line = full_line.split('\t', 1)[1]
-                
+
             # Collapsing logic
             if current_line == prev_line:
                 repeat_count += 1
             else:
                 if repeat_count > 0:
                     print(f"      .... (repeated {repeat_count + 1} times)")
-                    
+
                 print(full_line)
                 repeat_count = 0
                 prev_line = current_line
@@ -1190,7 +1191,7 @@ def vis_heap_chunks(
 
     if reached_mapping_end:
         print(f"Reached end of memory mapping ({hex(heap_region.end)}).")
-    
+
     if any(stop - start > 0x10000 for start, stop in zip(chunk_delims, chunk_delims[1:])):
         if pwndbg.config.max_visualize_chunk_size != 0:
             print(
