@@ -99,3 +99,5 @@ result*
 
 # Vim
 *.swp
+
+.DS_Store
