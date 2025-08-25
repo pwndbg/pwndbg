@@ -69,5 +69,5 @@ def s(type="bytes", asmbp=False, hex=False, executable=False, writable=False,
 
 IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False, user_ns=globals())
 """
-        M.hint("Shortcuts: r(), w(), vv(), h(), s()")
+        print(M.hint("Shortcuts: r(), w(), vv(), h(), s()"))
         gdb.execute(f"py\n{code4ipython}")
