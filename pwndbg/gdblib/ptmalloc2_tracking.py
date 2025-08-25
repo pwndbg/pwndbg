@@ -76,6 +76,23 @@ last_issue: str | None = None
 # Useful to track possbile collision errors.
 PRINT_DEBUG = False
 
+PTRS_COLORS = (
+    pwndbg.color.red,
+    pwndbg.color.green,
+    pwndbg.color.yellow,
+    pwndbg.color.blue,
+    pwndbg.color.purple,
+    pwndbg.color.cyan,
+    pwndbg.color.light_gray,
+    pwndbg.color.gray,
+    pwndbg.color.light_red,
+    pwndbg.color.light_green,
+    pwndbg.color.light_yellow,
+    pwndbg.color.light_blue,
+    pwndbg.color.light_purple,
+    pwndbg.color.light_cyan,
+)
+
 
 def is_enabled() -> bool:
     """
@@ -231,41 +248,16 @@ class Tracker:
 
     def colorize_ptr(self, ptr: int) -> str:
         """
-        This function is used to color pointers.
+        Returns colored string of the provided pointer/address
         """
-        # Possible colors array
-        pos_colors = [
-            pwndbg.color.red,
-            pwndbg.color.green,
-            pwndbg.color.yellow,
-            pwndbg.color.blue,
-            pwndbg.color.purple,
-            pwndbg.color.cyan,
-            pwndbg.color.light_gray,
-            pwndbg.color.gray,
-            pwndbg.color.light_red,
-            pwndbg.color.light_green,
-            pwndbg.color.light_yellow,
-            pwndbg.color.light_blue,
-            pwndbg.color.light_purple,
-            pwndbg.color.light_cyan,
-        ]
+        if colored_ptr := self.colorized_heap_ptrs.get(ptr)
+            return colored_ptr
 
-        # Check cache first
-        if ptr in self.colorized_heap_ptrs:
-            return self.colorized_heap_ptrs[ptr]
+        idx = len(self.colorized_heap_ptrs) % len(PTRS_COLORS)
+        colored = PTRS_COLORS[idx]
 
-        # Compute color
-        malloc_order = list(self.colorized_heap_ptrs.keys())
-        if ptr not in malloc_order:
-            malloc_order.append(ptr)
-
-        index = malloc_order.index(ptr) % len(pos_colors)
-        color_func = pos_colors[index]
-        colored = color_func(f"0x{ptr:x}")
-
-        # Cache result
         self.colorized_heap_ptrs[ptr] = colored
+
         return colored
 
     def malloc(self, chunk: Chunk) -> None:
