@@ -30,7 +30,7 @@ def rzpipe():
 
     if pwndbg.aglib.qemu.is_qemu_kernel():
         flags = ["-e", "bin.cache=true", "-e", "bin.relocs.apply=true"]
-        if kbase := pwndbg.aglib.kernel.kbase() and filename == pwndbg.aglib.proc.exe:
+        if (kbase := pwndbg.aglib.kernel.kbase()) and filename == pwndbg.aglib.proc.exe:
             flags.extend(
                 ["-e", "bin.baddr=" + hex(kbase - pwndbg.aglib.elf.get_elf_base(filename))]
             )
@@ -49,7 +49,7 @@ def rzpipe():
 def rzcmd(arguments) -> str:
     try:
         rz = rzpipe()
-        rz.cmd(" ".join(arguments))
+        return rz.cmd(" ".join(arguments))
     except ImportError:
         return message.error("Could not import rzpipe python library. Is it installed?")
     except Exception as e:

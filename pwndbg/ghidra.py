@@ -49,6 +49,7 @@ def decompile(func=None):
 
     Raises Exception if any fatal error occurs.
     """
+    func_specified = func is not None
     try:
         if decompiler == "radare2":
             r = pwndbg.radare2.r2pipe()
@@ -90,7 +91,6 @@ def decompile(func=None):
         for off in (a.get("offset", 0) for a in src.get("annotations", [])):
             if off == 0 and pc > 0x1000:
                 continue
-            # print(hex(pc), hex(off), hex(pc - off))
             if abs(pc - closest) > abs(pc - off):
                 closest = off
         pos_annotations = sorted(
@@ -121,14 +121,15 @@ def decompile(func=None):
     # Replace code prefix marker after syntax highlighting
     source = source.replace(current_line_marker, C.prefix(pwndbg.config.code_prefix), 1)
 
-    source = source.split("\n")
-    n = int(pwndbg.config.context_code_lines)
+    if not func_specified:
+        source = source.split("\n")
+        n = int(pwndbg.config.context_code_lines)
 
-    # Compute the line range
-    start = max(closest_line - 1 - n // 2, 0)
-    end = min(closest_line - 1 + n // 2 + 1, len(source))
+        # Compute the line range
+        start = max(closest_line - 1 - n // 2, 0)
+        end = min(closest_line - 1 + n // 2 + 1, len(source))
 
-    # split the code
-    source = source[start:end]
-    source = "\n".join(source)
+        # split the code
+        source = source[start:end]
+        source = "\n".join(source)
     return source

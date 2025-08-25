@@ -32,7 +32,7 @@ def r2pipe():
 
     if pwndbg.aglib.qemu.is_qemu_kernel():
         flags = ["-e", "bin.cache=true", "-e", "bin.relocs.apply=true"]
-        if kbase := pwndbg.aglib.kernel.kbase() and filename == pwndbg.aglib.proc.exe:
+        if (kbase := pwndbg.aglib.kernel.kbase()) and filename == pwndbg.aglib.proc.exe:
             flags.extend(
                 ["-e", "bin.baddr=" + hex(kbase - pwndbg.aglib.elf.get_elf_base(filename))]
             )
@@ -52,7 +52,7 @@ def r2pipe():
 def r2cmd(arguments) -> str:
     try:
         r2 = r2pipe()
-        r2.cmd(" ".join(arguments))
+        return r2.cmd(" ".join(arguments))
     except ImportError:
         return message.error("Could not import r2pipe python library. Is it installed?")
     except Exception as e:
