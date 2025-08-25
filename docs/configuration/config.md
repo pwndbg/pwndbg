@@ -399,6 +399,18 @@ Display internal event debugging info.
 
 ----------
 
+## **decompiler**
+
+
+Framework that your ghidra plugin installed.
+
+
+
+**Default:** 'radare2'  
+**Valid values:** 'radare2', 'rizin'
+
+----------
+
 ## **default-visualize-chunk-number**
 
 
@@ -825,18 +837,6 @@ Whether to show call arguments below instruction.
 
 
 **Default:** on  
-
-----------
-
-## **r2decompiler**
-
-
-Framework that your ghidra plugin installed.
-
-
-
-**Default:** 'radare2'  
-**Valid values:** 'radare2', 'rizin'
 
 ----------
 
