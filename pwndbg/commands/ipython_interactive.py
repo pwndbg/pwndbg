@@ -47,6 +47,27 @@ def ipi() -> None:
         code4ipython = """import jedi
 import pwn
 jedi.Interpreter._allow_descriptor_getattr_default = False
+
+from pwndbg.aglib.memory import read, write
+import pwndbg.aglib.vmmap as vmmap
+from pwndbg.commands.hexdump import hexdump
+from pwndbg.commands.search import search
+
+def r(addr, length): return read(int(addr,16), length)
+
+def w(addr, data): return write(int(addr,16), data)
+
+def vv(): return vmmap.get()
+
+def h(addr, length): hexdump(int(addr,16), length)
+
+def s(type="bytes", asmbp=False, hex=False, executable=False, writable=False,
+      step=None, limit=None, aligned=None, value="", mapping_name=None,
+      save=None, next=False, trunc_out=False):
+    search(type, asmbp, hex, executable, writable, step,
+           limit, aligned, value, mapping_name, save, next, trunc_out)
+
 IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False, user_ns=globals())
 """
+        M.hint("Shortcuts: r(), w(), vv(), h(), s()")
         gdb.execute(f"py\n{code4ipython}")
