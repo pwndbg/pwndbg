@@ -27,9 +27,14 @@ def rzpipe():
 
     import rzpipe
 
-    flags = ["-e", "io.cache=true"]
-    if pwndbg.aglib.elf.get_elf_info(filename).is_pie and pwndbg.aglib.elf.exe():
-        flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
-    rz = rzpipe.open(filename, flags=flags)
-    rz.cmd("aaaa")
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        rz = rzpipe.open(filename, flags=["-e", "bin.cache=true"])
+    else:
+        flags = ["-e", "io.cache=true"]
+        if pwndbg.aglib.elf.get_elf_info(filename).is_pie and pwndbg.aglib.elf.exe():
+            flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
+        rz = rzpipe.open(filename, flags=flags)
+    # Lc -> list core plugins
+    if "ghidra" not in rz.cmd("Lc"):
+        raise Exception("rizin plugin rzghidra must be installed and available from rz")
     return rz

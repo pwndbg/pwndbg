@@ -19,7 +19,7 @@ if pwndbg.dbg.is_gdblib_available():
 
 from pwndbg.color import message
 
-r2decompiler = pwndbg.config.add_param(
+decompiler = pwndbg.config.add_param(
     "r2decompiler",
     "radare2",
     "framework that your ghidra plugin installed",
@@ -28,16 +28,16 @@ r2decompiler = pwndbg.config.add_param(
 )
 
 
-@pwndbg.config.trigger(r2decompiler)
-def set_r2decompiler() -> None:
-    if r2decompiler.value in ["radare2", "rizin"]:
+@pwndbg.config.trigger(decompiler)
+def set_decompiler() -> None:
+    if decompiler.value in ["radare2", "rizin"]:
         return
     print(
         message.warn(
-            f"Invalid r2decompiler: `{r2decompiler.value}`, please select from radare2 or rizin"
+            f"Invalid decompiler: `{value}`, please select from radare2 or rizin"
         )
     )
-    r2decompiler.revert_default()
+    decompiler.revert_default()
 
 
 def decompile(func=None):
@@ -50,20 +50,20 @@ def decompile(func=None):
     Raises Exception if any fatal error occurs.
     """
     try:
-        if r2decompiler == "radare2":
-            r2 = pwndbg.radare2.r2pipe()
-            # LD -> list supported decompilers (e cmd.pdc=?)
-            # Outputs for example: pdc\npdg
-            if "pdg" not in r2.cmd("LD").split("\n"):
-                raise Exception("radare2 plugin r2ghidra must be installed and available from r2")
-        else:
-            assert r2decompiler == "rizin"
-            r2 = pwndbg.rizin.rzpipe()
-            # Lc -> list core plugins
-            if "ghidra" not in r2.cmd("Lc"):
-                raise Exception("rizin plugin rzghidra must be installed and available from rz")
+        if decompiler == "radare2":
+            r = pwndbg.radare2.r2pipe()
+        elif recompiler == "rizin":
+            r = pwndbg.rizin.rzpipe()
     except ImportError:
         raise Exception("r2pipe or rzpipe not available, but required for r2/rz->ghidra bridge")
+
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        if func is None:
+            func = pwndbg.aglib.symbol.resolve_addr(pwndbg.aglib.regs[pwndbg.aglib.regs.current.pc])
+            if func is not None:
+                func = func.split("+")[0]
+        if func is not None:
+            func = f"sym.{func}"
 
     if not func:
         func = (
@@ -72,7 +72,8 @@ def decompile(func=None):
             else "main"
         )
 
-    src = r2.cmdj("pdgj @ " + func)
+    r.cmd(f"afr @ {func}")
+    src = r.cmdj("pdgj @ " + func)
     if not src:
         raise Exception(f"Decompile command failed, check if '{func}' is a valid target")
 

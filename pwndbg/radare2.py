@@ -29,9 +29,15 @@ def r2pipe():
 
     import r2pipe
 
-    flags = ["-e", "io.cache=true"]
-    if pwndbg.aglib.elf.get_elf_info(filename).is_pie and pwndbg.aglib.elf.exe():
-        flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
-    r2 = r2pipe.open(filename, flags=flags)
-    r2.cmd("aaaa")
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        r2 = r2pipe.open(filename, flags=["-e", "bin.cache=true"])
+    else:
+        flags = ["-e", "io.cache=true"]
+        if pwndbg.aglib.elf.get_elf_info(filename).is_pie and pwndbg.aglib.elf.exe():
+            flags.extend(["-B", hex(pwndbg.aglib.elf.exe().address)])
+        r2 = r2pipe.open(filename, flags=flags)
+    # LD -> list supported decompilers (e cmd.pdc=?)
+    # Outputs for example: pdc\npdg
+    if "pdg" not in r2.cmd("LD").split("\n"):
+        raise Exception("radare2 plugin r2ghidra must be installed and available from r2")
     return r2
