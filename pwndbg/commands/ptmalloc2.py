@@ -1108,6 +1108,13 @@ def vis_heap_chunks(
     prev_line = None
     repeat_count = 0
 
+    # Some constants to not re-compute them in loop iterations
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    ptrsize2 = ptrsize * 2
+    spaces = " " * ptrsize2
+    question_marks = "?" * ptrsize
+    question_marks2 = question_marks * 2
+
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
 
@@ -1130,19 +1137,19 @@ def vis_heap_chunks(
             ascii_vals = ""
             for _ in range(2):
                 if cursor >= stop:
-                    hex_vals.append(" " * (pwndbg.aglib.arch.ptrsize * 2))
+                    hex_vals.append(spaces)
                     continue
 
                 try:
-                    data = pwndbg.aglib.memory.read(cursor, pwndbg.aglib.arch.ptrsize)
+                    data = pwndbg.aglib.memory.read(cursor, ptrsize)
                     cell = pwndbg.aglib.arch.unpack(data)
-                    hex_vals.append(f"0x{cell:0{pwndbg.aglib.arch.ptrsize*2}x}")
+                    hex_vals.append(f"0x{cell:0{ptrsize2}x}")
                     ascii_vals += bin_ascii(data)
                 except pwndbg.lib.error.GdbError:
-                    hex_vals.append("?" * (pwndbg.aglib.arch.ptrsize * 2))
-                    ascii_vals += "?" * pwndbg.aglib.arch.ptrsize
+                    hex_vals.append(question_marks2)
+                    ascii_vals += question_marks
                 
-                cursor += pwndbg.aglib.arch.ptrsize
+                cursor += ptrsize
 
             line_parts.append("\t".join(hex_vals))
             line_parts.append(color_func(ascii_vals))
@@ -1150,7 +1157,7 @@ def vis_heap_chunks(
             # Part 4: Labels (Top chunk, bins, etc.)
             current_labels = []
             for i in range(2):
-                label_addr = line_cursor_start + i * pwndbg.aglib.arch.ptrsize
+                label_addr = line_cursor_start + i * ptrsize
                 if label_addr >= stop: continue
 
                 current_labels.extend(bin_labels_map.get(label_addr, []))
@@ -1159,7 +1166,7 @@ def vis_heap_chunks(
                     reached_top = True
                 
             if current_labels:
-                line_parts.append("<-- " + ", ".join(sorted(list(set(current_labels)))))
+                line_parts.append("<-- " + ", ".join(sorted(set(current_labels))))
             
             full_line = f"{line_parts[0]}\t{line_parts[1]}\t{line_parts[2]}"
             if len(line_parts) > 3:
