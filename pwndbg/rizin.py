@@ -28,7 +28,12 @@ def rzpipe():
     import rzpipe
 
     if pwndbg.aglib.qemu.is_qemu_kernel():
-        rz = rzpipe.open(filename, flags=["-e", "bin.cache=true"])
+        flags = ["-e", "bin.cache=true", "-e", "bin.relocs.apply=true"]
+        if kbase := pwndbg.aglib.kernel.kbase() and filename == pwndbg.aglib.proc.exe:
+            flags.extend(
+                ["-e", "bin.baddr=" + hex(kbase - pwndbg.aglib.elf.get_elf_base(filename))]
+            )
+        rz = rzpipe.open(filename, flags)
     else:
         flags = ["-e", "io.cache=true"]
         if pwndbg.aglib.elf.get_elf_info(filename).is_pie and pwndbg.aglib.elf.exe():

@@ -30,7 +30,12 @@ def r2pipe():
     import r2pipe
 
     if pwndbg.aglib.qemu.is_qemu_kernel():
-        r2 = r2pipe.open(filename, flags=["-e", "bin.cache=true"])
+        flags = ["-e", "bin.cache=true", "-e", "bin.relocs.apply=true"]
+        if kbase := pwndbg.aglib.kernel.kbase() and filename == pwndbg.aglib.proc.exe:
+            flags.extend(
+                ["-e", "bin.baddr=" + hex(kbase - pwndbg.aglib.elf.get_elf_base(filename))]
+            )
+        r2 = r2pipe.open(filename, flags)
     else:
         flags = ["-e", "io.cache=true"]
         if pwndbg.aglib.elf.get_elf_info(filename).is_pie and pwndbg.aglib.elf.exe():
