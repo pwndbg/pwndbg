@@ -105,7 +105,7 @@ class PropertyPrinter:
 
             colored_alt_val = ""
             if prop.alt_value is not None:
-                colored_alt_val = " (" + prop_value_cfunc(prop.alt_value) + ")"
+                colored_alt_val = f" ({prop_value_cfunc(prop.alt_value)})"
 
             self.text += color.ljust_colored(colored_val + colored_alt_val, self.extra_offset)
 
