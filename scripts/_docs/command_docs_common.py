@@ -28,7 +28,7 @@ def category_to_folder_name(category) -> str:
     folder = re.sub(r"[ /]", "_", folder)  # replace all spaces and / with _
     # Don't allow wacky characters for folder names. If you hit this assert, feel free
     # to update the regex above to sanitize the category name.
-    assert all(c.isalnum() or c == "_" for c in folder)
+    assert all(c.isalnum() or c in ("_", "-") for c in folder), f"Error folder={folder}"
     return folder
 
 

@@ -94,5 +94,21 @@ or
 ```
 depending on which version you installed. You may add the appropriate file to your shell's PATH.
 
+### Removing Quarantine Flags (macOS)
+
+When first setting up the portable version of Pwndbg in macOS, Gatekeeper will normally try to prevent
+any code in the extracted files from running until the user explicitly allows each file to be run.
+As we ship many files which would require this, the process of manually granting permission for each
+one to be run can get quite tiresome.
+
+In order to do this to all files at once, you may choose to run the following command, which removes
+the quarantine flag from all extracted files at once:
+
+```{.bash .copy}
+xattr -rd com.apple.quarantine pwndbg
+```
+
+Assuming that the files were extracted to a folder called `pwndbg`.
+
 ## Installing from source
 See [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section.

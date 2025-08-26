@@ -59,6 +59,7 @@ class CommandCategory(str, Enum):
     REGISTER = "Register"
     PROCESS = "Process"
     LINUX = "Linux/libc/ELF"
+    DARWIN = "Darwin/libsystem/Mach-O"
     DISASS = "Disassemble"
     MISC = "Misc"
     KERNEL = "Kernel"
@@ -899,6 +900,7 @@ def load_commands() -> None:
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
+    import pwndbg.commands.commpage
     import pwndbg.commands.config
     import pwndbg.commands.context
     import pwndbg.commands.cpsr

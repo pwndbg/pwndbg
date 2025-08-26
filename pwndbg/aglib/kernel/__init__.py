@@ -268,7 +268,7 @@ class ArchOps(ABC):
         return arch_paginginfo().vmemmap
 
     @property
-    def kbase(self) -> int:
+    def kbase(self) -> int | None:
         return arch_paginginfo().kbase
 
     @property
@@ -365,7 +365,7 @@ class x86_64Ops(x86Ops):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        if virt < self.kbase:
+        if self.kbase is None or virt < self.kbase:
             return (virt - self.page_offset) % (1 << 64)
         return ((virt - self.kbase) + self.phys_base) % (1 << 64)
 
@@ -648,18 +648,24 @@ def num_numa_nodes() -> int:
 
 
 def node_data() -> pwndbg.dbg_mod.Value:
-    if arch_symbols() is not None:
-        return arch_symbols().node_data()
+    if (syms := arch_symbols()) is not None:
+        return syms.node_data()
     return None
 
 
 def slab_caches() -> pwndbg.dbg_mod.Value:
-    if arch_symbols() is not None:
-        return arch_symbols().slab_caches()
+    if (syms := arch_symbols()) is not None:
+        return syms.slab_caches()
     return None
 
 
 def per_cpu_offset() -> pwndbg.dbg_mod.Value:
-    if arch_symbols() is not None:
-        return arch_symbols().per_cpu_offset()
+    if (syms := arch_symbols()) is not None:
+        return syms.per_cpu_offset()
+    return None
+
+
+def modules() -> pwndbg.dbg_mod.Value:
+    if (syms := arch_symbols()) is not None:
+        return syms.modules()
     return None

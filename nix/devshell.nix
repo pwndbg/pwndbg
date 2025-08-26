@@ -81,6 +81,10 @@ in
         pkgs.lldb_20
       ];
     shellHook = ''
+      # lldb looks for the `debugserver` binary in `DEVELOPER_DIR`,
+      # but nixpkgs does not provide `debugserver` there
+      unset DEVELOPER_DIR
+
       export PWNDBG_NO_AUTOUPDATE=1
       export PWNDBG_NO_UV=1
       export PWNDBG_VENV_PATH="${pyEnv}"

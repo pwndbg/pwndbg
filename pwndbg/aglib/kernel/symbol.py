@@ -296,7 +296,19 @@ class ArchSymbols:
         per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol("__per_cpu_offset")
         if per_cpu_offset is not None:
             return per_cpu_offset
-        return self._per_cpu_offset()
+        per_cpu_offset = self._per_cpu_offset()
+        if per_cpu_offset is None:
+            return None
+        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", per_cpu_offset)
+
+    def modules(self):
+        modules = pwndbg.aglib.symbol.lookup_symbol("modules")
+        if modules:
+            return modules
+        modules = self._modules()
+        if modules is None:
+            return None
+        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", modules)
 
     def _node_data(self):
         raise NotImplementedError()
@@ -305,6 +317,9 @@ class ArchSymbols:
         raise NotImplementedError()
 
     def _per_cpu_offset(self):
+        raise NotImplementedError()
+
+    def _modules(self):
         raise NotImplementedError()
 
 
@@ -364,6 +379,10 @@ class x86_64Symbols(ArchSymbols):
             return result
         return self.qword_mov_reg_ripoff(disass)
 
+    def _modules(self):
+        disass = self.disass("find_module_all")
+        return self.qword_mov_reg_ripoff(disass)
+
 
 class Aarch64Symbols(ArchSymbols):
     # adrp x?, <kernel address>
@@ -406,8 +425,26 @@ class Aarch64Symbols(ArchSymbols):
         m = pattern.search(disass)
         if m is None:
             return None
-        return sum([int(m.group(i), 16) for i in [2, 3, 4]])
+        return sum(int(m.group(i), 16) for i in [2, 3, 4])
 
     def _per_cpu_offset(self):
         disass = self.disass("nr_iowait_cpu")
         return self.qword_adrp_add_const(disass)
+
+    def _modules(self):
+        disass = self.disass("find_module_all")
+        # adrp x<num>, 0x....
+        # ...
+        # add x<num>, x<num>, #0x...
+        # ...
+        # ldr x?, [x<num>, #0x]!...
+        pattern = re.compile(
+            r"adrp\s+x(\d+),\s+0x([0-9a-fA-F]+).*?\n"
+            r".*?add\s+x\1,\s+x\1,\s+#0x([0-9a-fA-F]+).*?\n"
+            r".*?ldr\s+x\d+,\s+\[x\1,\s+#0x([0-9a-fA-F]+)\]!",
+            re.DOTALL,
+        )
+        m = pattern.search(disass)
+        if m is None:
+            return None
+        return sum(int(m.group(i), 16) for i in [2, 3, 4])

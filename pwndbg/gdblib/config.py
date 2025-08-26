@@ -77,13 +77,13 @@ class Parameter(gdb.Parameter):
     @property
     def native_value(self):
         return Parameter._value_to_gdb_native(
-            self.param.value, param_class=CLASS_MAPPING[self.param.param_class]
+            self.param.value, gdb_param_class=CLASS_MAPPING[self.param.param_class]
         )
 
     @property
     def native_default(self):
         return Parameter._value_to_gdb_native(
-            self.param.default, param_class=CLASS_MAPPING[self.param.param_class]
+            self.param.default, gdb_param_class=CLASS_MAPPING[self.param.param_class]
         )
 
     def get_set_string(self) -> str:
@@ -93,10 +93,13 @@ class Parameter(gdb.Parameter):
             gdb.PARAM_UINTEGER,
             gdb.PARAM_INTEGER,
         ):
-            # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
-            # And hilarious thing is that GDB won't let you set the default value to `None` when you construct the `gdb.Parameter` object with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
-            # Maybe it's a bug of GDB?
-            # Anyway, to avoid some unexpected behaviors, we'll still set `self.param.value` to 0 here.
+            # FIXME: The comment below is wrong, see
+            # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Parameters-In-Python.html#Parameters-In-Python
+            # Do we need this branch?
+            # # Note: This is really weird, according to GDB docs, 0 should mean "unlimited" for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER, but somehow GDB sets the value to `None` actually :/
+            # # And hilarious thing is that GDB won't let you set the default value to `None` when you construct the `gdb.Parameter` object with `gdb.PARAM_UINTEGER` or `gdb.PARAM_INTEGER` lol
+            # # Maybe it's a bug of GDB?
+            # # Anyway, to avoid some unexpected behaviors, we'll still set `self.param.value` to 0 here.
             self.param.value = 0
         else:
             self.param.value = self.value
@@ -121,18 +124,18 @@ class Parameter(gdb.Parameter):
         )
 
     @staticmethod
-    def _value_to_gdb_native(value: Any, param_class: int | None = None) -> Any:
+    def _value_to_gdb_native(value: Any, gdb_param_class: int | None = None) -> Any:
         """Translates Python value into native GDB syntax string."""
         if isinstance(value, bool):
             # Convert booleans to "on" or "off".
             return "on" if value else "off"
-        elif value is None and CLASS_MAPPING[param_class] == gdb.PARAM_AUTO_BOOLEAN:
+        elif value is None and gdb_param_class == gdb.PARAM_AUTO_BOOLEAN:
             # None for gdb.PARAM_AUTO_BOOLEAN means "auto".
             return "auto"
-        elif value == 0 and CLASS_MAPPING[param_class] in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
+        elif value == 0 and gdb_param_class in (gdb.PARAM_UINTEGER, gdb.PARAM_INTEGER):
             # 0 for gdb.PARAM_UINTEGER and gdb.PARAM_INTEGER means "unlimited".
             return "unlimited"
-        elif value == -1 and CLASS_MAPPING[param_class] == gdb.PARAM_ZUINTEGER_UNLIMITED:
+        elif value == -1 and gdb_param_class == gdb.PARAM_ZUINTEGER_UNLIMITED:
             # -1 for gdb.PARAM_ZUINTEGER_UNLIMITED means "unlimited".
             return "unlimited"
 

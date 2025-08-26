@@ -399,6 +399,18 @@ Display internal event debugging info.
 
 ----------
 
+## **decompiler**
+
+
+Framework that your ghidra plugin installed.
+
+
+
+**Default:** 'radare2'  
+**Valid values:** 'radare2', 'rizin'
+
+----------
+
 ## **default-visualize-chunk-number**
 
 
@@ -440,6 +452,20 @@ Replacing constant operands with their symbol in the disassembly.
 
 
 **Default:** on  
+
+----------
+
+## **disasm-reg-alias**
+
+
+Force the disassembly to use register aliases (e.g. aarch64 x29 -> fp).
+
+The register aliasing is done by capstone, see:
+https://github.com/capstone-engine/capstone/blob/next/docs/cs_v6_release_guide.md#:~:text=None.-,Register%20alias,-Register%20alias%20
+
+Enabling this may make disassembly slower.
+
+**Default:** off  
 
 ----------
 
@@ -811,18 +837,6 @@ Whether to show call arguments below instruction.
 
 
 **Default:** on  
-
-----------
-
-## **r2decompiler**
-
-
-Framework that your ghidra plugin installed.
-
-
-
-**Default:** 'radare2'  
-**Valid values:** 'radare2', 'rizin'
 
 ----------
 

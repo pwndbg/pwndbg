@@ -202,6 +202,14 @@ def get_containing_sections(elf_filepath: str, elf_loadaddr: int, vaddr: int):
     return sections
 
 
+def get_vmlinux_unrand_base(elf_filepath: str):
+    elf = get_elf_info(elf_filepath)
+    for seg in elf.segments:
+        if seg["p_type"] == "PT_LOAD":
+            return seg["p_vaddr"]
+    return None
+
+
 def dump_section_by_name(
     filepath: str, section_name: str, try_local_path: bool = False
 ) -> Tuple[int, int, bytes] | None:

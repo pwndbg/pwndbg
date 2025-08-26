@@ -23,6 +23,10 @@
 -  [contextwatch](context/contextwatch.md) - Adds an expression to be shown on context.
 -  [regs](context/regs.md) - Print out all registers and enhance the information.
 
+## Darwin/libsystem/Mach-O
+
+-  [commpage](darwin_libsystem_mach-o/commpage.md) - Dumps all values from the macOS commpage.
+
 ## Developer
 
 -  [dev-dump-instruction](developer/dev-dump-instruction.md) - Dump internal PwndbgInstruction attributes.
