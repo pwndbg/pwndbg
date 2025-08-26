@@ -265,7 +265,7 @@ def dump_slot(
                     name="state",
                     value=get_colored_slot_state(slot.meta.slotstate_at_index(slot.idx)),
                 ),
-            ]
+            ],
         )
 
     reserved_extra = ["describes: end - p - n"]
