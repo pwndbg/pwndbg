@@ -1249,15 +1249,16 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         if tcache is None:
             return None
 
-        global tcache_2_42_warning_issued
-        if pwndbg.glibc.get_version() >= (2, 42) and "tcache_2_42_warning_issued" not in globals():
+        if pwndbg.glibc.get_version() >= (2, 42) and not hasattr(
+            self, "tcache_2_42_warning_issued"
+        ):
             print(
                 message.warn(
                     "Changes to tcache in GLIBC 2.42 have not been fully implemented. "
                     "PR contributions are highly appreciated!"
                 )
             )
-            tcache_2_42_warning_issued = True
+            setattr(self, "tcache_2_42_warning_issued", True)
 
         counts = tcache["counts"]
         entries = tcache["entries"]
