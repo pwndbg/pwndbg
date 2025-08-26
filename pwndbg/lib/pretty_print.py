@@ -24,6 +24,9 @@ class Property:
     extra: str | List[str] = ""
     is_addr: bool = False
     use_hex: bool = True
+    # Override the PropertyPrinter's color.
+    name_color_func: Optional[Callable[[str], str]] = None
+    value_color_func: Optional[Callable[[str], str]] = None
 
 
 class PropertyPrinter:
@@ -84,9 +87,13 @@ class PropertyPrinter:
         )
 
         for prop in prop_group:
+            # The property may override the PropertyPrinter's color functions.
+            prop_name_cfunc = prop.name_color_func if prop.name_color_func is not None else self.name_color_func
+            prop_value_cfunc = prop.value_color_func if prop.value_color_func is not None else self.value_color_func
+
             self.text += (
                 indentation_str
-                + color.ljust_colored(self.name_color_func(prop.name) + ":", self.value_offset)
+                + color.ljust_colored(prop_name_cfunc(prop.name) + ":", self.value_offset)
                 + "  "
             )
 
@@ -94,11 +101,11 @@ class PropertyPrinter:
                 base = 16 if prop.use_hex else 10
                 colored_val = color.memory.get(int(prop.value, base))
             else:
-                colored_val = self.value_color_func(prop.value)
+                colored_val = prop_value_cfunc(prop.value)
 
             colored_alt_val = ""
             if prop.alt_value is not None:
-                colored_alt_val = " (" + self.value_color_func(prop.alt_value) + ")"
+                colored_alt_val = f" ({prop_value_cfunc(prop.alt_value)})"
 
             self.text += color.ljust_colored(colored_val + colored_alt_val, self.extra_offset)
 

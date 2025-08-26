@@ -435,23 +435,39 @@ def smart_dump_slot(
     return output
 
 
-def dump_meta_area(meta_area: mallocng.MetaArea) -> str:
-    area_range = (
-        "@ "
-        + C.memory.get(meta_area.addr)
-        + " - "
-        + C.memory.get(meta_area.addr + meta_area.area_size)
-    )
+def dump_meta_area(meta_area: mallocng.MetaArea, coming_from_dump: bool = False) -> str:
+    if coming_from_dump:
+        # We don't want users to wonder which colorings in ng-dump are according to
+        # state (allocated/avail/freed), and which are according to the memory mapping's color,
+        # so we will just disable address coloring here.
+        area_range = "@ " + hex(meta_area.addr) + " - " + hex(meta_area.addr + meta_area.area_size)
+    else:
+        area_range = (
+            "@ "
+            + C.memory.get(meta_area.addr)
+            + " - "
+            + C.memory.get(meta_area.addr + meta_area.area_size)
+        )
 
     pp = PropertyPrinter()
+
+    if coming_from_dump:
+        slots = ""
+        slots_is_addr = False
+        # Don't color according to mapping.
+        next_prop = Property(name="next", value=hex(meta_area.next), value_color_func=C.normal)
+    else:
+        slots = meta_area.slots
+        slots_is_addr = True
+        next_prop = Property(name="next", value=meta_area.next, is_addr=True)
 
     pp.start_section("meta_area", area_range)
     pp.add(
         [
             Property(name="check", value=meta_area.check),
-            Property(name="next", value=meta_area.next, is_addr=True),
+            next_prop,
             Property(name="nslots", value=meta_area.nslots),
-            Property(name="slots", value=meta_area.slots, is_addr=True),
+            Property(name="slots", value=slots, is_addr=slots_is_addr, extra="array of metas"),
         ]
     )
     return pp.dump()
@@ -1112,6 +1128,119 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
         last_color = cur_slot_color
 
     print("\n".join(out))
+
+
+parser = argparse.ArgumentParser(
+    description="""
+Dump the mallocng heap.
+
+May produce lots of output.
+    """,
+)
+parser.add_argument(
+    "-ma", "--meta-area", type=int, help="Dump only the meta area at the provided address."
+)
+
+
+@pwndbg.commands.Command(
+    parser,
+    category=CommandCategory.MUSL,
+    aliases=["ng-dump"],
+    notes=(
+        f"""
+Since the command may produce lots of output, you may want to pipe it to
+less with `| ng-dump | less -R`.
+
+The [index] next to the metas is their index in the doubly linked list
+pointed to by ctx.freed_meta_head. The [index] next to the slots is
+the slot's index inside of its group (thus, these will always be sequential).
+
+Notice that the pointers in the output of this command aren't colored according
+to their mapping's color but rather according to the object's allocation status.
+Color legend: {C.colorize("allocated", state_alloc_color)}; """
+        f'{C.colorize("freed", state_freed_color)}; {C.colorize("available", state_avail_color)}.'
+    ),
+)
+@pwndbg.commands.OnlyWhenRunning
+def mallocng_dump(meta_area: Optional[int] = None) -> None:
+    if not ng.init_if_needed():
+        print(message.error("Couldn't find the allocator, aborting the command."))
+        return
+
+    ctx: mallocng.MallocContext = ng.ctx
+
+    try:
+        free_metas = ng.get_free_metas()
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(f"Failed traversing free meta chain. {e}"))
+        print(message.error("Meta allocation state may be wrong."))
+        free_metas = {}
+
+    meta_padding = " " * 10
+    slot_padding = " " * 15
+
+    # Rename variables for clarity.
+    specified_meta_area = meta_area
+    meta_area = None
+
+    if specified_meta_area is not None:
+        ma_addr = specified_meta_area
+    else:
+        # Iterate over all meta_areas
+        ma_addr = ctx.meta_area_head
+    while ma_addr != 0:
+        try:
+            meta_area = mallocng.MetaArea(ma_addr)
+        except pwndbg.dbg_mod.Error as e:
+            print(message.error(f"Cannot read meta area @ {ma_addr:#x}: {e}"))
+            break
+
+        print(dump_meta_area(meta_area, coming_from_dump=True))
+
+        # Iterate over all metas in this meta_area
+        for i in range(0, meta_area.nslots):
+            meta_addr = meta_area.at_index(i)
+
+            if meta_addr in free_metas:
+                print(
+                    meta_padding
+                    + C.colorize(f"{meta_addr:#x} [{free_metas[meta_addr][0]}]", state_freed_color)
+                )
+            elif ng.meta_is_avail(meta_addr):
+                print(meta_padding + C.colorize(f"{meta_addr:#x}", state_avail_color))
+            else:
+                print(meta_padding + C.colorize(f"{meta_addr:#x}", state_alloc_color), end="")
+
+                try:
+                    meta = mallocng.Meta(meta_addr)
+                    meta.preload()
+                    group = mallocng.Group(meta.mem)
+                    meta.preload()
+                except pwndbg.dbg_mod.Error as e:
+                    print(message.error(f"Failed resolving meta / group data ({e}). Skipping.."))
+                    continue
+
+                print(f" -> group @ {group.addr:#x} (slot size: {meta.stride:#x})")
+
+                # Iterate over all slots in this group
+                idx = 0
+                while idx < meta.cnt:
+                    slot_addr = group.at_index(idx)
+                    sstate = meta.slotstate_at_index(idx)
+                    cur_slot_color = get_slot_color(sstate)
+                    print(
+                        slot_padding + C.colorize(f"{slot_addr:#x}", cur_slot_color) + f" [{idx}]"
+                    )
+                    idx += 1
+
+                print()
+
+        ma_addr = meta_area.next
+        print()
+
+        if specified_meta_area is not None:
+            # Exit the loop since we're only printing one meta area.
+            break
 
 
 @pwndbg.commands.Command(

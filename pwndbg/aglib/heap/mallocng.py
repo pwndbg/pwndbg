@@ -6,6 +6,7 @@ https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng
 from __future__ import annotations
 
 from enum import Enum
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -422,7 +423,7 @@ class Slot:
                 assert self.reserved_in_header == 7
                 # It is possible for start[-3] to contain (7<<5),
                 # but p[-3] shouldn't unless the slot is free.
-                return -1
+                self._reserved = -1
 
         return self._reserved
 
@@ -432,8 +433,10 @@ class Slot:
         Raises:
             pwndbg.dbg_mod.Error: When reading meta fails.
         """
-        # Special case (probably) freed chunks:
+        # Special case (probably) freed slots (see Slot.reserved):
         if self.reserved == -1:
+            # Returning the value calculated below would confuse users
+            # as, semantically, the slot has no size.
             return 0
 
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L159
@@ -1432,6 +1435,52 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             return 0
         else:
             return found.start
+
+    def get_free_metas(self) -> Dict[int, Tuple[int, Meta]]:
+        """
+        Get all free metas by traversing the ctx.free_meta_head doubly
+        linked list. Map them to their index in the list.
+
+        Raises:
+            pwndbg.dbg_mod.Error: If some meta cannot be read or is
+                corrupted.
+
+        Returns:
+            A dictionary that maps: meta address -> (meta index in list, Meta object).
+        """
+        if self.ctx.free_meta_head == 0:
+            return {}
+
+        # A free meta gets completely cleared.
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L111
+        # Except for the prev/next pointers which add it to the ctx.free_meta_head chain.
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L85
+        # We could check for everything, but mallocng doesn't so lets not.
+
+        start_meta = Meta(self.ctx.free_meta_head)
+        meta_dict: Dict[int, Tuple[int, Meta]] = {start_meta.addr: (0, start_meta)}
+
+        idx = 1
+        cur_meta = Meta(start_meta.next)
+        while cur_meta.addr != start_meta.addr:
+            meta_dict[cur_meta.addr] = (idx, cur_meta)
+
+            idx += 1
+            cur_meta = Meta(cur_meta.next)
+
+        return meta_dict
+
+    def meta_is_avail(self, addr: int) -> bool:
+        """
+        Checks whether a meta is available.
+        """
+        # It seems all available metas are contiguous.
+        # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L109
+        return (
+            self.ctx.avail_meta
+            <= addr
+            < (self.ctx.avail_meta + Meta.sizeof() * self.ctx.avail_meta_count)
+        )
 
 
 mallocng = Mallocng()
