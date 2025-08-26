@@ -12,7 +12,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.glibc
 from pwndbg.aglib.ctypes import Structure
-from pwndbg.color import message
 
 
 def request2size(req: int) -> int:
