@@ -56,7 +56,6 @@ NSMALLBINS = 64
 # Only import it globally during static type checking.
 if typing.TYPE_CHECKING:
     import pwndbg.aglib.heap.structs
-    import pwndbg.aglib.heap.structs.TCACHE_FILL_COUNT
 
     TheType = TypeVar(
         "TheType", pwndbg.dbg_mod.Type, typing.Type[pwndbg.aglib.heap.structs.CStruct2GDB]
