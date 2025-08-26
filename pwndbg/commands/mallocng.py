@@ -1204,9 +1204,7 @@ def mallocng_dump(meta_area: Optional[int] = None) -> None:
             if meta_addr in free_metas:
                 print(
                     meta_padding
-                    + C.colorize(
-                        f"{meta_addr:#x} [{free_metas[meta_addr][0]}]", state_freed_color
-                    )
+                    + C.colorize(f"{meta_addr:#x} [{free_metas[meta_addr][0]}]", state_freed_color)
                 )
             elif ng.meta_is_avail(meta_addr):
                 print(meta_padding + C.colorize(f"{meta_addr:#x}", state_avail_color))
