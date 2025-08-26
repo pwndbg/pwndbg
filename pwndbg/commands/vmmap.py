@@ -283,7 +283,13 @@ def vmmap(
         nonlocal shared_cache_last
         if shared_cache_last is not None:
             print(
-                f"       DYLD Shared Cache {shared_cache_first.start:#x}-{shared_cache_last.end:#x}, sized {shared_cache_last.end - shared_cache_first.start:#x}"
+                pwndbg.lib.memory.format_address(
+                    shared_cache_first.start,
+                    shared_cache_last.end - shared_cache_first.start,
+                    "---p",
+                    shared_cache_first.offset,
+                    "[DYLD Shared Cache]",
+                )
             )
 
             shared_cache_first = None
