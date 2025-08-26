@@ -1250,7 +1250,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             return None
 
         if pwndbg.glibc.get_version() >= (2, 42) and not hasattr(
-            self, "tcache_2_42_warning_issued"
+            Heap.tcachebins, "tcache_2_42_warning_issued"
         ):
             print(
                 message.warn(
@@ -1258,7 +1258,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
                     "PR contributions are highly appreciated!"
                 )
             )
-            setattr(self, "tcache_2_42_warning_issued", True)
+            setattr(Heap.tcachebins, "tcache_2_42_warning_issued", True)
 
         counts = tcache["counts"]
         entries = tcache["entries"]
