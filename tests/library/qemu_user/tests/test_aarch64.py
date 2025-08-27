@@ -314,7 +314,7 @@ def test_aarch64_binary_operations(qemu_assembly_run):
         "   0x101013c <_start+28>    orr    x5, x0, x1      X5 => 0x237 (0x7 | 0x233)\n"
         "   0x1010140 <_start+32>    eor    x6, x0, x1      X6 => 0x234 (0x7 ^ 0x233)\n"
         "   0x1010144 <_start+36>    mul    x10, x0, x1     X10 => 0xf65 (0x7 * 0x233)\n"
-        "   0x1010148 <_start+40>    udiv   x11, x1, x0     X11 => 80 (0x233 / 0x7)\n"
+        "   0x1010148 <_start+40>    udiv   x11, x1, x0     X11 => 0x50 (0x233 / 0x7)\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
