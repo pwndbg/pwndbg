@@ -54,3 +54,10 @@ def test_basic_mips32(qemu_start_binary):
 
 def test_basic_mipsel32(qemu_start_binary):
     helper(qemu_start_binary, "basic.mipsel32.out", "mipsel32")
+
+def test_basic_s390x(qemu_start_binary):
+    helper(qemu_start_binary, "basic.s390x.out", "s390x")
+
+def test_basic_loongarch64(qemu_start_binary):
+    helper(qemu_start_binary, "basic.loongarch64.out", "loongarch64")
+
