@@ -11,7 +11,6 @@ import pwndbg
 import pwndbg.color as color
 from pwndbg.color import theme
 
-
 max_decimal_number = pwndbg.config.add_param(
     "max-decimal-number",
     9,
@@ -189,15 +188,10 @@ def from_properties(
     # Transform prop values to string representation
     for prop in properties:
         if isinstance(prop.value, int):
-            if prop.use_hex:
-                prop.value = hex(prop.value)
-            else:
-                prop.value = str(prop.value)
+            prop.value = f"{prop.value:#x}" if prop.use_hex else f"{prop.value}"
+
         if isinstance(prop.alt_value, int):
-            if prop.use_hex:
-                prop.alt_value = hex(prop.alt_value)
-            else:
-                prop.alt_value = str(prop.alt_value)
+            prop.alt_value = f"{prop.alt_value:#x}" if prop.use_hex else f"{prop.alt_value}"
 
     indentation_str = indent_size * " "
     extra_list_pad_str = (
