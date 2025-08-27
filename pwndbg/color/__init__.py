@@ -11,6 +11,7 @@ from typing import Dict
 from typing import List
 from typing import NamedTuple
 
+import pwndbg
 from pwndbg.lib.config import Parameter
 
 from . import theme
@@ -157,11 +158,11 @@ disable_colors = theme.add_param(
 @pwndbg.config.trigger(disable_colors)
 def _disable_colors_trigger():
     if disable_colors:
-        if not hasattr(colorize, 'original_code'):
+        if not hasattr(colorize, "original_code"):
             colorize.original_code = colorize.__code__
         colorize.__code__ = nocolor.__code__
     else:
-        if hasattr(colorize, 'original_code'):
+        if hasattr(colorize, "original_code"):
             colorize.__code__ = colorize.original_code
 
 
