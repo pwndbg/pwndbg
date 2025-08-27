@@ -18,11 +18,17 @@ max_decimal_number = pwndbg.config.add_param(
     "show all numbers greater than this in hex",
     param_class=pwndbg.lib.config.PARAM_ZUINTEGER_UNLIMITED,
     help_docstring="""
-For negative numbers, their apsolute value is used.
+For negative numbers, their absolute value is used.
 
 Set the parameter to 'unlimited' if you want all values in decimal.
 Specially, set the parameter to zero if you want all values in hex.
+
+The assembly instruction operands come from capstone, and are thus
+not controlled by this setting. For consistency with them, leave
+this setting at 9 (the default).
 """,
+# We could look into also overwriting the capstone operands string, similarly
+# to what is done here: https://github.com/pwndbg/pwndbg/blob/26db4533aa08d77c4bbc359b4760a0944e0c6b23/pwndbg/aglib/disasm/arch.py#L322-L331
 )
 
 

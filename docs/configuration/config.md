@@ -779,10 +779,14 @@ Whether to left-pad disassembly.
 
 Show all numbers greater than this in hex.
 
-For negative numbers, their apsolute value is used.
+For negative numbers, their absolute value is used.
 
 Set the parameter to 'unlimited' if you want all values in decimal.
 Specially, set the parameter to zero if you want all values in hex.
+
+The assembly instruction operands come from capstone, and are thus
+not controlled by this setting. For consistency with them, leave
+this setting at 9 (the default).
 
 **Default:** 9  
 
