@@ -7,7 +7,7 @@ ARCHS = aarch64 arm riscv64 mips32 mipsel32 mips64 loongarch64 s390x powerpc32 p
 # In case we ever need a different compiler for an arch, fill it in here:
 CC.aarch64 = ${ZIGCC}
 CC.arm = ${ZIGCC}
-# CC.riscv32 = ${ZIGCC}
+CC.riscv32 = ${ZIGCC}
 CC.riscv64 = ${ZIGCC}
 CC.mips32 = ${ZIGCC}
 CC.mipsel32 = ${ZIGCC}
@@ -22,7 +22,7 @@ ALL_FLAGS = -g
 
 CFLAGS.aarch64 = $(ALL_FLAGS) --target=aarch64-linux-musl
 CFLAGS.arm = $(ALL_FLAGS) --target=arm-linux-musleabihf
-# CFLAGS.riscv32 = $(ALL_FLAGS) --target=riscv32-linux-musl
+CFLAGS.riscv32 = $(ALL_FLAGS) --target=riscv32-linux-musl
 CFLAGS.riscv64 = $(ALL_FLAGS) --target=riscv64-linux-musl
 CFLAGS.mips32 = $(ALL_FLAGS) --target=mips-linux-musleabi # Big-endian MIPS
 CFLAGS.mipsel32 = $(ALL_FLAGS) --target=mipsel-linux-musleabi # Little-endian MIPS
@@ -71,7 +71,7 @@ SPARC64_SOURCES := $(wildcard *.sparc64.c)
 SPARC64_TARGETS := $(SPARC64_SOURCES:.sparc64.c=.sparc64.out)
 
 
-ARCHES_TO_COMPILE_BASIC = aarch64 arm riscv64 mips32 mipsel32 mips64 s390x loongarch64 sparc64
+ARCHES_TO_COMPILE_BASIC = aarch64 arm riscv64 riscv32 mips32 mipsel32 mips64 s390x loongarch64
 # Build basic.c for these architectures
 BASIC_C_TARGETS = $(ARCHES_TO_COMPILE_BASIC:%=basic.%.out)
 basic.%.out: basic.c
