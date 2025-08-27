@@ -2,8 +2,6 @@
 
 ZIGCC = uv run python3 -m ziglang cc
 
-ARCHS = aarch64 arm riscv64 mips32 mipsel32 mips64 loongarch64 s390x powerpc32 powerpc64
-
 # In case we ever need a different compiler for an arch, fill it in here:
 CC.aarch64 = ${ZIGCC}
 CC.arm = ${ZIGCC}
@@ -16,10 +14,12 @@ CC.loongarch64 = ${ZIGCC}
 CC.s390x = ${ZIGCC}
 CC.powerpc32 = ${ZIGCC}
 CC.powerpc64 = ${ZIGCC}
-# CC.sparc64 = ${ZIGCC}
+CC.sparc64 = ${ZIGCC}
 
 ALL_FLAGS = -g
 
+# These flags should be used when compiling a program that uses LIBC
+# Note the list of architectures that musl supports: https://wiki.musl-libc.org/supported-platforms
 CFLAGS.aarch64 = $(ALL_FLAGS) --target=aarch64-linux-musl
 CFLAGS.arm = $(ALL_FLAGS) --target=arm-linux-musleabihf
 CFLAGS.riscv32 = $(ALL_FLAGS) --target=riscv32-linux-musl
@@ -31,7 +31,6 @@ CFLAGS.loongarch64 = $(ALL_FLAGS) --target=loongarch64-linux-musl
 CFLAGS.s390x = $(ALL_FLAGS) --target=s390x-linux-musl -mcpu=z13
 CFLAGS.powerpc32 = $(ALL_FLAGS) --target=powerpc-linux-musl
 CFLAGS.powerpc64 = $(ALL_FLAGS) --target=powerpc64-linux-musl
-# CFLAGS.sparc64 = $(ALL_FLAGS) --target=sparc64-linux-musl
 
 
 AARCH64_SOURCES := $(wildcard *.aarch64.c)
@@ -71,8 +70,8 @@ SPARC64_SOURCES := $(wildcard *.sparc64.c)
 SPARC64_TARGETS := $(SPARC64_SOURCES:.sparc64.c=.sparc64.out)
 
 
-ARCHES_TO_COMPILE_BASIC = aarch64 arm riscv64 riscv32 mips32 mipsel32 mips64 s390x loongarch64
-# Build basic.c for these architectures
+ARCHES_TO_COMPILE_BASIC = aarch64 arm riscv32 riscv64 mips32 mipsel32 mips64 loongarch64 s390x
+# Build basic.c (which relies on libc) for these architectures
 BASIC_C_TARGETS = $(ARCHES_TO_COMPILE_BASIC:%=basic.%.out)
 basic.%.out: basic.c
 	@echo "[+] Building '$@'"
