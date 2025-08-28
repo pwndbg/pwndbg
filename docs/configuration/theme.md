@@ -964,6 +964,45 @@ Prompt color.
 
 ----------
 
+## **prop-name-color**
+
+
+Color used to highlight the name in name-value pairs.
+
+
+Used heavily in mallocng commands.
+
+
+**Default:** 'bold'  
+
+----------
+
+## **prop-title-color**
+
+
+Color used to highlight the title of name-value pair groups.
+
+
+Used heavily in mallocng commands.
+
+
+**Default:** 'green'  
+
+----------
+
+## **prop-value-color**
+
+
+Color used to highlight the value in name-value pairs.
+
+
+Used heavily in mallocng commands.
+
+
+**Default:** 'yellow'  
+
+----------
+
 ## **syntax-highlight-style**
 
 

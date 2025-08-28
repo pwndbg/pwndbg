@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import bisect
 from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib.arch
 import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.dbg import MemoryMap
+from pwndbg.lib.arch import Platform
+from pwndbg.lib.memory import Page
 
 pwndbg.config.add_param(
     "vmmap-prefer-relpaths",
@@ -16,9 +20,85 @@ pwndbg.config.add_param(
 )
 
 
+def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
+    if not (
+        pwndbg.aglib.arch.platform == Platform.DARWIN
+        and pwndbg.aglib.macho.shared_cache() is not None
+    ):
+        return pages
+
+    # Darwin platforms use something called the Shared Cache for system
+    # libraries. Debuggers may report mapping ranges that belong to the
+    # shared cache in many ways, but we would like to tag those with a
+    # little more information.
+    final_pages = []
+
+    shared_cache = pwndbg.aglib.macho.shared_cache()
+    shared_cache_start = shared_cache.base
+    shared_cache_end = shared_cache_start + shared_cache.size
+
+    images = list(shared_cache.images_sorted)
+    images_base = [image[1] for image in images]
+
+    for page in pages.ranges():
+        if page.end < shared_cache_start or page.start >= shared_cache_end:
+            # No overlap with the shared cache.
+            final_pages.append(page)
+            continue
+
+        # We do not support partial overlaps between other mappings and the
+        # shared cache.
+        #
+        # While conceptually there's nothing stopping these from happening,
+        # if we ever encounter such a situation, it likely means that we
+        # either got something wrong, or that Darwin/LLDB has changed in
+        # such a way that we are likely not able to gracefully handle.
+        #
+        assert page.start >= shared_cache_start and page.end <= shared_cache_end
+
+        one_past_index = bisect.bisect_right(images_base, page.start)
+        curr_base = page.start
+
+        while True:
+            if one_past_index > len(images):
+                break
+
+            if one_past_index == 0:
+                # Indicates that this mapping is not part of any image, but
+                # still part of the shared cache itself. Use a special name
+                # for it.
+                objfile = "[SharedCacheHeader]"
+            elif images_base[one_past_index - 1] >= page.end:
+                break
+            else:
+                # Name this mapping after the image it belongs to.
+                objfile = images[one_past_index - 1][0].decode("ascii")
+                curr_base = max(images_base[one_past_index - 1], page.start)
+
+            if one_past_index == len(images):
+                end = page.end
+            else:
+                end = min(page.end, images_base[one_past_index])
+
+            final_pages.append(
+                Page(
+                    curr_base,
+                    end - curr_base,
+                    page.flags,
+                    curr_base - shared_cache_start,
+                    objfile,
+                    in_darwin_shared_cache=True,
+                )
+            )
+
+            one_past_index += 1
+
+    return type(pages)(final_pages)
+
+
 @pwndbg.lib.cache.cache_until("start", "stop")
 def get_memory_map() -> MemoryMap:
-    return pwndbg.dbg.selected_inferior().vmmap()
+    return _refine_memory_map(pwndbg.dbg.selected_inferior().vmmap())
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")

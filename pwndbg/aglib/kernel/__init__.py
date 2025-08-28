@@ -268,7 +268,7 @@ class ArchOps(ABC):
         return arch_paginginfo().vmemmap
 
     @property
-    def kbase(self) -> int:
+    def kbase(self) -> int | None:
         return arch_paginginfo().kbase
 
     @property
@@ -365,7 +365,7 @@ class x86_64Ops(x86Ops):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        if virt < self.kbase:
+        if self.kbase is None or virt < self.kbase:
             return (virt - self.page_offset) % (1 << 64)
         return ((virt - self.kbase) + self.phys_base) % (1 << 64)
 

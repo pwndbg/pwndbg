@@ -44,7 +44,9 @@ MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
 MAX_FAST_SIZE = 80 * SIZE_SZ // 4
 NBINS = 128
 BINMAPSIZE = 4
-TCACHE_MAX_BINS = 64
+TCACHE_SMALL_BINS = 64
+TCACHE_LARGE_BINS = 12
+TCACHE_MAX_BINS = TCACHE_SMALL_BINS + TCACHE_LARGE_BINS
 NFASTBINS = fastbin_index(request2size(MAX_FAST_SIZE)) + 1
 
 if pwndbg.aglib.arch.ptrsize == 4:
@@ -542,14 +544,14 @@ class c_tcache_perthread_struct_2_29(Structure):
     """
 
     _fields_ = [
-        ("counts", ctypes.c_char * TCACHE_MAX_BINS),
-        ("entries", c_pvoid * TCACHE_MAX_BINS),
+        ("counts", ctypes.c_char * TCACHE_SMALL_BINS),
+        ("entries", c_pvoid * TCACHE_SMALL_BINS),
     ]
 
 
 class c_tcache_perthread_struct_2_30(Structure):
     """
-    This class represents the tcache_perthread_struct for GLIBC >= 2.30 as a ctypes struct.
+    This class represents the tcache_perthread_struct for 2.30 <= GLIBC < 2.42 as a ctypes struct.
 
     https://github.com/bminor/glibc/blob/glibc-2.34/malloc/malloc.c#L3025
 
@@ -561,8 +563,27 @@ class c_tcache_perthread_struct_2_30(Structure):
     """
 
     _fields_ = [
+        ("counts", ctypes.c_uint16 * TCACHE_SMALL_BINS),
+        ("entries", c_pvoid * TCACHE_SMALL_BINS),
+    ]
+
+
+class c_tcache_perthread_struct_2_42(Structure):
+    """
+    This class represents the tcache_perthread_struct for 2.42 <= GLIBC as a ctypes struct.
+
+    https://elixir.bootlin.com/glibc/glibc-2.42/source/malloc/malloc.c#L3127
+
+    typedef struct tcache_perthread_struct
+    {
+        uint16_t num_slots[TCACHE_MAX_BINS];
+        tcache_entry *entries[TCACHE_MAX_BINS];
+    } tcache_perthread_struct;
+    """
+
+    _fields_ = [
         ("counts", ctypes.c_uint16 * TCACHE_MAX_BINS),
-        ("entries", c_pvoid * TCACHE_MAX_BINS),
+        ("entries", c_pvoid * TCACHE_SMALL_BINS),
     ]
 
 
@@ -571,7 +592,9 @@ class TcachePerthreadStruct(CStruct2GDB):
     This class represents tcache_perthread_struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
-    if GLIBC_VERSION >= (2, 30):
+    if GLIBC_VERSION >= (2, 42):
+        _c_struct = c_tcache_perthread_struct_2_42
+    elif GLIBC_VERSION >= (2, 30):
         _c_struct = c_tcache_perthread_struct_2_30
     else:
         _c_struct = c_tcache_perthread_struct_2_29
@@ -967,7 +990,7 @@ DEFAULT_MP_.arena_test = 2 if pwndbg.aglib.arch.ptrsize == 4 else 8
 if (MallocPar._c_struct != c_malloc_par_2_23) and (MallocPar._c_struct != c_malloc_par_2_12):
     # the only difference between 2.23 and the rest is the lack of tcache
     DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT
-    DEFAULT_MP_.tcache_bins = TCACHE_MAX_BINS
-    DEFAULT_MP_.tcache_max_bytes = (TCACHE_MAX_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
+    DEFAULT_MP_.tcache_bins = TCACHE_SMALL_BINS
+    DEFAULT_MP_.tcache_max_bytes = (TCACHE_SMALL_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
 if MallocPar._c_struct == c_malloc_par_2_12:
     DEFAULT_MP_.pagesize = DEFAULT_PAGE_SIZE

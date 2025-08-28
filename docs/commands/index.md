@@ -262,6 +262,7 @@
 
 ## musl
 
+-  [mallocng-dump](musl/mallocng-dump.md) - Dump the mallocng heap.
 -  [mallocng-explain](musl/mallocng-explain.md) - Gives a quick explanation of musl's mallocng allocator.
 -  [mallocng-find](musl/mallocng-find.md) - Find slot which contains the given address.
 -  [mallocng-group](musl/mallocng-group.md) - Print out information about a mallocng group at the given address.

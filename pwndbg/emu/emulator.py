@@ -475,10 +475,9 @@ class Emulator:
             intval = 0
 
         intval0 = intval
-        if 0 <= intval < 10:
-            intval = E.integer(str(intval))
-        else:
-            intval = E.integer("%#x" % int(intval & pwndbg.aglib.arch.ptrmask))
+        intval = E.integer(
+            pwndbg.lib.pretty_print.int_to_string(intval & pwndbg.aglib.arch.ptrmask)
+        )
 
         retval = []
 

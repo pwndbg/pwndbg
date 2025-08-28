@@ -422,10 +422,14 @@ class DyldSharedCache:
     the size of the struct to denote its version.
     """
 
+    slide: int
+    "The slide value of the DyLD Shared Cache, in bytes."
+
     def __init__(self, addr: int):
         self.addr = addr
 
         # Preload a few a few values, to speed things up later.
+        self.slide = self._slide()
         images_offset = 0x18 if self._header_size() <= 0x1C4 else 0x1C0
         self._images_base = self.addr + pwndbg.aglib.memory.u32(self.addr + images_offset)
         self.image_count = pwndbg.aglib.memory.u32(self.addr + images_offset + 4)
@@ -514,8 +518,7 @@ class DyldSharedCache:
 
             return end - start
 
-    @property
-    def slide(self) -> int:
+    def _slide(self) -> int:
         "The slide value of the DyLD Shared Cache, in bytes."
         mapping_ptr = self.base + self._header_size()
         mapping_base = pwndbg.aglib.memory.u64(mapping_ptr)
@@ -552,7 +555,7 @@ class DyldSharedCache:
     def image_base(self, index: int):
         assert self.image_count > index
 
-        return pwndbg.aglib.memory.u64(self._images_base + index * 0x20)
+        return pwndbg.aglib.memory.u64(self._images_base + index * 0x20) + self.slide
 
     def image_name(self, index: int):
         assert self.image_count > index
@@ -577,7 +580,7 @@ class DyldSharedCache:
                 pwndbg.aglib.memory.string(
                     self.addr + struct.unpack("<I", data[base + 0x18 : base + 0x1C])[0]
                 ),
-                struct.unpack("<Q", data[base : base + 8])[0],
+                struct.unpack("<Q", data[base : base + 8])[0] + self.slide,
             )
 
     @property

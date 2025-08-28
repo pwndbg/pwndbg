@@ -399,6 +399,18 @@ Display internal event debugging info.
 
 ----------
 
+## **decompiler**
+
+
+Framework that your ghidra plugin installed.
+
+
+
+**Default:** 'radare2'  
+**Valid values:** 'radare2', 'rizin'
+
+----------
+
 ## **default-visualize-chunk-number**
 
 
@@ -762,6 +774,24 @@ Whether to left-pad disassembly.
 
 ----------
 
+## **max-decimal-number**
+
+
+Show all numbers greater than this in hex.
+
+For negative numbers, their absolute value is used.
+
+Set the parameter to 'unlimited' if you want all values in decimal.
+Specially, set the parameter to zero if you want all values in hex.
+
+The assembly instruction operands come from capstone, and are thus
+not controlled by this setting. For consistency with them, leave
+this setting at 9 (the default).
+
+**Default:** 9  
+
+----------
+
 ## **max-visualize-chunk-size**
 
 
@@ -825,18 +855,6 @@ Whether to show call arguments below instruction.
 
 
 **Default:** on  
-
-----------
-
-## **r2decompiler**
-
-
-Framework that your ghidra plugin installed.
-
-
-
-**Default:** 'radare2'  
-**Valid values:** 'radare2', 'rizin'
 
 ----------
 

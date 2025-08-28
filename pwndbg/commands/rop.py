@@ -167,7 +167,7 @@ def iterate_over_pages(mem_limit: int) -> Iterator[Tuple[str, pwndbg.lib.memory.
         return
 
     proc = pwndbg.dbg.selected_inferior()
-    for page in proc.vmmap().ranges():
+    for page in pwndbg.aglib.vmmap.get_memory_map().ranges():
         if not page.execute:
             continue
 

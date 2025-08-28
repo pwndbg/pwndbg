@@ -776,12 +776,7 @@ class DisassemblyAssistant:
 
     # String functions assume the .before_value and .after_value have been set
     def _immediate_string(self, instruction, operand) -> str:
-        value = operand.before_value
-
-        if abs(value) < 0x10:
-            return "%i" % value
-
-        return "%#x" % value
+        return pwndbg.lib.pretty_print.int_to_string(operand.before_value)
 
     def _register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
         """
@@ -863,7 +858,9 @@ class DisassemblyAssistant:
                 if (l_value := left.before_value_resolved) is not None and (
                     r_value := right.before_value_resolved
                 ) is not None:
-                    print_left, print_right = pwndbg.enhance.format_small_int_pair(l_value, r_value)
+                    print_left, print_right = pwndbg.lib.pretty_print.int_pair_to_string(
+                        l_value, r_value
+                    )
                     # Ex: "0x7f - 0x12" or "0xdffffdea + 0x8"
                     instruction.annotation = (
                         f"{print_left} {char_to_separate_operands} {print_right}"
@@ -1043,7 +1040,7 @@ class DisassemblyAssistant:
         math_string = None
 
         if op_one is not None and op_two is not None:
-            print_left, print_right = pwndbg.enhance.format_small_int_pair(op_one, op_two)
+            print_left, print_right = pwndbg.lib.pretty_print.int_pair_to_string(op_one, op_two)
 
             math_string = f"{print_left} {char_to_separate_operands} {print_right}"
 
