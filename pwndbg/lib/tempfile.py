@@ -5,6 +5,7 @@ Common helper and cache for pwndbg tempdir
 from __future__ import annotations
 
 import os
+import sys
 import tempfile
 
 import pwndbg.lib.cache
@@ -22,11 +23,14 @@ def tempdir() -> str:
 def cachedir(namespace: str | None = None) -> str:
     """
     Returns and potentially creates a persistent safe cachedir location
-    based on XDG_CACHE_HOME or ~/.cache
+    based on XDG_CACHE_HOME or ~/.cache or LOCALAPPDATA (Windows)
 
     Optionally creates a sub namespace inside the pwndbg cache folder.
     """
-    cachehome = os.getenv("XDG_CACHE_HOME") or os.path.join(os.getenv("HOME", ""), ".cache")
+    if sys.platform == "win32":
+        cachehome = os.getenv("LOCALAPPDATA")
+    else:
+        cachehome = os.getenv("XDG_CACHE_HOME") or os.path.join(os.getenv("HOME", ""), ".cache")
     cachedir = os.path.join(cachehome, "pwndbg")
     if namespace:
         cachedir = os.path.join(cachedir, namespace)
