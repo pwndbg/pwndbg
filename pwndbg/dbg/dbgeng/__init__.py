@@ -4,17 +4,20 @@ from typing import Any, Callable, Iterator, List, Literal, Tuple, TypeVar
 from pybag.dbgeng.idebugclient import DebugClient
 from pybag.dbgeng.idebugsystemobjects import DebugSystemObjects
 from pybag.dbgeng.idebugregisters import DebugRegisters
+from pybag.dbgeng.idebugcontrol import DebugControl
 from pybag.dbgeng.dbgengstructs import DebugValue
 from typing_extensions import override
 
 import pwndbg
 from pwndbg.dbg import selection
+from pwndbg.aglib import load_aglib
 from pwndbg.dbg.dbgeng.dispatch import CommandDispatcher
 
 T = TypeVar("T")
 
 
-dbgclient: DebugClient = DebugClient()
+dbgclient: DebugClient
+dbgcontrol: DebugControl
 dbgsysobjects: DebugSystemObjects
 dbgregisters: DebugRegisters
 
@@ -53,11 +56,12 @@ class DbgEngFrame(pwndbg.dbg_mod.Frame):
 
 
 class DbgEngThread(SelectionMixin, pwndbg.dbg_mod.Thread):
-    def __init__(self, engine_tid: int):
-        self.engine_tid = engine_tid
-    
+    def __init__(self, thread_id: int):
+        self.thread_id = thread_id
+
+    @override
     def select(self):
-        return selection(self.engine_tid, lambda: dbgsysobjects.GetCurrentThreadId(),
+        return selection(self.thread_id, lambda: dbgsysobjects.GetCurrentThreadId(),
                          lambda t: dbgsysobjects.SetCurrentThreadId(t))
 
     @override
@@ -68,11 +72,11 @@ class DbgEngThread(SelectionMixin, pwndbg.dbg_mod.Thread):
 
 
 class DbgEngProcess(SelectionMixin, pwndbg.dbg_mod.Process):
-    def __init__(self, engine_pid: int):
-        self.engine_pid = engine_pid
+    def __init__(self, process_id: int):
+        self.process_id = process_id
 
     def select(self):
-        return selection(self.engine_pid, lambda: dbgsysobjects.GetCurrentProcessId(),
+        return selection(self.process_id, lambda: dbgsysobjects.GetCurrentProcessId(),
                          lambda p: dbgsysobjects.SetCurrentProcessId(p))
 
     @override
@@ -83,9 +87,19 @@ class DbgEngProcess(SelectionMixin, pwndbg.dbg_mod.Process):
             for thread_id in dbgsysobjects.GetThreadIdsByIndex()[0]
         ]
 
+    @override
     def pid(self) -> int | None:
-        raise NotImplementedError()
+        return self.process_id
 
+    @override
+    def alive(self) -> bool:
+        return dbgsysobjects.GetProcessIdBySystemId(self.process_id) is not None
+
+    @override
+    @selected
+    def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value | None:
+        dbgcontrol.Evaluate(expression)
+        
 
 class DbgEngValue(pwndbg.dbg_mod.Value):
     def __init__(self, inner: DebugValue):
@@ -102,6 +116,13 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
     @override
     def setup(self, command_dispatcher: CommandDispatcher) -> None:
         self.command_dispatcher = command_dispatcher
+
+        from pwndbg.commands import load_commands
+
+        load_aglib()
+
+        # Load all commands
+        load_commands()
 
     @override
     def history(self, last: int = 10) -> List[Tuple[int, str]]:
@@ -121,8 +142,9 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
     def selected_frame(self) -> pwndbg.dbg_mod.Frame | None:
         raise NotImplementedError()
 
+    @override
     def commands(self) -> List[str]:
-        raise NotImplementedError()
+        return []
 
     @override
     def add_command(
@@ -133,7 +155,7 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
     ) -> pwndbg.dbg_mod.CommandHandle:
         self.command_dispatcher.register(command_name, handler)
         return DbgEngCommandHandle()
-    
+
     def has_event_type(self, ty: pwndbg.dbg_mod.EventType) -> bool:
         """
         Whether the given event type is supported by this debugger. Indicates
@@ -141,13 +163,11 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
         """
         raise NotImplementedError()
 
+    @override
     def event_handler(self, ty: pwndbg.dbg_mod.EventType) -> Callable[[Callable[..., T]], Callable[..., T]]:
-        """
-        Sets up the given function to be called when an event of the given type
-        gets fired. Returns a callable that corresponds to the wrapped function.
-        This function my be used as a decorator.
-        """
-        raise NotImplementedError()
+        def decorator(fn: Callable[..., T]) -> Callable[..., T]:
+            pass
+        return decorator
 
     @contextlib.contextmanager
     def ctx_suspend_events(self, ty:pwndbg.dbg_mod.EventType) -> Iterator[None]:
