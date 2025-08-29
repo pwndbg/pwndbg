@@ -31,7 +31,7 @@ def cachedir(namespace: str | None = None) -> str:
         cachehome = os.getenv("LOCALAPPDATA")
     else:
         cachehome = os.getenv("XDG_CACHE_HOME") or os.path.join(os.getenv("HOME", ""), ".cache")
-    cachedir = os.path.join(cachehome, "pwndbg")
+    cachedir = os.path.join(cachehome or tempfile.gettempdir(), "pwndbg")
     if namespace:
         cachedir = os.path.join(cachedir, namespace)
     os.makedirs(cachedir, exist_ok=True)
