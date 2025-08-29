@@ -1,0 +1,66 @@
+from ctypes import *
+
+from comtypes import COMError
+import comtypes.gen.DbgEng as DbgEng
+import comtypes.hresult as hresult
+
+
+class DebugSystemObjects:
+    def __init__(self, inner: DbgEng.IDebugSystemObjects):
+        self.inner = inner
+
+    def GetProcessIdBySystemId(self, system_id: int) -> int | None:
+        pid = c_ulong()
+        try:
+            self.inner.GetProcessIdBySystemId(system_id, byref(pid))
+        except COMError as e:
+            if e.hresult == hresult.E_NOINTERFACE:
+                # Object not found
+                return None
+            raise
+        return pid.value
+
+    def GetCurrentThreadId(self) -> int:
+        tid = c_ulong()
+        self.inner.GetCurrentThreadId(byref(tid))
+        return tid.value
+
+    def SetCurrentThreadId(self, thread_id: int) -> None:
+        self.inner.SetCurrentThreadId(thread_id)
+
+    def GetCurrentProcessId(self) -> int:
+        pid = c_ulong()
+        self.inner.GetCurrentProcessId(byref(pid))
+        return pid.value
+
+    def SetCurrentProcessId(self, process_id: int) -> None:
+        self.inner.SetCurrentProcessId(process_id)
+    
+    def GetCurrentProcessSystemId(self) -> int:
+        sys_id = c_ulong()
+        self.inner.GetCurrentProcessSystemId(byref(sys_id))
+        return sys_id.value
+
+    def GetNumberProcesses(self) -> int:
+        number = c_ulong()
+        self.inner.GetNumberProcesses(byref(number))
+        return number.value
+
+    def GetNumberThreads(self) -> int:
+        number = c_ulong()
+        self.inner.GetNumberThreads(byref(number))
+        return number.value
+
+    def GetProcessIdsByIndex(self) -> tuple[list[int], list[int]]:
+        count = self.GetNumberProcesses()
+        ids = (c_ulong * count)()
+        sys_ids = (c_ulong * count)()
+        self.inner.GetProcessIdsByIndex(0, count, byref(ids), byref(sys_ids))
+        return [ids[i] for i in range(count)], [sys_ids[i] for i in range(count)]
+
+    def GetThreadIdsByIndex(self) -> tuple[list[int], list[int]]:
+        count = self.GetNumberThreads()
+        ids = (c_ulong * count)()
+        sys_ids = (c_ulong * count)()
+        self.inner.GetThreadIdsByIndex(0, count, byref(ids), byref(sys_ids))
+        return [ids[i] for i in range(count)], [sys_ids[i] for i in range(count)]

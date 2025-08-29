@@ -1,16 +1,18 @@
 import sys
 import io
 import ctypes
-from comtypes.gen.DbgEng import DEBUG_OUTPUT_NORMAL
+from comtypes.gen.DbgEng import DEBUG_OUTPUT_NORMAL, IDebugSystemObjects
 
 from pybag.dbgeng.idebugclient import DebugClient
 
 
 def main():
+    from pwndbg.dbg.dbgeng.wrapper.systemobjects import DebugSystemObjects
     # dbgeng objects
     dbgclient = DebugClient()
     dbgcontrol = dbgclient.IDebugControl()
-    dbgsysobjects = dbgclient.IDebugSystemObjects()
+    # dbgsysobjects = dbgclient.IDebugSystemObjects()
+    dbgsysobjects = DebugSystemObjects(dbgclient._cli.QueryInterface(interface=IDebugSystemObjects))
     dbgregisters = dbgclient.IDebugRegisters()
 
     # Initialize IO
@@ -33,9 +35,8 @@ def main():
     pwndbg.dbg_mod.dbgeng.dbgregisters = dbgregisters
 
     # setup the debugger
-    from pwndbg.dbg.dbgeng.dispatch import CommandDispatcher
-    command_dispatcher = CommandDispatcher()
     pwndbg.dbg = pwndbg.dbg_mod.dbgeng.DbgEng()
+    command_dispatcher = pwndbg.dbg_mod.dbgeng.CommandDispatcher(pwndbg.dbg)
     pwndbg.dbg.setup(command_dispatcher)
     globals()["dispatch"] = command_dispatcher.dispatch
 

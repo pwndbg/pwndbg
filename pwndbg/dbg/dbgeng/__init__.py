@@ -9,9 +9,9 @@ from pybag.dbgeng.dbgengstructs import DebugValue
 from typing_extensions import override
 
 import pwndbg
-from pwndbg.dbg import selection
 from pwndbg.aglib import load_aglib
-from pwndbg.dbg.dbgeng.dispatch import CommandDispatcher
+from pwndbg.dbg import selection
+from pwndbg.dbg.dbgeng.wrapper.systemobjects import DebugSystemObjects
 
 T = TypeVar("T")
 
@@ -38,6 +38,23 @@ def selected(func):
         with self.select():
             return func(self, *args, **kwargs)
     return wrapper
+
+
+class CommandDispatcher:
+    debugger: pwndbg.dbg_mod.Debugger
+    handlers: dict[str, Callable[[pwndbg.dbg_mod.Debugger, str, bool], None]]
+
+    def __init__(self, debugger: pwndbg.dbg_mod.Debugger):
+        self.debugger = debugger
+        self.handlers = {}
+
+    def register(self, command_name: str, handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None]):
+        self.handlers[command_name] = handler
+
+    def dispatch(self, command_name: str, args: str):
+        assert command_name in self.handlers
+        handler = self.handlers[command_name]
+        handler(self.debugger, args, True) # True indicates interactive
 
 
 class DbgEngCommandHandle(pwndbg.dbg_mod.CommandHandle):
@@ -134,7 +151,10 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
         return shlex.split(command_line)
 
     def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
-        raise NotImplementedError()
+        current_pid = dbgsysobjects.GetCurrentProcessSystemId()
+        if current_pid is None:
+            return None
+        return DbgEngProcess(current_pid)
 
     def selected_thread(self) -> pwndbg.dbg_mod.Thread | None:
         raise NotImplementedError()
