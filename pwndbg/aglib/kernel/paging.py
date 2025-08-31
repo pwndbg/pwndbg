@@ -472,7 +472,10 @@ class Aarch64PagingInfo(ArchPagingInfo):
             return 12
         elif self.tcr_el1["TG1"] == 0b11:
             return 16
-        raise NotImplementedError()
+        elif self.tcr_el1["TG1"] == 0b00:
+            # 0b00 is implementation defined, assume 4KB page size
+            return 12
+        raise NotImplementedError(f"Unknown TG1 value: {self.tcr_el1['TG1']}")
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
