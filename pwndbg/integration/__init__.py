@@ -91,6 +91,25 @@ function_lookup = pwndbg.config.add_param(
 )
 
 
+def check_provider_connection():
+    """
+    Ensure the selected integration provider is actually reachable.
+    If not, revert to 'none' and print a notice.
+    """
+    provider = provider_name.value
+
+    if provider == "ida":
+        from pwndbg.integration.ida import check_connection as ida_check
+        if not ida_check():
+            print(message.notice("[!] IDA not reachable. Disabling integration provider."))
+            provider_name.set("none")
+    elif provider == "binja":
+        from pwndbg.integration.binja import check_connection as binja_check
+        if not binja_check():
+            print(message.notice("[!] Binary Ninja not reachable. Disabling integration provider."))
+            provider_name.set("none")
+
+
 # TODO: maybe create these functions dynamically since they're pretty boilerplate?
 @dataclass
 class ConfigurableProvider(IntegrationProvider):
@@ -137,16 +156,29 @@ provider: IntegrationProvider = IntegrationProvider()
 @pwndbg.config.trigger(provider_name)
 def switch_providers():
     global provider
+
+    # Check if the requested provider is available
+    if provider_name.value == "ida":
+        import pwndbg.integration.ida
+        if not pwndbg.integration.ida.available():
+            print(message.warn("IDA not available, reverting to none"))
+            provider_name.value = "none"
+
+    elif provider_name.value == "binja":
+        import pwndbg.integration.binja
+        if not pwndbg.integration.binja.available():
+            print(message.warn("Binary Ninja not available, reverting to none"))
+            provider_name.value = "none"
+
+
+    # Set provider as usual
     if not provider_name.value or provider_name.value == "none":
         provider = IntegrationProvider()
     elif provider_name.value == "binja":
-        # do not import at start of file to avoid circular import
         import pwndbg.integration.binja
-
         provider = ConfigurableProvider(pwndbg.integration.binja.BinjaProvider())
     elif provider_name.value == "ida":
         import pwndbg.integration.ida
-
         provider = ConfigurableProvider(pwndbg.integration.ida.IdaProvider())
     else:
         print(
@@ -155,3 +187,4 @@ def switch_providers():
             )
         )
         provider_name.revert_default()
+

@@ -155,6 +155,20 @@ def init_bn_rpc_client() -> None:
     _bn_last_connection_check = now
 
 
+def check_connection() -> bool:
+    """Return True if Binary Ninja XML-RPC server is reachable."""
+    global _bn
+    try:
+        if _bn is None:
+            init_bn_rpc_client()
+        _bn.get_version()  # Ping
+        return True
+    except (ConnectionRefusedError, TimeoutError, OSError, xmlrpc.client.ProtocolError):
+        _bn = None
+        return False
+
+
+
 def with_bn(fallback: K = None) -> Callable[[Callable[P, T]], Callable[P, T | K]]:
     global _bn
 

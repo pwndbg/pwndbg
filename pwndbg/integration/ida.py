@@ -128,6 +128,19 @@ def init_ida_rpc_client() -> None:
     _ida_last_connection_check = now
 
 
+def check_connection() -> bool:
+    """Return True if IDA XML-RPC server is reachable."""
+    global _ida
+    try:
+        addr = f"http://127.0.0.1:1337" 
+        _ida = xmlrpc.client.ServerProxy(addr)
+        _ida.get_version()  # Simple ping
+        return True
+    except (ConnectionRefusedError, socket.timeout, xmlrpc.client.ProtocolError):
+        _ida = None
+        return False
+
+
 def withIDA(func: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
