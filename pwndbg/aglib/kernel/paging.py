@@ -11,6 +11,7 @@ import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.regs import BitFlags
+from pwndbg.tests.host import gdb
 
 # don't return None but rather an invalid value for address markers
 # this way arithmetic ops do not panic if physmap is not found
@@ -466,6 +467,21 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift(self) -> int:
+        # Try to get the page size from a known kernel symbol first.
+        try:
+            # Look up the address of a known kernel function.
+            addr = pwndbg.lib.cache.read_helper.symbol("copy_page_to_iter")
+            
+            # Disassemble the function to find the hard-coded page size value.
+            # We are looking for the 'mov w10, #0x1000' instruction.
+            # 0x1000 is 4096 bytes, which corresponds to a page_shift of 12 (2^12).
+            # The count=100 disassembles the first 100 instructions.
+            for insn in pwndbg.disasm.capstone.disassemble(addr, count=100):
+                if insn.mnemonic == 'mov' and '#0x1000' in insn.op_str:
+                    return 12
+        except gdb.error:
+            # If the symbol doesn't exist, we fall back to the TG1 logic.
+            pass
         if self.tcr_el1["TG1"] == 0b01:
             return 14  # 16KB granule
         elif self.tcr_el1["TG1"] == 0b10:
@@ -479,10 +495,14 @@ class Aarch64PagingInfo(ArchPagingInfo):
             # sizes. We assume the common 4KB page size.
             # Reference: ARM ARMv8-A, TCR_EL1 register description.
             return 12
+                # This will satisfy mypy because the function will always return a value.
+        raise NotImplementedError(f"Cannot determine page size for TG1={self.tcr_el1['TG1']:02b}")
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift_user(self) -> int:
+        # The TG0 register only has 4 possible values, all of which are handled by the
+        # if/elif statements. However, to satisfy the linter, we'll keep the logic.
         if self.tcr_el1["TG0"] == 0b00:
             return 12  # 4KB granule
         elif self.tcr_el1["TG0"] == 0b01:
@@ -494,6 +514,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
             # Per ARM ARMv8-A, we assume the hardware will choose a default
             # implemented size, and we assume 4KB.
             return 12
+        # This line is technically unreachable but satisfies mypy.
+        raise NotImplementedError(f"Cannot determine user page size for TG0={self.tcr_el1['TG0']:02b}")
 
     @property
     @pwndbg.lib.cache.cache_until("forever")
