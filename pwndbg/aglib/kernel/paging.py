@@ -470,59 +470,74 @@ class Aarch64PagingInfo(ArchPagingInfo):
         try:
             # Look up the address of a known kernel function.
             addr = pwndbg.lib.cache.read_helper.symbol("copy_page_to_iter")
-            
-            # Disassemble the function to find the hard-coded page size value.
-            # We are looking for the 'mov w10, #0x1000' instruction.
-            # 0x1000 is 4096 bytes, which corresponds to a page_shift of 12 (2^12).
-            # The count=100 disassembles the first 100 instructions.
+            # Disassemble the function to find a hard-coded page size value.
+            # We are looking for an instruction like 'mov <reg>, #<page_size>'
+            # Common page sizes are 4KB (0x1000), 16KB (0x4000), 64KB (0x10000).
+            page_sizes = {0x1000: 12, 0x4000: 14, 0x10000: 16}
+            # The count=100 disassembles the first 100 instructions. This is a heuristic.
             for insn in pwndbg.disasm.capstone.disassemble(addr, count=100):
-                if insn.mnemonic == "mov" and "#0x1000" in insn.op_str:
-                    return 12
+                if insn.mnemonic == "mov":
+                    # Poor man's operand parsing to avoid false positives like matching #0x1000 in #0x10000
+                    op_parts = insn.op_str.split(",")
+                    if len(op_parts) == 2:
+                        imm_str = op_parts[1].strip()
+                        if imm_str.startswith("#"):
+                            try:
+                                val = int(imm_str.lstrip("#"), 0)
+                                if val in page_sizes:
+                                    return page_sizes[val]
+                            except ValueError:
+                                pass
         except Exception:
-            # If the symbol doesn't exist, we fall back to the TG1 logic.
+            # If the symbol doesn't exist or parsing fails, we fall back to the TG1 logic.
             pass
 
         if self.tcr_el1 is None:
             return 12  # Default to 4KB granule
-        if self.tcr_el1["TG1"] == 0b01:
-            return 14  # 16KB granule
-        elif self.tcr_el1["TG1"] == 0b10:
-            return 12  # 4KB granule
-        elif self.tcr_el1["TG1"] == 0b11:
-            return 16  # 64KB granule
-        elif self.tcr_el1["TG1"] == 0b00:
-            # 0b00 is a Reserved value in the ARM TCR_EL1 register for TG1.
-            # According to the ARM Architecture Reference Manual : [https://developer.arm.com/...](https://developer.arm.com/documentation/ddi0601/2025-06/AArch64-Registers/TCR-EL1--Translation-Control-Register--EL1-), the hardware
-            # will treat this as an implementation-defined choice of implemented
-            # sizes. We assume the common 4KB page size.
-            # Reference: ARM ARMv8-A, TCR_EL1 register description.
-            return 12
-        # This will satisfy mypy because the function will always return a value.
-        raise NotImplementedError(f"Cannot determine page size for TG1={self.tcr_el1['TG1']:02b}")
+
+        match self.tcr_el1["TG1"]:
+            case 0b01:
+                return 14  # 16KB granule
+            case 0b10:
+                return 12  # 4KB granule
+            case 0b11:
+                return 16  # 64KB granule
+            case 0b00:
+                # 0b00 is a Reserved value in the ARM TCR_EL1 register for TG1.
+                # According to the ARM Architecture Reference Manual, the hardware
+                # will treat this as an implementation-defined choice of implemented
+                # sizes. We assume the common 4KB page size.
+                # Reference: ARM ARMv8-A, TCR_EL1 register description.
+                return 12
+            case _:
+                # This should be unreachable as TG1 is 2 bits.
+                raise NotImplementedError(
+                    f"Cannot determine page size for TG1={self.tcr_el1['TG1']:02b}"
+                )
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift_user(self) -> int:
-        # The TG0 register only has 4 possible values, all of which are handled by the
-        # if/elif statements. However, to satisfy the linter, we'll keep the logic.
-
         if self.tcr_el1 is None:
             return 12  # Default to 4KB granule
-        if self.tcr_el1["TG0"] == 0b00:
-            return 12  # 4KB granule
-        elif self.tcr_el1["TG0"] == 0b01:
-            return 16  # 64KB granule
-        elif self.tcr_el1["TG0"] == 0b10:
-            return 14  # 16KB granule
-        elif self.tcr_el1["TG0"] == 0b11:
-            # 0b11 is a Reserved value in the ARM TCR_EL1 register for TG0.
-            # Per ARM ARMv8-A, we assume the hardware will choose a default
-            # implemented size, and we assume 4KB.
-            return 12
-        # This line is technically unreachable but satisfies mypy.
-        raise NotImplementedError(
-            f"Cannot determine user page size for TG0={self.tcr_el1['TG0']:02b}"
-        )
+
+        match self.tcr_el1["TG0"]:
+            case 0b00:
+                return 12  # 4KB granule
+            case 0b01:
+                return 16  # 64KB granule
+            case 0b10:
+                return 14  # 16KB granule
+            case 0b11:
+                # 0b11 is a Reserved value in the ARM TCR_EL1 register for TG0.
+                # Per ARM ARMv8-A, we assume the hardware will choose a default
+                # implemented size, and we assume 4KB.
+                return 12
+            case _:
+                # This should be unreachable as TG0 is 2 bits.
+                raise NotImplementedError(
+                    f"Cannot determine user page size for TG0={self.tcr_el1['TG0']:02b}"
+                )
 
     @property
     @pwndbg.lib.cache.cache_until("forever")
