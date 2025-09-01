@@ -497,7 +497,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             # sizes. We assume the common 4KB page size.
             # Reference: ARM ARMv8-A, TCR_EL1 register description.
             return 12
-            # This will satisfy mypy because the function will always return a value.
+        # This will satisfy mypy because the function will always return a value.
         raise NotImplementedError(f"Cannot determine page size for TG1={self.tcr_el1['TG1']:02b}")
 
     @property
