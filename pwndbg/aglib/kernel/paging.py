@@ -476,7 +476,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             # 0x1000 is 4096 bytes, which corresponds to a page_shift of 12 (2^12).
             # The count=100 disassembles the first 100 instructions.
             for insn in pwndbg.disasm.capstone.disassemble(addr, count=100):
-                if insn.mnemonic == 'mov' and '#0x1000' in insn.op_str:
+                if insn.mnemonic == "mov" and "#0x1000" in insn.op_str:
                     return 12
         except Exception:
             # If the symbol doesn't exist, we fall back to the TG1 logic.
@@ -520,7 +520,9 @@ class Aarch64PagingInfo(ArchPagingInfo):
             # implemented size, and we assume 4KB.
             return 12
         # This line is technically unreachable but satisfies mypy.
-        raise NotImplementedError(f"Cannot determine user page size for TG0={self.tcr_el1['TG0']:02b}")
+        raise NotImplementedError(
+            f"Cannot determine user page size for TG0={self.tcr_el1['TG0']:02b}"
+            )
 
     @property
     @pwndbg.lib.cache.cache_until("forever")
