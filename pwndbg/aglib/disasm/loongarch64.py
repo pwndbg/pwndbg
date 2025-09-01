@@ -76,22 +76,6 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
         if instruction.id == LOONGARCH_INS_ALIAS_RET:
             return self._read_register_name(instruction, "ra", emu)
 
-        # Manually compute target addresses for relative branches
-        if instruction.id in (
-            LOONGARCH_INS_B,
-            LOONGARCH_INS_BL,
-            LOONGARCH_INS_BEQ,
-            LOONGARCH_INS_BNE,
-            LOONGARCH_INS_BLT,
-            LOONGARCH_INS_BGE,
-            LOONGARCH_INS_BGEU,
-            LOONGARCH_INS_BLTU,
-            LOONGARCH_INS_BEQZ,
-            LOONGARCH_INS_BNEZ,
-        ):
-            # The relative offset is always the last operand
-            return instruction.address + instruction.operands[-1].before_value
-
         if instruction.id == LOONGARCH_INS_JIRL:
             if (offset_reg := instruction.operands[1].before_value) is not None:
                 return offset_reg + (instruction.operands[2].before_value << 2)

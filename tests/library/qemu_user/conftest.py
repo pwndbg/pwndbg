@@ -33,7 +33,7 @@ COMPILATION_TARGETS_TYPE = Literal[
     "mipsel32",
     "mips64",
     "s390x",
-    "sparc",
+    "sparc64",
 ]
 
 COMPILATION_TARGETS: list[COMPILATION_TARGETS_TYPE] = list(
@@ -51,7 +51,7 @@ COMPILE_AND_RUN_INFO: Dict[COMPILATION_TARGETS_TYPE, Tuple[str, Tuple[str, ...],
     "mips64": ("mips64-freestanding", (), "mips64"),
     "loongarch64": ("loongarch64-freestanding", (), "loongarch64"),
     "s390x": ("s390x-freestanding", (), "s390x"),
-    "sparc": ("sparc64-freestanding", (), "sparc64"),
+    "sparc64": ("sparc64-freestanding", (), "sparc64"),
     "powerpc32": ("powerpc-freestanding", (), "ppc"),
     "powerpc64": ("powerpc64-freestanding", (), "ppc64"),
 }

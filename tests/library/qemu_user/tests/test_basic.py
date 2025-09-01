@@ -43,6 +43,10 @@ def test_basic_riscv64(qemu_start_binary):
     helper(qemu_start_binary, "basic.riscv64.out", "riscv64")
 
 
+def test_basic_riscv32(qemu_start_binary):
+    helper(qemu_start_binary, "basic.riscv32.out", "riscv32")
+
+
 def test_basic_mips64(qemu_start_binary):
     # pwnlib.context.endian defaults to "little", but these MIPS binaries are compiled to big endian.
     helper(qemu_start_binary, "basic.mips64.out", "mips64")
@@ -54,3 +58,11 @@ def test_basic_mips32(qemu_start_binary):
 
 def test_basic_mipsel32(qemu_start_binary):
     helper(qemu_start_binary, "basic.mipsel32.out", "mipsel32")
+
+
+def test_basic_s390x(qemu_start_binary):
+    helper(qemu_start_binary, "basic.s390x.out", "s390x")
+
+
+def test_basic_loongarch64(qemu_start_binary):
+    helper(qemu_start_binary, "basic.loongarch64.out", "loongarch64")
