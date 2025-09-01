@@ -11,7 +11,6 @@ import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.regs import BitFlags
-from pwndbg.tests.host import gdb
 
 # don't return None but rather an invalid value for address markers
 # this way arithmetic ops do not panic if physmap is not found
@@ -479,9 +478,12 @@ class Aarch64PagingInfo(ArchPagingInfo):
             for insn in pwndbg.disasm.capstone.disassemble(addr, count=100):
                 if insn.mnemonic == 'mov' and '#0x1000' in insn.op_str:
                     return 12
-        except gdb.error:
+        except Exception:
             # If the symbol doesn't exist, we fall back to the TG1 logic.
             pass
+
+        if self.tcr_el1 is None:
+            return 12  # Default to 4KB granule
         if self.tcr_el1["TG1"] == 0b01:
             return 14  # 16KB granule
         elif self.tcr_el1["TG1"] == 0b10:
@@ -503,6 +505,9 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def page_shift_user(self) -> int:
         # The TG0 register only has 4 possible values, all of which are handled by the
         # if/elif statements. However, to satisfy the linter, we'll keep the logic.
+
+        if self.tcr_el1 is None:
+            return 12  # Default to 4KB granule
         if self.tcr_el1["TG0"] == 0b00:
             return 12  # 4KB granule
         elif self.tcr_el1["TG0"] == 0b01:
