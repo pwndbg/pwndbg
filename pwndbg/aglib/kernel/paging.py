@@ -467,11 +467,11 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift(self) -> int:
         if self.tcr_el1["TG1"] == 0b01:
-            return 14 # 16KB granule
+            return 14  # 16KB granule
         elif self.tcr_el1["TG1"] == 0b10:
-            return 12 # 4KB granule
+            return 12  # 4KB granule
         elif self.tcr_el1["TG1"] == 0b11:
-            return 16 # 64KB granule
+            return 16  # 64KB granule
         elif self.tcr_el1["TG1"] == 0b00:
             # 0b00 is a Reserved value in the ARM TCR_EL1 register for TG1.
             # According to the ARM Architecture Reference Manual : [https://developer.arm.com/...](https://developer.arm.com/documentation/ddi0601/2025-06/AArch64-Registers/TCR-EL1--Translation-Control-Register--EL1-), the hardware
@@ -479,27 +479,21 @@ class Aarch64PagingInfo(ArchPagingInfo):
             # sizes. We assume the common 4KB page size.
             # Reference: ARM ARMv8-A, TCR_EL1 register description.
             return 12
-        # NOTE: This line is unreachable because TG1 is a 2-bit field
-        # and all four possible values are handled above.
-        raise NotImplementedError(f"Unknown TG1 value: {self.tcr_el1['TG1']}")
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift_user(self) -> int:
         if self.tcr_el1["TG0"] == 0b00:
-            return 12 # 4KB granule
+            return 12  # 4KB granule
         elif self.tcr_el1["TG0"] == 0b01:
-            return 16 # 64KB granule
+            return 16  # 64KB granule
         elif self.tcr_el1["TG0"] == 0b10:
-            return 14 # 16KB granule
+            return 14  # 16KB granule
         elif self.tcr_el1["TG0"] == 0b11:
             # 0b11 is a Reserved value in the ARM TCR_EL1 register for TG0.
             # Per ARM ARMv8-A, we assume the hardware will choose a default
             # implemented size, and we assume 4KB.
             return 12
-        # NOTE: This line is now unreachable as TG0 is a 2-bit field
-        # with all possible values handled above.
-        raise NotImplementedError(f"Unknown TG0 value: {self.tcr_el1['TG0']}")
 
     @property
     @pwndbg.lib.cache.cache_until("forever")
