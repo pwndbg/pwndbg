@@ -497,7 +497,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             # sizes. We assume the common 4KB page size.
             # Reference: ARM ARMv8-A, TCR_EL1 register description.
             return 12
-                # This will satisfy mypy because the function will always return a value.
+            # This will satisfy mypy because the function will always return a value.
         raise NotImplementedError(f"Cannot determine page size for TG1={self.tcr_el1['TG1']:02b}")
 
     @property
@@ -522,7 +522,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         # This line is technically unreachable but satisfies mypy.
         raise NotImplementedError(
             f"Cannot determine user page size for TG0={self.tcr_el1['TG0']:02b}"
-            )
+        )
 
     @property
     @pwndbg.lib.cache.cache_until("forever")
