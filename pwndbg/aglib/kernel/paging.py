@@ -475,7 +475,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             # Common page sizes are 4KB (0x1000), 16KB (0x4000), 64KB (0x10000).
             page_sizes = {0x1000: 12, 0x4000: 14, 0x10000: 16}
             # The count=100 disassembles the first 100 instructions. This is a heuristic.
-            for insn in pwndbg.aglib.disasm.disassemble(addr, count=100):
+            for insn in pwndbg.disasm.disassemble(addr, count=100):
                 if insn.mnemonic == "mov":
                     # Poor man's operand parsing to avoid false positives like matching #0x1000 in #0x10000
                     op_parts = insn.op_str.split(",")
