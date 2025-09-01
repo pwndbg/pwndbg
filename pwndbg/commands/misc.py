@@ -96,7 +96,11 @@ parser.add_argument(
 
 
 @pwndbg.commands.Command(parser, command_name="pwndbg", category=CommandCategory.PWNDBG)
-def pwndbg_(filter_pattern, category_, list_categories) -> None:
+def pwndbg_(filter_pattern=None, category_=None, list_categories=False) -> None:
+    # Handle case when no arguments are given
+    if not filter_pattern and not category_ and not list_categories:
+        print(message.info("Available pwndbg commands (use 'pwndbg <pattern>' to filter):"))
+
     if list_categories:
         for category in CommandCategory:
             print(C.bold(C.green(f"{category.value}")))
@@ -105,7 +109,7 @@ def pwndbg_(filter_pattern, category_, list_categories) -> None:
     from tabulate import tabulate
 
     table_data = defaultdict(list)
-    for name, aliases, category, docs in list_and_filter_commands(filter_pattern):
+    for name, aliases, category, docs in list_and_filter_commands(filter_pattern or ""):
         alias_str = ""
         if aliases:
             aliases = map(C.blue, aliases)
@@ -115,7 +119,7 @@ def pwndbg_(filter_pattern, category_, list_categories) -> None:
         table_data[category].append((command_names, docs))
 
     for category in CommandCategory:
-        if category not in table_data or category_ and category_.lower() not in category.lower():
+        if category not in table_data or (category_ and category_.lower() not in category.lower()):
             continue
         data = table_data[category]
 
