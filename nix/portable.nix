@@ -197,7 +197,8 @@ let
         # fix ziglang
         cp -rf ${pwndbgVenv}/lib/${python3.libPrefix}/site-packages/ziglang/zig $out/pwndbg/lib/${python3.libPrefix}/site-packages/ziglang/
         cp -rf ${pwndbgVenv}/lib/${python3.libPrefix}/site-packages/ziglang/lib $out/pwndbg/lib/${python3.libPrefix}/site-packages/ziglang/
-        cp -rf ${pwndbgVenv}/lib/${python3.libPrefix}/site-packages/pwnlib/data $out/pwndbg/lib/${python3.libPrefix}/pwnlib/
+        rm -rf $out/pwndbg/lib/${python3.libPrefix}/site-packages/pwnlib/data
+        cp -rf ${pwndbgVenv}/lib/${python3.libPrefix}/site-packages/pwnlib/data $out/pwndbg/lib/${python3.libPrefix}/site-packages/pwnlib/
 
         # fix python "subprocess.py" to use "/bin/sh" and not the nix'ed version, otherwise "gdb-pt-dump" is broken
         sed -i 's@/nix/store/.*/bin/sh@/bin/sh@' $out/pwndbg/lib/${python3.libPrefix}/subprocess.py
