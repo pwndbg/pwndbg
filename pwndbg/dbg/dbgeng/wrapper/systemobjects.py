@@ -11,13 +11,7 @@ class DebugSystemObjects:
 
     def GetProcessIdBySystemId(self, system_id: int) -> int | None:
         pid = c_ulong()
-        try:
-            self.inner.GetProcessIdBySystemId(system_id, byref(pid))
-        except COMError as e:
-            if e.hresult == hresult.E_NOINTERFACE:
-                # Object not found
-                return None
-            raise
+        self.inner.GetProcessIdBySystemId(system_id, byref(pid))
         return pid.value
 
     def GetCurrentThreadId(self) -> int:
@@ -58,9 +52,10 @@ class DebugSystemObjects:
         self.inner.GetProcessIdsByIndex(0, count, byref(ids), byref(sys_ids))
         return [ids[i] for i in range(count)], [sys_ids[i] for i in range(count)]
 
-    def GetThreadIdsByIndex(self) -> tuple[list[int], list[int]]:
-        count = self.GetNumberThreads()
+    def GetThreadIdsByIndex(self, start=0, count=None) -> tuple[list[int], list[int]]:
+        if count is None:
+            count = self.GetNumberThreads()
         ids = (c_ulong * count)()
         sys_ids = (c_ulong * count)()
-        self.inner.GetThreadIdsByIndex(0, count, byref(ids), byref(sys_ids))
+        self.inner.GetThreadIdsByIndex(start, count, byref(ids), byref(sys_ids))
         return [ids[i] for i in range(count)], [sys_ids[i] for i in range(count)]

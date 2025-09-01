@@ -1,6 +1,9 @@
 import contextlib
+import ctypes
+from comtypes import COMError, hresult
+import comtypes.gen.DbgEng as COM_DbgEng
 import shlex
-from typing import Any, Callable, Iterator, List, Literal, Tuple, TypeVar
+from typing import Any, Callable, Iterator, List, Literal, Sequence, Tuple, TypeVar
 from pybag.dbgeng.idebugclient import DebugClient
 from pybag.dbgeng.idebugsystemobjects import DebugSystemObjects
 from pybag.dbgeng.idebugregisters import DebugRegisters
@@ -11,7 +14,13 @@ from typing_extensions import override
 import pwndbg
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
+from pwndbg.dbg.dbgeng.events import EventCallback
 from pwndbg.dbg.dbgeng.wrapper.systemobjects import DebugSystemObjects
+from pwndbg.dbg.dbgeng.wrapper.control import DebugControl
+from pwndbg.dbg.dbgeng.wrapper.registers import DebugRegisters
+from pwndbg.dbg.dbgeng.wrapper.advanced import DebugAdvanced
+from pwndbg.dbg.dbgeng.wrapper.symbols import DebugSymbols
+from pwndbg.dbg.dbgeng.wrapper.wdbgexts import _EXT_TYPED_DATA, _DEBUG_TYPED_DATA, EXT_TDOP_SET_FROM_EXPR
 
 T = TypeVar("T")
 
@@ -20,6 +29,22 @@ dbgclient: DebugClient
 dbgcontrol: DebugControl
 dbgsysobjects: DebugSystemObjects
 dbgregisters: DebugRegisters
+dbgadvanced: DebugAdvanced
+dbgsymbols: DebugSymbols
+
+
+def _evaluate(expression: str):
+    extra = len(expression) + 1 # null terminator
+    buffer = (ctypes.c_char * (ctypes.sizeof(_EXT_TYPED_DATA) + extra))()
+    data = _EXT_TYPED_DATA.from_buffer(buffer)
+    data.Operation = EXT_TDOP_SET_FROM_EXPR
+    data.Flags = 0
+    data.InStrIndex = ctypes.sizeof(_EXT_TYPED_DATA)
+
+    ctypes.memmove(ctypes.addressof(buffer) + data.InStrIndex, expression.encode(), len(expression))
+
+    dbgadvanced.Request(COM_DbgEng.DEBUG_REQUEST_EXT_TYPED_DATA_ANSI, buffer, len(buffer), buffer, len(buffer))
+    return data
 
 
 class SelectionMixin:
@@ -68,17 +93,22 @@ class DbgEngRegisters(pwndbg.dbg_mod.Registers):
 
 
 class DbgEngFrame(pwndbg.dbg_mod.Frame):
+    @override
     def regs(self) -> pwndbg.dbg_mod.Registers:
         return DbgEngRegisters()
 
 
 class DbgEngThread(SelectionMixin, pwndbg.dbg_mod.Thread):
-    def __init__(self, thread_id: int):
-        self.thread_id = thread_id
+    _tid: int   # The thread ID
+    _etid: int  # The engine thread ID (the internal ID used by DbgEng)
+
+    def __init__(self, tid: int, etid: int):
+        self._tid = tid
+        self._etid = etid
 
     @override
     def select(self):
-        return selection(self.thread_id, lambda: dbgsysobjects.GetCurrentThreadId(),
+        return selection(self._etid, lambda: dbgsysobjects.GetCurrentThreadId(),
                          lambda t: dbgsysobjects.SetCurrentThreadId(t))
 
     @override
@@ -89,51 +119,123 @@ class DbgEngThread(SelectionMixin, pwndbg.dbg_mod.Thread):
 
 
 class DbgEngProcess(SelectionMixin, pwndbg.dbg_mod.Process):
-    def __init__(self, process_id: int):
-        self.process_id = process_id
+    _pid: int   # The process ID
+    _epid: int  # The engine process ID (the internal ID used by DbgEng)
+
+    def __init__(self, pid: int, epid: int):
+        self._pid = pid
+        self._epid = epid
 
     def select(self):
-        return selection(self.process_id, lambda: dbgsysobjects.GetCurrentProcessId(),
+        return selection(self._epid, lambda: dbgsysobjects.GetCurrentProcessId(),
                          lambda p: dbgsysobjects.SetCurrentProcessId(p))
 
     @override
     @selected
     def threads(self) -> List[pwndbg.dbg_mod.Thread]:
         return [
-            DbgEngThread(thread_id=thread_id)
-            for thread_id in dbgsysobjects.GetThreadIdsByIndex()[0]
+            DbgEngThread(tid, etid)
+            for etid, tid in zip(dbgsysobjects.GetThreadIdsByIndex())
         ]
 
     @override
     def pid(self) -> int | None:
-        return self.process_id
+        return self._pid
 
     @override
     def alive(self) -> bool:
-        return dbgsysobjects.GetProcessIdBySystemId(self.process_id) is not None
+        try:
+            return dbgsysobjects.GetProcessIdBySystemId(self._pid) == self._epid
+        except COMError as e:
+            if e.hresult == hresult.E_NOINTERFACE:
+                return False
+            raise
 
     @override
     @selected
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value | None:
+        # TODO
         dbgcontrol.Evaluate(expression)
+    
+    @override
+    @selected
+    def is_remote(self) -> bool:
+        # GetDebuggeeType returns the class and qualifier of the debuggee.
+        # The class can be one of:
+        # - DEBUG_CLASS_KERNEL
+        # - DEBUG_CLASS_USER_WINDOWS
+        # - DEBUG_CLASS_UNINITIALIZED
+        debuggee_class, debuggee_qualifier = dbgcontrol.GetDebuggeeType()
+        if debuggee_class == COM_DbgEng.DEBUG_CLASS_KERNEL:
+            # All other options are either local or dump files
+            return debuggee_qualifier in (
+                COM_DbgEng.DEBUG_KERNEL_CONNECTION,
+                COM_DbgEng.DEBUG_KERNEL_EXDI_DRIVER
+            )
+        elif debuggee_class == COM_DbgEng.DEBUG_CLASS_USER_WINDOWS:
+            # All other options are either local or dump files
+            return debuggee_qualifier == COM_DbgEng.DEBUG_USER_WINDOWS_PROCESS_SERVER
         
+        # There is no target
+        return False
+    
+    @override
+    @selected
+    def types_with_name(self, name: str) -> Sequence[pwndbg.dbg_mod.Type]:
+        try:
+            module_base, type_id = dbgsymbols.GetSymbolTypeId(name)
+        except COMError as e:
+            if e.hresult == hresult.E_FAIL:
+                return []
+            raise
+        return [DbgEngType(module_base, type_id)]
+    
+    @override
+    @selected
+    def is_linux(self) -> bool:
+        # DbgEng only supports Windows targets
+        return False
+
+
+class DbgEngType(pwndbg.dbg_mod.Type):
+    module_base: int    # Base address of the module containing this type
+    type_id: int        # Type ID of this type
+
+    def __init__(self, module_base: int, type_id: int):
+        self.module_base = module_base
+        self.type_id = type_id
+
+    @property
+    @override
+    def sizeof(self) -> int:
+        return dbgsymbols.GetTypeSize(self.module_base, self.type_id)
+
 
 class DbgEngValue(pwndbg.dbg_mod.Value):
-    def __init__(self, inner: DebugValue):
+    inner: _DEBUG_TYPED_DATA
+
+    def __init__(self, inner: _DEBUG_TYPED_DATA):
         self.inner = inner
 
     @override
-    def __int__(self) -> int:
-        return self.inner.get_value()
+    @property
+    def type(self) -> pwndbg.dbg_mod.Type:
+        return DbgEngType(self.inner.ModBase, self.inner.TypeId)
 
 
 class DbgEng(pwndbg.dbg_mod.Debugger):
     command_dispatcher: CommandDispatcher
+    event_callback: EventCallback
 
     @override
     def setup(self, command_dispatcher: CommandDispatcher) -> None:
         self.command_dispatcher = command_dispatcher
 
+        # Setup event callbacks
+        self.event_callback = EventCallback()
+        dbgclient.SetEventCallbacks(self.event_callback)
+
+        import pwndbg
         from pwndbg.commands import load_commands
 
         load_aglib()
@@ -141,26 +243,34 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
         # Load all commands
         load_commands()
 
+        # Register hooks
+        import pwndbg.dbg.dbgeng.hooks
+
+        # Manually trigger the START event
+        self.event_callback._trigger_event(pwndbg.dbg_mod.EventType.START)
+
     @override
     def history(self, last: int = 10) -> List[Tuple[int, str]]:
-        # WinDbg does not provide an easy way to retrieve command history.
+        # TODO: Implement command history if possible.
+        # The history seems to be handled by the debugger frontend (e.g., WinDbg)
         return []
 
     @override
     def lex_args(self, command_line: str) -> List[str]:
         return shlex.split(command_line)
 
+    @override
     def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
-        current_pid = dbgsysobjects.GetCurrentProcessSystemId()
-        if current_pid is None:
-            return None
-        return DbgEngProcess(current_pid)
+        pid = dbgsysobjects.GetCurrentProcessSystemId()
+        epid = dbgsysobjects.GetCurrentProcessId()
+        return DbgEngProcess(pid, epid)
 
     def selected_thread(self) -> pwndbg.dbg_mod.Thread | None:
         raise NotImplementedError()
 
+    @override
     def selected_frame(self) -> pwndbg.dbg_mod.Frame | None:
-        raise NotImplementedError()
+        return DbgEngFrame()
 
     @override
     def commands(self) -> List[str]:
@@ -186,7 +296,8 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
     @override
     def event_handler(self, ty: pwndbg.dbg_mod.EventType) -> Callable[[Callable[..., T]], Callable[..., T]]:
         def decorator(fn: Callable[..., T]) -> Callable[..., T]:
-            pass
+            self.event_callback._register_event(ty, fn)
+            return fn
         return decorator
 
     @contextlib.contextmanager
