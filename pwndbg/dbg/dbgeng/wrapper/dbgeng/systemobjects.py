@@ -1,4 +1,8 @@
 from ctypes import *
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ctypes import _Pointer
 
 from comtypes import COMError
 import comtypes.gen.DbgEng as DbgEng
@@ -6,7 +10,7 @@ import comtypes.hresult as hresult
 
 
 class DebugSystemObjects:
-    def __init__(self, inner: DbgEng.IDebugSystemObjects):
+    def __init__(self, inner: "_Pointer[DbgEng.IDebugSystemObjects]"):
         self.inner = inner
 
     def GetProcessIdBySystemId(self, system_id: int) -> int | None:

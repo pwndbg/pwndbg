@@ -4,23 +4,18 @@ from comtypes import COMError, hresult
 import comtypes.gen.DbgEng as COM_DbgEng
 import shlex
 from typing import Any, Callable, Iterator, List, Literal, Sequence, Tuple, TypeVar
-from pybag.dbgeng.idebugclient import DebugClient
-from pybag.dbgeng.idebugsystemobjects import DebugSystemObjects
-from pybag.dbgeng.idebugregisters import DebugRegisters
-from pybag.dbgeng.idebugcontrol import DebugControl
-from pybag.dbgeng.dbgengstructs import DebugValue
 from typing_extensions import override
 
 import pwndbg
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
 from pwndbg.dbg.dbgeng.events import EventCallback
-from pwndbg.dbg.dbgeng.wrapper.systemobjects import DebugSystemObjects
-from pwndbg.dbg.dbgeng.wrapper.control import DebugControl
-from pwndbg.dbg.dbgeng.wrapper.registers import DebugRegisters
-from pwndbg.dbg.dbgeng.wrapper.advanced import DebugAdvanced
-from pwndbg.dbg.dbgeng.wrapper.symbols import DebugSymbols
-from pwndbg.dbg.dbgeng.wrapper.wdbgexts import _EXT_TYPED_DATA, _DEBUG_TYPED_DATA, EXT_TDOP_SET_FROM_EXPR
+from pwndbg.dbg.dbgeng.wrapper.dbgeng import DebugSystemObjects, DebugClient, DebugControl, DebugRegisters, \
+    DebugAdvanced, DebugSymbols
+from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DebugHost, HostDataModelAccess, DataModelManager, DebugHostSymbols
+from pwndbg.dbg.dbgeng.wrapper.wdbgexts import _EXT_TYPED_DATA, _DEBUG_TYPED_DATA, EXT_TDOP_SET_FROM_EXPR, \
+    EXT_TDOP_SET_PTR_FROM_TYPE_ID_AND_U64, EXT_TDOP_SET_FROM_TYPE_ID_AND_U64, EXT_TDOP_RELEASE, \
+    EXT_TDOP_GET_TYPE_SIZE, EXT_TDOP_GET_POINTER_TO
 
 T = TypeVar("T")
 
@@ -31,6 +26,114 @@ dbgsysobjects: DebugSystemObjects
 dbgregisters: DebugRegisters
 dbgadvanced: DebugAdvanced
 dbgsymbols: DebugSymbols
+
+hostdatamodelaccess: HostDataModelAccess
+datamodelmanager: DataModelManager
+debughost: DebugHost
+debughostsymbols: DebugHostSymbols
+
+
+def _get_typed_data(module_base: int, type_id: int, ptr = False, tag: int = 0) -> _DEBUG_TYPED_DATA:
+    print(module_base, type_id, ptr, tag)
+    buffer = (ctypes.c_char * ctypes.sizeof(_EXT_TYPED_DATA))()
+    data = _EXT_TYPED_DATA.from_buffer(buffer)
+    if ptr:
+        data.Operation = EXT_TDOP_SET_PTR_FROM_TYPE_ID_AND_U64
+    else:
+        data.Operation = EXT_TDOP_SET_FROM_TYPE_ID_AND_U64
+    data.Flags = 0
+
+    data.InData.ModBase = module_base
+    data.InData.TypeId = type_id
+    data.InData.Tag = tag
+
+    dbgadvanced.Request(COM_DbgEng.DEBUG_REQUEST_EXT_TYPED_DATA_ANSI,
+                        buffer,
+                        len(buffer),
+                        buffer,
+                        len(buffer))
+    return data.OutData
+
+
+def _typed_data_op(op: int, *, flags: int = 0, in_data: _DEBUG_TYPED_DATA = None, in_str: str = None, in_value: int = 0,
+                   out_len: int = 0)-> tuple[str, int, bytes]:
+    """
+    Perform a suboperation on typed data.
+    https://github.com/MicrosoftDocs/windows-driver-docs/blob/06bb50abad3a39c371b54a02004839d8d1fc005f/windows-driver-docs-pr/debugger/debug-request-ext-typed-data-ansi.md
+    """
+
+    ext_data_len = ctypes.sizeof(_EXT_TYPED_DATA) + out_len
+    if in_str is not None:
+        ext_data_len += len(in_str) + 1 # null terminator
+
+    buffer = (ctypes.c_char * ext_data_len)()
+    extra_offset = ctypes.sizeof(_EXT_TYPED_DATA)
+
+    ext_data = _EXT_TYPED_DATA.from_buffer(buffer)
+    ext_data.Operation = op
+    ext_data.Flags = flags
+    if in_data is not None:
+        ext_data.InData = in_data
+
+    if in_str is not None:
+        ext_data.InStrIndex = extra_offset
+        ctypes.memmove(ctypes.addressof(buffer) + ext_data.InStrIndex, in_str.encode(), len(in_str))
+        extra_offset += len(in_str) + 1
+    
+    ext_data.In64 = in_value
+    if out_len > 0:
+        ext_data.StrBufferIndex = extra_offset
+        ext_data.StrBufferChars = out_len
+        extra_offset += out_len
+
+
+    dbgadvanced.Request(COM_DbgEng.DEBUG_REQUEST_EXT_TYPED_DATA_ANSI,
+                        buffer,
+                        len(buffer),
+                        buffer,
+                        len(buffer))
+    # Retry
+    if out_len > 0 and ext_data.StrCharsNeeded > out_len:
+        out_len = ext_data.StrCharsNeeded
+        return _typed_data_op(op, flags=flags, in_data=in_data, in_str=in_str, in_value=in_value, out_len=out_len)
+    
+    out_str = None
+    if out_len > 0:
+        out_str = ctypes.string_at(ctypes.addressof(buffer) + ext_data.StrBufferIndex, ext_data.StrCharsNeeded).decode()
+    
+    out_value = ext_data.Out32
+    full_result = bytes(buffer)
+    return out_str, out_value, full_result
+
+
+class TypedDataWrapper:
+    def __init__(self, data: _DEBUG_TYPED_DATA):
+        self.data = data
+
+    def sizeof(self) -> int:
+        _, size, _ = _typed_data_op(EXT_TDOP_GET_TYPE_SIZE, in_data=self.data)
+        return size
+    
+    def pointer(self) -> "TypedDataWrapper":
+        _, _, buffer = _typed_data_op(EXT_TDOP_GET_POINTER_TO, in_data=self.data)
+        return TypedDataWrapper(_DEBUG_TYPED_DATA.from_buffer_copy(buffer, _EXT_TYPED_DATA.OutData.offset))
+    
+    @classmethod
+    def from_type_id(cls, module_base: int, type_id: int) -> "TypedDataWrapper":
+        data = _DEBUG_TYPED_DATA()
+        data.ModBase = module_base
+        data.TypeId = type_id
+        data.Offset = 0
+        _, _, buffer = _typed_data_op(EXT_TDOP_SET_FROM_TYPE_ID_AND_U64, in_data=data)
+        return cls(_DEBUG_TYPED_DATA.from_buffer_copy(buffer, _EXT_TYPED_DATA.OutData.offset))
+    
+    @classmethod
+    def from_expression(cls, expression: str) -> "TypedDataWrapper":
+        _, _, buffer = _typed_data_op(EXT_TDOP_SET_FROM_EXPR, in_str=expression)
+        return cls(_DEBUG_TYPED_DATA.from_buffer_copy(buffer, _EXT_TYPED_DATA.OutData.offset))
+
+    def __del__(self):
+        _typed_data_op(EXT_TDOP_RELEASE, in_data=self.data)
 
 
 def _evaluate(expression: str):
@@ -178,18 +281,25 @@ class DbgEngProcess(SelectionMixin, pwndbg.dbg_mod.Process):
         
         # There is no target
         return False
-    
+
     @override
     @selected
     def types_with_name(self, name: str) -> Sequence[pwndbg.dbg_mod.Type]:
         try:
-            module_base, type_id = dbgsymbols.GetSymbolTypeId(name)
+            type_id, module_base = dbgsymbols.GetSymbolTypeId(name)
         except COMError as e:
             if e.hresult == hresult.E_FAIL:
                 return []
             raise
-        return [DbgEngType(module_base, type_id)]
-    
+        try:
+            data = TypedDataWrapper.from_type_id(module_base, type_id)
+        except COMError as e:
+            try:
+                data = TypedDataWrapper.from_expression(f"({name})0")
+            except:
+                return []
+        return [DbgEngType(data)]
+
     @override
     @selected
     def is_linux(self) -> bool:
@@ -198,29 +308,31 @@ class DbgEngProcess(SelectionMixin, pwndbg.dbg_mod.Process):
 
 
 class DbgEngType(pwndbg.dbg_mod.Type):
-    module_base: int    # Base address of the module containing this type
-    type_id: int        # Type ID of this type
+    inner: TypedDataWrapper
 
-    def __init__(self, module_base: int, type_id: int):
-        self.module_base = module_base
-        self.type_id = type_id
+    def __init__(self, inner: TypedDataWrapper):
+        self.inner = inner
 
     @property
     @override
     def sizeof(self) -> int:
-        return dbgsymbols.GetTypeSize(self.module_base, self.type_id)
+        return self.inner.sizeof()
+
+    @override
+    def pointer(self) -> pwndbg.dbg_mod.Type:
+        return DbgEngType(self.inner.pointer())
 
 
 class DbgEngValue(pwndbg.dbg_mod.Value):
-    inner: _DEBUG_TYPED_DATA
+    inner: TypedDataWrapper
 
-    def __init__(self, inner: _DEBUG_TYPED_DATA):
+    def __init__(self, inner: TypedDataWrapper):
         self.inner = inner
 
     @override
     @property
     def type(self) -> pwndbg.dbg_mod.Type:
-        return DbgEngType(self.inner.ModBase, self.inner.TypeId)
+        return DbgEngType(self.inner)
 
 
 class DbgEng(pwndbg.dbg_mod.Debugger):

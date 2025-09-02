@@ -1,4 +1,8 @@
 from ctypes import *
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ctypes import _Pointer
 
 from comtypes import COMError
 import comtypes.gen.DbgEng as DbgEng
@@ -6,7 +10,7 @@ import comtypes.hresult as hresult
 
 
 class DebugSymbols:
-    def __init__(self, inner: DbgEng.IDebugSymbols):
+    def __init__(self, inner: "_Pointer[DbgEng.IDebugSymbols]"):
         self.inner = inner
     
     def GetTypeSize(self, module: int, type_id: int) -> int:

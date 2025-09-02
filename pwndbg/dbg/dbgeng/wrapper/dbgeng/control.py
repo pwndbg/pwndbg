@@ -1,4 +1,8 @@
 from ctypes import *
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ctypes import _Pointer
 
 from comtypes import COMError
 import comtypes.gen.DbgEng as DbgEng
@@ -6,7 +10,7 @@ import comtypes.hresult as hresult
 
 
 class DebugControl:
-    def __init__(self, inner: DbgEng.IDebugControl):
+    def __init__(self, inner: "_Pointer[DbgEng.IDebugControl]"):
         self.inner = inner
 
     def GetDebuggeeType(self) -> tuple[int, int]:

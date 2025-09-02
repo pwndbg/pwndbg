@@ -1,4 +1,8 @@
 from ctypes import *
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ctypes import _Pointer
 
 from comtypes import COMError
 import comtypes.gen.DbgEng as DbgEng
@@ -6,7 +10,7 @@ import comtypes.hresult as hresult
 
 
 class DebugAdvanced:
-    def __init__(self, inner: DbgEng.IDebugAdvanced2):
+    def __init__(self, inner: "_Pointer[DbgEng.IDebugAdvanced2]"):
         self.inner = inner
 
     def Request(self, request: int, in_buffer: c_char_p, in_buffer_size: int, out_buffer: c_char_p, out_buffer_size: int) -> int:
