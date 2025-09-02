@@ -132,6 +132,143 @@ class ArchPagingInfo:
                 if table not in self.pagetable_cache:
                     self.pagetable_cache[table] = {}
                 table_cache = self.pagetable_cache[table]
+            except Exception:
+                pass
+                from __future__ import annotations
+
+import math
+from typing import Dict
+from typing import List
+from typing import Tuple
+
+import pwndbg
+import pwndbg.aglib.vmmap_custom
+import pwndbg.color.message as M
+import pwndbg.lib.cache
+import pwndbg.lib.memory
+from pwndbg.aglib.disasm import disassembly
+from pwndbg.lib.regs import BitFlags
+
+# don't return None but rather an invalid value for address markers
+# this way arithmetic ops do not panic if physmap is not found
+INVALID_ADDR = 1 << 64
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def get_memory_map_raw() -> Tuple[pwndbg.lib.memory.Page, ...]:
+    return pwndbg.aglib.kernel.vmmap.kernel_vmmap(False)
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def first_kernel_page_start():
+    for page in get_memory_map_raw():
+        if page.start and pwndbg.aglib.memory.is_kernel(page.start):
+            return page.start
+    return INVALID_ADDR
+
+
+class ArchPagingInfo:
+    USERLAND = "userland"
+    KERNELLAND = "kernel [.text]"
+    KERNELRO = "kernel [.rodata]"
+    KERNELBSS = "kernel [.bss]"
+    KERNELDRIVER = "kernel [.driver .bpf]"
+    ESPSTACK = "espfix"
+    PHYSMAP = "physmap"
+    VMALLOC = "vmalloc"
+    VMEMMAP = "vmemmap"
+
+    physmap: int
+    vmalloc: int
+    vmemmap: int
+    kbase: int
+    addr_marker_sz: int
+    va_bits: int
+    pagetable_cache: Dict[pwndbg.dbg_mod.Value, Dict[int, int]] = {}
+    pagetableptr_cache: Dict[int, pwndbg.dbg_mod.Value] = {}
+
+    @property
+    @pwndbg.lib.cache.cache_until("objfile")
+    def STRUCT_PAGE_SIZE(self):
+        a = pwndbg.aglib.typeinfo.load("struct page")
+        if a is None:
+            # this has been the case for all v5 and v6 releases
+            return 0x40
+        return a.sizeof
+
+    @property
+    @pwndbg.lib.cache.cache_until("objfile")
+    def STRUCT_PAGE_SHIFT(self):
+        # needs to be rounded up (consider the layout of vmemmap)
+        return math.ceil(math.log2(self.STRUCT_PAGE_SIZE))
+
+    @property
+    def page_shift(self) -> int:
+        raise NotImplementedError()
+
+    @property
+    def paging_level(self) -> int:
+        raise NotImplementedError()
+
+    def adjust(self, name: str) -> str:
+        raise NotImplementedError()
+
+    def markers(self) -> Tuple[Tuple[str, int], ...]:
+        raise NotImplementedError()
+
+    def handle_kernel_pages(self, pages):
+        # this is arch dependent
+        raise NotImplementedError()
+
+    def kbase_helper(self, address):
+        for mapping in get_memory_map_raw():
+            # should be page aligned -- either from pt-dump or info mem
+
+            # only search in kernel mappings:
+            # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
+            if not pwndbg.aglib.memory.is_kernel(mapping.vaddr):
+                continue
+
+            if address in mapping:
+                return mapping.vaddr
+
+        return None
+
+    def pagewalk(
+        self, target, entry
+    ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
+        raise NotImplementedError()
+
+    def pagewalk_helper(
+        self, target, entry, kernel_phys_base=0
+    ) -> List[Tuple[int | None, int | None]]:
+        base = self.physmap
+        if entry > base:
+            # user inputted a physmap address as pointer to pgd
+            entry -= base
+        level = self.paging_level
+        result: List[Tuple[int | None, int | None]] = [(None, None)] * (level + 1)
+        page_shift = self.page_shift
+        ENTRYMASK = ~((1 << page_shift) - 1) & ((1 << self.va_bits) - 1)
+        for i in range(level, 0, -1):
+            vaddr = (entry & ENTRYMASK) + base - kernel_phys_base
+            if self.should_stop_pagewalk(entry):
+                break
+            shift = (i - 1) * (page_shift - 3) + page_shift
+            offset = target & ((1 << shift) - 1)
+            idx = (target & (0x1FF << shift)) >> shift
+            entry = 0
+            try:
+                # with this optimization, roughly x2 as fast on average
+                # especially useful when parsing a large number of pages, e.g. set kernel-vmmap monitor
+                if vaddr not in self.pagetableptr_cache:
+                    self.pagetableptr_cache[vaddr] = pwndbg.aglib.memory.get_typed_pointer(
+                        "unsigned long", vaddr
+                    )
+                table = self.pagetableptr_cache[vaddr]
+                if table not in self.pagetable_cache:
+                    self.pagetable_cache[table] = {}
+                table_cache = self.pagetable_cache[table]
                 if idx not in table_cache:
                     table_cache[idx] = int(table[idx])
                 entry = table_cache[idx]
@@ -466,78 +603,80 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift(self) -> int:
-        # Try to get the page size from a known kernel symbol first.
+
+
+        if self.tcr_el1 is not None:
+            match self.tcr_el1["TG1"]:
+                case 0b01:
+                    return 14  # 16KB granule
+                case 0b10:
+                    return 12  # 4KB granule
+                case 0b11:
+                    return 16  # 64KB granule
+                case 0b00:
+                    # 0b00 is a Reserved value, fall back to heuristic
+                    pass
+                case _:
+                    # This should be unreachable as TG1 is 2 bits.
+                    raise NotImplementedError(
+                        f"Cannot determine page size for TG1={self.tcr_el1['TG1']:02b}"
+                    )
+
+        # Heuristic for reserved TG1 or when TCR_EL1 is not available
         try:
             # Look up the address of a known kernel function.
             addr = pwndbg.aglib.symbol.lookup_symbol_addr("copy_page_to_iter")
-            # Disassemble the function to find a hard-coded page size value.
-            # We are looking for an instruction like 'mov <reg>, #<page_size>'
-            # Common page sizes are 4KB (0x1000), 16KB (0x4000), 64KB (0x10000).
-            page_sizes = {0x1000: 12, 0x4000: 14, 0x10000: 16}
-            # The count=100 disassembles the first 100 instructions. This is a heuristic.
-            for insn in pwndbg.disasm(addr, count=100):
-                if insn.mnemonic == "mov":
-                    # Poor man's operand parsing to avoid false positives like matching #0x1000 in #0x10000
-                    op_parts = insn.op_str.split(",")
-                    if len(op_parts) == 2:
-                        imm_str = op_parts[1].strip()
-                        if imm_str.startswith("#"):
-                            try:
-                                val = int(imm_str.lstrip("#"), 0)
+            if addr:
+                # Disassemble the function to find a hard-coded page size value.
+                # We are looking for an instruction like 'mov <reg>, #<page_size>'
+                # Common page sizes are 4KB (0x1000), 16KB (0x4000), 64KB (0x10000).
+                page_sizes = {0x1000: 12, 0x4000: 14, 0x10000: 16}
+                
+                # mypy doesn't know about pwndbg.disasm, so we use getattr
+                disasm_func = getattr(pwndbg, "disasm")
+                for insn in disasm_func(addr, 100, enhance=False):
+                    if insn.mnemonic == "mov":
+                        for op in insn.operands:
+                            # CS_OP_IMM == 2
+                            if op.type == 2:
+                                val = op.imm
                                 if val in page_sizes:
                                     return page_sizes[val]
-                            except ValueError:
-                                pass
         except Exception:
-            # If the symbol doesn't exist or parsing fails, we fall back to the TG1 logic.
+            # If the symbol doesn't exist or parsing fails, we fall back to the default.
             pass
 
-        if self.tcr_el1 is None:
-            return 12  # Default to 4KB granule
-
-        match self.tcr_el1["TG1"]:
-            case 0b01:
-                return 14  # 16KB granule
-            case 0b10:
-                return 12  # 4KB granule
-            case 0b11:
-                return 16  # 64KB granule
-            case 0b00:
-                # 0b00 is a Reserved value in the ARM TCR_EL1 register for TG1.
-                # According to the ARM Architecture Reference Manual, the hardware
-                # will treat this as an implementation-defined choice of implemented
-                # sizes. We assume the common 4KB page size.
-                # Reference: ARM ARMv8-A, TCR_EL1 register description.
-                return 12
-            case _:
-                # This should be unreachable as TG1 is 2 bits.
-                raise NotImplementedError(
-                    f"Cannot determine page size for TG1={self.tcr_el1['TG1']:02b}"
-                )
+        # According to the ARM Architecture Reference Manual, for a reserved value,
+        # the hardware will treat this as an implementation-defined choice of implemented
+        # sizes. We assume the common 4KB page size.
+        # Reference: ARM ARMv8-A, TCR_EL1 register description.
+        return 12  # Default to 4KB granule
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift_user(self) -> int:
-        if self.tcr_el1 is None:
-            return 12  # Default to 4KB granule
-
-        match self.tcr_el1["TG0"]:
-            case 0b00:
-                return 12  # 4KB granule
-            case 0b01:
-                return 16  # 64KB granule
-            case 0b10:
-                return 14  # 16KB granule
-            case 0b11:
-                # 0b11 is a Reserved value in the ARM TCR_EL1 register for TG0.
-                # Per ARM ARMv8-A, we assume the hardware will choose a default
-                # implemented size, and we assume 4KB.
-                return 12
-            case _:
-                # This should be unreachable as TG0 is 2 bits.
-                raise NotImplementedError(
-                    f"Cannot determine user page size for TG0={self.tcr_el1['TG0']:02b}"
-                )
+        if self.tcr_el1 is not None:
+            match self.tcr_el1["TG0"]:
+                case 0b00:
+                    return 12  # 4KB granule
+                case 0b01:
+                    return 16  # 64KB granule
+                case 0b10:
+                    return 14  # 16KB granule
+                case 0b11:
+                    # 0b11 is a Reserved value, fall back to default
+                    pass
+                case _:
+                    # This should be unreachable as TG0 is 2 bits.
+                    raise NotImplementedError(
+                        f"Cannot determine user page size for TG0={self.tcr_el1['TG0']:02b}"
+                    )
+        
+        # According to the ARM Architecture Reference Manual, for a reserved value,
+        # the hardware will treat this as an implementation-defined choice of implemented
+        # sizes. We assume the common 4KB page size.
+        # Reference: ARM ARMv8-A, TCR_EL1 register description.
+        return 12 # Default to 4KB granule
 
     @property
     @pwndbg.lib.cache.cache_until("forever")
