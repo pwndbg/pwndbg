@@ -1352,7 +1352,12 @@ def try_free(addr: str | int) -> None:
                 )
                 errors_found += 1
 
-            if int(allocator.get_tcache()["counts"][tc_idx]) < int(allocator.mp["tcache_count"]):
+            # May be an array, and tc_idx may be negative, so always cast to a
+            # pointer before we index into it.
+            counts = allocator.get_tcache()["counts"]
+            if int(counts.address.cast(counts.type.target().pointer())[tc_idx]) < int(
+                allocator.mp["tcache_count"]
+            ):
                 print(message.success("Using tcache_put"))
                 if errors_found == 0:
                     returned_before_error = True

@@ -28,73 +28,12 @@ import pwndbg.lib.memory
 
 
 class KernelVmmap:
-    USERLAND = "userland"
-    KERNELLAND = "kernel [.text]"
-    KERNELRO = "kernel [.rodata]"
-    KERNELBSS = "kernel [.bss]"
-    KERNELDRIVER = "kernel [.driver .bpf]"
-    ESPSTACK = "%esp fixup"
-
     def __init__(self, pages: Tuple[pwndbg.lib.memory.Page, ...]):
         self.pages = pages
         self.sections = None
-        if not pwndbg.aglib.kernel.has_debug_syms():
-            return
-        self.kbase = kbase = pwndbg.aglib.kernel.paging.find_kbase(pages)
-        if pwndbg.aglib.arch.name == "x86-64":
-            # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
-            # works for v5.x and v6.x
-            physmap = pwndbg.aglib.kernel.paging.physmap_base()
-            if physmap is None:  # what??
-                return
-            vmalloc = pwndbg.aglib.symbol.lookup_symbol_value("vmalloc_base")
-            vmemmap = pwndbg.aglib.symbol.lookup_symbol_value("vmemmap_base")
-            self.sections = (
-                (self.USERLAND, 0),
-                (None, 0x8000000000000000),
-                ("physmap", physmap),
-                ("vmalloc", vmalloc),
-                ("vmemmap", vmemmap),
-                # TODO: find better ways to handle the following constants
-                #   I cound not find kernel symbols that reference their values
-                #   the actual region base may differ but the region always falls within the below range
-                #   even if KASLR is enabled
-                ("cpu entry", 0xFFFFFE0000000000),
-                ("rand cpu entry", 0xFFFFFE0000001000),
-                (self.ESPSTACK, 0xFFFFFF0000000000),
-                ("EFI", 0xFFFFFFEF00000000),
-                (self.KERNELLAND, kbase),
-                ("fixmap", 0xFFFFFFFFFF000000),
-                ("legacy abi", 0xFFFFFFFFFF600000),
-                (None, 0xFFFFFFFFFFFFFFFF),
-            )
-        if pwndbg.aglib.arch.name == "aarch64":
-            # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
-            # https://elixir.bootlin.com/linux/v6.15/source/arch/arm64/mm/ptdump.c#L351
-            # TODO: I don't think those are necessarily accurate when KASLR is enabled
-            #       but I'm not familiar with ARM enough quite yet to find better ways
-            address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
-            if address_markers is None:
-                return
-            sections = [(self.USERLAND, 0)]
-            value = 0
-            name = None
-            for i in range(20):
-                value = pwndbg.aglib.memory.u64(address_markers + i * 0x10)
-                if value > 0:
-                    name_ptr = pwndbg.aglib.memory.u64(address_markers + i * 0x10 + 8)
-                    name = None
-                    if name_ptr > 0:
-                        name = pwndbg.aglib.memory.string(name_ptr).decode()
-                        name = name.split(" ")[0].lower()
-                        if "end" in name:
-                            name = None
-                        if name == "linear":
-                            name = "physmap"
-                sections.append((name, value))
-                if value == 0xFFFFFFFFFFFFFFFF:
-                    break
-            self.sections = tuple(sections)
+        self.pi = pwndbg.aglib.kernel.arch_paginginfo()
+        if self.pi and pwndbg.aglib.kernel.has_debug_symbols():
+            self.sections = self.pi.markers()
 
     def get_name(self, addr: int) -> str:
         if addr is None or self.sections is None:
@@ -104,32 +43,26 @@ class KernelVmmap:
             _, next = self.sections[i + 1]
             if cur is None or next is None:
                 continue
-            if addr >= cur and addr < next:
+            if cur <= addr < next:
                 return name
         return None
 
     def adjust(self):
+        if self.pi is None or self.pages is None or len(self.pages) == 0:
+            return
         for i, page in enumerate(self.pages):
             name = self.get_name(page.start)
             if name is not None:
                 page.objfile = name
-        user_idx, kernel_idx = None, None
-        for i, page in enumerate(self.pages):
-            if user_idx is None and page.objfile == self.USERLAND:
-                user_idx = i
-            if kernel_idx is None and page.objfile == self.KERNELLAND:
-                kernel_idx = i
-        self.handle_user_pages(user_idx)
-        self.handle_kernel_pages(kernel_idx)
+        self.handle_user_pages()
+        self.pi.handle_kernel_pages(self.pages)
         self.handle_offsets()
 
-    def handle_user_pages(self, user_idx):
-        if user_idx is None:
-            return
-        base_offset = self.pages[user_idx].start
-        for i in range(user_idx, len(self.pages)):
+    def handle_user_pages(self):
+        base_offset = self.pages[0].start
+        for i in range(len(self.pages)):
             page = self.pages[i]
-            if page.objfile != self.USERLAND:
+            if page.objfile != self.pi.USERLAND:
                 break
             diff = page.start - base_offset
             if diff > 0x100000:
@@ -144,32 +77,11 @@ class KernelVmmap:
                 # page.objfile += f"_{hex(i)[2:]}"
                 base_offset = page.start
 
-    def handle_kernel_pages(self, kernel_idx):
-        if kernel_idx is None:
-            return
-        has_loadable_driver = False
-        for i in range(kernel_idx, len(self.pages)):
-            page = self.pages[i]
-            if page.objfile != self.KERNELLAND:
-                break
-            if not page.execute:
-                if page.write:
-                    page.objfile = self.KERNELBSS
-                else:
-                    page.objfile = self.KERNELRO
-            if has_loadable_driver:
-                page.objfile = self.KERNELDRIVER
-            if page.execute and page.start != self.kbase:
-                page.objfile = self.KERNELDRIVER
-                has_loadable_driver = True
-            if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
-                page.objfile = "kernel [stack]"
-
     def handle_offsets(self):
         prev_objfile, base = "", 0
         for page in self.pages:
             # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
-            if page.objfile != self.KERNELRO and prev_objfile != page.objfile:
+            if page.objfile != self.pi.KERNELRO and prev_objfile != page.objfile:
                 prev_objfile = page.objfile
                 base = page.start
             page.offset = page.start - base
@@ -335,6 +247,84 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
 monitor_info_mem_not_warned = True
 
 
+def _parser_mem_info_line_x86(line: str) -> pwndbg.lib.memory.Page | None:
+    """
+    Example response from `info mem`:
+    ```
+    ffff903580000000-ffff903580099000 0000000000099000 -rw
+    ffff903580099000-ffff90358009b000 0000000000002000 -r-
+    ffff90358009b000-ffff903582200000 0000000002165000 -rw
+    ffff903582200000-ffff903582803000 0000000000603000 -r-
+    ```
+    """
+
+    dash_idx = line.index("-")
+    space_idx = line.index(" ")
+    rspace_idx = line.rindex(" ")
+
+    start = int(line[:dash_idx], 16)
+    end = int(line[dash_idx + 1 : space_idx], 16)
+    size = int(line[space_idx + 1 : rspace_idx], 16)
+    perm = line[rspace_idx + 1 :]
+
+    flags = 0
+    if "r" in perm:
+        flags |= 4
+    if "w" in perm:
+        flags |= 2
+    if "x" in perm:
+        flags |= 1
+
+    global monitor_info_mem_not_warned
+    if end - start != size and monitor_info_mem_not_warned:
+        print(
+            M.warn(
+                (
+                    "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                    "that end-start==size failed. The values are:\n"
+                    "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
+                    "Note that this warning will not show up again in this Pwndbg/GDB session."
+                )
+                % (end, start, size, end - start)
+            )
+        )
+        monitor_info_mem_not_warned = False
+
+    return pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>")
+
+
+def _parser_mem_info_line_riscv64(line: str) -> pwndbg.lib.memory.Page | None:
+    """
+    Example response from `info mem`:
+    ```
+    vaddr            paddr            size             attr
+    ---------------- ---------------- ---------------- -------
+    0000000000010000 00000000feece000 0000000000001000 r-xu-a-
+    0000000000011000 00000000fefeb000 0000000000002000 r-xu-a-
+    0000000000013000 00000000a0a7a000 0000000000002000 r-xu-a-
+    0000000000015000 00000000bfe02000 0000000000002000 r-xu-a-
+    ```
+    """
+
+    arr = line.split(" ", 3)
+    if len(arr) != 4:
+        raise ValueError("invalid line format")
+
+    start, _, size, perm = arr
+    start = int(start, 16)
+    size = int(size, 16)
+
+    flags = 0
+    if "r" in perm:
+        flags |= 4
+    if "w" in perm:
+        flags |= 2
+    if "x" in perm:
+        flags |= 1
+
+    return pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>")
+
+
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
@@ -347,13 +337,6 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     See also: https://github.com/pwndbg/pwndbg/pull/685
     (TODO: revisit with future QEMU versions)
-
-    # Example output from the command:
-    # pwndbg> monitor info mem
-    # ffff903580000000-ffff903580099000 0000000000099000 -rw
-    # ffff903580099000-ffff90358009b000 0000000000002000 -r-
-    # ffff90358009b000-ffff903582200000 0000000002165000 -rw
-    # ffff903582200000-ffff903582803000 0000000000603000 -r-
     """
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
@@ -362,66 +345,35 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
         monitor_info_mem = pwndbg.dbg.selected_inferior().send_monitor("info mem")
     except pwndbg.dbg_mod.Error:
         # Exception should not happen in new qemu, can we clean up it?
-        monitor_info_mem = None
-
-    is_error = monitor_info_mem is None or "unknown command" in monitor_info_mem
-    if is_error:
         # Older versions of QEMU/GDB may throw `gdb.error: "monitor" command
         # not supported by this target`. Newer versions will not throw, but will
-        # return a string starting with 'unknown command:'. We handle both of
-        # these cases in a `finally` block instead of an `except` block.
-        # TODO: Find out which other architectures don't support this command
-        if pwndbg.aglib.arch.name == "aarch64":
-            print(
-                M.error(
-                    f"The {pwndbg.aglib.arch.name} architecture does"
-                    " not support the `monitor info mem` command.\n"
-                    "Run `help show kernel-vmmap` for other options."
-                )
+        # return a string starting with 'unknown command:'.
+        monitor_info_mem = "unknown command"
+
+    parser_func = None
+    if pwndbg.aglib.arch.name in ("i386", "x86-64"):
+        parser_func = _parser_mem_info_line_x86
+    elif pwndbg.aglib.arch.name == "rv64":
+        parser_func = _parser_mem_info_line_riscv64
+
+    if parser_func is None or "unknown command" in monitor_info_mem:
+        print(
+            M.error(
+                f"The {pwndbg.aglib.arch.name} architecture does"
+                " not support the `monitor info mem` command.\n"
+                "Run `help show kernel-vmmap` for other options."
             )
+        )
         return ()
 
-    lines = monitor_info_mem.splitlines()
-
-    # Handle disabled PG
-    # This will prevent a crash on abstract architectures
-    if len(lines) == 1 and lines[0] == "PG disabled":
-        return ()
-
-    global monitor_info_mem_not_warned
     pages: List[pwndbg.lib.memory.Page] = []
-    for line in lines:
-        dash_idx = line.index("-")
-        space_idx = line.index(" ")
-        rspace_idx = line.rindex(" ")
-
-        start = int(line[:dash_idx], 16)
-        end = int(line[dash_idx + 1 : space_idx], 16)
-        size = int(line[space_idx + 1 : rspace_idx], 16)
-        if end - start != size and monitor_info_mem_not_warned:
-            print(
-                M.warn(
-                    (
-                        "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
-                        "that end-start==size failed. The values are:\n"
-                        "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
-                        "Note that this warning will not show up again in this Pwndbg/GDB session."
-                    )
-                    % (end, start, size, end - start)
-                )
-            )
-            monitor_info_mem_not_warned = False
-        perm = line[rspace_idx + 1 :]
-
-        flags = 0
-        if "r" in perm:
-            flags |= 4
-        if "w" in perm:
-            flags |= 2
-        if len(perm) == 4:  # if the qemu version displays if the page is executable
-            if "x" in perm:
-                flags |= 1
-        pages.append(pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>"))
+    for line in monitor_info_mem.splitlines():
+        try:
+            page = parser_func(line)
+        except Exception:
+            # invalid format
+            continue
+        pages.append(page)
 
     return tuple(pages)
 
@@ -462,17 +414,19 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
         pages = kernel_vmmap_via_page_tables()
     elif kernel_vmmap_mode == "monitor":
         pages = kernel_vmmap_via_monitor_info_mem()
-        if process_pages and pwndbg.aglib.arch.name == "x86-64":
-            # TODO: check version here when QEMU displays the x bit for x64
-            for page in pages:
-                pgwalk_res = pwndbg.aglib.kernel.paging.pagewalk(page.start)
-                entry, vaddr = pgwalk_res[0]
-                if entry and entry >> 63 == 0:
-                    page.flags |= 1
     if pages is None:
         return ()
     if process_pages:
         kv = KernelVmmap(pages)
         kv.adjust()
+        if kernel_vmmap_mode == "monitor" and pwndbg.aglib.arch.name == "x86-64":
+            # TODO: check version here when QEMU displays the x bit for x64
+            for page in pages:
+                if page.objfile == kv.pi.ESPSTACK:
+                    continue
+                _, pgwalk_res = pwndbg.aglib.kernel.pagewalk(page.start)
+                entry, _ = pgwalk_res[0]
+                if entry and entry >> 63 == 0:
+                    page.flags |= 1
 
     return tuple(pages)

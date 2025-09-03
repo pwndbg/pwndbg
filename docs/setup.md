@@ -20,9 +20,8 @@ Install via the Nix package manager (Linux/macOS)
 ```{.bash .copy}
 nix shell github:pwndbg/pwndbg
 ```
-### Through package manager
+### Official Pwndbg packages
 When installing with GDB, you may also download a package to install through your package manager of choice. Download the package from the [releases page](https://github.com/pwndbg/pwndbg/releases) and pick the appropriate download from the second table.
-
 
 RPM-based Systems (CentOS/Alma/Rocky/RHEL):
 ```{.bash .copy}
@@ -40,6 +39,25 @@ Arch Linux:
 ```{.bash .copy}
 pacman -U ./pwndbg-2025.05.30-1-x86_64.pkg.tar.zst
 ```
+### Distro packages
+You may want to install Pwndbg through your distribution's package manager. This installation method is **not officially supported** because we cannot control the versions of the python dependencies Pwndbg uses in this case. Please use any other installation method when reproducing bug reports (portable package is probably simplest in this case). If a bug reproduces with a distro package but not with any of the supported installation methods, please report it to the package maintainer; if the problem cannot be fixed, let us know and we will add it to a list of known issues below.
+
+=== "Arch"
+    ```{.bash .copy}
+    sudo pacman -S pwndbg
+    ```
+    You will also need to source Pwndbg from your `~/.gdbinit`. Add this line to the beginning of that file:
+    ```{.bash .copy}
+    source /usr/share/pwndbg/gdbinit.py
+    ```
+    Pwndbg will be started every time you invoke `gdb` now.
+
+=== "Gentoo"
+    ```{.bash .copy}
+    sudo emerge --ask dev-debug/pwndbg
+    ```
+
+----
 
 ## Installing pwndbg-lldb
 These installation methods provide the
@@ -75,6 +93,22 @@ or
 ./pwndbg/bin/pwndbg-lldb
 ```
 depending on which version you installed. You may add the appropriate file to your shell's PATH.
+
+### Removing Quarantine Flags (macOS)
+
+When first setting up the portable version of Pwndbg in macOS, Gatekeeper will normally try to prevent
+any code in the extracted files from running until the user explicitly allows each file to be run.
+As we ship many files which would require this, the process of manually granting permission for each
+one to be run can get quite tiresome.
+
+In order to do this to all files at once, you may choose to run the following command, which removes
+the quarantine flag from all extracted files at once:
+
+```{.bash .copy}
+xattr -rd com.apple.quarantine pwndbg
+```
+
+Assuming that the files were extracted to a folder called `pwndbg`.
 
 ## Installing from source
 See [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section.

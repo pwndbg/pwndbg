@@ -6,11 +6,12 @@ import gdb
 import pytest
 
 import pwndbg.aglib.proc
-import tests
 
-GAPS_MAP_BINARY = tests.get_binary("mmap_gaps.out")
-CRASH_SIMPLE_BINARY = tests.get_binary("crash_simple.out.hardcoded")
-BINARY_ISSUE_1565 = tests.get_binary("issue_1565.out")
+from . import get_binary
+
+GAPS_MAP_BINARY = get_binary("mmap_gaps.out")
+CRASH_SIMPLE_BINARY = get_binary("crash_simple.out.hardcoded")
+BINARY_ISSUE_1565 = get_binary("issue_1565.out")
 
 
 def get_proc_maps():

@@ -3,10 +3,9 @@
 
 ```text
 usage: search [-h] [-t {byte,short,word,dword,qword,pointer,string,bytes,asm}]
-              [-1] [-2] [-4] [-8] [-p] [--asm]
-              [--arch {powerpc64,aarch64,powerpc,riscv32,riscv64,sparc64,mips64,msp430,alpha,amd64,sparc,thumb,cris,i386,ia64,m68k,mips,s390,none,avr,arm,vax}]
-              [--asmbp] [-x] [-e] [-w] [-s STEP] [-l LIMIT] [-a ALIGNED]
-              [--save] [--no-save] [-n] [--trunc-out]
+              [-1] [-2] [-4] [-8] [-p] [--asm] [--asmbp] [-x] [-e] [-w]
+              [-s STEP] [-l LIMIT] [-a ALIGNED] [--save] [--no-save] [-n]
+              [--trunc-out]
               value [mapping_name]
 
 ```
@@ -33,7 +32,6 @@ By default search results are cached. If you want to cache all results, but only
 |-8|--qword|Search for an 8-byte integer|
 |-p|--pointer|Search for a pointer-width integer|
 ||--asm|Search for an assembly instruction|
-||--arch|Target architecture|
 ||--asmbp|Set breakpoint for found assembly instruction|
 |-x|--hex|Target is a hex-encoded (for bytes/strings)|
 |-e|--executable|Search executable segments only|

@@ -27,12 +27,14 @@ class BitFlags:
     #   - aarch64_sctlr_flags is used for "sctlr", "sctlr_el2", "sctlr_el3"
     regname: str
     flags: OrderedDict[str, Union[int, Tuple[int, int]]]
+    value: int
 
-    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
+    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = [], value=None):
         self.regname = ""
         self.flags = {}
         for name, bits in flags:
             self.flags[name] = bits
+        self.value = value
 
     def __getattr__(self, name):
         if name in {"regname"}:
@@ -40,7 +42,11 @@ class BitFlags:
         return getattr(self.flags, name)
 
     def __getitem__(self, key):
-        return self.flags[key]
+        r = self.flags[key]
+        if isinstance(r, int):
+            return (self.value >> r) & 1
+        s, e = r
+        return ((~((1 << s) - 1) & ((1 << (e + 1)) - 1)) & self.value) >> s
 
     def __setitem__(self, key, value):
         self.flags[key] = value
@@ -479,7 +485,7 @@ aarch64_cpsr_flags = BitFlags(
         ("A", 8),
         ("I", 7),
         ("F", 6),
-        ("EL", (2, 2)),
+        ("EL", 2),
         ("SP", 0),
     ]
 )
@@ -522,6 +528,15 @@ aarch64_sctlr_flags = BitFlags(
         ("C", 2),
         ("A", 1),
         ("M", 0),
+    ]
+)
+
+aarch64_tcr_flags = BitFlags(
+    [
+        ("TG1", (30, 31)),
+        ("T1SZ", (16, 21)),
+        ("TG0", (14, 15)),
+        ("T0SZ", (0, 5)),
     ]
 )
 
@@ -583,7 +598,7 @@ armcm = RegisterSet(
 
 # AArch64 has a PSTATE register, but GDB represents it as the CPSR register
 aarch64 = RegisterSet(
-    retaddr=(Reg("lr", 8),),
+    retaddr=(Reg("lr", 8),), # x30
     flags={"cpsr": aarch64_cpsr_flags},
     extra_flags={
         "scr_el3": aarch64_scr_flags,
@@ -593,12 +608,11 @@ aarch64 = RegisterSet(
         "spsr_el1": aarch64_cpsr_flags,
         "spsr_el2": aarch64_cpsr_flags,
         "spsr_el3": aarch64_cpsr_flags,
+        "tcr_el1": aarch64_tcr_flags,
+        "ttbr0_el1": BitFlags(),
+        "ttbr1_el1": BitFlags(),
     },
-    # X29 is the frame pointer register (FP) but setting it
-    # as frame here messes up the register order to the point
-    # it's confusing. Think about improving this if frame
-    # pointer semantics are required for other functionalities.
-    # frame   = 'x29',
+    frame=Reg("fp", 8, subregisters=(Reg("w29", 4, zero_extend_writes=True),)), # x29
     gpr=(
         Reg("x0", 8, subregisters=(Reg("w0", 4, zero_extend_writes=True),)),
         Reg("x1", 8, subregisters=(Reg("w1", 4, zero_extend_writes=True),)),
@@ -629,7 +643,7 @@ aarch64 = RegisterSet(
         Reg("x26", 8, subregisters=(Reg("w26", 4, zero_extend_writes=True),)),
         Reg("x27", 8, subregisters=(Reg("w27", 4, zero_extend_writes=True),)),
         Reg("x28", 8, subregisters=(Reg("w28", 4, zero_extend_writes=True),)),
-        Reg("x29", 8, subregisters=(Reg("w29", 4, zero_extend_writes=True),)),
+        # Note: x29 is FP (frame) and x30 is LR (retaddr) register
     ),
     args=("x0", "x1", "x2", "x3"),
     retval="x0",

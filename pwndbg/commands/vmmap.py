@@ -179,6 +179,12 @@ parser.add_argument(
 parser.add_argument("-w", "--writable", action="store_true", help="Display writable maps only")
 parser.add_argument("-x", "--executable", action="store_true", help="Display executable maps only")
 parser.add_argument(
+    "-s",
+    "--expand-shared-cache",
+    action="store_true",
+    help="Expand all entries in the DYLD Shared Cache (Darwin only)",
+)
+parser.add_argument(
     "-A", "--lines-after", type=int, help="Number of pages to display after result", default=1
 )
 parser.add_argument(
@@ -206,6 +212,7 @@ def vmmap(
     lines_before=1,
     context=None,
     gaps=False,
+    expand_shared_cache=False,
 ) -> None:
     lookaround_lines_limit = 64
 
@@ -217,7 +224,7 @@ def vmmap(
         lines_before = min(lookaround_lines_limit, lines_before)
 
     # All displayed pages, including lines after and lines before
-    vmmap = pwndbg.dbg.selected_inferior().vmmap()
+    vmmap = pwndbg.aglib.vmmap.get_memory_map()
     total_pages = vmmap.ranges()
 
     # Filtered memory pages, indicated by a backtrace arrow in results
@@ -225,6 +232,9 @@ def vmmap(
 
     # Only filter when -A and -B arguments are valid
     if gdbval_or_str and lines_after >= 0 and lines_before >= 0:
+        # Always expand shared cache on detailed output.
+        expand_shared_cache = True
+
         # Find matching page in memory
         filtered_pages = list(filter(pages_filter(gdbval_or_str), total_pages))
         pages_to_display = []
@@ -264,9 +274,39 @@ def vmmap(
     print(M.legend())
     print_vmmap_table_header()
 
+    shared_cache_first = None
+    shared_cache_last = None
+    shared_cache_collapsed = 0
+
+    def flush_shared_cache_info():
+        nonlocal shared_cache_first
+        nonlocal shared_cache_last
+        if shared_cache_last is not None:
+            print(
+                pwndbg.lib.memory.format_address(
+                    shared_cache_first.start,
+                    shared_cache_last.end - shared_cache_first.start,
+                    "---p",
+                    shared_cache_first.offset,
+                    "[DYLD Shared Cache]",
+                )
+            )
+
+            shared_cache_first = None
+            shared_cache_last = None
+
     for page in total_pages:
         if (executable and not page.execute) or (writable and not page.write):
             continue
+
+        # Omit ranges from the shared cache if requested.
+        if page is not None and page.in_darwin_shared_cache and not expand_shared_cache:
+            if shared_cache_first is None:
+                shared_cache_first = page
+            shared_cache_last = page
+            shared_cache_collapsed += 1
+            continue
+        flush_shared_cache_info()
 
         backtrace_prefix = None
         display_text = str(page)
@@ -280,6 +320,13 @@ def vmmap(
                 display_text = str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)
 
         print(M.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
+
+    flush_shared_cache_info()
+    if shared_cache_collapsed > 0:
+        print(
+            f"[Omitted {shared_cache_collapsed} {'entry' if shared_cache_collapsed == 1 else 'entries'} from the DYLD Shared Cache in total, use '-s' to expand]"
+        )
+        shared_cache_collapsed = 0
 
     if vmmap.is_qemu():
         print(

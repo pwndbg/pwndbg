@@ -168,7 +168,7 @@ def _ida_local(name: str) -> int | None:
         offset = pwndbg.integration.ida.GetMemberOffset(frame_id, local_name)
         if offset == -1:
             raise ValueError("ida.GetMemberOffset(%r) == -1" % local_name)
-        if saved_baseptr != -1:
+        if saved_baseptr != -1 and pwndbg.aglib.regs.frame is not None:
             return pwndbg.aglib.regs[pwndbg.aglib.regs.frame] + offset - saved_baseptr
         return pwndbg.aglib.regs[pwndbg.aglib.regs.stack] + offset
     return None

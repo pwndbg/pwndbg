@@ -348,6 +348,28 @@ Color for disasm (branch/call instruction).
 
 ----------
 
+## **disasm-branch-off**
+
+
+Marker for branches that will NOT be taken.
+
+
+
+**Default:** '✘'  
+
+----------
+
+## **disasm-branch-on**
+
+
+Marker for branches that WILL be taken.
+
+
+
+**Default:** '✔'  
+
+----------
+
 ## **enhance-comment-color**
 
 
@@ -939,6 +961,45 @@ Prompt color.
 
 
 **Default:** 'bold,red'  
+
+----------
+
+## **prop-name-color**
+
+
+Color used to highlight the name in name-value pairs.
+
+
+Used heavily in mallocng commands.
+
+
+**Default:** 'bold'  
+
+----------
+
+## **prop-title-color**
+
+
+Color used to highlight the title of name-value pair groups.
+
+
+Used heavily in mallocng commands.
+
+
+**Default:** 'green'  
+
+----------
+
+## **prop-value-color**
+
+
+Color used to highlight the value in name-value pairs.
+
+
+Used heavily in mallocng commands.
+
+
+**Default:** 'yellow'  
 
 ----------
 

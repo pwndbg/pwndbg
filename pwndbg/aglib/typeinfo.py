@@ -52,7 +52,7 @@ def lookup_types(*types: str) -> pwndbg.dbg_mod.Type:
         if len(t) > 0:
             return t[0]
 
-    raise RuntimeError(f"no type available among {types}")
+    return None
 
 
 def update() -> None:

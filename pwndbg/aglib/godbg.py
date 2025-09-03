@@ -40,7 +40,9 @@ indent_amount = pwndbg.config.add_param(
 )
 
 debug_color = theme.add_color_param(
-    "go-dump-debug", "blue", "color for 'go-dump' command's debug info when --debug is specified"
+    "go-dump-debug",
+    "blue",
+    "color for 'go-dump' command's debug info when --debug is specified",
 )
 
 
@@ -49,11 +51,49 @@ def word_size() -> int:
     """
     Gets the Go word size for the current architecture.
 
-    Values taken from https://github.com/golang/go/blob/20b79fd5775c39061d949569743912ad5e58b0e7/src/go/types/sizes.go#L233-L252
+    Values taken from https://github.com/golang/go/blob/49cdf0c42e320dfed044baa551610f081eafb781/src/cmd/compile/internal/types2/sizes.go#L230-L249
     """
-    return {"i386": 4, "x86-64": 8, "aarch64": 8, "arm": 4, "rv64": 8, "powerpc": 8, "sparc": 8}[
-        pwndbg.aglib.arch.name
-    ]
+    return {
+        "x86-64": 8,
+        "i386": 4,
+        # Go cannot target i8086
+        "arm": 4,
+        # Go cannot target armcm
+        "aarch64": 8,
+        "powerpc": 8,
+        "sparc": 8,
+        # Go cannot target rv32 (but gccgo can)
+        "rv64": 8,
+        "mips": pwndbg.aglib.arch.ptrsize,  # pwndbg uses mips for both 32 and 64 bit
+        "loongarch64": 8,
+        "s390x": 8,
+    }[pwndbg.aglib.arch.name]
+
+
+@pwndbg.lib.cache.cache_until("start", "stop", "objfile")
+def max_align() -> int:
+    """
+    Gets the Go maximum alignment for the current architecture.
+
+    Values taken from https://github.com/golang/go/blob/49cdf0c42e320dfed044baa551610f081eafb781/src/cmd/compile/internal/types2/sizes.go#L230-L249
+    """
+    # Note: gccgo has max alignment 8 for arm and mips, which is different from the default compiler
+    # Currently, no attempt is made to support gccgo, but it may be worth pursuing in the future
+    return {
+        "x86-64": 8,
+        "i386": 4,
+        # Go cannot target i8086
+        "arm": 4,
+        # Go cannot target armcm
+        "aarch64": 8,
+        "powerpc": 8,
+        "sparc": 8,
+        # Go cannot target rv32 (but gccgo can)
+        "rv64": 8,
+        "mips": pwndbg.aglib.arch.ptrsize,  # pwndbg uses mips for both 32 and 64 bit
+        "loongarch64": 8,
+        "s390x": 8,
+    }[pwndbg.aglib.arch.name]
 
 
 def _align(offset: int, n: int) -> int:
@@ -91,6 +131,7 @@ def compute_named_offsets(fields: Iterable[Tuple[str, int, int]]) -> Dict[str, i
     """
     offsets = compute_offsets([f[1:] for f in fields])
     ret = dict(zip([f[0] for f in fields] + ["$size"], offsets))
+    ret["$align"] = max(f[2] for f in fields)
     return ret
 
 
@@ -160,6 +201,15 @@ class Type(ABC):
     def size(self) -> int:
         """
         Returns the size of a type in bytes.
+
+        Used for computing array and struct layouts.
+        """
+        pass
+
+    @abstractmethod
+    def align(self) -> int:
+        """
+        Returns the alignment of a type in bytes.
 
         Used for computing array and struct layouts.
         """
@@ -269,7 +319,8 @@ def get_go_version() -> Tuple[int, ...] | None:
         if elf is None:
             return None
         buildinfo = next(
-            (cast(int, s["sh_addr"]) for s in elf.sections if s["x_name"] == ".go.buildinfo"), None
+            (cast(int, s["sh_addr"]) for s in elf.sections if s["x_name"] == ".go.buildinfo"),
+            None,
         )
         # again, could do linear search
         if buildinfo is None:
@@ -324,7 +375,8 @@ def _guess_moduledata_types() -> int | None:
     elf = get_elf()
     if elf is not None:
         addr = next(
-            (cast(int, x["sh_addr"]) for x in elf.sections if x["x_name"] == ".rodata"), None
+            (cast(int, x["sh_addr"]) for x in elf.sections if x["x_name"] == ".rodata"),
+            None,
         )
         return addr
     return None
@@ -459,6 +511,11 @@ class BackrefType(Type):
             f"Cannot get size of placeholder type {type(self).__name__}. Perhaps the type is ill-formed? (e.g. struct that contains itself without indirection)"
         )
 
+    def align(self) -> int:
+        raise NotImplementedError(
+            f"Cannot get alignment of placeholder type {type(self).__name__}. Perhaps the type is ill-formed? (e.g. struct that contains itself without indirection)"
+        )
+
     def get_typename(self) -> str:
         if self.meta:
             return f"runtime({self.meta.size}){self.meta.addr:#x}"
@@ -566,7 +623,12 @@ def _inner_decode_runtime_type(
     size = load(offsets["Size_"], word)
     align = load(offsets["Align_"], 1)
     meta = GoTypeMeta(
-        name, kind, addr, size=size, align=align, direct_iface=(kind_raw & (1 << 5)) != 0
+        name,
+        kind,
+        addr,
+        size=size,
+        align=align,
+        direct_iface=(kind_raw & (1 << 5)) != 0,
     )
     cache[addr] = (meta, BackrefType(meta, addr))
     simple_name = kind.get_simple_name()
@@ -602,7 +664,10 @@ def _inner_decode_runtime_type(
                     info.append(f"Argument {i}{suffix}:")
                 else:
                     info.append(f"Return value {i - in_count}:")
-                info += [f"    Type name: {ty_meta.name}", f"    Type addr: {ty_ptr:#x}"]
+                info += [
+                    f"    Type name: {ty_meta.name}",
+                    f"    Type addr: {ty_ptr:#x}",
+                ]
             return (meta, BasicType(meta, "funcptr", info))
         elif kind == GoTypeKind.ARRAY:
             elem_ty_ptr = load(offsets["$size"], word)
@@ -616,7 +681,10 @@ def _inner_decode_runtime_type(
             if methods_count == 0:
                 return (meta, BasicType(meta, "any"))
             elif type_start is None:
-                return (meta, BasicType(meta, "interface", [f"Method count: {methods_count}"]))
+                return (
+                    meta,
+                    BasicType(meta, "interface", [f"Method count: {methods_count}"]),
+                )
             else:
                 info = []
                 methods_ptr = load(offsets["$size"] + word, word)
@@ -687,10 +755,9 @@ def _inner_decode_runtime_type(
                     field_ty = field_meta.name
                 fields.append((field_name, field_ty, field_off))
             fields.sort(key=lambda f: f[2])
-            sz = load(offsets["Size_"], word)
             return (
                 meta,
-                StructType(meta, fields, sz, None if name.startswith("struct ") else name),
+                StructType(meta, fields, size, align, None if name.startswith("struct ") else name),
             )
         else:
             # currently channels and functions are unsupported
@@ -718,6 +785,7 @@ class BasicType(Type):
 
     name: str
     sz: int = dataclasses.field(init=False)
+    algn: int = dataclasses.field(init=False)
     extra_meta: List[str] = dataclasses.field(default_factory=list)
 
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
@@ -791,6 +859,9 @@ class BasicType(Type):
     def size(self) -> int:
         return self.sz
 
+    def align(self) -> int:
+        return min(self.algn, max_align())
+
     def get_typename(self) -> str:
         return self.name
 
@@ -801,20 +872,28 @@ class BasicType(Type):
         ty = self.name
         if ty in ("int8", "uint8", "bool", "byte"):
             self.sz = 1
+            self.algn = 1
         elif ty in ("int16", "uint16"):
             self.sz = 2
+            self.algn = 2
         elif ty in ("int32", "uint32", "float32", "rune"):
             self.sz = 4
+            self.algn = 4
         elif ty in ("int64", "uint64", "float64", "complex64"):
             self.sz = 8
+            self.algn = 8
         elif ty == "complex128":
             self.sz = 16
+            self.algn = 8
         elif ty in ("int", "uint", "uintptr", "funcptr"):
             self.sz = word_size()
+            self.algn = word_size()
         elif ty == "string":
             self.sz = word_size() * 2
+            self.algn = word_size()
         elif ty in ("any", "interface"):
             self.sz = word_size() * 2
+            self.algn = word_size()
         else:
             raise ValueError(
                 f"Type {ty} is unknown. Use type hexdump[n] for an unknown type of size n."
@@ -849,6 +928,9 @@ class SliceType(Type):
     def size(self) -> int:
         return word_size() * 3
 
+    def align(self) -> int:
+        return word_size()
+
     def get_typename(self) -> str:
         return f"[]{self.inner}"
 
@@ -880,6 +962,9 @@ class PointerType(Type):
 
     def size(self) -> int:
         return word_size()
+
+    def align(self) -> int:
+        return min(word_size(), max_align())
 
     def get_typename(self) -> str:
         return f"*{self.inner}"
@@ -920,6 +1005,9 @@ class ArrayType(Type):
     def size(self) -> int:
         return self.inner.size() * self.count
 
+    def align(self) -> int:
+        return self.inner.align()
+
     def get_typename(self) -> str:
         return f"[{self.count}]{self.inner}"
 
@@ -941,29 +1029,34 @@ class MapType(Type):
     Note that maps in Go are actually pointers to the inner map,
     but the map type printer here directly prints the inner map.
 
-    Maps don't have a simple layout, and may reasonably change,
-    but the last change was in 2017, so it probably won't.
-
-    The layout assumed is as follows (taken from src/runtime/map.go commit 1b4f1dc):
-
-    type hmap struct {
-        count      int
-        flags      uint8
-        B          uint8
-        noverflow  uint16
-        hash0      uint32
-        buckets    unsafe.Pointer
-        oldbuckets unsafe.Pointer
-        nevacuate  uintptr
-        extra      *mapextra
-    }
+    Maps don't have a simple layout, and may reasonably change.
     """
 
     key: Type
     val: Type
 
     @staticmethod
-    def field_offsets() -> Dict[str, int]:
+    def is_swiss() -> bool:
+        vers = get_go_version()
+        return vers is None or vers >= (1, 24)
+
+    @staticmethod
+    def field_offsets_noswiss() -> Dict[str, int]:
+        """
+        The layout for pre-1.24 maps is as follows (taken from src/runtime/map.go commit 1b4f1dc):
+
+        type hmap struct {
+            count      int
+            flags      uint8
+            B          uint8
+            noverflow  uint16
+            hash0      uint32
+            buckets    unsafe.Pointer
+            oldbuckets unsafe.Pointer
+            nevacuate  uintptr
+            extra      *mapextra
+        }
+        """
         word = word_size()
         offsets = compute_named_offsets(
             [
@@ -980,10 +1073,92 @@ class MapType(Type):
         )
         return offsets
 
-    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
+    @staticmethod
+    def field_offsets_swiss() -> Dict[str, int]:
+        """
+        The layout for post-1.24 maps is as follows (taken from src/internal/runtime/map.go commit 4e63ae4):
+
+        type Map struct {
+            used              uint64
+            seed              uintptr
+            dirPtr            unsafe.Pointer
+            dirLen            int
+            globalDepth       uint8
+            globalShift       uint8
+            writing           uint8
+            tombstonePossible bool
+            clearSeq          uint64
+        }
+        """
+        word = word_size()
+        offsets = compute_named_offsets(
+            [
+                ("used", 8, 8),  # uint64
+                ("seed", word, word),  # uintptr
+                ("dirPtr", word, word),  # unsafe.Pointer
+                ("dirLen", word, word),  # int
+                ("globalDepth", 1, 1),  # uint8
+                ("globalShift", 1, 1),  # uint8
+                ("writing", 1, 1),  # uint8
+                ("tombstonePossible", 1, 1),  # bool
+                ("clearSeq", 8, 8),  # uint64
+            ]
+        )
+        return offsets
+
+    @staticmethod
+    def field_offsets_swiss_inner() -> Dict[str, int]:
+        """
+        The layout for the inner swissmap is as follows (taken from src/internal/runtime/maps/table.go commit 4e63ae4):
+
+        type table struct {
+            used       uint16
+            capacity   uint16
+            growthLeft uint16
+            localDepth uint8
+            index      int
+            groups     groupsReference
+        }
+        """
+        word = word_size()
+        offsets = compute_named_offsets(
+            [
+                ("used", 2, 2),  # uint16
+                ("capacity", 2, 2),  # uint16
+                ("growthLeft", 2, 2),  # uint16
+                ("localDepth", 1, 1),  # uint8
+                ("index", word, word),  # uint8
+                ("groups", 16, 8),  # groupsReference
+            ]
+        )
+        return offsets
+
+    @classmethod
+    def field_offsets(cls) -> Dict[str, int]:
+        if cls.is_swiss():
+            return cls.field_offsets_swiss()
+        else:
+            return cls.field_offsets_noswiss()
+
+    @staticmethod
+    def format_entries(
+        entries: List[Tuple[int, int, str, str]], fmt: FormatOpts = FormatOpts()
+    ) -> str:
+        # sort map by key, using integer comparison if possible
+        try:
+            entries.sort(key=lambda t: int(t[2], 0))
+        except ValueError:
+            entries.sort(key=lambda t: t[2])
+        formatted = []
+        for kp, vp, k, v in entries:
+            prefix = fmt.fmt_debug(f"(key @ {kp:#x}, val @ {vp:#x}) ")
+            formatted.append(f"{prefix}{k}: {v}")
+        return f"{{{fmt.fmt_elems(formatted)}}}"
+
+    def dump_noswiss(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         bucket_count = 8  # taken from src/internal/abi/map.go commit 1b4f1dc
         word = word_size()
-        offsets = self.field_offsets()
+        offsets = self.field_offsets_noswiss()
         val = pwndbg.aglib.memory.read(addr, offsets["$size"])
         load = lambda off, sz: load_uint(val[off : off + sz])
         num_buckets = 1 << load(offsets["B"], 1)
@@ -1020,19 +1195,60 @@ class MapType(Type):
                         v = self.val.dump(val_ptr, fmt)
                         ret.append((key_ptr, val_ptr, k, v))
                 bucket_ptr = load_uint(bucket[overflow_start : overflow_start + word])
-        # sort map by key, using integer comparison if possible
-        try:
-            ret.sort(key=lambda t: int(t[2], 0))
-        except ValueError:
-            ret.sort(key=lambda t: t[2])
-        formatted = []
-        for kp, vp, k, v in ret:
-            prefix = fmt.fmt_debug(f"(key @ {kp:#x}, val @ {vp:#x}) ")
-            formatted.append(f"{prefix}{k}: {v}")
-        return f"{{{fmt.fmt_elems(formatted)}}}"
+        return self.format_entries(ret, fmt)
+
+    def dump_swiss(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
+        word = word_size()
+        offsets = self.field_offsets_swiss()
+        dir_ptr = load_uint(pwndbg.aglib.memory.read(addr + offsets["dirPtr"], word))
+        dir_len = load_uint(pwndbg.aglib.memory.read(addr + offsets["dirLen"], word))
+        slot_offsets = compute_named_offsets(
+            [
+                ("key", self.key.size(), self.key.align()),
+                ("elem", self.val.size(), self.val.align()),
+            ]
+        )
+        group_offsets = compute_named_offsets(
+            [("ctrls", 8, 8), ("slots", slot_offsets["$size"] * 8, slot_offsets["$align"])]
+        )
+        if dir_len == 0:
+            groups = [dir_ptr]
+        else:
+            table_ptrs = pwndbg.aglib.memory.read(dir_ptr, word * dir_len)
+            tables = [load_uint(table_ptrs[i * word : i * word + word]) for i in range(dir_len)]
+            table_offsets = self.field_offsets_swiss_inner()
+            groups = []
+            for table in tables:
+                groups_ref = pwndbg.aglib.memory.read(table + table_offsets["groups"], 16)
+                group_base = load_uint(groups_ref[:word])
+                group_count = load_uint(groups_ref[8:]) + 1
+                for _ in range(group_count):
+                    groups.append(group_base)
+                    group_base += group_offsets["$size"]
+        ret = []
+        for group_base in groups:
+            group = pwndbg.aglib.memory.read(group_base, group_offsets["$size"])
+            for i in range(8):
+                if group[i] & 0x80 == 0:
+                    off = 8 + slot_offsets["$size"] * i
+                    key_ptr = group_base + off + slot_offsets["key"]
+                    val_ptr = group_base + off + slot_offsets["elem"]
+                    k = self.key.dump(key_ptr, fmt)
+                    v = self.val.dump(val_ptr, fmt)
+                    ret.append((key_ptr, val_ptr, k, v))
+        return self.format_entries(ret, fmt)
+
+    def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
+        if self.is_swiss():
+            return self.dump_swiss(addr, fmt)
+        else:
+            return self.dump_noswiss(addr, fmt)
 
     def size(self) -> int:
         return self.field_offsets()["$size"]
+
+    def align(self) -> int:
+        return min(8, max_align())
 
     def get_typename(self) -> str:
         return f"map[{self.key}]{self.val}"
@@ -1062,6 +1278,7 @@ class StructType(Type):
 
     fields: List[Tuple[str, Type | str, int]]
     sz: int
+    algn: int | None = None
     name: str | None = None
 
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
@@ -1079,6 +1296,13 @@ class StructType(Type):
     def size(self) -> int:
         return self.sz
 
+    def align(self) -> int:
+        if self.algn is None:
+            return max(
+                (ty.align() for (_, ty, _) in self.fields if isinstance(ty, Type)), default=1
+            )
+        return self.algn
+
     def get_typename(self) -> str:
         body = ";".join(
             f"{off}:{name}:{ty}" for (name, ty, off) in self.fields if not isinstance(ty, str)
@@ -1089,7 +1313,11 @@ class StructType(Type):
         ret = []
         for name, ty, off in self.fields:
             if isinstance(ty, str) or not ty.meta:
-                ret += [f"Field {name}:", f"    Offset: {off} ({off:#x})", f"    Type: {ty}"]
+                ret += [
+                    f"Field {name}:",
+                    f"    Offset: {off} ({off:#x})",
+                    f"    Type: {ty}",
+                ]
             else:
                 ret += [
                     f"Field {name}:",
@@ -1112,6 +1340,7 @@ class RuntimeType(Type):
 
     sz: int
     addr: int
+    algn: int | None = dataclasses.field(init=False, default=None)
 
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         (meta, ty) = decode_runtime_type(self.addr)
@@ -1122,6 +1351,12 @@ class RuntimeType(Type):
 
     def size(self) -> int:
         return self.sz
+
+    def align(self) -> int:
+        if self.algn is None:
+            (meta, _ty) = decode_runtime_type(self.addr)
+            self.algn = meta.align
+        return self.algn
 
     def get_typename(self) -> str:
         return f"runtime({self.sz}){self.addr:#x}"

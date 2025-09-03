@@ -92,6 +92,16 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         *,
         type: pwndbg.dbg_mod.SymbolLookupType = pwndbg.dbg_mod.SymbolLookupType.ANY,
     ) -> pwndbg.dbg_mod.Value | None:
+        # `symbol_name_at_address` encodes offsets as part of the name, handle
+        # that here.
+        offset = 0
+        try:
+            idx = name.rindex("+")
+            offset = int(name[idx:], 10)
+            name = name[:idx]
+        except ValueError:
+            pass
+
         # FIXME: how to sanitize symbol name better?
         if not re.match(r"^[a-zA-Z0-9_.:@*/$]+$", name):
             raise pwndbg.dbg_mod.Error(f"Symbol {name!r} contains invalid characters")
@@ -106,6 +116,9 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
             # Fallback because `evaluate_expression` may fail to resolve symbols for TLS variables.
             # This issue occurs on certain architectures (e.g., it works fine on x86_64 but fails on aarch64).
             value = self.proc.lookup_symbol(name, type=type)
+
+        if value is not None:
+            value += offset
 
         return value
 
@@ -190,6 +203,15 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                     # We know this register got written to, we can trigger this
                     # event.
                     self.proc.dbg._trigger_event(pwndbg.dbg_mod.EventType.REGISTER_CHANGED)
+
+                    # If we set the stack pointer, the inner object might have been invalidated, try
+                    # to restore it, as it should still be the selected frame.
+                    if (
+                        name in (reg_sets[pwndbg.aglib.arch.name].frame, "sp")
+                        and not self.inner.IsValid()
+                    ):
+                        self.inner = thread.GetSelectedFrame()
+                        assert self.inner.GetSP() == val
 
                     # Make sure we've caught and handled the special cases in which the inner object
                     # might be invalidated by the command.
@@ -865,11 +887,64 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         return pages
 
+    def _process_vmmap_pages(
+        self, pages: List[pwndbg.lib.memory.Page]
+    ) -> List[pwndbg.lib.memory.Page]:
+        # Do a final, coalescing pass, for identical ranges that are sequential
+        # and contiguous to each other in the virtual address space, and join
+        # them into a single range.
+        #
+        # LLDB - particularly in macOS - may yield multiple ranges that describe
+        # contiguous sequential regions of virtual memory, but are otherwise
+        # identical. This seems to happen because LLDB internally distinguishes
+        # between different Mach-O sections. That information, however, is not
+        # made reliably available to us.
+        final_pages: List[pwndbg.lib.memory.Page] = []
+        start = None
+        end = None
+        for page in pages:
+            if start is None:
+                start = page
+                continue
+
+            target = end if end is not None else start
+            otherwise_equal = (
+                target.flags == page.flags
+                and target.objfile == page.objfile
+                and target.in_darwin_shared_cache == page.in_darwin_shared_cache
+            )
+
+            if target.end == page.start and otherwise_equal:
+                end = page
+            else:
+                final_pages.append(
+                    pwndbg.lib.memory.Page(
+                        start.start,
+                        target.end - start.start,
+                        start.flags,
+                        start.offset,
+                        start.objfile,
+                        start.in_darwin_shared_cache,
+                    )
+                )
+                start = page
+                end = None
+
+        if start is not None:
+            final_pages.append(start)
+
+        return final_pages
+
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
+        from pwndbg.aglib.commpage import get_commpage_mappings
+
         pages = self.get_known_pages()
         if pages:
-            return LLDBMemoryMap(pages)
+            pages.extend(get_commpage_mappings())
+            pages.sort()
+
+            return LLDBMemoryMap(self._process_vmmap_pages(pages))
 
         from pwndbg.aglib.kernel.vmmap import kernel_vmmap
         from pwndbg.aglib.vmmap_custom import get_custom_pages
@@ -878,7 +953,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         pages.extend(kernel_vmmap())
         pages.extend(get_custom_pages())
         pages.sort()
-        return LLDBMemoryMap(pages)
+
+        return LLDBMemoryMap(self._process_vmmap_pages(pages))
 
     def find_largest_range_len(
         self, min_search: int, max_search: int, test: Callable[[int], bool]
@@ -985,8 +1061,14 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         e = lldb.SBError()
         count = self.process.WriteMemory(address, data, e)
-        if count < len(data) and not partial:
+        if (count < len(data) or not e.success) and not partial:
             raise pwndbg.dbg_mod.Error(f"could not write {len(data)} bytes: {e}")
+
+        # In some instances - eg. writing to the PC - writing may still have
+        # failed when we get here. Make sure we can read it back, to a point.
+        readback_len = min(len(data), 64)
+        if self.read_memory(address, readback_len) != data[:readback_len]:
+            raise pwndbg.dbg_mod.Error(f"could not write {len(data)} bytes: read-back failed")
 
         # We know some memory got changed.
         self.dbg._trigger_event(pwndbg.dbg_mod.EventType.MEMORY_CHANGED)
@@ -1220,7 +1302,22 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if not ctx.IsValid() or not ctx.symbol.IsValid():
             return None
 
-        # TODO: In GDB, we return something like `main+0x10`, but in LLDB, we do not.
+        sym_addr = ctx.symbol.addr.GetLoadAddress(self.target)
+        if sym_addr == lldb.LLDB_INVALID_ADDRESS:
+            # Unlikely. LLDB can return some truly insane matches sometimes. In
+            # this case, we could not find the load address of the symbol we
+            # matched. Act as if we found nothing.
+            return None
+
+        assert (
+            sym_addr <= address
+        ), f"LLDB returned an out-of-range address {sym_addr:#x} for a requested symbol with address {address:#x}"
+
+        if sym_addr != address:
+            # Print the symbol name along with an offset value if the address we
+            # were given does not match up with the symbol exactly.
+            return f"{ctx.symbol.name}+{address - sym_addr}"
+
         return ctx.symbol.name
 
     def _resolve_tls_symbol(self, sym: lldb.SBSymbol) -> int | None:
@@ -1362,7 +1459,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         variables_types: Dict[Tuple[int, str], LLDBType] = {}
 
         if type in (pwndbg.dbg_mod.SymbolLookupType.VARIABLE, pwndbg.dbg_mod.SymbolLookupType.ANY):
-            variables: lldb.SBValueList = (objfile or self.target).FindGlobalVariables(name, 0)
+            variables: lldb.SBValueList
+            if objfile:
+                variables = objfile.FindGlobalVariables(self.target, name, 0)
+            else:
+                variables = self.target.FindGlobalVariables(name, 0)
             var: lldb.SBValue
             for var in variables:
                 # LLDB[1] is attempting to resolve a TLS variable, but it fails with the following error:
@@ -1497,11 +1598,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # basically nothing we can do to help with this, so we error out.
             raise pwndbg.dbg_mod.Error("Unknown target architecture")
 
-        name = names[0]
-        if name == "x86_64":
+        arch_name = names[0]
+        if arch_name == "x86_64":
             # GDB and Pwndbg use a different name for x86_64.
-            name = "x86-64"
-        elif name == "arm":
+            arch_name = "x86-64"
+        elif arch_name == "arm":
             # LLDB doesn't distinguish between ARM Cortex-M and other varieties
             # of ARM. Pwndbg needs that distinction, so we attempt to detect
             # Cortex-M varieties by querying for the presence of the `xpsr`
@@ -1516,18 +1617,27 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             ), "Either all threads are Cortex-M or none are, Pwndbg doesn't know how to handle other cases"
 
             if any(has_xpsr):
-                name = "armcm"
-        elif name == "arm64":
+                arch_name = "armcm"
+        elif arch_name == "arm64":
             # Apple uses a different name for AArch64 than we do.
-            name = "aarch64"
-        elif name == "riscv32":
+            arch_name = "aarch64"
+        elif arch_name == "arm64e":
+            # Apple uses a different name for AArch64 than we do.
+            arch_name = "aarch64"
+        elif arch_name == "riscv32":
             # Pwndbg use a different name for riscv32.
-            name = "rv32"
-        elif name == "riscv64":
+            arch_name = "rv32"
+        elif arch_name == "riscv64":
             # Pwndbg use a different name for riscv64.
-            name = "rv64"
+            arch_name = "rv64"
 
-        return ArchDefinition(name=name, ptrsize=ptrsize0, endian=endian, platform=Platform.LINUX)
+        # Distinguish Apple platforms, default to Linux otherwise.
+        if len(names) >= 2 and names[1] == "apple":
+            platform = Platform.DARWIN
+        else:
+            platform = Platform.LINUX
+
+        return ArchDefinition(name=arch_name, ptrsize=ptrsize0, endian=endian, platform=platform)
 
     @override
     def break_at(
@@ -1731,6 +1841,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     # return control to the user.
     controllers: List[Tuple[LLDBProcess, Coroutine[Any, Any, None]]]
 
+    # Relay used for exceptions originating from commands called through LLDB.
+    _exception_relay: BaseException | None
+
     @override
     def setup(self, *args, **kwargs):
         import pwnlib.update
@@ -1741,6 +1854,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.event_handlers = {}
         self.controllers = []
         self._current_process_is_gdb_remote = False
+        self._exception_relay = None
 
         import pwndbg
 
@@ -1769,6 +1883,15 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         pwndbg.commands.comments.init()
 
         import pwndbg.dbg.lldb.hooks
+
+    def relay_exceptions(self) -> None:
+        """
+        Relay an exception raised during an LLDB command handler.
+        """
+        e = self._exception_relay
+        self._exception_relay = None
+        if e is not None:
+            raise pwndbg.dbg_mod.Error(e)
 
     def _execute_lldb_command(self, command: str) -> str:
         result = lldb.SBCommandReturnObject()
@@ -1799,11 +1922,15 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                 pass
 
             def __call__(self, _, command, exe_context, result):
-                debugger.exec_states.append(exe_context)
-                handler(debugger, command, True)
-                assert (
-                    debugger.exec_states.pop() == exe_context
-                ), "Execution state mismatch on command handler"
+                try:
+                    debugger.exec_states.append(exe_context)
+                    handler(debugger, command, True)
+                    assert (
+                        debugger.exec_states.pop() == exe_context
+                    ), "Execution state mismatch on command handler"
+                except BaseException as e:
+                    debugger._exception_relay = e
+                    raise
 
         # LLDB is very particular with the object paths it will accept. It is at
         # its happiest when its pulling objects straight off the module that was
