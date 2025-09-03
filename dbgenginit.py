@@ -22,17 +22,6 @@ def main():
     debughostevaluator = debughost.DebugHostEvaluator()
     debughostmemory = debughost.DebugHostMemory()
 
-    # Initialize IO
-    # sys.stdout = io.IOBase()
-
-    # def write(msg):
-    #     dbgcontrol._ctrl._IDebugControl7__com_Output.__func__.argtypes = (
-    #         ctypes.c_ulong, ctypes.c_char_p, ctypes.c_char_p)
-    #     dbgcontrol._ctrl._IDebugControl7__com_Output(DEBUG_OUTPUT_NORMAL, "%s", msg)
-
-    # sys.stdout.write = write
-    # sys.stderr = sys.stdout
-
     # initialize pwndbg
     import pwndbg
     import pwndbg.dbg.dbgeng
@@ -56,9 +45,6 @@ def main():
     command_dispatcher = pwndbg.dbg_mod.dbgeng.CommandDispatcher(pwndbg.dbg)
     pwndbg.dbg.setup(command_dispatcher)
     globals()["dispatch"] = command_dispatcher.dispatch
-
-    # temporarily enable verbosed exceptions
-    pwndbg.config.exception_verbose.value = True
 
 if __name__ == "__main__":
     main()
