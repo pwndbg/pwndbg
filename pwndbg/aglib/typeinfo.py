@@ -70,7 +70,7 @@ def update() -> None:
     module.uint8 = module.uchar
     module.uint16 = module.ushort
     module.uint32 = module.uint
-    module.uint64 = lookup_types("unsigned long long", "unsigned int64", "ulong", "u64", "uint64")
+    module.uint64 = lookup_types("unsigned long long", "ulong", "u64", "uint64")
     module.unsigned = {
         1: module.uint8,
         2: module.uint16,
