@@ -3,9 +3,10 @@ from __future__ import annotations
 import gdb
 
 import pwndbg.aglib.regs
-import tests
 
-STEPUNTILASM_X64_BINARY = tests.get_binary("stepuntilasm_x64.out")
+from . import get_binary
+
+STEPUNTILASM_X64_BINARY = get_binary("stepuntilasm_x64.out")
 
 
 def test_command_untilasm_x64(start_binary):

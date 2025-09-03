@@ -194,10 +194,10 @@ def configfile_print_scope(scope: Scope, show_all: bool = False) -> None:
             print(hint("Showing only changed values:"))
         for p in params:
             native_default = pwndbg.gdblib.config_mod.Parameter._value_to_gdb_native(
-                p.default, param_class=pwndbg.gdblib.config.CLASS_MAPPING[p.param_class]
+                p.default, gdb_param_class=pwndbg.gdblib.config.CLASS_MAPPING[p.param_class]
             )
             native_value = pwndbg.gdblib.config_mod.Parameter._value_to_gdb_native(
-                p.value, param_class=pwndbg.gdblib.config.CLASS_MAPPING[p.param_class]
+                p.value, gdb_param_class=pwndbg.gdblib.config.CLASS_MAPPING[p.param_class]
             )
             print(f"# {p.name}: {p.set_show_doc}")
             print(f"# default: {native_default}")

@@ -105,10 +105,8 @@ def get(
         old_color = color
         color = lambda x: c.wx(old_color(x))
 
-    if text is None and isinstance(address, int) and address > 255:
-        text = hex(int(address))
     if text is None:
-        text = str(int(address))
+        text = pwndbg.lib.pretty_print.int_to_string(address)
 
     if prefix:
         # Replace first N characters with the provided prefix

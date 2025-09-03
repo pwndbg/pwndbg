@@ -122,7 +122,7 @@ PYTHON=''
 
 if osx; then
     echo "Not supported on macOS. Please use one of the alternative methods listed at:"
-    echo "https://github.com/pwndbg/pwndbg?tab=readme-ov-file#installing-gdb"
+    echo "https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/"
     exit 1
 fi
 
@@ -209,7 +209,6 @@ if [[ -z "$is_supported" ]]; then
 fi
 
 # Create the python virtual environment
-# We don't care about PWNDBG_PLEASE_SKIP_VENV here.
 echo "Creating virtualenv in path: ${PWNDBG_VENV_PATH}"
 ${PYTHON} -m venv -- ${PWNDBG_VENV_PATH}
 
@@ -220,7 +219,7 @@ source ${PWNDBG_VENV_PATH}/bin/activate
 pip install uv
 
 # Install dependencies
-echo "Installing dependancies.."
+echo "Installing dependencies.."
 uv sync --extra gdb --extra lldb --quiet
 
 if [ -z "$UPDATE_MODE" ]; then

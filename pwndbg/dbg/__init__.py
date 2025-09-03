@@ -396,7 +396,13 @@ class Process:
 
     def vmmap(self) -> MemoryMap:
         """
-        Returns the virtual memory map of this process.
+        Returns the virtual memory map of this process, as seen by the debugger.
+
+        Generally, one should prefer `pwndbg.aglib.vmmap.get()` over this
+        function, as this passes the raw information from the debugger more or
+        less straight through, without applying more general Pwndbg enhancements
+        to the memory map. This is the lower-level functionality on top of which
+        the function in `aglib` is implemented.
         """
         raise NotImplementedError()
 
@@ -624,6 +630,12 @@ class Process:
         """
         Queues up the given execution controller-based coroutine for execution,
         sometime between the calling of this function and the
+        """
+        raise NotImplementedError()
+
+    def add_symbol_file(self, path, base):
+        """
+        Adds a symbol file at base
         """
         raise NotImplementedError()
 

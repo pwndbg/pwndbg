@@ -46,6 +46,8 @@ import sys
 import threading
 from contextlib import contextmanager
 from io import BytesIO
+from io import TextIOBase
+from io import TextIOWrapper
 from typing import Any
 from typing import Awaitable
 from typing import BinaryIO
@@ -69,12 +71,6 @@ from pwndbg.dbg.lldb.pset import pget
 from pwndbg.dbg.lldb.pset import pset
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import get_io_driver
-from pwndbg.dbg.lldb.repl.proc import EventHandler
-from pwndbg.dbg.lldb.repl.proc import LaunchResultConnected
-from pwndbg.dbg.lldb.repl.proc import LaunchResultEarlyExit
-from pwndbg.dbg.lldb.repl.proc import LaunchResultError
-from pwndbg.dbg.lldb.repl.proc import LaunchResultSuccess
-from pwndbg.dbg.lldb.repl.proc import ProcessDriver
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 
@@ -87,6 +83,42 @@ else:
     from pwndbg.dbg.lldb.repl.readline import PROMPT
     from pwndbg.dbg.lldb.repl.readline import enable_readline
     from pwndbg.dbg.lldb.repl.readline import wrap_with_history
+
+
+def print_error(msg: str, *args):
+    """
+    Print an error message in the style of the LLDB CLI.
+    """
+    print(message.error("error:"), msg, *args)
+
+
+def print_warn(msg: str, *args):
+    """
+    Print a warning message in the style of the LLDB CLI.
+    """
+    print(message.warn("warn:"), msg, *args)
+
+
+def print_hint(msg: str, *args):
+    """
+    Print a hint message in the style of the LLDB CLI.
+    """
+    print(message.hint("hint:"), msg, *args)
+
+
+def print_info(msg: str, *args):
+    """
+    Print an information message in the style of the LLDB CLI.
+    """
+    print(message.info("info:"), msg, *args)
+
+
+from pwndbg.dbg.lldb.repl.proc import EventHandler
+from pwndbg.dbg.lldb.repl.proc import LaunchResultConnected
+from pwndbg.dbg.lldb.repl.proc import LaunchResultEarlyExit
+from pwndbg.dbg.lldb.repl.proc import LaunchResultError
+from pwndbg.dbg.lldb.repl.proc import LaunchResultSuccess
+from pwndbg.dbg.lldb.repl.proc import ProcessDriver
 
 show_tip = pwndbg.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"
@@ -264,30 +296,11 @@ class PwndbgController:
         return OneShotAwaitable(YieldExecDirect(command, True, False))
 
 
-def print_error(msg: str, *args):
-    """
-    Print an error message in the style of the LLDB CLI.
-    """
-    print(message.error("error:"), msg, *args)
-
-
-def print_warn(msg: str, *args):
-    """
-    Print a warning message in the style of the LLDB CLI.
-    """
-    print(message.warn("warn:"), msg, *args)
-
-
-def print_hint(msg: str, *args):
-    """
-    Print a hint message in the style of the LLDB CLI.
-    """
-    print(message.hint("hint:"), msg, *args)
-
-
 @wrap_with_history
 def run(
-    controller: Callable[[PwndbgController], Coroutine[Any, Any, None]], debug: bool = False
+    controller: Callable[..., Coroutine[Any, Any, None]],
+    *args,
+    debug: bool = False,
 ) -> None:
     """
     Runs the Pwndbg CLI through the given asynchronous controller.
@@ -322,7 +335,7 @@ def run(
     show_greeting()
     last_command = ""
 
-    coroutine = controller(PwndbgController())
+    coroutine = controller(PwndbgController(), *args)
     last_result: Any = None
     last_exc: Exception | None = None
 
@@ -332,7 +345,7 @@ def run(
 
         try:
             if last_exc is not None:
-                coroutine.throw(last_exc)
+                action = coroutine.throw(last_exc)
             else:
                 action = coroutine.send(last_result)
         except StopIteration:
@@ -367,7 +380,7 @@ def run(
                 last_exc = asyncio.CancelledError()
                 continue
 
-            if not exec_repl_command(line, sys.stdout.buffer, dbg, driver, relay):
+            if not exec_repl_command(line, sys.stdout, dbg, driver, relay):
                 last_exc = asyncio.CancelledError()
                 continue
 
@@ -382,14 +395,20 @@ def run(
             if not action._prompt_silent:
                 print(f"{PROMPT}{action._command}")
 
-            if action._capture:
-                with BytesIO() as output:
-                    should_continue = exec_repl_command(action._command, output, dbg, driver, relay)
-                    last_result = output.getvalue()
-            else:
-                should_continue = exec_repl_command(
-                    action._command, sys.stdout.buffer, dbg, driver, relay
-                )
+            try:
+                if action._capture:
+                    with TextIOWrapper(BytesIO(), write_through=True) as output:
+                        should_continue = exec_repl_command(
+                            action._command, output, dbg, driver, relay
+                        )
+                        last_result = output.buffer.getvalue()
+                else:
+                    should_continue = exec_repl_command(
+                        action._command, sys.stdout, dbg, driver, relay
+                    )
+            except BaseException as e:
+                last_exc = e
+                continue
 
             if not should_continue:
                 last_exc = asyncio.CancelledError()
@@ -398,13 +417,51 @@ def run(
 
 def exec_repl_command(
     line: str,
-    lldb_out_target: BinaryIO,
+    output_to,
     dbg: LLDB,
     driver: ProcessDriver,
     relay: EventRelay,
 ) -> bool:
     """
     Parses and runs the given command, returning whether the event loop should continue.
+    """
+    stdout = None
+    stderr = None
+    lldb_out = None
+    lldb_err = None
+    try:
+        stdout = sys.stdout
+        stderr = sys.stderr
+        lldb_out = dbg.debugger.GetOutputFile()
+        lldb_err = dbg.debugger.GetErrorFile()
+
+        sys.stdout = output_to
+        dbg.debugger.SetOutputFile(
+            lldb.SBFile.Create(output_to, borrow=True, force_io_methods=True)
+        )
+        dbg.debugger.SetErrorFile(lldb.SBFile.Create(output_to, borrow=True, force_io_methods=True))
+
+        return _exec_repl_command(line, output_to.buffer, dbg, driver, relay)
+    finally:
+        if stdout is not None:
+            sys.stdout = stdout
+        if stderr is not None:
+            sys.stderr = stderr
+        if lldb_out is not None:
+            dbg.debugger.SetOutputFile(lldb_out)
+        if lldb_err is not None:
+            dbg.debugger.SetErrorFile(lldb_err)
+
+
+def _exec_repl_command(
+    line: str,
+    lldb_out_target: BinaryIO,
+    dbg: LLDB,
+    driver: ProcessDriver,
+    relay: EventRelay,
+) -> bool:
+    """
+    Implementation for exec_repl_command
     """
 
     bits = lex_args(line)
@@ -426,8 +483,7 @@ def exec_repl_command(
     # Not allowed to have this be a regular command, because of LLDB.
     if "version".startswith(line) and line.startswith("ve"):
         pwndbg.commands.version.version_impl()
-        print()
-        # Don't return. We want the LLDB command to also run.
+        return True
 
     # There are interactive commands that `SBDebugger.HandleCommand` will
     # silently ignore. We have to implement them manually, here.
@@ -656,6 +712,7 @@ def exec_repl_command(
     # one, or just in a general context.
     if driver.has_process():
         driver.run_lldb_command(line, lldb_out_target)
+        dbg.relay_exceptions()
     else:
         ret = lldb.SBCommandReturnObject()
         dbg.debugger.GetCommandInterpreter().HandleCommand(line, ret)
@@ -669,6 +726,7 @@ def exec_repl_command(
             if len(out) > 0:
                 lldb_out_target.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
                 lldb_out_target.write(b"\n")
+        dbg.relay_exceptions()
 
     # At this point, the last command might've queued up some execution
     # control procedures for us to chew on. Run them now.
@@ -891,27 +949,31 @@ def target_create(args: List[str], dbg: LLDB) -> None:
     if args.arch:
         dbg.debugger.SetDefaultArchitecture(args.arch)
 
-    triple = _get_target_triple(dbg.debugger, args.filename)
-    if not triple:
-        print_error(f"could not detect triple for '{args.filename}'")
-        return
-
-    if args.platform == "qemu-user":
-        arch = triple.split("-")[0]
-        # Without setting it qemu-user don't work ;(
-        dbg._execute_lldb_command(f"settings set platform.plugin.qemu-user.architecture {arch}")
-
-    if args.platform:
-        dbg.debugger.SetCurrentPlatform(args.platform)
-
     if args.sysroot:
         dbg.debugger.SetCurrentPlatformSDKRoot(args.sysroot)
 
     # Create the target with the debugger.
     error = lldb.SBError()
-    target: lldb.SBTarget = dbg.debugger.CreateTarget(
-        args.filename, triple, args.platform, True, error
-    )
+    if args.platform:
+        dbg.debugger.SetCurrentPlatform(args.platform)
+
+        # Having the platform specified requires that we specify the triple.
+        triple = _get_target_triple(dbg.debugger, args.filename)
+        if not triple:
+            print_error(f"could not detect triple for '{args.filename}'")
+            return
+
+        if args.platform == "qemu-user":
+            arch = triple.split("-")[0]
+            # Without setting it qemu-user don't work ;(
+            dbg._execute_lldb_command(f"settings set platform.plugin.qemu-user.architecture {arch}")
+
+        target: lldb.SBTarget = dbg.debugger.CreateTarget(
+            args.filename, triple, args.platform, True, error
+        )
+    else:
+        # Let LLDB figure out both the triple and the platform automatically.
+        target = dbg.debugger.CreateTarget(args.filename, None, None, True, error)
     if not error.success or not target.IsValid():
         print_error(f"could not create target for '{args.filename}': {error.description}")
         return
@@ -922,7 +984,7 @@ def target_create(args: List[str], dbg: LLDB) -> None:
 
 
 process_launch_ap = argparse.ArgumentParser(add_help=False, prog="process launch")
-process_launch_ap.add_argument("-A", "--disable-aslr")
+process_launch_ap.add_argument("-A", "--disable-aslr", type=_bool_of_string, default=False)
 process_launch_ap.add_argument("-C", "--script-class")
 process_launch_ap.add_argument("-E", "--environment", action="append")
 process_launch_ap.add_argument("-P", "--plugin")
@@ -940,7 +1002,6 @@ process_launch_ap.add_argument("-v", "--structured-data-value")
 process_launch_ap.add_argument("-w", "--working-dir")
 process_launch_ap.add_argument("run-args", nargs="*")
 process_launch_unsupported = [
-    "disable-aslr",
     "script-class",
     "plugin",
     "arch",
@@ -997,6 +1058,7 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         + (args.environment if args.environment else []),
         launch_args,
         os.getcwd(),
+        args.disable_aslr,
     )
 
     match result:

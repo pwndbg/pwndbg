@@ -13,6 +13,7 @@ import lldb
 import pwndbg
 from pwndbg.dbg.lldb import YieldContinue
 from pwndbg.dbg.lldb import YieldSingleStep
+from pwndbg.dbg.lldb.repl import print_info
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import IODriverPlainText
 
@@ -321,6 +322,18 @@ class ProcessDriver:
 
                         if fire_events:
                             self.eh.exited()
+
+                        if new_state == lldb.eStateExited:
+                            proc = lldb.SBProcess.GetProcessFromEvent(event)
+                            desc = (
+                                "" if not proc.exit_description else f" ({proc.exit_description})"
+                            )
+                            print_info(f"process exited with status {proc.exit_state}{desc}")
+                        elif new_state == lldb.eStateCrashed:
+                            print_info("process crashed")
+                        elif new_state == lldb.eStateDetached:
+                            print_info("process detached")
+
                         result = _PollResultExited(new_state)
                         break
 
@@ -537,9 +550,8 @@ class ProcessDriver:
         self.listener = lldb.SBListener("pwndbg.dbg.lldb.repl.proc.ProcessDriver")
         assert self.listener.IsValid()
 
-        self.listener.StartListeningForEventClass(
-            target.GetDebugger(),
-            lldb.SBTarget.GetBroadcasterClassName(),
+        self.listener.StartListeningForEvents(
+            target.broadcaster,
             lldb.SBTarget.eBroadcastBitModulesLoaded,
         )
 
@@ -586,7 +598,11 @@ class ProcessDriver:
         return LaunchResultSuccess()
 
     def _launch_remote(
-        self, env: List[str], args: List[str], working_dir: str | None
+        self,
+        env: List[str],
+        args: List[str],
+        working_dir: str | None,
+        extra_flags: int,
     ) -> lldb.SBError:
         """
         Launch a process in a remote debugserver.
@@ -605,7 +621,7 @@ class ProcessDriver:
             stdout,
             stderr,
             working_dir,
-            lldb.eLaunchFlagStopAtEntry,
+            lldb.eLaunchFlagStopAtEntry | extra_flags,
             True,
             error,
         )
@@ -618,6 +634,7 @@ class ProcessDriver:
         env: List[str],
         args: List[str],
         working_dir: str | None,
+        extra_flags: int,
     ) -> lldb.SBError:
         """
         Launch a process in the host system.
@@ -634,7 +651,7 @@ class ProcessDriver:
             stdout,
             stderr,
             working_dir,
-            lldb.eLaunchFlagStopAtEntry,
+            lldb.eLaunchFlagStopAtEntry | extra_flags,
             True,
             error,
         )
@@ -671,6 +688,7 @@ class ProcessDriver:
         env: List[str],
         args: List[str],
         working_dir: str | None,
+        disable_aslr: bool,
     ) -> LaunchResult:
         """
         Launches the process and handles startup events. Always stops on first
@@ -678,14 +696,18 @@ class ProcessDriver:
 
         Fires the created() event.
         """
+        extra_flags = 0
+        if disable_aslr:
+            extra_flags |= lldb.eLaunchFlagDisableASLR
+
         if self.has_connection():
-            result = self._enter(self._launch_remote, env, args, working_dir)
+            result = self._enter(self._launch_remote, env, args, working_dir, extra_flags)
             if isinstance(result, LaunchResultError):
                 result.disconnected = True
             return result
         else:
             self._prepare_listener_for(target)
-            return self._enter(self._launch_local, target, io, env, args, working_dir)
+            return self._enter(self._launch_local, target, io, env, args, working_dir, extra_flags)
 
     def attach(self, target: lldb.SBTarget, info: lldb.SBAttachInfo) -> LaunchResult:
         """

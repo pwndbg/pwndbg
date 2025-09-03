@@ -112,10 +112,7 @@ class module(ModuleType):
                 value = get_register("xPSR", frame)
             if value is None:
                 return None
-            size = pwndbg.aglib.typeinfo.unsigned.get(
-                value.type.sizeof, pwndbg.aglib.typeinfo.ulong
-            )
-            value = value.cast(size)
+            value = int(value)
             if reg == "pc" and pwndbg.aglib.arch.name == "i8086":
                 if self.cs is None:
                     return None

@@ -109,14 +109,6 @@ parser = argparse.ArgumentParser(description="Checks for kernel hardening config
 def kchecksec() -> None:
     kconfig = pwndbg.aglib.kernel.kconfig()
 
-    if not kconfig:
-        print(
-            M.warn(
-                "No kernel configuration found, make sure the kernel was built with CONFIG_IKCONFIG"
-            )
-        )
-        return
-
     options = _hardening_options + _arch_hardening_options.get(pwndbg.aglib.arch.name, [])
     for opt in options:
         config_name = opt.name

@@ -10,7 +10,7 @@
 let
   lib = pkgs.lib;
   hacks = pkgs.callPackage inputs.pyproject-nix.build.hacks { };
-  workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = "${inputs.self}"; };
+  workspace = inputs.uv2nix.lib.workspace.loadWorkspace { workspaceRoot = ./..; };
 
   pyprojectOverlay = workspace.mkPyprojectOverlay {
     sourcePreference = "sdist";
@@ -111,8 +111,7 @@ let
       pkgName:
       prev.${pkgName}.overrideAttrs (old: {
         nativeBuildInputs =
-          old.nativeBuildInputs
-          ++ final.resolveBuildSystem (lib.genAttrs pydeps (name: [ ]));
+          old.nativeBuildInputs ++ final.resolveBuildSystem (lib.genAttrs pydeps (name: [ ]));
       })
     ));
 
@@ -134,6 +133,30 @@ let
     paramiko = dummy;
     pip = dummy;
     uv = dummy;
+    gdb-for-pwndbg = dummy;
+    lldb-for-pwndbg = dummy;
+
+    # ziglang is only supported on few platforms
+    ziglang =
+      if
+        (
+          pkgs.stdenv.hostPlatform.isDarwin
+          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isx86)
+          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isAarch)
+          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isS390x)
+          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isRiscV64)
+          || (
+            pkgs.stdenv.hostPlatform.isLinux
+            && pkgs.stdenv.hostPlatform.isPower64
+            && pkgs.stdenv.hostPlatform.isLittleEndian
+          )
+        )
+      then
+        prev.ziglang.override {
+          sourcePreference = "wheel";
+        }
+      else
+        dummy;
 
     psutil = pkgs.callPackage (
       {
@@ -149,13 +172,6 @@ let
         }
         // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
           NIX_CFLAGS_COMPILE = "-DkIOMainPortDefault=0";
-
-          buildInputs =
-            (old.buildInputs or [ ])
-            ++ lib.optionals stdenv.hostPlatform.isx86_64 [
-              darwin.apple_sdk.frameworks.CoreFoundation
-            ]
-            ++ [ darwin.apple_sdk.frameworks.IOKit ];
         }
       )
     ) { };
@@ -182,6 +198,7 @@ let
         cctools,
         stdenv,
         fetchFromGitHub,
+        fetchpatch,
       }:
       prev.unicorn.overrideAttrs (
         old:
@@ -198,17 +215,22 @@ let
 
           postPatch = lib.optionalString stdenv.hostPlatform.isDarwin ''
             substituteInPlace ./src/CMakeLists.txt \
-                --replace-fail 'set(CMAKE_C_COMPILER "/usr/bin/cc")' 'set(CMAKE_C_COMPILER "${stdenv.cc}/bin/cc")' || true
-
-            # Due to an issue with the Apple ARM64 Hypervisor on GitHub Actions,
-            # we need to force the `sprr` register check.
-            # Otherwise, Nix may cache broken builds.
-            # See:
-            # - https://github.com/actions/runner-images/issues/11127
-            # - https://github.com/unicorn-engine/unicorn/issues/2033
-            substituteInPlace ./src/qemu/configure \
-                --replace-fail "have_sprr_mrs='no'" "have_sprr_mrs='yes'"
+                --replace-fail 'set(CMAKE_C_COMPILER "/usr/bin/cc")' 'set(CMAKE_C_COMPILER "${stdenv.cc}/bin/${stdenv.cc.targetPrefix}cc")'
           '';
+
+          # Remove this block after upgrading to unicorn 2.2.0
+          patches = lib.optionals stdenv.hostPlatform.isDarwin [
+            (fetchpatch {
+              url = "https://github.com/unicorn-engine/unicorn/commit/79f910ea73220f4f603b6050593af86483573908.patch";
+              hash = "sha256-AIMetsuYx1wz2KNtHcsyBfue+dBIDMVdqIiPaQ3xfgs=";
+              includes = [
+                "src/qemu/configure"
+                "src/qemu/include/tcg/tcg-apple-jit.h"
+              ];
+              stripLen = 1;
+              extraPrefix = "src/";
+            })
+          ];
         }
         // lib.optionalAttrs stdenv.hostPlatform.isLoongArch64 {
           # Remove this block after upgrading to unicorn 2.2.0
@@ -252,11 +274,12 @@ let
             cp -rf ${readlineStatic.dev}/include/readline/*.h ./readline/
             cp -rf ${readlineStatic.out}/lib/*.a ./readline/
           '';
-          buildInputs =
-            [ ncurses ]
-            ++ lib.optionals isCross [
-              python3
-            ];
+          buildInputs = [
+            ncurses
+          ]
+          ++ lib.optionals isCross [
+            python3
+          ];
         }
       )
     ) { };
@@ -289,6 +312,12 @@ let
 
   baseSet = pkgs.callPackage inputs.pyproject-nix.build.packages {
     python = python3;
+    stdenv = pkgs.stdenv.override {
+      targetPlatform = pkgs.stdenv.targetPlatform // {
+        # See https://en.wikipedia.org/wiki/MacOS_version_history#Releases for more background on version numbers.
+        darwinSdkVersion = "13.0";
+      };
+    };
   };
   pythonSet = baseSet.overrideScope overlays;
   editablePythonSet = pythonSet.overrideScope (
@@ -335,6 +364,9 @@ let
       [ ]
       ++ lib.optionals isLLDB [
         "lldb"
+      ]
+      ++ lib.optionals (!isLLDB) [
+        "gdb"
       ]
       ++ lib.optionals isDev [
         "dev"

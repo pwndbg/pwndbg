@@ -26,7 +26,7 @@ jobs:
           pwndbg-lldb-cross-x86_32-tarball,
           pwndbg-lldb-cross-loong64-tarball,
         ]
-    runs-on: ubuntu-latest  # x86_64-linux
+    runs-on: ubuntu-24.04-arm  # aarch64-linux
     timeout-minutes: 360
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
@@ -66,6 +66,10 @@ jobs:
           pwndbg-gdb-portable-deb,
           pwndbg-gdb-portable-apk,
           pwndbg-gdb-portable-archlinux,
+          pwndbg-lldb-portable-rpm,
+          pwndbg-lldb-portable-deb,
+          pwndbg-lldb-portable-apk,
+          pwndbg-lldb-portable-archlinux,
         ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60

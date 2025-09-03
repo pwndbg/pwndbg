@@ -29,7 +29,7 @@ parser.add_argument("-T", "--ctime", action="store_true", help="Print human-read
 )
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 def kdmesg(ctime: bool = False) -> None:
     prb_addr = pwndbg.aglib.symbol.lookup_symbol_addr("printk_rb_static")
 

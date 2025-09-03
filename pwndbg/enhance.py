@@ -11,7 +11,6 @@ supplemental information sources (e.g. active IDA Pro connection).
 from __future__ import annotations
 
 import string
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.arch
@@ -24,31 +23,15 @@ import pwndbg.color.enhance as E
 import pwndbg.color.memory
 import pwndbg.integration
 import pwndbg.lib.cache
+import pwndbg.lib.pretty_print
 from pwndbg import color
 
 
-def format_small_int(value: int) -> str:
-    if value < 10:
-        return str(value)
-    else:
-        return hex(value)
-
-
-def format_small_int_pair(first: int, second: int) -> Tuple[str, str]:
-    if first < 10 and second < 10:
-        return (str(first), str(second))
-    else:
-        return (
-            hex(first),
-            hex(second),
-        )
-
-
 def int_str(value: int) -> str:
-    retval = format_small_int(value)
+    retval = pwndbg.lib.pretty_print.int_to_string(value)
 
     # Try to unpack the value as a string
-    packed = pwndbg.aglib.arch.pack(int(value))
+    packed = pwndbg.aglib.arch.pack(value)
     if all(c in string.printable.encode("utf-8") for c in packed):
         if len(retval) > 4:
             retval = "{} ({!r})".format(retval, str(packed.decode("ascii", "ignore")))
@@ -133,10 +116,7 @@ def enhance(
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval
-    if 0 <= intval < 10:
-        intval = E.integer(str(intval))
-    else:
-        intval = E.integer("%#x" % int(intval & pwndbg.aglib.arch.ptrmask))
+    intval = E.integer(pwndbg.lib.pretty_print.int_to_string(intval & pwndbg.aglib.arch.ptrmask))
 
     retval = []
 
@@ -184,6 +164,6 @@ def enhance(
         return E.unknown("???")
 
     if len(retval) == 1:
-        return retval[0]  # type: ignore[return-value]
+        return retval[0]
 
-    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))  # type: ignore[arg-type]
+    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))

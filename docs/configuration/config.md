@@ -399,6 +399,18 @@ Display internal event debugging info.
 
 ----------
 
+## **decompiler**
+
+
+Framework that your ghidra plugin installed.
+
+
+
+**Default:** 'radare2'  
+**Valid values:** 'radare2', 'rizin'
+
+----------
+
 ## **default-visualize-chunk-number**
 
 
@@ -440,6 +452,20 @@ Replacing constant operands with their symbol in the disassembly.
 
 
 **Default:** on  
+
+----------
+
+## **disasm-reg-alias**
+
+
+Force the disassembly to use register aliases (e.g. aarch64 x29 -> fp).
+
+The register aliasing is done by capstone, see:
+https://github.com/capstone-engine/capstone/blob/next/docs/cs_v6_release_guide.md#:~:text=None.-,Register%20alias,-Register%20alias%20
+
+Enabling this may make disassembly slower.
+
+**Default:** off  
 
 ----------
 
@@ -578,17 +604,6 @@ The soft line width for go-dump pretty printing.
 
 
 **Default:** 80  
-
-----------
-
-## **guess-physmap**
-
-
-Should guess physmap base address when debug symbols are not present.
-
-
-
-**Default:** off  
 
 ----------
 
@@ -759,6 +774,24 @@ Whether to left-pad disassembly.
 
 ----------
 
+## **max-decimal-number**
+
+
+Show all numbers greater than this in hex.
+
+For negative numbers, their absolute value is used.
+
+Set the parameter to 'unlimited' if you want all values in decimal.
+Specially, set the parameter to zero if you want all values in hex.
+
+The assembly instruction operands come from capstone, and are thus
+not controlled by this setting. For consistency with them, leave
+this setting at 9 (the default).
+
+**Default:** 9  
+
+----------
+
 ## **max-visualize-chunk-size**
 
 
@@ -822,18 +855,6 @@ Whether to show call arguments below instruction.
 
 
 **Default:** on  
-
-----------
-
-## **r2decompiler**
-
-
-Framework that your ghidra plugin installed.
-
-
-
-**Default:** 'radare2'  
-**Valid values:** 'radare2', 'rizin'
 
 ----------
 

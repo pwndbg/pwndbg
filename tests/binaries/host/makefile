@@ -1,35 +1,38 @@
-ZIGPATH        ?=     ../../../../.zig
-ZIGCC		=	  $(ZIGPATH)/zig cc
+ZIGCC           = uv run python3 -m ziglang cc
+CC              =      gcc
+MUSLCC          =      musl-gcc
+DEBUG           =      1
+CFLAGS         +=      -Wall
+SOURCES         =      $(wildcard *.c)
+COMPILED        =      $(SOURCES:.c=.o)
+LINKED          =      $(SOURCES:.c=.out)
 
-CC              =	   gcc
-DEBUG           =	   1
-CFLAGS         +=	   -Wall
-SOURCES         =	   $(wildcard *.c)
-COMPILED        =	   $(SOURCES:.c=.o)
-LINKED          =	   $(SOURCES:.c=.out)
-
-NASM            =	   nasm -f elf64
-LD              =	   ld
-SOURCES_ASM     =	   $(wildcard *.asm)
-COMPILED_ASM    =	   $(SOURCES_ASM:.asm=.o)
-LINKED_ASM      =	   $(SOURCES_ASM:.asm=.out)
+NASM            =      nasm -f elf64
+LD              =      ld
+SOURCES_ASM     =      $(wildcard *.asm)
+COMPILED_ASM    =      $(SOURCES_ASM:.asm=.o)
+LINKED_ASM      =      $(SOURCES_ASM:.asm=.out)
 LDFLAGS         =
 EXTRA_FLAGS     =
 EXTRA_FLAGS_ASM =
+#EXTRA_FLAGS_ASM =      -g -F dwarf
 
-GO              =	   go
-SOURCES_GO      =	   $(wildcard *.go)
-COMPILED_GO     =	   $(SOURCES_GO:.go=.x86) $(SOURCES_GO:.go=.x64)
+GO              =      go
+SOURCES_GO      =      $(wildcard *.go)
+COMPILED_GO     =      $(SOURCES_GO:.go=.x86) $(SOURCES_GO:.go=.x64)
 
 ifeq ($(TARGET), x86)
-CFLAGS		  +=	  -m32
+CFLAGS         +=      -m32
 endif
 
 ifeq ($(DEBUG), 1)
-CFLAGS		  +=	  -DDEBUG=1 -ggdb -O0 -gdwarf-4
+CFLAGS         +=      -DDEBUG=1 -ggdb -O0 -gdwarf-4
 else
-CFLAGS		  +=	  -O1
+CFLAGS         +=      -O1
 endif
+
+# LLDB does not support PLT symbolication with -fcf-protection :(
+CFLAGS         += -fcf-protection=none
 
 PWD=$(shell pwd)
 # Apparently we don't have this version? :(
@@ -38,7 +41,7 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out onegadget.x86-64.out onegadget.i386.out
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.out heap_jemalloc_heap.out heap_musl_dyn.out heap_musl_static.out
 
 all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 
@@ -69,7 +72,7 @@ heap_bugs.out: heap_bugs.c
 	${ZIGCC} \
 	${CFLAGS} \
 	-Wno-int-to-pointer-cast -Wno-int-conversion -Wno-unused-variable \
-	-target native-native-gnu.2.33 \
+	-target x86_64-linux-gnu.2.33 \
 	-Wl,-rpath=${GLIBC_2_33}:\
 	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
 	-o heap_bugs.out heap_bugs.c
@@ -78,7 +81,7 @@ heap_bugs.out: heap_bugs.c
 #heap_bins.out: heap_bins.c
 #	@echo "[+] Building heap_bins.out"
 #	${ZIGCC} \
-#	-target native-native-gnu.2.33 \
+#	-target x86_64-linux-gnu.2.33 \
 #	-Wl,-rpath=${GLIBC_2_33} \
 #	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
 #	-g -O0 -o heap_bins.out heap_bins.c
@@ -105,6 +108,18 @@ heap_jemalloc_heap.out: heap_jemalloc_heap.c
 	-o heap_jemalloc_heap.out heap_jemalloc_heap.c \
 	-Wl,-Bstatic -ljemalloc -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
 
+heap_musl_dyn.out: heap_musl.c
+	@echo "[+] Building heap_musl_dyn.out"
+	${MUSLCC} -g3 -O0 heap_musl.c -o heap_musl_dyn.out
+
+# Ideally I would do:
+# strip heap_musl_static.out
+# here because it would ensure mallocng commands are tested on
+# a musl with no symbols. But that also makes it very hard to
+# write the tests.
+heap_musl_static.out: heap_musl.c
+	@echo "[+] Building heap_musl_static.out"
+	${MUSLCC} -g3 -O0 -static heap_musl.c -o heap_musl_static.out
 
 multiple_threads.out: multiple_threads.c
 	@echo "[+] Building multiple_threads.out"

@@ -90,7 +90,7 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         path = path[7:]  # len('target:') == 7
 
     local_path = path
-    if not pwndbg.aglib.remote.is_remote():
+    if not pwndbg.aglib.remote.is_remote() or pwndbg.aglib.qemu.is_qemu_kernel():
         if not os.path.exists(local_path):
             raise OSError(f"File '{local_path}' does not exist", errno.ENOENT)
 

@@ -20,8 +20,7 @@ class RelocationType(Enum):
 @pwndbg.wrappers.OnlyWithCommand(cmd_name)
 def get_got_entry(local_path: str) -> Dict[RelocationType, List[str]]:
     # --wide is for showing the full information, e.g.: R_X86_64_JUMP_SLOT instead of R_X86_64_JUMP_SLO
-    cmd = get_got_entry.cmd + ["--relocs", "--wide", local_path]
-    readelf_out = pwndbg.wrappers.call_cmd(cmd)
+    readelf_out = pwndbg.wrappers.call_cmd(cmd_name, "--relocs", "--wide", local_path)
 
     entries: Dict[RelocationType, List[str]] = {category: [] for category in RelocationType}
     for line in readelf_out.splitlines():

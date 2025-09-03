@@ -29,9 +29,11 @@ def load_aglib():
     import pwndbg.aglib.heap
     import pwndbg.aglib.kernel
     import pwndbg.aglib.kernel.vmmap
+    import pwndbg.aglib.macho
     import pwndbg.aglib.memory
     import pwndbg.aglib.nearpc
     import pwndbg.aglib.next
+    import pwndbg.aglib.objc
     import pwndbg.aglib.onegadget
     import pwndbg.aglib.proc
     import pwndbg.aglib.qemu

@@ -12,6 +12,7 @@ from pwnlib.util.packing import u64
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.kmod
 import pwndbg.aglib.memory
 import pwndbg.color.message as M
 import pwndbg.commands
@@ -44,7 +45,7 @@ class Kallsyms:
         self.kallsyms: Dict[str, Tuple[int, str]] = {}
         self.kbase = pwndbg.aglib.kernel.kbase()
 
-        mapping = pwndbg.aglib.kernel.get_first_kernel_ro()
+        mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
         assert mapping is not None, "kernel memory mappings are missing"
 
         self.r_base = mapping.vaddr
@@ -80,6 +81,8 @@ class Kallsyms:
         self.names = self.find_names()
         self.kernel_addresses = self.get_kernel_addresses()
         self.parse_symbol_table()
+        for sym_name, sym_addr, sym_type in pwndbg.aglib.kernel.kmod.all_modules_kallsyms():
+            self.kallsyms[sym_name] = (sym_addr, sym_type)
         print(M.info(f"Found {len(self.kallsyms)} ksymbols"))
 
     def find_token_table(self) -> int:
@@ -105,7 +108,7 @@ class Kallsyms:
         0xffffffff827b2fed:	"9"
         """
         sequence_to_find = b"".join(b"%c\0" % i for i in range(ord("0"), ord("9") + 1))
-        sequences_to_avoid = [b":\0", b"\0\0", b"\0\1", b"\0\2", b"ASCII\0"]
+        sequences_to_avoid = (b":\0", b"\0\0", b"\0\1", b"\0\2", b"ASCII\0")
 
         position = 0
 

@@ -72,7 +72,6 @@ HEAP_MAX_SIZE: int = None
 
 NBINS = 128
 BINMAPSIZE = 4
-TCACHE_MAX_BINS = 64
 NFASTBINS = 10
 NSMALLBINS = 64
 
@@ -1250,6 +1249,17 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         if tcache is None:
             return None
 
+        if pwndbg.glibc.get_version() >= (2, 42) and not hasattr(
+            GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued"
+        ):
+            print(
+                message.warn(
+                    "Changes to tcache in GLIBC 2.42 have not been fully implemented. "
+                    "PR contributions are highly appreciated!"
+                )
+            )
+            setattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued", True)
+
         counts = tcache["counts"]
         entries = tcache["entries"]
 
@@ -1264,6 +1274,8 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         for i in range(num_tcachebins):
             size = self._request2size(tidx2usize(i))
             count = int(counts[i])
+            if pwndbg.glibc.get_version() >= (2, 42):
+                count = pwndbg.aglib.heap.structs.TCACHE_FILL_COUNT - count
             chain = pwndbg.chain.get(
                 int(entries[i]),
                 offset=self.tcache_next_offset,

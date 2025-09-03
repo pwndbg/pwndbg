@@ -59,6 +59,7 @@ class CommandCategory(str, Enum):
     REGISTER = "Register"
     PROCESS = "Process"
     LINUX = "Linux/libc/ELF"
+    DARWIN = "Darwin/libsystem/Mach-O"
     DISASS = "Disassemble"
     MISC = "Misc"
     KERNEL = "Kernel"
@@ -619,10 +620,24 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWhenUserspace
 
 
-def OnlyWithKernelDebugSyms(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWithKernelDebugInfo(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithKernelDebugSyms(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if pwndbg.aglib.kernel.has_debug_syms():
+    def _OnlyWithKernelDebugInfo(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        if pwndbg.aglib.kernel.has_debug_info():
+            return function(*a, **kw)
+        else:
+            log.error(
+                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with debug info."
+            )
+            return None
+
+    return _OnlyWithKernelDebugInfo
+
+
+def OnlyWithKernelDebugSymbols(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+    @functools.wraps(function)
+    def _OnlyWithKernelDebugSymbols(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        if pwndbg.aglib.kernel.has_debug_symbols():
             return function(*a, **kw)
         else:
             log.error(
@@ -630,7 +645,7 @@ def OnlyWithKernelDebugSyms(function: Callable[P, T]) -> Callable[P, Optional[T]
             )
             return None
 
-    return _OnlyWithKernelDebugSyms
+    return _OnlyWithKernelDebugSymbols
 
 
 def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
@@ -822,7 +837,7 @@ def sloppy_gdb_parse(s: str) -> int | str:
     assert target, "Reached command expression evaluation with no frame or inferior"
 
     try:
-        val = target.evaluate_expression(s)
+        val = pwndbg.aglib.symbol.lookup_symbol(s) or target.evaluate_expression(s)
         if val.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
             return int(val.address)
         return int(val)
@@ -885,6 +900,7 @@ def load_commands() -> None:
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
     import pwndbg.commands.comments
+    import pwndbg.commands.commpage
     import pwndbg.commands.config
     import pwndbg.commands.context
     import pwndbg.commands.cpsr
@@ -909,7 +925,9 @@ def load_commands() -> None:
     import pwndbg.commands.kconfig
     import pwndbg.commands.kdmesg
     import pwndbg.commands.klookup
+    import pwndbg.commands.kmod
     import pwndbg.commands.knft
+    import pwndbg.commands.ksyscalls
     import pwndbg.commands.ktask
     import pwndbg.commands.kversion
     import pwndbg.commands.leakfind

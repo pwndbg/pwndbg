@@ -5,6 +5,7 @@ vice-versa.
 
 from __future__ import annotations
 
+import pwndbg.aglib.memory
 import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg.dbg import SymbolLookupType
@@ -35,7 +36,7 @@ def lookup_symbol_value(
     addr = lookup_symbol(
         name, type=type, prefer_static=prefer_static, objfile_endswith=objfile_endswith
     )
-    if not addr:
+    if not addr or not pwndbg.aglib.memory.peek(int(addr)):
         return None
 
     value = addr.dereference()

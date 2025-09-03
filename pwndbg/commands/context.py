@@ -985,23 +985,19 @@ class RegisterContext:
             return None
         prefix = self.get_prefix(reg)
         desc = hex(val)
-        if pwndbg.aglib.kernel.has_debug_syms():
-            # TODO: phys_to_virt is bugged when kaslr is enabled, ptrace_scope is enabled, or if symbols are not present
+        if pwndbg.aglib.kernel.has_debug_symbols():
             try:
                 virtual = pwndbg.aglib.kernel.phys_to_virt(val)
                 desc += f" [virtual: {pwndbg.chain.format(virtual)}]"
             except Exception:
-                print(
-                    message.error(
-                        "error when running phys_to_virt, try running `echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`"
-                    )
-                )
+                pass
         return f"{prefix} {desc}"
 
     def register_context_default(self, reg):
         val = self.get_register_value(reg)
         if val is None:
             return None
+        desc = ""
         desc = pwndbg.chain.format(val)
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
