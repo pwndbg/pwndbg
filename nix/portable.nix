@@ -187,18 +187,12 @@ let
         # writable out
         chmod -R +w $out
 
+        # rm pycache dir
+        find $out/pwndbg/lib/ -type d -name "__pycache__" -exec rm -rf {} +
+
         # copy extra files
         mkdir -p $out/pwndbg/share/
         cp -rf ${lib.getLib pkgs.ncurses}/share/terminfo/ $out/pwndbg/share/
-
-        # fix ipython autocomplete
-        cp -rf ${pwndbgVenv}/lib/${python3.libPrefix}/site-packages/parso/python/*.txt $out/pwndbg/lib/${python3.libPrefix}/site-packages/parso/python/
-
-        # fix ziglang
-        cp -rf ${pwndbgVenv}/lib/${python3.libPrefix}/site-packages/ziglang/zig $out/pwndbg/lib/${python3.libPrefix}/site-packages/ziglang/
-        cp -rf ${pwndbgVenv}/lib/${python3.libPrefix}/site-packages/ziglang/lib $out/pwndbg/lib/${python3.libPrefix}/site-packages/ziglang/
-        rm -rf $out/pwndbg/lib/${python3.libPrefix}/site-packages/pwnlib/data
-        cp -rf ${pwndbgVenv}/lib/${python3.libPrefix}/site-packages/pwnlib/data $out/pwndbg/lib/${python3.libPrefix}/site-packages/pwnlib/
 
         # fix python "subprocess.py" to use "/bin/sh" and not the nix'ed version, otherwise "gdb-pt-dump" is broken
         sed -i 's@/nix/store/.*/bin/sh@/bin/sh@' $out/pwndbg/lib/${python3.libPrefix}/subprocess.py

@@ -377,18 +377,6 @@ def bundle_python_venv(src_lib_dir: Path, out_lib_dir: Path, root_dst: Path):
                 '.dylib',
             ))
 
-            is_good_ext = src_file_path.suffix in (
-                '.py',  # python script file
-                '.pyi', '.typed',  # python types
-                '.asm',  # pwntools asm templates
-            )
-            is_good_name = src_file_path.name in (
-                '__doc__',  # pwntools asm templates
-            )
-
-            if not (is_so or is_good_ext or is_good_name):
-                continue
-
             real_file = copy_with_symlink_normal(src_file_path, src_lib_dir, out_lib_dir, is_so=is_so)
             if is_so and real_file:
                 bundle_binaries.add(real_file)
