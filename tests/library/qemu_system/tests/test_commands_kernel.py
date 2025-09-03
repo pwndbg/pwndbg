@@ -210,7 +210,12 @@ def test_command_kernel_vmmap():
 
 def get_buddy_freelist_elements(out):
     out = pwndbg.color.strip(out)
-    return re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16})", out)
+    result = []
+    for e in re.findall(r"\[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]{16} \[0x[0-9a-fA-F]{16}\])", out):
+        vaddr = int(e[0], 16)
+        page = int(e[1].strip("[]"), 16)
+        result.append((vaddr, page))
+    return result
 
 
 @pytest.mark.skipif(
@@ -226,12 +231,14 @@ def test_command_buddydump():
 
     # find the starting addresses of all entries within the freelists
     matches = get_buddy_freelist_elements(res)
-    match = int(matches[0], 16)
-    res = gdb.execute(f"bud -f {hex(match + random.randint(0, 0x1000 - 1))}", to_string=True)
-    _matches = get_buddy_freelist_elements(res)
-    # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
-    # even if the address is not aligned
-    assert len(_matches) == 1 and int(_matches[0], 16) == match
+    for i in range(0, len(matches), 10):
+        vaddr, page = matches[i]
+        res = gdb.execute(f"bud -f {hex(vaddr + random.randint(0, 0x1000 - 1))}", to_string=True)
+        _matches = get_buddy_freelist_elements(res)
+        # asserting `bud -f` behaviour -- should be able to find the corresponding entry to an address
+        # even if the address is not aligned
+        assert len(_matches) == 1 and _matches[i][0] == vaddr
+        assert page == pwndbg.aglib.kernel.virt_to_page(vaddr)
 
     # nonexistent node index should not contain any entries
     no_output = gdb.execute("buddydump -n 10", to_string=True)

@@ -93,7 +93,8 @@ def pagewalk(vaddr, entry=None):
     if vaddr is None:
         print(M.warn("address is not mapped"))
         return
-    phys = vaddr - pwndbg.aglib.kernel.arch_paginginfo().physmap
+    pi = pwndbg.aglib.kernel.arch_paginginfo()
+    phys = vaddr - pi.physmap + pi.phys_offset
     print(f"pagewalk result: {C.green(hex(vaddr))} [phys: {C.yellow(hex(phys))}]")
 
 

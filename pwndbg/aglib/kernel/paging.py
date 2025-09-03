@@ -102,9 +102,7 @@ class ArchPagingInfo:
     ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
         raise NotImplementedError()
 
-    def pagewalk_helper(
-        self, target, entry, kernel_phys_base=0
-    ) -> List[Tuple[int | None, int | None]]:
+    def pagewalk_helper(self, target, entry) -> List[Tuple[int | None, int | None]]:
         base = self.physmap
         if entry > base:
             # user inputted a physmap address as pointer to pgd
@@ -114,7 +112,7 @@ class ArchPagingInfo:
         page_shift = self.page_shift
         ENTRYMASK = ~((1 << page_shift) - 1) & ((1 << self.va_bits) - 1)
         for i in range(level, 0, -1):
-            vaddr = (entry & ENTRYMASK) + base - kernel_phys_base
+            vaddr = (entry & ENTRYMASK) + base - self.phys_offset
             if self.should_stop_pagewalk(entry):
                 break
             shift = (i - 1) * (page_shift - 3) + page_shift
@@ -144,7 +142,7 @@ class ArchPagingInfo:
             if entry == 0:
                 return result
             result[i] = (entry, vaddr)
-        result[0] = (entry, (entry & ENTRYMASK) + base + offset - kernel_phys_base)
+        result[0] = (entry, (entry & ENTRYMASK) + base + offset - self.phys_offset)
         return result
 
     def pageentry_flags(self, level) -> BitFlags:
@@ -152,6 +150,10 @@ class ArchPagingInfo:
 
     def should_stop_pagewalk(self, is_last):
         raise NotImplementedError()
+
+    @property
+    def phys_offset(self):
+        return 0
 
 
 class x86_64PagingInfo(ArchPagingInfo):
@@ -565,7 +567,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("start")
-    def kernel_phys_start(self):
+    def phys_offset(self):
         found_system = False
         try:
             for line in pwndbg.dbg.selected_inferior().send_monitor("info mtree -f").splitlines():
@@ -589,9 +591,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             else:
                 entry = pwndbg.aglib.regs.TTBR0_EL1
         self.entry = entry
-        return self.pagetable_level_names, self.pagewalk_helper(
-            target, entry, self.kernel_phys_start
-        )
+        return self.pagetable_level_names, self.pagewalk_helper(target, entry)
 
     def pageentry_flags(self, is_last) -> BitFlags:
         if is_last:

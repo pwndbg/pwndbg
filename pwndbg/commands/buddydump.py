@@ -141,12 +141,12 @@ def traverse_pglist(
     for e in for_each_entry(freelist, "struct page", "lru"):
         page = int(e)
         phys_addr = pwndbg.aglib.kernel.page_to_phys(page)
-        physmap_addr = pwndbg.aglib.kernel.page_to_physmap(page)
-        if check_find(counter, physmap_addr, pba, cbp):
+        virt_addr = pwndbg.aglib.kernel.page_to_virt(page)
+        if check_find(counter, virt_addr, pba, cbp):
             results.append(
                 (
                     counter,
-                    f"{indent.addr_hex(physmap_addr)} [page: {indent.aux_hex(page)}, phys: {indent.aux_hex(phys_addr)}]",
+                    f"{indent.addr_hex(virt_addr)} [page: {indent.aux_hex(page)}, phys: {indent.aux_hex(phys_addr)}]",
                 )
             )
             cbp.found = True
