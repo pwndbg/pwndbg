@@ -4,9 +4,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ctypes import _Pointer
 
-from comtypes import COMError, BSTR
+from comtypes import BSTR
 import comtypes.gen.DbgMod as DbgModel
-import comtypes.hresult as hresult
 
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughosttype import DebugHostType
 

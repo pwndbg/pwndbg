@@ -1,12 +1,12 @@
+from __future__ import annotations
+
 from ctypes import *
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ctypes import _Pointer
 
-from comtypes import COMError
 import comtypes.gen.DbgEng as DbgEng
-import comtypes.hresult as hresult
 
 
 class DebugRegisters:

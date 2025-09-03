@@ -1,8 +1,12 @@
-import sys
-import io
+from __future__ import annotations
+
 import ctypes
+import io
+import sys
+
 from pwndbg.dbg.dbgeng.wrapper.dbgeng import DebugCreate
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DbgModel, HostDataModelAccess
+from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DbgModel
+from pwndbg.dbg.dbgeng.wrapper.dbgmodel import HostDataModelAccess
 
 
 def main():

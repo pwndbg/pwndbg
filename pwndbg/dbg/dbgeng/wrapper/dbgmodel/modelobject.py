@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 from comtypes import COMError, BSTR
 from comtypes.automation import VARIANT, VARTYPE
 import comtypes.gen.DbgMod as DbgModel
-import comtypes.hresult as hresult
 
 
 class KeyEnumerator:
@@ -29,7 +28,7 @@ class KeyEnumerator:
         except COMError as e:
             if e.hresult == E_BOUNDS:
                 return None
-            raise e
+            raise
 
 
 class ModelIterator:
@@ -44,7 +43,7 @@ class ModelIterator:
         except COMError as e:
             if e.hresult == E_BOUNDS:
                 return None
-            raise e
+            raise
 
 
 class IterableConcept:

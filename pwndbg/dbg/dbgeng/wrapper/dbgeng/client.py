@@ -4,16 +4,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ctypes import _Pointer
 
-from comtypes import COMError
 import comtypes.gen.DbgEng as DbgEng
-import comtypes.hresult as hresult
 
-from pwndbg.dbg.dbgeng.wrapper.dbgeng.control import DebugControl
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.advanced import DebugAdvanced
+from pwndbg.dbg.dbgeng.wrapper.dbgeng.control import DebugControl
+from pwndbg.dbg.dbgeng.wrapper.dbgeng.dataspaces import DebugDataSpaces
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.registers import DebugRegisters
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.symbols import DebugSymbols
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.systemobjects import DebugSystemObjects
-from pwndbg.dbg.dbgeng.wrapper.dbgeng.dataspaces import DebugDataSpaces
 
 
 class DebugClient:
