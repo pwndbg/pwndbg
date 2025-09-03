@@ -17,3 +17,13 @@ class DebugHostType:
         name = BSTR()
         self.inner.GetName(byref(name))
         return name.value
+    
+    def GetSize(self) -> int:
+        size = c_ulonglong()
+        self.inner.GetSize(byref(size))
+        return size.value
+
+    def CreatePointerTo(self, kind: int) -> "DebugHostType":
+        new_type = POINTER(DbgModel.IDebugHostType)()
+        self.inner.CreatePointerTo(kind, byref(new_type))
+        return DebugHostType(new_type)

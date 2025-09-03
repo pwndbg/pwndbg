@@ -9,6 +9,8 @@ import comtypes.gen.DbgMod as DbgModel
 import comtypes.hresult as hresult
 
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostsymbols import DebugHostSymbols
+from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostevaluator import DebugHostEvaluator
+from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
 
 
 class DebugHost:
@@ -18,3 +20,12 @@ class DebugHost:
     def DebugHostSymbols(self) -> DebugHostSymbols:
         symbols = self.inner.QueryInterface(DbgModel.IDebugHostSymbols)
         return DebugHostSymbols(symbols)
+
+    def DebugHostEvaluator(self) -> DebugHostEvaluator:
+        evaluator = self.inner.QueryInterface(DbgModel.IDebugHostEvaluator)
+        return DebugHostEvaluator(evaluator)
+
+    def GetCurrentContext(self) -> DebugHostContext:
+        context = POINTER(DbgModel.IDebugHostContext)()
+        self.inner.GetCurrentContext(byref(context))
+        return DebugHostContext(context)

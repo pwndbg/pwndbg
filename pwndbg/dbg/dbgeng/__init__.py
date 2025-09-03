@@ -1,7 +1,9 @@
 import contextlib
 import ctypes
 from comtypes import COMError, hresult
-import comtypes.gen.DbgEng as COM_DbgEng
+from comtypes.automation import VT_I1, VT_UI1, VT_I2, VT_UI2, VT_I4, VT_UI4, VT_I8, VT_UI8, VT_INT, VT_UINT
+from pwndbg.dbg.dbgeng.wrapper.dbgeng import DbgEng as COM_DbgEng
+from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DbgModel
 import shlex
 from typing import Any, Callable, Iterator, List, Literal, Sequence, Tuple, TypeVar
 from typing_extensions import override
@@ -12,10 +14,13 @@ from pwndbg.dbg import selection
 from pwndbg.dbg.dbgeng.events import EventCallback
 from pwndbg.dbg.dbgeng.wrapper.dbgeng import DebugSystemObjects, DebugClient, DebugControl, DebugRegisters, \
     DebugAdvanced, DebugSymbols
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DebugHost, HostDataModelAccess, DataModelManager, DebugHostSymbols
-from pwndbg.dbg.dbgeng.wrapper.wdbgexts import _EXT_TYPED_DATA, _DEBUG_TYPED_DATA, EXT_TDOP_SET_FROM_EXPR, \
-    EXT_TDOP_SET_PTR_FROM_TYPE_ID_AND_U64, EXT_TDOP_SET_FROM_TYPE_ID_AND_U64, EXT_TDOP_RELEASE, \
-    EXT_TDOP_GET_TYPE_SIZE, EXT_TDOP_GET_POINTER_TO
+from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DebugHost, HostDataModelAccess, DataModelManager, DebugHostSymbols, \
+    DebugHostType, ModelObject, DebugHostEvaluator, USE_CURRENT_HOST_CONTEXT
+from pwndbg.dbg.dbgeng.wrapper.wdbgexts import _EXT_TYPED_DATA, _DEBUG_TYPED_DATA
+from pwndbg.dbg.dbgeng.wrapper.constants import *
+from pwndbg.lib.arch import ArchDefinition
+from pwndbg.lib.arch import Platform
+import pwndbg.aglib.typeinfo as typeinfo
 
 T = TypeVar("T")
 
@@ -31,6 +36,7 @@ hostdatamodelaccess: HostDataModelAccess
 datamodelmanager: DataModelManager
 debughost: DebugHost
 debughostsymbols: DebugHostSymbols
+debughostevaluator: DebugHostEvaluator
 
 
 def _get_typed_data(module_base: int, type_id: int, ptr = False, tag: int = 0) -> _DEBUG_TYPED_DATA:
@@ -79,7 +85,7 @@ def _typed_data_op(op: int, *, flags: int = 0, in_data: _DEBUG_TYPED_DATA = None
         ext_data.InStrIndex = extra_offset
         ctypes.memmove(ctypes.addressof(buffer) + ext_data.InStrIndex, in_str.encode(), len(in_str))
         extra_offset += len(in_str) + 1
-    
+
     ext_data.In64 = in_value
     if out_len > 0:
         ext_data.StrBufferIndex = extra_offset
@@ -96,11 +102,11 @@ def _typed_data_op(op: int, *, flags: int = 0, in_data: _DEBUG_TYPED_DATA = None
     if out_len > 0 and ext_data.StrCharsNeeded > out_len:
         out_len = ext_data.StrCharsNeeded
         return _typed_data_op(op, flags=flags, in_data=in_data, in_str=in_str, in_value=in_value, out_len=out_len)
-    
+
     out_str = None
     if out_len > 0:
         out_str = ctypes.string_at(ctypes.addressof(buffer) + ext_data.StrBufferIndex, ext_data.StrCharsNeeded).decode()
-    
+
     out_value = ext_data.Out32
     full_result = bytes(buffer)
     return out_str, out_value, full_result
@@ -190,78 +196,85 @@ class DbgEngCommandHandle(pwndbg.dbg_mod.CommandHandle):
 
 
 class DbgEngRegisters(pwndbg.dbg_mod.Registers):
+    inner: ModelObject
+
+    def __init__(self, inner: ModelObject):
+        self.inner = inner
+
     def by_name(self, name: str) -> pwndbg.dbg_mod.Value | None:
-        index = dbgregisters.GetIndexByName(name)
-        return DbgEngValue(dbgregisters.GetValue(index))
+        obj, _ = self.inner.GetKeyValue(name)
+        return DbgEngValue(obj) if obj is not None else None
 
 
 class DbgEngFrame(pwndbg.dbg_mod.Frame):
+    thread: "DbgEngThread"
+    inner: ModelObject
+
+    def __init__(self, thread: "DbgEngThread", inner: ModelObject):
+        self.thread = thread
+        self.inner = inner
+
     @override
     def regs(self) -> pwndbg.dbg_mod.Registers:
-        return DbgEngRegisters()
+        obj, _ = self.thread.inner.GetKeyValue("Registers")
+        user_regs, _ = obj.GetKeyValue("User")
+        return DbgEngRegisters(user_regs)
 
 
-class DbgEngThread(SelectionMixin, pwndbg.dbg_mod.Thread):
-    _tid: int   # The thread ID
-    _etid: int  # The engine thread ID (the internal ID used by DbgEng)
+class DbgEngThread(pwndbg.dbg_mod.Thread):
+    inner: ModelObject
 
-    def __init__(self, tid: int, etid: int):
-        self._tid = tid
-        self._etid = etid
-
-    @override
-    def select(self):
-        return selection(self._etid, lambda: dbgsysobjects.GetCurrentThreadId(),
-                         lambda t: dbgsysobjects.SetCurrentThreadId(t))
+    def __init__(self, inner: ModelObject):
+        self.inner = inner
 
     @override
     @contextlib.contextmanager
-    @selected
     def bottom_frame(self) -> Iterator[pwndbg.dbg_mod.Frame]:
-        yield DbgEngFrame()
+        yield DbgEngFrame(self, None)
 
 
-class DbgEngProcess(SelectionMixin, pwndbg.dbg_mod.Process):
-    _pid: int   # The process ID
-    _epid: int  # The engine process ID (the internal ID used by DbgEng)
+class DbgEngProcess(pwndbg.dbg_mod.Process):
+    inner: ModelObject
 
-    def __init__(self, pid: int, epid: int):
-        self._pid = pid
-        self._epid = epid
-
-    def select(self):
-        return selection(self._epid, lambda: dbgsysobjects.GetCurrentProcessId(),
-                         lambda p: dbgsysobjects.SetCurrentProcessId(p))
+    def __init__(self, dbg: "DbgEng", inner: ModelObject):
+        self.dbg = dbg
+        self.inner = inner
 
     @override
-    @selected
     def threads(self) -> List[pwndbg.dbg_mod.Thread]:
-        return [
-            DbgEngThread(tid, etid)
-            for etid, tid in zip(dbgsysobjects.GetThreadIdsByIndex())
-        ]
+        obj,_ = self.inner.GetKeyValue("Threads")
+        concept = obj.IterableConcept()
+        iterator = concept.GetIterator(obj)
+
+        threads = []
+        while True:
+            item = iterator.GetNext()
+            if item is None:
+                break
+            threads.append(DbgEngThread(item))
+        return threads
 
     @override
     def pid(self) -> int | None:
-        return self._pid
+        # TODO: I'm not sure what happens if the process is dead.
+        obj,_ = self.inner.GetKeyValue("Id")
+
+        # Windows PIDs are 32-bit unsigned integers
+        variant = obj.GetIntrinsicValueAs(VT_UI4)
+        return variant.value
 
     @override
     def alive(self) -> bool:
-        try:
-            return dbgsysobjects.GetProcessIdBySystemId(self._pid) == self._epid
-        except COMError as e:
-            if e.hresult == hresult.E_NOINTERFACE:
-                return False
-            raise
+        # DbgEng does not provide a direct way to check if the process is alive.
+        # However it seems that DbgEng doesn't work with dead processes.
+        return True
 
     @override
-    @selected
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value | None:
         # TODO
         dbgcontrol.Evaluate(expression)
     
     @override
-    @selected
     def is_remote(self) -> bool:
         # GetDebuggeeType returns the class and qualifier of the debuggee.
         # The class can be one of:
@@ -283,65 +296,141 @@ class DbgEngProcess(SelectionMixin, pwndbg.dbg_mod.Process):
         return False
 
     @override
-    @selected
     def types_with_name(self, name: str) -> Sequence[pwndbg.dbg_mod.Type]:
-        try:
-            type_id, module_base = dbgsymbols.GetSymbolTypeId(name)
-        except COMError as e:
-            if e.hresult == hresult.E_FAIL:
-                return []
-            raise
-        try:
-            data = TypedDataWrapper.from_type_id(module_base, type_id)
-        except COMError as e:
+        # Iterates through all modules and finds types with the given name.
+        enumerator = debughostsymbols.EnumerateModules(self.inner.GetContext())
+        candidates = []
+        while True:
+            symbol = enumerator.GetNext()
+            if symbol is None:
+                break
             try:
-                data = TypedDataWrapper.from_expression(f"({name})0")
-            except:
-                return []
-        return [DbgEngType(data)]
+                module = symbol.DebugHostModule()
+                candidates.append(module.FindTypeByName(name))
+            except COMError:
+                continue
+        return [DbgEngType(t) for t in candidates]
 
     @override
-    @selected
+    def arch(self) -> ArchDefinition:
+        # It seems that all architectures supported by DbgEng [1] are little-endian.
+        # Let's assume that only Windows targets are supported (FIXME: verify this).
+        # [1]: https://github.com/MicrosoftDocs/windows-driver-docs-ddi/blob/b3e1ec3d46d4231c7b1c514f27507e461a6b3b4d/wdk-ddi-src/content/dbgeng/nf-dbgeng-idebugcontrol3-getactualprocessortype.md
+        # is_64bit = dbgcontrol.IsPointer64Bit()
+        # ptrsize = 8 if is_64bit else 4
+        # endian = "little"
+        # platform = Platform.WINDOWS
+        # processor_type = dbgcontrol.GetExecutingProcessorType()
+        # if processor_type == IMAGE_FILE_MACHINE_I386:
+        #     name = "i386"
+        # elif processor_type == IMAGE_FILE_MACHINE_ARM:
+        #     name = "arm"
+        # elif processor_type == IMAGE_FILE_MACHINE_IA64:
+        #     name = "ia64"
+        # elif processor_type == IMAGE_FILE_MACHINE_AMD64:
+        #     name = "x86-64"
+        # elif processor_type == IMAGE_FILE_MACHINE_EBC:
+        #     name = "ebc"
+        # else:
+        #     raise RuntimeError(f"Unknown processor type: {processor_type}")
+        # return ArchDefinition(name=name, ptrsize=ptrsize, endian=endian, platform=platform)
+
+        # Debugger.State.DebuggerVariables.cursession.Attributes.Machine
+        session, _ = self.dbg.inner.GetKeyValue("cursession")
+        attribute, _ = session.GetKeyValue("Attributes")
+        machine, _ = attribute.GetKeyValue("Machine")
+        ptrsize = machine.GetKeyValue("PointerSize")[0].GetIntrinsicValueAs(VT_UI4).value
+        endian = "big" if machine.GetKeyValue("IsBigEndian")[0].GetIntrinsicValueAs(VT_UI4).value else "little"
+        platform = Platform.WINDOWS
+        return ArchDefinition(name="x86-64", ptrsize=ptrsize, endian=endian, platform=platform)
+
+    @override
     def is_linux(self) -> bool:
-        # DbgEng only supports Windows targets
+        # DbgEng only supports Windows targets (FIXME: verify this)
         return False
 
 
 class DbgEngType(pwndbg.dbg_mod.Type):
-    inner: TypedDataWrapper
+    inner: DebugHostType
 
-    def __init__(self, inner: TypedDataWrapper):
+    def __init__(self, inner: DebugHostType):
         self.inner = inner
 
     @property
     @override
     def sizeof(self) -> int:
-        return self.inner.sizeof()
+        return self.inner.GetSize()
 
     @override
     def pointer(self) -> pwndbg.dbg_mod.Type:
-        return DbgEngType(self.inner.pointer())
+        # PointerStandard indicates a standard C/C++ pointer (*)
+        # The specification could be found at [1]
+        # [1]: https://github.com/MicrosoftDocs/windows-driver-docs-ddi/blob/b3e1ec3d46d4231c7b1c514f27507e461a6b3b4d/wdk-ddi-src/content/dbgmodel/ne-dbgmodel-pointerkind.md
+        return DbgEngType(self.inner.CreatePointerTo(DbgModel.PointerStandard))
 
 
 class DbgEngValue(pwndbg.dbg_mod.Value):
-    inner: TypedDataWrapper
+    inner: ModelObject
 
-    def __init__(self, inner: TypedDataWrapper):
+    def __init__(self, inner: ModelObject):
         self.inner = inner
 
     @override
     @property
     def type(self) -> pwndbg.dbg_mod.Type:
-        return DbgEngType(self.inner)
+        value_type = self.inner.GetTypeInfo()
+        if value_type is None:
+            # TODO: In some cases, the type is not available [1] (intrinsic types?)
+            # [1]: https://github.com/MicrosoftDocs/windows-driver-docs-ddi/blob/b3e1ec3d46d4231c7b1c514f27507e461a6b3b4d/wdk-ddi-src/content/dbgmodel/nf-dbgmodel-imodelobject-gettypeinfo.md
+            raw = self.inner.GetIntrinsicValue()
+            if raw.vt == VT_I1:
+                return typeinfo.int8
+            elif raw.vt == VT_UI1:
+                return typeinfo.uint8
+            elif raw.vt == VT_I2:
+                return typeinfo.int16
+            elif raw.vt == VT_UI2:
+                return typeinfo.uint16
+            elif raw.vt == VT_I4:
+                return typeinfo.int32
+            elif raw.vt == VT_UI4:
+                return typeinfo.uint32
+            elif raw.vt == VT_I8:
+                return typeinfo.int64
+            elif raw.vt == VT_UI8:
+                return typeinfo.uint64
+            elif raw.vt == VT_INT:
+                return typeinfo.sint
+            elif raw.vt == VT_UINT:
+                return typeinfo.uint
+            else:
+                raise RuntimeError(f"Unsupported intrinsic type: {raw.vt}")
+        return DbgEngType(value_type)
+
+    def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
+        pass
+
+
+def _get_root_dbgstate() -> ModelObject:
+    # Get Debugger.State.DebuggerVariables from the root namespace
+    root = datamodelmanager.GetRootNamespace()
+    dbgstate = (root.GetKeyValue("Debugger")[0]
+                   .GetKeyValue("State")[0]
+                   .GetKeyValue("DebuggerVariables")[0])
+    return dbgstate
 
 
 class DbgEng(pwndbg.dbg_mod.Debugger):
     command_dispatcher: CommandDispatcher
     event_callback: EventCallback
+    inner: ModelObject
 
     @override
     def setup(self, command_dispatcher: CommandDispatcher) -> None:
         self.command_dispatcher = command_dispatcher
+
+        # Initialize the debugger state
+        self.inner = _get_root_dbgstate()
 
         # Setup event callbacks
         self.event_callback = EventCallback()
@@ -358,7 +447,8 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
         # Register hooks
         import pwndbg.dbg.dbgeng.hooks
 
-        # Manually trigger the START event
+        # TODO: In WinDbg, normally the extension is loaded after the target is attached.
+        # Therefore the START event is triggered manually here.
         self.event_callback._trigger_event(pwndbg.dbg_mod.EventType.START)
 
     @override
@@ -373,16 +463,16 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
 
     @override
     def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
-        pid = dbgsysobjects.GetCurrentProcessSystemId()
-        epid = dbgsysobjects.GetCurrentProcessId()
-        return DbgEngProcess(pid, epid)
+        # Debugger.State.DebuggerVariables.curprocess
+        return DbgEngProcess(self, self.inner.GetKeyValue("curprocess")[0])
 
     def selected_thread(self) -> pwndbg.dbg_mod.Thread | None:
-        raise NotImplementedError()
+        # Debugger.State.DebuggerVariables.curthread
+        return DbgEngThread(self.inner.GetKeyValue("curthread")[0])
 
     @override
     def selected_frame(self) -> pwndbg.dbg_mod.Frame | None:
-        return DbgEngFrame()
+        return DbgEngFrame(self.selected_thread(), None)
 
     @override
     def commands(self) -> List[str]:

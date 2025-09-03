@@ -18,3 +18,11 @@ class DebugControl:
         debuggee_qualifier = c_ulong()
         self.inner.GetDebuggeeType(byref(debuggee_class), byref(debuggee_qualifier))
         return debuggee_class.value, debuggee_qualifier.value
+
+    def GetExecutingProcessorType(self) -> int:
+        processor_type = c_ulong()
+        self.inner.GetExecutingProcessorType(byref(processor_type))
+        return processor_type.value
+
+    def IsPointer64Bit(self) -> bool:
+        return self.inner.IsPointer64Bit() == hresult.S_OK

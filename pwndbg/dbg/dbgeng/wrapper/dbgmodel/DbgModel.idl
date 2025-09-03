@@ -268,6 +268,432 @@ library DbgMod
 	enum {CREATE_IGNORE_SYSTEM_DEFAULT      =0x80000000};
 
 
+//
+// ModelObjectKind:
+//
+// Describes what an IModelObject is intrinsically.
+//
+enum ModelObjectKind
+{
+    // The model object is a property accessor which can be called to retrieve value, etc...
+    //
+    // Calling GetIntrinsicValue on the object will yield a variant in which the punkVal
+    // IUnknown pointer is an IModelPropertyAccessor.
+    //
+    ObjectPropertyAccessor,
+
+    // The model object is a wrapped host context (allowing such to be used as an indexer, etc...)
+    //
+    // Calling GetIntrinsicValue on the object will yield a variant in which the punkVal
+    // IUnknown pointer is an IDebugHostContext.
+    //
+    ObjectContext,
+
+    // It's a typed object within the debuggee.  It may or may not have a model associated with it.
+    // If it has a model, key/value pairs may be associated.
+    //
+    // This object type has no "intrinsic value".  It always has a location which can be acquired.
+    //
+    ObjectTargetObject,
+
+    // It's a reference to an object within the debuggee (e.g.: the object *REFERS TO* a "target int" or a
+    // "target int&").  This is distinct from an object within the debuggee which is a reference (e.g.:
+    // the object *IS* a "target int&").
+    //
+    // This allows an evaluator or other client of the model to take a "reference" to a "reference"
+    // (object reference to a int&) or to take a "reference" to an object which is enregistered.
+    //
+    // This object type has no "intrinsic value".  It always has a location which can be acquired.
+    // The underlying object can be acquired through the Dereference method.
+    //
+    ObjectTargetObjectReference,
+
+    // The model object is a synthetic object (a key/value/metadata store)
+    //
+    // This object type has no "intrinsic value" or location.  It is purely a key/value/metadata store.
+    //
+    ObjectSynthetic,
+
+    // The model object represents no value.  If a given key exists but only has a value conditionally (e.g.: it's
+    // a property accessor), it can return NoValue to indicate this.  The caller should treat this appropriately (e.g.:
+    // not displaying the key/value in a visualization, etc...)
+    //
+    // This object type has no "intrinsic value" or location.
+    //
+    ObjectNoValue,
+
+    // The model object represents an error.
+    //
+    // This object type has no "intrinsci value" or location.  It can always be converted to a string to determine
+    // the error message.
+    //
+    ObjectError,
+
+    // The type is an intrinsic which is communicated through a variant (and the resulting variant type)
+    //
+    // Calling GetIntrinsicValue on this type will yield a variant in which the value has been packed in
+    // its natural form.  String objects are packed as VT_BSTR.
+    //
+    ObjectIntrinsic,
+
+    // The model object is a method which can be called.
+    //
+    // Calling GetIntrinsicValue on the object will yield a variant in which the punkVal
+    // IUnknown pointer is an IModelMethod.
+    //
+    ObjectMethod,
+
+    // The model object is a key reference.
+    //
+    // Calling GetIntrinsicValue on the object will yield a variant in which the punkVal
+    // IUnknown pointer is an IKeyReference.
+    //
+    ObjectKeyReference,
+
+};
+
+// SymbolKind:
+//
+// Defines the kind of a symbol.
+//
+enum SymbolKind
+{
+    // Unspecified symbol type.
+    Symbol,
+
+    // The symbol is a module and is QI'able for IDebugHostModule
+    SymbolModule,
+
+    // The symbol is a type and is QI'able for IDebugHostType
+    SymbolType,
+
+    // The symbol is a field and is QI'able for IDebugHostField
+    SymbolField,
+
+    // The symbol is a constant and is QI'able for IDebugHostConstant
+    SymbolConstant,
+
+    // The symbol is data which is not a field of a structure and is QI'able for IDebugHostData
+    SymbolData,
+
+    // The symbol is a base class and is QI'able for IDebugHostBaseClass
+    SymbolBaseClass,
+
+    // The symbol is a public symbol and is QI'able for IDebugHostPublic
+    SymbolPublic,
+
+    // The symbol is a function symbol and is QI'able for IDebugHostData
+    SymbolFunction,
+};
+
+// TypeKind:
+//
+// Defines the kind of a type.
+//
+enum TypeKind
+{
+    // The type is a UDT (user defined type -- a struct, class, etc...)
+    //
+    // The canonical form of an IModelObject which represents a UDT *value* is
+    // ObjectTargetObject where the type is always kept.
+    //
+    TypeUDT,
+
+    // The type is a pointer
+    //
+    // The canonical form of an IModelObject which represents a pointer *value* is
+    // ObjectIntrinsic where the type is always kept.  The value of the pointer
+    // is zero extended to 64-bits and can be retrieved with a fetch of the intrinsic
+    // value of the object.  The value is packed into the VT_UI8 (ullVal) field of
+    // the object's variant data.
+    //
+    // The base type of a pointer as returned by GetBaseType() is the type pointed to.
+    //
+    TypePointer,
+
+    // The type is a member pointer
+    //
+    // The canonical form of an IModelObject which represents a member pointer *value* is
+    // much the same as that of pointer.  The specific meaning of the intrinsic value
+    // packed into the variant is compiler specific.
+    //
+    TypeMemberPointer,
+
+    // The type is an array
+    //
+    // The canonical form of an IModelObject which represents an array *value* is
+    // ObjectTargetObject where the type is always kept.  The array is always referred
+    // to by a location which can be retrieved via the object's GetLocation() method.
+    // The actual array is not packed into the model object.
+    //
+    // The base type of an array as returned by GetBaseType() is the type of each element
+    // of the array.
+    //
+    TypeArray,
+
+    // The type is a function
+    TypeFunction,
+
+    // **************************************************************************
+    // This entry is **DEPRECATED**.
+    // **************************************************************************
+    //
+    // The canonical form of an IModelObject which is a typedef is the same as the canonical
+    // form of whatever the typedef is for.  A typedef will appear completely transparent to
+    // the user of the object and the type information unless the explicit typedef methods of
+    // IDebugHostType2 are utilized to query typedef information or there is an explicit data
+    // model registered against the typedef.
+    //
+    TypeTypedef,
+
+    // The type is an enum
+    //
+    // The canonical form of an IModelObject which represents an enum *value* is
+    // ObjectIntrinsic where the type is always kept.  The value is packed into
+    // the appropriate type in the object's variant data as described by the
+    // storage type of the enumeration.
+    //
+    TypeEnum,
+
+    // The type is an intrinsic (basic type)
+    //
+    // The canonical form of an IModelObject which represents an intrinsic *value* is
+    // ObjectIntrinsic.  The value is packed into the appropriate tyep in the object's
+    // variant data as indicated by the kind of intrinsic.
+    //
+    // Note that keeping the type information associated with the IModelObject is optional
+    // if the underlying type is fully described by the variant data type (VT_*).
+    //
+    TypeIntrinsic,
+
+    // The type is an array which cannot be expressed as TypeArray.
+    //
+    // This is due to things such as dynamic sizes, dynamic bounds, etc...  CLI arrays are
+    // represented as TypeExtendedArray.
+    //
+    TypeExtendedArray
+};
+
+// IntrinsicKind:
+//
+// Defines the kind of an intrinsic (basic) type.  This is distinct from the variant type
+// which carries the type.
+//
+enum IntrinsicKind
+{
+    // void
+    IntrinsicVoid,
+
+    // bool
+    IntrinsicBool,
+
+    // char
+    IntrinsicChar,
+
+    // wchar_t
+    IntrinsicWChar,
+
+    // signed int (of some size -- not necessarily 4 bytes)
+    IntrinsicInt,
+
+    // unsigned int (of some size -- not necessarily 4 bytes)
+    IntrinsicUInt,
+
+    // long (of some size)
+    IntrinsicLong,
+
+    // unsigned long (of some size)
+    IntrinsicULong,
+
+    // floating point (of some size -- not necessarily 4 bytes)
+    IntrinsicFloat,
+
+    // HRESULT
+    IntrinsicHRESULT,
+
+    // char16_t
+    IntrinsicChar16,
+
+    // char32_t
+    IntrinsicChar32
+
+};
+
+// PointerKind:
+//
+// Defines the kind of a pointer type.
+//
+enum PointerKind
+{
+    // *
+    PointerStandard,
+
+    // &
+    PointerReference,
+
+    // &&
+    PointerRValueReference,
+
+    // ^
+    PointerCXHat,
+
+    // CLI reference (invisible to the user)
+    PointerManagedReference
+};
+
+// CallingConventionKind:
+//
+// Defines the kind of calling convention of a function type.
+//
+enum CallingConventionKind
+{
+    // The calling convention is not known
+    CallingConventionUnknown,
+
+    // The calling convention is __cdecl
+    CallingConventionCDecl,
+
+    // The calling convention is fastcall
+    CallingConventionFastCall,
+
+    // The calling convention is stdcall
+    CallingConventionStdCall,
+
+    // The calling convention is syscall
+    CallingConventionSysCall,
+
+    // The calling convention is thiscall
+    CallingConventionThisCall,
+
+};
+
+// LocationKind:
+//
+// Defines the location of a field or other data.
+//
+enum LocationKind
+{
+    // The field is a member and has an offset relative to the this pointer
+    LocationMember,
+
+    // The field is static and has an address
+    LocationStatic,
+
+    // The field is constant and has a value
+    LocationConstant,
+
+    // The field has no location (e.g.: it has been optimized out or was a static which was defined but not
+    // declared)
+    LocationNone,
+};
+
+//*************************************************
+// Metadata Keys:
+
+//
+// "PreferredFormat"
+//     contains a value which is from the PreferredFormat enumeration below that indicates the preferred manner in which a given
+//     value should be *DISPLAYED*.  It does not affect the value itself.
+//
+// "PreferredRadix"
+//     contains a value which indicates the preferred display radix for an integral value.  This is either 8, 10, or 16
+//
+// "PreferShow"
+//     contains a boolean value which contains an indication of whether the element should, by default, display.
+//     The default value of this metadata key is "true" for values which are not methods and "false" for values
+//     which are methods.
+//
+// "PreferredLength"
+//     contains a value which describes how many iterated elements to display by default.  
+//     The default value of this metadata key is "1" for pointers and the type system defined length of any array
+//     for array types.
+// 
+// "ActionName"
+//     applicable only to object methods which take no arguments and have ObjectNoValueReturns, the presence of this
+//     metadatakey indicates that the method is an action for the object which should be funneled to appropriate UI 
+//     under the name given in this string metadata key.  The UI here may be a DML link (in WinDbg), a context menu,
+//     or other affordance.  An example of an action is "Switch To" for a thread which changes the UI focus to
+//     the given thread.
+//
+// "ActionDescription"
+//     applicable only where the "ActionName" key is present, this is a string value which gives tooltip style
+//     help for an action.
+//
+// "ActionIsDefault"
+//     applicable only where the "ActionName" key is present, this is a boolean value which describes whether
+//     the action is a default action or not.  The default action for an object may be funneled to additional
+//     UI.  By default, the value of this key is "false".  Only a single action method on any given object may
+//     be marked as the default action.
+//
+// "PreferAutoExpand"
+//     contains an unsigned value which describes whether the element should be expanded automatically if
+//     it is a child of some other object and the recursion level is high enough.  The default value for this
+//     key is "true".  If this key is specified as "false", the object **WILL NOT** expand in a console view unless
+//     it is the root element being displayed.
+//
+// "PreferredExpansionDepth"
+//     contains an unsigned value which describes how far the element should be expanded if not otherwise specified
+//     by a host command or other UI affordance.
+//
+
+//
+// PreferredFormat
+//
+// Predefined values of the "PreferredFormat" key which may appear as the metadata on a returned key value.  This indicates
+// the preferred DISPLAY FORMAT for a given value.
+//
+enum PreferredFormat
+{
+    // There is no preferred format
+    FormatNone,
+
+    // The preferred format is a single character as '*'
+    FormatSingleCharacter,
+
+    // The preferred format is a quoted 8-bit string
+    FormatQuotedString,
+
+    // The preferred format is a non-quoted 8-bit string
+    FormatString,
+
+    // The preferred format is a quoted Unicode (UTF-16) string
+    FormatQuotedUnicodeString,
+
+    // The preferred format is a non-quoted Unicode (UTF-16) string
+    FormatUnicodeString,
+
+    // The preferred format is a quoted UTF-8 string
+    FormatQuotedUTF8String,
+
+    // The preferred format is a non-quoted UTF-8 string
+    FormatUTF8String,
+
+    // The preferred format is a quoted BSTR
+    FormatBSTRString,
+
+    // The preferred format is a quoted WinRT HSTRING
+    FormatQuotedHString,
+
+    // The preferred format is a non-quoted WinRT HSTRING
+    FormatHString,
+
+    // The preferred format is the raw (native) type
+    FormatRaw,
+
+    // The preferred format is the enum name only
+    FormatEnumNameOnly,
+
+    // The preferred format is the quoted string with escaped characters
+    FormatEscapedStringWithQuote,
+
+    // The preferred format is a non-quoted Unicode (UTF-32) string
+    FormatUTF32String,
+
+    // The preferred format is a quoted Unicode (UTF-32) string
+    FormatQuotedUTF32String
+};
+
+
 	///////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////
@@ -579,13 +1005,7 @@ interface IDebugHostModule : IDebugHostSymbol {
 	uuid(F219B848-63B2-4A43-A6C9-72ABF25A9711),
 	helpstring("IDebugHostType")
 ]
-interface IDebugHostType : IUnknown {
-	HRESULT GetContext(  IDebugHostContext** context );
-	HRESULT EnumerateChildren(  int kind, const wchar_t* name, IDebugHostSymbolEnumerator **ppEnum );
-	HRESULT Getint(  int *kind );
-	HRESULT GetName(  BSTR* symbolName );
-	HRESULT GetType(  IDebugHostType** type );
-	HRESULT GetContainingModule(  IDebugHostModule **containingModule );
+interface IDebugHostType : IDebugHostSymbol {
 	HRESULT GetTypeKind(  TypeKind *kind );
 	HRESULT GetSize(  ULONG64* size );
 	HRESULT GetBaseType(  IDebugHostType** baseType );
@@ -780,32 +1200,7 @@ interface IDebugHostSymbol2 : IUnknown {
 	uuid(B28632B9-8506-4676-87CE-8F7E05E59876),
 	helpstring("IDebugHostType2")
 ]
-interface IDebugHostType2 : IUnknown {
-	HRESULT GetContext(  IDebugHostContext** context );
-	HRESULT EnumerateChildren(  int kind, const wchar_t* name, IDebugHostSymbolEnumerator **ppEnum );
-	HRESULT Getint(  int *kind );
-	HRESULT GetName(  BSTR* symbolName );
-	HRESULT GetType(  IDebugHostType** type );
-	HRESULT GetContainingModule(  IDebugHostModule **containingModule );
-	HRESULT GetTypeKind(  TypeKind *kind );
-	HRESULT GetSize(  ULONG64* size );
-	HRESULT GetBaseType(  IDebugHostType** baseType );
-	HRESULT GetHashCode(  ULONG* hashCode );
-	HRESULT GetIntrinsicType(  int *intrinsicKind, VARTYPE *carrierType );
-	HRESULT GetBitField(  ULONG* lsbOfField, ULONG* lengthOfField );
-	HRESULT GetPointerKind(  int* pointerKind );
-	HRESULT GetMemberType(  IDebugHostType** memberType );
-	HRESULT CreatePointerTo(  int kind, IDebugHostType** newType );
-	HRESULT GetArrayDimensionality(  ULONG64* arrayDimensionality );
-	HRESULT GetArrayDimensions(  unsigned __int64 dimensions, ArrayDimension *pDimensions );
-	HRESULT CreateArrayOf(  unsigned __int64 dimensions, ArrayDimension *pDimensions, IDebugHostType** newType );
-	HRESULT GetFunctionCallingConvention(  int* conventionKind );
-	HRESULT GetFunctionReturnType(  IDebugHostType** returnType );
-	HRESULT GetFunctionParameterTypeCount(  ULONG64* count );
-	HRESULT GetFunctionParameterTypeAt(  unsigned __int64 i, IDebugHostType** parameterType );
-	HRESULT IsGeneric(  bool* isGeneric );
-	HRESULT GetGenericArgumentCount(  ULONG64* argCount );
-	HRESULT GetGenericArgumentAt(  unsigned __int64 i, IDebugHostSymbol** argument );
+interface IDebugHostType2 : IDebugHostType {
 	HRESULT IsTypedef(  bool* isTypedef );
 	HRESULT GetTypedefBaseType(  IDebugHostType2** baseType );
 	HRESULT GetTypedefFinalBaseType(  IDebugHostType2** finalBaseType );

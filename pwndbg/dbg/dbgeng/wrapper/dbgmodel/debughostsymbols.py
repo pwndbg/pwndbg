@@ -10,7 +10,6 @@ import comtypes.hresult as hresult
 
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostsymbol import DebugHostSymbol
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext, USE_CURRENT_HOST_CONTEXT
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.constants import *
 
 
 class DebugHostSymbolEnumerator:
@@ -23,9 +22,7 @@ class DebugHostSymbolEnumerator:
             self.inner.GetNext(byref(symbol))
             return DebugHostSymbol(symbol)
         except COMError as e:
-            if e.hresult == E_BOUNDS:
-                return None
-            raise
+            return None
 
 
 class DebugHostSymbols:

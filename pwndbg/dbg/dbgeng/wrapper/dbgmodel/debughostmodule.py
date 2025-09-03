@@ -8,7 +8,6 @@ from comtypes import COMError, BSTR
 import comtypes.gen.DbgMod as DbgModel
 import comtypes.hresult as hresult
 
-from pwndbg.dbg.dbgeng.wrapper.dbgmodel.constants import *
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughosttype import DebugHostType
 
 

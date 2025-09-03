@@ -18,13 +18,13 @@ class DebugHostEvaluator:
         self.inner = inner
     
     def EvaluateExpression(self, context: DebugHostContext, expression: str,
-                           binding_context: ModelObject) -> tuple[ModelObject]:
+                           binding_context: ModelObject) -> tuple[ModelObject, KeyStore]:
         result = POINTER(DbgModel.IModelObject)()
         metadata = POINTER(DbgModel.IKeyStore)()
         buffer = create_unicode_buffer(expression)
-        hr = self.inner.EvaluateExpression(
+        self.inner.EvaluateExpression(
             context.inner,
-            buffer,
+            cast(buffer, POINTER(c_ushort)),
             binding_context.inner,
             byref(result),
             byref(metadata)
