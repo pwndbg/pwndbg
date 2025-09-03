@@ -6,9 +6,9 @@ from pwndbg.dbg.dbgeng.wrapper.dbgeng.control import DebugControl
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.registers import DebugRegisters
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.symbols import DebugSymbols
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.systemobjects import DebugSystemObjects
+from pwndbg.dbg.dbgeng.wrapper.dbgeng.dataspaces import DebugDataSpaces
 
 import comtypes.gen.DbgEng as DbgEng
-import ctypes
 
 
 def DebugCreate() -> DebugClient:

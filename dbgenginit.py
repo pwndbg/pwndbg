@@ -13,10 +13,14 @@ def main():
     dbgregisters = dbgclient.DebugRegisters()
     dbgadvanced = dbgclient.DebugAdvanced()
     dbgsymbols = dbgclient.DebugSymbols()
+    dbgdataspaces = dbgclient.DebugDataSpaces()
+
+    # DbgModel objects
     hostdatamodelaccess = HostDataModelAccess(dbgclient.QueryInterface(interface=DbgModel.IHostDataModelAccess))
     datamodelmanager, debughost = hostdatamodelaccess.GetDataModel()
     debughostsymbols = debughost.DebugHostSymbols()
     debughostevaluator = debughost.DebugHostEvaluator()
+    debughostmemory = debughost.DebugHostMemory()
 
     # Initialize IO
     # sys.stdout = io.IOBase()
@@ -38,11 +42,14 @@ def main():
     pwndbg.dbg_mod.dbgeng.dbgregisters = dbgregisters
     pwndbg.dbg_mod.dbgeng.dbgadvanced = dbgadvanced
     pwndbg.dbg_mod.dbgeng.dbgsymbols = dbgsymbols
+    pwndbg.dbg_mod.dbgeng.dbgdataspaces = dbgdataspaces
+
     pwndbg.dbg_mod.dbgeng.hostdatamodelaccess = hostdatamodelaccess
     pwndbg.dbg_mod.dbgeng.datamodelmanager = datamodelmanager
     pwndbg.dbg_mod.dbgeng.debughost = debughost
     pwndbg.dbg_mod.dbgeng.debughostsymbols = debughostsymbols
     pwndbg.dbg_mod.dbgeng.debughostevaluator = debughostevaluator
+    pwndbg.dbg_mod.dbgeng.debughostmemory = debughostmemory
 
     # setup the debugger
     pwndbg.dbg = pwndbg.dbg_mod.dbgeng.DbgEng()

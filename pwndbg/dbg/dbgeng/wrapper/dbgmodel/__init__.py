@@ -15,3 +15,4 @@ from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughosttype import DebugHostType
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.modelobject import ModelObject
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostevaluator import DebugHostEvaluator
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext, USE_CURRENT_HOST_CONTEXT
+from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostmemory import DebugHostMemory

@@ -693,6 +693,20 @@ enum PreferredFormat
     FormatQuotedUTF32String
 };
 
+// RawSearchFlags:
+//
+// Flags to GetRawValue/EnumerateRawValues
+//
+enum RawSearchFlags
+{
+    // There are no search flags
+    RawSearchNone = 0x00000000,
+
+    // Indicates that the search should not recurse to base children (e.g.: base classes).  Only names/types
+    // which are in the object itself should be returned.
+    RawSearchNoBases = 0x00000001,
+};
+
 
 	///////////////////////////////////////////////////////////
 

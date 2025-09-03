@@ -11,6 +11,7 @@ import comtypes.hresult as hresult
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostsymbols import DebugHostSymbols
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostevaluator import DebugHostEvaluator
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostcontext import DebugHostContext
+from pwndbg.dbg.dbgeng.wrapper.dbgmodel.debughostmemory import DebugHostMemory
 
 
 class DebugHost:
@@ -24,6 +25,10 @@ class DebugHost:
     def DebugHostEvaluator(self) -> DebugHostEvaluator:
         evaluator = self.inner.QueryInterface(DbgModel.IDebugHostEvaluator)
         return DebugHostEvaluator(evaluator)
+
+    def DebugHostMemory(self) -> DebugHostMemory:
+        memory = self.inner.QueryInterface(DbgModel.IDebugHostMemory)
+        return DebugHostMemory(memory)
 
     def GetCurrentContext(self) -> DebugHostContext:
         context = POINTER(DbgModel.IDebugHostContext)()

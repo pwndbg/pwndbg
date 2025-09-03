@@ -5,6 +5,8 @@ if TYPE_CHECKING:
     from ctypes import _Pointer
 
 from comtypes import COMError, BSTR
+from comtypes.automation import VARTYPE
+from comtypes.typeinfo import TYPEKIND
 import comtypes.gen.DbgMod as DbgModel
 import comtypes.hresult as hresult
 
@@ -27,3 +29,14 @@ class DebugHostType:
         new_type = POINTER(DbgModel.IDebugHostType)()
         self.inner.CreatePointerTo(kind, byref(new_type))
         return DebugHostType(new_type)
+
+    def GetIntrinsicType(self) -> tuple[int, VARTYPE]:
+        kind = c_int()
+        vartype = VARTYPE()
+        self.inner.GetIntrinsicType(byref(kind), byref(vartype))
+        return kind.value, vartype
+
+    def GetTypeKind(self) -> int:
+        kind = c_int()
+        self.inner.GetTypeKind(byref(kind))
+        return kind.value

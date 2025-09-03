@@ -13,6 +13,7 @@ from pwndbg.dbg.dbgeng.wrapper.dbgeng.advanced import DebugAdvanced
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.registers import DebugRegisters
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.symbols import DebugSymbols
 from pwndbg.dbg.dbgeng.wrapper.dbgeng.systemobjects import DebugSystemObjects
+from pwndbg.dbg.dbgeng.wrapper.dbgeng.dataspaces import DebugDataSpaces
 
 
 class DebugClient:
@@ -36,6 +37,9 @@ class DebugClient:
 
     def DebugSystemObjects(self) -> DebugSystemObjects:
         return DebugSystemObjects(self.inner.QueryInterface(DbgEng.IDebugSystemObjects))
+
+    def DebugDataSpaces(self) -> DebugDataSpaces:
+        return DebugDataSpaces(self.inner.QueryInterface(DbgEng.IDebugDataSpaces2))
 
     def SetEventCallbacks(self, callbacks: "_Pointer[DbgEng.IDebugEventCallbacks]") -> None:
         self.inner.SetEventCallbacks(callbacks)

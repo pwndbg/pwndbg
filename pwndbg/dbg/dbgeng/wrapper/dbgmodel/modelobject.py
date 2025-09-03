@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from ctypes import _Pointer
 
 from comtypes import COMError, BSTR
-from comtypes.automation import VARIANT
+from comtypes.automation import VARIANT, VARTYPE
 import comtypes.gen.DbgMod as DbgModel
 import comtypes.hresult as hresult
 
@@ -61,7 +61,7 @@ class ModelObject:
     def __init__(self, inner: "_Pointer[DbgModel.IModelObject]"):
         self.inner = inner
     
-    def IterableConcept(self) -> IterableConcept:
+    def IterableConcept(self) -> tuple[IterableConcept, KeyStore]:
         concept = POINTER(DbgModel.IIterableConcept)()
         meta = POINTER(DbgModel.IKeyStore)()
         self.inner.GetConcept(byref(DbgModel.IIterableConcept._iid_), byref(concept), byref(meta))
@@ -91,7 +91,7 @@ class ModelObject:
         self.inner.GetIntrinsicValue(byref(variant))
         return variant
 
-    def GetIntrinsicValueAs(self, vt: int) -> VARIANT:
+    def GetIntrinsicValueAs(self, vt: VARTYPE) -> VARIANT:
         variant = VARIANT()
         self.inner.GetIntrinsicValueAs(vt, byref(variant))
         return variant
@@ -105,3 +105,30 @@ class ModelObject:
         context = POINTER(DbgModel.IDebugHostContext)()
         self.inner.GetContext(byref(context))
         return DebugHostContext(context)
+
+    def GetLocation(self) -> DbgModel._Location:
+        location = DbgModel._Location()
+        self.inner.GetLocation(byref(location))
+        return DbgModel._Location
+
+    def GetKind(self) -> DbgModel.ModelObjectKind:
+        kind = DbgModel.ModelObjectKind()
+        self.inner.GetKind(byref(kind))
+        return kind
+
+    def GetRawReference(self, kind: int, name: str, flags: int = 0) -> "ModelObject":
+        buffer = create_unicode_buffer(name)
+        obj = POINTER(DbgModel.IModelObject)()
+        self.inner.GetRawReference(kind, cast(buffer, POINTER(c_ushort)), flags, byref(obj))
+        return ModelObject(obj)
+
+    def GetRawValue(self, kind: int, name: str, flags: int = 0) -> "ModelObject":
+        buffer = create_unicode_buffer(name)
+        obj = POINTER(DbgModel.IModelObject)()
+        self.inner.GetRawValue(kind, cast(buffer, POINTER(c_ushort)), flags, byref(obj))
+        return obj
+
+    def Dereference(self) -> "ModelObject":
+        obj = POINTER(DbgModel.IModelObject)()
+        self.inner.Dereference(byref(obj))
+        return ModelObject(obj)

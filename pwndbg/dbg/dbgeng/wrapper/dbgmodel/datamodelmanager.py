@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     from ctypes import _Pointer
 
 from comtypes import COMError
+from comtypes.automation import VARIANT
 import comtypes.gen.DbgMod as DbgModel
 import comtypes.hresult as hresult
 
@@ -19,3 +20,8 @@ class DataModelManager:
         root = POINTER(DbgModel.IModelObject)()
         self.inner.GetRootNamespace(byref(root))
         return ModelObject(root)
+
+    def CreateIntrinsicObject(self, kind: DbgModel.ModelObjectKind, data: VARIANT) -> ModelObject:
+        obj = POINTER(DbgModel.IModelObject)()
+        self.inner.CreateIntrinsicObject(kind, byref(data), byref(obj))
+        return ModelObject(obj)

@@ -7,15 +7,16 @@ from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DbgModel
 import shlex
 from typing import Any, Callable, Iterator, List, Literal, Sequence, Tuple, TypeVar
 from typing_extensions import override
+import os
 
 import pwndbg
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
 from pwndbg.dbg.dbgeng.events import EventCallback
 from pwndbg.dbg.dbgeng.wrapper.dbgeng import DebugSystemObjects, DebugClient, DebugControl, DebugRegisters, \
-    DebugAdvanced, DebugSymbols
+    DebugAdvanced, DebugSymbols, DebugDataSpaces
 from pwndbg.dbg.dbgeng.wrapper.dbgmodel import DebugHost, HostDataModelAccess, DataModelManager, DebugHostSymbols, \
-    DebugHostType, ModelObject, DebugHostEvaluator, USE_CURRENT_HOST_CONTEXT
+    DebugHostType, ModelObject, DebugHostEvaluator, DebugHostMemory, USE_CURRENT_HOST_CONTEXT
 from pwndbg.dbg.dbgeng.wrapper.wdbgexts import _EXT_TYPED_DATA, _DEBUG_TYPED_DATA
 from pwndbg.dbg.dbgeng.wrapper.constants import *
 from pwndbg.lib.arch import ArchDefinition
@@ -31,12 +32,14 @@ dbgsysobjects: DebugSystemObjects
 dbgregisters: DebugRegisters
 dbgadvanced: DebugAdvanced
 dbgsymbols: DebugSymbols
+dbgdataspaces: DebugDataSpaces
 
 hostdatamodelaccess: HostDataModelAccess
 datamodelmanager: DataModelManager
 debughost: DebugHost
 debughostsymbols: DebugHostSymbols
 debughostevaluator: DebugHostEvaluator
+debughostmemory: DebugHostMemory
 
 
 def _get_typed_data(module_base: int, type_id: int, ptr = False, tag: int = 0) -> _DEBUG_TYPED_DATA:
@@ -202,7 +205,14 @@ class DbgEngRegisters(pwndbg.dbg_mod.Registers):
         self.inner = inner
 
     def by_name(self, name: str) -> pwndbg.dbg_mod.Value | None:
-        obj, _ = self.inner.GetKeyValue(name)
+        if name == "pc":
+            # For compatibility with gdb
+            # FIXME: This assumes x86-64
+            name = "rip"
+        obj = self.inner.GetKeyValue(name)
+        if obj is None:
+            return None
+        obj, _ = obj    # metadata
         return DbgEngValue(obj) if obj is not None else None
 
 
@@ -216,9 +226,38 @@ class DbgEngFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def regs(self) -> pwndbg.dbg_mod.Registers:
+        # Debugger.State.DebuggerVariables.curthread.Registers.User
         obj, _ = self.thread.inner.GetKeyValue("Registers")
         user_regs, _ = obj.GetKeyValue("User")
         return DbgEngRegisters(user_regs)
+
+    @override
+    def pc(self) -> int:
+        attributes, _ = self.inner.GetKeyValue("Attributes")
+        value, _ = attributes.GetKeyValue("InstructionOffset")
+        return int(DbgEngValue(value))
+
+    @override
+    def parent(self) -> pwndbg.dbg_mod.Frame | None:
+        # TODO: implement this
+        return None
+
+    @override
+    def child(self) -> pwndbg.dbg_mod.Frame | None:
+        # TODO: implement this
+        return None
+
+    @override
+    def sal(self) -> Tuple[str, int] | None:
+        # TODO: implement this
+        return None
+
+    @override
+    def __eq__(self, rhs: object) -> bool:
+        assert isinstance(rhs, DbgEngFrame)
+        rhs: DbgEngFrame = rhs
+
+        return self.inner.GetContext().IsEqualTo(rhs.inner.GetContext())
 
 
 class DbgEngThread(pwndbg.dbg_mod.Thread):
@@ -230,7 +269,19 @@ class DbgEngThread(pwndbg.dbg_mod.Thread):
     @override
     @contextlib.contextmanager
     def bottom_frame(self) -> Iterator[pwndbg.dbg_mod.Frame]:
-        yield DbgEngFrame(self, None)
+        stack, _ = self.inner.GetKeyValue("Stack")
+        concept, _ = stack.IterableConcept()
+        iterator = concept.GetIterator(stack)
+        item = iterator.GetNext()
+        if item is not None:
+            yield DbgEngFrame(self, item)
+
+
+class DbgEngMemoryMap(pwndbg.dbg_mod.MemoryMap):
+    @override
+    def is_qemu(self) -> bool:
+        # FIXME: Implement this if possible.
+        return False
 
 
 class DbgEngProcess(pwndbg.dbg_mod.Process):
@@ -242,8 +293,9 @@ class DbgEngProcess(pwndbg.dbg_mod.Process):
 
     @override
     def threads(self) -> List[pwndbg.dbg_mod.Thread]:
+        # Debugger.State.DebuggerVariables.curprocess.Threads
         obj,_ = self.inner.GetKeyValue("Threads")
-        concept = obj.IterableConcept()
+        concept, _ = obj.IterableConcept()
         iterator = concept.GetIterator(obj)
 
         threads = []
@@ -273,9 +325,70 @@ class DbgEngProcess(pwndbg.dbg_mod.Process):
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value | None:
         # TODO
         dbgcontrol.Evaluate(expression)
-    
+
+    @override
+    def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
+        pages = list(self.get_pages())
+        return DbgEngMemoryMap(pages)
+
+    def get_pages(self) -> Iterator[pwndbg.lib.memory.Page]:
+        # TODO: This part might introduce race, consider using IDebugHostContextControl
+        engine_pid = dbgsysobjects.GetProcessIdBySystemId(self.pid())
+        dbgsysobjects.SetCurrentProcessId(engine_pid)
+
+        pages = []
+        offset = 0
+        while True:
+            info = dbgdataspaces.QueryVirtual(offset)
+            if info is None:
+                break
+
+            # Next offset
+            offset = info.BaseAddress + info.RegionSize
+
+            if info.State & MEM_FREE:
+                # MEM_FREE regions are not accessible
+                continue
+
+            # PAGE_WRITECOPY and PAGE_EXECUTE_WRITECOPY indicate CoW access
+            flags = 0
+            if any(info.Protect & flag for flag in (PAGE_EXECUTE_READ,
+                                                    PAGE_EXECUTE_READWRITE,
+                                                    PAGE_EXECUTE_WRITECOPY,
+                                                    PAGE_READONLY,
+                                                    PAGE_READWRITE,
+                                                    PAGE_WRITECOPY)):
+                flags |= os.R_OK
+            if any(info.Protect & flag for flag in (PAGE_EXECUTE_READWRITE,
+                                                    PAGE_EXECUTE_WRITECOPY,
+                                                    PAGE_READWRITE,
+                                                    PAGE_WRITECOPY)):
+                flags |= os.W_OK
+            if any(info.Protect & flag for flag in (PAGE_EXECUTE,
+                                                    PAGE_EXECUTE_READ,
+                                                    PAGE_EXECUTE_READWRITE,
+                                                    PAGE_EXECUTE_WRITECOPY)):
+                flags |= os.X_OK
+
+            yield pwndbg.lib.memory.Page(
+                info.BaseAddress,
+                info.RegionSize,
+                flags,
+                info.AllocationBase,
+            )
+
+    @override
+    def read_memory(self, address: int, size: int, partial: bool = False) -> bytearray:
+        # TODO: implement this
+        location = DbgModel._Location(0, address)
+        mem = debughostmemory.ReadBytes(self.inner.GetContext(), location, size)
+        if len(mem) < size and not partial:
+            raise pwndbg.dbg_mod.Error(f"unable to read {size:#x} bytes")
+        return bytearray(mem)
+
     @override
     def is_remote(self) -> bool:
+        # TODO: This is the old implementation. Use the new Debugger Data Model for the new one.
         # GetDebuggeeType returns the class and qualifier of the debuggee.
         # The class can be one of:
         # - DEBUG_CLASS_KERNEL
@@ -313,36 +426,25 @@ class DbgEngProcess(pwndbg.dbg_mod.Process):
 
     @override
     def arch(self) -> ArchDefinition:
-        # It seems that all architectures supported by DbgEng [1] are little-endian.
-        # Let's assume that only Windows targets are supported (FIXME: verify this).
-        # [1]: https://github.com/MicrosoftDocs/windows-driver-docs-ddi/blob/b3e1ec3d46d4231c7b1c514f27507e461a6b3b4d/wdk-ddi-src/content/dbgeng/nf-dbgeng-idebugcontrol3-getactualprocessortype.md
-        # is_64bit = dbgcontrol.IsPointer64Bit()
-        # ptrsize = 8 if is_64bit else 4
-        # endian = "little"
-        # platform = Platform.WINDOWS
-        # processor_type = dbgcontrol.GetExecutingProcessorType()
-        # if processor_type == IMAGE_FILE_MACHINE_I386:
-        #     name = "i386"
-        # elif processor_type == IMAGE_FILE_MACHINE_ARM:
-        #     name = "arm"
-        # elif processor_type == IMAGE_FILE_MACHINE_IA64:
-        #     name = "ia64"
-        # elif processor_type == IMAGE_FILE_MACHINE_AMD64:
-        #     name = "x86-64"
-        # elif processor_type == IMAGE_FILE_MACHINE_EBC:
-        #     name = "ebc"
-        # else:
-        #     raise RuntimeError(f"Unknown processor type: {processor_type}")
-        # return ArchDefinition(name=name, ptrsize=ptrsize, endian=endian, platform=platform)
-
         # Debugger.State.DebuggerVariables.cursession.Attributes.Machine
         session, _ = self.dbg.inner.GetKeyValue("cursession")
         attribute, _ = session.GetKeyValue("Attributes")
         machine, _ = attribute.GetKeyValue("Machine")
         ptrsize = machine.GetKeyValue("PointerSize")[0].GetIntrinsicValueAs(VT_UI4).value
         endian = "big" if machine.GetKeyValue("IsBigEndian")[0].GetIntrinsicValueAs(VT_UI4).value else "little"
-        platform = Platform.WINDOWS
+        platform = Platform.WINDOWS # FIXME: does DbgEng support other platforms?
+
+        # TODO: @$cursession.Attributes.Machine exposes two fields: FullName and AbbrevName which
+        # indicate the architecture. However there are two issues right now:
+        # 1. No documentation about the possible values (might require reverse engineering)
+        # 2. Effective arch might be different from the physical arch (e.g., WOW64)
+        # For now we just assume x86-64
         return ArchDefinition(name="x86-64", ptrsize=ptrsize, endian=endian, platform=platform)
+
+    @override
+    def symbol_name_at_address(self, address: int) -> str | None:
+        # TODO: implement this
+        return None
 
     @override
     def is_linux(self) -> bool:
@@ -355,6 +457,9 @@ class DbgEngType(pwndbg.dbg_mod.Type):
 
     def __init__(self, inner: DebugHostType):
         self.inner = inner
+        self.is_intrinsic = (self.inner.GetTypeKind() == DbgModel.TypeIntrinsic)
+        if self.is_intrinsic:
+            self.kind, self.carrier = self.inner.GetIntrinsicType()
 
     @property
     @override
@@ -407,8 +512,19 @@ class DbgEngValue(pwndbg.dbg_mod.Value):
                 raise RuntimeError(f"Unsupported intrinsic type: {raw.vt}")
         return DbgEngType(value_type)
 
+    @override
+    def __int__(self) -> int:
+        return self.inner.GetIntrinsicValue().value
+
+    @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
-        pass
+        assert isinstance(type, DbgEngType)
+        type: DbgEngType = type
+
+        # TODO: Currently, casting only works for intrinsic types.
+        assert type.is_intrinsic
+        variant = self.inner.GetIntrinsicValueAs(type.carrier)
+        return DbgEngValue(datamodelmanager.CreateIntrinsicObject(DbgModel.ObjectIntrinsic, variant))
 
 
 def _get_root_dbgstate() -> ModelObject:
@@ -472,7 +588,8 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
 
     @override
     def selected_frame(self) -> pwndbg.dbg_mod.Frame | None:
-        return DbgEngFrame(self.selected_thread(), None)
+        # Debugger.State.DebuggerVariables.curframe
+        return DbgEngFrame(self.selected_thread(), self.inner.GetKeyValue("curframe")[0])
 
     @override
     def commands(self) -> List[str]:
@@ -487,13 +604,6 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
     ) -> pwndbg.dbg_mod.CommandHandle:
         self.command_dispatcher.register(command_name, handler)
         return DbgEngCommandHandle()
-
-    def has_event_type(self, ty: pwndbg.dbg_mod.EventType) -> bool:
-        """
-        Whether the given event type is supported by this debugger. Indicates
-        that a user either can or cannot register an event handler of this type.
-        """
-        raise NotImplementedError()
 
     @override
     def event_handler(self, ty: pwndbg.dbg_mod.EventType) -> Callable[[Callable[..., T]], Callable[..., T]]:
@@ -515,45 +625,15 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
         finally:
             self.resume_events(ty)
 
-    def suspend_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
-        """
-        Suspend delivery of all events of the given type until it is resumed
-        through a call to `resume_events`.
-
-        Events triggered during a suspension will be ignored, and will not be
-        delived, even after delivery is resumed.
-        """
-        raise NotImplementedError()
-
-    def resume_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
-        """
-        Resume the delivery of all events of the given type, if previously
-        suspeded through a call to `suspend_events`. Does nothing if the
-        delivery has not been previously suspeded.
-        """
-        raise NotImplementedError()
-
-    def set_sysroot(self, sysroot: str) -> bool:
-        """
-        Sets the system root for this debugger.
-        """
-        raise NotImplementedError()
-
+    @override
     def x86_disassembly_flavor(self) -> Literal["att", "intel"]:
-        """
-        The flavor of disassembly to use for x86 targets.
-        """
-        raise NotImplementedError()
+        # TODO: Implement this if possible.
+        return "intel"
 
-    def supports_breakpoint_creation_during_stop_handler(self) -> bool:
-        """
-        Whether breakpoint or watchpoint creation through `break_at` is
-        supported during breakpoint stop handlers.
-        """
-        raise NotImplementedError()
-
+    @override
     def breakpoint_locations(self) -> List[pwndbg.dbg_mod.BreakpointLocation]:
-        raise NotImplementedError()
+        # TODO: Implement this
+        return []
 
     @override
     def name(self) -> pwndbg.dbg_mod.DebuggerType:
@@ -563,18 +643,14 @@ class DbgEng(pwndbg.dbg_mod.Debugger):
     def is_gdblib_available(self) -> bool:
         return False
 
-    def string_limit(self) -> int:
-        raise NotImplementedError()
-
+    @override
     def addrsz(self, address: Any) -> str:
-        raise NotImplementedError()
+        return "%#16x" % address
 
-    def get_cmd_window_size(self) -> Tuple[int, int]:
-        raise NotImplementedError()
-
+    @override
     @property
     def pre_ctx_lines(self) -> int:
-        raise NotImplementedError()
-
-    def set_python_diagnostics(self, enabled: bool) -> None:
-        raise NotImplementedError()
+        # DbgEng usually prints 2 lines
+        # ntdll!LdrpDoDebuggerBreak+0x31:
+        # 00007ffa`cc480731 eb00            jmp     ntdll!LdrpDoDebuggerBreak+0x33 (00007ffa`cc480733)
+        return 2
