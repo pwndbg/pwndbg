@@ -430,28 +430,28 @@ class Aarch64PagingInfo(ArchPagingInfo):
         if self.kversion < (5, 4):
             PAGE_OFFSET = INVALID_ADDR - (1 << (self.va_bits - 1))
             self.VMEMMAP_SIZE = 1 << (self.va_bits - self.page_shift - 1 + self.STRUCT_PAGE_SHIFT)
-            VMEMMAP_START = PAGE_OFFSET - self.VMEMMAP_SIZE
+            self.VMEMMAP_START = PAGE_OFFSET - self.VMEMMAP_SIZE
         elif self.kversion < (5, 11):
             PAGE_OFFSET = (-(1 << self.va_bits)) & 0xFFFFFFFFFFFFFFFF
             self.VMEMMAP_SIZE = (
                 (-(1 << (self.va_bits_min - 1)) & 0xFFFFFFFFFFFFFFFF) - PAGE_OFFSET
             ) >> vmemmap_shift
-            VMEMMAP_START = (-self.VMEMMAP_SIZE - 0x00200000) & 0xFFFFFFFFFFFFFFFF
+            self.VMEMMAP_START = (-self.VMEMMAP_SIZE - 0x00200000) & 0xFFFFFFFFFFFFFFFF
         elif self.kversion < (6, 9):
             PAGE_OFFSET = (-(1 << self.va_bits)) & 0xFFFFFFFFFFFFFFFF
             self.VMEMMAP_SIZE = (
                 (-(1 << (self.va_bits_min - 1)) & 0xFFFFFFFFFFFFFFFF) - PAGE_OFFSET
             ) >> vmemmap_shift
-            VMEMMAP_START = (-(1 << (self.va_bits - vmemmap_shift))) & 0xFFFFFFFFFFFFFFFF
+            self.VMEMMAP_START = (-(1 << (self.va_bits - vmemmap_shift))) & 0xFFFFFFFFFFFFFFFF
         else:
             PAGE_OFFSET = (-(1 << self.va_bits)) & 0xFFFFFFFFFFFFFFFF
             VMEMMAP_RANGE = ((-(1 << (self.va_bits_min - 1))) & 0xFFFFFFFFFFFFFFFF) - PAGE_OFFSET
             self.VMEMMAP_SIZE = (VMEMMAP_RANGE >> self.page_shift) * self.STRUCT_PAGE_SIZE
-            VMEMMAP_START = (-0x40000000 - self.VMEMMAP_SIZE) & 0xFFFFFFFFFFFFFFFF
+            self.VMEMMAP_START = (-0x40000000 - self.VMEMMAP_SIZE) & 0xFFFFFFFFFFFFFFFF
 
         # obtained through debugging -- kaslr offset of physmap determines the offset of vmemmap
         vmemmap_kaslr = (self.physmap - PAGE_OFFSET - self.phys_offset) >> vmemmap_shift
-        return VMEMMAP_START + vmemmap_kaslr
+        return self.VMEMMAP_START + vmemmap_kaslr
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -460,13 +460,13 @@ class Aarch64PagingInfo(ArchPagingInfo):
             return None
         self.pci_end = INVALID_ADDR
         if self.kversion >= (6, 9):
-            pci = self.vmemmap + self.VMEMMAP_SIZE + 0x00800000
+            pci = self.VMEMMAP_START + self.VMEMMAP_SIZE + 0x00800000
             self.pci_end = pci + 0x01000000
             return pci
         if self.kversion >= (5, 11):
-            self.pci_end = self.vmemmap - 0x00800000
+            self.pci_end = self.VMEMMAP_START - 0x00800000
             return self.pci_end - 0x01000000
-        self.pci_end = self.vmemmap - 0x00200000
+        self.pci_end = self.VMEMMAP_START - 0x00200000
         return self.pci_end - 0x01000000
 
     @property
@@ -538,7 +538,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             (None, self.physmap_end),
             (self.VMALLOC, self.vmalloc),
             (self.VMEMMAP, self.vmemmap),
-            (None, self.vmemmap + self.VMEMMAP_SIZE),
+            (None, self.VMEMMAP_START + self.VMEMMAP_SIZE),
             ("pci", self.pci),
             (None, self.pci_end),
             # TODO: prob not entirely correct but the computation is too complicated
