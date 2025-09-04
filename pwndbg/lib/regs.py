@@ -551,6 +551,8 @@ aarch64_scr_flags = BitFlags(
     ]
 )
 
+aarch64_mmfr_flags = BitFlags([("VARange", (16, 19))])
+
 arm = RegisterSet(
     retaddr=(Reg("lr", 4),),
     flags={"cpsr": arm_cpsr_flags},
@@ -609,6 +611,7 @@ aarch64 = RegisterSet(
         "spsr_el2": aarch64_cpsr_flags,
         "spsr_el3": aarch64_cpsr_flags,
         "tcr_el1": aarch64_tcr_flags,
+        "id_aa64mmfr2_el1": aarch64_mmfr_flags,
         "ttbr0_el1": BitFlags(),
         "ttbr1_el1": BitFlags(),
     },

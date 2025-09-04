@@ -333,14 +333,16 @@ class Aarch64PagingInfo(ArchPagingInfo):
         self.tcr_el1.value = pwndbg.aglib.regs.TCR_EL1
         # TODO: this is probably not entirely correct
         # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L56
+        id_aa64mmfr2_el1 = pwndbg.lib.regs.aarch64_mmfr_flags
+        id_aa64mmfr2_el1.value = pwndbg.aglib.regs.ID_AA64MMFR2_EL1
+        feat_lva = id_aa64mmfr2_el1.value is not None and id_aa64mmfr2_el1["VARange"] == 0b0001
         self.va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
+        if feat_lva:
+            self.va_bits = min(52, self.va_bits)
         self.va_bits_min = 48 if self.va_bits > 48 else self.va_bits
         # https://elixir.bootlin.com/linux/v6.13.12/source/arch/arm64/include/asm/memory.h#L47
         module_start_wo_kaslr = (-1 << (self.va_bits_min - 1)) + 2**64
         self.vmalloc = module_start_wo_kaslr + 0x80000000
-        shift = self.page_shift - self.STRUCT_PAGE_SHIFT
-        self.VMEMMAP_SIZE = (module_start_wo_kaslr - ((-1 << self.va_bits) + 2**64)) >> shift
-        # correct for linux
         if self.paging_level == 4:
             self.pagetable_level_names = (
                 "Page",
@@ -424,20 +426,32 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def vmemmap(self):
         if self.kversion is None:
             return INVALID_ADDR
-        if self.kversion >= (6, 9):
-            # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L33
-            result = (-0x40000000 % INVALID_ADDR) - self.VMEMMAP_SIZE
-        elif self.kversion >= (5, 11):
-            # Linux 5.11 changed the calculation for VMEMMAP_START
-            # https://elixir.bootlin.com/linux/v5.11/source/arch/arm64/include/asm/memory.h#L53
-            VMEMMAP_SHIFT = self.page_shift - self.STRUCT_PAGE_SHIFT
-            result = -(1 << (self.va_bits - VMEMMAP_SHIFT)) % INVALID_ADDR
+        vmemmap_shift = self.page_shift - self.STRUCT_PAGE_SHIFT
+        if self.kversion < (5, 4):
+            PAGE_OFFSET = INVALID_ADDR - (1 << (self.va_bits - 1))
+            self.VMEMMAP_SIZE = 1 << (self.va_bits - self.page_shift - 1 + self.STRUCT_PAGE_SHIFT)
+            VMEMMAP_START = PAGE_OFFSET - self.VMEMMAP_SIZE
+        elif self.kversion < (5, 11):
+            PAGE_OFFSET = (-(1 << self.va_bits)) & 0xFFFFFFFFFFFFFFFF
+            self.VMEMMAP_SIZE = (
+                (-(1 << (self.va_bits_min - 1)) & 0xFFFFFFFFFFFFFFFF) - PAGE_OFFSET
+            ) >> vmemmap_shift
+            VMEMMAP_START = (-self.VMEMMAP_SIZE - 0x00200000) & 0xFFFFFFFFFFFFFFFF
+        elif self.kversion < (6, 9):
+            PAGE_OFFSET = (-(1 << self.va_bits)) & 0xFFFFFFFFFFFFFFFF
+            self.VMEMMAP_SIZE = (
+                (-(1 << (self.va_bits_min - 1)) & 0xFFFFFFFFFFFFFFFF) - PAGE_OFFSET
+            ) >> vmemmap_shift
+            VMEMMAP_START = (-(1 << (self.va_bits - vmemmap_shift))) & 0xFFFFFFFFFFFFFFFF
         else:
-            result = (-self.VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
-        for page in get_memory_map_raw():
-            if page.start >= result:
-                return page.start
-        return INVALID_ADDR
+            PAGE_OFFSET = (-(1 << self.va_bits)) & 0xFFFFFFFFFFFFFFFF
+            VMEMMAP_RANGE = ((-(1 << (self.va_bits_min - 1))) & 0xFFFFFFFFFFFFFFFF) - PAGE_OFFSET
+            self.VMEMMAP_SIZE = (VMEMMAP_RANGE >> self.page_shift) * self.STRUCT_PAGE_SIZE
+            VMEMMAP_START = (-0x40000000 - self.VMEMMAP_SIZE) & 0xFFFFFFFFFFFFFFFF
+
+        # obtained through debugging -- kaslr offset of physmap determines the offset of vmemmap
+        vmemmap_kaslr = (self.physmap - PAGE_OFFSET - self.phys_offset) >> vmemmap_shift
+        return VMEMMAP_START + vmemmap_kaslr
 
     @property
     @pwndbg.lib.cache.cache_until("stop")

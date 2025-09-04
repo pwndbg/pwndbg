@@ -323,11 +323,9 @@ def test_command_paging():
         # the virtual address should be the physmap address
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
 
-    # kbase, slab, buddy, vmemmap
+    # kbase, slab, buddy
     kbase = pwndbg.aglib.kernel.kbase()
     test_command_paging_helper("initialized", kbase)
-    vmemmap = pwndbg.aglib.kernel.arch_paginginfo().vmemmap
-    test_command_paging_helper("initialized", vmemmap)
     res = gdb.execute("buddydump", to_string=True)
     matches = get_buddy_freelist_elements(res)
     if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"

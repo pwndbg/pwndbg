@@ -369,7 +369,11 @@ class x86_64Ops(x86Ops):
         if pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc:
             return virt - self.page_offset
         _, res = pagewalk(virt)
-        return res
+        _, res = res[0]
+        if res is None:
+            # for testing unmapped addresses
+            return virt - self.page_offset + self.phys_offset
+        return res - self.page_offset
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
@@ -406,11 +410,15 @@ class Aarch64Ops(ArchOps):
         if pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc:
             return virt - self.page_offset + self.phys_offset
         _, res = pagewalk(virt)
-        return res
+        _, res = res[0]
+        if res is None:
+            # for testing unmapped addresses
+            return virt - self.page_offset + self.phys_offset
+        return res - self.page_offset
 
     def phys_to_virt(self, phys: int) -> int:
         # https://elixir.bootlin.com/linux/v6.16.4/source/arch/arm64/include/asm/memory.h#L356
-        return phys + self.page_offset - self.phys_offset
+        return phys - self.phys_offset + self.page_offset
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
