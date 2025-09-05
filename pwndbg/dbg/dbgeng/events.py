@@ -1,9 +1,10 @@
-import ctypes
 from typing import Callable, Dict, List, TypeVar
+
 from comtypes import COMObject
-import comtypes.gen.DbgEng as COM_DbgEng
 from comtypes.hresult import S_OK, E_NOINTERFACE
+
 from pwndbg.dbg import EventType
+from pwndbg.dbg.dbgeng.wrapper.dbgeng import DbgEng as COM_DbgEng
 
 T = TypeVar("T")
 
@@ -44,7 +45,6 @@ class EventCallback(COMObject):
         return S_OK
 
     def IDebugEventCallbacks_ChangeDebuggeeState(self, this, flags, argument):
-        print(f"ChangeDebuggeeState: flags={flags}, argument={argument}")
         if flags == COM_DbgEng.DEBUG_CDS_REGISTERS:
             self._trigger_event(EventType.REGISTER_CHANGED)
         if flags == COM_DbgEng.DEBUG_CDS_DATA:
@@ -53,7 +53,6 @@ class EventCallback(COMObject):
 
 
     def IDebugEventCallbacks_ChangeEngineState(self, this, flags, argument):
-        print(f"ChangeEngineState: flags={flags}, argument={argument}")
         if flags == COM_DbgEng.DEBUG_CES_EXECUTION_STATUS:
             if argument == COM_DbgEng.DEBUG_STATUS_BREAK:
                 self._trigger_event(EventType.STOP)
