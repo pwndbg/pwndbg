@@ -55,7 +55,8 @@ class ArchPagingInfo:
     def STRUCT_PAGE_SIZE(self):
         a = pwndbg.aglib.typeinfo.load("struct page")
         if a is None:
-            # this has been the case for all v5 and v6 releases
+            # true with the most common set of configurations
+            # this struct should always present if a vmlinux is added
             return 0x40
         return a.sizeof
 
@@ -512,25 +513,23 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @pwndbg.lib.cache.cache_until("stop")
     def markers(self) -> Tuple[Tuple[str, int], ...]:
-        address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
-        if address_markers is not None:
-            sections = [(self.USERLAND, 0)]
-            value = 0
-            name = None
-            for i in range(20):
-                value = pwndbg.aglib.memory.u64(address_markers + i * 0x10)
-                name_ptr = pwndbg.aglib.memory.u64(address_markers + i * 0x10 + 8)
-                name = None
-                if name_ptr > 0:
-                    name = pwndbg.aglib.memory.string(name_ptr).decode()
-                    name = self.adjust(name)
-                if value > 0:
-                    sections.append((name, value))
-                if value == 0xFFFFFFFFFFFFFFFF:
-                    break
-            return tuple(sections)
-        if self.kversion is None:
-            return ()
+        # address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
+        # if address_markers is not None:
+        #     sections = [(self.USERLAND, 0)]
+        #     value = 0
+        #     name = None
+        #     for i in range(20):
+        #         value = pwndbg.aglib.memory.u64(address_markers + i * 0x10)
+        #         name_ptr = pwndbg.aglib.memory.u64(address_markers + i * 0x10 + 8)
+        #         name = None
+        #         if name_ptr > 0:
+        #             name = pwndbg.aglib.memory.string(name_ptr).decode()
+        #             name = self.adjust(name)
+        #         if value > 0:
+        #             sections.append((name, value))
+        #         if value == 0xFFFFFFFFFFFFFFFF:
+        #             break
+        #     return tuple(sections)
         return (
             (self.USERLAND, 0),
             (None, 0x8000000000000000),
