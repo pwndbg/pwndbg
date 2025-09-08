@@ -368,11 +368,9 @@ class x86_64Ops(x86Ops):
     def virt_to_phys(self, virt: int) -> int:
         if pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc:
             return virt - self.page_offset
-        _, res = pagewalk(virt)
-        _, res = res[0]
+        res = pagewalk(virt)[0][1]
         if res is None:
-            # for testing unmapped addresses
-            return virt - self.page_offset + self.phys_offset
+            return None
         return res - self.page_offset
 
     def pfn_to_page(self, pfn: int) -> int:
@@ -409,11 +407,9 @@ class Aarch64Ops(ArchOps):
     def virt_to_phys(self, virt: int) -> int:
         if pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc:
             return virt - self.page_offset + self.phys_offset
-        _, res = pagewalk(virt)
-        _, res = res[0]
+        res = pagewalk(virt)[0][1]
         if res is None:
-            # for testing unmapped addresses
-            return virt - self.page_offset + self.phys_offset
+            return None
         return res - self.page_offset
 
     def phys_to_virt(self, phys: int) -> int:

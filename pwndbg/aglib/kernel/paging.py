@@ -332,13 +332,11 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def __init__(self):
         self.tcr_el1 = pwndbg.lib.regs.aarch64_tcr_flags
         self.tcr_el1.value = pwndbg.aglib.regs.TCR_EL1
-        # TODO: this is probably not entirely correct
-        # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L56
         id_aa64mmfr2_el1 = pwndbg.lib.regs.aarch64_mmfr_flags
         id_aa64mmfr2_el1.value = pwndbg.aglib.regs.ID_AA64MMFR2_EL1
         feat_lva = id_aa64mmfr2_el1.value is not None and id_aa64mmfr2_el1["VARange"] == 0b0001
         self.va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
-        self.PAGE_OFFSET = self._PAGE_OFFSET(self.va_bits)
+        self.PAGE_OFFSET = self._PAGE_OFFSET(self.va_bits)  # physmap base address without KASLR
         if feat_lva:
             self.va_bits = min(52, self.va_bits)
         self.va_bits_min = 48 if self.va_bits > 48 else self.va_bits
@@ -371,10 +369,6 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def physmap(self):
-        # addr = pwndbg.aglib.symbol.lookup_symbol_addr("memstart_addr")
-        # if addr is None:
-        #     return first_kernel_page_start()
-        # return pwndbg.aglib.memory.u(addr)
         return first_kernel_page_start()
 
     @property
@@ -385,10 +379,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kversion(self):
-        try:
-            return pwndbg.aglib.kernel.krelease()
-        except Exception:
-            return None
+        return pwndbg.aglib.kernel.krelease()
 
     @property
     @pwndbg.lib.cache.cache_until("stop")

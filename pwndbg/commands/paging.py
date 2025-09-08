@@ -99,6 +99,8 @@ def pagewalk(vaddr, entry=None):
 
 
 def paging_print_helper(name, addr):
+    if addr is None:
+        return
     print(f"{C.green(name)}: {C.yellow(hex(addr))}")
 
 
