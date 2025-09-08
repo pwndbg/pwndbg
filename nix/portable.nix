@@ -187,8 +187,14 @@ let
         # writable out
         chmod -R +w $out
 
-        # rm pycache dir
-        find $out/pwndbg/lib/ -type d -name "__pycache__" -exec rm -rf {} +
+        # remove unneeded dirs
+        rm -rf $out/pwndbg/lib/pkgconfig
+        find $out/pwndbg/lib/${python3.libPrefix}/ -type d -name "__pycache__" -exec rm -rf {} +
+        find $out/pwndbg/lib/${python3.libPrefix}/ -type d -name "*.dist-info" -exec rm -rf {} +
+        find $out/pwndbg/lib/${python3.libPrefix}/ -maxdepth 1 -type d -name "config-*" -exec rm -rf {} +
+
+        # EXTERNALLY-MANAGED info
+        echo -e "[externally-managed]\nError=This is a pwndbg-portable installation.\n Installing additional dependencies is not supported." > $out/pwndbg/lib/${python3.libPrefix}/EXTERNALLY-MANAGED
 
         # copy extra files
         mkdir -p $out/pwndbg/share/
@@ -196,6 +202,9 @@ let
 
         # fix python "subprocess.py" to use "/bin/sh" and not the nix'ed version, otherwise "gdb-pt-dump" is broken
         sed -i 's@/nix/store/.*/bin/sh@/bin/sh@' $out/pwndbg/lib/${python3.libPrefix}/subprocess.py
+
+        # remove /nix/store references in all files
+        find $out/pwndbg/ -type f -exec ${pkgsNative.nukeReferences}/bin/nuke-refs {} +
 
         # build pycache
         SOURCE_DATE_EPOCH=0 ${pkgsNative.python3}/bin/python3 -c "import compileall; compileall.compile_dir('$out', stripdir='$out', force=True);"
