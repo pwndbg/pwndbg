@@ -192,20 +192,10 @@ def test_command_kernel_vmmap():
             "fixmap",
             "physmap",
             "vmemmap",
+            "kernel [.text]",
+            "kernel [.bss]",
         )
     )
-    if pwndbg.aglib.arch.name == "x86-64":
-        assert any(
-            key in res
-            # this needs to be `any` because kernel is not fully initialized
-            # when the test is run (qemu-system takes >3 seconds to fully setup for linux)
-            for key in (
-                "kernel [.text]",
-                "kernel [.rodata]",
-                "kernel [.bss]",
-                "kernel [stack]",
-            )
-        )
 
 
 def get_buddy_freelist_elements(out):
@@ -323,9 +313,14 @@ def test_command_paging():
         # the virtual address should be the physmap address
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
 
-    # kbase, slab, buddy
+    pi = pwndbg.aglib.kernel.arch_paginginfo()
+    # kbase, slab, buddy, vmemmap
     kbase = pwndbg.aglib.kernel.kbase()
     test_command_paging_helper("initialized", kbase)
+    vmemmap = pi.vmemmap
+    if pwndbg.aglib.arch.name == "aarch64":
+        vmemmap += pi.phys_offset >> (pi.page_shift - pi.STRUCT_PAGE_SHIFT)
+    test_command_paging_helper("initialized", vmemmap)
     res = gdb.execute("buddydump", to_string=True)
     matches = get_buddy_freelist_elements(res)
     if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"
