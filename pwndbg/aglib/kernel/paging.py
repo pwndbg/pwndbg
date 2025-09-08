@@ -338,12 +338,13 @@ class Aarch64PagingInfo(ArchPagingInfo):
         id_aa64mmfr2_el1.value = pwndbg.aglib.regs.ID_AA64MMFR2_EL1
         feat_lva = id_aa64mmfr2_el1.value is not None and id_aa64mmfr2_el1["VARange"] == 0b0001
         self.va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
+        self.PAGE_OFFSET = self._PAGE_OFFSET(self.va_bits)
         if feat_lva:
             self.va_bits = min(52, self.va_bits)
         self.va_bits_min = 48 if self.va_bits > 48 else self.va_bits
-        # https://elixir.bootlin.com/linux/v6.13.12/source/arch/arm64/include/asm/memory.h#L47
-        module_start_wo_kaslr = (-1 << (self.va_bits_min - 1)) + 2**64
-        self.vmalloc = module_start_wo_kaslr + 0x80000000
+        self.vmalloc = self._PAGE_END(
+            self.va_bits_min
+        )  # also includes KASAN and kernel module regions
         if self.paging_level == 4:
             self.pagetable_level_names = (
                 "Page",
@@ -391,18 +392,6 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def physmap_end(self):
-        res = None
-        for page in get_memory_map_raw():
-            if page.end >= self.vmalloc:
-                break
-            res = page.end
-        if res is None:
-            return INVALID_ADDR
-        return res
-
-    @property
-    @pwndbg.lib.cache.cache_until("stop")
     def module_start(self):
         # this is only used for marking the end of module_start
         self.module_end = -1
@@ -422,6 +411,12 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 prev = self.module_end = page.end
         return res
 
+    def _PAGE_OFFSET(self, va):  # aka PAGE_START
+        return (-(1 << va)) & 0xFFFFFFFFFFFFFFFF
+
+    def _PAGE_END(self, va):
+        return (-(1 << (va - 1))) & 0xFFFFFFFFFFFFFFFF
+
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self):
@@ -429,29 +424,25 @@ class Aarch64PagingInfo(ArchPagingInfo):
             return INVALID_ADDR
         vmemmap_shift = self.page_shift - self.STRUCT_PAGE_SHIFT
         if self.kversion < (5, 4):
-            PAGE_OFFSET = INVALID_ADDR - (1 << (self.va_bits - 1))
             self.VMEMMAP_SIZE = 1 << (self.va_bits - self.page_shift - 1 + self.STRUCT_PAGE_SHIFT)
-            self.VMEMMAP_START = PAGE_OFFSET - self.VMEMMAP_SIZE
+            self.VMEMMAP_START = self.PAGE_OFFSET - self.VMEMMAP_SIZE
         elif self.kversion < (5, 11):
-            PAGE_OFFSET = (-(1 << self.va_bits)) & 0xFFFFFFFFFFFFFFFF
             self.VMEMMAP_SIZE = (
-                (-(1 << (self.va_bits_min - 1)) & 0xFFFFFFFFFFFFFFFF) - PAGE_OFFSET
+                self._PAGE_END(self.va_bits_min) - self.PAGE_OFFSET
             ) >> vmemmap_shift
             self.VMEMMAP_START = (-self.VMEMMAP_SIZE - 0x00200000) & 0xFFFFFFFFFFFFFFFF
         elif self.kversion < (6, 9):
-            PAGE_OFFSET = (-(1 << self.va_bits)) & 0xFFFFFFFFFFFFFFFF
             self.VMEMMAP_SIZE = (
-                (-(1 << (self.va_bits_min - 1)) & 0xFFFFFFFFFFFFFFFF) - PAGE_OFFSET
+                self._PAGE_END(self.va_bits_min) - self.PAGE_OFFSET
             ) >> vmemmap_shift
-            self.VMEMMAP_START = (-(1 << (self.va_bits - vmemmap_shift))) & 0xFFFFFFFFFFFFFFFF
+            self.VMEMMAP_START = self._PAGE_OFFSET(self.va_bits - vmemmap_shift)
         else:
-            PAGE_OFFSET = (-(1 << self.va_bits)) & 0xFFFFFFFFFFFFFFFF
-            VMEMMAP_RANGE = ((-(1 << (self.va_bits_min - 1))) & 0xFFFFFFFFFFFFFFFF) - PAGE_OFFSET
+            VMEMMAP_RANGE = self._PAGE_END(self.va_bits_min) - self.PAGE_OFFSET
             self.VMEMMAP_SIZE = (VMEMMAP_RANGE >> self.page_shift) * self.STRUCT_PAGE_SIZE
             self.VMEMMAP_START = (-0x40000000 - self.VMEMMAP_SIZE) & 0xFFFFFFFFFFFFFFFF
 
         # obtained through debugging -- kaslr offset of physmap determines the offset of vmemmap
-        vmemmap_kaslr = (self.physmap - PAGE_OFFSET - self.phys_offset) >> vmemmap_shift
+        vmemmap_kaslr = (self.physmap - self.PAGE_OFFSET - self.phys_offset) >> vmemmap_shift
         return self.VMEMMAP_START + vmemmap_kaslr
 
     @property
@@ -461,14 +452,30 @@ class Aarch64PagingInfo(ArchPagingInfo):
             return None
         self.pci_end = INVALID_ADDR
         if self.kversion >= (6, 9):
-            pci = self.VMEMMAP_START + self.VMEMMAP_SIZE + 0x00800000
-            self.pci_end = pci + 0x01000000
+            pci = self.VMEMMAP_START + self.VMEMMAP_SIZE + 0x00800000  # 8M
+            self.pci_end = pci + 0x01000000  # 16M
             return pci
         if self.kversion >= (5, 11):
-            self.pci_end = self.VMEMMAP_START - 0x00800000
-            return self.pci_end - 0x01000000
-        self.pci_end = self.VMEMMAP_START - 0x00200000
-        return self.pci_end - 0x01000000
+            self.pci_end = self.VMEMMAP_START - 0x00800000  # 8M
+        else:
+            self.pci_end = self.VMEMMAP_START - 0x00200000  # 2M
+        return self.pci_end - 0x01000000  # 16M
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def fixmap(self):
+        if self.kversion is None:
+            return INVALID_ADDR
+        if self.kversion < (5, 11):
+            FIXADDR_TOP = self.pci - 0x00200000  # 2M
+        elif self.kversion < (6, 9):
+            FIXADDR_TOP = self.VMEMMAP_START - 0x02000000  # 32M
+        else:
+            FIXADDR_TOP = (-0x00800000) & 0xFFFFFFFFFFFFFFFF
+        # https://elixir.bootlin.com/linux/v6.16.5/source/arch/arm64/include/asm/fixmap.h#L102
+        # 0x1000 is an upper estimate
+        FIXADDR_SIZE = 0x1000 << self.page_shift
+        return FIXADDR_TOP - FIXADDR_SIZE
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -513,35 +520,36 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @pwndbg.lib.cache.cache_until("stop")
     def markers(self) -> Tuple[Tuple[str, int], ...]:
-        # address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
-        # if address_markers is not None:
-        #     sections = [(self.USERLAND, 0)]
-        #     value = 0
-        #     name = None
-        #     for i in range(20):
-        #         value = pwndbg.aglib.memory.u64(address_markers + i * 0x10)
-        #         name_ptr = pwndbg.aglib.memory.u64(address_markers + i * 0x10 + 8)
-        #         name = None
-        #         if name_ptr > 0:
-        #             name = pwndbg.aglib.memory.string(name_ptr).decode()
-        #             name = self.adjust(name)
-        #         if value > 0:
-        #             sections.append((name, value))
-        #         if value == 0xFFFFFFFFFFFFFFFF:
-        #             break
-        #     return tuple(sections)
+        address_markers = pwndbg.aglib.symbol.lookup_symbol_addr("address_markers")
+        if address_markers is not None:
+            sections = [(self.USERLAND, 0)]
+            value = 0
+            name = None
+            for i in range(20):
+                value = pwndbg.aglib.memory.u64(address_markers + i * 0x10)
+                name_ptr = pwndbg.aglib.memory.u64(address_markers + i * 0x10 + 8)
+                name = None
+                if name_ptr > 0:
+                    name = pwndbg.aglib.memory.string(name_ptr).decode()
+                    name = self.adjust(name)
+                if value > 0:
+                    sections.append((name, value))
+                if value == 0xFFFFFFFFFFFFFFFF:
+                    break
+            return tuple(sections)
+        vmalloc_end = min(self.vmemmap, self.pci, self.fixmap)
         return (
             (self.USERLAND, 0),
-            (None, 0x8000000000000000),
+            (None, self.PAGE_OFFSET),
             (self.PHYSMAP, self.physmap),
-            (None, self.physmap_end),
+            (None, self.vmalloc),
             (self.VMALLOC, self.vmalloc),
+            (None, vmalloc_end),
             (self.VMEMMAP, self.vmemmap),
             (None, self.VMEMMAP_START + self.VMEMMAP_SIZE),
             ("pci", self.pci),
             (None, self.pci_end),
-            # TODO: prob not entirely correct but the computation is too complicated
-            ("fixmap", self.pci_end),
+            ("fixmap", self.fixmap),
             (None, 0xFFFFFFFFFFFFFFFF),
         )
 
@@ -562,7 +570,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def handle_kernel_pages(self, pages):
         for i in range(len(pages)):
             page = pages[i]
-            if page.start < self.module_start or page.start > self.kbase + self.ksize:
+            if page.start > self.kbase + self.ksize:
                 continue
             if self.module_start <= page.start < self.module_end:
                 page.objfile = self.KERNELDRIVER

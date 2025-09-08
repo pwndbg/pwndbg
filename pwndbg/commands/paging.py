@@ -136,7 +136,8 @@ def v2p(vaddr):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     entry, paddr = pwndbg.aglib.kernel.pagewalk(vaddr)[1][0]  # more accurate
     if not entry:
-        print(M.warn("virtual to page failed"))
+        print(M.warn("virtual to page failed, unmapped virtual address?"))
+        return
     paging_print_helper("Physmap address", paddr)
     # paddr is the physmap address which is a virtual address
     page = pwndbg.aglib.kernel.virt_to_page(paddr)
