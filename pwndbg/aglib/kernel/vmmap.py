@@ -41,7 +41,7 @@ class KernelVmmap:
         for i in range(len(self.sections) - 1):
             name, cur = self.sections[i]
             _, next = self.sections[i + 1]
-            if cur is None or next is None:
+            if cur is None or next is None or name is None:
                 continue
             if cur <= addr < next:
                 return name
