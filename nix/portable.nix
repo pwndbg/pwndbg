@@ -22,7 +22,28 @@ let
       ''
   );
   ldLoader = if pkgs.stdenv.isLinux then "\"$dir/lib/${ldName}\"" else "";
-
+  riskEnvsCheck = ''
+      # Check for potentially problematic LD_PRELOAD LD_LIBRARY_PATH
+      if [[ "$*" != *"--quiet"* ]] && [[ "$*" != *"-q"* ]]; then
+          if [[ -n "$LD_LIBRARY_PATH" ]] || [[ -n "$LD_PRELOAD" ]]; then
+              echo
+              echo "WARNING: Potentially problematic environment variables detected!"
+              echo "Check if LD_LIBRARY_PATH or LD_PRELOAD environment variables are set."
+              echo "These may cause library loading issues with debugging tools like pwndbg."
+              echo
+              
+              if [[ -n "$LD_LIBRARY_PATH" ]]; then
+                  echo "LD_LIBRARY_PATH is set to: $LD_LIBRARY_PATH"
+              fi
+              
+              if [[ -n "$LD_PRELOAD" ]]; then
+                  echo "LD_PRELOAD is set to: $LD_PRELOAD"
+              fi
+              
+              echo
+          fi
+      fi
+    '';
   commonEnvs =
     lib.optionalString (pkgs.stdenv.isLinux && isLLDB) ''
       export LLDB_DEBUGSERVER_PATH="$dir/bin/lldb-server"
@@ -76,6 +97,7 @@ let
       #!/bin/sh
       dir="$(cd -- "$(dirname "$(dirname "$(realpath "$0")")")" >/dev/null 2>&1 ; pwd -P)"
       ${commonEnvs}
+      ${riskEnvsCheck}
       ${macosQuarantine}
       exec ${ldLoader} "$dir/exe/python3" "$dir/${file}" "$@"
     '';
