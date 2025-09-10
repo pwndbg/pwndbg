@@ -20,6 +20,7 @@ let
       prev.callPackage (
         {
           llvmPackages,
+          llvmPackages_20,
           cmake,
           which,
           swig,
@@ -29,29 +30,36 @@ let
           python3,
           lua5_3,
         }:
-        (prev.pwndbg_lldb.override { stdenv = llvmPackages.stdenv; }).overrideAttrs (old: {
-          patches = (old.patches or [ ]) ++ [
-            ./lldb-fix-cross-python.patch
-          ];
-          nativeBuildInputs = [
-            cmake
-            which
-            swig
-            makeWrapper
-            ninja
-          ];
-          buildInputs = (old.buildInputs ++ [ ]) ++ [
-            python3
-            lua5_3
-          ];
-          cmakeFlags = (old.cmakeFlags ++ [ ]) ++ [
-            "-DPYTHON_HOME=${python3}"
-            "-DPython3_EXECUTABLE_NATIVE=${python3.pythonOnBuildForHost.interpreter}"
-            "-DLLVM_TABLEGEN=${tblgen}/bin/llvm-tblgen"
-            "-DCLANG_TABLEGEN=${tblgen}/bin/clang-tblgen"
-            "-DLLDB_TABLEGEN_EXE=${tblgen}/bin/lldb-tblgen"
-          ];
-        })
+        (prev.pwndbg_lldb.override {
+          stdenv = llvmPackages.stdenv;
+          # Out-of-memory when building with debuginfo enabled.. build use more than 32gb+ ram
+          libclang = llvmPackages_20.libclang.overrideAttrs (old: {
+            separateDebugInfo = false;
+          });
+        }).overrideAttrs
+          (old: {
+            patches = (old.patches or [ ]) ++ [
+              ./lldb-fix-cross-python.patch
+            ];
+            nativeBuildInputs = [
+              cmake
+              which
+              swig
+              makeWrapper
+              ninja
+            ];
+            buildInputs = (old.buildInputs ++ [ ]) ++ [
+              python3
+              lua5_3
+            ];
+            cmakeFlags = (old.cmakeFlags ++ [ ]) ++ [
+              "-DPYTHON_HOME=${python3}"
+              "-DPython3_EXECUTABLE_NATIVE=${python3.pythonOnBuildForHost.interpreter}"
+              "-DLLVM_TABLEGEN=${tblgen}/bin/llvm-tblgen"
+              "-DCLANG_TABLEGEN=${tblgen}/bin/clang-tblgen"
+              "-DLLDB_TABLEGEN_EXE=${tblgen}/bin/lldb-tblgen"
+            ];
+          })
       ) { };
 in
 drv
