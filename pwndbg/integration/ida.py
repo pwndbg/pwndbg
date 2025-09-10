@@ -575,7 +575,13 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
         if exe:
             exe_map = pwndbg.aglib.vmmap.find(exe.address)
             if exe_map and addr in exe_map:
-                return Name(addr) or GetFuncOffset(addr) or None
+                name = Name(addr)
+                offset = GetFuncOffset(addr)
+
+                if name is None:
+                    return None
+
+                return name or offset or None
         return None
 
     @pwndbg.decorators.suppress_errors(fallback=())

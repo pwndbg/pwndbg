@@ -396,18 +396,24 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             return sym
         func: Tuple[str, int] | None = _bn.get_func_info(l2r(addr))
         if func is not None:
-            diff = addr - r2l(func[1])
+            name, base = func
+            if name is None:
+                return None
+            diff = addr - r2l(base)
             if diff:
-                return f"{func[0]}{diff:+}"
+                return f"{name}{diff:+}"
             else:
-                return func[0]
+                return name
         dv: Tuple[str, int] | None = _bn.get_data_info(l2r(addr))
         if dv is not None:
-            diff = addr - r2l(dv[1])
+            name, base = dv
+            if name is None:
+                return None
+            diff = addr - r2l(base)
             if diff:
-                return f"{dv[0]}{addr - r2l(dv[1]):+}"
+                return f"{name}{diff:+}"
             else:
-                return dv[0]
+                return name
         return None
 
     @pwndbg.decorators.suppress_errors(fallback=())
