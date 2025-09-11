@@ -568,7 +568,7 @@ def _exec_repl_command(
     if bits[0].startswith("ta") and "target".startswith(bits[0]):
         if len(bits) > 1 and bits[1].startswith("c") and "create".startswith(bits[1]):
             # This is `target create`
-            target_create(bits[2:], dbg)
+            target_create(driver, bits[2:], dbg)
             return True
         if len(bits) > 1 and bits[1].startswith("de") and "delete".startswith(bits[1]):
             # This is `target delete`
@@ -903,7 +903,6 @@ target_create_ap.add_argument("-v", "--version")
 target_create_ap.add_argument("filename")
 target_create_unsupported = [
     "build",
-    "core",
     "no-dependents",
     "remote-file",
     "symfile",
@@ -927,7 +926,7 @@ def _get_target_triple(debugger: lldb.SBDebugger, filepath: str) -> str | None:
     return triple
 
 
-def target_create(args: List[str], dbg: LLDB) -> None:
+def target_create(driver: ProcessDriver, args: List[str], dbg: LLDB) -> None:
     """
     Creates a new target, registers it with the Pwndbg LLDB implementation, and
     sets up listeners for it.
@@ -980,6 +979,33 @@ def target_create(args: List[str], dbg: LLDB) -> None:
 
     dbg.debugger.SetSelectedTarget(target)
     print(f"Current executable set to '{args.filename}' ({target.triple.split('-')[0]})")
+
+    if args.core:
+        if driver.has_process():
+            print_error("a process is already being debugged")
+            return
+        dbg._current_process_is_gdb_remote = driver.has_connection()
+        io_driver = get_io_driver()
+
+        print('PRE launched corefile')
+
+        result = driver.launch_corefile(
+            target,
+            io_driver,
+            args.core
+        )
+        print('successfully launched corefile')
+
+        match result:
+            case LaunchResultError(what, disconnected):
+                print_error(f"could not launch process: {what.description}")
+                if disconnected:
+                    print_warn("disconnected")
+                return
+            case LaunchResultEarlyExit():
+                print_warn("process exited early")
+                return
+        dbg._trigger_event(EventType.STOP)
     return
 
 
