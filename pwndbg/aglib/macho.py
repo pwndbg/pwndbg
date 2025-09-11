@@ -637,7 +637,7 @@ class DyldSharedCache:
         return DyldSharedCacheHashSet(ptr)
 
 
-@pwndbg.lib.cache.cache_until("exit")
+@pwndbg.lib.cache.cache_until("exit", ignore_for=[None])
 def shared_cache() -> DyldSharedCache | None:
     """
     Base address of the Darwin shared cache.
@@ -659,12 +659,16 @@ def shared_cache() -> DyldSharedCache | None:
     [1]: https://github.com/apple-oss-distributions/objc4/blob/f126469408dc82bd3f327217ae678fd0e6e3b37c/runtime/objc-opt.mm#L434
     [2]: https://github.com/apple-oss-distributions/dyld/blob/main/doc/dyld4.md#libdylddylib
     """
-    base = int(
-        pwndbg.dbg.selected_inferior().evaluate_expression(
-            "(const void*)_dyld_get_shared_cache_range()"
-        )
-    )
+    if pwndbg.aglib.symbol.lookup_symbol("_dyld_get_shared_cache_range") is None:
+        return None
 
+    base = pwndbg.dbg.selected_inferior().evaluate_expression(
+        "(const void*)_dyld_get_shared_cache_range()"
+    )
+    if base.is_optimized_out:
+        return None
+
+    base = int(base)
     if base == 0:
         return None
 
