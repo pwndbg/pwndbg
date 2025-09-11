@@ -634,21 +634,18 @@ class ProcessDriver:
     def _launch_core(
         self,
         target: lldb.SBTarget,
-        io: IODriver,
         core_file: str,
     ) -> lldb.SBError:
         """
         Launch a process in the host system.
         """
-        self.io = io
+        self.io = IODriverPlainText()
 
-        print('inside _launch_core')
         error = lldb.SBError()
         self.process = target.LoadCore(
             core_file,
             error,
         )
-        print(f'inside err: {error}')
         return error
 
     def _launch_local(
@@ -705,9 +702,9 @@ class ProcessDriver:
         self.process = target.Attach(info, error)
         return error
 
-    def launch_corefile(self, target: lldb.SBTarget, io: IODriver, core_file: str) -> LaunchResult:
+    def launch_corefile(self, target: lldb.SBTarget, core_file: str) -> LaunchResult:
         self._prepare_listener_for(target)
-        return self._enter(self._launch_core, target, io, core_file)
+        return self._enter(self._launch_core, target, core_file)
 
     def launch(
         self,

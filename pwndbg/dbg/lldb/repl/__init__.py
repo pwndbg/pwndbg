@@ -984,18 +984,11 @@ def target_create(driver: ProcessDriver, args: List[str], dbg: LLDB) -> None:
         if driver.has_process():
             print_error("a process is already being debugged")
             return
-        dbg._current_process_is_gdb_remote = driver.has_connection()
-        io_driver = get_io_driver()
-
-        print('PRE launched corefile')
-
+        dbg._current_process_is_gdb_remote = False
         result = driver.launch_corefile(
             target,
-            io_driver,
             args.core
         )
-        print('successfully launched corefile')
-
         match result:
             case LaunchResultError(what, disconnected):
                 print_error(f"could not launch process: {what.description}")
@@ -1006,6 +999,7 @@ def target_create(driver: ProcessDriver, args: List[str], dbg: LLDB) -> None:
                 print_warn("process exited early")
                 return
         dbg._trigger_event(EventType.STOP)
+
     return
 
 
