@@ -484,6 +484,7 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
             name_off = i * 8
             break
     assert name_off, "can't determine kmem_cache name offset"
+    distance, node_cache_pad = None, None
     if pwndbg.aglib.kernel.krelease() >= (6, 2) and all(
         config not in kconfig
         for config in (
@@ -502,31 +503,36 @@ def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
             node_cache_pad = kmem_cache_node_pad_sz(
                 kmem_cache + name_off + 0x8 * 3
             )  # name ptr + 2 list ptrs
-            assert node_cache_pad, "can't determine kmem cache node padding size"
+            assert node_cache_pad, "can't find kmem_cache node"
             distance = 8 if "CONFIG_SLAB_FREELIST_RANDOM" in kconfig else 0
             return distance, node_cache_pad
         elif "CONFIG_SLAB_FREELIST_RANDOM" in kconfig:
             for i in range(3, 0x20):
                 ptr = kmem_cache + name_off + i * 8
                 val = pwndbg.aglib.memory.u64(ptr)
-                if pwndbg.aglib.memory.is_kernel(val):
-                    distance = (i + 1) * 8
-                    node_cache_pad = kmem_cache_node_pad_sz(kmem_cache + name_off + distance)
-                    assert node_cache_pad, "can't determine kmem cache node padding size"
-                    return distance, node_cache_pad
-    distance, node_cache_pad = None, None
-    for i in range(3, 0x20):
-        ptr = kmem_cache + name_off + i * 8
-        val = pwndbg.aglib.memory.u64(ptr - 8)
-        if pwndbg.aglib.memory.peek(val) is not None:
-            continue
-        val = pwndbg.aglib.memory.u64(ptr)
-        if pwndbg.aglib.memory.peek(val) is None:
-            continue
-        node_cache_pad = kmem_cache_node_pad_sz(val)
-        if node_cache_pad is not None:
-            distance = i * 8
-            break
+                if pwndbg.aglib.memory.is_kernel(val) and all(
+                    pwndbg.aglib.memory.u32(val + i * 4) < 0x10000 for i in range(10)
+                ):
+                    _distance = (i + 1) * 8
+                    val = pwndbg.aglib.memory.u64(kmem_cache + name_off + _distance)
+                    node_cache_pad = kmem_cache_node_pad_sz(val)
+                    if node_cache_pad is not None:
+                        distance = _distance
+                        break
+            assert distance, "can't find kmem_cache node"
+    if distance is None:
+        for i in range(3, 0x20):
+            ptr = kmem_cache + name_off + i * 8
+            val = pwndbg.aglib.memory.u64(ptr - 8)
+            if pwndbg.aglib.memory.peek(val) is not None:
+                continue
+            val = pwndbg.aglib.memory.u64(ptr)
+            if pwndbg.aglib.memory.peek(val) is None:
+                continue
+            node_cache_pad = kmem_cache_node_pad_sz(val)
+            if node_cache_pad is not None:
+                distance = i * 8
+                break
     assert distance, "can't find kmem_cache node"
     distance -= 0x18  # the name ptr + list_head
     configs = (

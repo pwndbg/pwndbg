@@ -108,10 +108,9 @@ def print_slab(slab: Slab, indent, verbose: bool, cpu_freelist: Freelist = None)
         indent.print(f"{indent.prefix('Frozen')}: {slab.frozen}")
         indent.print(f"{indent.prefix('Freelist')}: {indent.addr_hex(int(slab.freelist))}")
 
-        idx = 0
         indexes = {}
         freelist = slab.freelist
-        for addr in freelist:
+        for idx, addr in enumerate(freelist):
             if addr in indexes:
                 break
             indexes[addr] = idx
@@ -291,7 +290,7 @@ def slab_contains(address: str) -> None:
         print(f"{addr:#x} @", M.hint(f"{slab_cache.name}"))
         slab = slab_cache.find_containing_slab(addr)
         if slab is None:
-            print(M.warn("Did not finding containing slab."))
+            print(M.warn("Did not find containing slab."))
             return
         desc = "[something went wrong]"
         inuse = desc
