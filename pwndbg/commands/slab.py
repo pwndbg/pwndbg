@@ -97,16 +97,19 @@ def slab(
         for addr in addresses:
             slab_contains(addr)
 
+def emphasize(s):
+    return pwndbg.color.underline(pwndbg.color.bold(pwndbg.color.red(s)))
 
-def handle_next(index: int, curr: int, freelist: Freelist, indent):
+def handle_next(indexes: Dict[int, int], curr: int, freelist: Freelist, indent):
+    index = indexes[curr]
     next = freelist.find_next(curr)
     if next == 0:
         return "no next"
     disc = f"next: {indent.aux_hex(next)}"
     if not pwndbg.aglib.memory.is_kernel(next + freelist.offset):
-        disc = "corrupted " + disc
+        disc = emphasize("corrupted") + " " + disc
     if freelist.cyclic is not None and freelist.cyclic == curr:
-        disc = "cyclic list detected, " + disc
+        disc = emphasize(f"cyclic list detected") + ", " + disc
     # TODO: handle not in slab
     return disc
 
@@ -149,10 +152,10 @@ def print_slab(slab: Slab, indent, verbose: bool) -> None:
                     disc = None
                     in_cpu_freelist = False
                     if addr in freelist:
-                        disc = handle_next(index, addr, freelist, indent)
+                        disc = handle_next(indexes, addr, freelist, indent)
                     elif cpu_freelist is not None and addr in cpu_freelist:
                         # need to traverse the list to catch potential freelist.cyclic
-                        disc = handle_next(index, addr, cpu_freelist, indent)
+                        disc = handle_next(indexes, addr, cpu_freelist, indent)
                         in_cpu_freelist = True
                     if disc is None:
                         disc = "something went wrong"
