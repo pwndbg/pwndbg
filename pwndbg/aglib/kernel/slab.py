@@ -10,7 +10,6 @@ import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as M
 from pwndbg.aglib import kernel
 from pwndbg.aglib.kernel.macros import compound_head
 from pwndbg.aglib.kernel.macros import for_each_entry
@@ -86,57 +85,37 @@ class Freelist:
         self.start_addr = start_addr
         self.offset = offset
         self.random = random
+        self.cyclic = None
 
     def __iter__(self) -> Generator[int, None, None]:
         seen: set[int] = set()
-        current_object = self.start_addr
-        while current_object:
-            try:
-                addr = int(current_object)
-            except Exception:
-                print(
-                    M.warn(
-                        f"Corrupted slab freelist detected at {hex(current_object)} when length is {len(seen)}"
-                    )
-                )
+        curr = None
+        next = self.start_addr
+        while next:
+            # TODO: handle next that is not within the slab, need to check here in case the first element is not in the slab
+            curr = next
+            next = self.find_next(curr)
+            yield curr
+            seen.add(curr)
+            if next in seen:
+                self.cyclic = curr
+                return
+            if not pwndbg.aglib.memory.is_kernel(next + self.offset):
                 break
-            yield current_object
-            current_object = pwndbg.aglib.memory.read_pointer_width(addr + self.offset)
-            if self.random:
-                current_object ^= self.random ^ swab(addr + self.offset)
-            if addr in seen:
-                # this can happen during exploit dev
-                print(
-                    M.warn(
-                        f"Cyclic slab freelist detected at {hex(addr)} when length is {len(seen)}"
-                    )
-                )
-                break
-            seen.add(addr)
+        # reaching here means the freelist is not cyclic
+        self.cyclic = None
 
     def __int__(self) -> int:
         return self.start_addr
 
     def __len__(self) -> int:
-        seen: set[int] = set()
-        for addr in self:
-            if addr in seen:
-                # this can happen during exploit dev
-                print(
-                    M.warn(
-                        f"Cyclic slab freelist detected at {hex(addr)} when length is {len(seen)}"
-                    )
-                )
-                break
-            seen.add(addr)
-        return len(seen)
+        return sum(1 for _ in self)
 
     def find_next(self, addr: int) -> int:
-        freelist_iter = iter(self)
-        for obj in freelist_iter:
-            if obj == addr:
-                return next(freelist_iter, 0)
-        return 0
+        # assumes addr is in this freelist -> assert(addr in self)
+        next = pwndbg.aglib.memory.read_pointer_width(addr + self.offset)
+        next ^= self.random ^ swab(addr + self.offset)
+        return next
 
 
 class SlabCache:
@@ -301,7 +280,7 @@ class CpuCache:
         _slab = self._cpu_cache[slab_key]
         if not int(_slab):
             return None
-        return Slab(_slab.dereference(), self, None)
+        return Slab(_slab.dereference(), self, None, is_active=True)
 
     @property
     def partial_slabs(self) -> List[Slab]:
@@ -312,7 +291,7 @@ class CpuCache:
         cur_slab_int = int(cur_slab)
         while cur_slab_int:
             _slab = cur_slab.dereference()
-            partial_slabs.append(Slab(_slab, self, None, is_partial=True))
+            partial_slabs.append(Slab(_slab, self, None))
             cur_slab = _slab["next"]
             cur_slab_int = int(cur_slab)
         return partial_slabs
@@ -334,7 +313,7 @@ class NodeCache:
         for slab in for_each_entry(
             self._node_cache["partial"], f"struct {slab_struct_type()}", "slab_list"
         ):
-            ret.append(Slab(slab.dereference(), None, self, is_partial=True))
+            ret.append(Slab(slab.dereference(), None, self))
         return ret
 
     @property
@@ -352,12 +331,12 @@ class Slab:
         slab: pwndbg.dbg_mod.Value,
         cpu_cache: CpuCache | None,
         node_cache: NodeCache | None,
-        is_partial: bool = False,
+        is_active: bool = False,
     ) -> None:
         self._slab = slab
         self.cpu_cache = cpu_cache
         self.node_cache = node_cache
-        self.is_partial = is_partial
+        self.is_active = is_active
         self.is_cpu = False
         self.slab_cache = None
         if cpu_cache is not None:
@@ -393,8 +372,8 @@ class Slab:
     @property
     def inuse(self) -> int:
         inuse = int(self._slab["inuse"])
-        if not self.is_partial:
-            # I believe only the cpu freelist is considered "inuse" similar to glibc's tcache
+        if self.is_active:
+            # only the cpu freelist is considered "inuse" similar to glibc's tcache
             inuse -= len(self.cpu_cache.freelist)
         return inuse
 
@@ -404,7 +383,7 @@ class Slab:
 
     @property
     def pobjects(self) -> int:
-        if not self.is_partial:
+        if self.is_active:
             return 0
         if self._slab.type.has_field("pobjects"):
             return int(self._slab["pobjects"])
@@ -423,15 +402,14 @@ class Slab:
         )
 
     @property
-    def freelists(self) -> List[Freelist]:
-        freelists = [self.freelist]
-        if not self.is_partial:
-            freelists.append(self.cpu_cache.freelist)
-        return freelists
-
-    @property
     def free_objects(self) -> Set[int]:
-        return {obj for freelist in self.freelists for obj in freelist}
+        result = set()
+        for obj in self.freelist:
+            result.add(obj)
+        if self.is_active:
+            for obj in self.cpu_cache.freelist:
+                result.add(obj)
+        return result
 
     def __contains__(self, addr: int):
         return self.virt_address <= addr < self.virt_address + self.slab_cache.slab_size
