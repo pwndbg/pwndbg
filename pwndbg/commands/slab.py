@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from typing import Dict
 
 from tabulate import tabulate
 
@@ -97,20 +98,24 @@ def slab(
         for addr in addresses:
             slab_contains(addr)
 
+
 def emphasize(s):
     return pwndbg.color.underline(pwndbg.color.bold(pwndbg.color.red(s)))
 
+
 def handle_next(indexes: Dict[int, int], curr: int, freelist: Freelist, indent):
-    index = indexes[curr]
     next = freelist.find_next(curr)
     if next == 0:
         return "no next"
     disc = f"next: {indent.aux_hex(next)}"
     if not pwndbg.aglib.memory.is_kernel(next + freelist.offset):
         disc = emphasize("corrupted") + " " + disc
-    if freelist.cyclic is not None and freelist.cyclic == curr:
-        disc = emphasize(f"cyclic list detected") + ", " + disc
-    # TODO: handle not in slab
+    elif freelist.cyclic is not None and freelist.cyclic == curr:
+        disc = emphasize("cyclic list detected") + ", " + disc
+    elif next not in freelist.slab:
+        disc = emphasize("next is not within the slab") + ", " + disc
+    elif not freelist.is_valid_obj(next):
+        disc = emphasize("unaligned or out-of-range") + " " + disc
     return disc
 
 

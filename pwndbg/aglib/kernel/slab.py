@@ -81,28 +81,34 @@ def get_flags_list(flags: int) -> List[str]:
 
 
 class Freelist:
-    def __init__(self, start_addr: int, offset: int, random: int = 0) -> None:
+    def __init__(self, start_addr: int, slab: Slab) -> None:
         self.start_addr = start_addr
-        self.offset = offset
-        self.random = random
+        self.slab = slab
+        if not self.slab:
+            return
+        self.offset = slab.slab_cache.offset
+        self.random = slab.slab_cache.random
         self.cyclic = None
 
     def __iter__(self) -> Generator[int, None, None]:
+        if not self.slab:
+            return
         seen: set[int] = set()
         curr = None
         next = self.start_addr
         while next:
-            # TODO: handle next that is not within the slab, need to check here in case the first element is not in the slab
-            curr = next
-            next = self.find_next(curr)
-            yield curr
-            seen.add(curr)
             if next in seen:
                 self.cyclic = curr
                 return
             if not pwndbg.aglib.memory.is_kernel(next + self.offset):
                 break
-        # reaching here means the freelist is not cyclic
+            if next not in self.slab or not self.is_valid_obj(next):
+                break
+            curr = next
+            next = self.find_next(curr)
+            yield curr
+            seen.add(curr)
+        # reaching here means the freelist is not cyclic (prior to detections of other corruptions)
         self.cyclic = None
 
     def __int__(self) -> int:
@@ -112,10 +118,19 @@ class Freelist:
         return sum(1 for _ in self)
 
     def find_next(self, addr: int) -> int:
+        if not self.slab:
+            raise ValueError("slab freelist must belong to a slab")
         # assumes addr is in this freelist -> assert(addr in self)
         next = pwndbg.aglib.memory.read_pointer_width(addr + self.offset)
         next ^= self.random ^ swab(addr + self.offset)
         return next
+
+    def is_valid_obj(self, addr):
+        if not self.slab:
+            return
+        diff = addr - self.slab.virt_address
+        sz = self.slab.slab_cache.size
+        return diff % sz == 0 and 0 <= (diff // sz) < self.slab.object_count
 
 
 class SlabCache:
@@ -268,11 +283,7 @@ class CpuCache:
 
     @property
     def freelist(self) -> Freelist:
-        return Freelist(
-            int(self._cpu_cache["freelist"]),
-            self.slab_cache.offset,
-            self.slab_cache.random,
-        )
+        return Freelist(int(self._cpu_cache["freelist"]), self.active_slab)
 
     @property
     def active_slab(self) -> Slab | None:
@@ -395,11 +406,7 @@ class Slab:
 
     @property
     def freelist(self) -> Freelist:
-        return Freelist(
-            int(self._slab["freelist"]),
-            self.slab_cache.offset,
-            self.slab_cache.random,
-        )
+        return Freelist(int(self._slab["freelist"]), self)
 
     @property
     def free_objects(self) -> Set[int]:
