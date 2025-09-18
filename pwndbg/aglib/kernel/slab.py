@@ -291,7 +291,7 @@ class CpuCache:
         _slab = self._cpu_cache[slab_key]
         if not int(_slab):
             return None
-        return Slab(_slab.dereference(), self, None, is_active=True)
+        return Slab(_slab.dereference(), cpu_cache = self, is_active=True)
 
     @property
     def partial_slabs(self) -> List[Slab]:
@@ -302,7 +302,7 @@ class CpuCache:
         cur_slab_int = int(cur_slab)
         while cur_slab_int:
             _slab = cur_slab.dereference()
-            partial_slabs.append(Slab(_slab, self, None))
+            partial_slabs.append(Slab(_slab, cpu_cache = self))
             cur_slab = _slab["next"]
             cur_slab_int = int(cur_slab)
         return partial_slabs
@@ -324,7 +324,7 @@ class NodeCache:
         for slab in for_each_entry(
             self._node_cache["partial"], f"struct {slab_struct_type()}", "slab_list"
         ):
-            ret.append(Slab(slab.dereference(), None, self))
+            ret.append(Slab(slab.dereference(), node_cache = self))
         return ret
 
     @property
@@ -340,21 +340,19 @@ class Slab:
     def __init__(
         self,
         slab: pwndbg.dbg_mod.Value,
-        cpu_cache: CpuCache | None,
-        node_cache: NodeCache | None,
+        cpu_cache: CpuCache = None,
+        node_cache: NodeCache = None,
         is_active: bool = False,
     ) -> None:
         self._slab = slab
-        self.cpu_cache = cpu_cache
-        self.node_cache = node_cache
         self.is_active = is_active
-        self.is_cpu = False
-        self.slab_cache = None
         if cpu_cache is not None:
+            self.cpu_cache = cpu_cache
             self.is_cpu = True
             self.slab_cache = cpu_cache.slab_cache
-            assert node_cache is None
-        if node_cache is not None:
+        elif node_cache is not None:
+            self.node_cache = node_cache
+            self.is_cpu = False
             self.slab_cache = node_cache.slab_cache
 
     @property
