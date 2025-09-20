@@ -1316,7 +1316,15 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if sym_addr != address:
             # Print the symbol name along with an offset value if the address we
             # were given does not match up with the symbol exactly.
-            return f"{ctx.symbol.name}+{address - sym_addr}"
+            sym_name = ctx.symbol.name
+            if not sym_name:
+                section = addr.GetSection()
+                if section and section.GetName():
+                    sym_name = section.GetName()
+                else:
+                    sym_name = f"addr_{address:#x}"
+
+            return f"{sym_name}+{address - sym_addr}"
 
         return ctx.symbol.name
 
