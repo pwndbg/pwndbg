@@ -126,7 +126,8 @@ IS_CACHING_DISABLED_FOR: Dict[str, bool] = {
     "forever": False,
 }
 
-def cache_until(*event_names: str, ignore_for: List[Any] | None = None) -> Callable[[Callable[P, T]], Callable[P, T]]:
+
+def cache_until(*event_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
     if any(event_name not in _ALL_CACHE_EVENT_NAMES for event_name in event_names):
         raise ValueError(
             f"Unknown event name[s] passed to the `cache_until` decorator: {event_names}.\n"
@@ -165,9 +166,7 @@ def cache_until(*event_names: str, ignore_for: List[Any] | None = None) -> Calla
                 if isinstance(value, list):
                     print(f"Should not cache mutable types! {func.__name__}")
 
-                if ignore_for is None or value not in ignore_for:
-                    # Only cache if we were not requested to ignore this value.
-                    cache[key] = value
+                cache[key] = value
 
                 return value
 
