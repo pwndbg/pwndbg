@@ -55,7 +55,8 @@ class ArchPagingInfo:
     def STRUCT_PAGE_SIZE(self):
         a = pwndbg.aglib.typeinfo.load("struct page")
         if a is None:
-            # this has been the case for all v5 and v6 releases
+            # true with the most common set of configurations
+            # this struct should always present if a vmlinux is added
             return 0x40
         return a.sizeof
 
@@ -102,9 +103,7 @@ class ArchPagingInfo:
     ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
         raise NotImplementedError()
 
-    def pagewalk_helper(
-        self, target, entry, kernel_phys_base=0
-    ) -> List[Tuple[int | None, int | None]]:
+    def pagewalk_helper(self, target, entry) -> List[Tuple[int | None, int | None]]:
         base = self.physmap
         if entry > base:
             # user inputted a physmap address as pointer to pgd
@@ -114,7 +113,7 @@ class ArchPagingInfo:
         page_shift = self.page_shift
         ENTRYMASK = ~((1 << page_shift) - 1) & ((1 << self.va_bits) - 1)
         for i in range(level, 0, -1):
-            vaddr = (entry & ENTRYMASK) + base - kernel_phys_base
+            vaddr = (entry & ENTRYMASK) + base - self.phys_offset
             if self.should_stop_pagewalk(entry):
                 break
             shift = (i - 1) * (page_shift - 3) + page_shift
@@ -144,7 +143,7 @@ class ArchPagingInfo:
             if entry == 0:
                 return result
             result[i] = (entry, vaddr)
-        result[0] = (entry, (entry & ENTRYMASK) + base + offset - kernel_phys_base)
+        result[0] = (entry, (entry & ENTRYMASK) + base + offset - self.phys_offset)
         return result
 
     def pageentry_flags(self, level) -> BitFlags:
@@ -152,6 +151,10 @@ class ArchPagingInfo:
 
     def should_stop_pagewalk(self, is_last):
         raise NotImplementedError()
+
+    @property
+    def phys_offset(self):
+        return 0
 
 
 class x86_64PagingInfo(ArchPagingInfo):
@@ -329,16 +332,17 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def __init__(self):
         self.tcr_el1 = pwndbg.lib.regs.aarch64_tcr_flags
         self.tcr_el1.value = pwndbg.aglib.regs.TCR_EL1
-        # TODO: this is probably not entirely correct
-        # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L56
+        id_aa64mmfr2_el1 = pwndbg.lib.regs.aarch64_mmfr_flags
+        id_aa64mmfr2_el1.value = pwndbg.aglib.regs.ID_AA64MMFR2_EL1
+        feat_lva = id_aa64mmfr2_el1.value is not None and id_aa64mmfr2_el1["VARange"] == 0b0001
         self.va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
+        self.PAGE_OFFSET = self._PAGE_OFFSET(self.va_bits)  # physmap base address without KASLR
+        if feat_lva:
+            self.va_bits = min(52, self.va_bits)
         self.va_bits_min = 48 if self.va_bits > 48 else self.va_bits
-        # https://elixir.bootlin.com/linux/v6.13.12/source/arch/arm64/include/asm/memory.h#L47
-        module_start_wo_kaslr = (-1 << (self.va_bits_min - 1)) + 2**64
-        self.vmalloc = module_start_wo_kaslr + 0x80000000
-        shift = self.page_shift - self.STRUCT_PAGE_SHIFT
-        self.VMEMMAP_SIZE = (module_start_wo_kaslr - ((-1 << self.va_bits) + 2**64)) >> shift
-        # correct for linux
+        self.vmalloc = self._PAGE_END(
+            self.va_bits_min
+        )  # also includes KASAN and kernel module regions
         if self.paging_level == 4:
             self.pagetable_level_names = (
                 "Page",
@@ -365,10 +369,6 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def physmap(self):
-        # addr = pwndbg.aglib.symbol.lookup_symbol_addr("memstart_addr")
-        # if addr is None:
-        #     return first_kernel_page_start()
-        # return pwndbg.aglib.memory.u(addr)
         return first_kernel_page_start()
 
     @property
@@ -379,22 +379,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kversion(self):
-        try:
-            return pwndbg.aglib.kernel.krelease()
-        except Exception:
-            return None
-
-    @property
-    @pwndbg.lib.cache.cache_until("stop")
-    def physmap_end(self):
-        res = None
-        for page in get_memory_map_raw():
-            if page.end >= self.vmalloc:
-                break
-            res = page.end
-        if res is None:
-            return INVALID_ADDR
-        return res
+        return pwndbg.aglib.kernel.krelease()
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -417,25 +402,39 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 prev = self.module_end = page.end
         return res
 
+    def _PAGE_OFFSET(self, va):  # aka PAGE_START
+        return (-(1 << va)) & 0xFFFFFFFFFFFFFFFF
+
+    def _PAGE_END(self, va):
+        return (-(1 << (va - 1))) & 0xFFFFFFFFFFFFFFFF
+
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self):
         if self.kversion is None:
             return INVALID_ADDR
-        if self.kversion >= (6, 9):
-            # https://elixir.bootlin.com/linux/v6.16-rc2/source/arch/arm64/include/asm/memory.h#L33
-            result = (-0x40000000 % INVALID_ADDR) - self.VMEMMAP_SIZE
-        elif self.kversion >= (5, 11):
-            # Linux 5.11 changed the calculation for VMEMMAP_START
-            # https://elixir.bootlin.com/linux/v5.11/source/arch/arm64/include/asm/memory.h#L53
-            VMEMMAP_SHIFT = self.page_shift - self.STRUCT_PAGE_SHIFT
-            result = -(1 << (self.va_bits - VMEMMAP_SHIFT)) % INVALID_ADDR
+        vmemmap_shift = self.page_shift - self.STRUCT_PAGE_SHIFT
+        if self.kversion < (5, 4):
+            self.VMEMMAP_SIZE = 1 << (self.va_bits - self.page_shift - 1 + self.STRUCT_PAGE_SHIFT)
+            self.VMEMMAP_START = self.PAGE_OFFSET - self.VMEMMAP_SIZE
+        elif self.kversion < (5, 11):
+            self.VMEMMAP_SIZE = (
+                self._PAGE_END(self.va_bits_min) - self.PAGE_OFFSET
+            ) >> vmemmap_shift
+            self.VMEMMAP_START = (-self.VMEMMAP_SIZE - 0x00200000) & 0xFFFFFFFFFFFFFFFF
+        elif self.kversion < (6, 9):
+            self.VMEMMAP_SIZE = (
+                self._PAGE_END(self.va_bits_min) - self.PAGE_OFFSET
+            ) >> vmemmap_shift
+            self.VMEMMAP_START = self._PAGE_OFFSET(self.va_bits - vmemmap_shift)
         else:
-            result = (-self.VMEMMAP_SIZE - 2 * 1024 * 1024) + 2**64
-        for page in get_memory_map_raw():
-            if page.start >= result:
-                return page.start
-        return INVALID_ADDR
+            VMEMMAP_RANGE = self._PAGE_END(self.va_bits_min) - self.PAGE_OFFSET
+            self.VMEMMAP_SIZE = (VMEMMAP_RANGE >> self.page_shift) * self.STRUCT_PAGE_SIZE
+            self.VMEMMAP_START = (-0x40000000 - self.VMEMMAP_SIZE) & 0xFFFFFFFFFFFFFFFF
+
+        # obtained through debugging -- kaslr offset of physmap determines the offset of vmemmap
+        vmemmap_kaslr = (self.physmap - self.PAGE_OFFSET - self.phys_offset) >> vmemmap_shift
+        return self.VMEMMAP_START + vmemmap_kaslr
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -444,14 +443,30 @@ class Aarch64PagingInfo(ArchPagingInfo):
             return None
         self.pci_end = INVALID_ADDR
         if self.kversion >= (6, 9):
-            pci = self.vmemmap + self.VMEMMAP_SIZE + 0x00800000
-            self.pci_end = pci + 0x01000000
+            pci = self.VMEMMAP_START + self.VMEMMAP_SIZE + 0x00800000  # 8M
+            self.pci_end = pci + 0x01000000  # 16M
             return pci
         if self.kversion >= (5, 11):
-            self.pci_end = self.vmemmap - 0x00800000
-            return self.pci_end - 0x01000000
-        self.pci_end = self.vmemmap - 0x00200000
-        return self.pci_end - 0x01000000
+            self.pci_end = self.VMEMMAP_START - 0x00800000  # 8M
+        else:
+            self.pci_end = self.VMEMMAP_START - 0x00200000  # 2M
+        return self.pci_end - 0x01000000  # 16M
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def fixmap(self):
+        if self.kversion is None:
+            return INVALID_ADDR
+        if self.kversion < (5, 11):
+            FIXADDR_TOP = self.pci - 0x00200000  # 2M
+        elif self.kversion < (6, 9):
+            FIXADDR_TOP = self.VMEMMAP_START - 0x02000000  # 32M
+        else:
+            FIXADDR_TOP = (-0x00800000) & 0xFFFFFFFFFFFFFFFF
+        # https://elixir.bootlin.com/linux/v6.16.5/source/arch/arm64/include/asm/fixmap.h#L102
+        # 0x1000 is an upper estimate
+        FIXADDR_SIZE = 0x1000 << self.page_shift
+        return FIXADDR_TOP - FIXADDR_SIZE
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -513,20 +528,19 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 if value == 0xFFFFFFFFFFFFFFFF:
                     break
             return tuple(sections)
-        if self.kversion is None:
-            return ()
+        vmalloc_end = min(self.vmemmap, self.pci, self.fixmap)
         return (
             (self.USERLAND, 0),
-            (None, 0x8000000000000000),
+            (None, self.PAGE_OFFSET),
             (self.PHYSMAP, self.physmap),
-            (None, self.physmap_end),
+            (None, self.vmalloc),
             (self.VMALLOC, self.vmalloc),
+            (None, vmalloc_end),
             (self.VMEMMAP, self.vmemmap),
-            (None, self.vmemmap + self.VMEMMAP_SIZE),
+            (None, self.VMEMMAP_START + self.VMEMMAP_SIZE),
             ("pci", self.pci),
             (None, self.pci_end),
-            # TODO: prob not entirely correct but the computation is too complicated
-            ("fixmap", self.pci_end),
+            ("fixmap", self.fixmap),
             (None, 0xFFFFFFFFFFFFFFFF),
         )
 
@@ -547,7 +561,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def handle_kernel_pages(self, pages):
         for i in range(len(pages)):
             page = pages[i]
-            if page.start < self.module_start or page.start > self.kbase + self.ksize:
+            if page.start > self.kbase + self.ksize:
                 continue
             if self.module_start <= page.start < self.module_end:
                 page.objfile = self.KERNELDRIVER
@@ -565,7 +579,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("start")
-    def kernel_phys_start(self):
+    def phys_offset(self):
         found_system = False
         try:
             for line in pwndbg.dbg.selected_inferior().send_monitor("info mtree -f").splitlines():
@@ -589,9 +603,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             else:
                 entry = pwndbg.aglib.regs.TTBR0_EL1
         self.entry = entry
-        return self.pagetable_level_names, self.pagewalk_helper(
-            target, entry, self.kernel_phys_start
-        )
+        return self.pagetable_level_names, self.pagewalk_helper(target, entry)
 
     def pageentry_flags(self, is_last) -> BitFlags:
         if is_last:

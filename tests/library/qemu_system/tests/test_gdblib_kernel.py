@@ -21,7 +21,7 @@ def test_gdblib_kernel_archops_address_translation():
     # test address translation functions for LowMem
     min_low_pfn = int(pwndbg.dbg.selected_inferior().evaluate_expression("(long)min_low_pfn"))
     max_low_pfn = int(pwndbg.dbg.selected_inferior().evaluate_expression("(long)max_low_pfn"))
-    pfns = [min_low_pfn, max_low_pfn]
+    pfns = [min_low_pfn, max_low_pfn - 1]
 
     kernel = pwndbg.aglib.kernel
     for pfn in pfns:

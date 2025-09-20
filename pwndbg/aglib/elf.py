@@ -193,7 +193,7 @@ def get_containing_sections(elf_filepath: str, elf_loadaddr: int, vaddr: int):
     sections = []
     for sec in elf.sections:
         # disregard sections not occupying memory
-        if sec["sh_flags"] & SH_FLAGS.SHF_ALLOC == 0:
+        if sec["sh_flags"] & SH_FLAGS.SHF_ALLOC == 0:  # type: ignore[operator]
             continue
         # disregard sections that do not contain vaddr
         if vaddr < sec["sh_addr"] or vaddr >= sec["x_addr_mem_end"]:  # type: ignore[operator]

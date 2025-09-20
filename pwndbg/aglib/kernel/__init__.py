@@ -260,6 +260,10 @@ class ArchOps(ABC):
         return arch_paginginfo().physmap
 
     @property
+    def phys_offset(self) -> int:
+        return arch_paginginfo().phys_offset
+
+    @property
     def page_shift(self) -> int:
         return arch_paginginfo().page_shift
 
@@ -290,9 +294,6 @@ class ArchOps(ABC):
 
     def page_to_phys(self, page: int) -> int:
         return pfn_to_phys(page_to_pfn(page))
-
-    def page_to_physmap(self, page: int) -> int:
-        return page_to_phys(page) + self.page_offset
 
     def virt_to_page(self, virt: int) -> int:
         return pfn_to_page(virt_to_pfn(virt))
@@ -365,9 +366,12 @@ class x86_64Ops(x86Ops):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        if self.kbase is None or virt < self.kbase:
-            return (virt - self.page_offset) % (1 << 64)
-        return ((virt - self.kbase) + self.phys_base) % (1 << 64)
+        if pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc:
+            return virt - self.page_offset
+        res = pagewalk(virt)[0][1]
+        if res is None:
+            return None
+        return res - self.page_offset
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
@@ -401,10 +405,16 @@ class Aarch64Ops(ArchOps):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        return virt - self.page_offset
+        if pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc:
+            return virt - self.page_offset + self.phys_offset
+        res = pagewalk(virt)[0][1]
+        if res is None:
+            return None
+        return res - self.page_offset
 
     def phys_to_virt(self, phys: int) -> int:
-        return phys + self.page_offset
+        # https://elixir.bootlin.com/linux/v6.16.4/source/arch/arm64/include/asm/memory.h#L356
+        return phys - self.phys_offset + self.page_offset
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
@@ -540,14 +550,6 @@ def page_to_phys(page: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.page_to_phys(page)
-    else:
-        raise NotImplementedError()
-
-
-def page_to_physmap(page: int) -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.page_to_physmap(page)
     else:
         raise NotImplementedError()
 

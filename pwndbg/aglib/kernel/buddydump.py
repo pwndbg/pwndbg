@@ -40,12 +40,15 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     for i in range(20):
         char_ptr = pwndbg.aglib.memory.u64(ptr)
         ptr += 8
-        if (
-            pwndbg.aglib.memory.string(char_ptr).decode()
-            in pwndbg.aglib.kernel.symbol.POSSIBLE_ZONE_NAMES
-        ):
-            name_off = i * 8 + pcp_off  # plus 1 to skip over previous
-            break
+        name_str = None
+        if pwndbg.aglib.memory.is_kernel(char_ptr):
+            try:
+                name_str = pwndbg.aglib.memory.string(char_ptr).decode()
+            except Exception:
+                continue
+            if name_str is not None and name_str in pwndbg.aglib.kernel.symbol.POSSIBLE_ZONE_NAMES:
+                name_off = i * 8 + pcp_off
+                break
     assert name_off, "can't find name offset"
     prev = pwndbg.aglib.memory.u64(ptr)
     ptr += 8

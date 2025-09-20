@@ -46,16 +46,6 @@ services:
       args:
         image: debian:12
 
-  lldb:
-    <<: *base-spec
-    build:
-      context: .
-      dockerfile: Dockerfile.lldb
-      args:
-        image: debian:12
-    volumes:
-      - .:/pwndbg
-
   archlinux:
     <<: *base-spec
     build:
