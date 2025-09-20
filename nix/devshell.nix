@@ -78,7 +78,7 @@ in
         pyEnv
       ]
       ++ pkgs.lib.optionals isLLDB [
-        pkgs.lldb_20
+        pkgs.lldb_21
       ];
     shellHook = ''
       # lldb looks for the `debugserver` binary in `DEVELOPER_DIR`,
