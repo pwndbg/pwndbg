@@ -48,8 +48,7 @@ def test_basic_riscv32(qemu_start_binary):
 
 
 def test_basic_mips64(qemu_start_binary):
-    # pwnlib.context.endian defaults to "little", but these MIPS binaries are compiled to big endian.
-    helper(qemu_start_binary, "basic.mips64.out", "mips64")
+    helper(qemu_start_binary, "basic.mips64el.out", "mips64el")
 
 
 def test_basic_mips32(qemu_start_binary):
