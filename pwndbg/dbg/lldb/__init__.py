@@ -1318,7 +1318,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # were given does not match up with the symbol exactly.
             sym_name = ctx.symbol.name
             if not ctx.symbol.name:
-                return ""
+                return None
 
             return f"{sym_name}+{address - sym_addr}"
 
