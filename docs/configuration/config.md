@@ -858,6 +858,28 @@ Whether to show call arguments below instruction.
 
 ----------
 
+## **objc-max-function-arguments**
+
+
+Maximum number of arguments to resolve for an Objective-C method call.
+
+
+
+**Default:** 32  
+
+----------
+
+## **objc-max-function-types-depth**
+
+
+Maximum allowed depth for a type in an Objective-C method call.
+
+
+
+**Default:** 32  
+
+----------
+
 ## **safe-linking**
 
 
