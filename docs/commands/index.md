@@ -160,6 +160,7 @@
 -  [hex2ptr](misc/hex2ptr.md) - Converts a space-separated hex string to a little-endian address.
 -  [hijack-fd](misc/hijack-fd.md) - Replace a file descriptor of a debugged process.
 -  [ipi](misc/ipi.md) - Start an interactive IPython prompt.
+-  [parse-seccomp](misc/parse-seccomp.md) - Parse a struct sock_fprog from memory and dump its filter
 -  [patch-list](misc/patch-list.md) - List all patches.
 -  [patch-revert](misc/patch-revert.md) - Revert patch at given address.
 -  [patch](misc/patch.md) - Patches given instruction with given code or bytes.
