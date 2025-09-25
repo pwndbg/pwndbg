@@ -26,11 +26,9 @@ parser.add_argument(
 def parse_seccomp(addr: int) -> None:
     """Parse a struct sock_fprog at a given address and pass filter to external tool."""
 
-    addr = int(addr) & pwndbg.aglib.arch.ptrmask
-    ptrsize = pwndbg.aglib.typeinfo.ptrsize
-
+    # addr = int(addr) & pwndbg.aglib.arch.ptrmask
     filter_len = pwndbg.aglib.memory.u16(addr)
-    filter_addr = pwndbg.aglib.memory.u(addr + ptrsize)
+    filter_addr = pwndbg.aglib.memory.u(addr + pwndbg.aglib.typeinfo.ptrsize)
 
     print(message.success(f"sock_fprog @ {addr:#x}"))
     print(f"  len          = {filter_len}")
