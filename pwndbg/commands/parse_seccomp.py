@@ -34,7 +34,7 @@ def parse_seccomp(addr: int) -> None:
     print(f"  filter_addr  = {filter_addr:#x}")
 
     filter_size = filter_len * 8
-    filter_bytes = pwndbg.aglib.memory.read(filter_addr, filter_size, partial=True)
+    filter_bytes = pwndbg.aglib.memory.read(filter_addr, filter_size, partial=False)
 
     if shutil.which("ceccomp"):
         proc = subprocess.run(
