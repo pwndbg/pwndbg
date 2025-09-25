@@ -115,6 +115,7 @@
 -  [libcinfo](linux_libc_elf/libcinfo.md) - Show libc version and link to its sources
 -  [linkmap](linux_libc_elf/linkmap.md) - Show the state of the Link Map
 -  [onegadget](linux_libc_elf/onegadget.md) - Find gadgets which single-handedly give code execution.
+-  [parse-seccomp](linux_libc_elf/parse-seccomp.md) - Parse a struct sock_fprog from memory and dump its filter
 -  [piebase](linux_libc_elf/piebase.md) - Calculate VA of RVA from PIE base.
 -  [plt](linux_libc_elf/plt.md) - Prints any symbols found in Procedure Linkage Table sections if any exist.
 -  [strings](linux_libc_elf/strings.md) - Extracts and displays ASCII strings from readable memory pages of the debugged process.
@@ -160,7 +161,6 @@
 -  [hex2ptr](misc/hex2ptr.md) - Converts a space-separated hex string to a little-endian address.
 -  [hijack-fd](misc/hijack-fd.md) - Replace a file descriptor of a debugged process.
 -  [ipi](misc/ipi.md) - Start an interactive IPython prompt.
--  [parse-seccomp](misc/parse-seccomp.md) - Parse a struct sock_fprog from memory and dump its filter
 -  [patch-list](misc/patch-list.md) - List all patches.
 -  [patch-revert](misc/patch-revert.md) - Revert patch at given address.
 -  [patch](misc/patch.md) - Patches given instruction with given code or bytes.

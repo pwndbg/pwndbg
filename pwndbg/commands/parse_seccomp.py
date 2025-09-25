@@ -4,7 +4,6 @@ import argparse
 import shutil
 import subprocess
 
-import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.commands
@@ -21,7 +20,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, command_name="parse-seccomp", category=CommandCategory.MISC)
+@pwndbg.commands.Command(parser, command_name="parse-seccomp", category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
 def parse_seccomp(addr: int) -> None:
     """Parse a struct sock_fprog at a given address and pass filter to external tool."""
