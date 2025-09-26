@@ -12,6 +12,8 @@ from __future__ import annotations
 from typing import Callable
 from typing import Generator
 from typing import Generic
+from typing import List
+from typing import Tuple
 from typing import TypeVar
 
 from typing_extensions import override
@@ -22,6 +24,8 @@ import pwndbg.aglib.macho
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
+from pwndbg.dbg import Type
 
 T = TypeVar("T")
 
@@ -904,3 +908,251 @@ class _ClassPropertyList(_EntList[ClassProperty]):
     @override
     def _from_ptr(self, ptr: int) -> ClassProperty:
         return ClassProperty(ptr)
+
+
+def _parse_method_type_array(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+    """
+    Parses a typed array entry in an Objective-C method type string.
+    """
+    if ty[0] != b"[":
+        return None
+    if (end := ty.find(b"]")) == -1:
+        return None
+    if (inner := _parse_method_type(ty[1:end], depth + 1)) is None:
+        return None
+
+    # Treat arrays as pointers.
+    return inner[0].pointer(), inner[1] + 2
+
+
+def _parse_method_type_pointer(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+    """
+    Parses a typed pointer entry in an Objective-C method type string.
+    """
+    if ty[0] != b"^":
+        return None
+    if (inner := _parse_method_type(ty[1:], depth + 1)) is None:
+        return None
+
+    return inner[0].pointer(), inner[1] + 1
+
+
+def _parse_method_type_id_typed(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+    """
+    Parses a typed `id` entry in an Objective-C method type string.
+    """
+    if ty[:2] != b'@"':
+        return None
+    if (end := ty.find(b'"', 2)) == -1:
+        return None
+
+    # Resolve to `id`, even if we could technically be more specific.
+    return pwndbg.aglib.typeinfo.lookup_types("id"), end + 1
+
+
+def _parse_method_type(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+    """
+    Parses a single entry in an Objective-C method type string.
+    """
+    if depth > max_method_type_depth.value:
+        # Too deep. Reject this type.
+        return None
+
+    while ty[0] >= 0x30 and ty[0] < 0x3A:
+        # Ignore integers that we don't recognize.
+        ty = ty[1:]
+
+    # Try to parse composite types.
+    if (res := _parse_method_type_array(ty, depth)) is not None:
+        return res
+    if (res := _parse_method_type_pointer(ty, depth)) is not None:
+        return res
+    if (res := _parse_method_type_id_typed(ty, depth)) is not None:
+        return res
+
+    # Try to parse atomic types.
+    match ty[0:1]:
+        case b"v":
+            return pwndbg.aglib.typeinfo.void, 1
+        case b"f":
+            return pwndbg.aglib.typeinfo.lookup_types("float"), 1
+        case b"d":
+            return pwndbg.aglib.typeinfo.lookup_types("double"), 1
+        case b"B":
+            return pwndbg.aglib.typeinfo.int32, 1
+        case b"*":
+            return pwndbg.aglib.typeinfo.char.pointer(), 1
+        case b"@":
+            return pwndbg.aglib.typeinfo.lookup_types("id"), 1
+        case b"#":
+            return pwndbg.aglib.typeinfo.lookup_types("Class"), 1
+        case b":":
+            return pwndbg.aglib.typeinfo.lookup_types("SEL"), 1
+        case b"c":
+            return pwndbg.aglib.typeinfo.char, 1
+        case b"s":
+            return pwndbg.aglib.typeinfo.int16, 1
+        case b"i":
+            return pwndbg.aglib.typeinfo.int32, 1
+        case b"l":
+            return pwndbg.aglib.typeinfo.int32, 1
+        case b"q":
+            return pwndbg.aglib.typeinfo.int64, 1
+        case b"C":
+            return pwndbg.aglib.typeinfo.uchar, 1
+        case b"S":
+            return pwndbg.aglib.typeinfo.uint16, 1
+        case b"I":
+            return pwndbg.aglib.typeinfo.uint32, 1
+        case b"L":
+            return pwndbg.aglib.typeinfo.uint32, 1
+        case b"Q":
+            return pwndbg.aglib.typeinfo.uint64, 1
+
+    return None
+
+
+def _parse_method_type_string(ty: bytes) -> Generator[Type | None]:
+    """
+    Return a generator that yields the type names of the arguments to a method,
+    if they can be resolved, yielding `None` for types that we fail to resolve.
+    """
+    cursor = 0
+    yielded = 0
+    while yielded < max_method_argument_count.value + 1:
+        while cursor < len(ty) and ty[cursor] >= 0x30 and ty[cursor] < 0x3A:
+            # Ignore integers.
+            cursor += 1
+
+        if cursor >= len(ty):
+            break
+
+        res = _parse_method_type(ty[cursor:], 0)
+
+        if res is None:
+            yield None
+            break
+
+        yield res[0]
+        cursor += res[1]
+        yielded += 1
+
+
+max_method_argument_count = pwndbg.config.add_param(
+    "objc-max-function-arguments",
+    32,
+    "maximum number of arguments to resolve for an Objective-C method call",
+    param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
+)
+
+max_method_type_depth = pwndbg.config.add_param(
+    "objc-max-function-types-depth",
+    32,
+    "maximum allowed depth for a type in an Objective-C method call",
+    param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
+)
+
+
+def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functions.Function | None:
+    """
+    Tries to resolve a call to an Objective-C method for an instruction in the
+    current Program Counter.
+    """
+    if not insn.call_like:
+        # No point in trying to resolve something that isn't a call.
+        return None
+
+    target = pwndbg.aglib.symbol.resolve_addr(insn.target)
+    if target == "objc_msgSend":
+        # Resolve msgSend.
+        #
+        # First, try to work out the method implementation from the selector in
+        # the current architecture.
+
+        if pwndbg.aglib.arch.name == "aarch64":
+            obj_reg = "x0"
+            sel_reg = "x1"
+        else:
+            # Not supported.
+            # TODO: Support resolution of Objective-C method calls in x86-64.
+            return None
+
+        obj_ptr = getattr(pwndbg.aglib.regs, obj_reg)
+        sel_ptr = getattr(pwndbg.aglib.regs, sel_reg)
+
+        obj = Object(obj_ptr)
+        sel = Selector(sel_ptr)
+
+        # Walk up the class chain and try to find the method value.
+        method = None
+        clss = obj.cls
+        while clss is not None:
+            try:
+                method = next((method for method in clss.methods if method.sel.name == sel.name))
+                break
+            except StopIteration:
+                pass
+
+            clss = clss.superclass
+
+        if method is None:
+            # Could not resolve the method, either an invalid call, or we don't
+            # know how to find out the method at runtime. Either way, not much
+            # can be done.
+            return None
+
+        # Resolve name and number of function arguments from the selector.
+        #
+        # In Objective-C, the calling convention and number of arguments is
+        # fixed at compile time, and no runtime reflection information is used,
+        # so there's nothing stopping a program from using a selector that does
+        # not at all reflect the real arguments to the method. Still, it is
+        # conventional for the selector to be representative.
+        #
+        # Because of that, we try to extract some information only on a best-
+        # effort basis, since we don't know whether it will be truly useful, or
+        # if the program is actively trying to confuse us.
+        sel_args: List[bytes] = [b"id", b"sel"]
+        sel_last_args_idx = 0
+        while len(sel_args) < max_method_argument_count.value:
+            index = sel.name.find(b":", sel_last_args_idx)
+            if index == -1:
+                break
+
+            sel_args.append(sel.name[sel_last_args_idx:index])
+            sel_last_args_idx = index + 1
+
+        # Resolve type and number of function arguments from the encoded type.
+        #
+        # Same caveats apply here as do with the selector.
+        types = list(_parse_method_type_string(method.types))
+        fn_rettype = types[0] if len(types) > 0 else None
+
+        # Build the function using the information we got.
+        fn_args: List[pwndbg.lib.functions.Argument] = []
+        fn_args_unk_count = 0
+        for arg_i in range(max(len(types) - 1, len(sel_args))):
+            if arg_i < len(sel_args):
+                name = sel_args[arg_i].decode("utf-8", errors="backslashreplace")
+            else:
+                # Name all arguments we don't have a name for "unknownX:"
+                name = f"unknown{fn_args_unk_count}"
+                fn_args_unk_count += 1
+
+            if arg_i < len(types) - 1:
+                ty = types[arg_i + 1].name_to_human_readable
+            else:
+                # Treat all arguments we don't know about as being `uintptr_t`s.
+                ty = "uintptr_t"
+
+            fn_args.append(pwndbg.lib.functions.Argument(type=ty, name=name, derefcnt=0))
+
+        return pwndbg.lib.functions.Function(
+            type=fn_rettype.name_to_human_readable if fn_rettype is not None else "void",
+            derefcnt=0,
+            name=sel.name.decode("utf-8", errors="backslashreplace"),
+            args=fn_args,
+        )
+
+    # Not a an Objective-C call or not a type we know about.
+    return None

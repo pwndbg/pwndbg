@@ -33,6 +33,9 @@ def format_address(vaddr: int, memsz: int, permstr: str, offset: int, objfile: s
     "Format the given address as a string."
 
     width = 2 + 2 * pwndbg.aglib.arch.ptrsize
+    if memsz > 0x100000000:
+        return f"{vaddr:#{width}x} {vaddr + memsz:#{width}x} {permstr} {memsz:8x} {offset:6x} {objfile or ''}"
+
     return f"{vaddr:#{width}x} {vaddr + memsz:#{width}x} {permstr} {memsz:8x} {offset:7x} {objfile or ''}"
 
 
