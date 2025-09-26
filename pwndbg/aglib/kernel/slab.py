@@ -118,11 +118,13 @@ class Freelist:
         return sum(1 for _ in self)
 
     def find_next(self, addr: int) -> int:
+        # assumes addr is in this freelist -> assert(addr in self)
+        # caller should assert this behaviour to avoid traversing the list unnecessarily
         if not self.slab:
             raise ValueError("slab freelist must belong to a slab")
-        # assumes addr is in this freelist -> assert(addr in self)
         next = pwndbg.aglib.memory.read_pointer_width(addr + self.offset)
-        next ^= self.random ^ swab(addr + self.offset)
+        if self.random:
+            next ^= self.random ^ swab(addr + self.offset)
         return next
 
     def is_valid_obj(self, addr):
