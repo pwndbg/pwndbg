@@ -106,16 +106,16 @@ def handle_next(curr: int, freelist: Freelist, indent):
     next = freelist.find_next(curr)
     if next == 0:
         return "no next"
-    disc = f"next: {indent.aux_hex(next)}"
+    desc = f"next: {indent.aux_hex(next)}"
     if not pwndbg.aglib.memory.is_kernel(next + freelist.offset):
-        disc = emphasize("invalid address") + " " + disc
+        desc = emphasize("invalid address") + " " + desc
     elif freelist.cyclic is not None and freelist.cyclic == curr:
-        disc = emphasize("cyclic list detected") + ", " + disc
+        desc = emphasize("cyclic list detected") + ", " + desc
     elif next not in freelist.slab:
-        disc = emphasize("next is not within the slab") + ", " + disc
+        desc = emphasize("next is not within the slab") + ", " + desc
     elif not freelist.is_valid_obj(next):
-        disc = emphasize("unaligned or out-of-range") + " " + disc
-    return disc
+        desc = emphasize("unaligned or out-of-range") + " " + desc
+    return desc
 
 
 def freelist_desc(freelist: Freelist, indent):
@@ -166,20 +166,20 @@ def print_slab(slab: Slab, indent, verbose: bool) -> None:
                     index = indexes[addr]
                     if addr in indexes:
                         prefix = f"- {indent.prefix(f'[0x{index:02x}]')} {indent.addr_hex(addr)}"
-                    disc = None
+                    desc = None
                     in_cpu_freelist = False
                     if addr in freelist:
-                        disc = handle_next(addr, freelist, indent)
+                        desc = handle_next(addr, freelist, indent)
                     elif cpu_freelist is not None and addr in cpu_freelist:
                         # need to traverse the list to catch potential freelist.cyclic
-                        disc = handle_next(addr, cpu_freelist, indent)
+                        desc = handle_next(addr, cpu_freelist, indent)
                         in_cpu_freelist = True
-                    if disc is None:
-                        disc = "something went wrong"
+                    if desc is None:
+                        desc = "something went wrong"
                     if in_cpu_freelist:
-                        indent.print(f"{prefix} ({disc}) [CPU cache]")
+                        indent.print(f"{prefix} ({desc}) [CPU cache]")
                         continue
-                    indent.print(f"{prefix} ({disc})")
+                    indent.print(f"{prefix} ({desc})")
 
 
 def print_cpu_cache(

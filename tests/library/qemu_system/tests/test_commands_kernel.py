@@ -100,7 +100,7 @@ def test_command_slab_info():
         pwndbg.aglib.kernel.slab.load_slab_typeinfo()
     for cache in pwndbg.aglib.kernel.slab.caches():
         cache_name = cache.name
-        res = gdb.execute(f"slab info -v {cache_name}", to_string=True)
+        res = gdb.execute(f"slab info {cache_name}", to_string=True)
         assert cache_name in res
         assert "Freelist" in res
         for cpu in range(pwndbg.aglib.kernel.nproc()):

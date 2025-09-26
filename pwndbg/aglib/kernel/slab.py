@@ -362,6 +362,7 @@ class Slab:
         return int(self._slab.address)
 
     @property
+    @pwndbg.lib.cache.cache_until("stop")
     def virt_address(self) -> int:
         return kernel.page_to_virt(self.slab_address)
 
@@ -413,7 +414,7 @@ class Slab:
         result = set()
         for obj in self.freelist:
             result.add(obj)
-        if self.is_active:
+        if self.is_active and self.cpu_cache.freelist:
             for obj in self.cpu_cache.freelist:
                 result.add(obj)
         return result
