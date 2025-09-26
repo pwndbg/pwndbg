@@ -108,7 +108,7 @@ def handle_next(curr: int, freelist: Freelist, indent):
         return "no next"
     disc = f"next: {indent.aux_hex(next)}"
     if not pwndbg.aglib.memory.is_kernel(next + freelist.offset):
-        disc = emphasize("corrupted") + " " + disc
+        disc = emphasize("invalid address") + " " + disc
     elif freelist.cyclic is not None and freelist.cyclic == curr:
         disc = emphasize("cyclic list detected") + ", " + disc
     elif next not in freelist.slab:
@@ -123,7 +123,7 @@ def freelist_desc(freelist: Freelist, indent):
     desc = None
     if head:
         if not pwndbg.aglib.memory.is_kernel(head):
-            desc = "corrupted"
+            desc = "invalid address"
         elif head not in freelist.slab:
             desc = "not within the slab"
         elif not freelist.is_valid_obj(head):
