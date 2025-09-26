@@ -103,7 +103,7 @@ def emphasize(s):
     return pwndbg.color.underline(pwndbg.color.bold(pwndbg.color.red(s)))
 
 
-def handle_next(indexes: Dict[int, int], curr: int, freelist: Freelist, indent):
+def handle_next(curr: int, freelist: Freelist, indent):
     next = freelist.find_next(curr)
     if next == 0:
         return "no next"
@@ -157,10 +157,10 @@ def print_slab(slab: Slab, indent, verbose: bool) -> None:
                     disc = None
                     in_cpu_freelist = False
                     if addr in freelist:
-                        disc = handle_next(indexes, addr, freelist, indent)
+                        disc = handle_next(addr, freelist, indent)
                     elif cpu_freelist is not None and addr in cpu_freelist:
                         # need to traverse the list to catch potential freelist.cyclic
-                        disc = handle_next(indexes, addr, cpu_freelist, indent)
+                        disc = handle_next(addr, cpu_freelist, indent)
                         in_cpu_freelist = True
                     if disc is None:
                         disc = "something went wrong"
