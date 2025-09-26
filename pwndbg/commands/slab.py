@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Dict
 
 from tabulate import tabulate
 
@@ -119,6 +118,19 @@ def handle_next(curr: int, freelist: Freelist, indent):
     return disc
 
 
+def freelist_desc(freelist: Freelist, indent):
+    head = int(freelist)
+    desc = None
+    if head:
+        if not pwndbg.aglib.memory.is_kernel(head):
+            desc = "corrupted"
+        elif head not in freelist.slab:
+            desc = "not within the slab"
+        elif not freelist.is_valid_obj(head):
+            desc = "unaligned or out-of-range"
+    return indent.addr_hex(head) + (f" [{emphasize(desc)}]" if desc else "")
+
+
 def print_slab(slab: Slab, indent, verbose: bool) -> None:
     indent.print(
         f"- {indent.prefix('Slab')} @ {indent.addr_hex(slab.virt_address)} [{indent.aux_hex(slab.slab_address)}]:"
@@ -127,7 +139,7 @@ def print_slab(slab: Slab, indent, verbose: bool) -> None:
     with indent:
         indent.print(f"{indent.prefix('In-Use')}: {slab.inuse}/{slab.object_count}")
         indent.print(f"{indent.prefix('Frozen')}: {slab.frozen}")
-        indent.print(f"{indent.prefix('Freelist')}: {indent.addr_hex(int(slab.freelist))}")
+        indent.print(f"{indent.prefix('Freelist')}: {freelist_desc(slab.freelist, indent)}")
 
         cpu_freelist = slab.cpu_cache.freelist if slab.is_active else None
         indexes = {}
@@ -178,7 +190,7 @@ def print_cpu_cache(
     )
     with indent:
         if active:
-            indent.print(f"{indent.prefix('Freelist')}:", indent.addr_hex(int(cpu_cache.freelist)))
+            indent.print(f"{indent.prefix('Freelist')}:", freelist_desc(cpu_cache.freelist, indent))
             active_slab = cpu_cache.active_slab
             if active_slab:
                 indent.print(f"{indent.prefix('Active Slab')}:")
