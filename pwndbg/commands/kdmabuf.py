@@ -64,6 +64,10 @@ def print_sgl(sgl, indent):
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kdmabuf():
     db_name = "debugfs_list" if pwndbg.aglib.kernel.krelease() >= (6, 10) else "db_list"
+    if pwndbg.aglib.kernel.krelease() >= (6, 10):
+        db_name = "debugfs_list"
+        if "CONFIG_DEBUG_FS" not in pwndbg.aglib.kernel.kconfig():
+            print(M.warn("dma_buf->priv does not exist"))
     db_list = pwndbg.aglib.kernel.arch_symbols().db_list()
     if db_list is None:
         print(M.warn(f"{db_name} not found"))
@@ -72,7 +76,6 @@ def kdmabuf():
     if int(db_list) == int(db_list["next"]):
         print(M.warn(f"{db_name} ({hex(int(db_list))}) is empty"))
         return
-    # TODO: check config to see if priv is there
     indent = IndentContextManager()
     if not pwndbg.aglib.kernel.has_debug_info():
         pwndbg.aglib.kernel.dmabuf.load_dmabuf_typeinfo(int(db_list["next"]))
