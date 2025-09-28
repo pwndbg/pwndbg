@@ -323,7 +323,7 @@ class ArchSymbols:
         db_list = self._db_list()
         if db_list is None:
             return None
-        return pwndbg.aglib.memory.get_typed_pointer_value
+        return pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)
 
     def _node_data(self):
         raise NotImplementedError()

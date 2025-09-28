@@ -11,6 +11,8 @@ def find_dmabuf_offsets(dmabuf) -> Tuple[int, int, int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
     heap_buffer = pwndbg.aglib.memory.read_pointer_width(dmabuf + 2 * ptrsize)
     for i in range(1, MAX):
+        # see load_dmabuf_typeinfo (struct dma_buf) for an explanation
+        # this loop is searching the `size` field from `list_node`
         size = pwndbg.aglib.memory.read_pointer_width(dmabuf - (i + 5) * ptrsize)
         file = pwndbg.aglib.memory.read_pointer_width(dmabuf - (i + 4) * ptrsize)
         attachments_prev = pwndbg.aglib.memory.read_pointer_width(dmabuf - (i + 3) * ptrsize)
@@ -30,6 +32,7 @@ def find_dmabuf_offsets(dmabuf) -> Tuple[int, int, int]:
             continue
         if pwndbg.aglib.memory.is_kernel(vmapping_counter):
             continue
+        # (i + 5) * ptrsize is the distance from the `size` to `list_node`
         list_node_off = (i + 5) * ptrsize
         break
     assert list_node_off is not None, "cannot determine the offset of list_node"
@@ -86,8 +89,8 @@ def load_dmabuf_typeinfo(first_dmabuf: int):
         /* rest of the fields are irrelevant */
     }};
     struct dma_buf {{
-        size_t size;
-        struct file *file;
+        size_t size; // (i + 5) is here
+        void *file;
         struct list_head attachments;
         void *ops; // const struct dma_buf_ops *
         unsigned vmapping_counter;

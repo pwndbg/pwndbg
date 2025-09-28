@@ -9,7 +9,7 @@ from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.exception import IndentContextManager
 
-SG_CHAIH = 0x1
+SG_CHAIN = 0x1
 SG_END = 0x2
 
 parser = argparse.ArgumentParser(description="Prints DMA buf info")
@@ -34,16 +34,16 @@ def print_sgl(sgl, indent):
     while True:
         sgl = pwndbg.aglib.memory.get_typed_pointer("struct scatterlist", next_sgl)
         page_link = int(sgl["page_link"])
-        page = page_link & ~(SG_CHAIH | SG_END)
-        if page_link & SG_CHAIH:
+        page = page_link & ~(SG_CHAIN | SG_END)
+        if page_link & SG_CHAIN:
             next_sgl = page
             continue
         virt = pwndbg.aglib.kernel.page_to_virt(page)
         phys = pwndbg.aglib.kernel.virt_to_phys(virt)
         offset = int(sgl["offset"])
         length = int(sgl["length"])
-        desc = indent.prefix(f"[0x{idx:02}] {indent.addr_hex(virt)}")
-        desc += f" (len: {indent.aux_hex(length)}, offset: {indent.aux_hex(offset)}) [page: {indent.aux_hex(page)}, phys: {indent.aux_hex(phys)}]"
+        desc = "- " + indent.prefix(f"[0x{idx:02x}] {indent.addr_hex(virt)}")
+        desc += f" (len: {indent.aux_hex(length)}, off: {indent.aux_hex(offset)}) [page: {indent.aux_hex(page)}, phys: {indent.aux_hex(phys)}]"
         idx += 1
         indent.print(desc)
         if page_link & SG_END:
@@ -63,12 +63,12 @@ def print_sgl(sgl, indent):
 @pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kdmabuf():
-    db_name = "debugfs_list" if pwndbg.aglib.kernel.krelease() >= (6, 10) else "db_list"
+    db_name = "db_list"
     if pwndbg.aglib.kernel.krelease() >= (6, 10):
         db_name = "debugfs_list"
         if "CONFIG_DEBUG_FS" not in pwndbg.aglib.kernel.kconfig():
             print(M.warn("dma_buf->priv does not exist"))
-    db_list = pwndbg.aglib.kernel.arch_symbols().db_list()
+    db_list = pwndbg.aglib.kernel.db_list()
     if db_list is None:
         print(M.warn(f"{db_name} not found"))
         return

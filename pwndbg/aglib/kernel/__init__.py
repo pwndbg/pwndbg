@@ -671,3 +671,9 @@ def modules() -> pwndbg.dbg_mod.Value:
     if (syms := arch_symbols()) is not None:
         return syms.modules()
     return None
+
+
+def db_list() -> pwndbg.dbg_mod.Value:
+    if (syms := arch_symbols()) is not None:
+        return syms.db_list()
+    return None
