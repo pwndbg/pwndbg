@@ -217,11 +217,11 @@ def test_command_buddydump():
     if res == "WARNING: Symbol 'node_data' not found\n" or NOFREEPAGE == res:
         return
     # this indicates the buddy allocator contains at least one entry
-    assert "Order" in res and "Zone" in res and ("per_cpu_pageset" in res or "free_area" in res)
+    assert "order" in res and "zone" in res and ("per_cpu_pageset" in res or "free_area" in res)
 
     # find the starting addresses of all entries within the freelists
     matches = get_buddy_freelist_elements(res)
-    for i in range(0, len(matches), 10):
+    for i in range(0, len(matches)):
         vaddr, page = matches[i]
         res = gdb.execute(f"bud -f {hex(vaddr + random.randint(0, 0x1000 - 1))}", to_string=True)
         _matches = get_buddy_freelist_elements(res)
@@ -238,15 +238,21 @@ def test_command_buddydump():
     # for example, if a zone name is specified, other zones should not be present
     filter_res = gdb.execute("bud -z DMA", to_string=True)
     for name in ["DMA32", "Normal", "HighMem", "Movable", "Device"]:
-        assert f"Zone {name}" not in filter_res
+        assert f"zone {name.lower()}" not in filter_res
     filter_res = gdb.execute("bud -m Unmovable", to_string=True)
     for name in ["Movable", "Reclaimable", "HighAtomic", "CMA", "Isolate"]:
-        assert f"- {name}" not in filter_res
+        assert f"- {name.lower()}" not in filter_res
     filter_res = gdb.execute("bud -o 1", to_string=True)
     for i in range(11):
         if i == 1:
             continue
-        assert f"Order {i}" not in filter_res
+        assert f"order {i}" not in filter_res
+    filter_res = gdb.execute("bud -c 0", to_string=True)
+    for i in range(1, pwndbg.aglib.kernel.nproc()):
+        assert f"cpu #{i}" not in filter_res
+    filter_res = gdb.execute("bud -n 0", to_string=True)
+    for i in range(1, pwndbg.aglib.kernel.num_numa_nodes()):
+        assert f"node #{i}" not in filter_res
     filter_res = gdb.execute("bud -p", to_string=True)
     assert "free_area" not in filter_res
 

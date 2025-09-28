@@ -213,7 +213,7 @@ def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     if nr_types is None:
         nr_types = len(mtypes)
     for i in range(nr_types):
-        cbp.mtype = mtypes[i]
+        cbp.mtype = mtypes[i].lower()
         if pba.mtype is not None and cbp.mtype != pba.mtype:
             continue
         cbp.freelist = freelists[i]
@@ -246,7 +246,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
             order = 21 - 12  # HPAGE_SHIFT - PAGE_SHIFT
             cbp.nr_types = nr_pcp_lists % MIGRATE_PCPTYPES
         cbp.sections[2] = (
-            f"Order {order}",
+            f"order {order}",
             f"size: {cbp.indent.aux_hex(0x1000 * (1 << order))}",
         )
         cbp.order = order
@@ -262,7 +262,7 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         cbp.freelists = free_area[order]["free_list"]
         nr_free = int(free_area[order]["nr_free"])
         cbp.sections[2] = (
-            f"Order {order}",
+            f"order {order}",
             f"nr_free: {cbp.indent.aux_hex(nr_free)}, size: {cbp.indent.aux_hex(0x1000 * (1 << order))}",
         )
         cbp.order = order
@@ -344,7 +344,7 @@ def buddydump(
     if not pwndbg.aglib.kernel.has_debug_info():
         pwndbg.aglib.kernel.buddydump.load_buddydump_typeinfo()
         node_data = pwndbg.aglib.memory.get_typed_pointer("node_data_t", node_data)
-    pba = ParsedBuddyArgs(zone, order, mtype, cpu, find)
+    pba = ParsedBuddyArgs(zone, order, mtype.lower() if mtype is not None else None, cpu, find)
     cbp = CurrentBuddyParams(
         [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, None, None, False
     )
