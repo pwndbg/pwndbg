@@ -373,6 +373,10 @@
          <lastmod>2025-09-28</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/parse-seccomp/</loc>
+         <lastmod>2025-09-28</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/linux_libc_elf/piebase/</loc>
          <lastmod>2025-09-28</lastmod>
     </url>
@@ -1502,6 +1506,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/paging/</loc>
+         <lastmod>2025-09-28</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/parse_seccomp/</loc>
          <lastmod>2025-09-28</lastmod>
     </url>
     <url>
