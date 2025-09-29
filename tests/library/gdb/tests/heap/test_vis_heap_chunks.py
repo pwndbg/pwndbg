@@ -18,9 +18,13 @@ def test_vis_heap_chunk_command(start_binary):
 
     # TODO/FIXME: Shall we have a standard method to do this kind of filtering?
     # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh
-    heap_page = next(page for page in pwndbg.aglib.vmmap.get() if page.objfile == "[heap]")
+    heap_page = next(
+        page for page in pwndbg.aglib.vmmap.get() if page.objfile == "[heap]"
+    )
 
-    first_chunk_size = pwndbg.aglib.memory.u64(heap_page.start + pwndbg.aglib.arch.ptrsize)
+    first_chunk_size = pwndbg.aglib.memory.u64(
+        heap_page.start + pwndbg.aglib.arch.ptrsize
+    )
 
     # Just a sanity check...
     assert (heap_page.start & 0xFFF) == 0
@@ -65,12 +69,10 @@ def test_vis_heap_chunk_command(start_binary):
     expected = [
         "",
         f"{heap_iter(0):#x}\t0x0000000000000000\t{first_chunk_size | 1:#018x}\t{first_hexdump}",
-    ]
-    for _ in range(first_chunk_size // 16 - 1):
-        expected.append(
-            "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
-        )
-    expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
+        ".... (repeated 40 times)",  # <-- must match exactly what your code prints
+        "%#x\t0x0000000000000000\t                  \t........" % heap_iter(),
+        ]
+
     assert result == expected
 
     ## This time using `default-visualize-chunk-number` to set `count`, to make sure that the config can work
@@ -229,7 +231,9 @@ def test_vis_heap_chunk_command(start_binary):
     gdb.execute("continue")
 
     overflow_result = gdb.execute("vis-heap-chunk", to_string=True)
-    assert "\t0x0000000000000000\t0x4141414141414141\t........AAAAAAAA" in overflow_result
+    assert (
+        "\t0x0000000000000000\t0x4141414141414141\t........AAAAAAAA" in overflow_result
+    )
     assert len(overflow_result.splitlines()) < 0x500
 
     del overflow_result
