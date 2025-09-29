@@ -69,7 +69,7 @@ def test_vis_heap_chunk_command(start_binary):
     expected = [
         "",
         f"{heap_iter(0):#x}\t0x0000000000000000\t{first_chunk_size | 1:#018x}\t{first_hexdump}",
-        ".... (repeated 40 times)",  # <-- must match exactly what your code prints
+        ".... (repeated 40 times)",
         "%#x\t0x0000000000000000\t                  \t........" % heap_iter(),
         ]
 
