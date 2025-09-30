@@ -317,6 +317,7 @@ def slab_contains(address: str) -> None:
         print(M.error(f"Message: {e}"))
         return
 
+    slab_cache = find_containing_slab_cache(addr)
     try:
         slab_cache = find_containing_slab_cache(addr)
         print(f"{addr:#x} @", M.hint(f"{slab_cache.name}"))

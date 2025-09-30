@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -30,6 +31,14 @@ def first_kernel_page_start():
     return INVALID_ADDR
 
 
+@dataclass
+class PageTableLevel:
+    name: str
+    entry: int
+    virt: int  # within physmap
+    idx: int
+
+
 class ArchPagingInfo:
     USERLAND = "userland"
     KERNELLAND = "kernel [.text]"
@@ -49,6 +58,7 @@ class ArchPagingInfo:
     va_bits: int
     pagetable_cache: Dict[pwndbg.dbg_mod.Value, Dict[int, int]] = {}
     pagetableptr_cache: Dict[int, pwndbg.dbg_mod.Value] = {}
+    pagetable_level_names: Tuple[str, ...]
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
@@ -98,18 +108,16 @@ class ArchPagingInfo:
 
         return None
 
-    def pagewalk(
-        self, target, entry
-    ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
+    def pagewalk(self, target, entry) -> List[PageTableLevel]:
         raise NotImplementedError()
 
-    def pagewalk_helper(self, target, entry) -> List[Tuple[int | None, int | None]]:
+    def pagewalk_helper(self, target, entry) -> List[PageTableLevel]:
         base = self.physmap
         if entry > base:
             # user inputted a physmap address as pointer to pgd
             entry -= base
         level = self.paging_level
-        result: List[Tuple[int | None, int | None]] = [(None, None)] * (level + 1)
+        result = [PageTableLevel(None, None, None, None)] * (level + 1)
         page_shift = self.page_shift
         ENTRYMASK = ~((1 << page_shift) - 1) & ((1 << self.va_bits) - 1)
         for i in range(level, 0, -1):
@@ -118,7 +126,9 @@ class ArchPagingInfo:
                 break
             shift = (i - 1) * (page_shift - 3) + page_shift
             offset = target & ((1 << shift) - 1)
-            idx = (target & (0x1FF << shift)) >> shift
+            idx = (
+                target & (0x1FF << shift)
+            ) >> shift  # TODO: 0x1ff needs to depend on the size of the page
             entry = 0
             try:
                 # with this optimization, roughly x2 as fast on average
@@ -142,8 +152,13 @@ class ArchPagingInfo:
                 entry = 0
             if entry == 0:
                 return result
-            result[i] = (entry, vaddr)
-        result[0] = (entry, (entry & ENTRYMASK) + base + offset - self.phys_offset)
+            result[i] = PageTableLevel(self.pagetable_level_names[i], entry, vaddr, idx)
+        result[0] = PageTableLevel(
+            self.pagetable_level_names[0],
+            entry,
+            (entry & ENTRYMASK) + base + offset - self.phys_offset,
+            None,
+        )
         return result
 
     def pageentry_flags(self, level) -> BitFlags:
@@ -314,12 +329,10 @@ class x86_64PagingInfo(ArchPagingInfo):
             if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
                 page.objfile = "kernel [stack]"
 
-    def pagewalk(
-        self, target, entry
-    ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
+    def pagewalk(self, target, entry) -> List[PageTableLevel]:
         if entry is None:
             entry = pwndbg.aglib.regs["cr3"]
-        return self.pagetable_level_names, self.pagewalk_helper(target, entry)
+        return self.pagewalk_helper(target, entry)
 
     def pageentry_flags(self, is_last) -> BitFlags:
         return BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("U", 2), ("W", 1), ("P", 0)])
@@ -594,16 +607,14 @@ class Aarch64PagingInfo(ArchPagingInfo):
             pass
         return 0x40000000  # default
 
-    def pagewalk(
-        self, target, entry
-    ) -> Tuple[Tuple[str, ...], List[Tuple[int | None, int | None]]]:
+    def pagewalk(self, target, entry) -> List[PageTableLevel]:
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
                 entry = pwndbg.aglib.regs.TTBR1_EL1
             else:
                 entry = pwndbg.aglib.regs.TTBR0_EL1
         self.entry = entry
-        return self.pagetable_level_names, self.pagewalk_helper(target, entry)
+        return self.pagewalk_helper(target, entry)
 
     def pageentry_flags(self, is_last) -> BitFlags:
         if is_last:
