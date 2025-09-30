@@ -120,15 +120,14 @@ class ArchPagingInfo:
         result = [PageTableLevel(None, None, None, None)] * (level + 1)
         page_shift = self.page_shift
         ENTRYMASK = ~((1 << page_shift) - 1) & ((1 << self.va_bits) - 1)
+        IDXMASK = (1 << (page_shift - math.ceil(math.log2(pwndbg.aglib.arch.ptrsize)))) - 1
         for i in range(level, 0, -1):
             vaddr = (entry & ENTRYMASK) + base - self.phys_offset
             if self.should_stop_pagewalk(entry):
                 break
             shift = (i - 1) * (page_shift - 3) + page_shift
             offset = target & ((1 << shift) - 1)
-            idx = (
-                target & (0x1FF << shift)
-            ) >> shift  # TODO: 0x1ff needs to depend on the size of the page
+            idx = (target & (IDXMASK << shift)) >> shift
             entry = 0
             try:
                 # with this optimization, roughly x2 as fast on average
