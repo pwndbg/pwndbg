@@ -3,7 +3,6 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from typing import Dict
-from typing import List
 from typing import Tuple
 
 import pwndbg
@@ -108,10 +107,10 @@ class ArchPagingInfo:
 
         return None
 
-    def pagewalk(self, target, entry) -> List[PageTableLevel]:
+    def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
         raise NotImplementedError()
 
-    def pagewalk_helper(self, target, entry) -> List[PageTableLevel]:
+    def pagewalk_helper(self, target, entry) -> Tuple[PageTableLevel, ...]:
         base = self.physmap
         if entry > base:
             # user inputted a physmap address as pointer to pgd
@@ -150,7 +149,7 @@ class ArchPagingInfo:
                 print(M.warn(f"Exception while page walking: {e}"))
                 entry = 0
             if entry == 0:
-                return result
+                return tuple(result)
             result[i] = PageTableLevel(self.pagetable_level_names[i], entry, vaddr, idx)
         result[0] = PageTableLevel(
             self.pagetable_level_names[0],
@@ -158,7 +157,7 @@ class ArchPagingInfo:
             (entry & ENTRYMASK) + base + offset - self.phys_offset,
             None,
         )
-        return result
+        return tuple(result)
 
     def pageentry_flags(self, level) -> BitFlags:
         raise NotImplementedError()
@@ -328,7 +327,7 @@ class x86_64PagingInfo(ArchPagingInfo):
             if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
                 page.objfile = "kernel [stack]"
 
-    def pagewalk(self, target, entry) -> List[PageTableLevel]:
+    def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
         if entry is None:
             entry = pwndbg.aglib.regs["cr3"]
         return self.pagewalk_helper(target, entry)
@@ -606,7 +605,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             pass
         return 0x40000000  # default
 
-    def pagewalk(self, target, entry) -> List[PageTableLevel]:
+    def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
                 entry = pwndbg.aglib.regs.TTBR1_EL1

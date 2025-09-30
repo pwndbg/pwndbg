@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import List
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.paging
@@ -32,7 +31,8 @@ def print_pagetable_entry(ptl: PageTableLevel, level: int, is_last: bool):
     flags = ""
     arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
     name, entry, vaddr, idx = ptl.name, ptl.entry, ptl.virt, ptl.idx
-    name = name.ljust(3, " ")
+    if pwndbg.aglib.arch.name == "x86-64":
+        name = name.ljust(3, " ")
     if entry is not None:
         flags = f"[{idx:03}] {arrow_right} {name + 'e'}: {C.context.format_flags(entry, pageflags, entry)}"
     print(f"{C.blue(name)} @ {C.yellow(hex(vaddr))}{flags}")
@@ -86,7 +86,7 @@ def pagewalk(vaddr, entry=None):
     if entry is not None:
         entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    levels: List[PageTableLevel] = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
+    levels = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
     for i in range(len(levels) - 1, 0, -1):
         curr = levels[i]
         next = levels[i - 1]

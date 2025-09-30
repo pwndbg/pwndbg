@@ -28,6 +28,7 @@ import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
+from pwndbg.aglib.kernel.paging import PageTableLevel
 from pwndbg.lib.regs import BitFlags
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
@@ -595,7 +596,8 @@ def kbase() -> int | None:
         raise NotImplementedError()
 
 
-def pagewalk(addr, entry=None):
+@pwndbg.lib.cache.cache_until("stop")
+def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry)
