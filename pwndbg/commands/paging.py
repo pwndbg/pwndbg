@@ -34,9 +34,10 @@ def print_pagetable_entry(ptl: PageTableLevel, level: int, is_last: bool):
     name, entry, vaddr, idx = ptl.name, ptl.entry, ptl.virt, ptl.idx
     if pwndbg.aglib.arch.name == "x86-64":
         name = name.ljust(3, " ")
-    idxlen = len(str((1 << (pwndbg.aglib.kernel.arch_ops().page_shift - math.ceil(
+    nbits = pwndbg.aglib.kernel.arch_ops().page_shift - math.ceil(
         math.log2(pwndbg.aglib.arch.ptrsize)
-    ))) - 1))
+    )  # each idx has that many bits
+    idxlen = len(str((1 << nbits) - 1))
     if entry is not None:
         flags = f"[{idx:0{idxlen}}] {arrow_right} {name + 'e'}: {C.context.format_flags(entry, pageflags, entry)}"
     print(f"{C.blue(name)} @ {C.yellow(hex(vaddr))}{flags}")
