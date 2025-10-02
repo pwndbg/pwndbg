@@ -63,7 +63,9 @@ class ColorParameter(Parameter):
 
         if invalid_parts and not valid_parts:
             for value in invalid_parts:
-                sys.stderr.write(f"error: invalid color '{value}': expected color from {', '.join(sorted(VALID_COLORS))}\n")
+                sys.stderr.write(
+                    f"error: invalid color '{value}': expected color from {', '.join(sorted(VALID_COLORS))}\n"
+                )
             final = getattr(self, "_last_good_value", "normal")
             self.value = final
 
