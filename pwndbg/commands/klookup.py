@@ -40,9 +40,12 @@ def klookup(symbol: str, apply: bool) -> None:
     for sym_name, sym_addr, sym_type in syms:
         print(message.success(f"{sym_addr:#x} {sym_type} {sym_name}"))
     if apply:
-        path = pwndbg.commands.cymbol.create_blank_elf()
-        symelf = lief.ELF.parse(path)
-        for sym_name, sym_addr, sym_type in syms:
-            symelf.add_symtab_symbol((symelf.export_symbol(sym_name, sym_addr)))
-        symelf.write(path)
-        pwndbg.dbg.selected_inferior().add_symbol_file(path)
+        try:
+            path = pwndbg.commands.cymbol.create_blank_elf()
+            symelf = lief.ELF.parse(path)
+            for sym_name, sym_addr, sym_type in syms:
+                symelf.add_symtab_symbol((symelf.export_symbol(sym_name, sym_addr)))
+            symelf.write(path)
+            pwndbg.dbg.selected_inferior().add_symbol_file(path)
+        except Exception as e:
+            print(message.warn(e))

@@ -977,7 +977,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 break
 
     @override
-    def add_symbol_file(self, path, base=0):
+    def add_symbol_file(self, path, base=None):
+        if base is None:
+            gdb.execute(f"add-symbol-file {path}")
+            return
         gdb.execute(f"add-symbol-file {path} {base}")
 
 
