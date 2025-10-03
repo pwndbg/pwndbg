@@ -24,6 +24,7 @@ from typing import Dict
 from typing import TypeVar
 
 import gdb
+import lief
 from typing_extensions import ParamSpec
 from typing_extensions import Protocol
 
@@ -135,6 +136,40 @@ def generate_debug_symbols(
         return None
 
     return pwndbg_debug_symbols_output_file
+
+
+def create_blank_elf():
+    tmpfile_path = tempfile.NamedTemporaryFile(delete=False, suffix=".S")
+    tmpfile_path.write(b".global _start\nostartfiles_start:\nnop")
+    _, output_path = tempfile.mkstemp(prefix="custom-", suffix=".dbg")
+    gcc_extra_flags = [
+        tmpfile_path.name,
+        "-nostdlib",
+        "--static",
+        "-o",
+        output_path,
+    ]
+
+    if gcc_compiler_path != "":
+        compiler_flags = [gcc_compiler_path]
+    else:
+        try:
+            compiler_flags = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
+        except ValueError as exception:
+            print(message.error(exception))
+            return None
+
+    gcc_cmd = compiler_flags + gcc_extra_flags
+
+    try:
+        subprocess.run(gcc_cmd, check=True, text=True)
+    except Exception as exception:
+        print(message.error(exception))
+
+    blank_elf = lief.ELF.parse(output_path)
+    for s in blank_elf.symbols:
+        blank_elf.remove_symtab_symbol(s)
+    return output_path
 
 
 def add_custom_structure(custom_structure_name: str, force=False):
@@ -251,7 +286,7 @@ def load_custom_structure(custom_structure_name: str, custom_structure_path: str
     pwndbg_debug_symbols_output_file = generate_debug_symbols(custom_structure_path)
     if not pwndbg_debug_symbols_output_file:
         return  # generate_debug_symbols prints on failures
-    gdb.execute(f"add-symbol-file {pwndbg_debug_symbols_output_file}", to_string=True)
+    pwndbg.dbg.selected_inferior().add_symbol_file(pwndbg_debug_symbols_output_file)
     loaded_symbols[custom_structure_name] = pwndbg_debug_symbols_output_file
     print(message.success("Symbols are loaded!"))
 
