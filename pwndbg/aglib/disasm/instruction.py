@@ -44,7 +44,6 @@ from capstone.riscv import RISCV_INS_C_JALR
 from capstone.riscv import RISCV_INS_C_JR
 from capstone.riscv import RISCV_INS_JAL
 from capstone.riscv import RISCV_INS_JALR
-from capstone.sparc import SPARC_INS_JMP
 from capstone.sparc import SPARC_INS_JMPL
 from capstone.systemz import SYSTEMZ_INS_B
 from capstone.systemz import SYSTEMZ_INS_BAL
@@ -73,7 +72,7 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
         MIPS_INS_B,
         MIPS_INS_ALIAS_B,
     },
-    CS_ARCH_SPARC: {SPARC_INS_JMP, SPARC_INS_JMPL},
+    CS_ARCH_SPARC: {SPARC_INS_JMPL},
     CS_ARCH_ARM: {
         ARM_INS_TBB,
         ARM_INS_TBH,

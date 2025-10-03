@@ -31,9 +31,9 @@ COMPILATION_TARGETS_TYPE = Literal[
     "powerpc64",
     "mips32",
     "mipsel32",
-    "mips64",
+    "mips64el",
     "s390x",
-    "sparc",
+    "sparc64",
 ]
 
 COMPILATION_TARGETS: list[COMPILATION_TARGETS_TYPE] = list(
@@ -48,10 +48,10 @@ COMPILE_AND_RUN_INFO: Dict[COMPILATION_TARGETS_TYPE, Tuple[str, Tuple[str, ...],
     "riscv64": ("riscv64-freestanding", (), "riscv64"),
     "mips32": ("mips-freestanding", (), "mips"),
     "mipsel32": ("mipsel-freestanding", (), "mipsel"),
-    "mips64": ("mips64-freestanding", (), "mips64"),
+    "mips64el": ("mips64el-freestanding", (), "mips64el"),
     "loongarch64": ("loongarch64-freestanding", (), "loongarch64"),
     "s390x": ("s390x-freestanding", (), "s390x"),
-    "sparc": ("sparc64-freestanding", (), "sparc64"),
+    "sparc64": ("sparc64-freestanding", (), "sparc64"),
     "powerpc32": ("powerpc-freestanding", (), "ppc"),
     "powerpc64": ("powerpc64-freestanding", (), "ppc64"),
 }

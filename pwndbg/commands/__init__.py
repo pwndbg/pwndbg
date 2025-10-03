@@ -923,6 +923,7 @@ def load_commands() -> None:
     import pwndbg.commands.kchecksec
     import pwndbg.commands.kcmdline
     import pwndbg.commands.kconfig
+    import pwndbg.commands.kdmabuf
     import pwndbg.commands.kdmesg
     import pwndbg.commands.klookup
     import pwndbg.commands.kmod
@@ -944,6 +945,7 @@ def load_commands() -> None:
     import pwndbg.commands.onegadget
     import pwndbg.commands.p2p
     import pwndbg.commands.paging
+    import pwndbg.commands.parse_seccomp
     import pwndbg.commands.patch
     import pwndbg.commands.pie
     import pwndbg.commands.plist

@@ -93,11 +93,14 @@ def pagewalk(vaddr, entry=None):
     if vaddr is None:
         print(M.warn("address is not mapped"))
         return
-    phys = vaddr - pwndbg.aglib.kernel.arch_paginginfo().physmap
+    pi = pwndbg.aglib.kernel.arch_paginginfo()
+    phys = vaddr - pi.physmap + pi.phys_offset
     print(f"pagewalk result: {C.green(hex(vaddr))} [phys: {C.yellow(hex(phys))}]")
 
 
 def paging_print_helper(name, addr):
+    if addr is None:
+        return
     print(f"{C.green(name)}: {C.yellow(hex(addr))}")
 
 
@@ -135,7 +138,8 @@ def v2p(vaddr):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     entry, paddr = pwndbg.aglib.kernel.pagewalk(vaddr)[1][0]  # more accurate
     if not entry:
-        print(M.warn("virtual to page failed"))
+        print(M.warn("virtual to page failed, unmapped virtual address?"))
+        return
     paging_print_helper("Physmap address", paddr)
     # paddr is the physmap address which is a virtual address
     page = pwndbg.aglib.kernel.virt_to_page(paddr)

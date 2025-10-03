@@ -217,33 +217,6 @@ let
             substituteInPlace ./src/CMakeLists.txt \
                 --replace-fail 'set(CMAKE_C_COMPILER "/usr/bin/cc")' 'set(CMAKE_C_COMPILER "${stdenv.cc}/bin/${stdenv.cc.targetPrefix}cc")'
           '';
-
-          # Remove this block after upgrading to unicorn 2.2.0
-          patches = lib.optionals stdenv.hostPlatform.isDarwin [
-            (fetchpatch {
-              url = "https://github.com/unicorn-engine/unicorn/commit/79f910ea73220f4f603b6050593af86483573908.patch";
-              hash = "sha256-AIMetsuYx1wz2KNtHcsyBfue+dBIDMVdqIiPaQ3xfgs=";
-              includes = [
-                "src/qemu/configure"
-                "src/qemu/include/tcg/tcg-apple-jit.h"
-              ];
-              stripLen = 1;
-              extraPrefix = "src/";
-            })
-          ];
-        }
-        // lib.optionalAttrs stdenv.hostPlatform.isLoongArch64 {
-          # Remove this block after upgrading to unicorn 2.2.0
-          src = fetchFromGitHub {
-            owner = "unicorn-engine";
-            repo = "unicorn";
-            rev = "e867b08c66544ddf8cd62c1e36e8ff35d32c3e77";
-            hash = "sha256-vov6io2+RY8CZAoF0S00J2trlEEQHeMxw4HV8gm2Q2Y=";
-          };
-          sourceRoot = "source/bindings/python";
-          preBuild = ''
-            chmod -R +w ../../../
-          '';
         }
       )
     ) { };

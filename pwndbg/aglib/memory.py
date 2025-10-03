@@ -444,4 +444,4 @@ def is_pagefault_supported() -> bool:
 
 
 def is_kernel(addr: int):
-    return addr >> 63 == 1
+    return (addr >> 63 == 1) and peek(addr) is not None

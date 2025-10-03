@@ -49,7 +49,7 @@ def detect_register_patterns(alphabet, length, timeout) -> None:
         try:
             signal.alarm(timeout)
             value_bytes = value.to_bytes(ptr_size, endian)
-            offset = cyclic_find(value_bytes, alphabet=alphabet, n=length)
+            offset = cyclic_find(value_bytes[:length], alphabet=alphabet, n=length)
             if offset != -1:
                 found_patterns.append((reg_name, value, offset))
         except TimeoutException:

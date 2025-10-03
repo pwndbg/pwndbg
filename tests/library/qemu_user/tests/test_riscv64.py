@@ -20,6 +20,9 @@ RISCV64_GRACEFUL_EXIT = """
     li a7, 93
     li a0, 0
     ecall
+    nop
+    nop
+    nop
 """
 
 RISCV64_JALR = f"""
@@ -364,7 +367,7 @@ def test_riscv64_jump_chain(qemu_assembly_run):
         "   0x1001166 <end+2>     addi   a7, zero, 0x5d     A7 => 0x5d (0x0 + 0x5d)\n"
         "   0x100116a <end+6>     c.li   a0, 0              A0 => 0\n"
         "   0x100116c <end+8>     ecall   <SYS_exit>\n"
-        "   0x1001170             c.li   s0, 0x10           S0 => 0x10\n"
+        "   0x1001170 <end+12>    c.nop  \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 

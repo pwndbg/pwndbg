@@ -114,6 +114,7 @@ def kversion_cint(kversion: Tuple[int, int, int] = None):
 #########################################
 COMMON_TYPES = """
 #include <stdint.h>
+#include <stddef.h>
 #include <linux/version.h>
 typedef unsigned char u8;
 typedef char s8;
@@ -310,6 +311,20 @@ class ArchSymbols:
             return None
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", modules)
 
+    def db_list(self):
+        if pwndbg.aglib.kernel.krelease() >= (6, 10):
+            debugfs_list = pwndbg.aglib.symbol.lookup_symbol("debugfs_list")
+            # TODO: fallback not supported for >= v6.10, should look at dma_buf_debug_show later if needed
+            # though the symbol should exist if the function symbol exist
+            return debugfs_list
+        db_list = pwndbg.aglib.symbol.lookup_symbol("db_list")
+        if db_list:
+            return db_list
+        db_list = self._db_list()
+        if db_list is None:
+            return None
+        return pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)
+
     def _node_data(self):
         raise NotImplementedError()
 
@@ -320,6 +335,9 @@ class ArchSymbols:
         raise NotImplementedError()
 
     def _modules(self):
+        raise NotImplementedError()
+
+    def _db_list(self):
         raise NotImplementedError()
 
 
@@ -382,6 +400,19 @@ class x86_64Symbols(ArchSymbols):
     def _modules(self):
         disass = self.disass("find_module_all")
         return self.qword_mov_reg_ripoff(disass)
+
+    def _db_list(self):
+        offset = 0x10  # offset of the lock
+        name = (
+            "dma_buf_file_release"
+            if pwndbg.aglib.kernel.krelease() >= (5, 10)
+            else "dma_buf_release"
+        )
+        disass = self.disass(name)
+        result = self.qword_mov_reg_const(disass)
+        if result is not None:
+            return result - offset
+        return None
 
 
 class Aarch64Symbols(ArchSymbols):
@@ -448,3 +479,16 @@ class Aarch64Symbols(ArchSymbols):
         if m is None:
             return None
         return sum(int(m.group(i), 16) for i in [2, 3, 4])
+
+    def _db_list(self):
+        offset = 0x10  # offset of the lock
+        name = (
+            "dma_buf_file_release"
+            if pwndbg.aglib.kernel.krelease() >= (5, 10)
+            else "dma_buf_release"
+        )
+        disass = self.disass(name)
+        result = self.qword_adrp_add_const(disass)
+        if result is not None:
+            return result - offset
+        return None

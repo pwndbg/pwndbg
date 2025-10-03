@@ -44,6 +44,7 @@ class CurrentBuddyParams:
     # this is so that values can be cleanly passed around
     sections: List[Tuple[str, str]]
     indent: IndentContextManager
+    node: int | None
     zone: pwndbg.dbg_mod.Value | None
     order: int
     mtype: str | None
@@ -101,7 +102,7 @@ parser.add_argument(
 parser.add_argument(
     "-c", "--cpu", type=cpu_limitcheck, dest="cpu", default=None, help="CPU nr for searching PCP."
 )
-parser.add_argument("-n", "--node", type=int, dest="node", default=0, help="")
+parser.add_argument("-n", "--node", type=int, dest="node", default=None, help="")
 parser.add_argument(
     "-f",
     "--find",
@@ -141,12 +142,12 @@ def traverse_pglist(
     for e in for_each_entry(freelist, "struct page", "lru"):
         page = int(e)
         phys_addr = pwndbg.aglib.kernel.page_to_phys(page)
-        physmap_addr = pwndbg.aglib.kernel.page_to_physmap(page)
-        if check_find(counter, physmap_addr, pba, cbp):
+        virt_addr = pwndbg.aglib.kernel.page_to_virt(page)
+        if check_find(counter, virt_addr, pba, cbp):
             results.append(
                 (
                     counter,
-                    f"{indent.addr_hex(physmap_addr)} [page: {indent.aux_hex(page)}, phys: {indent.aux_hex(phys_addr)}]",
+                    f"{indent.addr_hex(virt_addr)} [page: {indent.aux_hex(page)}, phys: {indent.aux_hex(phys_addr)}]",
                 )
             )
             cbp.found = True
@@ -212,7 +213,7 @@ def print_mtypes(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     if nr_types is None:
         nr_types = len(mtypes)
     for i in range(nr_types):
-        cbp.mtype = mtypes[i]
+        cbp.mtype = mtypes[i].lower()
         if pba.mtype is not None and cbp.mtype != pba.mtype:
             continue
         cbp.freelist = freelists[i]
@@ -228,7 +229,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
     elif cbp.zone.type.has_field("pageset"):
         pcp = per_cpu(cbp.zone["pageset"], pba.cpu)
         pcp_lists = pcp["pcp"]["lists"]
-    cbp.sections[1] = ("per_cpu_pageset", None)
+    cbp.sections[1] = (f"[cpu #{pba.cpu}] per_cpu_pageset", None)
     if pcp is None or pcp_lists is None:
         log.warning("cannot find pcplist")
         return
@@ -245,7 +246,7 @@ def print_pcp_set(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
             order = 21 - 12  # HPAGE_SHIFT - PAGE_SHIFT
             cbp.nr_types = nr_pcp_lists % MIGRATE_PCPTYPES
         cbp.sections[2] = (
-            f"Order {order}",
+            f"order {order}",
             f"size: {cbp.indent.aux_hex(0x1000 * (1 << order))}",
         )
         cbp.order = order
@@ -261,7 +262,7 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
         cbp.freelists = free_area[order]["free_list"]
         nr_free = int(free_area[order]["nr_free"])
         cbp.sections[2] = (
-            f"Order {order}",
+            f"order {order}",
             f"nr_free: {cbp.indent.aux_hex(nr_free)}, size: {cbp.indent.aux_hex(0x1000 * (1 << order))}",
         )
         cbp.order = order
@@ -269,13 +270,18 @@ def print_free_area(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams):
 
 
 def print_zones(pba: ParsedBuddyArgs, cbp: CurrentBuddyParams, zones, pcp_only):
+    target_cpu = pba.cpu
     for i in range(pwndbg.aglib.kernel.symbol.nzones()):
         cbp.zone = zones[i]
         name = zones[i]["name"].string()
         if pba.zone is not None and pba.zone != name:
             continue
-        cbp.sections[0] = (f"Zone {name}", None)
-        print_pcp_set(pba, cbp)
+        cbp.sections[0] = (f"[node #{cbp.node}] zone {name}", None)
+        for cpu in range(pwndbg.aglib.kernel.nproc()):
+            if target_cpu is not None and target_cpu != cpu:
+                continue
+            pba.cpu = cpu
+            print_pcp_set(pba, cbp)
         if not pcp_only:
             print_free_area(pba, cbp)
 
@@ -338,9 +344,9 @@ def buddydump(
     if not pwndbg.aglib.kernel.has_debug_info():
         pwndbg.aglib.kernel.buddydump.load_buddydump_typeinfo()
         node_data = pwndbg.aglib.memory.get_typed_pointer("node_data_t", node_data)
-    pba = ParsedBuddyArgs(zone, order, mtype, cpu, find)
+    pba = ParsedBuddyArgs(zone, order, mtype.lower() if mtype is not None else None, cpu, find)
     cbp = CurrentBuddyParams(
-        [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, None, False
+        [NONE_TUPLE] * 3, IndentContextManager(), None, None, None, None, None, None, None, False
     )
     for node_idx in range(kernel.num_numa_nodes()):
         if node is not None and node_idx != node:
@@ -351,6 +357,7 @@ def buddydump(
             zones = node_data.dereference()[node_idx]["node_zones"]
         else:
             zones = node_data["node_zones"]
+        cbp.node = node_idx
         print_zones(pba, cbp, zones, pcp_only)
     if not cbp.found:
         log.warning("No free pages with specified filters found.")

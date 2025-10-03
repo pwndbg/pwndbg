@@ -54,7 +54,7 @@ def module_mem_offset() -> Tuple[int | None, int | None, int | None]:
     for i in range(0x100):
         offset = i * pwndbg.aglib.arch.ptrsize
         min_size = 0x10
-        if pwndbg.aglib.kernel.krelease() >= (6, 13):
+        if (6, 13) <= pwndbg.aglib.kernel.krelease() < (6, 15):
             min_size += 0x8
         for module_memory_size in (
             min_size,
@@ -71,10 +71,12 @@ def module_mem_offset() -> Tuple[int | None, int | None, int | None]:
                     found = False
                     break
                 size_offset = pwndbg.aglib.arch.ptrsize
-                if pwndbg.aglib.kernel.krelease() >= (6, 13):
+                if (6, 13) <= pwndbg.aglib.kernel.krelease() < (6, 15):
                     # https://elixir.bootlin.com/linux/v6.13/source/include/linux/module.h#L368
                     # additional fields were added
                     size_offset += pwndbg.aglib.arch.ptrsize + 4
+                elif (6, 15) <= pwndbg.aglib.kernel.krelease():
+                    size_offset += 4
                 size = pwndbg.aglib.memory.u32(mem_ptr + size_offset)
                 if not 0 < size < 0x100000:
                     found = False

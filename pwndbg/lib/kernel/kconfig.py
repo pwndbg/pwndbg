@@ -62,6 +62,8 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             self.data["CONFIG_KASAN"] = "y"
         if self.CONFIG_SYSFS:
             self.data["CONFIG_SYSFS"] = "y"
+        if self.CONFIG_DEBUG_FS:
+            self.data["CONFIG_DEBUG_FS"] = "y"
 
     def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
@@ -170,6 +172,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_SYSFS(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("sysfs_kf_seq_show") is not None
+
+    @property
+    def CONFIG_DEBUG_FS(self) -> bool:
+        return pwndbg.aglib.symbol.lookup_symbol("debugfs_attr_read") is not None
 
     def update_with_file(self, file_path):
         for line in open(file_path, "r").read().splitlines():
