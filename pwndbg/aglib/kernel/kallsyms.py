@@ -3,7 +3,7 @@ from __future__ import annotations
 from re import match
 from re import search
 from struct import unpack_from
-from typing import Dict
+from typing import List
 from typing import Tuple
 
 from pwnlib.util.packing import p16
@@ -21,9 +21,9 @@ import pwndbg.search
 
 
 @pwndbg.lib.cache.cache_until("start")
-def get() -> Dict[str, Tuple[int, str]]:
+def get() -> Tuple[Tuple[str, str, int], ...]:
     ks = Kallsyms()
-    return ks.kallsyms
+    return tuple(ks.kallsyms)
 
 
 class Kallsyms:
@@ -42,7 +42,7 @@ class Kallsyms:
     """
 
     def __init__(self):
-        self.kallsyms: Dict[str, Tuple[int, str]] = {}
+        self.kallsyms: List[Tuple[str, str, int]] = []
         self.kbase = pwndbg.aglib.kernel.kbase()
 
         mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
@@ -82,7 +82,7 @@ class Kallsyms:
         self.kernel_addresses = self.get_kernel_addresses()
         self.parse_symbol_table()
         for sym_name, sym_addr, sym_type in pwndbg.aglib.kernel.kmod.all_modules_kallsyms():
-            self.kallsyms[sym_name] = (sym_addr, sym_type)
+            self.kallsyms.append((sym_name, sym_type, sym_addr))
         print(M.info(f"Found {len(self.kallsyms)} ksymbols"))
 
     def find_token_table(self) -> int:
@@ -406,7 +406,7 @@ class Kallsyms:
             symbol_names.append(symbol_name)
 
         for addr, name in zip(self.kernel_addresses, symbol_names):
-            self.kallsyms[name[1:]] = (addr, name[0])
+            self.kallsyms.append((name[1:], name[0], addr))
 
     def get_token_table(self):
         if not self.is_uncompressed:

@@ -169,6 +169,7 @@ def create_blank_elf():
     blank_elf = lief.ELF.parse(output_path)
     for s in blank_elf.symbols:
         blank_elf.remove_symtab_symbol(s)
+    blank_elf.write(output_path)
     return output_path
 
 
