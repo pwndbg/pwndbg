@@ -909,6 +909,7 @@ def load_commands() -> None:
     import pwndbg.commands.distance
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
+    import pwndbg.commands.dprintf
     import pwndbg.commands.elf
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
