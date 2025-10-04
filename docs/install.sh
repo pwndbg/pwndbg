@@ -186,39 +186,47 @@ if ! echo "$PATH" | grep -q "$BINARY_DIR"; then
     echo
 fi
 
-# Create a temporary directory for downloading the file
-TEMP_DIR=$(mktemp -d)
-URL="https://github.com/pwndbg/pwndbg/releases/download/${VERSION}/${FILE}"
-
-# Ensure the temporary directory is cleaned up on script exit (even in case of an error)
-trap "rm -rf $TEMP_DIR" EXIT
-
-echoinfo "Downloading... ${URL}"
-
-# 'wget' on BusyBox don't support progress options
-if wget --help 2>&1 | grep -qi 'busybox'; then
-    WGET_CMD="wget -q"
-else
-    WGET_CMD="wget -q --show-progress"
-fi
-
-$WGET_CMD "$URL" -O "$TEMP_DIR/$FILE" || {
-    echoerr "Problem with downloading the file. Please check your internet connection or try again."
-    exit 1
+download_files() {
+    # Create a temporary directory for downloading the file
+    TEMP_DIR=$(mktemp -d)
+    URL="https://github.com/pwndbg/pwndbg/releases/download/${VERSION}/${FILE}"
+    
+    # Ensure the temporary directory is cleaned up on script exit (even in case of an error)
+    trap "rm -rf $TEMP_DIR" EXIT
+    
+    echoinfo "Downloading... ${URL}"
+    
+    # 'wget' on BusyBox don't support progress options
+    if wget --help 2>&1 | grep -qi 'busybox'; then
+        WGET_CMD="wget -q"
+    else
+        WGET_CMD="wget -q --show-progress"
+    fi
+    
+    $WGET_CMD "$URL" -O "$TEMP_DIR/$FILE" || {
+        echoerr "Problem with downloading the file. Please check your internet connection or try again."
+        exit 1
+    }
 }
 
-if [ -d "$INSTALL_DIR" ]; then
-    echoinfo "Removing... old installation from $INSTALL_DIR"
-    sudo rm -rf "$INSTALL_DIR"
-fi
+install_pwndbg() {
+    if [ -d "$INSTALL_DIR" ]; then
+        echoinfo "Removing... old installation from $INSTALL_DIR"
+        sudo rm -rf "$INSTALL_DIR"
+    fi
+    
+    echoinfo "Installing... $TYPE in ${INSTALL_DIR}"
+    sudo mkdir -p "$INSTALL_DIR"
+    sudo tar -xf "$TEMP_DIR/$FILE" -C "$INSTALL_DIR" --strip-components=2
+    
+    echoinfo "Creating... symlink in ${BINARY_DST_PATH}"
+    sudo mkdir -p $BINARY_DIR
+    sudo ln -sf $BINARY_SRC_PATH $BINARY_DST_PATH
+    
+    echoinfo "Installation complete."
+    echo "🚀 Run binary with: ${GREEN}${BINARY_NAME}${NC}"
+}
 
-echoinfo "Installing... $TYPE in ${INSTALL_DIR}"
-sudo mkdir -p "$INSTALL_DIR"
-sudo tar -xf "$TEMP_DIR/$FILE" -C "$INSTALL_DIR" --strip-components=2
-
-echoinfo "Creating... symlink in ${BINARY_DST_PATH}"
-sudo mkdir -p $BINARY_DIR
-sudo ln -sf $BINARY_SRC_PATH $BINARY_DST_PATH
-
-echoinfo "Installation complete."
-echo "🚀 Run binary with: ${GREEN}${BINARY_NAME}${NC}"
+# Download and install last so that in case of a half downloaded file, nothing is changed
+download_files
+install_pwndbg
