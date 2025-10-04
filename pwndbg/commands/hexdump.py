@@ -67,10 +67,41 @@ parser.add_argument(
     "count", nargs="?", default=pwndbg.config.hexdump_bytes, help="Number of bytes to dump"
 )
 
+# Unit/grouping flags: allow selecting byte grouping with -1/-2/-4/-8
+_unit_group = parser.add_mutually_exclusive_group()
+_unit_group.add_argument(
+    "-1",
+    dest="unit",
+    action="store_const",
+    const=1,
+    help="Group bytes as 1-byte units (byte)",
+)
+_unit_group.add_argument(
+    "-2",
+    dest="unit",
+    action="store_const",
+    const=2,
+    help="Group bytes as 2-byte units (word)",
+)
+_unit_group.add_argument(
+    "-4",
+    dest="unit",
+    action="store_const",
+    const=4,
+    help="Group bytes as 4-byte units (dword)",
+)
+_unit_group.add_argument(
+    "-8",
+    dest="unit",
+    action="store_const",
+    const=8,
+    help="Group bytes as 8-byte units (qword)",
+)
+
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
+def hexdump(address, count=pwndbg.config.hexdump_bytes, unit=None) -> None:
     if hexdump.repeat:
         address = hexdump.last_address
     else:
@@ -109,6 +140,13 @@ def hexdump(address, count=pwndbg.config.hexdump_bytes) -> None:
 
     group_width = int(pwndbg.config.hexdump_group_width)
     group_width = pwndbg.aglib.typeinfo.ptrsize if group_width == -1 else group_width
+
+    # Override group width if the unit flag (-1/-2/-4/-8) is provided
+    if unit is not None:
+        try:
+            group_width = int(unit)
+        except (TypeError, ValueError):
+            pass
 
     # TODO: What if arch endian is big, and use_big_endian is false?
     flip_group_endianness = (
