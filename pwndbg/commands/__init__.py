@@ -973,3 +973,4 @@ def load_commands() -> None:
     import pwndbg.commands.windbg
     import pwndbg.commands.xinfo
     import pwndbg.commands.xor
+    import pwndbg.commands.fmtarg
