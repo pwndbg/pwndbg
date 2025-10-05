@@ -372,7 +372,9 @@ class Kallsyms:
             return kernel_addresses
 
         number_of_negative_items = len([offset for offset in kernel_addresses if offset < 0])
-        abs_percpu = number_of_negative_items / len(kernel_addresses) >= 0.5
+        abs_percpu = (len(kernel_addresses) == 0) or (
+            number_of_negative_items / len(kernel_addresses) >= 0.5
+        )
 
         for idx, offset in enumerate(kernel_addresses):
             if abs_percpu:
