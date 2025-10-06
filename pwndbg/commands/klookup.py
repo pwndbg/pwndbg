@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-import lief
-
 import pwndbg.aglib.kernel.kallsyms
 import pwndbg.commands
 from pwndbg.color import message
@@ -40,8 +38,13 @@ def klookup(symbol: str, apply: bool) -> None:
         print(message.success(f"{sym_addr:#x} {sym_type} {sym_name}"))
 
     if apply:
+        path = pwndbg.commands.cymbol.create_blank_elf()
+        if path is None:
+            return
         try:
-            path = pwndbg.commands.cymbol.create_blank_elf()
+            # path is not None means lief is installed
+            import lief
+
             symelf = lief.ELF.parse(path)
             for sym_name, sym_type, sym_addr in syms:
                 symelf.add_symtab_symbol(symelf.export_symbol(sym_name, sym_addr))

@@ -24,7 +24,6 @@ from typing import Dict
 from typing import TypeVar
 
 import gdb
-import lief
 from typing_extensions import ParamSpec
 from typing_extensions import Protocol
 
@@ -143,6 +142,11 @@ def generate_debug_symbols(
 
 
 def create_blank_elf():
+    try:
+        import lief
+    except ImportError:
+        print(message.error("lief python package is not installed."))
+        return None
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".S")
     tmp.write(b".global _start\n_start:\nnop")
     tmp.flush()

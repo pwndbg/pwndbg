@@ -229,6 +229,7 @@ module = [
     "pt.*",
     "lldb.*",
     "gnureadline",
+    "lief",
 ]
 ignore_missing_imports = true
 

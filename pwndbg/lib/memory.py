@@ -166,7 +166,7 @@ class Page:
             objfile = self.objfile if len(rel) > len(self.objfile) else rel
         else:
             objfile = self.objfile
-        
+
         return format_address(self.vaddr, self.memsz, self.permstr, self.offset, objfile=objfile)
 
     def __repr__(self) -> str:
