@@ -290,24 +290,28 @@ class x86_64PagingInfo(ArchPagingInfo):
         for i, page in enumerate(pages):
             if kernel_idx is None and self.kbase in page:
                 kernel_idx = i
+        kbase = self.kbase
         if kernel_idx is None:
             return
+        has_loadable_driver = False
         for i in range(kernel_idx, len(pages)):
             page = pages[i]
             if page.objfile != self.KERNELLAND:
                 break
-            if page.start >= 0xFFFFFFFFC0000000:
+            if page.start == kbase:
+                continue
+            # the first executable page after kernel text is the start of bpf/loadable driver
+            if has_loadable_driver or (page.execute and page.start != kbase):
                 page.objfile = self.KERNELDRIVER
+                has_loadable_driver = True
                 continue
-            if self.kbase == page.start:
-                continue
-            if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
-                page.objfile = "kernel [stack]"
             if not page.execute:
                 if page.write:
                     page.objfile = self.KERNELBSS
                 else:
                     page.objfile = self.KERNELRO
+            if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
+                page.objfile = "kernel [stack]"
 
     def pagewalk(
         self, target, entry
