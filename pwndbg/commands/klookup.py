@@ -44,7 +44,7 @@ def klookup(symbol: str, apply: bool) -> None:
             path = pwndbg.commands.cymbol.create_blank_elf()
             symelf = lief.ELF.parse(path)
             for sym_name, sym_type, sym_addr in syms:
-                symelf.add_symtab_symbol((symelf.export_symbol(sym_name, sym_addr)))
+                symelf.add_symtab_symbol(symelf.export_symbol(sym_name, sym_addr))
             symelf.write(path)
             pwndbg.dbg.selected_inferior().add_symbol_file(path)
             print(message.success(f"Added {len(syms)} symbols"))
