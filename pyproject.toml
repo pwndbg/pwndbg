@@ -14,6 +14,7 @@ dependencies = [
     "typing-extensions>=4.15.0,<5",
     "pycparser~=2.23",
     "pyelftools>=0.32,<0.33",
+    "lief>=0.17",
     "pygments>=2.19.2,<3",
     "psutil>=7.0.0,<8",
     # We install uv to the venv

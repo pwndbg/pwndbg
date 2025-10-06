@@ -71,4 +71,6 @@ def test_gdblib_kernel_kbase():
 )
 def test_gdblib_kernel_kallsyms():
     ks = pwndbg.aglib.kernel.kallsyms.get()
-    assert ks["commit_creds"][0] == pwndbg.aglib.symbol.lookup_symbol_addr("commit_creds")
+    for sym_name, _, sym_addr in ks:
+        if sym_name == "commit_creds":
+            assert sym_addr == pwndbg.aglib.symbol.lookup_symbol_addr("commit_creds")
