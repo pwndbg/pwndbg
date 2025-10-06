@@ -903,6 +903,7 @@ def load_commands() -> None:
     import pwndbg.commands.commpage
     import pwndbg.commands.config
     import pwndbg.commands.context
+    import pwndbg.commands.cppheap
     import pwndbg.commands.cpsr
     import pwndbg.commands.cyclic
     import pwndbg.commands.dev
@@ -911,6 +912,7 @@ def load_commands() -> None:
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
     import pwndbg.commands.flags
+    import pwndbg.commands.fmtarg
     import pwndbg.commands.gdt
     import pwndbg.commands.ghidra
     import pwndbg.commands.godbg
@@ -973,4 +975,3 @@ def load_commands() -> None:
     import pwndbg.commands.windbg
     import pwndbg.commands.xinfo
     import pwndbg.commands.xor
-    import pwndbg.commands.fmtarg
