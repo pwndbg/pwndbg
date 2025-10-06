@@ -1,0 +1,7 @@
+visium-opc.lo: ../../binutils-gdb/opcodes/visium-opc.c \
+ /usr/include/stdc-predef.h \
+ ../../binutils-gdb/opcodes/../include/ansidecl.h \
+ ../../binutils-gdb/opcodes/../include/opcode/visium.h
+/usr/include/stdc-predef.h:
+../../binutils-gdb/opcodes/../include/ansidecl.h:
+../../binutils-gdb/opcodes/../include/opcode/visium.h:

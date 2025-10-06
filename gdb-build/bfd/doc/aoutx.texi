@@ -1,0 +1,170 @@
+@section a.out backends
+
+
+BFD supports a number of different flavours of a.out format,
+though the major differences are only the sizes of the
+structures on disk, and the shape of the relocation
+information.
+
+The support is split into a basic support file @file{aoutx.h}
+and other files which derive functions from the base. One
+derivation file is @file{aoutf1.h} (for a.out flavour 1), and
+adds to the basic a.out functions support for sun3, sun4, and
+386 a.out files, to create a target jump vector for a specific
+target.
+
+This information is further split out into more specific files
+for each machine, including @file{sunos.c} for sun3 and sun4,
+and @file{demo64.c} for a demonstration of a 64 bit a.out format.
+
+The base file @file{aoutx.h} defines general mechanisms for
+reading and writing records to and from disk and various
+other methods which BFD requires. It is included by
+@file{aout32.c} and @file{aout64.c} to form the names
+@code{aout_32_swap_exec_header_in}, @code{aout_64_swap_exec_header_in}, etc.
+
+As an example, this is what goes on to make the back end for a
+sun4, from @file{aout32.c}:
+
+@example
+       #define ARCH_SIZE 32
+       #include "aoutx.h"
+@end example
+
+Which exports names:
+
+@example
+       ...
+       aout_32_canonicalize_reloc
+       aout_32_find_nearest_line
+       aout_32_get_lineno
+       aout_32_get_reloc_upper_bound
+       ...
+@end example
+
+from @file{sunos.c}:
+
+@example
+       #define TARGET_NAME "a.out-sunos-big"
+       #define VECNAME    sparc_aout_sunos_be_vec
+       #include "aoutf1.h"
+@end example
+
+requires all the names from @file{aout32.c}, and produces the jump vector
+
+@example
+       sparc_aout_sunos_be_vec
+@end example
+
+The file @file{host-aout.c} is a special case.  It is for a large set
+of hosts that use ``more or less standard'' a.out files, and
+for which cross-debugging is not interesting.  It uses the
+standard 32-bit a.out support routines, but determines the
+file offsets and addresses of the text, data, and BSS
+sections, the machine architecture and machine type, and the
+entry point address, in a host-dependent manner.  Once these
+values have been determined, generic code is used to handle
+the  object file.
+
+When porting it to run on a new system, you must supply:
+
+@example
+        HOST_PAGE_SIZE
+        HOST_SEGMENT_SIZE
+        HOST_MACHINE_ARCH       (optional)
+        HOST_MACHINE_MACHINE    (optional)
+        HOST_TEXT_START_ADDR
+        HOST_STACK_END_ADDR
+@end example
+
+in the file @file{../include/sys/h-@var{XXX}.h} (for your host).  These
+values, plus the structures and macros defined in @file{a.out.h} on
+your host system, will produce a BFD target that will access
+ordinary a.out files on your host. To configure a new machine
+to use @file{host-aout.c}, specify:
+
+@example
+       TDEFAULTS = -DDEFAULT_VECTOR=host_aout_big_vec
+       TDEPFILES= host-aout.o trad-core.o
+@end example
+
+in the @file{config/@var{XXX}.mt} file, and modify @file{configure.ac}
+to use the
+@file{@var{XXX}.mt} file (by setting "@code{bfd_target=XXX}") when your
+configuration is selected.
+
+@subsection Relocations
+
+
+The file @file{aoutx.h} provides for both the @emph{standard}
+and @emph{extended} forms of a.out relocation records.
+
+The standard records contain only an address, a symbol index,
+and a type field.  The extended records also have a full
+integer for an addend.
+
+@subsection Internal entry points
+
+
+@file{aoutx.h} exports several routines for accessing the
+contents of an a.out file, which are gathered and exported in
+turn by various format specific files (eg sunos.c).
+
+@findex aout_@var{size}_swap_exec_header_in
+@subsubsection @code{aout_@var{size}_swap_exec_header_in}
+@deftypefn {Function} void aout_@var{size}_swap_exec_header_in, (bfd *abfd, struct external_exec *bytes, struct internal_exec *execp); 
+Swap the information in an executable header @var{raw_bytes} taken
+from a raw byte stream memory image into the internal exec header
+structure @var{execp}.
+
+@end deftypefn
+@findex aout_@var{size}_swap_exec_header_out
+@subsubsection @code{aout_@var{size}_swap_exec_header_out}
+@deftypefn {Function} bool aout_@var{size}_swap_exec_header_out (bfd *abfd, struct internal_exec *execp, struct external_exec *raw_bytes); 
+Swap the information in an internal exec header structure
+@var{execp} into the buffer @var{raw_bytes} ready for writing to disk.
+
+@end deftypefn
+@findex aout_@var{size}_some_aout_object_p
+@subsubsection @code{aout_@var{size}_some_aout_object_p}
+@deftypefn {Function} bfd_cleanup aout_@var{size}_some_aout_object_p (bfd *abfd, struct internal_exec *execp, bfd_cleanup (*callback_to_real_object_p) (bfd *)); 
+Some a.out variant thinks that the file open in @var{abfd}
+checking is an a.out file.  Do some more checking, and set up
+for access if it really is.  Call back to the calling
+environment's "finish up" function just before returning, to
+handle any last-minute setup.
+
+@end deftypefn
+@findex aout_@var{size}_mkobject
+@subsubsection @code{aout_@var{size}_mkobject}
+@deftypefn {Function} bool aout_@var{size}_mkobject, (bfd *abfd); 
+Initialize BFD @var{abfd} for use with a.out files.
+
+@end deftypefn
+@findex aout_@var{size}_machine_type
+@subsubsection @code{aout_@var{size}_machine_type}
+@deftypefn {Function} enum machine_type aout_@var{size}_machine_type (enum bfd_architecture arch, unsigned long machine, bool *unknown); 
+Keep track of machine architecture and machine type for
+a.out's. Return the @code{machine_type} for a particular
+architecture and machine, or @code{M_UNKNOWN} if that exact architecture
+and machine can't be represented in a.out format.
+
+If the architecture is understood, machine type 0 (default)
+is always understood.
+
+@end deftypefn
+@findex aout_@var{size}_set_arch_mach
+@subsubsection @code{aout_@var{size}_set_arch_mach}
+@deftypefn {Function} bool aout_@var{size}_set_arch_mach, (bfd *, enum bfd_architecture arch, unsigned long machine); 
+Set the architecture and the machine of the BFD @var{abfd} to the
+values @var{arch} and @var{machine}.  Verify that @var{abfd}'s format
+can support the architecture required.
+
+@end deftypefn
+@findex aout_@var{size}_new_section_hook
+@subsubsection @code{aout_@var{size}_new_section_hook}
+@deftypefn {Function} bool aout_@var{size}_new_section_hook, (bfd *abfd, asection *newsect); 
+Called by the BFD in response to a @code{bfd_make_section}
+request.
+
+@end deftypefn

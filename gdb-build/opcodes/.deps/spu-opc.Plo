@@ -1,0 +1,7 @@
+spu-opc.lo: ../../binutils-gdb/opcodes/spu-opc.c \
+ /usr/include/stdc-predef.h \
+ ../../binutils-gdb/opcodes/../include/opcode/spu.h \
+ ../../binutils-gdb/opcodes/../include/opcode/spu-insns.h
+/usr/include/stdc-predef.h:
+../../binutils-gdb/opcodes/../include/opcode/spu.h:
+../../binutils-gdb/opcodes/../include/opcode/spu-insns.h:

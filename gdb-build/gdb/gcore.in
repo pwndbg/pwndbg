@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+
+#   Copyright (C) 2003-2025 Free Software Foundation, Inc.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#
+# Script to generate a core file of a running program.
+# It starts up gdb, attaches to the given PID and invokes the gcore command.
+#
+
+PKGVERSION="(GDB) "
+VERSION="@VERSION@"
+
+# Need to check for -o option, but set default basename to "core".
+prefix=core
+
+# When the -a option is present, this may hold additional commands
+# to ensure gdb dumps all mappings (OS dependent).
+dump_all_cmds=()
+
+data_directory_opt=()
+
+# The GDB binary to run.
+gdb_binary=
+
+function print_usage() {
+    prefix="Usage: $0"
+    padding=$(printf '%*s' ${#prefix})
+
+    echo "$prefix [-h|--help] [-v|--version]"
+    echo "$padding [-a] [-o prefix] [-g gdb] [-d data-directory]"
+    echo "$padding pid1 [pid2...pidN]"
+}
+
+function print_try_help() {
+    echo "Try '$0 --help' for more information."
+}
+
+function print_help() {
+    print_usage
+    echo
+    echo "Create a core file of a running program using GDB."
+    echo
+    echo "  -h, --help         Print this message then exit."
+    echo "  -v, --version      Print version information then exit."
+    echo "  -a                 Dump all memory mappings."
+    echo "  -o prefix          Use 'prefix.pid' as the core file name."
+    echo "                       The default prefix is 'core'."
+    echo "  -g gdb             The GDB binary to run."
+    echo "                       Defaults to GDB installed alongside gcore."
+    echo "  -d dir             Pass '--data-directory dir' as an argument"
+    echo "                       to GDB."
+}
+
+function print_version() {
+    echo "GNU gcore (${PKGVERSION}) ${VERSION}"
+}
+
+while getopts vhao:g:d:-: OPT; do
+    if [ "$OPT" = "-" ]; then
+	OPT="${OPTARG%%=*}"
+	OPTARG="${OPTARG#"$OPT"}"
+	OPTARG="${OPTARG#=}"
+    fi
+
+    case "$OPT" in
+        a)
+            case "$OSTYPE" in
+                linux*)
+                    dump_all_cmds=("-ex" "set use-coredump-filter off")
+                    dump_all_cmds+=("-ex" "set dump-excluded-mappings on")
+                    ;;
+            esac
+            ;;
+        o)
+            prefix=$OPTARG
+            ;;
+        g)
+            gdb_binary="$OPTARG"
+            ;;
+        d)
+            data_directory_opt=("--data-directory" "$OPTARG")
+            ;;
+	h | help)
+	    print_help
+	    exit 0
+	    ;;
+	v | version)
+	    print_version
+	    exit 0
+	    ;;
+	\?)
+	    # getopts has already output an error message.
+	    print_try_help 1>&2
+	    exit 2
+	    ;;
+        *)
+	    # Unknown single character options are handled by the \?
+	    # case above.  This is formatted to match the error
+	    # getopts gives for an unknown single character option.
+	    echo "$0: illegal option -- $OPT" 1>&2
+	    print_try_help 1>&2
+	    exit 2
+            ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+if [ "$#" -eq "0" ]
+then
+    print_usage 1>&2
+    exit 1
+fi
+
+# Attempt to fetch the absolute path to the gcore script that was
+# called.
+binary_path=$(dirname "$0")
+
+if test "$binary_path" = . ; then
+  # We got "." back as a path.  This means the user executed
+  # the gcore script locally (i.e. ./gcore) or called the
+  # script via a shell interpreter (i.e. sh gcore).
+  binary_basename=$(basename "$0")
+
+  # If the gcore script was called like "sh gcore" and the script
+  # lives in the current directory, "which" will not give us "gcore".
+  # So first we check if the script is in the current directory
+  # before using the output of "which".
+  if test -f "$binary_basename" ; then
+    # We have a local gcore script in ".".  This covers the case of
+    # doing "./gcore" or "sh gcore".
+    binary_path="."
+  else
+    # The gcore script was not found in ".", which means the script
+    # was called from somewhere else in $PATH by "sh gcore".
+    # Extract the correct path now.
+    binary_path_from_env=$(which "$0")
+    binary_path=$(dirname "$binary_path_from_env")
+  fi
+fi
+
+if [ -z "$gdb_binary" ]; then
+   gdb_binary="$binary_path/gdb"
+fi
+
+gdb_binary_basename=$(basename "$gdb_binary")
+
+# Check if the GDB binary is in the expected path.  If not, just
+# quit with a message.
+if [ ! -f "$gdb_binary" ]; then
+  echo "gcore: GDB binary ($gdb_binary) not found"
+  exit 1
+fi
+
+# Initialise return code.
+rc=0
+
+# Loop through pids
+for pid in "$@"
+do
+	# `</dev/null' to avoid touching interactive terminal if it is
+	# available but not accessible as GDB would get stopped on SIGTTIN.
+	"$gdb_binary" </dev/null \
+            "${data_directory_opt[@]}" \
+	    --nx --batch --readnever -iex 'set debuginfod enabled off' \
+	    -ex "set pagination off" -ex "set height 0" -ex "set width 0" \
+	    "${dump_all_cmds[@]}" \
+	    -ex "attach $pid" -ex "gcore $prefix.$pid" -ex detach -ex quit
+
+	if [ -r "$prefix.$pid" ] ; then
+	    rc=0
+	else
+	    echo "$gdb_binary_basename: failed to create $prefix.$pid"
+	    rc=1
+	    break
+	fi
+
+
+done
+
+exit $rc

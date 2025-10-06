@@ -1,0 +1,20 @@
+	../bfdver.h \
+	../elf32-aarch64.c \
+	../elf32-ia64.c \
+	../elf32-kvx.c \
+	../elf32-loongarch.c \
+	../elf32-riscv.c \
+	../elf32-target.h \
+	../elf64-aarch64.c \
+	../elf64-ia64.c \
+	../elf64-kvx.c \
+	../elf64-loongarch.c \
+	../elf64-riscv.c \
+	../elf64-target.h \
+	../pe-aarch64igen.c \
+	../pe-loongarch64igen.c \
+	../pe-riscv64igen.c \
+	../peigen.c \
+	../pepigen.c \
+	../pex64igen.c \
+	../targmatch.h 

@@ -1,0 +1,380 @@
+@section Opening and closing BFDs
+
+
+@subsection Functions for opening and closing
+
+
+@findex _bfd_new_bfd
+@subsubsection @code{_bfd_new_bfd}
+@deftypefn {Function} bfd *_bfd_new_bfd (void); 
+Return a new BFD.  All BFD's are allocated through this routine.
+
+@end deftypefn
+@findex _bfd_new_bfd_contained_in
+@subsubsection @code{_bfd_new_bfd_contained_in}
+@deftypefn {Function} bfd *_bfd_new_bfd_contained_in (bfd *); 
+Allocate a new BFD as a member of archive OBFD.
+
+@end deftypefn
+@findex _bfd_free_cached_info
+@subsubsection @code{_bfd_free_cached_info}
+@deftypefn {Function} bool _bfd_free_cached_info (bfd *); 
+Free objalloc memory.
+
+@end deftypefn
+@findex bfd_fopen
+@subsubsection @code{bfd_fopen}
+@deftypefn {Function} bfd *bfd_fopen (const char *filename, const char *target, const char *mode, int fd); 
+Open the file @var{filename} with the target @var{target}.
+Return a pointer to the created BFD.  If @var{fd} is not -1,
+then @code{fdopen} is used to open the file; otherwise, @code{fopen}
+is used.  @var{mode} is passed directly to @code{fopen} or
+@code{fdopen}.
+
+Calls @code{bfd_find_target}, so @var{target} is interpreted as by
+that function.
+
+The new BFD is marked as cacheable iff @var{fd} is -1.
+
+If @code{NULL} is returned then an error has occured.   Possible errors
+are @code{bfd_error_no_memory}, @code{bfd_error_invalid_target} or
+@code{system_call} error.
+
+On error, @var{fd} is always closed.
+
+A copy of the @var{filename} argument is stored in the newly created
+BFD.  It can be accessed via the bfd_get_filename() macro.
+
+@end deftypefn
+@findex bfd_openr
+@subsubsection @code{bfd_openr}
+@deftypefn {Function} bfd *bfd_openr (const char *filename, const char *target); 
+Open the file @var{filename} (using @code{fopen}) with the target
+@var{target}.  Return a pointer to the created BFD.
+
+Calls @code{bfd_find_target}, so @var{target} is interpreted as by
+that function.
+
+If @code{NULL} is returned then an error has occured.   Possible errors
+are @code{bfd_error_no_memory}, @code{bfd_error_invalid_target} or
+@code{system_call} error.
+
+A copy of the @var{filename} argument is stored in the newly created
+BFD.  It can be accessed via the bfd_get_filename() macro.
+
+@end deftypefn
+@findex bfd_fdopenr
+@subsubsection @code{bfd_fdopenr}
+@deftypefn {Function} bfd *bfd_fdopenr (const char *filename, const char *target, int fd); 
+@code{bfd_fdopenr} is to @code{bfd_fopenr} much like @code{fdopen} is to
+@code{fopen}.  It opens a BFD on a file already described by the
+@var{fd} supplied.
+
+When the file is later @code{bfd_close}d, the file descriptor will
+be closed.  If the caller desires that this file descriptor be
+cached by BFD (opened as needed, closed as needed to free
+descriptors for other opens), with the supplied @var{fd} used as
+an initial file descriptor (but subject to closure at any time),
+call bfd_set_cacheable(bfd, 1) on the returned BFD.  The default
+is to assume no caching; the file descriptor will remain open
+until @code{bfd_close}, and will not be affected by BFD operations
+on other files.
+
+Possible errors are @code{bfd_error_no_memory},
+@code{bfd_error_invalid_target} and @code{bfd_error_system_call}.
+
+On error, @var{fd} is closed.
+
+A copy of the @var{filename} argument is stored in the newly created
+BFD.  It can be accessed via the bfd_get_filename() macro.
+
+@end deftypefn
+@findex bfd_fdopenw
+@subsubsection @code{bfd_fdopenw}
+@deftypefn {Function} bfd *bfd_fdopenw (const char *filename, const char *target, int fd); 
+@code{bfd_fdopenw} is exactly like @code{bfd_fdopenr} with the exception that
+the resulting BFD is suitable for output.
+
+@end deftypefn
+@findex bfd_openstreamr
+@subsubsection @code{bfd_openstreamr}
+@deftypefn {Function} bfd *bfd_openstreamr (const char * filename, const char * target, void * stream); 
+Open a BFD for read access on an existing stdio stream.  When
+the BFD is passed to @code{bfd_close}, the stream will be closed.
+
+A copy of the @var{filename} argument is stored in the newly created
+BFD.  It can be accessed via the bfd_get_filename() macro.
+
+@end deftypefn
+@findex bfd_openr_iovec
+@subsubsection @code{bfd_openr_iovec}
+@deftypefn {Function} bfd *bfd_openr_iovec (const char *filename, const char *target, void *(*open_func) (struct bfd *nbfd, void *open_closure), void *open_closure, file_ptr (*pread_func) (struct bfd *nbfd, void *stream, void *buf, file_ptr nbytes, file_ptr offset), int (*close_func) (struct bfd *nbfd, void *stream), int (*stat_func) (struct bfd *abfd, void *stream, struct stat *sb)); 
+Create and return a BFD backed by a read-only @var{stream}.
+The @var{stream} is created using @var{open_func}, accessed using
+@var{pread_func} and destroyed using @var{close_func}.
+
+Calls @code{bfd_find_target}, so @var{target} is interpreted as by
+that function.
+
+Calls @var{open_func} (which can call @code{bfd_zalloc} and
+@code{bfd_get_filename}) to obtain the read-only stream backing
+the BFD.  @var{open_func} either succeeds returning the
+non-@code{NULL} @var{stream}, or fails returning @code{NULL}
+(setting @code{bfd_error}).
+
+Calls @var{pread_func} to request @var{nbytes} of data from
+@var{stream} starting at @var{offset} (e.g., via a call to
+@code{bfd_read}).  @var{pread_func} either succeeds returning the
+number of bytes read (which can be less than @var{nbytes} when
+end-of-file), or fails returning -1 (setting @code{bfd_error}).
+
+Calls @var{close_func} when the BFD is later closed using
+@code{bfd_close}.  @var{close_func} either succeeds returning 0, or
+fails returning -1 (setting @code{bfd_error}).
+
+Calls @var{stat_func} to fill in a stat structure for bfd_stat,
+bfd_get_size, and bfd_get_mtime calls.  @var{stat_func} returns 0
+on success, or returns -1 on failure (setting @code{bfd_error}).
+
+If @code{bfd_openr_iovec} returns @code{NULL} then an error has
+occurred.  Possible errors are @code{bfd_error_no_memory},
+@code{bfd_error_invalid_target} and @code{bfd_error_system_call}.
+
+A copy of the @var{filename} argument is stored in the newly created
+BFD.  It can be accessed via the bfd_get_filename() macro.
+
+@end deftypefn
+@findex bfd_openw
+@subsubsection @code{bfd_openw}
+@deftypefn {Function} bfd *bfd_openw (const char *filename, const char *target); 
+Create a BFD, associated with file @var{filename}, using the
+file format @var{target}, and return a pointer to it.
+
+Possible errors are @code{bfd_error_system_call}, @code{bfd_error_no_memory},
+@code{bfd_error_invalid_target}.
+
+A copy of the @var{filename} argument is stored in the newly created
+BFD.  It can be accessed via the bfd_get_filename() macro.
+
+@end deftypefn
+@findex bfd_elf_bfd_from_remote_memory
+@subsubsection @code{bfd_elf_bfd_from_remote_memory}
+@deftypefn {Function} bfd *bfd_elf_bfd_from_remote_memory (bfd *templ, bfd_vma ehdr_vma, bfd_size_type size, bfd_vma *loadbasep, int (*target_read_memory) (bfd_vma vma, bfd_byte *myaddr, bfd_size_type len)); 
+Create a new BFD as if by bfd_openr.  Rather than opening a
+file, reconstruct an ELF file by reading the segments out of
+remote memory based on the ELF file header at EHDR_VMA and the
+ELF program headers it points to.  If non-zero, SIZE is the
+known extent of the object.  If not null, *LOADBASEP is filled
+in with the difference between the VMAs from which the
+segments were read, and the VMAs the file headers (and hence
+BFD's idea of each section's VMA) put them at.
+
+The function TARGET_READ_MEMORY is called to copy LEN bytes
+from the remote memory at target address VMA into the local
+buffer at MYADDR; it should return zero on success or an
+errno code on failure.  TEMPL must be a BFD for an ELF
+target with the word size and byte order found in the remote
+memory.
+
+@end deftypefn
+@findex bfd_close
+@subsubsection @code{bfd_close}
+@deftypefn {Function} bool bfd_close (bfd *abfd); 
+Close a BFD. If the BFD was open for writing, then pending
+operations are completed and the file written out and closed.
+If the created file is executable, then @code{chmod} is called
+to mark it as such.
+
+All memory attached to the BFD is released.
+
+The file descriptor associated with the BFD is closed (even
+if it was passed in to BFD by @code{bfd_fdopenr}).
+
+@code{TRUE} is returned if all is ok, otherwise @code{FALSE}.
+
+@end deftypefn
+@findex bfd_close_all_done
+@subsubsection @code{bfd_close_all_done}
+@deftypefn {Function} bool bfd_close_all_done (bfd *); 
+Close a BFD.  Differs from @code{bfd_close} since it does not
+complete any pending operations.  This routine would be used
+if the application had just used BFD for swapping and didn't
+want to use any of the writing code.
+
+If the created file is executable, then @code{chmod} is called
+to mark it as such.
+
+All memory attached to the BFD is released.
+
+@code{TRUE} is returned if all is ok, otherwise @code{FALSE}.
+
+@end deftypefn
+@findex bfd_create
+@subsubsection @code{bfd_create}
+@deftypefn {Function} bfd *bfd_create (const char *filename, bfd *templ); 
+Create a new BFD in the manner of @code{bfd_openw}, but without
+opening a file. The new BFD takes the target from the target
+used by @var{templ}. The format is always set to @code{bfd_object}.
+
+A copy of the @var{filename} argument is stored in the newly created
+BFD.  It can be accessed via the bfd_get_filename() macro.
+
+@end deftypefn
+@findex bfd_make_writable
+@subsubsection @code{bfd_make_writable}
+@deftypefn {Function} bool bfd_make_writable (bfd *abfd); 
+Takes a BFD as created by @code{bfd_create} and converts it
+into one like as returned by @code{bfd_openw}.  It does this
+by converting the BFD to BFD_IN_MEMORY.  It's assumed that
+you will call @code{bfd_make_readable} on this bfd later.
+
+@code{TRUE} is returned if all is ok, otherwise @code{FALSE}.
+
+@end deftypefn
+@findex bfd_make_readable
+@subsubsection @code{bfd_make_readable}
+@deftypefn {Function} bool bfd_make_readable (bfd *abfd); 
+Takes a BFD as created by @code{bfd_create} and
+@code{bfd_make_writable} and converts it into one like as
+returned by @code{bfd_openr}.  It does this by writing the
+contents out to the memory buffer, then reversing the
+direction.
+
+@code{TRUE} is returned if all is ok, otherwise @code{FALSE}.
+
+@end deftypefn
+@findex bfd_calc_gnu_debuglink_crc32
+@subsubsection @code{bfd_calc_gnu_debuglink_crc32}
+@deftypefn {Function} uint32_t bfd_calc_gnu_debuglink_crc32 (uint32_t crc, const bfd_byte *buf, bfd_size_type len); 
+Computes a CRC value as used in the .gnu_debuglink section.
+Advances the previously computed @var{crc} value by computing
+and adding in the crc32 for @var{len} bytes of @var{buf}.
+
+Return the updated CRC32 value.
+
+@end deftypefn
+@findex bfd_get_debug_link_info
+@subsubsection @code{bfd_get_debug_link_info}
+@deftypefn {Function} char *bfd_get_debug_link_info (bfd *abfd, uint32_t *crc32_out); 
+Extracts the filename and CRC32 value for any separate debug
+information file associated with @var{abfd}.
+
+Returns the filename of the associated debug information file,
+or NULL if there is no such file.  If the filename was found
+then the contents of @var{crc32_out} are updated to hold the
+corresponding CRC32 value for the file.
+
+The returned filename is allocated with @code{malloc}; freeing
+it is the responsibility of the caller.
+
+@end deftypefn
+@findex bfd_get_alt_debug_link_info
+@subsubsection @code{bfd_get_alt_debug_link_info}
+@deftypefn {Function} char *bfd_get_alt_debug_link_info (bfd * abfd, bfd_size_type *buildid_len, bfd_byte **buildid_out); 
+Fetch the filename and BuildID value for any alternate debuginfo
+associated with @var{abfd}.  Return NULL if no such info found,
+otherwise return filename and update @var{buildid_len} and
+@var{buildid_out}.  The returned filename and build_id are
+allocated with @code{malloc}; freeing them is the responsibility
+of the caller.
+
+@end deftypefn
+@findex bfd_follow_gnu_debuglink
+@subsubsection @code{bfd_follow_gnu_debuglink}
+@deftypefn {Function} char *bfd_follow_gnu_debuglink (bfd *abfd, const char *dir); 
+Takes a BFD and searches it for a .gnu_debuglink section.  If this
+section is found, it examines the section for the name and checksum
+of a '.debug' file containing auxiliary debugging information.  It
+then searches the filesystem for this .debug file in some standard
+locations, including the directory tree rooted at @var{dir}, and if
+found returns the full filename.
+
+If @var{dir} is NULL, the search will take place starting at
+the current directory.
+
+Returns @code{NULL} on any errors or failure to locate the .debug
+file, otherwise a pointer to a heap-allocated string
+containing the filename.  The caller is responsible for
+freeing this string.
+
+@end deftypefn
+@findex bfd_follow_gnu_debugaltlink
+@subsubsection @code{bfd_follow_gnu_debugaltlink}
+@deftypefn {Function} char *bfd_follow_gnu_debugaltlink (bfd *abfd, const char *dir); 
+Takes a BFD and searches it for a .gnu_debugaltlink section.  If this
+section is found, it examines the section for the name of a file
+containing auxiliary debugging information.  It then searches the
+filesystem for this file in a set of standard locations, including
+the directory tree rooted at @var{dir}, and if found returns the
+full filename.
+
+If @var{dir} is NULL, the search will take place starting at
+the current directory.
+
+Returns @code{NULL} on any errors or failure to locate the debug
+file, otherwise a pointer to a heap-allocated string
+containing the filename.  The caller is responsible for
+freeing this string.
+
+@end deftypefn
+@findex bfd_create_gnu_debuglink_section
+@subsubsection @code{bfd_create_gnu_debuglink_section}
+@deftypefn {Function} struct bfd_section *bfd_create_gnu_debuglink_section (bfd *abfd, const char *filename); 
+Takes a @var{BFD} and adds a .gnu_debuglink section to it.  The
+section is sized to be big enough to contain a link to the specified
+@var{filename}.
+
+A pointer to the new section is returned if all is ok.  Otherwise
+@code{NULL} is returned and bfd_error is set.
+
+@end deftypefn
+@findex bfd_fill_in_gnu_debuglink_section
+@subsubsection @code{bfd_fill_in_gnu_debuglink_section}
+@deftypefn {Function} bool bfd_fill_in_gnu_debuglink_section (bfd *abfd, struct bfd_section *sect, const char *filename); 
+Takes a @var{BFD} and containing a .gnu_debuglink section @var{SECT}
+and fills in the contents of the section to contain a link to the
+specified @var{filename}.  The filename should be absolute or
+relative to the current directory.
+
+@code{TRUE} is returned if all is ok.  Otherwise @code{FALSE} is returned
+and bfd_error is set.
+
+@end deftypefn
+@findex bfd_follow_build_id_debuglink
+@subsubsection @code{bfd_follow_build_id_debuglink}
+@deftypefn {Function} char *bfd_follow_build_id_debuglink (bfd *abfd, const char *dir); 
+Takes @var{abfd} and searches it for a .note.gnu.build-id section.
+If this section is found, it extracts the value of the NT_GNU_BUILD_ID
+note, which should be a hexadecimal value @var{NNNN+NN} (for
+32+ hex digits).  It then searches the filesystem for a file named
+@var{.build-id/NN/NN+NN.debug} in a set of standard locations,
+including the directory tree rooted at @var{dir}.  The filename
+of the first matching file to be found is returned.  A matching
+file should contain a .note.gnu.build-id section with the same
+@var{NNNN+NN} note as @var{abfd}, although this check is currently
+not implemented.
+
+If @var{dir} is NULL, the search will take place starting at
+the current directory.
+
+Returns @code{NULL} on any errors or failure to locate the debug
+file, otherwise a pointer to a heap-allocated string
+containing the filename.  The caller is responsible for
+freeing this string.
+
+@end deftypefn
+@findex bfd_set_filename
+@subsubsection @code{bfd_set_filename}
+@deftypefn {Function} const char *bfd_set_filename (bfd *abfd, const char *filename); 
+Set the filename of @var{abfd}, copying the FILENAME parameter to
+bfd_alloc'd memory owned by @var{abfd}.  Returns a pointer the
+newly allocated name, or NULL if the allocation failed.
+
+@end deftypefn
+@findex bfd_extract_object_only_section
+@subsubsection @code{bfd_extract_object_only_section}
+@deftypefn {Function} const char *bfd_extract_object_only_section (bfd *abfd); 
+Takes a @var{ABFD} and extract the .gnu_object_only section into
+a temporary file.
+
+@end deftypefn

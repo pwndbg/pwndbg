@@ -1,0 +1,6 @@
+libgnu_a-sockets.o: ../../../binutils-gdb/gnulib/import/sockets.c \
+ /usr/include/stdc-predef.h ../config.h \
+ ../../../binutils-gdb/gnulib/import/sockets.h
+/usr/include/stdc-predef.h:
+../config.h:
+../../../binutils-gdb/gnulib/import/sockets.h:

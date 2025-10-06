@@ -1,0 +1,510 @@
+@section Linker Functions
+@cindex Linker
+The linker uses three special entry points in the BFD target
+vector.  It is not necessary to write special routines for
+these entry points when creating a new BFD back end, since
+generic versions are provided.  However, writing them can
+speed up linking and make it use significantly less runtime
+memory.
+
+The first routine creates a hash table used by the other
+routines.  The second routine adds the symbols from an object
+file to the hash table.  The third routine takes all the
+object files and links them together to create the output
+file.  These routines are designed so that the linker proper
+does not need to know anything about the symbols in the object
+files that it is linking.  The linker merely arranges the
+sections as directed by the linker script and lets BFD handle
+the details of symbols and relocs.
+
+The second routine and third routines are passed a pointer to
+a @code{struct bfd_link_info} structure (defined in
+@code{bfdlink.h}) which holds information relevant to the link,
+including the linker hash table (which was created by the
+first routine) and a set of callback functions to the linker
+proper.
+
+The generic linker routines are in @code{linker.c}, and use the
+header file @code{genlink.h}.  As of this writing, the only back
+ends which have implemented versions of these routines are
+a.out (in @code{aoutx.h}) and ECOFF (in @code{ecoff.c}).  The a.out
+routines are used as examples throughout this section.
+
+@menu
+* Creating a Linker Hash Table::
+* Adding Symbols to the Hash Table::
+* Performing the Final Link::
+@end menu
+
+@node Creating a Linker Hash Table, Adding Symbols to the Hash Table, Linker Functions, Linker Functions
+@subsection Creating a linker hash table
+@cindex _bfd_link_hash_table_create in target vector
+@cindex target vector (_bfd_link_hash_table_create)
+The linker routines must create a hash table, which must be
+derived from @code{struct bfd_link_hash_table} described in
+@code{bfdlink.c}.  @xref{Hash Tables}, for information on how to
+create a derived hash table.  This entry point is called using
+the target vector of the linker output file.
+
+The @code{_bfd_link_hash_table_create} entry point must allocate
+and initialize an instance of the desired hash table.  If the
+back end does not require any additional information to be
+stored with the entries in the hash table, the entry point may
+simply create a @code{struct bfd_link_hash_table}.  Most likely,
+however, some additional information will be needed.
+
+For example, with each entry in the hash table the a.out
+linker keeps the index the symbol has in the final output file
+(this index number is used so that when doing a relocatable
+link the symbol index used in the output file can be quickly
+filled in when copying over a reloc).  The a.out linker code
+defines the required structures and functions for a hash table
+derived from @code{struct bfd_link_hash_table}.  The a.out linker
+hash table is created by the function
+@code{NAME(aout,link_hash_table_create)}; it simply allocates
+space for the hash table, initializes it, and returns a
+pointer to it.
+
+When writing the linker routines for a new back end, you will
+generally not know exactly which fields will be required until
+you have finished.  You should simply create a new hash table
+which defines no additional fields, and then simply add fields
+as they become necessary.
+
+@node Adding Symbols to the Hash Table, Performing the Final Link, Creating a Linker Hash Table, Linker Functions
+@subsection Adding symbols to the hash table
+@cindex _bfd_link_add_symbols in target vector
+@cindex target vector (_bfd_link_add_symbols)
+The linker proper will call the @code{_bfd_link_add_symbols}
+entry point for each object file or archive which is to be
+linked (typically these are the files named on the command
+line, but some may also come from the linker script).  The
+entry point is responsible for examining the file.  For an
+object file, BFD must add any relevant symbol information to
+the hash table.  For an archive, BFD must determine which
+elements of the archive should be used and adding them to the
+link.
+
+The a.out version of this entry point is
+@code{NAME(aout,link_add_symbols)}.
+
+@menu
+* Differing file formats::
+* Adding symbols from an object file::
+* Adding symbols from an archive::
+@end menu
+
+@node Differing file formats, Adding symbols from an object file, Adding Symbols to the Hash Table, Adding Symbols to the Hash Table
+@subsubsection Differing file formats
+Normally all the files involved in a link will be of the same
+format, but it is also possible to link together different
+format object files, and the back end must support that.  The
+@code{_bfd_link_add_symbols} entry point is called via the target
+vector of the file to be added.  This has an important
+consequence: the function may not assume that the hash table
+is the type created by the corresponding
+@code{_bfd_link_hash_table_create} vector.  All the
+@code{_bfd_link_add_symbols} function can assume about the hash
+table is that it is derived from @code{struct
+bfd_link_hash_table}.
+
+Sometimes the @code{_bfd_link_add_symbols} function must store
+some information in the hash table entry to be used by the
+@code{_bfd_final_link} function.  In such a case the output bfd
+xvec must be checked to make sure that the hash table was
+created by an object file of the same format.
+
+The @code{_bfd_final_link} routine must be prepared to handle a
+hash entry without any extra information added by the
+@code{_bfd_link_add_symbols} function.  A hash entry without
+extra information will also occur when the linker script
+directs the linker to create a symbol.  Note that, regardless
+of how a hash table entry is added, all the fields will be
+initialized to some sort of null value by the hash table entry
+initialization function.
+
+See @code{ecoff_link_add_externals} for an example of how to
+check the output bfd before saving information (in this
+case, the ECOFF external symbol debugging information) in a
+hash table entry.
+
+@node Adding symbols from an object file, Adding symbols from an archive, Differing file formats, Adding Symbols to the Hash Table
+@subsubsection Adding symbols from an object file
+When the @code{_bfd_link_add_symbols} routine is passed an object
+file, it must add all externally visible symbols in that
+object file to the hash table.  The actual work of adding the
+symbol to the hash table is normally handled by the function
+@code{_bfd_generic_link_add_one_symbol}.  The
+@code{_bfd_link_add_symbols} routine is responsible for reading
+all the symbols from the object file and passing the correct
+information to @code{_bfd_generic_link_add_one_symbol}.
+
+The @code{_bfd_link_add_symbols} routine should not use
+@code{bfd_canonicalize_symtab} to read the symbols.  The point of
+providing this routine is to avoid the overhead of converting
+the symbols into generic @code{asymbol} structures.
+
+@findex _bfd_generic_link_add_one_symbol
+@code{_bfd_generic_link_add_one_symbol} handles the details of
+combining common symbols, warning about multiple definitions,
+and so forth.  It takes arguments which describe the symbol to
+add, notably symbol flags, a section, and an offset.  The
+symbol flags include such things as @code{BSF_WEAK} or
+@code{BSF_INDIRECT}.  The section is a section in the object
+file, or something like @code{bfd_und_section_ptr} for an undefined
+symbol or @code{bfd_com_section_ptr} for a common symbol.
+
+If the @code{_bfd_final_link} routine is also going to need to
+read the symbol information, the @code{_bfd_link_add_symbols}
+routine should save it somewhere attached to the object file
+BFD.  However, the information should only be saved if the
+@code{keep_memory} field of the @code{info} argument is TRUE, so
+that the @code{-no-keep-memory} linker switch is effective.
+
+The a.out function which adds symbols from an object file is
+@code{aout_link_add_object_symbols}, and most of the interesting
+work is in @code{aout_link_add_symbols}.  The latter saves
+pointers to the hash tables entries created by
+@code{_bfd_generic_link_add_one_symbol} indexed by symbol number,
+so that the @code{_bfd_final_link} routine does not have to call
+the hash table lookup routine to locate the entry.
+
+@node Adding symbols from an archive, , Adding symbols from an object file, Adding Symbols to the Hash Table
+@subsubsection Adding symbols from an archive
+When the @code{_bfd_link_add_symbols} routine is passed an
+archive, it must look through the symbols defined by the
+archive and decide which elements of the archive should be
+included in the link.  For each such element it must call the
+@code{add_archive_element} linker callback, and it must add the
+symbols from the object file to the linker hash table.  (The
+callback may in fact indicate that a replacement BFD should be
+used, in which case the symbols from that BFD should be added
+to the linker hash table instead.)
+
+@findex _bfd_generic_link_add_archive_symbols
+In most cases the work of looking through the symbols in the
+archive should be done by the
+@code{_bfd_generic_link_add_archive_symbols} function.
+@code{_bfd_generic_link_add_archive_symbols} is passed a function
+to call to make the final decision about adding an archive
+element to the link and to do the actual work of adding the
+symbols to the linker hash table.  If the element is to
+be included, the @code{add_archive_element} linker callback
+routine must be called with the element as an argument, and
+the element's symbols must be added to the linker hash table
+just as though the element had itself been passed to the
+@code{_bfd_link_add_symbols} function.
+
+When the a.out @code{_bfd_link_add_symbols} function receives an
+archive, it calls @code{_bfd_generic_link_add_archive_symbols}
+passing @code{aout_link_check_archive_element} as the function
+argument. @code{aout_link_check_archive_element} calls
+@code{aout_link_check_ar_symbols}.  If the latter decides to add
+the element (an element is only added if it provides a real,
+non-common, definition for a previously undefined or common
+symbol) it calls the @code{add_archive_element} callback and then
+@code{aout_link_check_archive_element} calls
+@code{aout_link_add_symbols} to actually add the symbols to the
+linker hash table - possibly those of a substitute BFD, if the
+@code{add_archive_element} callback avails itself of that option.
+
+The ECOFF back end is unusual in that it does not normally
+call @code{_bfd_generic_link_add_archive_symbols}, because ECOFF
+archives already contain a hash table of symbols.  The ECOFF
+back end searches the archive itself to avoid the overhead of
+creating a new hash table.
+
+@node Performing the Final Link, , Adding Symbols to the Hash Table, Linker Functions
+@subsection Performing the final link
+@cindex _bfd_link_final_link in target vector
+@cindex target vector (_bfd_final_link)
+When all the input files have been processed, the linker calls
+the @code{_bfd_final_link} entry point of the output BFD.  This
+routine is responsible for producing the final output file,
+which has several aspects.  It must relocate the contents of
+the input sections and copy the data into the output sections.
+It must build an output symbol table including any local
+symbols from the input files and the global symbols from the
+hash table.  When producing relocatable output, it must
+modify the input relocs and write them into the output file.
+There may also be object format dependent work to be done.
+
+The linker will also call the @code{write_object_contents} entry
+point when the BFD is closed.  The two entry points must work
+together in order to produce the correct output file.
+
+The details of how this works are inevitably dependent upon
+the specific object file format.  The a.out
+@code{_bfd_final_link} routine is @code{NAME(aout,final_link)}.
+
+@menu
+* Information provided by the linker::
+* Relocating the section contents::
+* Writing the symbol table::
+@end menu
+
+@node Information provided by the linker, Relocating the section contents, Performing the Final Link, Performing the Final Link
+@subsubsection Information provided by the linker
+Before the linker calls the @code{_bfd_final_link} entry point,
+it sets up some data structures for the function to use.
+
+The @code{input_bfds} field of the @code{bfd_link_info} structure
+will point to a list of all the input files included in the
+link.  These files are linked through the @code{link.next} field
+of the @code{bfd} structure.
+
+Each section in the output file will have a list of
+@code{link_order} structures attached to the @code{map_head.link_order}
+field (the @code{link_order} structure is defined in
+@code{bfdlink.h}).  These structures describe how to create the
+contents of the output section in terms of the contents of
+various input sections, fill constants, and, eventually, other
+types of information.  They also describe relocs that must be
+created by the BFD backend, but do not correspond to any input
+file; this is used to support -Ur, which builds constructors
+while generating a relocatable object file.
+
+@node Relocating the section contents, Writing the symbol table, Information provided by the linker, Performing the Final Link
+@subsubsection Relocating the section contents
+The @code{_bfd_final_link} function should look through the
+@code{link_order} structures attached to each section of the
+output file.  Each @code{link_order} structure should either be
+handled specially, or it should be passed to the function
+@code{_bfd_default_link_order} which will do the right thing
+(@code{_bfd_default_link_order} is defined in @code{linker.c}).
+
+For efficiency, a @code{link_order} of type
+@code{bfd_indirect_link_order} whose associated section belongs
+to a BFD of the same format as the output BFD must be handled
+specially.  This type of @code{link_order} describes part of an
+output section in terms of a section belonging to one of the
+input files.  The @code{_bfd_final_link} function should read the
+contents of the section and any associated relocs, apply the
+relocs to the section contents, and write out the modified
+section contents.  If performing a relocatable link, the
+relocs themselves must also be modified and written out.
+
+@findex _bfd_relocate_contents
+@findex _bfd_final_link_relocate
+The functions @code{_bfd_relocate_contents} and
+@code{_bfd_final_link_relocate} provide some general support for
+performing the actual relocations, notably overflow checking.
+Their arguments include information about the symbol the
+relocation is against and a @code{reloc_howto_type} argument
+which describes the relocation to perform.  These functions
+are defined in @code{reloc.c}.
+
+The a.out function which handles reading, relocating, and
+writing section contents is @code{aout_link_input_section}.  The
+actual relocation is done in @code{aout_link_input_section_std}
+and @code{aout_link_input_section_ext}.
+
+@node Writing the symbol table, , Relocating the section contents, Performing the Final Link
+@subsubsection Writing the symbol table
+The @code{_bfd_final_link} function must gather all the symbols
+in the input files and write them out.  It must also write out
+all the symbols in the global hash table.  This must be
+controlled by the @code{strip} and @code{discard} fields of the
+@code{bfd_link_info} structure.
+
+The local symbols of the input files will not have been
+entered into the linker hash table.  The @code{_bfd_final_link}
+routine must consider each input file and include the symbols
+in the output file.  It may be convenient to do this when
+looking through the @code{link_order} structures, or it may be
+done by stepping through the @code{input_bfds} list.
+
+The @code{_bfd_final_link} routine must also traverse the global
+hash table to gather all the externally visible symbols.  It
+is possible that most of the externally visible symbols may be
+written out when considering the symbols of each input file,
+but it is still necessary to traverse the hash table since the
+linker script may have defined some symbols that are not in
+any of the input files.
+
+The @code{strip} field of the @code{bfd_link_info} structure
+controls which symbols are written out.  The possible values
+are listed in @code{bfdlink.h}.  If the value is @code{strip_some},
+then the @code{keep_hash} field of the @code{bfd_link_info}
+structure is a hash table of symbols to keep; each symbol
+should be looked up in this hash table, and only symbols which
+are present should be included in the output file.
+
+If the @code{strip} field of the @code{bfd_link_info} structure
+permits local symbols to be written out, the @code{discard} field
+is used to further controls which local symbols are included
+in the output file.  If the value is @code{discard_l}, then all
+local symbols which begin with a certain prefix are discarded;
+this is controlled by the @code{bfd_is_local_label_name} entry point.
+
+The a.out backend handles symbols by calling
+@code{aout_link_write_symbols} on each input BFD and then
+traversing the global hash table with the function
+@code{aout_link_write_other_symbol}.  It builds a string table
+while writing out the symbols, which is written to the output
+file at the end of @code{NAME(aout,final_link)}.
+
+@findex _bfd_generic_link_add_one_symbol
+@subsubsection @code{_bfd_generic_link_add_one_symbol}
+@deftypefn {Function} bool _bfd_generic_link_add_one_symbol (struct bfd_link_info *info, bfd *abfd, const char *name, flagword flags, asection *section, bfd_vma value, const char *string, bool copy, bool collect, struct bfd_link_hash_entry **hashp); 
+Add a symbol to the global hash table.
+ABFD is the BFD the symbol comes from.
+NAME is the name of the symbol.
+FLAGS is the BSF_* bits associated with the symbol.
+SECTION is the section in which the symbol is defined; this may be
+bfd_und_section_ptr or bfd_com_section_ptr.
+VALUE is the value of the symbol, relative to the section.
+STRING is used for either an indirect symbol, in which case it is
+the name of the symbol to indirect to, or a warning symbol, in
+which case it is the warning string.
+COPY is TRUE if NAME or STRING must be copied into locally
+allocated memory if they need to be saved.
+COLLECT is TRUE if we should automatically collect gcc constructor
+or destructor names as collect2 does.
+HASHP, if not NULL, is a place to store the created hash table
+entry; if *HASHP is not NULL, the caller has already looked up
+the hash table entry, and stored it in *HASHP.
+
+@end deftypefn
+@findex bfd_link_align_section
+@subsubsection @code{bfd_link_align_section}
+@deftypefn {Function} bool bfd_link_align_section (asection *, unsigned int); 
+Increase section alignment if the current section alignment is
+less than the requested value.  Adjust output section
+alignment too, so that linker layout adjusts for alignment on
+the current lang_size_sections pass.  This is important for
+lang_size_relro_segment.  If the output section alignment
+isn't adjusted, the linker will place the output section at an
+address depending on its current alignment.  When sizing the
+output section, input sections attached transfer any increase
+in alignment to the output section, which will affect layout
+for the next sizing pass.  Which is all well and good except
+that lang_size_relro_segment for the current sizing pass uses
+that possibly increased alignment with a layout that doesn't
+suit.
+
+@end deftypefn
+@findex bfd_link_split_section
+@subsubsection @code{bfd_link_split_section}
+@deftypefn {Function} bool bfd_link_split_section (bfd *abfd, asection *sec); 
+Return nonzero if @var{sec} should be split during a
+reloceatable or final link.
+@example
+#define bfd_link_split_section(abfd, sec) \
+       BFD_SEND (abfd, _bfd_link_split_section, (abfd, sec))
+
+@end example
+
+@end deftypefn
+@findex bfd_section_already_linked
+@subsubsection @code{bfd_section_already_linked}
+@deftypefn {Function} bool bfd_section_already_linked (bfd *abfd, asection *sec, struct bfd_link_info *info); 
+Check if @var{data} has been already linked during a reloceatable
+or final link.  Return TRUE if it has.
+@example
+#define bfd_section_already_linked(abfd, sec, info) \
+       BFD_SEND (abfd, _section_already_linked, (abfd, sec, info))
+
+@end example
+
+@end deftypefn
+@findex bfd_generic_define_common_symbol
+@subsubsection @code{bfd_generic_define_common_symbol}
+@deftypefn {Function} bool bfd_generic_define_common_symbol (bfd *output_bfd, struct bfd_link_info *info, struct bfd_link_hash_entry *h); 
+Convert common symbol @var{h} into a defined symbol.
+Return TRUE on success and FALSE on failure.
+@example
+#define bfd_define_common_symbol(output_bfd, info, h) \
+       BFD_SEND (output_bfd, _bfd_define_common_symbol, (output_bfd, info, h))
+
+@end example
+
+@end deftypefn
+@findex _bfd_generic_link_hide_symbol
+@subsubsection @code{_bfd_generic_link_hide_symbol}
+@deftypefn {Function} void _bfd_generic_link_hide_symbol (bfd *output_bfd, struct bfd_link_info *info, struct bfd_link_hash_entry *h); 
+Hide symbol @var{h}.
+This is an internal function.  It should not be called from
+outside the BFD library.
+@example
+#define bfd_link_hide_symbol(output_bfd, info, h) \
+       BFD_SEND (output_bfd, _bfd_link_hide_symbol, (output_bfd, info, h))
+
+@end example
+
+@end deftypefn
+@findex bfd_generic_define_start_stop
+@subsubsection @code{bfd_generic_define_start_stop}
+@deftypefn {Function} struct bfd_link_hash_entry *bfd_generic_define_start_stop (struct bfd_link_info *info, const char *symbol, asection *sec); 
+Define a __start, __stop, .startof. or .sizeof. symbol.
+Return the symbol or NULL if no such undefined symbol exists.
+@example
+#define bfd_define_start_stop(output_bfd, info, symbol, sec) \
+       BFD_SEND (output_bfd, _bfd_define_start_stop, (info, symbol, sec))
+
+@end example
+
+@end deftypefn
+@findex bfd_find_version_for_sym
+@subsubsection @code{bfd_find_version_for_sym}
+@deftypefn {Function} struct bfd_elf_version_tree * bfd_find_version_for_sym (struct bfd_elf_version_tree *verdefs, const char *sym_name, bool *hide); 
+Search an elf version script tree for symbol versioning
+info and export / don't-export status for a given symbol.
+Return non-NULL on success and NULL on failure; also sets
+the output @samp{hide} boolean parameter.
+
+@end deftypefn
+@findex bfd_hide_sym_by_version
+@subsubsection @code{bfd_hide_sym_by_version}
+@deftypefn {Function} bool bfd_hide_sym_by_version (struct bfd_elf_version_tree *verdefs, const char *sym_name); 
+Search an elf version script tree for symbol versioning
+info for a given symbol.  Return TRUE if the symbol is hidden.
+
+@end deftypefn
+@findex bfd_link_check_relocs
+@subsubsection @code{bfd_link_check_relocs}
+@deftypefn {Function} bool bfd_link_check_relocs (bfd *abfd, struct bfd_link_info *info); 
+Checks the relocs in ABFD for validity.
+Does not execute the relocs.
+Return TRUE if everything is OK, FALSE otherwise.
+This is the external entry point to this code.
+
+@end deftypefn
+@findex _bfd_generic_link_check_relocs
+@subsubsection @code{_bfd_generic_link_check_relocs}
+@deftypefn {Function} bool _bfd_generic_link_check_relocs (bfd *abfd, struct bfd_link_info *info); 
+Stub function for targets that do not implement reloc checking.
+Return TRUE.
+This is an internal function.  It should not be called from
+outside the BFD library.
+
+@end deftypefn
+@findex bfd_merge_private_bfd_data
+@subsubsection @code{bfd_merge_private_bfd_data}
+@deftypefn {Function} bool bfd_merge_private_bfd_data (bfd *ibfd, struct bfd_link_info *info); 
+Merge private BFD information from the BFD @var{ibfd} to the
+the output file BFD when linking.  Return @code{TRUE} on success,
+@code{FALSE} on error.  Possible error returns are:
+
+@itemize @bullet
+
+@item
+@code{bfd_error_no_memory} -
+Not enough memory exists to create private data for @var{obfd}.
+@end itemize
+@example
+#define bfd_merge_private_bfd_data(ibfd, info) \
+       BFD_SEND ((info)->output_bfd, _bfd_merge_private_bfd_data, \
+                 (ibfd, info))
+
+@end example
+
+@end deftypefn
+@findex _bfd_generic_verify_endian_match
+@subsubsection @code{_bfd_generic_verify_endian_match}
+@deftypefn {Function} bool _bfd_generic_verify_endian_match (bfd *ibfd, struct bfd_link_info *info); 
+Can be used from / for bfd_merge_private_bfd_data to check that
+endianness matches between input and output file.  Returns
+TRUE for a match, otherwise returns FALSE and emits an error.
+
+@end deftypefn

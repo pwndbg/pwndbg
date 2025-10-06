@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+
+# Copyright (C) 2024-2025 Free Software Foundation, Inc.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Print a stack trace of a running process.
+# Similar to the gcore command, but instead of creating a core file,
+# we simply have gdb print out the stack backtrace to the terminal.
+
+GDB=${GDB:-$(command -v gdb)}
+GDBARGS=${GDBARGS:-}
+AWK=${AWK:-}
+PKGVERSION="(GDB) "
+VERSION="@VERSION@"
+
+# Find an appropriate awk interpreter if one was not specified
+# via the environment.
+awk_prog=""
+if [ -z "$AWK" ]; then
+    for prog in gawk mawk nawk awk; do
+	awk_prog=$(command -v $prog)
+	test -n "$awk_prog" && break
+    done
+    AWK="$awk_prog"
+fi
+if [ ! -x "$AWK" ]; then
+    echo "$0: could not find usable awk interpreter" 1>&2
+    exit 2
+fi
+
+function print_usage() {
+    echo "Usage: $0 [-h|--help] [-v|--version] PID"
+}
+
+function print_try_help() {
+    echo "Try '$0 --help' for more information."
+}
+
+function print_help() {
+    print_usage
+    echo "Print a stack trace of a running program"
+    echo
+    echo "  -h, --help         Print this message then exit."
+    echo "  -v, --version      Print version information then exit."
+}
+
+function print_version() {
+    echo "GNU gstack (${PKGVERSION}) ${VERSION}"
+}
+
+# Parse options.
+while getopts hv-: OPT; do
+    if [ "$OPT" = "-" ]; then
+	OPT="${OPTARG%%=*}"
+	OPTARG="${OPTARG#"$OPT"}"
+	OPTARG="${OPTARG#=}"
+    fi
+
+    case "$OPT" in
+	h | help)
+	    print_help
+	    exit 0
+	    ;;
+	v | version)
+	    print_version
+	    exit 0
+	    ;;
+	\?)
+	    # getopts has already output an error message.
+	    print_try_help 1>&2
+	    exit 2 ;;
+	*)
+	    echo "$0: unrecognized option '--$OPT'" 1>&2
+	    print_try_help 1>&2
+	    exit 2
+	    ;;
+    esac
+done
+shift $((OPTIND-1))
+
+# The sole remaining argument should be the PID of the process
+# whose backtrace is desired.
+if [ $# -ne 1 ]; then
+    print_usage 1>&2
+    exit 1
+fi
+
+PID=$1
+
+awk_script=$(cat << EOF
+BEGIN {
+  first=1
+  attach_okay=0
+}
+
+/ATTACHED/ {
+  attach_okay=1
+}
+
+/^#/ {
+  if (attach_okay) {
+    print \$0
+  }
+}
+
+/^Thread/ {
+  if (attach_okay) {
+    if (first == 0)
+       print ""
+    first=0
+    print \$0
+  }
+}
+
+END {
+if (attach_okay == 0)
+  exit 2
+}
+EOF
+	  )
+
+# Run GDB and remove some unwanted noise.
+# shellcheck disable=SC2086
+"$GDB" --quiet -nx $GDBARGS <<EOF |
+set width 0
+set height 0
+set pagination no
+set debuginfod enabled off
+define attach-bt
+attach \$arg0
+echo "ATTACHED"
+thread apply all bt
+end
+attach-bt $PID
+EOF
+$AWK -- "$awk_script"

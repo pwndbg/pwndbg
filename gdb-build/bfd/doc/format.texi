@@ -1,0 +1,105 @@
+@section File formats
+A format is a BFD concept of high level file contents type. The
+formats supported by BFD are:
+
+@itemize @bullet
+
+@item
+@code{bfd_object}
+@end itemize
+The BFD may contain data, symbols, relocations and debug info.
+
+@itemize @bullet
+
+@item
+@code{bfd_archive}
+@end itemize
+The BFD contains other BFDs and an optional index.
+
+@itemize @bullet
+
+@item
+@code{bfd_core}
+@end itemize
+The BFD contains the result of an executable core dump.
+
+@subsection File format functions
+
+
+@findex bfd_check_format
+@subsubsection @code{bfd_check_format}
+@deftypefn {Function} bool bfd_check_format (bfd *abfd, bfd_format format); 
+Verify if the file attached to the BFD @var{abfd} is compatible
+with the format @var{format} (i.e., one of @code{bfd_object},
+@code{bfd_archive} or @code{bfd_core}).
+
+If the BFD has been set to a specific target before the
+call, only the named target and format combination is
+checked. If the target has not been set, or has been set to
+@code{default}, then all the known target backends is
+interrogated to determine a match.  If the default target
+matches, it is used.  If not, exactly one target must recognize
+the file, or an error results.
+
+The function returns @code{TRUE} on success, otherwise @code{FALSE}
+with one of the following error codes:
+
+@itemize @bullet
+
+@item
+@code{bfd_error_invalid_operation} -
+if @code{format} is not one of @code{bfd_object}, @code{bfd_archive} or
+@code{bfd_core}.
+
+@item
+@code{bfd_error_system_call} -
+if an error occured during a read - even some file mismatches
+can cause bfd_error_system_calls.
+
+@item
+@code{file_not_recognised} -
+none of the backends recognised the file format.
+
+@item
+@code{bfd_error_file_ambiguously_recognized} -
+more than one backend recognised the file format.
+@end itemize
+When calling bfd_check_format (or bfd_check_format_matches),
+any underlying file descriptor will be kept open for the
+duration of the call.  This is done to avoid races when
+another thread calls bfd_cache_close_all.  In this scenario,
+the thread calling bfd_check_format must call bfd_cache_close
+itself.
+
+@end deftypefn
+@findex bfd_check_format_matches
+@subsubsection @code{bfd_check_format_matches}
+@deftypefn {Function} bool bfd_check_format_matches (bfd *abfd, bfd_format format, char ***matching); 
+Like @code{bfd_check_format}, except when it returns FALSE with
+@code{bfd_errno} set to @code{bfd_error_file_ambiguously_recognized}.
+In that case, if @var{matching} is not NULL, it will be filled
+in with a NULL-terminated list of the names of the formats
+that matched, allocated with @code{malloc}.
+Then the user may choose a format and try again.
+
+When done with the list that @var{matching} points to, the caller
+should free it.
+
+@end deftypefn
+@findex bfd_set_format
+@subsubsection @code{bfd_set_format}
+@deftypefn {Function} bool bfd_set_format (bfd *abfd, bfd_format format); 
+This function sets the file format of the BFD @var{abfd} to the
+format @var{format}. If the target set in the BFD does not
+support the format requested, the format is invalid, or the BFD
+is not open for writing, then an error occurs.
+
+@end deftypefn
+@findex bfd_format_string
+@subsubsection @code{bfd_format_string}
+@deftypefn {Function} const char *bfd_format_string (bfd_format format); 
+Return a pointer to a const string
+@code{invalid}, @code{object}, @code{archive}, @code{core}, or @code{unknown},
+depending upon the value of @var{format}.
+
+@end deftypefn

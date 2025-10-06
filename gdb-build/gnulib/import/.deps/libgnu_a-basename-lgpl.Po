@@ -1,0 +1,44 @@
+libgnu_a-basename-lgpl.o: \
+ ../../../binutils-gdb/gnulib/import/basename-lgpl.c \
+ /usr/include/stdc-predef.h ../config.h \
+ ../../../binutils-gdb/gnulib/import/basename-lgpl.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h string.h \
+ /usr/include/string.h \
+ /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
+ /usr/include/features.h /usr/include/features-time64.h \
+ /usr/include/x86_64-linux-gnu/bits/wordsize.h \
+ /usr/include/x86_64-linux-gnu/bits/timesize.h \
+ /usr/include/x86_64-linux-gnu/sys/cdefs.h \
+ /usr/include/x86_64-linux-gnu/bits/long-double.h \
+ /usr/include/x86_64-linux-gnu/gnu/stubs.h \
+ /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
+ /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
+ /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h strings.h \
+ /usr/include/strings.h \
+ /usr/include/x86_64-linux-gnu/bits/strings_fortified.h \
+ /usr/include/x86_64-linux-gnu/bits/string_fortified.h \
+ ../../../binutils-gdb/gnulib/import/filename.h
+/usr/include/stdc-predef.h:
+../config.h:
+../../../binutils-gdb/gnulib/import/basename-lgpl.h:
+/usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h:
+/usr/lib/gcc/x86_64-linux-gnu/13/include/stdbool.h:
+string.h:
+/usr/include/string.h:
+/usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
+/usr/include/features.h:
+/usr/include/features-time64.h:
+/usr/include/x86_64-linux-gnu/bits/wordsize.h:
+/usr/include/x86_64-linux-gnu/bits/timesize.h:
+/usr/include/x86_64-linux-gnu/sys/cdefs.h:
+/usr/include/x86_64-linux-gnu/bits/long-double.h:
+/usr/include/x86_64-linux-gnu/gnu/stubs.h:
+/usr/include/x86_64-linux-gnu/gnu/stubs-64.h:
+/usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
+/usr/include/x86_64-linux-gnu/bits/types/__locale_t.h:
+strings.h:
+/usr/include/strings.h:
+/usr/include/x86_64-linux-gnu/bits/strings_fortified.h:
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:
+../../../binutils-gdb/gnulib/import/filename.h:

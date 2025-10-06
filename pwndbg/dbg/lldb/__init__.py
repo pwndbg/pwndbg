@@ -477,29 +477,34 @@ class LLDBType(pwndbg.dbg_mod.Type):
 class LLDBValue(pwndbg.dbg_mod.Value):
     def __init__(self, inner: lldb.SBValue, proc: LLDBProcess):
         self.proc = proc
-        self.inner = inner
+        self.sb = inner
+
+        try:
+            self.inner = lldb.value(inner)
+        except Exception:
+            self.inner = inner  # If lldb.value(SBValue) fails to work assign inner directly
 
     @property
     @override
     def address(self) -> pwndbg.dbg_mod.Value | None:
-        addr = self.inner.AddressOf()
+        addr = self.sb.AddressOf()
         return LLDBValue(addr, self.proc) if addr.IsValid() else None
 
     @property
     @override
     def is_optimized_out(self) -> bool:
-        return _is_optimized_out(self.inner)
+        return _is_optimized_out(self.sb)
 
     @property
     @override
     def type(self) -> pwndbg.dbg_mod.Type:
         assert not self.is_optimized_out, "tried to get type of optimized-out value"
 
-        return LLDBType(self.inner.type)
+        return LLDBType(self.sb.GetType())
 
     @override
     def dereference(self) -> pwndbg.dbg_mod.Value:
-        deref = self.inner.Dereference()
+        deref = self.sb.Dereference()
 
         ex = None
         ty: LLDBType = None
@@ -511,7 +516,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
             assert isinstance(self.type, LLDBType), "LLDBValue.type must be an instance of LLDBType"
             ty = self.type
 
-            if self.inner.unsigned != 0 or not ty.inner.IsPointerType():
+            if self.sb.unsigned != 0 or not ty.inner.IsPointerType():
                 raise ex
 
         # Some versions of LLDB (16) will refuse to dereference null pointers,
@@ -519,9 +524,9 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         # means that we have to handle them ourselves. We manually try to read
         # the data, and build a new value based on what we've read, if we're
         # successful.
-        if self.inner.unsigned == 0:
+        if self.sb.unsigned == 0:
             try:
-                b = self.proc.read_memory(0, self.inner.GetByteSize(), partial=False)
+                b = self.proc.read_memory(0, self.sb.GetByteSize(), partial=False)
             except pwndbg.dbg_mod.Error:
                 # Nope, we really can't read it.
                 raise ex
@@ -549,11 +554,11 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def string(self) -> str:
-        if self.inner.type.IsArrayType():
+        if self.sb.type.IsArrayType():
             # Array types need to have their address taken in LLDB.
-            addr = self.inner.AddressOf().unsigned
+            addr = self.sb.AddressOf().unsigned
         else:
-            addr = self.inner.unsigned
+            addr = self.sb.unsigned
 
         error = lldb.SBError()
 
@@ -561,7 +566,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         last_str = None
         buf = 256
         for i in range(8, 33):  # log2(256) = 8, log2(4GB) = 32
-            s = self.inner.process.ReadCStringFromMemory(addr, buf, error)
+            s = self.proc.process.ReadCStringFromMemory(addr, buf, error)
             if error.Fail():
                 raise pwndbg.dbg_mod.Error(f"could not read value as string: {error.description}")
             if last_str is not None and len(s) == len(last_str):
@@ -574,7 +579,10 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def value_to_human_readable(self) -> str:
-        return str(self.inner)
+        try:
+            return str(self.inner)
+        except Exception:
+            return str(self.sb)
 
     @override
     def fetch_lazy(self) -> None:
@@ -585,15 +593,13 @@ class LLDBValue(pwndbg.dbg_mod.Value):
     def __int__(self) -> int:
         # use unsigned in every pointer type
         if self.type.code == pwndbg.dbg_mod.TypeCode.POINTER:
-            return self.inner.GetValueAsUnsigned()
+            return self.sb.GetValueAsUnsigned()
 
-        # Logic is copied from lldb.value(self.inner).__int__()
-        is_num, is_sign = lldb.is_numeric_type(
-            self.inner.GetType().GetCanonicalType().GetBasicType()
-        )
+        # Logic is copied from lldb.value(self.sb).__int__()
+        is_num, is_sign = lldb.is_numeric_type(self.sb.GetType().GetCanonicalType().GetBasicType())
         if is_num and not is_sign:
-            return self.inner.GetValueAsUnsigned()
-        return self.inner.GetValueAsSigned()
+            return self.sb.GetValueAsUnsigned()
+        return self.sb.GetValueAsSigned()
 
     @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
@@ -603,7 +609,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
         if type.code == pwndbg.dbg_mod.TypeCode.FUNC:
             raise pwndbg.dbg_mod.Error("Cast to function type is not allowed, use pointer")
 
-        return LLDBValue(self.inner.Cast(type.inner), self.proc)
+        return LLDBValue(self.sb.Cast(type.inner), self.proc)
 
     def _self_add_sub_int(self, val: int) -> pwndbg.dbg_mod.Value:
         """
@@ -612,13 +618,13 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
         # Eventually we'll want to expand this, but currently we only use this
         # functionality for pointer arithmetic.
-        if not self.inner.TypeIsPointerType():
+        if not self.sb.TypeIsPointerType():
             raise NotImplementedError(
                 "Addition and subtraction to LLDBValue is only implemented for pointers"
             )
 
-        ptrval = self.inner.unsigned
-        elmlen = self.inner.type.size
+        ptrval = self.sb.unsigned
+        elmlen = self.sb.GetType().GetPointeeType().GetByteSize()
 
         ptrval += elmlen * val
 
@@ -635,9 +641,9 @@ class LLDBValue(pwndbg.dbg_mod.Value):
     @override
     def __getitem__(self, key: str | int) -> pwndbg.dbg_mod.Value:
         if isinstance(key, str):
-            value = self.inner.GetChildMemberWithName(key)
+            value = self.sb.GetChildMemberWithName(key)
         elif isinstance(key, int):
-            c = self.inner.GetType().GetTypeClass()
+            c = self.sb.GetType().GetTypeClass()
             if c == lldb.eTypeClassPointer:
                 # GetChildAtIndex() at most only lets us dereference the pointer
                 # at its original location, meaning that, to implement the
@@ -647,9 +653,9 @@ class LLDBValue(pwndbg.dbg_mod.Value):
                 assert isinstance(offset_gen, LLDBValue)
                 offset: LLDBValue = offset_gen
 
-                value = offset.inner.Dereference()
+                value = offset.sb.Dereference()
             else:
-                value = self.inner.GetChildAtIndex(key)
+                value = self.sb.GetChildAtIndex(key)
 
         if not value.IsValid():
             raise pwndbg.dbg_mod.Error(
@@ -1263,31 +1269,32 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def create_value(
         self, value: int, type: pwndbg.dbg_mod.Type | None = None
     ) -> pwndbg.dbg_mod.Value:
-        import struct
-
-        b = struct.pack("<Q", value)
-
-        e = lldb.SBError()
-        data = lldb.SBData()
-        data.SetDataWithOwnership(e, b, lldb.eByteOrderLittle, len(b))
-
         import pwndbg.aglib.typeinfo
 
-        u64 = pwndbg.aglib.typeinfo.uint64
-
-        assert u64, "aglib.typeinfo must have already been set up"
-        assert isinstance(u64, LLDBType), "aglib.typeinfo contains non-LLDBType values"
-        u64: LLDBType = u64
+        target_type = type if type else pwndbg.aglib.typeinfo.uint64
+        assert isinstance(target_type, LLDBType), "Type must be LLDBType"
 
         series = self._created_value_serial
         self._created_value_serial += 1
-        value = self.target.CreateValueFromData(f"$PWNDBG_CREATED_VALUE_{series}", data, u64.inner)
-        value = LLDBValue(value, self)
 
-        if type:
-            return value.cast(type)
-        else:
-            return value
+        e = lldb.SBError()
+        data = lldb.SBData()
+        data.SetDataWithOwnership(e, b"", lldb.eByteOrderLittle, 0)
+
+        if not e.success:
+            raise pwndbg.dbg_mod.Error(f"Failed to create SBData: {e.description}")
+
+        sb_value = self.target.CreateValueFromData(
+            f"$PWNDBG_CREATED_VALUE_{series}", data, target_type.inner
+        )
+
+        if not sb_value.IsValid():
+            raise pwndbg.dbg_mod.Error("Failed to create SBValue from data")
+
+        if not sb_value.SetValueFromCString(str(value)):
+            raise pwndbg.dbg_mod.Error(f"Failed to set value {value} using SetValueFromCString")
+
+        return LLDBValue(sb_value, self)
 
     @override
     def symbol_name_at_address(self, address: int) -> str | None:

@@ -1,0 +1,147 @@
+@findex struct bfd_iovec
+@subsubsection @code{struct bfd_iovec}
+The @code{struct bfd_iovec} contains the internal file I/O class.
+Each @code{BFD} has an instance of this class and all file I/O is
+routed through it (it is assumed that the instance implements
+all methods listed below).
+@example
+struct bfd_iovec
+@{
+  /* To avoid problems with macros, a "b" rather than "f"
+     prefix is prepended to each method name.  */
+  /* Attempt to read/write NBYTES on ABFD's IOSTREAM storing/fetching
+     bytes starting at PTR.  Return the number of bytes actually
+     transfered (a read past end-of-file returns less than NBYTES),
+     or -1 (setting @code{bfd_error}) if an error occurs.  */
+  file_ptr (*bread) (struct bfd *abfd, void *ptr, file_ptr nbytes);
+  file_ptr (*bwrite) (struct bfd *abfd, const void *ptr,
+                      file_ptr nbytes);
+  /* Return the current IOSTREAM file offset, or -1 (setting @code{bfd_error}
+     if an error occurs.  */
+  file_ptr (*btell) (struct bfd *abfd);
+  /* For the following, on successful completion a value of 0 is returned.
+     Otherwise, a value of -1 is returned (and @code{bfd_error} is set).  */
+  int (*bseek) (struct bfd *abfd, file_ptr offset, int whence);
+  int (*bclose) (struct bfd *abfd);
+  int (*bflush) (struct bfd *abfd);
+  int (*bstat) (struct bfd *abfd, struct stat *sb);
+  /* Mmap a part of the files. ADDR, LEN, PROT, FLAGS and OFFSET are the usual
+     mmap parameter, except that LEN and OFFSET do not need to be page
+     aligned.  Returns MAP_FAILED on failure, mmapped address on success.
+     Also write in MAP_ADDR the address of the page aligned buffer and in
+     MAP_LEN the size mapped (a page multiple).  Use unmap with MAP_ADDR and
+     MAP_LEN to unmap.  */
+  void *(*bmmap) (struct bfd *abfd, void *addr, size_t len,
+                  int prot, int flags, file_ptr offset,
+                  void **map_addr, size_t *map_len);
+@};
+extern const struct bfd_iovec _bfd_memory_iovec;
+
+@end example
+
+@findex bfd_read
+@subsubsection @code{bfd_read}
+@deftypefn {Function} bfd_size_type bfd_read (void *, bfd_size_type, bfd *) ATTRIBUTE_WARN_UNUSED_RESULT; 
+Attempt to read SIZE bytes from ABFD's iostream to PTR.
+Return the amount read.
+
+@end deftypefn
+@findex bfd_write
+@subsubsection @code{bfd_write}
+@deftypefn {Function} bfd_size_type bfd_write (const void *, bfd_size_type, bfd *) ATTRIBUTE_WARN_UNUSED_RESULT; 
+Attempt to write SIZE bytes to ABFD's iostream from PTR.
+Return the amount written.
+
+@end deftypefn
+@findex bfd_tell
+@subsubsection @code{bfd_tell}
+@deftypefn {Function} file_ptr bfd_tell (bfd *) ATTRIBUTE_WARN_UNUSED_RESULT; 
+Return ABFD's iostream file position.
+
+@end deftypefn
+@findex bfd_flush
+@subsubsection @code{bfd_flush}
+@deftypefn {Function} int bfd_flush (bfd *); 
+Flush ABFD's iostream pending IO.
+
+@end deftypefn
+@findex bfd_stat
+@subsubsection @code{bfd_stat}
+@deftypefn {Function} int bfd_stat (bfd *, struct stat *) ATTRIBUTE_WARN_UNUSED_RESULT; 
+Call fstat on ABFD's iostream.  Return 0 on success, and a
+negative value on failure.
+
+@end deftypefn
+@findex bfd_seek
+@subsubsection @code{bfd_seek}
+@deftypefn {Function} int bfd_seek (bfd *, file_ptr, int) ATTRIBUTE_WARN_UNUSED_RESULT; 
+Call fseek on ABFD's iostream.  Return 0 on success, and a
+negative value on failure.
+
+@end deftypefn
+@findex bfd_get_mtime
+@subsubsection @code{bfd_get_mtime}
+@deftypefn {Function} long bfd_get_mtime (bfd *abfd); 
+Return the file modification time (as read from the file system, or
+from the archive header for archive members).
+
+@end deftypefn
+@findex bfd_get_size
+@subsubsection @code{bfd_get_size}
+@deftypefn {Function} ufile_ptr bfd_get_size (bfd *abfd); 
+Return the file size (as read from file system) for the file
+associated with BFD @var{abfd}.
+
+The initial motivation for, and use of, this routine is not
+so we can get the exact size of the object the BFD applies to, since
+that might not be generally possible (archive members for example).
+It would be ideal if someone could eventually modify
+it so that such results were guaranteed.
+
+Instead, we want to ask questions like "is this NNN byte sized
+object I'm about to try read from file offset YYY reasonable?"
+As as example of where we might do this, some object formats
+use string tables for which the first @code{sizeof (long)} bytes of the
+table contain the size of the table itself, including the size bytes.
+If an application tries to read what it thinks is one of these
+string tables, without some way to validate the size, and for
+some reason the size is wrong (byte swapping error, wrong location
+for the string table, etc.), the only clue is likely to be a read
+error when it tries to read the table, or a "virtual memory
+exhausted" error when it tries to allocate 15 bazillon bytes
+of space for the 15 bazillon byte table it is about to read.
+This function at least allows us to answer the question, "is the
+size reasonable?".
+
+A return value of zero indicates the file size is unknown.
+
+@end deftypefn
+@findex bfd_get_file_size
+@subsubsection @code{bfd_get_file_size}
+@deftypefn {Function} ufile_ptr bfd_get_file_size (bfd *abfd); 
+Return the file size (as read from file system) for the file
+associated with BFD @var{abfd}.  It supports both normal files
+and archive elements.
+
+@end deftypefn
+@findex bfd_mmap
+@subsubsection @code{bfd_mmap}
+@deftypefn {Function} void *bfd_mmap (bfd *abfd, void *addr, size_t len, int prot, int flags, file_ptr offset, void **map_addr, size_t *map_len) ATTRIBUTE_WARN_UNUSED_RESULT; 
+Return mmap()ed region of the file, if possible and implemented.
+LEN and OFFSET do not need to be page aligned.  The page aligned
+address and length are written to MAP_ADDR and MAP_LEN.
+Returns MAP_FAILED on failure.
+
+@end deftypefn
+@findex bfd_get_current_time
+@subsubsection @code{bfd_get_current_time}
+@deftypefn {Function} time_t bfd_get_current_time (time_t now); 
+Returns the current time.
+
+If the environment variable SOURCE_DATE_EPOCH is defined
+then this is parsed and its value is returned.  Otherwise
+if the paramter NOW is non-zero, then that is returned.
+Otherwise the result of the system call "time(NULL)" is
+returned.
+
+@end deftypefn

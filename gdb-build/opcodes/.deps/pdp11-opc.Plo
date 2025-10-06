@@ -1,0 +1,5 @@
+pdp11-opc.lo: ../../binutils-gdb/opcodes/pdp11-opc.c \
+ /usr/include/stdc-predef.h \
+ ../../binutils-gdb/opcodes/../include/opcode/pdp11.h
+/usr/include/stdc-predef.h:
+../../binutils-gdb/opcodes/../include/opcode/pdp11.h:

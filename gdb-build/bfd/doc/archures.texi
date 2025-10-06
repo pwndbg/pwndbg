@@ -1,0 +1,742 @@
+@section Architectures
+BFD keeps one atom in a BFD describing the
+architecture of the data attached to the BFD: a pointer to a
+@code{bfd_arch_info_type}.
+
+Pointers to structures can be requested independently of a BFD
+so that an architecture's information can be interrogated
+without access to an open BFD.
+
+The architecture information is provided by each architecture package.
+The set of default architectures is selected by the macro
+@code{SELECT_ARCHITECTURES}.  This is normally set up in the
+@file{config/@var{target}.mt} file of your choice.  If the name is not
+defined, then all the architectures supported are included.
+
+When BFD starts up, all the architectures are called with an
+initialize method.  It is up to the architecture back end to
+insert as many items into the list of architectures as it wants to;
+generally this would be one for each machine and one for the
+default case (an item with a machine field of 0).
+
+BFD's idea of an architecture is implemented in @file{archures.c}.
+
+@subsection bfd_architecture
+
+
+This enum gives the object file's CPU architecture, in a
+global sense---i.e., what processor family does it belong to?
+Another field indicates which processor within
+the family is in use.  The machine gives a number which
+distinguishes different versions of the architecture,
+containing, for example, 68020 for Motorola 68020.
+@example
+enum bfd_architecture
+@{
+  bfd_arch_unknown,   /* File arch not known.  */
+  bfd_arch_obscure,   /* Arch known, not one of these.  */
+  bfd_arch_m68k,      /* Motorola 68xxx.  */
+#define bfd_mach_m68000                1
+#define bfd_mach_m68008                2
+#define bfd_mach_m68010                3
+#define bfd_mach_m68020                4
+#define bfd_mach_m68030                5
+#define bfd_mach_m68040                6
+#define bfd_mach_m68060                7
+#define bfd_mach_cpu32                 8
+#define bfd_mach_fido                  9
+#define bfd_mach_mcf_isa_a_nodiv       10
+#define bfd_mach_mcf_isa_a             11
+#define bfd_mach_mcf_isa_a_mac         12
+#define bfd_mach_mcf_isa_a_emac        13
+#define bfd_mach_mcf_isa_aplus         14
+#define bfd_mach_mcf_isa_aplus_mac     15
+#define bfd_mach_mcf_isa_aplus_emac    16
+#define bfd_mach_mcf_isa_b_nousp       17
+#define bfd_mach_mcf_isa_b_nousp_mac   18
+#define bfd_mach_mcf_isa_b_nousp_emac  19
+#define bfd_mach_mcf_isa_b             20
+#define bfd_mach_mcf_isa_b_mac         21
+#define bfd_mach_mcf_isa_b_emac        22
+#define bfd_mach_mcf_isa_b_float       23
+#define bfd_mach_mcf_isa_b_float_mac   24
+#define bfd_mach_mcf_isa_b_float_emac  25
+#define bfd_mach_mcf_isa_c             26
+#define bfd_mach_mcf_isa_c_mac         27
+#define bfd_mach_mcf_isa_c_emac        28
+#define bfd_mach_mcf_isa_c_nodiv       29
+#define bfd_mach_mcf_isa_c_nodiv_mac   30
+#define bfd_mach_mcf_isa_c_nodiv_emac  31
+  bfd_arch_vax,       /* DEC Vax.  */
+
+  bfd_arch_or1k,      /* OpenRISC 1000.  */
+#define bfd_mach_or1k          1
+#define bfd_mach_or1knd        2
+
+  bfd_arch_sparc,     /* SPARC.  */
+#define bfd_mach_sparc                 1
+/* The difference between v8plus and v9 is that v9 is a true 64 bit env.  */
+#define bfd_mach_sparc_sparclet        2
+#define bfd_mach_sparc_sparclite       3
+#define bfd_mach_sparc_v8plus          4
+#define bfd_mach_sparc_v8plusa         5 /* with ultrasparc add'ns.  */
+#define bfd_mach_sparc_sparclite_le    6
+#define bfd_mach_sparc_v9              7
+#define bfd_mach_sparc_v9a             8 /* with ultrasparc add'ns.  */
+#define bfd_mach_sparc_v8plusb         9 /* with cheetah add'ns.  */
+#define bfd_mach_sparc_v9b             10 /* with cheetah add'ns.  */
+#define bfd_mach_sparc_v8plusc         11 /* with UA2005 and T1 add'ns.  */
+#define bfd_mach_sparc_v9c             12 /* with UA2005 and T1 add'ns.  */
+#define bfd_mach_sparc_v8plusd         13 /* with UA2007 and T3 add'ns.  */
+#define bfd_mach_sparc_v9d             14 /* with UA2007 and T3 add'ns.  */
+#define bfd_mach_sparc_v8pluse         15 /* with OSA2001 and T4 add'ns (no IMA).  */
+#define bfd_mach_sparc_v9e             16 /* with OSA2001 and T4 add'ns (no IMA).  */
+#define bfd_mach_sparc_v8plusv         17 /* with OSA2011 and T4 and IMA and FJMAU add'ns.  */
+#define bfd_mach_sparc_v9v             18 /* with OSA2011 and T4 and IMA and FJMAU add'ns.  */
+#define bfd_mach_sparc_v8plusm         19 /* with OSA2015 and M7 add'ns.  */
+#define bfd_mach_sparc_v9m             20 /* with OSA2015 and M7 add'ns.  */
+#define bfd_mach_sparc_v8plusm8        21 /* with OSA2017 and M8 add'ns.  */
+#define bfd_mach_sparc_v9m8            22 /* with OSA2017 and M8 add'ns.  */
+/* Nonzero if MACH has the v9 instruction set.  */
+#define bfd_mach_sparc_v9_p(mach) \
+  ((mach) >= bfd_mach_sparc_v8plus && (mach) <= bfd_mach_sparc_v9m8 \
+   && (mach) != bfd_mach_sparc_sparclite_le)
+/* Nonzero if MACH is a 64 bit sparc architecture.  */
+#define bfd_mach_sparc_64bit_p(mach) \
+  ((mach) >= bfd_mach_sparc_v9 \
+   && (mach) != bfd_mach_sparc_v8plusb \
+   && (mach) != bfd_mach_sparc_v8plusc \
+   && (mach) != bfd_mach_sparc_v8plusd \
+   && (mach) != bfd_mach_sparc_v8pluse \
+   && (mach) != bfd_mach_sparc_v8plusv \
+   && (mach) != bfd_mach_sparc_v8plusm \
+   && (mach) != bfd_mach_sparc_v8plusm8)
+  bfd_arch_spu,       /* PowerPC SPU.  */
+#define bfd_mach_spu           256
+  bfd_arch_mips,      /* MIPS Rxxxx.  */
+#define bfd_mach_mips3000              3000
+#define bfd_mach_mips3900              3900
+#define bfd_mach_mips4000              4000
+#define bfd_mach_mips4010              4010
+#define bfd_mach_mips4100              4100
+#define bfd_mach_mips4111              4111
+#define bfd_mach_mips4120              4120
+#define bfd_mach_mips4300              4300
+#define bfd_mach_mips4400              4400
+#define bfd_mach_mips4600              4600
+#define bfd_mach_mips4650              4650
+#define bfd_mach_mips5000              5000
+#define bfd_mach_mips5400              5400
+#define bfd_mach_mips5500              5500
+#define bfd_mach_mips5900              5900
+#define bfd_mach_mips6000              6000
+#define bfd_mach_mips7000              7000
+#define bfd_mach_mips8000              8000
+#define bfd_mach_mips9000              9000
+#define bfd_mach_mips10000             10000
+#define bfd_mach_mips12000             12000
+#define bfd_mach_mips14000             14000
+#define bfd_mach_mips16000             16000
+#define bfd_mach_mips16                16
+#define bfd_mach_mips5                 5
+#define bfd_mach_mips_allegrex         10111431 /* octal 'AL', 31.  */
+#define bfd_mach_mips_loongson_2e      3001
+#define bfd_mach_mips_loongson_2f      3002
+#define bfd_mach_mips_gs464            3003
+#define bfd_mach_mips_gs464e           3004
+#define bfd_mach_mips_gs264e           3005
+#define bfd_mach_mips_sb1              12310201 /* octal 'SB', 01.  */
+#define bfd_mach_mips_octeon           6501
+#define bfd_mach_mips_octeonp          6601
+#define bfd_mach_mips_octeon2          6502
+#define bfd_mach_mips_octeon3          6503
+#define bfd_mach_mips_xlr              887682   /* decimal 'XLR'.  */
+#define bfd_mach_mips_interaptiv_mr2   736550   /* decimal 'IA2'.  */
+#define bfd_mach_mipsisa32             32
+#define bfd_mach_mipsisa32r2           33
+#define bfd_mach_mipsisa32r3           34
+#define bfd_mach_mipsisa32r5           36
+#define bfd_mach_mipsisa32r6           37
+#define bfd_mach_mipsisa64             64
+#define bfd_mach_mipsisa64r2           65
+#define bfd_mach_mipsisa64r3           66
+#define bfd_mach_mipsisa64r5           68
+#define bfd_mach_mipsisa64r6           69
+#define bfd_mach_mips_micromips        96
+  bfd_arch_i386,      /* Intel 386.  */
+#define bfd_mach_i386_intel_syntax     (1 << 0)
+#define bfd_mach_i386_i8086            (1 << 1)
+#define bfd_mach_i386_i386             (1 << 2)
+#define bfd_mach_x86_64                (1 << 3)
+#define bfd_mach_x64_32                (1 << 4)
+#define bfd_mach_i386_i386_intel_syntax (bfd_mach_i386_i386 | bfd_mach_i386_intel_syntax)
+#define bfd_mach_x86_64_intel_syntax   (bfd_mach_x86_64 | bfd_mach_i386_intel_syntax)
+#define bfd_mach_x64_32_intel_syntax   (bfd_mach_x64_32 | bfd_mach_i386_intel_syntax)
+  bfd_arch_iamcu,     /* Intel MCU.  */
+#define bfd_mach_iamcu                 (1 << 8)
+#define bfd_mach_i386_iamcu            (bfd_mach_i386_i386 | bfd_mach_iamcu)
+#define bfd_mach_i386_iamcu_intel_syntax (bfd_mach_i386_iamcu | bfd_mach_i386_intel_syntax)
+  bfd_arch_romp,      /* IBM ROMP PC/RT.  */
+  bfd_arch_convex,    /* Convex.  */
+  bfd_arch_m98k,      /* Motorola 98xxx.  */
+  bfd_arch_pyramid,   /* Pyramid Technology.  */
+  bfd_arch_h8300,     /* Renesas H8/300 (formerly Hitachi H8/300).  */
+#define bfd_mach_h8300         1
+#define bfd_mach_h8300h        2
+#define bfd_mach_h8300s        3
+#define bfd_mach_h8300hn       4
+#define bfd_mach_h8300sn       5
+#define bfd_mach_h8300sx       6
+#define bfd_mach_h8300sxn      7
+  bfd_arch_pdp11,     /* DEC PDP-11.  */
+  bfd_arch_powerpc,   /* PowerPC.  */
+#define bfd_mach_ppc           32
+#define bfd_mach_ppc64         64
+#define bfd_mach_ppc_403       403
+#define bfd_mach_ppc_403gc     4030
+#define bfd_mach_ppc_405       405
+#define bfd_mach_ppc_505       505
+#define bfd_mach_ppc_601       601
+#define bfd_mach_ppc_602       602
+#define bfd_mach_ppc_603       603
+#define bfd_mach_ppc_ec603e    6031
+#define bfd_mach_ppc_604       604
+#define bfd_mach_ppc_620       620
+#define bfd_mach_ppc_630       630
+#define bfd_mach_ppc_750       750
+#define bfd_mach_ppc_860       860
+#define bfd_mach_ppc_a35       35
+#define bfd_mach_ppc_rs64ii    642
+#define bfd_mach_ppc_rs64iii   643
+#define bfd_mach_ppc_7400      7400
+#define bfd_mach_ppc_e500      500
+#define bfd_mach_ppc_e500mc    5001
+#define bfd_mach_ppc_e500mc64  5005
+#define bfd_mach_ppc_e5500     5006
+#define bfd_mach_ppc_e6500     5007
+#define bfd_mach_ppc_titan     83
+#define bfd_mach_ppc_vle       84
+  bfd_arch_rs6000,    /* IBM RS/6000.  */
+#define bfd_mach_rs6k          6000
+#define bfd_mach_rs6k_rs1      6001
+#define bfd_mach_rs6k_rsc      6003
+#define bfd_mach_rs6k_rs2      6002
+  bfd_arch_hppa,      /* HP PA RISC.  */
+#define bfd_mach_hppa10        10
+#define bfd_mach_hppa11        11
+#define bfd_mach_hppa20        20
+#define bfd_mach_hppa20w       25
+  bfd_arch_d10v,      /* Mitsubishi D10V.  */
+#define bfd_mach_d10v          1
+#define bfd_mach_d10v_ts2      2
+#define bfd_mach_d10v_ts3      3
+  bfd_arch_d30v,      /* Mitsubishi D30V.  */
+  bfd_arch_dlx,       /* DLX.  */
+  bfd_arch_m68hc11,   /* Motorola 68HC11.  */
+  bfd_arch_m68hc12,   /* Motorola 68HC12.  */
+#define bfd_mach_m6812_default 0
+#define bfd_mach_m6812         1
+#define bfd_mach_m6812s        2
+  bfd_arch_m9s12x,    /* Freescale S12X.  */
+  bfd_arch_m9s12xg,   /* Freescale XGATE.  */
+  bfd_arch_s12z,    /* Freescale S12Z.  */
+#define bfd_mach_s12z_default 0
+  bfd_arch_z8k,       /* Zilog Z8000.  */
+#define bfd_mach_z8001         1
+#define bfd_mach_z8002         2
+  bfd_arch_sh,        /* Renesas / SuperH SH (formerly Hitachi SH).  */
+#define bfd_mach_sh                            1
+#define bfd_mach_sh2                           0x20
+#define bfd_mach_sh_dsp                        0x2d
+#define bfd_mach_sh2a                          0x2a
+#define bfd_mach_sh2a_nofpu                    0x2b
+#define bfd_mach_sh2a_nofpu_or_sh4_nommu_nofpu 0x2a1
+#define bfd_mach_sh2a_nofpu_or_sh3_nommu       0x2a2
+#define bfd_mach_sh2a_or_sh4                   0x2a3
+#define bfd_mach_sh2a_or_sh3e                  0x2a4
+#define bfd_mach_sh2e                          0x2e
+#define bfd_mach_sh3                           0x30
+#define bfd_mach_sh3_nommu                     0x31
+#define bfd_mach_sh3_dsp                       0x3d
+#define bfd_mach_sh3e                          0x3e
+#define bfd_mach_sh4                           0x40
+#define bfd_mach_sh4_nofpu                     0x41
+#define bfd_mach_sh4_nommu_nofpu               0x42
+#define bfd_mach_sh4a                          0x4a
+#define bfd_mach_sh4a_nofpu                    0x4b
+#define bfd_mach_sh4al_dsp                     0x4d
+  bfd_arch_alpha,     /* Dec Alpha.  */
+#define bfd_mach_alpha_ev4     0x10
+#define bfd_mach_alpha_ev5     0x20
+#define bfd_mach_alpha_ev6     0x30
+  bfd_arch_arm,       /* Advanced Risc Machines ARM.  */
+#define bfd_mach_arm_unknown   0
+#define bfd_mach_arm_2         1
+#define bfd_mach_arm_2a        2
+#define bfd_mach_arm_3         3
+#define bfd_mach_arm_3M        4
+#define bfd_mach_arm_4         5
+#define bfd_mach_arm_4T        6
+#define bfd_mach_arm_5         7
+#define bfd_mach_arm_5T        8
+#define bfd_mach_arm_5TE       9
+#define bfd_mach_arm_XScale    10
+#define bfd_mach_arm_ep9312    11
+#define bfd_mach_arm_iWMMXt    12
+#define bfd_mach_arm_iWMMXt2   13
+#define bfd_mach_arm_5TEJ      14
+#define bfd_mach_arm_6         15
+#define bfd_mach_arm_6KZ       16
+#define bfd_mach_arm_6T2       17
+#define bfd_mach_arm_6K        18
+#define bfd_mach_arm_7         19
+#define bfd_mach_arm_6M        20
+#define bfd_mach_arm_6SM       21
+#define bfd_mach_arm_7EM       22
+#define bfd_mach_arm_8         23
+#define bfd_mach_arm_8R        24
+#define bfd_mach_arm_8M_BASE   25
+#define bfd_mach_arm_8M_MAIN   26
+#define bfd_mach_arm_8_1M_MAIN 27
+#define bfd_mach_arm_9         28
+  bfd_arch_nds32,     /* Andes NDS32.  */
+#define bfd_mach_n1            1
+#define bfd_mach_n1h           2
+#define bfd_mach_n1h_v2        3
+#define bfd_mach_n1h_v3        4
+#define bfd_mach_n1h_v3m       5
+  bfd_arch_ns32k,     /* National Semiconductors ns32000.  */
+  bfd_arch_tic30,     /* Texas Instruments TMS320C30.  */
+  bfd_arch_tic4x,     /* Texas Instruments TMS320C3X/4X.  */
+#define bfd_mach_tic3x         30
+#define bfd_mach_tic4x         40
+  bfd_arch_tic54x,    /* Texas Instruments TMS320C54X.  */
+  bfd_arch_tic6x,     /* Texas Instruments TMS320C6X.  */
+  bfd_arch_v850,      /* NEC V850.  */
+  bfd_arch_v850_rh850,/* NEC V850 (using RH850 ABI).  */
+#define bfd_mach_v850          1
+#define bfd_mach_v850e         'E'
+#define bfd_mach_v850e1        '1'
+#define bfd_mach_v850e2        0x4532
+#define bfd_mach_v850e2v3      0x45325633
+#define bfd_mach_v850e3v5      0x45335635 /* ('E'|'3'|'V'|'5').  */
+  bfd_arch_arc,       /* ARC Cores.  */
+#define bfd_mach_arc_a4        0
+#define bfd_mach_arc_a5        1
+#define bfd_mach_arc_arc600    2
+#define bfd_mach_arc_arc601    4
+#define bfd_mach_arc_arc700    3
+#define bfd_mach_arc_arcv2     5
+ bfd_arch_m32c,       /* Renesas M16C/M32C.  */
+#define bfd_mach_m16c          0x75
+#define bfd_mach_m32c          0x78
+  bfd_arch_m32r,      /* Renesas M32R (formerly Mitsubishi M32R/D).  */
+#define bfd_mach_m32r          1 /* For backwards compatibility.  */
+#define bfd_mach_m32rx         'x'
+#define bfd_mach_m32r2         '2'
+  bfd_arch_mn10200,   /* Matsushita MN10200.  */
+  bfd_arch_mn10300,   /* Matsushita MN10300.  */
+#define bfd_mach_mn10300       300
+#define bfd_mach_am33          330
+#define bfd_mach_am33_2        332
+  bfd_arch_fr30,
+#define bfd_mach_fr30          0x46523330
+  bfd_arch_frv,
+#define bfd_mach_frv           1
+#define bfd_mach_frvsimple     2
+#define bfd_mach_fr300         300
+#define bfd_mach_fr400         400
+#define bfd_mach_fr450         450
+#define bfd_mach_frvtomcat     499     /* fr500 prototype.  */
+#define bfd_mach_fr500         500
+#define bfd_mach_fr550         550
+  bfd_arch_moxie,     /* The moxie processor.  */
+#define bfd_mach_moxie         1
+  bfd_arch_ft32,      /* The ft32 processor.  */
+#define bfd_mach_ft32          1
+#define bfd_mach_ft32b         2
+  bfd_arch_mcore,
+  bfd_arch_mep,
+#define bfd_mach_mep           1
+#define bfd_mach_mep_h1        0x6831
+#define bfd_mach_mep_c5        0x6335
+  bfd_arch_metag,
+#define bfd_mach_metag         1
+  bfd_arch_ia64,      /* HP/Intel ia64.  */
+#define bfd_mach_ia64_elf64    64
+#define bfd_mach_ia64_elf32    32
+  bfd_arch_ip2k,      /* Ubicom IP2K microcontrollers. */
+#define bfd_mach_ip2022        1
+#define bfd_mach_ip2022ext     2
+ bfd_arch_iq2000,     /* Vitesse IQ2000.  */
+#define bfd_mach_iq2000        1
+#define bfd_mach_iq10          2
+  bfd_arch_bpf,       /* Linux eBPF.  */
+#define bfd_mach_bpf           1
+#define bfd_mach_xbpf          2
+  bfd_arch_epiphany,  /* Adapteva EPIPHANY.  */
+#define bfd_mach_epiphany16    1
+#define bfd_mach_epiphany32    2
+  bfd_arch_mt,
+#define bfd_mach_ms1           1
+#define bfd_mach_mrisc2        2
+#define bfd_mach_ms2           3
+  bfd_arch_pj,
+  bfd_arch_avr,       /* Atmel AVR microcontrollers.  */
+#define bfd_mach_avr1          1
+#define bfd_mach_avr2          2
+#define bfd_mach_avr25         25
+#define bfd_mach_avr3          3
+#define bfd_mach_avr31         31
+#define bfd_mach_avr35         35
+#define bfd_mach_avr4          4
+#define bfd_mach_avr5          5
+#define bfd_mach_avr51         51
+#define bfd_mach_avr6          6
+#define bfd_mach_avrtiny       100
+#define bfd_mach_avrxmega1     101
+#define bfd_mach_avrxmega2     102
+#define bfd_mach_avrxmega3     103
+#define bfd_mach_avrxmega4     104
+#define bfd_mach_avrxmega5     105
+#define bfd_mach_avrxmega6     106
+#define bfd_mach_avrxmega7     107
+  bfd_arch_bfin,      /* ADI Blackfin.  */
+#define bfd_mach_bfin          1
+  bfd_arch_cr16,      /* National Semiconductor CompactRISC (ie CR16).  */
+#define bfd_mach_cr16          1
+  bfd_arch_crx,       /*  National Semiconductor CRX.  */
+#define bfd_mach_crx           1
+  bfd_arch_cris,      /* Axis CRIS.  */
+#define bfd_mach_cris_v0_v10   255
+#define bfd_mach_cris_v32      32
+#define bfd_mach_cris_v10_v32  1032
+  bfd_arch_riscv,
+#define bfd_mach_riscv32       132
+#define bfd_mach_riscv64       164
+  bfd_arch_rl78,
+#define bfd_mach_rl78          0x75
+  bfd_arch_rx,        /* Renesas RX.  */
+#define bfd_mach_rx            0x75
+#define bfd_mach_rx_v2         0x76
+#define bfd_mach_rx_v3         0x77
+  bfd_arch_s390,      /* IBM s390.  */
+#define bfd_mach_s390_31       31
+#define bfd_mach_s390_64       64
+  bfd_arch_score,     /* Sunplus score.  */
+#define bfd_mach_score3        3
+#define bfd_mach_score7        7
+  bfd_arch_mmix,      /* Donald Knuth's educational processor.  */
+  bfd_arch_xstormy16,
+#define bfd_mach_xstormy16     1
+  bfd_arch_msp430,    /* Texas Instruments MSP430 architecture.  */
+#define bfd_mach_msp11         11
+#define bfd_mach_msp110        110
+#define bfd_mach_msp12         12
+#define bfd_mach_msp13         13
+#define bfd_mach_msp14         14
+#define bfd_mach_msp15         15
+#define bfd_mach_msp16         16
+#define bfd_mach_msp20         20
+#define bfd_mach_msp21         21
+#define bfd_mach_msp22         22
+#define bfd_mach_msp23         23
+#define bfd_mach_msp24         24
+#define bfd_mach_msp26         26
+#define bfd_mach_msp31         31
+#define bfd_mach_msp32         32
+#define bfd_mach_msp33         33
+#define bfd_mach_msp41         41
+#define bfd_mach_msp42         42
+#define bfd_mach_msp43         43
+#define bfd_mach_msp44         44
+#define bfd_mach_msp430x       45
+#define bfd_mach_msp46         46
+#define bfd_mach_msp47         47
+#define bfd_mach_msp54         54
+  bfd_arch_xgate,     /* Freescale XGATE.  */
+#define bfd_mach_xgate         1
+  bfd_arch_xtensa,    /* Tensilica's Xtensa cores.  */
+#define bfd_mach_xtensa        1
+  bfd_arch_z80,
+/* Zilog Z80 without undocumented opcodes.  */
+#define bfd_mach_z80strict     1
+/* Zilog Z180: successor with additional instructions, but without
+ halves of ix and iy.  */
+#define bfd_mach_z180          2
+/* Zilog Z80 with ixl, ixh, iyl, and iyh.  */
+#define bfd_mach_z80           3
+/* Zilog eZ80 (successor of Z80 & Z180) in Z80 (16-bit address) mode.  */
+#define bfd_mach_ez80_z80      4
+/* Zilog eZ80 (successor of Z80 & Z180) in ADL (24-bit address) mode.  */
+#define bfd_mach_ez80_adl      5
+/* Z80N */
+#define bfd_mach_z80n          6
+/* Zilog Z80 with all undocumented instructions.  */
+#define bfd_mach_z80full       7
+/* GameBoy Z80 (reduced instruction set).  */
+#define bfd_mach_gbz80         8
+/* ASCII R800: successor with multiplication.  */
+#define bfd_mach_r800          11
+  bfd_arch_lm32,      /* Lattice Mico32.  */
+#define bfd_mach_lm32          1
+  bfd_arch_microblaze,/* Xilinx MicroBlaze.  */
+  bfd_arch_kvx,        /* Kalray VLIW core of the MPPA processor family */
+#define bfd_mach_kv3_unknown       0
+#define bfd_mach_kv3_1             1
+#define bfd_mach_kv3_1_64          2
+#define bfd_mach_kv3_1_usr         3
+#define bfd_mach_kv3_2             4
+#define bfd_mach_kv3_2_64          5
+#define bfd_mach_kv3_2_usr         6
+#define bfd_mach_kv4_1             7
+#define bfd_mach_kv4_1_64          8
+#define bfd_mach_kv4_1_usr         9
+  bfd_arch_tilepro,   /* Tilera TILEPro.  */
+  bfd_arch_tilegx,    /* Tilera TILE-Gx.  */
+#define bfd_mach_tilepro       1
+#define bfd_mach_tilegx        1
+#define bfd_mach_tilegx32      2
+  bfd_arch_aarch64,   /* AArch64.  */
+#define bfd_mach_aarch64 0
+#define bfd_mach_aarch64_8R    1
+#define bfd_mach_aarch64_ilp32 32
+#define bfd_mach_aarch64_llp64 64
+  bfd_arch_visium,    /* Visium.  */
+#define bfd_mach_visium        1
+  bfd_arch_wasm32,    /* WebAssembly.  */
+#define bfd_mach_wasm32        1
+  bfd_arch_pru,       /* PRU.  */
+#define bfd_mach_pru           0
+  bfd_arch_nfp,       /* Netronome Flow Processor */
+#define bfd_mach_nfp3200       0x3200
+#define bfd_mach_nfp6000       0x6000
+  bfd_arch_csky,      /* C-SKY.  */
+#define bfd_mach_ck_unknown    0
+#define bfd_mach_ck510         1
+#define bfd_mach_ck610         2
+#define bfd_mach_ck801         3
+#define bfd_mach_ck802         4
+#define bfd_mach_ck803         5
+#define bfd_mach_ck807         6
+#define bfd_mach_ck810         7
+#define bfd_mach_ck860         8
+  bfd_arch_loongarch,       /* LoongArch */
+#define bfd_mach_loongarch32   1
+#define bfd_mach_loongarch64   2
+  bfd_arch_amdgcn,     /* AMDGCN */
+#define bfd_mach_amdgcn_unknown 0x000
+#define bfd_mach_amdgcn_gfx900  0x02c
+#define bfd_mach_amdgcn_gfx904  0x02e
+#define bfd_mach_amdgcn_gfx906  0x02f
+#define bfd_mach_amdgcn_gfx908  0x030
+#define bfd_mach_amdgcn_gfx90a  0x03f
+#define bfd_mach_amdgcn_gfx1010 0x033
+#define bfd_mach_amdgcn_gfx1011 0x034
+#define bfd_mach_amdgcn_gfx1012 0x035
+#define bfd_mach_amdgcn_gfx1030 0x036
+#define bfd_mach_amdgcn_gfx1031 0x037
+#define bfd_mach_amdgcn_gfx1032 0x038
+#define bfd_mach_amdgcn_gfx1100 0x041
+#define bfd_mach_amdgcn_gfx1101 0x046
+#define bfd_mach_amdgcn_gfx1102 0x047
+  bfd_arch_last
+  @};
+@end example
+
+@subsection bfd_arch_info
+
+
+This structure contains information on architectures for use
+within BFD.
+@example
+
+typedef struct bfd_arch_info
+@{
+  int bits_per_word;
+  int bits_per_address;
+  int bits_per_byte;
+  enum bfd_architecture arch;
+  unsigned long mach;
+  const char *arch_name;
+  const char *printable_name;
+  unsigned int section_align_power;
+  /* TRUE if this is the default machine for the architecture.
+     The default arch should be the first entry for an arch so that
+     all the entries for that arch can be accessed via @code{next}.  */
+  bool the_default;
+  const struct bfd_arch_info * (*compatible) (const struct bfd_arch_info *,
+                                              const struct bfd_arch_info *);
+
+  bool (*scan) (const struct bfd_arch_info *, const char *);
+
+  /* Allocate via bfd_malloc and return a fill buffer of size COUNT.  If
+     IS_BIGENDIAN is TRUE, the order of bytes is big endian.  If CODE is
+     TRUE, the buffer contains code.  */
+  void *(*fill) (bfd_size_type count, bool is_bigendian, bool code);
+
+  const struct bfd_arch_info *next;
+
+  /* On some architectures the offset for a relocation can point into
+     the middle of an instruction.  This field specifies the maximum
+     offset such a relocation can have (in octets).  This affects the
+     behaviour of the disassembler, since a value greater than zero
+     means that it may need to disassemble an instruction twice, once
+     to get its length and then a second time to display it.  If the
+     value is negative then this has to be done for every single
+     instruction, regardless of the offset of the reloc.  */
+  signed int max_reloc_offset_into_insn;
+@}
+bfd_arch_info_type;
+
+@end example
+
+@findex bfd_printable_name
+@subsubsection @code{bfd_printable_name}
+@deftypefn {Function} const char *bfd_printable_name (bfd *abfd); 
+Return a printable string representing the architecture and machine
+from the pointer to the architecture info structure.
+
+@end deftypefn
+@findex bfd_scan_arch
+@subsubsection @code{bfd_scan_arch}
+@deftypefn {Function} const bfd_arch_info_type *bfd_scan_arch (const char *string); 
+Figure out if BFD supports any cpu which could be described with
+the name @var{string}.  Return a pointer to an @code{arch_info}
+structure if a machine is found, otherwise NULL.
+
+@end deftypefn
+@findex bfd_arch_list
+@subsubsection @code{bfd_arch_list}
+@deftypefn {Function} const char **bfd_arch_list (void); 
+Return a freshly malloced NULL-terminated vector of the names
+of all the valid BFD architectures.  Do not modify the names.
+
+@end deftypefn
+@findex bfd_arch_get_compatible
+@subsubsection @code{bfd_arch_get_compatible}
+@deftypefn {Function} const bfd_arch_info_type *bfd_arch_get_compatible (const bfd *abfd, const bfd *bbfd, bool accept_unknowns); 
+Determine whether two BFDs' architectures and machine types
+are compatible.  Calculates the lowest common denominator
+between the two architectures and machine types implied by
+the BFDs and returns a pointer to an @code{arch_info} structure
+describing the compatible machine.
+
+@end deftypefn
+@findex bfd_default_arch_struct
+@subsubsection @code{bfd_default_arch_struct}
+The @code{bfd_default_arch_struct} is an item of
+@code{bfd_arch_info_type} which has been initialized to a fairly
+generic state.  A BFD starts life by pointing to this
+structure, until the correct back end has determined the real
+architecture of the file.
+@example
+extern const bfd_arch_info_type bfd_default_arch_struct;
+
+@end example
+
+@findex bfd_set_arch_info
+@subsubsection @code{bfd_set_arch_info}
+@deftypefn {Function} void bfd_set_arch_info (bfd *abfd, const bfd_arch_info_type *arg); 
+Set the architecture info of @var{abfd} to @var{arg}.
+
+@end deftypefn
+@findex bfd_default_set_arch_mach
+@subsubsection @code{bfd_default_set_arch_mach}
+@deftypefn {Function} bool bfd_default_set_arch_mach (bfd *abfd, enum bfd_architecture arch, unsigned long mach); 
+Set the architecture and machine type in BFD @var{abfd}
+to @var{arch} and @var{mach}.  Find the correct
+pointer to a structure and insert it into the @code{arch_info}
+pointer.
+
+@end deftypefn
+@findex bfd_get_arch
+@subsubsection @code{bfd_get_arch}
+@deftypefn {Function} enum bfd_architecture bfd_get_arch (const bfd *abfd); 
+Return the enumerated type which describes the BFD @var{abfd}'s
+architecture.
+
+@end deftypefn
+@findex bfd_get_mach
+@subsubsection @code{bfd_get_mach}
+@deftypefn {Function} unsigned long bfd_get_mach (const bfd *abfd); 
+Return the long type which describes the BFD @var{abfd}'s
+machine.
+
+@end deftypefn
+@findex bfd_arch_bits_per_byte
+@subsubsection @code{bfd_arch_bits_per_byte}
+@deftypefn {Function} unsigned int bfd_arch_bits_per_byte (const bfd *abfd); 
+Return the number of bits in one of the BFD @var{abfd}'s
+architecture's bytes.
+
+@end deftypefn
+@findex bfd_arch_bits_per_address
+@subsubsection @code{bfd_arch_bits_per_address}
+@deftypefn {Function} unsigned int bfd_arch_bits_per_address (const bfd *abfd); 
+Return the number of bits in one of the BFD @var{abfd}'s
+architecture's addresses.
+
+@end deftypefn
+@findex bfd_default_compatible
+@subsubsection @code{bfd_default_compatible}
+@deftypefn {Function} const bfd_arch_info_type *bfd_default_compatible (const bfd_arch_info_type *a, const bfd_arch_info_type *b); 
+The default function for testing for compatibility.
+
+@end deftypefn
+@findex bfd_default_scan
+@subsubsection @code{bfd_default_scan}
+@deftypefn {Function} bool bfd_default_scan (const struct bfd_arch_info *info, const char *string); 
+The default function for working out whether this is an
+architecture hit and a machine hit.
+
+@end deftypefn
+@findex bfd_get_arch_info
+@subsubsection @code{bfd_get_arch_info}
+@deftypefn {Function} const bfd_arch_info_type *bfd_get_arch_info (bfd *abfd); 
+Return the architecture info struct in @var{abfd}.
+
+@end deftypefn
+@findex bfd_lookup_arch
+@subsubsection @code{bfd_lookup_arch}
+@deftypefn {Function} const bfd_arch_info_type *bfd_lookup_arch (enum bfd_architecture arch, unsigned long machine); 
+Look for the architecture info structure which matches the
+arguments @var{arch} and @var{machine}. A machine of 0 matches the
+machine/architecture structure which marks itself as the
+default.
+
+@end deftypefn
+@findex bfd_printable_arch_mach
+@subsubsection @code{bfd_printable_arch_mach}
+@deftypefn {Function} const char *bfd_printable_arch_mach (enum bfd_architecture arch, unsigned long machine); 
+Return a printable string representing the architecture and
+machine type.
+
+This routine is depreciated.
+
+@end deftypefn
+@findex bfd_octets_per_byte
+@subsubsection @code{bfd_octets_per_byte}
+@deftypefn {Function} unsigned int bfd_octets_per_byte (const bfd *abfd, const asection *sec); 
+Return the number of octets (8-bit quantities) per target byte
+(minimum addressable unit).  In most cases, this will be one, but some
+DSP targets have 16, 32, or even 48 bits per byte.
+
+@end deftypefn
+@findex bfd_arch_mach_octets_per_byte
+@subsubsection @code{bfd_arch_mach_octets_per_byte}
+@deftypefn {Function} unsigned int bfd_arch_mach_octets_per_byte (enum bfd_architecture arch, unsigned long machine); 
+See bfd_octets_per_byte.
+
+This routine is provided for those cases where a bfd * is not
+available
+
+@end deftypefn
+@findex bfd_arch_default_fill
+@subsubsection @code{bfd_arch_default_fill}
+@deftypefn {Function} void *bfd_arch_default_fill (bfd_size_type count, bool is_bigendian, bool code); 
+Allocate via bfd_malloc and return a fill buffer of size COUNT.
+If IS_BIGENDIAN is TRUE, the order of bytes is big endian.  If
+CODE is TRUE, the buffer contains code.
+
+@end deftypefn

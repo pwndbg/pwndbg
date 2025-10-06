@@ -1,0 +1,8 @@
+xtensa-modules.lo: ../../binutils-gdb/bfd/xtensa-modules.c \
+ /usr/include/stdc-predef.h ../../binutils-gdb/bfd/../include/ansidecl.h \
+ ../../binutils-gdb/bfd/../include/xtensa-isa.h \
+ ../../binutils-gdb/bfd/../include/xtensa-isa-internal.h
+/usr/include/stdc-predef.h:
+../../binutils-gdb/bfd/../include/ansidecl.h:
+../../binutils-gdb/bfd/../include/xtensa-isa.h:
+../../binutils-gdb/bfd/../include/xtensa-isa-internal.h:

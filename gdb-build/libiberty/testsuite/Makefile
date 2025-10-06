@@ -1,0 +1,126 @@
+#
+# Makefile
+#   Copyright (C) 1999-2025 Free Software Foundation, Inc.
+#
+# This file is part of the libiberty library.
+# Libiberty is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public
+# License as published by the Free Software Foundation; either
+# version 2 of the License, or (at your option) any later version.
+#
+# Libiberty is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+#
+# You should have received a copy of the GNU Library General Public
+# License along with libiberty; see the file COPYING.LIB.  If not,
+# write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+# Boston, MA 02110-1301, USA.
+#
+
+# This file was written by Tom Tromey <tromey@cygnus.com>.
+
+#
+# Makefile for libiberty/testsuite directory
+#
+
+srcdir = ../../../binutils-gdb/libiberty/testsuite
+VPATH = ../../../binutils-gdb/libiberty/testsuite
+
+SHELL = /bin/bash
+
+CC = gcc
+CFLAGS = -g -O2    
+LIBCFLAGS = $(CFLAGS) $(LDFLAGS)
+
+# Multilib support variables.
+MULTISRCTOP =
+
+INCDIR=$(srcdir)/../$(MULTISRCTOP)../include
+
+all:
+
+# CHECK is set to "really_check" or the empty string by configure.
+check: really-check
+
+really-check: check-cplus-dem check-d-demangle check-rust-demangle \
+		check-pexecute check-expandargv check-strtol \
+		check-doubly-linked-list
+
+# Run some tests of the demangler.
+check-cplus-dem: test-demangle $(srcdir)/demangle-expected
+	./test-demangle < $(srcdir)/demangle-expected
+
+check-d-demangle: test-demangle $(srcdir)/d-demangle-expected
+	./test-demangle < $(srcdir)/d-demangle-expected
+
+check-rust-demangle: test-demangle $(srcdir)/rust-demangle-expected
+	./test-demangle < $(srcdir)/rust-demangle-expected
+
+# Check the pexecute code.
+check-pexecute: test-pexecute
+	./test-pexecute
+
+# Check the expandargv functionality
+check-expandargv: test-expandargv
+	./test-expandargv
+
+# Check the strtol functionality
+check-strtol: test-strtol
+	./test-strtol
+
+# Check the linked list functionality
+check-doubly-linked-list: test-doubly-linked-list
+	./test-doubly-linked-list
+
+# Run the demangler fuzzer
+fuzz-demangler: demangler-fuzzer
+	./demangler-fuzzer
+
+TEST_COMPILE = $(CC) -DHAVE_CONFIG_H $(LIBCFLAGS) -I.. -I$(INCDIR) $(HDEFINES)
+test-demangle: $(srcdir)/test-demangle.c ../libiberty.a
+	$(TEST_COMPILE) -o test-demangle \
+		$(srcdir)/test-demangle.c ../libiberty.a
+
+test-pexecute: $(srcdir)/test-pexecute.c ../libiberty.a
+	$(TEST_COMPILE) -DHAVE_CONFIG_H -I.. -o test-pexecute \
+		$(srcdir)/test-pexecute.c ../libiberty.a
+
+test-expandargv: $(srcdir)/test-expandargv.c ../libiberty.a
+	$(TEST_COMPILE) -DHAVE_CONFIG_H -I.. -o test-expandargv \
+		$(srcdir)/test-expandargv.c ../libiberty.a
+
+test-strtol: $(srcdir)/test-strtol.c ../libiberty.a
+	$(TEST_COMPILE) -DHAVE_CONFIG_H -I.. -o test-strtol \
+		$(srcdir)/test-strtol.c ../libiberty.a
+
+test-doubly-linked-list: $(srcdir)/test-doubly-linked-list.c
+	$(TEST_COMPILE) -DHAVE_CONFIG_H -I.. -o test-doubly-linked-list \
+		$(srcdir)/test-doubly-linked-list.c
+
+demangler-fuzzer: $(srcdir)/demangler-fuzzer.c ../libiberty.a
+	$(TEST_COMPILE) -o demangler-fuzzer \
+		$(srcdir)/demangler-fuzzer.c ../libiberty.a
+
+# Standard (either GNU or Cygnus) rules we don't use.
+html install-html info install-info clean-info dvi pdf install-pdf \
+install etags tags installcheck:
+
+# The standard clean rules.
+mostlyclean:
+	rm -f test-demangle
+	rm -f test-pexecute
+	rm -f test-expandargv
+	rm -f test-strtol
+	rm -f test-doubly-linked-list
+	rm -f demangler-fuzzer
+	rm -f core
+clean: mostlyclean
+distclean: clean
+	rm -f Makefile
+maintainer-clean realclean: distclean
+
+Makefile: $(srcdir)/Makefile.in ../config.status
+	CONFIG_FILES=testsuite/Makefile CONFIG_HEADERS= \
+	  cd .. && $(SHELL) ./config.status

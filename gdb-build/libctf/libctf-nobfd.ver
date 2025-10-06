@@ -1,0 +1,204 @@
+/* Copyright (C) 2019-2025 Free Software Foundation, Inc.
+
+   This file is part of libctf.
+
+   libctf is free software; you can redistribute it and/or modify it under
+   the terms of the GNU General Public License as published by the Free
+   Software Foundation; either version 3, or (at your option) any later
+   version.
+
+   This program is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+   See the GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program; see the file COPYING.  If not see
+   <http://www.gnu.org/licenses/>.  */
+
+LIBCTF_1.0 {
+    global:
+	/* In libctf and libctf-nobfd.  */
+
+	ctf_bufopen;
+	ctf_simple_open;
+	ctf_create;
+	ctf_close;
+	ctf_ref;
+	ctf_file_close;
+
+	ctf_cuname;
+	ctf_cuname_set;
+	ctf_parent_file;
+	ctf_parent_name;
+	ctf_parent_name_set;
+	ctf_type_isparent;
+	ctf_type_ischild;
+
+	ctf_import;
+	ctf_setmodel;
+	ctf_getmodel;
+
+	ctf_setspecific;
+	ctf_getspecific;
+
+	ctf_errno;
+	ctf_errmsg;
+	ctf_version;
+
+	ctf_func_info;
+	ctf_func_args;
+	ctf_func_type_info;
+	ctf_func_type_args;
+
+	ctf_lookup_by_name;
+	ctf_lookup_by_symbol;
+	ctf_lookup_variable;
+
+	ctf_type_resolve;
+	ctf_type_lname;
+	ctf_type_name;
+	ctf_type_name_raw;
+	ctf_type_aname;
+	ctf_type_aname_raw;
+	ctf_type_size;
+	ctf_type_align;
+	ctf_type_kind;
+	ctf_type_kind_forwarded;
+	ctf_type_reference;
+	ctf_type_pointer;
+	ctf_type_encoding;
+	ctf_type_visit;
+	ctf_type_cmp;
+	ctf_type_compat;
+
+	ctf_member_info;
+	ctf_member_next;
+	ctf_array_info;
+	ctf_member_count;
+
+	ctf_enum_name;
+	ctf_enum_value;
+
+	ctf_label_topmost;
+	ctf_label_info;
+
+	ctf_member_iter;
+	ctf_enum_iter;
+	ctf_enum_next;
+	ctf_type_iter;
+	ctf_type_next;
+	ctf_type_iter_all;
+	ctf_label_iter;
+	ctf_variable_iter;
+	ctf_variable_next;
+
+	ctf_next_create;
+	ctf_next_destroy;
+	ctf_next_copy;
+
+	ctf_add_array;
+	ctf_add_const;
+	ctf_add_enum;
+	ctf_add_enum_encoded;
+	ctf_add_float;
+	ctf_add_forward;
+	ctf_add_function;
+	ctf_add_integer;
+	ctf_add_pointer;
+	ctf_add_type;
+	ctf_add_typedef;
+	ctf_add_restrict;
+	ctf_add_slice;
+	ctf_add_struct;
+	ctf_add_union;
+	ctf_add_struct_sized;
+	ctf_add_union_sized;
+	ctf_add_volatile;
+
+	ctf_add_enumerator;
+	ctf_add_member;
+	ctf_add_member_offset;
+	ctf_add_member_encoded;
+	ctf_add_variable;
+
+	ctf_set_array;
+
+	ctf_update;
+	ctf_discard;
+	ctf_snapshot;
+	ctf_rollback;
+	ctf_write;
+	ctf_write_mem;
+	ctf_gzwrite;
+	ctf_compress_write;
+	ctf_getdatasect;
+
+	ctf_arc_write;
+	ctf_arc_write_fd;
+	ctf_arc_bufopen;
+	ctf_arc_close;
+	ctf_arc_open_by_name;
+	ctf_arc_open_by_name_sections;
+	ctf_archive_count;
+	ctf_archive_iter;
+	ctf_archive_next;
+	ctf_archive_raw_iter;
+	ctf_get_arc;
+
+	ctf_dump;
+
+	ctf_setdebug;
+	ctf_getdebug;
+	ctf_errwarning_next;
+
+	ctf_link_add_ctf;
+	ctf_link_add_cu_mapping;
+	ctf_link_set_memb_name_changer;
+	ctf_link_set_variable_filter;
+	ctf_link;
+	ctf_link_add_strtab;
+	ctf_link_shuffle_syms;
+	ctf_link_write;
+
+    local:
+	*;
+};
+
+LIBCTF_1.1 {
+    global:
+	ctf_dict_open;
+	ctf_dict_open_sections;
+	ctf_dict_close;
+	ctf_parent_dict;
+
+	ctf_symbol_next;
+	ctf_add_objt_sym;
+	ctf_add_func_sym;
+
+	ctf_link_add_linker_symbol;
+
+	ctf_arc_lookup_symbol;
+	ctf_arc_flush_caches;
+
+	ctf_getsymsect;
+	ctf_getstrsect;
+	ctf_symsect_endianness;
+	ctf_arc_symsect_endianness;
+} LIBCTF_1.0;
+
+LIBCTF_1.2 {
+    global:
+	ctf_lookup_by_symbol_name;
+	ctf_arc_lookup_symbol_name;
+	ctf_add_unknown;
+} LIBCTF_1.1;
+
+LIBCTF_1.3 {
+    global:
+	ctf_lookup_enumerator;
+	ctf_lookup_enumerator_next;
+	ctf_arc_lookup_enumerator_next;
+	ctf_dict_set_flag;
+	ctf_dict_get_flag;
+} LIBCTF_1.2;

@@ -1,0 +1,446 @@
+@section Symbols
+BFD tries to maintain as much symbol information as it can when
+it moves information from file to file. BFD passes information
+to applications though the @code{asymbol} structure. When the
+application requests the symbol table, BFD reads the table in
+the native form and translates parts of it into the internal
+format. To maintain more than the information passed to
+applications, some targets keep some information ``behind the
+scenes'' in a structure only the particular back end knows
+about. For example, the coff back end keeps the original
+symbol table structure as well as the canonical structure when
+a BFD is read in. On output, the coff back end can reconstruct
+the output symbol table so that no information is lost, even
+information unique to coff which BFD doesn't know or
+understand. If a coff symbol table were read, but were written
+through an a.out back end, all the coff specific information
+would be lost. The symbol table of a BFD
+is not necessarily read in until a canonicalize request is
+made. Then the BFD back end fills in a table provided by the
+application with pointers to the canonical information.  To
+output symbols, the application provides BFD with a table of
+pointers to pointers to @code{asymbol}s. This allows applications
+like the linker to output a symbol as it was read, since the ``behind
+the scenes'' information will be still available.
+@menu
+* Reading Symbols::
+* Writing Symbols::
+* Mini Symbols::
+* typedef asymbol::
+* symbol handling functions::
+@end menu
+
+@node Reading Symbols, Writing Symbols, Symbols, Symbols
+@subsection Reading symbols
+There are two stages to reading a symbol table from a BFD:
+allocating storage, and the actual reading process. This is an
+excerpt from an application which reads the symbol table:
+
+@example
+         long storage_needed;
+         asymbol **symbol_table;
+         long number_of_symbols;
+         long i;
+
+         storage_needed = bfd_get_symtab_upper_bound (abfd);
+
+         if (storage_needed < 0)
+           FAIL
+
+         if (storage_needed == 0)
+           return;
+
+         symbol_table = xmalloc (storage_needed);
+           ...
+         number_of_symbols =
+            bfd_canonicalize_symtab (abfd, symbol_table);
+
+         if (number_of_symbols < 0)
+           FAIL
+
+         for (i = 0; i < number_of_symbols; i++)
+           process_symbol (symbol_table[i]);
+@end example
+
+All storage for the symbols themselves is in an objalloc
+connected to the BFD; it is freed when the BFD is closed.
+
+@node Writing Symbols, Mini Symbols, Reading Symbols, Symbols
+@subsection Writing symbols
+Writing of a symbol table is automatic when a BFD open for
+writing is closed. The application attaches a vector of
+pointers to pointers to symbols to the BFD being written, and
+fills in the symbol count. The close and cleanup code reads
+through the table provided and performs all the necessary
+operations. The BFD output code must always be provided with an
+``owned'' symbol: one which has come from another BFD, or one
+which has been created using @code{bfd_make_empty_symbol}.  Here is an
+example showing the creation of a symbol table with only one element:
+
+@example
+       #include "sysdep.h"
+       #include "bfd.h"
+       int main (void)
+       @{
+         bfd *abfd;
+         asymbol *ptrs[2];
+         asymbol *new;
+
+         abfd = bfd_openw ("foo","a.out-sunos-big");
+         bfd_set_format (abfd, bfd_object);
+         new = bfd_make_empty_symbol (abfd);
+         new->name = "dummy_symbol";
+         new->section = bfd_make_section_old_way (abfd, ".text");
+         new->flags = BSF_GLOBAL;
+         new->value = 0x12345;
+
+         ptrs[0] = new;
+         ptrs[1] = 0;
+
+         bfd_set_symtab (abfd, ptrs, 1);
+         bfd_close (abfd);
+         return 0;
+       @}
+
+       ./makesym
+       nm foo
+       00012345 A dummy_symbol
+@end example
+
+Many formats cannot represent arbitrary symbol information; for
+instance, the @code{a.out} object format does not allow an
+arbitrary number of sections. A symbol pointing to a section
+which is not one  of @code{.text}, @code{.data} or @code{.bss} cannot
+be described.
+
+@node Mini Symbols, typedef asymbol, Writing Symbols, Symbols
+@subsection Mini Symbols
+Mini symbols provide read-only access to the symbol table.
+They use less memory space, but require more time to access.
+They can be useful for tools like nm or objdump, which may
+have to handle symbol tables of extremely large executables.
+
+The @code{bfd_read_minisymbols} function will read the symbols
+into memory in an internal form.  It will return a @code{void *}
+pointer to a block of memory, a symbol count, and the size of
+each symbol.  The pointer is allocated using @code{malloc}, and
+should be freed by the caller when it is no longer needed.
+
+The function @code{bfd_minisymbol_to_symbol} will take a pointer
+to a minisymbol, and a pointer to a structure returned by
+@code{bfd_make_empty_symbol}, and return a @code{asymbol} structure.
+The return value may or may not be the same as the value from
+@code{bfd_make_empty_symbol} which was passed in.
+
+
+@node typedef asymbol, symbol handling functions, Mini Symbols, Symbols
+@subsection typedef asymbol
+An @code{asymbol} has the form:
+
+
+@example
+typedef struct bfd_symbol
+@{
+  /* A pointer to the BFD which owns the symbol. This information
+     is necessary so that a back end can work out what additional
+     information (invisible to the application writer) is carried
+     with the symbol.
+
+     This field is *almost* redundant, since you can use section->owner
+     instead, except that some symbols point to the global sections
+     bfd_@{abs,com,und@}_section.  This could be fixed by making
+     these globals be per-bfd (or per-target-flavor).  FIXME.  */
+  struct bfd *the_bfd; /* Use bfd_asymbol_bfd(sym) to access this field.  */
+
+  /* The text of the symbol. The name is left alone, and not copied; the
+     application may not alter it.  */
+  const char *name;
+
+  /* The value of the symbol.  This really should be a union of a
+     numeric value with a pointer, since some flags indicate that
+     a pointer to another symbol is stored here.  */
+  symvalue value;
+
+  /* Attributes of a symbol.  */
+#define BSF_NO_FLAGS            0
+
+  /* The symbol has local scope; @code{static} in @code{C}. The value
+     is the offset into the section of the data.  */
+#define BSF_LOCAL               (1 << 0)
+
+  /* The symbol has global scope; initialized data in @code{C}. The
+     value is the offset into the section of the data.  */
+#define BSF_GLOBAL              (1 << 1)
+
+  /* The symbol has global scope and is exported. The value is
+     the offset into the section of the data.  */
+#define BSF_EXPORT              BSF_GLOBAL /* No real difference.  */
+
+  /* A normal C symbol would be one of:
+     @code{BSF_LOCAL}, @code{BSF_UNDEFINED} or @code{BSF_GLOBAL}.  */
+
+  /* The symbol is a debugging record. The value has an arbitrary
+     meaning, unless BSF_DEBUGGING_RELOC is also set.  */
+#define BSF_DEBUGGING           (1 << 2)
+
+  /* The symbol denotes a function entry point.  Used in ELF,
+     perhaps others someday.  */
+#define BSF_FUNCTION            (1 << 3)
+
+  /* Used by the linker.  */
+#define BSF_KEEP                (1 << 5)
+
+  /* An ELF common symbol.  */
+#define BSF_ELF_COMMON          (1 << 6)
+
+  /* A weak global symbol, overridable without warnings by
+     a regular global symbol of the same name.  */
+#define BSF_WEAK                (1 << 7)
+
+  /* This symbol was created to point to a section, e.g. ELF's
+     STT_SECTION symbols.  */
+#define BSF_SECTION_SYM         (1 << 8)
+
+  /* The symbol used to be a common symbol, but now it is
+     allocated.  */
+#define BSF_OLD_COMMON          (1 << 9)
+
+  /* In some files the type of a symbol sometimes alters its
+     location in an output file - ie in coff a @code{ISFCN} symbol
+     which is also @code{C_EXT} symbol appears where it was
+     declared and not at the end of a section.  This bit is set
+     by the target BFD part to convey this information.  */
+#define BSF_NOT_AT_END          (1 << 10)
+
+  /* Signal that the symbol is the label of constructor section.  */
+#define BSF_CONSTRUCTOR         (1 << 11)
+
+  /* Signal that the symbol is a warning symbol.  The name is a
+     warning.  The name of the next symbol is the one to warn about;
+     if a reference is made to a symbol with the same name as the next
+     symbol, a warning is issued by the linker.  */
+#define BSF_WARNING             (1 << 12)
+
+  /* Signal that the symbol is indirect.  This symbol is an indirect
+     pointer to the symbol with the same name as the next symbol.  */
+#define BSF_INDIRECT            (1 << 13)
+
+  /* BSF_FILE marks symbols that contain a file name.  This is used
+     for ELF STT_FILE symbols.  */
+#define BSF_FILE                (1 << 14)
+
+  /* Symbol is from dynamic linking information.  */
+#define BSF_DYNAMIC             (1 << 15)
+
+  /* The symbol denotes a data object.  Used in ELF, and perhaps
+     others someday.  */
+#define BSF_OBJECT              (1 << 16)
+
+  /* This symbol is a debugging symbol.  The value is the offset
+     into the section of the data.  BSF_DEBUGGING should be set
+     as well.  */
+#define BSF_DEBUGGING_RELOC     (1 << 17)
+
+  /* This symbol is thread local.  Used in ELF.  */
+#define BSF_THREAD_LOCAL        (1 << 18)
+
+  /* This symbol represents a complex relocation expression,
+     with the expression tree serialized in the symbol name.  */
+#define BSF_RELC                (1 << 19)
+
+  /* This symbol represents a signed complex relocation expression,
+     with the expression tree serialized in the symbol name.  */
+#define BSF_SRELC               (1 << 20)
+
+  /* This symbol was created by bfd_get_synthetic_symtab.  */
+#define BSF_SYNTHETIC           (1 << 21)
+
+  /* This symbol is an indirect code object.  Unrelated to BSF_INDIRECT.
+     The dynamic linker will compute the value of this symbol by
+     calling the function that it points to.  BSF_FUNCTION must
+     also be also set.  */
+#define BSF_GNU_INDIRECT_FUNCTION (1 << 22)
+  /* This symbol is a globally unique data object.  The dynamic linker
+     will make sure that in the entire process there is just one symbol
+     with this name and type in use.  BSF_OBJECT must also be set.  */
+#define BSF_GNU_UNIQUE          (1 << 23)
+
+  /* This section symbol should be included in the symbol table.  */
+#define BSF_SECTION_SYM_USED    (1 << 24)
+
+  flagword flags;
+
+  /* A pointer to the section to which this symbol is
+     relative.  This will always be non NULL, there are special
+     sections for undefined and absolute symbols.  */
+  struct bfd_section *section;
+
+  /* Back end special data.  */
+  union
+    @{
+      void *p;
+      bfd_vma i;
+    @}
+  udata;
+@}
+asymbol;
+
+@end example
+
+@node symbol handling functions,  , typedef asymbol, Symbols
+@subsection Symbol handling functions
+
+
+@findex bfd_get_symtab_upper_bound
+@subsubsection @code{bfd_get_symtab_upper_bound}
+Return the number of bytes required to store a vector of pointers
+to @code{asymbols} for all the symbols in the BFD @var{abfd},
+including a terminal NULL pointer. If there are no symbols in
+the BFD, then return 0.  If an error occurs, return -1.
+@example
+#define bfd_get_symtab_upper_bound(abfd) \
+       BFD_SEND (abfd, _bfd_get_symtab_upper_bound, (abfd))
+
+@end example
+
+@findex bfd_is_local_label
+@subsubsection @code{bfd_is_local_label}
+@deftypefn {Function} bool bfd_is_local_label (bfd *abfd, asymbol *sym); 
+Return TRUE if the given symbol @var{sym} in the BFD @var{abfd} is
+a compiler generated local label, else return FALSE.
+
+@end deftypefn
+@findex bfd_is_local_label_name
+@subsubsection @code{bfd_is_local_label_name}
+@deftypefn {Function} bool bfd_is_local_label_name (bfd *abfd, const char *name); 
+Return TRUE if a symbol with the name @var{name} in the BFD
+@var{abfd} is a compiler generated local label, else return
+FALSE.  This just checks whether the name has the form of a
+local label.
+@example
+#define bfd_is_local_label_name(abfd, name) \
+       BFD_SEND (abfd, _bfd_is_local_label_name, (abfd, name))
+
+@end example
+
+@end deftypefn
+@findex bfd_is_target_special_symbol
+@subsubsection @code{bfd_is_target_special_symbol}
+@deftypefn {Function} bool bfd_is_target_special_symbol (bfd *abfd, asymbol *sym); 
+Return TRUE iff a symbol @var{sym} in the BFD @var{abfd} is something
+special to the particular target represented by the BFD.  Such symbols
+should normally not be mentioned to the user.
+@example
+#define bfd_is_target_special_symbol(abfd, sym) \
+       BFD_SEND (abfd, _bfd_is_target_special_symbol, (abfd, sym))
+
+@end example
+
+@end deftypefn
+@findex bfd_canonicalize_symtab
+@subsubsection @code{bfd_canonicalize_symtab}
+Read the symbols from the BFD @var{abfd}, and fills in
+the vector @var{location} with pointers to the symbols and
+a trailing NULL.
+Return the actual number of symbol pointers, not
+including the NULL.
+@example
+#define bfd_canonicalize_symtab(abfd, location) \
+       BFD_SEND (abfd, _bfd_canonicalize_symtab, (abfd, location))
+
+@end example
+
+@findex bfd_set_symtab
+@subsubsection @code{bfd_set_symtab}
+@deftypefn {Function} bool bfd_set_symtab (bfd *abfd, asymbol **location, unsigned int count); 
+Arrange that when the output BFD @var{abfd} is closed,
+the table @var{location} of @var{count} pointers to symbols
+will be written.
+
+@end deftypefn
+@findex bfd_print_symbol_vandf
+@subsubsection @code{bfd_print_symbol_vandf}
+@deftypefn {Function} void bfd_print_symbol_vandf (bfd *abfd, void *file, asymbol *symbol); 
+Print the value and flags of the @var{symbol} supplied to the
+stream @var{file}.
+
+@end deftypefn
+@findex bfd_make_empty_symbol
+@subsubsection @code{bfd_make_empty_symbol}
+Create a new @code{asymbol} structure for the BFD @var{abfd}
+and return a pointer to it.
+
+This routine is necessary because each back end has private
+information surrounding the @code{asymbol}. Building your own
+@code{asymbol} and pointing to it will not create the private
+information, and will cause problems later on.
+@example
+#define bfd_make_empty_symbol(abfd) \
+       BFD_SEND (abfd, _bfd_make_empty_symbol, (abfd))
+
+@end example
+
+@findex _bfd_generic_make_empty_symbol
+@subsubsection @code{_bfd_generic_make_empty_symbol}
+@deftypefn {Function} asymbol *_bfd_generic_make_empty_symbol (bfd *); 
+Create a new @code{asymbol} structure for the BFD @var{abfd}
+and return a pointer to it.  Used by core file routines,
+binary back-end and anywhere else where no private info
+is needed.
+
+@end deftypefn
+@findex bfd_make_debug_symbol
+@subsubsection @code{bfd_make_debug_symbol}
+Create a new @code{asymbol} structure for the BFD @var{abfd},
+to be used as a debugging symbol.
+@example
+#define bfd_make_debug_symbol(abfd) \
+       BFD_SEND (abfd, _bfd_make_debug_symbol, (abfd))
+
+@end example
+
+@findex bfd_decode_symclass
+@subsubsection @code{bfd_decode_symclass}
+@deftypefn {Function} int bfd_decode_symclass (asymbol *symbol); 
+Return a character corresponding to the symbol
+class of @var{symbol}, or '?' for an unknown class.
+
+@end deftypefn
+@findex bfd_is_undefined_symclass
+@subsubsection @code{bfd_is_undefined_symclass}
+@deftypefn {Function} bool bfd_is_undefined_symclass (int symclass); 
+Returns non-zero if the class symbol returned by
+bfd_decode_symclass represents an undefined symbol.
+Returns zero otherwise.
+
+@end deftypefn
+@findex bfd_symbol_info
+@subsubsection @code{bfd_symbol_info}
+@deftypefn {Function} void bfd_symbol_info (asymbol *symbol, symbol_info *ret); 
+Fill in the basic info about symbol that nm needs.
+Additional info may be added by the back-ends after
+calling this function.
+
+@end deftypefn
+@findex bfd_copy_private_symbol_data
+@subsubsection @code{bfd_copy_private_symbol_data}
+@deftypefn {Function} bool bfd_copy_private_symbol_data (bfd *ibfd, asymbol *isym, bfd *obfd, asymbol *osym); 
+Copy private symbol information from @var{isym} in the BFD
+@var{ibfd} to the symbol @var{osym} in the BFD @var{obfd}.
+Return @code{TRUE} on success, @code{FALSE} on error.  Possible error
+returns are:
+
+@itemize @bullet
+
+@item
+@code{bfd_error_no_memory} -
+Not enough memory exists to create private data for @var{osec}.
+@end itemize
+@example
+#define bfd_copy_private_symbol_data(ibfd, isymbol, obfd, osymbol) \
+       BFD_SEND (obfd, _bfd_copy_private_symbol_data, \
+                 (ibfd, isymbol, obfd, osymbol))
+
+@end example
+
+@end deftypefn

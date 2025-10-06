@@ -1,0 +1,5 @@
+libgp_collector_la-jprofile.lo: \
+ ../../../binutils-gdb/gprofng/libcollector/jprofile.c \
+ /usr/include/stdc-predef.h ../config.h
+/usr/include/stdc-predef.h:
+../config.h:

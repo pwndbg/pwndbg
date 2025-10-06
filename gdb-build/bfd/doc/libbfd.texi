@@ -1,0 +1,274 @@
+@section Implementation details
+
+
+@subsection Internal functions
+
+
+These routines are used within BFD.
+They are not intended for export, but are documented here for
+completeness.
+
+@findex bfd_malloc
+@subsubsection @code{bfd_malloc}
+@deftypefn {Function} void *bfd_malloc (bfd_size_type {*size*}); 
+Returns a pointer to an allocated block of memory that is at least
+SIZE bytes long.  If SIZE is 0 then it will be treated as if it were
+1.  If SIZE is too big then NULL will be returned.
+Returns NULL upon error and sets bfd_error.
+
+@end deftypefn
+@findex bfd_realloc
+@subsubsection @code{bfd_realloc}
+@deftypefn {Function} void *bfd_realloc (void *{*mem*}, bfd_size_type {*size*}); 
+Returns a pointer to an allocated block of memory that is at least
+SIZE bytes long.  If SIZE is 0 then it will be treated as if it were
+1.  If SIZE is too big then NULL will be returned.
+If MEM is not NULL then it must point to an allocated block of memory.
+If this block is large enough then MEM may be used as the return
+value for this function, but this is not guaranteed.
+
+If MEM is not returned then the first N bytes in the returned block
+will be identical to the first N bytes in region pointed to by MEM,
+where N is the lessor of SIZE and the length of the region of memory
+currently addressed by MEM.
+
+Returns NULL upon error and sets bfd_error.
+
+@end deftypefn
+@findex bfd_realloc_or_free
+@subsubsection @code{bfd_realloc_or_free}
+@deftypefn {Function} void *bfd_realloc_or_free (void *{*mem*}, bfd_size_type {*size*}); 
+Returns a pointer to an allocated block of memory that is at least
+SIZE bytes long.  If SIZE is 0 then no memory will be allocated,
+MEM will be freed, and NULL will be returned.  This will not cause
+bfd_error to be set.
+
+If SIZE is too big then NULL will be returned and bfd_error will be
+set. 
+If MEM is not NULL then it must point to an allocated block of memory.
+If this block is large enough then MEM may be used as the return
+value for this function, but this is not guaranteed.
+
+If MEM is not returned then the first N bytes in the returned block
+will be identical to the first N bytes in region pointed to by MEM,
+where N is the lessor of SIZE and the length of the region of memory
+currently addressed by MEM.
+
+@end deftypefn
+@findex bfd_zmalloc
+@subsubsection @code{bfd_zmalloc}
+@deftypefn {Function} void *bfd_zmalloc (bfd_size_type {*size*}); 
+Returns a pointer to an allocated block of memory that is at least
+SIZE bytes long.  If SIZE is 0 then it will be treated as if it were
+1.  If SIZE is too big then NULL will be returned.
+Returns NULL upon error and sets bfd_error.
+
+If NULL is not returned then the allocated block of memory will
+have been cleared.
+
+@end deftypefn
+@findex bfd_alloc
+@subsubsection @code{bfd_alloc}
+@deftypefn {Function} void *bfd_alloc (bfd *abfd, bfd_size_type wanted); 
+Allocate a block of @var{wanted} bytes of memory attached to
+@code{abfd} and return a pointer to it.
+
+@end deftypefn
+@findex bfd_zalloc
+@subsubsection @code{bfd_zalloc}
+@deftypefn {Function} void *bfd_zalloc (bfd *abfd, bfd_size_type wanted); 
+Allocate a block of @var{wanted} bytes of zeroed memory
+attached to @code{abfd} and return a pointer to it.
+
+@end deftypefn
+@findex bfd_release
+@subsubsection @code{bfd_release}
+@deftypefn {Function} void bfd_release (bfd *, void *); 
+Free a block allocated for a BFD.
+Note: Also frees all more recently allocated blocks!
+
+@end deftypefn
+@findex bfd_write_bigendian_4byte_int
+@subsubsection @code{bfd_write_bigendian_4byte_int}
+@deftypefn {Function} bool bfd_write_bigendian_4byte_int (bfd *, unsigned int); 
+Write a 4 byte integer @var{i} to the output BFD @var{abfd}, in big
+endian order regardless of what else is going on.  This is useful in
+archives.
+
+@end deftypefn
+@findex bfd_put_size
+@subsubsection @code{bfd_put_size}
+@findex bfd_get_size
+@subsubsection @code{bfd_get_size}
+These macros as used for reading and writing raw data in
+sections; each access (except for bytes) is vectored through
+the target format of the BFD and mangled accordingly. The
+mangling performs any necessary endian translations and
+removes alignment restrictions.  Note that types accepted and
+returned by these macros are identical so they can be swapped
+around in macros---for example, @file{libaout.h} defines @code{GET_WORD}
+to either @code{bfd_get_32} or @code{bfd_get_64}.
+
+In the put routines, @var{val} must be a @code{bfd_vma}.  If we are on a
+system without prototypes, the caller is responsible for making
+sure that is true, with a cast if necessary.  We don't cast
+them in the macro definitions because that would prevent @code{lint}
+or @code{gcc -Wall} from detecting sins such as passing a pointer.
+To detect calling these with less than a @code{bfd_vma}, use
+@code{gcc -Wconversion} on a host with 64 bit @code{bfd_vma}'s.
+@example
+
+/* Byte swapping macros for user section data.  */
+
+#define bfd_put_8(abfd, val, ptr) \
+  ((void) (*((bfd_byte *) (ptr)) = (val) & 0xff))
+#define bfd_put_signed_8 \
+  bfd_put_8
+#define bfd_get_8(abfd, ptr) \
+  ((bfd_vma) *(const bfd_byte *) (ptr) & 0xff)
+#define bfd_get_signed_8(abfd, ptr) \
+  ((((bfd_signed_vma) *(const bfd_byte *) (ptr) & 0xff) ^ 0x80) - 0x80)
+
+#define bfd_put_16(abfd, val, ptr) \
+  BFD_SEND (abfd, bfd_putx16, ((val),(ptr)))
+#define bfd_put_signed_16 \
+  bfd_put_16
+#define bfd_get_16(abfd, ptr) \
+  BFD_SEND (abfd, bfd_getx16, (ptr))
+#define bfd_get_signed_16(abfd, ptr) \
+  BFD_SEND (abfd, bfd_getx_signed_16, (ptr))
+
+#define bfd_put_24(abfd, val, ptr) \
+  do                                   \
+    if (bfd_big_endian (abfd))         \
+      bfd_putb24 ((val), (ptr));       \
+    else                               \
+      bfd_putl24 ((val), (ptr));       \
+  while (0)
+
+bfd_vma bfd_getb24 (const void *p);
+bfd_vma bfd_getl24 (const void *p);
+
+#define bfd_get_24(abfd, ptr) \
+  (bfd_big_endian (abfd) ? bfd_getb24 (ptr) : bfd_getl24 (ptr))
+
+#define bfd_put_32(abfd, val, ptr) \
+  BFD_SEND (abfd, bfd_putx32, ((val),(ptr)))
+#define bfd_put_signed_32 \
+  bfd_put_32
+#define bfd_get_32(abfd, ptr) \
+  BFD_SEND (abfd, bfd_getx32, (ptr))
+#define bfd_get_signed_32(abfd, ptr) \
+  BFD_SEND (abfd, bfd_getx_signed_32, (ptr))
+
+#define bfd_put_64(abfd, val, ptr) \
+  BFD_SEND (abfd, bfd_putx64, ((val), (ptr)))
+#define bfd_put_signed_64 \
+  bfd_put_64
+#define bfd_get_64(abfd, ptr) \
+  BFD_SEND (abfd, bfd_getx64, (ptr))
+#define bfd_get_signed_64(abfd, ptr) \
+  BFD_SEND (abfd, bfd_getx_signed_64, (ptr))
+
+#define bfd_get(bits, abfd, ptr)                       \
+  ((bits) == 8 ? bfd_get_8 (abfd, ptr)                 \
+   : (bits) == 16 ? bfd_get_16 (abfd, ptr)             \
+   : (bits) == 32 ? bfd_get_32 (abfd, ptr)             \
+   : (bits) == 64 ? bfd_get_64 (abfd, ptr)             \
+   : (abort (), (bfd_vma) - 1))
+
+#define bfd_put(bits, abfd, val, ptr)                  \
+  ((bits) == 8 ? bfd_put_8  (abfd, val, ptr)           \
+   : (bits) == 16 ? bfd_put_16 (abfd, val, ptr)        \
+   : (bits) == 32 ? bfd_put_32 (abfd, val, ptr)        \
+   : (bits) == 64 ? bfd_put_64 (abfd, val, ptr)        \
+   : (abort (), (void) 0))
+
+@end example
+
+@findex bfd_h_put_size
+@subsubsection @code{bfd_h_put_size}
+These macros have the same function as their @code{bfd_get_x}
+brethren, except that they are used for removing information
+for the header records of object files. Believe it or not,
+some object files keep their header records in big endian
+order and their data in little endian order.
+@example
+
+/* Byte swapping macros for file header data.  */
+
+#define bfd_h_put_8(abfd, val, ptr) \
+  bfd_put_8 (abfd, val, ptr)
+#define bfd_h_put_signed_8(abfd, val, ptr) \
+  bfd_put_8 (abfd, val, ptr)
+#define bfd_h_get_8(abfd, ptr) \
+  bfd_get_8 (abfd, ptr)
+#define bfd_h_get_signed_8(abfd, ptr) \
+  bfd_get_signed_8 (abfd, ptr)
+
+#define bfd_h_put_16(abfd, val, ptr) \
+  BFD_SEND (abfd, bfd_h_putx16, (val, ptr))
+#define bfd_h_put_signed_16 \
+  bfd_h_put_16
+#define bfd_h_get_16(abfd, ptr) \
+  BFD_SEND (abfd, bfd_h_getx16, (ptr))
+#define bfd_h_get_signed_16(abfd, ptr) \
+  BFD_SEND (abfd, bfd_h_getx_signed_16, (ptr))
+
+#define bfd_h_put_32(abfd, val, ptr) \
+  BFD_SEND (abfd, bfd_h_putx32, (val, ptr))
+#define bfd_h_put_signed_32 \
+  bfd_h_put_32
+#define bfd_h_get_32(abfd, ptr) \
+  BFD_SEND (abfd, bfd_h_getx32, (ptr))
+#define bfd_h_get_signed_32(abfd, ptr) \
+  BFD_SEND (abfd, bfd_h_getx_signed_32, (ptr))
+
+#define bfd_h_put_64(abfd, val, ptr) \
+  BFD_SEND (abfd, bfd_h_putx64, (val, ptr))
+#define bfd_h_put_signed_64 \
+  bfd_h_put_64
+#define bfd_h_get_64(abfd, ptr) \
+  BFD_SEND (abfd, bfd_h_getx64, (ptr))
+#define bfd_h_get_signed_64(abfd, ptr) \
+  BFD_SEND (abfd, bfd_h_getx_signed_64, (ptr))
+
+/* Aliases for the above, which should eventually go away.  */
+
+#define H_PUT_64  bfd_h_put_64
+#define H_PUT_32  bfd_h_put_32
+#define H_PUT_16  bfd_h_put_16
+#define H_PUT_8   bfd_h_put_8
+#define H_PUT_S64 bfd_h_put_signed_64
+#define H_PUT_S32 bfd_h_put_signed_32
+#define H_PUT_S16 bfd_h_put_signed_16
+#define H_PUT_S8  bfd_h_put_signed_8
+#define H_GET_64  bfd_h_get_64
+#define H_GET_32  bfd_h_get_32
+#define H_GET_16  bfd_h_get_16
+#define H_GET_8   bfd_h_get_8
+#define H_GET_S64 bfd_h_get_signed_64
+#define H_GET_S32 bfd_h_get_signed_32
+#define H_GET_S16 bfd_h_get_signed_16
+#define H_GET_S8  bfd_h_get_signed_8
+
+
+@end example
+
+@findex Byte swapping routines.
+@subsubsection @code{Byte swapping routines.}
+@deftypefn {Function} uint64_t bfd_getb64 (const void *); uint64_t bfd_getl64 (const void *); int64_t bfd_getb_signed_64 (const void *); int64_t bfd_getl_signed_64 (const void *); bfd_vma bfd_getb32 (const void *); bfd_vma bfd_getl32 (const void *); bfd_signed_vma bfd_getb_signed_32 (const void *); bfd_signed_vma bfd_getl_signed_32 (const void *); bfd_vma bfd_getb16 (const void *); bfd_vma bfd_getl16 (const void *); bfd_signed_vma bfd_getb_signed_16 (const void *); bfd_signed_vma bfd_getl_signed_16 (const void *); void bfd_putb64 (uint64_t, void *); void bfd_putl64 (uint64_t, void *); void bfd_putb32 (bfd_vma, void *); void bfd_putl32 (bfd_vma, void *); void bfd_putb24 (bfd_vma, void *); void bfd_putl24 (bfd_vma, void *); void bfd_putb16 (bfd_vma, void *); void bfd_putl16 (bfd_vma, void *); uint64_t bfd_get_bits (const void *, int, bool); void bfd_put_bits (uint64_t, void *, int, bool); 
+Read and write integers in a particular endian order.  getb
+and putb functions handle big-endian, getl and putl handle
+little-endian.  bfd_get_bits and bfd_put_bits specify
+big-endian by passing TRUE in the last parameter,
+little-endian by passing FALSE.
+
+@end deftypefn
+@findex bfd_log2
+@subsubsection @code{bfd_log2}
+@deftypefn {Function} unsigned int bfd_log2 (bfd_vma x); 
+Return the log base 2 of the value supplied, rounded up.  E.g., an
+@var{x} of 1025 returns 11.  A @var{x} of 0 returns 0.
+
+@end deftypefn

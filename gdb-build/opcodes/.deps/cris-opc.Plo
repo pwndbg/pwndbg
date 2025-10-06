@@ -1,0 +1,5 @@
+cris-opc.lo: ../../binutils-gdb/opcodes/cris-opc.c \
+ /usr/include/stdc-predef.h \
+ ../../binutils-gdb/opcodes/../include/opcode/cris.h
+/usr/include/stdc-predef.h:
+../../binutils-gdb/opcodes/../include/opcode/cris.h:

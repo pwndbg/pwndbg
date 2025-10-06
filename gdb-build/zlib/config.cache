@@ -1,0 +1,83 @@
+# This file is a shell script that caches the results of configure
+# tests run on this system so they can be shared between configure
+# scripts and configure runs, see configure's option --config-cache.
+# It is not useful on other systems.  If it contains results you don't
+# want to keep, you may remove or edit it.
+#
+# config.status only pays attention to the cache file if you give it
+# the --recheck option to rerun configure.
+#
+# `ac_cv_env_foo' variables (set or unset) will be overridden when
+# loading this file, other *unset* `ac_cv_foo' will be assigned the
+# following values.
+
+ac_cv_build=${ac_cv_build=x86_64-pc-linux-gnu}
+ac_cv_c_compiler_gnu=${ac_cv_c_compiler_gnu=yes}
+ac_cv_env_CPPFLAGS_set=
+ac_cv_env_CPPFLAGS_value=
+ac_cv_env_CPP_set=
+ac_cv_env_CPP_value=
+ac_cv_env_build_alias_set=set
+ac_cv_env_build_alias_value=x86_64-pc-linux-gnu
+ac_cv_env_host_alias_set=set
+ac_cv_env_host_alias_value=x86_64-pc-linux-gnu
+ac_cv_env_target_alias_set=set
+ac_cv_env_target_alias_value=x86_64-pc-linux-gnu
+ac_cv_func_getpagesize=${ac_cv_func_getpagesize=yes}
+ac_cv_func_memcpy=${ac_cv_func_memcpy=yes}
+ac_cv_func_mmap_fixed_mapped=${ac_cv_func_mmap_fixed_mapped=yes}
+ac_cv_func_strerror=${ac_cv_func_strerror=yes}
+ac_cv_header_dlfcn_h=${ac_cv_header_dlfcn_h=yes}
+ac_cv_header_inttypes_h=${ac_cv_header_inttypes_h=yes}
+ac_cv_header_memory_h=${ac_cv_header_memory_h=yes}
+ac_cv_header_stdc=${ac_cv_header_stdc=yes}
+ac_cv_header_stdint_h=${ac_cv_header_stdint_h=yes}
+ac_cv_header_stdlib_h=${ac_cv_header_stdlib_h=yes}
+ac_cv_header_string_h=${ac_cv_header_string_h=yes}
+ac_cv_header_strings_h=${ac_cv_header_strings_h=yes}
+ac_cv_header_sys_param_h=${ac_cv_header_sys_param_h=yes}
+ac_cv_header_sys_stat_h=${ac_cv_header_sys_stat_h=yes}
+ac_cv_header_sys_types_h=${ac_cv_header_sys_types_h=yes}
+ac_cv_header_unistd_h=${ac_cv_header_unistd_h=yes}
+ac_cv_host=${ac_cv_host=x86_64-pc-linux-gnu}
+ac_cv_objext=${ac_cv_objext=o}
+ac_cv_path_EGREP=${ac_cv_path_EGREP='/usr/bin/grep -E'}
+ac_cv_path_FGREP=${ac_cv_path_FGREP='/usr/bin/grep -F'}
+ac_cv_path_GREP=${ac_cv_path_GREP=/usr/bin/grep}
+ac_cv_path_SED=${ac_cv_path_SED=/usr/bin/sed}
+ac_cv_path_mkdir=${ac_cv_path_mkdir=/usr/bin/mkdir}
+ac_cv_prog_AR=${ac_cv_prog_AR='ar --plugin /usr/libexec/gcc/x86_64-linux-gnu/13/liblto_plugin.so'}
+ac_cv_prog_AWK=${ac_cv_prog_AWK=gawk}
+ac_cv_prog_CC=${ac_cv_prog_CC=gcc}
+ac_cv_prog_CPP=${ac_cv_prog_CPP='gcc -E'}
+ac_cv_prog_OBJDUMP=${ac_cv_prog_OBJDUMP=objdump}
+ac_cv_prog_RANLIB=${ac_cv_prog_RANLIB='ranlib --plugin /usr/libexec/gcc/x86_64-linux-gnu/13/liblto_plugin.so'}
+ac_cv_prog_ac_ct_STRIP=${ac_cv_prog_ac_ct_STRIP=strip}
+ac_cv_prog_cc_c89=${ac_cv_prog_cc_c89=}
+ac_cv_prog_cc_g=${ac_cv_prog_cc_g=yes}
+ac_cv_prog_make_make_set=${ac_cv_prog_make_make_set=yes}
+ac_cv_target=${ac_cv_target=x86_64-pc-linux-gnu}
+am_cv_CC_dependencies_compiler_type=${am_cv_CC_dependencies_compiler_type=gcc3}
+am_cv_make_support_nested_variables=${am_cv_make_support_nested_variables=yes}
+am_cv_prog_cc_c_o=${am_cv_prog_cc_c_o=yes}
+clang_cv_is_clang=${clang_cv_is_clang=no}
+lt_cv_archive_cmds_need_lc=${lt_cv_archive_cmds_need_lc=no}
+lt_cv_deplibs_check_method=${lt_cv_deplibs_check_method=pass_all}
+lt_cv_file_magic_cmd=${lt_cv_file_magic_cmd='$MAGIC_CMD'}
+lt_cv_file_magic_test_file=${lt_cv_file_magic_test_file=}
+lt_cv_ld_reload_flag=${lt_cv_ld_reload_flag=-r}
+lt_cv_nm_interface=${lt_cv_nm_interface='BSD nm'}
+lt_cv_objdir=${lt_cv_objdir=.libs}
+lt_cv_path_LD=${lt_cv_path_LD=ld}
+lt_cv_path_NM=${lt_cv_path_NM='/usr/bin/nm --plugin /usr/libexec/gcc/x86_64-linux-gnu/13/liblto_plugin.so -B'}
+lt_cv_prog_compiler_c_o=${lt_cv_prog_compiler_c_o=yes}
+lt_cv_prog_compiler_pic_works=${lt_cv_prog_compiler_pic_works=yes}
+lt_cv_prog_compiler_rtti_exceptions=${lt_cv_prog_compiler_rtti_exceptions=no}
+lt_cv_prog_compiler_static_works=${lt_cv_prog_compiler_static_works=yes}
+lt_cv_prog_gnu_ld=${lt_cv_prog_gnu_ld=yes}
+lt_cv_shlibpath_overrides_runpath=${lt_cv_shlibpath_overrides_runpath=yes}
+lt_cv_sys_global_symbol_pipe=${lt_cv_sys_global_symbol_pipe='sed -n -e '\''s/^.*[	 ]\([ABCDGIRSTW][ABCDGIRSTW]*\)[	 ][	 ]*\([_A-Za-z][_A-Za-z0-9]*\)$/\1 \2 \2/p'\'''}
+test "${lt_cv_sys_global_symbol_to_c_name_address+set}" = set || lt_cv_sys_global_symbol_to_c_name_address='sed -n -e '\''s/^: \([^ ]*\) $/  {\"\1\", (void *) 0},/p'\'' -e '\''s/^[ABCDGIRSTW]* \([^ ]*\) \([^ ]*\)$/  {"\2", (void *) \&\2},/p'\'''
+test "${lt_cv_sys_global_symbol_to_c_name_address_lib_prefix+set}" = set || lt_cv_sys_global_symbol_to_c_name_address_lib_prefix='sed -n -e '\''s/^: \([^ ]*\) $/  {\"\1\", (void *) 0},/p'\'' -e '\''s/^[ABCDGIRSTW]* \([^ ]*\) \(lib[^ ]*\)$/  {"\2", (void *) \&\2},/p'\'' -e '\''s/^[ABCDGIRSTW]* \([^ ]*\) \([^ ]*\)$/  {"lib\2", (void *) \&\2},/p'\'''
+lt_cv_sys_global_symbol_to_cdecl=${lt_cv_sys_global_symbol_to_cdecl='sed -n -e '\''s/^T .* \(.*\)$/extern int \1();/p'\'' -e '\''s/^[ABCDGIRSTW]* .* \(.*\)$/extern char \1;/p'\'''}
+lt_cv_sys_max_cmd_len=${lt_cv_sys_max_cmd_len=1572864}

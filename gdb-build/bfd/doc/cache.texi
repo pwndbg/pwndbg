@@ -1,0 +1,71 @@
+@section File caching
+The file caching mechanism is embedded within BFD and allows
+the application to open as many BFDs as it wants without
+regard to the underlying operating system's file descriptor
+limit (often as low as 20 open files).  The module in
+@code{cache.c} maintains a least recently used list of
+@code{bfd_cache_max_open} files, and exports the name
+@code{bfd_cache_lookup}, which runs around and makes sure that
+the required BFD is open. If not, then it chooses a file to
+close, closes it and opens the one wanted, returning its file
+handle.
+
+@subsection Caching functions
+
+
+@findex bfd_cache_init
+@subsubsection @code{bfd_cache_init}
+@deftypefn {Function} bool bfd_cache_init (bfd *abfd); 
+Add a newly opened BFD to the cache.
+
+@end deftypefn
+@findex bfd_cache_close
+@subsubsection @code{bfd_cache_close}
+@deftypefn {Function} bool bfd_cache_close (bfd *abfd); 
+Remove the BFD @var{abfd} from the cache. If the attached file is open,
+then close it too.
+
+@code{FALSE} is returned if closing the file fails, @code{TRUE} is
+returned if all is well.
+
+@end deftypefn
+@findex bfd_cache_close_all
+@subsubsection @code{bfd_cache_close_all}
+@deftypefn {Function} bool bfd_cache_close_all (void); 
+Remove all BFDs from the cache. If the attached file is open,
+then close it too.  Note - despite its name this function will
+close a BFD even if it is not marked as being cacheable, ie
+even if bfd_get_cacheable() returns false.
+
+@code{FALSE} is returned if closing one of the file fails, @code{TRUE} is
+returned if all is well.
+
+@end deftypefn
+@findex bfd_cache_set_uncloseable
+@subsubsection @code{bfd_cache_set_uncloseable}
+@deftypefn {Function} bool bfd_cache_set_uncloseable (bfd *abfd, bool value, bool *old); 
+Internal function to mark ABFD as either closeable or not.
+This is used by bfd_check_format_matches to avoid races
+where bfd_cache_close_all is called in another thread.
+VALUE is true to mark the BFD as temporarily uncloseable
+by the cache; false to mark it as closeable once again.
+OLD, if non-NULL, is set to the previous value of the flag.
+Returns false on error, true on success.
+
+@end deftypefn
+@findex bfd_cache_size
+@subsubsection @code{bfd_cache_size}
+@deftypefn {Function} unsigned bfd_cache_size (void); 
+Return the number of open files in the cache.
+
+@end deftypefn
+@findex bfd_open_file
+@subsubsection @code{bfd_open_file}
+@deftypefn {Function} FILE* bfd_open_file (bfd *abfd); 
+Call the OS to open a file for @var{abfd}.  Return the @code{FILE *}
+(possibly @code{NULL}) that results from this operation.  Set up the
+BFD so that future accesses know the file is open. If the @code{FILE *}
+returned is @code{NULL}, then it won't have been put in the
+cache, so it won't have to be removed from it.
+
+@end deftypefn

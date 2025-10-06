@@ -1,0 +1,143 @@
+gdbsupport/safe-strerror-ipa.o: \
+ ../../binutils-gdb/gdbserver/../gdbsupport/safe-strerror.cc \
+ ../../binutils-gdb/gdbserver/server.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/common-defs.h \
+ ../gdbsupport/config.h ../gnulib/config.h ../gnulib/import/stdio.h \
+ ../gnulib/import/stdlib.h ../gnulib/import/string.h \
+ ../../binutils-gdb/gdbserver/../include/ansidecl.h \
+ ../../binutils-gdb/gdbserver/../include/libiberty.h \
+ ../../binutils-gdb/gdbserver/../include/ansidecl.h \
+ ../../binutils-gdb/gdbserver/../gnulib/import/pathmax.h \
+ ../gnulib/import/unistd.h ../gnulib/import/limits.h \
+ ../../binutils-gdb/gdbserver/../include/gdb/signals.h \
+ ../../binutils-gdb/gdbserver/../include/gdb/signals.def \
+ ../../binutils-gdb/gdbserver/../gdbsupport/gdb_locale.h \
+ ../gnulib/import/locale.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/ptid.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/common-types.h \
+ ../gnulib/import/inttypes.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/common-types.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/common-utils.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/byte-vector.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/def-vector.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/default-init-alloc.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/gdb_unique_ptr.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/gdb-xfree.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/poison.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/traits.h \
+ ../../binutils-gdb/gdbserver/../include/obstack.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/array-view.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/gdb_assert.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/errors.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/poison.h \
+ ../../binutils-gdb/gdbserver/../include/hashtab.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/gdb_assert.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/print-utils.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/common-debug.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/preprocessor.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/common-exceptions.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/underlying.h \
+ ../../binutils-gdb/gdbserver/../gnulib/import/c-ctype.h config.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/version.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/xml-utils.h \
+ ../../binutils-gdb/gdbserver/regcache.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/common-regcache.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/gdb_signals.h \
+ ../../binutils-gdb/gdbserver/target.h \
+ ../../binutils-gdb/gdbserver/../gdb/target/target.h \
+ ../../binutils-gdb/gdbserver/../gdb/target/waitstatus.h \
+ ../../binutils-gdb/gdbserver/../include/diagnostics.h \
+ ../../binutils-gdb/gdbserver/../gdb/target/wait.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/enum-flags.h \
+ ../../binutils-gdb/gdbserver/../gdb/target/resume.h \
+ ../../binutils-gdb/gdbserver/mem-break.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/break-common.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/btrace-common.h \
+ ../gnulib/import/sys/stat.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/environ.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/event-loop.h \
+ ../../binutils-gdb/gdbserver/remote-utils.h \
+ ../../binutils-gdb/gdbserver/utils.h \
+ ../../binutils-gdb/gdbserver/debug.h \
+ ../../binutils-gdb/gdbserver/gdbthread.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/function-view.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/intrusive_list.h \
+ ../../binutils-gdb/gdbserver/inferiors.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/owning_intrusive_list.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/intrusive_list.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/unordered_map.h \
+ ../../binutils-gdb/gdbserver/../gdbsupport/unordered_dense.h \
+ ../../binutils-gdb/gdbserver/dll.h
+../../binutils-gdb/gdbserver/server.h:
+../../binutils-gdb/gdbserver/../gdbsupport/common-defs.h:
+../gdbsupport/config.h:
+../gnulib/config.h:
+../gnulib/import/stdio.h:
+../gnulib/import/stdlib.h:
+../gnulib/import/string.h:
+../../binutils-gdb/gdbserver/../include/ansidecl.h:
+../../binutils-gdb/gdbserver/../include/libiberty.h:
+../../binutils-gdb/gdbserver/../include/ansidecl.h:
+../../binutils-gdb/gdbserver/../gnulib/import/pathmax.h:
+../gnulib/import/unistd.h:
+../gnulib/import/limits.h:
+../../binutils-gdb/gdbserver/../include/gdb/signals.h:
+../../binutils-gdb/gdbserver/../include/gdb/signals.def:
+../../binutils-gdb/gdbserver/../gdbsupport/gdb_locale.h:
+../gnulib/import/locale.h:
+../../binutils-gdb/gdbserver/../gdbsupport/ptid.h:
+../../binutils-gdb/gdbserver/../gdbsupport/common-types.h:
+../gnulib/import/inttypes.h:
+../../binutils-gdb/gdbserver/../gdbsupport/common-types.h:
+../../binutils-gdb/gdbserver/../gdbsupport/common-utils.h:
+../../binutils-gdb/gdbserver/../gdbsupport/byte-vector.h:
+../../binutils-gdb/gdbserver/../gdbsupport/def-vector.h:
+../../binutils-gdb/gdbserver/../gdbsupport/default-init-alloc.h:
+../../binutils-gdb/gdbserver/../gdbsupport/gdb_unique_ptr.h:
+../../binutils-gdb/gdbserver/../gdbsupport/gdb-xfree.h:
+../../binutils-gdb/gdbserver/../gdbsupport/poison.h:
+../../binutils-gdb/gdbserver/../gdbsupport/traits.h:
+../../binutils-gdb/gdbserver/../include/obstack.h:
+../../binutils-gdb/gdbserver/../gdbsupport/array-view.h:
+../../binutils-gdb/gdbserver/../gdbsupport/gdb_assert.h:
+../../binutils-gdb/gdbserver/../gdbsupport/errors.h:
+../../binutils-gdb/gdbserver/../gdbsupport/poison.h:
+../../binutils-gdb/gdbserver/../include/hashtab.h:
+../../binutils-gdb/gdbserver/../gdbsupport/gdb_assert.h:
+../../binutils-gdb/gdbserver/../gdbsupport/print-utils.h:
+../../binutils-gdb/gdbserver/../gdbsupport/common-debug.h:
+../../binutils-gdb/gdbserver/../gdbsupport/preprocessor.h:
+../../binutils-gdb/gdbserver/../gdbsupport/common-exceptions.h:
+../../binutils-gdb/gdbserver/../gdbsupport/underlying.h:
+../../binutils-gdb/gdbserver/../gnulib/import/c-ctype.h:
+config.h:
+../../binutils-gdb/gdbserver/../gdbsupport/version.h:
+../../binutils-gdb/gdbserver/../gdbsupport/xml-utils.h:
+../../binutils-gdb/gdbserver/regcache.h:
+../../binutils-gdb/gdbserver/../gdbsupport/common-regcache.h:
+../../binutils-gdb/gdbserver/../gdbsupport/gdb_signals.h:
+../../binutils-gdb/gdbserver/target.h:
+../../binutils-gdb/gdbserver/../gdb/target/target.h:
+../../binutils-gdb/gdbserver/../gdb/target/waitstatus.h:
+../../binutils-gdb/gdbserver/../include/diagnostics.h:
+../../binutils-gdb/gdbserver/../gdb/target/wait.h:
+../../binutils-gdb/gdbserver/../gdbsupport/enum-flags.h:
+../../binutils-gdb/gdbserver/../gdb/target/resume.h:
+../../binutils-gdb/gdbserver/mem-break.h:
+../../binutils-gdb/gdbserver/../gdbsupport/break-common.h:
+../../binutils-gdb/gdbserver/../gdbsupport/btrace-common.h:
+../gnulib/import/sys/stat.h:
+../../binutils-gdb/gdbserver/../gdbsupport/environ.h:
+../../binutils-gdb/gdbserver/../gdbsupport/event-loop.h:
+../../binutils-gdb/gdbserver/remote-utils.h:
+../../binutils-gdb/gdbserver/utils.h:
+../../binutils-gdb/gdbserver/debug.h:
+../../binutils-gdb/gdbserver/gdbthread.h:
+../../binutils-gdb/gdbserver/../gdbsupport/function-view.h:
+../../binutils-gdb/gdbserver/../gdbsupport/intrusive_list.h:
+../../binutils-gdb/gdbserver/inferiors.h:
+../../binutils-gdb/gdbserver/../gdbsupport/owning_intrusive_list.h:
+../../binutils-gdb/gdbserver/../gdbsupport/intrusive_list.h:
+../../binutils-gdb/gdbserver/../gdbsupport/unordered_map.h:
+../../binutils-gdb/gdbserver/../gdbsupport/unordered_dense.h:
+../../binutils-gdb/gdbserver/dll.h:

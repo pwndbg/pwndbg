@@ -1,0 +1,369 @@
+@section mmo backend
+The mmo object format is used exclusively together with Professor
+Donald E.@: Knuth's educational 64-bit processor MMIX.  The simulator
+@command{mmix} which is available at
+@url{http://mmix.cs.hm.edu/src/index.html}
+understands this format.  That package also includes a combined
+assembler and linker called @command{mmixal}.  The mmo format has
+no advantages feature-wise compared to e.g. ELF.  It is a simple
+non-relocatable object format with no support for archives or
+debugging information, except for symbol value information and
+line numbers (which is not yet implemented in BFD).  See
+@url{http://mmix.cs.hm.edu/} for more
+information about MMIX.  The ELF format is used for intermediate
+object files in the BFD implementation.
+
+@c We want to xref the symbol table node.  A feature in "chew"
+@c requires that "commands" do not contain spaces in the
+@c arguments.  Hence the hyphen in "Symbol-table".
+@menu
+* File layout::
+* Symbol-table::
+* mmo section mapping::
+@end menu
+
+@node File layout, Symbol-table, mmo, mmo
+@subsection File layout
+The mmo file contents is not partitioned into named sections as
+with e.g.@: ELF.  Memory areas is formed by specifying the
+location of the data that follows.  Only the memory area
+@samp{0x0000@dots{}00} to @samp{0x01ff@dots{}ff} is executable, so
+it is used for code (and constants) and the area
+@samp{0x2000@dots{}00} to @samp{0x20ff@dots{}ff} is used for
+writable data.  @xref{mmo section mapping}.
+
+There is provision for specifying ``special data'' of 65536
+different types.  We use type 80 (decimal), arbitrarily chosen the
+same as the ELF @code{e_machine} number for MMIX, filling it with
+section information normally found in ELF objects. @xref{mmo
+section mapping}.
+
+Contents is entered as 32-bit words, xor:ed over previous
+contents, always zero-initialized.  A word that starts with the
+byte @samp{0x98} forms a command called a @samp{lopcode}, where
+the next byte distinguished between the thirteen lopcodes.  The
+two remaining bytes, called the @samp{Y} and @samp{Z} fields, or
+the @samp{YZ} field (a 16-bit big-endian number), are used for
+various purposes different for each lopcode.  As documented in
+@url{http://mmix.cs.hm.edu/doc/mmixal.pdf},
+the lopcodes are:
+
+@table @code
+@item lop_quote
+0x98000001.  The next word is contents, regardless of whether it
+starts with 0x98 or not.
+
+@item lop_loc
+0x9801YYZZ, where @samp{Z} is 1 or 2.  This is a location
+directive, setting the location for the next data to the next
+32-bit word (for @math{Z = 1}) or 64-bit word (for @math{Z = 2}),
+plus @math{Y * 2^56}.  Normally @samp{Y} is 0 for the text segment
+and 2 for the data segment.  Beware that the low bits of non-
+tetrabyte-aligned values are silently discarded when being
+automatically incremented and when storing contents (in contrast
+to e.g. its use as current location when followed by lop_fixo
+et al before the next possibly-quoted tetrabyte contents).
+
+@item lop_skip
+0x9802YYZZ.  Increase the current location by @samp{YZ} bytes.
+
+@item lop_fixo
+0x9803YYZZ, where @samp{Z} is 1 or 2.  Store the current location
+as 64 bits into the location pointed to by the next 32-bit
+(@math{Z = 1}) or 64-bit (@math{Z = 2}) word, plus @math{Y *
+2^56}.
+
+@item lop_fixr
+0x9804YYZZ.  @samp{YZ} is stored into the current location plus
+@math{2 - 4 * YZ}.
+
+@item lop_fixrx
+0x980500ZZ.  @samp{Z} is 16 or 24.  A value @samp{L} derived from
+the following 32-bit word are used in a manner similar to
+@samp{YZ} in lop_fixr: it is xor:ed into the current location
+minus @math{4 * L}.  The first byte of the word is 0 or 1.  If it
+is 1, then @math{L = (@var{lowest 24 bits of word}) - 2^Z}, if 0,
+then @math{L = (@var{lowest 24 bits of word})}.
+
+@item lop_file
+0x9806YYZZ.  @samp{Y} is the file number, @samp{Z} is count of
+32-bit words.  Set the file number to @samp{Y} and the line
+counter to 0.  The next @math{Z * 4} bytes contain the file name,
+padded with zeros if the count is not a multiple of four.  The
+same @samp{Y} may occur multiple times, but @samp{Z} must be 0 for
+all but the first occurrence.
+
+@item lop_line
+0x9807YYZZ.  @samp{YZ} is the line number.  Together with
+lop_file, it forms the source location for the next 32-bit word.
+Note that for each non-lopcode 32-bit word, line numbers are
+assumed incremented by one.
+
+@item lop_spec
+0x9808YYZZ.  @samp{YZ} is the type number.  Data until the next
+lopcode other than lop_quote forms special data of type @samp{YZ}.
+@xref{mmo section mapping}.
+
+Other types than 80, (or type 80 with a content that does not
+parse) is stored in sections named @code{.MMIX.spec_data.@var{n}}
+where @var{n} is the @samp{YZ}-type.  The flags for such a
+sections say not to allocate or load the data.  The vma is 0.
+Contents of multiple occurrences of special data @var{n} is
+concatenated to the data of the previous lop_spec @var{n}s.  The
+location in data or code at which the lop_spec occurred is lost.
+
+@item lop_pre
+0x980901ZZ.  The first lopcode in a file.  The @samp{Z} field forms the
+length of header information in 32-bit words, where the first word
+tells the time in seconds since @samp{00:00:00 GMT Jan 1 1970}.
+
+@item lop_post
+0x980a00ZZ.  @math{Z > 32}.  This lopcode follows after all
+content-generating lopcodes in a program.  The @samp{Z} field
+denotes the value of @samp{rG} at the beginning of the program.
+The following @math{256 - Z} big-endian 64-bit words are loaded
+into global registers @samp{$G} @dots{} @samp{$255}.
+
+@item lop_stab
+0x980b0000.  The next-to-last lopcode in a program.  Must follow
+immediately after the lop_post lopcode and its data.  After this
+lopcode follows all symbols in a compressed format
+(@pxref{Symbol-table}).
+
+@item lop_end
+0x980cYYZZ.  The last lopcode in a program.  It must follow the
+lop_stab lopcode and its data.  The @samp{YZ} field contains the
+number of 32-bit words of symbol table information after the
+preceding lop_stab lopcode.
+@end table
+
+Note that the lopcode "fixups"; @code{lop_fixr}, @code{lop_fixrx} and
+@code{lop_fixo} are not generated by BFD, but are handled.  They are
+generated by @code{mmixal}.
+
+This trivial one-label, one-instruction file:
+
+@example
+ :Main TRAP 1,2,3
+@end example
+
+can be represented this way in mmo:
+
+@example
+ 0x98090101 - lop_pre, one 32-bit word with timestamp.
+ <timestamp>
+ 0x98010002 - lop_loc, text segment, using a 64-bit address.
+              Note that mmixal does not emit this for the file above.
+ 0x00000000 - Address, high 32 bits.
+ 0x00000000 - Address, low 32 bits.
+ 0x98060002 - lop_file, 2 32-bit words for file-name.
+ 0x74657374 - "test"
+ 0x2e730000 - ".s\0\0"
+ 0x98070001 - lop_line, line 1.
+ 0x00010203 - TRAP 1,2,3
+ 0x980a00ff - lop_post, setting $255 to 0.
+ 0x00000000
+ 0x00000000
+ 0x980b0000 - lop_stab for ":Main" = 0, serial 1.
+ 0x203a4040   @xref{Symbol-table}.
+ 0x10404020
+ 0x4d206120
+ 0x69016e00
+ 0x81000000
+ 0x980c0005 - lop_end; symbol table contained five 32-bit words.
+@end example
+@node Symbol-table, mmo section mapping, File layout, mmo
+@subsection Symbol table format
+From mmixal.w (or really, the generated mmixal.tex) in the
+MMIXware package which also contains the @command{mmix} simulator:
+``Symbols are stored and retrieved by means of a @samp{ternary
+search trie}, following ideas of Bentley and Sedgewick. (See
+ACM--SIAM Symp.@: on Discrete Algorithms @samp{8} (1997), 360--369;
+R.@:Sedgewick, @samp{Algorithms in C} (Reading, Mass.@:
+Addison--Wesley, 1998), @samp{15.4}.)  Each trie node stores a
+character, and there are branches to subtries for the cases where
+a given character is less than, equal to, or greater than the
+character in the trie.  There also is a pointer to a symbol table
+entry if a symbol ends at the current node.''
+
+So it's a tree encoded as a stream of bytes.  The stream of bytes
+acts on a single virtual global symbol, adding and removing
+characters and signalling complete symbol points.  Here, we read
+the stream and create symbols at the completion points.
+
+First, there's a control byte @code{m}.  If any of the listed bits
+in @code{m} is nonzero, we execute what stands at the right, in
+the listed order:
+
+@example
+ (MMO3_LEFT)
+ 0x40 - Traverse left trie.
+        (Read a new command byte and recurse.)
+
+ (MMO3_SYMBITS)
+ 0x2f - Read the next byte as a character and store it in the
+        current character position; increment character position.
+        Test the bits of @code{m}:
+
+        (MMO3_WCHAR)
+        0x80 - The character is 16-bit (so read another byte,
+               merge into current character.
+
+        (MMO3_TYPEBITS)
+        0xf  - We have a complete symbol; parse the type, value
+               and serial number and do what should be done
+               with a symbol.  The type and length information
+               is in j = (m & 0xf).
+
+               (MMO3_REGQUAL_BITS)
+               j == 0xf: A register variable.  The following
+                         byte tells which register.
+               j <= 8:   An absolute symbol.  Read j bytes as the
+                         big-endian number the symbol equals.
+                         A j = 2 with two zero bytes denotes an
+                         unknown symbol.
+               j > 8:    As with j <= 8, but add (0x20 << 56)
+                         to the value in the following j - 8
+                         bytes.
+
+               Then comes the serial number, as a variant of
+               uleb128, but better named ubeb128:
+               Read bytes and shift the previous value left 7
+               (multiply by 128).  Add in the new byte, repeat
+               until a byte has bit 7 set.  The serial number
+               is the computed value minus 128.
+
+        (MMO3_MIDDLE)
+        0x20 - Traverse middle trie.  (Read a new command byte
+               and recurse.)  Decrement character position.
+
+ (MMO3_RIGHT)
+ 0x10 - Traverse right trie.  (Read a new command byte and
+        recurse.)
+@end example
+
+Let's look again at the @code{lop_stab} for the trivial file
+(@pxref{File layout}).
+
+@example
+ 0x980b0000 - lop_stab for ":Main" = 0, serial 1.
+ 0x203a4040
+ 0x10404020
+ 0x4d206120
+ 0x69016e00
+ 0x81000000
+@end example
+
+This forms the trivial trie (note that the path between ``:'' and
+``M'' is redundant):
+
+@example
+ 203a     ":"
+ 40       /
+ 40      /
+ 10      \
+ 40      /
+ 40     /
+ 204d  "M"
+ 2061  "a"
+ 2069  "i"
+ 016e  "n" is the last character in a full symbol, and
+       with a value represented in one byte.
+ 00    The value is 0.
+ 81    The serial number is 1.
+@end example
+
+@node mmo section mapping, , Symbol-table, mmo
+@subsection mmo section mapping
+The implementation in BFD uses special data type 80 (decimal) to
+encapsulate and describe named sections, containing e.g.@: debug
+information.  If needed, any datum in the encapsulation will be
+quoted using lop_quote.  First comes a 32-bit word holding the
+number of 32-bit words containing the zero-terminated zero-padded
+segment name.  After the name there's a 32-bit word holding flags
+describing the section type.  Then comes a 64-bit big-endian word
+with the section length (in bytes), then another with the section
+start address.  Depending on the type of section, the contents
+might follow, zero-padded to 32-bit boundary.  For a loadable
+section (such as data or code), the contents might follow at some
+later point, not necessarily immediately, as a lop_loc with the
+same start address as in the section description, followed by the
+contents.  This in effect forms a descriptor that must be emitted
+before the actual contents.  Sections described this way must not
+overlap.
+
+For areas that don't have such descriptors, synthetic sections are
+formed by BFD.  Consecutive contents in the two memory areas
+@samp{0x0000@dots{}00} to @samp{0x01ff@dots{}ff} and
+@samp{0x2000@dots{}00} to @samp{0x20ff@dots{}ff} are entered in
+sections named @code{.text} and @code{.data} respectively.  If an area
+is not otherwise described, but would together with a neighboring
+lower area be less than @samp{0x40000000} bytes long, it is joined
+with the lower area and the gap is zero-filled.  For other cases,
+a new section is formed, named @code{.MMIX.sec.@var{n}}.  Here,
+@var{n} is a number, a running count through the mmo file,
+starting at 0.
+
+A loadable section specified as:
+
+@example
+ .section secname,"ax"
+ TETRA 1,2,3,4,-1,-2009
+ BYTE 80
+@end example
+
+and linked to address @samp{0x4}, is represented by the sequence:
+
+@example
+ 0x98080050 - lop_spec 80
+ 0x00000002 - two 32-bit words for the section name
+ 0x7365636e - "secn"
+ 0x616d6500 - "ame\0"
+ 0x00000033 - flags CODE, READONLY, LOAD, ALLOC
+ 0x00000000 - high 32 bits of section length
+ 0x0000001c - section length is 28 bytes; 6 * 4 + 1 + alignment to 32 bits
+ 0x00000000 - high 32 bits of section address
+ 0x00000004 - section address is 4
+ 0x98010002 - 64 bits with address of following data
+ 0x00000000 - high 32 bits of address
+ 0x00000004 - low 32 bits: data starts at address 4
+ 0x00000001 - 1
+ 0x00000002 - 2
+ 0x00000003 - 3
+ 0x00000004 - 4
+ 0xffffffff - -1
+ 0xfffff827 - -2009
+ 0x50000000 - 80 as a byte, padded with zeros.
+@end example
+
+Note that the lop_spec wrapping does not include the section
+contents.  Compare this to a non-loaded section specified as:
+
+@example
+ .section thirdsec
+ TETRA 200001,100002
+ BYTE 38,40
+@end example
+
+This, when linked to address @samp{0x200000000000001c}, is
+represented by:
+
+@example
+ 0x98080050 - lop_spec 80
+ 0x00000002 - two 32-bit words for the section name
+ 0x7365636e - "thir"
+ 0x616d6500 - "dsec"
+ 0x00000010 - flag READONLY
+ 0x00000000 - high 32 bits of section length
+ 0x0000000c - section length is 12 bytes; 2 * 4 + 2 + alignment to 32 bits
+ 0x20000000 - high 32 bits of address
+ 0x0000001c - low 32 bits of address 0x200000000000001c
+ 0x00030d41 - 200001
+ 0x000186a2 - 100002
+ 0x26280000 - 38, 40 as bytes, padded with zeros
+@end example
+
+For the latter example, the section contents must not be
+loaded in memory, and is therefore specified as part of the
+special data.  The address is usually unimportant but might
+provide information for e.g.@: the DWARF 2 debugging format.

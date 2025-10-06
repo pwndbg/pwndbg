@@ -1,0 +1,23 @@
+# This file is a shell script that caches the results of configure
+# tests run on this system so they can be shared between configure
+# scripts and configure runs, see configure's option --config-cache.
+# It is not useful on other systems.  If it contains results you don't
+# want to keep, you may remove or edit it.
+#
+# config.status only pays attention to the cache file if you give it
+# the --recheck option to rerun configure.
+#
+# `ac_cv_env_foo' variables (set or unset) will be overridden when
+# loading this file, other *unset* `ac_cv_foo' will be assigned the
+# following values.
+
+ac_cv_env_build_alias_set=set
+ac_cv_env_build_alias_value=x86_64-pc-linux-gnu
+ac_cv_env_host_alias_set=set
+ac_cv_env_host_alias_value=x86_64-pc-linux-gnu
+ac_cv_env_target_alias_set=set
+ac_cv_env_target_alias_value=x86_64-pc-linux-gnu
+ac_cv_path_mkdir=${ac_cv_path_mkdir=/usr/bin/mkdir}
+ac_cv_prog_AWK=${ac_cv_prog_AWK=gawk}
+ac_cv_prog_make_make_set=${ac_cv_prog_make_make_set=yes}
+am_cv_make_support_nested_variables=${am_cv_make_support_nested_variables=yes}
