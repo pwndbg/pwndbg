@@ -1,55 +1,73 @@
 # fmtarg command. Check EOF for license
+from __future__ import annotations
+
 import argparse
-import pwndbg.commands
-import pwndbg.chain
+from typing import Tuple
+
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
-import pwndbg.aglib.stack
 import pwndbg.aglib.regs
+import pwndbg.aglib.stack
+import pwndbg.chain
+import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser()
 parser.description = "Dump arguments for format string exploits."
-parser.add_argument(
-    "n", nargs="?", type=int, default=16, help="Number of arguments to print"
-)
+parser.add_argument("n", nargs="?", type=int, default=16, help="Number of arguments to print")
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def fmtarg(n=16):
     """
-    Show first n arguments as used in a format string, following
-    System V AMD64 calling convention.
+    Show first n arguments as used in a format string
     """
 
-    # System V AMD64 calling convention: rsi, rdx, rcx, r8, r9
-    regs64 = ["rsi", "rdx", "rcx", "r8", "r9"]
-
-    if pwndbg.aglib.arch.name != "x86-64":
-        print("Only x86-64 supported right now")
-        return
-
-    ptrsize = pwndbg.aglib.arch.ptrsize
-    rsp = pwndbg.aglib.regs.rsp
-    assert rsp is not None
-    # figure out how wide the index column should be
-    index_width = len(str(n))
+    n += 1  # to show first n arguments including the formatstring.
+    index_width = len(str(n)) + 2
     ret_addrs = set(pwndbg.aglib.stack.callstack())
 
-    for i, reg in enumerate(regs64):
-        if i >= n:
-            return
-        val = pwndbg.aglib.regs[reg]
-        reg = reg.upper()
-        # Align index, register name, and formatted value
-        print(f"{i+1:{index_width}d} │ {reg:<4} {pwndbg.chain.format(val)}")
+    abi = pwndbg.aglib.arch.function_abi
+    if abi is None:
+        raise pwndbg.dbg_mod.Error(
+            f"Function ABI not defined for current architecture, {pwndbg.aglib.arch.function_abi}"
+        )
 
-    for i in range(6, n):
-        addr = rsp + (i - 6) * ptrsize
-        val = pwndbg.aglib.memory.u(addr)
+    regs = abi.register_arguments
+    longest_reg = max(regs, key=len)
+    longest_reg_len = len(longest_reg)
 
-        annotation = " [RETADDR]" if val in ret_addrs else ""
-        print(f"{i:{index_width}d} │ {pwndbg.chain.format(addr)}{annotation}")
+    for i in range(n):
+        loc, arg = argument(i)
+        annotation = " [RETADDR]" if arg in ret_addrs else ""
+        index = str(i).center(index_width)
+        if isinstance(loc, str):
+            loc = loc.upper()
+            loc = loc.ljust(longest_reg_len + 2)
+            print("%s│ %s%s%s" % (index, loc, pwndbg.chain.format(arg), annotation))
+        else:
+            print("%s│ %s%s" % (index, pwndbg.chain.format(loc), annotation))
 
 
+def argument(n: int) -> Tuple[int | str, int]:
+    """
+    Returns the nth argument, as if $pc were a 'call' or 'bl' type
+    instruction.
+    Works only for ABIs that use registers for arguments.
+    """
+    abi = pwndbg.aglib.arch.function_abi
+    if abi is None:
+        raise pwndbg.dbg_mod.Error(
+            f"Function ABI not defined for current architecture, {pwndbg.aglib.arch.function_abi}"
+        )
+    regs = abi.register_arguments
+
+    if n < len(regs):
+        return regs[n], getattr(pwndbg.aglib.regs, regs[n])
+
+    n -= len(regs)
+
+    sp = pwndbg.aglib.regs.sp + (n * pwndbg.aglib.arch.ptrsize)
+
+    return sp, pwndbg.aglib.memory.read_pointer_width(sp)
