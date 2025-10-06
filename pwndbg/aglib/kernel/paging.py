@@ -301,7 +301,7 @@ class x86_64PagingInfo(ArchPagingInfo):
             if page.start == kbase:
                 continue
             # the first executable page after kernel text is the start of bpf/loadable driver
-            if has_loadable_driver or (page.execute and page.start != kbase):
+            if has_loadable_driver or page.execute:
                 page.objfile = self.KERNELDRIVER
                 has_loadable_driver = True
                 continue
