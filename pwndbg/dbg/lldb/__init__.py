@@ -41,6 +41,125 @@ T = TypeVar("T")
 LLDB_VERSION: Tuple[int, int] = None
 
 
+class value_iter(object):
+    '''Iterator class for lldb.value objects'''
+    def __init__(self, sbvalue):
+        self.sbvalue = sbvalue
+        self.index = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.index >= self.sbvalue.GetNumChildren():
+            raise StopIteration
+        child_sbvalue = self.sbvalue.GetChildAtIndex(self.index)
+        self.index += 1
+        return value(child_sbvalue)
+
+    def next(self):
+        return self.__next__()
+
+
+class value(object):
+    '''A class designed to wrap lldb.SBValue() objects so the resulting object
+    can be used as a variable would be in code. So if you have a Point structure
+    variable in your code in the current frame named "pt", you can initialize an instance
+    of this class with it:
+    
+    pt = lldb.value(lldb.frame.FindVariable("pt"))
+    print pt
+    print pt.x
+    print pt.y
+
+    pt = lldb.value(lldb.frame.FindVariable("rectangle_array"))
+    print rectangle_array[12]
+    print rectangle_array[5].origin.x'''
+    def __init__(self, sbvalue):
+        self.sbvalue = sbvalue
+
+    def __nonzero__(self):
+        return self.sbvalue.__nonzero__()
+
+    def __str__(self):
+        return self.sbvalue.__str__()
+
+    def __getitem__(self, key):
+        # Allow array access if this value has children...
+        if type(key) is value:
+            key = int(key)
+        if type(key) is int:
+            child_sbvalue = (self.sbvalue.GetValueForExpressionPath("[%i]" % key))
+            if child_sbvalue and child_sbvalue.IsValid():
+                return value(child_sbvalue)
+            raise IndexError("Index '%d' is out of range" % key)
+        raise TypeError("No array item of type %s" % str(type(key)))
+
+    def __iter__(self):
+        return value_iter(self.sbvalue)
+
+    def __getattr__(self, name):
+        child_sbvalue = self.sbvalue.GetChildMemberWithName (name)
+        if child_sbvalue and child_sbvalue.IsValid():
+            return value(child_sbvalue)
+        raise AttributeError("Attribute '%s' is not defined" % name)
+
+    def __add__(self, other):
+        return int(self) + int(other)
+        
+    def __sub__(self, other):
+        return int(self) - int(other)
+        
+    def __mul__(self, other):
+        return int(self) * int(other)
+        
+    def __floordiv__(self, other):
+        return int(self) // int(other)
+        
+    def __mod__(self, other):
+        return int(self) % int(other)
+        
+    def __divmod__(self, other):
+        return int(self) % int(other)
+        
+    def __pow__(self, other):
+        return int(self) ** int(other)
+        
+    def __lshift__(self, other):
+        return int(self) << int(other)
+        
+    def __rshift__(self, other):
+        return int(self) >> int(other)
+        
+    def __and__(self, other):
+        return int(self) & int(other)
+        
+    def __xor__(self, other):
+        return int(self) ^ int(other)
+        
+    def __or__(self, other):
+        return int(self) | int(other)
+        
+    def __div__(self, other):
+        return int(self) / int(other)
+        
+    def __truediv__(self, other):
+        return int(self) / int(other)
+
+    def __int__(self):
+        # Use unsigned in every pointer type
+        if self.sbvalue.GetType().IsPointerType():
+            return self.sbvalue.GetValueAsUnsigned()
+
+        # Logic is copied from lldb.value(self.sbvalue).__int__()
+        is_num, is_sign = lldb.is_numeric_type(
+            self.sbvalue.GetType().GetCanonicalType().GetBasicType()
+        )
+        if is_num and not is_sign:
+            return self.sbvalue.GetValueAsUnsigned()
+        return self.sbvalue.GetValueAsSigned()
+
+
 def rename_register(name: str, proc: LLDBProcess) -> str:
     """
     Some register names differ between Pwndbg/GDB and LLDB. This function takes
@@ -478,6 +597,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
     def __init__(self, inner: lldb.SBValue, proc: LLDBProcess):
         self.proc = proc
         self.inner = inner
+        self._value_wrapper = value(inner)
 
     @property
     @override
@@ -583,17 +703,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def __int__(self) -> int:
-        # use unsigned in every pointer type
-        if self.type.code == pwndbg.dbg_mod.TypeCode.POINTER:
-            return self.inner.GetValueAsUnsigned()
-
-        # Logic is copied from lldb.value(self.inner).__int__()
-        is_num, is_sign = lldb.is_numeric_type(
-            self.inner.GetType().GetCanonicalType().GetBasicType()
-        )
-        if is_num and not is_sign:
-            return self.inner.GetValueAsUnsigned()
-        return self.inner.GetValueAsSigned()
+        return int(self._value_wrapper)
 
     @override
     def cast(self, type: pwndbg.dbg_mod.Type | Any) -> pwndbg.dbg_mod.Value:
@@ -634,29 +744,18 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
     @override
     def __getitem__(self, key: str | int) -> pwndbg.dbg_mod.Value:
-        if isinstance(key, str):
-            value = self.inner.GetChildMemberWithName(key)
-        elif isinstance(key, int):
-            c = self.inner.GetType().GetTypeClass()
-            if c == lldb.eTypeClassPointer:
-                # GetChildAtIndex() at most only lets us dereference the pointer
-                # at its original location, meaning that, to implement the
-                # *(ptr+idx) behavior outlined in the Debugger-agnostic API, we
-                # have to do the offset manually.
-                offset_gen = self + key
-                assert isinstance(offset_gen, LLDBValue)
-                offset: LLDBValue = offset_gen
-
-                value = offset.inner.Dereference()
+        # Use the value wrapper for member access
+        try:
+            if isinstance(key, str):
+                result_value = getattr(self._value_wrapper, key)
+            elif isinstance(key, int):
+                result_value = self._value_wrapper[key]
             else:
-                value = self.inner.GetChildAtIndex(key)
-
-        if not value.IsValid():
-            raise pwndbg.dbg_mod.Error(
-                f"cannot get value with key '{key}': {value.error.description}"
-            )
-
-        return LLDBValue(value, self.proc)
+                raise pwndbg.dbg_mod.Error(f"Invalid key type: {type(key)}")
+            
+            return LLDBValue(result_value.sbvalue, self.proc)
+        except (AttributeError, IndexError) as e:
+            raise pwndbg.dbg_mod.Error(f"cannot get value with key '{key}': {str(e)}")
 
 
 class LLDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
@@ -1263,14 +1362,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def create_value(
         self, value: int, type: pwndbg.dbg_mod.Type | None = None
     ) -> pwndbg.dbg_mod.Value:
-        import struct
-
-        b = struct.pack("<Q", value)
-
-        e = lldb.SBError()
-        data = lldb.SBData()
-        data.SetDataWithOwnership(e, b, lldb.eByteOrderLittle, len(b))
-
         import pwndbg.aglib.typeinfo
 
         u64 = pwndbg.aglib.typeinfo.uint64
@@ -1281,13 +1372,38 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         series = self._created_value_serial
         self._created_value_serial += 1
-        value = self.target.CreateValueFromData(f"$PWNDBG_CREATED_VALUE_{series}", data, u64.inner)
-        value = LLDBValue(value, self)
+        
+        # Try to use SetValueFromCString for simple numeric values
+        try:
+            val = self.target.CreateValueFromExpression(
+                f"$PWNDBG_CREATED_VALUE_{series}", 
+                f"({u64.inner.GetName()}){value}"
+            )
+            if val.IsValid() and not val.error.Fail():
+                value_obj = LLDBValue(val, self)
+                if type:
+                    return value_obj.cast(type)
+                else:
+                    return value_obj
+        except:
+            # Fall back to the original method if expression evaluation fails
+            pass
+
+        # Original implementation as fallback
+        import struct
+        b = struct.pack("<Q", value)
+
+        e = lldb.SBError()
+        data = lldb.SBData()
+        data.SetDataWithOwnership(e, b, lldb.eByteOrderLittle, len(b))
+
+        val = self.target.CreateValueFromData(f"$PWNDBG_CREATED_VALUE_{series}", data, u64.inner)
+        value_obj = LLDBValue(val, self)
 
         if type:
-            return value.cast(type)
+            return value_obj.cast(type)
         else:
-            return value
+            return value_obj
 
     @override
     def symbol_name_at_address(self, address: int) -> str | None:
