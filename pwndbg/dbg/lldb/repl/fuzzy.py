@@ -39,7 +39,7 @@ from pwndbg.dbg.lldb import LLDB
 P = ParamSpec("P")
 T = TypeVar("T")
 
-PROMPT = ANSI("\x1b[34mpwndbg-lldb> ")
+PROMPT = ANSI("\x1b[34mpwndbg-lldb>\x1b[0m ")
 HISTORY_FILE = os.path.expanduser("~/.pwndbg_history")
 
 FZF_RUN_CMD = (

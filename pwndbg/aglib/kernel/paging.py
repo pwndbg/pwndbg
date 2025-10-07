@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import re
 from typing import Dict
 from typing import List
 from typing import Tuple
@@ -158,7 +159,6 @@ class ArchPagingInfo:
 
 
 class x86_64PagingInfo(ArchPagingInfo):
-    # constants are taken from https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
     def __init__(self):
         self.va_bits = 48 if self.paging_level == 4 else 51
         # https://blog.zolutal.io/understanding-paging/
@@ -254,6 +254,7 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     @pwndbg.lib.cache.cache_until("stop")
     def markers(self) -> Tuple[Tuple[str, int], ...]:
+        # https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt
         return (
             (self.USERLAND, 0),
             (None, 0x8000000000000000),
@@ -261,10 +262,6 @@ class x86_64PagingInfo(ArchPagingInfo):
             (self.PHYSMAP, self.physmap),
             (self.VMALLOC, self.vmalloc),
             (self.VMEMMAP, self.vmemmap),
-            # TODO: find better ways to handle the following constants
-            #   I cound not find kernel symbols that reference their values
-            #   the actual region base may differ but the region always falls within the below range
-            #   even if KASLR is enabled
             ("cpu entry", 0xFFFFFE0000000000),
             (self.ESPSTACK, 0xFFFFFF0000000000),
             ("EFI", 0xFFFFFFEF00000000),
@@ -301,16 +298,18 @@ class x86_64PagingInfo(ArchPagingInfo):
             page = pages[i]
             if page.objfile != self.KERNELLAND:
                 break
+            if page.start == kbase:
+                continue
+            # the first executable page after kernel text is the start of bpf/loadable driver
+            if has_loadable_driver or page.execute:
+                page.objfile = self.KERNELDRIVER
+                has_loadable_driver = True
+                continue
             if not page.execute:
                 if page.write:
                     page.objfile = self.KERNELBSS
                 else:
                     page.objfile = self.KERNELRO
-            if has_loadable_driver:
-                page.objfile = self.KERNELDRIVER
-            if page.execute and page.start != kbase:
-                page.objfile = self.KERNELDRIVER
-                has_loadable_driver = True
             if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
                 page.objfile = "kernel [stack]"
 
@@ -479,26 +478,39 @@ class Aarch64PagingInfo(ArchPagingInfo):
         return 100 << 21  # 100M
 
     @property
+    @pwndbg.lib.cache.cache_until("objfile")
+    def page_shift_heuristic(self) -> int:
+        sym = pwndbg.aglib.symbol.lookup_symbol_addr("copy_page_to_iter")
+        if sym is not None:
+            pattern = re.compile(r"mov.*(0x1000|0x10000|0x4000)")
+            for inst in pwndbg.aglib.nearpc.nearpc(int(sym), lines=50):
+                if (result := pattern.search(inst)) is not None:
+                    return int(math.log2(int(result.group(1), 16)))
+        return 12  # default
+
+    @property
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift(self) -> int:
-        if self.tcr_el1["TG1"] == 0b01:
-            return 14
-        elif self.tcr_el1["TG1"] == 0b10:
-            return 12
-        elif self.tcr_el1["TG1"] == 0b11:
-            return 16
-        raise NotImplementedError()
+        match self.tcr_el1["TG1"]:
+            case 0b01:
+                return 14
+            case 0b10:
+                return 12
+            case 0b11:
+                return 16
+        return self.page_shift_heuristic
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def page_shift_user(self) -> int:
-        if self.tcr_el1["TG0"] == 0b00:
-            return 12
-        elif self.tcr_el1["TG0"] == 0b01:
-            return 16
-        elif self.tcr_el1["TG0"] == 0b10:
-            return 14
-        raise NotImplementedError()
+        match self.tcr_el1["TG0"]:
+            case 0b00:
+                return 12
+            case 0b01:
+                return 16
+            case 0b10:
+                return 14
+        return self.page_shift_heuristic
 
     @property
     @pwndbg.lib.cache.cache_until("forever")

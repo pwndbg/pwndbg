@@ -632,7 +632,7 @@ class Process:
         """
         raise NotImplementedError()
 
-    def add_symbol_file(self, path, base):
+    def add_symbol_file(self, path, base=None):
         """
         Adds a symbol file at base
         """

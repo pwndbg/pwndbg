@@ -393,7 +393,7 @@ def run(
             last_command = action._command
 
             if not action._prompt_silent:
-                print(f"{PROMPT}{action._command}")
+                print(f"{PROMPT.value if HAS_FZF else PROMPT}{action._command}")
 
             try:
                 if action._capture:
