@@ -513,7 +513,7 @@ class LLDBValue(pwndbg.dbg_mod.Value):
 
             if self.inner.unsigned != 0 or not ty.inner.IsPointerType():
                 raise ex
-
+#hello
         # Some versions of LLDB (16) will refuse to dereference null pointers,
         # even if they're valid for the program we're debugging - eg. QEMU. This
         # means that we have to handle them ourselves. We manually try to read
