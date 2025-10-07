@@ -8,7 +8,7 @@ import pwndbg
 import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
 from pwndbg.dbg import EventType
-from pwndbg.dbg.lldb import LLDB
+from pwndbg.pwndbg.dbg.lldb.__init__1 import LLDB
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)

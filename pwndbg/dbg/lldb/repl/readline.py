@@ -26,7 +26,7 @@ else:
 import lldb
 
 from pwndbg.color import message
-from pwndbg.dbg.lldb import LLDB
+from pwndbg.pwndbg.dbg.lldb.__init__1 import LLDB
 
 P = ParamSpec("P")
 T = TypeVar("T")

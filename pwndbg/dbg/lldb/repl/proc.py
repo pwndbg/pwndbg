@@ -11,8 +11,8 @@ from typing import List
 import lldb
 
 import pwndbg
-from pwndbg.dbg.lldb import YieldContinue
-from pwndbg.dbg.lldb import YieldSingleStep
+from pwndbg.pwndbg.dbg.lldb.__init__1 import YieldContinue
+from pwndbg.pwndbg.dbg.lldb.__init__1 import YieldSingleStep
 from pwndbg.dbg.lldb.repl import print_info
 from pwndbg.dbg.lldb.repl.io import IODriver
 from pwndbg.dbg.lldb.repl.io import IODriverPlainText

@@ -26,7 +26,7 @@ def main(debugger: lldb.SBDebugger, lldb_version: Tuple[int, ...], debug: bool =
         profiler.enable()
 
     import pwndbg  # noqa: F811
-    import pwndbg.dbg.lldb
+    import pwndbg.pwndbg.dbg.lldb.__init__1
 
     pwndbg.dbg_mod.lldb.LLDB_VERSION = lldb_version
 

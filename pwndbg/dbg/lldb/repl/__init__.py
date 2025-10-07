@@ -60,12 +60,12 @@ import lldb
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.dbg.lldb
+import pwndbg.pwndbg.dbg.lldb.__init__1
 from pwndbg.color import message
 from pwndbg.dbg import EventType
-from pwndbg.dbg.lldb import LLDB
-from pwndbg.dbg.lldb import LLDBProcess
-from pwndbg.dbg.lldb import OneShotAwaitable
+from pwndbg.pwndbg.dbg.lldb.__init__1 import LLDB
+from pwndbg.pwndbg.dbg.lldb.__init__1 import LLDBProcess
+from pwndbg.pwndbg.dbg.lldb.__init__1 import OneShotAwaitable
 from pwndbg.dbg.lldb.pset import InvalidParse
 from pwndbg.dbg.lldb.pset import pget
 from pwndbg.dbg.lldb.pset import pset
