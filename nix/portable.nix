@@ -190,7 +190,6 @@ let
         # remove unneeded dirs
         rm -rf $out/pwndbg/lib/pkgconfig
         find $out/pwndbg/lib/${python3.libPrefix}/ -type d -name "__pycache__" -exec rm -rf {} +
-        find $out/pwndbg/lib/${python3.libPrefix}/ -type d -name "*.dist-info" -exec rm -rf {} +
         find $out/pwndbg/lib/${python3.libPrefix}/ -maxdepth 1 -type d -name "config-*" -exec rm -rf {} +
 
         # EXTERNALLY-MANAGED info
