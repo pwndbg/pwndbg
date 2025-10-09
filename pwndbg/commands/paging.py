@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import math
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.regs
 import pwndbg.color as C
 import pwndbg.color.message as M
+from pwndbg.aglib.kernel.paging import PageTableLevel
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Performs pagewalk.")
@@ -25,13 +27,20 @@ PAGETYPES = (
 )
 
 
-def print_pagetable_entry(name: str, paddr: int | None, vaddr: int, level: int, is_last: bool):
+def print_pagetable_entry(ptl: PageTableLevel, level: int, is_last: bool):
     pageflags = pwndbg.aglib.kernel.arch_paginginfo().pageentry_flags(is_last)
     flags = ""
     arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
-    if paddr is not None:
-        flags = f"{arrow_right} {name + 'e'}: {C.context.format_flags(paddr, pageflags, paddr)}"
-    print(f"{C.blue(name)} @ {C.yellow(hex(vaddr))} {flags}")
+    name, entry, vaddr, idx = ptl.name, ptl.entry, ptl.virt, ptl.idx
+    if pwndbg.aglib.arch.name == "x86-64":
+        name = name.ljust(3, " ")
+    nbits = pwndbg.aglib.kernel.arch_ops().page_shift - math.ceil(
+        math.log2(pwndbg.aglib.arch.ptrsize)
+    )  # each idx has that many bits
+    idxlen = len(str((1 << nbits) - 1))
+    if entry is not None:
+        flags = f"[{idx:0{idxlen}}] {arrow_right} {name + 'e'}: {C.context.format_flags(entry, pageflags, entry)}"
+    print(f"{C.blue(name)} @ {C.yellow(hex(vaddr))}{flags}")
 
 
 def page_type(page):
@@ -82,14 +91,14 @@ def pagewalk(vaddr, entry=None):
     if entry is not None:
         entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    names, entries = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
-    for i in range(len(names) - 1, 0, -1):
-        entry, vaddr = entries[i]
-        next, _ = entries[i - 1]
-        if entry is None:
+    levels = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
+    for i in range(len(levels) - 1, 0, -1):
+        curr = levels[i]
+        next = levels[i - 1]
+        if curr.entry is None:
             break
-        print_pagetable_entry(names[i], entry, vaddr, i, next is None or i == 1)
-    _, vaddr = entries[0]
+        print_pagetable_entry(curr, i, next.entry is None or i == 1)
+    vaddr = levels[0].virt
     if vaddr is None:
         print(M.warn("address is not mapped"))
         return
@@ -117,10 +126,13 @@ p2v_parser.add_argument("paddr", type=str, help="")
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def p2v(paddr):
     paddr = int(pwndbg.dbg.selected_frame().evaluate_expression(paddr))
-    vaddr = pwndbg.aglib.kernel.phys_to_virt(paddr)
-    paging_print_helper("Virtual address", vaddr)
-    page = pwndbg.aglib.kernel.virt_to_page(vaddr)
-    page_info(page)
+    try:
+        vaddr = pwndbg.aglib.kernel.phys_to_virt(paddr)
+        paging_print_helper("Virtual address", vaddr)
+        page = pwndbg.aglib.kernel.virt_to_page(vaddr)
+        page_info(page)
+    except Exception:
+        print(M.warn("physical to virtual address failed, invalid physical address?"))
 
 
 v2p_parser = argparse.ArgumentParser(
@@ -136,9 +148,10 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def v2p(vaddr):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    entry, paddr = pwndbg.aglib.kernel.pagewalk(vaddr)[1][0]  # more accurate
+    level = pwndbg.aglib.kernel.pagewalk(vaddr)[0]  # more accurate
+    entry, paddr = level.entry, level.virt
     if not entry:
-        print(M.warn("virtual to page failed, unmapped virtual address?"))
+        print(M.warn("virtual to physical address failed, unmapped virtual address?"))
         return
     paging_print_helper("Physmap address", paddr)
     # paddr is the physmap address which is a virtual address
@@ -159,6 +172,9 @@ page_parser.add_argument("page", type=str, help="")
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def pageinfo(page):
     page = int(pwndbg.dbg.selected_frame().evaluate_expression(page))
-    vaddr = pwndbg.aglib.kernel.page_to_virt(page)
-    paging_print_helper("Virtual address", vaddr)
-    page_info(page)
+    try:
+        vaddr = pwndbg.aglib.kernel.page_to_virt(page)
+        paging_print_helper("Virtual address", vaddr)
+        page_info(page)
+    except Exception:
+        print(M.warn("invalid page struct pointer"))

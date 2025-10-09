@@ -28,6 +28,7 @@ import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
+from pwndbg.aglib.kernel.paging import PageTableLevel
 from pwndbg.lib.regs import BitFlags
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
@@ -366,12 +367,12 @@ class x86_64Ops(x86Ops):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        if pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc:
-            return virt - self.page_offset
-        res = pagewalk(virt)[0][1]
-        if res is None:
+        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
+            # if not within physmap range, first find the physmap address
+            virt = pagewalk(virt)[0].virt
+        if virt is None:
             return None
-        return res - self.page_offset
+        return virt - self.page_offset
 
     def pfn_to_page(self, pfn: int) -> int:
         # assumption: SPARSEMEM_VMEMMAP memory model used
@@ -405,12 +406,12 @@ class Aarch64Ops(ArchOps):
         return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr)
 
     def virt_to_phys(self, virt: int) -> int:
-        if pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc:
-            return virt - self.page_offset + self.phys_offset
-        res = pagewalk(virt)[0][1]
-        if res is None:
+        if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
+            # if not within physmap range, first find the physmap address
+            virt = pagewalk(virt)[0].virt
+        if virt is None:
             return None
-        return res - self.page_offset
+        return virt - self.page_offset + self.phys_offset
 
     def phys_to_virt(self, phys: int) -> int:
         # https://elixir.bootlin.com/linux/v6.16.4/source/arch/arm64/include/asm/memory.h#L356
@@ -595,7 +596,8 @@ def kbase() -> int | None:
         raise NotImplementedError()
 
 
-def pagewalk(addr, entry=None):
+@pwndbg.lib.cache.cache_until("stop")
+def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry)
