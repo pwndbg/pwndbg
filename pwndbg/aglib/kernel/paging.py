@@ -68,13 +68,13 @@ class ArchPagingInfo:
             # true with the most common set of configurations
             # this struct should always present if a vmlinux is added
             return 0x40
-        return a.sizeof
+        # needs to be rounded up to a power of 2 (consider the layout of vmemmap)
+        return 1 << math.ceil(math.log2(a.sizeof))
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
     def STRUCT_PAGE_SHIFT(self):
-        # needs to be rounded up (consider the layout of vmemmap)
-        return math.ceil(math.log2(self.STRUCT_PAGE_SIZE))
+        return int(math.log2(self.STRUCT_PAGE_SIZE))
 
     @property
     def page_shift(self) -> int:

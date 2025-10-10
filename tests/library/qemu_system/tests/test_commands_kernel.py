@@ -181,9 +181,6 @@ def get_slab_object_address():
 #     gdb.execute(f"msr MSR_LSTAR -w {prev_msr_lstar}")
 
 
-@pytest.mark.skipif(
-    not pwndbg.aglib.kernel.has_debug_symbols(), reason="test requires debug symbols"
-)
 def test_command_kernel_vmmap():
     res = gdb.execute("vmmap", to_string=True)
     assert all(
