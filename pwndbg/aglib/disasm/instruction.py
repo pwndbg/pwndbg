@@ -51,6 +51,8 @@ from capstone.systemz import SYSTEMZ_INS_BALR
 from capstone.systemz import SYSTEMZ_INS_BR
 from capstone.systemz import SYSTEMZ_INS_BRAS
 from capstone.systemz import SYSTEMZ_INS_BRASL
+from capstone.systemz import SYSTEMZ_INS_J
+from capstone.systemz import SYSTEMZ_INS_JL
 from capstone.x86 import X86_INS_CALL
 from capstone.x86 import X86_INS_JMP
 from capstone.x86 import X86Op
@@ -91,6 +93,8 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
     },
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
     CS_ARCH_SYSTEMZ: {
+        SYSTEMZ_INS_J,
+        SYSTEMZ_INS_JL,
         SYSTEMZ_INS_B,
         SYSTEMZ_INS_BR,
         SYSTEMZ_INS_BAL,
