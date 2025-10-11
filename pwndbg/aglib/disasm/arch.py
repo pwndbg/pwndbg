@@ -264,16 +264,12 @@ class DisassemblyAssistant:
 
         # Manually propagate register values so when enhancing the next instruction, we can read from these registers
         if self.supports_manual_emulation:
-            
             # If we encounter a control flow instruction where the result is unknown,
             # we need to reset the registers because otherwise it may show annotations for instructions never actually taken.
             if instruction.jump_like and not instruction.jump_result_is_known:
                 self.manual_register_values.invalidate_all_registers()
             else:
-                if (
-                    instruction.call_like
-                    or (set(instruction.groups) & DO_NOT_EMULATE)
-                ):
+                if instruction.call_like or (set(instruction.groups) & DO_NOT_EMULATE):
                     # Syscalls and functions (which we step over) can clobber registers
                     self.manual_register_values.invalidate_all_registers()
                 else:
