@@ -71,7 +71,7 @@ def test_emulate_disasm_loop(start_binary):
 
     disasm_without_emu_0x400080 = [
         " ► 0x400080 <_start>       movabs rsi, string                           RSI => 0x400094 (string) ◂— xor dword ptr [rdx], esi /* '12345' */",
-        "   0x40008a <_start+10>    mov    rdi, rsp",
+        f"   0x40008a <_start+10>    mov    rdi, rsp                              RDI => {hex(pwndbg.aglib.regs.rsp)}",
         "   0x40008d <_start+13>    mov    ecx, 3                                ECX => 3",
         "   0x400092 <_start+18>    rep movsb byte ptr [rdi], byte ptr [rsi]",
         "   0x400094 <string>       xor    dword ptr [rdx], esi",
