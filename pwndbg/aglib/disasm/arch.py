@@ -264,28 +264,29 @@ class DisassemblyAssistant:
 
         # Manually propagate register values so when enhancing the next instruction, we can read from these registers
         if self.supports_manual_emulation:
-            # If we encounter a control flow instruction where the result is unknown,
-            # we need to reset the registers because otherwise it may show annotations for instructions never actually taken.
-            if instruction.jump_like and not instruction.jump_result_is_known:
+            if (
+                instruction.call_like
+                or (set(instruction.groups) & DO_NOT_EMULATE)
+                or (instruction.jump_like and not instruction.jump_result_is_known)
+            ):
+                # Syscalls and functions (which we step over) can clobber registers
+                # Also, if we encounter a control flow instruction where the result is unknown,
+                # we need to reset the registers because otherwise it may show annotations for instructions never actually taken.
                 self.manual_register_values.invalidate_all_registers()
             else:
-                if instruction.call_like or (set(instruction.groups) & DO_NOT_EMULATE):
-                    # Syscalls and functions (which we step over) can clobber registers
-                    self.manual_register_values.invalidate_all_registers()
-                else:
-                    _, regs_written = instruction.cs_insn.regs_access()
+                _, regs_written = instruction.cs_insn.regs_access()
 
-                    for reg_id in regs_written:
-                        reg_name: str = instruction.cs_insn.reg_name(reg_id)
+                for reg_id in regs_written:
+                    reg_name: str = instruction.cs_insn.reg_name(reg_id)
 
-                        # If we determined that this instruction wrote some value to this register, propagate it.
-                        # Otherwise, invalidate the value since we cannot reason about it.
-                        if reg_id in instruction.register_writes:
-                            self.manual_register_values.write_register(
-                                reg_name, instruction.register_writes[reg_id]
-                            )
-                        else:
-                            self.manual_register_values.invalidate_register(reg_name)
+                    # If we determined that this instruction wrote some value to this register, propagate it.
+                    # Otherwise, invalidate the value since we cannot reason about it.
+                    if reg_id in instruction.register_writes:
+                        self.manual_register_values.write_register(
+                            reg_name, instruction.register_writes[reg_id]
+                        )
+                    else:
+                        self.manual_register_values.invalidate_register(reg_name)
 
         if DEBUG_ENHANCEMENT:
             print(self.dump(instruction))
