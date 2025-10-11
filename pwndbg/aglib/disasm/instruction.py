@@ -196,6 +196,9 @@ class PwndbgInstruction(Protocol):
     def is_conditional_jump_taken(self) -> bool: ...
 
     @property
+    def jump_result_is_known(self) -> bool: ...
+
+    @property
     def bytes(self) -> bytearray: ...
 
     def op_find(self, op_type: int, position: int) -> EnhancedOperand: ...
@@ -492,6 +495,19 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         )
 
     @property
+    def jump_result_is_known(self) -> bool:
+        """
+        True under the following conditions:
+        - If it's an unconditional jump, we know the target of the jump
+        - If it's a conditional jump, we know the target of the branch and know whether or not we take it
+        Otherwise, false
+        """
+        return self.has_jump_target and (
+            (self.is_unconditional_jump)
+            or (self.is_conditional_jump and self.condition != InstructionCondition.UNDETERMINED)
+        )
+
+    @property
     def bytes(self) -> bytearray:
         """
         Raw machine instruction bytes
@@ -755,6 +771,10 @@ class ManualPwndbgInstruction(PwndbgInstruction):
 
     @property
     def is_conditional_jump_taken(self) -> bool:
+        return False
+
+    @property
+    def jump_result_is_known(self) -> bool:
         return False
 
     @override
