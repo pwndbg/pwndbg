@@ -679,3 +679,15 @@ def db_list() -> pwndbg.dbg_mod.Value:
     if (syms := arch_symbols()) is not None:
         return syms.db_list()
     return None
+
+
+def prog_idr() -> pwndbg.dbg_mod.Value:
+    if (syms := arch_symbols()) is not None:
+        return syms.prog_idr()
+    return None
+
+
+def map_idr() -> pwndbg.dbg_mod.Value:
+    if (syms := arch_symbols()) is not None:
+        return syms.map_idr()
+    return None

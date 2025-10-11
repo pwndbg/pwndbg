@@ -64,6 +64,8 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             self.data["CONFIG_SYSFS"] = "y"
         if self.CONFIG_DEBUG_FS:
             self.data["CONFIG_DEBUG_FS"] = "y"
+        if self.CONFIG_SECURITY:
+            self.data["CONFIG_SECURITY"] = "y"
 
     def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
@@ -176,6 +178,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_DEBUG_FS(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("debugfs_attr_read") is not None
+
+    @property
+    def CONFIG_SECURITY(self) -> bool:
+        return pwndbg.aglib.symbol.lookup_symbol("security_inode_init_security") is not None
 
     def update_with_file(self, file_path):
         for line in open(file_path, "r").read().splitlines():
