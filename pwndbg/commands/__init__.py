@@ -920,6 +920,7 @@ def load_commands() -> None:
     import pwndbg.commands.integration
     import pwndbg.commands.jemalloc
     import pwndbg.commands.kbase
+    import pwndbg.commands.kbpf
     import pwndbg.commands.kchecksec
     import pwndbg.commands.kcmdline
     import pwndbg.commands.kconfig

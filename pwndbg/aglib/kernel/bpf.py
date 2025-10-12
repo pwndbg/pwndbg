@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Tuple
-
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
@@ -136,7 +134,7 @@ def get_struct_bpf_prog():
     return result
 
 
-def get_struct_bpf_map(padsz):
+def get_struct_bpf_map():
     result = ""
     if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SECURITY\n"
@@ -179,8 +177,8 @@ def get_struct_bpf_map(padsz):
         __MAX_BPF_MAP_TYPE
     };
     """
-    result += f"""
-    struct bpf_map {{
+    result += """
+    struct bpf_map {
         const void *ops; // struct bpf_map_ops
         struct bpf_map *inner_map_meta;
 #ifdef CONFIG_SECURITY
@@ -190,32 +188,34 @@ def get_struct_bpf_map(padsz):
         u32 key_size;
         u32 value_size;
         u32 max_entries;
-        char _pad[{padsz}];
-    }};
-    struct bpf_array {{
+        // char _pad[{padsz}];
+    };
+    struct bpf_array {
         struct bpf_map map;
-        u32 elem_size;
-        u32 index_mask;
-        /* irrelevant fields */
-    }};
+        /* ignore the rest of the fields for now */
+    };
     """
     return result
 
 
-def get_bpf_struct_offsets(prog_idr, map_idr) -> Tuple[int, int]:
-    xarray_pad_sz, map_padsz = None, None
+def get_bpf_struct_offsets(prog_idr, map_idr) -> int:
+    xarray_pad_sz = None
     map_idr = int(map_idr)
     prog_idr = int(prog_idr)
-    max_idr_sz = map_idr - prog_idr
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    max_idr_sz = abs(map_idr - prog_idr)
     xa_node = None
-    for i in range(0, max_idr_sz, 8):
+    for i in range(0, max_idr_sz, ptrsize):
         xa_node = pwndbg.aglib.memory.read_pointer_width(prog_idr + i) & ~3  # remove tag
         if pwndbg.aglib.memory.is_kernel(xa_node):
             xarray_pad_sz = i
     if xarray_pad_sz:
-        # TODO:
-        pass
-    return xarray_pad_sz, map_padsz
+        return xarray_pad_sz
+    for i in range(0, max_idr_sz, ptrsize):
+        xa_node = pwndbg.aglib.memory.read_pointer_width(map_idr + i) & ~3  # remove tag
+        if pwndbg.aglib.memory.is_kernel(xa_node):
+            xarray_pad_sz = i
+    return xarray_pad_sz
 
 
 def load_bpf_typeinfo():
@@ -228,9 +228,9 @@ def load_bpf_typeinfo():
     if not prog_idr or not map_idr:
         print(M.warn("cannot find either prog_idr or map_idr"))
         return
-    xarray_pad_sz, map_padsz = get_bpf_struct_offsets(prog_idr, map_idr)
+    xarray_pad_sz = get_bpf_struct_offsets(prog_idr, map_idr)
     if not xarray_pad_sz:
-        print(M.warn("cannot find xa_head -- might be uninitialized (add a bpf program first!)"))
+        print(M.warn("cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"))
         return
     result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
     result += f"""
@@ -261,9 +261,6 @@ def load_bpf_typeinfo():
     };
     """
     result += get_struct_bpf_prog()
-    if map_padsz:
-        result += get_struct_bpf_map(map_padsz)
-    elif pwndbg.aglib.typeinfo.lookup_types("struct idr") is not None:
-        return
+    result += get_struct_bpf_map()
     header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
     pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "bpf_structs", True)
