@@ -128,7 +128,7 @@ def get_struct_bpf_prog():
 #if KVERSION < KERNEL_VERSION(5, 12, 0)
         unsigned int		(*bpf_func)(void *ctx, void *insn);
 #endif
-        /* irrelevant fields */
+        char insns[];
     };
     """
     return result

@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import argparse
 import math
+import re
+
+import capstone
 
 import pwndbg
 import pwndbg.aglib.kernel
@@ -20,10 +23,41 @@ parser.add_argument("-v", "--verbose", action="count", default=0)
 _bpf_map_array_off = None
 MAX_PRINTED_VALUE_SIZE = 0x20
 MAX_BPF_VERBOSE_LEVEL1_OUTPUT_LEN = 0x10
+BPF_FIRST_REG, BPF_SECOND_REG = 1 << 0, 1 << 1
+BPF_AUX_REG_SRTING = "ax"
 BPF_MAP_ARRAY_TYPES = (
     "ARRAY",
     "PROG_ARRAY",
 )
+
+
+def handle_bpf_aux_reg_for_insns_bytes(insns_bytes):
+    # https://elixir.bootlin.com/linux/v6.17.1/source/include/linux/filter.h#L62
+    sz = len(insns_bytes)
+    result = [0] * (len(insns_bytes) // 8)
+    for i in range(1, sz, 8):
+        b = insns_bytes[i]
+        if b & 0xF == 0xB:
+            result[i // 8] |= BPF_FIRST_REG
+            insns_bytes[i] &= ~0xF
+        if b & 0xF0 == 0xB0:
+            result[i // 8] |= BPF_SECOND_REG
+            insns_bytes[i] &= ~0xF0
+    return result
+
+
+def handle_bpf_aux_reg_for_opstr(opstr, regflag):
+    if regflag == 0:
+        return opstr
+    pattern = re.compile(r"r0")
+    matches = list(pattern.finditer(opstr))
+    if regflag & BPF_FIRST_REG:
+        start, end = matches[0].span()
+        opstr = opstr[:start] + BPF_AUX_REG_SRTING + opstr[end:]
+    if regflag & BPF_SECOND_REG:
+        start, end = matches[-1].span()
+        opstr = opstr[:start] + BPF_AUX_REG_SRTING + opstr[end:]
+    return opstr
 
 
 def bpf_map_array_offset(bpf_array, t, max_entries, value_size):
@@ -103,6 +137,41 @@ def print_bpf_progs(verbose):
                 jited_len = int(bpf_prog["jited_len"])
                 desc = f"func @ {indent.aux_hex(func)} (jited_len: {indent.aux_hex(jited_len)}), aux @ {indent.aux_hex(aux)}"
                 indent.print(desc)
+                if verbose > 0:
+                    cs = capstone.Cs(
+                        capstone.CS_ARCH_BPF,
+                        capstone.CS_MODE_LITTLE_ENDIAN | capstone.CS_MODE_BPF_EXTENDED,
+                    )
+                    num_insns = int(bpf_prog["len"])
+                    insns = int(bpf_prog["insns"].address)
+                    insns_bytes = pwndbg.aglib.memory.read(insns, num_insns * 8)
+                    aux_regs = handle_bpf_aux_reg_for_insns_bytes(insns_bytes)
+                    with indent:
+                        indent.print(indent.prefix(f"{num_insns} insns") + ":")
+                        for i in range(num_insns):
+                            if i == MAX_BPF_VERBOSE_LEVEL1_OUTPUT_LEN and verbose == 1:
+                                indent.print("... (truncated)")
+                                indent.print(
+                                    M.warn("max output len reached, use -vv for full output")
+                                )
+                                break
+                            off = i * 8
+                            address = insns + off
+                            disass = list(
+                                cs.disasm(bytes(insns_bytes[off : off + 8]), insns + address)
+                            )
+                            if len(disass) == 0:
+                                bytecode = ""
+                                for b in insns_bytes[off : off + 8]:
+                                    bytecode += f"{b:02x} "
+                                desc = M.error(f"invalid insn: {bytecode}")
+                                indent.print(f"{indent.addr_hex(address)}\t{desc}")
+                                continue
+                            insn = disass[0]
+                            mnemonic = insn.mnemonic
+                            opstr = insn.op_str
+                            opstr = handle_bpf_aux_reg_for_opstr(opstr, aux_regs[i])
+                            indent.print(f"{indent.addr_hex(address)}\t{mnemonic}\t{opstr}")
 
 
 def print_bpf_maps(verbose):
