@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 
 import pwndbg
 import pwndbg.aglib.kernel
@@ -14,6 +15,42 @@ from pwndbg.lib.exception import IndentContextManager
 parser = argparse.ArgumentParser(
     description="Prints information about the linux kernel bpf progs and maps."
 )
+
+_bpf_map_array_off = None
+BPF_MAP_ARRAY_TYPES = (
+    "ARRAY",
+    "PROG_ARRAY",
+)
+
+
+def bpf_map_array_offset(bpf_array, t, key_size, value_size):
+    global _bpf_map_array_off
+    if _bpf_map_array_off:
+        # pwndbg.lib.cache is not used here because it would also cache None
+        return _bpf_map_array_off
+    if any(t.endswith(sub) for sub in BPF_MAP_ARRAY_TYPES):
+        expected_elem_size = math.ceil(value_size / 8) * 8
+        expected_index_mask = (1 << key_size) - 1
+        for i in range(200):
+            elem_size = pwndbg.aglib.memory.u32(bpf_array + 4 * i)
+            index_mask = pwndbg.aglib.memory.u32(bpf_array + 4 * (i + 1))
+            if elem_size == expected_elem_size and index_mask == expected_index_mask:
+                """
+                struct bpf_array {
+                    struct bpf_map map;
+                    u32 elem_size; // i points here
+                    u32 index_mask;
+                    struct bpf_array_aux *aux;
+                    union {
+                        DECLARE_FLEX_ARRAY(char, value) __aligned(8);
+                        DECLARE_FLEX_ARRAY(void *, ptrs) __aligned(8);
+                        DECLARE_FLEX_ARRAY(void __percpu *, pptrs) __aligned(8);
+                    };
+                };
+                """
+                _bpf_map_array_off = (i + 2) * 4
+                break
+    return _bpf_map_array_off
 
 
 def parse_xa_node(xa_node):
@@ -57,9 +94,12 @@ def print_bpf_progs():
             attach_t = bpf_prog["expected_attach_type"].value_to_human_readable()
             prefix = indent.prefix(f"[0x{idx:02x}] {indent.addr_hex(slot)}")
             indent.print(f"{prefix} (type: {M.success(t)}, attach: {M.success(attach_t)})")
-            func = int(bpf_prog["bpf_func"])
             with indent:
-                indent.print(f"func @ {indent.aux_hex(func)}")
+                func = int(bpf_prog["bpf_func"])
+                aux = int(bpf_prog["aux"])
+                jited_len = int(bpf_prog["jited_len"])
+                desc = f"func @ {indent.aux_hex(func)} (jited_len: {indent.aux_hex(jited_len)}), aux @ {indent.aux_hex(aux)}"
+                indent.print(desc)
 
 
 def print_bpf_maps():
@@ -84,7 +124,10 @@ def print_bpf_maps():
                 key_size = int(bpf_array["map"]["key_size"])
                 value_size = int(bpf_array["map"]["value_size"])
                 max_entries = int(bpf_array["map"]["max_entries"])
-                desc = f"key_size: {indent.aux_hex(key_size)}, value_size: {indent.aux_hex(value_size)}, max_entries: {indent.aux_hex(max_entries)}"
+                bpf_array = int(bpf_array)
+                off = bpf_map_array_offset(bpf_array, t, key_size, value_size)
+                content = indent.aux_hex(bpf_array + off) if off else "unknown"
+                desc = f"array @ {content} (key_size: {indent.aux_hex(key_size)}, value_size: {indent.aux_hex(value_size)}, max_entries: {indent.aux_hex(max_entries)})"
                 indent.print(desc)
 
 
