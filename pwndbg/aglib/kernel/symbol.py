@@ -368,6 +368,8 @@ class x86_64Symbols(ArchSymbols):
         return None
 
     def qword_mov_reg_ripoff(self, disass):
+        if disass is None:
+            return None
         result = self.regex(
             "".join(disass.splitlines()),
             r".*?\bmov.*\[rip\s\+\s(0x[0-9a-f]+)\].*?(0x[0-9a-f]{16})\s\<",
