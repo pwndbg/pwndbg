@@ -15,22 +15,25 @@ from pwndbg.lib.exception import IndentContextManager
 parser = argparse.ArgumentParser(
     description="Prints information about the linux kernel bpf progs and maps."
 )
+parser.add_argument("-v", "--verbose", action="count", default=0)
 
 _bpf_map_array_off = None
+MAX_PRINTED_VALUE_SIZE = 0x20
+MAX_BPF_VERBOSE_LEVEL1_OUTPUT_LEN = 0x10
 BPF_MAP_ARRAY_TYPES = (
     "ARRAY",
     "PROG_ARRAY",
 )
 
 
-def bpf_map_array_offset(bpf_array, t, key_size, value_size):
+def bpf_map_array_offset(bpf_array, t, max_entries, value_size):
     global _bpf_map_array_off
     if _bpf_map_array_off:
         # pwndbg.lib.cache is not used here because it would also cache None
         return _bpf_map_array_off
     if any(t.endswith(sub) for sub in BPF_MAP_ARRAY_TYPES):
         expected_elem_size = math.ceil(value_size / 8) * 8
-        expected_index_mask = (1 << key_size) - 1
+        expected_index_mask = (1 << math.ceil(math.log2(max_entries))) - 1
         for i in range(200):
             elem_size = pwndbg.aglib.memory.u32(bpf_array + 4 * i)
             index_mask = pwndbg.aglib.memory.u32(bpf_array + 4 * (i + 1))
@@ -48,7 +51,7 @@ def bpf_map_array_offset(bpf_array, t, key_size, value_size):
                     };
                 };
                 """
-                _bpf_map_array_off = (i + 2) * 4
+                _bpf_map_array_off = (i + 2) * 4 + pwndbg.aglib.arch.ptrsize
                 break
     return _bpf_map_array_off
 
@@ -75,7 +78,7 @@ def parse_xa_node(xa_node):
     return result
 
 
-def print_bpf_progs():
+def print_bpf_progs(verbose):
     indent = IndentContextManager()
     prog_idr = pwndbg.aglib.kernel.prog_idr()
     if int(prog_idr) == 0:
@@ -102,7 +105,7 @@ def print_bpf_progs():
                 indent.print(desc)
 
 
-def print_bpf_maps():
+def print_bpf_maps(verbose):
     indent = IndentContextManager()
     map_idr = pwndbg.aglib.kernel.map_idr()
     if int(map_idr) == 0:
@@ -125,20 +128,38 @@ def print_bpf_maps():
                 value_size = int(bpf_array["map"]["value_size"])
                 max_entries = int(bpf_array["map"]["max_entries"])
                 bpf_array = int(bpf_array)
-                off = bpf_map_array_offset(bpf_array, t, key_size, value_size)
+                off = bpf_map_array_offset(bpf_array, t, max_entries, value_size)
                 content = indent.aux_hex(bpf_array + off) if off else "unknown"
                 desc = f"array @ {content} (key_size: {indent.aux_hex(key_size)}, value_size: {indent.aux_hex(value_size)}, max_entries: {indent.aux_hex(max_entries)})"
                 indent.print(desc)
+                if off is not None and verbose > 0:
+                    with indent:
+                        entrysz = math.ceil(value_size / 8) * 8
+                        for i in range(max_entries):
+                            if i == MAX_BPF_VERBOSE_LEVEL1_OUTPUT_LEN and verbose == 1:
+                                indent.print("... (truncated)")
+                                indent.print(
+                                    M.warn("max output len reached, use -vv for full output")
+                                )
+                                break
+                            idxfmt = f"[0x{i:02x}]"
+                            sz = min(value_size, MAX_PRINTED_VALUE_SIZE)
+                            value = ""
+                            for b in pwndbg.aglib.memory.read(bpf_array + off + i * entrysz, sz):
+                                value += f"{b:02x} "
+                            if sz < value_size:
+                                value += "... (" + M.warn("truncated") + ")"
+                            indent.print(f"- {indent.prefix(idxfmt)} {value}")
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
-def kbpf():
+def kbpf(verbose: int):
     if not pwndbg.aglib.kernel.has_debug_info():
         pwndbg.aglib.kernel.bpf.load_bpf_typeinfo()
     if pwndbg.aglib.typeinfo.load("struct idr") is None:
         return
-    print_bpf_progs()
-    print_bpf_maps()
+    print_bpf_progs(verbose)
+    print_bpf_maps(verbose)
