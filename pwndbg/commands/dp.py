@@ -1,7 +1,6 @@
-# pwndbg/commands/dp.py
 # Week-1 MVP: `dp` — a safe, small wrapper to provide a "robust dprintf" style helper.
 # Goals: accept format + args; optional --tid and -d/--depth; format safely and print.
-# Future PRs can wire this to GDB's actual dprintf or set breakpoints.
+
 
 from __future__ import annotations
 
@@ -48,24 +47,24 @@ def dp(fmt: str, args: List[str], tid: bool = False, depth: int = 0) -> None:
     safe helper that follows the spirit of 'robust dprintf' for Week 1.
     """
     try:
-        # Thread id best-effort
+        
         tid_prefix = ""
         if tid:
             try:
                 th = gdb.selected_thread()
                 if th is not None:
-                    # th.ptid is usually a tuple (pid, lwp, tid) on some platforms
+                    
                     ptid = getattr(th, "ptid", None)
                     if ptid and len(ptid) >= 3:
                         tid_prefix = f"[TID:{ptid[2]}] "
                     else:
-                        # fallback to thread number
+                        
                         tid_prefix = f"[TID:{th.num}] "
             except Exception:
-                # don't crash; just skip thread id
+               
                 tid_prefix = ""
 
-        # Caller (best-effort)
+        
         caller_prefix = ""
         if depth and depth > 0:
             try:
@@ -80,14 +79,14 @@ def dp(fmt: str, args: List[str], tid: bool = False, depth: int = 0) -> None:
             except Exception:
                 caller_prefix = ""
 
-        # Validate format string
+        
         if fmt is None:
             log.error("dp: empty format string")
             return
 
         rendered = fmt
         if args:
-            # Try percent-format first (common for gdb-style formats), then .format
+            
             try:
                 rendered = fmt % tuple(args)
             except Exception:
@@ -97,15 +96,15 @@ def dp(fmt: str, args: List[str], tid: bool = False, depth: int = 0) -> None:
                     log.error("dp: format/args error: %s", e)
                     return
 
-        # Defensive: clamp extremely large outputs
+       
         MAX_OUT = 200_000
         if isinstance(rendered, str) and len(rendered) > MAX_OUT:
             log.warning("dp: output too large; truncating")
             rendered = rendered[:MAX_OUT] + "...(truncated)"
 
-        # Final assembled line
+        
         line = f"{tid_prefix}{caller_prefix}{rendered}"
-        # Use pwndbg's logging so output appears like other commands
+        
         log.info(line)
     except Exception as e:
         log.exception("dp failed: %s", e)
