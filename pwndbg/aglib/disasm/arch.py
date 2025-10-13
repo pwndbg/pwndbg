@@ -29,6 +29,7 @@ from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+from pwndbg.lib.regs import PseudoEmulatedRegisterFile
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -144,8 +145,16 @@ def memory_or_register_assign(left: str, right: str, mem_assign: bool) -> str:
 class DisassemblyAssistant:
     architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
+    manual_register_values: PseudoEmulatedRegisterFile
+
+    supports_manual_emulation = False
+    """This feature relies on the Capstone .regs_access() features that not all architectures have reliable support for"""
+
     def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         self.architecture = architecture
+        self.manual_register_values = PseudoEmulatedRegisterFile(
+            pwndbg.aglib.regs.current, pwndbg.aglib.arch.ptrsize
+        )
 
         self.op_handlers: Dict[
             int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
@@ -252,6 +261,32 @@ class DisassemblyAssistant:
 
             if DEBUG_ENHANCEMENT:
                 print("Turned off emulation for call")
+
+        # Manually propagate register values so when enhancing the next instruction, we can read from these registers
+        if self.supports_manual_emulation:
+            if (
+                instruction.call_like
+                or (set(instruction.groups) & DO_NOT_EMULATE)
+                or (instruction.jump_like and not instruction.jump_result_is_known)
+            ):
+                # Syscalls and functions (which we step over) can clobber registers
+                # Also, if we encounter a control flow instruction where the result is unknown,
+                # we need to reset the registers because otherwise it may show annotations for instructions never actually taken.
+                self.manual_register_values.invalidate_all_registers()
+            else:
+                _, regs_written = instruction.cs_insn.regs_access()
+
+                for reg_id in regs_written:
+                    reg_name: str = instruction.cs_insn.reg_name(reg_id)
+
+                    # If we determined that this instruction wrote some value to this register, propagate it.
+                    # Otherwise, invalidate the value since we cannot reason about it.
+                    if reg_id in instruction.register_writes:
+                        self.manual_register_values.write_register(
+                            reg_name, instruction.register_writes[reg_id]
+                        )
+                    else:
+                        self.manual_register_values.invalidate_register(reg_name)
 
         if DEBUG_ENHANCEMENT:
             print(self.dump(instruction))
@@ -417,6 +452,9 @@ class DisassemblyAssistant:
             if DEBUG_ENHANCEMENT:
                 print(f"Read value from process register: {pwndbg.aglib.regs[regname]}")
             return pwndbg.aglib.regs[regname]
+        elif (reg_value := self.manual_register_values.read_register(regname)) is not None:
+            # If we manually tracked the value of this register while disassembling, we can read from it.
+            return reg_value
         else:
             return None
 
@@ -506,6 +544,11 @@ class DisassemblyAssistant:
 
             address_list = [address]
 
+            if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
+                size_type = pwndbg.aglib.typeinfo.get_type(read_size)
+            else:
+                size_type = pwndbg.aglib.typeinfo.ppvoid
+
             for _ in range(limit):
                 if address_list.count(address) >= 2:
                     break
@@ -513,7 +556,9 @@ class DisassemblyAssistant:
                 page = pwndbg.aglib.vmmap.find(address)
                 if page and not page.write:
                     try:
-                        address = pwndbg.aglib.memory.read_pointer_width(address)
+                        address = int(
+                            pwndbg.aglib.memory.get_typed_pointer_value(size_type, address)
+                        )
                         address &= pwndbg.aglib.arch.ptrmask
                         address_list.append(address)
                     except pwndbg.dbg_mod.Error:
@@ -1011,6 +1056,9 @@ class DisassemblyAssistant:
             # If we already used emulation, use the result, otherwise take the source operand before_value
             result = left.after_value or right.before_value
             if result is not None and result >= 0:
+                # We have determined the value written to this register - propagate this to future instructions.
+                instruction.register_writes[left.reg] = result
+
                 TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
                 telescope_addresses = self._telescope(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pwndbg.lib.regs import PsuedoEmulatedRegisterFile
+from pwndbg.lib.regs import PseudoEmulatedRegisterFile
 from pwndbg.lib.regs import aarch64
 from pwndbg.lib.regs import amd64
 from pwndbg.lib.regs import mips
@@ -16,7 +16,7 @@ def test_emulated_register_set_amd64():
     AH  = top half of AX
     AL  = bottom half of AX
     """
-    new = PsuedoEmulatedRegisterFile(amd64, 8)
+    new = PseudoEmulatedRegisterFile(amd64, 8)
 
     new.write_register("rax", -1)
 
@@ -67,7 +67,7 @@ def test_emulated_register_set_amd64():
 
 
 def test_emulated_register_set_amd64_more():
-    new = PsuedoEmulatedRegisterFile(amd64, 8)
+    new = PseudoEmulatedRegisterFile(amd64, 8)
 
     # Unwritten value should return None
     assert new.read_register("rbx") is None
@@ -141,7 +141,7 @@ def test_emulated_register_set_amd64_more():
 
 
 def test_emulated_register_set_amd64_invalidate():
-    new = PsuedoEmulatedRegisterFile(amd64, 8)
+    new = PseudoEmulatedRegisterFile(amd64, 8)
 
     new.write_register("rax", -1)
 
@@ -183,7 +183,7 @@ def test_emulated_register_set_amd64_invalidate():
 
 
 def test_emulate_register_file_amd64_sign_extension():
-    new = PsuedoEmulatedRegisterFile(amd64, 8)
+    new = PseudoEmulatedRegisterFile(amd64, 8)
 
     # This will sign extend the value to EAX, since the top bit in 0xFF is 1.
     new.write_register("eax", 0xFF, source_width=1, sign_extend=True)
@@ -204,7 +204,7 @@ def test_emulate_register_file_amd64_sign_extension():
 
 
 def test_emulated_register_set_aarch64():
-    new = PsuedoEmulatedRegisterFile(aarch64, 8)
+    new = PseudoEmulatedRegisterFile(aarch64, 8)
 
     new.write_register("w0", 0xFFFF_AABB)
 
@@ -219,13 +219,13 @@ def test_emulated_register_set_aarch64():
 
 
 def test_emulated_register_set_mips():
-    new = PsuedoEmulatedRegisterFile(mips, 4)
+    new = PseudoEmulatedRegisterFile(mips, 4)
 
     new.write_register("v0", 0xFFFF_AABB)
 
     assert new.read_register("v0") == 0xFFFF_AABB
 
-    new = PsuedoEmulatedRegisterFile(mips, 8)
+    new = PseudoEmulatedRegisterFile(mips, 8)
 
     new.write_register("v0", 0xFF_FFFF_AABB)
 

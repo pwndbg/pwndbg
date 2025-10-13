@@ -48,6 +48,11 @@ from capstone.sparc import SPARC_INS_JMPL
 from capstone.systemz import SYSTEMZ_INS_B
 from capstone.systemz import SYSTEMZ_INS_BAL
 from capstone.systemz import SYSTEMZ_INS_BALR
+from capstone.systemz import SYSTEMZ_INS_BR
+from capstone.systemz import SYSTEMZ_INS_BRAS
+from capstone.systemz import SYSTEMZ_INS_BRASL
+from capstone.systemz import SYSTEMZ_INS_J
+from capstone.systemz import SYSTEMZ_INS_JL
 from capstone.x86 import X86_INS_CALL
 from capstone.x86 import X86_INS_JMP
 from capstone.x86 import X86Op
@@ -87,7 +92,16 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
         RISCV_INS_C_JR,
     },
     CS_ARCH_PPC: {PPC_INS_B, PPC_INS_BA, PPC_INS_BL, PPC_INS_BLA},
-    CS_ARCH_SYSTEMZ: {SYSTEMZ_INS_B, SYSTEMZ_INS_BAL, SYSTEMZ_INS_BALR},
+    CS_ARCH_SYSTEMZ: {
+        SYSTEMZ_INS_J,
+        SYSTEMZ_INS_JL,
+        SYSTEMZ_INS_B,
+        SYSTEMZ_INS_BR,
+        SYSTEMZ_INS_BAL,
+        SYSTEMZ_INS_BALR,
+        SYSTEMZ_INS_BRAS,
+        SYSTEMZ_INS_BRASL,
+    },
     CS_ARCH_LOONGARCH: {
         LOONGARCH_INS_B,
         LOONGARCH_INS_BL,
@@ -175,6 +189,7 @@ class PwndbgInstruction(Protocol):
     causes_branch_delay: bool
     split: SplitType
     emulated: bool
+    register_writes: Dict[int, int]
 
     @property
     def call_like(self) -> bool: ...
@@ -193,6 +208,9 @@ class PwndbgInstruction(Protocol):
 
     @property
     def is_conditional_jump_taken(self) -> bool: ...
+
+    @property
+    def jump_result_is_known(self) -> bool: ...
 
     @property
     def bytes(self) -> bytearray: ...
@@ -396,6 +414,12 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         If the enhancement successfully used emulation for this instruction
         """
 
+        self.register_writes = {}
+        """
+        Mapping of Capstone register id to integer value. During enhancement, we might manually determine
+        that an instruction writes some value to a register, and this is stored here.
+        """
+
     @property
     def call_like(self) -> bool:
         """
@@ -485,6 +509,19 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         )
 
     @property
+    def jump_result_is_known(self) -> bool:
+        """
+        True under the following conditions:
+        - If it's an unconditional jump, we know the target of the jump
+        - If it's a conditional jump, we know the target of the branch and know whether or not we take it
+        Otherwise, false
+        """
+        return self.has_jump_target and (
+            (self.is_unconditional_jump)
+            or (self.is_conditional_jump and self.condition != InstructionCondition.UNDETERMINED)
+        )
+
+    @property
     def bytes(self) -> bytearray:
         """
         Raw machine instruction bytes
@@ -508,6 +545,11 @@ class PwndbgInstructionImpl(PwndbgInstruction):
     def __repr__(self) -> str:
         operands_str = " ".join([repr(op) for op in self.operands])
 
+        hex_register_writes = {
+            self.cs_insn.reg_name(reg_id): hex(reg_value)
+            for reg_id, reg_value in self.register_writes.items()
+        }
+
         info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
@@ -529,7 +571,18 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Syscall: {self.syscall if self.syscall is not None else ""} {self.syscall_name if self.syscall_name is not None else "N/A"}
         Causes Delay slot: {self.causes_branch_delay}
         Split: {SplitType(self.split).name}
-        Call-like: {self.call_like}"""
+        Call-like: {self.call_like}
+        Register writes: {hex_register_writes}"""
+
+        try:
+            regs_read, regs_written = self.cs_insn.regs_access()
+            info += f"\n\tCapstone regs read: {[self.cs_insn.reg_name(reg) for reg in regs_read]}"
+            info += (
+                f"\n\tCapstone regs written: {[self.cs_insn.reg_name(reg) for reg in regs_written]}"
+            )
+        except CsError:
+            # Not all architectures support the .reg_access() API
+            pass
 
         # Hacky, but this is just for debugging
         if hasattr(self.cs_insn, "cc"):
@@ -701,6 +754,8 @@ class ManualPwndbgInstruction(PwndbgInstruction):
 
         self.emulated = False
 
+        self.register_writes = {}
+
     @property
     def bytes(self) -> bytearray:
         # GDB simply doesn't provide us with the raw bytes.
@@ -730,6 +785,10 @@ class ManualPwndbgInstruction(PwndbgInstruction):
 
     @property
     def is_conditional_jump_taken(self) -> bool:
+        return False
+
+    @property
+    def jump_result_is_known(self) -> bool:
         return False
 
     @override

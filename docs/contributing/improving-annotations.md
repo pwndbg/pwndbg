@@ -37,7 +37,7 @@ We go through the enhancement process for the instruction at the program counter
 
 ## When to use emulation / reasoning about process state
 
-When possible, we code aims to use emulation as little as possible. If there is information that can be determined statically or without the emulator, then we try to avoid emulation. This is so we can display annotations even when the Unicorn Engine is disabled. For example, say we come to a stop, and are faced with enhancing the following three instructions in the dashboard:
+In general, the code aims to be organized in a way as to allow as many features as possible even in the absence of emulation. If there is information that can be determined statically, then we try to expose it as an alternative to emulation. This is so we can display annotations even when the Unicorn Engine is disabled. For example, say we come to a stop, and are faced with enhancing the following three instructions in the dashboard:
 
 ```asm
 1.     lea    rax, [rip + 0xd55]

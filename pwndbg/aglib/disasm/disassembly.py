@@ -352,6 +352,12 @@ def near(
     # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
     assistant = pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
 
+    # Copy register values to the enhancer for use in manual register tracking
+    if assistant.supports_manual_emulation and address == pc:
+        for reg in pwndbg.aglib.regs.current.common:
+            if (reg_value := pwndbg.aglib.regs[reg]) is not None:
+                assistant.manual_register_values.write_register(reg, reg_value)
+
     # Start at the current instruction using emulation if available.
     current = one(address, emu, put_cache=True, assistant=assistant)
 
