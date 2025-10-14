@@ -286,12 +286,12 @@ class ArchSymbols:
 
     def node_data(self):
         node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
+        if pwndbg.aglib.kernel.has_debug_info():
+            return node_data
         if node_data is None and pwndbg.aglib.kernel.has_debug_symbols(
             self.node_data_heuristic_func
         ):
             node_data = self._node_data()
-        if pwndbg.aglib.kernel.has_debug_info():
-            return pwndbg.aglib.memory.get_typed_pointer("struct pglist_data", node_data)
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", node_data)
 
     def slab_caches(self):
