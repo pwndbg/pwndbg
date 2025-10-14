@@ -262,6 +262,17 @@ def load_common_structs_on_load():
 
 
 class ArchSymbols:
+    def __init__(self):
+        self.node_data_heuristic_func = "first_online_pgdat"
+        self.slab_caches_heuristic_func = "slab_next"
+        self.per_cpu_offset_heuristic_func = "nr_iowait_cpu"
+        self.modules_heuristic_func = "find_module_all"
+        self.db_list_heuristic_func = (
+            "dma_buf_file_release"
+            if pwndbg.aglib.kernel.krelease() >= (5, 10)
+            else "dma_buf_release"
+        )
+
     def disass(self, name):
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
         if sym is None:
@@ -275,40 +286,36 @@ class ArchSymbols:
 
     def node_data(self):
         node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
-        if node_data is None:
+        if node_data is None and pwndbg.aglib.kernel.has_debug_symbols(
+            self.node_data_heuristic_func
+        ):
             node_data = self._node_data()
-        elif pwndbg.aglib.kernel.has_debug_info():
-            return node_data
-        if node_data is None:
-            return None
         if pwndbg.aglib.kernel.has_debug_info():
             return pwndbg.aglib.memory.get_typed_pointer("struct pglist_data", node_data)
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", node_data)
 
     def slab_caches(self):
         slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
-        if slab_caches is None:
+        if slab_caches is None and pwndbg.aglib.kernel.has_debug_symbols(
+            self.slab_caches_heuristic_func
+        ):
             slab_caches = self._slab_caches()
-        if slab_caches is None:
-            return None
         return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", slab_caches)
 
     def per_cpu_offset(self):
         per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol("__per_cpu_offset")
         if per_cpu_offset is not None:
             return per_cpu_offset
-        per_cpu_offset = self._per_cpu_offset()
-        if per_cpu_offset is None:
-            return None
+        if pwndbg.aglib.kernel.has_debug_symbols(self.per_cpu_offset_heuristic_func):
+            per_cpu_offset = self._per_cpu_offset()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", per_cpu_offset)
 
     def modules(self):
         modules = pwndbg.aglib.symbol.lookup_symbol("modules")
         if modules:
             return modules
-        modules = self._modules()
-        if modules is None:
-            return None
+        if pwndbg.aglib.kernel.has_debug_symbols(self.modules_heuristic_func):
+            modules = self._modules()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", modules)
 
     def db_list(self):
@@ -320,9 +327,8 @@ class ArchSymbols:
         db_list = pwndbg.aglib.symbol.lookup_symbol("db_list")
         if db_list:
             return db_list
-        db_list = self._db_list()
-        if db_list is None:
-            return None
+        if pwndbg.aglib.kernel.has_debug_symbols(self.db_list_heuristic_func):
+            db_list = self._db_list()
         return pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)
 
     def _node_data(self):
@@ -377,18 +383,18 @@ class x86_64Symbols(ArchSymbols):
         return None
 
     def _node_data(self):
-        disass = self.disass("first_online_pgdat")
+        disass = self.disass(self.node_data_heuristic_func)
         result = self.dword_mov_reg_memoff(disass)
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
     def _slab_caches(self):
-        disass = self.disass("slab_next")
+        disass = self.disass(self.slab_caches_heuristic_func)
         return self.qword_mov_reg_const(disass)
 
     def _per_cpu_offset(self):
-        disass = self.disass("nr_iowait_cpu")
+        disass = self.disass(self.per_cpu_offset_heuristic_func)
         result = self.dword_add_reg_memoff(disass)
         if result is not None:
             return result
@@ -398,17 +404,12 @@ class x86_64Symbols(ArchSymbols):
         return self.qword_mov_reg_ripoff(disass)
 
     def _modules(self):
-        disass = self.disass("find_module_all")
+        disass = self.disass(self.modules_heuristic_func)
         return self.qword_mov_reg_ripoff(disass)
 
     def _db_list(self):
         offset = 0x10  # offset of the lock
-        name = (
-            "dma_buf_file_release"
-            if pwndbg.aglib.kernel.krelease() >= (5, 10)
-            else "dma_buf_release"
-        )
-        disass = self.disass(name)
+        disass = self.disass(self.db_list_heuristic_func)
         result = self.qword_mov_reg_const(disass)
         if result is not None:
             return result - offset
@@ -434,11 +435,11 @@ class Aarch64Symbols(ArchSymbols):
         return None
 
     def _node_data(self):
-        disass = self.disass("first_online_pgdat")
+        disass = self.disass(self.node_data_heuristic_func)
         return self.qword_adrp_add_const(disass)
 
     def _slab_caches(self):
-        disass = self.disass("slab_next")
+        disass = self.disass(self.slab_caches_heuristic_func)
         result = self.qword_adrp_add_const(disass)
         if result:
             return result
@@ -459,11 +460,11 @@ class Aarch64Symbols(ArchSymbols):
         return sum(int(m.group(i), 16) for i in [2, 3, 4])
 
     def _per_cpu_offset(self):
-        disass = self.disass("nr_iowait_cpu")
+        disass = self.disass(self.per_cpu_offset_heuristic_func)
         return self.qword_adrp_add_const(disass)
 
     def _modules(self):
-        disass = self.disass("find_module_all")
+        disass = self.disass(self.modules_heuristic_func)
         # adrp x<num>, 0x....
         # ...
         # add x<num>, x<num>, #0x...
@@ -482,12 +483,7 @@ class Aarch64Symbols(ArchSymbols):
 
     def _db_list(self):
         offset = 0x10  # offset of the lock
-        name = (
-            "dma_buf_file_release"
-            if pwndbg.aglib.kernel.krelease() >= (5, 10)
-            else "dma_buf_release"
-        )
-        disass = self.disass(name)
+        disass = self.disass(self.db_list_heuristic_func)
         result = self.qword_adrp_add_const(disass)
         if result is not None:
             return result - offset
