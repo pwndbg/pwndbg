@@ -271,6 +271,8 @@ class ArchSymbols:
             if pwndbg.aglib.kernel.krelease() >= (5, 10)
             else "dma_buf_release"
         )
+        self.bpf_prog_heuristic_func = "bpf_prog_free_id"
+        self.bpf_map_heuristic_func = "bpf_map_free_id"
 
     def disass(self, name, lines=None):
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
@@ -339,18 +341,16 @@ class ArchSymbols:
         map_idr = pwndbg.aglib.symbol.lookup_symbol("map_idr")
         if map_idr:
             return map_idr
-        map_idr = self._map_idr()
-        if map_idr is None:
-            return None
+        if pwndbg.aglib.kernel.has_debug_symbols(self.bpf_map_heuristic_func):
+            map_idr = self._map_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", map_idr)
 
     def prog_idr(self):
         prog_idr = pwndbg.aglib.symbol.lookup_symbol("prog_idr")
         if prog_idr:
             return prog_idr
-        prog_idr = self._map_idr()
-        if prog_idr is None:
-            return None
+        if pwndbg.aglib.kernel.has_debug_symbols(self.bpf_prog_heuristic_func):
+            prog_idr = self._map_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
     def _node_data(self):
@@ -445,14 +445,14 @@ class x86_64Symbols(ArchSymbols):
         return None
 
     def _map_idr(self):
-        disass = self.disass("bpf_map_free_id", lines=50)
+        disass = self.disass(self.bpf_map_heuristic_func, lines=50)
         result = self.qword_mov_reg_const(disass, nth=1)
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
     def _prog_idr(self):
-        disass = self.disass("bpf_prog_free_id")
+        disass = self.disass(self.bpf_prog_heuristic_func, lines=50)
         result = self.qword_mov_reg_const(disass, nth=1)
         if result is not None:
             return result
@@ -534,14 +534,14 @@ class Aarch64Symbols(ArchSymbols):
         return None
 
     def _map_idr(self):
-        disass = self.disass("bpf_map_free_id", lines=50)
+        disass = self.disass(self.bpf_map_heuristic_func, lines=50)
         result = self.qword_adrp_add_const(disass, nth=1)
         if result is not None:
             return result
         return self.qword_adrp_add_const(disass)
 
     def _prog_idr(self):
-        disass = self.disass("bpf_prog_free_id", lines=50)
+        disass = self.disass(self.bpf_prog_heuristic_func, lines=50)
         result = self.qword_adrp_add_const(disass, nth=1)
         if result is not None:
             return result
