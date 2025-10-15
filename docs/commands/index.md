@@ -76,6 +76,7 @@
 -  [binder](kernel/binder.md) - Show Android Binder information
 -  [buddydump](kernel/buddydump.md) - Displays metadata and freelists of the buddy allocator.
 -  [kbase](kernel/kbase.md) - Finds the kernel virtual base address.
+-  [kbpf](kernel/kbpf.md) - Prints information about the linux kernel bpf progs and maps.
 -  [kchecksec](kernel/kchecksec.md) - Checks for kernel hardening configuration options.
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
 -  [kconfig](kernel/kconfig.md) - Outputs the kernel config.
