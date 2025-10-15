@@ -19,6 +19,8 @@ parser = argparse.ArgumentParser(
     description="Prints information about the linux kernel bpf progs and maps."
 )
 parser.add_argument("-v", "--verbose", action="count", default=0)
+parser.add_argument("-p", "--progs", dest="print_progs", action="store_true", default=False)
+parser.add_argument("-m", "--maps", dest="print_maps", action="store_true", default=False)
 
 _bpf_map_array_off = None
 MAX_PRINTED_VALUE_SIZE = 0x20
@@ -26,8 +28,8 @@ MAX_BPF_VERBOSE_LEVEL1_OUTPUT_LEN = 0x10
 BPF_FIRST_REG, BPF_SECOND_REG = 1 << 0, 1 << 1
 BPF_AUX_REG_SRTING = "ax"
 BPF_MAP_ARRAY_TYPES = (
-    "ARRAY",
-    "PROG_ARRAY",
+    "BPF_MAP_TYPE_ARRAY",
+    "BPF_MAP_TYPE_PROG_ARRAY",
 )
 
 
@@ -65,7 +67,7 @@ def bpf_map_array_offset(bpf_array, t, max_entries, value_size):
     if _bpf_map_array_off:
         # pwndbg.lib.cache is not used here because it would also cache None
         return _bpf_map_array_off
-    if any(t.endswith(sub) for sub in BPF_MAP_ARRAY_TYPES):
+    if t in BPF_MAP_ARRAY_TYPES:
         expected_elem_size = math.ceil(value_size / 8) * 8
         expected_index_mask = (1 << math.ceil(math.log2(max_entries))) - 1
         for i in range(200):
@@ -201,7 +203,8 @@ def print_bpf_maps(verbose):
                 content = indent.aux_hex(bpf_array + off) if off else "unknown"
                 desc = f"array @ {content} (key_size: {indent.aux_hex(key_size)}, value_size: {indent.aux_hex(value_size)}, max_entries: {indent.aux_hex(max_entries)})"
                 indent.print(desc)
-                if off is not None and verbose > 0:
+                # TODO: what about types other than array
+                if off is not None and verbose > 0 and t in BPF_MAP_ARRAY_TYPES:
                     with indent:
                         entrysz = math.ceil(value_size / 8) * 8
                         for i in range(max_entries):
@@ -225,10 +228,14 @@ def print_bpf_maps(verbose):
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
-def kbpf(verbose: int):
+def kbpf(verbose: int, print_progs: bool, print_maps: bool):
     if not pwndbg.aglib.kernel.has_debug_info():
         pwndbg.aglib.kernel.bpf.load_bpf_typeinfo()
     if pwndbg.aglib.typeinfo.load("struct idr") is None:
         return
-    print_bpf_progs(verbose)
-    print_bpf_maps(verbose)
+    if not print_progs and not print_maps:
+        print_progs = print_maps = True
+    if print_progs:
+        print_bpf_progs(verbose)
+    if print_maps:
+        print_bpf_maps(verbose)
