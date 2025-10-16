@@ -37,6 +37,13 @@ parser.add_argument(
     help="Number of lines to show on before the address.",
 )
 parser.add_argument(
+    "-t",
+    "--total",
+    type=int,
+    default=None,
+    help="Total number of lines to show. This results in dynamic number of forward instructions depending on how many cached instructions are used.",
+)
+parser.add_argument(
     "-e",
     "--emulate",
     action="store_true",
@@ -46,17 +53,12 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
-def nearpc(pc=None, lines=None, emulate=False, reverse=None, use_cache=False, linear=True) -> None:
+def nearpc(
+    pc=None, lines=None, reverse=None, total=None, emulate=False, use_cache=False, linear=True
+) -> None:
     """
     Disassemble near a specified address.
     """
-
-    total_lines = None
-
-    # With no CLI args passed, use legacy behavior
-    if pc is None and lines is None and reverse is None:
-        back_lines = nearpc_lines // 2
-        total_lines = (nearpc_lines // 2) * 2 + 1
 
     # Fix the case where we only have one argument, and
     # it's a small value.
@@ -70,11 +72,16 @@ def nearpc(pc=None, lines=None, emulate=False, reverse=None, use_cache=False, li
     if lines is None:
         lines = int(nearpc_lines)
 
-    if reverse:
+    back_lines = 0
+
+    if reverse is None and total is None:
+        back_lines = int(nearpc_backwards_lines)
+    elif reverse:
         back_lines = reverse
-    elif not total_lines:
-        # Max number of previous instructions to show is nearpc_backwards_lines.
-        # But also don't show more lines "previous" lines than forward lines
+    elif total is not None:
+        # -t was specified
+        back_lines = min(int(nearpc_backwards_lines), total - 1)
+    else:
         back_lines = min(int(nearpc_backwards_lines), lines - 1)
 
     print(
@@ -83,7 +90,7 @@ def nearpc(pc=None, lines=None, emulate=False, reverse=None, use_cache=False, li
                 pc=pc,
                 lines=lines,
                 back_lines=back_lines,
-                total_lines=total_lines,
+                total_lines=total,
                 emulate=emulate,
                 repeat=nearpc.repeat,
                 use_cache=use_cache,
@@ -114,12 +121,28 @@ parser.add_argument(
     help="Number of lines to show on before the address.",
 )
 
+parser.add_argument(
+    "-t",
+    "--total",
+    type=int,
+    default=None,
+    help="Total number of lines to show. This results in dynamic number of forward instructions depending on how many cached instructions are used.",
+)
+
 
 @pwndbg.commands.Command(parser, category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
-def emulate(pc=None, lines=None, reverse=None, emulate_=True) -> None:
+def emulate(pc=None, lines=None, reverse=None, total=None, emulate_=True) -> None:
     """
     Like nearpc, but will emulate instructions from the current $PC forward.
     """
     nearpc.repeat = emulate.repeat
-    nearpc(pc=pc, lines=lines, reverse=reverse, emulate=emulate_, use_cache=True, linear=False)
+    nearpc(
+        pc=pc,
+        lines=lines,
+        reverse=reverse,
+        total=total,
+        emulate=emulate_,
+        use_cache=True,
+        linear=False,
+    )
