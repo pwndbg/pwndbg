@@ -114,23 +114,10 @@ def nearpc(
     if pc is not None:
         pc = pwndbg.dbg.selected_inferior().create_value(pc).cast(pwndbg.aglib.typeinfo.pvoid)
 
-    # # Fix the case where we only have one argument, and
-    # # it's a small value.
-    # if lines is None and (pc is None or int(pc) < 0x100):
-    #     lines = pc
-    #     pc = None
-
     if pc is None:
         pc = pwndbg.aglib.regs.pc
 
-    # GO BACK TO PLACES THAT CALL THIS FUNC
-    if lines is None:
-        lines = 1  # IGNORED IN THIS CASE
-        # total_lines = int(nearpc_lines)
-        # back_lines = nearpc_lines // 2
-
     pc = int(pc)
-    lines = int(lines)
 
     # Check whether we can even read this address
     if not pwndbg.aglib.memory.peek(pc):
