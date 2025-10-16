@@ -6,7 +6,7 @@ import pwndbg.aglib.nearpc
 from pwndbg.commands import CommandCategory
 
 nearpc_lines = pwndbg.config.add_param(
-    "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
+    "nearpc-lines", 10, "number of lines to print for the nearpc command"
 )
 
 nearpc_backwards_lines = pwndbg.config.add_param(
@@ -26,7 +26,15 @@ parser.add_argument(
     type=int,
     nargs="?",
     default=None,
-    help="Number of lines to show on either side of the address.",
+    help="Number of lines to disassemble.",
+)
+parser.add_argument(
+    "-r",
+    "--reverse",
+    type=int,
+    nargs="?",
+    default=None,
+    help="Number of lines to show on before the address.",
 )
 parser.add_argument(
     "-e",
@@ -38,7 +46,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
-def nearpc(pc=None, lines=None, emulate=False, use_cache=False, linear=True) -> None:
+def nearpc(pc=None, lines=None, emulate=False, reverse=None, use_cache=False, linear=True) -> None:
     """
     Disassemble near a specified address.
     """
@@ -46,7 +54,7 @@ def nearpc(pc=None, lines=None, emulate=False, use_cache=False, linear=True) -> 
     total_lines = None
 
     # With no CLI args passed, use legacy behavior
-    if pc is None and lines is None:
+    if pc is None and lines is None and reverse is None:
         back_lines = nearpc_lines // 2
         total_lines = (nearpc_lines // 2) * 2 + 1
 
@@ -62,10 +70,11 @@ def nearpc(pc=None, lines=None, emulate=False, use_cache=False, linear=True) -> 
     if lines is None:
         lines = int(nearpc_lines)
 
-    # TODO: allow to manually specify back lines
-    # Max number of previous instructions to show is nearpc_backwards_lines.
-    # But also don't show more lines "previous" lines than forward lines
-    if not total_lines:
+    if reverse:
+        back_lines = reverse
+    elif not total_lines:
+        # Max number of previous instructions to show is nearpc_backwards_lines.
+        # But also don't show more lines "previous" lines than forward lines
         back_lines = min(int(nearpc_backwards_lines), lines - 1)
 
     print(
@@ -93,15 +102,24 @@ parser.add_argument(
     type=int,
     nargs="?",
     default=None,
-    help="Number of lines to show on either side of the address.",
+    help="Number of lines to disassemble.",
+)
+
+parser.add_argument(
+    "-r",
+    "--reverse",
+    type=int,
+    nargs="?",
+    default=None,
+    help="Number of lines to show on before the address.",
 )
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
-def emulate(pc=None, lines=None, emulate_=True) -> None:
+def emulate(pc=None, lines=None, reverse=None, emulate_=True) -> None:
     """
     Like nearpc, but will emulate instructions from the current $PC forward.
     """
     nearpc.repeat = emulate.repeat
-    nearpc(pc=pc, lines=lines, emulate=emulate_, use_cache=True, linear=False)
+    nearpc(pc=pc, lines=lines, reverse=reverse, emulate=emulate_, use_cache=True, linear=False)
