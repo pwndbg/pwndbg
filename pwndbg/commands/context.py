@@ -1092,7 +1092,8 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
     result = try_emulate_if_bug_disable(
         lambda: pwndbg.aglib.nearpc.nearpc(
-            lines=disasm_lines // 2,
+            back_lines=disasm_lines // 2,
+            total_lines=int(disasm_lines) + 1,
             emulate=bool(not pwndbg.config.emulate == "off"),
             use_cache=True,
         )
