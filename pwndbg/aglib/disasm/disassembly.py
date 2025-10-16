@@ -354,8 +354,8 @@ def one_with_config():
 # Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
     address,
-    forward_count=1,
-    backward_count=0,
+    forward_count: int = 1,
+    backward_count: int = 0,
     total_count: int = None,
     emulate=False,
     show_prev_insns=True,
@@ -371,7 +371,7 @@ def near(
     single-stepping instructions.
 
     Args:
-        count: number of instructions forward from this instruction
+        forward_count: number of instructions forward from this instruction
         backward_count: maximum number of previously executed instructions
         total_count:
             if set, returns a list with this many instructions.
