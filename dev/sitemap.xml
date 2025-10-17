@@ -229,6 +229,10 @@
          <lastmod>2025-10-17</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/kbpf/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/commands/kernel/kchecksec/</loc>
          <lastmod>2025-10-17</lastmod>
     </url>
@@ -933,6 +937,10 @@
          <lastmod>2025-10-17</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/pwndbg/latest/tutorials/packaging/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/pwndbg/latest/tutorials/pwndbg-users/</loc>
          <lastmod>2025-10-17</lastmod>
     </url>
@@ -1078,6 +1086,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/aglib/kernel/bpf/</loc>
          <lastmod>2025-10-17</lastmod>
     </url>
     <url>
@@ -1414,6 +1426,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/kbase/</loc>
+         <lastmod>2025-10-17</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/pwndbg/latest/reference/pwndbg/commands/kbpf/</loc>
          <lastmod>2025-10-17</lastmod>
     </url>
     <url>
