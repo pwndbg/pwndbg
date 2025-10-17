@@ -76,7 +76,7 @@ def nearpc(
 
     if reverse is None and total is None:
         back_lines = min(int(nearpc_backwards_lines), lines - 1)
-    elif reverse:
+    elif reverse is not None:
         back_lines = reverse
     elif total is not None:
         # -t was specified
