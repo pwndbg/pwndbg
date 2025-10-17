@@ -350,7 +350,7 @@ class ArchSymbols:
         if prog_idr:
             return prog_idr
         if pwndbg.aglib.kernel.has_debug_symbols(self.bpf_prog_heuristic_func):
-            prog_idr = self._map_idr()
+            prog_idr = self._prog_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
     def _node_data(self):

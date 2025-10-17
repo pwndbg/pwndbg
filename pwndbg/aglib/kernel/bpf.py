@@ -11,7 +11,7 @@ import pwndbg.color.message as M
 def get_struct_bpf_prog():
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += """
-    /* the enum types (probably) have been added to the kernel in decendending order */
+    /* the enum types (probably) have been added to the kernel in decending order */
     enum bpf_prog_type {
         BPF_PROG_TYPE_UNSPEC,
         BPF_PROG_TYPE_SOCKET_FILTER,

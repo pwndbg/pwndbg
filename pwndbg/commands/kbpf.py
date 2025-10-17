@@ -26,7 +26,7 @@ _bpf_map_array_off = None
 MAX_PRINTED_VALUE_SIZE = 0x20
 MAX_BPF_VERBOSE_LEVEL1_OUTPUT_LEN = 0x10
 BPF_FIRST_REG, BPF_SECOND_REG = 1 << 0, 1 << 1
-BPF_AUX_REG_SRTING = "ax"
+BPF_AUX_REG_STRING = "ax"
 BPF_MAP_ARRAY_TYPES = (
     "BPF_MAP_TYPE_ARRAY",
     "BPF_MAP_TYPE_PROG_ARRAY",
@@ -55,10 +55,10 @@ def handle_bpf_aux_reg_for_opstr(opstr, regflag):
     matches = list(pattern.finditer(opstr))
     if regflag & BPF_FIRST_REG:
         start, end = matches[0].span()
-        opstr = opstr[:start] + BPF_AUX_REG_SRTING + opstr[end:]
+        opstr = opstr[:start] + BPF_AUX_REG_STRING + opstr[end:]
     if regflag & BPF_SECOND_REG:
         start, end = matches[-1].span()
-        opstr = opstr[:start] + BPF_AUX_REG_SRTING + opstr[end:]
+        opstr = opstr[:start] + BPF_AUX_REG_STRING + opstr[end:]
     return opstr
 
 
