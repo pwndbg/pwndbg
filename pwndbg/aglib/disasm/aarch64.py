@@ -362,7 +362,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
         if instruction.id == AARCH64_INS_B:
             # The B instruction can be made conditional by the condition codes
             if instruction.cs_insn.cc in (AArch64CC_Invalid, AArch64CC_AL):
-                instruction.declare_conditional = False
+                instruction.declare_is_unconditional_jump = True
             else:
                 flags = super()._read_register_name(instruction, "cpsr", emu)
                 if flags is not None:

@@ -837,3 +837,153 @@ def test_arm_it_block_cached_thumb_mode(qemu_assembly_run):
     )
 
     assert dis == expected
+
+
+ARM_CONDITIONAL_INSTRUCTIONS = f"""
+{ARM_PREAMBLE}
+
+cmp r0, #0
+ldrbne r2, [r0]
+movne r0, #1
+cmpne r2, #0
+bxne lr
+
+nop
+nop
+nop
+nop
+nop
+nop
+"""
+
+
+def test_arm_conditional_instructions(qemu_assembly_run):
+    qemu_assembly_run(ARM_CONDITIONAL_INSTRUCTIONS, "arm")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x200b4 <_start>       cmp    r0, #0       0 - 0     CPSR => 0x60000010 [ n Z C v q j t e a i f ]\n"
+        "   0x200b8 <_start+4>   ✘ ldrbne r2, [r0]\n"
+        "   0x200bc <_start+8>   ✘ movne  r0, #1\n"
+        "   0x200c0 <_start+12>  ✘ cmpne  r2, #0\n"
+        "   0x200c4 <_start+16>  ✘ bxne   lr                          <0>\n"
+        " \n"
+        "   0x200c8 <_start+20>    nop    \n"
+        "   0x200cc <_start+24>    nop    \n"
+        "   0x200d0 <_start+28>    nop    \n"
+        "   0x200d4 <_start+32>    nop    \n"
+        "   0x200d8 <_start+36>    nop    \n"
+        "   0x200dc <_start+40>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+ARM_CONDITIONAL_INSTRUCTIONS_SUCCESSFUL_BRANCH = f"""
+{ARM_PREAMBLE}
+
+LDR lr, =jump_here
+cmp r0, #0
+ldrbne r2, [r0]
+movne r0, #1
+cmpne r2, #0
+bxeq lr
+
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+
+jump_here:
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+"""
+
+
+def test_arm_conditional_instructions_successful_branch(qemu_assembly_run):
+    qemu_assembly_run(ARM_CONDITIONAL_INSTRUCTIONS_SUCCESSFUL_BRANCH, "arm")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x200b4 <_start>          ldr    lr, [pc, #0x4c]     R14, [jump_here+28] => 0x200ec (jump_here) ◂— nop \n"
+        "   0x200b8 <_start+4>        cmp    r0, #0              0 - 0     CPSR => 0x60000010 [ n Z C v q j t e a i f ]\n"
+        "   0x200bc <_start+8>      ✘ ldrbne r2, [r0]\n"
+        "   0x200c0 <_start+12>     ✘ movne  r0, #1\n"
+        "   0x200c4 <_start+16>     ✘ cmpne  r2, #0\n"
+        "   0x200c8 <_start+20>     ✔ bxeq   lr                          <jump_here>\n"
+        "    ↓\n"
+        "   0x200ec <jump_here>       nop    \n"
+        "   0x200f0 <jump_here+4>     nop    \n"
+        "   0x200f4 <jump_here+8>     nop    \n"
+        "   0x200f8 <jump_here+12>    nop    \n"
+        "   0x200fc <jump_here+16>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
+ARM_CONDITIONAL_INSTRUCTIONS_CALL = f"""
+{ARM_PREAMBLE}
+
+cmp r0, #0
+bleq func
+
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+
+func:
+    mov pc, lr
+"""
+
+
+def test_arm_conditional_call(qemu_assembly_run):
+    qemu_assembly_run(ARM_CONDITIONAL_INSTRUCTIONS_CALL, "arm")
+
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
+        " ► 0x200b4 <_start>       cmp    r0, #0     0 - 0     CPSR => 0x60000010 [ n Z C v q j t e a i f ]\n"
+        "   0x200b8 <_start+4>   ✔ bleq   func                        <func>\n"
+        " \n"
+        "   0x200bc <_start+8>     nop    \n"
+        "   0x200c0 <_start+12>    nop    \n"
+        "   0x200c4 <_start+16>    nop    \n"
+        "   0x200c8 <_start+20>    nop    \n"
+        "   0x200cc <_start+24>    nop    \n"
+        "   0x200d0 <_start+28>    nop    \n"
+        "   0x200d4 <_start+32>    nop    \n"
+        "   0x200d8 <_start+36>    nop    \n"
+        "   0x200dc <_start+40>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected

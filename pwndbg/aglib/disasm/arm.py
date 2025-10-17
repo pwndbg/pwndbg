@@ -261,7 +261,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         # These condition codes indicate unconditionally/condition is not relevant
         if instruction.cs_insn.cc in (ARM_CC_AL, ARMCC_UNDEF):
             if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
-                instruction.declare_conditional = False
+                instruction.declare_is_unconditional_jump = True
             return InstructionCondition.UNDETERMINED
 
         value = self._read_register_name(instruction, self.flags_reg, emu)

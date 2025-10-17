@@ -240,7 +240,10 @@ class DisassemblyAssistant:
         # Set the .target and .next fields
         self._enhance_next(instruction, emu, jump_emu)
 
-        if bool(pwndbg.config.disasm_annotations):
+        if (
+            bool(pwndbg.config.disasm_annotations)
+            and instruction.condition != InstructionCondition.FALSE
+        ):
             self._set_annotation_string(instruction, emu)
 
         # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
