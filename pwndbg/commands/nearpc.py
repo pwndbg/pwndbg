@@ -48,12 +48,18 @@ parser.add_argument(
     help="Whether to emulate instructions to find the next ones or just linearly disassemble.",
 )
 
+parser.add_argument(
+    "-v",
+    "--visual",
+    action="store_true",
+    help="Whether to show branch visualizations.",
+)
+
 
 @pwndbg.commands.Command(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(
-    pc=None, lines=None, reverse=None, total=None, emulate=False, use_cache=False, linear=True
-) -> None:
+    pc=None, lines=None, reverse=None, total=None, emulate=False, use_cache=False, linear=True, visual=False) -> None:
     """
     Disassemble near a specified address.
     """
@@ -91,6 +97,7 @@ def nearpc(
                 repeat=nearpc.repeat,
                 use_cache=use_cache,
                 linear=linear,
+                branch_visualization=visual,
             )
         )
     )

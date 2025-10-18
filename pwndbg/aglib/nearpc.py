@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from collections import defaultdict
+from typing import List
+from typing import NamedTuple
+
 from capstone6pwndbg import *  # noqa: F403
 
 import pwndbg
@@ -17,7 +21,19 @@ import pwndbg.lib.config
 from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
+from pwndbg.color import black
+from pwndbg.color import blue
+from pwndbg.color import cyan
+from pwndbg.color import gray
+from pwndbg.color import green
+from pwndbg.color import light_gray
+from pwndbg.color import light_purple
+from pwndbg.color import light_red
 from pwndbg.color import message
+from pwndbg.color import purple
+from pwndbg.color import red
+from pwndbg.color import rjust_colored
+from pwndbg.color import strip
 
 
 def ljust_padding(lst):
@@ -81,15 +97,33 @@ opcode_separator_bytes = pwndbg.config.add_param(
 )
 
 
+class JumpRange(NamedTuple):
+    start: int
+    end: int
+
+    def contains(self, address: int) -> bool:
+        return min(self.start, self.end) <= address <= max(self.start, self.end)
+
+    def overlaps(self, other: JumpRange):
+        return min(self.start, self.end) <= other.start <= max(self.start, self.end) or min(
+            other.start, other.end
+        ) <= self.start <= max(other.start, other.end)
+
+
 def nearpc(
     pc: int = None,
     lines: int = None,
     back_lines: int = 0,
     total_lines: int = None,
+   
     emulate=False,
+   
     repeat=False,
+   
     use_cache=False,
-    linear=False,
+   
+    linear=False,,
+    branch_visualization=False,
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -147,6 +181,80 @@ def nearpc(
         use_cache=use_cache,
         linear=linear,
     )
+
+    if branch_visualization:
+        jumps: List[JumpRange] = []
+
+        ## The following section contain setup for branch visualization logic
+        # Map of address to pairs
+        pair_map: dict[int, list[JumpRange]] = defaultdict(list)
+        pair_offsets: dict[JumpRange, int] = defaultdict(lambda: -1)
+
+        # Map each address to the list of jump ranges that contain it
+        for instruction in instructions:
+            if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
+                jumps.append(JumpRange(instruction.address, instruction.target))
+
+        for instruction in instructions:
+            for pair in jumps:
+                if pair.contains(instruction.address):
+                    pair_map[instruction.address].append(pair)
+
+        # Preprocess each pair to assign a unique ID to all overlapping ranges
+        for pair1 in jumps:
+            cur_offset = -1
+            for pair2 in jumps:
+                if pair1 == pair2:
+                    continue
+
+                if pair1.overlaps(pair2):
+                    if pair_offsets[pair2] >= cur_offset:
+                        cur_offset = pair_offsets[pair2] + 1
+
+            pair_offsets[pair1] = cur_offset
+
+        # Sort lists of jump ranges by ascending id
+        for instruction in instructions:
+            pairs = pair_map[instruction.address]
+            pairs.sort(key=lambda x: pair_offsets[x])
+            # print([pair_offsets[x] for x in pairs])
+
+    if branch_visualization:
+        jumps: List[JumpRange] = []
+
+        ## The following section contain setup for branch visualization logic
+        # Map of address to pairs
+        pair_map: dict[int, list[JumpRange]] = defaultdict(list)
+        pair_offsets: dict[JumpRange, int] = defaultdict(lambda: -1)
+
+        # Map each address to the list of jump ranges that contain it
+        for instruction in instructions:
+            if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
+                jumps.append(JumpRange(instruction.address, instruction.target))
+
+        for instruction in instructions:
+            for pair in jumps:
+                if pair.contains(instruction.address):
+                    pair_map[instruction.address].append(pair)
+
+        # Preprocess each pair to assign a unique ID to all overlapping ranges
+        for pair1 in jumps:
+            cur_offset = -1
+            for pair2 in jumps:
+                if pair1 == pair2:
+                    continue
+
+                if pair1.overlaps(pair2):
+                    if pair_offsets[pair2] >= cur_offset:
+                        cur_offset = pair_offsets[pair2] + 1
+
+            pair_offsets[pair1] = cur_offset
+
+        # Sort lists of jump ranges by ascending id
+        for instruction in instructions:
+            pairs = pair_map[instruction.address]
+            pairs.sort(key=lambda x: pair_offsets[x])
+            # print([pair_offsets[x] for x in pairs])
 
     if pwndbg.aglib.memory.peek(pc) and not instructions:
         result.append(message.error(f"Invalid instructions at {pc:#x}"))
@@ -324,8 +432,131 @@ def nearpc(
         # symbol        = <__strrchr_avx2+70>
         # asm           = bsr    eax, eax           (jump target/annotation would go here too)
 
+        if branch_visualization:
+            TOP_LEFT_CORNER = "┌"
+            BOT_LEFT_CORNER = "└"
+            HORZ_SYMBOL = "─"
+            VERT_SYMBOL = "│"
+            START_SYMBOL = "<"
+            END_SYMBOL = ">"
+
+            PADDING_FOR_FLOW = 15
+
+            addr = instr.address
+            # Compute lines
+
+            offset_to_color_map = {
+                0: black,
+                1: red,
+                2: green,
+                3: blue,
+                4: gray,
+                5: purple,
+                6: cyan,
+                7: light_gray,
+                8: light_red,
+                9: light_purple,
+            }
+
+            def colorize(offset: int, string: str):
+                return offset_to_color_map.get(offset, lambda x: str(x))(string)
+
+            # Find the one that starts here
+            flow = ""
+            for pair in pair_map[addr]:
+                offset = pair_offsets[pair] + 1
+
+                amount = min(offset, offset - len(strip(flow)))
+
+                # If a forward jump
+                if pair.start < pair.end:
+                    if pair.start == addr:
+                        # Only one of these possible
+                        if flow:
+                            flow = colorize(offset, TOP_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
+                        else:
+                            flow = colorize(
+                                offset, TOP_LEFT_CORNER + (amount) * HORZ_SYMBOL + START_SYMBOL
+                            )
+                    elif pair.end == addr:
+                        if flow:
+                            # Need to choose a better color in this case
+                            # See my pwnshellcode example code
+                            # Really, we want to maintain the origin color?
+
+                            # Want to just swap out the last character, ignoring colors
+                            # stripped_len = len(strip(flow))
+                            # flow = colorize(offset,strip(flow)[:-1] + END_SYMBOL)
+                            flow = colorize(offset, BOT_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
+                        else:
+                            flow = colorize(
+                                offset, BOT_LEFT_CORNER + (amount) * HORZ_SYMBOL + END_SYMBOL
+                            )
+                else:
+                    # Backwards jump
+                    if pair.start == addr:
+                        if flow:
+                            flow = colorize(offset, BOT_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
+                        else:
+                            flow = colorize(
+                                offset, BOT_LEFT_CORNER + (amount) * HORZ_SYMBOL + START_SYMBOL
+                            )
+                    elif pair.end == addr:
+                        if flow:
+                            # flow = colorize(offset,strip(flow)[:-1] + END_SYMBOL)
+                            flow = colorize(offset, TOP_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
+                        else:
+                            flow = colorize(
+                                offset, TOP_LEFT_CORNER + (amount) * HORZ_SYMBOL + END_SYMBOL
+                            )
+
+            # repeat_flow is the string placed in to the empty lines after branches
+            # It contains no --> or <--
+            repeat_flow = ""
+            for pair in pair_map[addr]:
+                offset = pair_offsets[pair] + 1
+                spacing_offset = offset + 1
+
+                if pair.start < pair.end:
+                    # If ending here, don't add to repeat flow
+                    if pair.end == addr:
+                        continue
+                else:
+                    # Backwards jmp, at start
+                    if pair.start == addr:
+                        # Not when going backwards!
+                        continue
+
+                repeat_flow = (
+                    colorize(
+                        offset,
+                        VERT_SYMBOL
+                        + (" " * (min(spacing_offset, spacing_offset - len(strip(repeat_flow))))),
+                    )
+                    + repeat_flow
+                )
+
+                if pair.start == addr or pair.end == addr:
+                    continue
+
+                if len(strip(flow)) <= spacing_offset:
+                    flow = (
+                        colorize(
+                            offset,
+                            VERT_SYMBOL
+                            + " " * (min(spacing_offset, spacing_offset - len(strip(flow)))),
+                        )
+                        + flow
+                    )
+
+            flow = rjust_colored(flow, PADDING_FOR_FLOW)
+            repeat_flow = rjust_colored(repeat_flow, PADDING_FOR_FLOW)
+        else:
+            flow = None
+            repeat_flow = ""
+
         # mem_access was on this list, but not used due to the `and False` in the code that sets it above
-        line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
+        line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
 
         # FIXME(provider, integration): can we look into doing this on the decompiler side?
         # if show_comments:
@@ -356,12 +587,15 @@ def nearpc(
 
         # If this instruction deserves a down arrow to indicate a taken branch
         if instr.split == SplitType.BRANCH_TAKEN:
-            result.append(c.branch_marker(f"{nearpc_branch_marker}"))
+            result.append(repeat_flow + c.branch_marker(f"{nearpc_branch_marker}"))
 
         # Otherwise if it's a branch and it *is* contiguous, just put an empty line.
         elif instr.split == SplitType.BRANCH_NOT_TAKEN:
             if nearpc_branch_marker_contiguous:
-                result.append(f"{nearpc_branch_marker_contiguous}")
+                if repeat_flow:
+                    result.append(repeat_flow)
+                else:
+                    result.append(f"{nearpc_branch_marker_contiguous}")
 
     return result
 
