@@ -67,7 +67,8 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(
-    pc=None, lines=None, reverse=None, total=None, emulate=False, use_cache=False, linear=True, visual=False, where=0) -> None:
+    pc=None, lines=None, reverse=None, total=None, emulate=False, use_cache=False, linear=True, visual=False, where=0
+) -> None:
     """
     Disassemble near a specified address.
     """
@@ -106,7 +107,7 @@ def nearpc(
                 use_cache=use_cache,
                 linear=linear,
                 branch_visualization=visual,
-                where=where
+                where=where,
             )
         )
     )

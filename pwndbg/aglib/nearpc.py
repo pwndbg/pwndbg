@@ -19,14 +19,13 @@ import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.lib.config
 from pwndbg.aglib.disasm.instruction import SplitType
-from pwndbg.color import ColorConfig, bold, light_blue, light_green, light_yellow, white, yellow
+from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
-from pwndbg.color import black
 from pwndbg.color import blue
 from pwndbg.color import cyan
-from pwndbg.color import gray
 from pwndbg.color import green
 from pwndbg.color import light_gray
+from pwndbg.color import light_green
 from pwndbg.color import light_purple
 from pwndbg.color import light_red
 from pwndbg.color import message
@@ -34,6 +33,7 @@ from pwndbg.color import purple
 from pwndbg.color import red
 from pwndbg.color import rjust_colored
 from pwndbg.color import strip
+from pwndbg.color import white
 
 
 def ljust_padding(lst):
@@ -104,10 +104,10 @@ class JumpRange(NamedTuple):
     def contains(self, address: int) -> bool:
         return min(self.start, self.end) <= address <= max(self.start, self.end)
 
-    def overlaps(self, other: JumpRange):
-        return min(self.start, self.end) <= other.start <= max(self.start, self.end) or min(
-            other.start, other.end
-        ) <= self.start <= max(other.start, other.end)
+    def overlaps(self, other: JumpRange) -> bool:
+        return max(min(self.start, self.end), min(other.start, other.end)) <= min(
+            max(self.start, self.end), max(other.start, other.end)
+        )
 
 
 def nearpc(
@@ -124,7 +124,7 @@ def nearpc(
    
     linear=False,,
     branch_visualization=False,
-    where: int = 0
+    where: int = 0,
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -482,12 +482,6 @@ def nearpc(
                             )
                     elif pair.end == addr:
                         if flow:
-                            # Need to choose a better color in this case
-                            # See my pwnshellcode example code
-                            # Really, we want to maintain the origin color?
-
-                            # Want to just swap out the last character, ignoring colors
-                            # stripped_len = len(strip(flow))
                             # flow = colorize(offset,strip(flow)[:-1] + END_SYMBOL)
                             flow = colorize(offset, BOT_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
                         else:
@@ -559,13 +553,13 @@ def nearpc(
 
         # mem_access was on this list, but not used due to the `and False` in the code that sets it above
         # line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
-        
+
         if where == 0:
             line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
         else:
             line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, flow, asm)))
             longest_len = len(strip(prefix)) + max(map(len, symbols)) + max(map(len, addresses))
-            repeat_flow = rjust_colored(repeat_flow,longest_len + PADDING_FOR_FLOW + 3)
+            repeat_flow = rjust_colored(repeat_flow, longest_len + PADDING_FOR_FLOW + 3)
         # FIXME(provider, integration): can we look into doing this on the decompiler side?
         # if show_comments:
         #     # Pull comments from integration if possible
