@@ -33,6 +33,17 @@ from pwndbg.lib.arch import Platform
 from pwndbg.lib.functions import format_flags_argument
 
 
+# Sometimes function calls are not invoked with a "call instruction",
+# such as with tail-recursion or in PLT stubs
+def fallback_check_for_function_call(instruction: PwndbgInstruction) -> bool:
+    if instruction.is_unconditional_jump and instruction.target_string:
+        # Check if it is to the start of a function
+        # Otherwise, the symbol would contain +constant
+        # Like `main+132`
+        return "+" not in instruction.target_string
+    return False
+
+
 def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
     """
     Returns an array containing the arguments to the current function,
@@ -47,7 +58,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     if instruction.address != pwndbg.aglib.regs.pc:
         return []
 
-    if instruction.call_like:
+    if instruction.call_like or (fallback_check_for_function_call(instruction)):
         abi = pwndbg.aglib.arch.function_abi
 
         if abi is None:
