@@ -55,11 +55,19 @@ parser.add_argument(
     help="Whether to show branch visualizations.",
 )
 
+parser.add_argument(
+    "-w",
+    "--where",
+    type=int,
+    default=0,
+    help="Test parameter to indicate where branch visualizations go.",
+)
+
 
 @pwndbg.commands.Command(parser, aliases=["pdisass", "u"], category=CommandCategory.DISASS)
 @pwndbg.commands.OnlyWhenRunning
 def nearpc(
-    pc=None, lines=None, reverse=None, total=None, emulate=False, use_cache=False, linear=True, visual=False) -> None:
+    pc=None, lines=None, reverse=None, total=None, emulate=False, use_cache=False, linear=True, visual=False, where=0) -> None:
     """
     Disassemble near a specified address.
     """
@@ -98,6 +106,7 @@ def nearpc(
                 use_cache=use_cache,
                 linear=linear,
                 branch_visualization=visual,
+                where=where
             )
         )
     )

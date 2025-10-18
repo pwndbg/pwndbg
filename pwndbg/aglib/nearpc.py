@@ -19,7 +19,7 @@ import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.lib.config
 from pwndbg.aglib.disasm.instruction import SplitType
-from pwndbg.color import ColorConfig
+from pwndbg.color import ColorConfig, bold, light_blue, light_green, light_yellow, white, yellow
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import black
 from pwndbg.color import blue
@@ -124,6 +124,7 @@ def nearpc(
    
     linear=False,,
     branch_visualization=False,
+    where: int = 0
 ) -> list[str]:
     """
     Disassemble near a specified address.
@@ -446,16 +447,17 @@ def nearpc(
             # Compute lines
 
             offset_to_color_map = {
-                0: black,
+                0: white,
                 1: red,
                 2: green,
                 3: blue,
-                4: gray,
+                4: white,
                 5: purple,
                 6: cyan,
-                7: light_gray,
-                8: light_red,
-                9: light_purple,
+                7: light_red,
+                8: light_purple,
+                9: light_gray,
+                10: light_green,
             }
 
             def colorize(offset: int, string: str):
@@ -556,8 +558,14 @@ def nearpc(
             repeat_flow = ""
 
         # mem_access was on this list, but not used due to the `and False` in the code that sets it above
-        line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
-
+        # line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
+        
+        if where == 0:
+            line = " ".join(filter(None, (flow, prefix, address_str, opcodes, symbol, asm)))
+        else:
+            line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, flow, asm)))
+            longest_len = len(strip(prefix)) + max(map(len, symbols)) + max(map(len, addresses))
+            repeat_flow = rjust_colored(repeat_flow,longest_len + PADDING_FOR_FLOW + 3)
         # FIXME(provider, integration): can we look into doing this on the decompiler side?
         # if show_comments:
         #     # Pull comments from integration if possible
