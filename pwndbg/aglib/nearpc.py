@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from typing import List
-from typing import NamedTuple
 
 from capstone6pwndbg import *  # noqa: F403
 
@@ -97,17 +96,28 @@ opcode_separator_bytes = pwndbg.config.add_param(
 )
 
 
-class JumpRange(NamedTuple):
+class JumpRange:
     start: int
     end: int
+    forward: bool
+
+    min: int
+    max: int
+
+    def __init__(self, s: int, e: int):
+        self.start = s
+        self.end = e
+
+        self.forward = self.start < self.end
+
+        self.min = min(self.start, self.end)
+        self.max = max(self.start, self.end)
 
     def contains(self, address: int) -> bool:
-        return min(self.start, self.end) <= address <= max(self.start, self.end)
+        return self.min <= address <= self.max
 
     def overlaps(self, other: JumpRange) -> bool:
-        return max(min(self.start, self.end), min(other.start, other.end)) <= min(
-            max(self.start, self.end), max(other.start, other.end)
-        )
+        return max(self.min, other.min) <= min(self.max, other.max)
 
 
 def nearpc(
@@ -203,6 +213,7 @@ def nearpc(
 
         # Preprocess each pair to assign a unique ID to all overlapping ranges
         for pair1 in jumps:
+            # TODO: don't default to -1! Default to 0 if no overlaps?
             cur_offset = -1
             for pair2 in jumps:
                 if pair1 == pair2:
@@ -210,6 +221,9 @@ def nearpc(
 
                 if pair1.overlaps(pair2):
                     if pair_offsets[pair2] >= cur_offset:
+                        # TODO: this is safe, but we could find a "hole" in between the lines where this offset could go
+                        # Basically, for all the pairs this overlaps with, pick the highest
+                        # value not in the list of those id's.
                         cur_offset = pair_offsets[pair2] + 1
 
             pair_offsets[pair1] = cur_offset
@@ -471,9 +485,8 @@ def nearpc(
                 amount = min(offset, offset - len(strip(flow)))
 
                 # If a forward jump
-                if pair.start < pair.end:
+                if pair.forward:
                     if pair.start == addr:
-                        # Only one of these possible
                         if flow:
                             flow = colorize(offset, TOP_LEFT_CORNER + (amount) * HORZ_SYMBOL) + flow
                         else:
@@ -513,7 +526,7 @@ def nearpc(
                 offset = pair_offsets[pair] + 1
                 spacing_offset = offset + 1
 
-                if pair.start < pair.end:
+                if pair.forward:
                     # If ending here, don't add to repeat flow
                     if pair.end == addr:
                         continue
