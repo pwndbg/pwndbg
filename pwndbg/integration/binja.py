@@ -52,7 +52,7 @@ from pwndbg.lib.functions import Function
 bn_rpc_host = pwndbg.config.add_param(
     "bn-rpc-host", "127.0.0.1", "Binary Ninja XML-RPC server host"
 )
-bn_rpc_port = pwndbg.config.add_param("bn-rpc-port", 31337, "Binary Ninja XML-RPC server port")
+bn_rpc_port = pwndbg.config.add_param("bn-rpc-port", 43717, "Binary Ninja XML-RPC server port")
 bn_timeout = pwndbg.config.add_param(
     "bn-timeout", 2, "time to wait for Binary Ninja XML-RPC, in seconds"
 )

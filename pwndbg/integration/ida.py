@@ -40,7 +40,7 @@ from pwndbg.dbg import EventType
 from pwndbg.lib.functions import Function
 
 ida_rpc_host = pwndbg.config.add_param("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
-ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
+ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 43718, "ida xmlrpc server port")
 ida_timeout = pwndbg.config.add_param("ida-timeout", 2, "time to wait for ida xmlrpc in seconds")
 
 

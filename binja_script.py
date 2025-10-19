@@ -22,7 +22,7 @@ xmlrpc.client.MININT = -(10**100)
 
 
 host = os.environ.get("PWNDBG_BINJA_SERVER_HOST", "127.0.0.1")
-port = int(os.environ.get("PWNDBG_BINJA_SERVER_PORT", "31337"))
+port = int(os.environ.get("PWNDBG_BINJA_SERVER_PORT", "43717"))
 
 logger = binaryninja.log.Logger(0, "pwndbg-integration")
 

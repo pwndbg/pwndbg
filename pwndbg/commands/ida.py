@@ -179,7 +179,7 @@ def ida(name: gdb.Value) -> int:
     Example:
     ```
     pwndbg> set integration-provider ida
-    Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:31337
+    Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:43718
     Set which provider to use for integration features to 'ida'.
     pwndbg> p main
     No symbol "main" in current context.

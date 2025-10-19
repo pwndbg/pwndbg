@@ -23,7 +23,7 @@ def bn_sym(name_val: gdb.Value) -> int:
     Example:
     ```
     pwndbg> set integration-provider binja
-    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:43717
     Set which provider to use for integration features to 'binja'.
     pwndbg> p main
     No symbol "main" in current context.
@@ -56,7 +56,7 @@ def bn_var(name_val: gdb.Value) -> int:
     Example:
     ```
     pwndbg> set integration-provider binja
-    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:43717
     Set which provider to use for integration features to 'binja'.
     pwndbg> p user_choice
     No symbol "user_choice" in current context.
@@ -104,7 +104,7 @@ def bn_eval(expr: gdb.Value) -> int:
     Example:
     ```
     pwndbg> set integration-provider binja
-    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:43717
     Set which provider to use for integration features to 'binja'.
     pwndbg> p/x $bn_eval("10+20")
     $6 = 0x30
