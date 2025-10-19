@@ -23,6 +23,7 @@ from typing import TypeVar
 import gdb
 from typing_extensions import Concatenate
 from typing_extensions import ParamSpec
+from typing_extensions import override
 
 import pwndbg
 import pwndbg.aglib.arch
@@ -61,6 +62,13 @@ def ida_config_changed():
     if pwndbg.integration.provider_name.value == "ida":
         # We need to (re)connect the client, possibly with updated values.
         try_init_ida_rpc_client()
+
+
+def ensure_disabled():
+    global _ida
+    _ida = None
+    pwndbg.integration.unset_provider()
+    pwndbg.integration.provider_name.value = "none"
 
 
 def try_init_ida_rpc_client() -> bool:
@@ -120,9 +128,7 @@ def try_init_ida_rpc_client() -> bool:
         else:
             exception = sys.exc_info()
 
-    _ida = None
-    pwndbg.integration.unset_provider()
-    pwndbg.integration.provider_name.value = "none"
+    ensure_disabled()
 
     if exception:
         if (
@@ -162,6 +168,10 @@ def try_init_ida_rpc_client() -> bool:
     return False
 
 
+# We cannot catch the ConnectionRefusedError here, nor in @withIDA because there
+# may be multiple nested decorated functions, and the bottom most one will swallow
+# the exception up prevent it from bubbling to the top. Thus, we catch
+# ConnectionRefusedError in CommandObj.__call__().
 def enabledIDA(func: Callable[P, T]) -> Callable[P, T | None]:
     """
     If we have a connection to Ida, call the function.
@@ -691,3 +701,7 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
             return pwndbg.lib.funcparser.ExtractFuncDeclFromSource(typename + ";")
 
         return None
+
+    @override
+    def disable(self) -> None:
+        ensure_disabled()

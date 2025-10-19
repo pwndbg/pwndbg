@@ -65,6 +65,12 @@ class IntegrationProvider:
         """
         return None
 
+    def disable(self) -> None:
+        """
+        Notify the provider that it should disable itself.
+        """
+        return None
+
 
 # This value should only be the name of the provider if we have a valid connection
 # to the provider. I.e. if we fail to connect to the provider, we should set this to
@@ -132,6 +138,9 @@ class ConfigurableProvider(IntegrationProvider):
 
     def get_stack_var_name(self, addr: int) -> str | None:
         return self.inner.get_stack_var_name(addr)
+
+    def disable(self) -> None:
+        return self.inner.disable()
 
 
 provider: IntegrationProvider = IntegrationProvider()
