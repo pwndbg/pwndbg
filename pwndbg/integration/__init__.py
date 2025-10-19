@@ -66,6 +66,9 @@ class IntegrationProvider:
         return None
 
 
+# This value should only be the name of the provider if we have a valid connection
+# to the provider. I.e. if we fail to connect to the provider, we should set this to
+# "none". TODO: Check this for binja.
 provider_name = pwndbg.config.add_param(
     "integration-provider",
     "none",
@@ -134,24 +137,37 @@ class ConfigurableProvider(IntegrationProvider):
 provider: IntegrationProvider = IntegrationProvider()
 
 
-@pwndbg.config.trigger(provider_name)
-def switch_providers():
+def set_provider(prov: IntegrationProvider) -> None:
+    """
+    Call this from provider-specific code whenever you establish a connection.
+    """
     global provider
-    if not provider_name.value or provider_name.value == "none":
-        provider = IntegrationProvider()
-    elif provider_name.value == "binja":
-        # do not import at start of file to avoid circular import
-        import pwndbg.integration.binja
+    provider = ConfigurableProvider(prov)
 
-        provider = ConfigurableProvider(pwndbg.integration.binja.BinjaProvider())
-    elif provider_name.value == "ida":
-        import pwndbg.integration.ida
+def unset_provider() -> None:
+    """
+    Call this from provider-specific code whenever a connection stops.
+    """
+    global provider
+    provider = IntegrationProvider()
 
-        provider = ConfigurableProvider(pwndbg.integration.ida.IdaProvider())
-    else:
-        print(
-            message.warn(
-                f"Invalid provider {provider_name.value!r} specified. Disabling integration."
-            )
-        )
-        provider_name.revert_default()
+# @pwndbg.config.trigger(provider_name)
+# def switch_providers():
+#     if not provider_name.value or provider_name.value == "none":
+#         provider = IntegrationProvider()
+#     elif provider_name.value == "binja":
+#         # do not import at start of file to avoid circular import
+#         import pwndbg.integration.binja
+
+#         provider = ConfigurableProvider(pwndbg.integration.binja.BinjaProvider())
+#     elif provider_name.value == "ida":
+#         import pwndbg.integration.ida
+
+#         provider = ConfigurableProvider(pwndbg.integration.ida.IdaProvider())
+#     else:
+#         print(
+#             message.warn(
+#                 f"Invalid provider {provider_name.value!r} specified. Disabling integration."
+#             )
+#         )
+#         provider_name.revert_default()
