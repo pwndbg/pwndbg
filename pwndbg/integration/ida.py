@@ -58,13 +58,13 @@ T = TypeVar("T")
 
 @pwndbg.decorators.only_after_first_prompt()
 @pwndbg.config.trigger(ida_rpc_host, ida_rpc_port, pwndbg.integration.provider_name, ida_timeout)
-def ida_config_changed():
+def ida_config_changed() -> None:
     if pwndbg.integration.provider_name.value == "ida":
         # We need to (re)connect the client, possibly with updated values.
         try_init_ida_rpc_client()
 
 
-def ensure_disabled():
+def ensure_disabled() -> None:
     global _ida
     _ida = None
     pwndbg.integration.unset_provider()
@@ -111,9 +111,9 @@ def try_init_ida_rpc_client() -> bool:
             # be called when we set the value here (which is good, we would have recursion otherwise).
             pwndbg.integration.provider_name.value = "ida"
 
-            assert len(pwndbg.config.triggers[pwndbg.integration.provider_name.name]) == 2, (
-                "Does this new function need to be called here?"
-            )
+            assert (
+                len(pwndbg.config.triggers[pwndbg.integration.provider_name.name]) == 2
+            ), "Does this new function need to be called here?"
 
         return True
 
@@ -180,7 +180,7 @@ def enabledIDA(func: Callable[P, T]) -> Callable[P, T | None]:
     "| None" in their return signature.
 
     This will not try to open a connection if it doesn't already exist.
-    There will be messages shown to the user.
+    There will no be messages shown to the user.
     """
 
     @functools.wraps(func)

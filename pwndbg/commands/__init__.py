@@ -376,7 +376,11 @@ class CommandObj:
             print(message.hint("Did an integration provider die?"))
             # If yes, the resulting state can be really messy.
             if pwndbg.integration.provider_name != "none":
-                print(message.hint(f"Automatically disabled {pwndbg.integration.provider_name} integration."))
+                print(
+                    message.hint(
+                        f"Automatically disabled {pwndbg.integration.provider_name} integration."
+                    )
+                )
                 pwndbg.integration.provider.disable()
 
         except Exception:

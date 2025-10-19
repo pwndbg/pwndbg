@@ -153,12 +153,14 @@ def set_provider(prov: IntegrationProvider) -> None:
     global provider
     provider = ConfigurableProvider(prov)
 
+
 def unset_provider() -> None:
     """
     Call this from provider-specific code whenever a connection stops.
     """
     global provider
     provider = IntegrationProvider()
+
 
 # @pwndbg.config.trigger(provider_name)
 # def switch_providers():

@@ -13,8 +13,7 @@ from pwndbg.color import message
 
 
 @pwndbg.gdblib.functions.GdbFunction()
-@pwndbg.integration.binja.with_bn()
-def bn_sym(name_val: gdb.Value) -> int | None:
+def bn_sym(name_val: gdb.Value) -> int:
     """
     Lookup a symbol's address by name from Binary Ninja.
 
@@ -34,6 +33,11 @@ def bn_sym(name_val: gdb.Value) -> int | None:
     Breakpoint 1 at 0x555555555645
     ```
     """
+    # GDB convenience functions are not allowed to return None, so we cannot
+    # decorate with @withBinja().
+    if not pwndbg.integration.binja.establish_connection():
+        return 0
+
     name = name_val.string()
     addr: int | None = pwndbg.integration.binja._bn.get_symbol_addr(name)
     if addr is None:
@@ -42,8 +46,7 @@ def bn_sym(name_val: gdb.Value) -> int | None:
 
 
 @pwndbg.gdblib.functions.GdbFunction()
-@pwndbg.integration.binja.with_bn()
-def bn_var(name_val: gdb.Value) -> int | None:
+def bn_var(name_val: gdb.Value) -> int:
     """
     Lookup a stack variable's address by name from Binary Ninja.
 
@@ -67,6 +70,11 @@ def bn_var(name_val: gdb.Value) -> int | None:
     Error while executing Python code.
     ```
     """
+    # GDB convenience functions are not allowed to return None, so we cannot
+    # decorate with @withBinja().
+    if not pwndbg.integration.binja.establish_connection():
+        return 0
+
     name = name_val.string()
     conf_and_offset: Tuple[int, int] | None = pwndbg.integration.binja._bn.get_var_offset_from_sp(
         pwndbg.integration.binja.l2r(pwndbg.aglib.regs.pc), name
@@ -80,8 +88,8 @@ def bn_var(name_val: gdb.Value) -> int | None:
 
 
 @pwndbg.gdblib.functions.GdbFunction()
-@pwndbg.integration.binja.with_bn()
-def bn_eval(expr: gdb.Value) -> int | None:
+@pwndbg.integration.binja.enabledBinja()
+def bn_eval(expr: gdb.Value) -> int:
     """
     Parse and evaluate a Binary Ninja expression.
 
@@ -114,6 +122,11 @@ def bn_eval(expr: gdb.Value) -> int | None:
     $11 = 1
     ```
     """
+    # GDB convenience functions are not allowed to return None, so we cannot
+    # decorate with @withBinja().
+    if not pwndbg.integration.binja.establish_connection():
+        return 0
+
     magic_vars = {}
     for r in pwndbg.aglib.regs.current:
         v = pwndbg.aglib.regs[r]

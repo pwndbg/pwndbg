@@ -189,6 +189,8 @@ def ida(name: gdb.Value) -> int:
     Breakpoint 2 at 0x555555555645
     ```
     """
+    # GDB convenience functions are not allowed to return None, so we cannot
+    # decorate with @withIda().
     if not pwndbg.integration.ida.establish_connection():
         return 0
 
