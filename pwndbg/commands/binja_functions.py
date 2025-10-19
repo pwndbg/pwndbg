@@ -41,7 +41,8 @@ def bn_sym(name_val: gdb.Value) -> int:
     name = name_val.string()
     addr: int | None = pwndbg.integration.binja._bn.get_symbol_addr(name)
     if addr is None:
-        return None
+        print(message.error("Not found."))
+        return 0
     return pwndbg.integration.binja.r2l(addr)
 
 
@@ -80,7 +81,8 @@ def bn_var(name_val: gdb.Value) -> int:
         pwndbg.integration.binja.l2r(pwndbg.aglib.regs.pc), name
     )
     if conf_and_offset is None:
-        return None
+        print(message.error("Not found."))
+        return 0
     (conf, offset) = conf_and_offset
     if conf < 64:
         print(message.warn(f"Warning: Stack offset only has {conf / 255 * 100:.2f}% confidence"))
@@ -134,4 +136,7 @@ def bn_eval(expr: gdb.Value) -> int:
             magic_vars[r] = v
     magic_vars["piebase"] = pwndbg.aglib.proc.binary_base_addr
     ret: int | None = pwndbg.integration.binja._bn.parse_expr(expr.string(), magic_vars)
+    if ret is None:
+        print(message.error("Not found."))
+        return 0
     return ret

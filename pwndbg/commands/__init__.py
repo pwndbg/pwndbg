@@ -373,15 +373,17 @@ class CommandObj:
             pwndbg.exception.handle(self.function.__name__)
         except ConnectionRefusedError:
             print(message.error("Connection Refused Exception."))
-            print(message.hint("Did an integration provider die?"))
+            print(message.hint("Did an integration provider die?"), end="")
             # If yes, the resulting state can be really messy.
             if pwndbg.integration.provider_name != "none":
                 print(
                     message.hint(
-                        f"Automatically disabled {pwndbg.integration.provider_name} integration."
+                        f" Automatically disabled {pwndbg.integration.provider_name} integration."
                     )
                 )
                 pwndbg.integration.provider.disable()
+            else:
+                print()
 
         except Exception:
             pwndbg.exception.handle(self.function.__name__)

@@ -121,6 +121,8 @@ def try_init_bn_rpc_client() -> bool:
     exception = None  # (type, value, traceback)
     try:
         version: str = _bn.get_version()
+        pwndbg.integration.set_provider(BinjaProvider())
+
         print(
             message.success(
                 f"Pwndbg successfully connected to Binary Ninja ({version}) xmlrpc: {addr}"
@@ -148,6 +150,11 @@ def try_init_bn_rpc_client() -> bool:
             print(
                 message.error("Connection refused. ")
                 + message.hint("Did you start the plugin in Binary Ninja?")
+                # TODO: remove this after some time passes
+                + message.notice(
+                    "\nIn the latest version of Pwndbg, the binja_script.py file has been\n"
+                )
+                + message.notice("updated, you may need to reinstall it.")
             )
         else:
             exception = sys.exc_info()
