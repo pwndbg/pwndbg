@@ -90,6 +90,10 @@ def page_info(page):
 def pagewalk(vaddr, entry=None):
     if entry is not None:
         entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
+    else:
+        # did the user set pgd with kcurrent?
+        # safe because pagewalk fallbacks to control regs when entry==None
+        entry = pwndbg.commands.kcurrent.KCURRENT_PGD
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     levels = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
     for i in range(len(levels) - 1, 0, -1):
