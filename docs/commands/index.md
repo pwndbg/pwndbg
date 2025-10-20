@@ -80,8 +80,10 @@
 -  [kchecksec](kernel/kchecksec.md) - Checks for kernel hardening configuration options.
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
 -  [kconfig](kernel/kconfig.md) - Outputs the kernel config.
+-  [kcurrent](kernel/kcurrent.md) - Gets/sets the current kernel task to debug for supported commands (kfile, pagewalk).
 -  [kdmabuf](kernel/kdmabuf.md) - Prints DMA buf info
 -  [kdmesg](kernel/kdmesg.md) - Displays the kernel ring buffer (dmesg) contents.
+-  [kfile](kernel/kfile.md) - Displays information about fds accessible by a kernel task.
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
 -  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
 -  [knft-dump](kernel/knft-dump.md) - Dump all nftables: tables, chains, rules, expressions
