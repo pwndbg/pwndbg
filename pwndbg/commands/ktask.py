@@ -14,7 +14,6 @@ import pwndbg.commands
 import pwndbg.lib
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.lib.exception import IndentContextManager
-from pwndbg.lib.regs import BitFlags
 
 parser = argparse.ArgumentParser(description="Displays information about kernel tasks.")
 parser.add_argument("task_name", nargs="?", type=str, help="A task name to search for")
@@ -23,8 +22,6 @@ indent = IndentContextManager()
 
 
 class Kthread:
-    fmode_flags = BitFlags([("R", 0), ("W", 1), ("X", 5)])
-
     def __init__(self, thread: pwndbg.dbg_mod.Value):
         self.thread = thread
         self.name = thread["comm"].string()
@@ -34,30 +31,24 @@ class Kthread:
         self.uid = int(thread["real_cred"]["uid"]["val"])
         self.gid = int(thread["real_cred"]["gid"]["val"])
 
-    def files(self, fd):
+    @pwndbg.lib.cache.cache_until("stop")
+    def files(self):
         fdt = self.thread["files"]["fdt"]
         fds = fdt["fd"]
+        files = []
         for i in range(int(fdt["max_fds"])):
             file = fds[i]
-            if fd is not None and fd != i:
-                continue
             addr = int(file)
             if addr == 0:
                 continue
-            ops = int(file["f_op"])
-            prefix = indent.prefix(f"[0x{i:02x}]")
-            flags = C.context.format_flags(int(file["f_mode"]), self.fmode_flags)
-            desc = f"ops @ {C.red(pwndbg.chain.format(ops, limit=0))}"
-            indent.print(f"- {prefix} file @ {indent.addr_hex(addr)}: {desc}")
-            private_data = int(file["private_data"])
-            with indent:
-                indent.print(f"private: {indent.addr_hex(private_data)}, fmode: {flags}")
+            files.append((i, file))
+        return tuple(files)
 
     def __str__(self):
-        thread = indent.prefix(hex(int(self.thread)))
+        thread = C.blue(hex(int(self.thread)))
         prefix = f"[pid {self.pid}]"
         desc = " "
-        prefix = indent.prefix(f"{prefix:<9}") + f"task @ {thread}: {self.name:<16}"
+        prefix = C.blue(f"{prefix:<9}") + f"task @ {thread}: {self.name:<16}"
         user = ", has user pages" if self.is_user else ""
         desc = C.red(f"cpu #{self.cpu} (uid: {self.uid}, gid: {self.gid}{user})")
         return f"{prefix} {desc}"

@@ -924,6 +924,7 @@ def load_commands() -> None:
     import pwndbg.commands.kchecksec
     import pwndbg.commands.kcmdline
     import pwndbg.commands.kconfig
+    import pwndbg.commands.kcurrent
     import pwndbg.commands.kdmabuf
     import pwndbg.commands.kdmesg
     import pwndbg.commands.klookup
