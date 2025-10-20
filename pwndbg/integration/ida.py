@@ -21,6 +21,9 @@ from typing import Tuple
 from typing import TypeVar
 
 import gdb
+from pygments import highlight
+from pygments.formatters import Terminal256Formatter
+from pygments.lexers import CppLexer
 from typing_extensions import Concatenate
 from typing_extensions import ParamSpec
 from typing_extensions import override
@@ -489,18 +492,28 @@ def has_cached_cfunc(addr):
     return _ida.has_cached_cfunc(addr)
 
 
-@withHexrays
-@takes_address
-@pwndbg.lib.cache.cache_until("stop")
-def decompile(addr):
-    return _ida.decompile(addr)
+_lexer = CppLexer()
+_formatter = Terminal256Formatter(style="monokai")
 
 
 @withHexrays
 @takes_address
 @pwndbg.lib.cache.cache_until("stop")
-def decompile_context(pc, context_lines):
-    return _ida.decompile_context(pc, context_lines)
+def decompile(addr) -> str | None:
+    code: str | None = _ida.decompile(addr)
+    if code is not None and not pwndbg.config.disable_colors:
+        code = highlight(code, _lexer, _formatter)
+    return code
+
+
+@withHexrays
+@takes_address
+@pwndbg.lib.cache.cache_until("stop")
+def decompile_context(pc, context_lines) -> str | None:
+    code: str | None = _ida.decompile_context(pc, context_lines)
+    if code is not None and not pwndbg.config.disable_colors:
+        code = highlight(code, _lexer, _formatter)
+    return code
 
 
 @enabledIDA
