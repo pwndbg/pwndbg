@@ -6,17 +6,25 @@ and prints details about each task, including its address, PID, user space statu
 from __future__ import annotations
 
 import argparse
+from typing import Tuple
 
+import pwndbg.color as C
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.lib
 from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.lib.exception import IndentContextManager
+from pwndbg.lib.regs import BitFlags
 
 parser = argparse.ArgumentParser(description="Displays information about kernel tasks.")
-
 parser.add_argument("task_name", nargs="?", type=str, help="A task name to search for")
+
+indent = IndentContextManager()
 
 
 class Kthread:
+    fmode_flags = BitFlags([("R", 0), ("W", 1), ("X", 5)])
+
     def __init__(self, thread: pwndbg.dbg_mod.Value):
         self.thread = thread
         self.name = thread["comm"].string()
@@ -26,10 +34,33 @@ class Kthread:
         self.uid = int(thread["real_cred"]["uid"]["val"])
         self.gid = int(thread["real_cred"]["gid"]["val"])
 
+    def files(self, fd):
+        fdt = self.thread["files"]["fdt"]
+        fds = fdt["fd"]
+        for i in range(int(fdt["max_fds"])):
+            file = fds[i]
+            if fd is not None and fd != i:
+                continue
+            addr = int(file)
+            if addr == 0:
+                continue
+            ops = int(file["f_op"])
+            prefix = indent.prefix(f"[0x{i:02x}]")
+            flags = C.context.format_flags(int(file["f_mode"]), self.fmode_flags)
+            desc = f"ops @ {C.red(pwndbg.chain.format(ops, limit=0))}"
+            indent.print(f"- {prefix} file @ {indent.addr_hex(addr)}: {desc}")
+            private_data = int(file["private_data"])
+            with indent:
+                indent.print(f"private: {indent.addr_hex(private_data)}, fmode: {flags}")
+
     def __str__(self):
-        t = self
-        user = "✓" if t.is_user else "✗"
-        return f"{t.pid:>6} {user:>4} {t.cpu:>4} {t.uid:>6} {t.gid:>6} {t.name}"
+        thread = indent.prefix(hex(int(self.thread)))
+        prefix = f"[pid {self.pid}]"
+        desc = " "
+        prefix = indent.prefix(f"{prefix:<9}") + f"task @ {thread}: {self.name:<16}"
+        user = ", has user pages" if self.is_user else ""
+        desc = C.red(f"cpu #{self.cpu} (uid: {self.uid}, gid: {self.gid}{user})")
+        return f"{prefix} {desc}"
 
 
 class Ktask:
@@ -43,16 +74,9 @@ class Ktask:
             threads.append(kthread)
         self.threads = threads
 
-    def print_threads(self, name):
-        for t in self.threads:
-            if name is not None and name not in t.name:
-                continue
-            task = hex(int(self.task))
-            print(f"{task:>18} {t}")
 
-
-# TODO: cache?
-def get_ktasks():
+@pwndbg.lib.cache.cache_until("stop")
+def get_ktasks() -> Tuple[Ktask, ...]:
     tasks = []
     # Look up the init_task symbol, which is the first task in the kernel's task list.
     init_task = pwndbg.aglib.symbol.lookup_symbol("init_task")
@@ -63,6 +87,7 @@ def get_ktasks():
         return None
 
     try:
+        tasks.append(Ktask(init_task))
         # The task list is implemented a circular doubly linked list, so we traverse starting from init_task.
         for task in for_each_entry(init_task["tasks"], "struct task_struct", "tasks"):
             ktask = Ktask(task)
@@ -70,7 +95,7 @@ def get_ktasks():
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"ERROR: {e}"))
         return None
-    return tasks
+    return tuple(tasks)
 
 
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
@@ -78,6 +103,11 @@ def get_ktasks():
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelDebugSymbols
 def ktask(task_name=None) -> None:
-    print(f"{'Address':>18} {'PID':>6} {'User':>4} {'CPU':>4} {'UID':>4} {'GID':>4} {'Name'}")
-    for ktask in get_ktasks():
-        ktask.print_threads(task_name)
+    threads = []
+    for task in get_ktasks():
+        for thread in task.threads:
+            if task_name is not None and task_name not in thread.name:
+                continue
+            threads.append(thread)
+    for thread in threads:
+        indent.print(thread)
