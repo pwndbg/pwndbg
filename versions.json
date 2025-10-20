@@ -5,11 +5,16 @@
     "aliases": []
   },
   {
-    "version": "2025.10.10",
-    "title": "2025.10.10",
+    "version": "2025.10.20",
+    "title": "2025.10.20",
     "aliases": [
       "latest"
     ]
+  },
+  {
+    "version": "2025.10.10",
+    "title": "2025.10.10",
+    "aliases": []
   },
   {
     "version": "2025.05.30",
