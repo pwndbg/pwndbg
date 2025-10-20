@@ -44,6 +44,17 @@ class Kthread:
             files.append((i, file))
         return tuple(files)
 
+    @property
+    def mm(self):
+        mm = self.thread["mm"]
+        if int(mm) != 0:
+            return mm
+        # for anonymous tasks
+        mm = self.thread["active_mm"]
+        if int(mm) != 0:
+            return mm
+        return None
+
     def __str__(self):
         thread = C.blue(hex(int(self.thread)))
         prefix = f"[pid {self.pid}]"

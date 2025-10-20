@@ -691,3 +691,9 @@ def map_idr() -> pwndbg.dbg_mod.Value:
     if (syms := arch_symbols()) is not None:
         return syms.map_idr()
     return None
+
+
+def current_task() -> pwndbg.dbg_mod.Value:
+    if (syms := arch_symbols()) is not None:
+        return syms.current_task()
+    return None

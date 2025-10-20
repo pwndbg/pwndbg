@@ -273,6 +273,7 @@ class ArchSymbols:
         )
         self.bpf_prog_heuristic_func = "bpf_prog_free_id"
         self.bpf_map_heuristic_func = "bpf_map_free_id"
+        self.current_task_heuristic_func = "common_cpu_up"
 
     def disass(self, name, lines=None):
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
@@ -353,6 +354,16 @@ class ArchSymbols:
             prog_idr = self._prog_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
+    def current_task(self):
+        current_task = pwndbg.aglib.symbol.lookup_symbol("current_task")
+        if current_task:
+            return current_task
+        if pwndbg.aglib.arch.name == "aarch64" or pwndbg.aglib.kernel.has_debug_symbols(
+            self.current_task_heuristic_func
+        ):
+            current_task = self._current_task()
+        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
+
     def _node_data(self):
         raise NotImplementedError()
 
@@ -372,6 +383,9 @@ class ArchSymbols:
         raise NotImplementedError()
 
     def _prog_idr(self):
+        raise NotImplementedError()
+
+    def _current_task(self):
         raise NotImplementedError()
 
 
@@ -397,6 +411,12 @@ class x86_64Symbols(ArchSymbols):
     # mov reg, <kernel address as a constant>
     def qword_mov_reg_const(self, disass, nth=0):
         result = self.regex(disass, r".*?\bmov.*(0x[0-9a-f]{16})", nth)
+        if result is not None:
+            return int(result.group(1), 16)
+        return None
+
+    def dword_mov_reg_const(self, disass, nth=0):
+        result = self.regex(disass, r".*?\bmov.*(0x[0-9a-f]{1,8})", nth)
         if result is not None:
             return int(result.group(1), 16)
         return None
@@ -457,6 +477,14 @@ class x86_64Symbols(ArchSymbols):
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
+
+    def _current_task(self):
+        disass = self.disass(self.current_task_heuristic_func)
+        offset = self.dword_mov_reg_const(disass)
+        region = self.dword_mov_reg_memoff(disass)
+        cpu = pwndbg.dbg.selected_thread().index() - 1
+        region = pwndbg.aglib.memory.read_pointer_width(region + cpu * 8)
+        return pwndbg.aglib.memory.read_pointer_width(region + offset)
 
 
 class Aarch64Symbols(ArchSymbols):
@@ -546,3 +574,6 @@ class Aarch64Symbols(ArchSymbols):
         if result is not None:
             return result
         return self.qword_adrp_add_const(disass)
+
+    def _current_task(self):
+        return pwndbg.aglib.regs["sp_el0"]
