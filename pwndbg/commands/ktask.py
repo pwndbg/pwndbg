@@ -27,7 +27,13 @@ class Kthread:
         self.name = thread["comm"].string()
         self.pid = int(thread["pid"])
         self.is_user = int(thread["mm"]) != 0
-        self.cpu = int(thread["thread_info"]["cpu"])
+        krelease = pwndbg.aglib.kernel.krelease()
+        if krelease is None:
+            self.cpu = "-"
+        elif krelease < (5, 16):
+            self.cpu = int(thread["cpu"])
+        else:
+            self.cpu = int(thread["thread_info"]["cpu"])
         self.uid = int(thread["real_cred"]["uid"]["val"])
         self.gid = int(thread["real_cred"]["gid"]["val"])
 
@@ -103,7 +109,7 @@ def get_ktasks() -> Tuple[Ktask, ...]:
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelDebugInfo
 def ktask(task_name=None) -> None:
     threads = []
     for task in get_ktasks():

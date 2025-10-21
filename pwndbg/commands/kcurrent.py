@@ -28,6 +28,8 @@ parser.add_argument("--fd", nargs="?", type=int, help="")
 @pwndbg.commands.OnlyWithKernelDebugInfo
 def kfile(pid=None, fd=None):
     if pid is None:
+        if KCURRENT_PID is None:
+            kcurrent(None, set_pid=True, verbose=False)
         pid = KCURRENT_PID
     if pid is None:
         print(M.warn("no pid specified (either specify pid or set with kcurrent)"))
@@ -46,7 +48,7 @@ def kfile(pid=None, fd=None):
                     continue
                 addr = int(file)
                 ops = int(file["f_op"])
-                prefix = indent.prefix(f"[0x{i:02x}]")
+                prefix = indent.prefix(f"[fileno {i:03}]")
                 flags = C.context.format_flags(int(file["f_mode"]), fmode_flags)
                 desc = f"ops @ {C.red(pwndbg.chain.format(ops, limit=0))}"
                 indent.print(f"- {prefix} file @ {indent.addr_hex(addr)}: {desc}")
@@ -66,7 +68,7 @@ parser.add_argument("--set", dest="set_pid", action="store_true", help="")
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelDebugInfo
-def kcurrent(pid=None, set_pid=False):
+def kcurrent(pid=None, set_pid=False, verbose=True):
     global KCURRENT_PID, KCURRENT_PGD
     kthread = None
     if pid is None:
@@ -82,7 +84,8 @@ def kcurrent(pid=None, set_pid=False):
     if kthread is None:
         print(M.warn("cannot find kernel task"))
         return
-    indent.print(kthread)
+    if verbose:
+        indent.print(kthread)
     if set_pid:
         mm = kthread.mm
         if not mm:
