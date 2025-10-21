@@ -73,7 +73,11 @@ def test_command_ktask():
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
     res = gdb.execute("ktask", to_string=True)
-    assert "Address" in res
+    assert "task @" in res
+    res = gdb.execute("kcurrent --set", to_string=True)
+    assert "task @" in res
+    res2 = gdb.execute("kfile", to_string=True)
+    assert res in res2
 
 
 def test_command_kversion():

@@ -357,7 +357,8 @@ class ArchSymbols:
     def current_task(self):
         current_task = pwndbg.aglib.symbol.lookup_symbol("current_task")
         if current_task:
-            return current_task
+            result = pwndbg.aglib.kernel.per_cpu(current_task)
+            return result.dereference()
         if pwndbg.aglib.arch.name == "aarch64" or pwndbg.aglib.kernel.has_debug_symbols(
             self.current_task_heuristic_func
         ):
@@ -479,7 +480,8 @@ class x86_64Symbols(ArchSymbols):
         return self.qword_mov_reg_const(disass)
 
     def _current_task(self):
-        disass = self.disass(self.current_task_heuristic_func)
+        # TODO: doesn't really work on all kernels it seems, should revisit later
+        disass = self.disass(self.current_task_heuristic_func, lines=30)
         offset = self.dword_mov_reg_const(disass)
         region = self.dword_mov_reg_memoff(disass)
         cpu = pwndbg.dbg.selected_thread().index() - 1
