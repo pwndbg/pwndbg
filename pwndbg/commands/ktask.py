@@ -28,7 +28,7 @@ class Kthread:
         self.pid = int(thread["pid"])
         self.is_user = int(thread["mm"]) != 0
         krelease = pwndbg.aglib.kernel.krelease()
-        if krelease is None:
+        if krelease is None or "CONFIG_THREAD_INFO_IN_TASK" not in pwndbg.aglib.kernel.kconfig():
             self.cpu = "-"
         elif krelease < (5, 16):
             self.cpu = int(thread["cpu"])
