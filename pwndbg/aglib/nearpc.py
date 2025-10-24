@@ -454,6 +454,7 @@ def nearpc(
             VERT_SYMBOL = "│"
             START_SYMBOL = "<"
             END_SYMBOL = ">"
+            DOTTED_VERTICAL = "╎"
 
             PADDING_FOR_FLOW = 15
 
@@ -526,6 +527,10 @@ def nearpc(
                 offset = pair_offsets[pair] + 1
                 spacing_offset = offset + 1
 
+                local_vert_symbol = VERT_SYMBOL
+                if not pair.forward:
+                    local_vert_symbol = DOTTED_VERTICAL
+
                 if pair.forward:
                     # If ending here, don't add to repeat flow
                     if pair.end == addr:
@@ -539,7 +544,7 @@ def nearpc(
                 repeat_flow = (
                     colorize(
                         offset,
-                        VERT_SYMBOL
+                        local_vert_symbol
                         + (" " * (min(spacing_offset, spacing_offset - len(strip(repeat_flow))))),
                     )
                     + repeat_flow
@@ -552,7 +557,7 @@ def nearpc(
                     flow = (
                         colorize(
                             offset,
-                            VERT_SYMBOL
+                            local_vert_symbol
                             + " " * (min(spacing_offset, spacing_offset - len(strip(flow)))),
                         )
                         + flow
