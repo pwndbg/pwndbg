@@ -180,7 +180,7 @@ def enabledIDA(func: Callable[P, T]) -> Callable[P, T | None]:
     "| None" in their return signature.
 
     This will not try to open a connection if it doesn't already exist.
-    There will no be messages shown to the user.
+    No messages will be printed.
     """
 
     @functools.wraps(func)

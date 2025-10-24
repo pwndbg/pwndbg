@@ -211,7 +211,7 @@ def enabledBinja(fallback: K = None) -> Callable[[Callable[P, T]], Callable[P, T
     not specify a fallback, must have "| None" in their return signature.
 
     This will not try to open a connection if it doesn't already exist.
-    There will no be messages shown to the user.
+    No messages will be printed.
     """
 
     def decorator(func: Callable[P, T]) -> Callable[P, T | K]:
