@@ -58,10 +58,18 @@ def kfile(pid=None, fd=None):
 
 
 parser = argparse.ArgumentParser(
-    description="Gets/sets the current kernel task to debug for supported commands (kfile, pagewalk)."
+    description="""
+    Displays the current kernel task debugged by the debugger (gdb/lldb) if pid == None
+    Displays the task with pid if pid != None.
+    """
 )
 parser.add_argument("pid", nargs="?", type=int, help="")
-parser.add_argument("--set", dest="set_pid", action="store_true", help="")
+parser.add_argument(
+    "--set",
+    dest="set_pid",
+    action="store_true",
+    help="sets the kernel task used for supported pwndbg commands (kfile, pagewalk), this option does not change internal mem (purely effects how certain commands behaves)",
+)
 
 
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)

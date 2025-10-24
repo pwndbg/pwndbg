@@ -80,7 +80,7 @@
 -  [kchecksec](kernel/kchecksec.md) - Checks for kernel hardening configuration options.
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
 -  [kconfig](kernel/kconfig.md) - Outputs the kernel config.
--  [kcurrent](kernel/kcurrent.md) - Gets/sets the current kernel task to debug for supported commands (kfile, pagewalk).
+-  [kcurrent](kernel/kcurrent.md) - Displays the current kernel task debugged by the debugger (gdb/lldb) if pid == None
 -  [kdmabuf](kernel/kdmabuf.md) - Prints DMA buf info
 -  [kdmesg](kernel/kdmesg.md) - Displays the kernel ring buffer (dmesg) contents.
 -  [kfile](kernel/kfile.md) - Displays information about fds accessible by a kernel task.
