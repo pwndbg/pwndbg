@@ -355,16 +355,18 @@ class ArchSymbols:
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
     def current_task(self):
-        # current_task = pwndbg.aglib.symbol.lookup_symbol("current_task")
-        # if current_task:
-        #     return pwndbg.aglib.kernel.per_cpu(current_task)
+        current_task = pwndbg.aglib.symbol.lookup_symbol("current_task")
+        if current_task:
+            current_task = pwndbg.aglib.kernel.per_cpu(current_task)
+            return current_task.dereference()
         if pwndbg.aglib.arch.name == "aarch64":
             current_task = self._current_task()
         elif pwndbg.aglib.kernel.has_debug_symbols(self.current_task_heuristic_func):
             current_task = self._current_task()
-            if current_task:
+            if current_task is not None:
                 current_task = pwndbg.aglib.kernel.per_cpu(current_task)
-            current_task = pwndbg.aglib.memory.read_pointer_width(current_task)
+            # current_task is int but needed here to make the linter happy
+            current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
 
     def _node_data(self):
@@ -413,7 +415,7 @@ class x86_64Symbols(ArchSymbols):
         return None
 
     def dword_mov_reg_const(self, disass, nth=0):
-        result = self.regex(disass, r"mov.*(0x[0-9a-f]{1,8})", nth)
+        result = self.regex(disass, r"mov.*(0x[0-9a-f]{1,8})\b(?!\])", nth)
         if result is not None:
             return int(result.group(1), 16)
         return None
