@@ -187,7 +187,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     @property
     def CONFIG_THREAD_INFO_IN_TASK(self) -> bool:
-        return pwndbg.aglib.symbol.lookup_symbol("security_inode_init_security") is not None
+        return pwndbg.aglib.symbol.lookup_symbol("put_task_stack") is not None
 
     def update_with_file(self, file_path):
         for line in open(file_path, "r").read().splitlines():

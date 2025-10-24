@@ -26,7 +26,7 @@ class Kthread:
         self.thread = thread
         self.name = thread["comm"].string()
         self.pid = int(thread["pid"])
-        self.is_user = int(thread["mm"]) != 0
+        self.has_user_page = int(thread["mm"]) != 0
         krelease = pwndbg.aglib.kernel.krelease()
         if krelease is None or "CONFIG_THREAD_INFO_IN_TASK" not in pwndbg.aglib.kernel.kconfig():
             self.cpu = "-"
@@ -66,7 +66,7 @@ class Kthread:
         prefix = f"[pid {self.pid}]"
         desc = " "
         prefix = C.blue(f"{prefix:<9}") + f"task @ {thread}: {self.name:<16}"
-        user = ", has user pages" if self.is_user else ""
+        user = ", has user pages" if self.has_user_page else ""
         desc = C.red(f"cpu #{self.cpu} (uid: {self.uid}, gid: {self.gid}{user})")
         return f"{prefix} {desc}"
 
