@@ -38,7 +38,7 @@ if [ -n "$missing" ]; then
     exit 1
 fi
 
-VERSION="2025.10.10"
+VERSION="2025.10.20"
 TYPE=""
 ROOTLESS=false
 
