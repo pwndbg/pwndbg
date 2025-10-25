@@ -413,7 +413,7 @@ def near(
         insn = get_previous_instruction(current.address, use_cache=use_cache, linear=linear)
         while insn is not None and len(insns) < instructions:
             if DEBUG_ENHANCEMENT:
-                print(f"Got instruction from cache, addr={cached:#x}")
+                print(f"Got instruction from cache, addr={insn.address:#x}")
             if insn.jump_like and insn.split == SplitType.NO_SPLIT and not insn.causes_branch_delay:
                 insn.split = SplitType.BRANCH_NOT_TAKEN
             insns.append(insn)
