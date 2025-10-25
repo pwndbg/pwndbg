@@ -160,7 +160,7 @@ class Page:
         )
 
     def __str__(self) -> str:
-        if pwndbg.config.vmmap_prefer_relpaths:
+        if pwndbg.config.vmmap_prefer_relpaths and self.objfile:
             rel = relpath(self.objfile)
             # Keep the origin path when relative paths are longer than absolute ones.
             objfile = self.objfile if len(rel) > len(self.objfile) else rel
