@@ -26,8 +26,8 @@ The assembly instruction operands come from capstone, and are thus
 not controlled by this setting. For consistency with them, leave
 this setting at 9 (the default).
 """,
-# We could look into also overwriting the capstone operands string, similarly
-# to what is done here: https://github.com/pwndbg/pwndbg/blob/26db4533aa08d77c4bbc359b4760a0944e0c6b23/pwndbg/aglib/disasm/arch.py#L322-L331
+    # We could look into also overwriting the capstone operands string, similarly
+    # to what is done here: https://github.com/pwndbg/pwndbg/blob/26db4533aa08d77c4bbc359b4760a0944e0c6b23/pwndbg/aglib/disasm/arch.py#L322-L331
 )
 
 
@@ -73,7 +73,7 @@ config_property_name_color = theme.add_color_param(
     "color used to highlight the name in name-value pairs",
     help_docstring="""
 Used heavily in mallocng commands.
-"""
+""",
 )
 
 config_property_value_color = theme.add_color_param(
@@ -82,7 +82,7 @@ config_property_value_color = theme.add_color_param(
     "color used to highlight the value in name-value pairs",
     help_docstring="""
 Used heavily in mallocng commands.
-"""
+""",
 )
 
 config_property_title_color = theme.add_color_param(
@@ -91,7 +91,7 @@ config_property_title_color = theme.add_color_param(
     "color used to highlight the title of name-value pair groups",
     help_docstring="""
 Used heavily in mallocng commands.
-"""
+""",
 )
 
 
@@ -194,14 +194,16 @@ def from_properties(
             prop.alt_value = f"{prop.alt_value:#x}" if prop.use_hex else f"{prop.alt_value}"
 
     indentation_str = indent_size * " "
-    extra_list_pad_str = (
-        indentation_str + value_offset * " " + "  " + extra_offset * " "
-    )
+    extra_list_pad_str = indentation_str + value_offset * " " + "  " + extra_offset * " "
 
     for prop in properties:
         # The property may override the generic color functions.
-        prop_name_cfunc = prop.name_color_func if prop.name_color_func is not None else name_color_func
-        prop_value_cfunc = prop.value_color_func if prop.value_color_func is not None else value_color_func
+        prop_name_cfunc = (
+            prop.name_color_func if prop.name_color_func is not None else name_color_func
+        )
+        prop_value_cfunc = (
+            prop.value_color_func if prop.value_color_func is not None else value_color_func
+        )
 
         text += (
             indentation_str

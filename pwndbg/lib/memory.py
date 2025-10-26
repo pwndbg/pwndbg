@@ -29,7 +29,9 @@ def round_up(address: int, align: int) -> int:
     return (address + (align - 1)) & (~(align - 1))
 
 
-def format_address(vaddr: int, memsz: int, permstr: str, offset: int, objfile: str | None = None) -> str:
+def format_address(
+    vaddr: int, memsz: int, permstr: str, offset: int, objfile: str | None = None
+) -> str:
     "Format the given address as a string."
 
     width = 2 + 2 * pwndbg.aglib.arch.ptrsize
@@ -85,7 +87,15 @@ class Page:
     to us at all times, and having an easy way to filter them out is helpful..
     """
 
-    def __init__(self, start: int, size: int, flags: int, offset: int, objfile: str = "", in_darwin_shared_cache: bool = False) -> None:
+    def __init__(
+        self,
+        start: int,
+        size: int,
+        flags: int,
+        offset: int,
+        objfile: str = "",
+        in_darwin_shared_cache: bool = False,
+    ) -> None:
         self.vaddr = start
         self.memsz = size
         self.flags = flags

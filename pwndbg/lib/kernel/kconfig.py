@@ -101,7 +101,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_SLUB_TINY(self) -> bool:
         krelease = pwndbg.aglib.kernel.krelease()
-        if krelease is not None and krelease < (6, 2): # config added after v6.2
+        if krelease is not None and krelease < (6, 2):  # config added after v6.2
             return False
         return pwndbg.aglib.symbol.lookup_symbol("deactivate_slab") is None
 
