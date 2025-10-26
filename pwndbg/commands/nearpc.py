@@ -32,15 +32,12 @@ parser.add_argument(
     "-r",
     "--reverse",
     type=int,
-    nargs="?",
-    default=None,
-    help="Number of lines to show on before the address.",
+    help="Number of lines to show before the address.",
 )
 parser.add_argument(
     "-t",
     "--total",
     type=int,
-    default=None,
     help="Total number of lines to show. This results in dynamic number of forward instructions depending on how many cached instructions are used.",
 )
 parser.add_argument(
@@ -114,16 +111,13 @@ parser.add_argument(
     "-r",
     "--reverse",
     type=int,
-    nargs="?",
-    default=None,
-    help="Number of lines to show on before the address.",
+    help="Number of lines to show before the address.",
 )
 
 parser.add_argument(
     "-t",
     "--total",
     type=int,
-    default=None,
     help="Total number of lines to show. This results in dynamic number of forward instructions depending on how many cached instructions are used.",
 )
 

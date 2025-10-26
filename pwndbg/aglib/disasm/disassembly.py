@@ -374,9 +374,9 @@ def near(
         forward_count: number of instructions forward from this instruction
         backward_count: maximum number of previously executed instructions
         total_count:
-            if set, returns a list with this many instructions.
-            Uses backward instructions to determine max amount of previous instructions.
-            `count` is ignored if this is set.
+            if set, returns a list with this many instructions in total.
+            The number of backward instructions is limited by `backward_count`.
+            If this is set, `forward_count` is ignored.
     """
 
     pc = pwndbg.aglib.regs.pc

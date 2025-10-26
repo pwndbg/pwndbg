@@ -2,7 +2,7 @@
 # nearpc
 
 ```text
-usage: nearpc [-h] [-r [REVERSE]] [-t TOTAL] [-e] [pc] [lines]
+usage: nearpc [-h] [-r REVERSE] [-t TOTAL] [-e] [pc] [lines]
 
 ```
 
@@ -21,7 +21,7 @@ Disassemble near a specified address.
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
-|-r|--reverse|Number of lines to show on before the address.|
+|-r|--reverse|Number of lines to show before the address.|
 |-t|--total|Total number of lines to show. This results in dynamic number of forward instructions depending on how many cached instructions are used.|
 |-e|--emulate|Whether to emulate instructions to find the next ones or just linearly disassemble.|
 
