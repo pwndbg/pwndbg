@@ -140,7 +140,7 @@ plugins:
   - mike:
       css_dir: stylesheets
       version_selector: true
-      canonical_version: latest
+      canonical_version: stable
 
   # Fine-grained nav control
   - awesome-nav:

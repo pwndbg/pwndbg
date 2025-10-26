@@ -10,9 +10,9 @@
 with a focus on features needed by low-level software developers, hardware hackers,
 reverse-engineers and exploit developers.
 
-It has a boatload of features, see our [Features page](https://pwndbg.re/latest/features/)
+It has a boatload of features, see our [Features page](https://pwndbg.re/stable/features/)
 and [CHEATSHEET][CHEATSHEET] (feel free to print it!). If you have any questions you may read the
-[documentation](https://pwndbg.re/latest/) or asks us in our [Discord server](https://discord.gg/x47DssnGwm).
+[documentation](https://pwndbg.re/stable/) or asks us in our [Discord server](https://discord.gg/x47DssnGwm).
 
 [CHEATSHEET]: https://pwndbg.re/dev/CHEATSHEET.pdf
 
@@ -30,7 +30,7 @@ smoothing out rough edges and making them more user-friendly.
 
 ## Installation
 
-See [installation instructions](https://pwndbg.re/latest/setup).
+See [installation instructions](https://pwndbg.re/stable/setup).
 
 ## What about ...?
 
