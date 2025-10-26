@@ -14,7 +14,7 @@ vhs record > my_thingy.tape
 Whatever you now do in the terminal will be "recorded" to the `my_thingy.tape` file. Exit the shell to save the recording. The tape probably isn't ready to use as-is. You will want to add some metadata and fixup some lines.
 ??? example
 
-    This is the tape used to generate the gif at https://pwndbg.re/pwndbg/dev/commands/context/context/ :
+    This is the tape used to generate the gif at https://pwndbg.re/dev/commands/context/context/ :
     ```bash
     # https://github.com/charmbracelet/vhs
 

@@ -5,7 +5,7 @@ Takes the debugging primitives provided by the Debugger API
 and builds the more complex and interesting bits of functionality
 found in Pwndbg on top of them.
 
-See https://pwndbg.re/pwndbg/dev/contributing/dev-notes/#aglib
+See https://pwndbg.re/dev/contributing/dev-notes/#aglib
 for more information.
 """
 

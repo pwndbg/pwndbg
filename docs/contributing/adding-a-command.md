@@ -41,7 +41,7 @@ We will cover the first four arguments now, and come back to the rest later.
 
 If your command takes no arguments you can pass the description of the command as the first argument (`parser_or_desc`) to the constructor. Otherwise you will be passing an [`argparse.ArgumentParser`](https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser) object there.
 
-The only other required argument is `category`. The `category` determines how commands are grouped together in the output of the [`pwndbg`](https://pwndbg.re/pwndbg/dev/commands/pwndbg/pwndbg/) command and in the [documentation](https://pwndbg.re/pwndbg/dev/commands/). Peruse the list of all commands inside a debugger (by running the `pwndbg` command) and decide in which category your command fits best. The enum of all command categories is defined at the top of the `pwndbg/commands/__init__.py` file.
+The only other required argument is `category`. The `category` determines how commands are grouped together in the output of the [`pwndbg`](../commands/pwndbg/pwndbg.md) command and in the [documentation](../commands/index.md). Peruse the list of all commands inside a debugger (by running the `pwndbg` command) and decide in which category your command fits best. The enum of all command categories is defined at the top of the `pwndbg/commands/__init__.py` file.
 ### Picking a command name
 Next, the `command_name` argument. It is optional because if it is not specified the command name will be the same as the function you used to define the command (except the underscores are replaced with dashes). As such, it is generally not needed to specify this argument.
 
@@ -53,7 +53,7 @@ If the command name contains three or more words, you should use dashes to make 
 
 You provide aliases to a command by specifying a list of strings to the `aliases` argument. Again, you may provide aliases to help users transitioning from other tools/debuggers (e.g. `nearpc [pdisass, u]`).
 ## The arguments your command will take
-We are using [`argparse.ArgumentParser`](https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser) from the python standard library to define command arguments. Take a look at the python documentation to see how it works. Let's take a look at an example from the source (the [`setflag`](https://pwndbg.re/pwndbg/dev/commands/register/setflag/) command):
+We are using [`argparse.ArgumentParser`](https://docs.python.org/3/library/argparse.html#argparse.ArgumentParser) from the python standard library to define command arguments. Take a look at the python documentation to see how it works. Let's take a look at an example from the source (the [`setflag`](../commands/register/setflag.md) command):
 ```python
 parser = argparse.ArgumentParser(description="Modify the flags register.")
 
@@ -161,7 +161,7 @@ This command supports flags registers that are defined for architectures in the 
 def setflag(flag: str, value: int) -> None:
 	# ....
 ```
-When writing this (and the command description for that matter), you should consider what it will [look like in the documentation](https://pwndbg.re/pwndbg/dev/commands/register/setflag/) after being parsed as markdown.
+When writing this (and the command description for that matter), you should consider what it will [look like in the documentation](../commands/register/setflag.md) after being parsed as markdown.
 
 As for `only_debuggers` and `exclude_debuggers`, you must use (usually one of) them if your command does not work an all debuggers that Pwndbg supports. For instance, if it uses some features from `pwndbg.gdblib` (which should be avoided if at all possible). In such a case, you probably also need to conditionally import it in the `load_commands` function.
 ## Can your command be invoked all the time?

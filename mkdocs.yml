@@ -1,7 +1,7 @@
 # Make LSPs validate the mkdocs format
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 
-site_url: https://pwndbg.re/pwndbg/
+site_url: https://pwndbg.re/
 site_name: Documentation
 site_description: >-
   pwndbg (/paʊnˈdiˌbʌɡ/) is a GDB plug-in that makes debugging with GDB suck less, with a focus on features needed by low-level software developers, hardware hackers, reverse-engineers and exploit developers.
@@ -21,12 +21,12 @@ theme:
     text: Roboto
     code: Roboto Mono
   features:
-# https://squidfunk.github.io/mkdocs-material/reference/code-blocks/
+    # https://squidfunk.github.io/mkdocs-material/reference/code-blocks/
     # A button to copy code snippets.
     # - content.code.copy
     # Enable annotations in code blocks.
     - content.code.annotate
-# https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/
     # Use XHR instead of fully reloading the page when navigating around.
     - navigation.instant
     # Progress bar on page load for slow connections (>400ms).
@@ -47,17 +47,17 @@ theme:
     # - toc.integrate
     # A button that takes the user to the top of the page.
     - navigation.top
-# https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/
+    # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/
     # Press right arrow to accept search suggestion.
     - search.suggest
     # Highlight the search query on the chosen page.
     # - search.highlight
     # Add a "share" button to copy a link to the search query.
     - search.share
-# https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/#code-actions
+    # https://squidfunk.github.io/mkdocs-material/setup/adding-a-git-repository/#code-actions
     # Adds an edit button to every page that links to the repository.
     # - content.action.edit
-# Extra
+    # Extra
     # Sync the content tab selection across the whole site (based on label).
     - content.tabs.link
   palette:
@@ -77,63 +77,63 @@ plugins:
       default_handler: python
       handlers:
         python:
-# https://mkdocstrings.github.io/python/usage/
+          # https://mkdocstrings.github.io/python/usage/
           load_external_modules: false
-          paths: ['pwndbg']
+          paths: ["pwndbg"]
           options:
-# https://mkdocstrings.github.io/python/usage/configuration/general/
-              # Allow importing modules to improve doc generation.
-              # We have to disable this since many modules can't be imported easily
-              # as they require gdb/lldb to be running.
-              allow_inspection: false
-              backlinks: tree
-              show_source: false
-              # Show the base classes of a class.
-              show_bases: true
-              extensions:
-# https://mkdocstrings.github.io/griffe/extensions/
+            # https://mkdocstrings.github.io/python/usage/configuration/general/
+            # Allow importing modules to improve doc generation.
+            # We have to disable this since many modules can't be imported easily
+            # as they require gdb/lldb to be running.
+            allow_inspection: false
+            backlinks: tree
+            show_source: false
+            # Show the base classes of a class.
+            show_bases: true
+            extensions:
+              # https://mkdocstrings.github.io/griffe/extensions/
               # E.g. converts union types from Union[A, B] to A | B.
-                - griffe_modernized_annotations
-# https://mkdocstrings.github.io/python/usage/configuration/headings/
-              heading_level: 1
-              parameter_headings: false
-              show_root_heading: true
-              show_root_toc_entry: true
-              show_root_full_path: false
-              show_symbol_type_heading: true
-              show_symbol_type_toc: true
-# https://mkdocstrings.github.io/python/usage/configuration/members
-              inherited_members: true
-              members_order: source
-              # WARN: Enabling this gives very flaky, hard-to-diagnose errors! Don't.
-              # filters: public
-              group_by_category: true
-              summary: true
-# https://mkdocstrings.github.io/python/usage/configuration/docstrings/
-              docstring_style: google
-              docstring_section_style: list
-              merge_init_into_class: true
-              relative_crossrefs: true
-              scoped_crossrefs: true
-              show_if_no_docstring: true
-              # All show_docstring_* options are enabled by default.
-# https://mkdocstrings.github.io/python/usage/configuration/signatures/
-              line_length: 80
-              modernize_annotations: true
-              show_signature: true
-              separate_signature: true
-              show_signature_annotations: true
-              show_overloads: true
-              signature_crossrefs: true
-              docstring_options:
-# https://mkdocstrings.github.io/griffe/reference/docstrings/#google-options
-                ignore_init_summary: true
-                trim_doctest_flags: true
-                warn_unknown_params: true
+              - griffe_modernized_annotations
+            # https://mkdocstrings.github.io/python/usage/configuration/headings/
+            heading_level: 1
+            parameter_headings: false
+            show_root_heading: true
+            show_root_toc_entry: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            # https://mkdocstrings.github.io/python/usage/configuration/members
+            inherited_members: true
+            members_order: source
+            # WARN: Enabling this gives very flaky, hard-to-diagnose errors! Don't.
+            # filters: public
+            group_by_category: true
+            summary: true
+            # https://mkdocstrings.github.io/python/usage/configuration/docstrings/
+            docstring_style: google
+            docstring_section_style: list
+            merge_init_into_class: true
+            relative_crossrefs: true
+            scoped_crossrefs: true
+            show_if_no_docstring: true
+            # All show_docstring_* options are enabled by default.
+            # https://mkdocstrings.github.io/python/usage/configuration/signatures/
+            line_length: 80
+            modernize_annotations: true
+            show_signature: true
+            separate_signature: true
+            show_signature_annotations: true
+            show_overloads: true
+            signature_crossrefs: true
+            docstring_options:
+              # https://mkdocstrings.github.io/griffe/reference/docstrings/#google-options
+              ignore_init_summary: true
+              trim_doctest_flags: true
+              warn_unknown_params: true
 
   # Generate the whole Source page magically (hooks into mkdocstrings)
   - api-autonav:
-      modules: ['pwndbg']
+      modules: ["pwndbg"]
       nav_section_title: "Source"
 
   # Documentation versioning
@@ -146,11 +146,11 @@ plugins:
   - awesome-nav:
 
   - rss:
-# https://squidfunk.github.io/mkdocs-material/tutorials/blogs/engage/#rss-feeds
-# https://guts.github.io/mkdocs-rss-plugin/configuration/#plugin-options
+      # https://squidfunk.github.io/mkdocs-material/tutorials/blogs/engage/#rss-feeds
+      # https://guts.github.io/mkdocs-rss-plugin/configuration/#plugin-options
       feed_title: "pwndbg Blog"
       # Image doesn't support relative paths :(.
-      image: https://pwndbg.re/pwndbg/assets/favicon.ico
+      image: https://pwndbg.re/assets/favicon.ico
       match_path: blog/posts/.*
       date_from_meta:
         as_creation: date
@@ -160,7 +160,7 @@ plugins:
 
 # Theme specific template values.
 extra:
-# https://squidfunk.github.io/mkdocs-material/setup/setting-up-the-footer/
+  # https://squidfunk.github.io/mkdocs-material/setup/setting-up-the-footer/
   # The icons in the footer.
   social:
     - icon: fontawesome/brands/github
@@ -183,7 +183,7 @@ extra_javascript:
   - js/prompt-highlighter.js
 
 markdown_extensions:
-# https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/
+  # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown/
   - abbr
   - admonition
   - attr_list
@@ -194,9 +194,9 @@ markdown_extensions:
       permalink: "¤"
       toc_depth: 3
   - tables
-# https://facelessuser.github.io/pymdown-extensions/
-# Officially supported are:
-# https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown-extensions/
+  # https://facelessuser.github.io/pymdown-extensions/
+  # Officially supported are:
+  # https://squidfunk.github.io/mkdocs-material/setup/extensions/python-markdown-extensions/
   # Not enabled from the list^ : arithmatex, critic
   - pymdownx.betterem:
       smart_enable: all
@@ -231,7 +231,7 @@ markdown_extensions:
       slugify: !!python/object/apply:pymdownx.slugs.slugify
         kwds:
           case: lower
-# Not officially supported:
+  # Not officially supported:
   - pymdownx.magiclink:
       repo_url_shortener: true
       repo_url_shorthand: true
@@ -239,6 +239,5 @@ markdown_extensions:
       user: pwndbg
       repo: pwndbg
   - pymdownx.tasklist
-
 # We intentionally do not include `nav:` so that it gets autogenerated using
 # the folder structure. See also docs/.nav.yml
