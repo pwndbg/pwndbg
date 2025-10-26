@@ -1,0 +1,87 @@
+Script started on 2025-05-31 15:53:23+02:00 [COMMAND="gdb /bin/sh" TERM="xterm-kitty" TTY="/dev/pts/5" COLUMNS="240" LINES="60"]
+[35;1mGNU gdb (GDB) 16.3[m
+Copyright (C) 2024 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <[32mhttp://gnu.org/licenses/gpl.html[m>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "[1mshow copying[m" and "[1mshow warranty[m" for details.
+This GDB was configured as "x86_64-pc-linux-gnu".
+Type "[1mshow configuration[m" for configuration details.
+For bug reporting instructions, please see:
+[32m<https://www.gnu.org/software/gdb/bugs/>[m.
+Find the GDB manual and other documentation resources online at:
+    <[32mhttp://www.gnu.org/software/gdb/documentation/[m>.
+
+For help, type "[1mhelp[m".
+Type "[1mapropos word[m" to search for commands related to "word"...
+[31m[1mpwndbg: [0m[31m[0m[91mloaded 190 pwndbg commands. Type [35mpwndbg [filter][0m[91m for a list.[0m
+[31m[1mpwndbg: [0m[31m[0m[91mcreated 13 GDB functions (can be used with print/break). Type [35mhelp function[0m[91m to see them.[0m
+Reading symbols from [32m/bin/sh[m...
+(No debugging symbols found in [32m/bin/sh[m)
+[31m[1m------- tip of the day[0m[31m[0m[91m (disable with [35mset show-tips off[0m[91m)[0m[31m[1m -------[0m[31m[0m
+If your program has multiple threads they will be displayed in the context display or using the [33mcontext threads[0m command
+[?2004h[31m[1mpwndbg> [0m[31m[0marsta[K[K[K[K[Kstart
+[?2004lTemporary breakpoint 1 at [34m0x1b920[m
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "[32m/usr/lib/libthread_db.so.1[m".
+
+Temporary breakpoint 1, [34m0x000055555556f920[m in [33mmain[m ()
+[H[2JLEGEND: [33mSTACK[0m | [34mHEAP[0m | [31mCODE[0m | [35mDATA[0m | [4m[31mWX[0m[4m[0m | [0mRODATA[0m
+[34m─────────────────────────────────────────────────────────────────────────────────────────────[ REGISTERS / show-flags on / show-compact-regs off ]──────────────────────────────────────────────────────────────────────────────────────────────[0m
+ [1mRAX [0m [31m0x55555556f920 (main)[0m[0m ◂— [0m[38;5;148mendbr64[39m[38;5;15m [39m
+ [1mRBX [0m [33m0x7fffffffe2b8[0m[0m —▸ [0m[33m0x7fffffffe676[0m[0m ◂— [0m'/usr/bin/sh'
+ [1mRCX [0m [0m0x55555565aad8[0m[0m —▸ [0m[31m0x555555571470[0m[0m ◂— [0m[38;5;148mendbr64[39m[38;5;15m [39m
+ [1mRDX [0m [33m0x7fffffffe2c8[0m[0m —▸ [0m[33m0x7fffffffe682[0m[0m ◂— [0m'XAUTHORITY=/home/lamb/.Xauthority'
+ [1mRDI [0m 1
+ [1mRSI [0m [33m0x7fffffffe2b8[0m[0m —▸ [0m[33m0x7fffffffe676[0m[0m ◂— [0m'/usr/bin/sh'
+ [1mR8  [0m 0
+ [1mR9  [0m [31m0x7ffff7fcae00 (_dl_fini)[0m[0m ◂— [0m[38;5;148mendbr64[39m[38;5;15m [39m
+ [1mR10 [0m [33m0x7fffffffdee0[0m[0m ◂— [0m0x800000
+ [1mR11 [0m 0x206
+ [1mR12 [0m 0
+ [1mR13 [0m [33m0x7fffffffe2c8[0m[0m —▸ [0m[33m0x7fffffffe682[0m[0m ◂— [0m'XAUTHORITY=/home/lamb/.Xauthority'
+ [1mR14 [0m [35m0x7ffff7ffd000 (_rtld_global)[0m[0m —▸ [0m[35m0x7ffff7ffe310[0m[0m —▸ [0m[0m0x555555554000[0m[0m ◂— [0m0x10102464c457f
+ [1mR15 [0m [0m0x55555565aad8[0m[0m —▸ [0m[31m0x555555571470[0m[0m ◂— [0m[38;5;148mendbr64[39m[38;5;15m [39m
+ [1mRBP [0m 1
+ [1mRSP [0m [33m0x7fffffffe1a8[0m[0m —▸ [0m[31m0x7ffff7d7852e (__libc_start_call_main+126)[0m[0m ◂— [0m[38;5;148mmov[39m[38;5;15m [39m[38;5;81medi[39m[38;5;15m,[39m[38;5;15m [39m[38;5;81meax[39m
+ [1mRIP [0m [31m0x55555556f920 (main)[0m[0m ◂— [0m[38;5;148mendbr64[39m[38;5;15m [39m
+ [1mEFLAGS[0m 0x246 [ [31mcf[0m [1m[32mPF[0m[1m[0m [31maf[0m [1m[32mZF[0m[1m[0m [31msf[0m [1m[32mIF[0m[1m[0m [31mdf[0m [31mof[0m [31mac[0m ]
+[34m──────────────────────────────────────────────────────────────────────────────────────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+ ► [1m[32m0x55555556f920[0m[1m[0m [1m[32m<main>    [0m[1m[0m   [1m[32m[38;5;148mendbr64[39m[38;5;15m [39m[0m[1m[0m
+   [0m0x55555556f924[0m [0m<main+4>  [0m   [38;5;148mpush[39m[38;5;15m   [39m[38;5;81mr15[39m
+   [0m0x55555556f926[0m [0m<main+6>  [0m   [38;5;148mpush[39m[38;5;15m   [39m[38;5;81mr14[39m
+   [0m0x55555556f928[0m [0m<main+8>  [0m   [38;5;148mpush[39m[38;5;15m   [39m[38;5;81mr13[39m
+   [0m0x55555556f92a[0m [0m<main+10> [0m   [38;5;148mpush[39m[38;5;15m   [39m[38;5;81mr12[39m
+   [0m0x55555556f92c[0m [0m<main+12> [0m   [38;5;148mpush[39m[38;5;15m   [39m[38;5;81mrbp[39m
+   [0m0x55555556f92d[0m [0m<main+13> [0m   [38;5;148mpush[39m[38;5;15m   [39m[38;5;81mrbx[39m
+   [0m0x55555556f92e[0m [0m<main+14> [0m   [38;5;148msub[39m[38;5;15m    [39m[38;5;81mrsp[39m[38;5;15m,[39m[38;5;15m [39m[38;5;141m0x168[39m                     [31m[1mRSP[0m[31m[0m => [33m0x7fffffffe010[0m (0x7fffffffe178 - 0x168)
+   [0m0x55555556f935[0m [0m<main+21> [0m   [38;5;148mmov[39m[38;5;15m    [39m[38;5;81mdword[39m[38;5;15m [39m[38;5;81mptr[39m[38;5;15m [39m[38;5;15m[[39m[38;5;81mrsp[39m[38;5;15m [39m[38;5;15m+[39m[38;5;15m [39m[38;5;141m0xc[39m[38;5;15m][39m[38;5;15m,[39m[38;5;15m [39m[38;5;81medi[39m     [[33m0x7fffffffe01c[0m] <= 1
+   [0m0x55555556f939[0m [0m<main+25> [0m   [38;5;148mlea[39m[38;5;15m    [39m[38;5;81mrdi[39m[38;5;15m,[39m[38;5;15m [39m[38;5;15m[[39m[38;5;81mrip[39m[38;5;15m [39m[38;5;15m+[39m[38;5;15m [39m[38;5;141m0xf6920[39m[38;5;15m][39m           [31m[1mRDI[0m[31m[0m => [35m0x555555666260 (top_level)[0m[0m ◂— [0m0
+   [0m0x55555556f940[0m [0m<main+32> [0m   [38;5;148mmov[39m[38;5;15m    [39m[38;5;81mqword[39m[38;5;15m [39m[38;5;81mptr[39m[38;5;15m [39m[38;5;15m[[39m[38;5;81mrsp[39m[38;5;15m][39m[38;5;15m,[39m[38;5;15m [39m[38;5;81mrsi[39m           [[33m0x7fffffffe010[0m] <= [33m0x7fffffffe2b8[0m[0m —▸ [0m[33m0x7fffffffe676[0m[0m ◂— [0m'/usr/bin/sh'
+[34m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────[ STACK ]────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[0m00[0m[0m:[0m[0m0000[0m[0m│[0m[0m[0m [1mrsp[0m [33m0x7fffffffe1a8[0m[0m —▸ [0m[31m0x7ffff7d7852e (__libc_start_call_main+126)[0m[0m ◂— [0m[38;5;148mmov[39m[38;5;15m [39m[38;5;81medi[39m[38;5;15m,[39m[38;5;15m [39m[38;5;81meax[39m
+[0m01[0m[0m:[0m[0m0008[0m[0m│[0m[0m[0m [1m   [0m [33m0x7fffffffe1b0[0m[0m —▸ [0m[33m0x7fffffffe2a0[0m[0m —▸ [0m[33m0x7fffffffe2a8[0m[0m ◂— [0m0x3c /* '<' */
+[0m02[0m[0m:[0m[0m0010[0m[0m│[0m[0m[0m [1m   [0m [33m0x7fffffffe1b8[0m[0m —▸ [0m[31m0x55555556f920 (main)[0m[0m ◂— [0m[38;5;148mendbr64[39m[38;5;15m [39m
+[0m03[0m[0m:[0m[0m0018[0m[0m│[0m[0m[0m [1m   [0m [33m0x7fffffffe1c0[0m[0m ◂— [0m0x155554040
+[0m04[0m[0m:[0m[0m0020[0m[0m│[0m[0m[0m [1m   [0m [33m0x7fffffffe1c8[0m[0m —▸ [0m[33m0x7fffffffe2b8[0m[0m —▸ [0m[33m0x7fffffffe676[0m[0m ◂— [0m'/usr/bin/sh'
+[0m05[0m[0m:[0m[0m0028[0m[0m│[0m[0m[0m [1m   [0m [33m0x7fffffffe1d0[0m[0m —▸ [0m[33m0x7fffffffe2b8[0m[0m —▸ [0m[33m0x7fffffffe676[0m[0m ◂— [0m'/usr/bin/sh'
+[0m06[0m[0m:[0m[0m0030[0m[0m│[0m[0m[0m [1m   [0m [33m0x7fffffffe1d8[0m[0m ◂— [0m0x1ebb254f19ad1af5
+[0m07[0m[0m:[0m[0m0038[0m[0m│[0m[0m[0m [1m   [0m [33m0x7fffffffe1e0[0m[0m ◂— [0m0
+[34m─────────────────────────────────────────────────────────────────────────────────────────────────────────────────[ BACKTRACE ]──────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+ ► 0   0x55555556f920 main
+   1   0x7ffff7d7852e __libc_start_call_main+126
+   2   0x7ffff7d785ea __libc_start_main+138
+   3   0x5555555713f5 _start+37
+[34m────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m
+[?2004h[32m[1mpwndbg> [0m[32m[0mchecksec
+[?2004lFile:     /usr/bin/bash
+Arch:     amd64
+RELRO:      [32mFull RELRO[0m
+Stack:      [32mCanary found[0m
+NX:         [32mNX enabled[0m
+PIE:        [32mPIE enabled[0m
+SHSTK:      [32mEnabled[0m
+IBT:        [32mEnabled[0m
+[?2004h[32m[1mpwndbg> [0m[32m[0mquit
+[?2004l
+Script done on 2025-05-31 15:53:28+02:00 [COMMAND_EXIT_CODE="0"]

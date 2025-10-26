@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- This file was created with the aha Ansi HTML Adapter. https://github.com/theZiz/aha -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="application/xml+xhtml; charset=UTF-8"/>
+<title>stdin</title>
+</head>
+<body>
+<pre>
+Script started on 2025-05-31 15:53:23+02:00 [COMMAND=&quot;gdb /bin/sh&quot; TERM=&quot;xterm-kitty&quot; TTY=&quot;/dev/pts/5&quot; COLUMNS=&quot;240&quot; LINES=&quot;60&quot;]
+<span style="font-weight:bold;color:purple;">GNU gdb (GDB) 16.3</span>
+Copyright (C) 2024 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later &lt;<span style="color:green;">http://gnu.org/licenses/gpl.html</span>&gt;
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type &quot;<span style="font-weight:bold;">show copying</span>&quot; and &quot;<span style="font-weight:bold;">show warranty</span>&quot; for details.
+This GDB was configured as &quot;x86_64-pc-linux-gnu&quot;.
+Type &quot;<span style="font-weight:bold;">show configuration</span>&quot; for configuration details.
+For bug reporting instructions, please see:
+<span style="color:green;">&lt;https://www.gnu.org/software/gdb/bugs/&gt;</span>.
+Find the GDB manual and other documentation resources online at:
+    &lt;<span style="color:green;">http://www.gnu.org/software/gdb/documentation/</span>&gt;.
+
+For help, type &quot;<span style="font-weight:bold;">help</span>&quot;.
+Type &quot;<span style="font-weight:bold;">apropos word</span>&quot; to search for commands related to &quot;word&quot;...
+<span style="color:red;"></span><span style="font-weight:bold;color:red;">pwndbg: </span><span style="color:red;"></span><span style="filter: contrast(70%) brightness(190%);color:red;">loaded 190 pwndbg commands. Type </span><span style="color:purple;">pwndbg [filter]</span><span style="filter: contrast(70%) brightness(190%);color:red;"> for a list.</span>
+<span style="color:red;"></span><span style="font-weight:bold;color:red;">pwndbg: </span><span style="color:red;"></span><span style="filter: contrast(70%) brightness(190%);color:red;">created 13 GDB functions (can be used with print/break). Type </span><span style="color:purple;">help function</span><span style="filter: contrast(70%) brightness(190%);color:red;"> to see them.</span>
+Reading symbols from <span style="color:green;">/bin/sh</span>...
+(No debugging symbols found in <span style="color:green;">/bin/sh</span>)
+<span style="color:red;"></span><span style="font-weight:bold;color:red;">------- tip of the day</span><span style="color:red;"></span><span style="filter: contrast(70%) brightness(190%);color:red;"> (disable with </span><span style="color:purple;">set show-tips off</span><span style="filter: contrast(70%) brightness(190%);color:red;">)</span><span style="color:red;"></span><span style="font-weight:bold;color:red;"> -------</span><span style="color:red;"></span>
+If your program has multiple threads they will be displayed in the context display or using the <span style="color:olive;">context threads</span> command
+<span style="color:red;"></span><span style="font-weight:bold;color:red;">pwndbg&gt; </span><span style="color:red;"></span>arstastart
+Temporary breakpoint 1 at <span style="color:blue;">0x1b920</span>
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library &quot;<span style="color:green;">/usr/lib/libthread_db.so.1</span>&quot;.
+
+Temporary breakpoint 1, <span style="color:blue;">0x000055555556f920</span> in <span style="color:olive;">main</span> ()
+LEGEND: <span style="color:olive;">STACK</span> | <span style="color:blue;">HEAP</span> | <span style="color:red;">CODE</span> | <span style="color:purple;">DATA</span> | <span style="text-decoration:underline;"></span><span style="text-decoration:underline;color:red;">WX</span><span style="text-decoration:underline;"></span> | RODATA
+<span style="color:blue;">─────────────────────────────────────────────────────────────────────────────────────────────[ REGISTERS / show-flags on / show-compact-regs off ]──────────────────────────────────────────────────────────────────────────────────────────────</span>
+ <span style="font-weight:bold;">RAX </span> <span style="color:red;">0x55555556f920 (main)</span> ◂— <span style="color:#afd700;">endbr64</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span>
+ <span style="font-weight:bold;">RBX </span> <span style="color:olive;">0x7fffffffe2b8</span> —▸ <span style="color:olive;">0x7fffffffe676</span> ◂— '/usr/bin/sh'
+ <span style="font-weight:bold;">RCX </span> 0x55555565aad8 —▸ <span style="color:red;">0x555555571470</span> ◂— <span style="color:#afd700;">endbr64</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span>
+ <span style="font-weight:bold;">RDX </span> <span style="color:olive;">0x7fffffffe2c8</span> —▸ <span style="color:olive;">0x7fffffffe682</span> ◂— 'XAUTHORITY=/home/lamb/.Xauthority'
+ <span style="font-weight:bold;">RDI </span> 1
+ <span style="font-weight:bold;">RSI </span> <span style="color:olive;">0x7fffffffe2b8</span> —▸ <span style="color:olive;">0x7fffffffe676</span> ◂— '/usr/bin/sh'
+ <span style="font-weight:bold;">R8  </span> 0
+ <span style="font-weight:bold;">R9  </span> <span style="color:red;">0x7ffff7fcae00 (_dl_fini)</span> ◂— <span style="color:#afd700;">endbr64</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span>
+ <span style="font-weight:bold;">R10 </span> <span style="color:olive;">0x7fffffffdee0</span> ◂— 0x800000
+ <span style="font-weight:bold;">R11 </span> 0x206
+ <span style="font-weight:bold;">R12 </span> 0
+ <span style="font-weight:bold;">R13 </span> <span style="color:olive;">0x7fffffffe2c8</span> —▸ <span style="color:olive;">0x7fffffffe682</span> ◂— 'XAUTHORITY=/home/lamb/.Xauthority'
+ <span style="font-weight:bold;">R14 </span> <span style="color:purple;">0x7ffff7ffd000 (_rtld_global)</span> —▸ <span style="color:purple;">0x7ffff7ffe310</span> —▸ 0x555555554000 ◂— 0x10102464c457f
+ <span style="font-weight:bold;">R15 </span> 0x55555565aad8 —▸ <span style="color:red;">0x555555571470</span> ◂— <span style="color:#afd700;">endbr64</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span>
+ <span style="font-weight:bold;">RBP </span> 1
+ <span style="font-weight:bold;">RSP </span> <span style="color:olive;">0x7fffffffe1a8</span> —▸ <span style="color:red;">0x7ffff7d7852e (__libc_start_call_main+126)</span> ◂— <span style="color:#afd700;">mov</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#5fd7ff;">edi</span><span style="filter: contrast(70%) brightness(190%);color:gray;">,</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#5fd7ff;">eax</span>
+ <span style="font-weight:bold;">RIP </span> <span style="color:red;">0x55555556f920 (main)</span> ◂— <span style="color:#afd700;">endbr64</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span>
+ <span style="font-weight:bold;">EFLAGS</span> 0x246 [ <span style="color:red;">cf</span> <span style="font-weight:bold;"></span><span style="font-weight:bold;color:green;">PF</span><span style="font-weight:bold;"></span> <span style="color:red;">af</span> <span style="font-weight:bold;"></span><span style="font-weight:bold;color:green;">ZF</span><span style="font-weight:bold;"></span> <span style="color:red;">sf</span> <span style="font-weight:bold;"></span><span style="font-weight:bold;color:green;">IF</span><span style="font-weight:bold;"></span> <span style="color:red;">df</span> <span style="color:red;">of</span> <span style="color:red;">ac</span> ]
+<span style="color:blue;">──────────────────────────────────────────────────────────────────────────────────────────────────────[ DISASM / x86-64 / set emulate on ]──────────────────────────────────────────────────────────────────────────────────────────────────────</span>
+ ► <span style="font-weight:bold;"></span><span style="font-weight:bold;color:green;">0x55555556f920</span><span style="font-weight:bold;"></span> <span style="font-weight:bold;"></span><span style="font-weight:bold;color:green;">&lt;main&gt;    </span><span style="font-weight:bold;"></span>   <span style="font-weight:bold;"></span><span style="font-weight:bold;color:green;"></span><span style="font-weight:bold;color:#afd700;">endbr64</span><span style="font-weight:bold;"></span><span style="font-weight:bold;filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="font-weight:bold;"></span><span style="font-weight:bold;"></span>
+   0x55555556f924 &lt;main+4&gt;     <span style="color:#afd700;">push</span><span style="filter: contrast(70%) brightness(190%);color:gray;">   </span><span style="color:#5fd7ff;">r15</span>
+   0x55555556f926 &lt;main+6&gt;     <span style="color:#afd700;">push</span><span style="filter: contrast(70%) brightness(190%);color:gray;">   </span><span style="color:#5fd7ff;">r14</span>
+   0x55555556f928 &lt;main+8&gt;     <span style="color:#afd700;">push</span><span style="filter: contrast(70%) brightness(190%);color:gray;">   </span><span style="color:#5fd7ff;">r13</span>
+   0x55555556f92a &lt;main+10&gt;    <span style="color:#afd700;">push</span><span style="filter: contrast(70%) brightness(190%);color:gray;">   </span><span style="color:#5fd7ff;">r12</span>
+   0x55555556f92c &lt;main+12&gt;    <span style="color:#afd700;">push</span><span style="filter: contrast(70%) brightness(190%);color:gray;">   </span><span style="color:#5fd7ff;">rbp</span>
+   0x55555556f92d &lt;main+13&gt;    <span style="color:#afd700;">push</span><span style="filter: contrast(70%) brightness(190%);color:gray;">   </span><span style="color:#5fd7ff;">rbx</span>
+   0x55555556f92e &lt;main+14&gt;    <span style="color:#afd700;">sub</span><span style="filter: contrast(70%) brightness(190%);color:gray;">    </span><span style="color:#5fd7ff;">rsp</span><span style="filter: contrast(70%) brightness(190%);color:gray;">,</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#af87ff;">0x168</span>                     <span style="color:red;"></span><span style="font-weight:bold;color:red;">RSP</span><span style="color:red;"></span> =&gt; <span style="color:olive;">0x7fffffffe010</span> (0x7fffffffe178 - 0x168)
+   0x55555556f935 &lt;main+21&gt;    <span style="color:#afd700;">mov</span><span style="filter: contrast(70%) brightness(190%);color:gray;">    </span><span style="color:#5fd7ff;">dword</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#5fd7ff;">ptr</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="filter: contrast(70%) brightness(190%);color:gray;">[</span><span style="color:#5fd7ff;">rsp</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="filter: contrast(70%) brightness(190%);color:gray;">+</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#af87ff;">0xc</span><span style="filter: contrast(70%) brightness(190%);color:gray;">]</span><span style="filter: contrast(70%) brightness(190%);color:gray;">,</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#5fd7ff;">edi</span>     [<span style="color:olive;">0x7fffffffe01c</span>] &lt;= 1
+   0x55555556f939 &lt;main+25&gt;    <span style="color:#afd700;">lea</span><span style="filter: contrast(70%) brightness(190%);color:gray;">    </span><span style="color:#5fd7ff;">rdi</span><span style="filter: contrast(70%) brightness(190%);color:gray;">,</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="filter: contrast(70%) brightness(190%);color:gray;">[</span><span style="color:#5fd7ff;">rip</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="filter: contrast(70%) brightness(190%);color:gray;">+</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#af87ff;">0xf6920</span><span style="filter: contrast(70%) brightness(190%);color:gray;">]</span>           <span style="color:red;"></span><span style="font-weight:bold;color:red;">RDI</span><span style="color:red;"></span> =&gt; <span style="color:purple;">0x555555666260 (top_level)</span> ◂— 0
+   0x55555556f940 &lt;main+32&gt;    <span style="color:#afd700;">mov</span><span style="filter: contrast(70%) brightness(190%);color:gray;">    </span><span style="color:#5fd7ff;">qword</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#5fd7ff;">ptr</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="filter: contrast(70%) brightness(190%);color:gray;">[</span><span style="color:#5fd7ff;">rsp</span><span style="filter: contrast(70%) brightness(190%);color:gray;">]</span><span style="filter: contrast(70%) brightness(190%);color:gray;">,</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#5fd7ff;">rsi</span>           [<span style="color:olive;">0x7fffffffe010</span>] &lt;= <span style="color:olive;">0x7fffffffe2b8</span> —▸ <span style="color:olive;">0x7fffffffe676</span> ◂— '/usr/bin/sh'
+<span style="color:blue;">───────────────────────────────────────────────────────────────────────────────────────────────────────────────────[ STACK ]────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</span>
+00:0000│ <span style="font-weight:bold;">rsp</span> <span style="color:olive;">0x7fffffffe1a8</span> —▸ <span style="color:red;">0x7ffff7d7852e (__libc_start_call_main+126)</span> ◂— <span style="color:#afd700;">mov</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#5fd7ff;">edi</span><span style="filter: contrast(70%) brightness(190%);color:gray;">,</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span><span style="color:#5fd7ff;">eax</span>
+01:0008│ <span style="font-weight:bold;">   </span> <span style="color:olive;">0x7fffffffe1b0</span> —▸ <span style="color:olive;">0x7fffffffe2a0</span> —▸ <span style="color:olive;">0x7fffffffe2a8</span> ◂— 0x3c /* '&lt;' */
+02:0010│ <span style="font-weight:bold;">   </span> <span style="color:olive;">0x7fffffffe1b8</span> —▸ <span style="color:red;">0x55555556f920 (main)</span> ◂— <span style="color:#afd700;">endbr64</span><span style="filter: contrast(70%) brightness(190%);color:gray;"> </span>
+03:0018│ <span style="font-weight:bold;">   </span> <span style="color:olive;">0x7fffffffe1c0</span> ◂— 0x155554040
+04:0020│ <span style="font-weight:bold;">   </span> <span style="color:olive;">0x7fffffffe1c8</span> —▸ <span style="color:olive;">0x7fffffffe2b8</span> —▸ <span style="color:olive;">0x7fffffffe676</span> ◂— '/usr/bin/sh'
+05:0028│ <span style="font-weight:bold;">   </span> <span style="color:olive;">0x7fffffffe1d0</span> —▸ <span style="color:olive;">0x7fffffffe2b8</span> —▸ <span style="color:olive;">0x7fffffffe676</span> ◂— '/usr/bin/sh'
+06:0030│ <span style="font-weight:bold;">   </span> <span style="color:olive;">0x7fffffffe1d8</span> ◂— 0x1ebb254f19ad1af5
+07:0038│ <span style="font-weight:bold;">   </span> <span style="color:olive;">0x7fffffffe1e0</span> ◂— 0
+<span style="color:blue;">─────────────────────────────────────────────────────────────────────────────────────────────────────────────────[ BACKTRACE ]──────────────────────────────────────────────────────────────────────────────────────────────────────────────────</span>
+ ► 0   0x55555556f920 main
+   1   0x7ffff7d7852e __libc_start_call_main+126
+   2   0x7ffff7d785ea __libc_start_main+138
+   3   0x5555555713f5 _start+37
+<span style="color:blue;">────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:green;"></span><span style="font-weight:bold;color:green;">pwndbg&gt; </span><span style="color:green;"></span>checksec
+File:     /usr/bin/bash
+Arch:     amd64
+RELRO:      <span style="color:green;">Full RELRO</span>
+Stack:      <span style="color:green;">Canary found</span>
+NX:         <span style="color:green;">NX enabled</span>
+PIE:        <span style="color:green;">PIE enabled</span>
+SHSTK:      <span style="color:green;">Enabled</span>
+IBT:        <span style="color:green;">Enabled</span>
+<span style="color:green;"></span><span style="font-weight:bold;color:green;">pwndbg&gt; </span><span style="color:green;"></span>quit
+
+Script done on 2025-05-31 15:53:28+02:00 [COMMAND_EXIT_CODE=&quot;0&quot;]
+</pre>
+</body>
+</html>
