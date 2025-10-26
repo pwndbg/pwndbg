@@ -160,7 +160,7 @@ def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
     regs = abi.register_arguments
 
     if n < len(regs):
-        return getattr(pwndbg.aglib.regs, regs[n])
+        return pwndbg.aglib.regs.read_reg_uncached(regs[n])
 
     n -= len(regs)
 

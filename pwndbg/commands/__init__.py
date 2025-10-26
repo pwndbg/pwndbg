@@ -931,6 +931,7 @@ def load_commands() -> None:
     import pwndbg.commands.knft
     import pwndbg.commands.ksyscalls
     import pwndbg.commands.ktask
+    import pwndbg.commands.ktrace_alloc
     import pwndbg.commands.kversion
     import pwndbg.commands.leakfind
     import pwndbg.commands.libcinfo
