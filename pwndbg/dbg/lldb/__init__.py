@@ -1711,6 +1711,20 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return sp
 
     @override
+    def trace_ret(self, stop_handler: Callable[[], bool] | None = None, internal: bool = False):
+        if stop_handler is None:
+
+            def stop_handler():
+                return True
+
+        def new_stop_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
+            return stop_handler()
+
+        retaddr = pwndbg.dbg.selected_frame().parent().pc()
+        bp = pwndbg.dbg_mod.BreakpointLocation(retaddr)
+        self.break_at(bp, new_stop_handler, internal)
+
+    @override
     def disasm(self, address: int) -> pwndbg.dbg_mod.DisassembledInstruction | None:
         instructions = self.target.ReadInstructions(lldb.SBAddress(address, self.target), 1)
         if not instructions.IsValid() or instructions.GetSize() == 0:
