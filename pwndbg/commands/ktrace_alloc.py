@@ -6,6 +6,7 @@ from typing import List
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.arguments
+import pwndbg.color as C
 import pwndbg.color.message as M
 from pwndbg.dbg import BreakpointLocation
 
@@ -14,6 +15,32 @@ from pwndbg.dbg import BreakpointLocation
 class KtraceMemAux:
     bt: List[str] = None
     order: int = None
+
+
+def _format_slab_output(is_free: bool, objaddr: int):
+    if objaddr == 0:
+        return
+    if is_free:
+        prefix = C.red("[SLAB FREE]")
+    else:
+        prefix = C.green("[SLAB ALLOC]")
+    try:
+        cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
+        addr = C.blue(hex(objaddr))
+        print(f"{prefix} {C.blue(cache.name)} obj @ {addr}")
+    except Exception:
+        print(M.warn(f"{prefix} invalid SLUB object @ {objaddr}"))
+
+
+def _format_page_output(is_free: bool, page: int, order: int):
+    if is_free:
+        prefix = C.red("[PAGE FREE]")
+    else:
+        prefix = C.green("[PAGE ALLOC]")
+    prefix += C.blue(f" order-{order}")
+    physmap = pwndbg.aglib.kernel.page_to_virt(page)
+    desc = f"{C.blue(hex(page))} (physmap: {C.red(hex(physmap))})"
+    print(f"{prefix} page @ {desc}")
 
 
 class KtraceMemPoints:
@@ -82,11 +109,7 @@ class KtraceMemPoints:
     @staticmethod
     def _kalloc_handler() -> bool:
         objaddr = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
-        try:
-            cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
-            print(f"[SLUB ALLOC] {cache.name} obj @ {hex(objaddr)}")
-        except Exception:
-            print(M.warn(f"[SLUB ALLOC] invalid SLUB object @ {hex(objaddr)}"))
+        _format_slab_output(False, objaddr)
         return False
 
     @staticmethod
@@ -97,13 +120,7 @@ class KtraceMemPoints:
     @staticmethod
     def kfree_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
         objaddr = pwndbg.arguments.argument(0)
-        if objaddr == 0:
-            return False
-        try:
-            cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
-            print(f"[SLUB FREE] {cache.name} obj @ {hex(objaddr)}")
-        except Exception:
-            print(M.warn(f"[SLUB FREE] invalid SLUB object @ {hex(objaddr)}"))
+        _format_slab_output(True, objaddr)
         return False
 
     @staticmethod
@@ -111,7 +128,7 @@ class KtraceMemPoints:
         self = get_kmem_tracepoints()
         page = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
         order = self.aux.order
-        print(f"[PAGE ALLOC] order-{order} page @ {hex(page)}")
+        _format_page_output(False, page, order)
         return False
 
     @staticmethod
@@ -126,7 +143,7 @@ class KtraceMemPoints:
     def pfree_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
         page = pwndbg.arguments.argument(0)
         order = pwndbg.arguments.argument(1)
-        print(f"[PAGE FREE] order-{order} page @ {hex(page)}")
+        _format_page_output(True, page, order)
         return False
 
     def register_breakpoints(self):
@@ -157,3 +174,6 @@ class KtraceMemPoints:
 @pwndbg.lib.cache.cache_until("objfile")
 def get_kmem_tracepoints():
     return KtraceMemPoints()
+
+# TODO: add backtrace printing support
+# TODO: only SLAB or PAGE
