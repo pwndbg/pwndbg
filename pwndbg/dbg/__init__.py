@@ -562,6 +562,13 @@ class Process:
         """
         raise NotImplementedError()
 
+    def trace_ret(self, stop_handler: Callable[[], bool] | None = None, internal: bool = False):
+        """
+        Traces/break_at the current frame's return address.
+        `stop_handler` and `internal` have the same semantic meaning as they are in `break_at`
+        """
+        raise NotImplementedError()
+
     # This is a fairly lazy solution. We would ideally support a more robust way
     # to query for ABIs, but Pwndbg currely only uses `show osabi` in GDB to
     # check for whether the target is running under Linux, so we only implement

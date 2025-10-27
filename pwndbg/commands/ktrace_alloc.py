@@ -1,13 +1,21 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Callable
+from typing import List
 
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.arguments
 import pwndbg.color.message as M
 from pwndbg.dbg import BreakpointLocation
+
+
+@dataclass
+class KtraceMemAux:
+    bt: List[str] = None
+    order: int = None
 
 
 class KtraceMemPoints:
@@ -52,6 +60,7 @@ class KtraceMemPoints:
             "__alloc_frozen_pages_noprof",
             "__alloc_pages",
             "__alloc_pages_nodemask",
+            "alloc_pages_noprof",
         )
         self.pallocs = KtraceMemPoints.resolve_names(palloc_names)
         pfree_names = (  # page *, order
@@ -59,6 +68,8 @@ class KtraceMemPoints:
         )
         self.pfrees = KtraceMemPoints.resolve_names(pfree_names)
         self.sps = []
+        # auxiliary data that serves different purposes depending on the stop point
+        self.aux = KtraceMemAux()
 
     @staticmethod
     def resolve_names(names):
@@ -71,14 +82,18 @@ class KtraceMemPoints:
         return result
 
     @staticmethod
-    def kalloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
-        objaddr = KtraceMemPoints.trace_retval()
+    def _kalloc_handler() -> bool:
+        objaddr = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
         try:
             cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
             print(f"[SLUB ALLOC] {cache.name} obj @ {hex(objaddr)}")
         except Exception:
             print(M.warn(f"[SLUB ALLOC] invalid SLUB object @ {hex(objaddr)}"))
-            return True
+        return False
+
+    @staticmethod
+    def kalloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
+        pwndbg.dbg.selected_inferior().trace_ret(KtraceMemPoints._kalloc_handler, True)
         return False
 
     @staticmethod
@@ -94,10 +109,19 @@ class KtraceMemPoints:
         return False
 
     @staticmethod
-    def palloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
-        page = KtraceMemPoints.trace_retval()
-        order = pwndbg.arguments.argument(1)
+    def _palloc_handler() -> bool:
+        self = get_kmem_tracepoints()
+        page = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
+        order = self.aux.order
         print(f"[PAGE ALLOC] order-{order} page @ {hex(page)}")
+        return False
+
+    @staticmethod
+    def palloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
+        self = get_kmem_tracepoints()
+        order = pwndbg.arguments.argument(1)
+        pwndbg.dbg.selected_inferior().trace_ret(KtraceMemPoints._palloc_handler, True)
+        self.aux.order = order
         return False
 
     @staticmethod
@@ -106,20 +130,6 @@ class KtraceMemPoints:
         order = pwndbg.arguments.argument(1)
         print(f"[PAGE FREE] order-{order} page @ {hex(page)}")
         return False
-
-    @staticmethod
-    def trace_retval():
-        bt = pwndbg.commands.context.context_backtrace()
-        pattern = re.compile(r"0x[0-9a-f]+")
-        retaddr = pattern.search(bt[1]).group(0)
-        if not retaddr:
-            return
-        retaddr = int(retaddr, 16)
-        pwndbg.dbg.selected_inferior().dispatch_execution_controller(
-            pwndbg.aglib.next.break_next_ret
-        )
-        retval = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
-        return retval
 
     def register_breakpoints(self):
         inf = pwndbg.dbg.selected_inferior()

@@ -287,6 +287,19 @@ class BreakpointAdapter(gdb.Breakpoint):
         return self.stop_handler()
 
 
+class FinishpointAdapter(gdb.FinishBreakpoint):
+    stop_handler: Callable[[], bool]
+
+    def __init__(self, stop_handler, internal):
+        super().__init__(gdb.newest_frame(), internal)
+        self.stop_handler = stop_handler
+
+    @override
+    def stop(self) -> bool:
+        result = self.stop_handler()
+        return result
+
+
 class GDBStopPoint(pwndbg.dbg_mod.StopPoint):
     inner: gdb.Breakpoint
     proc: GDBProcess
@@ -833,6 +846,15 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         bp.stop_handler = handler
 
         return sp
+
+    @override
+    def trace_ret(self, stop_handler: Callable[[], bool] | None = None, internal: bool = False):
+        if stop_handler is None:
+
+            def stop_handler():
+                return True
+
+        FinishpointAdapter(stop_handler, internal)
 
     @override
     def is_linux(self) -> bool:
