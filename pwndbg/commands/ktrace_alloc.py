@@ -13,7 +13,10 @@ import pwndbg.commands
 from pwndbg.dbg import BreakpointLocation
 
 parser = argparse.ArgumentParser(
-    description="Tracing kernel memory (SLUB and buddy) allocations and deallocations."
+    description="""
+    Tracing kernel memory (SLUB and buddy) allocations and frees.
+    Unless --all is specified, only the (de)allocations triggered by the current frame will be printed.
+    """
 )
 parser.add_argument(
     "-s", "--trace-slab", action="store_true", help="enable slab (de)allocation tracing"
@@ -22,24 +25,37 @@ parser.add_argument(
     "-b", "--trace-buddy", action="store_true", help="enable buddy (de)allocation tracing"
 )
 parser.add_argument("-v", "--verbose", action="store_true", help="print backtraces")
-parser.add_argument("-c", "--command", type=str, default="n", help="command to step through")
+parser.add_argument(
+    "-c", "--command", type=str, default="n", help="command to be traced (e.g. `n`, `nextret`)"
+)
+parser.add_argument(
+    "--all",
+    action="store_true",
+    help="display ALL memory allocations/frees regardless if they are triggered by the current frame.",
+)
 
 
 class KmemTraceAux:
-    def __init__(self, verbose):
+    def __init__(self, verbose, trace_all):
         self.results = []
         self.order = None
         self.mutex = threading.RLock()
         self.verbose = verbose
+        self.curr = None  # None means tracing all
+        if not trace_all:
+            # current frame only accounting for jumps
+            pc = pwndbg.dbg.selected_frame().parent().pc()
+            self.curr = pwndbg.aglib.symbol.resolve_addr(pc).split("+")[0]
 
     def add_result(self, result: str):
-        # TODO: only add results that are relevant
         if not result:
             return
         with self.mutex:
-            self.results.append(result)
-            if self.verbose:
-                self.results += pwndbg.commands.context.context_backtrace(False)
+            bt = pwndbg.commands.context.context_backtrace(False)
+            if not self.curr or any(self.curr in line for line in bt):
+                self.results.append(result)
+                if self.verbose:
+                    self.results += bt
 
     def update_bt(self):
         pass
@@ -189,10 +205,10 @@ class KmemTracepoints:
         self.aux.add_result(r)
         return False
 
-    def register_breakpoints(self, verbose):
+    def register_breakpoints(self, verbose, trace_all):
         self.results = []
         inf = pwndbg.dbg.selected_inferior()
-        self.aux = KmemTraceAux(verbose)
+        self.aux = KmemTraceAux(verbose, trace_all)
         if self.slab_tracepoints_enabled:
             for kalloc in self.kallocs:
                 bp = BreakpointLocation(kalloc)
@@ -229,13 +245,14 @@ def get_kmem_tracepoints():
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
-def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str):
+def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str, all: bool):
     tps = get_kmem_tracepoints()
     if not trace_slab and not trace_buddy:
         trace_slab = trace_buddy = True
     tps.slab_tracepoints_enabled = trace_slab
     tps.buddy_tracepoints_enabled = trace_buddy
-    tps.register_breakpoints(verbose)
+    tps.register_breakpoints(verbose, all)
+    print(M.success("Finished registering tracepoints."))
     old_val = pwndbg.config.context_backtrace_lines.value
     pwndbg.config.context_backtrace_lines.value = 1000  # enable full backtrace
     pwndbg.dbg.selected_inferior().runcmd(command)
