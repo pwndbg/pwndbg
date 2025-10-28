@@ -927,11 +927,11 @@ def load_commands() -> None:
     import pwndbg.commands.kdmabuf
     import pwndbg.commands.kdmesg
     import pwndbg.commands.klookup
+    import pwndbg.commands.kmem_trace
     import pwndbg.commands.kmod
     import pwndbg.commands.knft
     import pwndbg.commands.ksyscalls
     import pwndbg.commands.ktask
-    import pwndbg.commands.ktrace_alloc
     import pwndbg.commands.kversion
     import pwndbg.commands.leakfind
     import pwndbg.commands.libcinfo
