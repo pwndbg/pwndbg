@@ -273,6 +273,7 @@ class ArchSymbols:
         )
         self.bpf_prog_heuristic_func = "bpf_prog_free_id"
         self.bpf_map_heuristic_func = "bpf_map_free_id"
+        self.current_task_heuristic_func = "common_cpu_up"
 
     def disass(self, name, lines=None):
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
@@ -353,6 +354,21 @@ class ArchSymbols:
             prog_idr = self._prog_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
+    def current_task(self):
+        current_task = pwndbg.aglib.symbol.lookup_symbol("current_task")
+        if current_task:
+            current_task = pwndbg.aglib.kernel.per_cpu(current_task)
+            return current_task.dereference()
+        if pwndbg.aglib.arch.name == "aarch64":
+            current_task = self._current_task()
+        elif pwndbg.aglib.kernel.has_debug_symbols(self.current_task_heuristic_func):
+            current_task = self._current_task()
+            if current_task is not None:
+                current_task = pwndbg.aglib.kernel.per_cpu(current_task)
+            # current_task is int but needed here to make the linter happy
+            current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
+        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
+
     def _node_data(self):
         raise NotImplementedError()
 
@@ -374,29 +390,32 @@ class ArchSymbols:
     def _prog_idr(self):
         raise NotImplementedError()
 
+    def _current_task(self):
+        raise NotImplementedError()
+
 
 class x86_64Symbols(ArchSymbols):
-    # mov reg, [... - 0x...]
-    # the ``-0x...` is a kernel address displayed as a negative number
+    # op ... [... +/- (0x...)]
+    # if negative, the `-0x...`` is a kernel address displayed as a negative number
     # returns the first 0x... as an int if exists
-    def dword_mov_reg_memoff(self, disass, nth=0):
-        result = self.regex(disass, r".*?\bmov.*\[.*-.*(0x[0-9a-f]+)\]", nth)
+    def qword_op_reg_memoff(self, disass, op, sign="-", nth=0):
+        result = self.regex(disass, rf"{op}.*\[.*{re.escape(sign)}\s(0x[0-9a-f]+)\]", nth)
         if result is not None:
-            return (1 << 64) - int(result.group(1), 16)
-        return None
-
-    # add reg, [... - 0x...]
-    # the `-0x...`` is a kernel address displayed as a negative number
-    # returns the first 0x... as an int if exists
-    def dword_add_reg_memoff(self, disass, nth=0):
-        result = self.regex(disass, r".*?\badd.*\[.*-.*(0x[0-9a-f]+)\]", nth)
-        if result is not None:
-            return (1 << 64) - int(result.group(1), 16)
+            if sign == "-":
+                return (1 << 64) - int(result.group(1), 16)
+            else:
+                return int(result.group(1), 16)
         return None
 
     # mov reg, <kernel address as a constant>
     def qword_mov_reg_const(self, disass, nth=0):
-        result = self.regex(disass, r".*?\bmov.*(0x[0-9a-f]{16})", nth)
+        result = self.regex(disass, r"mov.*(0x[0-9a-f]{16})", nth)
+        if result is not None:
+            return int(result.group(1), 16)
+        return None
+
+    def dword_mov_reg_const(self, disass, nth=0):
+        result = self.regex(disass, r"mov.*(0x[0-9a-f]{1,8})\b(?!\])", nth)
         if result is not None:
             return int(result.group(1), 16)
         return None
@@ -413,7 +432,7 @@ class x86_64Symbols(ArchSymbols):
 
     def _node_data(self):
         disass = self.disass(self.node_data_heuristic_func)
-        result = self.dword_mov_reg_memoff(disass)
+        result = self.qword_op_reg_memoff(disass, op="mov", sign="-")
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
@@ -424,7 +443,7 @@ class x86_64Symbols(ArchSymbols):
 
     def _per_cpu_offset(self):
         disass = self.disass(self.per_cpu_offset_heuristic_func)
-        result = self.dword_add_reg_memoff(disass)
+        result = self.qword_op_reg_memoff(disass, op="add", sign="-")
         if result is not None:
             return result
         result = self.qword_mov_reg_const(disass)
@@ -457,6 +476,14 @@ class x86_64Symbols(ArchSymbols):
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
+
+    def _current_task(self):
+        disass = self.disass(self.current_task_heuristic_func)
+        result = self.dword_mov_reg_const(disass)
+        if result is not None:
+            return result
+        disass = self.disass(self.current_task_heuristic_func, lines=20)
+        return self.qword_op_reg_memoff(disass, op="mov", sign="+")
 
 
 class Aarch64Symbols(ArchSymbols):
@@ -546,3 +573,6 @@ class Aarch64Symbols(ArchSymbols):
         if result is not None:
             return result
         return self.qword_adrp_add_const(disass)
+
+    def _current_task(self):
+        return pwndbg.aglib.regs["sp_el0"]

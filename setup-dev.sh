@@ -245,7 +245,7 @@ configure_venv() {
 
 if osx; then
     echo "Not supported on macOS. Please use one of the alternative methods listed at:"
-    echo "https://pwndbg.re/pwndbg/dev/contributing/setup-pwndbg-dev/"
+    echo "https://pwndbg.re/dev/contributing/setup-pwndbg-dev/"
     exit 1
 fi
 

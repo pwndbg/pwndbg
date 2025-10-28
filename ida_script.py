@@ -50,7 +50,7 @@ xmlclient.Marshaller.dispatch[int] = create_marshaller("<value><i8>%d</i8></valu
 xmlclient.Marshaller.dispatch[idaapi.cfuncptr_t] = create_marshaller(just_to_str=True)
 
 host = os.environ.get("PWNDBG_IDA_SERVER_HOST", "127.0.0.1")
-port = int(os.environ.get("PWNDBG_IDA_SERVER_PORT", "31337"))
+port = int(os.environ.get("PWNDBG_IDA_SERVER_PORT", "43718"))
 
 mutex = threading.Condition()
 

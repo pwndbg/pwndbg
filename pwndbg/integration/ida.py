@@ -21,8 +21,12 @@ from typing import Tuple
 from typing import TypeVar
 
 import gdb
+from pygments import highlight
+from pygments.formatters import Terminal256Formatter
+from pygments.lexers import CppLexer
 from typing_extensions import Concatenate
 from typing_extensions import ParamSpec
+from typing_extensions import override
 
 import pwndbg
 import pwndbg.aglib.arch
@@ -39,7 +43,7 @@ from pwndbg.dbg import EventType
 from pwndbg.lib.functions import Function
 
 ida_rpc_host = pwndbg.config.add_param("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")
-ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 31337, "ida xmlrpc server port")
+ida_rpc_port = pwndbg.config.add_param("ida-rpc-port", 43718, "ida xmlrpc server port")
 ida_timeout = pwndbg.config.add_param("ida-timeout", 2, "time to wait for ida xmlrpc in seconds")
 
 
@@ -57,18 +61,37 @@ T = TypeVar("T")
 
 @pwndbg.decorators.only_after_first_prompt()
 @pwndbg.config.trigger(ida_rpc_host, ida_rpc_port, pwndbg.integration.provider_name, ida_timeout)
-def init_ida_rpc_client() -> None:
-    global _ida, _ida_last_exception, _ida_last_connection_check
+def ida_config_changed() -> None:
+    if pwndbg.integration.provider_name.value == "ida":
+        # We need to (re)connect the client, possibly with updated values.
+        try_init_ida_rpc_client()
 
-    if pwndbg.integration.provider_name.value != "ida":
-        return
+
+def ensure_disabled() -> None:
+    global _ida
+    _ida = None
+    pwndbg.integration.unset_provider()
+    pwndbg.integration.provider_name.value = "none"
+
+
+def try_init_ida_rpc_client() -> bool:
+    """
+    Try to connect to the IDA RPC client.
+
+    If the connection succeeds, or we were already connected,
+    return True. Otherwise, False.
+
+    An appropriate message will be also printed to the user.
+    """
+
+    global _ida, _ida_last_exception, _ida_last_connection_check
 
     xmlrpc.client.MAXINT = 10**100  # type: ignore[misc]
     xmlrpc.client.MININT = -(10**100)  # type: ignore[misc]
 
     now = time.time()
     if _ida is None and (now - _ida_last_connection_check) < int(ida_timeout) + 5:
-        return
+        return False
 
     addr = f"http://{ida_rpc_host}:{ida_rpc_port}"
 
@@ -78,18 +101,37 @@ def init_ida_rpc_client() -> None:
     exception = None  # (type, value, traceback)
     try:
         _ida.here()
-        print(message.success(f"Pwndbg successfully connected to Ida Pro xmlrpc: {addr}"))
         idc._update()
-    except TimeoutError:
+        pwndbg.integration.set_provider(IdaProvider())
+
+        print(message.success(f"Pwndbg successfully connected to Ida Pro xmlrpc: {addr}"))
+
+        if pwndbg.integration.provider_name.value != "ida":
+            # We managed to successfully connect, and this happened because an Ida
+            # command was invoked, rather than the user setting the integration-provider parameter.
+            # So, we want to set the provider name now.
+            # Note that ida_config_changed() is a trigger, and not a value listener, so it won't
+            # be called when we set the value here (which is good, we would have recursion otherwise).
+            pwndbg.integration.provider_name.value = "ida"
+
+            assert (
+                len(pwndbg.config.triggers[pwndbg.integration.provider_name.name]) == 2
+            ), "Does this new function need to be called here?"
+
+        return True
+
+    except (TimeoutError, xmlrpc.client.ProtocolError):
         exception = sys.exc_info()
-        _ida = None
     except OSError as e:
-        if e.errno != errno.ECONNREFUSED:
+        if e.errno == errno.ECONNREFUSED:
+            print(
+                message.error("Connection refused. ")
+                + message.hint("Did you start ./ida_script.py from Ida?")
+            )
+        else:
             exception = sys.exc_info()
-        _ida = None
-    except xmlrpc.client.ProtocolError:
-        exception = sys.exc_info()
-        _ida = None
+
+    ensure_disabled()
 
     if exception:
         if (
@@ -126,14 +168,66 @@ def init_ida_rpc_client() -> None:
 
     _ida_last_exception = exception and exception[1]
     _ida_last_connection_check = now
+    return False
 
 
-def withIDA(func: Callable[P, T]) -> Callable[P, T | None]:
+# We cannot catch the ConnectionRefusedError here, nor in @withIDA because there
+# may be multiple nested decorated functions, and the bottom most one will swallow
+# the exception up prevent it from bubbling to the top. Thus, we catch
+# ConnectionRefusedError in CommandObj.__call__().
+def enabledIDA(func: Callable[P, T]) -> Callable[P, T | None]:
+    """
+    If we have a connection to Ida, call the function.
+
+    Otherwise, return None. Thus, all functions decorated with this must have
+    "| None" in their return signature.
+
+    This will not try to open a connection if it doesn't already exist.
+    No messages will be printed.
+    """
+
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
         if _ida is None:
-            init_ida_rpc_client()
-        if _ida is not None:
+            assert pwndbg.integration.provider_name.value != "ida"
+            return None
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def establish_connection() -> bool:
+    """
+    If we already had a connection, or succeed in creating a new one, return True.
+    Otherwise False.
+    """
+    if _ida is not None:
+        return True
+
+    print(message.notice("Trying to connect to Ida..."))
+    ok = try_init_ida_rpc_client()
+
+    if not ok:
+        print(message.error("Aborting."))
+        return False
+
+    return True
+
+
+def withIDA(func: Callable[P, T]) -> Callable[P, T | None]:
+    """
+    Try to connect to Ida before running the decorated function.
+
+    If we fail connecting to Ida, return None. Thus, all functions
+    decorated with this must have "| None" in their return signature.
+
+    Use this for user-initiated stuff like pwndbg.commands.ida.save_ida().
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
+        if establish_connection():
             return func(*args, **kwargs)
         return None
 
@@ -141,7 +235,7 @@ def withIDA(func: Callable[P, T]) -> Callable[P, T | None]:
 
 
 def withHexrays(func: Callable[P, T]) -> Callable[P, T | None]:
-    @withIDA
+    @enabledIDA
     @functools.wraps(func)
     def wrapper(*a: P.args, **kw: P.kwargs) -> T | None:
         if _ida is not None and _ida.init_hexrays_plugin():
@@ -165,18 +259,6 @@ def returns_address(function: Callable[P, int]) -> Callable[P, int]:
         return r2l(function(*args, **kwargs))
 
     return wrapper
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def available() -> bool:
-    if pwndbg.integration.provider_name.value != "ida":
-        return False
-    return can_connect()
-
-
-@withIDA
-def can_connect() -> bool:
-    return True
 
 
 def l2r(addr: int) -> int:
@@ -210,20 +292,20 @@ def base():
     return segaddr - base
 
 
-@withIDA
+@enabledIDA
 @takes_address
 def Comment(addr: int):
     return _ida.get_cmt(addr, 0) or _ida.get_cmt(addr)
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
 def Name(addr: int):
     return _ida.get_name(addr, 0x1)  # GN_VISIBLE
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
 def GetFuncOffset(addr: int):
@@ -231,14 +313,14 @@ def GetFuncOffset(addr: int):
     return rv
 
 
-@withIDA
+@enabledIDA
 @takes_address
 def GetFuncAttr(addr: int, attr: int):
     rv = _ida.get_func_attr(addr, attr)
     return rv
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
 def GetType(addr: int):
@@ -246,20 +328,20 @@ def GetType(addr: int):
     return rv
 
 
-@withIDA
+@enabledIDA
 @returns_address
 def here() -> int:
     return _ida.here()  # type: ignore[return-value]
 
 
-@withIDA
+@enabledIDA
 @takes_address
 def Jump(addr: int):
     # uses C++ api instead of idc one to avoid activating the IDA window
     return _ida.jumpto(addr, -1, 0)
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
 def Anterior(addr: int):
@@ -275,18 +357,18 @@ def Anterior(addr: int):
     return b"\n".join(lines)
 
 
-@withIDA
+@enabledIDA
 def GetBreakpoints():
     for i in range(GetBptQty()):
         yield GetBptEA(i)
 
 
-@withIDA
+@enabledIDA
 def GetBptQty():
     return _ida.get_bpt_qty()
 
 
-@withIDA
+@enabledIDA
 @returns_address
 def GetBptEA(i: int) -> int:
     return _ida.get_bpt_ea(i)  # type: ignore[return-value]
@@ -297,7 +379,7 @@ _breakpoints: List[gdb.Breakpoint] = []
 
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
 @pwndbg.dbg.event_handler(EventType.STOP)
-@withIDA
+@enabledIDA
 def UpdateBreakpoints() -> None:
     # XXX: Remove breakpoints from IDA when the user removes them.
     current = {eval(b.location.lstrip("*")) for b in _breakpoints}
@@ -318,7 +400,7 @@ def UpdateBreakpoints() -> None:
         _breakpoints.append(bp)
 
 
-@withIDA
+@enabledIDA
 @takes_address
 def SetColor(pc, color):
     return _ida.set_color(pc, 1, color)
@@ -328,7 +410,7 @@ colored_pc = None
 
 
 @pwndbg.dbg.event_handler(EventType.STOP)
-@withIDA
+@enabledIDA
 def Auto_Color_PC() -> None:
     global colored_pc
     colored_pc = pwndbg.aglib.regs.pc
@@ -336,7 +418,7 @@ def Auto_Color_PC() -> None:
 
 
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
-@withIDA
+@enabledIDA
 def Auto_UnColor_PC() -> None:
     global colored_pc
     if colored_pc:
@@ -344,14 +426,14 @@ def Auto_UnColor_PC() -> None:
     colored_pc = None
 
 
-@withIDA
+@enabledIDA
 @returns_address
 @pwndbg.lib.cache.cache_until("objfile")
 def LocByName(name) -> int:
     return _ida.get_name_ea_simple(str(name))  # type: ignore[return-value]
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @returns_address
 @pwndbg.lib.cache.cache_until("objfile")
@@ -359,7 +441,7 @@ def PrevHead(addr):
     return _ida.prev_head(addr)
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @returns_address
 @pwndbg.lib.cache.cache_until("objfile")
@@ -367,39 +449,39 @@ def NextHead(addr):
     return _ida.next_head(addr)
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
 def GetFunctionName(addr):
     return _ida.get_func_name(addr)
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
 def GetFlags(addr):
     return _ida.get_full_flags(addr)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("objfile")
 def isASCII(flags):
     return _ida.is_strlit(flags)
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("objfile")
 def ArgCount(address) -> None:
     pass
 
 
-@withIDA
+@enabledIDA
 def SaveBase(path: str):
     return _ida.save_database(path)
 
 
-@withIDA
+@enabledIDA
 def GetIdbPath():
     return _ida.get_idb_path()
 
@@ -410,94 +492,104 @@ def has_cached_cfunc(addr):
     return _ida.has_cached_cfunc(addr)
 
 
-@withHexrays
-@takes_address
-@pwndbg.lib.cache.cache_until("stop")
-def decompile(addr):
-    return _ida.decompile(addr)
+_lexer = CppLexer()
+_formatter = Terminal256Formatter(style="monokai")
 
 
 @withHexrays
 @takes_address
 @pwndbg.lib.cache.cache_until("stop")
-def decompile_context(pc, context_lines):
-    return _ida.decompile_context(pc, context_lines)
+def decompile(addr) -> str | None:
+    code: str | None = _ida.decompile(addr)
+    if code is not None and not pwndbg.config.disable_colors:
+        code = highlight(code, _lexer, _formatter)
+    return code
 
 
-@withIDA
+@withHexrays
+@takes_address
+@pwndbg.lib.cache.cache_until("stop")
+def decompile_context(pc, context_lines) -> str | None:
+    code: str | None = _ida.decompile_context(pc, context_lines)
+    if code is not None and not pwndbg.config.disable_colors:
+        code = highlight(code, _lexer, _formatter)
+    return code
+
+
+@enabledIDA
 @pwndbg.lib.cache.cache_until("forever")
 def get_ida_versions() -> Dict[str, str]:
     return _ida.versions()  # type: ignore[return-value]
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetStrucQty():
     return _ida.get_struc_qty()
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetStrucId(idx):
     return _ida.get_struc_by_idx(idx)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetStrucName(sid):
     return _ida.get_struc_name(sid)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetStrucSize(sid):
     return _ida.get_struc_size(sid)
 
 
-@withIDA
+@enabledIDA
 @takes_address
 @pwndbg.lib.cache.cache_until("stop")
 def GetFrameId(addr):
     return _ida.get_frame_id(addr)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetMemberQty(sid):
     return _ida.get_member_qty(sid)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetMemberSize(sid, offset):
     return _ida.get_member_size(sid, offset)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetMemberId(sid, offset):
     return _ida.get_member_id(sid, offset)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetMemberName(sid, offset):
     return _ida.get_member_name(sid, offset)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetMemberOffset(sid, member_name):
     return _ida.get_member_offset(sid, member_name)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetMemberFlag(sid, offset):
     return _ida.get_member_flag(sid, offset)
 
 
-@withIDA
+@enabledIDA
 @pwndbg.lib.cache.cache_until("stop")
 def GetStrucNextOff(sid, offset):
     return _ida.get_next_offset(sid, offset)
@@ -505,10 +597,6 @@ def GetStrucNextOff(sid, offset):
 
 class IDC:
     query = "{k:v for k,v in globals()['idc'].__dict__.items() if isinstance(v, int)}"
-
-    def __init__(self) -> None:
-        if available():
-            self._update()
 
     def _update(self) -> None:
         data: Dict[Any, Any] = _ida.eval(self.query)
@@ -569,7 +657,7 @@ ida_replacements = {
 
 class IdaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
-    @withIDA
+    @enabledIDA
     def get_symbol(self, addr: int) -> str | None:
         exe = pwndbg.aglib.elf.exe()
         if exe:
@@ -590,18 +678,18 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
         return ()
 
     @pwndbg.decorators.suppress_errors(fallback=True)
-    @withIDA
+    @enabledIDA
     def is_in_function(self, addr: int) -> bool:
-        return available() and bool(GetFunctionName(addr))
+        return bool(GetFunctionName(addr))
 
     @pwndbg.decorators.suppress_errors(fallback=[])
-    @withIDA
+    @enabledIDA
     def get_comment_lines(self, addr: int) -> List[str]:
         pre = Anterior(addr)
         return pre.decode().split("\n") if pre else []
 
     @pwndbg.decorators.suppress_errors()
-    @withIDA
+    @enabledIDA
     def decompile(self, addr: int, lines: int) -> List[str] | None:
         code = decompile_context(addr, lines // 2)
         if code:
@@ -610,7 +698,7 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
             return None
 
     @pwndbg.decorators.suppress_errors()
-    @withIDA
+    @enabledIDA
     def get_func_type(self, addr: int) -> Function | None:
         typename: str = GetType(addr)
 
@@ -626,3 +714,7 @@ class IdaProvider(pwndbg.integration.IntegrationProvider):
             return pwndbg.lib.funcparser.ExtractFuncDeclFromSource(typename + ";")
 
         return None
+
+    @override
+    def disable(self) -> None:
+        ensure_disabled()

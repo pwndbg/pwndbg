@@ -80,6 +80,7 @@ class PwndbgArchitecture(ArchDefinition):
 
     max_instruction_size: int
     instruction_alignment: int
+    constant_instruction_size: bool = False
 
     ###
 
@@ -264,6 +265,7 @@ class ArmCortexArch(PwndbgArchitecture):
 class AArch64Arch(PwndbgArchitecture):
     max_instruction_size = 4
     instruction_alignment = 4
+    constant_instruction_size = True
 
     def __init__(self) -> None:
         super().__init__("aarch64")
@@ -345,6 +347,7 @@ class MipsArch(PwndbgArchitecture):
 class Loongarch64Arch(PwndbgArchitecture):
     max_instruction_size = 4
     instruction_alignment = 4
+    constant_instruction_size = True
 
     def __init__(self) -> None:
         super().__init__("loongarch64")

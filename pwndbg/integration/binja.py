@@ -25,6 +25,7 @@ import pygments.formatters
 import pygments.style
 import pygments.token
 from typing_extensions import ParamSpec
+from typing_extensions import override
 
 import pwndbg
 import pwndbg.aglib.arch
@@ -51,7 +52,7 @@ from pwndbg.lib.functions import Function
 bn_rpc_host = pwndbg.config.add_param(
     "bn-rpc-host", "127.0.0.1", "Binary Ninja XML-RPC server host"
 )
-bn_rpc_port = pwndbg.config.add_param("bn-rpc-port", 31337, "Binary Ninja XML-RPC server port")
+bn_rpc_port = pwndbg.config.add_param("bn-rpc-port", 43717, "Binary Ninja XML-RPC server port")
 bn_timeout = pwndbg.config.add_param(
     "bn-timeout", 2, "time to wait for Binary Ninja XML-RPC, in seconds"
 )
@@ -81,18 +82,36 @@ K = TypeVar("K")
 
 @pwndbg.decorators.only_after_first_prompt()
 @pwndbg.config.trigger(bn_rpc_host, bn_rpc_port, pwndbg.integration.provider_name, bn_timeout)
-def init_bn_rpc_client() -> None:
-    global _bn, _bn_last_exception, _bn_last_connection_check
+def binja_config_changed():
+    if pwndbg.integration.provider_name.value == "binja":
+        # We need to (re)connect the client, possibly with updated values.
+        try_init_bn_rpc_client()
 
-    if pwndbg.integration.provider_name.value != "binja":
-        return
+
+def ensure_disabled() -> None:
+    global _bn
+    _bn = None
+    pwndbg.integration.unset_provider()
+    pwndbg.integration.provider_name.value = "none"
+
+
+def try_init_bn_rpc_client() -> bool:
+    """
+    Try to connect to the Binary Ninja RPC client.
+
+    If the connection succeeds, or we were already connected,
+    return True. Otherwise, False.
+
+    An appropriate message will be also printed to the user.
+    """
+    global _bn, _bn_last_exception, _bn_last_connection_check
 
     xmlrpc.client.MAXINT = 10**100  # type: ignore[misc]
     xmlrpc.client.MININT = -(10**100)  # type: ignore[misc]
 
     now = time.time()
     if _bn is None and (now - _bn_last_connection_check) < int(bn_timeout) + 5:
-        return
+        return False
 
     addr = f"http://{bn_rpc_host}:{bn_rpc_port}"
 
@@ -102,21 +121,45 @@ def init_bn_rpc_client() -> None:
     exception = None  # (type, value, traceback)
     try:
         version: str = _bn.get_version()
+        pwndbg.integration.set_provider(BinjaProvider())
+
         print(
             message.success(
                 f"Pwndbg successfully connected to Binary Ninja ({version}) xmlrpc: {addr}"
             )
         )
-    except TimeoutError:
+
+        if pwndbg.integration.provider_name.value != "binja":
+            # We managed to successfully connect, and this happened because a binja
+            # command was invoked, rather than the user setting the integration-provider parameter.
+            # So, we want to set the provider name now.
+            # Note that binja_config_changed() is a trigger, and not a value listener, so it won't
+            # be called when we set the value here (which is good, we would have recursion otherwise).
+            pwndbg.integration.provider_name.value = "binja"
+
+            assert (
+                len(pwndbg.config.triggers[pwndbg.integration.provider_name.name]) == 2
+            ), "Does this new function need to be called here?"
+
+        return True
+
+    except (TimeoutError, xmlrpc.client.ProtocolError):
         exception = sys.exc_info()
-        _bn = None
     except OSError as e:
-        if e.errno != errno.ECONNREFUSED:
+        if e.errno == errno.ECONNREFUSED:
+            print(
+                message.error("Connection refused. ")
+                + message.hint("Did you start the plugin in Binary Ninja?")
+                # TODO: remove this after some time passes
+                + message.notice(
+                    "\nIn the latest version of Pwndbg, the binja_script.py file has been\n"
+                )
+                + message.notice("updated, you may need to reinstall it.")
+            )
+        else:
             exception = sys.exc_info()
-        _bn = None
-    except xmlrpc.client.ProtocolError:
-        exception = sys.exc_info()
-        _bn = None
+
+    ensure_disabled()
 
     if exception:
         if (
@@ -153,42 +196,73 @@ def init_bn_rpc_client() -> None:
 
     _bn_last_exception = exception and exception[1]
     _bn_last_connection_check = now
+    return False
 
 
-def with_bn(fallback: K = None) -> Callable[[Callable[P, T]], Callable[P, T | K]]:
-    global _bn
+# We cannot catch the ConnectionRefusedError here, nor in @withBinja because there
+# may be multiple nested decorated functions, and the bottom most one will swallow
+# the exception up prevent it from bubbling to the top. Thus, we catch
+# ConnectionRefusedError in CommandObj.__call__().
+def enabledBinja(fallback: K = None) -> Callable[[Callable[P, T]], Callable[P, T | K]]:
+    """
+    If we have a connection to binary ninja, call the function.
+
+    Otherwise, return fallback. Thus, all functions decorated with this, that do
+    not specify a fallback, must have "| None" in their return signature.
+
+    This will not try to open a connection if it doesn't already exist.
+    No messages will be printed.
+    """
 
     def decorator(func: Callable[P, T]) -> Callable[P, T | K]:
-        global _bn
-
         @functools.wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | K:
-            global _bn
             if _bn is None:
-                init_bn_rpc_client()
+                assert pwndbg.integration.provider_name.value != "binja"
+                return fallback
 
-            try:
-                if _bn is not None:
-                    return func(*args, **kwargs)
-            except ConnectionRefusedError:
-                print(message.error("[!] Binary Ninja connection refused"))
-                _bn = None
-
-            return fallback
+            return func(*args, **kwargs)
 
         return wrapper
 
     return decorator
 
 
-@pwndbg.lib.cache.cache_until("stop")
-def available() -> bool:
-    return can_connect() is not None
+def establish_connection() -> bool:
+    """
+    If we already had a connection, or succeed in creating a new one, return True.
+    Otherwise False.
+    """
+    if _bn is not None:
+        return True
 
+    print(message.notice("Trying to connect to Binary Ninja..."))
+    ok = try_init_bn_rpc_client()
 
-@with_bn()
-def can_connect() -> bool:
+    if not ok:
+        print(message.error("Aborting."))
+        return False
+
     return True
+
+
+def withBinja(func: Callable[P, T]) -> Callable[P, T | None]:
+    """
+    Try to connect to Binary Ninja before running the decorated function.
+
+    If we fail connecting, return None. Thus, all functions
+    decorated with this must have "| None" in their return signature.
+
+    Use this for user-initiated stuff like pwndbg.commands.binja.bn_sync().
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
+        if establish_connection():
+            return func(*args, **kwargs)
+        return None
+
+    return wrapper
 
 
 def l2r(addr: int) -> int:
@@ -207,7 +281,7 @@ def base():
 
 
 @pwndbg.dbg.event_handler(EventType.STOP)
-@with_bn()
+@enabledBinja()
 def auto_update_pc() -> None:
     if not pwndbg.aglib.proc.alive:
         return
@@ -223,7 +297,7 @@ _managed_bps: Dict[int, StopPoint] = {}
 @pwndbg.dbg.event_handler(EventType.START)
 @pwndbg.dbg.event_handler(EventType.STOP)
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
-@with_bn()
+@enabledBinja()
 def auto_update_bp() -> None:
     if not pwndbg.aglib.proc.alive:
         return
@@ -241,12 +315,12 @@ def auto_update_bp() -> None:
 
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
 @pwndbg.dbg.event_handler(EventType.EXIT)
-@with_bn()
+@enabledBinja()
 def auto_clear_pc() -> None:
     _bn.clear_pc_tag()
 
 
-@with_bn()
+@enabledBinja()
 def navigate_to(addr: int) -> None:
     _bn.navigate_to(l2r(addr))
 
@@ -388,7 +462,7 @@ style = theme.add_param(
 
 class BinjaProvider(pwndbg.integration.IntegrationProvider):
     @pwndbg.decorators.suppress_errors()
-    @with_bn()
+    @enabledBinja()
     @pwndbg.lib.cache.cache_until("stop")
     def get_symbol(self, addr: int) -> str | None:
         sym: str | None = _bn.get_symbol(l2r(addr))
@@ -411,7 +485,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         return None
 
     @pwndbg.decorators.suppress_errors(fallback=())
-    @with_bn(fallback=())
+    @enabledBinja(fallback=())
     def get_versions(self) -> Tuple[str, ...]:
         bn_version: str = _bn.get_version()
         py_version: str = _bn.get_py_version()
@@ -421,19 +495,19 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         )
 
     @pwndbg.decorators.suppress_errors(fallback=True)
-    @with_bn(fallback=True)
+    @enabledBinja(fallback=True)
     @pwndbg.lib.cache.cache_until("stop")
     def is_in_function(self, addr: int) -> bool:
         return _bn.get_func_info(l2r(addr)) is not None
 
     @pwndbg.decorators.suppress_errors(fallback=[])
-    @with_bn(fallback=[])
+    @enabledBinja(fallback=[])
     def get_comment_lines(self, addr: int) -> List[str]:
         comments: List[str] = _bn.get_comments(l2r(addr))
         return comments
 
     @pwndbg.decorators.suppress_errors()
-    @with_bn()
+    @enabledBinja()
     def decompile(self, addr: int, lines: int) -> List[str] | None:
         decomp: List[Tuple[int, List[Tuple[str, str]]]] | None = _bn.decompile_func(
             l2r(addr), bn_il_level.value
@@ -511,7 +585,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         return ret
 
     @pwndbg.decorators.suppress_errors()
-    @with_bn()
+    @enabledBinja()
     def get_func_type(self, addr: int) -> Function | None:
         ty: Tuple[Tuple[str, int, str], List[Tuple[str, int, str]]] = _bn.get_func_type(l2r(addr))
         if ty is None:
@@ -520,7 +594,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         return Function(type=ty[0][0], derefcnt=ty[0][1], name=ty[0][2], args=args)
 
     @pwndbg.decorators.suppress_errors()
-    @with_bn()
+    @enabledBinja()
     @pwndbg.lib.cache.cache_until("stop")
     def get_stack_var_name(self, addr: int) -> str | None:
         cur = pwndbg.dbg.selected_frame()
@@ -559,3 +633,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             return f"{var}{suffix}"
         else:
             return f"{func}:{var}{suffix}"
+
+    @override
+    def disable(self) -> None:
+        ensure_disabled()

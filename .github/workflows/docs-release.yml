@@ -1,4 +1,4 @@
-name: Latest Release Docs
+name: Stable Release Docs
 
 on:
   release:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy docs for latest release
+    name: Deploy docs for stable release
     runs-on: ubuntu-latest
     steps:
       - name: Only allow running on tag refs
@@ -41,4 +41,4 @@ jobs:
             --push \
             --remote origin \
             ${{ github.ref_name }} \
-            latest
+            stable

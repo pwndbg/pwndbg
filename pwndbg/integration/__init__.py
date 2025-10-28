@@ -65,7 +65,16 @@ class IntegrationProvider:
         """
         return None
 
+    def disable(self) -> None:
+        """
+        Notify the provider that it should disable itself.
+        """
+        return None
 
+
+# This value should only be the name of the provider if we have a valid connection
+# to the provider. I.e. if we fail to connect to the provider, we should set this to
+# "none".
 provider_name = pwndbg.config.add_param(
     "integration-provider",
     "none",
@@ -130,28 +139,24 @@ class ConfigurableProvider(IntegrationProvider):
     def get_stack_var_name(self, addr: int) -> str | None:
         return self.inner.get_stack_var_name(addr)
 
+    def disable(self) -> None:
+        return self.inner.disable()
+
 
 provider: IntegrationProvider = IntegrationProvider()
 
 
-@pwndbg.config.trigger(provider_name)
-def switch_providers():
+def set_provider(prov: IntegrationProvider) -> None:
+    """
+    Call this from provider-specific code whenever you establish a connection.
+    """
     global provider
-    if not provider_name.value or provider_name.value == "none":
-        provider = IntegrationProvider()
-    elif provider_name.value == "binja":
-        # do not import at start of file to avoid circular import
-        import pwndbg.integration.binja
+    provider = ConfigurableProvider(prov)
 
-        provider = ConfigurableProvider(pwndbg.integration.binja.BinjaProvider())
-    elif provider_name.value == "ida":
-        import pwndbg.integration.ida
 
-        provider = ConfigurableProvider(pwndbg.integration.ida.IdaProvider())
-    else:
-        print(
-            message.warn(
-                f"Invalid provider {provider_name.value!r} specified. Disabling integration."
-            )
-        )
-        provider_name.revert_default()
+def unset_provider() -> None:
+    """
+    Call this from provider-specific code whenever a connection stops.
+    """
+    global provider
+    provider = IntegrationProvider()

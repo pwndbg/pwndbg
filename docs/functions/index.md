@@ -127,7 +127,7 @@ returned.
 
 
 ``` {.python .no-copy}
-bn_eval(expr: gdb.Value) -> int | None
+bn_eval(expr: gdb.Value) -> int
 ```
 
 
@@ -144,7 +144,7 @@ This function cannot see stack local variables.
 #### Example
 ```
 pwndbg> set integration-provider binja
-Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:43717
 Set which provider to use for integration features to 'binja'.
 pwndbg> p/x $bn_eval("10+20")
 $6 = 0x30
@@ -168,7 +168,7 @@ $11 = 1
 
 
 ``` {.python .no-copy}
-bn_sym(name_val: gdb.Value) -> int | None
+bn_sym(name_val: gdb.Value) -> int
 ```
 
 
@@ -180,7 +180,7 @@ but not stack local variables, use `bn_var` for that.
 #### Example
 ```
 pwndbg> set integration-provider binja
-Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:43717
 Set which provider to use for integration features to 'binja'.
 pwndbg> p main
 No symbol "main" in current context.
@@ -196,7 +196,7 @@ Breakpoint 1 at 0x555555555645
 
 
 ``` {.python .no-copy}
-bn_var(name_val: gdb.Value) -> int | None
+bn_var(name_val: gdb.Value) -> int
 ```
 
 
@@ -208,7 +208,7 @@ use `bn_sym` for that.
 #### Example
 ```
 pwndbg> set integration-provider binja
-Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:43717
 Set which provider to use for integration features to 'binja'.
 pwndbg> p user_choice
 No symbol "user_choice" in current context.
@@ -384,7 +384,7 @@ This functions doesn't see stack local variables.
 #### Example
 ```
 pwndbg> set integration-provider ida
-Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:31337
+Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:43718
 Set which provider to use for integration features to 'ida'.
 pwndbg> p main
 No symbol "main" in current context.

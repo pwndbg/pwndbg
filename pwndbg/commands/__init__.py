@@ -371,6 +371,20 @@ class CommandObj:
         except TypeError:
             print(f"{self.command_name}: {self.description}")
             pwndbg.exception.handle(self.function.__name__)
+        except ConnectionRefusedError:
+            print(message.error("Connection Refused Exception."))
+            print(message.hint("Did an integration provider die?"), end="")
+            # If yes, the resulting state can be really messy.
+            if pwndbg.integration.provider_name != "none":
+                print(
+                    message.hint(
+                        f" Automatically disabled {pwndbg.integration.provider_name} integration."
+                    )
+                )
+                pwndbg.integration.provider.disable()
+            else:
+                print()
+
         except Exception:
             pwndbg.exception.handle(self.function.__name__)
         return None
@@ -924,6 +938,7 @@ def load_commands() -> None:
     import pwndbg.commands.kchecksec
     import pwndbg.commands.kcmdline
     import pwndbg.commands.kconfig
+    import pwndbg.commands.kcurrent
     import pwndbg.commands.kdmabuf
     import pwndbg.commands.kdmesg
     import pwndbg.commands.klookup

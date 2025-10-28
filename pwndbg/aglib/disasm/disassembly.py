@@ -100,6 +100,11 @@ def clear_on_reg_mem_change() -> None:
 # Used to display instructions that led to current instruction
 backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
 
+# Dict of Address -> previous instruction sequentially in memory
+# Some architectures don't have fixed-sized instructions, so this is used
+# to disassemble backwards linearly in memory for those cases
+linear_backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
+
 # This allows use to retain the annotation strings from previous instructions
 computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.defaultdict(
     lambda: None
@@ -108,6 +113,33 @@ computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.de
 # Maps an address to integer 0/1, indicating the Thumb mode bit for the given address.
 # Value is None if Thumb bit is irrelevent or unknown.
 emulated_arm_mode_cache: DefaultDict[int, int | None] = collections.defaultdict(lambda: None)
+
+
+def get_previous_instruction(
+    address: int, use_cache: bool, linear: bool
+) -> PwndbgInstruction | None:
+    if linear:
+        prev_address = linear_backward_cache[address]
+        result = (
+            one(prev_address, from_cache=use_cache, put_backward_cache=False)
+            if prev_address
+            else None
+        )
+        if result is None and pwndbg.aglib.arch.constant_instruction_size:
+            return one(
+                address - pwndbg.aglib.arch.max_instruction_size,
+                from_cache=use_cache,
+                put_backward_cache=False,
+                linear=linear,
+            )
+        return result
+    else:
+        prev_address = backward_cache[address]
+        return (
+            one(prev_address, from_cache=use_cache, put_backward_cache=False)
+            if prev_address
+            else None
+        )
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -182,6 +214,7 @@ def one(
     from_cache=False,
     put_cache=False,
     put_backward_cache=True,
+    linear=False,
     assistant: DisassemblyAssistant = None,
 ) -> PwndbgInstruction | None:
     if address is None:
@@ -201,7 +234,9 @@ def one(
         assistant=assistant,
     ):
         if put_backward_cache:
-            backward_cache[insn.next] = insn.address
+            linear_backward_cache[insn.address + insn.size] = insn.address
+            if not linear:
+                backward_cache[insn.next] = insn.address
         return insn
 
     return None
@@ -359,7 +394,7 @@ def near(
                 assistant.manual_register_values.write_register(reg, reg_value)
 
     # Start at the current instruction using emulation if available.
-    current = one(address, emu, put_cache=True, assistant=assistant)
+    current = one(address, emu, put_cache=True, assistant=assistant, linear=linear)
 
     if DEBUG_ENHANCEMENT:
         if emu and not emu.last_step_succeeded:
@@ -375,16 +410,15 @@ def near(
         print(f"CACHE START -------------------, {current.address}")
 
     if show_prev_insns:
-        cached = backward_cache[current.address]
-        insn = one(cached, from_cache=use_cache, put_backward_cache=False) if cached else None
+        insn = get_previous_instruction(current.address, use_cache=use_cache, linear=linear)
         while insn is not None and len(insns) < instructions:
             if DEBUG_ENHANCEMENT:
-                print(f"Got instruction from cache, addr={cached:#x}")
+                print(f"Got instruction from cache, addr={insn.address:#x}")
             if insn.jump_like and insn.split == SplitType.NO_SPLIT and not insn.causes_branch_delay:
                 insn.split = SplitType.BRANCH_NOT_TAKEN
             insns.append(insn)
-            cached = backward_cache[insn.address]
-            insn = one(cached, from_cache=use_cache, put_backward_cache=False) if cached else None
+
+            insn = get_previous_instruction(insn.address, use_cache=use_cache, linear=linear)
         insns.reverse()
 
     index_of_current_instruction = len(insns)
@@ -443,7 +477,7 @@ def near(
                 # This means the emulator's program counter will take on the value that the branch action dictates, and we would normally continue disassembling there.
                 # We disassemble the delay slot instructions here as the normal codeflow will not reach them.
 
-                split_insn = one(insn.address + insn.size, None, put_cache=True)
+                split_insn = one(insn.address + insn.size, None, put_cache=True, linear=linear)
 
                 # There might not be a valid instruction at the branch delay slot
                 if split_insn is None:
@@ -476,7 +510,7 @@ def near(
         next_addresses_cache.add(target)
 
         # The emulator is stepped within this call
-        insn = one(target, emu, put_cache=True, assistant=assistant)
+        insn = one(target, emu, put_cache=True, assistant=assistant, linear=linear)
 
         if insn:
             insns.append(insn)

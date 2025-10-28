@@ -66,6 +66,8 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             self.data["CONFIG_DEBUG_FS"] = "y"
         if self.CONFIG_SECURITY:
             self.data["CONFIG_SECURITY"] = "y"
+        if self.CONFIG_THREAD_INFO_IN_TASK:
+            self.data["CONFIG_THREAD_INFO_IN_TASK"] = "y"
 
     def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
@@ -99,7 +101,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_SLUB_TINY(self) -> bool:
         krelease = pwndbg.aglib.kernel.krelease()
-        if krelease is not None and krelease < (6, 2): # config added after v6.2
+        if krelease is not None and krelease < (6, 2):  # config added after v6.2
             return False
         return pwndbg.aglib.symbol.lookup_symbol("deactivate_slab") is None
 
@@ -182,6 +184,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_SECURITY(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("security_inode_init_security") is not None
+
+    @property
+    def CONFIG_THREAD_INFO_IN_TASK(self) -> bool:
+        return pwndbg.aglib.symbol.lookup_symbol("put_task_stack") is not None
 
     def update_with_file(self, file_path):
         for line in open(file_path, "r").read().splitlines():

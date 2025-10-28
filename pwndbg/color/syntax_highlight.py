@@ -70,8 +70,8 @@ def _pygments_get_lexer_for_filename(filename, code, **options):
     matched_lexer = ""
     fn = os.path.basename(filename)
     for name, _, filenames, _ in pygments.lexers.get_all_lexers(plugins=False):
-        for filename in filenames:
-            if _fn_matches(fn, filename):
+        for candidate_filename in filenames:
+            if _fn_matches(fn, candidate_filename):
                 if one_match:
                     # already seen one match, this is a second match
                     one_match = False

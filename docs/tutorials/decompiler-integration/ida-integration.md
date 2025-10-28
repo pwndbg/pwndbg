@@ -17,7 +17,7 @@ save-ida                           Save the ida database.
 pwndbg> config ida
 attachp-resolution-method          how to determine the process to attach when multiple candidates exists   'ask'
 ida-rpc-host                       ida xmlrpc server address                                                '127.0.0.1'
-ida-rpc-port                       ida xmlrpc server port                                                   31337
+ida-rpc-port                       ida xmlrpc server port                                                   43718
 ida-timeout                        time to wait for ida xmlrpc in seconds                                   2
 pwndbg> | help function | grep ida
 function ida -- Lookup a symbol's address by name from IDA.

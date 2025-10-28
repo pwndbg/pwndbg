@@ -214,7 +214,7 @@ Binary Ninja XML-RPC server port.
 
 
 
-**Default:** 31337  
+**Default:** 43717  
 
 ----------
 
@@ -684,7 +684,7 @@ Ida xmlrpc server port.
 
 
 
-**Default:** 31337  
+**Default:** 43718  
 
 ----------
 

@@ -13,6 +13,7 @@ from pwndbg.commands import CommandCategory
     aliases=["bns"],
 )
 @pwndbg.commands.OnlyWhenRunning
+@pwndbg.integration.binja.withBinja
 def bn_sync(*args) -> None:
     """
     Synchronize Binary Ninja's cursor with GDB

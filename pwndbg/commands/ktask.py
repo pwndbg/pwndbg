@@ -6,14 +6,104 @@ and prints details about each task, including its address, PID, user space statu
 from __future__ import annotations
 
 import argparse
+from typing import Tuple
 
+import pwndbg.color as C
 import pwndbg.color.message as message
 import pwndbg.commands
-from pwndbg.aglib.kernel.macros import container_of
+import pwndbg.lib
+from pwndbg.aglib.kernel.macros import for_each_entry
+from pwndbg.lib.exception import IndentContextManager
 
 parser = argparse.ArgumentParser(description="Displays information about kernel tasks.")
-
 parser.add_argument("task_name", nargs="?", type=str, help="A task name to search for")
+
+indent = IndentContextManager()
+
+
+class Kthread:
+    def __init__(self, thread: pwndbg.dbg_mod.Value):
+        self.thread = thread
+        self.name = thread["comm"].string()
+        self.pid = int(thread["pid"])
+        self.has_user_page = int(thread["mm"]) != 0
+        krelease = pwndbg.aglib.kernel.krelease()
+        if krelease is None or "CONFIG_THREAD_INFO_IN_TASK" not in pwndbg.aglib.kernel.kconfig():
+            self.cpu = "-"
+        elif krelease < (5, 16):
+            self.cpu = int(thread["cpu"])
+        else:
+            self.cpu = int(thread["thread_info"]["cpu"])
+        self.uid = int(thread["real_cred"]["uid"]["val"])
+        self.gid = int(thread["real_cred"]["gid"]["val"])
+
+    @pwndbg.lib.cache.cache_until("stop")
+    def files(self):
+        fdt = self.thread["files"]["fdt"]
+        fds = fdt["fd"]
+        files = []
+        for i in range(int(fdt["max_fds"])):
+            file = fds[i]
+            addr = int(file)
+            if addr == 0:
+                continue
+            files.append((i, file))
+        return tuple(files)
+
+    @property
+    def mm(self):
+        mm = self.thread["mm"]
+        if int(mm) != 0:
+            return mm
+        # for anonymous tasks
+        mm = self.thread["active_mm"]
+        if int(mm) != 0:
+            return mm
+        return None
+
+    def __str__(self):
+        thread = C.blue(hex(int(self.thread)))
+        prefix = f"[pid {self.pid}]"
+        desc = " "
+        prefix = C.blue(f"{prefix:<9}") + f"task @ {thread}: {self.name:<16}"
+        user = ", has user pages" if self.has_user_page else ""
+        desc = C.red(f"cpu #{self.cpu} (uid: {self.uid}, gid: {self.gid}{user})")
+        return f"{prefix} {desc}"
+
+
+class Ktask:
+    def __init__(self, task: pwndbg.dbg_mod.Value):
+        self.task = task
+        threads = []
+        signal = task["signal"]
+        # Iterate through all threads in the task_struct's thread list.
+        for thread in for_each_entry(signal["thread_head"], "struct task_struct", "thread_node"):
+            kthread = Kthread(thread)
+            threads.append(kthread)
+        self.threads = threads
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def get_ktasks() -> Tuple[Ktask, ...]:
+    tasks = []
+    # Look up the init_task symbol, which is the first task in the kernel's task list.
+    init_task = pwndbg.aglib.symbol.lookup_symbol("init_task")
+    if init_task is None:
+        print(
+            "The init_task symbol was not found. This may indicate that the symbol is not available in the current build."
+        )
+        return None
+
+    try:
+        tasks.append(Ktask(init_task))
+        # The task list is implemented a circular doubly linked list, so we traverse starting from init_task.
+        for task in for_each_entry(init_task["tasks"], "struct task_struct", "tasks"):
+            ktask = Ktask(task)
+            tasks.append(ktask)
+    except pwndbg.dbg_mod.Error as e:
+        print(message.error(f"ERROR: {e}"))
+        return None
+    return tuple(tasks)
 
 
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
@@ -21,67 +111,11 @@ parser.add_argument("task_name", nargs="?", type=str, help="A task name to searc
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelDebugInfo
 def ktask(task_name=None) -> None:
-    print(f"{'Address':>18} {'PID':>6} {'User':>4} {'CPU':>4} {'UID':>4} {'GID':>4} {'Name'}")
-
-    # Look up the init_task symbol, which is the first task in the kernel's task list.
-    init_task = pwndbg.aglib.symbol.lookup_symbol_addr("init_task")
-    if init_task is None:
-        print(
-            "The init_task symbol was not found. This may indicate that the symbol is not available in the current build."
-        )
-        return
-
-    curr_task = init_task
-
-    try:
-        # The task list is implemented a circular doubly linked list, so we traverse starting from init_task.
-        while True:
-            task_struct = pwndbg.aglib.memory.get_typed_pointer_value(
-                "struct task_struct", curr_task
-            )
-            thread_head = task_struct["signal"]["thread_head"]
-
-            curr_thread = thread_head["next"]
-
-            # Iterate through all threads in the task_struct's thread list.
-            while True:
-                if int(thread_head.address) == int(curr_thread):
-                    break
-
-                thread = container_of(int(curr_thread), "struct task_struct", "thread_node")
-
-                task_struct2 = pwndbg.aglib.memory.get_typed_pointer_value(
-                    "struct task_struct", thread
-                )
-
-                comm = task_struct2["comm"].string()
-
-                # Print task information if no specific task name is provided or if the current task matches the provided name.
-                if not task_name or task_name in comm:
-                    curr_task_hex = hex(curr_task)
-                    pid = int(task_struct2["pid"])
-                    user = "✓" if int(task_struct2["mm"]) != 0 else "✗"
-                    cpu = int(task_struct2["thread_info"]["cpu"])
-
-                    # Get UID and GID from the credentials structure
-                    uid = int(task_struct2["real_cred"]["uid"]["val"])
-                    gid = int(task_struct2["real_cred"]["gid"]["val"])
-
-                    print(
-                        f"{curr_task_hex:>18} {pid:>6} {user:>4} {cpu:>4} {uid:>6} {gid:>6} {comm:<7}"
-                    )
-
-                curr_thread = curr_thread["next"]
-
-            next_task = container_of(
-                int(task_struct["tasks"]["next"]), "struct task_struct", "tasks"
-            )
-
-            if int(next_task) == init_task:
-                break
-
-            curr_task = int(next_task)
-
-    except pwndbg.dbg_mod.Error as e:
-        print(message.error(f"ERROR: {e}"))
-        return
+    threads = []
+    for task in get_ktasks():
+        for thread in task.threads:
+            if task_name is not None and task_name not in thread.name:
+                continue
+            threads.append(thread)
+    for thread in threads:
+        indent.print(thread)

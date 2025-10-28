@@ -23,7 +23,7 @@ from pwndbg.gdblib.functions import GdbFunction
 )
 @pwndbg.commands.OnlyWhenRunning
 @pwndbg.dbg.event_handler(EventType.STOP)
-@pwndbg.integration.ida.withIDA
+@pwndbg.integration.ida.enabledIDA
 def j(*args) -> None:
     """
     Synchronize IDA's cursor with GDB
@@ -99,9 +99,6 @@ def down(n=1) -> None:
 @pwndbg.integration.ida.withIDA
 def save_ida() -> None:
     """Save the IDA database"""
-    if not pwndbg.integration.ida.available():
-        return
-
     path = pwndbg.integration.ida.GetIdbPath()
 
     # Need to handle emulated paths for Wine
@@ -136,9 +133,6 @@ def save_ida() -> None:
 
     # Remove old version
     os.unlink(full_path)
-
-
-save_ida()
 
 
 def _ida_local(name: str) -> int | None:
@@ -185,7 +179,7 @@ def ida(name: gdb.Value) -> int:
     Example:
     ```
     pwndbg> set integration-provider ida
-    Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:31337
+    Pwndbg successfully connected to Ida Pro xmlrpc: http://127.0.0.1:43718
     Set which provider to use for integration features to 'ida'.
     pwndbg> p main
     No symbol "main" in current context.
@@ -195,6 +189,11 @@ def ida(name: gdb.Value) -> int:
     Breakpoint 2 at 0x555555555645
     ```
     """
+    # GDB convenience functions are not allowed to return None, so we cannot
+    # decorate with @withIda().
+    if not pwndbg.integration.ida.establish_connection():
+        return 0
+
     name = name.string()
 
     # Lookup local variables first

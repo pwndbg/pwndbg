@@ -13,8 +13,7 @@ from pwndbg.color import message
 
 
 @pwndbg.gdblib.functions.GdbFunction()
-@pwndbg.integration.binja.with_bn()
-def bn_sym(name_val: gdb.Value) -> int | None:
+def bn_sym(name_val: gdb.Value) -> int:
     """
     Lookup a symbol's address by name from Binary Ninja.
 
@@ -24,7 +23,7 @@ def bn_sym(name_val: gdb.Value) -> int | None:
     Example:
     ```
     pwndbg> set integration-provider binja
-    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:43717
     Set which provider to use for integration features to 'binja'.
     pwndbg> p main
     No symbol "main" in current context.
@@ -34,16 +33,21 @@ def bn_sym(name_val: gdb.Value) -> int | None:
     Breakpoint 1 at 0x555555555645
     ```
     """
+    # GDB convenience functions are not allowed to return None, so we cannot
+    # decorate with @withBinja().
+    if not pwndbg.integration.binja.establish_connection():
+        return 0
+
     name = name_val.string()
     addr: int | None = pwndbg.integration.binja._bn.get_symbol_addr(name)
     if addr is None:
-        return None
+        print(message.error("Not found."))
+        return 0
     return pwndbg.integration.binja.r2l(addr)
 
 
 @pwndbg.gdblib.functions.GdbFunction()
-@pwndbg.integration.binja.with_bn()
-def bn_var(name_val: gdb.Value) -> int | None:
+def bn_var(name_val: gdb.Value) -> int:
     """
     Lookup a stack variable's address by name from Binary Ninja.
 
@@ -53,7 +57,7 @@ def bn_var(name_val: gdb.Value) -> int | None:
     Example:
     ```
     pwndbg> set integration-provider binja
-    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:43717
     Set which provider to use for integration features to 'binja'.
     pwndbg> p user_choice
     No symbol "user_choice" in current context.
@@ -67,12 +71,18 @@ def bn_var(name_val: gdb.Value) -> int | None:
     Error while executing Python code.
     ```
     """
+    # GDB convenience functions are not allowed to return None, so we cannot
+    # decorate with @withBinja().
+    if not pwndbg.integration.binja.establish_connection():
+        return 0
+
     name = name_val.string()
     conf_and_offset: Tuple[int, int] | None = pwndbg.integration.binja._bn.get_var_offset_from_sp(
         pwndbg.integration.binja.l2r(pwndbg.aglib.regs.pc), name
     )
     if conf_and_offset is None:
-        return None
+        print(message.error("Not found."))
+        return 0
     (conf, offset) = conf_and_offset
     if conf < 64:
         print(message.warn(f"Warning: Stack offset only has {conf / 255 * 100:.2f}% confidence"))
@@ -80,8 +90,8 @@ def bn_var(name_val: gdb.Value) -> int | None:
 
 
 @pwndbg.gdblib.functions.GdbFunction()
-@pwndbg.integration.binja.with_bn()
-def bn_eval(expr: gdb.Value) -> int | None:
+@pwndbg.integration.binja.enabledBinja()
+def bn_eval(expr: gdb.Value) -> int:
     """
     Parse and evaluate a Binary Ninja expression.
 
@@ -96,7 +106,7 @@ def bn_eval(expr: gdb.Value) -> int | None:
     Example:
     ```
     pwndbg> set integration-provider binja
-    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:31337
+    Pwndbg successfully connected to Binary Ninja (4.2.6455 Personal) xmlrpc: http://127.0.0.1:43717
     Set which provider to use for integration features to 'binja'.
     pwndbg> p/x $bn_eval("10+20")
     $6 = 0x30
@@ -114,6 +124,11 @@ def bn_eval(expr: gdb.Value) -> int | None:
     $11 = 1
     ```
     """
+    # GDB convenience functions are not allowed to return None, so we cannot
+    # decorate with @withBinja().
+    if not pwndbg.integration.binja.establish_connection():
+        return 0
+
     magic_vars = {}
     for r in pwndbg.aglib.regs.current:
         v = pwndbg.aglib.regs[r]
@@ -121,4 +136,7 @@ def bn_eval(expr: gdb.Value) -> int | None:
             magic_vars[r] = v
     magic_vars["piebase"] = pwndbg.aglib.proc.binary_base_addr
     ret: int | None = pwndbg.integration.binja._bn.parse_expr(expr.string(), magic_vars)
+    if ret is None:
+        print(message.error("Not found."))
+        return 0
     return ret
