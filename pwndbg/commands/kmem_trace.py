@@ -58,31 +58,45 @@ class KmemTracepointsData:
                     self.results += bt
 
 
-def _format_slab_output(results: List[str], is_free: bool, objaddr: int) -> str | None:
+def _format_kmem_tracepoint_output(prefix, name, type, addr):
+    prefix = prefix.ljust(12, " ")
+    if "FREE" in prefix:
+        prefix = C.red(prefix)
+    else:
+        prefix = C.green(prefix)
+    name = C.blue(name.ljust(16, " "))
+    type = type.ljust(4, " ")
+    return f"{prefix} {name} {type} @ {C.blue(hex(addr))}"
+
+
+def _format_slab_kmem_tracepoint_output(
+    results: List[str], is_free: bool, objaddr: int
+) -> str | None:
     if objaddr == 0:
         return None
     if is_free:
-        prefix = C.red("[SLAB FREE]")
+        prefix = "[SLAB FREE]"
     else:
-        prefix = C.green("[SLAB ALLOC]")
+        prefix = "[SLAB ALLOC]"
     try:
         cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
-        addr = C.blue(hex(objaddr))
-        result = f"{prefix} {C.blue(cache.name)} obj @ {addr}"
+        result = _format_kmem_tracepoint_output(prefix, cache.name, "obj", objaddr)
     except Exception:
         result = M.warn(f"{prefix} invalid SLUB object @ {objaddr}")
     return result
 
 
-def _format_page_output(results: List[str], is_free: bool, page: int, order: int) -> str:
+def _format_page_kmem_tracepoint_output(
+    results: List[str], is_free: bool, page: int, order: int
+) -> str:
     if is_free:
-        prefix = C.red("[PAGE FREE]")
+        prefix = "[PAGE FREE]"
     else:
-        prefix = C.green("[PAGE ALLOC]")
-    prefix += C.blue(f" order-{order}")
+        prefix = "[PAGE ALLOC]"
+    name = f"order-{order}"
     physmap = pwndbg.aglib.kernel.page_to_virt(page)
-    desc = f"{C.blue(hex(page))} (physmap: {C.red(hex(physmap))})"
-    result = f"{prefix} page @ {desc}"
+    result = _format_kmem_tracepoint_output(prefix, name, "page", page)
+    result += f" (physmap: {C.red(hex(physmap))})"
     return result
 
 
@@ -154,7 +168,7 @@ class KmemTracepoints:
     def _kalloc_handler() -> bool:
         self = get_kmem_tracepoints()
         objaddr = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
-        r = _format_slab_output(self.results, False, objaddr)
+        r = _format_slab_kmem_tracepoint_output(self.results, False, objaddr)
         self.aux.add_result(r)
         return False
 
@@ -167,7 +181,7 @@ class KmemTracepoints:
     def kfree_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
         self = get_kmem_tracepoints()
         objaddr = pwndbg.arguments.argument(0)
-        r = _format_slab_output(self.results, True, objaddr)
+        r = _format_slab_kmem_tracepoint_output(self.results, True, objaddr)
         self.aux.add_result(r)
         return False
 
@@ -176,7 +190,7 @@ class KmemTracepoints:
         self = get_kmem_tracepoints()
         page = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
         order = self.aux.order
-        r = _format_page_output(self.results, False, page, order)
+        r = _format_page_kmem_tracepoint_output(self.results, False, page, order)
         self.aux.add_result(r)
         return False
 
@@ -193,7 +207,7 @@ class KmemTracepoints:
         self = get_kmem_tracepoints()
         page = pwndbg.arguments.argument(0)
         order = pwndbg.arguments.argument(1)
-        r = _format_page_output(self.results, True, page, order)
+        r = _format_page_kmem_tracepoint_output(self.results, True, page, order)
         self.aux.add_result(r)
         return False
 
