@@ -35,7 +35,7 @@ parser.add_argument(
 )
 
 
-class KmemTraceAux:
+class KmemTracepointsData:
     def __init__(self, verbose, trace_all):
         self.results = []
         self.order = None
@@ -56,9 +56,6 @@ class KmemTraceAux:
                 self.results.append(result)
                 if self.verbose:
                     self.results += bt
-
-    def update_bt(self):
-        pass
 
 
 def _format_slab_output(results: List[str], is_free: bool, objaddr: int) -> str | None:
@@ -163,9 +160,7 @@ class KmemTracepoints:
 
     @staticmethod
     def kalloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
-        self = get_kmem_tracepoints()
         pwndbg.dbg.selected_inferior().trace_ret(KmemTracepoints._kalloc_handler, True)
-        self.aux.update_bt()
         return False
 
     @staticmethod
@@ -173,7 +168,6 @@ class KmemTracepoints:
         self = get_kmem_tracepoints()
         objaddr = pwndbg.arguments.argument(0)
         r = _format_slab_output(self.results, True, objaddr)
-        self.aux.update_bt()
         self.aux.add_result(r)
         return False
 
@@ -192,7 +186,6 @@ class KmemTracepoints:
         order = pwndbg.arguments.argument(1)
         pwndbg.dbg.selected_inferior().trace_ret(KmemTracepoints._palloc_handler, True)
         self.aux.order = order
-        self.aux.update_bt()
         return False
 
     @staticmethod
@@ -201,14 +194,13 @@ class KmemTracepoints:
         page = pwndbg.arguments.argument(0)
         order = pwndbg.arguments.argument(1)
         r = _format_page_output(self.results, True, page, order)
-        self.aux.update_bt()
         self.aux.add_result(r)
         return False
 
     def register_breakpoints(self, verbose, trace_all):
         self.results = []
         inf = pwndbg.dbg.selected_inferior()
-        self.aux = KmemTraceAux(verbose, trace_all)
+        self.aux = KmemTracepointsData(verbose, trace_all)
         if self.slab_tracepoints_enabled:
             for kalloc in self.kallocs:
                 bp = BreakpointLocation(kalloc)
@@ -258,9 +250,6 @@ def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str,
     pwndbg.dbg.selected_inferior().runcmd(command)
     pwndbg.config.context_backtrace_lines.value = old_val  # restore
     pwndbg.commands.context.context()
-    out = ""
-    for line in tps.aux.results:
-        out += line + "\n"
     tps.remove_breakpoints()
-    print(out)
+    print("\n".join(tps.aux.results))
     pwndbg.dbg.ctx_suspend_once()
