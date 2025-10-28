@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+import threading
 from typing import List
 
 import pwndbg.aglib.regs
@@ -25,15 +25,29 @@ parser.add_argument("-v", "--verbose", action="store_true", help="print backtrac
 parser.add_argument("-c", "--command", type=str, default="n", help="command to step through")
 
 
-@dataclass
-class KtraceMemAux:
-    bt: List[str] = None
-    order: int = None
+class KmemTraceAux:
+    def __init__(self, verbose):
+        self.results = []
+        self.order = None
+        self.mutex = threading.RLock()
+        self.verbose = verbose
+
+    def add_result(self, result: str):
+        # TODO: only add results that are relevant
+        if not result:
+            return
+        with self.mutex:
+            self.results.append(result)
+            if self.verbose:
+                self.results += pwndbg.commands.context.context_backtrace(False)
+
+    def update_bt(self):
+        pass
 
 
-def _format_slab_output(results: List[str], is_free: bool, objaddr: int):
+def _format_slab_output(results: List[str], is_free: bool, objaddr: int) -> str | None:
     if objaddr == 0:
-        return
+        return None
     if is_free:
         prefix = C.red("[SLAB FREE]")
     else:
@@ -44,10 +58,10 @@ def _format_slab_output(results: List[str], is_free: bool, objaddr: int):
         result = f"{prefix} {C.blue(cache.name)} obj @ {addr}"
     except Exception:
         result = M.warn(f"{prefix} invalid SLUB object @ {objaddr}")
-    results.append(result)
+    return result
 
 
-def _format_page_output(results: List[str], is_free: bool, page: int, order: int):
+def _format_page_output(results: List[str], is_free: bool, page: int, order: int) -> str:
     if is_free:
         prefix = C.red("[PAGE FREE]")
     else:
@@ -56,7 +70,7 @@ def _format_page_output(results: List[str], is_free: bool, page: int, order: int
     physmap = pwndbg.aglib.kernel.page_to_virt(page)
     desc = f"{C.blue(hex(page))} (physmap: {C.red(hex(physmap))})"
     result = f"{prefix} page @ {desc}"
-    results.append(result)
+    return result
 
 
 class KmemTracepoints:
@@ -109,11 +123,9 @@ class KmemTracepoints:
         )
         self.pfrees = KmemTracepoints.resolve_names(pfree_names)
         self.sps = []
-        # auxiliary data that serves different purposes depending on the stop point
-        self.aux = KtraceMemAux()
+        self.aux = None
         self.slab_tracepoints_enabled = True
         self.buddy_tracepoints_enabled = True
-        self.results = None
 
     @staticmethod
     def resolve_names(names):
@@ -129,19 +141,24 @@ class KmemTracepoints:
     def _kalloc_handler() -> bool:
         self = get_kmem_tracepoints()
         objaddr = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
-        _format_slab_output(self.results, False, objaddr)
+        r = _format_slab_output(self.results, False, objaddr)
+        self.aux.add_result(r)
         return False
 
     @staticmethod
     def kalloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
+        self = get_kmem_tracepoints()
         pwndbg.dbg.selected_inferior().trace_ret(KmemTracepoints._kalloc_handler, True)
+        self.aux.update_bt()
         return False
 
     @staticmethod
     def kfree_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
         self = get_kmem_tracepoints()
         objaddr = pwndbg.arguments.argument(0)
-        _format_slab_output(self.results, True, objaddr)
+        r = _format_slab_output(self.results, True, objaddr)
+        self.aux.update_bt()
+        self.aux.add_result(r)
         return False
 
     @staticmethod
@@ -149,7 +166,8 @@ class KmemTracepoints:
         self = get_kmem_tracepoints()
         page = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
         order = self.aux.order
-        _format_page_output(self.results, False, page, order)
+        r = _format_page_output(self.results, False, page, order)
+        self.aux.add_result(r)
         return False
 
     @staticmethod
@@ -158,6 +176,7 @@ class KmemTracepoints:
         order = pwndbg.arguments.argument(1)
         pwndbg.dbg.selected_inferior().trace_ret(KmemTracepoints._palloc_handler, True)
         self.aux.order = order
+        self.aux.update_bt()
         return False
 
     @staticmethod
@@ -165,12 +184,15 @@ class KmemTracepoints:
         self = get_kmem_tracepoints()
         page = pwndbg.arguments.argument(0)
         order = pwndbg.arguments.argument(1)
-        _format_page_output(self.results, True, page, order)
+        r = _format_page_output(self.results, True, page, order)
+        self.aux.update_bt()
+        self.aux.add_result(r)
         return False
 
-    def register_breakpoints(self):
+    def register_breakpoints(self, verbose):
         self.results = []
         inf = pwndbg.dbg.selected_inferior()
+        self.aux = KmemTraceAux(verbose)
         if self.slab_tracepoints_enabled:
             for kalloc in self.kallocs:
                 bp = BreakpointLocation(kalloc)
@@ -194,7 +216,6 @@ class KmemTracepoints:
         for sp in self.sps:
             sp.remove()
         self.sps = []
-        self.aux = KtraceMemAux()
         self.slab_tracepoints_enabled = True
         self.buddy_tracepoints_enabled = True
 
@@ -214,10 +235,14 @@ def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str)
         trace_slab = trace_buddy = True
     tps.slab_tracepoints_enabled = trace_slab
     tps.buddy_tracepoints_enabled = trace_buddy
-    tps.register_breakpoints()
-    ctx = pwndbg.dbg.selected_inferior().runcmd(command)
-    out = ctx + "\n"
-    for line in tps.results:
+    tps.register_breakpoints(verbose)
+    old_val = pwndbg.config.context_backtrace_lines.value
+    pwndbg.config.context_backtrace_lines.value = 1000  # enable full backtrace
+    pwndbg.dbg.selected_inferior().runcmd(command)
+    pwndbg.config.context_backtrace_lines.value = old_val  # restore
+    pwndbg.commands.context.context()
+    out = ""
+    for line in tps.aux.results:
         out += line + "\n"
     tps.remove_breakpoints()
     print(out)
