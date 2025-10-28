@@ -1005,6 +1005,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             return
         gdb.execute(f"add-symbol-file {path} {base}")
 
+    @override
+    def runcmd(self, cmd) -> str:
+        return gdb.execute(cmd, to_string=True)
+
 
 class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override

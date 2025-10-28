@@ -1830,6 +1830,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # Queue the coroutine up for execution by the Pwndbg CLI.
         self.dbg.controllers.append((self, procedure(EXECUTION_CONTROLLER)))
 
+    @override
+    def runcmd(self, cmd) -> str:
+        return self.dbg._execute_lldb_command(cmd)
+
 
 class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
     def __init__(self, handler_name: str, command_name: str):

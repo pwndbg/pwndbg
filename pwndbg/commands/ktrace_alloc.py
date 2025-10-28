@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from dataclasses import dataclass
 from typing import List
 
@@ -8,7 +9,20 @@ import pwndbg.aglib.symbol
 import pwndbg.arguments
 import pwndbg.color as C
 import pwndbg.color.message as M
+import pwndbg.commands
 from pwndbg.dbg import BreakpointLocation
+
+parser = argparse.ArgumentParser(
+    description="Tracing kernel memory (SLUB and buddy) allocations and deallocations."
+)
+parser.add_argument(
+    "-s", "--trace-slab", action="store_true", help="enable slab (de)allocation tracing"
+)
+parser.add_argument(
+    "-b", "--trace-buddy", action="store_true", help="enable buddy (de)allocation tracing"
+)
+parser.add_argument("-v", "--verbose", action="store_true", help="print backtraces")
+parser.add_argument("-c", "--command", type=str, default="n", help="command to step through")
 
 
 @dataclass
@@ -43,7 +57,7 @@ def _format_page_output(is_free: bool, page: int, order: int):
     print(f"{prefix} page @ {desc}")
 
 
-class KtraceMemPoints:
+class KmemTracepoints:
     def __init__(self):
         # try to capture the lowest possible level of exported functions in the (de)alloc chain
         # for example __alloc_pages_bulk calls __alloc_pages and only __alloc_pages is included
@@ -78,23 +92,25 @@ class KtraceMemPoints:
             "__kmalloc_cache_node_noprof",
             "__kmalloc_cache_noprof",
         )
-        self.kallocs = KtraceMemPoints.resolve_names(kmalloc_names)
+        self.kallocs = KmemTracepoints.resolve_names(kmalloc_names)
         kfree_names = ("kfree",)
-        self.kfrees = KtraceMemPoints.resolve_names(kfree_names)
+        self.kfrees = KmemTracepoints.resolve_names(kfree_names)
         palloc_names = (  # all of those functions have the 2nd arg == order
             "__alloc_frozen_pages_noprof",
             "__alloc_pages",
             "__alloc_pages_nodemask",
             "alloc_pages_noprof",
         )
-        self.pallocs = KtraceMemPoints.resolve_names(palloc_names)
+        self.pallocs = KmemTracepoints.resolve_names(palloc_names)
         pfree_names = (  # page *, order
             "__free_pages",
         )
-        self.pfrees = KtraceMemPoints.resolve_names(pfree_names)
+        self.pfrees = KmemTracepoints.resolve_names(pfree_names)
         self.sps = []
         # auxiliary data that serves different purposes depending on the stop point
         self.aux = KtraceMemAux()
+        self.slab_tracepoints_enabled = True
+        self.buddy_tracepoints_enabled = True
 
     @staticmethod
     def resolve_names(names):
@@ -114,7 +130,7 @@ class KtraceMemPoints:
 
     @staticmethod
     def kalloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
-        pwndbg.dbg.selected_inferior().trace_ret(KtraceMemPoints._kalloc_handler, True)
+        pwndbg.dbg.selected_inferior().trace_ret(KmemTracepoints._kalloc_handler, True)
         return False
 
     @staticmethod
@@ -135,7 +151,7 @@ class KtraceMemPoints:
     def palloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
         self = get_kmem_tracepoints()
         order = pwndbg.arguments.argument(1)
-        pwndbg.dbg.selected_inferior().trace_ret(KtraceMemPoints._palloc_handler, True)
+        pwndbg.dbg.selected_inferior().trace_ret(KmemTracepoints._palloc_handler, True)
         self.aux.order = order
         return False
 
@@ -150,19 +166,19 @@ class KtraceMemPoints:
         inf = pwndbg.dbg.selected_inferior()
         for kalloc in self.kallocs:
             bp = BreakpointLocation(kalloc)
-            sp = inf.break_at(bp, KtraceMemPoints.kalloc_handler, internal=True)
+            sp = inf.break_at(bp, KmemTracepoints.kalloc_handler, internal=True)
             self.sps.append(sp)
         for kfree in self.kfrees:
             bp = BreakpointLocation(kfree)
-            sp = inf.break_at(bp, KtraceMemPoints.kfree_handler, internal=True)
+            sp = inf.break_at(bp, KmemTracepoints.kfree_handler, internal=True)
             self.sps.append(sp)
         for palloc in self.pallocs:
             bp = BreakpointLocation(palloc)
-            sp = inf.break_at(bp, KtraceMemPoints.palloc_handler, internal=True)
+            sp = inf.break_at(bp, KmemTracepoints.palloc_handler, internal=True)
             self.sps.append(sp)
         for pfree in self.pfrees:
             bp = BreakpointLocation(pfree)
-            sp = inf.break_at(bp, KtraceMemPoints.pfree_handler, internal=True)
+            sp = inf.break_at(bp, KmemTracepoints.pfree_handler, internal=True)
             self.sps.append(sp)
 
     def remove_breakpoints(self):
@@ -173,7 +189,22 @@ class KtraceMemPoints:
 
 @pwndbg.lib.cache.cache_until("objfile")
 def get_kmem_tracepoints():
-    return KtraceMemPoints()
+    return KmemTracepoints()
 
-# TODO: add backtrace printing support
-# TODO: only SLAB or PAGE
+
+@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
+@pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWhenPagingEnabled
+def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str):
+    tps = get_kmem_tracepoints()
+    tps.slab_tracepoints_enabled = trace_slab
+    tps.buddy_tracepoints_enabled = trace_buddy
+    tps.register_breakpoints()
+    ret = pwndbg.dbg.selected_inferior().runcmd(command)
+    out = ""
+    for line in ret.splitlines():
+        if "[SLAB" in line or "[PAGE" in line:
+            out += line + "\n"
+    print(out)
+    tps.remove_breakpoints()

@@ -645,6 +645,12 @@ class Process:
         """
         raise NotImplementedError()
 
+    def runcmd(self, cmd):
+        """
+        Runs a debugger command
+        """
+        raise NotImplementedError()
+
 
 class TypeCode(Enum):
     """
