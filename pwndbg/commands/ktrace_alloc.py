@@ -31,7 +31,7 @@ class KtraceMemAux:
     order: int = None
 
 
-def _format_slab_output(is_free: bool, objaddr: int):
+def _format_slab_output(results: List[str], is_free: bool, objaddr: int):
     if objaddr == 0:
         return
     if is_free:
@@ -41,12 +41,13 @@ def _format_slab_output(is_free: bool, objaddr: int):
     try:
         cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
         addr = C.blue(hex(objaddr))
-        print(f"{prefix} {C.blue(cache.name)} obj @ {addr}")
+        result = f"{prefix} {C.blue(cache.name)} obj @ {addr}"
     except Exception:
-        print(M.warn(f"{prefix} invalid SLUB object @ {objaddr}"))
+        result = M.warn(f"{prefix} invalid SLUB object @ {objaddr}")
+    results.append(result)
 
 
-def _format_page_output(is_free: bool, page: int, order: int):
+def _format_page_output(results: List[str], is_free: bool, page: int, order: int):
     if is_free:
         prefix = C.red("[PAGE FREE]")
     else:
@@ -54,7 +55,8 @@ def _format_page_output(is_free: bool, page: int, order: int):
     prefix += C.blue(f" order-{order}")
     physmap = pwndbg.aglib.kernel.page_to_virt(page)
     desc = f"{C.blue(hex(page))} (physmap: {C.red(hex(physmap))})"
-    print(f"{prefix} page @ {desc}")
+    result = f"{prefix} page @ {desc}"
+    results.append(result)
 
 
 class KmemTracepoints:
@@ -111,6 +113,7 @@ class KmemTracepoints:
         self.aux = KtraceMemAux()
         self.slab_tracepoints_enabled = True
         self.buddy_tracepoints_enabled = True
+        self.results = None
 
     @staticmethod
     def resolve_names(names):
@@ -124,8 +127,9 @@ class KmemTracepoints:
 
     @staticmethod
     def _kalloc_handler() -> bool:
+        self = get_kmem_tracepoints()
         objaddr = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
-        _format_slab_output(False, objaddr)
+        _format_slab_output(self.results, False, objaddr)
         return False
 
     @staticmethod
@@ -135,8 +139,9 @@ class KmemTracepoints:
 
     @staticmethod
     def kfree_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
+        self = get_kmem_tracepoints()
         objaddr = pwndbg.arguments.argument(0)
-        _format_slab_output(True, objaddr)
+        _format_slab_output(self.results, True, objaddr)
         return False
 
     @staticmethod
@@ -144,7 +149,7 @@ class KmemTracepoints:
         self = get_kmem_tracepoints()
         page = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
         order = self.aux.order
-        _format_page_output(False, page, order)
+        _format_page_output(self.results, False, page, order)
         return False
 
     @staticmethod
@@ -157,34 +162,41 @@ class KmemTracepoints:
 
     @staticmethod
     def pfree_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
+        self = get_kmem_tracepoints()
         page = pwndbg.arguments.argument(0)
         order = pwndbg.arguments.argument(1)
-        _format_page_output(True, page, order)
+        _format_page_output(self.results, True, page, order)
         return False
 
     def register_breakpoints(self):
+        self.results = []
         inf = pwndbg.dbg.selected_inferior()
-        for kalloc in self.kallocs:
-            bp = BreakpointLocation(kalloc)
-            sp = inf.break_at(bp, KmemTracepoints.kalloc_handler, internal=True)
-            self.sps.append(sp)
-        for kfree in self.kfrees:
-            bp = BreakpointLocation(kfree)
-            sp = inf.break_at(bp, KmemTracepoints.kfree_handler, internal=True)
-            self.sps.append(sp)
-        for palloc in self.pallocs:
-            bp = BreakpointLocation(palloc)
-            sp = inf.break_at(bp, KmemTracepoints.palloc_handler, internal=True)
-            self.sps.append(sp)
-        for pfree in self.pfrees:
-            bp = BreakpointLocation(pfree)
-            sp = inf.break_at(bp, KmemTracepoints.pfree_handler, internal=True)
-            self.sps.append(sp)
+        if self.slab_tracepoints_enabled:
+            for kalloc in self.kallocs:
+                bp = BreakpointLocation(kalloc)
+                sp = inf.break_at(bp, KmemTracepoints.kalloc_handler, internal=True)
+                self.sps.append(sp)
+            for kfree in self.kfrees:
+                bp = BreakpointLocation(kfree)
+                sp = inf.break_at(bp, KmemTracepoints.kfree_handler, internal=True)
+                self.sps.append(sp)
+        if self.buddy_tracepoints_enabled:
+            for palloc in self.pallocs:
+                bp = BreakpointLocation(palloc)
+                sp = inf.break_at(bp, KmemTracepoints.palloc_handler, internal=True)
+                self.sps.append(sp)
+            for pfree in self.pfrees:
+                bp = BreakpointLocation(pfree)
+                sp = inf.break_at(bp, KmemTracepoints.pfree_handler, internal=True)
+                self.sps.append(sp)
 
     def remove_breakpoints(self):
         for sp in self.sps:
             sp.remove()
         self.sps = []
+        self.aux = KtraceMemAux()
+        self.slab_tracepoints_enabled = True
+        self.buddy_tracepoints_enabled = True
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -198,13 +210,14 @@ def get_kmem_tracepoints():
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str):
     tps = get_kmem_tracepoints()
+    if not trace_slab and not trace_buddy:
+        trace_slab = trace_buddy = True
     tps.slab_tracepoints_enabled = trace_slab
     tps.buddy_tracepoints_enabled = trace_buddy
     tps.register_breakpoints()
-    ret = pwndbg.dbg.selected_inferior().runcmd(command)
+    pwndbg.dbg.selected_inferior().runcmd(command)
     out = ""
-    for line in ret.splitlines():
-        if "[SLAB" in line or "[PAGE" in line:
-            out += line + "\n"
+    for line in tps.results:
+        out += line + "\n"
     print(out)
     tps.remove_breakpoints()
