@@ -215,9 +215,10 @@ def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str)
     tps.slab_tracepoints_enabled = trace_slab
     tps.buddy_tracepoints_enabled = trace_buddy
     tps.register_breakpoints()
-    pwndbg.dbg.selected_inferior().runcmd(command)
-    out = ""
+    ctx = pwndbg.dbg.selected_inferior().runcmd(command)
+    out = ctx + "\n"
     for line in tps.results:
         out += line + "\n"
-    print(out)
     tps.remove_breakpoints()
+    print(out)
+    pwndbg.dbg.ctx_suspend_once()

@@ -1709,6 +1709,11 @@ class GDB(pwndbg.dbg_mod.Debugger):
             raise RuntimeError("invalid usage, this event is not supported")
 
     @override
+    @contextmanager
+    def ctx_suspend_once(self):
+        pwndbg.gdblib.prompt.context_shown = True
+
+    @override
     def suspend_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
         pwndbg.gdblib.events.pause(_gdb_event_class_from_event_type(ty))
 

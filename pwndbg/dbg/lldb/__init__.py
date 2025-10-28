@@ -1866,6 +1866,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     # Relay used for exceptions originating from commands called through LLDB.
     _exception_relay: BaseException | None
 
+    # temporarily suspend context output
+    should_suspend_ctx: bool
+
     @override
     def setup(self, *args, **kwargs):
         import pwnlib.update
@@ -1877,6 +1880,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.controllers = []
         self._current_process_is_gdb_remote = False
         self._exception_relay = None
+        self.should_suspend_ctx = False
 
         import pwndbg
 
@@ -2118,6 +2122,11 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             return fn
 
         return decorator
+
+    @override
+    @contextmanager
+    def ctx_suspend_once(self):
+        self.should_suspend_ctx = True
 
     @override
     def suspend_events(self, ty: pwndbg.dbg_mod.EventType) -> None:

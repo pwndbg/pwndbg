@@ -1175,6 +1175,13 @@ class Debugger:
         finally:
             self.resume_events(ty)
 
+    @contextlib.contextmanager
+    def ctx_suspend_once(self):
+        """
+        Avoid printing ctx once
+        """
+        raise NotImplementedError()
+
     def suspend_events(self, ty: EventType) -> None:
         """
         Suspend delivery of all events of the given type until it is resumed
