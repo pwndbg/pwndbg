@@ -15,7 +15,7 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, aliases=["kallsyms"], category=CommandCategory.KERNEL)
+@pwndbg.commands.Command(parser, aliases=["kallsyms", "ks"], category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def klookup(symbol: str, apply: bool) -> None:
