@@ -189,6 +189,7 @@ def main() -> None:
     def drive(startup: List[str] | None):
         async def drive(c):
             from pwndbg.dbg.lldb.repl import PwndbgController
+            from pwndbg.dbg.lldb.repl import UserCancelledError
 
             assert isinstance(c, PwndbgController)
 
@@ -197,7 +198,10 @@ def main() -> None:
                     await c.execute(line)
 
             while True:
-                await c.interactive()
+                try:
+                    await c.interactive()
+                except UserCancelledError:
+                    print("^C")
 
         return drive
 

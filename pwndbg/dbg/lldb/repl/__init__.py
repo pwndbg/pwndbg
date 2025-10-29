@@ -44,6 +44,7 @@ import shutil
 import signal
 import sys
 import threading
+from asyncio import CancelledError
 from contextlib import contextmanager
 from io import BytesIO
 from io import TextIOBase
@@ -83,6 +84,17 @@ else:
     from pwndbg.dbg.lldb.repl.readline import PROMPT
     from pwndbg.dbg.lldb.repl.readline import enable_readline
     from pwndbg.dbg.lldb.repl.readline import wrap_with_history
+
+
+class UserCancelledError(CancelledError):
+    """
+    Internal cancellation exception used by the LLDB CLI.
+
+    Sometimes, it's necessary to cancel both commands and subroutines mid-execution. This is an internal exception type
+    that is used in these conditions.
+    """
+
+    pass
 
 
 def print_error(msg: str, *args):
@@ -325,10 +337,7 @@ def run(
     # Set ourselves up to respond to SIGINT by interrupting the process if it is
     # running, and doing nothing otherwise.
     def handle_sigint(_sig, _frame):
-        driver.cancel()
-        if driver.has_process():
-            driver.interrupt()
-            print()
+        driver.interrupt(in_lldb_command_handler=dbg.in_lldb_command_handler)
 
     signal.signal(signal.SIGINT, handle_sigint)
 
@@ -340,79 +349,82 @@ def run(
     last_exc: Exception | None = None
 
     while True:
-        # Execute the prompt hook.
-        dbg._fire_prompt_hook()
-
         try:
-            if last_exc is not None:
-                action = coroutine.throw(last_exc)
-            else:
-                action = coroutine.send(last_result)
-        except StopIteration:
-            # Nothing else for us to do.
-            break
-        except asyncio.CancelledError:
-            # We requested a cancellation that wasn't overwritten.
-            break
-        finally:
-            last_exc = None
-            last_result = None
-
-        if isinstance(action, YieldInteractive):
-            if debug:
-                print("[-] REPL: Prompt next command from user interactively")
+            # Execute the prompt hook.
+            dbg._fire_prompt_hook()
 
             try:
-                if HAS_FZF:
-                    try:
-                        line = session.prompt(message=PROMPT)
-                    except KeyboardInterrupt:
-                        continue
+                if last_exc is not None:
+                    action = coroutine.throw(last_exc)
                 else:
-                    line = input(PROMPT)
-                # If the input is empty (i.e., 'Enter'), use the previous command
-                if line:
-                    last_command = line
-                else:
-                    line = last_command
-            except EOFError:
-                # Exit the REPL if there's nothing else to run.
-                last_exc = asyncio.CancelledError()
-                continue
+                    action = coroutine.send(last_result)
+            except StopIteration:
+                # Nothing else for us to do.
+                break
+            except asyncio.CancelledError:
+                # We requested a cancellation that wasn't overwritten.
+                break
+            finally:
+                last_exc = None
+                last_result = None
 
-            if not exec_repl_command(line, sys.stdout, dbg, driver, relay):
-                last_exc = asyncio.CancelledError()
-                continue
+            if isinstance(action, YieldInteractive):
+                if debug:
+                    print("[-] REPL: Prompt next command from user interactively")
 
-        elif isinstance(action, YieldExecDirect):
-            if debug:
-                print(
-                    f"[-] REPL: Executing command '{action._command}' {'with' if action._capture else 'without'} output capture"
-                )
+                try:
+                    if HAS_FZF:
+                        try:
+                            line = session.prompt(message=PROMPT)
+                        except KeyboardInterrupt:
+                            continue
+                    else:
+                        line = input(PROMPT)
+                    # If the input is empty (i.e., 'Enter'), use the previous command
+                    if line:
+                        last_command = line
+                    else:
+                        line = last_command
+                except EOFError:
+                    # Exit the REPL if there's nothing else to run.
+                    last_exc = asyncio.CancelledError()
+                    continue
 
-            last_command = action._command
+                if not exec_repl_command(line, sys.stdout, dbg, driver, relay):
+                    last_exc = asyncio.CancelledError()
+                    continue
 
-            if not action._prompt_silent:
-                print(f"{PROMPT.value if HAS_FZF else PROMPT}{action._command}")
-
-            try:
-                if action._capture:
-                    with TextIOWrapper(BytesIO(), write_through=True) as output:
-                        should_continue = exec_repl_command(
-                            action._command, output, dbg, driver, relay
-                        )
-                        last_result = output.buffer.getvalue()
-                else:
-                    should_continue = exec_repl_command(
-                        action._command, sys.stdout, dbg, driver, relay
+            elif isinstance(action, YieldExecDirect):
+                if debug:
+                    print(
+                        f"[-] REPL: Executing command '{action._command}' {'with' if action._capture else 'without'} output capture"
                     )
-            except BaseException as e:
-                last_exc = e
-                continue
 
-            if not should_continue:
-                last_exc = asyncio.CancelledError()
-                continue
+                last_command = action._command
+
+                if not action._prompt_silent:
+                    print(f"{PROMPT.value if HAS_FZF else PROMPT}{action._command}")
+
+                try:
+                    if action._capture:
+                        with TextIOWrapper(BytesIO(), write_through=True) as output:
+                            should_continue = exec_repl_command(
+                                action._command, output, dbg, driver, relay
+                            )
+                            last_result = output.buffer.getvalue()
+                    else:
+                        should_continue = exec_repl_command(
+                            action._command, sys.stdout, dbg, driver, relay
+                        )
+                except BaseException as e:
+                    last_exc = e
+                    continue
+
+                if not should_continue:
+                    last_exc = asyncio.CancelledError()
+                    continue
+        except UserCancelledError as e:
+            last_exc = e
 
 
 def exec_repl_command(
