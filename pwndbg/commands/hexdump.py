@@ -143,10 +143,7 @@ def hexdump(address, count=pwndbg.config.hexdump_bytes, unit=None) -> None:
 
     # Override group width if the unit flag (-1/-2/-4/-8) is provided
     if unit is not None:
-        try:
-            group_width = int(unit)
-        except (TypeError, ValueError):
-            pass
+        group_width = unit
 
     # TODO: What if arch endian is big, and use_big_endian is false?
     flip_group_endianness = (
