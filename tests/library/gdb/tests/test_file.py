@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import os
 import tempfile
-
-# We must import the function under test after all the mocks are imported
 from pwndbg.aglib.file import get
 
 def test_get():
