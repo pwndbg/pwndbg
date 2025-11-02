@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import os
 import tempfile
+
 from pwndbg.aglib.file import get
+
 
 def test_get():
     # Test different relative and absolute file path prefixes
