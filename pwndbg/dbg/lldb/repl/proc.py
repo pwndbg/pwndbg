@@ -160,20 +160,11 @@ def _updates_scope_counter(target: str) -> Callable[[Callable[..., Any]], Any]:
         def sub1(self: ProcessDriver, *args, **kwargs):
             setattr(self, target, getattr(self, target) + 1)
             try:
-                if self.debug:
-                    print(
-                        f"[*] ProcessDriver: self.{target} += 1 ({getattr(self, target)})",
-                        file=sys.__stdout__,
-                    )
-
+                self.debug_print(f"self.{target} += 1 ({getattr(self, target)})")
                 return fn(self, *args, **kwargs)
             finally:
                 setattr(self, target, getattr(self, target) - 1)
-                if self.debug:
-                    print(
-                        f"[*] ProcessDriver: self.{target} -= 1 ({getattr(self, target)})",
-                        file=sys.__stdout__,
-                    )
+                self.debug_print(f"self.{target} -= 1 ({getattr(self, target)})")
 
         return sub1
 
@@ -215,12 +206,24 @@ class ProcessDriver:
         self._in_run_until_next_stop = 0
         self._in_run_coroutine = 0
 
+    def debug_print(self, *args, **kwargs) -> None:
+        if self.debug:
+            try:
+                print("[*] ProcessDriver: ", end="")
+                print(*args, **kwargs)
+            except BlockingIOError as e:
+                try:
+                    # Try to inform the user of the error.
+                    print(
+                        f"[-] ProcessDriver: Error after printing {e.characters_written} characters in the previous debug message. Information may be missing."
+                    )
+                except BlockingIOError:
+                    pass
+
     def has_process(self) -> bool:
         """
         Whether there's an active process in this driver.
         """
-        if self.debug:
-            print(f"[-] ProcessDriver: has_process() for {self.process}")
         return self.process is not None and self.process.GetState() != lldb.eStateConnected
 
     def has_connection(self) -> bool:
@@ -238,29 +241,23 @@ class ProcessDriver:
             return
 
         if self._in_run_until_next_stop > 0:
-            if self.debug:
-                print("[*] ProcessDriver: Sending Interrupt", file=sys.__stdout__)
+            if self._in_run_coroutine > 0:
+                self.debug_print("Sending interrupt and requesting current coroutine stop")
+            else:
+                self.debug_print("Sending interrupt")
 
             # If we're in a coroutine, we should tell it to stop as soon as it gets out of _run_until_next_stop()
             self._pending_cancellation = self._in_run_coroutine > 0
 
             self.process.SendAsyncInterrupt()
         elif self._hold_cancellation > 0 and not in_lldb_command_handler:
-            if self.debug:
-                print("[*] ProcessDriver: Pushing pending cancellation", file=sys.__stdout__)
-
+            self.debug_print("Pushing pending cancellation")
             self._pending_cancellation = True
         else:
-            if self.debug:
-                print(
-                    "[*] ProcessDriver: Requesting cancellation immediately",
-                    file=sys.__stdout__,
-                    end="",
-                )
-                if self._hold_cancellation > 0:
-                    print(" (forced by being in a command handler)", file=sys.__stdout__)
-                else:
-                    print(file=sys.__stdout__)
+            self.debug_print(
+                "Requesting cancellation immediately",
+                "(forced by being in a command handler)" if self._hold_cancellation > 0 else "",
+            )
 
             # This happens even if interrupts are suspended, if we're inside a
             # command handler. We shouldn't interrupt LLDB until it starts
@@ -280,22 +277,17 @@ class ProcessDriver:
 
         self._hold_cancellation += 1
         try:
-            if self.debug:
-                print(
-                    "[*] ProcessDriver: Temporarily suspending cancellations", file=sys.__stdout__
-                )
+            self.debug_print("Temporarily suspending cancellations")
 
             yield None
         finally:
-            if self.debug:
-                print("[*] ProcessDriver: Resuming cancellations", file=sys.__stdout__)
+            self.debug_print("Resuming cancellations")
 
             self._hold_cancellation -= 1
             if self._hold_cancellation == 0 and self._pending_cancellation:
-                if self.debug:
-                    print(
-                        "[*] ProcessDriver:     Executing pending cancellation", file=sys.__stdout__
-                    )
+                self.debug_print(
+                    "Executing pending cancellation",
+                )
                 self._pending_cancellation = False
                 if interrupt is None:
                     # The default action is to raise an exception in place.
@@ -344,16 +336,16 @@ class ProcessDriver:
         while True:
             event = lldb.SBEvent()
             if not self.listener.WaitForEvent(timeout_time, event):
-                if self.debug:
-                    print(f"[-] ProcessDriver: Timed out after {timeout_time}s")
+                self.debug_print(
+                    f"Timed out after {timeout_time}s",
+                )
                 timeout_time = timeout
 
                 # If the process isn't running, we should stop.
                 if not running:
-                    if self.debug:
-                        print(
-                            "[-] ProcessDriver: Waited too long for process to start running, giving up"
-                        )
+                    self.debug_print(
+                        "Waited too long for process to start running, giving up",
+                    )
                     result = _PollResultTimedOut(last_event)
                     break
 
@@ -363,9 +355,9 @@ class ProcessDriver:
             if self.debug:
                 descr = lldb.SBStream()
                 if event.GetDescription(descr):
-                    print(f"[-] ProcessDriver: {descr.GetData()}")
+                    self.debug_print(descr.GetData())
                 else:
-                    print(f"[!] ProcessDriver: No description for {event}")
+                    self.debug_print(f"No description for {event}")
 
             if lldb.SBTarget.EventIsTargetEvent(event):
                 if event.GetType() == lldb.SBTarget.eBroadcastBitModulesLoaded:
@@ -409,8 +401,9 @@ class ProcessDriver:
                     ):
                         # Nothing else for us to do here. Clear our internal
                         # references to the process, fire the exit event, and leave.
-                        if self.debug:
-                            print(f"[-] ProcessDriver: Process exited with state {new_state}")
+                        self.debug_print(
+                            f"Process exited with state {new_state}",
+                        )
                         self.process = None
                         self.listener = None
 
@@ -470,8 +463,7 @@ class ProcessDriver:
                     target.write(out.encode(sys.stdout.encoding, errors="backslashreplace"))
                     target.write(b"\n")
 
-                if self.debug:
-                    print(f"[-] ProcessDriver: LLDB Command Status: {ret.GetStatus():#x}")
+                self.debug_print(f"LLDB Command finished with status: {ret.GetStatus():#x}")
 
                 # Only call _run_until_next_stop() if the command started the process.
                 start_expected = True
@@ -524,32 +516,40 @@ class ProcessDriver:
         """
 
         assert self.has_process(), "called run_coroutine() on a driver with no process"
+
+        self.debug_print("Coroutine: Starting")
         exceptions: List[BaseException] = []
 
         def queue_cancel():
+            self.debug_print("Coroutine: Queueing up user cancellation exception")
             exceptions.append(UserCancelledError())
 
         while True:
             try:
                 if len(exceptions) == 0:
+                    self.debug_print("Coroutine: Resuming")
                     step = coroutine.send(None)
                 else:
+                    self.debug_print(f"Coroutine: Raising {type(exceptions[-1])}")
                     step = coroutine.throw(exceptions[-1])
                     # The coroutine has caught the exception. Continue running
                     # it as if nothing happened.
                     exceptions.pop()
             except StopIteration:
                 # We got to the end of the coroutine. We're done.
+                self.debug_print("Coroutine: Ran to completion")
                 break
             except CancelledError:
                 # We requested that the coroutine be cancelled, and it didn't
                 # override our decision. We're done.
+                self.debug_print("Coroutine: Cancelled")
                 break
 
             # Being interrupted here would be bad for keeping the state of the
             # process consistent.
             with self.suspend_interrupts(interrupt=queue_cancel):
                 if isinstance(step, YieldSingleStep):
+                    self.debug_print("Coroutine: Performing ExecutionController.single_step()")
                     # Pick the currently selected thread and step it forward by one
                     # instruction.
                     #
@@ -577,6 +577,7 @@ class ProcessDriver:
                         continue
 
                 elif isinstance(step, YieldContinue):
+                    self.debug_print("Coroutine: Performing ExecutionController.cont()")
                     threads_suspended = []
                     if step.selected_thread:
                         thread = self.process.GetSelectedThread()
