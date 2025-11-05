@@ -1421,47 +1421,6 @@ class GDB(pwndbg.dbg_mod.Debugger):
         for line in pre_commands.strip().splitlines():
             gdb.execute(line)
 
-        # See https://github.com/pwndbg/pwndbg/issues/2890#issuecomment-2813047212
-        # Note: Remove this in a late 2025 or 2026 release?
-        for deprecated_cmd in (
-            "vmmap_add",
-            "vmmap_clear",
-            "vmmap_load",
-            "vmmap_explore",
-            "vis_heap_chunks",
-            "heap_config",
-            "stack_explore",
-            "auxv_explore",
-            "log_level",
-            "find_fake_fast",
-            "malloc_chunk",
-            "top_chunk",
-            "try_free",
-            "save_ida",
-            "knft_dump",
-            "knft_list_chains",
-            "knft_list_exprs",
-            "knft_list_flowtables",
-            "knft_list_objects",
-            "knft_list_rules",
-            "knft_list_sets",
-            "knft_list_tables",
-            "patch_list",
-            "patch_revert",
-            "jemalloc_extent_info",
-            "jemalloc_find_extent",
-            "jemalloc_heap",
-        ):
-            fixed_cmd = deprecated_cmd.replace("_", "-")
-            gdb.execute(
-                f"alias -a {deprecated_cmd} = echo Use `{fixed_cmd}` instead (Pwndbg changed `_` to `-` in command names)\\n"
-            )
-
-        for deprecated_cmd, new_cmd in (("pcplist", "buddydump"),):
-            gdb.execute(
-                f"alias -a {deprecated_cmd} = echo deprecation warning for old name, use `{new_cmd}` instead\\n"
-            )
-
         # This may throw an exception, see pwndbg/pwndbg#27
         try:
             gdb.execute("set disassembly-flavor intel")

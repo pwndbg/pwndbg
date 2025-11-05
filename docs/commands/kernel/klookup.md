@@ -8,7 +8,7 @@ usage: klookup [-h] [-a] [symbol]
 
 Lookup kernel symbols
 
-**Alias:** kallsyms
+**Aliases:** kallsyms, ks
 ### Positional arguments
 
 |Positional Argument|Help|
