@@ -11,6 +11,7 @@ import pwndbg.aglib.vmmap_custom
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+from pwndbg.aglib.kernel.vmmap import kernel_vmmap_pages
 from pwndbg.lib.regs import BitFlags
 
 # don't return None but rather an invalid value for address markers
@@ -19,13 +20,8 @@ INVALID_ADDR = 1 << 64
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def get_memory_map_raw() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    return pwndbg.aglib.kernel.vmmap.kernel_vmmap(False)
-
-
-@pwndbg.lib.cache.cache_until("stop")
 def first_kernel_page_start():
-    for page in get_memory_map_raw():
+    for page in kernel_vmmap_pages():
         if page.start and pwndbg.aglib.memory.is_kernel(page.start):
             return page.start
     return INVALID_ADDR
@@ -95,7 +91,7 @@ class ArchPagingInfo:
         raise NotImplementedError()
 
     def kbase_helper(self, address):
-        for mapping in get_memory_map_raw():
+        for mapping in kernel_vmmap_pages():
             # should be page aligned -- either from pt-dump or info mem
 
             # only search in kernel mappings:
@@ -215,12 +211,7 @@ class x86_64PagingInfo(ArchPagingInfo):
     def physmap(self):
         result = pwndbg.aglib.kernel.symbol.try_usymbol("page_offset_base")
         if result is None:
-            result = INVALID_ADDR
-            min = 0xFFFF888000000000 if self.paging_level == 4 else 0xFF11000000000000
-            for page in get_memory_map_raw():
-                if page.start and page.start >= min:
-                    result = page.start
-                    break
+            result = first_kernel_page_start()
         return result
 
     @property
@@ -393,7 +384,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         # this is only used for marking the end of module_start
         self.module_end = -1
         res = None
-        for page in get_memory_map_raw():
+        for page in kernel_vmmap_pages():
             if page.start >= self.kbase:
                 break
             if page.execute:
@@ -401,7 +392,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         if res is None:
             return INVALID_ADDR
         prev = None
-        for page in get_memory_map_raw():
+        for page in kernel_vmmap_pages():
             if page.start >= res:
                 if prev is not None and page.start > prev + 0x1000:
                     break

@@ -116,8 +116,10 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     if base is None:
         return None
 
-    for mapping in pwndbg.aglib.kernel.paging.get_memory_map_raw():
+    for mapping in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages():
         if mapping.vaddr < base:
+            continue
+        if not mapping.read or mapping.write or mapping.execute:
             continue
 
         result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
@@ -438,13 +440,21 @@ class Aarch64Ops(ArchOps):
         return int(pwndbg.aglib.regs.SCTLR) & BIT(0) != 0
 
 
+_arch_paginginfo: ArchPagingInfo = None
+
+
 @pwndbg.lib.cache.cache_until("start")
-def arch_paginginfo() -> ArchPagingInfo | None:
-    if pwndbg.aglib.arch.name == "aarch64":
-        return pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
-    elif pwndbg.aglib.arch.name == "x86-64":
-        return pwndbg.aglib.kernel.paging.x86_64PagingInfo()
-    return None
+def arch_paginginfo() -> ArchPagingInfo:
+    _arch_paginginfo = None
+
+    if _arch_paginginfo is None:
+        if pwndbg.aglib.arch.name == "aarch64":
+            _arch_paginginfo = pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
+
+        elif pwndbg.aglib.arch.name == "x86-64":
+            _arch_paginginfo = pwndbg.aglib.kernel.paging.x86_64PagingInfo()
+
+    return _arch_paginginfo
 
 
 @pwndbg.lib.cache.cache_until("start")
