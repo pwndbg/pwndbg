@@ -569,7 +569,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             page = pages[i]
             if page.start > self.kbase + self.ksize:
                 continue
-            if self.module_start <= page.start < self.kbase:
+            if self.module_start and self.module_start <= page.start < self.kbase:
                 page.objfile = self.KERNELDRIVER
                 continue
             if page.start < self.kbase:
