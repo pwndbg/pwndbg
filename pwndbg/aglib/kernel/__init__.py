@@ -440,21 +440,13 @@ class Aarch64Ops(ArchOps):
         return int(pwndbg.aglib.regs.SCTLR) & BIT(0) != 0
 
 
-_arch_paginginfo: ArchPagingInfo = None
-
-
 @pwndbg.lib.cache.cache_until("start")
-def arch_paginginfo() -> ArchPagingInfo:
-    _arch_paginginfo = None
-
-    if _arch_paginginfo is None:
-        if pwndbg.aglib.arch.name == "aarch64":
-            _arch_paginginfo = pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
-
-        elif pwndbg.aglib.arch.name == "x86-64":
-            _arch_paginginfo = pwndbg.aglib.kernel.paging.x86_64PagingInfo()
-
-    return _arch_paginginfo
+def arch_paginginfo() -> ArchPagingInfo | None:
+    if pwndbg.aglib.arch.name == "aarch64":
+        return pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
+    elif pwndbg.aglib.arch.name == "x86-64":
+        return pwndbg.aglib.kernel.paging.x86_64PagingInfo()
+    return None
 
 
 @pwndbg.lib.cache.cache_until("start")
