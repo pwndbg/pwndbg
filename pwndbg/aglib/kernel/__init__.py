@@ -116,12 +116,21 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     if base is None:
         return None
 
+    fallback_mappings = []
     for mapping in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages():
         if mapping.vaddr < base:
             continue
         if not mapping.read or mapping.write or mapping.execute:
+            fallback_mappings.append(mapping)
             continue
 
+        result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
+
+        if result:
+            return mapping
+    for mapping in fallback_mappings:
+        # this loop handles when the kernel has not finished initialization
+        # and the permission of the first ro page has not been properly set
         result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
 
         if result:
