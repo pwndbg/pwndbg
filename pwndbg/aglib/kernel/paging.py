@@ -384,22 +384,15 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def module_start(self):
-        # this is only used for marking the end of module_start
-        self.module_end = -1
         res = None
-        for page in kernel_vmmap_pages():
+        for page in kernel_vmmap_pages()[::-1]:
             if page.start >= self.kbase:
+                continue
+            if page.start < self.vmalloc:
                 break
             if page.execute:
                 res = page.start
-        if res is None:
-            return INVALID_ADDR
-        prev = None
-        for page in kernel_vmmap_pages():
-            if page.start >= res:
-                if prev is not None and page.start > prev + 0x1000:
-                    break
-                prev = self.module_end = page.end
+                break
         return res
 
     def _PAGE_OFFSET(self, va):  # aka PAGE_START
@@ -576,7 +569,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             page = pages[i]
             if page.start > self.kbase + self.ksize:
                 continue
-            if self.module_start <= page.start < self.module_end:
+            if self.module_start <= page.start < self.kbase:
                 page.objfile = self.KERNELDRIVER
                 continue
             if page.start < self.kbase:

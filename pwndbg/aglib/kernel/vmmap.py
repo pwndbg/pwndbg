@@ -34,6 +34,7 @@ class KernelVmmap:
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
         if self.pi:
             self.sections = self.pi.markers()
+        self.adjust()
 
     def get_name(self, addr: int) -> str:
         if addr is None or self.sections is None:
@@ -423,9 +424,9 @@ def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     pages = kernel_vmmap_pages()
     kv = KernelVmmap(pages)
-    kv.adjust()
     if kernel_vmmap_mode == "monitor" and pwndbg.aglib.arch.name == "x86-64":
         # TODO: check version here when QEMU displays the x bit for x64
+        # see: https://github.com/pwndbg/pwndbg/pull/3020#issuecomment-2914573242
         for page in pages:
             if page.objfile == kv.pi.ESPSTACK:
                 continue
