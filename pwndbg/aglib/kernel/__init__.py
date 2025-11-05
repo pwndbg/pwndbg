@@ -116,10 +116,13 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     if base is None:
         return None
 
+    banner = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
     fallback_mappings = []
     for mapping in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages():
         if mapping.vaddr < base:
             continue
+        if banner is not None and banner in mapping:
+            return mapping
         if not mapping.read or mapping.write or mapping.execute:
             fallback_mappings.append(mapping)
             continue
@@ -148,6 +151,8 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
         config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
     else:
         mapping = first_kernel_ro_page()
+        if mapping is None:
+            return None
         result = next(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]), None)
 
         if result is not None:
@@ -173,7 +178,7 @@ def kcmdline() -> str:
 
 
 @pwndbg.lib.cache.cache_until("start")
-def kversion() -> str:
+def kversion() -> str | None:
     try:
         if has_debug_symbols("linux_banner"):
             version_addr = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")

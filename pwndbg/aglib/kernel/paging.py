@@ -196,7 +196,10 @@ class x86_64PagingInfo(ArchPagingInfo):
         try:
             target = self.physmap.to_bytes(8, byteorder="little")
             mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
-            result = next(pwndbg.search.search(target, mappings=[mapping]), None)
+            result = next(
+                pwndbg.search.search(target, mappings=[mapping], aligned=pwndbg.aglib.arch.ptrsize),
+                None,
+            )
         except Exception as e:
             print(e)
             pass
