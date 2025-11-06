@@ -400,8 +400,10 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_pages(process_pages=True) -> Tuple[Page, ...]:
+def kernel_vmmap_pages() -> Tuple[Page, ...]:
     if kernel_vmmap_mode == "page-tables":
+        return pwndbg.aglib.kernel.pagetable_scan()
+    if kernel_vmmap_mode == "pt-dump":
         return kernel_vmmap_via_page_tables()
     elif kernel_vmmap_mode == "monitor":
         return kernel_vmmap_via_monitor_info_mem()

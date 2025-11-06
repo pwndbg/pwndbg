@@ -41,14 +41,13 @@ class PageTableScan:
     MAX_SAME_PG_TABLE_ENTRY = 0x10
 
     def __init__(self, pi, is_kernel):  # is_kernel is used only for Aarch64
+        assert pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") == b"1"
         # from ArchPagingInfo:
         self.paging_level = pi.paging_level
-        self.physmap = pi.physmap
         self.PAGE_ENTRY_MASK = pi.PAGE_ENTRY_MASK
         self.PAGE_INDEX_LEN = pi.PAGE_INDEX_LEN
         self.page_shift = pi.page_shift
         self.pageentry_flags = pi.pageentry_flags
-        self.phys_offset = pi.phys_offset
         # for scanning
         self.result = []
         self.pagesz = 1 << self.page_shift
@@ -69,7 +68,7 @@ class PageTableScan:
             return
         pagesz = self.pagesz
         ptrsize = self.ptrsize
-        addr = self.physmap + (entry & self.PAGE_ENTRY_MASK) - self.phys_offset
+        addr = entry & self.PAGE_ENTRY_MASK
         pg_table_bytes = self.inf.read_memory(addr, pagesz)
         for i in range(0, pagesz, ptrsize):
             next = int.from_bytes(pg_table_bytes[i : i + ptrsize], byteorder="little")
@@ -256,8 +255,12 @@ class ArchPagingInfo:
         return tuple(result)
 
     def pagetable_scan_helper(self, entry, is_kernel=None) -> List[Page]:
+        # only two possible return values: https://qemu-project.gitlab.io/qemu/system/gdb.html
+        oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
+        pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
         scan = PageTableScan(self, is_kernel)
         scan.scan(entry, self.paging_level)
+        pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
         return scan.result
 
     def pageentry_bitflags(self, level) -> BitFlags:
