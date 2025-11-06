@@ -40,11 +40,43 @@ class PageTableLevel:
     idx: int
 
 
-@dataclass
 class PageTableScan:
-    result: List[pwndbg.lib.memory.Page]
-    # below are info relating to the current page chunks being coalesced
-    level_idxes: List[int]
+    MAX_SAME_PG_TABLE_ENTRY = 0x10
+
+    def __init__(self, pi):
+        self.result = []
+        self.pagesz = pwndbg.aglib.kernel.page_size()
+        self.counters: Dict[int, int] = {}
+        self.ptrsize = pwndbg.aglib.arch.ptrsize
+        self.should_stop_pagewalk = pi.should_stop_pagewalk
+        self.inf = pwndbg.dbg.selected_inferior()
+        # from ArchPagingInfo:
+        self.paging_level = pi.paging_level
+        self.physmap = pi.physmap
+        self.PAGE_ENTRY_MASK = pi.PAGE_ENTRY_MASK
+        # below are info relating to the current page chunks being coalesced
+        self.level_idxes = [0] * self.paging_level
+        self.curr = None
+
+    def scan(self, entry, level_remaining):
+        if entry == 0 or level_remaining == 0 or self.should_stop_pagewalk(entry):
+            counters = self.counters
+            # TODO: update curr and append result if needed
+            counters[entry] = counters.get(entry, 0) + 1
+            if entry == 0 or counters[entry] > 0x10:
+                return
+            self.result.append(entry)
+            return
+        pagesz = self.pagesz
+        ptrsize = self.ptrsize
+        addr = self.physmap + (entry & self.PAGE_ENTRY_MASK)
+        pg_table_bytes = self.inf.read_memory(addr, pagesz)
+        for i in range(0, pagesz, ptrsize):
+            next = int.from_bytes(pg_table_bytes[i : i + ptrsize], byteorder="little")
+            self.scan(next, level_remaining - 1)
+        if level_remaining == self.paging_level and self.curr:
+            self.result.append(self.curr)
+            self.curr = None
 
 
 class ArchPagingInfo:
@@ -230,28 +262,10 @@ class ArchPagingInfo:
     #         pass
 
     def pagetable_scan(self, entry) -> List[pwndbg.lib.memory.Page]:
-        curr = None
-        result = []
-        counters = {}
-        pagesz = 1 << self.page_shift
-        ptrsize = pwndbg.aglib.arch.ptrsize
-        inf = pwndbg.dbg.selected_inferior()
-        def pagetable_scan_helper(entry, level_remaining):
-            if level_remaining == 0 or self.should_stop_pagewalk(entry):
-                # TODO: update curr and append result if needed
-                result.append(entry)
-                return
-            addr = self.physmap + (entry & self.PAGE_ENTRY_MASK)
-            pg_table_bytes = inf.read_memory(addr, pagesz)
-            for i in range(0, pagesz, ptrsize):
-                next = int.from_bytes(pg_table_bytes[i:i+ptrsize], byteorder="little")
-                if next == 0:
-                    continue
-                pagetable_scan_helper(next, level_remaining - 1)
-        pagetable_scan_helper(entry, self.paging_level)
-        if curr:
-            result.append(curr)
-        return result
+        scan = PageTableScan(self)
+        scan.scan(entry, self.paging_level)
+        return scan.result
+
     def pageentry_flags(self, level) -> BitFlags:
         raise NotImplementedError()
 
