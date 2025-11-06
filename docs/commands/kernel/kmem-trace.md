@@ -21,7 +21,7 @@ If neither -s nor -b are passed, both allocators are traced.
 |-s|--trace-slab|do only slab allocator tracing|
 |-b|--trace-buddy|do only buddy allocator tracing|
 |-v|--verbose|print backtraces|
-|-c|--command|trace during the execution of this command (e.g. `n`, `nextret`) (default: 'n')|
+|-c|--command|trace during the execution of this command (default: 'next')|
 ||--all|display ALL memory allocations/frees regardless if they are triggered by the current function.|
 
 ### Notes

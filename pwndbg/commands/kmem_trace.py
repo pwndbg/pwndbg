@@ -13,6 +13,7 @@ import pwndbg.color.message as M
 import pwndbg.commands.context
 import pwndbg.lib.cache
 from pwndbg.dbg import BreakpointLocation
+from pwndbg.dbg import DebuggerType
 
 parser = argparse.ArgumentParser(
     description="""
@@ -36,8 +37,8 @@ parser.add_argument(
     "-c",
     "--command",
     type=str,
-    default="n",
-    help="trace during the execution of this command (e.g. `n`, `nextret`)",
+    default="next",
+    help="trace during the execution of this command",
 )
 parser.add_argument(
     "--all",
@@ -272,6 +273,10 @@ def get_kmem_tracepoints():
 --all may be helpful if you also want to trace frees scheduled with rcu or if the traced command steps out of the current function.
 You may also find `-c finish` and `-c continue` useful.
 """,
+    # FIXME: The -c option
+    #     default="next",
+    # is not portable.
+    only_debuggers={DebuggerType.GDB, DebuggerType.LLDB},
 )
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSymbols
