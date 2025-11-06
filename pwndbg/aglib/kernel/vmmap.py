@@ -25,10 +25,11 @@ import pwndbg.aglib.vmmap
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+from pwndbg.lib.memory import Page
 
 
 class KernelVmmap:
-    def __init__(self, pages: Tuple[pwndbg.lib.memory.Page, ...]):
+    def __init__(self, pages: Tuple[Page, ...]):
         self.pages = pages
         self.sections = None
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
@@ -175,7 +176,7 @@ class QemuMachine(Machine):
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -230,7 +231,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
     p = PageTableDump(machine_backend, arch_backend)
     pages = p.arch_backend.parse_tables(p.cache, p.parser.parse_args(""))
 
-    retpages: List[pwndbg.lib.memory.Page] = []
+    retpages: List[Page] = []
     for page in pages:
         start = page.va
         size = page.page_size
@@ -240,14 +241,14 @@ def kernel_vmmap_via_page_tables() -> Tuple[pwndbg.lib.memory.Page, ...]:
         if page.pwndbg_is_executable():
             flags |= 1
         objfile = f"[pt_{hex(start)[2:-3]}]"
-        retpages.append(pwndbg.lib.memory.Page(start, size, flags, 0, objfile))
+        retpages.append(Page(start, size, flags, 0, objfile))
     return tuple(retpages)
 
 
 monitor_info_mem_not_warned = True
 
 
-def _parser_mem_info_line_x86(line: str) -> pwndbg.lib.memory.Page | None:
+def _parser_mem_info_line_x86(line: str) -> Page | None:
     """
     Example response from `info mem`:
     ```
@@ -268,13 +269,12 @@ def _parser_mem_info_line_x86(line: str) -> pwndbg.lib.memory.Page | None:
     perm = line[rspace_idx + 1 :]
 
     flags = 0
-    # TODO: use constants
     if "r" in perm:
-        flags |= 4
+        flags |= Page.R_OK
     if "w" in perm:
-        flags |= 2
+        flags |= Page.W_OK
     if "x" in perm:
-        flags |= 1
+        flags |= Page.X_OK
 
     global monitor_info_mem_not_warned
     if end - start != size and monitor_info_mem_not_warned:
@@ -291,10 +291,10 @@ def _parser_mem_info_line_x86(line: str) -> pwndbg.lib.memory.Page | None:
         )
         monitor_info_mem_not_warned = False
 
-    return pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>")
+    return Page(start, size, flags, 0, "<qemu>")
 
 
-def _parser_mem_info_line_riscv64(line: str) -> pwndbg.lib.memory.Page | None:
+def _parser_mem_info_line_riscv64(line: str) -> Page | None:
     """
     Example response from `info mem`:
     ```
@@ -317,17 +317,17 @@ def _parser_mem_info_line_riscv64(line: str) -> pwndbg.lib.memory.Page | None:
 
     flags = 0
     if "r" in perm:
-        flags |= 4
+        flags |= Page.R_OK
     if "w" in perm:
-        flags |= 2
+        flags |= Page.W_OK
     if "x" in perm:
-        flags |= 1
+        flags |= Page.X_OK
 
-    return pwndbg.lib.memory.Page(start, size, flags, 0, "<qemu>")
+    return Page(start, size, flags, 0, "<qemu>")
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
     """
     Returns Linux memory maps information by parsing `monitor info mem` output
     from QEMU kernel GDB stub.
@@ -367,7 +367,7 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[pwndbg.lib.memory.Page, ...]:
         )
         return ()
 
-    pages: List[pwndbg.lib.memory.Page] = []
+    pages: List[Page] = []
     for line in monitor_info_mem.splitlines():
         try:
             page = parser_func(line)
@@ -386,18 +386,19 @@ kernel_vmmap_mode = pwndbg.config.add_param(
     help_docstring="""\
 Values explained:
 
-+ `page-tables` - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
++ `page-tables` - walk page tables to render vmmap
++ `pt-dump` - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
 + `monitor` - use QEMU's `monitor info mem` to render vmmap
 + `none` - disable vmmap rendering; useful if rendering is particularly slow
 
 Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
 """,
     param_class=pwndbg.lib.config.PARAM_ENUM,
-    enum_sequence=["page-tables", "monitor", "none"],
+    enum_sequence=["page-tables", "pt-dump", "monitor", "none"],
 )
 
 
-def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap(process_pages=True) -> Tuple[Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 

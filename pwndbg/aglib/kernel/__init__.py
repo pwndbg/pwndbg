@@ -606,10 +606,10 @@ def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagetable_scan(entry=None) -> Tuple[PageTableLevel, ...]:
+def pagetable_scan(entry=None) -> Tuple[pwndbg.lib.memory.Page, ...]:
     pi = arch_paginginfo()
     if pi:
-        return pi.pagetable_scan(entry)
+        return tuple(pi.pagetable_scan(entry))
     else:
         raise NotImplementedError()
 
