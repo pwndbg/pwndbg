@@ -229,6 +229,29 @@ class ArchPagingInfo:
     #     for cursor in range(0, pagesize, ptrsize):
     #         pass
 
+    def pagetable_scan(self, entry) -> List[pwndbg.lib.memory.Page]:
+        curr = None
+        result = []
+        counters = {}
+        pagesz = 1 << self.page_shift
+        ptrsize = pwndbg.aglib.arch.ptrsize
+        inf = pwndbg.dbg.selected_inferior()
+        def pagetable_scan_helper(entry, level_remaining):
+            if level_remaining == 0 or self.should_stop_pagewalk(entry):
+                # TODO: update curr and append result if needed
+                result.append(entry)
+                return
+            addr = self.physmap + (entry & self.PAGE_ENTRY_MASK)
+            pg_table_bytes = inf.read_memory(addr, pagesz)
+            for i in range(0, pagesz, ptrsize):
+                next = int.from_bytes(pg_table_bytes[i:i+ptrsize], byteorder="little")
+                if next == 0:
+                    continue
+                pagetable_scan_helper(next, level_remaining - 1)
+        pagetable_scan_helper(entry, self.paging_level)
+        if curr:
+            result.append(curr)
+        return result
     def pageentry_flags(self, level) -> BitFlags:
         raise NotImplementedError()
 
