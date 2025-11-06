@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import re
+import struct
 from dataclasses import dataclass
 from typing import Dict
 from typing import List
@@ -55,6 +56,8 @@ class PageTableScan:
         self.ptrsize = pwndbg.aglib.arch.ptrsize
         self.should_stop_pagewalk = pi.should_stop_pagewalk
         self.inf = pwndbg.dbg.selected_inferior()
+        self.fmt = "<" + ("Q" if self.ptrsize == 8 else "I") * (self.pagesz // self.ptrsize)
+        self.cache = {}
         # below are info relating to the current page chunks being coalesced
         self.level_idxes = [0] * (self.paging_level + 1)
         self.curr = None
@@ -62,18 +65,21 @@ class PageTableScan:
         self.arch = pwndbg.aglib.arch.name
 
     def scan(self, entry, level_remaining):
-        # TODO: move some checks in the for loop for optimization?
-        if entry == 0 or level_remaining == 0 or self.should_stop_pagewalk(entry):
+        if entry == 0 or self.should_stop_pagewalk(entry):
             self.update_curr(entry, level_remaining)
             return
         pagesz = self.pagesz
-        ptrsize = self.ptrsize
         addr = entry & self.PAGE_ENTRY_MASK
-        pg_table_bytes = self.inf.read_memory(addr, pagesz)
-        for i in range(0, pagesz, ptrsize):
-            next = int.from_bytes(pg_table_bytes[i : i + ptrsize], byteorder="little")
-            self.level_idxes[level_remaining] = i // ptrsize
-            self.scan(next, level_remaining - 1)
+        entries = self.cache.get(addr, None)
+        if not entries:
+            self.cache[addr] = entries = struct.unpack(self.fmt, self.inf.read_memory(addr, pagesz))
+        for i, entry in enumerate(entries):
+            if entry or self.curr:
+                self.level_idxes[level_remaining] = i
+                if level_remaining == 1:
+                    self.update_curr(entry, 0)
+                else:
+                    self.scan(entry, level_remaining - 1)
         if level_remaining == self.paging_level and self.curr:
             self.result.append(self.curr)
             self.curr = None
@@ -191,7 +197,7 @@ class ArchPagingInfo:
     def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
         raise NotImplementedError()
 
-    def pagetable_scan(self, entry) -> List[Page]:
+    def pagetable_scan(self, entry=None) -> List[Page]:
         # TODO: does aarch64 need multiple entries (el0 and el1)
         raise NotImplementedError()
 
@@ -436,7 +442,7 @@ class x86_64PagingInfo(ArchPagingInfo):
             entry = pwndbg.aglib.regs["cr3"]
         return self.pagewalk_helper(target, entry)
 
-    def pagetable_scan(self, entry) -> List[Page]:
+    def pagetable_scan(self, entry=None) -> List[Page]:
         if entry is None:
             entry = pwndbg.aglib.regs["cr3"]
         return self.pagetable_scan_helper(entry)
@@ -743,7 +749,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         entry |= 3  # marks the entry as a table
         return self.pagewalk_helper(target, entry)
 
-    def pagetable_scan(self, entry) -> List[Page]:
+    def pagetable_scan(self, entry=None) -> List[Page]:
         if entry is not None:
             return self.pagetable_scan_helper(
                 entry | 3, is_kernel=True
