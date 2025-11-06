@@ -14,7 +14,7 @@ Feel free to update the list below!
 
 * We have our own `pwndbg.config.Parameter` - read about it in [Adding a Configuration Option](adding-a-parameter.md).
 
-* The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's and LLDB's prompt hook, which are defined, respectively, in `pwndbg/gdblib/prompt.py` as `prompt_hook_on_stop`, and in `pwndb/dbg/lldb/hooks.py` as `prompt_hook`.
+* The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's and LLDB's prompt hook, which are defined as `prompt_hook` in both `pwndbg/gdblib/prompt.py` and `pwndb/dbg/lldb/hooks.py` .
 
 * We change a bit GDB settings - this can be seen in `pwndbg/dbg/gdb.py` under `GDB.setup` - there are also imports for all Pwndbg submodules.
 

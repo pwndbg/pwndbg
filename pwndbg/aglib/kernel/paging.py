@@ -173,6 +173,8 @@ class ArchPagingInfo:
         raise NotImplementedError()
 
     def kbase_helper(self, address):
+        if address is None:
+            return None
         for mapping in kernel_vmmap_pages():
             # should be page aligned -- either from pt-dump or info mem
 
@@ -330,7 +332,10 @@ class x86_64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self):
-        return self.kbase_helper(pwndbg.aglib.kernel.get_idt_entries()[0].offset)
+        idt_entries = pwndbg.aglib.kernel.get_idt_entries()
+        if len(idt_entries) == 0:
+            return None
+        return self.kbase_helper(idt_entries[0].offset)
 
     @property
     def page_shift(self) -> int:
@@ -400,10 +405,10 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     def handle_kernel_pages(self, pages):
         kernel_idx = None
-        for i, page in enumerate(pages):
-            if kernel_idx is None and self.kbase in page:
-                kernel_idx = i
         kbase = self.kbase
+        for i, page in enumerate(pages):
+            if kernel_idx is None and kbase is not None and kbase in page:
+                kernel_idx = i
         if kernel_idx is None:
             return
         has_loadable_driver = False
@@ -509,6 +514,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def module_start(self):
+        if self.kbase is None:
+            return None
         res = None
         for page in kernel_vmmap_pages()[::-1]:
             if page.start >= self.kbase:
@@ -690,6 +697,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
         return " ".join(name.strip().split()[:-1])
 
     def handle_kernel_pages(self, pages):
+        if self.kbase is None:
+            return
         for i in range(len(pages)):
             page = pages[i]
             if page.start > self.kbase + self.ksize:
