@@ -4,6 +4,7 @@ import math
 import re
 from dataclasses import dataclass
 from typing import Dict
+from typing import List
 from typing import Tuple
 
 import pwndbg
@@ -37,6 +38,13 @@ class PageTableLevel:
     entry: int
     virt: int  # within physmap
     idx: int
+
+
+@dataclass
+class PageTableScan:
+    result: List[pwndbg.lib.memory.Page]
+    # below are info relating to the current page chunks being coalesced
+    level_idxes: List[int]
 
 
 class ArchPagingInfo:
@@ -111,6 +119,22 @@ class ArchPagingInfo:
     def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
         raise NotImplementedError()
 
+    @property
+    def PAGE_ENTRY_MASK(self):
+        return ~((1 << self.page_shift) - 1) & ((1 << self.va_bits) - 1)
+
+    @property
+    def PAGE_PERM_MASK(self):
+        raise NotImplementedError()
+
+    @property
+    def PAGE_INDEX_LEN(self):
+        return self.page_shift - math.ceil(math.log2(pwndbg.aglib.arch.ptrsize))
+
+    @property
+    def PAGE_INDEX_MASK(self):
+        return (1 << (self.PAGE_INDEX_LEN)) - 1
+
     def pagewalk_helper(self, target, entry) -> Tuple[PageTableLevel, ...]:
         base = self.physmap
         if entry > base:
@@ -119,8 +143,8 @@ class ArchPagingInfo:
         level = self.paging_level
         result = [PageTableLevel(None, None, None, None)] * (level + 1)
         page_shift = self.page_shift
-        ENTRYMASK = ~((1 << page_shift) - 1) & ((1 << self.va_bits) - 1)
-        IDXMASK = (1 << (page_shift - math.ceil(math.log2(pwndbg.aglib.arch.ptrsize)))) - 1
+        ENTRYMASK = self.PAGE_ENTRY_MASK
+        IDXMASK = self.PAGE_INDEX_MASK
         for i in range(level, 0, -1):
             vaddr = (entry & ENTRYMASK) + base - self.phys_offset
             if self.should_stop_pagewalk(entry):
@@ -159,6 +183,51 @@ class ArchPagingInfo:
             None,
         )
         return tuple(result)
+
+    # def vmmap_last_level(self, entry, addr_frag):
+    #     ENTRYMASK = self.PAGE_ENTRY_MASK
+    #     base = self.physmap
+    #     pagesize = 1 << self.page_shift
+    #     pagebytes = pwndbg.aglib.memory.read(base + (entry & ENTRYMASK), pagesize)
+    #     prev = (None, None, None)  # cursor, len (nr of pages), perm
+    #     result = []
+    #     for cursor in range(0, pagesize, ptrsize):
+    #         prev_cursor, prev_len, prev_perm = prev
+    #         # TODO: big endianness?
+    #         entry = int.from_bytes(pagebytes[cursor : cursor + ptrsize], byteorder="little")
+    #         perm = entry & self.PAGE_PERM_MASK
+    #         if entry != 0:
+    #             # TODO: what about huge pages?
+    #             # this depends on level
+    #             if prev_start is None:
+    #                 prev = (cursor, 1, perm)
+    #                 continue
+    #             if prev_perm == perm:
+    #                 prev = (prev_start, prev_len + 1, perm)
+    #                 continue
+    #         if prev[0] is not None:
+    #             # TODO: use page shift here?
+    #             result.append(prev)
+    #         if entry == 0:
+    #             prev = (None, None, None)
+    #             continue
+    #         prev = (cursor, 1, perm)
+    #     if prev[0] is not None:
+    #         result.append(prev)
+    #     return result
+
+    # def vmmap_helper_recursive(self, entry, level_remaining) -> List[Tuple[int, int, int]]:
+    #     ENTRYMASK = self.PAGEENTRYMASK
+    #     base = self.physmap
+    #     pagesize = 1 << self.page_shift
+    #     if level_remaining == 0:
+    #         start = base + (entry & ENTRYMASK)
+    #         return [(start, start + pagesize, entry & self.PERMMASK)]
+    #     ptrsize = pwndbg.aglib.arch.ptrsize
+    #     curr = [None, None, None]  # start, end, perm
+    #     result = []
+    #     for cursor in range(0, pagesize, ptrsize):
+    #         pass
 
     def pageentry_flags(self, level) -> BitFlags:
         raise NotImplementedError()
