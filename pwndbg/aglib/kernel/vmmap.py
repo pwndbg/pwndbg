@@ -268,6 +268,7 @@ def _parser_mem_info_line_x86(line: str) -> pwndbg.lib.memory.Page | None:
     perm = line[rspace_idx + 1 :]
 
     flags = 0
+    # TODO: use constants
     if "r" in perm:
         flags |= 4
     if "w" in perm:

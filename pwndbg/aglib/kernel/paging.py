@@ -44,7 +44,7 @@ class PageTableLevel:
 class PageTableScan:
     MAX_SAME_PG_TABLE_ENTRY = 0x10
 
-    def __init__(self, pi):
+    def __init__(self, pi, is_kernel):  # is_kernel is used only for Aarch64
         # from ArchPagingInfo:
         self.paging_level = pi.paging_level
         self.physmap = pi.physmap
@@ -52,6 +52,7 @@ class PageTableScan:
         self.PAGE_INDEX_LEN = pi.PAGE_INDEX_LEN
         self.page_shift = pi.page_shift
         self.pageentry_flags = pi.pageentry_flags
+        self.phys_offset = pi.phys_offset
         # for scanning
         self.result = []
         self.pagesz = 1 << self.page_shift
@@ -62,6 +63,8 @@ class PageTableScan:
         # below are info relating to the current page chunks being coalesced
         self.level_idxes = [0] * (self.paging_level + 1)
         self.curr = None
+        self.is_kernel = is_kernel
+        self.arch = pwndbg.aglib.arch.name
 
     def scan(self, entry, level_remaining):
         # TODO: move some checks in the for loop for optimization?
@@ -70,7 +73,7 @@ class PageTableScan:
             return
         pagesz = self.pagesz
         ptrsize = self.ptrsize
-        addr = self.physmap + (entry & self.PAGE_ENTRY_MASK)
+        addr = self.physmap + (entry & self.PAGE_ENTRY_MASK) - self.phys_offset
         pg_table_bytes = self.inf.read_memory(addr, pagesz)
         for i in range(0, pagesz, ptrsize):
             next = int.from_bytes(pg_table_bytes[i : i + ptrsize], byteorder="little")
@@ -88,7 +91,13 @@ class PageTableScan:
                 self.result.append(self.curr)
                 self.curr = None
             return
-        bit = self.level_idxes[-1] >> (self.PAGE_INDEX_LEN - 1)  # highest bit
+        match self.arch:
+            case "x86-64":
+                bit = self.level_idxes[-1] >> (self.PAGE_INDEX_LEN - 1)  # highest bit
+            case "aarch64":
+                bit = 1 if self.is_kernel else 0
+            case _:
+                raise NotImplementedError()
         flags = self.pageentry_flags(entry, is_user=bit == 0)
         size = self.pagesz * ((self.pagesz // self.ptrsize) ** level_remaining)
         if self.curr:
@@ -185,6 +194,10 @@ class ArchPagingInfo:
     def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
         raise NotImplementedError()
 
+    def pagetable_scan(self, entry) -> List[Page]:
+        # TODO: does aarch64 need multiple entries (el0 and el1)
+        raise NotImplementedError()
+
     @property
     def PAGE_ENTRY_MASK(self):
         return ~((1 << self.page_shift) - 1) & ((1 << self.va_bits) - 1)
@@ -246,8 +259,8 @@ class ArchPagingInfo:
         )
         return tuple(result)
 
-    def pagetable_scan(self, entry) -> List[Page]:
-        scan = PageTableScan(self)
+    def pagetable_scan_helper(self, entry, is_kernel=None) -> List[Page]:
+        scan = PageTableScan(self, is_kernel)
         scan.scan(entry, self.paging_level)
         return scan.result
 
@@ -420,6 +433,11 @@ class x86_64PagingInfo(ArchPagingInfo):
         if entry is None:
             entry = pwndbg.aglib.regs["cr3"]
         return self.pagewalk_helper(target, entry)
+
+    def pagetable_scan(self, entry) -> List[Page]:
+        if entry is None:
+            entry = pwndbg.aglib.regs["cr3"]
+        return self.pagetable_scan_helper(entry)
 
     def pageentry_bitflags(self, is_last) -> BitFlags:
         return BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("U", 2), ("W", 1), ("P", 0)])
@@ -726,6 +744,15 @@ class Aarch64PagingInfo(ArchPagingInfo):
         entry |= 3  # marks the entry as a table
         return self.pagewalk_helper(target, entry)
 
+    def pagetable_scan(self, entry) -> List[Page]:
+        if entry is not None:
+            return self.pagetable_scan_helper(
+                entry | 3, is_kernel=True
+            )  # marks the entry as a table
+        result = self.pagetable_scan_helper(pwndbg.aglib.regs.TTBR0_EL1 | 3, is_kernel=False)
+        result += self.pagetable_scan_helper(pwndbg.aglib.regs.TTBR1_EL1 | 3, is_kernel=True)
+        return result
+
     def pageentry_bitflags(self, is_last) -> BitFlags:
         if is_last:
             # block or page
@@ -736,22 +763,12 @@ class Aarch64PagingInfo(ArchPagingInfo):
         return (entry & 1) == 0 or (entry & 3) == 1
 
     def pageentry_flags(self, entry, is_user) -> int:
-        if (entry & 3) == 3 or (entry & 1) == 0:
+        if entry & 1 == 0:
             return 0
-        # only page or block is allowed here
         flags = Page.R_OK
-        if entry & (1 << (54 if is_user else 53)):
+        if (entry >> 53) & 3 != 3:
             flags |= Page.X_OK
         ap = (entry >> 6) & 3
-        match ap:
-            case 0:
-                if is_user:
-                    flags |= Page.W_OK
-                else:
-                    flags = 0
-            case 1:
-                flags |= Page.W_OK
-            case 2:
-                if is_user:
-                    flags = 0
+        if ap == 1 or ap == 0:
+            flags |= Page.W_OK
         return flags

@@ -605,6 +605,15 @@ def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
         raise NotImplementedError()
 
 
+@pwndbg.lib.cache.cache_until("stop")
+def pagetable_scan(entry=None) -> Tuple[PageTableLevel, ...]:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.pagetable_scan(entry)
+    else:
+        raise NotImplementedError()
+
+
 def paging_enabled() -> bool:
     arch_name = pwndbg.aglib.arch.name
     if arch_name == "i386":
