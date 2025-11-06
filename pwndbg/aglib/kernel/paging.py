@@ -51,7 +51,7 @@ class PageTableScan:
         self.PAGE_ENTRY_MASK = pi.PAGE_ENTRY_MASK
         self.PAGE_INDEX_LEN = pi.PAGE_INDEX_LEN
         self.page_shift = pi.page_shift
-        self.entry_flags = pi.entry_flags
+        self.pageentry_flags = pi.pageentry_flags
         # for scanning
         self.result = []
         self.pagesz = 1 << self.page_shift
@@ -89,14 +89,17 @@ class PageTableScan:
                 self.curr = None
             return
         bit = self.level_idxes[-1] >> (self.PAGE_INDEX_LEN - 1)  # highest bit
-        flags = self.entry_flags(entry)
+        flags = self.pageentry_flags(entry, is_user=bit == 0)
         size = self.pagesz * ((self.pagesz // self.ptrsize) ** level_remaining)
         if self.curr:
-            if flags == self.curr.flags:
+            if flags != 0 and flags == self.curr.flags:
                 self.curr.memsz += size
                 return
             else:
                 self.result.append(self.curr)
+                self.curr = None
+        if flags == 0:
+            return
         addr = bit * (
             (1 << (self.ptrsize * 8 - (self.paging_level * self.PAGE_INDEX_LEN + self.page_shift)))
             - 1
@@ -248,7 +251,7 @@ class ArchPagingInfo:
         scan.scan(entry, self.paging_level)
         return scan.result
 
-    def pageentry_flags(self, level) -> BitFlags:
+    def pageentry_bitflags(self, level) -> BitFlags:
         raise NotImplementedError()
 
     def should_stop_pagewalk(self, is_last):
@@ -258,7 +261,7 @@ class ArchPagingInfo:
     def phys_offset(self):
         return 0
 
-    def entry_flags(self, entry) -> int:
+    def pageentry_flags(self, entry, is_user) -> int:
         raise NotImplementedError()
 
 
@@ -418,13 +421,15 @@ class x86_64PagingInfo(ArchPagingInfo):
             entry = pwndbg.aglib.regs["cr3"]
         return self.pagewalk_helper(target, entry)
 
-    def pageentry_flags(self, is_last) -> BitFlags:
+    def pageentry_bitflags(self, is_last) -> BitFlags:
         return BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("U", 2), ("W", 1), ("P", 0)])
 
     def should_stop_pagewalk(self, entry):
         return entry & (1 << 7) > 0
 
-    def entry_flags(self, entry) -> int:
+    def pageentry_flags(self, entry, is_user) -> int:
+        if entry & 1 == 0:  # not present
+            return 0
         flags = Page.R_OK
         if entry & (1 << 1):
             flags |= Page.W_OK
@@ -718,14 +723,35 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 entry = pwndbg.aglib.regs.TTBR1_EL1
             else:
                 entry = pwndbg.aglib.regs.TTBR0_EL1
-        self.entry = entry
+        entry |= 3  # marks the entry as a table
         return self.pagewalk_helper(target, entry)
 
-    def pageentry_flags(self, is_last) -> BitFlags:
+    def pageentry_bitflags(self, is_last) -> BitFlags:
         if is_last:
+            # block or page
             return BitFlags([("UNX", 54), ("PNX", 53), ("AP", (6, 7))])
-        return BitFlags([("UNX", 60), ("PNX", 59), ("AP", (6, 7))])
+        return BitFlags([("UNX", 60), ("PNX", 59), ("AP", (61, 62))])
 
     def should_stop_pagewalk(self, entry):
-        # self.entry is set because the call chain
-        return (((entry & 1) == 0) or ((entry & 3) == 1)) and entry != self.entry
+        return (entry & 1) == 0 or (entry & 3) == 1
+
+    def pageentry_flags(self, entry, is_user) -> int:
+        if (entry & 3) == 3 or (entry & 1) == 0:
+            return 0
+        # only page or block is allowed here
+        flags = Page.R_OK
+        if entry & (1 << (54 if is_user else 53)):
+            flags |= Page.X_OK
+        ap = (entry >> 6) & 3
+        match ap:
+            case 0:
+                if is_user:
+                    flags |= Page.W_OK
+                else:
+                    flags = 0
+            case 1:
+                flags |= Page.W_OK
+            case 2:
+                if is_user:
+                    flags = 0
+        return flags
