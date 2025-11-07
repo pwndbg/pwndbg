@@ -87,8 +87,12 @@ class PageTableScan:
                 cnt = self.counters.get(entry, 0)
                 if cnt > self.MAX_SAME_PG_TABLE_ENTRY and not curr:
                     continue
+
                 self.counters[entry] = cnt + 1
                 flags = self.pageentry_flags(entry)
+                if flags == 0:  # only append present pages
+                    continue
+
                 # len(entries) == self.pagesz // self.ptrsize, try not to do division here
                 size = pagesz * (len(entries) ** (level_remaining - 1))
                 if curr:
@@ -97,8 +101,6 @@ class PageTableScan:
                         continue
                     self.result.append(curr)
                     self.curr = None
-                if flags == 0:  # only append present pages
-                    continue
 
                 # creating a new page
                 self.level_idxes[level_remaining] = i
