@@ -256,6 +256,8 @@ def load_common_structs():
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def load_common_structs_on_load():
+    if not pwndbg.aglib.proc.exe:
+        return
     if pwndbg.aglib.qemu.is_qemu_kernel():
         load_common_structs()
 

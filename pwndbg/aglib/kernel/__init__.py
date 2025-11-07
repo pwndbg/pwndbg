@@ -109,7 +109,6 @@ def nproc() -> int:
     return val
 
 
-@pwndbg.lib.cache.cache_until("stop")
 def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     """Returns the first kernel mapping which contains the linux_banner"""
     base = kbase()
@@ -131,7 +130,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
 
         if result:
             return mapping
-    for mapping in fallback_mappings:
+    for mapping in fallback_mappings[1:] + [fallback_mappings[0]]:
         # this loop handles when the kernel has not finished initialization
         # and the permission of the first ro page has not been properly set
         result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)

@@ -67,9 +67,9 @@ class PageTableScan:
     def scan(self, entry, level_remaining):
         # this needs to be EXTREMELY optimized as it is used to display context
         # making as few functions calls or memory reads as possible
-        # avoid unnecessary python pointer deferences whenever possible
+        # avoid unnecessary python pointer deferences or repetative computations whenever possible
         # on average takes less than 0.09 seconds to complete for x64 and 0.12 for aarch64
-        # around 25% of the time is used to read qemu memory
+        # around 25% of the time is used to read qemu system memory
         # in comparison, gdb-pt-dump takes ~0.12 for x64 and a few seconds for aarch64
         # --> 25% speed up for x64 and more than 10x speed up for aarch64
         pagesz = self.pagesz
@@ -118,11 +118,10 @@ class PageTableScan:
                     addr += 0 if i < level_remaining else self.level_idxes[i]
                 addr <<= self.page_shift
                 self.curr = Page(addr, size, flags, 0)
-            else:
-                # we need to reduce this recursive call as much as possible
-                # only call when should keep scanning
+            else:  # only call when should keep scanning the page tree
                 self.level_idxes[level_remaining] = i
-                # each recursive call have level_remaining decremented, garanteed to terminate
+                # we need to reduce this recursive call as much as possible
+                # each time the level_remaining decremented, garanteed to terminate
                 self.scan(entry, level_remaining - 1)
         if level_remaining == self.paging_level and self.curr:
             self.result.append(self.curr)
