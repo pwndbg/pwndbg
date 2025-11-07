@@ -132,7 +132,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
         if result:
             return mapping
     # optimization: observe that the first Linux kernel region is the kernel text so search it last
-    # it now finds it almost instantly even for kernels that are partially initialized
+    # it now finds the first ro page almost instantly even for kernels that are partially initialized
     for mapping in fallback_mappings[1:] + [fallback_mappings[0]]:
         # this loop handles when the kernel has not finished initialization
         # and the permission of the first ro page has not been properly set
