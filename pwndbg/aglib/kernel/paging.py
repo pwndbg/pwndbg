@@ -49,12 +49,12 @@ class PageTableScan:
         self.PAGE_INDEX_LEN = pi.PAGE_INDEX_LEN
         self.page_shift = pi.page_shift
         self.pageentry_flags = pi.pageentry_flags
+        self.should_stop_pagewalk = pi.should_stop_pagewalk
         # for scanning
         self.result = []
         self.pagesz = 1 << self.page_shift
-        self.counters: Dict[int, int] = {}
+        self.counters = {}
         self.ptrsize = pwndbg.aglib.arch.ptrsize
-        self.should_stop_pagewalk = pi.should_stop_pagewalk
         self.inf = pwndbg.dbg.selected_inferior()
         self.fmt = "<" + ("Q" if self.ptrsize == 8 else "I") * (self.pagesz // self.ptrsize)
         self.cache = {}
@@ -65,62 +65,68 @@ class PageTableScan:
         self.arch = pwndbg.aglib.arch.name
 
     def scan(self, entry, level_remaining):
-        if entry == 0 or self.should_stop_pagewalk(entry):
-            self.update_curr(entry, level_remaining)
-            return
+        # this needs to be EXTREMELY optimized as it is used to display context
+        # making as few functions calls or memory reads as possible
+        # avoid unnecessary python pointer deferences whenever possible
+        # on average takes less than 0.09 seconds to complete for x64 and 0.12 for aarch64
+        # around 25% of the time is used to read qemu memory
+        # in comparison, gdb-pt-dump takes ~0.12 for x64 and a few seconds for aarch64
+        # --> 25% speed up for x64 and more than 10x speed up for aarch64
         pagesz = self.pagesz
         addr = entry & self.PAGE_ENTRY_MASK
         entries = self.cache.get(addr, None)
         if not entries:
             self.cache[addr] = entries = struct.unpack(self.fmt, self.inf.read_memory(addr, pagesz))
         for i, entry in enumerate(entries):
-            if entry or self.curr:
+            if entry == 0:
+                if self.curr:
+                    self.result.append(self.curr)
+                    self.curr = None
+            elif level_remaining == 1 or self.should_stop_pagewalk(entry):
+                curr = self.curr
+                cnt = self.counters.get(entry, 0)
+                if cnt > self.MAX_SAME_PG_TABLE_ENTRY and not curr:
+                    continue
+                self.counters[entry] = cnt + 1
+                flags = self.pageentry_flags(entry)
+                # len(entries) == self.pagesz // self.ptrsize, try not to do division here
+                size = pagesz * (len(entries) ** (level_remaining - 1))
+                if curr:
+                    if flags != 0 and flags == curr.flags:
+                        curr.memsz += size
+                        continue
+                    self.result.append(curr)
+                    self.curr = None
+                if flags == 0:  # only append present pages
+                    continue
+
+                # creating a new page
                 self.level_idxes[level_remaining] = i
-                if level_remaining == 1:
-                    self.update_curr(entry, 0)
-                else:
-                    self.scan(entry, level_remaining - 1)
+                match self.arch:
+                    case "x86-64":
+                        bit = self.level_idxes[-1] >> (self.PAGE_INDEX_LEN - 1)  # highest bit
+                    case "aarch64":
+                        bit = 1 if self.is_kernel else 0
+                    case _:
+                        raise NotImplementedError()
+                nbits = self.ptrsize * 8 - (
+                    self.paging_level * self.PAGE_INDEX_LEN + self.page_shift
+                )
+                addr = bit * ((1 << nbits) - 1)
+                for i in range(self.paging_level, 0, -1):
+                    addr <<= self.PAGE_INDEX_LEN
+                    addr += 0 if i < level_remaining else self.level_idxes[i]
+                addr <<= self.page_shift
+                self.curr = Page(addr, size, flags, 0)
+            else:
+                # we need to reduce this recursive call as much as possible
+                # only call when should keep scanning
+                self.level_idxes[level_remaining] = i
+                # each recursive call have level_remaining decremented, garanteed to terminate
+                self.scan(entry, level_remaining - 1)
         if level_remaining == self.paging_level and self.curr:
             self.result.append(self.curr)
             self.curr = None
-
-    def update_curr(self, entry, level_remaining):
-        counters = self.counters
-        counters[entry] = counters.get(entry, 0) + 1
-        if entry == 0 or counters[entry] > 0x10:
-            if self.curr:
-                self.result.append(self.curr)
-                self.curr = None
-            return
-        match self.arch:
-            case "x86-64":
-                bit = self.level_idxes[-1] >> (self.PAGE_INDEX_LEN - 1)  # highest bit
-            case "aarch64":
-                bit = 1 if self.is_kernel else 0
-            case _:
-                raise NotImplementedError()
-        flags = self.pageentry_flags(entry, is_user=bit == 0)
-        size = self.pagesz * ((self.pagesz // self.ptrsize) ** level_remaining)
-        if self.curr:
-            if flags != 0 and flags == self.curr.flags:
-                self.curr.memsz += size
-                return
-            else:
-                self.result.append(self.curr)
-                self.curr = None
-        if flags == 0:
-            return
-        addr = bit * (
-            (1 << (self.ptrsize * 8 - (self.paging_level * self.PAGE_INDEX_LEN + self.page_shift)))
-            - 1
-        )
-        for i in range(self.paging_level, 0, -1):
-            addr <<= self.PAGE_INDEX_LEN
-            if i <= level_remaining:
-                self.level_idxes[i] = 0
-            addr += self.level_idxes[i]
-        addr <<= self.page_shift
-        self.curr = Page(addr, size, flags, 0)
 
 
 class ArchPagingInfo:
@@ -281,7 +287,7 @@ class ArchPagingInfo:
     def phys_offset(self):
         return 0
 
-    def pageentry_flags(self, entry, is_user) -> int:
+    def pageentry_flags(self, entry) -> int:
         raise NotImplementedError()
 
 
@@ -453,7 +459,7 @@ class x86_64PagingInfo(ArchPagingInfo):
     def should_stop_pagewalk(self, entry):
         return entry & (1 << 7) > 0
 
-    def pageentry_flags(self, entry, is_user) -> int:
+    def pageentry_flags(self, entry) -> int:
         if entry & 1 == 0:  # not present
             return 0
         flags = Page.R_OK
@@ -767,7 +773,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def should_stop_pagewalk(self, entry):
         return (entry & 1) == 0 or (entry & 3) == 1
 
-    def pageentry_flags(self, entry, is_user) -> int:
+    def pageentry_flags(self, entry) -> int:
         if entry & 1 == 0:
             return 0
         flags = Page.R_OK
