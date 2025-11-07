@@ -679,7 +679,9 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 if value == 0xFFFFFFFFFFFFFFFF:
                     break
             return tuple(sections)
-        vmalloc_end = min(self.vmemmap, self.pci, self.fixmap)
+        vmalloc_end = None
+        if self.vmemmap and self.pci and self.fixmap:
+            vmalloc_end = min(self.vmemmap, self.pci, self.fixmap)
         return (
             (self.USERLAND, 0),
             (None, self.PAGE_OFFSET),
