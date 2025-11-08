@@ -20,10 +20,10 @@ parser = argparse.ArgumentParser(
 Trace kernel memory (SLUB and buddy) allocations and frees.
 
 This command will execute `next` in the debugger, and print out all (de)allocations that happen until
-the command finishes. As such this makes most sense to call when the PC is on a branch. Only (de)allocations
-triggered by the current function are considered (rather than other threads etc).
+the command finishes. As such this makes most sense to call when the PC is on a function call instruction.
+Only (de)allocations triggered by the current function are considered (rather than other threads etc).
 
-If neither -s nor -b are passed, both allocators are traced.
+If neither `-s` nor `-b` are passed, both allocators are traced.
     """,
 )
 parser.add_argument(
@@ -270,8 +270,8 @@ def get_kmem_tracepoints():
     parser,
     category=pwndbg.commands.CommandCategory.KERNEL,
     notes="""
---all may be helpful if you also want to trace frees scheduled with rcu or if the traced command steps out of the current function.
-You may also find `-c finish` and `-c continue` useful.
+The `--all` flag may be helpful if you also want to trace frees scheduled with rcu or if the traced command
+steps out of the current function. You may also find `-c finish` and `-c continue` useful.
 """,
     # FIXME: The -c option
     #     default="next",
