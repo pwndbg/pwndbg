@@ -273,8 +273,11 @@ class ArchPagingInfo:
         # only two possible return values: https://qemu-project.gitlab.io/qemu/system/gdb.html
         oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
         pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
-        scan = PageTableScan(self, is_kernel)
-        scan.scan(entry, self.paging_level)
+        try:
+            scan = PageTableScan(self, is_kernel)
+            scan.scan(entry, self.paging_level)
+        except Exception:  # so that the PhyMemMode value is always restored
+            pass
         pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
         return scan.result
 
