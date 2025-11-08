@@ -448,6 +448,7 @@ class x86_64PagingInfo(ArchPagingInfo):
                 page.objfile = "kernel [stack]"
 
     def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
+        # kpti is not an issue here
         if entry is None:
             entry = pwndbg.aglib.regs["cr3"]
         return self.pagewalk_helper(target, entry)
@@ -767,7 +768,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 entry | 3, is_kernel=True
             )  # marks the entry as a table
         result = self.pagetable_scan_helper(pwndbg.aglib.regs.TTBR0_EL1 | 3, is_kernel=False)
-        result += self.pagetable_scan_helper(pwndbg.aglib.regs.TTBR1_EL1 | 3, is_kernel=True)
+        if pwndbg.aglib.memory.is_kernel(pwndbg.aglib.regs.pc):
+            result += self.pagetable_scan_helper(pwndbg.aglib.regs.TTBR1_EL1 | 3, is_kernel=True)
         return result
 
     def pageentry_bitflags(self, is_last) -> BitFlags:
