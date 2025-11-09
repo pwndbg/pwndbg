@@ -72,23 +72,46 @@ _asm_header: Dict[str, str] = {
 }
 
 
+ZIG_SUPPORTED_VERSION = "0.14.1"
+
+
 def get_zig_executable() -> str:
     """
     Get the path to the zig executable.
     Precedence: ziglang module, zig in PATH.
     """
+    zig_path = None
+
     try:
         import ziglang  # type: ignore[import-untyped]
-        return os.path.join(os.path.dirname(ziglang.__file__), "zig")
+        zig_path = os.path.join(os.path.dirname(ziglang.__file__), "zig")
     except ImportError:
         pass
 
-    import shutil
-    zig_in_path = shutil.which("zig")
-    if zig_in_path:
-        return zig_in_path
+    if zig_path is None:
+        import shutil
+        zig_path = shutil.which("zig")
 
-    raise ValueError("Python module ziglang not available and zig not found in PATH")
+    if zig_path is None:
+        raise ValueError("Python module ziglang not available and zig not found in PATH")
+
+    try:
+        result = subprocess.run(
+            [zig_path, "version"],
+            capture_output=True,
+            text=True,
+            timeout=1,
+        )
+        version = result.stdout.strip()
+        if version != ZIG_SUPPORTED_VERSION:
+            raise ValueError(
+                f"Unsupported Zig version: {version}. "
+                f"Only version {ZIG_SUPPORTED_VERSION} is supported."
+            )
+    except Exception as e:
+        raise ValueError(f"Failed to check Zig version at {zig_path}: {e}")
+
+    return zig_path
 
 
 def _get_zig_target(arch: ArchDefinition) -> str | None:
