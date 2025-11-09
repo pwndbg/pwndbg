@@ -56,13 +56,10 @@ class KmemTracepointsData:
         self.curr = None  # None means tracing all
         if not trace_all:
             # current frame only accounting for jumps
-            inf = pwndbg.dbg.selected_frame()
-            if inf:
-                parent = inf.parent()
-                if parent:
+            if inf := pwndbg.dbg.selected_frame():
+                if parent := inf.parent():
                     pc = parent.pc()
-                    symbol_name = pwndbg.aglib.symbol.resolve_addr(pc)
-                    if symbol_name:
+                    if symbol_name := pwndbg.aglib.symbol.resolve_addr(pc):
                         self.curr = symbol_name.split("+")[0]
 
             if self.curr is None:
