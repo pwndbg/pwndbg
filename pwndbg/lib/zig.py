@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import os.path
 import pathlib
 import subprocess
@@ -71,6 +72,25 @@ _asm_header: Dict[str, str] = {
 }
 
 
+def get_zig_executable() -> str:
+    """
+    Get the path to the zig executable.
+    Precedence: ziglang module, zig in PATH.
+    """
+    try:
+        import ziglang  # type: ignore[import-untyped]
+        return os.path.join(os.path.dirname(ziglang.__file__), "zig")
+    except ImportError:
+        pass
+
+    import shutil
+    zig_in_path = shutil.which("zig")
+    if zig_in_path:
+        return zig_in_path
+
+    raise ValueError("Python module ziglang not available and zig not found in PATH")
+
+
 def _get_zig_target(arch: ArchDefinition) -> str | None:
     if arch.platform == Platform.LINUX:
         # "gnu", "gnuabin32", "gnuabi64", "gnueabi", "gnueabihf",
@@ -90,10 +110,7 @@ def _get_zig_target(arch: ArchDefinition) -> str | None:
 
 
 def flags(arch: ArchDefinition) -> List[str]:
-    try:
-        import ziglang  # type: ignore[import-untyped]
-    except ImportError:
-        raise ValueError("Can't import ziglang")
+    zig_executable = get_zig_executable()
 
     zig_target = _get_zig_target(arch)
     if zig_target is None:
@@ -102,7 +119,7 @@ def flags(arch: ArchDefinition) -> List[str]:
         )
 
     return [
-        os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+        zig_executable,
         "cc",
         "-target",
         zig_target,
@@ -120,10 +137,7 @@ def asm(arch: ArchDefinition, data: str, includes: List[pathlib.Path] | None = N
 
 
 def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None = None) -> bytes:
-    try:
-        import ziglang
-    except ImportError:
-        raise ValueError("Can't import ziglang")
+    zig_executable = get_zig_executable()
 
     header = _asm_header.get(arch_mapping, None)
     if header is None:
@@ -148,7 +162,7 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None = Non
         # Build the binary with Zig
         compile_process = subprocess.run(
             [
-                os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                zig_executable,
                 "cc",
                 "-target",
                 target,
@@ -167,7 +181,7 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None = Non
         # Extract bytecode
         objcopy_process = subprocess.run(
             [
-                os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                zig_executable,
                 "objcopy",
                 "-O",
                 "binary",
