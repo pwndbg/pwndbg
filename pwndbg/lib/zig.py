@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import os.path
 import pathlib
+import shutil
 import subprocess
 import tempfile
 from typing import Dict
@@ -10,6 +11,7 @@ from typing import List
 from typing import Literal
 from typing import Tuple
 
+import pwndbg.lib.cache
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
@@ -75,23 +77,19 @@ _asm_header: Dict[str, str] = {
 ZIG_SUPPORTED_VERSION = "0.14.1"
 
 
+@pwndbg.lib.cache.cache_until("forever")
 def get_zig_executable() -> str:
     """
     Get the path to the zig executable.
     Precedence: ziglang module, zig in PATH.
     """
-    zig_path = None
-
     try:
         import ziglang  # type: ignore[import-untyped]
-        zig_path = os.path.join(os.path.dirname(ziglang.__file__), "zig")
+        return os.path.join(os.path.dirname(ziglang.__file__), "zig")
     except ImportError:
         pass
 
-    if zig_path is None:
-        import shutil
-        zig_path = shutil.which("zig")
-
+    zig_path = shutil.which("zig")
     if zig_path is None:
         raise ValueError("Python module ziglang not available and zig not found in PATH")
 
@@ -100,7 +98,7 @@ def get_zig_executable() -> str:
             [zig_path, "version"],
             capture_output=True,
             text=True,
-            timeout=1,
+            timeout=15,
         )
         version = result.stdout.strip()
         if version != ZIG_SUPPORTED_VERSION:
