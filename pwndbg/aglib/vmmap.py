@@ -4,6 +4,7 @@ import bisect
 from typing import Tuple
 
 import pwndbg
+import os
 import pwndbg.aglib.arch
 import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
@@ -166,7 +167,7 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
     return mappings[i].start
 
 
-def named_region_start(mapping_name: str) -> int | None:
+def named_region_start(mapping_name: str, exact_match: bool = False) -> int | None:
     """
     Returns the lowest address which is mapped with `mapping_name`.
 
@@ -175,10 +176,21 @@ def named_region_start(mapping_name: str) -> int | None:
     aren't backed by an object file).
 
     Will not invoke vmmap_explore.
+
+    If exact_match is True looks for exact path match, otherwise will match the os.path.basename.
     """
     mappings = sorted(get(), key=lambda p: p.vaddr)
-    for mapping in mappings:
-        if mapping.objfile == mapping_name:
-            return mapping.start
 
-    return None
+    if exact_match:
+        for mapping in mappings:
+            if mapping.objfile == mapping_name:
+                return mapping.start
+
+        return None
+    else:
+        for mapping in mappings:
+            # Note that os.path.basename("[heap]") == "[heap]".
+            if os.path.basename(mapping.objfile) == mapping_name:
+                return mapping.start
+
+        return None
