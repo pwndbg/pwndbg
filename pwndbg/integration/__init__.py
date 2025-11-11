@@ -1,162 +1,344 @@
 """
-Decompiler integration.
+Provides decompiler integration by leveraging
+
+https://github.com/mahaloz/decomp2dbg
 """
 
-from __future__ import annotations
-
-from dataclasses import dataclass
-from typing import List
-from typing import Tuple
-
+import os
+from typing import Optional
 import pwndbg
-import pwndbg.lib.config
-import pwndbg.lib.functions
 from pwndbg.color import message
+import pwndbg.aglib
+import pwndbg.aglib.vmmap
+import xmlrpc
+from dataclasses import dataclass
+import xmlrpc.client
+from typing import Any, cast
 
 
-class IntegrationProvider:
-    """
-    A class representing an integration that provides intelligence external to GDB.
-    """
+# Note that XML RPC cannot send 64-bit ints (it is capped at 32 bits).
+# We hope that rebased integers will never be more than 32-bits. If need be,
+# we may send them as strings.
 
-    def get_symbol(self, addr: int) -> str | None:
-        """
-        Get a symbol at an address, or an offset from a symbol.
-        """
-        return None
-
-    def get_versions(self) -> Tuple[str, ...]:
-        """
-        Gets any version strings relevant to the integration,
-        which are used when displaying the `version` command.
-        """
-        return ()
-
-    def is_in_function(self, addr: int) -> bool:
-        """
-        Checks if integration thinks that an address is in a function,
-        which is used to determine if `tel` should try to disassemble something.
-
-        If uncertain, it's better to default to True than to False.
-        """
-        return True
-
-    def get_comment_lines(self, addr: int) -> List[str]:
-        """
-        Gets any comments attached to an instruction.
-        """
-        return []
-
-    def decompile(self, addr: int, lines: int) -> List[str] | None:
-        """
-        Decompiles the code near an address given a line count.
-        """
-        return None
-
-    def get_func_type(self, addr: int) -> pwndbg.lib.functions.Function | None:
-        """
-        Gets the type signature of a function, used for argument labeling.
-        """
-        return None
-
-    def get_stack_var_name(self, addr: int) -> str | None:
-        """
-        Gets the name of a stack variable based on only the address of the variable.
-        """
-        return None
-
-    def disable(self) -> None:
-        """
-        Notify the provider that it should disable itself.
-        """
-        return None
-
-
-# This value should only be the name of the provider if we have a valid connection
-# to the provider. I.e. if we fail to connect to the provider, we should set this to
-# "none".
-provider_name = pwndbg.config.add_param(
-    "integration-provider",
-    "none",
-    "which provider to use for integration features",
-    param_class=pwndbg.lib.config.PARAM_ENUM,
-    enum_sequence=["none", "binja", "ida"],
-)
-
-symbol_lookup = pwndbg.config.add_param(
-    "integration-symbol-lookup", True, "whether to use integration to look up unknown symbols"
-)
-
-smart_enhance = pwndbg.config.add_param(
-    "integration-smart-enhance",
-    True,
-    "use integration to determine when to disassemble during enhancing",
-)
-
-function_lookup = pwndbg.config.add_param(
-    "integration-function-lookup",
-    True,
-    "use integration to look up function type signatures",
-)
-
-
-# TODO: maybe create these functions dynamically since they're pretty boilerplate?
 @dataclass
-class ConfigurableProvider(IntegrationProvider):
+class GlobalVariable:
+    name: str
+    addr: int
+
+@dataclass
+class GlobalVariables:
+    # The list is sorted by addr
+    vars: list[GlobalVariable]
+
+@dataclass
+class FunctionHeader:
+    name: str
+    addr: int
+    size: int
+
+@dataclass
+class FunctionHeaders:
+    # The list is sorted by addr
+    func: list[FunctionHeader]
+
+@dataclass
+class RegisterVariable:
+    name: str
+    type: str
+    reg_name: str
+
+@dataclass
+class StackVariable:
+    name: str
+    # Could easily be a type that the debugger doesn't know about.
+    # E.g. Ida's __int64 and other MSVCisms. Can also be something
+    # non-obvious like "void (*)()".
+    type: str
+    # Offset to the frame pointer.
+    # If the function doesn't have a frame or the architecture doesn't
+    # have a well defined frame pointer, this field can contain whatever.
+    offset: int
+
+@dataclass
+class FuncVariables:
+    stack_vars: list[StackVariable]
+    reg_vars: list[RegisterVariable]
+
+@dataclass
+class FuncDecompilationResult:
+    # The string containing the whole function decompilation.
+    # (contains the function signature and even stuff like IDA's
+    # "// positive sp value has been detected, the output may be wrong!"
+    # before the function signature)
+    decompilation: str
+    # Says which line the requested address is in.
+    # 0-indexed starting from the first line of the function.
+    curr_line: int
+    # The function name (not the signature!)
+    func_name: str
+
+
+class DecompilerConnection:
     """
-    A wrapper around an IntegrationProvider that skips calling functions if disabled in config.
+    Allows communication with the decompiler.
+
+    The lifecycle of this object is tied to the connection to the compiler.
+    It is only constructed after a successful connection, and must not be used
+    after the connection dies.
+
+    You should expect every function here to be able to throw ConnectionRefusedError.
     """
 
-    inner: IntegrationProvider
+    # I allow this object to be live even if the process isn't live because I want
+    # people to be able to connect to the decompiler in their gdbinit.
 
-    def get_symbol(self, addr: int) -> str | None:
-        if symbol_lookup:
-            return self.inner.get_symbol(addr)
-        return super().get_symbol(addr)
+    """The XML RPC server that is connected to the decompiler."""
+    server: xmlrpc.client.ServerProxy
 
-    def get_versions(self) -> Tuple[str, ...]:
-        # Doesn't make a lot of sense to make this configurable
-        return self.inner.get_versions()
+    """The (host filesystem) path of the binary loaded in the decompiler.
+    It can be both an executable and a shared library."""
+    binary_path: str
 
-    def is_in_function(self, addr: int) -> bool:
-        if smart_enhance:
-            return self.inner.is_in_function(addr)
-        return super().is_in_function(addr)
+    """The address of the start of the binary in the live process address space.
+    Has value -1 if the process is not live or if the binary is not loaded yet."""
+    # I allow (process live, binary not loaded) because we may be syncing with the
+    # decompilation of a shared library that hasn't loaded yet.
+    _binary_base_addr: int
 
-    def get_comment_lines(self, addr: int) -> List[str]:
-        # This should be configured via nearpc-integration-comments instead
-        return self.inner.get_comment_lines(addr)
+    def __init__(self, server: xmlrpc.client.ServerProxy):
+        self.server = server
 
-    def decompile(self, addr: int, lines: int) -> List[str] | None:
-        # This should be configured via context-integration-decompile instead
-        return self.inner.decompile(addr, lines)
+        self.binary_path = str(self.server.binary_path())
+        self._binary_base_addr = -1
 
-    def get_func_type(self, addr: int) -> pwndbg.lib.functions.Function | None:
-        if function_lookup:
-            return self.inner.get_func_type(addr)
-        return super().get_func_type(addr)
+        self._find_binary_addr(print_failure=True)
 
-    def get_stack_var_name(self, addr: int) -> str | None:
-        return self.inner.get_stack_var_name(addr)
+    def _find_binary_addr(self, print_failure: bool = False) -> None:
+        if inf := pwndbg.dbg.selected_inferior():
+            if not inf.alive():
+                return
 
-    def disable(self) -> None:
-        return self.inner.disable()
+            # Try to find the binary in the address space.
+            start_addr: Optional[int] = pwndbg.aglib.vmmap.named_region_start(
+                self.binary_path, exact_match=True
+            )
+
+            if start_addr is None:
+                # Try harder! (likely we are remote debugging)
+                start_addr = pwndbg.aglib.vmmap.named_region_start(
+                    self.binary_path, exact_match=False
+                )
+
+                if start_addr is None:
+                    if print_failure:
+                        basename: str = os.path.basename(self.binary_path)
+                        print(
+                            message.notice(
+                                f"The decompiled program {basename} doesn't seem to be loaded."
+                                " We will keep an eye out for it."
+                            )
+                        )
+                    return
+                else:
+                    self._binary_base_addr = start_addr
+            else:
+                self._binary_base_addr = start_addr
+
+    def addr_to_mapped(self, rel_addr: int) -> int:
+        """
+        Takes an address relative to the image/file base and
+        returns the actual address in the process' address
+        space.
+
+        self.binary_base_addr must be valid before calling this.
+        """
+        # If self.binary_base_addr is valid, so is
+        # self._binary_base_addr :)
+        assert self._binary_base_addr != -1
+        return rel_addr + self._binary_base_addr
+
+    def addr_to_relative(self, mapped_addr: int) -> int:
+        """
+        Takes an address from the live process' address space and returns
+        the relative offset from the the image/file base.
+
+        self.binary_base_addr must be valid before calling this.
+        """
+        # If self.binary_base_addr is valid, so is
+        # self._binary_base_addr :)
+        assert self._binary_base_addr != -1
+        return mapped_addr - self._binary_base_addr
+
+    @property
+    def binary_base_addr(self) -> int:
+        if self._binary_base_addr == -1:
+            self._find_binary_addr(print_failure=False)
+
+        return self._binary_base_addr
+
+    # ================
+    # Decompiler interface.
+    # Conforms to this file:
+    # https://github.com/mahaloz/decomp2dbg/blob/77affe9ec1725e42739cf653a40ee6320452fd78/decompilers/server_template.py#L14
+    # But the return values are repacked a bit for nicer usage.
+
+    def disconnect(self) -> None:
+        """
+        Disconnects from the XML RPC server.
+
+        Delete this object after running this function.
+        """
+        self.server.disconnect()
+        self.binary_path = (
+            "You are using a disconnected DecompilerConnection. This is a bug in Pwndbg."
+        )
+        self._binary_base_addr = -2
+
+    def decompile(self, mapped_addr: int) -> Optional[FuncDecompilationResult]:
+        """
+        Returns the decompilation of the function which contains address `mapped_addr`.
+        """
+        if self.binary_base_addr == -1:
+            return None
+
+        rel_addr = self.addr_to_relative(mapped_addr)
+        answer: dict[str, Any] = cast(dict[str, Any], self.server.decompile(rel_addr))
+
+        if answer["decompilation"] is None:
+            # Assuming all the other fields are as well
+            return None
+
+        return FuncDecompilationResult(
+            decompilation=answer["decompilation"],
+            curr_line=answer["curr_line"],
+            func_name=answer["func_name"],
+        )
+
+    def function_data(self, mapped_addr: int) -> Optional[FuncVariables]:
+        """
+        Returns the variables of the function which contains address `mapped_addr`.
+
+        The "offset" field of the stack variables is poorly defined.
+
+        The register variables are quite best effort and do not actually take
+        the asked for address into account. In other words, the output for these
+        may be just plain wrong.
+
+        Function arguments are included in these variables.
+        """
+        if self.binary_base_addr == -1:
+            return None
+
+        rel_addr = self.addr_to_relative(mapped_addr)
+        # The documentation for this thing in server_template.py is just completely off.
+        answer: dict[str, Any] = cast(dict[str, Any], self.server.function_data(rel_addr))
+
+        if answer["stack_vars"] is None:
+            return None
+
+        stack_vars: list[StackVariable] = []
+        reg_vars: list[RegisterVariable] = []
+
+        for key, value in answer["stack_vars"]:
+            offset = int(key)
+            name = value["name"]
+            type_ = value["type"]
+            stack_vars.append(StackVariable(name=name, type=type_, offset=offset))
+
+        for key, value in answer["reg_vars"]:
+            name = key
+            reg_name = value["reg_name"]
+            type_ = value["type"]
+            reg_vars.append(RegisterVariable(name=name, type=type_, reg_name=reg_name))
+
+        return FuncVariables(stack_vars=stack_vars, reg_vars=reg_vars)
+
+    def function_headers(self) -> Optional[FunctionHeaders]:
+        """
+        Returns the name, address and size off all functions in the binary, sorted
+        by address.
+        """
+        if self.binary_base_addr == -1:
+            return None
+
+        answer: dict[str, Any] = cast(dict[str, Any], self.server.function_headers())
+
+        functions: list[FunctionHeader] = []
+
+        for key, value in answer:
+            name: str = value["name"]  # type: ignore  # noqa: PGH003
+            size_: int = value["size"] # type: ignore  # noqa: PGH003
+            addr: int = int(key)
+            functions.append(FunctionHeader(name=name, addr=addr, size=size_))
+
+        functions = sorted(functions, key=lambda f: f.addr)
+        return FunctionHeaders(func=functions)
+
+    def global_vars(self) -> Optional[GlobalVariables]:
+        """
+        Returns the name and address of all global variables in the binary, sorted
+        by address.
+        """
+        if self.binary_base_addr == -1:
+            return None
+
+        answer: dict[str, Any] = cast(dict[str, Any], self.server.global_vars())
+
+        variables: list[GlobalVariable] = []
+
+        for key, value in answer:
+            addr: int = int(key)
+            name: str = value["name"] # type: ignore  # noqa: PGH003
+            variables.append(GlobalVariable(name=name, addr=addr))
+
+        variables = sorted(variables, key=lambda v: v.addr)
+        return GlobalVariables(vars=variables)
+
+    def structs(self):
+        # return self.server.structs()
+        raise NotImplementedError()
+
+    def breakpoints(self):
+        # return self.server.breakpoints()
+        raise NotImplementedError()
+
+    # ================
 
 
-provider: IntegrationProvider = IntegrationProvider()
-
-
-def set_provider(prov: IntegrationProvider) -> None:
+class IntegrationManager:
     """
-    Call this from provider-specific code whenever you establish a connection.
+    A singleton class that manages all integration-related stuff.
+
+    We can connect to only one decompiler at a time, and acknowledge only
+    one file that decompiler is decompiling.
+    (Could be relaxed in the future! Especially the latter.)
     """
-    global provider
-    provider = ConfigurableProvider(prov)
+
+    def connect(self, host: str, port: int) -> Optional[DecompilerConnection]:
+        """
+        Connects to the remote decompiler. Returns None if the connection fails.
+        """
+
+        # Create a decompiler server connection and test it
+        try:
+            server = xmlrpc.client.ServerProxy(f"http://{host}:{port}")
+            server.ping()
+            # Success!
+            return DecompilerConnection(server)
+        except Exception:
+            pass
+
+        # The connection could fail because its a Ghidra connection on endpoint d2d
+        try:
+            server = xmlrpc.client.ServerProxy(f"http://{host}:{port}").d2d
+            server.ping()
+            # Success!
+            return DecompilerConnection(server)
+        except (ConnectionRefusedError, AttributeError):
+            pass
+
+        # Failed to connect.
+        return None
 
 
-def unset_provider() -> None:
-    """
-    Call this from provider-specific code whenever a connection stops.
-    """
-    global provider
-    provider = IntegrationProvider()
+manager: IntegrationManager = IntegrationManager()
