@@ -8,6 +8,8 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+import pwndbg.aglib
+import pwndbg.aglib.vmmap
 from pwndbg.dbg import MemoryMap
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.memory import Page
@@ -137,7 +139,7 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
     if address < 0:
         return None
 
-    mappings = sorted(pwndbg.aglib.vmmap.get(), key=lambda p: p.vaddr)
+    mappings = sorted(get(), key=lambda p: p.vaddr)
     idx = -1
     for i in range(len(mappings)):
         if mappings[i].start <= address < mappings[i].end:
@@ -162,3 +164,21 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
     # There might be other mappings with the name "objname" in the address space
     # but they are not contiguous with us, so we don't care.
     return mappings[i].start
+
+
+def named_region_start(mapping_name: str) -> int | None:
+    """
+    Returns the lowest address which is mapped with `mapping_name`.
+
+    This works both for object file names and stuff like "[heap]", but note that not
+    all mappings with the same name are necessarily contiguous (especially if they
+    aren't backed by an object file).
+
+    Will not invoke vmmap_explore.
+    """
+    mappings = sorted(get(), key=lambda p: p.vaddr)
+    for mapping in mappings:
+        if mapping.objfile == mapping_name:
+            return mapping.start
+
+    return None
