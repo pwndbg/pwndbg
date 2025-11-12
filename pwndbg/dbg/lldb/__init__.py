@@ -1835,6 +1835,16 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def runcmd(self, cmd) -> str:
         return self.dbg._execute_lldb_command(cmd)
 
+    @override
+    def set_convenience_var(self, name: str, value: str, type: str) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
+        """
+        # https://stackoverflow.com/questions/11192511/does-lldb-have-convenience-variables-var
+        # FIXME: Is there a nicer version through the API?
+        self.dbg._execute_lldb_command(f"expr {type} ${name} = {value}")
+
 
 class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
     def __init__(self, handler_name: str, command_name: str):

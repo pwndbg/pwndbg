@@ -1009,6 +1009,13 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     def runcmd(self, cmd) -> str:
         return gdb.execute(cmd, to_string=True)
 
+    def set_convenience_var(self, name: str, value: str, type: str) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
+        """
+        gdb.execute(f"set ${name} = ({type})({value})")
+
 
 class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override

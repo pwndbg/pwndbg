@@ -641,13 +641,20 @@ class Process:
 
     def add_symbol_file(self, path, base=None):
         """
-        Adds a symbol file at base
+        Adds a symbol file at base.
         """
         raise NotImplementedError()
 
     def runcmd(self, cmd):
         """
         Runs a debugger command
+        """
+        raise NotImplementedError()
+
+    def set_convenience_var(self, name: str, value: str, type: str) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
         """
         raise NotImplementedError()
 
