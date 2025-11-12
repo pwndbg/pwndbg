@@ -85,10 +85,13 @@ def prompt_hook():
     # Clear the prompt cache manually.
     pwndbg.lib.cache.clear_cache("prompt")
 
+    dbg: LLDB = pwndbg.dbg
+    ctx_suspend_once = dbg.should_suspend_ctx
     global should_show_context
-    if should_show_context:
+    if should_show_context and not ctx_suspend_once:
         pwndbg.commands.context.context()
         should_show_context = False
+    dbg.should_suspend_ctx = False
 
 
 # Install the prompt hook.

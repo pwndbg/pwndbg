@@ -44,6 +44,9 @@ class Kallsyms:
     def __init__(self):
         self.kallsyms: List[Tuple[str, str, int]] = []
         self.kbase = pwndbg.aglib.kernel.kbase()
+        if self.kbase is None:
+            print(M.warn("could not find kbase, kernel has not finished initialization?"))
+            return
 
         mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
         assert mapping is not None, "kernel memory mappings are missing"

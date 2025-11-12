@@ -10,7 +10,7 @@ There are multiple ways to install Pwndbg, depending on whether you want to use 
 ## Installing pwndbg-gdb
 Install via curl/sh (Linux/macOS)
 ```{.bash .copy}
-curl -qsL 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
 ```
 Install via Homebrew (macOS)
 ```{.bash .copy}
@@ -68,7 +68,7 @@ command.
 
 Install via curl/sh (Linux/macOS)
 ```{.bash .copy}
-curl -qsL 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb
+curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb
 ```
 Install via Homebrew (macOS)
 ```{.bash .copy}

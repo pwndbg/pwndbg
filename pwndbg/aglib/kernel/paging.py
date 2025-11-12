@@ -11,6 +11,7 @@ import pwndbg.aglib.vmmap_custom
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+from pwndbg.aglib.kernel.vmmap import kernel_vmmap_pages
 from pwndbg.lib.regs import BitFlags
 
 # don't return None but rather an invalid value for address markers
@@ -19,13 +20,8 @@ INVALID_ADDR = 1 << 64
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def get_memory_map_raw() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    return pwndbg.aglib.kernel.vmmap.kernel_vmmap(False)
-
-
-@pwndbg.lib.cache.cache_until("stop")
 def first_kernel_page_start():
-    for page in get_memory_map_raw():
+    for page in kernel_vmmap_pages():
         if page.start and pwndbg.aglib.memory.is_kernel(page.start):
             return page.start
     return INVALID_ADDR
@@ -95,7 +91,9 @@ class ArchPagingInfo:
         raise NotImplementedError()
 
     def kbase_helper(self, address):
-        for mapping in get_memory_map_raw():
+        if address is None:
+            return None
+        for mapping in kernel_vmmap_pages():
             # should be page aligned -- either from pt-dump or info mem
 
             # only search in kernel mappings:
@@ -200,7 +198,10 @@ class x86_64PagingInfo(ArchPagingInfo):
         try:
             target = self.physmap.to_bytes(8, byteorder="little")
             mapping = pwndbg.aglib.kernel.first_kernel_ro_page()
-            result = next(pwndbg.search.search(target, mappings=[mapping]), None)
+            result = next(
+                pwndbg.search.search(target, mappings=[mapping], aligned=pwndbg.aglib.arch.ptrsize),
+                None,
+            )
         except Exception as e:
             print(e)
             pass
@@ -215,18 +216,16 @@ class x86_64PagingInfo(ArchPagingInfo):
     def physmap(self):
         result = pwndbg.aglib.kernel.symbol.try_usymbol("page_offset_base")
         if result is None:
-            result = INVALID_ADDR
-            min = 0xFFFF888000000000 if self.paging_level == 4 else 0xFF11000000000000
-            for page in get_memory_map_raw():
-                if page.start and page.start >= min:
-                    result = page.start
-                    break
+            result = first_kernel_page_start()
         return result
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self):
-        return self.kbase_helper(pwndbg.aglib.kernel.get_idt_entries()[0].offset)
+        idt_entries = pwndbg.aglib.kernel.get_idt_entries()
+        if len(idt_entries) == 0:
+            return None
+        return self.kbase_helper(idt_entries[0].offset)
 
     @property
     def page_shift(self) -> int:
@@ -296,10 +295,10 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     def handle_kernel_pages(self, pages):
         kernel_idx = None
-        for i, page in enumerate(pages):
-            if kernel_idx is None and self.kbase in page:
-                kernel_idx = i
         kbase = self.kbase
+        for i, page in enumerate(pages):
+            if kernel_idx is None and kbase is not None and kbase in page:
+                kernel_idx = i
         if kernel_idx is None:
             return
         has_loadable_driver = False
@@ -390,22 +389,17 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def module_start(self):
-        # this is only used for marking the end of module_start
-        self.module_end = -1
+        if self.kbase is None:
+            return None
         res = None
-        for page in get_memory_map_raw():
+        for page in kernel_vmmap_pages()[::-1]:
             if page.start >= self.kbase:
+                continue
+            if page.start < self.vmalloc:
                 break
             if page.execute:
                 res = page.start
-        if res is None:
-            return INVALID_ADDR
-        prev = None
-        for page in get_memory_map_raw():
-            if page.start >= res:
-                if prev is not None and page.start > prev + 0x1000:
-                    break
-                prev = self.module_end = page.end
+                break
         return res
 
     def _PAGE_OFFSET(self, va):  # aka PAGE_START
@@ -547,7 +541,9 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 if value == 0xFFFFFFFFFFFFFFFF:
                     break
             return tuple(sections)
-        vmalloc_end = min(self.vmemmap, self.pci, self.fixmap)
+        vmalloc_end = None
+        if self.vmemmap and self.pci and self.fixmap:
+            vmalloc_end = min(self.vmemmap, self.pci, self.fixmap)
         return (
             (self.USERLAND, 0),
             (None, self.PAGE_OFFSET),
@@ -578,11 +574,13 @@ class Aarch64PagingInfo(ArchPagingInfo):
         return " ".join(name.strip().split()[:-1])
 
     def handle_kernel_pages(self, pages):
+        if self.kbase is None:
+            return
         for i in range(len(pages)):
             page = pages[i]
             if page.start > self.kbase + self.ksize:
                 continue
-            if self.module_start <= page.start < self.module_end:
+            if self.module_start and self.module_start <= page.start < self.kbase:
                 page.objfile = self.KERNELDRIVER
                 continue
             if page.start < self.kbase:

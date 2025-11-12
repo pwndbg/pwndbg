@@ -126,7 +126,7 @@ async def test_nearpc_opcode_bytes(ctrl: Controller, opcode_bytes: int) -> None:
     await ctrl.execute("nextsyscall")
 
     await ctrl.execute(f"set nearpc-num-opcode-bytes {opcode_bytes}")
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -155,7 +155,7 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
     await ctrl.execute("set nearpc-num-opcode-bytes 5")
     await ctrl.execute(f"set nearpc-opcode-separator-bytes {separator_bytes}")
 
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     excepted = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -187,7 +187,7 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     bp1 = pwndbg.dbg.selected_inferior().break_at(BreakpointLocation(start_base + 5))
     bp2 = pwndbg.dbg.selected_inferior().break_at(BreakpointLocation(start_base + 22))
 
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         " ► 0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "b+ 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -204,7 +204,7 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     await ctrl.step_instruction()
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     # When we stop on a breakpoint, we only highlight it (and not show the "b+" marker)
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
@@ -222,7 +222,7 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     await ctrl.step_instruction()
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "b+ 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -239,7 +239,7 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     bp1.set_enabled(False)
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -256,7 +256,7 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     bp1.set_enabled(True)
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "b+ 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -273,7 +273,7 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     bp1.remove()
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
@@ -290,7 +290,7 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     bp2.remove()
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"

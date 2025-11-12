@@ -93,10 +93,10 @@ async def test_emulate_disasm_loop(ctrl: Controller) -> None:
 def compare_output_emu(expected_output):
     from pwndbg.aglib.nearpc import nearpc
 
-    assert nearpc(emulate=True) == expected_output
+    assert nearpc(back_lines=5, total_lines=11, emulate=True) == expected_output
 
 
 def compare_output_without_emu(expected_output):
     from pwndbg.aglib.nearpc import nearpc
 
-    assert nearpc(linear=True) == expected_output
+    assert nearpc(back_lines=5, total_lines=11, linear=True) == expected_output

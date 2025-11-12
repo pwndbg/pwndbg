@@ -353,15 +353,30 @@ def one_with_config():
 
 # Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
-    address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False, linear=False
+    address,
+    forward_count: int = 1,
+    backward_count: int = 0,
+    total_count: int = None,
+    emulate=False,
+    show_prev_insns=True,
+    use_cache=False,
+    linear=False,
 ) -> Tuple[List[PwndbgInstruction], int]:
     """
-    Disasms instructions near given `address`. Passing `emulate` makes use of
+    Disassembles instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
     `show_prev_insns` makes this show previously cached instructions
 
     This allows us to maintain a context of surrounding instructions while
     single-stepping instructions.
+
+    Args:
+        forward_count: number of instructions forward from this instruction
+        backward_count: maximum number of previously executed instructions
+        total_count:
+            if set, returns a list with this many instructions in total.
+            The number of backward instructions is limited by `backward_count`.
+            If this is set, `forward_count` is ignored.
     """
 
     pc = pwndbg.aglib.regs.pc
@@ -411,7 +426,7 @@ def near(
 
     if show_prev_insns:
         insn = get_previous_instruction(current.address, use_cache=use_cache, linear=linear)
-        while insn is not None and len(insns) < instructions:
+        while insn is not None and len(insns) < backward_count:
             if DEBUG_ENHANCEMENT:
                 print(f"Got instruction from cache, addr={insn.address:#x}")
             if insn.jump_like and insn.split == SplitType.NO_SPLIT and not insn.causes_branch_delay:
@@ -421,8 +436,12 @@ def near(
             insn = get_previous_instruction(insn.address, use_cache=use_cache, linear=linear)
         insns.reverse()
 
-    index_of_current_instruction = len(insns)
+    if total_count is not None:
+        target_instruction_count = total_count
+    else:
+        target_instruction_count = len(insns) + forward_count
 
+    index_of_current_instruction = len(insns)
     insns.append(current)
 
     if DEBUG_ENHANCEMENT:
@@ -436,11 +455,10 @@ def near(
     next_addresses_cache.add(current.target)
 
     insn = current
-    total_instructions = 1 + (2 * instructions)
 
     last_emulated_thumb_bit_value: int | None = None
 
-    while insn and len(insns) < total_instructions:
+    while insn and len(insns) < target_instruction_count:
         target = insn.next if not linear else insn.address + insn.size
 
         # Emulation may have failed or been disabled in the last call to one()

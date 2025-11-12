@@ -34,6 +34,7 @@ class KernelVmmap:
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
         if self.pi:
             self.sections = self.pi.markers()
+        self.adjust()
 
     def get_name(self, addr: int) -> str:
         if addr is None or self.sections is None:
@@ -396,7 +397,16 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 )
 
 
-def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+@pwndbg.lib.cache.cache_until("stop")
+def kernel_vmmap_pages() -> Tuple[pwndbg.lib.memory.Page, ...]:
+    if kernel_vmmap_mode == "page-tables":
+        return kernel_vmmap_via_page_tables()
+    elif kernel_vmmap_mode == "monitor":
+        return kernel_vmmap_via_monitor_info_mem()
+    return ()
+
+
+def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -409,23 +419,16 @@ def kernel_vmmap(process_pages=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     ):
         return ()
 
-    pages = None
-    if kernel_vmmap_mode == "page-tables":
-        pages = kernel_vmmap_via_page_tables()
-    elif kernel_vmmap_mode == "monitor":
-        pages = kernel_vmmap_via_monitor_info_mem()
-    if pages is None:
-        return ()
-    if process_pages:
-        kv = KernelVmmap(pages)
-        kv.adjust()
-        if kernel_vmmap_mode == "monitor" and pwndbg.aglib.arch.name == "x86-64":
-            # TODO: check version here when QEMU displays the x bit for x64
-            for page in pages:
-                if page.objfile == kv.pi.ESPSTACK:
-                    continue
-                entry = pwndbg.aglib.kernel.pagewalk(page.start)[0].entry
-                if entry and entry >> 63 == 0:
-                    page.flags |= 1
+    pages = kernel_vmmap_pages()
+    kv = KernelVmmap(pages)
+    if kernel_vmmap_mode == "monitor" and pwndbg.aglib.arch.name == "x86-64":
+        # TODO: check version here when QEMU displays the x bit for x64
+        # see: https://github.com/pwndbg/pwndbg/pull/3020#issuecomment-2914573242
+        for page in pages:
+            if page.objfile == kv.pi.ESPSTACK:
+                continue
+            entry = pwndbg.aglib.kernel.pagewalk(page.start)[0].entry
+            if entry and entry >> 63 == 0:
+                page.flags |= 1
 
     return tuple(pages)

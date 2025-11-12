@@ -803,6 +803,17 @@ Max display size for heap chunks visualization (0 for display all).
 
 ----------
 
+## **nearpc-backwards-lines**
+
+
+Number of lines before the pc to print for the nearpc command.
+
+
+
+**Default:** 5  
+
+----------
+
 ## **nearpc-integration-comments**
 
 
@@ -817,7 +828,7 @@ Whether to show comments from integration provider.
 ## **nearpc-lines**
 
 
-Number of additional lines to print for the nearpc command.
+Number of lines to print for the nearpc command.
 
 
 

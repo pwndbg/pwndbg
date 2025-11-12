@@ -64,9 +64,6 @@ pwndbg.color.theme.add_param(
     "nearpc-breakpoint-prefix", "b+", "breakpoint marker for nearpc command"
 )
 pwndbg.config.add_param("left-pad-disasm", True, "whether to left-pad disassembly")
-nearpc_lines = pwndbg.config.add_param(
-    "nearpc-lines", 10, "number of additional lines to print for the nearpc command"
-)
 show_args = pwndbg.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
 )
@@ -90,7 +87,14 @@ opcode_separator_bytes = pwndbg.config.add_param(
 
 
 def nearpc(
-    pc: int = None, lines: int = None, emulate=False, repeat=False, use_cache=False, linear=False
+    pc: int = None,
+    lines: int = None,
+    back_lines: int = 0,
+    total_lines: int = None,
+    emulate=False,
+    repeat=False,
+    use_cache=False,
+    linear=False,
 ) -> List[str]:
     """
     Disassemble near a specified address.
@@ -110,20 +114,10 @@ def nearpc(
     if pc is not None:
         pc = pwndbg.dbg.selected_inferior().create_value(pc).cast(pwndbg.aglib.typeinfo.pvoid)
 
-    # Fix the case where we only have one argument, and
-    # it's a small value.
-    if lines is None and (pc is None or int(pc) < 0x100):
-        lines = pc
-        pc = None
-
     if pc is None:
         pc = pwndbg.aglib.regs.pc
 
-    if lines is None:
-        lines = nearpc_lines // 2
-
     pc = int(pc)
-    lines = int(lines)
 
     # Check whether we can even read this address
     if not pwndbg.aglib.memory.peek(pc):
@@ -146,7 +140,14 @@ def nearpc(
     #             pc_to_linenos[line.pc].append(line.line)
 
     instructions, index_of_pc = pwndbg.aglib.disasm.disassembly.near(
-        pc, lines, emulate=emulate, show_prev_insns=not repeat, use_cache=use_cache, linear=linear
+        pc,
+        forward_count=lines,
+        backward_count=back_lines,
+        total_count=total_lines,
+        emulate=emulate,
+        show_prev_insns=not repeat,
+        use_cache=use_cache,
+        linear=linear,
     )
 
     if pwndbg.aglib.memory.peek(pc) and not instructions:

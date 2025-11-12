@@ -105,6 +105,9 @@ class module(ModuleType):
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
     def read_reg(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
+        return self.read_reg_uncached(reg, frame)
+
+    def read_reg_uncached(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
         reg = reg.lstrip("$")
         try:
             value = get_register(reg, frame)

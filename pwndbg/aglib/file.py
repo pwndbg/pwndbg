@@ -82,10 +82,6 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         The local path to the file
     """
     has_target_prefix = path.startswith("target:")
-    has_good_prefix = path.startswith(("/", "./", "../")) or has_target_prefix
-    if not has_good_prefix:
-        raise OSError("get_file called with incorrect path", errno.ENOENT)
-
     if has_target_prefix:
         path = path[7:]  # len('target:') == 7
 

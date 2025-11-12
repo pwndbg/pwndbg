@@ -942,6 +942,7 @@ def load_commands() -> None:
     import pwndbg.commands.kdmabuf
     import pwndbg.commands.kdmesg
     import pwndbg.commands.klookup
+    import pwndbg.commands.kmem_trace
     import pwndbg.commands.kmod
     import pwndbg.commands.knft
     import pwndbg.commands.ksyscalls

@@ -287,6 +287,19 @@ class BreakpointAdapter(gdb.Breakpoint):
         return self.stop_handler()
 
 
+class FinishpointAdapter(gdb.FinishBreakpoint):
+    stop_handler: Callable[[], bool]
+
+    def __init__(self, stop_handler, internal):
+        super().__init__(gdb.newest_frame(), internal)
+        self.stop_handler = stop_handler
+
+    @override
+    def stop(self) -> bool:
+        result = self.stop_handler()
+        return result
+
+
 class GDBStopPoint(pwndbg.dbg_mod.StopPoint):
     inner: gdb.Breakpoint
     proc: GDBProcess
@@ -835,6 +848,15 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return sp
 
     @override
+    def trace_ret(self, stop_handler: Callable[[], bool] | None = None, internal: bool = False):
+        if stop_handler is None:
+
+            def stop_handler():
+                return True
+
+        FinishpointAdapter(stop_handler, internal)
+
+    @override
     def is_linux(self) -> bool:
         # Detect current ABI of client side by 'show osabi'
         #
@@ -982,6 +1004,10 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             gdb.execute(f"add-symbol-file {path}", to_string=True)
             return
         gdb.execute(f"add-symbol-file {path} {base}")
+
+    @override
+    def runcmd(self, cmd) -> str:
+        return gdb.execute(cmd, to_string=True)
 
 
 class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
@@ -1640,6 +1666,11 @@ class GDB(pwndbg.dbg_mod.Debugger):
             return pwndbg.gdblib.events.reg_changed
         elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
             raise RuntimeError("invalid usage, this event is not supported")
+
+    @override
+    @contextmanager
+    def ctx_suspend_once(self):
+        pwndbg.gdblib.prompt.context_shown = True
 
     @override
     def suspend_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
