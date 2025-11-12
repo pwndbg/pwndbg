@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.kernel.kallsyms
+import pwndbg.aglib.elf
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -38,7 +39,7 @@ def klookup(symbol: str, apply: bool) -> None:
         print(message.success(f"{sym_addr:#x} {sym_type} {sym_name}"))
 
     if apply:
-        path = pwndbg.commands.cymbol.create_blank_elf()
+        path = pwndbg.aglib.elf.create_blank_elf()
         if path is None:
             return
         try:
