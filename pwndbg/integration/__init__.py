@@ -6,6 +6,8 @@ https://github.com/mahaloz/decomp2dbg
 
 import os
 from typing import Optional
+from typing import Tuple
+import re
 import pwndbg
 from pwndbg.color import message
 import pwndbg.aglib
@@ -14,6 +16,8 @@ import xmlrpc
 from dataclasses import dataclass
 import xmlrpc.client
 from typing import Any, cast
+import pwndbg.commands
+import pwndbg.commands.cymbol
 
 
 # Note that XML RPC cannot send 64-bit ints (it is capped at 32 bits).
@@ -39,7 +43,7 @@ class FunctionHeader:
 @dataclass
 class FunctionHeaders:
     # The list is sorted by addr
-    func: list[FunctionHeader]
+    funcs: list[FunctionHeader]
 
 @dataclass
 class RegisterVariable:
@@ -240,7 +244,7 @@ class DecompilerConnection:
         reg_vars: list[RegisterVariable] = []
 
         for key, value in answer["stack_vars"]:
-            offset = int(key)
+            offset = int(key, 0)
             name = value["name"]
             type_ = value["type"]
             stack_vars.append(StackVariable(name=name, type=type_, offset=offset))
@@ -268,11 +272,11 @@ class DecompilerConnection:
         for key, value in answer:
             name: str = value["name"]  # type: ignore  # noqa: PGH003
             size_: int = value["size"] # type: ignore  # noqa: PGH003
-            addr: int = int(key)
+            addr: int = int(key, 0)
             functions.append(FunctionHeader(name=name, addr=addr, size=size_))
 
         functions = sorted(functions, key=lambda f: f.addr)
-        return FunctionHeaders(func=functions)
+        return FunctionHeaders(funcs=functions)
 
     def global_vars(self) -> Optional[GlobalVariables]:
         """
@@ -287,7 +291,7 @@ class DecompilerConnection:
         variables: list[GlobalVariable] = []
 
         for key, value in answer:
-            addr: int = int(key)
+            addr: int = int(key, 0)
             name: str = value["name"] # type: ignore  # noqa: PGH003
             variables.append(GlobalVariable(name=name, addr=addr))
 
@@ -339,6 +343,57 @@ class IntegrationManager:
 
         # Failed to connect.
         return None
+
+    def update_symbols(self, connection: DecompilerConnection) -> None:
+        """
+        Update global variables and functions in the debugger.
+        """
+
+        global_vars: Optional[GlobalVariables] = connection.global_vars()
+        func_headers: Optional[FunctionHeaders] = connection.function_headers()
+        # (name, address)
+        syms_to_add: list[Tuple[str, int]] = []
+        # To get rid of duplicates
+        sym_name_set: set = set()
+
+        if func_headers is not None:
+            for func in func_headers.funcs:
+                syms_to_add.append((func.name, func.addr))
+
+        if global_vars is not None:
+            for var in global_vars.vars:
+                clean_name = re.sub(r"[^a-zA-Z0-9_]", "_", var.name)
+                # never re-add globals with the same name as a func
+                if clean_name in sym_name_set:
+                    continue
+
+                syms_to_add.append((clean_name, var.addr))
+
+        if not syms_to_add:
+            return
+
+        path = pwndbg.commands.cymbol.create_blank_elf()
+        if path is None:
+            return
+
+        try:
+            # path is not None means lief is installed
+            import lief
+
+            symelf = lief.ELF.parse(path)
+            if symelf is None:
+                return
+
+            for sym_name, sym_addr in syms_to_add:
+                symelf.add_symtab_symbol(symelf.export_symbol(sym_name, sym_addr))
+
+            symelf.write(path)
+
+            if inf := pwndbg.dbg.selected_inferior():
+                inf.add_symbol_file(path)
+                print(message.success(f"Added {len(syms_to_add)} symbols"))
+        except Exception as e:
+            print(message.error(e))
 
 
 manager: IntegrationManager = IntegrationManager()
