@@ -16,8 +16,7 @@ import xmlrpc
 from dataclasses import dataclass
 import xmlrpc.client
 from typing import Any, cast
-import pwndbg.commands
-import pwndbg.commands.cymbol
+import pwndbg.aglib.elf
 
 
 # Note that XML RPC cannot send 64-bit ints (it is capped at 32 bits).
@@ -348,7 +347,6 @@ class IntegrationManager:
         """
         Update global variables and functions in the debugger.
         """
-
         global_vars: Optional[GlobalVariables] = connection.global_vars()
         func_headers: Optional[FunctionHeaders] = connection.function_headers()
         # (name, address)
@@ -372,7 +370,7 @@ class IntegrationManager:
         if not syms_to_add:
             return
 
-        path = pwndbg.commands.cymbol.create_blank_elf()
+        path = pwndbg.aglib.elf.create_blank_elf()
         if path is None:
             return
 
@@ -394,6 +392,71 @@ class IntegrationManager:
                 print(message.success(f"Added {len(syms_to_add)} symbols"))
         except Exception as e:
             print(message.error(e))
+
+
+    def _clean_type_str(self, type_str):
+        if "__" in type_str:
+            type_str = type_str.replace("__", "")
+            idx = type_str.find("[")
+            if idx != -1:
+                type_str = type_str[:idx] + "_t" + type_str[idx:]
+            else:
+                type_str += "_t"
+        type_str = type_str.replace("unsigned ", "u")
+
+        return type_str
+
+    def update_function_variables(self, connection: DecompilerConnection, addr: int) -> None:
+        """
+        Take the function at `addr` and update all the debugger convenience variables
+        that correspond to the function's variables.
+        """
+        maybe_func_data: Optional[FuncVariables] = connection.function_data(addr)
+        if maybe_func_data is None:
+            return
+
+        inf = pwndbg.dbg.selected_inferior()
+        if not inf:
+            return
+
+        func_data: FuncVariables = maybe_func_data
+
+        for reg_var in func_data.reg_vars:
+            cleaned_type: str = self._clean_type_str(reg_var.type)
+
+            try:
+                inf.set_convenience_var(reg_var.name, f"${reg_var.reg_name}", cleaned_type)
+                type_unknown = False
+            except Exception:
+                type_unknown = True
+
+            if type_unknown:
+                try:
+                    inf.set_convenience_var(reg_var.name, f"${reg_var.reg_name}", "void*")
+                except Exception:
+                    continue
+
+        for stack_var in func_data.stack_vars:
+            cleaned_type: str = self._clean_type_str(stack_var.type)
+            offset = stack_var.offset
+            frame = pwndbg.aglib.regs.frame
+            # FIXME: What is this???
+            if frame == "rbp":
+                offset -= 8
+            elif frame == "ebp":
+                offset -= 4
+
+            try:
+                inf.set_convenience_var(stack_var.name, f"${frame} - {offset}", cleaned_type)
+                type_unknown = False
+            except Exception:
+                type_unknown = True
+
+            if type_unknown:
+                try:
+                    inf.set_convenience_var(stack_var.name, f"${frame} - {offset}", "void*")
+                except Exception:
+                    continue
 
 
 manager: IntegrationManager = IntegrationManager()
