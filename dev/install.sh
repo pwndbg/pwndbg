@@ -137,8 +137,12 @@ else
             ${*}
         }
     else
-        echoinfo "Requesting 'sudo' privileges. You may be prompted for your password..."
-        sudo -v
+        # Before prompting, check if the user can run sudo without password,
+        # or if the credentials are already cached
+        if ! sudo -n true 2> /dev/null; then
+            echoinfo "Requesting 'sudo' privileges. You may be prompted for your password..."
+            sudo -v
+        fi
     fi
 fi
 
