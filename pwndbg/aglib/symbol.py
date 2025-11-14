@@ -113,4 +113,6 @@ def resolve_addr(addr: int) -> str | None:
     if symbol_name:
         return symbol_name
 
-    return pwndbg.integration.provider.get_symbol(addr)
+    return None
+    # FIXME
+    # return pwndbg.integration.provider.get_symbol(addr)

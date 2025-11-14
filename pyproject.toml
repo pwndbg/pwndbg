@@ -31,6 +31,7 @@ dependencies = [
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
     # It is only used for the 'cymbol' command and some `asm` functionality.
     "ziglang==0.14.1",
+    "decomp2dbg",
 ]
 
 [project.optional-dependencies]
@@ -114,6 +115,7 @@ default-groups = []
 
 [tool.uv.sources]
 pt = { git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e94027f811a15879588de6d5cb" }
+decomp2dbg = { git = "https://github.com/k4lizen/decomp2dbg", rev = "e9ed300adb38976f788e6d63c9a2bfbac99605dd" }
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = [

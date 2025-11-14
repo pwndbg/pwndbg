@@ -1,44 +1,47 @@
-from __future__ import annotations
-
 import argparse
-
-import pwndbg.aglib.regs
+import pwndbg
 import pwndbg.commands
-import pwndbg.integration
-from pwndbg.commands import CommandCategory
+import os
+import shutil
+from pathlib import Path
 
-parser = argparse.ArgumentParser(
-    description="Use the current integration to decompile code near an address."
-)
+def decomp2dbg_path() -> Path:
+    """
+    Returns the absolute path to the directory where decomp2dbg is installed.
 
-parser.add_argument(
-    "addr",
-    type=pwndbg.commands.sloppy_gdb_parse,
-    nargs="?",
-    default=None,
-    help="Address to decompile near.",
-)
-parser.add_argument(
-    "lines",
-    type=int,
-    nargs="?",
-    default=None,
-    help="Number of lines of decompilation to show.",
-)
+    If Pwndbg is installed from source this will be
+    /path/to/pwndbg/.venv/lib/python3.13/site-packages/decomp2dbg.
+    """
+    import decomp2dbg
+    return Path(decomp2dbg.__file__).parent.resolve()
 
 
-@pwndbg.commands.Command(
-    parser,
-    category=CommandCategory.INTEGRATIONS,
-)
-@pwndbg.commands.OnlyWhenRunning
-def decomp(addr: None | int, lines: None | int) -> None:
-    if addr is None:
-        addr = pwndbg.aglib.regs.pc
-    if lines is None:
-        lines = 10
-    decomp = pwndbg.integration.provider.decompile(int(addr), int(lines))
-    if decomp is None:
-        print("Could not retrieve decompilation.")
-    else:
-        print("\n".join(decomp))
+
+parser = argparse.ArgumentParser(description="Install/update the Ida integration plugin.")
+
+@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS)
+def install_ida_integration() -> None:
+    ida_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_ida"
+    ida_plugin_destination: Path = Path.home() / ".idapro/plugins/"
+
+    # Ensure it exists
+    ida_plugin_destination.mkdir(parents=True, exist_ok=True)
+
+    # symlink would be better but whatever
+    print(f"Copying contents of\n {ida_plugin_path}\ninto\n {ida_plugin_destination}")
+    shutil.copytree(ida_plugin_path, ida_plugin_destination, dirs_exist_ok=True)
+
+
+parser = argparse.ArgumentParser(description="Install/update the Binary Ninja integration plugin.")
+
+@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS)
+def install_binja_integration() -> None:
+    binja_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_binja"
+    binja_plugin_destination: Path = Path.home() / ".binaryninja/plugins/d2d_binja"
+
+    # Ensure it exists
+    binja_plugin_destination.mkdir(parents=True, exist_ok=True)
+
+    # symlink would be better but whatever
+    print(f"Copying\n {binja_plugin_path}\nto\n {binja_plugin_destination}")
+    shutil.copytree(binja_plugin_path, binja_plugin_destination, dirs_exist_ok=True)

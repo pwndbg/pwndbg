@@ -329,14 +329,14 @@ def nearpc(
         # mem_access was on this list, but not used due to the `and False` in the code that sets it above
         line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
-        if show_comments:
+        # if show_comments:
             # Pull comments from integration if possible
-            result += [
-                " "
-                * (len(pwndbg.color.unstylize(line)) - len(pwndbg.color.unstylize(asm).lstrip()))
-                + c.integration_comments(x)
-                for x in pwndbg.integration.provider.get_comment_lines(instr.address)
-            ]
+            # result += [
+            #     " "
+            #     * (len(pwndbg.color.unstylize(line)) - len(pwndbg.color.unstylize(asm).lstrip()))
+            #     + c.integration_comments(x)
+            #     for x in pwndbg.integration.provider.get_comment_lines(instr.address)
+            # ]
 
         # For Comment Function
         try:

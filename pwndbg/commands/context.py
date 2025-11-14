@@ -1218,17 +1218,21 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
         )
         return bannerline + [f"In file: {filename}:{line}"] + formatted_source
 
-    if should_decompile:
-        # Will be None if decompilation fails
-        code = pwndbg.integration.provider.decompile(pwndbg.aglib.regs.pc, int(source_disasm_lines))
+    # FIXME:
+    return []
+    # should_decompile = False
+    # if should_decompile:
+    #     # Will be None if decompilation fails
+    #     print("hello?")
+    #     code = pwndbg.integration.provider.decompile(pwndbg.aglib.regs.pc, int(source_disasm_lines))
 
-        if code:
-            bannerline = (
-                [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
-            )
-            return bannerline + code
-        else:
-            return []
+    #     if code:
+    #         bannerline = (
+    #             [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
+    #         )
+    #         return bannerline + code
+    #     else:
+    #         return []
 
 
 stack_lines = pwndbg.config.add_param(

@@ -18,6 +18,7 @@ from typing import Sequence
 from typing import Tuple
 from typing import TypedDict
 from typing import TypeVar
+from typing import Optional
 
 import pwndbg.lib.memory
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
@@ -651,11 +652,12 @@ class Process:
         """
         raise NotImplementedError()
 
-    def set_convenience_var(self, name: str, value: str, type: str) -> None:
+    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
         """
         Set a convenience variable which will be accessible with $name in the
         debugger.
         """
+        # FIXME: is this actually tied to the lifetime of the process?
         raise NotImplementedError()
 
 

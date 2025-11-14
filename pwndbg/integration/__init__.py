@@ -242,13 +242,13 @@ class DecompilerConnection:
         stack_vars: list[StackVariable] = []
         reg_vars: list[RegisterVariable] = []
 
-        for key, value in answer["stack_vars"]:
+        for key, value in answer["stack_vars"].items():
             offset = int(key, 0)
             name = value["name"]
             type_ = value["type"]
             stack_vars.append(StackVariable(name=name, type=type_, offset=offset))
 
-        for key, value in answer["reg_vars"]:
+        for key, value in answer["reg_vars"].items():
             name = key
             reg_name = value["reg_name"]
             type_ = value["type"]
@@ -268,7 +268,7 @@ class DecompilerConnection:
 
         functions: list[FunctionHeader] = []
 
-        for key, value in answer:
+        for key, value in answer.items():
             name: str = value["name"]  # type: ignore  # noqa: PGH003
             size_: int = value["size"] # type: ignore  # noqa: PGH003
             addr: int = int(key, 0)
@@ -289,7 +289,7 @@ class DecompilerConnection:
 
         variables: list[GlobalVariable] = []
 
-        for key, value in answer:
+        for key, value in answer.items():
             addr: int = int(key, 0)
             name: str = value["name"] # type: ignore  # noqa: PGH003
             variables.append(GlobalVariable(name=name, addr=addr))

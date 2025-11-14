@@ -167,7 +167,7 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
     return mappings[i].start
 
 
-def named_region_start(mapping_name: str, exact_match: bool = False) -> int | None:
+def named_region_start(mapping_name: str, exact_match: bool = True) -> int | None:
     """
     Returns the lowest address which is mapped with `mapping_name`.
 
@@ -177,7 +177,8 @@ def named_region_start(mapping_name: str, exact_match: bool = False) -> int | No
 
     Will not invoke vmmap_explore.
 
-    If exact_match is True looks for exact path match, otherwise will match the os.path.basename.
+    If exact_match is True looks for exact path match, otherwise will match
+    the os.path.basename()s.
     """
     mappings = sorted(get(), key=lambda p: p.vaddr)
 
@@ -188,9 +189,10 @@ def named_region_start(mapping_name: str, exact_match: bool = False) -> int | No
 
         return None
     else:
+        # Note that os.path.basename("[heap]") == "[heap]".
+        mapping_basename = os.path.basename(mapping_name)
         for mapping in mappings:
-            # Note that os.path.basename("[heap]") == "[heap]".
-            if os.path.basename(mapping.objfile) == mapping_name:
+            if os.path.basename(mapping.objfile) == mapping_basename:
                 return mapping.start
 
         return None

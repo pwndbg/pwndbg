@@ -21,6 +21,7 @@ from typing import Literal
 from typing import Sequence
 from typing import Tuple
 from typing import TypeVar
+from typing import Optional
 
 import lldb
 from typing_extensions import override
@@ -1836,14 +1837,18 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return self.dbg._execute_lldb_command(cmd)
 
     @override
-    def set_convenience_var(self, name: str, value: str, type: str) -> None:
+    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
         """
         Set a convenience variable which will be accessible with $name in the
         debugger.
         """
         # https://stackoverflow.com/questions/11192511/does-lldb-have-convenience-variables-var
         # FIXME: Is there a nicer version through the API?
-        self.dbg._execute_lldb_command(f"expr {type} ${name} = {value}")
+        if type is not None:
+            self.dbg._execute_lldb_command(f"expr {type} ${name} = {value}")
+        else:
+            self.dbg._execute_lldb_command(f"expr auto ${name} = {value}")
+
 
 
 class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
