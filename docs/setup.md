@@ -12,6 +12,14 @@ Install via curl/sh (Linux/macOS)
 ```{.bash .copy}
 curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
 ```
+Install via GNU wget/sh (Linux/macOS)
+```{.bash .copy}
+wget --https-only --secure-protocol=TLSv1_2 -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+```
+Install via BusyBox wget/sh (Linux/macOS)
+```{.bash .copy}
+wget -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+```
 Install via Homebrew (macOS)
 ```{.bash .copy}
 brew install pwndbg/tap/pwndbg-gdb
