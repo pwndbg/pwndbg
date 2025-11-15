@@ -199,7 +199,7 @@ class DecompilerConnection:
 
     def decompile(self, mapped_addr: int) -> Optional[FuncDecompilationResult]:
         """
-        Returns the decompilation of the function which contains address `mapped_addr`.
+        See IntegrationManager.decompile() for the function description.
         """
         if self.binary_base_addr == -1:
             return None
@@ -219,15 +219,7 @@ class DecompilerConnection:
 
     def function_data(self, mapped_addr: int) -> Optional[FuncVariables]:
         """
-        Returns the variables of the function which contains address `mapped_addr`.
-
-        The "offset" field of the stack variables is poorly defined.
-
-        The register variables are quite best effort and do not actually take
-        the asked for address into account. In other words, the output for these
-        may be just plain wrong.
-
-        Function arguments are included in these variables.
+        See IntegrationManager.function_data() for the function description.
         """
         if self.binary_base_addr == -1:
             return None
@@ -258,8 +250,7 @@ class DecompilerConnection:
 
     def function_headers(self) -> Optional[FunctionHeaders]:
         """
-        Returns the name, address and size off all functions in the binary, sorted
-        by address.
+        See IntegrationManager.function_headers() for the function description.
         """
         if self.binary_base_addr == -1:
             return None
@@ -279,8 +270,7 @@ class DecompilerConnection:
 
     def global_vars(self) -> Optional[GlobalVariables]:
         """
-        Returns the name and address of all global variables in the binary, sorted
-        by address.
+        See IntegrationManager.global_vars() for the function description.
         """
         if self.binary_base_addr == -1:
             return None
@@ -315,19 +305,35 @@ class IntegrationManager:
     We can connect to only one decompiler at a time, and acknowledge only
     one file that decompiler is decompiling.
     (Could be relaxed in the future! Especially the latter.)
-    """
 
-    def connect(self, host: str, port: int) -> Optional[DecompilerConnection]:
+    All functions except connect() and disconnect() are no-op if we aren't
+    connected.
+    """
+    connection: Optional[DecompilerConnection]
+
+    def __init__(self) -> None:
+        self.connection = None
+
+    def connect(self, host: str, port: int) -> bool:
         """
-        Connects to the remote decompiler. Returns None if the connection fails.
+        Connects to the remote decompiler.
+
+        Always invalidates the previous connection. This manager
+        saves the new connection internally only if it succeeds.
+
+        Returns True if the connection succeeded, otherwise False.
         """
+
+        # Disconnect from previous connection
+        self.disconnect()
 
         # Create a decompiler server connection and test it
         try:
             server = xmlrpc.client.ServerProxy(f"http://{host}:{port}")
             server.ping()
             # Success!
-            return DecompilerConnection(server)
+            self.connection = DecompilerConnection(server)
+            return True
         except Exception:
             pass
 
@@ -336,19 +342,31 @@ class IntegrationManager:
             server = xmlrpc.client.ServerProxy(f"http://{host}:{port}").d2d
             server.ping()
             # Success!
-            return DecompilerConnection(server)
+            self.connection = DecompilerConnection(server)
+            return True
         except (ConnectionRefusedError, AttributeError):
             pass
 
         # Failed to connect.
-        return None
+        return False
 
-    def update_symbols(self, connection: DecompilerConnection) -> None:
+    def disconnect(self) -> None:
+        if self.connection is not None:
+            self.connection.disconnect()
+            self.connection = None
+
+    def is_connected(self) -> bool:
+        return self.connection is not None
+
+    def update_symbols(self) -> None:
         """
         Update global variables and functions in the debugger.
         """
-        global_vars: Optional[GlobalVariables] = connection.global_vars()
-        func_headers: Optional[FunctionHeaders] = connection.function_headers()
+        if self.connection is None:
+            return
+
+        global_vars: Optional[GlobalVariables] = self.connection.global_vars()
+        func_headers: Optional[FunctionHeaders] = self.connection.function_headers()
         # (name, address)
         syms_to_add: list[Tuple[str, int]] = []
         # To get rid of duplicates
@@ -394,7 +412,7 @@ class IntegrationManager:
             print(message.error(e))
 
 
-    def _clean_type_str(self, type_str):
+    def _clean_type_str(self, type_str: str) -> str:
         if "__" in type_str:
             type_str = type_str.replace("__", "")
             idx = type_str.find("[")
@@ -406,12 +424,15 @@ class IntegrationManager:
 
         return type_str
 
-    def update_function_variables(self, connection: DecompilerConnection, addr: int) -> None:
+    def update_function_variables(self, addr: int) -> None:
         """
         Take the function at `addr` and update all the debugger convenience variables
         that correspond to the function's variables.
         """
-        maybe_func_data: Optional[FuncVariables] = connection.function_data(addr)
+        if self.connection is None:
+            return
+
+        maybe_func_data: Optional[FuncVariables] = self.connection.function_data(addr)
         if maybe_func_data is None:
             return
 
@@ -457,6 +478,53 @@ class IntegrationManager:
                     inf.set_convenience_var(stack_var.name, f"${frame} - {offset}", "void*")
                 except Exception:
                     continue
+
+    # == Direct passthrough to the connection ==
+
+    def decompile(self, mapped_addr: int) -> Optional[FuncDecompilationResult]:
+        """
+        Returns the decompilation of the function which contains address `mapped_addr`.
+        """
+        if self.connection is not None:
+            return self.connection.decompile(mapped_addr)
+
+    def function_data(self, mapped_addr: int) -> Optional[FuncVariables]:
+        """
+        Returns the variables of the function which contains address `mapped_addr`.
+
+        The "offset" field of the stack variables is poorly defined.
+
+        The register variables are quite best effort and do not actually take
+        the asked for address into account. In other words, the output for these
+        may be just plain wrong.
+
+        Function arguments are included in these variables.
+        """
+        if self.connection is not None:
+            return self.connection.function_data(mapped_addr)
+
+    def function_headers(self) -> Optional[FunctionHeaders]:
+        """
+        Returns the name, address and size off all functions in the binary, sorted
+        by address.
+        """
+        if self.connection is not None:
+            return self.connection.function_headers()
+
+    def global_vars(self) -> Optional[GlobalVariables]:
+        """
+        Returns the name and address of all global variables in the binary, sorted
+        by address.
+        """
+        if self.connection is not None:
+            return self.connection.global_vars()
+
+    def structs(self):
+        raise NotImplementedError()
+
+    def breakpoints(self):
+        raise NotImplementedError()
+
 
 
 manager: IntegrationManager = IntegrationManager()

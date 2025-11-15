@@ -1,6 +1,7 @@
 import argparse
 import pwndbg
 import pwndbg.commands
+import pwndbg.integration
 import os
 import shutil
 from pathlib import Path
@@ -45,3 +46,8 @@ def install_binja_integration() -> None:
     # symlink would be better but whatever
     print(f"Copying\n {binja_plugin_path}\nto\n {binja_plugin_destination}")
     shutil.copytree(binja_plugin_path, binja_plugin_destination, dirs_exist_ok=True)
+
+
+@pwndbg.commands.Command("Connect to the decompiler", category=pwndbg.commands.CommandCategory.INTEGRATIONS)
+def decompiler_connect() -> None:
+    pwndbg.integration.manager.connect("localhost", 3662)
