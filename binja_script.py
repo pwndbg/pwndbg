@@ -30,8 +30,6 @@ ENVIRONMENT_PORT_VARIABLE = "PWNDBG_BINJA_SERVER_PORT"
 SETTING_KEY_PORT = 'pwndbg.port'
 
 
-host = os.environ.get(ENVIRONMENT_HOST_VARIABLE, DEFAULT_HOST)
-port = int(os.environ.get(ENVIRONMENT_PORT_VARIABLE, str(DEFAULT_PORT)))
 
 logger = binaryninja.log.Logger(0, "pwndbg-integration")
 
@@ -68,7 +66,23 @@ def plugin_register_settings():
     }
     plugin_settings.register_setting(SETTING_KEY_PORT, json.dumps(props_port))
 
+def read_host_port() -> Tuple[str, int]:
+    """
+    Reads the host and port value.
+    Retrieves from the settings. To ensure backward-compatibility, if the settings use the default value,
+    tries to read from the environment variable
 
+    Returns the tuple (host, port).
+    """
+
+    host = Settings().get_string(SETTING_KEY_HOST)
+    if host == DEFAULT_HOST:
+        host = os.environ.get(ENVIRONMENT_HOST_VARIABLE, DEFAULT_HOST)
+
+    port = Settings().get_integer(SETTING_KEY_PORT)
+    if port == DEFAULT_PORT:
+        port = int(os.environ.get(ENVIRONMENT_PORT_VARIABLE, str(DEFAULT_PORT)))
+    return host, port
 
 class CustomLogHandler(SimpleXMLRPCRequestHandler):
     def log_message(self, format: str, *args: Any):
@@ -419,6 +433,7 @@ def start_server(bv: binaryninja.BinaryView) -> None:
     handler = ServerHandler(bv)
     handler.init()
 
+    host, port = read_host_port()
     server = SimpleXMLRPCServer((host, port), requestHandler=CustomLogHandler, allow_none=True)
     server.register_introspection_functions()
 
