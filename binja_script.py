@@ -20,9 +20,13 @@ from binaryninja.enums import VariableSourceType
 xmlrpc.client.MAXINT = 10**100
 xmlrpc.client.MININT = -(10**100)
 
+DEFAULT_HOST = '127.0.0.1'
+ENVIRONMENT_HOST_VARIABLE = "PWNDBG_BINJA_SERVER_HOST"
+DEFAULT_PORT = 43717
+ENVIRONMENT_PORT_VARIABLE = "PWNDBG_BINJA_SERVER_PORT"
 
-host = os.environ.get("PWNDBG_BINJA_SERVER_HOST", "127.0.0.1")
-port = int(os.environ.get("PWNDBG_BINJA_SERVER_PORT", "43717"))
+host = os.environ.get(ENVIRONMENT_HOST_VARIABLE, DEFAULT_HOST)
+port = int(os.environ.get(ENVIRONMENT_PORT_VARIABLE, str(DEFAULT_PORT)))
 
 logger = binaryninja.log.Logger(0, "pwndbg-integration")
 
