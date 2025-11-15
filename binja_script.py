@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+import json
 import os
 import sys
 import threading
@@ -11,27 +12,26 @@ from typing import List
 from typing import Tuple
 from xmlrpc.server import SimpleXMLRPCRequestHandler
 from xmlrpc.server import SimpleXMLRPCServer
-import json
 
 import binaryninja
-from binaryninja.settings import Settings
 from binaryninja.enums import RegisterValueType
 from binaryninja.enums import VariableSourceType
+from binaryninja.settings import Settings
 
 # Allow large integers to be transmitted
 xmlrpc.client.MAXINT = 10**100
 xmlrpc.client.MININT = -(10**100)
 
-DEFAULT_HOST = '127.0.0.1'
+DEFAULT_HOST = "127.0.0.1"
 ENVIRONMENT_HOST_VARIABLE = "PWNDBG_BINJA_SERVER_HOST"
-SETTING_KEY_HOST = 'pwndbg.host'
+SETTING_KEY_HOST = "pwndbg.host"
 DEFAULT_PORT = 43717
 ENVIRONMENT_PORT_VARIABLE = "PWNDBG_BINJA_SERVER_PORT"
-SETTING_KEY_PORT = 'pwndbg.port'
-
+SETTING_KEY_PORT = "pwndbg.port"
 
 
 logger = binaryninja.log.Logger(0, "pwndbg-integration")
+
 
 def plugin_register_settings():
     """
@@ -39,32 +39,35 @@ def plugin_register_settings():
     One for the host, one for the port.
     The default values ensure backward-compatibility.
     """
-    plugin_settings = Settings('default')
-    plugin_settings.register_group("pwndbg", 'pwndbg integration')
+    plugin_settings = Settings("default")
+    plugin_settings.register_group("pwndbg", "pwndbg integration")
     props_host = {
-        'title': "host",
-        'description':
-            'IP the XML-RPC server hosted in Binja will listen to.<br/>'
-            f'If you run pwndbg on your host, this value is likely to be {DEFAULT_HOST}<br/>'
-            'Ifyou run pwndbg on an other machine/VM, this value will be the IP of your machine running Binja on the network running the machine.<br/>'
-            'Please note that if you change this value, you probably have complex setup. So you will probably have to also change the IP of the'
-            'XML-RPC provider in you pwndbg instance (with `set bn-rpc-host IP_OF_BINJA_MACHINE`)<br/>',
-        'type':'string',
-        'default': DEFAULT_HOST,
-        'ignore': ['SettingsProjectScope', 'SettingsResourceScope'] # as per setting module documentation: if not related to analysis, ignore.
+        "title": "host",
+        "description": "IP the XML-RPC server hosted in Binja will listen to.<br/>"
+        f"If you run pwndbg on your host, this value is likely to be {DEFAULT_HOST}<br/>"
+        "Ifyou run pwndbg on an other machine/VM, this value will be the IP of your machine running Binja on the network running the machine.<br/>"
+        "Please note that if you change this value, you probably have complex setup. So you will probably have to also change the IP of the"
+        "XML-RPC provider in you pwndbg instance (with `set bn-rpc-host IP_OF_BINJA_MACHINE`)<br/>",
+        "type": "string",
+        "default": DEFAULT_HOST,
+        "ignore": [
+            "SettingsProjectScope",
+            "SettingsResourceScope",
+        ],  # as per setting module documentation: if not related to analysis, ignore.
     }
     plugin_settings.register_setting(SETTING_KEY_HOST, json.dumps(props_host))
 
     props_port = {
-        'title': 'port',
-        'description': 'Port of the XML-RPC server hosted in Binja',
-        'type': 'number',
-        'minValue': 0,  # Force unsigned
-        'maxValue': 65535,
-        'default': DEFAULT_PORT,
-        'ignore': ['SettingsProjectScope', 'SettingsResourceScope']
+        "title": "port",
+        "description": "Port of the XML-RPC server hosted in Binja",
+        "type": "number",
+        "minValue": 0,  # Force unsigned
+        "maxValue": 65535,
+        "default": DEFAULT_PORT,
+        "ignore": ["SettingsProjectScope", "SettingsResourceScope"],
     }
     plugin_settings.register_setting(SETTING_KEY_PORT, json.dumps(props_port))
+
 
 def read_host_port() -> Tuple[str, int]:
     """
@@ -83,6 +86,7 @@ def read_host_port() -> Tuple[str, int]:
     if port == DEFAULT_PORT:
         port = int(os.environ.get(ENVIRONMENT_PORT_VARIABLE, str(DEFAULT_PORT)))
     return host, port
+
 
 class CustomLogHandler(SimpleXMLRPCRequestHandler):
     def log_message(self, format: str, *args: Any):
