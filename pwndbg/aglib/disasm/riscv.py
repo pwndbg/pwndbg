@@ -6,6 +6,7 @@ from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
 from typing_extensions import override
 
+import pwndbg.integration
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.regs
@@ -178,7 +179,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 address = instruction.address + (right.before_value << 12)
 
             instruction.annotation = register_assign(
-                result_operand.str, MemoryColor.get_address_and_symbol(address)
+                result_operand.str, MemoryColor.get_address_and_symbol(address, pwndbg.integration.manager.get_all_stack_variables())
             )
 
     def _lui_annotator(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -189,7 +190,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 address = right.before_value << 12
 
             instruction.annotation = register_assign(
-                result_operand.str, MemoryColor.get_address_and_symbol(address)
+                result_operand.str, MemoryColor.get_address_and_symbol(address, pwndbg.integration.manager.get_all_stack_variables())
             )
 
     def _is_condition_taken(

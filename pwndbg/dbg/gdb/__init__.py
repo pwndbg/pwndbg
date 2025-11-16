@@ -176,16 +176,19 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
         import pwndbg.aglib.arch
 
-        try:
-            frame_txt: str = gdb.execute("info frame", to_string=True)
-            match = re.search(r"frame at (0x[0-9a-fA-F]+):", frame_txt)
-            if match:
-                frame_addr = int(match.group(1), 16)
-                # GDB for some reason returns one ptr past retaddr
-                return frame_addr - pwndbg.aglib.arch.ptrsize
-            return None
-        except Exception:
-            return None
+        # It is possible that self.inner is not the frame selected in the debugger, so we will save
+        # the selected frame, move gdb to this frame, do `info frame`, and then restore the selected frame.
+        with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
+            try:
+                frame_txt: str = gdb.execute("info frame", to_string=True)
+                match = re.search(r"frame at (0x[0-9a-fA-F]+):", frame_txt)
+                if match:
+                    frame_addr = int(match.group(1), 16)
+                    # GDB for some reason returns one ptr past retaddr
+                    return frame_addr - pwndbg.aglib.arch.ptrsize
+                return None
+            except gdb.error as e:
+                raise pwndbg.dbg_mod.Error(e)
 
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:

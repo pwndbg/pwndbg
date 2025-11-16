@@ -393,6 +393,15 @@ class IntegrationManager:
     def __init__(self) -> None:
         self.connection = None
 
+        # The local caches, invalidated on disconnect/reconnect or user request.
+        # They MUST be None if self.connection is None.
+        self._function_headers: Optional[FunctionHeaders] = None
+        self._global_vars: Optional[GlobalVariables] = None
+
+    def invalidate_caches(self) -> None:
+        self._function_headers = None
+        self._global_vars = None
+
     def connect(self, host: str, port: int) -> bool:
         """
         Connects to the remote decompiler.
@@ -402,8 +411,7 @@ class IntegrationManager:
 
         Returns True if the connection succeeded, otherwise False.
         """
-
-        # Disconnect from previous connection
+        # Disconnect from previous connection. We also invalidate the cache here.
         self.disconnect()
 
         # Create a decompiler server connection and test it
@@ -430,6 +438,10 @@ class IntegrationManager:
         return False
 
     def disconnect(self) -> None:
+        # We don't want to keep the data from the previous session.
+        # FIXME: Ideally, we should also remove-symbol-file and delete the convenience variables.
+        self.invalidate_caches()
+
         if self.connection is not None:
             self.connection.disconnect()
             self.connection = None
@@ -448,8 +460,8 @@ class IntegrationManager:
         if self.connection is None or self.connection.binary_base_addr == -1:
             return
 
-        global_vars: Optional[GlobalVariables] = self.connection.global_vars()
-        func_headers: Optional[FunctionHeaders] = self.connection.function_headers()
+        global_vars: Optional[GlobalVariables] = self.global_vars()
+        func_headers: Optional[FunctionHeaders] = self.function_headers()
         # (name, address)
         syms_to_add: list[Tuple[str, int]] = []
         # To get rid of duplicates
@@ -529,6 +541,77 @@ class IntegrationManager:
             inf.set_convenience_var(name, value, "void*")
         except Exception:
             pass
+
+    def get_stack_vars_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> dict[int, str]:
+        """
+        Ask the decompiler for stack variable offsets in this frame and resolve
+        each variable to an actual address.
+
+        Returns:
+            A dictionary that maps (stack variable address) -> (stack variable name)
+            for all variables in the given frame.
+        """
+        if self.connection is None:
+            return {}
+
+        addr = frame.pc()
+
+        maybe_func_data: Optional[FuncVariables] = self.connection.function_data(addr)
+        if maybe_func_data is None:
+            return {}
+
+        inf = pwndbg.dbg.selected_inferior()
+        if not inf:
+            return {}
+
+        func_data: FuncVariables = maybe_func_data
+
+        result: dict[int, str] = {}
+
+        for stack_var in func_data.stack_vars:
+            from_sp: Optional[int] = stack_var.from_sp
+            from_frame: Optional[int] = stack_var.from_frame
+
+            if from_sp is not None and pwndbg.aglib.regs.stack is not None:
+                stack_addr = frame.regs().by_name(pwndbg.aglib.regs.stack)
+                if stack_addr:
+                    var_addr = int(stack_addr) + from_sp
+                    result[var_addr] = stack_var.name
+            elif from_frame is not None:
+                if (frame_start := frame.start()) is not None:
+                    var_addr = frame_start - from_frame
+                    result[var_addr] = stack_var.name
+
+        return result
+
+    def get_all_stack_variables(self) -> dict[int, str]:
+        """
+        Take all valid stack frames (from the whole backtrace), ask the decompiler to
+        figure out where they are, and map them to their actual addresses.
+
+        Returns:
+            A dictionary that maps (stack variable address) -> (stack variable name)
+            for all currently valid stack frames.
+        """
+        if self.connection is None:
+            return {}
+
+        thread = pwndbg.dbg.selected_thread()
+        if thread is None:
+            return {}
+
+        result: dict[int, str] = {}
+
+        with thread.bottom_frame() as bottom_frame:
+            cur_frame = bottom_frame
+            # Crawl up the stack
+            while cur_frame is not None:
+                cur_variables = self.get_stack_vars_from_frame(cur_frame)
+                # Merge dictionaries
+                result = result | cur_variables
+                cur_frame = cur_frame.parent()
+        
+        return result
 
     def update_function_variables(self, addr: int) -> None:
         """
@@ -693,16 +776,18 @@ class IntegrationManager:
         Returns the name, address and size off all functions in the binary, sorted
         by address.
         """
-        if self.connection is not None:
-            return self.connection.function_headers()
+        if self.connection is not None and self._function_headers is None:
+            self._function_headers = self.connection.function_headers()
+        return self._function_headers
 
     def global_vars(self) -> Optional[GlobalVariables]:
         """
         Returns the name and address of all global variables in the binary, sorted
         by address.
         """
-        if self.connection is not None:
-            return self.connection.global_vars()
+        if self.connection is not None and self._global_vars is None:
+            self._global_vars = self.connection.global_vars()
+        return self._global_vars
 
     def structs(self):
         raise NotImplementedError()

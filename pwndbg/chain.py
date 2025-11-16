@@ -142,8 +142,11 @@ def format(
     arrow_left = c.arrow(f" {config_arrow_left} ")
     arrow_right = c.arrow(f" {config_arrow_right} ")
 
+    # Ask the decompiler to resolve stack variables
+    stack_vars = pwndbg.integration.manager.get_all_stack_variables()
+
     # Colorize the chain
-    rest = [M.get_address_and_symbol(addr) if addr >= 0 else "" for addr in chain]
+    rest = [M.get_address_and_symbol(addr, stack_vars) if addr >= 0 else "" for addr in chain]
 
     # If the dereference limit is zero, skip any enhancements.
     if limit == 0:

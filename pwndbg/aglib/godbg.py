@@ -28,6 +28,7 @@ import pwndbg.aglib.symbol
 import pwndbg.color.memory
 import pwndbg.hexdump
 import pwndbg.lib.cache
+import pwndbg.integration
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
 from pwndbg.color import theme
@@ -185,7 +186,7 @@ class FormatOpts:
         return f"\n{_indent(joined)}\n"
 
     def fmt_ptr(self, val: int) -> str:
-        return pwndbg.color.memory.get_address_and_symbol(val)
+        return pwndbg.color.memory.get_address_and_symbol(val, pwndbg.integration.manager.get_all_stack_variables())
 
 
 @dataclass
