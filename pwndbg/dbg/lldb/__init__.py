@@ -1848,19 +1848,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def runcmd(self, cmd) -> str:
         return self.dbg._execute_lldb_command(cmd)
 
-    @override
-    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
-        """
-        Set a convenience variable which will be accessible with $name in the
-        debugger.
-        """
-        # https://stackoverflow.com/questions/11192511/does-lldb-have-convenience-variables-var
-        # FIXME: Is there a nicer version through the API?
-        if type is not None:
-            self.dbg._execute_lldb_command(f"expr {type} ${name} = (({type})({value}))")
-        else:
-            self.dbg._execute_lldb_command(f"expr auto ${name} = ({value})")
-
 
 class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
     def __init__(self, handler_name: str, command_name: str):
@@ -2271,3 +2258,26 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     @override
     def set_python_diagnostics(self, enabled: bool) -> None:
         pass
+
+    @override
+    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
+
+        Read the docstring in pwndbg.dbg.set_convenience_var()!!
+
+        Surround this function with try/catch.
+        """
+        type = "void*"
+        try:
+            # https://stackoverflow.com/questions/11192511/does-lldb-have-convenience-variables-var
+            self._execute_lldb_command(f"expr {type} ${name} = (({type})({value}))")
+        except pwndbg.dbg_mod.Error as e:
+            if "redefinition" in str(e).lower():
+                # The variable is already defined with a set type, we can try to set the value
+                # anyway and hope for the best. The brackets are important.
+                self._execute_lldb_command(f"expr ${name} = (({type}){value})")
+            else:
+                raise e
+

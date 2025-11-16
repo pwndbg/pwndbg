@@ -526,20 +526,19 @@ class IntegrationManager:
 
         return type_str
 
-    def _try_setting_conv_var_with_type(
-        self, name: str, value: str, type: str, inf: pwndbg.dbg_mod.Process
-    ) -> None:
+    def _try_setting_conv_var_with_type(self, name: str, value: str, type: str) -> None:
         """
-        Try setting a convenience variable with a type. If it fails try with void* . If that fails as well thats okay.
+        Try setting a convenience variable with a type. If it fails try with void* .
+        If that fails as well, thats okay, you can't win them all.
         """
         try:
-            inf.set_convenience_var(name, value, type)
+            pwndbg.dbg.set_convenience_var(name, value, type)
             return
         except Exception:
             pass
 
         try:
-            inf.set_convenience_var(name, value, "void*")
+            pwndbg.dbg.set_convenience_var(name, value, "void*")
         except Exception:
             pass
 
@@ -612,7 +611,7 @@ class IntegrationManager:
                 # Merge dictionaries
                 result = result | cur_variables
                 cur_frame = cur_frame.parent()
-        
+
         return result
 
     def update_function_variables(self, addr: int) -> None:
@@ -631,16 +630,12 @@ class IntegrationManager:
         if maybe_func_data is None:
             return
 
-        inf = pwndbg.dbg.selected_inferior()
-        if not inf:
-            return
-
         func_data: FuncVariables = maybe_func_data
 
         for reg_var in func_data.reg_vars:
             cleaned_type: str = self._clean_type_str(reg_var.type)
             self._try_setting_conv_var_with_type(
-                reg_var.name, f"${reg_var.reg_name}", cleaned_type, inf
+                reg_var.name, f"${reg_var.reg_name}", cleaned_type
             )
 
         for stack_var in func_data.stack_vars:
@@ -655,13 +650,13 @@ class IntegrationManager:
                 # We prefer sp-offseted variables because calculating their actual address will always work
                 var_addr = pwndbg.aglib.regs.sp + from_sp
                 self._try_setting_conv_var_with_type(
-                    stack_var.name, hex(var_addr), cleaned_type, inf
+                    stack_var.name, hex(var_addr), cleaned_type
                 )
             elif from_frame is not None and (frame := pwndbg.dbg.selected_frame()) is not None:
                 if (frame_start := frame.start()) is not None:
                     var_addr = frame_start - from_frame
                     self._try_setting_conv_var_with_type(
-                        stack_var.name, hex(var_addr), cleaned_type, inf
+                        stack_var.name, hex(var_addr), cleaned_type
                     )
 
     @staticmethod
