@@ -26,10 +26,10 @@ from typing import TypeVar
 import gdb
 from typing_extensions import ParamSpec
 from typing_extensions import Protocol
-import pwndbg.aglib.elf as elf
 
 import pwndbg
 import pwndbg.aglib.arch
+import pwndbg.aglib.elf as elf
 import pwndbg.commands
 import pwndbg.lib.config
 import pwndbg.lib.tempfile
@@ -105,6 +105,7 @@ def generate_debug_symbols(
         return None
 
     return pwndbg_debug_symbols_output_file
+
 
 def add_custom_structure(custom_structure_name: str, force=False):
     pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"

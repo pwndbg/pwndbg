@@ -14,11 +14,11 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Literal
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import TypedDict
 from typing import TypeVar
-from typing import Optional
 
 import pwndbg.lib.memory
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE

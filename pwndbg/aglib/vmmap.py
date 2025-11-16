@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import bisect
+import os
 from typing import Tuple
 
 import pwndbg
-import os
+import pwndbg.aglib
 import pwndbg.aglib.arch
+import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-import pwndbg.aglib
-import pwndbg.aglib.vmmap
 from pwndbg.dbg import MemoryMap
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.memory import Page

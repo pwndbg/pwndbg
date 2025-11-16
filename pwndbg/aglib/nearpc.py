@@ -330,13 +330,13 @@ def nearpc(
         line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
         # if show_comments:
-            # Pull comments from integration if possible
-            # result += [
-            #     " "
-            #     * (len(pwndbg.color.unstylize(line)) - len(pwndbg.color.unstylize(asm).lstrip()))
-            #     + c.integration_comments(x)
-            #     for x in pwndbg.integration.provider.get_comment_lines(instr.address)
-            # ]
+        # Pull comments from integration if possible
+        # result += [
+        #     " "
+        #     * (len(pwndbg.color.unstylize(line)) - len(pwndbg.color.unstylize(asm).lstrip()))
+        #     + c.integration_comments(x)
+        #     for x in pwndbg.integration.provider.get_comment_lines(instr.address)
+        # ]
 
         # For Comment Function
         try:

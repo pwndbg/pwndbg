@@ -9,13 +9,10 @@ working on a BSD system which simply does not have /proc.
 from __future__ import annotations
 
 import ctypes
-import subprocess
 import importlib
+import subprocess
 import sys
 import tempfile
-import pwndbg.lib
-import pwndbg.lib.zig
-import pwndbg.lib.config
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -38,9 +35,12 @@ import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.auxv
+import pwndbg.lib
 import pwndbg.lib.cache
+import pwndbg.lib.config
 import pwndbg.lib.elftypes
 import pwndbg.lib.memory
+import pwndbg.lib.zig
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 
@@ -500,6 +500,7 @@ gcc_compiler_path = pwndbg.config.add_param(
     "path to the gcc/g++ toolchain for generating imported symbols",
     param_class=pwndbg.lib.config.PARAM_OPTIONAL_FILENAME,
 )
+
 
 def compile_with_flags(gcc_extra_flags):
     if gcc_compiler_path != "":

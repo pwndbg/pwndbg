@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import argparse
+import shutil
+from pathlib import Path
+
 import pwndbg
-import pwndbg.commands
-import pwndbg.integration
 import pwndbg.aglib
 import pwndbg.aglib.regs
 import pwndbg.color.message as message
-import os
-import shutil
-from pathlib import Path
+import pwndbg.commands
+import pwndbg.integration
+
 
 def decomp2dbg_path() -> Path:
     """
@@ -17,11 +20,12 @@ def decomp2dbg_path() -> Path:
     /path/to/pwndbg/.venv/lib/python3.13/site-packages/decomp2dbg.
     """
     import decomp2dbg
+
     return Path(decomp2dbg.__file__).parent.resolve()
 
 
-
 parser = argparse.ArgumentParser(description="Install/update the Ida integration plugin.")
+
 
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS)
 def install_ida_integration() -> None:
@@ -38,6 +42,7 @@ def install_ida_integration() -> None:
 
 parser = argparse.ArgumentParser(description="Install/update the Binary Ninja integration plugin.")
 
+
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS)
 def install_binja_integration() -> None:
     binja_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_binja"
@@ -50,13 +55,19 @@ def install_binja_integration() -> None:
     print(f"Copying\n {binja_plugin_path}\nto\n {binja_plugin_destination}")
     shutil.copytree(binja_plugin_path, binja_plugin_destination, dirs_exist_ok=True)
 
-@pwndbg.commands.Command("Sync with the decompiler stuff", category=pwndbg.commands.CommandCategory.INTEGRATIONS)
+
+@pwndbg.commands.Command(
+    "Sync with the decompiler stuff", category=pwndbg.commands.CommandCategory.INTEGRATIONS
+)
 def decompiler_sync():
     pwndbg.integration.manager.update_symbols()
     if pwndbg.aglib.regs.pc is not None:
         pwndbg.integration.manager.update_function_variables(pwndbg.aglib.regs.pc)
 
-@pwndbg.commands.Command("Connect to the decompiler", category=pwndbg.commands.CommandCategory.INTEGRATIONS)
+
+@pwndbg.commands.Command(
+    "Connect to the decompiler", category=pwndbg.commands.CommandCategory.INTEGRATIONS
+)
 def decompiler_connect() -> None:
     ok = pwndbg.integration.manager.connect("localhost", 3662)
     if ok:

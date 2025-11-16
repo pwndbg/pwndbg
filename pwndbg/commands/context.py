@@ -1220,13 +1220,13 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
 
     if should_decompile and pwndbg.aglib.regs.pc is not None:
         # Will be None if we aren't connected or decompilation fails.
-        code: Optional[list[str]] = pwndbg.integration.manager.decompile_pretty(pwndbg.aglib.regs.pc, int(source_disasm_lines))
+        code: Optional[list[str]] = pwndbg.integration.manager.decompile_pretty(
+            pwndbg.aglib.regs.pc, int(source_disasm_lines)
+        )
         if code is None:
             return []
 
-        bannerline = (
-            [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
-        )
+        bannerline = [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
         return bannerline + code
 
 

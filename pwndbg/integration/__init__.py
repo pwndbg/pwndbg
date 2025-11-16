@@ -4,25 +4,29 @@ Provides decompiler integration by leveraging
 https://github.com/mahaloz/decomp2dbg
 """
 
+from __future__ import annotations
+
 import os
+import re
+import xmlrpc
+import xmlrpc.client
+from dataclasses import dataclass
+from typing import Any
+from typing import Optional
+from typing import Tuple
+from typing import cast
+
 from pygments import highlight
 from pygments.formatters import Terminal256Formatter
 from pygments.lexers import CppLexer
+
+import pwndbg
+import pwndbg.aglib
+import pwndbg.aglib.elf
+import pwndbg.aglib.vmmap
 import pwndbg.color.context
 import pwndbg.lib.pretty_print as pretty_print
-from typing import Optional
-from typing import Tuple
-import re
-import pwndbg
 from pwndbg.color import message
-import pwndbg.aglib
-import pwndbg.aglib.vmmap
-import xmlrpc
-from dataclasses import dataclass
-import xmlrpc.client
-from typing import Any, cast
-import pwndbg.aglib.elf
-
 
 # Note that XML RPC cannot send 64-bit ints (it is capped at 32 bits).
 # We hope that rebased integers will never be more than 32-bits. If need be,
@@ -332,6 +336,7 @@ class DecompilerConnection:
 
     # ================
 
+
 # For highlighting the decompilation
 _lexer = CppLexer()
 _formatter = Terminal256Formatter(style="monokai")
@@ -586,9 +591,10 @@ class IntegrationManager:
         decomp: list[str] = []
         curr_line = func_decomp.curr_line
 
-
         if not pwndbg.config.disable_colors and pwndbg.config.highlight_source:
-            decomp = highlight("\n".join(func_decomp.decompilation), _lexer, _formatter).splitlines()
+            decomp = highlight(
+                "\n".join(func_decomp.decompilation), _lexer, _formatter
+            ).splitlines()
         else:
             decomp = func_decomp.decompilation
 
@@ -602,7 +608,9 @@ class IntegrationManager:
             # This is most likely whitespace
             first_normal = pure_curr_line[0]
             barrier = decomp[curr_line].index(first_normal)
-            decomp[curr_line] = decomp[curr_line][0:barrier] + prefix_sign + decomp[curr_line][(barrier+1):]
+            decomp[curr_line] = (
+                decomp[curr_line][0:barrier] + prefix_sign + decomp[curr_line][(barrier + 1) :]
+            )
 
         if nlines == -1:
             return decomp

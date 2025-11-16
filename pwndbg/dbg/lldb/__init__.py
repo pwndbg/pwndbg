@@ -18,10 +18,10 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Literal
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import TypeVar
-from typing import Optional
 
 import lldb
 from typing_extensions import override
@@ -240,6 +240,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
     @override
     def start(self) -> Optional[int]:
         import pwndbg.aglib.arch
+
         # https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.GetCFA
         val = self.inner.GetCFA()
         if val == lldb.LLDB_INVALID_ADDRESS:
@@ -1859,7 +1860,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             self.dbg._execute_lldb_command(f"expr {type} ${name} = (({type})({value}))")
         else:
             self.dbg._execute_lldb_command(f"expr auto ${name} = ({value})")
-
 
 
 class LLDBCommand(pwndbg.dbg_mod.CommandHandle):

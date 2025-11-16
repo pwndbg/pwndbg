@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.aglib.kernel.kallsyms
 import pwndbg.aglib.elf
+import pwndbg.aglib.kernel.kallsyms
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
