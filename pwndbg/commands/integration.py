@@ -10,6 +10,7 @@ import pwndbg.aglib.regs
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.integration
+from typing import Optional
 from pwndbg.commands import CommandCategory
 
 
@@ -79,6 +80,33 @@ def dc_connect() -> None:
 
 
 parser = argparse.ArgumentParser(
+    description="Jump to address in the decompiler"
+)
+
+parser.add_argument(
+    "addr",
+    type=pwndbg.commands.sloppy_gdb_parse,
+    nargs="?",
+    default=None,
+    help="Address to jump to. (default: pc)",
+)
+
+@pwndbg.commands.Command(
+    parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS
+)
+def dc_jump(addr: Optional[int]) -> None:
+    if addr is None:
+        if pwndbg.aglib.regs.pc is None:
+            print("Address not specified, and could not find PC.")
+            return
+        addr = pwndbg.aglib.regs.pc
+
+    ok = pwndbg.integration.manager.focus_address(addr)
+    if not ok:
+        print("Decompiler failed to jump.")
+
+
+parser = argparse.ArgumentParser(
     description="Use the current integration to decompile code near an address."
 )
 
@@ -100,7 +128,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.INTEGRATIONS)
 @pwndbg.commands.OnlyWhenRunning
-def decomp(addr: None | int, lines: int) -> None:
+def decomp(addr: Optional[int], lines: int) -> None:
     if addr is None:
         if pwndbg.aglib.regs.pc is None:
             print("Address not specified, and could not find PC.")

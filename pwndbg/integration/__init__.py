@@ -340,8 +340,6 @@ class DecompilerConnection:
         variables = sorted(variables, key=lambda v: v.addr)
         return GlobalVariables(vars=variables)
 
-    # .binary_path and .versions are properties rather than functions
-
     def structs(self):
         # return self.server.structs()
         raise NotImplementedError()
@@ -349,6 +347,26 @@ class DecompilerConnection:
     def breakpoints(self):
         # return self.server.breakpoints()
         raise NotImplementedError()
+
+    # .binary_path and .versions are properties rather than functions
+
+    def focus_address(self, mapped_addr: int) -> Optional[bool]:
+        """
+        See IntegrationManager.focus_address() for the function description.
+        """
+
+        if self.binary_base_addr == -1:
+            return None
+
+        rel_addr = self.addr_to_relative(mapped_addr)
+
+        if rel_addr < xmlrpc.client.MININT or rel_addr > xmlrpc.client.MAXINT:
+            # The user probably provided an address outside of the mappings of the
+            # binary being decompiled.
+            return None
+        
+        answer: bool = cast(bool, self.server.focus_address(rel_addr))
+        return answer
 
     # ================
 
@@ -691,6 +709,16 @@ class IntegrationManager:
 
     def breakpoints(self):
         raise NotImplementedError()
+
+    def focus_address(self, mapped_addr: int) -> bool:
+        """
+        Focus (jump to) this address in the decompiler.
+        """
+        if self.connection is not None:
+            ans = self.connection.focus_address(mapped_addr)
+            return ans if ans is not None else False
+        else:
+            return False
 
 
 manager: IntegrationManager = IntegrationManager()
