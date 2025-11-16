@@ -235,6 +235,13 @@ class Frame:
         """
         raise NotImplementedError()
 
+    def start(self) -> Optional[int]:
+        """
+        The start (highest) address of this frame. The return address
+        is usually here.
+        """
+        raise NotImplementedError()
+
     def parent(self) -> Frame | None:
         """
         The parent frame of this frame, if it exists.

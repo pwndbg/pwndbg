@@ -57,10 +57,14 @@ class StackVariable:
     # E.g. Ida's __int64 and other MSVCisms. Can also be something
     # non-obvious like "void (*)()".
     type: str
-    # Offset to the frame pointer.
-    # If the function doesn't have a frame or the architecture doesn't
-    # have a well defined frame pointer, this field can contain whatever.
-    offset: int
+    # == One of the the following two offsets is guaranteed to be non-None
+    # The decompiler plugin code regarding this is touchy, may not always be
+    # valid.
+    # The offset of the variable's address from the stack pointer. Positive number.
+    from_sp: Optional[int]
+    # The offset of the variable's address to the beginning of the stack frame
+    # (which usually contains the saved return address). Positive number.
+    from_frame: Optional[int]
 
 @dataclass
 class FuncVariables:
@@ -234,16 +238,21 @@ class DecompilerConnection:
         stack_vars: list[StackVariable] = []
         reg_vars: list[RegisterVariable] = []
 
-        for key, value in answer["stack_vars"].items():
-            offset = int(key, 0)
-            name = value["name"]
-            type_ = value["type"]
-            stack_vars.append(StackVariable(name=name, type=type_, offset=offset))
+        for svar in answer["stack_vars"]:
+            name = svar["name"]
+            type_ = svar["type"]
+            # .get() is needed because of ghidra
+            from_sp_str: Optional[str] = svar.get("from_sp")
+            from_frame_str: Optional[str] = svar.get("from_frame")
+            from_sp: Optional[int] = int(from_sp_str, 0) if from_sp_str is not None else None
+            from_frame: Optional[int] = int(from_frame_str, 0) if from_frame_str is not None else None
 
-        for key, value in answer["reg_vars"].items():
-            name = key
-            reg_name = value["reg_name"]
-            type_ = value["type"]
+            stack_vars.append(StackVariable(name=name, type=type_, from_sp=from_sp, from_frame=from_frame))
+
+        for rvar in answer["reg_vars"]:
+            name = rvar["name"]
+            type_ = rvar["type"]
+            reg_name = rvar["reg_name"]
             reg_vars.append(RegisterVariable(name=name, type=type_, reg_name=reg_name))
 
         return FuncVariables(stack_vars=stack_vars, reg_vars=reg_vars)
@@ -413,6 +422,9 @@ class IntegrationManager:
 
 
     def _clean_type_str(self, type_str: str) -> str:
+        # FIXME:
+        # 1. this is too aggressive
+        # 2. if we start adding types to the debugger then it doesn't matter
         if "__" in type_str:
             type_str = type_str.replace("__", "")
             idx = type_str.find("[")
@@ -423,6 +435,21 @@ class IntegrationManager:
         type_str = type_str.replace("unsigned ", "u")
 
         return type_str
+
+    def _try_setting_conv_var_with_type(self, name: str, value: str, type: str, inf: pwndbg.dbg_mod.Process) -> None:
+        """
+        Try setting a convenience variable with a type. If it fails try with void* . If that fails as well thats okay.
+        """
+        try:
+            inf.set_convenience_var(name, value, type)
+            return
+        except Exception:
+            pass
+
+        try:
+            inf.set_convenience_var(name, value, "void*")
+        except Exception:
+            pass
 
     def update_function_variables(self, addr: int) -> None:
         """
@@ -444,40 +471,24 @@ class IntegrationManager:
 
         for reg_var in func_data.reg_vars:
             cleaned_type: str = self._clean_type_str(reg_var.type)
-
-            try:
-                inf.set_convenience_var(reg_var.name, f"${reg_var.reg_name}", cleaned_type)
-                type_unknown = False
-            except Exception:
-                type_unknown = True
-
-            if type_unknown:
-                try:
-                    inf.set_convenience_var(reg_var.name, f"${reg_var.reg_name}", "void*")
-                except Exception:
-                    continue
+            self._try_setting_conv_var_with_type(reg_var.name, f"${reg_var.reg_name}", cleaned_type, inf)
 
         for stack_var in func_data.stack_vars:
-            cleaned_type: str = self._clean_type_str(stack_var.type)
-            offset = stack_var.offset
-            frame = pwndbg.aglib.regs.frame
-            # FIXME: What is this???
-            if frame == "rbp":
-                offset -= 8
-            elif frame == "ebp":
-                offset -= 4
+            # Pointer to the type.
+            cleaned_type: str = f"{self._clean_type_str(stack_var.type)}*"
+            from_sp: Optional[int] = stack_var.from_sp
+            from_frame: Optional[int] = stack_var.from_frame
 
-            try:
-                inf.set_convenience_var(stack_var.name, f"${frame} - {offset}", cleaned_type)
-                type_unknown = False
-            except Exception:
-                type_unknown = True
+            # We do not account for a stack going upwards. If you have that you have bigger issues.
 
-            if type_unknown:
-                try:
-                    inf.set_convenience_var(stack_var.name, f"${frame} - {offset}", "void*")
-                except Exception:
-                    continue
+            if from_sp is not None and pwndbg.aglib.regs.sp is not None:
+                # We prefer sp-offseted variables because calculating their actual address will always work
+                var_addr = pwndbg.aglib.regs.sp + from_sp
+                self._try_setting_conv_var_with_type(stack_var.name, hex(var_addr), cleaned_type, inf)
+            elif from_frame is not None and (frame := pwndbg.dbg.selected_frame()) is not None:
+                if (frame_start := frame.start()) is not None:
+                    var_addr = frame_start - from_frame
+                    self._try_setting_conv_var_with_type(stack_var.name, hex(var_addr), cleaned_type, inf)
 
     # == Direct passthrough to the connection ==
 

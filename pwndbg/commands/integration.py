@@ -2,6 +2,9 @@ import argparse
 import pwndbg
 import pwndbg.commands
 import pwndbg.integration
+import pwndbg.aglib
+import pwndbg.aglib.regs
+import pwndbg.color.message as message
 import os
 import shutil
 from pathlib import Path
@@ -47,7 +50,17 @@ def install_binja_integration() -> None:
     print(f"Copying\n {binja_plugin_path}\nto\n {binja_plugin_destination}")
     shutil.copytree(binja_plugin_path, binja_plugin_destination, dirs_exist_ok=True)
 
+@pwndbg.commands.Command("Sync with the decompiler stuff", category=pwndbg.commands.CommandCategory.INTEGRATIONS)
+def decompiler_sync():
+    pwndbg.integration.manager.update_symbols()
+    if pwndbg.aglib.regs.pc is not None:
+        pwndbg.integration.manager.update_function_variables(pwndbg.aglib.regs.pc)
 
 @pwndbg.commands.Command("Connect to the decompiler", category=pwndbg.commands.CommandCategory.INTEGRATIONS)
 def decompiler_connect() -> None:
-    pwndbg.integration.manager.connect("localhost", 3662)
+    ok = pwndbg.integration.manager.connect("localhost", 3662)
+    if ok:
+        decompiler_sync()
+        print(message.success("Connected!"))
+    else:
+        print(message.success("Failed connecting"))

@@ -171,6 +171,21 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
     def sp(self) -> int:
         return int(self.regs().by_name("sp"))
 
+    def start(self) -> Optional[int]:
+        # How is it possible that this isn't in the API?
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
+        import pwndbg.aglib.arch
+        try:
+            frame_txt: str = gdb.execute("info frame", to_string=True)
+            match = re.search(r"frame at (0x[0-9a-fA-F]+):", frame_txt)
+            if match:
+                frame_addr = int(match.group(1), 16)
+                # GDB for some reason returns one ptr past retaddr
+                return frame_addr - pwndbg.aglib.arch.ptrsize
+            return None
+        except Exception:
+            return None
+
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
         try:

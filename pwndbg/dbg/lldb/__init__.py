@@ -238,6 +238,17 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         return self.inner.GetSP()
 
     @override
+    def start(self) -> Optional[int]:
+        import pwndbg.aglib.arch
+        # https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.GetCFA
+        val = self.inner.GetCFA()
+        if val == lldb.LLDB_INVALID_ADDRESS:
+            return None
+        # For some reason returns +8 on top of retaddr, just like GDB.
+        # I guess the DWARF just looks like that?
+        return val - pwndbg.aglib.arch.ptrsize
+
+    @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
         parent = self.inner.get_parent_frame()
         if parent.IsValid():
@@ -1845,9 +1856,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # https://stackoverflow.com/questions/11192511/does-lldb-have-convenience-variables-var
         # FIXME: Is there a nicer version through the API?
         if type is not None:
-            self.dbg._execute_lldb_command(f"expr {type} ${name} = {value}")
+            self.dbg._execute_lldb_command(f"expr {type} ${name} = (({type})({value}))")
         else:
-            self.dbg._execute_lldb_command(f"expr auto ${name} = {value}")
+            self.dbg._execute_lldb_command(f"expr auto ${name} = ({value})")
 
 
 
@@ -1923,6 +1934,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         # Load all of our commands.
         import pwndbg.commands
+        import pwndbg.commands.comments
 
         pwndbg.commands.load_commands()
 

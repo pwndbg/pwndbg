@@ -484,8 +484,8 @@ sdist = { url = "https://files.pythonhosted.org/packages/f1/2a/8c3ac3d8bc94e6de8
 
 [[package]]
 name = "decomp2dbg"
-version = "3.10.2"
-source = { git = "https://github.com/k4lizen/decomp2dbg?rev=e9ed300adb38976f788e6d63c9a2bfbac99605dd#e9ed300adb38976f788e6d63c9a2bfbac99605dd" }
+version = "3.11.0"
+source = { git = "https://github.com/k4lizen/decomp2dbg?rev=78f78d7c7f50daba19552005f5c49580c1369258#78f78d7c7f50daba19552005f5c49580c1369258" }
 dependencies = [
     { name = "libbs" },
     { name = "pyelftools" },
@@ -1586,7 +1586,7 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "capstone", specifier = "==6.0.0a5" },
-    { name = "decomp2dbg", git = "https://github.com/k4lizen/decomp2dbg?rev=e9ed300adb38976f788e6d63c9a2bfbac99605dd" },
+    { name = "decomp2dbg", git = "https://github.com/k4lizen/decomp2dbg?rev=78f78d7c7f50daba19552005f5c49580c1369258" },
     { name = "gdb-for-pwndbg", marker = "extra == 'gdb'", specifier = "==16.3.0.post1" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.13,<9" },
     { name = "ipython", specifier = ">=8.37.0,<9" },
