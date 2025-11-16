@@ -25,12 +25,54 @@ echoerr() {
     echo "${RED}$@${NC}"
 }
 
+download() {
+    url=$1
+    outfile=$2
+
+    fail_download() {
+        echoerr "Problem with downloading the file. Please check your internet connection or try again."
+        exit 1
+    }
+
+    if command -v curl > /dev/null 2>&1; then
+        curl --proto '=https' --tlsv1.2 --progress-bar -LSf "$url" -o "$outfile" || fail_download
+        return 0
+    fi
+
+    if command -v wget > /dev/null 2>&1; then
+        # 'wget' on BusyBox don't support progress options
+        if wget --help 2>&1 | grep -qi 'busybox'; then
+            WGET_CMD="wget -q"
+        else
+            WGET_CMD="wget --https-only --secure-protocol=TLSv1_2 -q --show-progress"
+        fi
+
+        $WGET_CMD "$url" -O "$outfile" || fail_download
+        return 0
+    fi
+
+    # Should be unreachable
+    echoerr "Neither 'curl' nor 'wget' is installed. Please install one of them to proceed."
+    exit 1
+}
+
 missing=""
-for cmd in wget tar xz uname mktemp rm mkdir ln grep; do
+for cmd in tar xz uname mktemp rm mkdir ln grep; do
     if ! command -v $cmd > /dev/null 2>&1; then
         missing="$missing$cmd "
     fi
 done
+
+found_downloader=0
+for cmd in wget curl; do
+    if command -v "$cmd" > /dev/null 2>&1; then
+        found_downloader=1
+        break
+    fi
+done
+if [ $found_downloader -eq 0 ]; then
+    missing="$missing""wget/curl"
+fi
 
 if [ -n "$missing" ]; then
     echoerr "Error: The following required commands are missing: ${YELLOW}$missing"
@@ -199,17 +241,7 @@ trap "rm -rf $TEMP_DIR" EXIT
 
 echoinfo "Downloading... ${URL}"
 
-# 'wget' on BusyBox don't support progress options
-if wget --help 2>&1 | grep -qi 'busybox'; then
-    WGET_CMD="wget -q"
-else
-    WGET_CMD="wget -q --show-progress"
-fi
-
-$WGET_CMD "$URL" -O "$TEMP_DIR/$FILE" || {
-    echoerr "Problem with downloading the file. Please check your internet connection or try again."
-    exit 1
-}
+download "$URL" "$TEMP_DIR/$FILE"
 
 if [ -d "$INSTALL_DIR" ]; then
     echoinfo "Removing... old installation from $INSTALL_DIR"
