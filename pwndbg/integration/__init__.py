@@ -422,6 +422,8 @@ class IntegrationManager:
     def update_symbols(self) -> None:
         """
         Update global variables and functions in the debugger.
+
+        FIXME: Currently they are all 8 bytes in size.
         """
         # We need to bail even if we are connected, but the binary is not loaded into
         # the address space yet.
@@ -561,7 +563,7 @@ class IntegrationManager:
         Takes the name returned by self.connection.versions["name"], returns
         a nicer one for user output.
         """
-        mapping = {"ida": "Ida", "binaryninja": "Binary Ninja", "ghidra": "Ghidra"}
+        mapping = {"ida": "IDA", "binaryninja": "Binary Ninja", "ghidra": "Ghidra"}
         return mapping[id_name]
 
     def version_string(self) -> Optional[str]:

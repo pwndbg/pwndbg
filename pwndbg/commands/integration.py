@@ -60,7 +60,7 @@ def install_binja_integration() -> None:
 @pwndbg.commands.Command(
     "Sync with the decompiler stuff", category=pwndbg.commands.CommandCategory.INTEGRATIONS
 )
-def decompiler_sync():
+def dc_sync():
     pwndbg.integration.manager.update_symbols()
     if pwndbg.aglib.regs.pc is not None:
         pwndbg.integration.manager.update_function_variables(pwndbg.aglib.regs.pc)
@@ -69,10 +69,10 @@ def decompiler_sync():
 @pwndbg.commands.Command(
     "Connect to the decompiler", category=pwndbg.commands.CommandCategory.INTEGRATIONS
 )
-def decompiler_connect() -> None:
+def dc_connect() -> None:
     ok = pwndbg.integration.manager.connect("localhost", 3662)
     if ok:
-        decompiler_sync()
+        dc_sync()
         print(message.success("Connected!"))
     else:
         print(message.success("Failed connecting"))
