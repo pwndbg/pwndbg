@@ -10,6 +10,7 @@ import pwndbg.aglib.regs
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.integration
+from pwndbg.commands import CommandCategory
 
 
 def decomp2dbg_path() -> Path:
@@ -75,3 +76,40 @@ def decompiler_connect() -> None:
         print(message.success("Connected!"))
     else:
         print(message.success("Failed connecting"))
+
+
+parser = argparse.ArgumentParser(
+    description="Use the current integration to decompile code near an address."
+)
+
+parser.add_argument(
+    "addr",
+    type=pwndbg.commands.sloppy_gdb_parse,
+    nargs="?",
+    default=None,
+    help="Address to decompile near. (default: pc)",
+)
+parser.add_argument(
+    "lines",
+    type=int,
+    nargs="?",
+    default=10,
+    help="Number of lines of decompilation to show.",
+)
+
+
+@pwndbg.commands.Command(parser, category=CommandCategory.INTEGRATIONS)
+@pwndbg.commands.OnlyWhenRunning
+def decomp(addr: None | int, lines: int) -> None:
+    if addr is None:
+        if pwndbg.aglib.regs.pc is None:
+            print("Address not specified, and could not find PC.")
+            return
+        addr = pwndbg.aglib.regs.pc
+
+    decomp = pwndbg.integration.manager.decompile_pretty(addr, lines)
+
+    if decomp is None:
+        print("Could not retrieve decompilation.")
+    else:
+        print("\n".join(decomp))

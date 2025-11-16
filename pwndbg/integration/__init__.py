@@ -194,6 +194,11 @@ class DecompilerConnection:
         the relative offset from the the image/file base.
 
         self.binary_base_addr must be valid before calling this.
+
+        Assumes that this address is actually in the self.binary_path
+        image rather than somewhere else. If you don't want to check this
+        beforehand (because of performance), you at the very least need to
+        check that the value returned here doesn't exceed XML-RPC int limits.
         """
         # If self.binary_base_addr is valid, so is
         # self._binary_base_addr :)
@@ -233,6 +238,12 @@ class DecompilerConnection:
             return None
 
         rel_addr = self.addr_to_relative(mapped_addr)
+
+        if rel_addr < xmlrpc.client.MININT or rel_addr > xmlrpc.client.MAXINT:
+            # The user probably provided an address outside of the mappings of the
+            # binary being decompiled.
+            return None
+
         answer: dict[str, Any] = cast(dict[str, Any], self.server.decompile(rel_addr))
 
         if answer["decompilation"] is None:
@@ -253,7 +264,12 @@ class DecompilerConnection:
             return None
 
         rel_addr = self.addr_to_relative(mapped_addr)
-        # The documentation for this thing in server_template.py is just completely off.
+
+        if rel_addr < xmlrpc.client.MININT or rel_addr > xmlrpc.client.MAXINT:
+            # The user probably provided an address outside of the mappings of the
+            # binary being decompiled.
+            return None
+
         answer: dict[str, Any] = cast(dict[str, Any], self.server.function_data(rel_addr))
 
         if answer["stack_vars"] is None:
@@ -407,7 +423,9 @@ class IntegrationManager:
         """
         Update global variables and functions in the debugger.
         """
-        if self.connection is None:
+        # We need to bail even if we are connected, but the binary is not loaded into
+        # the address space yet.
+        if self.connection is None or self.connection.binary_base_addr == -1:
             return
 
         global_vars: Optional[GlobalVariables] = self.connection.global_vars()
@@ -419,7 +437,9 @@ class IntegrationManager:
 
         if func_headers is not None:
             for func in func_headers.funcs:
-                syms_to_add.append((func.name, func.addr))
+                addr: int = self.connection.addr_to_mapped(func.addr)
+
+                syms_to_add.append((func.name, addr))
 
         if global_vars is not None:
             for var in global_vars.vars:
@@ -428,7 +448,9 @@ class IntegrationManager:
                 if clean_name in sym_name_set:
                     continue
 
-                syms_to_add.append((clean_name, var.addr))
+                addr: int = self.connection.addr_to_mapped(var.addr)
+
+                syms_to_add.append((clean_name, addr))
 
         if not syms_to_add:
             return
@@ -580,7 +602,7 @@ class IntegrationManager:
         if self.connection is None:
             return None
 
-        func_decomp: Optional[FuncDecompilationResult] = self.decompile(mapped_addr)
+        func_decomp: Optional[FuncDecompilationResult] = self.decompile_raw(mapped_addr)
 
         if func_decomp is None:
             return None
@@ -620,12 +642,14 @@ class IntegrationManager:
 
     # == Direct passthrough to the connection ==
 
-    def decompile(self, mapped_addr: int) -> Optional[FuncDecompilationResult]:
+    def decompile_raw(self, mapped_addr: int) -> Optional[FuncDecompilationResult]:
         """
         Returns the decompilation of the function which contains address `mapped_addr`.
 
         Generally you should use self.decompile_pretty().
         """
+        # I intentionally didn't name this function just `decompile` to prevent
+        # people from accidentally using it when there is a better alternative.
         if self.connection is not None:
             return self.connection.decompile(mapped_addr)
 

@@ -10,6 +10,7 @@ import pwndbg.aglib.regs
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
+import pwndbg.aglib.memory
 import pwndbg.color
 import pwndbg.color.context as C
 import pwndbg.color.disasm as D
