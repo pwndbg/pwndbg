@@ -106,6 +106,11 @@ class DecompilerConnection:
     It can be both an executable and a shared library."""
     binary_path: str
 
+    """Version information about the decompiler we are connected to. See
+    plugin server_template.py for the format.
+    """
+    versions: dict[str, str]
+
     """The address of the start of the binary in the live process address space.
     Has value -1 if the process is not live or if the binary is not loaded yet."""
     # I allow (process live, binary not loaded) because we may be syncing with the
@@ -116,6 +121,7 @@ class DecompilerConnection:
         self.server = server
 
         self.binary_path = str(self.server.binary_path())
+        self.versions = cast(dict[str, str], self.server.versions())
         self._binary_base_addr = -1
 
         self._find_binary_addr(print_failure=True)
@@ -295,6 +301,8 @@ class DecompilerConnection:
 
         variables = sorted(variables, key=lambda v: v.addr)
         return GlobalVariables(vars=variables)
+
+    # .binary_path and .versions are properties rather than functions
 
     def structs(self):
         # return self.server.structs()
@@ -489,6 +497,43 @@ class IntegrationManager:
                 if (frame_start := frame.start()) is not None:
                     var_addr = frame_start - from_frame
                     self._try_setting_conv_var_with_type(stack_var.name, hex(var_addr), cleaned_type, inf)
+
+    @staticmethod
+    def _pretty_decompiler_name(id_name: str) -> str:
+        """
+        Takes the name returned by self.connection.versions["name"], returns
+        a nicer one for user output.
+        """
+        mapping = {
+            "ida": "Ida",
+            "binaryninja": "Binary Ninja",
+            "ghidra": "Ghidra"
+        }
+        return mapping[id_name]
+
+    def version_string(self) -> Optional[str]:
+        """
+        Get a string with version information about the decompiler environment.
+        """
+        if self.connection is None:
+            return None
+
+        versions = self.connection.versions
+        if len(versions) == 0:
+            # Will happen with angr
+            return None
+
+        name: str = self._pretty_decompiler_name(versions['name'])
+        ver: str = versions['version']
+
+        res = f"{name}: {ver}"
+        # Add all other auxiliary information, no matter what it is.
+        for key, value in versions.items():
+            if key == "name" or key == "version":
+                continue
+            res += f"\n{name} {key}: {value}"
+
+        return res
 
     # == Direct passthrough to the connection ==
 
