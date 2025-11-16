@@ -5,6 +5,11 @@ https://github.com/mahaloz/decomp2dbg
 """
 
 import os
+from pygments import highlight
+from pygments.formatters import Terminal256Formatter
+from pygments.lexers import CppLexer
+import pwndbg.color.context
+import pwndbg.lib.pretty_print as pretty_print
 from typing import Optional
 from typing import Tuple
 import re
@@ -23,15 +28,18 @@ import pwndbg.aglib.elf
 # We hope that rebased integers will never be more than 32-bits. If need be,
 # we may send them as strings.
 
+
 @dataclass
 class GlobalVariable:
     name: str
     addr: int
 
+
 @dataclass
 class GlobalVariables:
     # The list is sorted by addr
     vars: list[GlobalVariable]
+
 
 @dataclass
 class FunctionHeader:
@@ -39,16 +47,19 @@ class FunctionHeader:
     addr: int
     size: int
 
+
 @dataclass
 class FunctionHeaders:
     # The list is sorted by addr
     funcs: list[FunctionHeader]
+
 
 @dataclass
 class RegisterVariable:
     name: str
     type: str
     reg_name: str
+
 
 @dataclass
 class StackVariable:
@@ -66,18 +77,21 @@ class StackVariable:
     # (which usually contains the saved return address). Positive number.
     from_frame: Optional[int]
 
+
 @dataclass
 class FuncVariables:
     stack_vars: list[StackVariable]
     reg_vars: list[RegisterVariable]
 
+
 @dataclass
 class FuncDecompilationResult:
-    # The string containing the whole function decompilation.
+    # The text containing the whole function decompilation.
+    # Each element of the list is one line.
     # (contains the function signature and even stuff like IDA's
     # "// positive sp value has been detected, the output may be wrong!"
     # before the function signature)
-    decompilation: str
+    decompilation: list[str]
     # Says which line the requested address is in.
     # 0-indexed starting from the first line of the function.
     curr_line: int
@@ -251,9 +265,13 @@ class DecompilerConnection:
             from_sp_str: Optional[str] = svar.get("from_sp")
             from_frame_str: Optional[str] = svar.get("from_frame")
             from_sp: Optional[int] = int(from_sp_str, 0) if from_sp_str is not None else None
-            from_frame: Optional[int] = int(from_frame_str, 0) if from_frame_str is not None else None
+            from_frame: Optional[int] = (
+                int(from_frame_str, 0) if from_frame_str is not None else None
+            )
 
-            stack_vars.append(StackVariable(name=name, type=type_, from_sp=from_sp, from_frame=from_frame))
+            stack_vars.append(
+                StackVariable(name=name, type=type_, from_sp=from_sp, from_frame=from_frame)
+            )
 
         for rvar in answer["reg_vars"]:
             name = rvar["name"]
@@ -276,7 +294,7 @@ class DecompilerConnection:
 
         for key, value in answer.items():
             name: str = value["name"]  # type: ignore  # noqa: PGH003
-            size_: int = value["size"] # type: ignore  # noqa: PGH003
+            size_: int = value["size"]  # type: ignore  # noqa: PGH003
             addr: int = int(key, 0)
             functions.append(FunctionHeader(name=name, addr=addr, size=size_))
 
@@ -296,7 +314,7 @@ class DecompilerConnection:
 
         for key, value in answer.items():
             addr: int = int(key, 0)
-            name: str = value["name"] # type: ignore  # noqa: PGH003
+            name: str = value["name"]  # type: ignore  # noqa: PGH003
             variables.append(GlobalVariable(name=name, addr=addr))
 
         variables = sorted(variables, key=lambda v: v.addr)
@@ -314,6 +332,10 @@ class DecompilerConnection:
 
     # ================
 
+# For highlighting the decompilation
+_lexer = CppLexer()
+_formatter = Terminal256Formatter(style="monokai")
+
 
 class IntegrationManager:
     """
@@ -326,6 +348,7 @@ class IntegrationManager:
     All functions except connect() and disconnect() are no-op if we aren't
     connected.
     """
+
     connection: Optional[DecompilerConnection]
 
     def __init__(self) -> None:
@@ -428,7 +451,6 @@ class IntegrationManager:
         except Exception as e:
             print(message.error(e))
 
-
     def _clean_type_str(self, type_str: str) -> str:
         # FIXME:
         # 1. this is too aggressive
@@ -444,7 +466,9 @@ class IntegrationManager:
 
         return type_str
 
-    def _try_setting_conv_var_with_type(self, name: str, value: str, type: str, inf: pwndbg.dbg_mod.Process) -> None:
+    def _try_setting_conv_var_with_type(
+        self, name: str, value: str, type: str, inf: pwndbg.dbg_mod.Process
+    ) -> None:
         """
         Try setting a convenience variable with a type. If it fails try with void* . If that fails as well thats okay.
         """
@@ -479,7 +503,9 @@ class IntegrationManager:
 
         for reg_var in func_data.reg_vars:
             cleaned_type: str = self._clean_type_str(reg_var.type)
-            self._try_setting_conv_var_with_type(reg_var.name, f"${reg_var.reg_name}", cleaned_type, inf)
+            self._try_setting_conv_var_with_type(
+                reg_var.name, f"${reg_var.reg_name}", cleaned_type, inf
+            )
 
         for stack_var in func_data.stack_vars:
             # Pointer to the type.
@@ -492,11 +518,15 @@ class IntegrationManager:
             if from_sp is not None and pwndbg.aglib.regs.sp is not None:
                 # We prefer sp-offseted variables because calculating their actual address will always work
                 var_addr = pwndbg.aglib.regs.sp + from_sp
-                self._try_setting_conv_var_with_type(stack_var.name, hex(var_addr), cleaned_type, inf)
+                self._try_setting_conv_var_with_type(
+                    stack_var.name, hex(var_addr), cleaned_type, inf
+                )
             elif from_frame is not None and (frame := pwndbg.dbg.selected_frame()) is not None:
                 if (frame_start := frame.start()) is not None:
                     var_addr = frame_start - from_frame
-                    self._try_setting_conv_var_with_type(stack_var.name, hex(var_addr), cleaned_type, inf)
+                    self._try_setting_conv_var_with_type(
+                        stack_var.name, hex(var_addr), cleaned_type, inf
+                    )
 
     @staticmethod
     def _pretty_decompiler_name(id_name: str) -> str:
@@ -504,11 +534,7 @@ class IntegrationManager:
         Takes the name returned by self.connection.versions["name"], returns
         a nicer one for user output.
         """
-        mapping = {
-            "ida": "Ida",
-            "binaryninja": "Binary Ninja",
-            "ghidra": "Ghidra"
-        }
+        mapping = {"ida": "Ida", "binaryninja": "Binary Ninja", "ghidra": "Ghidra"}
         return mapping[id_name]
 
     def version_string(self) -> Optional[str]:
@@ -523,8 +549,8 @@ class IntegrationManager:
             # Will happen with angr
             return None
 
-        name: str = self._pretty_decompiler_name(versions['name'])
-        ver: str = versions['version']
+        name: str = self._pretty_decompiler_name(versions["name"])
+        ver: str = versions["version"]
 
         res = f"{name}: {ver}"
         # Add all other auxiliary information, no matter what it is.
@@ -535,11 +561,62 @@ class IntegrationManager:
 
         return res
 
+    def decompile_pretty(self, mapped_addr: int, nlines: int = -1) -> Optional[list[str]]:
+        """
+        Get the prettified decompilation of a function.
+
+        The following things are done:
+        + syntax highlighting
+        + '►' indicator at the current line
+        + trimmed to only return `nlines` lines (surrounding the mapped_addr) (returns all lines if nlines == -1)
+
+        Returns a list of strings each representing one line of the decompilation.
+        """
+        if self.connection is None:
+            return None
+
+        func_decomp: Optional[FuncDecompilationResult] = self.decompile(mapped_addr)
+
+        if func_decomp is None:
+            return None
+
+        # This function is similar to pwndbg.commands.context.get_filename_and_formatted_source(),
+        # we should refactor a bit to use that.
+
+        decomp: list[str] = []
+        curr_line = func_decomp.curr_line
+
+
+        if not pwndbg.config.disable_colors and pwndbg.config.highlight_source:
+            decomp = highlight("\n".join(func_decomp.decompilation), _lexer, _formatter).splitlines()
+        else:
+            decomp = func_decomp.decompilation
+
+        # Add the current line prefix
+        prefix_sign = pwndbg.color.context.prefix(str(pwndbg.config.code_prefix))
+        # Need to take care not to mess up the ANSI control chars
+        pure_curr_line = func_decomp.decompilation[curr_line]
+        if not pure_curr_line:
+            decomp[curr_line] = prefix_sign + decomp[curr_line]
+        else:
+            # This is most likely whitespace
+            first_normal = pure_curr_line[0]
+            barrier = decomp[curr_line].index(first_normal)
+            decomp[curr_line] = decomp[curr_line][0:barrier] + prefix_sign + decomp[curr_line][(barrier+1):]
+
+        if nlines == -1:
+            return decomp
+
+        start, end = pretty_print.nlines_to_range(nlines, func_decomp.curr_line, len(decomp))
+        return decomp[start:end]
+
     # == Direct passthrough to the connection ==
 
     def decompile(self, mapped_addr: int) -> Optional[FuncDecompilationResult]:
         """
         Returns the decompilation of the function which contains address `mapped_addr`.
+
+        Generally you should use self.decompile_pretty().
         """
         if self.connection is not None:
             return self.connection.decompile(mapped_addr)
@@ -580,7 +657,6 @@ class IntegrationManager:
 
     def breakpoints(self):
         raise NotImplementedError()
-
 
 
 manager: IntegrationManager = IntegrationManager()
