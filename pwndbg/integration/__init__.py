@@ -21,6 +21,7 @@ from pygments.formatters import Terminal256Formatter
 from pygments.lexers import CppLexer
 
 import pwndbg
+import pwndbg.lib.cache
 import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.vmmap
@@ -584,6 +585,7 @@ class IntegrationManager:
 
         return result
 
+    @pwndbg.lib.cache.cache_until("stop")
     def get_all_stack_variables(self) -> dict[int, str]:
         """
         Take all valid stack frames (from the whole backtrace), ask the decompiler to
@@ -617,6 +619,10 @@ class IntegrationManager:
         """
         Take the function at `addr` and update all the debugger convenience variables
         that correspond to the function's variables.
+
+        FIXME: Currently this kinda doesn't work if it runs while we are in the function
+        prologue. We should ideally run it only when we enter new functions and are past
+        their prologues.
         """
         if self.connection is None:
             return
