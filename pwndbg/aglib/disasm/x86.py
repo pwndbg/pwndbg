@@ -9,7 +9,6 @@ from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.integration
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.memory
@@ -19,6 +18,7 @@ import pwndbg.chain
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
 import pwndbg.enhance
+import pwndbg.integration
 from pwndbg.aglib.disasm.arch import memory_or_register_assign
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
@@ -178,13 +178,19 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.annotation = (
                 memory_or_register_assign(
                     left.str,
-                    MemoryColor.get_address_or_symbol(right.before_value_resolved, pwndbg.integration.manager.get_all_stack_variables()),
+                    MemoryColor.get_address_or_symbol(
+                        right.before_value_resolved,
+                        pwndbg.integration.manager.get_all_stack_variables(),
+                    ),
                     left.type == CS_OP_MEM,
                 )
                 + ", "
                 + memory_or_register_assign(
                     right.str,
-                    MemoryColor.get_address_or_symbol(left.before_value_resolved, pwndbg.integration.manager.get_all_stack_variables()),
+                    MemoryColor.get_address_or_symbol(
+                        left.before_value_resolved,
+                        pwndbg.integration.manager.get_all_stack_variables(),
+                    ),
                     right.type == CS_OP_MEM,
                 )
             )
@@ -202,14 +208,21 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             if emu and reg_operand.after_value is not None:
                 # After emulation, the register has taken on the popped value
                 instruction.annotation = register_assign(
-                    reg_operand.str, MemoryColor.get_address_and_symbol(reg_operand.after_value, pwndbg.integration.manager.get_all_stack_variables())
+                    reg_operand.str,
+                    MemoryColor.get_address_and_symbol(
+                        reg_operand.after_value,
+                        pwndbg.integration.manager.get_all_stack_variables(),
+                    ),
                 )
             elif pc_is_at_instruction:
                 # Attempt to read from the top of the stack
                 try:
                     value = pwndbg.aglib.memory.read_pointer_width(pwndbg.aglib.regs.sp)
                     instruction.annotation = register_assign(
-                        reg_operand.str, MemoryColor.get_address_and_symbol(value, pwndbg.integration.manager.get_all_stack_variables())
+                        reg_operand.str,
+                        MemoryColor.get_address_and_symbol(
+                            value, pwndbg.integration.manager.get_all_stack_variables()
+                        ),
                     )
                 except Exception:
                     pass
@@ -239,7 +252,10 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if operand.after_value_resolved is not None:
             instruction.annotation = memory_or_register_assign(
                 operand.str,
-                MemoryColor.get_address_and_symbol(operand.after_value_resolved, pwndbg.integration.manager.get_all_stack_variables()),
+                MemoryColor.get_address_and_symbol(
+                    operand.after_value_resolved,
+                    pwndbg.integration.manager.get_all_stack_variables(),
+                ),
                 operand.type == CS_OP_MEM,
             )
 

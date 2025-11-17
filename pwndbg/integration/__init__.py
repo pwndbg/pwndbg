@@ -21,12 +21,12 @@ from pygments.formatters import Terminal256Formatter
 from pygments.lexers import CppLexer
 
 import pwndbg
-import pwndbg.lib.cache
 import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.vmmap
 import pwndbg.color.context
 import pwndbg.color.syntax_highlight
+import pwndbg.lib.cache
 import pwndbg.lib.pretty_print as pretty_print
 from pwndbg.color import message
 
@@ -366,7 +366,7 @@ class DecompilerConnection:
             # The user probably provided an address outside of the mappings of the
             # binary being decompiled.
             return None
-        
+
         answer: bool = cast(bool, self.server.focus_address(rel_addr))
         return answer
 
@@ -635,9 +635,7 @@ class IntegrationManager:
 
         for reg_var in func_data.reg_vars:
             cleaned_type: str = self._clean_type_str(reg_var.type)
-            self._try_setting_conv_var_with_type(
-                reg_var.name, f"${reg_var.reg_name}", cleaned_type
-            )
+            self._try_setting_conv_var_with_type(reg_var.name, f"${reg_var.reg_name}", cleaned_type)
 
         for stack_var in func_data.stack_vars:
             # Pointer to the type.
@@ -650,9 +648,7 @@ class IntegrationManager:
             if from_sp is not None and pwndbg.aglib.regs.sp is not None:
                 # We prefer sp-offseted variables because calculating their actual address will always work
                 var_addr = pwndbg.aglib.regs.sp + from_sp
-                self._try_setting_conv_var_with_type(
-                    stack_var.name, hex(var_addr), cleaned_type
-                )
+                self._try_setting_conv_var_with_type(stack_var.name, hex(var_addr), cleaned_type)
             elif from_frame is not None and (frame := pwndbg.dbg.selected_frame()) is not None:
                 if (frame_start := frame.start()) is not None:
                     var_addr = frame_start - from_frame
@@ -704,7 +700,6 @@ class IntegrationManager:
 
         Returns a list of strings each representing one line of the decompilation.
         """
-        print("asking for ", nlines, "lines")
         if self.connection is None:
             return None
 
@@ -718,17 +713,16 @@ class IntegrationManager:
         decomp: list[str] = []
 
         if pwndbg.config.syntax_highlight:
-            highlighted = pwndbg.color.syntax_highlight.syntax_highlight("\n".join(func_decomp.decompilation), f"decompiled_{func_decomp.func_name}.c")
+            highlighted = pwndbg.color.syntax_highlight.syntax_highlight(
+                "\n".join(func_decomp.decompilation), f"decompiled_{func_decomp.func_name}.c"
+            )
             decomp = highlighted.splitlines()
         else:
             decomp = func_decomp.decompilation
 
-        print("i have: ", len(decomp), "lines")
-
         curr_line = func_decomp.curr_line
 
         formatted_decomp = pretty_print.format_source(list(decomp), nlines, curr_line)
-        print("but returning ", len(formatted_decomp))
         return formatted_decomp
 
     # == Direct passthrough to the connection ==

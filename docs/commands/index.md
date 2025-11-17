@@ -60,16 +60,18 @@
 ## Integrations
 
 -  [ai](integrations/ai.md) - Ask GPT-3 a question about the current debugging context.
--  [bn-sync](integrations/bn-sync.md) - Synchronize Binary Ninja's cursor with GDB.
+-  [dc-connect](integrations/dc-connect.md) - Connect to the decompiler
+-  [dc-jump](integrations/dc-jump.md) - Jump to address in the decompiler
+-  [dc-sync](integrations/dc-sync.md) - Sync with the decompiler stuff
 -  [decomp](integrations/decomp.md) - Use the current integration to decompile code near an address.
--  [j](integrations/j.md) - Synchronize IDA's cursor with GDB.
+-  [install-binja-integration](integrations/install-binja-integration.md) - Install/update the Binary Ninja integration plugin.
+-  [install-ida-integration](integrations/install-ida-integration.md) - Install/update the Ida integration plugin.
 -  [r2](integrations/r2.md) - Launches radare2.
 -  [r2pipe](integrations/r2pipe.md) - Execute stateful radare2 commands through r2pipe.
 -  [rop](integrations/rop.md) - Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 -  [ropper](integrations/ropper.md) - ROP gadget search with ropper.
 -  [rz](integrations/rz.md) - Launches rizin.
 -  [rzpipe](integrations/rzpipe.md) - Execute stateful rizin commands through rzpipe.
--  [save-ida](integrations/save-ida.md) - Save the ida database.
 
 ## Kernel
 
@@ -159,7 +161,6 @@
 -  [comm](misc/comm.md) - Put comments in assembly code.
 -  [cyclic](misc/cyclic.md) - Cyclic pattern creator/finder.
 -  [cymbol](misc/cymbol.md) - Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit.
--  [down](misc/down.md) - Select and print stack frame called by this one.
 -  [dt](misc/dt.md) - Dump out information on a type (e.g. ucontext_t).
 -  [dumpargs](misc/dumpargs.md) - Prints determined arguments for call/syscall instruction.
 -  [getfile](misc/getfile.md) - Gets the current file.
@@ -173,7 +174,6 @@
 -  [sigreturn](misc/sigreturn.md) - Display the SigreturnFrame at the specific address
 -  [spray](misc/spray.md) - Spray memory with cyclic() generated values
 -  [tips](misc/tips.md) - Shows tips.
--  [up](misc/up.md) - Select and print stack frame that called this one.
 -  [valist](misc/valist.md) - Dumps the arguments of a va_list.
 -  [vmmap-load](misc/vmmap-load.md) - Load virtual memory map pages from ELF file.
 

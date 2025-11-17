@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import shutil
 from pathlib import Path
+from typing import Optional
 
 import pwndbg
 import pwndbg.aglib
@@ -10,7 +11,6 @@ import pwndbg.aglib.regs
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.integration
-from typing import Optional
 from pwndbg.commands import CommandCategory
 
 
@@ -79,9 +79,7 @@ def dc_connect() -> None:
         print(message.success("Failed connecting"))
 
 
-parser = argparse.ArgumentParser(
-    description="Jump to address in the decompiler"
-)
+parser = argparse.ArgumentParser(description="Jump to address in the decompiler")
 
 parser.add_argument(
     "addr",
@@ -91,9 +89,8 @@ parser.add_argument(
     help="Address to jump to. (default: pc)",
 )
 
-@pwndbg.commands.Command(
-    parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS
-)
+
+@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS)
 def dc_jump(addr: Optional[int]) -> None:
     if addr is None:
         if pwndbg.aglib.regs.pc is None:

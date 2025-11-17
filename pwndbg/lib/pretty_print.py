@@ -310,11 +310,7 @@ def format_source(source: list[str], nlines: int, interesting_line: int) -> list
         nlines: The amount of lines we want back.
         interesting_line: The line around which to center the output.
     """
-    print("nlines: ", nlines)
-    print("interesting: ", interesting_line)
     start, end = nlines_to_range(nlines, interesting_line, len(source))
-    print("start: ", start, " end: ", end)
-    
     num_width = len(str(end))
 
     # split the code

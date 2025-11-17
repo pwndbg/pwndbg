@@ -173,62 +173,6 @@ Automatically pass --save to "search" command.
 
 ----------
 
-## **bn-autosync**
-
-
-Whether to automatically run bn-sync every step.
-
-
-
-**Default:** off  
-
-----------
-
-## **bn-il-level**
-
-
-The IL level to use when displaying Binary Ninja decompilation.
-
-
-
-**Default:** 'hlil'  
-**Valid values:** 'disasm', 'llil', 'mlil', 'hlil'
-
-----------
-
-## **bn-rpc-host**
-
-
-Binary Ninja XML-RPC server host.
-
-
-
-**Default:** '127.0.0.1'  
-
-----------
-
-## **bn-rpc-port**
-
-
-Binary Ninja XML-RPC server port.
-
-
-
-**Default:** 43717  
-
-----------
-
-## **bn-timeout**
-
-
-Time to wait for Binary Ninja XML-RPC, in seconds.
-
-
-
-**Default:** 2  
-
-----------
-
 ## **context-backtrace-lines**
 
 
@@ -555,7 +499,6 @@ Print a full stacktrace for exceptions raised in Pwndbg commands.
 ----------
 
 ## **gcc-compiler-path**
-<small style="color: lightgray;">(only in GDB)</small>
 
 
 Path to the gcc/g++ toolchain for generating imported symbols.
@@ -661,87 +604,6 @@ Line width of hexdump command.
 
 
 **Default:** 16  
-
-----------
-
-## **ida-rpc-host**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Ida xmlrpc server address.
-
-
-
-**Default:** '127.0.0.1'  
-
-----------
-
-## **ida-rpc-port**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Ida xmlrpc server port.
-
-
-
-**Default:** 43718  
-
-----------
-
-## **ida-timeout**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Time to wait for ida xmlrpc in seconds.
-
-
-
-**Default:** 2  
-
-----------
-
-## **integration-function-lookup**
-
-
-Use integration to look up function type signatures.
-
-
-
-**Default:** on  
-
-----------
-
-## **integration-provider**
-
-
-Which provider to use for integration features.
-
-
-
-**Default:** 'none'  
-**Valid values:** 'none', 'binja', 'ida'
-
-----------
-
-## **integration-smart-enhance**
-
-
-Use integration to determine when to disassemble during enhancing.
-
-
-
-**Default:** on  
-
-----------
-
-## **integration-symbol-lookup**
-
-
-Whether to use integration to look up unknown symbols.
-
-
-
-**Default:** on  
 
 ----------
 

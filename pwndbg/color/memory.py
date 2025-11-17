@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Any
 from typing import Callable
 
-import pwndbg.integration
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
+import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import normal
@@ -48,7 +48,9 @@ def get_address_or_symbol(address: int, decompiler_stack_variables: dict[int, st
     return attempt_colorized_symbol(address, decompiler_stack_variables) or get(address)
 
 
-def attempt_colorized_symbol(address: int, decompiler_stack_variables: dict[int, str]) -> str | None:
+def attempt_colorized_symbol(
+    address: int, decompiler_stack_variables: dict[int, str]
+) -> str | None:
     """
     Convert address to colorized symbol (if symbol is there), else None
     """

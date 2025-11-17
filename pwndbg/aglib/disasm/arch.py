@@ -9,7 +9,6 @@ from typing import Tuple
 from capstone import *  # noqa: F403
 from pwnlib.constants import linux
 
-import pwndbg.integration
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
@@ -22,6 +21,7 @@ import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
 import pwndbg.color.syntax_highlight as H
 import pwndbg.enhance
+import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
@@ -741,7 +741,9 @@ class DisassemblyAssistant:
 
         if instruction.has_jump_target and instruction.target >= 0:
             # Only bother doing the symbol lookup if this is a jump
-            instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target, pwndbg.integration.manager.get_all_stack_variables())
+            instruction.target_string = MemoryColor.get_address_or_symbol(
+                instruction.target, pwndbg.integration.manager.get_all_stack_variables()
+            )
 
         # Now that we have determined the target, if it was a conditional branch,
         # go back and correct the instruction condition to reflect the branch decision of the emulator
@@ -1102,7 +1104,10 @@ class DisassemblyAssistant:
         if target_operand.after_value_resolved is not None:
             instruction.annotation = memory_or_register_assign(
                 target_operand.str,
-                MemoryColor.get_address_and_symbol(target_operand.after_value_resolved, pwndbg.integration.manager.get_all_stack_variables()),
+                MemoryColor.get_address_and_symbol(
+                    target_operand.after_value_resolved,
+                    pwndbg.integration.manager.get_all_stack_variables(),
+                ),
                 memory_assignment,
             )
             if math_string:

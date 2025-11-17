@@ -2280,4 +2280,3 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                 self._execute_lldb_command(f"expr ${name} = (({type}){value})")
             else:
                 raise e
-

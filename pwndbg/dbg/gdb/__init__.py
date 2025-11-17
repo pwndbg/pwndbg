@@ -1029,7 +1029,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return gdb.execute(cmd, to_string=True)
 
 
-
 class GDBExecutionController(pwndbg.dbg_mod.ExecutionController):
     @override
     async def single_step(self):

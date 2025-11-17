@@ -20,8 +20,6 @@ import unicorn as U
 from typing_extensions import ParamSpec
 
 import pwndbg
-import pwndbg.lib.pretty_print as pretty_print
-import pwndbg.lib.cache
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
@@ -37,6 +35,8 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.integration
+import pwndbg.lib.cache
+import pwndbg.lib.pretty_print as pretty_print
 import pwndbg.ui
 from pwndbg.aglib.arch import get_thumb_mode_string
 from pwndbg.color import ColorConfig
@@ -1153,7 +1153,7 @@ def get_filename_and_formatted_source():
     frame = pwndbg.dbg.selected_frame()
     if not frame:
         return "", [], 0
-    
+
     sal = frame.sal()
 
     # Check if source code is available
@@ -1171,7 +1171,9 @@ def get_filename_and_formatted_source():
     if not source:
         return "", [], closest_line
 
-    formatted_source = pretty_print.format_source(list(source), int(source_disasm_lines), closest_line)
+    formatted_source = pretty_print.format_source(
+        list(source), int(source_disasm_lines), closest_line
+    )
 
     return filename, formatted_source, closest_line
 

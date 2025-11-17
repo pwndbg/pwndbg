@@ -660,7 +660,6 @@ class Process:
         raise NotImplementedError()
 
 
-
 class TypeCode(Enum):
     """
     Broad categories of types.

@@ -12,11 +12,11 @@ import sys
 from subprocess import check_call
 from subprocess import check_output
 from tempfile import NamedTemporaryFile
-from urllib.parse import quote
 from typing import Optional
-import pwndbg.aglib
+from urllib.parse import quote
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.commands
 import pwndbg.integration
 from pwndbg.color import message

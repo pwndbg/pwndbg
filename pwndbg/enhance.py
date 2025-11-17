@@ -75,7 +75,9 @@ def enhance(
 
     # If it's a pointer that we told we cannot deference, then color it accordingly and add symbol if can
     if page and not attempt_dereference:
-        return pwndbg.color.memory.get_address_and_symbol(value, pwndbg.integration.manager.get_all_stack_variables())
+        return pwndbg.color.memory.get_address_and_symbol(
+            value, pwndbg.integration.manager.get_all_stack_variables()
+        )
 
     if not can_read:
         return E.integer(int_str(value))
@@ -150,7 +152,9 @@ def enhance(
         # It might be a pointer or just a plain integer
         new_page = pwndbg.aglib.vmmap.find(intval0)
         if new_page:
-            return pwndbg.color.memory.get_address_and_symbol(intval0, pwndbg.integration.manager.get_all_stack_variables())
+            return pwndbg.color.memory.get_address_and_symbol(
+                intval0, pwndbg.integration.manager.get_all_stack_variables()
+            )
         else:
             return E.integer(int_str(intval0))
 

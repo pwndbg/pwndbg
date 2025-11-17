@@ -6,11 +6,11 @@ from capstone import *  # noqa: F403
 
 import pwndbg
 import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.aglib.memory
 import pwndbg.color
 import pwndbg.color.context as C
 import pwndbg.color.disasm as D
