@@ -1123,13 +1123,13 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
 theme.add_param("highlight-source", True, "whether to highlight the closest source line")
 source_disasm_lines = pwndbg.config.add_param(
-    "context-code-lines", 10, "number of source code lines to print by the context command"
+    "context-code-lines", 14, "number of source code lines to print by the context command"
 )
 pwndbg.config.add_param(
     "context-code-tabstop", 8, "number of spaces that a <tab> in the source code counts for"
 )
 theme.add_param("code-prefix", "►", "prefix marker for 'context code' command")
-
+# All of these are also used for the decompilation context^^
 
 @pwndbg.lib.cache.cache_until("start")
 def get_highlight_source(filename: str) -> Tuple[str, ...]:
