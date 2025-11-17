@@ -20,6 +20,8 @@ import unicorn as U
 from typing_extensions import ParamSpec
 
 import pwndbg
+import pwndbg.lib.pretty_print as pretty_print
+import pwndbg.lib.cache
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
@@ -1148,7 +1150,11 @@ def get_filename_and_formatted_source():
     Returns formatted, lines limited and highlighted source as list
     or if it isn't there - an empty list
     """
-    sal = pwndbg.dbg.selected_frame().sal()
+    frame = pwndbg.dbg.selected_frame()
+    if not frame:
+        return "", [], 0
+    
+    sal = frame.sal()
 
     # Check if source code is available
     if sal is None:
@@ -1165,37 +1171,7 @@ def get_filename_and_formatted_source():
     if not source:
         return "", [], closest_line
 
-    n = int(source_disasm_lines)
-
-    # Compute the line range
-    start = max(closest_line - 1 - n // 2, 0)
-    end = min(closest_line - 1 + n // 2 + 1, len(source))
-    num_width = len(str(end))
-
-    # split the code
-    source = source[start:end]
-
-    # Compute the prefix_sign length
-    prefix_sign = C.prefix(str(pwndbg.config.code_prefix))
-    prefix_width = len(prefix_sign)
-
-    # Format the output
-    formatted_source = []
-    for line_number, code in enumerate(source, start=start + 1):
-        if pwndbg.config.context_code_tabstop > 0:
-            code = code.replace("\t", " " * pwndbg.config.context_code_tabstop)
-        fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
-        if pwndbg.config.highlight_source and line_number == closest_line:
-            fmt = C.highlight(fmt)
-
-        line = fmt.format(
-            prefix_sign=prefix_sign if line_number == closest_line else "",
-            prefix_width=prefix_width,
-            line_number=line_number,
-            num_width=num_width,
-            code=code,
-        )
-        formatted_source.append(line)
+    formatted_source = pretty_print.format_source(list(source), int(source_disasm_lines), closest_line)
 
     return filename, formatted_source, closest_line
 

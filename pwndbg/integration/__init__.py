@@ -26,6 +26,7 @@ import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.vmmap
 import pwndbg.color.context
+import pwndbg.color.syntax_highlight
 import pwndbg.lib.pretty_print as pretty_print
 from pwndbg.color import message
 
@@ -703,6 +704,7 @@ class IntegrationManager:
 
         Returns a list of strings each representing one line of the decompilation.
         """
+        print("asking for ", nlines, "lines")
         if self.connection is None:
             return None
 
@@ -711,38 +713,23 @@ class IntegrationManager:
         if func_decomp is None:
             return None
 
-        # This function is similar to pwndbg.commands.context.get_filename_and_formatted_source(),
-        # we should refactor a bit to use that.
+        # Logic similar to pwndbg.commands.context.get_filename_and_formatted_source().
 
         decomp: list[str] = []
-        curr_line = func_decomp.curr_line
 
-        if not pwndbg.config.disable_colors and pwndbg.config.highlight_source:
-            decomp = highlight(
-                "\n".join(func_decomp.decompilation), _lexer, _formatter
-            ).splitlines()
+        if pwndbg.config.syntax_highlight:
+            highlighted = pwndbg.color.syntax_highlight.syntax_highlight("\n".join(func_decomp.decompilation), f"decompiled_{func_decomp.func_name}.c")
+            decomp = highlighted.splitlines()
         else:
             decomp = func_decomp.decompilation
 
-        # Add the current line prefix
-        prefix_sign = pwndbg.color.context.prefix(str(pwndbg.config.code_prefix))
-        # Need to take care not to mess up the ANSI control chars
-        pure_curr_line = func_decomp.decompilation[curr_line]
-        if not pure_curr_line:
-            decomp[curr_line] = prefix_sign + decomp[curr_line]
-        else:
-            # This is most likely whitespace
-            first_normal = pure_curr_line[0]
-            barrier = decomp[curr_line].index(first_normal)
-            decomp[curr_line] = (
-                decomp[curr_line][0:barrier] + prefix_sign + decomp[curr_line][(barrier + 1) :]
-            )
+        print("i have: ", len(decomp), "lines")
 
-        if nlines == -1:
-            return decomp
+        curr_line = func_decomp.curr_line
 
-        start, end = pretty_print.nlines_to_range(nlines, func_decomp.curr_line, len(decomp))
-        return decomp[start:end]
+        formatted_decomp = pretty_print.format_source(list(decomp), nlines, curr_line)
+        print("but returning ", len(formatted_decomp))
+        return formatted_decomp
 
     # == Direct passthrough to the connection ==
 
