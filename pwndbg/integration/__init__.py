@@ -15,16 +15,12 @@ from typing import Any
 from typing import Optional
 from typing import Tuple
 from typing import cast
-
-from pygments import highlight
-from pygments.formatters import Terminal256Formatter
-from pygments.lexers import CppLexer
+import bisect
 
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.vmmap
-import pwndbg.color.context
 import pwndbg.color.syntax_highlight
 import pwndbg.lib.cache
 import pwndbg.lib.pretty_print as pretty_print
@@ -37,7 +33,9 @@ from pwndbg.color import message
 
 @dataclass
 class GlobalVariable:
+    # FIXME: Currently, global variables don't acknowledge their actual size.
     name: str
+    # Mapped address in the address space.
     addr: int
 
 
@@ -50,6 +48,7 @@ class GlobalVariables:
 @dataclass
 class FunctionHeader:
     name: str
+    # Mapped address in the address space.
     addr: int
     size: int
 
@@ -317,7 +316,7 @@ class DecompilerConnection:
         for key, value in answer.items():
             name: str = value["name"]  # type: ignore  # noqa: PGH003
             size_: int = value["size"]  # type: ignore  # noqa: PGH003
-            addr: int = int(key, 0)
+            addr: int = self.addr_to_mapped(int(key, 0))
             functions.append(FunctionHeader(name=name, addr=addr, size=size_))
 
         functions = sorted(functions, key=lambda f: f.addr)
@@ -335,7 +334,7 @@ class DecompilerConnection:
         variables: list[GlobalVariable] = []
 
         for key, value in answer.items():
-            addr: int = int(key, 0)
+            addr: int = self.addr_to_mapped(int(key, 0))
             name: str = value["name"]  # type: ignore  # noqa: PGH003
             variables.append(GlobalVariable(name=name, addr=addr))
 
@@ -371,11 +370,6 @@ class DecompilerConnection:
         return answer
 
     # ================
-
-
-# For highlighting the decompilation
-_lexer = CppLexer()
-_formatter = Terminal256Formatter(style="monokai")
 
 
 class IntegrationManager:
@@ -471,9 +465,7 @@ class IntegrationManager:
 
         if func_headers is not None:
             for func in func_headers.funcs:
-                addr: int = self.connection.addr_to_mapped(func.addr)
-
-                syms_to_add.append((func.name, addr))
+                syms_to_add.append((func.name, func.addr))
 
         if global_vars is not None:
             for var in global_vars.vars:
@@ -482,9 +474,7 @@ class IntegrationManager:
                 if clean_name in sym_name_set:
                     continue
 
-                addr: int = self.connection.addr_to_mapped(var.addr)
-
-                syms_to_add.append((clean_name, addr))
+                syms_to_add.append((clean_name, var.addr))
 
         if not syms_to_add:
             return
@@ -724,6 +714,38 @@ class IntegrationManager:
 
         formatted_decomp = pretty_print.format_source(list(decomp), nlines, curr_line)
         return formatted_decomp
+
+    def symbol_at_address(self, mapped_addr: int) -> Optional[str]:
+        """
+        Returns name of a symbol (function or global variable) at given address,
+        or None if there is nothing there.
+
+        FIXME: Currently, global variables don't acknowledge their actual size.
+        FIXME2: After update_symbols() is updated to acknowledge symbol sizes, this will be obsolete.
+        """
+        if self.connection is None:
+            return None
+
+        global_vars: Optional[GlobalVariables] = self.global_vars()
+        func_headers: Optional[FunctionHeaders] = self.function_headers()
+
+        if func_headers:
+            # Binary search since the array is guaranteed to be sorted.
+            idx = bisect.bisect_right(func_headers.funcs, mapped_addr, key=lambda f: f.addr)
+            if idx != 0:
+                possible_match = func_headers.funcs[idx - 1]
+                if possible_match.addr <= mapped_addr < possible_match.addr + possible_match.size:
+                    return possible_match.name
+
+        if global_vars:
+            # Binary search since the array is guaranteed to be sorted.
+            idx = bisect.bisect_right(global_vars.vars, mapped_addr, key=lambda v: v.addr)
+            if idx != 0:
+                possible_match = global_vars.vars[idx - 1]
+                if possible_match.addr == mapped_addr:
+                    return possible_match.name
+
+        return None
 
     # == Direct passthrough to the connection ==
 
