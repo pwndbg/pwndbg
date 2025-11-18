@@ -314,7 +314,7 @@ class DisassemblyAssistant:
         Enhances the operands by determining values and symbols
 
         When emulation is enabled, this will `single_step` the emulation to determine the value of registers
-        before and after the instrution has executed.
+        before and after the instruction has executed.
 
         For each operand explicitly written to or read from (instruction.operands), sets the following fields:
 
@@ -325,7 +325,7 @@ class DisassemblyAssistant:
             operand.after_value
                 Integer value of the operand after instruction executes.
                 Only set when emulation is enabled. Otherwise None.
-                This is relevent if we read and write to the same registers within an instruction
+                This is relevant if we read and write to the same registers within an instruction
 
             operand.symbol:
                 Resolved symbol name for this operand, if .before_value is set, else None.
@@ -399,7 +399,7 @@ class DisassemblyAssistant:
         """
         Determine if the program counter of the process equals the address of the instruction being enhanced.
         If so, it means we can safely reason and read from registers and memory to enhance values that
-        we can add to the annotation string. This becomes relevent when NOT emulating, and is meant to
+        we can add to the annotation string. This becomes relevant when NOT emulating, and is meant to
         allow more details when the PC is at the instruction being enhanced
         """
         return instruction.address == pwndbg.aglib.regs.pc
@@ -442,7 +442,7 @@ class DisassemblyAssistant:
     ) -> int | None:
         if emu:
             # Will read the value of register from the emulator
-            # Be concious about calling this before/after stepping the emulator
+            # Be conscious about calling this before/after stepping the emulator
             value = emu.read_register(regname)
             if DEBUG_ENHANCEMENT:
                 print(f"Register in emulation returned {regname}={hex(value)}")
@@ -450,7 +450,7 @@ class DisassemblyAssistant:
         elif self.can_reason_about_process_state(instruction):
             # When instruction address == pc, we can reason about all registers.
             # The values will just reflect values prior to executing the instruction, instead of after,
-            # which is relevent if we are writing to this register.
+            # which is relevant if we are writing to this register.
             # However, the information can still be useful for display purposes.
             if DEBUG_ENHANCEMENT:
                 print(f"Read value from process register: {pwndbg.aglib.regs[regname]}")
@@ -479,7 +479,7 @@ class DisassemblyAssistant:
     # Pass in a operand and it's value, and determine the actual value used during an instruction
     # Helpful for cases like  `cmp    byte ptr [rip + 0x166669], 0`, where first operand could be
     # a register or a memory value to dereference, and we want the actual value used.
-    # Override this to implement memory lookups in given architecture (if it's relevent)
+    # Override this to implement memory lookups in given architecture (if it's relevant)
     # Different architecture read memory differently:
     # - Only a couple Capstone architectures support the memory .size field, which determines read width.
     # - In others, read/write width is implied.
@@ -773,7 +773,7 @@ class DisassemblyAssistant:
 
         # The FORWARD_JUMP_GROUP here is very specific
         # We only want this resolver to work for instructions that Capstone
-        # explicitely labels as jump instructions. If we determine that another type of instruction
+        # explicitly labels as jump instructions. If we determine that another type of instruction
         # can have a target, we resolve it manually, as this manual resolver would return improper values,
         # as it is built on the assumptions of branch instructions across many architectures.
         if not bool(instruction.groups & FORWARD_JUMP_GROUP):
@@ -948,7 +948,7 @@ class DisassemblyAssistant:
         These instructions read `read_size` bytes from memory into a register.
 
         `signed`: whether or not we are loading a signed value from memory
-        `target_size`: the size of the register in bytes - relevent for sign-extension
+        `target_size`: the size of the register in bytes - relevant for sign-extension
         `dest_str`: a string representing the destination register ('rax')
         `source_str`: a string representing the source address ('[0x7fffffffe138]')
         """
@@ -985,7 +985,7 @@ class DisassemblyAssistant:
 
                 # As an example, this path is taken for the following case:
                 # mov rdi, qword ptr [rip + 0x17d40] where the resolved memory address is in writeable memory,
-                # and we are not emulating. This means we cannot savely dereference if PC is not at the current instruction address,
+                # and we are not emulating. This means we cannot safely dereference if PC is not at the current instruction address,
                 # because the the memory address could have been written to by the time the instruction executes
                 telescope_print = None
             else:
