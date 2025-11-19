@@ -115,7 +115,7 @@ default-groups = []
 
 [tool.uv.sources]
 pt = { git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e94027f811a15879588de6d5cb" }
-decomp2dbg = { git = "https://github.com/k4lizen/decomp2dbg", rev = "78f78d7c7f50daba19552005f5c49580c1369258" }
+decomp2dbg = { git = "https://github.com/mahaloz/decomp2dbg", rev = "c5c4a65c4b2dab2019f0f25cb7c7ad79c2df74b0" }
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = [

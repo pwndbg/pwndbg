@@ -19,6 +19,7 @@ from typing import TypeVar
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.lib.functions
 import pwndbg.aglib.arch
 import pwndbg.aglib.macho
 import pwndbg.aglib.memory

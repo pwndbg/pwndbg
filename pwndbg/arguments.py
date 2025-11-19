@@ -10,23 +10,23 @@ from __future__ import annotations
 import re
 from typing import List
 from typing import Tuple
+from typing import Optional
 
 from capstone import CS_GRP_INT
 
 import pwndbg.aglib.arch
-import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib.objc
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.chain
 import pwndbg.integration
 import pwndbg.lib.abi
-import pwndbg.lib.funcparser
 import pwndbg.lib.functions
+from pwndbg.lib.functions import Function
+import pwndbg.enhance
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
 from pwndbg.lib.arch import Platform
@@ -84,7 +84,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         name = name.replace("_chk", "")
         name = name.strip().lstrip("_")  # _malloc
 
-    func = None
+    func: Optional[Function] = None
     if pwndbg.aglib.arch.platform == Platform.DARWIN:
         # Try to resolve an Objective-C method call.
         #
