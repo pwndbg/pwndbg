@@ -6,6 +6,7 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 from typing import Type
+from typing import cast
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
@@ -174,9 +175,10 @@ class CStruct2GDB:
         field_address = self.get_field_address(field)
         field_type = next(f for f in self._c_struct._fields_ if f[0] == field)[1]
         if hasattr(field_type, "_length_"):  # f is a ctypes Array
-            t = C2GDB_MAPPING[field_type._type_]
+            array_type = cast(ctypes.Array[Any], field_type)
+            t = C2GDB_MAPPING[array_type._type_]
             return pwndbg.aglib.memory.get_typed_pointer_value(
-                t.array(field_type._length_), field_address
+                t.array(array_type._length_), field_address
             )
         return pwndbg.aglib.memory.get_typed_pointer_value(C2GDB_MAPPING[field_type], field_address)
 
@@ -205,8 +207,9 @@ class CStruct2GDB:
             field_type = f[1]
             bitpos = getattr(cls._c_struct, field_name).offset * 8
             if hasattr(field_type, "_length_"):  # f is a ctypes Array
-                t = C2GDB_MAPPING[field_type._type_]
-                _type = t.array(field_type._length_)
+                arr_type = cast(ctypes.Array[Any], field_type)
+                t = C2GDB_MAPPING[arr_type._type_]
+                _type = t.array(arr_type._length_)
             else:
                 _type = C2GDB_MAPPING[field_type]
             fake_gdb_fields.append(FakeGDBField(bitpos, field_name, _type, cls))

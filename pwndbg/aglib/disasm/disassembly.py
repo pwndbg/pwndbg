@@ -38,6 +38,7 @@ from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+import pwndbg.lib.config
 
 CapstoneEndian = {
     "little": CS_MODE_LITTLE_ENDIAN,
@@ -76,7 +77,7 @@ next_addresses_cache: Set[int] = set()
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
     # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.aglib.regs.read_reg.cache.clear()  # type: ignore[attr-defined]
+    pwndbg.aglib.regs.read_reg.cache.clear()
 
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values

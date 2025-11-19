@@ -62,7 +62,7 @@ def set_glibc_version() -> None:
 def get_version() -> Tuple[int, ...] | None:
     if glibc_version:
         version_tuple = tuple(int(i) for i in glibc_version.split("."))
-        return cast(Union[Tuple[int, ...], None], version_tuple)
+        return version_tuple
 
     return _get_version()
 

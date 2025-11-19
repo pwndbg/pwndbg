@@ -391,7 +391,7 @@ def vmmap_explore(address: int) -> None:
     old_value = pwndbg.config.auto_explore_pages.value
     pwndbg.config.auto_explore_pages.value = "yes"
     try:
-        pwndbg.aglib.vmmap.find.cache.clear()  # type: ignore[attr-defined]
+        pwndbg.aglib.vmmap.find.cache.clear()
         page = pwndbg.aglib.vmmap.find(address)
     finally:
         pwndbg.config.auto_explore_pages.value = old_value
