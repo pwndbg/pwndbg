@@ -29,6 +29,7 @@ import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
+import pwndbg.lib.config
 from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
 from pwndbg.aglib.disasm.arch import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
@@ -38,7 +39,6 @@ from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
-import pwndbg.lib.config
 
 CapstoneEndian = {
     "little": CS_MODE_LITTLE_ENDIAN,

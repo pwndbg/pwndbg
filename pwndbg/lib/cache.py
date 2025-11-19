@@ -12,10 +12,10 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Protocol
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
-from typing import Protocol
 
 from typing_extensions import ParamSpec
 

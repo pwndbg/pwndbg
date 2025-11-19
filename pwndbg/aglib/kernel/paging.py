@@ -7,15 +7,15 @@ from typing import Dict
 from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib.kernel
+import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.message as M
 import pwndbg.lib.cache
-import pwndbg.lib.regs
 import pwndbg.lib.memory
-import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
-import pwndbg.aglib.kernel
-import pwndbg.aglib.memory
+import pwndbg.lib.regs
 from pwndbg.aglib.kernel.vmmap import kernel_vmmap_pages
 from pwndbg.lib.regs import BitFlags
 
