@@ -51,7 +51,7 @@ jobs:
           level: error
           # Change the current directory to run mypy command.
           # mypy command reads setup.cfg or other settings file in this path.
-          execute_command: uv run --group dev --group lint --group tests --all-extras lldb mypy
+          execute_command: uv run --group dev --group lint --group tests --all-extras mypy
           install_types: false
           target: pwndbg pwndbginit tests/host
           filter_mode: nofilter
@@ -94,8 +94,10 @@ jobs:
           echo "Dev errors: $DEV_ERRORS"
 
           if [ "$PR_ERRORS" -gt "$DEV_ERRORS" ]; then
-            echo "❌ PR introduces more mypy --strict errors than dev branch."
+            echo "This PR introduces more \`mypy --strict\` errors than are present on the dev branch."
+            echo "You may run \`uv run mypy --strict file/you/modified\` to diagnose where the issue lies."
+            echo "Ideally, a python type checker (mypy/pyright/ty/pyrefly etc..) should be running in your editor."
             exit 1
           else
-            echo "✅ PR does not increase mypy --strict errors."
+            echo "This PR does not introduce any more \`mypy --strict\` errors than there are on the dev branch."
           fi
