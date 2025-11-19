@@ -4,16 +4,16 @@ on:
     branches:
       - dev
     paths:
-      - '**'
-      - '!mkdocs.yml'
-      - '!docs/**'
-      - '!*.md'
+      - "**"
+      - "!mkdocs.yml"
+      - "!docs/**"
+      - "!*.md"
   pull_request:
     paths:
-      - '**'
-      - '!mkdocs.yml'
-      - '!docs/**'
-      - '!*.md'
+      - "**"
+      - "!mkdocs.yml"
+      - "!docs/**"
+      - "!*.md"
 jobs:
   tests-using-nix:
     strategy:
@@ -26,66 +26,66 @@ jobs:
     env:
       TMPDIR: /tmp
     steps:
-    - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
-    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # @v3
+      - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # @v30
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
 
-    - name: Install dependencies
-      run: |
-        ./setup-dev.sh --install-only
+      - name: Install dependencies
+        run: |
+          ./setup-dev.sh --install-only
 
-    - name: install uv
-      run: nix profile install --inputs-from . nixpkgs#uv
+      - name: install uv
+        run: nix profile install --inputs-from . nixpkgs#uv
 
-    - name: Build pwndbg
-      run: |
-        nix build '.#pwndbg-dev' --accept-flake-config -o result
+      - name: Build pwndbg
+        run: |
+          nix build '.#pwndbg-dev' --accept-flake-config -o result
 
-    # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
-    - name: Setup
-      run: |
-        sudo sysctl -w kernel.yama.ptrace_scope=0
+      # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
+      - name: Setup
+        run: |
+          sudo sysctl -w kernel.yama.ptrace_scope=0
 
-    - name: Run tests
-      if: matrix.type == 'unit-tests'
-      run: |
-        ./unit-tests.sh
+      - name: Run tests
+        if: matrix.type == 'unit-tests'
+        run: |
+          ./unit-tests.sh
 
-    - name: Run GDB Tests
-      if: matrix.type == 'tests'
-      run: |
-        ./tests.sh --nix -d gdb -g gdb
+      - name: Run GDB Tests
+        if: matrix.type == 'tests'
+        run: |
+          ./tests.sh --nix -d gdb -g gdb
 
-    - name: Run DBG Tests on GDB
-      if: matrix.type == 'tests'
-      run: |
-        ./tests.sh --nix -d gdb -g dbg
+      - name: Run DBG Tests on GDB
+        if: matrix.type == 'tests'
+        run: |
+          ./tests.sh --nix -d gdb -g dbg
 
-    - name: Run cross-arch tests
-      if: matrix.type == 'qemu-user-tests'
-      run: |
-        ./tests.sh --nix -d gdb -g cross-arch-user
+      - name: Run cross-arch tests
+        if: matrix.type == 'qemu-user-tests'
+        run: |
+          ./tests.sh --nix -d gdb -g cross-arch-user
 
-    - name: Set up cache for QEMU images
-      if: matrix.type == 'qemu-system-tests'
-      id: qemu-cache
-      uses: actions/cache@v3
-      with:
-        path: ./tests/library/qemu-system/kimages
-        key: ${{ matrix.os }}-cache-qemu-images
+      - name: Set up cache for QEMU images
+        if: matrix.type == 'qemu-system-tests'
+        id: qemu-cache
+        uses: actions/cache@v3
+        with:
+          path: ./tests/library/qemu-system/kimages
+          key: ${{ matrix.os }}-cache-qemu-images
 
-    - name: Download QEMU images
-      if: matrix.type == 'qemu-system-tests'
-      run: |
-        # Would happen in the next step as well, but this way
-        # it looks nicer in the CI.
-        ./tests/library/qemu_system/download-kernel-images.sh
+      - name: Download QEMU images
+        if: matrix.type == 'qemu-system-tests'
+        run: |
+          # Would happen in the next step as well, but this way
+          # it looks nicer in the CI.
+          ./tests/library/qemu_system/download-kernel-images.sh
 
-    - name: Run kernel tests
-      if: matrix.type == 'qemu-system-tests'
-      run: |
-        ./kernel-tests.sh --nix
+      - name: Run kernel tests
+        if: matrix.type == 'qemu-system-tests'
+        run: |
+          ./kernel-tests.sh --nix
 
   tests:
     strategy:
@@ -95,95 +95,95 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v4
-    - name: Cache for pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ matrix.os }}-cache-pip
+      - uses: actions/checkout@v4
+      - name: Cache for pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ matrix.os }}-cache-pip
 
-    - name: Setup pwndbg
-      run: |
-        ./setup.sh
-        ./setup-dev.sh
+      - name: Setup pwndbg
+        run: |
+          ./setup.sh
+          ./setup-dev.sh
 
-    - name: Python version info
-      run: |
-        echo 'GDB py:'
-        gdb --batch --quiet --nx --nh --ex 'py import sys; print(sys.version)'
-        echo 'Installed py:'
-        ./.venv/bin/python -V
-        echo 'Installed packages:'
-        ./.venv/bin/pip freeze
+      - name: Python version info
+        run: |
+          echo 'GDB py:'
+          gdb --batch --quiet --nx --nh --ex 'py import sys; print(sys.version)'
+          echo 'Installed py:'
+          ./.venv/bin/python -V
+          echo 'Installed packages:'
+          ./.venv/bin/pip freeze
 
-    # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
-    - name: Run GDB Tests
-      run: |
-        sudo sysctl -w kernel.yama.ptrace_scope=0
-        ./tests.sh -d gdb -g gdb
-  
-    - name: Run DBG Tests on GDB
-      run: |
-        sudo sysctl -w kernel.yama.ptrace_scope=0
-        ./tests.sh -d gdb -g dbg
-    
-    - name: Run DBG Tests on LLDB
-      if: matrix.os != 'ubuntu-22.04'
-      run: |
-        sudo sysctl -w kernel.yama.ptrace_scope=0
-        ./tests.sh -d lldb -g dbg
+      # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
+      - name: Run GDB Tests
+        run: |
+          sudo sysctl -w kernel.yama.ptrace_scope=0
+          ./tests.sh -d gdb -g gdb
+
+      - name: Run DBG Tests on GDB
+        run: |
+          sudo sysctl -w kernel.yama.ptrace_scope=0
+          ./tests.sh -d gdb -g dbg
+
+      - name: Run DBG Tests on LLDB
+        if: matrix.os != 'ubuntu-22.04'
+        run: |
+          sudo sysctl -w kernel.yama.ptrace_scope=0
+          ./tests.sh -d lldb -g dbg
 
   qemu-user-tests:
     runs-on: [ubuntu-24.04]
     timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Cache for pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ matrix.os }}-cache-pip
+      - name: Cache for pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ matrix.os }}-cache-pip
 
-    - name: Setup pwndbg
-      run: |
-        ./setup.sh
-        ./setup-dev.sh
+      - name: Setup pwndbg
+        run: |
+          ./setup.sh
+          ./setup-dev.sh
 
-    - name: Run cross-architecture tests
-      run: |
-        ./tests.sh -g cross-arch-user -d gdb
+      - name: Run cross-architecture tests
+        run: |
+          ./tests.sh -g cross-arch-user -d gdb
 
   qemu-system-tests:
     runs-on: [ubuntu-22.04]
     timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Cache for pip
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ matrix.os }}-cache-pip
+      - name: Cache for pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ matrix.os }}-cache-pip
 
-    - name: Setup pwndbg
-      run: |
-        ./setup.sh
-        ./setup-dev.sh
+      - name: Setup pwndbg
+        run: |
+          ./setup.sh
+          ./setup-dev.sh
 
-    - name: Set up cache for QEMU images
-      id: qemu-cache
-      uses: actions/cache@v3
-      with:
-        path: ./tests/library/qemu-system/kimages
-        key: ${{ matrix.os }}-cache-qemu-images
+      - name: Set up cache for QEMU images
+        id: qemu-cache
+        uses: actions/cache@v3
+        with:
+          path: ./tests/library/qemu-system/kimages
+          key: ${{ matrix.os }}-cache-qemu-images
 
-    - name: Download images
-      run: |
-        ./tests/library/qemu_system/download-kernel-images.sh
+      - name: Download images
+        run: |
+          ./tests/library/qemu_system/download-kernel-images.sh
 
-    # We set `kernel.yama.ptrace_scope=0` for `gdb-pt-dump`
-    - name: Run kernel tests
-      run: |
-        sudo sysctl -w kernel.yama.ptrace_scope=0
-        ./kernel-tests.sh
+      # We set `kernel.yama.ptrace_scope=0` for `gdb-pt-dump`
+      - name: Run kernel tests
+        run: |
+          sudo sysctl -w kernel.yama.ptrace_scope=0
+          ./kernel-tests.sh
