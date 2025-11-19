@@ -39,6 +39,7 @@ jobs:
           git diff-index --quiet HEAD -- pwndbg tests
           ./lint.sh
 
+      # The PR must not contain any mypy errors
       - name: Run mypy
         uses: tsuyoshicho/action-mypy@v4
         with:
@@ -50,8 +51,51 @@ jobs:
           level: error
           # Change the current directory to run mypy command.
           # mypy command reads setup.cfg or other settings file in this path.
-          execute_command: uv run --group dev --group lint --group tests --extra gdb --extra lldb mypy
+          execute_command: uv run --group dev --group lint --group tests --all-extras lldb mypy
           install_types: false
           target: pwndbg pwndbginit tests/host
           filter_mode: nofilter
           fail_on_error: true
+
+      # The PR must not contain more mypy --strict errors than the dev branch does
+      - name: Count strict mypy errors in PR branch
+        id: mypy_pr
+        run: |
+          set +e
+          uv run --group dev --group lint --group tests --all-extras mypy --strict pwndbg pwndbginit tests/host > mypy_pr.txt 2>&1
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          ERRORS=$(grep -c "error:" mypy_pr.txt || true)
+          echo "count=$ERRORS" >> $GITHUB_OUTPUT
+          echo "PR mypy (--strict) errors: $ERRORS"
+        continue-on-error: true
+
+      - name: Check out dev branch
+        run: |
+          git fetch origin dev
+          git checkout origin/dev
+
+      - name: Count strict mypy errors in dev branch
+        id: mypy_dev
+        run: |
+          set +e
+          uv run --group dev --group lint --group tests --all-extras mypy --strict pwndbg pwndbginit tests/host > mypy_dev.txt 2>&1
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          ERRORS=$(grep -c "error:" mypy_dev.txt || true)
+          echo "count=$ERRORS" >> $GITHUB_OUTPUT
+          echo "Dev mypy (--strict) errors: $ERRORS"
+        continue-on-error: true
+
+      - name: Compare mypy error counts
+        run: |
+          PR_ERRORS=${{ steps.mypy_pr.outputs.count }}
+          DEV_ERRORS=${{ steps.mypy_dev.outputs.count }}
+
+          echo "PR errors: $PR_ERRORS"
+          echo "Dev errors: $DEV_ERRORS"
+
+          if [ "$PR_ERRORS" -gt "$DEV_ERRORS" ]; then
+            echo "❌ PR introduces more mypy --strict errors than dev branch."
+            exit 1
+          else
+            echo "✅ PR does not increase mypy --strict errors."
+          fi
