@@ -141,7 +141,7 @@ class Bins:
 
             # Handle this case here, so we don't assign a str to an int-type variable
             if "all" in self.bins:
-                return self.bins[size].contains_chunk(chunk)
+                return self.bins["all"].contains_chunk(chunk)
             else:
                 return False
         elif self.bin_type == BinType.LARGE:
