@@ -275,7 +275,7 @@ class ArchSymbols:
         self.bpf_map_heuristic_func = "bpf_map_free_id"
         self.current_task_heuristic_func = "common_cpu_up"
 
-    def disass(self, name, lines=None):
+    def disass(self, name, lines=5):
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
         if sym is None:
             return None
