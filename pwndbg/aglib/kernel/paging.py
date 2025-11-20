@@ -7,10 +7,15 @@ from typing import Dict
 from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib.kernel
+import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+import pwndbg.lib.regs
 from pwndbg.aglib.kernel.vmmap import kernel_vmmap_pages
 from pwndbg.lib.regs import BitFlags
 
@@ -46,10 +51,6 @@ class ArchPagingInfo:
     VMALLOC = "vmalloc"
     VMEMMAP = "vmemmap"
 
-    physmap: int
-    vmalloc: int
-    vmemmap: int
-    kbase: int
     addr_marker_sz: int
     va_bits: int
     pagetable_cache: Dict[pwndbg.dbg_mod.Value, Dict[int, int]] = {}
@@ -71,6 +72,22 @@ class ArchPagingInfo:
     @pwndbg.lib.cache.cache_until("objfile")
     def STRUCT_PAGE_SHIFT(self):
         return int(math.log2(self.STRUCT_PAGE_SIZE))
+
+    @property
+    def physmap(self) -> int:
+        raise NotImplementedError()
+
+    @property
+    def vmalloc(self) -> int:
+        raise NotImplementedError()
+
+    @property
+    def vmemmap(self) -> int:
+        raise NotImplementedError()
+
+    @property
+    def kbase(self) -> int:
+        raise NotImplementedError()
 
     @property
     def page_shift(self) -> int:
@@ -345,7 +362,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         if feat_lva:
             self.va_bits = min(52, self.va_bits)
         self.va_bits_min = 48 if self.va_bits > 48 else self.va_bits
-        self.vmalloc = self._PAGE_END(
+        self._vmalloc = self._PAGE_END(
             self.va_bits_min
         )  # also includes KASAN and kernel module regions
         if self.paging_level == 4:
@@ -370,6 +387,10 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 "L3",
                 "L2",
             )
+
+    @property
+    def vmalloc(self) -> int:
+        return self._vmalloc
 
     @property
     @pwndbg.lib.cache.cache_until("stop")

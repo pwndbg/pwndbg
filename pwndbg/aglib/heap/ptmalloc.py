@@ -139,8 +139,11 @@ class Bins:
         if self.bin_type == BinType.UNSORTED:
             # The unsorted bin only has one bin called 'all'
 
-            # TODO: We shouldn't be mixing int and str types like this
-            size = "all"  # type: ignore[assignment]
+            # Handle this case here, so we don't assign a str to an int-type variable
+            if "all" in self.bins:
+                return self.bins["all"].contains_chunk(chunk)
+            else:
+                return False
         elif self.bin_type == BinType.LARGE:
             # All the other bins (other than unsorted) store chunks of the same
             # size in a bin, so we can use the size directly. But the largebin

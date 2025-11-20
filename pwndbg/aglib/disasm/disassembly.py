@@ -29,6 +29,7 @@ import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
+import pwndbg.lib.config
 from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
 from pwndbg.aglib.disasm.arch import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
@@ -76,7 +77,7 @@ next_addresses_cache: Set[int] = set()
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
     # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.aglib.regs.read_reg.cache.clear()  # type: ignore[attr-defined]
+    pwndbg.aglib.regs.read_reg.cache.clear()
 
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
