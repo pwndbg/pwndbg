@@ -13,9 +13,11 @@ import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.integration
 import pwndbg.lib.config
+import pwndbg.lib.tempfile
 from pwndbg.commands import CommandCategory
 
 # Bump me if needed.
+# (This will trigger check_decomp2dbg_version_bumped())
 d2d_required_major = 3
 d2d_required_minor = 12
 d2d_required_fix = 0
@@ -50,6 +52,8 @@ def decomp2dbg_path() -> Path:
 
 def check_decomp2dbg_version() -> bool:
     """
+    Checks the version of the decomp2dbg python module.
+
     Returns True if the version is supported, prints an error message
     and returns False otherwise.
     """
@@ -76,9 +80,60 @@ This should only be possible if you installed Pwndbg through a package manager. 
     print(msg)
     return False
 
+
+def check_decomp2dbg_version_bumped() -> None:
+    """
+    Check if the user likely has outdated decomp2dbg plugins installed.
+
+    Tell them to update if yes, and exit.
+
+    Only shown to the user once after we bumped the required decomp2dbg version, if they
+    have installed a decompiler plugin using the `di install` command before.
+    """
+    version_path: Path = Path(pwndbg.lib.tempfile.cachedir()) / "decomp2dbg_version"
+    if not version_path.exists():
+        # The user probably never installed the decomp2dbg plugins in the first place,
+        # not going to do anything.
+        return
+
+    d2d_python_version_str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
+    version_spec = version_path.read_text().strip()
+    if version_spec == d2d_python_version_str or version_spec == "fine":
+        # The version is the same, i.e. the user has *some* plugin installed but we haven't
+        # bumped the version.
+        return
+
+    msg = "\n" + message.system("\t==== Your decompiler plugins are likely outdated. ====") + "\n\n"
+    msg += f"Pwndbg has bumped the required decomp2dbg version to {d2d_python_version_str}. The last time you\n"
+    msg += f"used `di install` was when the required version was {version_spec} (as evidenced by the\n"
+    msg += f"{version_path} file).\n\n"
+    msg += message.system("\tYou likely want to update your plugins using `di install`.\n\n")
+    msg += f"You won't be warned about this version bump again. Deleting {version_path} ..\n"
+    version_path.unlink()
+    msg += message.hint("You can permanently turn this check off by running:\n")
+    # FIXME: It would be better if we could do this with a debugger variable, but they get loaded
+    # to late.
+    msg += message.notice(f"echo 'fine' > {version_path}\n")
+    msg += "You may simply restart Pwndbg now.\n"
+    print(msg)
+    sys.exit(1)
+
+
+def save_decomp2dbg_version() -> None:
+    """
+    Save the required decomp2dbg version to a known file.
+    """
+    version_path: Path = Path(pwndbg.lib.tempfile.cachedir()) / "decomp2dbg_version"
+
+    just_in_case: str = version_path.read_text().strip()
+    if just_in_case == "fine":
+        return
+
+    d2d_python_version_str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
+    version_path.write_text(d2d_python_version_str)
+
+
 parser = argparse.ArgumentParser(description="Install/update the Ida integration plugin.")
-
-
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS)
 def install_ida_integration() -> None:
     ida_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_ida"
@@ -109,6 +164,7 @@ def install_binja_integration() -> None:
 
 
 def install_ida_plugin():
+    save_decomp2dbg_version()
     pass
 
 def install_binja_plugin():
@@ -290,7 +346,7 @@ parser_install = subparsers.add_parser(
     prog="di install",
     help="Install the decompiler plugins",
     description="""
-Install the decompiler plugins.
+Install/update the decompiler plugins.
 
 You need a decompiler plugin installed to allow the decompiler to communicate
 back to Pwndbg. The decompiler plugins are from decomp2dbg (<3).
@@ -405,3 +461,7 @@ def decomp(addr: Optional[int], lines: int) -> None:
         print("Could not retrieve decompilation.")
     else:
         print("\n".join(decomp))
+
+
+# Check this on startup.
+check_decomp2dbg_version_bumped()
