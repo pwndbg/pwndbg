@@ -109,8 +109,8 @@ def get(
         text = pwndbg.lib.pretty_print.int_to_string(address)
 
     if prefix:
-        # Prepend the prefix before the text
-        text = prefix + " " + text
+        # Prepend the prefix and a space before the existing text
+        text = f"{prefix} {text}"
 
     return color(text)
 
