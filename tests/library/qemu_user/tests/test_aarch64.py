@@ -782,7 +782,7 @@ AARCH64_BANNED_INSTRUCTION = f"""
 
 def test_aarch64_cross_arch_patch(qemu_assembly_run):
     """
-    Make sure the `patch` command works when the local and remote architectures are different
+    Make sure the `patch` command, which delegates to Zig to compile, works
     """
     qemu_assembly_run(AARCH64_BANNED_INSTRUCTION, "aarch64")
 
