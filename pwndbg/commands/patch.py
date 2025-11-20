@@ -90,9 +90,6 @@ def patch_list() -> None:
             [f"{x.mnemonic} {x.op_str}".strip() for x in cs.disasm(new, offset=addr)]
         )
 
-        # old_insns = disasm(old, byte=False, offset=False)
-        # new_insns = disasm(new, byte=False, offset=False)
-
         colored_addr = pwndbg.color.memory.get(addr)
 
         old_insns, new_insns = map(
