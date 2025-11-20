@@ -13,9 +13,9 @@ from typing import Tuple
 
 import gdb
 import pytest
-import ziglang
 
 from pwndbg.lib import tempfile
+from pwndbg.lib.zig import get_zig_executable
 
 _start_binary_called = False
 
@@ -148,9 +148,10 @@ def qemu_assembly_run():
         compiled_file = os.path.join(tmpdir, "out.elf")
 
         # Build the binary with Zig
+        zig_executable = get_zig_executable()
         compile_process = subprocess.run(
             [
-                os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                zig_executable,
                 "cc",
                 *extra_cli_args,
                 f"--target={zig_target}",

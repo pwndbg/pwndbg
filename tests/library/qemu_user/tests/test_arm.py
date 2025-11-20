@@ -126,7 +126,7 @@ def test_arm_interworking_branch(qemu_assembly_run):
     """
     qemu_assembly_run(ARM_INTERWORKING_BRANCH, "arm")
 
-    dis = gdb.execute("emulate 3", to_string=True)
+    dis = gdb.execute("emulate 7", to_string=True)
 
     expected = (
         " ► 0x200b4 <_start>       add    r0, pc, #1     R0 => 0x200bd (_start+9) (0x200bc + 0x1)\n"
@@ -145,7 +145,7 @@ def test_arm_interworking_branch(qemu_assembly_run):
 
     gdb.execute("si 2")
 
-    dis = gdb.execute("emulate 3", to_string=True)
+    dis = gdb.execute("emulate 5", to_string=True)
 
     expected = (
         "   0x200b4 <_start>       add    r0, pc, #1     R0 => 0x200bd (_start+9) (0x200bc + 0x1)\n"

@@ -3,28 +3,42 @@ from __future__ import annotations
 import argparse
 import threading
 
+import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.slab
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.arguments
 import pwndbg.color as C
 import pwndbg.color.message as M
-import pwndbg.commands
+import pwndbg.commands.context
+import pwndbg.lib.cache
 from pwndbg.dbg import BreakpointLocation
+from pwndbg.dbg import DebuggerType
 
 parser = argparse.ArgumentParser(
     description="""
-    Tracing kernel memory (SLUB and buddy) allocations and frees.
-    Unless --all is specified, only the allocations triggered by the until the function returns will be printed.
-    This option may be helpful if you also want to trace frees scheduled with rcu or if the traced command steps out of the current function.
-    """
+Trace kernel memory (SLUB and buddy) allocations and frees.
+
+This command will execute `next` in the debugger, and print out all (de)allocations that happen until
+the command finishes. As such this makes most sense to call when the PC is on a function call instruction.
+Only (de)allocations triggered by the current function are considered (rather than other threads etc).
+
+If neither `-s` nor `-b` are passed, both allocators are traced.
+    """,
 )
-parser.add_argument("-s", "--trace-slab", action="store_true", help="enable slab allocator tracing")
 parser.add_argument(
-    "-b", "--trace-buddy", action="store_true", help="enable buddy allocator tracing"
+    "-s", "--trace-slab", action="store_true", help="do only slab allocator tracing"
+)
+parser.add_argument(
+    "-b", "--trace-buddy", action="store_true", help="do only buddy allocator tracing"
 )
 parser.add_argument("-v", "--verbose", action="store_true", help="print backtraces")
 parser.add_argument(
-    "-c", "--command", type=str, default="n", help="command to be traced (e.g. `n`, `nextret`)"
+    "-c",
+    "--command",
+    type=str,
+    default="next",
+    help="trace during the execution of this command",
 )
 parser.add_argument(
     "--all",
@@ -42,8 +56,14 @@ class KmemTracepointsData:
         self.curr = None  # None means tracing all
         if not trace_all:
             # current frame only accounting for jumps
-            pc = pwndbg.dbg.selected_frame().parent().pc()
-            self.curr = pwndbg.aglib.symbol.resolve_addr(pc).split("+")[0]
+            if inf := pwndbg.dbg.selected_frame():
+                if parent := inf.parent():
+                    pc = parent.pc()
+                    if symbol_name := pwndbg.aglib.symbol.resolve_addr(pc):
+                        self.curr = symbol_name.split("+")[0]
+
+            if self.curr is None:
+                print(M.warn("Couldn't locate frame properly. Tracing --all."))
 
     def add_result(self, result: str):
         if not result:
@@ -61,7 +81,7 @@ class KmemTracepointsData:
             prefix = C.red(prefix)
         else:
             prefix = C.green(prefix)
-        name = C.blue(name.ljust(16, " "))
+        name = C.blue(name.ljust(20, " "))
         type = type.ljust(4, " ")
         return f"{prefix} {name} {type} @ {C.blue(hex(addr))}"
 
@@ -158,6 +178,8 @@ class KmemTracepoints:
 
     @staticmethod
     def _kalloc_handler() -> bool:
+        assert pwndbg.aglib.regs.retval
+
         self = get_kmem_tracepoints()
         objaddr = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
         self.data.format_slab_kmem_tracepoint_output(False, objaddr)
@@ -177,6 +199,8 @@ class KmemTracepoints:
 
     @staticmethod
     def _palloc_handler() -> bool:
+        assert pwndbg.aglib.regs.retval
+
         self = get_kmem_tracepoints()
         page = pwndbg.aglib.regs.read_reg_uncached(pwndbg.aglib.regs.retval)
         order = self.data.order
@@ -185,9 +209,12 @@ class KmemTracepoints:
 
     @staticmethod
     def palloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
+        inf = pwndbg.dbg.selected_inferior()
+        assert inf
+
         self = get_kmem_tracepoints()
         order = pwndbg.arguments.argument(1)
-        pwndbg.dbg.selected_inferior().trace_ret(KmemTracepoints._palloc_handler, True)
+        inf.trace_ret(KmemTracepoints._palloc_handler, True)
         self.data.order = order
         return False
 
@@ -200,8 +227,9 @@ class KmemTracepoints:
         return False
 
     def register_breakpoints(self, verbose, trace_all):
-        self.results = []
         inf = pwndbg.dbg.selected_inferior()
+        assert inf
+        self.results = []
         self.data = KmemTracepointsData(verbose, trace_all)
         if self.slab_tracepoints_enabled:
             for kalloc in self.kallocs:
@@ -235,23 +263,51 @@ def get_kmem_tracepoints():
     return KmemTracepoints()
 
 
-@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
+@pwndbg.commands.Command(
+    parser,
+    category=pwndbg.commands.CommandCategory.KERNEL,
+    notes="""
+The `--all` flag may be helpful if you also want to trace frees scheduled with rcu or if the traced command
+steps out of the current function. You may also find `-c finish` and `-c continue` useful.
+""",
+    # FIXME: The -c option
+    #     default="next",
+    # is not portable.
+    only_debuggers={DebuggerType.GDB, DebuggerType.LLDB},
+)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelDebugSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
-def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str, all: bool):
+def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str, all: bool) -> None:
+    if pwndbg.aglib.regs.retval is None:
+        print(
+            M.error(
+                "kmem-trace is not available on this architecture because the return value register is not defined."
+            )
+        )
+        return
+
     tps = get_kmem_tracepoints()
+
     if not trace_slab and not trace_buddy:
         trace_slab = trace_buddy = True
     tps.slab_tracepoints_enabled = trace_slab
     tps.buddy_tracepoints_enabled = trace_buddy
+    # We intentionally do not check `if trace_slab and trace_buddy` to allow for
+    # commandline ergonomics.
+
     tps.register_breakpoints(verbose, all)
     print(M.success("Finished registering tracepoints."))
+
     old_val = pwndbg.config.context_backtrace_lines.value
     pwndbg.config.context_backtrace_lines.value = 1000  # enable full backtrace
+
     pwndbg.dbg.selected_inferior().runcmd(command)
+
     pwndbg.config.context_backtrace_lines.value = old_val  # restore
     pwndbg.commands.context.context()
+
     tps.remove_breakpoints()
+
     print("\n".join(tps.data.results))
     pwndbg.dbg.ctx_suspend_once()

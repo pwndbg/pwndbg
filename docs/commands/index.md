@@ -85,7 +85,7 @@
 -  [kdmesg](kernel/kdmesg.md) - Displays the kernel ring buffer (dmesg) contents.
 -  [kfile](kernel/kfile.md) - Displays information about fds accessible by a kernel task.
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
--  [kmem-trace](kernel/kmem-trace.md) - Tracing kernel memory (SLUB and buddy) allocations and frees.
+-  [kmem-trace](kernel/kmem-trace.md) - Trace kernel memory (SLUB and buddy) allocations and frees.
 -  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
 -  [knft-dump](kernel/knft-dump.md) - Dump all nftables: tables, chains, rules, expressions
 -  [knft-list-chains](kernel/knft-list-chains.md) - Dump netfilter chains form a specific table

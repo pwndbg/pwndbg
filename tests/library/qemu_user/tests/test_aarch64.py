@@ -120,7 +120,7 @@ def test_aarch64_syscall_annotation(qemu_assembly_run):
     qemu_assembly_run(EXIT_SYSCALL, "aarch64")
 
     instructions = pwndbg.aglib.disasm.disassembly.near(
-        address=pwndbg.aglib.regs.pc, instructions=3, emulate=True
+        address=pwndbg.aglib.regs.pc, forward_count=3, emulate=True
     )[0]
     future_syscall_ins = instructions[2]
 
