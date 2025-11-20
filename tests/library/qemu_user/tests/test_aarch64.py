@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gdb
+import pytest
 from capstone.aarch64_const import AARCH64_INS_BL
 
 import pwndbg.aglib.disasm.disassembly
@@ -780,6 +781,9 @@ AARCH64_CROSS_ARCH_PATCH_INSTRUCTIONS = f"""
 """
 
 
+@pytest.mark.xfail(
+    reason="qemu-user 8.2.2 (version on Ubuntu24.04) does not support GDB writing to memory. This succeeds on newer versions of qemu. Remove the xfail when qemu is upgraded."
+)
 def test_aarch64_cross_arch_patch(qemu_assembly_run):
     """
     Make sure the `patch` command, which delegates to Zig to compile, works
@@ -808,7 +812,7 @@ def test_aarch64_cross_arch_patch(qemu_assembly_run):
 
     assert dis == expected_before
 
-    gdb.execute("patch pc 'nop; nop; nop'")
+    gdb.execute("patch $pc 'nop; nop; nop'")
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
