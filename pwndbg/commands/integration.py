@@ -15,6 +15,12 @@ import pwndbg.integration
 import pwndbg.lib.config
 from pwndbg.commands import CommandCategory
 
+# Bump me if needed.
+d2d_required_major = 3
+d2d_required_minor = 12
+d2d_required_fix = 0
+
+
 decompiler_host = pwndbg.config.add_param(
     "decompiler-host",
     "localhost",
@@ -41,6 +47,34 @@ def decomp2dbg_path() -> Path:
 
     return Path(decomp2dbg.__file__).parent.resolve()
 
+
+def check_decomp2dbg_version() -> bool:
+    """
+    Returns True if the version is supported, prints an error message
+    and returns False otherwise.
+    """
+    import decomp2dbg
+
+    ver_arr: list[str] = decomp2dbg.__version__.split(".")
+    major: int = int(ver_arr[0])
+    minor: int = int(ver_arr[1])
+    fix: int = int(ver_arr[2])
+
+
+    if major == d2d_required_major and ((minor > d2d_required_minor) or (minor == d2d_required_minor and fix >= d2d_required_fix)):
+        return True
+
+    print(message.system("Unsupported decomp2dbg version installed."))
+    msg = f"""
+You have version {decomp2dbg.__version__} installed, but we need {d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}.
+This should only be possible if you installed Pwndbg through a package manager. You have a few options, in recommended order:
+
+1. Complain to your distribution's packagers that this version of decomp2dbg is incompatible with this version of Pwndbg.
+2. Install Pwndbg any other way: https://pwndbg.re/stable/setup/
+3. Install the correct version of decomp2dbg manually.
+"""
+    print(msg)
+    return False
 
 parser = argparse.ArgumentParser(description="Install/update the Ida integration plugin.")
 
@@ -74,8 +108,32 @@ def install_binja_integration() -> None:
     shutil.copytree(binja_plugin_path, binja_plugin_destination, dirs_exist_ok=True)
 
 
-def install():
+def install_ida_plugin():
     pass
+
+def install_binja_plugin():
+    pass
+
+def install_ghidra_plugin():
+    pass
+
+def install_angr_plugin():
+    pass
+
+
+def install(which_decompiler: str):
+    if not check_decomp2dbg_version():
+        return
+
+    match which_decompiler:
+        case "ida":
+            install_ida_plugin()
+        case "binja":
+            install_binja_plugin()
+        case "ghidra":
+            install_ghidra_plugin()
+        case "angr-managment":
+            install_angr_plugin()
 
 
 def jump(addr: Optional[int]):
@@ -144,6 +202,9 @@ def disconnect():
 
 
 def connect():
+    if not check_decomp2dbg_version():
+        return
+
     if pwndbg.integration.manager.is_connected():
         print("Reconnecting..")
 
@@ -230,7 +291,45 @@ parser_install = subparsers.add_parser(
     help="Install the decompiler plugins",
     description="""
 Install the decompiler plugins.
+
+You need a decompiler plugin installed to allow the decompiler to communicate
+back to Pwndbg. The decompiler plugins are from decomp2dbg (<3).
+
+If you already have decomp2dbg installed, this command will overwrite
+that installation in order to pin the proper version that Pwndbg needs. You will
+still be able to use decomp2dbg outside of Pwndbg.
+
+You should take care not to invoke `source /path/to/decomp2dbg/d2d.py` in your ~/.gdbinit
+because we implement the debugger-side logic independently, and it might conflict.
 """,
+)
+install_subparsers = parser_install.add_subparsers(
+    dest="install_sub",
+    metavar="which"
+)
+parser_install_ida = install_subparsers.add_parser(
+    "ida",
+    prog="di install ida",
+    help="Install the IDA decompiler plugin",
+    description="Install the IDA decompiler plugin."
+)
+parser_install_binja = install_subparsers.add_parser(
+    "binja",
+    prog="di install binja",
+    help="Install the Binary Ninja decompiler plugin",
+    description="Install the Binary Ninja decompiler plugin."
+)
+parser_install_ghidra = install_subparsers.add_parser(
+    "ghidra",
+    prog="di install ghidra",
+    help="Install the Ghidra decompiler plugin",
+    description="Install the Ghidra decompiler plugin."
+)
+parser_install_angr = install_subparsers.add_parser(
+    "angr",
+    prog="di install angr",
+    help="Install the angr-management decompiler plugin",
+    description="Install the angr-managment decompiler plugin."
 )
 
 parser_decomp = subparsers.add_parser(
@@ -253,7 +352,7 @@ parser_list = subparsers.add_parser(
 @pwndbg.commands.Command(
     parser, aliases=["di"], category=pwndbg.commands.CommandCategory.INTEGRATIONS
 )
-def decompiler_integration(command: str, jump_addr: Optional[int] = None):
+def decompiler_integration(command: str, jump_addr: Optional[int] = None, install_sub: str = ""):
     match command:
         case "connect" | "c":
             connect()
@@ -264,7 +363,7 @@ def decompiler_integration(command: str, jump_addr: Optional[int] = None):
         case "jump" | "j":
             jump(jump_addr)
         case "install":
-            install()
+            install(install_sub)
         case "decomp":
             print(message.notice("Just use the `decomp` command."))
         case "list":

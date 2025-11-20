@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10, <4"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -484,12 +484,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/f1/2a/8c3ac3d8bc94e6de8
 
 [[package]]
 name = "decomp2dbg"
-version = "3.11.0"
-source = { git = "https://github.com/mahaloz/decomp2dbg?rev=c5c4a65c4b2dab2019f0f25cb7c7ad79c2df74b0#c5c4a65c4b2dab2019f0f25cb7c7ad79c2df74b0" }
+version = "3.12.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "libbs" },
     { name = "pyelftools" },
     { name = "sortedcontainers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/d6/07cc22acbc75412796614d63ba99b9442b04915b44700173834fec6611f9/decomp2dbg-3.12.0.tar.gz", hash = "sha256:8dc0d18f7d18c530bae60807e31fa740afdf906387e0a7a50bf319346b2147f6", size = 34204, upload-time = "2025-11-20T20:57:23.443Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/eb/8f/72eb97ba85fc1ff4f47cff006cc713af55c53134ed42e197e99fa385877d/decomp2dbg-3.12.0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:7be72d9855384ba5b95ca027c9ceea7f0c2dbd684d578a30c530d8cb4af570e2", size = 41860, upload-time = "2025-11-20T20:57:22.587Z" },
 ]
 
 [[package]]
@@ -1586,7 +1590,7 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "capstone", specifier = "==6.0.0a5" },
-    { name = "decomp2dbg", git = "https://github.com/mahaloz/decomp2dbg?rev=c5c4a65c4b2dab2019f0f25cb7c7ad79c2df74b0" },
+    { name = "decomp2dbg", specifier = "==3.12.0" },
     { name = "gdb-for-pwndbg", marker = "extra == 'gdb'", specifier = "==16.3.0.post1" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.13,<9" },
     { name = "ipython", specifier = ">=8.37.0,<9" },
