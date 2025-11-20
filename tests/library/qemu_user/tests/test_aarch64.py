@@ -774,7 +774,7 @@ def test_aarch64_banned_instructions(qemu_assembly_run):
     assert dis == expected
 
 
-AARCH64_BANNED_INSTRUCTION = f"""
+AARCH64_CROSS_ARCH_PATCH_INSTRUCTIONS = f"""
 {AARCH64_PREAMBLE}
 {AARCH64_GRACEFUL_EXIT}
 """
@@ -784,7 +784,7 @@ def test_aarch64_cross_arch_patch(qemu_assembly_run):
     """
     Make sure the `patch` command, which delegates to Zig to compile, works
     """
-    qemu_assembly_run(AARCH64_BANNED_INSTRUCTION, "aarch64")
+    qemu_assembly_run(AARCH64_CROSS_ARCH_PATCH_INSTRUCTIONS, "aarch64")
 
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
