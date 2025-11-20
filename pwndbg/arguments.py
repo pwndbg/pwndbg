@@ -9,27 +9,27 @@ from __future__ import annotations
 
 import re
 from typing import List
-from typing import Tuple
 from typing import Optional
+from typing import Tuple
 
 from capstone import CS_GRP_INT
 
 import pwndbg.aglib.arch
-import pwndbg.aglib.objc
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
+import pwndbg.aglib.objc
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.chain
+import pwndbg.enhance
 import pwndbg.integration
 import pwndbg.lib.abi
 import pwndbg.lib.functions
-from pwndbg.lib.functions import Function
-import pwndbg.enhance
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
 from pwndbg.lib.arch import Platform
+from pwndbg.lib.functions import Function
 from pwndbg.lib.functions import format_flags_argument
 
 
@@ -98,9 +98,10 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         # function resolution flow.
         func = pwndbg.lib.functions.functions.get(name, None)
 
+    # FIXME(provider, integration): Add this feature back at some point
     # Try to grab the data out of IDA
-    if not func and target:
-        func = pwndbg.integration.provider.get_func_type(target)
+    # if not func and target:
+    #    func = pwndbg.integration.provider.get_func_type(target)
 
     if func:
         args = func.args

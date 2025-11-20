@@ -6,16 +6,17 @@ https://github.com/mahaloz/decomp2dbg
 
 from __future__ import annotations
 
+import bisect
 import os
 import re
 import xmlrpc
 import xmlrpc.client
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any
 from typing import Optional
 from typing import Tuple
 from typing import cast
-import bisect
 
 import pwndbg
 import pwndbg.aglib
@@ -102,6 +103,21 @@ class FuncDecompilationResult:
     curr_line: int
     # The function name (not the signature!)
     func_name: str
+
+
+class DecompilerID(Enum):
+    IDA = "IDA"
+    BINARYNINJA = "Binary Ninja"
+    GHIDRA = "Ghidra"
+    ANGR = "angr"
+
+
+_api_name_to_id = {
+    "ida": DecompilerID.IDA,
+    "binaryninja": DecompilerID.BINARYNINJA,
+    "ghidra": DecompilerID.GHIDRA,
+    "angr": DecompilerID.ANGR,
+}
 
 
 class DecompilerConnection:
@@ -225,7 +241,7 @@ class DecompilerConnection:
 
         Delete this object after running this function.
         """
-        self.server.disconnect()
+        # XML RPC is stateless, there is no "disconnect"
         self.binary_path = (
             "You are using a disconnected DecompilerConnection. This is a bug in Pwndbg."
         )
@@ -314,8 +330,8 @@ class DecompilerConnection:
         functions: list[FunctionHeader] = []
 
         for key, value in answer.items():
-            name: str = value["name"]  # type: ignore  # noqa: PGH003
-            size_: int = value["size"]  # type: ignore  # noqa: PGH003
+            name: str = value["name"]
+            size_: int = value["size"]
             addr: int = self.addr_to_mapped(int(key, 0))
             functions.append(FunctionHeader(name=name, addr=addr, size=size_))
 
@@ -335,7 +351,7 @@ class DecompilerConnection:
 
         for key, value in answer.items():
             addr: int = self.addr_to_mapped(int(key, 0))
-            name: str = value["name"]  # type: ignore  # noqa: PGH003
+            name: str = value["name"]
             variables.append(GlobalVariable(name=name, addr=addr))
 
         variables = sorted(variables, key=lambda v: v.addr)
@@ -384,19 +400,20 @@ class IntegrationManager:
     connected.
     """
 
-    connection: Optional[DecompilerConnection]
-
     def __init__(self) -> None:
-        self.connection = None
+        # Our connection to the decompiler.
+        self._connection: Optional[DecompilerConnection] = None
 
         # The local caches, invalidated on disconnect/reconnect or user request.
         # They MUST be None if self.connection is None.
         self._function_headers: Optional[FunctionHeaders] = None
         self._global_vars: Optional[GlobalVariables] = None
+        self._decompiler_id: Optional[DecompilerID] = None
 
     def invalidate_caches(self) -> None:
         self._function_headers = None
         self._global_vars = None
+        self._decompiler_id = None
 
     def connect(self, host: str, port: int) -> bool:
         """
@@ -415,7 +432,7 @@ class IntegrationManager:
             server = xmlrpc.client.ServerProxy(f"http://{host}:{port}")
             server.ping()
             # Success!
-            self.connection = DecompilerConnection(server)
+            self._connection = DecompilerConnection(server)
             return True
         except Exception:
             pass
@@ -425,7 +442,7 @@ class IntegrationManager:
             server = xmlrpc.client.ServerProxy(f"http://{host}:{port}").d2d
             server.ping()
             # Success!
-            self.connection = DecompilerConnection(server)
+            self._connection = DecompilerConnection(server)
             return True
         except (ConnectionRefusedError, AttributeError):
             pass
@@ -438,34 +455,42 @@ class IntegrationManager:
         # FIXME: Ideally, we should also remove-symbol-file and delete the convenience variables.
         self.invalidate_caches()
 
-        if self.connection is not None:
-            self.connection.disconnect()
-            self.connection = None
+        if self._connection is not None:
+            self._connection.disconnect()
+            self._connection = None
 
     def is_connected(self) -> bool:
-        return self.connection is not None
+        """
+        Are we connected to a decompiler?
 
-    def update_symbols(self) -> None:
+        Lightweight check, use a ping for an actual check.
+        """
+        return self._connection is not None
+
+    def update_symbols(self) -> int:
         """
         Update global variables and functions in the debugger.
+
+        Returns the amount of synced symbols.
 
         FIXME: Currently they are all 8 bytes in size.
         """
         # We need to bail even if we are connected, but the binary is not loaded into
         # the address space yet.
-        if self.connection is None or self.connection.binary_base_addr == -1:
-            return
+        if self._connection is None or self._connection.binary_base_addr == -1:
+            return 0
 
         global_vars: Optional[GlobalVariables] = self.global_vars()
         func_headers: Optional[FunctionHeaders] = self.function_headers()
         # (name, address)
         syms_to_add: list[Tuple[str, int]] = []
         # To get rid of duplicates
-        sym_name_set: set = set()
+        sym_name_set: set[str] = set()
 
         if func_headers is not None:
             for func in func_headers.funcs:
                 syms_to_add.append((func.name, func.addr))
+                sym_name_set.add(func.name)
 
         if global_vars is not None:
             for var in global_vars.vars:
@@ -475,13 +500,14 @@ class IntegrationManager:
                     continue
 
                 syms_to_add.append((clean_name, var.addr))
+                sym_name_set.add(clean_name)
 
         if not syms_to_add:
-            return
+            return 0
 
         path = pwndbg.aglib.elf.create_blank_elf()
         if path is None:
-            return
+            return 0
 
         try:
             # path is not None means lief is installed
@@ -489,7 +515,7 @@ class IntegrationManager:
 
             symelf = lief.ELF.parse(path)
             if symelf is None:
-                return
+                return 0
 
             for sym_name, sym_addr in syms_to_add:
                 symelf.add_symtab_symbol(symelf.export_symbol(sym_name, sym_addr))
@@ -498,9 +524,12 @@ class IntegrationManager:
 
             if inf := pwndbg.dbg.selected_inferior():
                 inf.add_symbol_file(path)
-                print(message.success(f"Added {len(syms_to_add)} symbols"))
+                # Success!
+                return len(syms_to_add)
         except Exception as e:
             print(message.error(e))
+
+        return 0
 
     def _clean_type_str(self, type_str: str) -> str:
         # FIXME:
@@ -542,12 +571,12 @@ class IntegrationManager:
             A dictionary that maps (stack variable address) -> (stack variable name)
             for all variables in the given frame.
         """
-        if self.connection is None:
+        if self._connection is None:
             return {}
 
         addr = frame.pc()
 
-        maybe_func_data: Optional[FuncVariables] = self.connection.function_data(addr)
+        maybe_func_data: Optional[FuncVariables] = self._connection.function_data(addr)
         if maybe_func_data is None:
             return {}
 
@@ -585,7 +614,7 @@ class IntegrationManager:
             A dictionary that maps (stack variable address) -> (stack variable name)
             for all currently valid stack frames.
         """
-        if self.connection is None:
+        if self._connection is None:
             return {}
 
         thread = pwndbg.dbg.selected_thread()
@@ -605,21 +634,24 @@ class IntegrationManager:
 
         return result
 
-    def update_function_variables(self, addr: int) -> None:
+    def update_function_variables(self, addr: int) -> int:
         """
         Take the function at `addr` and update all the debugger convenience variables
         that correspond to the function's variables.
+
+        Returns:
+            The number of variables the decompiler returned for the function.
 
         FIXME: Currently this kinda doesn't work if it runs while we are in the function
         prologue. We should ideally run it only when we enter new functions and are past
         their prologues.
         """
-        if self.connection is None:
-            return
+        if self._connection is None:
+            return 0
 
-        maybe_func_data: Optional[FuncVariables] = self.connection.function_data(addr)
+        maybe_func_data: Optional[FuncVariables] = self._connection.function_data(addr)
         if maybe_func_data is None:
-            return
+            return 0
 
         func_data: FuncVariables = maybe_func_data
 
@@ -629,7 +661,7 @@ class IntegrationManager:
 
         for stack_var in func_data.stack_vars:
             # Pointer to the type.
-            cleaned_type: str = f"{self._clean_type_str(stack_var.type)}*"
+            cleaned_type = f"{self._clean_type_str(stack_var.type)}*"
             from_sp: Optional[int] = stack_var.from_sp
             from_frame: Optional[int] = stack_var.from_frame
 
@@ -646,28 +678,26 @@ class IntegrationManager:
                         stack_var.name, hex(var_addr), cleaned_type
                     )
 
-    @staticmethod
-    def _pretty_decompiler_name(id_name: str) -> str:
+        return len(func_data.reg_vars) + len(func_data.stack_vars)
+
+    def decompiler_id(self) -> Optional[DecompilerID]:
         """
-        Takes the name returned by self.connection.versions["name"], returns
-        a nicer one for user output.
+        Which decompiler are we connected to?
         """
-        mapping = {"ida": "IDA", "binaryninja": "Binary Ninja", "ghidra": "Ghidra"}
-        return mapping[id_name]
+        if self._connection is not None and self._decompiler_id is None:
+            self._decompiler_id = _api_name_to_id[self._connection.versions["name"]]
+        return self._decompiler_id
 
     def version_string(self) -> Optional[str]:
         """
         Get a string with version information about the decompiler environment.
         """
-        if self.connection is None:
+        if self._connection is None:
             return None
 
-        versions = self.connection.versions
-        if len(versions) == 0:
-            # Will happen with angr
-            return None
+        versions = self._connection.versions
 
-        name: str = self._pretty_decompiler_name(versions["name"])
+        name: str = _api_name_to_id[versions["name"]].value
         ver: str = versions["version"]
 
         res = f"{name}: {ver}"
@@ -690,7 +720,7 @@ class IntegrationManager:
 
         Returns a list of strings each representing one line of the decompilation.
         """
-        if self.connection is None:
+        if self._connection is None:
             return None
 
         func_decomp: Optional[FuncDecompilationResult] = self.decompile_raw(mapped_addr)
@@ -723,7 +753,7 @@ class IntegrationManager:
         FIXME: Currently, global variables don't acknowledge their actual size.
         FIXME2: After update_symbols() is updated to acknowledge symbol sizes, this will be obsolete.
         """
-        if self.connection is None:
+        if self._connection is None:
             return None
 
         global_vars: Optional[GlobalVariables] = self.global_vars()
@@ -757,8 +787,9 @@ class IntegrationManager:
         """
         # I intentionally didn't name this function just `decompile` to prevent
         # people from accidentally using it when there is a better alternative.
-        if self.connection is not None:
-            return self.connection.decompile(mapped_addr)
+        if self._connection is not None:
+            return self._connection.decompile(mapped_addr)
+        return None
 
     def function_data(self, mapped_addr: int) -> Optional[FuncVariables]:
         """
@@ -772,16 +803,17 @@ class IntegrationManager:
 
         Function arguments are included in these variables.
         """
-        if self.connection is not None:
-            return self.connection.function_data(mapped_addr)
+        if self._connection is not None:
+            return self._connection.function_data(mapped_addr)
+        return None
 
     def function_headers(self) -> Optional[FunctionHeaders]:
         """
         Returns the name, address and size off all functions in the binary, sorted
         by address.
         """
-        if self.connection is not None and self._function_headers is None:
-            self._function_headers = self.connection.function_headers()
+        if self._connection is not None and self._function_headers is None:
+            self._function_headers = self._connection.function_headers()
         return self._function_headers
 
     def global_vars(self) -> Optional[GlobalVariables]:
@@ -789,8 +821,8 @@ class IntegrationManager:
         Returns the name and address of all global variables in the binary, sorted
         by address.
         """
-        if self.connection is not None and self._global_vars is None:
-            self._global_vars = self.connection.global_vars()
+        if self._connection is not None and self._global_vars is None:
+            self._global_vars = self._connection.global_vars()
         return self._global_vars
 
     def structs(self):
@@ -803,8 +835,8 @@ class IntegrationManager:
         """
         Focus (jump to) this address in the decompiler.
         """
-        if self.connection is not None:
-            ans = self.connection.focus_address(mapped_addr)
+        if self._connection is not None:
+            ans = self._connection.focus_address(mapped_addr)
             return ans if ans is not None else False
         else:
             return False

@@ -270,8 +270,8 @@ def nlines_to_range(nlines: int, current: int, total: int) -> Tuple[int, int]:
     else:
         # Since it is impossible to center exactly due to parity, we will make
         # `current` have the lower index because this is usually more visually pleasing.
-        ideal_start: int = current - (nlines // 2) + 1
-        ideal_end: int = current + (nlines // 2) + 1
+        ideal_start = current - (nlines // 2) + 1
+        ideal_end = current + (nlines // 2) + 1
 
     # Now it may be that we are outside of the allowed range, but if we are, we
     # are only outside on one side because we already checked `nlines > total`.
@@ -287,7 +287,7 @@ def nlines_to_range(nlines: int, current: int, total: int) -> Tuple[int, int]:
         # Now (ideal_end - total) is the amount of lines we have to steal from the start
         # of the range.
         # ideal_start - (ideal_end - total) = ideal_start - ideal_end + total
-        start = ideal_start - ideal_end + total 
+        start = ideal_start - ideal_end + total
         end = total
         # We don't need to do `start = max(start, 0)` because that would imply
         # that `nlines > total`.
