@@ -295,6 +295,10 @@ def vmmap(
             shared_cache_first = None
             shared_cache_last = None
 
+    # Determine prefix width for alignment when showing filtered results
+    prefix_str = str(pwndbg.config.backtrace_prefix)
+    empty_prefix = " " * len(prefix_str) if filtered_pages else None
+
     for page in total_pages:
         if (executable and not page.execute) or (writable and not page.write):
             continue
@@ -308,12 +312,12 @@ def vmmap(
             continue
         flush_shared_cache_info()
 
-        backtrace_prefix = None
+        backtrace_prefix = empty_prefix
         display_text = str(page)
 
         if page in filtered_pages:
             # If page was one of the original results, add an arrow for clarity
-            backtrace_prefix = str(pwndbg.config.backtrace_prefix)
+            backtrace_prefix = prefix_str
 
             # If the page is the only filtered page, insert offset
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):
