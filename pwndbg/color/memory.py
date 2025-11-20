@@ -77,7 +77,7 @@ def get(
     Arguments:
         address: Address to look up
         text: Optional text to use in place of the address in the return value string.
-        prefix: Optional text to set at beginning in the return value string.
+        prefix: Optional text to set at beginning in the return value string, followed by a space, without modifiying the original text.
     """
     address = int(address)
     page = pwndbg.aglib.vmmap.find(address)
