@@ -266,16 +266,16 @@ let
       })
     ) { };
 
-    gdb-for-pwndbg = pkgs.callPackage (
-      { python3 }:
-      prev.gdb-for-pwndbg.overrideAttrs (old: {
-        buildInputs =
-          (old.buildInputs or [ ])
-          ++ lib.optionals isCross [
-            python3
-          ];
-      })
-    ) { };
+#    gdb-for-pwndbg = pkgs.callPackage (
+#      { python3 }:
+#      prev.gdb-for-pwndbg.overrideAttrs (old: {
+#        buildInputs =
+#          (old.buildInputs or [ ])
+#          ++ lib.optionals isCross [
+#            python3
+#          ];
+#      })
+#    ) { };
   };
 
   overlays = lib.composeManyExtensions [
