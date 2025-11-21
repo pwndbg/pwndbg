@@ -108,17 +108,6 @@
             (
               final: prev:
               nixpkgs.lib.optionalAttrs
-                (prev.stdenv.targetPlatform.isPower64 && prev.stdenv.targetPlatform.isBigEndian)
-                {
-                  # ncurses is broken with gcc14+
-                  ncurses = prev.ncurses.override {
-                    stdenv = prev.gcc13Stdenv;
-                  };
-                }
-            )
-            (
-              final: prev:
-              nixpkgs.lib.optionalAttrs
                 (prev.stdenv.targetPlatform.isPower64 && prev.stdenv.targetPlatform.isLittleEndian)
                 {
                   # new boost is broken: https://github.com/NixOS/nixpkgs/issues/382179
