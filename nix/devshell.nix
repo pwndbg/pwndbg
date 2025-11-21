@@ -74,11 +74,7 @@ in
       }
       ++ [
         jemalloc-static
-        pkgs.gdb
         pyEnv
-      ]
-      ++ pkgs.lib.optionals isLLDB [
-        pkgs.lldb_20
       ];
     shellHook = ''
       # lldb looks for the `debugserver` binary in `DEVELOPER_DIR`,

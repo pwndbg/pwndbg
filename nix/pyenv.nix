@@ -133,8 +133,6 @@ let
     paramiko = dummy;
     pip = dummy;
     uv = dummy;
-    gdb-for-pwndbg = dummy;
-    lldb-for-pwndbg = dummy;
 
     # ziglang is only supported on few platforms
     ziglang =
@@ -267,6 +265,17 @@ let
           ];
       })
     ) { };
+
+    gdb-for-pwndbg = pkgs.callPackage (
+      { python3 }:
+      prev.gdb-for-pwndbg.overrideAttrs (old: {
+        buildInputs =
+          (old.buildInputs or [ ])
+          ++ lib.optionals isCross [
+            python3
+          ];
+      })
+    ) { };
   };
 
   overlays = lib.composeManyExtensions [
@@ -346,5 +355,17 @@ let
         "tests"
       ];
   };
+
+  final = (if isEditable then pyenvEditable else pyenv).overrideAttrs (old: {
+    meta = {
+      python = python3;
+    };
+    postInstall = ''
+      for f in ${python3}/lib/libpython*; do
+        name=$(basename "$f")
+        ln -s "$f" "$out/lib/$name";
+      done
+    '';
+  });
 in
-if isEditable then pyenvEditable else pyenv
+final

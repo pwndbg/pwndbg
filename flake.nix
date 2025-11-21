@@ -86,39 +86,9 @@
           inherit system;
           overlays = [
             (final: prev: {
-              pwndbg_gdb = prev.gdb;
-              pwndbg_lldb = prev.lldb_20;
               libffi_portable = null;
             })
-            (final: prev: {
-              # Dynamic libiconv causes issues with our portable build.
-              # It reads /some-path/lib/gconv/gconv-modules.d/gconv-modules-extra.conf,
-              # then loads /some-path/lib/gconv/UTF-32.so dynamically.
-              pwndbg_gdb =
-                let
-                  libiconv = prev.pkgsStatic.libiconvReal;
-                in
-                (prev.pwndbg_gdb.override {
-                  inherit libiconv;
-                }).overrideAttrs
-                  (old: {
-                    buildInputs = old.buildInputs ++ [ libiconv ];
-                  });
-            })
-            (
-              final: prev:
-              nixpkgs.lib.optionalAttrs
-                (prev.stdenv.targetPlatform.isPower64 && prev.stdenv.targetPlatform.isLittleEndian)
-                {
-                  # new boost is broken: https://github.com/NixOS/nixpkgs/issues/382179
-                  boost = prev.boost183;
-                }
-            )
             overlayDarwin
-            (final: prev: {
-              pwndbg_gdb = import ./nix/overlay/gdb.nix { prev = prev; };
-              pwndbg_lldb = import ./nix/overlay/lldb.nix { prev = prev; };
-            })
           ];
         }
       );

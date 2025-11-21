@@ -196,6 +196,7 @@ case "$OS" in
             aarch64) FILE="${BINARY_NAME}_${VERSION}_arm64-portable.tar.xz" ;;
             armv7*) FILE="${BINARY_NAME}_${VERSION}_armv7-portable.tar.xz" ;;
             riscv64) FILE="${BINARY_NAME}_${VERSION}_riscv64-portable.tar.xz" ;;
+            # some older releases, support ppc64
             ppc64) FILE="${BINARY_NAME}_${VERSION}_powerpc64-portable.tar.xz" ;;
             ppc64le) FILE="${BINARY_NAME}_${VERSION}_powerpc64le-portable.tar.xz" ;;
             s390x) FILE="${BINARY_NAME}_${VERSION}_s390x-portable.tar.xz" ;;

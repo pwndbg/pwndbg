@@ -2,8 +2,6 @@
   pkgs,
   inputs,
   python3 ? pkgs.python3,
-  gdb ? pkgs.pwndbg_gdb,
-  lldb ? pkgs.pwndbg_lldb,
   isDev ? false,
   isLLDB ? false,
   ...
@@ -44,7 +42,7 @@ let
       ''
         mkdir -p $out/bin/
         makeWrapper ${pyEnv}/bin/pwndbg $out/bin/pwndbg \
-            --prefix PATH : ${lib.makeBinPath ([ gdb ] ++ extraPackags)}
+            --prefix PATH : ${lib.makeBinPath extraPackags}
       '';
 
   pwndbg_lldb =
@@ -56,15 +54,12 @@ let
       ''
         mkdir -p $out/bin/
         makeWrapper ${pyEnv}/bin/pwndbg-lldb $out/bin/pwndbg-lldb \
-            --prefix PATH : ${lib.makeBinPath ([ lldb ] ++ extraPackags)}
+            --prefix PATH : ${lib.makeBinPath extraPackags}
       '';
 
   pwndbg_final = (if isLLDB then pwndbg_lldb else pwndbg_gdb) // {
     meta = {
       pwndbgVenv = pyEnv;
-      python3 = python3;
-      gdb = gdb;
-      lldb = lldb;
       isLLDB = isLLDB;
     };
   };
