@@ -23,6 +23,7 @@ QEMU_PORT: str | None = None
 
 COMPILATION_TARGETS_TYPE = Literal[
     "aarch64",
+    "aarch64_be",
     "arm",
     "riscv32",
     "riscv64",
@@ -43,6 +44,7 @@ COMPILATION_TARGETS: list[COMPILATION_TARGETS_TYPE] = list(
 # Tuple contains (Zig target,extra_cli_args,qemu_suffix),
 COMPILE_AND_RUN_INFO: Dict[COMPILATION_TARGETS_TYPE, Tuple[str, Tuple[str, ...], str]] = {
     "aarch64": ("aarch64-freestanding", (), "aarch64"),
+    "aarch64_be": ("aarch64_be-freestanding", (), "aarch64_be"),
     "arm": ("arm-freestanding", (), "arm"),
     "riscv32": ("riscv32-freestanding", (), "riscv32"),
     "riscv64": ("riscv64-freestanding", (), "riscv64"),
