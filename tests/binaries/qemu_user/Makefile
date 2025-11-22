@@ -14,6 +14,7 @@ CC.loongarch64 = ${ZIGCC}
 CC.s390x = ${ZIGCC}
 CC.powerpc32 = ${ZIGCC}
 CC.powerpc64 = ${ZIGCC}
+CC.powerpc64le = ${ZIGCC}
 CC.sparc64 = ${ZIGCC}
 
 ALL_FLAGS = -g
@@ -31,6 +32,7 @@ CFLAGS.loongarch64 = $(ALL_FLAGS) --target=loongarch64-linux-musl
 CFLAGS.s390x = $(ALL_FLAGS) --target=s390x-linux-musl -mcpu=z13
 CFLAGS.powerpc32 = $(ALL_FLAGS) --target=powerpc-linux-musl
 CFLAGS.powerpc64 = $(ALL_FLAGS) --target=powerpc64-linux-musl
+CFLAGS.powerpc64le = $(ALL_FLAGS) --target=powerpc64le-linux-musl
 
 
 AARCH64_SOURCES := $(wildcard *.aarch64.c)
@@ -70,7 +72,7 @@ SPARC64_SOURCES := $(wildcard *.sparc64.c)
 SPARC64_TARGETS := $(SPARC64_SOURCES:.sparc64.c=.sparc64.out)
 
 
-ARCHES_TO_COMPILE_BASIC = aarch64 arm riscv32 riscv64 mips32 mipsel32 mips64el loongarch64 s390x
+ARCHES_TO_COMPILE_BASIC = aarch64 arm riscv32 riscv64 mips32 mipsel32 mips64el loongarch64 s390x powerpc64le
 # Build basic.c (which relies on libc) for these architectures
 BASIC_C_TARGETS = $(ARCHES_TO_COMPILE_BASIC:%=basic.%.out)
 basic.%.out: basic.c
