@@ -88,7 +88,7 @@ opcode_separator_bytes = pwndbg.config.add_param(
 
 def nearpc(
     pc: int = None,
-    lines: int = None,
+    lines: int = 5,  # consistent with previous nearpc_lines
     back_lines: int = 0,
     total_lines: int = None,
     emulate=False,

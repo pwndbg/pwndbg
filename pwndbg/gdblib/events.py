@@ -297,7 +297,7 @@ def connect(
         print("Connecting", func.__name__, event_handler)
 
     @wraps(func)
-    def caller(*a: P.args, **kw: P.kwargs) -> None:
+    def caller(*a: Any, **kw: Any) -> None:
         if paused[event_handler] or paused[gdb.events.suspend_all]:
             return None
 

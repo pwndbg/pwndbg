@@ -29,6 +29,7 @@ import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
+import pwndbg.lib.config
 from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
 from pwndbg.aglib.disasm.arch import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
@@ -38,11 +39,6 @@ from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import message
 from pwndbg.dbg import EventType
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
-
-CapstoneEndian = {
-    "little": CS_MODE_LITTLE_ENDIAN,
-    "big": CS_MODE_BIG_ENDIAN,
-}
 
 CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}
 
@@ -76,7 +72,7 @@ next_addresses_cache: Set[int] = set()
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
     # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.aglib.regs.read_reg.cache.clear()  # type: ignore[attr-defined]
+    pwndbg.aglib.regs.read_reg.cache.clear()
 
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
@@ -146,7 +142,7 @@ def get_previous_instruction(
 def get_disassembler(cs_info: Tuple[int, int]):
     arch, mode = cs_info
 
-    mode |= CapstoneEndian[pwndbg.aglib.arch.endian]
+    mode |= pwndbg.aglib.arch.get_capstone_endianness()
 
     cs = Cs(arch, mode)
 

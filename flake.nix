@@ -54,7 +54,6 @@
         "arm64" = "aarch64-multiplatform";
         "riscv64" = "riscv64";
         "s390x" = "s390x";
-        "ppc64" = "ppc64"; # broken lldb compilation ;(
         "ppc64le" = "powernv";
         "loong64" = "loongarch64-linux";
       };
@@ -106,17 +105,6 @@
                     buildInputs = old.buildInputs ++ [ libiconv ];
                   });
             })
-            (
-              final: prev:
-              nixpkgs.lib.optionalAttrs
-                (prev.stdenv.targetPlatform.isPower64 && prev.stdenv.targetPlatform.isBigEndian)
-                {
-                  # ncurses is broken with gcc14+
-                  ncurses = prev.ncurses.override {
-                    stdenv = prev.gcc13Stdenv;
-                  };
-                }
-            )
             (
               final: prev:
               nixpkgs.lib.optionalAttrs

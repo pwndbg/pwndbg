@@ -41,7 +41,7 @@ def stack_explore() -> None:
     old_value = pwndbg.config.auto_explore_stack.value
     pwndbg.config.auto_explore_stack.value = "yes"
     try:
-        pwndbg.aglib.stack.get.cache.clear()  # type: ignore[attr-defined]
+        pwndbg.aglib.stack.get.cache.clear()
         pages = pwndbg.aglib.stack.get()
     finally:
         pwndbg.config.auto_explore_stack.value = old_value

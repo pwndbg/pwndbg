@@ -11,8 +11,6 @@ from typing import Callable
 from typing import List
 from typing import Tuple
 from typing import TypeVar
-from typing import Union
-from typing import cast
 
 from elftools.elf.relocation import Relocation
 from typing_extensions import ParamSpec
@@ -62,7 +60,7 @@ def set_glibc_version() -> None:
 def get_version() -> Tuple[int, ...] | None:
     if glibc_version:
         version_tuple = tuple(int(i) for i in glibc_version.split("."))
-        return cast(Union[Tuple[int, ...], None], version_tuple)
+        return version_tuple
 
     return _get_version()
 

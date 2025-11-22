@@ -97,7 +97,7 @@ def find_pids(target: str, user: str | None, exact: bool, all: bool) -> List[int
     iter_process = psutil.process_iter(["pid", "name", "cmdline", "username"])
     iter_process = filter(lambda p: p.pid != current_pid, iter_process)
     if user is not None:
-        iter_process = filter(lambda p: proc.username() == user, iter_process)
+        iter_process = filter(lambda p: p.username() == user, iter_process)
 
     for proc in iter_process:
         try:

@@ -12,13 +12,14 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from typing import Protocol
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
 from typing_extensions import ParamSpec
 
-T = TypeVar("T")
+T = TypeVar("T", covariant=True)
 P = ParamSpec("P")
 
 # Set to enable print logging of cache hits/misses/clears
@@ -62,6 +63,11 @@ class DebugCacheDict(UserDict):  # type: ignore[type-arg]
 
 
 Cache = Union[Dict[Tuple[Any, ...], Any], DebugCacheDict]
+
+
+class CachedFunction(Protocol[T]):
+    cache: Cache
+    def __call__(self, *args: Any, **kwargs: Any) -> T: ...
 
 
 class _CacheUntilEvent:
@@ -127,14 +133,14 @@ IS_CACHING_DISABLED_FOR: Dict[str, bool] = {
 }
 
 
-def cache_until(*event_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
+def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[T]]:
     if any(event_name not in _ALL_CACHE_EVENT_NAMES for event_name in event_names):
         raise ValueError(
             f"Unknown event name[s] passed to the `cache_until` decorator: {event_names}.\n"
             f"Expected: {_ALL_CACHE_EVENT_NAMES}"
         )
 
-    def inner(func: Callable[P, T]) -> Callable[P, T]:
+    def inner(func: Callable[P, T]) -> CachedFunction[T]:
         if hasattr(func, "cache"):
             raise ValueError(
                 f"Cannot cache the {func.__name__} function twice! "
@@ -175,12 +181,13 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]
         # Set the cache on the function so it can be cleared on demand
         # this may be useful for tests
         decorator.cache = cache  # type: ignore[attr-defined]
+        # ^ now the decorator is a CachedFunction
 
         # Register the cache for the given event so it can be cleared
         for event_name in event_names:
             _ALL_CACHE_UNTIL_EVENTS[event_name].add_cache(cache)
 
-        return decorator
+        return decorator # type: ignore[return-value]
 
     return inner
 

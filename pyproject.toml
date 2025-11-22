@@ -54,8 +54,7 @@ dev = [
     "types-psutil>=7.0.0.20250601,<8",
 ]
 lint = [
-    # Newer mypy has more types to fix. Please fix types in the future.
-    "mypy==1.13.0",
+    "mypy>=1.18.2,<2",
     "isort>=5.13.2,<6",
     "ruff>=0.4.1,<0.5",
     "vermin>=1.6.0,<2",
