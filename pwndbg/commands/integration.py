@@ -8,8 +8,6 @@ from pathlib import Path
 from typing import Optional
 from typing import List
 from typing import Tuple
-from typing_extensions import ParamSpecKwargs
-from enum import Enum
 
 import pwndbg
 import pwndbg.aglib
@@ -653,6 +651,9 @@ def decomp(addr: Optional[int], lines: int) -> None:
             print("Address not specified, and could not find PC.")
             return
         addr = pwndbg.aglib.regs.pc
+
+    if not soft_connection_check(also_sync=True):
+        return
 
     decomp = pwndbg.integration.manager.decompile_pretty(addr, lines)
 
