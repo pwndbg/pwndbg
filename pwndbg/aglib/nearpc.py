@@ -125,14 +125,10 @@ def nearpc(
     lines: int = None,
     back_lines: int = 0,
     total_lines: int = None,
-   
     emulate=False,
-   
     repeat=False,
-   
     use_cache=False,
-   
-    linear=False,,
+    linear=False,
     branch_visualization=False,
     where: int = 0,
 ) -> list[str]:
@@ -224,43 +220,6 @@ def nearpc(
                         # TODO: this is safe, but we could find a "hole" in between the lines where this offset could go
                         # Basically, for all the pairs this overlaps with, pick the highest
                         # value not in the list of those id's.
-                        cur_offset = pair_offsets[pair2] + 1
-
-            pair_offsets[pair1] = cur_offset
-
-        # Sort lists of jump ranges by ascending id
-        for instruction in instructions:
-            pairs = pair_map[instruction.address]
-            pairs.sort(key=lambda x: pair_offsets[x])
-            # print([pair_offsets[x] for x in pairs])
-
-    if branch_visualization:
-        jumps: List[JumpRange] = []
-
-        ## The following section contain setup for branch visualization logic
-        # Map of address to pairs
-        pair_map: dict[int, list[JumpRange]] = defaultdict(list)
-        pair_offsets: dict[JumpRange, int] = defaultdict(lambda: -1)
-
-        # Map each address to the list of jump ranges that contain it
-        for instruction in instructions:
-            if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
-                jumps.append(JumpRange(instruction.address, instruction.target))
-
-        for instruction in instructions:
-            for pair in jumps:
-                if pair.contains(instruction.address):
-                    pair_map[instruction.address].append(pair)
-
-        # Preprocess each pair to assign a unique ID to all overlapping ranges
-        for pair1 in jumps:
-            cur_offset = -1
-            for pair2 in jumps:
-                if pair1 == pair2:
-                    continue
-
-                if pair1.overlaps(pair2):
-                    if pair_offsets[pair2] >= cur_offset:
                         cur_offset = pair_offsets[pair2] + 1
 
             pair_offsets[pair1] = cur_offset
