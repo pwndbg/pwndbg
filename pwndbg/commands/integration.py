@@ -18,6 +18,7 @@ import pwndbg.commands
 import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.tempfile
+import pwndbg.color as color
 from pwndbg.commands import CommandCategory
 
 # Bump me if needed.
@@ -363,8 +364,40 @@ def sync(fail_quietly: bool):
         print(message.error("Could not find PC for syncing function-local variables."))
 
 
-def list_():
-    assert 0
+def list_(list_all: bool):
+    # FIXME: This function could be much improved.
+    # 1. Show which variables are in which stack frame
+    # 2. What is the RSP and RBP of that stack frame
+    # 3. What is the RSP and RBP offset for each variable
+    # 4. maybe even provide an option to show the variables of an arbitrary function (/ executable address)
+
+    if not pwndbg.integration.manager.is_connected():
+        print(message.error("Not connected to a decompiler."))
+        print(message.hint("Try `di connect`."))
+        return
+
+    # Check if the process is alive
+    if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
+        print(message.error("Can only jump to address while the process is alive."))
+        return
+
+    if list_all:
+        stack_vars: dict[int, str] = pwndbg.integration.manager.get_all_stack_variables()
+    else:
+        if frame := pwndbg.dbg.selected_frame():
+            stack_vars = pwndbg.integration.manager.get_stack_vars_from_frame(frame)
+        else:
+            print(message.error("Could not find current stack frame."))
+            return
+
+    if not stack_vars:
+        print("No variables found.")
+        return
+
+    sorted_vars: List[Tuple[int, str]] = sorted(stack_vars.items())
+    for addr, varname in sorted_vars:
+        # just gonna assume its a stack var and color appropriately
+        print(f"{color.yellow(hex(addr))}: {varname}")
 
 
 def disconnect():
@@ -537,13 +570,20 @@ parser_list = subparsers.add_parser(
     help="List the variables for the current stack frame",
     description="List the variables for the current stack frame.",
 )
-# FIXME: ^^ add flag -a for all stack frames
+parser_list.add_argument(
+    "-a",
+    "--all",
+    help="List decompiler stack variables from all stack frames in this thread.",
+    action="store_true",
+    default=False,
+    dest="list_all",
+)
 
 
 @pwndbg.commands.Command(
     parser, aliases=["di"], category=pwndbg.commands.CommandCategory.INTEGRATIONS
 )
-def decompiler_integration(command: str, jump_addr: Optional[int] = None, install_sub: str = ""):
+def decompiler_integration(command: str, jump_addr: Optional[int] = None, install_sub: str = "", list_all: bool = False):
     match command:
         case "connect" | "c":
             connect()
@@ -557,8 +597,8 @@ def decompiler_integration(command: str, jump_addr: Optional[int] = None, instal
             install(install_sub)
         case "decomp":
             print(message.notice("Just use the `decomp` command."))
-        case "list":
-            list_()
+        case "list" | "l":
+            list_(list_all)
 
 
 parser = argparse.ArgumentParser(

@@ -184,6 +184,9 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
                 match = re.search(r"frame at (0x[0-9a-fA-F]+):", frame_txt)
                 if match:
                     frame_addr = int(match.group(1), 16)
+                    # Happens often at the entry point
+                    if frame_addr == 0:
+                        return None
                     # GDB for some reason returns one ptr past retaddr
                     return frame_addr - pwndbg.aglib.arch.ptrsize
                 return None
