@@ -3,8 +3,8 @@
   inputs,
   python3 ? pkgs.python3,
   isDev ? false,
-  isLLDB ? false,
   isEditable ? false,
+  groups,
   ...
 }:
 let
@@ -341,30 +341,23 @@ let
   pyenv = pythonSet.mkVirtualEnv "pwndbg-env" {
     pwndbg =
       [ ]
-      ++ lib.optionals isLLDB [
-        "lldb"
-      ]
       ++ lib.optionals isDev [
         "dev"
         "tests"
         # We don't need linters in "dev" build
         # "lint"
-      ];
+      ]
+      ++ groups;
   };
 
   pyenvEditable = editablePythonSet.mkVirtualEnv "pwndbg-editable-env" {
     pwndbg =
       [ ]
-      ++ lib.optionals isLLDB [
-        "lldb"
-      ]
-      ++ lib.optionals (!isLLDB) [
-        "gdb"
-      ]
       ++ lib.optionals isDev [
         "dev"
         "tests"
-      ];
+      ]
+      ++ groups;
   };
 
   final = (if isEditable then pyenvEditable else pyenv).overrideAttrs (old: {

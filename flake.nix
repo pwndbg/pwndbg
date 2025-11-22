@@ -141,10 +141,12 @@
           pwndbg = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             inputs = inputs;
+            groups = [ "gdb" ];
           };
           pwndbg-dev = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             inputs = inputs;
+            groups = [ "gdb" ];
             isDev = true;
           };
         }
@@ -154,13 +156,13 @@
           pwndbg-lldb = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             inputs = inputs;
-            isLLDB = true;
+            groups = [ "lldb" ];
           };
           pwndbg-lldb-dev = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             inputs = inputs;
+            groups = [ "lldb" ];
             isDev = true;
-            isLLDB = true;
           };
         }
       );
@@ -187,11 +189,11 @@
         nixpkgs.lib.optionalAttrs pkgsBySystem.${system}.stdenv.isLinux (
           (nixpkgs.lib.attrsets.mapAttrs' (cross: value: {
             name = "pwndbg-gdb-cross-${cross}-tarball";
-            value = tarballCrossDrv system cross { };
+            value = tarballCrossDrv system cross { groups = [ "gdb" ]; };
           }) crossNames)
           // (nixpkgs.lib.attrsets.mapAttrs' (cross: value: {
             name = "pwndbg-lldb-cross-${cross}-tarball";
-            value = tarballCrossDrv system cross { isLLDB = true; };
+            value = tarballCrossDrv system cross { groups = [ "lldb" ]; };
           }) crossNames)
         );
     in
@@ -213,7 +215,6 @@
         import ./nix/devshell.nix {
           pkgs = pkgsBySystem.${system};
           inputs = inputs;
-          isLLDB = true;
         }
       );
       formatter = forAllSystems (system: pkgsBySystem.${system}.nixfmt-tree);
