@@ -276,6 +276,17 @@ let
           ];
       })
     ) { };
+
+    lldb-for-pwndbg = pkgs.callPackage (
+      { python3 }:
+      prev.lldb-for-pwndbg.overrideAttrs (old: {
+        buildInputs =
+          (old.buildInputs or [ ])
+          ++ lib.optionals isCross [
+            python3
+          ];
+      })
+    ) { };
   };
 
   overlays = lib.composeManyExtensions [
