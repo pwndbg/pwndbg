@@ -159,12 +159,6 @@ binja_plugin_path = pwndbg.config.add_param(
     "where to install the binary ninja integration plugin",
     param_class=pwndbg.lib.config.PARAM_STRING,
 )
-ghidra_plugin_path = pwndbg.config.add_param(
-    "decompiler-ghidra-plugin-path",
-    "",
-    "where to install the ghidra integration plugin",
-    param_class=pwndbg.lib.config.PARAM_STRING,
-)
 angr_plugin_path = pwndbg.config.add_param(
     "decompiler-angr-plugin-path",
     str(Path.home() / ".local/share/angr-management/plugins"),
@@ -261,14 +255,6 @@ def install_angr_plugin():
 def install_ghidra_plugin():
     print("Installing the Ghidra decompiler plugin.")
     print_d2d_version()
-
-    if str(ghidra_plugin_path) == "":
-        print(message.error("\nGhidra plugin path is empty.\n"))
-        print("Since Ghidra doesn't have a default folder for plugin installation, you must put")
-        print(f"`set {ghidra_plugin_path.name} <path/to/ghidra>/Extensions/Ghidra` into your ~/.gdbinit .")
-        print("(If you installed Ghidra through the package manager, the path you need to set is most likely")
-        print(" /opt/ghidra/Extensions/Ghidra .)")
-        return
 
     download_url: str = f"https://github.com/mahaloz/decomp2dbg/releases/download/v{d2d_required_version_str}/d2d-ghidra-plugin.zip"
     download_dest: Path = d2d_cache_dir / "d2d-ghidra-plugin.zip"
