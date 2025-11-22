@@ -5,6 +5,9 @@ import shutil
 import sys
 from pathlib import Path
 from typing import Optional
+from typing import List
+from typing import Tuple
+from typing_extensions import ParamSpecKwargs
 
 import pwndbg
 import pwndbg.aglib
@@ -21,6 +24,8 @@ from pwndbg.commands import CommandCategory
 d2d_required_major = 3
 d2d_required_minor = 12
 d2d_required_fix = 0
+
+d2d_required_version_str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
 
 
 decompiler_host = pwndbg.config.add_param(
@@ -64,8 +69,9 @@ def check_decomp2dbg_version() -> bool:
     minor: int = int(ver_arr[1])
     fix: int = int(ver_arr[2])
 
-
-    if major == d2d_required_major and ((minor > d2d_required_minor) or (minor == d2d_required_minor and fix >= d2d_required_fix)):
+    if major == d2d_required_major and (
+        (minor > d2d_required_minor) or (minor == d2d_required_minor and fix >= d2d_required_fix)
+    ):
         return True
 
     print(message.system("Unsupported decomp2dbg version installed."))
@@ -96,16 +102,17 @@ def check_decomp2dbg_version_bumped() -> None:
         # not going to do anything.
         return
 
-    d2d_python_version_str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
     version_spec = version_path.read_text().strip()
-    if version_spec == d2d_python_version_str or version_spec == "fine":
+    if version_spec == d2d_required_version_str or version_spec == "fine":
         # The version is the same, i.e. the user has *some* plugin installed but we haven't
         # bumped the version.
         return
 
     msg = "\n" + message.system("\t==== Your decompiler plugins are likely outdated. ====") + "\n\n"
-    msg += f"Pwndbg has bumped the required decomp2dbg version to {d2d_python_version_str}. The last time you\n"
-    msg += f"used `di install` was when the required version was {version_spec} (as evidenced by the\n"
+    msg += f"Pwndbg has bumped the required decomp2dbg version to {d2d_required_version_str}. The last time you\n"
+    msg += (
+        f"used `di install` was when the required version was {version_spec} (as evidenced by the\n"
+    )
     msg += f"{version_path} file).\n\n"
     msg += message.system("\tYou likely want to update your plugins using `di install`.\n\n")
     msg += f"You won't be warned about this version bump again. Deleting {version_path} ..\n"
@@ -129,55 +136,144 @@ def save_decomp2dbg_version() -> None:
     if just_in_case == "fine":
         return
 
-    d2d_python_version_str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
-    version_path.write_text(d2d_python_version_str)
+    version_path.write_text(d2d_required_version_str)
 
 
-parser = argparse.ArgumentParser(description="Install/update the Ida integration plugin.")
-@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS)
-def install_ida_integration() -> None:
-    ida_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_ida"
-    ida_plugin_destination: Path = Path.home() / ".idapro/plugins/"
+def print_d2d_version():
+    import decomp2dbg
 
-    # Ensure it exists
-    ida_plugin_destination.mkdir(parents=True, exist_ok=True)
-
-    # symlink would be better but whatever
-    print(f"Copying contents of\n {ida_plugin_path}\ninto\n {ida_plugin_destination}")
-    shutil.copytree(ida_plugin_path, ida_plugin_destination, dirs_exist_ok=True)
+    print(f"decomp2dbg version: {decomp2dbg.__version__} (required: {d2d_required_version_str})")
 
 
-parser = argparse.ArgumentParser(description="Install/update the Binary Ninja integration plugin.")
+ida_plugin_path = pwndbg.config.add_param(
+    "decompiler-ida-plugin-path",
+    str(Path.home() / ".idapro/plugins"),
+    "where to install the ida integration plugin",
+    param_class=pwndbg.lib.config.PARAM_STRING,
+)
+binja_plugin_path = pwndbg.config.add_param(
+    "decompiler-binja-plugin-path",
+    str(Path.home() / ".binaryninja/plugins"),
+    "where to install the binary ninja integration plugin",
+    param_class=pwndbg.lib.config.PARAM_STRING,
+)
+ghidra_plugin_path = pwndbg.config.add_param(
+    "decompiler-ghidra-plugin-path",
+    "",
+    "where to install the ghidra integration plugin",
+    param_class=pwndbg.lib.config.PARAM_STRING,
+)
+angr_plugin_path = pwndbg.config.add_param(
+    "decompiler-angr-plugin-path",
+    str(Path.home() / ".local/share/angr-management/plugins"),
+    "where to install the angr integration plugin",
+    param_class=pwndbg.lib.config.PARAM_STRING,
+)
 
 
-@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.INTEGRATIONS)
-def install_binja_integration() -> None:
-    binja_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_binja"
-    binja_plugin_destination: Path = Path.home() / ".binaryninja/plugins/d2d_binja"
+def install_generic_plugin(
+    paths: List[Tuple[Path, Path]],
+    decomp_name: str,
+    packaged_plugin_path: Path,
+    config_var: pwndbg.lib.config.Parameter,
+):
+    """
+    Arguments:
+        paths: A list of (source path, destination path) tuples. Each element of the list
+               will be symlinked (destination) -> (source).
+        decomp_name: Pretty name of the decompiler.
+        packaged_plugin_path: The path of the folder for the decompiler plugin in the decomp2dbg python package.
+        config_var: The variable which holds the destination plugin path.
+    """
+    print(f"Installing the {decomp_name} decompiler plugin.")
+    print_d2d_version()
 
-    # Ensure it exists
-    binja_plugin_destination.mkdir(parents=True, exist_ok=True)
+    plugin_destination: Path = Path(str(config_var))
 
-    # symlink would be better but whatever
-    print(f"Copying\n {binja_plugin_path}\nto\n {binja_plugin_destination}")
-    shutil.copytree(binja_plugin_path, binja_plugin_destination, dirs_exist_ok=True)
+    print("\nSource:      ", packaged_plugin_path)
+    print("Destination: ", plugin_destination)
+
+    print("\nMaking sure destination folder exists..\n")
+    plugin_destination.mkdir(parents=True, exist_ok=True)
+
+    print("Deleting old files (if they exist):")
+    for _, dest in paths:
+        print(f"\t{dest}")
+        if dest.exists():
+            if dest.is_symlink():
+                dest.unlink()
+            else:
+                shutil.rmtree(str(dest))
+
+    print("\nCreating symlinks:")
+    for source, dest in paths:
+        print(f"\t{dest} -> {source}")
+        dest.symlink_to(source)
+
+    print("\nThe fact that symlinks are used means the decompiler plugin will be automatically")
+    print("updated when the decomp2dbg python package is updated. But if the decomp2dbg")
+    print("installation path gets changed, don't forget to reinstall!")
+    print("(so take care if you change the folder of your Pwndbg installation)\n")
+
+    print(
+        f"If you want to change the plugin destination, run `set {config_var.name} the/new/path`.\n"
+    )
+    print(
+        message.success("Installed successfully.")
+        + " If your decompiler is already open, restart it."
+    )
 
 
 def install_ida_plugin():
-    save_decomp2dbg_version()
-    pass
+    packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_ida"
+    plugin_destination: Path = Path(str(ida_plugin_path))
+
+    packaged1 = packaged_plugin_path / "d2d_ida"
+    packaged2 = packaged_plugin_path / "d2d_ida.py"
+
+    dest1 = plugin_destination / "d2d_ida"
+    dest2 = plugin_destination / "d2d_ida.py"
+
+    install_generic_plugin(
+        [(packaged1, dest1), (packaged2, dest2)], "IDA", packaged_plugin_path, ida_plugin_path
+    )
+
 
 def install_binja_plugin():
-    pass
+    packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_binja"
+    plugin_destination: Path = Path(str(binja_plugin_path))
+
+    dest = plugin_destination / "d2d_binja"
+
+    install_generic_plugin(
+        [(packaged_plugin_path, dest)], "Binary Ninja", packaged_plugin_path, binja_plugin_path
+    )
+
+
+def install_angr_plugin():
+    packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_angr"
+    plugin_destination: Path = Path(str(binja_plugin_path))
+
+    dest = plugin_destination / "d2d_angr"
+
+    install_generic_plugin(
+        [(packaged_plugin_path, dest)], "angr-managment", packaged_plugin_path, angr_plugin_path
+    )
+
 
 def install_ghidra_plugin():
     pass
 
-def install_angr_plugin():
-    pass
-
 
 def install(which_decompiler: str):
+    if sys.platform == "win32":
+        print(
+            message.system(
+                "Installation on Windows not supported. Install separately: https://github.com/mahaloz/decomp2dbg?tab=readme-ov-file#install ."
+            )
+        )
+        return
+
     if not check_decomp2dbg_version():
         return
 
@@ -188,7 +284,7 @@ def install(which_decompiler: str):
             install_binja_plugin()
         case "ghidra":
             install_ghidra_plugin()
-        case "angr-managment":
+        case "angr":
             install_angr_plugin()
 
 
@@ -359,33 +455,30 @@ You should take care not to invoke `source /path/to/decomp2dbg/d2d.py` in your ~
 because we implement the debugger-side logic independently, and it might conflict.
 """,
 )
-install_subparsers = parser_install.add_subparsers(
-    dest="install_sub",
-    metavar="which"
-)
+install_subparsers = parser_install.add_subparsers(dest="install_sub", metavar="which")
 parser_install_ida = install_subparsers.add_parser(
     "ida",
     prog="di install ida",
     help="Install the IDA decompiler plugin",
-    description="Install the IDA decompiler plugin."
+    description="Install the IDA decompiler plugin.",
 )
 parser_install_binja = install_subparsers.add_parser(
     "binja",
     prog="di install binja",
     help="Install the Binary Ninja decompiler plugin",
-    description="Install the Binary Ninja decompiler plugin."
+    description="Install the Binary Ninja decompiler plugin.",
 )
 parser_install_ghidra = install_subparsers.add_parser(
     "ghidra",
     prog="di install ghidra",
     help="Install the Ghidra decompiler plugin",
-    description="Install the Ghidra decompiler plugin."
+    description="Install the Ghidra decompiler plugin.",
 )
 parser_install_angr = install_subparsers.add_parser(
     "angr",
     prog="di install angr",
     help="Install the angr-management decompiler plugin",
-    description="Install the angr-managment decompiler plugin."
+    description="Install the angr-managment decompiler plugin.",
 )
 
 parser_decomp = subparsers.add_parser(
