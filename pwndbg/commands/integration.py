@@ -89,46 +89,39 @@ This should only be possible if you installed Pwndbg through a package manager. 
     return False
 
 
-def check_decomp2dbg_version_bumped() -> None:
+def check_outdated_ghidra_plugin() -> bool:
     """
-    Check if the user likely has outdated decomp2dbg plugins installed.
+    Check if the user likely has an outdated version of the ghidra plugin.
 
-    Tell them to update if yes, and exit.
+    Tell them to update if yes and return False. If everything is up to date return True.
 
-    Only shown to the user once after we bumped the required decomp2dbg version, if they
-    have installed a decompiler plugin using the `di install` command before.
+    This should only be checked if (decompiler_host == "localhost").
     """
-    version_path: Path = d2d_cache_dir / "version"
+    version_path: Path = d2d_cache_dir / "ghidra_plugin_version"
     if not version_path.exists():
-        # The user probably never installed the decomp2dbg plugins in the first place,
-        # not going to do anything.
-        return
+        # The user has not installed the ghidra plugin yet.
+        print(message.error("Ghidra plugin not installed."))
+        print(f"(The file {version_path} does not exist)")
+        return False
 
+    # Note that we only save the "required version" to this file, because thats the only
+    # thing that matters to us.
     version_spec = version_path.read_text().strip()
-    if version_spec == d2d_required_version_str or version_spec == "fine":
-        # The version is the same, i.e. the user has *some* plugin installed but we haven't
-        # bumped the version.
-        return
+    if version_spec == d2d_required_version_str:
+        # The version is the same i.e. we haven't bumped the required version since the
+        # user installed the plugin with `di install ghidra`.
+        return True
 
-    msg = "\n" + message.system("\t==== Your decompiler plugins are likely outdated. ====") + "\n\n"
-    msg += f"Pwndbg has bumped the required decomp2dbg version to {d2d_required_version_str}. The last time you\n"
-    msg += (
-        f"used `di install` was when the required version was {version_spec} (as evidenced by the\n"
+    # The plugin is outdated.
+    print(
+        message.error("Ghidra plugin outdated.")
+        + f"You have version {version_spec} but required is {d2d_required_version_str}."
     )
-    msg += f"{version_path} file).\n\n"
-    msg += message.system("\tYou likely want to update your plugins using `di install`.\n\n")
-    msg += f"You won't be warned about this version bump again. Deleting {version_path} ..\n"
-    version_path.unlink()
-    msg += message.hint("You can permanently turn this check off by running:\n")
-    # FIXME: It would be better if we could do this with a debugger variable, but they get loaded
-    # to late.
-    msg += message.notice(f"echo 'fine' > {version_path}\n")
-    msg += "You may simply restart Pwndbg now.\n"
-    print(msg)
-    sys.exit(1)
+    print("Please run `di install ghidra`.")
+    return False
 
 
-def save_decomp2dbg_version() -> None:
+def ghidra_decomp2dbg_version() -> None:
     """
     Save the required decomp2dbg version to a known file.
     """
@@ -240,7 +233,10 @@ def install_binja_plugin():
     packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_binja"
 
     install_generic_plugin(
-        [(packaged_plugin_path, Path(str(binja_plugin_path)) / "d2d_binja")], "Binary Ninja", packaged_plugin_path, binja_plugin_path
+        [(packaged_plugin_path, Path(str(binja_plugin_path)) / "d2d_binja")],
+        "Binary Ninja",
+        packaged_plugin_path,
+        binja_plugin_path,
     )
 
 
@@ -248,7 +244,10 @@ def install_angr_plugin():
     packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_angr"
 
     install_generic_plugin(
-        [(packaged_plugin_path, Path(str(angr_plugin_path)) / "d2d_angr")], "angr-managment", packaged_plugin_path, angr_plugin_path
+        [(packaged_plugin_path, Path(str(angr_plugin_path)) / "d2d_angr")],
+        "angr-managment",
+        packaged_plugin_path,
+        angr_plugin_path,
     )
 
 
@@ -262,20 +261,36 @@ def install_ghidra_plugin():
     print("\nSince the Ghidra extension is written in Java, we download it as already built.")
     print(f"Downloading:\n\t{download_url}\n\t-> {download_dest}")
 
-    with urllib.request.urlopen(download_url) as response, open(str(download_dest), 'wb') as out_file:
+    with (
+        urllib.request.urlopen(download_url) as response,
+        open(str(download_dest), "wb") as out_file,
+    ):
         shutil.copyfileobj(response, out_file)
 
     print(message.success("Done.\n"))
 
     print("Unfortunately, Ghidra doesn't load the plugin instantly on startup, so you ")
-    print(message.notice("need to tell Ghidra to load the plugin") + " by clicking [File > Install Extensions > + (top right)]")
-    print("in the Project Managment window. Then restart Ghidra. And in your project you might also need to")
-    print("[File > Configure] and enable decomp2dbg decompiler server'. Now you can start the server with ")
+    print(
+        message.notice("need to tell Ghidra to load the plugin")
+        + " by clicking [File > Install Extensions > + (top right)]"
+    )
+    print(
+        "in the Project Managment window. Then restart Ghidra. And in your project you might also need to"
+    )
+    print(
+        "[File > Configure] and enable decomp2dbg decompiler server'. Now you can start the server with "
+    )
     print("Ctrl+Shift+D as usual.")
 
-    print(message.warn("\nIMPORTANT: ") + "Because the Ghidra plugin is not shipped compiled in the decomp2dbg python package, there is no symlink")
-    print("and " + message.warn("the plugin will not be automatically updated.") + " If you don't update the Ghidra plugin after we bump the")
-    print("decomp2dbg version we use, stuff will break. You will be notified of the version bump.")
+    print(
+        message.warn("\nIMPORTANT: ")
+        + "Because the Ghidra plugin is not shipped compiled in the decomp2dbg python package, there is no symlink"
+    )
+    print("and " + message.warn("the plugin will not be automatically updated.\n"))
+
+    version_path: Path = d2d_cache_dir / "ghidra_plugin_version"
+    version_path.write_text(d2d_required_version_str)
+    print(f"Saved current required version ({d2d_required_version_str}) (to {version_path}).")
 
 
 def install(which_decompiler: str):
@@ -375,6 +390,16 @@ def connect():
 
     ok = pwndbg.integration.manager.connect(str(decompiler_host), int(decompiler_port))
     if ok:
+        # If we are connected to localhost Ghidra, we need to check that the plugin version is fine.
+        if (
+            pwndbg.integration.manager.decompiler_id() == pwndbg.integration.DecompilerID.GHIDRA
+            and decompiler_host == "localhost"
+            and not check_outdated_ghidra_plugin()
+        ):
+            print(message.error("Disconnecting.."))
+            pwndbg.integration.manager.disconnect()
+            return
+
         decompid = pwndbg.integration.manager.decompiler_id()
         # This branch should practically always be taken.
         if decompid:
@@ -469,6 +494,10 @@ because we implement the debugger-side logic independently, and it might conflic
 """,
 )
 install_subparsers = parser_install.add_subparsers(dest="install_sub", metavar="which")
+
+if (sys.version_info.major, sys.version_info.minor) >= (3, 7):
+    install_subparsers.required = True
+
 parser_install_ida = install_subparsers.add_parser(
     "ida",
     prog="di install ida",
@@ -569,5 +598,3 @@ def decomp(addr: Optional[int], lines: int) -> None:
         print("\n".join(decomp))
 
 
-# Check this on startup.
-check_decomp2dbg_version_bumped()
