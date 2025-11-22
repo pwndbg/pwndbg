@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import urllib.request
 import sys
 from pathlib import Path
 from typing import Optional
@@ -25,8 +26,9 @@ d2d_required_major = 3
 d2d_required_minor = 12
 d2d_required_fix = 0
 
-d2d_required_version_str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
+d2d_required_version_str: str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
 
+d2d_cache_dir: Path = Path(pwndbg.lib.tempfile.cachedir("d2d"))
 
 decompiler_host = pwndbg.config.add_param(
     "decompiler-host",
@@ -96,7 +98,7 @@ def check_decomp2dbg_version_bumped() -> None:
     Only shown to the user once after we bumped the required decomp2dbg version, if they
     have installed a decompiler plugin using the `di install` command before.
     """
-    version_path: Path = Path(pwndbg.lib.tempfile.cachedir()) / "decomp2dbg_version"
+    version_path: Path = d2d_cache_dir / "version"
     if not version_path.exists():
         # The user probably never installed the decomp2dbg plugins in the first place,
         # not going to do anything.
@@ -130,7 +132,7 @@ def save_decomp2dbg_version() -> None:
     """
     Save the required decomp2dbg version to a known file.
     """
-    version_path: Path = Path(pwndbg.lib.tempfile.cachedir()) / "decomp2dbg_version"
+    version_path: Path = d2d_cache_dir / "version"
 
     just_in_case: str = version_path.read_text().strip()
     if just_in_case == "fine":
@@ -217,6 +219,7 @@ def install_generic_plugin(
 
     print(
         f"If you want to change the plugin destination, run `set {config_var.name} the/new/path`.\n"
+        "You should put this line into your ~/.gdbinit so you don't have issues in the future.\n"
     )
     print(
         message.success("Installed successfully.")
@@ -241,28 +244,52 @@ def install_ida_plugin():
 
 def install_binja_plugin():
     packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_binja"
-    plugin_destination: Path = Path(str(binja_plugin_path))
-
-    dest = plugin_destination / "d2d_binja"
 
     install_generic_plugin(
-        [(packaged_plugin_path, dest)], "Binary Ninja", packaged_plugin_path, binja_plugin_path
+        [(packaged_plugin_path, Path(str(binja_plugin_path)) / "d2d_binja")], "Binary Ninja", packaged_plugin_path, binja_plugin_path
     )
 
 
 def install_angr_plugin():
     packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_angr"
-    plugin_destination: Path = Path(str(binja_plugin_path))
-
-    dest = plugin_destination / "d2d_angr"
 
     install_generic_plugin(
-        [(packaged_plugin_path, dest)], "angr-managment", packaged_plugin_path, angr_plugin_path
+        [(packaged_plugin_path, Path(str(angr_plugin_path)) / "d2d_angr")], "angr-managment", packaged_plugin_path, angr_plugin_path
     )
 
 
 def install_ghidra_plugin():
-    pass
+    print("Installing the Ghidra decompiler plugin.")
+    print_d2d_version()
+
+    if str(ghidra_plugin_path) == "":
+        print(message.error("\nGhidra plugin path is empty.\n"))
+        print("Since Ghidra doesn't have a default folder for plugin installation, you must put")
+        print(f"`set {ghidra_plugin_path.name} <path/to/ghidra>/Extensions/Ghidra` into your ~/.gdbinit .")
+        print("(If you installed Ghidra through the package manager, the path you need to set is most likely")
+        print(" /opt/ghidra/Extensions/Ghidra .)")
+        return
+
+    download_url: str = f"https://github.com/mahaloz/decomp2dbg/releases/download/v{d2d_required_version_str}/d2d-ghidra-plugin.zip"
+    download_dest: Path = d2d_cache_dir / "d2d-ghidra-plugin.zip"
+
+    print("\nSince the Ghidra extension is written in Java, we download it as already built.")
+    print(f"Downloading:\n\t{download_url}\n\t-> {download_dest}")
+
+    with urllib.request.urlopen(download_url) as response, open(str(download_dest), 'wb') as out_file:
+        shutil.copyfileobj(response, out_file)
+
+    print(message.success("Done.\n"))
+
+    print("Unfortunately, Ghidra doesn't load the plugin instantly on startup, so you ")
+    print(message.notice("need to tell Ghidra to load the plugin") + " by clicking [File > Install Extensions > + (top right)]")
+    print("in the Project Managment window. Then restart Ghidra. And in your project you might also need to")
+    print("[File > Configure] and enable decomp2dbg decompiler server'. Now you can start the server with ")
+    print("Ctrl+Shift+D as usual.")
+
+    print(message.warn("\nIMPORTANT: ") + "Because the Ghidra plugin is not shipped compiled in the decomp2dbg python package, there is no symlink")
+    print("and " + message.warn("the plugin will not be automatically updated.") + " If you don't update the Ghidra plugin after we bump the")
+    print("decomp2dbg version we use, stuff will break. You will be notified of the version bump.")
 
 
 def install(which_decompiler: str):
