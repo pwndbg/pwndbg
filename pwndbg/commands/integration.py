@@ -9,6 +9,7 @@ from typing import Optional
 from typing import List
 from typing import Tuple
 from typing_extensions import ParamSpecKwargs
+from enum import Enum
 
 import pwndbg
 import pwndbg.aglib
@@ -317,6 +318,26 @@ def install(which_decompiler: str):
             install_angr_plugin()
 
 
+def soft_connection_check(also_sync: bool) -> bool:
+    """
+    If we are not connected, try to connect (and sync).
+
+    If we were connected, or succeed in connecting, return True,
+    otherwise False.
+    """
+    if not pwndbg.integration.manager.is_connected():
+        print(message.error("Not connected to a decompiler."))
+        print("Trying to connect.. ", end='')
+
+        connect(also_sync=also_sync)
+
+        # Make sure we were successful.
+        if not pwndbg.integration.manager.is_connected():
+            return False
+
+    return True
+
+
 def jump(addr: Optional[int]):
     if not pwndbg.integration.manager.is_connected():
         print(message.error("Not connected to a decompiler."))
@@ -340,11 +361,16 @@ def jump(addr: Optional[int]):
 
 
 def sync(fail_quietly: bool):
-    if not pwndbg.integration.manager.is_connected():
-        if not fail_quietly:
-            print(message.error("Not connected to a decompiler."))
-            print(message.hint("Try `di connect`."))
-        return
+    if fail_quietly:
+        # Direct check, no retries.
+        if not pwndbg.integration.manager.is_connected():
+            return
+    else:
+        # Noisy check with a connection attempt.
+        # Don't try to sync because that sync would be quiet, and we want
+        # to complain about errors to the user.
+        if not soft_connection_check(also_sync=False):
+            return
 
     # Check if the process is alive
     if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
@@ -370,15 +396,12 @@ def list_(list_all: bool):
     # 2. What is the RSP and RBP of that stack frame
     # 3. What is the RSP and RBP offset for each variable
     # 4. maybe even provide an option to show the variables of an arbitrary function (/ executable address)
-
-    if not pwndbg.integration.manager.is_connected():
-        print(message.error("Not connected to a decompiler."))
-        print(message.hint("Try `di connect`."))
+    if not soft_connection_check(also_sync=True):
         return
 
     # Check if the process is alive
     if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
-        print(message.error("Can only jump to address while the process is alive."))
+        print(message.error("Can only list stack variables the process is alive."))
         return
 
     if list_all:
@@ -414,7 +437,7 @@ def disconnect():
     print(message.success("Disconnected") + f" from {decomp_name}.")
 
 
-def connect():
+def connect(also_sync: bool):
     if not check_decomp2dbg_version():
         return
 
@@ -442,9 +465,10 @@ def connect():
                 + f" to {decomp_name} on {str(decompiler_host)}:{int(decompiler_port)}."
             )
 
-            # Surely we always want to sync as soon as we connect.
-            # But in case the binary isn't loaded yet, lets not yell to the user about failing.
-            sync(fail_quietly=True)
+            if also_sync:
+                # In case the binary isn't loaded yet, lets not yell to the user about failing.
+                sync(fail_quietly=True)
+
             return
 
     print(message.error("Failed connecting."))
@@ -586,7 +610,7 @@ parser_list.add_argument(
 def decompiler_integration(command: str, jump_addr: Optional[int] = None, install_sub: str = "", list_all: bool = False):
     match command:
         case "connect" | "c":
-            connect()
+            connect(also_sync=True)
         case "disconnect" | "d":
             disconnect()
         case "sync" | "s":
