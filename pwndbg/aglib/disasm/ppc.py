@@ -74,7 +74,6 @@ def is_branch_taken(cr: int, ctr: int, bi: int, bo: int) -> bool | None:
     return None
 
 
-# This class enhances 64-bit Loongarch
 class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     saved_ctr: int | None = None
 
