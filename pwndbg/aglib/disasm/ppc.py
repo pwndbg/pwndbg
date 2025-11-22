@@ -103,7 +103,6 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
             return InstructionCondition.UNDETERMINED
 
         if instruction.id in POWERPC_CONDITIONAL_BRANCHES:
-            # print(hex(cr), instruction.cs_insn.bc.bi)
             is_taken = is_branch_taken(
                 cr, self.saved_ctr, instruction.cs_insn.bc.bi, instruction.cs_insn.bc.bo
             )
