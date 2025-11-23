@@ -752,22 +752,35 @@ def decompiler_integration(
 # ========= End of decompiler-integration command handling =========
 # ========= Automatic integration handling =========
 
-should_auto_sync = pwndbg.config.add_param(
-    "decompiler-auto-sync",
+should_autosync_syms = pwndbg.config.add_param(
+    "decompiler-autosync-syms",
     False,
-    "whether to sync with the decompiler on every stop",
+    "whether to sync symbols with the decompiler on every stop",
     param_class=pwndbg.lib.config.PARAM_BOOLEAN,
     help_docstring="""
-Depending on the decompiler, the number of symbols the binary you are
-decompiling has, and various other factors, this may or may not be a good idea.
-Try it out and see.
+Depending on the decompiler, the number of symbols (functions + global variables)
+the binary you are decompiling has, and various other factors, this may or may not
+be a good idea. Try it out and see.
 
-Check out decompiler-auto-jump as well.
+Check out the other decompiler-auto* configuration variables as well.
 """,
 )
 
-should_auto_jump = pwndbg.config.add_param(
-    "decompiler-auto-jump",
+should_autosync_vars = pwndbg.config.add_param(
+    "decompiler-autosync-vars",
+    True,
+    "whether to sync function variables with the decompiler on every stop",
+    param_class=pwndbg.lib.config.PARAM_BOOLEAN,
+    help_docstring="""
+This is generally lightweight, so it is enabled by default. Try disabling
+it if you have performance issues.
+
+Check out the other decompiler-auto* configuration variables as well.
+""",
+)
+
+should_autojump = pwndbg.config.add_param(
+    "decompiler-autojump",
     False,
     "whether to jump the decompiler cursor on every stop",
     param_class=pwndbg.lib.config.PARAM_BOOLEAN,
@@ -775,42 +788,29 @@ should_auto_jump = pwndbg.config.add_param(
 Depending on the decompiler, this may or may not be a good idea.
 Try it out and see.
 
-Check out decompiler-auto-sync as well.
+Check out the other decompiler-auto* configuration variables as well.
 """,
 )
 
-
-def auto_sync() -> None:
-    # Similar to sync().
-
+@pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.STOP)
+def automatic_operations() -> None:
     # The connection and inf.alive() checks in sync() are just for better error
     # reporting, the manager will handle them anyway.
 
     # We succeed quietly to not mess up the `context-reserve-lines` logic.
 
-    pwndbg.integration.manager.update_symbols()
-    pwndbg.integration.manager.update_function_variables()
+    if should_autosync_syms:
+        pwndbg.integration.manager.update_symbols()
 
+    if should_autosync_vars:
+        pwndbg.integration.manager.update_function_variables()
 
-def auto_jump() -> None:
-    # Similar to jump()
+    if should_autojump:
+        if pwndbg.aglib.regs.pc is None:
+            return
+        addr: int = pwndbg.aglib.regs.pc
 
-    # The connection and inf.alive() checks in jump() are just for better error
-    # reporting, the manager will handle them anyway.
-
-    if pwndbg.aglib.regs.pc is None:
-        return
-    addr: int = pwndbg.aglib.regs.pc
-
-    pwndbg.integration.manager.focus_address(addr)
-
-
-@pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.STOP)
-def automatic_operations() -> None:
-    if should_auto_sync:
-        auto_sync()
-    if should_auto_jump:
-        auto_jump()
+        pwndbg.integration.manager.focus_address(addr)
 
 
 # ========= End of Automatic integration handling =========

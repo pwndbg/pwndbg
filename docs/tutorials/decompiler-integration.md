@@ -29,7 +29,7 @@ di sync
 ```
 manually after you start the debugged process.
 
-Since syncing with the decompiler can be expensive, we do not do it automatically by default. So, everytime you want to sync your debugger with the decompiler, simply re-run `di sync`. If you want the syncing to be automatic, check out `help set decompiler-auto-sync`.
+Since syncing symbols with the decompiler can be expensive, we do not do it automatically by default. So, everytime you want to sync functions / global variables with the decompiler, simply re-run `di sync`. If you want this to be automatic, check out `help set decompiler-autosync-syms`. Function-local variables are synced automatically by default.
 
 ## Features
 
