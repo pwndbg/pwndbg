@@ -18,6 +18,8 @@ import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.tempfile
 import pwndbg.color as color
+import pwndbg.color.memory as color_mem
+import pwndbg.aglib.symbol
 from pwndbg.commands import CommandCategory
 
 # ========= Version / Installation code =========
@@ -122,7 +124,7 @@ def ghidra_decomp2dbg_version() -> None:
     version_path.write_text(d2d_required_version_str)
 
 
-def print_d2d_version():
+def print_d2d_version() -> None:
     import decomp2dbg
 
     print(f"decomp2dbg version: {decomp2dbg.__version__} (required: {d2d_required_version_str})")
@@ -208,7 +210,7 @@ def install_generic_plugin(
     )
 
 
-def install_ida_plugin():
+def install_ida_plugin() -> None:
     packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_ida"
     plugin_destination: Path = Path(str(ida_plugin_path))
 
@@ -223,7 +225,7 @@ def install_ida_plugin():
     )
 
 
-def install_binja_plugin():
+def install_binja_plugin() -> None:
     packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_binja"
 
     install_generic_plugin(
@@ -234,7 +236,7 @@ def install_binja_plugin():
     )
 
 
-def install_angr_plugin():
+def install_angr_plugin() -> None:
     packaged_plugin_path: Path = decomp2dbg_path() / "decompilers/d2d_angr"
 
     install_generic_plugin(
@@ -245,7 +247,7 @@ def install_angr_plugin():
     )
 
 
-def install_ghidra_plugin():
+def install_ghidra_plugin() -> None:
     print("Installing the Ghidra decompiler plugin.")
     print_d2d_version()
 
@@ -287,7 +289,7 @@ def install_ghidra_plugin():
     print(f"Saved current required version ({d2d_required_version_str}) (to {version_path}).")
 
 
-def install(which_decompiler: str):
+def install(which_decompiler: str) -> None:
     if sys.platform == "win32":
         print(
             message.system(
@@ -345,7 +347,7 @@ decompiler_port = pwndbg.config.add_param(
 )
 
 
-def disconnect():
+def disconnect() -> None:
     if not pwndbg.integration.manager.is_connected():
         print(message.error("Am not connected in the first place."))
         return
@@ -355,7 +357,7 @@ def disconnect():
     print(message.success("Disconnected") + f" from {decomp_name}.")
 
 
-def connect(also_sync: bool):
+def connect(also_sync: bool) -> None:
     # Doesn't make sense to check the version this if the local decomp2dbg is not being used.
     if decompiler_host == "localhost" and not check_decomp2dbg_version():
         return
@@ -424,7 +426,7 @@ def soft_connection_check(also_sync: bool) -> bool:
     return True
 
 
-def jump(addr: Optional[int]):
+def jump(addr: Optional[int]) -> None:
     if not pwndbg.integration.manager.is_connected():
         print(message.error("Not connected to a decompiler."))
         print(message.hint("Try `di connect`."))
@@ -446,7 +448,7 @@ def jump(addr: Optional[int]):
         print(message.error("Decompiler failed to jump."))
 
 
-def sync(fail_quietly: bool):
+def sync(fail_quietly: bool) -> None:
     """
     Arguments:
         fail_quietly: If we don't pass the preliminary checks
@@ -482,37 +484,106 @@ def sync(fail_quietly: bool):
         print("No variables synced for the current function.")
 
 
-def list_(list_all: bool):
-    # FIXME: This function could be much improved.
-    # 1. Show which variables are in which stack frame
-    # 2. What is the RSP and RBP of that stack frame
-    # 3. What is the RSP and RBP offset for each variable
-    # 4. maybe even provide an option to show the variables of an arbitrary function (/ executable address)
+def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> None:
+    func_vars: Optional[pwndbg.integration.RebasedFuncVariables] = pwndbg.integration.manager.get_function_vars_rebased_from_frame(frame)
+
+    pc: int = frame.pc()
+    sp: int = frame.sp()
+    start: Optional[int] = frame.start()
+
+    symbol: Optional[str] = pwndbg.aglib.symbol.resolve_addr(pc)
+    if symbol:
+        symbol_text = color.blue(symbol)
+    else:
+        symbol_text = "???"
+
+    if idx is not None:
+        frame_text = f"#{idx} {symbol_text} frame:"
+    else:
+        frame_text = f"{symbol_text} frame:"
+
+    pc_text = color.blue(hex(pc))
+    sp_text = color_mem.get(sp)
+    start_text = color_mem.get(start) if start is not None else "???"
+    padding = " " * 4
+
+    print(frame_text)
+    print(f"{padding}@ {pc_text}")
+    print(f"{padding}{sp_text} -> {start_text}")
+
+    if func_vars is None:
+        # Common reason is that we are in a function in a different binary.
+        print("Could not get function variables from decompiler.")
+        return
+
+    if len(func_vars.reg_vars) == 0:
+        print("No register variables.")
+    else:
+        print("Register variables:")
+
+        for reg_var in func_vars.reg_vars:
+            name_text = color.green(color.bold(reg_var.name))
+            type_text = color.light_cyan(reg_var.type)
+            reg_text = reg_var.reg_name.ljust(4, " ")
+            reg_value_raw: Optional[pwndbg.dbg_mod.Value] = frame.regs().by_name(reg_var.reg_name)
+            reg_value = color_mem.get(int(reg_value_raw)) if reg_value_raw is not None else color.gray("???")
+            reg_value_part = color.ljust_colored(f"(value: {reg_value})", 28)
+            print(f"{reg_text} {reg_value_part} <- {name_text} (type: {type_text})")
+
+    if len(func_vars.stack_vars) == 0:
+        print("No stack variables.")
+    else:
+        print("Stack variables:")
+
+        for stack_var in func_vars.stack_vars:
+            name_text = color.green(color.bold(stack_var.name))
+            type_text = color.light_cyan(stack_var.type)
+            addr_text = color.ljust_colored(color_mem.get(stack_var.addr), 18)
+            from_sp = stack_var.addr - sp
+            from_sp_text = f"[sp + {from_sp:#x}]"
+            if start:
+                from_frame = start - stack_var.addr
+                from_frame_text = f"[frame - {from_frame:#x}]"
+            else:
+                from_frame_text = "[???]"
+
+            print(f"{addr_text} <- {name_text} (type: {type_text}) {from_sp_text} {from_frame_text}")
+
+
+def list_all_frames() -> None:
+    thread = pwndbg.dbg.selected_thread()
+    if thread is None:
+        print(message.error("Could not find current thread."))
+        return
+
+    idx = 0
+    with thread.bottom_frame() as bottom_frame:
+        cur_frame = bottom_frame
+        # Crawl up the stack
+        while cur_frame is not None:
+            list_one_frame(cur_frame, idx)
+            print("==================")
+            cur_frame = cur_frame.parent()
+            idx += 1
+
+
+def list_(list_all: bool) -> None:
     if not soft_connection_check(also_sync=True):
         return
 
     # Check if the process is alive
     if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
-        print(message.error("Can only list stack variables the process is alive."))
+        print(message.error("Can only list function variables if the process is alive."))
         return
 
     if list_all:
-        stack_vars: dict[int, str] = pwndbg.integration.manager.get_stack_var_dict_all()
+        list_all_frames()
     else:
-        if frame := pwndbg.dbg.selected_frame():
-            stack_vars = pwndbg.integration.manager.get_stack_var_dict_from_frame(frame)
-        else:
+        frame: Optional[pwndbg.dbg_mod.Frame] = pwndbg.dbg.selected_frame()
+        if frame is None:
             print(message.error("Could not find current stack frame."))
             return
-
-    if not stack_vars:
-        print("No variables found.")
-        return
-
-    sorted_vars: List[Tuple[int, str]] = sorted(stack_vars.items())
-    for addr, varname in sorted_vars:
-        # just gonna assume its a stack var and color appropriately
-        print(f"{color.yellow(hex(addr))}: {varname}")
+        list_one_frame(frame)
 
 
 parser = argparse.ArgumentParser(description="Control Pwndbg decompiler integration.")
@@ -631,7 +702,12 @@ parser_list = subparsers.add_parser(
     prog="di list",
     aliases=["l"],
     help="List the variables for the current stack frame",
-    description="List the variables for the current stack frame.",
+    description="""
+List the variables for the current stack frame.
+
+Will not be accurate in a function's prologue (before the stack pointer has been adjusted).
+The "frame" for the purposes of this command is (usually) the location of the saved return address.
+""",
 )
 parser_list.add_argument(
     "-a",
@@ -696,7 +772,7 @@ Check out decompiler-auto-sync as well.
 """
 )
 
-def auto_sync():
+def auto_sync() -> None:
     # Similar to sync().
 
     # The connection and inf.alive() checks in sync() are just for better error
@@ -708,7 +784,7 @@ def auto_sync():
     pwndbg.integration.manager.update_function_variables()
 
 
-def auto_jump():
+def auto_jump() -> None:
     # Similar to jump()
 
     # The connection and inf.alive() checks in jump() are just for better error
@@ -722,7 +798,7 @@ def auto_jump():
 
 
 @pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.STOP)
-def automatic_operations():
+def automatic_operations() -> None:
     if should_auto_sync:
         auto_sync()
     if should_auto_jump:
@@ -731,7 +807,7 @@ def automatic_operations():
     # This cache makes sense only if someone in the future
     # hooks into it and uses it many times during a stop.
     # As-is, the cache is useless since we should clear it
-    # on every stop.
+    # on every stop (fixme: should we?).
     pwndbg.integration.manager._function_data.clear()
 
 # ========= End of Automatic integration handling =========
