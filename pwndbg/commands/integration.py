@@ -20,7 +20,7 @@ import pwndbg.lib.tempfile
 import pwndbg.color as color
 from pwndbg.commands import CommandCategory
 
-# ==== Version / Installation code ====
+# ========= Version / Installation code =========
 
 # Bump me if needed.
 # (This will trigger check_decomp2dbg_version_bumped())
@@ -327,7 +327,8 @@ def install(which_decompiler: str):
             install_angr_plugin()
 
 
-# ==== End of Version / Installation code ====
+# ========= End of Version / Installation code =========
+# ========= decompiler-integration command handling =========
 
 decompiler_host = pwndbg.config.add_param(
     "decompiler-host",
@@ -446,6 +447,11 @@ def jump(addr: Optional[int]):
 
 
 def sync(fail_quietly: bool):
+    """
+    Arguments:
+        fail_quietly: If we don't pass the preliminary checks
+          required to perform the sync, don't print anything.
+    """
     if fail_quietly:
         # Direct check, no retries.
         if not pwndbg.integration.manager.is_connected():
@@ -463,15 +469,18 @@ def sync(fail_quietly: bool):
             print(message.notice("Can only sync with the debugger while the process is alive."))
         return
 
+    pwndbg.integration.manager.invalidate_caches()
+
     # Functions and globals
     nsyms = pwndbg.integration.manager.update_symbols()
-    print(message.success(f"Synced {nsyms} symbols") + " (globals + functions).")
+    print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end='')
 
     # Function-local variables
     if pwndbg.aglib.regs.pc is not None:
         nvars = pwndbg.integration.manager.update_function_variables(pwndbg.aglib.regs.pc)
         print(message.success(f"Synced {nvars} variables") + " for the current function.")
     else:
+        # It's fine to print this even if fail_quietly=True.
         print(message.error("Could not find PC for syncing function-local variables."))
 
 
@@ -510,9 +519,7 @@ def list_(list_all: bool):
 
 parser = argparse.ArgumentParser(description="Control Pwndbg decompiler integration.")
 subparsers = parser.add_subparsers(dest="command")
-
-if (sys.version_info.major, sys.version_info.minor) >= (3, 7):
-    subparsers.required = True
+subparsers.required = True
 
 parser_connect = subparsers.add_parser(
     "connect",
@@ -541,7 +548,11 @@ parser_sync = subparsers.add_parser(
     prog="di sync",
     aliases=["s"],
     help="Sync data from the decompiler",
-    description="Sync data from the decompiler",
+    description="""
+Sync data from the decompiler.
+
+Check out `help set decompiler-auto-sync`.
+""",
 )
 
 parser_jump = subparsers.add_parser(
@@ -549,7 +560,11 @@ parser_jump = subparsers.add_parser(
     prog="di jump",
     aliases=["j"],
     help="Make the decompiler's cursor jump to the PC",
-    description="Make the decompiler's cursor jump to the PC.",
+    description="""
+Make the decompiler's cursor jump to the PC.
+
+Check out `help set decompiler-auto-jump`.
+""",
 )
 parser_jump.add_argument(
     "jump_addr",
@@ -579,9 +594,7 @@ because we implement the debugger-side logic independently, and it might conflic
 """,
 )
 install_subparsers = parser_install.add_subparsers(dest="install_sub", metavar="which")
-
-if (sys.version_info.major, sys.version_info.minor) >= (3, 7):
-    install_subparsers.required = True
+install_subparsers.required = True
 
 parser_install_ida = install_subparsers.add_parser(
     "ida",
@@ -654,6 +667,86 @@ def decompiler_integration(
         case "list" | "l":
             list_(list_all)
 
+
+# ========= End of decompiler-integration command handling =========
+# ========= Automatic integration handling =========
+
+should_auto_sync = pwndbg.config.add_param(
+    "decompiler-auto-sync",
+    False,
+    "whether to sync with the decompiler on every stop",
+    param_class=pwndbg.lib.config.PARAM_BOOLEAN,
+    help_docstring="""
+Depending on the decompiler, the number of symbols the binary you are
+decompiling has, and various other factors, this may or may not be a good idea.
+Try it out and see.
+
+Check out decompiler-auto-jump as well.
+"""
+)
+
+should_auto_jump = pwndbg.config.add_param(
+    "decompiler-auto-jump",
+    False,
+    "whether to jump the decompiler cursor on every stop",
+    param_class=pwndbg.lib.config.PARAM_BOOLEAN,
+    help_docstring="""
+Depending on the decompiler, this may or may not be a good idea.
+Try it out and see.
+
+Check out decompiler-auto-sync as well.
+"""
+)
+
+def auto_sync():
+    # Similar to sync().
+
+    # We succeed quietly to not mess up the `context-reserve-lines` logic.
+
+    if not pwndbg.integration.manager.is_connected():
+        return
+
+    if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
+        return
+
+    pwndbg.integration.manager.invalidate_caches()
+
+    pwndbg.integration.manager.update_symbols()
+
+    if pwndbg.aglib.regs.pc is not None:
+        pwndbg.integration.manager.update_function_variables(pwndbg.aglib.regs.pc)
+    else:
+        print(message.error("Could not find PC for syncing function-local variables."))
+
+
+def auto_jump():
+    # Similar to jump()
+
+    if not pwndbg.integration.manager.is_connected():
+        return
+
+    if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
+        return
+
+    if pwndbg.aglib.regs.pc is None:
+        print(message.error("decompiler auto-jump: Address not specified, and could not find PC."))
+        return
+    addr = pwndbg.aglib.regs.pc
+
+    ok = pwndbg.integration.manager.focus_address(addr)
+    if not ok:
+        print(message.error("Decompiler failed to jump."))
+
+
+@pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.STOP)
+def automatic_operations():
+    if should_auto_sync:
+        auto_sync()
+    if should_auto_jump:
+        auto_jump()
+
+# ========= End of Automatic integration handling =========
+# ========= The decomp command =========
 
 parser = argparse.ArgumentParser(
     description="Use the current integration to decompile code near an address."
