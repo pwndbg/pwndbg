@@ -1,3 +1,4 @@
+
 ![repository-open-graph](https://github.com/pwndbg/pwndbg/assets/150354584/77b2e438-898f-416f-a989-4bef30759627)
 # pwndbg
 
@@ -31,6 +32,16 @@ smoothing out rough edges and making them more user-friendly.
 ## Installation
 
 See [installation instructions](https://pwndbg.re/stable/setup).
+
+## Development Setup
+
+To set up Pwndbg for development:
+
+1. Clone your fork:
+
+```bash
+git clone https://github.com/sai-30624/pwndbg.git
+cd pwndbg
 
 ## What about ...?
 
