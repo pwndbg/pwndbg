@@ -470,6 +470,8 @@ class IntegrationManager:
             self._connection = DecompilerConnection(server)
             return True
         except (ConnectionRefusedError, AttributeError):
+            # We could also catch xmlrpc.client.Fault
+            # but those are usually genuine bugs, so we kinda want to know about them.
             pass
 
         # Failed to connect.
