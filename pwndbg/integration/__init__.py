@@ -405,10 +405,11 @@ class IntegrationManager:
         self._connection: Optional[DecompilerConnection] = None
 
         # The local caches, invalidated on disconnect/reconnect or user request.
-        # They MUST be None if self.connection is None.
+        # They MUST return None if self.connection is None.
         self._function_headers: Optional[FunctionHeaders] = None
         self._global_vars: Optional[GlobalVariables] = None
         self._decompiler_id: Optional[DecompilerID] = None
+        self._function_data: dict[int, Optional[FuncVariables]] = {}
 
         # FIXME: Should really be fixed on decompiler plugin side.
         # Need to maintain this, otherwise the Ghidra decompilation pane is
@@ -420,6 +421,7 @@ class IntegrationManager:
         self._function_headers = None
         self._global_vars = None
         self._decompiler_id = None
+        self._function_data.clear()
 
     def connect(self, host: str, port: int) -> bool:
         """
@@ -465,17 +467,14 @@ class IntegrationManager:
             self._connection.disconnect()
             self._connection = None
 
-    def is_connected(self) -> bool:
-        """
-        Are we connected to a decompiler?
-
-        Lightweight check, use a ping for an actual check.
-        """
-        return self._connection is not None
+    # ==== Setters ====
 
     def update_symbols(self) -> int:
         """
         Update global variables and functions in the debugger.
+
+        This always invalidates the cache for global variables and
+        function headers, and requests them from the plugin.
 
         Returns the amount of synced symbols.
 
@@ -485,6 +484,10 @@ class IntegrationManager:
         # the address space yet.
         if self._connection is None or self._connection.binary_base_addr == -1:
             return 0
+
+        # Invalidate the two caches.
+        self._function_headers = None
+        self._global_vars = None
 
         global_vars: Optional[GlobalVariables] = self.global_vars()
         func_headers: Optional[FunctionHeaders] = self.function_headers()
@@ -568,82 +571,13 @@ class IntegrationManager:
         except Exception:
             pass
 
-    def get_stack_vars_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> dict[int, str]:
-        """
-        Ask the decompiler for stack variable offsets in this frame and resolve
-        each variable to an actual address.
-
-        Returns:
-            A dictionary that maps (stack variable address) -> (stack variable name)
-            for all variables in the given frame.
-        """
-        if self._connection is None:
-            return {}
-
-        addr = frame.pc()
-
-        maybe_func_data: Optional[FuncVariables] = self._connection.function_data(addr)
-        if maybe_func_data is None:
-            return {}
-
-        inf = pwndbg.dbg.selected_inferior()
-        if not inf:
-            return {}
-
-        func_data: FuncVariables = maybe_func_data
-
-        result: dict[int, str] = {}
-
-        for stack_var in func_data.stack_vars:
-            from_sp: Optional[int] = stack_var.from_sp
-            from_frame: Optional[int] = stack_var.from_frame
-
-            if from_sp is not None and pwndbg.aglib.regs.stack is not None:
-                stack_addr = frame.regs().by_name(pwndbg.aglib.regs.stack)
-                if stack_addr:
-                    var_addr = int(stack_addr) + from_sp
-                    result[var_addr] = stack_var.name
-            elif from_frame is not None:
-                if (frame_start := frame.start()) is not None:
-                    var_addr = frame_start - from_frame
-                    result[var_addr] = stack_var.name
-
-        return result
-
-    @pwndbg.lib.cache.cache_until("stop")
-    def get_all_stack_variables(self) -> dict[int, str]:
-        """
-        Take all valid stack frames (from the whole backtrace), ask the decompiler to
-        figure out where they are, and map them to their actual addresses.
-
-        Returns:
-            A dictionary that maps (stack variable address) -> (stack variable name)
-            for all currently valid stack frames.
-        """
-        if self._connection is None:
-            return {}
-
-        thread = pwndbg.dbg.selected_thread()
-        if thread is None:
-            return {}
-
-        result: dict[int, str] = {}
-
-        with thread.bottom_frame() as bottom_frame:
-            cur_frame = bottom_frame
-            # Crawl up the stack
-            while cur_frame is not None:
-                cur_variables = self.get_stack_vars_from_frame(cur_frame)
-                # Merge dictionaries
-                result = result | cur_variables
-                cur_frame = cur_frame.parent()
-
-        return result
-
     def update_function_variables(self, addr: int) -> int:
         """
         Take the function at `addr` and update all the debugger convenience variables
         that correspond to the function's variables.
+
+        This always invalidates the cache for function variables and requests them
+        from the plugin.
 
         Returns:
             The number of variables the decompiler returned for the function.
@@ -655,7 +589,10 @@ class IntegrationManager:
         if self._connection is None:
             return 0
 
-        maybe_func_data: Optional[FuncVariables] = self._connection.function_data(addr)
+        # Invalidate the cache for this address.
+        self._function_data.pop(addr, None)
+
+        maybe_func_data: Optional[FuncVariables] = self.function_data(addr)
         if maybe_func_data is None:
             return 0
 
@@ -685,6 +622,18 @@ class IntegrationManager:
                     )
 
         return len(func_data.reg_vars) + len(func_data.stack_vars)
+
+    # ==== Getters ====
+    # All getters are either cheap (no RPC) operations, or cached.
+    # The caching may be until stop, or until the cache is invalidated.
+
+    def is_connected(self) -> bool:
+        """
+        Are we connected to a decompiler?
+
+        Lightweight check, use a ping for an actual check.
+        """
+        return self._connection is not None
 
     def decompiler_id(self) -> Optional[DecompilerID]:
         """
@@ -726,6 +675,87 @@ class IntegrationManager:
             res += f"\n{name} {key}: {value}"
 
         return res
+
+    # FIXME: The implementation of cache_until tells me I shouldn't return mutable types
+    # should I make a read-only dict class?
+    @pwndbg.lib.cache.cache_until("stop")
+    def get_stack_vars_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> dict[int, str]:
+        """
+        Ask the decompiler for stack variable offsets in this frame and resolve
+        each variable to an actual address.
+
+        You must not modify the object you got from this function.
+
+        Returns:
+            A dictionary that maps (stack variable address) -> (stack variable name)
+            for all variables in the given frame.
+        """
+        if self._connection is None:
+            return {}
+
+        addr = frame.pc()
+
+        maybe_func_data: Optional[FuncVariables] = self._connection.function_data(addr)
+        if maybe_func_data is None:
+            return {}
+
+        inf = pwndbg.dbg.selected_inferior()
+        if not inf:
+            return {}
+
+        func_data: FuncVariables = maybe_func_data
+
+        result: dict[int, str] = {}
+
+        for stack_var in func_data.stack_vars:
+            from_sp: Optional[int] = stack_var.from_sp
+            from_frame: Optional[int] = stack_var.from_frame
+
+            if from_sp is not None and pwndbg.aglib.regs.stack is not None:
+                stack_addr = frame.regs().by_name(pwndbg.aglib.regs.stack)
+                if stack_addr:
+                    var_addr = int(stack_addr) + from_sp
+                    result[var_addr] = stack_var.name
+            elif from_frame is not None:
+                if (frame_start := frame.start()) is not None:
+                    var_addr = frame_start - from_frame
+                    result[var_addr] = stack_var.name
+
+        return result
+
+    # FIXME: The implementation of cache_until tells me I shouldn't return mutable types
+    # should I make a read-only dict class?
+    @pwndbg.lib.cache.cache_until("stop")
+    def get_all_stack_variables(self) -> dict[int, str]:
+        """
+        Take all valid stack frames (from the whole backtrace), ask the decompiler to
+        figure out where they are, and map them to their actual addresses.
+
+        You must not modify the object you got from this function.
+
+        Returns:
+            A dictionary that maps (stack variable address) -> (stack variable name)
+            for all currently valid stack frames.
+        """
+        if self._connection is None:
+            return {}
+
+        thread = pwndbg.dbg.selected_thread()
+        if thread is None:
+            return {}
+
+        result: dict[int, str] = {}
+
+        with thread.bottom_frame() as bottom_frame:
+            cur_frame = bottom_frame
+            # Crawl up the stack
+            while cur_frame is not None:
+                cur_variables = self.get_stack_vars_from_frame(cur_frame)
+                # Merge dictionaries
+                result = result | cur_variables
+                cur_frame = cur_frame.parent()
+
+        return result
 
     def decompile_pretty(self, mapped_addr: int, nlines: int) -> Optional[list[str]]:
         """
@@ -781,6 +811,7 @@ class IntegrationManager:
         formatted_decomp = pretty_print.format_source(list(decomp), nlines, curr_line)
         return formatted_decomp
 
+    @pwndbg.lib.cache.cache_until("stop")
     def symbol_at_address(self, mapped_addr: int) -> Optional[str]:
         """
         Returns name of a symbol (function or global variable) at given address,
@@ -839,9 +870,18 @@ class IntegrationManager:
 
         Function arguments are included in these variables.
         """
-        if self._connection is not None:
-            return self._connection.function_data(mapped_addr)
-        return None
+        if self._connection is not None and mapped_addr not in self._function_data:
+            # This is a wacky cache. We could cache per function-name,
+            # but that is not semantically correct (e.g. DWARF spec, split variables..)
+            # In fact, even caching per-address is not semantically correct per DWARF since
+            # the variable's locations may depend arbitrarily on the values of various registers.
+            # But oke, it's probably fine :)
+            # I'm okay with allowing `= None` here because callers that want the actual most
+            # recent value will always just invalidate this cache anyway.
+            self._function_data[mapped_addr] = self._connection.function_data(mapped_addr)
+
+        # Using .get() for the case when there is no connection and the key is not in the cache.
+        return self._function_data.get(mapped_addr, None)
 
     def function_headers(self) -> Optional[FunctionHeaders]:
         """

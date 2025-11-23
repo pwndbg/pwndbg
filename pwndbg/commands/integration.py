@@ -469,8 +469,6 @@ def sync(fail_quietly: bool):
             print(message.notice("Can only sync with the debugger while the process is alive."))
         return
 
-    pwndbg.integration.manager.invalidate_caches()
-
     # Functions and globals
     nsyms = pwndbg.integration.manager.update_symbols()
     print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end='')
@@ -709,8 +707,6 @@ def auto_sync():
     if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
         return
 
-    pwndbg.integration.manager.invalidate_caches()
-
     pwndbg.integration.manager.update_symbols()
 
     if pwndbg.aglib.regs.pc is not None:
@@ -744,6 +740,12 @@ def automatic_operations():
         auto_sync()
     if should_auto_jump:
         auto_jump()
+
+    # This cache makes sense only if someone in the future
+    # hooks into it and uses it many times during a stop.
+    # As-is, the cache is useless since we should clear it
+    # on every stop.
+    pwndbg.integration.manager._function_data.clear()
 
 # ========= End of Automatic integration handling =========
 # ========= The decomp command =========
