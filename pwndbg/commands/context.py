@@ -4,7 +4,6 @@ import argparse
 import ast
 import functools
 import logging
-import os
 import sys
 from collections import defaultdict
 from typing import Any

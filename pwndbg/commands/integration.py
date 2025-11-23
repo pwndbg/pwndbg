@@ -2,24 +2,24 @@ from __future__ import annotations
 
 import argparse
 import shutil
-import urllib.request
 import sys
+import urllib.request
 from pathlib import Path
-from typing import Optional
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.regs
+import pwndbg.aglib.symbol
+import pwndbg.color as color
+import pwndbg.color.memory as color_mem
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.tempfile
-import pwndbg.color as color
-import pwndbg.color.memory as color_mem
-import pwndbg.aglib.symbol
 from pwndbg.commands import CommandCategory
 
 # ========= Version / Installation code =========
@@ -473,7 +473,7 @@ def sync(fail_quietly: bool) -> None:
 
     # Functions and globals
     nsyms = pwndbg.integration.manager.update_symbols()
-    print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end='')
+    print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end="")
 
     # Function-local variables
     nvars = pwndbg.integration.manager.update_function_variables()
@@ -485,7 +485,9 @@ def sync(fail_quietly: bool) -> None:
 
 
 def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> None:
-    func_vars: Optional[pwndbg.integration.RebasedFuncVariables] = pwndbg.integration.manager.get_function_vars_rebased_from_frame(frame)
+    func_vars: Optional[pwndbg.integration.RebasedFuncVariables] = (
+        pwndbg.integration.manager.get_function_vars_rebased_from_frame(frame)
+    )
 
     pc: int = frame.pc()
     sp: int = frame.sp()
@@ -526,7 +528,11 @@ def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> No
             type_text = color.light_cyan(reg_var.type)
             reg_text = reg_var.reg_name.ljust(4, " ")
             reg_value_raw: Optional[pwndbg.dbg_mod.Value] = frame.regs().by_name(reg_var.reg_name)
-            reg_value = color_mem.get(int(reg_value_raw)) if reg_value_raw is not None else color.gray("???")
+            reg_value = (
+                color_mem.get(int(reg_value_raw))
+                if reg_value_raw is not None
+                else color.gray("???")
+            )
             reg_value_part = color.ljust_colored(f"(value: {reg_value})", 28)
             print(f"{reg_text} {reg_value_part} <- {name_text} (type: {type_text})")
 
@@ -547,7 +553,9 @@ def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> No
             else:
                 from_frame_text = "[???]"
 
-            print(f"{addr_text} <- {name_text} (type: {type_text}) {from_sp_text} {from_frame_text}")
+            print(
+                f"{addr_text} <- {name_text} (type: {type_text}) {from_sp_text} {from_frame_text}"
+            )
 
 
 def list_all_frames() -> None:
@@ -756,7 +764,7 @@ decompiling has, and various other factors, this may or may not be a good idea.
 Try it out and see.
 
 Check out decompiler-auto-jump as well.
-"""
+""",
 )
 
 should_auto_jump = pwndbg.config.add_param(
@@ -769,8 +777,9 @@ Depending on the decompiler, this may or may not be a good idea.
 Try it out and see.
 
 Check out decompiler-auto-sync as well.
-"""
+""",
 )
+
 
 def auto_sync() -> None:
     # Similar to sync().
@@ -803,6 +812,7 @@ def automatic_operations() -> None:
         auto_sync()
     if should_auto_jump:
         auto_jump()
+
 
 # ========= End of Automatic integration handling =========
 # ========= The decomp command =========

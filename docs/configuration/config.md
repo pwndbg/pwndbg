@@ -202,7 +202,7 @@ Number of source code lines to print by the context command.
 
 
 
-**Default:** 10  
+**Default:** 14  
 
 ----------
 
@@ -225,18 +225,6 @@ Number of additional lines to print in the disasm context.
 
 
 **Default:** 10  
-
-----------
-
-## **context-ghidra**
-
-
-When to try to decompile the current function with ghidra.
-
-Doing this is slow and requires radare2/r2pipe or rizin/rzpipe.
-
-**Default:** 'never'  
-**Valid values:** 'always', 'never', 'if-no-source'
 
 ----------
 
@@ -304,7 +292,7 @@ Which context sections are displayed (controls order).
 
 
 
-**Default:** 'regs disasm code ghidra stack backtrace expressions threads heap_tracker'  
+**Default:** 'regs disasm code stack backtrace expressions threads heap_tracker'  
 
 ----------
 
@@ -343,15 +331,87 @@ Display internal event debugging info.
 
 ----------
 
-## **decompiler**
+## **decompiler-angr-plugin-path**
 
 
-Framework that your ghidra plugin installed.
+Where to install the angr integration plugin.
 
 
 
-**Default:** 'radare2'  
-**Valid values:** 'radare2', 'rizin'
+**Default:** '/home/user/.local/share/angr-management/plugins'  
+
+----------
+
+## **decompiler-auto-jump**
+
+
+Whether to jump the decompiler cursor on every stop.
+
+Depending on the decompiler, this may or may not be a good idea.
+Try it out and see.
+
+Check out decompiler-auto-sync as well.
+
+**Default:** off  
+
+----------
+
+## **decompiler-auto-sync**
+
+
+Whether to sync with the decompiler on every stop.
+
+Depending on the decompiler, the number of symbols the binary you are
+decompiling has, and various other factors, this may or may not be a good idea.
+Try it out and see.
+
+Check out decompiler-auto-jump as well.
+
+**Default:** off  
+
+----------
+
+## **decompiler-binja-plugin-path**
+
+
+Where to install the binary ninja integration plugin.
+
+
+
+**Default:** '/home/user/.binaryninja/plugins'  
+
+----------
+
+## **decompiler-host**
+
+
+The host where the decompiler is exposed.
+
+
+
+**Default:** 'localhost'  
+
+----------
+
+## **decompiler-ida-plugin-path**
+
+
+Where to install the ida integration plugin.
+
+
+
+**Default:** '/home/user/.idapro/plugins'  
+
+----------
+
+## **decompiler-port**
+
+
+The port on which the decompiler is exposed.
+
+
+
+**Default:** 3662  
 
 ----------
 
@@ -673,17 +733,6 @@ Number of lines before the pc to print for the nearpc command.
 
 
 **Default:** 5  
-
-----------
-
-## **nearpc-integration-comments**
-
-
-Whether to show comments from integration provider.
-
-
-
-**Default:** on  
 
 ----------
 

@@ -67,6 +67,7 @@ Cache = Union[Dict[Tuple[Any, ...], Any], DebugCacheDict]
 
 class CachedFunction(Protocol[T]):
     cache: Cache
+
     def __call__(self, *args: Any, **kwargs: Any) -> T: ...
 
 
@@ -187,7 +188,7 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
         for event_name in event_names:
             _ALL_CACHE_UNTIL_EVENTS[event_name].add_cache(cache)
 
-        return decorator # type: ignore[return-value]
+        return decorator  # type: ignore[return-value]
 
     return inner
 

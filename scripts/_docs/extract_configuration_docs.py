@@ -13,9 +13,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
+from pathlib import Path
 from typing import Dict
 
 import pwndbg
+import pwndbg.lib.config
 from pwndbg.lib.config import HELP_DEFAULT_PREFIX
 from pwndbg.lib.config import HELP_VALID_VALUES_PREFIX
 from pwndbg.lib.config import Parameter
@@ -81,6 +83,8 @@ def distill_sources(scoped_params: Dict[str, list[Parameter]]) -> Dict[str, list
             help_docstring = help_docstring.replace(
                 HELP_VALID_VALUES_PREFIX, f"**{HELP_VALID_VALUES_PREFIX}**"
             )
+            # Sanitize username from home path out.
+            help_docstring = help_docstring.replace(str(Path.home()), "/home/user")
 
             result[scope].append(ExtractedParam(param.name, set_show_doc, help_docstring))
 

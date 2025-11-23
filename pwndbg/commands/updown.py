@@ -2,8 +2,13 @@
 Overrides GDB's up and down commands to be prettier and to follow
 the decompiler integration.
 """
-import gdb
+
+from __future__ import annotations
+
 import argparse
+
+import gdb
+
 import pwndbg
 import pwndbg.commands
 import pwndbg.commands.context

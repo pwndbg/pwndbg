@@ -83,6 +83,7 @@ class StackVariable:
     # (which usually contains the saved return address). Positive number.
     from_frame: Optional[int]
 
+
 @dataclass
 class RebasedStackVariable:
     name: str
@@ -620,7 +621,9 @@ class IntegrationManager:
         # place to do it.
         self._function_data.clear()
 
-        rebased_vars: Optional[RebasedFuncVariables] = self.get_function_vars_rebased_from_frame(frame)
+        rebased_vars: Optional[RebasedFuncVariables] = self.get_function_vars_rebased_from_frame(
+            frame
+        )
         if rebased_vars is None:
             return 0
 
@@ -628,13 +631,17 @@ class IntegrationManager:
 
         for reg_var in rebased_vars.reg_vars:
             cleaned_type: str = self._clean_type_str(reg_var.type)
-            ok = self._try_setting_conv_var_with_type(reg_var.name, f"${reg_var.reg_name}", cleaned_type)
+            ok = self._try_setting_conv_var_with_type(
+                reg_var.name, f"${reg_var.reg_name}", cleaned_type
+            )
             nupdated += 1 if ok else 0
 
         for stack_var in rebased_vars.stack_vars:
             # Pointer to the type.
             cleaned_type = f"{self._clean_type_str(stack_var.type)}*"
-            ok = self._try_setting_conv_var_with_type(stack_var.name, hex(stack_var.addr), cleaned_type)
+            ok = self._try_setting_conv_var_with_type(
+                stack_var.name, hex(stack_var.addr), cleaned_type
+            )
             nupdated += 1 if ok else 0
 
         return nupdated
@@ -692,8 +699,9 @@ class IntegrationManager:
 
         return res
 
-
-    def get_function_vars_rebased_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> Optional[RebasedFuncVariables]:
+    def get_function_vars_rebased_from_frame(
+        self, frame: pwndbg.dbg_mod.Frame
+    ) -> Optional[RebasedFuncVariables]:
         """
         Get function variables for the passed frame. Stack variables will have valid addresses rather than offsets.
 
@@ -738,13 +746,16 @@ class IntegrationManager:
                 # We prefer sp-offseted variables because calculating their actual address is more likely
                 # to work.
                 var_addr = int(frame_sp) + from_sp
-                new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
+                new_stack_vars.append(
+                    RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr)
+                )
             elif from_frame is not None and frame_start is not None:
                 var_addr = frame_start - from_frame
-                new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
+                new_stack_vars.append(
+                    RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr)
+                )
 
         return RebasedFuncVariables(reg_vars=raw_func_data.reg_vars, stack_vars=new_stack_vars)
-
 
     def get_stack_var_dict_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> dict[int, str]:
         """
@@ -760,7 +771,9 @@ class IntegrationManager:
         """
 
         # The function will take care of connection checking etc.
-        rebased_func_data: Optional[RebasedFuncVariables] = self.get_function_vars_rebased_from_frame(frame)
+        rebased_func_data: Optional[RebasedFuncVariables] = (
+            self.get_function_vars_rebased_from_frame(frame)
+        )
         if not rebased_func_data:
             return {}
 

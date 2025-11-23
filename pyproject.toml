@@ -232,6 +232,7 @@ module = [
     "lldb.*",
     "gnureadline",
     "lief",
+    "decomp2dbg.*"
 ]
 ignore_missing_imports = true
 

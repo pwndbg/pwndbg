@@ -8,7 +8,6 @@ Some of the code here was inspired from https://github.com/osandov/drgn
 from __future__ import annotations
 
 import argparse
-import sys
 
 from tabulate import tabulate
 

@@ -388,11 +388,7 @@ class CommandObj:
             if pwndbg.integration.manager.is_connected():
                 decompiler_name = pwndbg.integration.manager.decompiler_name()
                 pwndbg.integration.manager.disconnect()
-                print(
-                    message.hint(
-                        f" Automatically disabled {decompiler_name} integration."
-                    )
-                )
+                print(message.hint(f" Automatically disabled {decompiler_name} integration."))
                 print("Feel free to re-enable manually.")
             else:
                 print()
