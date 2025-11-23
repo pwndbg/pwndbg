@@ -32,6 +32,7 @@ import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
 import pwndbg.color.message as message
 import pwndbg.exception
+import pwndbg.integration
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
@@ -380,15 +381,19 @@ class CommandObj:
             pwndbg.exception.handle(self.function.__name__)
         except ConnectionRefusedError:
             print(message.error("Connection Refused Exception."))
-            print(message.hint("Did an integration provider die?"), end="")
-            # If yes, the resulting state can be really messy.
-            if pwndbg.integration.provider_name != "none":
+            print(message.hint("Did the decompiler integration connection die?"), end="")
+            # If yes, we need to throw the connection out and fix up the manager's
+            # state. The manager has not yet realized that the connection is doomed,
+            # so we can check like this if we *were* connected.
+            if pwndbg.integration.manager.is_connected():
+                decompiler_name = pwndbg.integration.manager.decompiler_name()
+                pwndbg.integration.manager.disconnect()
                 print(
                     message.hint(
-                        f" Automatically disabled {pwndbg.integration.provider_name} integration."
+                        f" Automatically disabled {decompiler_name} integration."
                     )
                 )
-                pwndbg.integration.provider.disable()
+                print("Feel free to re-enable manually.")
             else:
                 print()
 

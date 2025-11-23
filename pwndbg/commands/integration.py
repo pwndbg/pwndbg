@@ -326,11 +326,7 @@ def disconnect():
         print(message.error("Am not connected in the first place."))
         return
 
-    decompid = pwndbg.integration.manager.decompiler_id()
-    decomp_name = "???"
-    if decompid:
-        decomp_name = decompid.value
-
+    decomp_name = pwndbg.integration.manager.decompiler_name()
     pwndbg.integration.manager.disconnect()
     print(message.success("Disconnected") + f" from {decomp_name}.")
 
@@ -354,20 +350,17 @@ def connect(also_sync: bool):
             pwndbg.integration.manager.disconnect()
             return
 
-        decompid = pwndbg.integration.manager.decompiler_id()
-        # This branch should practically always be taken.
-        if decompid:
-            decomp_name = decompid.value
-            print(
-                message.success("Connected")
-                + f" to {decomp_name} on {str(decompiler_host)}:{int(decompiler_port)}."
-            )
+        decomp_name = pwndbg.integration.manager.decompiler_name()
+        print(
+            message.success("Connected")
+            + f" to {decomp_name} on {str(decompiler_host)}:{int(decompiler_port)}."
+        )
 
-            if also_sync:
-                # In case the binary isn't loaded yet, lets not yell to the user about failing.
-                sync(fail_quietly=True)
+        if also_sync:
+            # In case the binary isn't loaded yet, lets not yell to the user about failing.
+            sync(fail_quietly=True)
 
-            return
+        return
 
     print(message.error("Failed connecting."))
     print(message.hint("Did you open the connection in the decompiler? (Ctrl+Shift+D)"))

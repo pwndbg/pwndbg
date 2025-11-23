@@ -694,6 +694,18 @@ class IntegrationManager:
             self._decompiler_id = _api_name_to_id[self._connection.versions["name"]]
         return self._decompiler_id
 
+    def decompiler_name(self) -> str:
+        """
+        If we are connected, will return the name of the decompiler we are connected to.
+
+        If we are not connected, will return "???".
+        """
+        decompilerid: Optional[DecompilerID] = self.decompiler_id()
+        if decompilerid is not None:
+            return decompilerid.value
+        else:
+            return "???"
+
     def version_string(self) -> Optional[str]:
         """
         Get a string with version information about the decompiler environment.
