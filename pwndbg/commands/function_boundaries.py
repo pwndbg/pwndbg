@@ -273,16 +273,12 @@ class FunctionBoundaryDetector:
 
         return (start_idx + 1, end_idx + 1)
 
-    def _find_python_boundaries(
-        self, lines: List[str], current_line: int
-    ) -> Tuple[int, int]:
+    def _find_python_boundaries(self, lines: List[str], current_line: int) -> Tuple[int, int]:
         """Find boundaries for Python functions using indentation."""
         if not lines:
             return (1, 1)
 
-        current_indent = len(lines[current_line - 1]) - len(
-            lines[current_line - 1].lstrip()
-        )
+        current_indent = len(lines[current_line - 1]) - len(lines[current_line - 1].lstrip())
 
         start_line = current_line
         for i in range(current_line - 1, -1, -1):
@@ -319,16 +315,12 @@ class FunctionBoundaryDetector:
 
         return (start_line, end_line)
 
-    def _find_assembly_boundaries(
-        self, lines: List[str], current_line: int
-    ) -> Tuple[int, int]:
+    def _find_assembly_boundaries(self, lines: List[str], current_line: int) -> Tuple[int, int]:
         """Find boundaries for assembly functions."""
         start_line = current_line
         for i in range(current_line - 1, -1, -1):
             line = lines[i].strip()
-            if re.match(r"^[a-zA-Z_]\w*:\s*$", line) or re.match(
-                r"^\s*\.glob[a]?l\s+", line
-            ):
+            if re.match(r"^[a-zA-Z_]\w*:\s*$", line) or re.match(r"^\s*\.glob[a]?l\s+", line):
                 start_line = i + 1
                 break
 
@@ -345,9 +337,7 @@ class FunctionBoundaryDetector:
 
         return (start_line, end_line)
 
-    def _default_boundaries(
-        self, lines: List[str], current_line: int
-    ) -> Tuple[int, int]:
+    def _default_boundaries(self, lines: List[str], current_line: int) -> Tuple[int, int]:
         """Default boundary detection for unknown languages."""
         start_line = current_line
         end_line = current_line
@@ -434,9 +424,7 @@ class FunctionBoundaryDetector:
             lines, current_line, language
         )
         func_name = (
-            self._extract_function_name(lines[start_line - 1], language)
-            if start_line > 0
-            else None
+            self._extract_function_name(lines[start_line - 1], language) if start_line > 0 else None
         )
         return start_line, end_line, func_name
 
