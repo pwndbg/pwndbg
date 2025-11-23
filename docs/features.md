@@ -68,23 +68,11 @@ You can add expressions to be watched by the context. Those expressions are eval
 
 See [`contextwatch`](commands/context/contextwatch.md) for more information.
 
-## Integrations
+## Decompiler Integration
 
-### Ghidra
+We support decompiler integration with IDA, Binary Ninja, Ghidra and angr-managment. See the [Decompiler Integration guide](tutorials/decompiler-integration.md) for more information.
 
-With the help of [radare2](https://github.com/radareorg/radare2) or [rizin](https://github.com/rizinorg/rizin) it is possible to show the decompiled source code of the ghidra decompiler.
-
-See [Ghidra Integration](tutorials/decompiler-integration/ghidra-integration.md) for more information.
-
-### IDA Pro/Binary Ninja
-
-Pwndbg is capable of integrating with IDA Pro or Binary Ninja by installing an XMLRPC server in the decompiler as a plugin, and then querying it for information.
-
-This allows extraction of comments, decompiled lines of source, breakpoints, symbols, and synchronized debugging (single-steps update the cursor in the decompiler).
-
-![](assets/caps/ida_context.png){ style="width: 70%;" }
-
-See [Binary Ninja Integration](tutorials/decompiler-integration/binja-integration.md) or [IDA Integration](tutorials/decompiler-integration/ida-integration.md) for setup information.
+![](assets/caps/decomp_integration_ex.png)
 
 ## Heap Inspection
 
