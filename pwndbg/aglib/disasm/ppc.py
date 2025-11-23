@@ -31,7 +31,7 @@ def is_branch_taken(cr: int, ctr: int, bi: int, bo: int) -> bool | None:
     # Valid values for bo (5 bit value): https://www.ibm.com/docs/en/aix/7.2.0?topic=set-bc-branch-conditional-instruction
     # The `x` mean it can be either 0 or 1, it is irrelevant to the branch condition (used to hint that the branch is or isn't taken)
     # 0000x - Decrement CTR. Branch if CTR is not 0 and condition is false
-    # 0001x - Decrement CTR. Branch is CTR is 0 and condition is false
+    # 0001x - Decrement CTR. Branch if CTR is 0 and condition is false
     # 001xx - Branch if condition is false
     # 0100x - Decrement CTR. Branch if CTR is not 0 and condition is true
     # 0101x - Decrement CTR. Branch if CTR is 0 and condition it true
