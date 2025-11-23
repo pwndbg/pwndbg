@@ -68,11 +68,11 @@ pwndbg.config.add_param("left-pad-disasm", True, "whether to left-pad disassembl
 show_args = pwndbg.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
 )
-show_comments = pwndbg.config.add_param(
-    "nearpc-integration-comments",
-    True,
-    "whether to show comments from integration provider",
-)
+# show_comments = pwndbg.config.add_param(
+#     "nearpc-integration-comments",
+#     True,
+#     "whether to show comments from integration provider",
+# )
 show_opcode_bytes = pwndbg.config.add_param(
     "nearpc-num-opcode-bytes",
     0,

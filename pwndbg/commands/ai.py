@@ -22,7 +22,6 @@ import pwndbg.color.message as M
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
-import pwndbg.ghidra
 import pwndbg.lib.strings
 from pwndbg.commands import CommandCategory
 
@@ -212,12 +211,6 @@ def build_context_prompt_body():
         source = gdb.execute("list *$pc", to_string=True)
     except gdb.error:
         pass
-    if len(source.split("\n")) < 3:
-        try:
-            source = pwndbg.ghidra.decompile()
-            decompile = True
-        except Exception:
-            pass
     ## Now, let's build the prompt
     prompt = "Consider the following context in the GDB debugger:\n"
 

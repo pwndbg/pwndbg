@@ -50,7 +50,6 @@ if pwndbg.dbg.is_gdblib_available():
 
     import pwndbg.gdblib.ptmalloc2_tracking
     import pwndbg.gdblib.symbol
-    import pwndbg.ghidra
 
 log = logging.getLogger(__name__)
 
@@ -163,7 +162,7 @@ config_output = pwndbg.config.add_param(
 )
 config_context_sections = pwndbg.config.add_param(
     "context-sections",
-    "regs disasm code ghidra stack backtrace expressions threads heap_tracker",
+    "regs disasm code stack backtrace expressions threads heap_tracker",
     "which context sections are displayed (controls order)",
 )
 config_max_threads_display = pwndbg.config.add_param(
@@ -299,7 +298,7 @@ parser = argparse.ArgumentParser(description="Sets the output of a context secti
 parser.add_argument(
     "section",
     type=str,
-    help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')",
+    help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')",
 )
 parser.add_argument("path", type=str, help="The path to which the output is written")
 parser.add_argument("clearing", type=bool, help="Indicates whether to clear the output")
@@ -638,42 +637,6 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
     return banner + output if with_banner else output
 
 
-config_context_ghidra = pwndbg.config.add_param(
-    "context-ghidra",
-    "never",
-    "when to try to decompile the current function with ghidra",
-    help_docstring="Doing this is slow and requires radare2/r2pipe or rizin/rzpipe.",
-    param_class=pwndbg.lib.config.PARAM_ENUM,
-    enum_sequence=["always", "never", "if-no-source"],
-)
-
-
-@serve_context_history
-def context_ghidra(target=sys.stdout, with_banner=True, width=None):
-    """
-    Print out the source of the current function decompiled by ghidra.
-
-    The context-ghidra config parameter is used to configure whether to always,
-    never or only show the context if no source is available.
-    """
-    banner = (
-        [pwndbg.ui.banner("ghidra decompile", target=target, width=width)] if with_banner else []
-    )
-
-    if config_context_ghidra == "never":
-        return []
-
-    if config_context_ghidra == "if-no-source":
-        source_filename = pwndbg.gdblib.symbol.selected_frame_source_absolute_filename()
-        if source_filename and os.path.exists(source_filename):
-            return []
-
-    try:
-        return banner + pwndbg.ghidra.decompile().split("\n")
-    except Exception as e:
-        return banner + [message.error(e)]
-
-
 parser = argparse.ArgumentParser(
     description="""
 Print out the currently enabled context sections.
@@ -689,7 +652,7 @@ parser.add_argument(
     nargs="*",
     type=str,
     default=None,
-    help="Submenu to display: 'regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'",
+    help="Submenu to display: 'regs', 'disasm', 'code', 'stack', 'backtrace', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'",
 )
 parser.add_argument(
     "--on",
@@ -726,7 +689,7 @@ def context(subcontext=None, enabled=None) -> None:
     """
     Print out the current register, instruction, and stack context.
 
-    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
+    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
     """
     # Allow to view history after the program has exited
     if not pwndbg.aglib.proc.alive and (context_history_size <= 0 or not context_history):
@@ -1467,7 +1430,6 @@ if pwndbg.dbg.is_gdblib_available():
     context_sections = {
         **context_sections,
         "e": context_expressions,
-        "g": context_ghidra,
         "h": context_heap_tracker,
         "t": context_threads,
         "l": context_last_signal,
