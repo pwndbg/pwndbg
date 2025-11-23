@@ -594,7 +594,7 @@ class IntegrationManager:
         Update debugger convnience varibles based on the function variables in the currently
         selected frame.
 
-        This always invalidates the cache for function variables for this PC and requests
+        This always fully invalidates the cache for function variables and requests
         them from the plugin.
 
         Returns:
@@ -614,10 +614,11 @@ class IntegrationManager:
         if frame is None:
             return 0
 
-        addr: int = frame.pc()
-
-        # Invalidate the cache for this address.
-        self._function_data.pop(addr, None)
+        # Invalidate this whole cache.
+        # We could invalidate just for frame.pc() for the purposes of this function, but we want to invalidate
+        # this whole cache *somewhere* so non-local queries don't have stale data, and this function is a nice
+        # place to do it.
+        self._function_data.clear()
 
         rebased_vars: Optional[RebasedFuncVariables] = self.get_function_vars_rebased_from_frame(frame)
         if rebased_vars is None:

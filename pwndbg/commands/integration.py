@@ -804,12 +804,6 @@ def automatic_operations() -> None:
     if should_auto_jump:
         auto_jump()
 
-    # This cache makes sense only if someone in the future
-    # hooks into it and uses it many times during a stop.
-    # As-is, the cache is useless since we should clear it
-    # on every stop (fixme: should we?).
-    pwndbg.integration.manager._function_data.clear()
-
 # ========= End of Automatic integration handling =========
 # ========= The decomp command =========
 
