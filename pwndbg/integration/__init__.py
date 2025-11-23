@@ -589,13 +589,13 @@ class IntegrationManager:
 
         return False
 
-    def update_function_variables(self, addr: int) -> int:
+    def update_function_variables(self) -> int:
         """
-        Take the function at `addr` and update all the debugger convenience variables
-        that correspond to the function's variables.
+        Update debugger convnience varibles based on the function variables in the currently
+        selected frame.
 
-        This always invalidates the cache for function variables and requests them
-        from the plugin.
+        This always invalidates the cache for function variables for this PC and requests
+        them from the plugin.
 
         Returns:
             The number of variables we successfully updated in the debugger.
@@ -607,10 +607,19 @@ class IntegrationManager:
         if self._connection is None:
             return 0
 
+        # We could do some updates without having a valid selected frame by using pwndbg.aglib.regs.sp ,
+        # but this probably complicates the code uneccessarily (see some previous commits in the PR).
+        # I'm simply not sure when exactly can selected_frame() actually return None.
+        frame: Optional[pwndbg.dbg_mod.Frame] = pwndbg.dbg.selected_frame()
+        if frame is None:
+            return 0
+
+        addr: int = frame.pc()
+
         # Invalidate the cache for this address.
         self._function_data.pop(addr, None)
 
-        rebased_vars: Optional[RebasedFuncVariables] = self.get_function_vars_rebased_from_current(addr)
+        rebased_vars: Optional[RebasedFuncVariables] = self.get_function_vars_rebased_from_frame(frame)
         if rebased_vars is None:
             return 0
 
@@ -683,54 +692,28 @@ class IntegrationManager:
         return res
 
 
-    def get_function_vars_rebased_from_current(self, addr: int) -> Optional[RebasedFuncVariables]:
+    def get_function_vars_rebased_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> Optional[RebasedFuncVariables]:
         """
-        Get function variables which are valid at `addr`, and rebase them onto the current execution
-        context.
+        Get function variables for the passed frame. Stack variables will have valid addresses rather than offsets.
+
+        frame.pc() will be used to ask the debugger for the valid function variables. Note that it is possible that
+        the same function returns different sets of variables at different PC's.
+
+        frame.sp() and frame.start() are used to rebase stack variables based on decompiler-returned offsets. Register
+        variables are unmodified.
+
+        The RPC call to the decompiler when asking for variables is cached, but the rebasing is not, ergo this function
+        call is relatively expensive.
 
         Arguments:
-            addr: Ask the decompiler for the function-local variables valid at `addr`. Note that
-                different addr's in the same function can theoretically return different variables.
+            frame: The frame to use for fetching variables.
         """
-        if self._connection is None:
-            return None
-
-        raw_func_data: Optional[FuncVariables] = self.function_data(addr)
-        if raw_func_data is None:
-            return None
-
-        # Nothing to do for registers
-        new_stack_vars: list[RebasedStackVariable] = []
-
-        frame: Optional[pwndbg.dbg_mod.Frame] = pwndbg.dbg.selected_frame()
-        frame_start: Optional[int] = None
-        if frame:
-            frame_start = frame.start()
-
-        for stack_var in raw_func_data.stack_vars:
-            from_sp: Optional[int] = stack_var.from_sp
-            from_frame: Optional[int] = stack_var.from_frame
-
-            # We do not account for a stack going upwards. If you have that you have bigger issues.
-
-            if from_sp is not None and pwndbg.aglib.regs.sp is not None:
-                # We prefer sp-offseted variables because calculating their actual address will always work
-                var_addr = pwndbg.aglib.regs.sp + from_sp
-                new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
-            elif from_frame is not None and frame_start is not None:
-                var_addr = frame_start - from_frame
-                new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
-
-        return RebasedFuncVariables(reg_vars=raw_func_data.reg_vars, stack_vars=new_stack_vars)
-
-
-    def get_function_vars_rebased_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> Optional[RebasedFuncVariables]:
         if self._connection is None:
             return None
 
         addr = frame.pc()
 
-        raw_func_data: Optional[FuncVariables] = self._connection.function_data(addr)
+        raw_func_data: Optional[FuncVariables] = self.function_data(addr)
         if raw_func_data is None:
             return None
 
@@ -741,32 +724,34 @@ class IntegrationManager:
         # Nothing to do for registers
         new_stack_vars: list[RebasedStackVariable] = []
 
+        frame_sp: int = frame.sp()
+        frame_start: Optional[int] = frame.start()
+
         for stack_var in raw_func_data.stack_vars:
             from_sp: Optional[int] = stack_var.from_sp
             from_frame: Optional[int] = stack_var.from_frame
 
-            if from_sp is not None and pwndbg.aglib.regs.stack is not None:
-                stack_addr: Optional[pwndbg.dbg_mod.Value] = frame.regs().by_name(pwndbg.aglib.regs.stack)
-                if stack_addr:
-                    var_addr = int(stack_addr) + from_sp
-                    new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
-            elif from_frame is not None:
-                if (frame_start := frame.start()) is not None:
-                    var_addr = frame_start - from_frame
-                    new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
+            # We do not account for a stack going upwards. If you have that you have bigger issues.
+
+            if from_sp is not None:
+                # We prefer sp-offseted variables because calculating their actual address is more likely
+                # to work.
+                var_addr = int(frame_sp) + from_sp
+                new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
+            elif from_frame is not None and frame_start is not None:
+                var_addr = frame_start - from_frame
+                new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
 
         return RebasedFuncVariables(reg_vars=raw_func_data.reg_vars, stack_vars=new_stack_vars)
 
 
-    # FIXME: The implementation of cache_until tells me I shouldn't return mutable types
-    # should I make a read-only dict class?
-    @pwndbg.lib.cache.cache_until("stop")
     def get_stack_var_dict_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> dict[int, str]:
         """
         Ask the decompiler for stack variable offsets in this frame and resolve
         each variable to an actual address.
 
-        You must not modify the object you got from this function.
+        The RPC call to the decompiler when asking for variables is cached, but the rebasing is not, and dict
+        creating is not, ergo this function call is relatively expensive.
 
         Returns:
             A dictionary that maps (stack variable address) -> (stack variable name)
@@ -792,7 +777,7 @@ class IntegrationManager:
         Take all valid stack frames (from the whole backtrace), ask the decompiler to
         figure out where they are, and map them to their actual addresses.
 
-        You must not modify the object you got from this function.
+        You must not modify the object you got from this function (because of caching).
 
         Returns:
             A dictionary that maps (stack variable address) -> (stack variable name)

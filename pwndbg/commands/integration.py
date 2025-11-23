@@ -474,12 +474,12 @@ def sync(fail_quietly: bool):
     print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end='')
 
     # Function-local variables
-    if pwndbg.aglib.regs.pc is not None:
-        nvars = pwndbg.integration.manager.update_function_variables(pwndbg.aglib.regs.pc)
+    nvars = pwndbg.integration.manager.update_function_variables()
+    if nvars > 0:
         print(message.success(f"Synced {nvars} variables") + " for the current function.")
     else:
         # It's fine to print this even if fail_quietly=True.
-        print(message.error("Could not find PC for syncing function-local variables."))
+        print("No variables synced for the current function.")
 
 
 def list_(list_all: bool):
@@ -699,39 +699,26 @@ Check out decompiler-auto-sync as well.
 def auto_sync():
     # Similar to sync().
 
+    # The connection and inf.alive() checks in sync() are just for better error
+    # reporting, the manager will handle them anyway.
+
     # We succeed quietly to not mess up the `context-reserve-lines` logic.
 
-    if not pwndbg.integration.manager.is_connected():
-        return
-
-    if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
-        return
-
     pwndbg.integration.manager.update_symbols()
-
-    if pwndbg.aglib.regs.pc is not None:
-        pwndbg.integration.manager.update_function_variables(pwndbg.aglib.regs.pc)
-    else:
-        print(message.error("Could not find PC for syncing function-local variables."))
+    pwndbg.integration.manager.update_function_variables()
 
 
 def auto_jump():
     # Similar to jump()
 
-    if not pwndbg.integration.manager.is_connected():
-        return
-
-    if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
-        return
+    # The connection and inf.alive() checks in jump() are just for better error
+    # reporting, the manager will handle them anyway.
 
     if pwndbg.aglib.regs.pc is None:
-        print(message.error("decompiler auto-jump: Address not specified, and could not find PC."))
         return
-    addr = pwndbg.aglib.regs.pc
+    addr: int = pwndbg.aglib.regs.pc
 
-    ok = pwndbg.integration.manager.focus_address(addr)
-    if not ok:
-        print(message.error("Decompiler failed to jump."))
+    pwndbg.integration.manager.focus_address(addr)
 
 
 @pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.STOP)
