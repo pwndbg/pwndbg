@@ -979,6 +979,7 @@ def load_commands() -> None:
     import pwndbg.commands.sigreturn
     import pwndbg.commands.slab
     import pwndbg.commands.spray
+    import pwndbg.commands.src
     import pwndbg.commands.start
     import pwndbg.commands.strings
     import pwndbg.commands.telescope

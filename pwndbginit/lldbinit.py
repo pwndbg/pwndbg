@@ -39,3 +39,21 @@ def main(debugger: lldb.SBDebugger, lldb_version: Tuple[int, ...], debug: bool =
     if os.environ.get("PWNDBG_PROFILE") == "1":
         pwndbg.profiling.profiler.stop("pwndbg-load.pstats")
         pwndbg.profiling.profiler.start()
+
+
+def __lldb_init_module(debugger, internal_dict):
+    """
+    Required by LLDB to initialize the module.
+    Creates the command handler module that pwndbg expects.
+    """
+    import sys
+    import types
+
+    # Create empty module for pwndbg's command handlers
+    handler_module = types.ModuleType("pwndbglldbhandler")
+    sys.modules["pwndbglldbhandler"] = handler_module
+
+    # Get LLDB version and call main
+    major = debugger.GetVersionMajor() if hasattr(debugger, "GetVersionMajor") else 14
+    minor = debugger.GetVersionMinor() if hasattr(debugger, "GetVersionMinor") else 0
+    main(debugger, (major, minor))

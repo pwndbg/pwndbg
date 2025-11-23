@@ -22,6 +22,7 @@
 -  [contextunwatch](context/contextunwatch.md) - Removes an expression previously added to be watched.
 -  [contextwatch](context/contextwatch.md) - Adds an expression to be shown on context.
 -  [regs](context/regs.md) - Print out all registers and enhance the information.
+-  [src](context/src.md) - Display source code around current location.
 
 ## Darwin/libsystem/Mach-O
 
