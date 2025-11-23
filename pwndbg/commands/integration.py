@@ -451,8 +451,7 @@ def jump(addr: Optional[int]) -> None:
 def sync(fail_quietly: bool) -> None:
     """
     Arguments:
-        fail_quietly: If we don't pass the preliminary checks
-          required to perform the sync, don't print anything.
+        fail_quietly: If we don't pass the preliminary checks required to perform the sync, don't print anything.
     """
     if fail_quietly:
         # Direct check, no retries.

@@ -82,6 +82,7 @@ let
     "vermin"
     "decomp2dbg"
     "ghidra-bridge"
+    "jfx-bridge"
   ];
   pkgsNeedFlitcore = [
     "typing-extensions"
