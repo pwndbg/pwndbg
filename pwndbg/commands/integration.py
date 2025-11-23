@@ -66,7 +66,7 @@ def check_decomp2dbg_version() -> bool:
 
     print(message.system("Unsupported decomp2dbg version installed."))
     msg = f"""
-You have version {decomp2dbg.__version__} installed, but we need {d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}.
+You have version {decomp2dbg.__version__} installed, but we need {d2d_required_version_str}.
 This should only be possible if you installed Pwndbg through a package manager. You have a few options, in recommended order:
 
 1. Complain to your distribution's packagers that this version of decomp2dbg is incompatible with this version of Pwndbg.
@@ -162,7 +162,7 @@ def install_generic_plugin(
         packaged_plugin_path: The path of the folder for the decompiler plugin in the decomp2dbg python package.
         config_var: The variable which holds the destination plugin path.
     """
-    print(f"Installing the {decomp_name} decompiler plugin.")
+    print(f"Installing the {decomp_name} decompiler plugin.\n")
     print_d2d_version()
 
     plugin_destination: Path = Path(str(config_var))
@@ -188,13 +188,19 @@ def install_generic_plugin(
         dest.symlink_to(source)
 
     print("\nThe fact that symlinks are used means the decompiler plugin will be automatically")
-    print("updated when the decomp2dbg python package is updated. But if the decomp2dbg")
-    print("installation path gets changed, don't forget to reinstall!")
+    print(
+        f"updated when the decomp2dbg python package is updated. But {message.notice('if the decomp2dbg')}"
+    )
+    print(
+        f"{message.notice('installation path gets changed')}, don't forget to {message.notice('reinstall')}!"
+    )
     print("(so take care if you change the folder of your Pwndbg installation)\n")
 
     print(
-        f"If you want to change the plugin destination, run `set {config_var.name} the/new/path`.\n"
-        "You should put this line into your ~/.gdbinit so you don't have issues in the future.\n"
+        message.hint(
+            f"If you want to change the plugin destination, run `set {config_var.name} the/new/path`.\n"
+            "(and put this line into your ~/.gdbinit so you don't have issues in the future)\n"
+        )
     )
     print(
         message.success("Installed successfully.")
@@ -290,6 +296,23 @@ def install(which_decompiler: str):
         )
         return
 
+    if str(decompiler_host) != "localhost":
+        print(message.warn("decompiler-host != localhost: Why are you installing locally then?\n"))
+        print("If your decompiler is on another machine, you also need to install the decompiler")
+        print("plugin on that machine. Ideally you should do that using `di install` there, but")
+        print("if that's not possible (e.g. if you're using Windows there), install the correct")
+        print(
+            f"version ({d2d_required_version_str}) of decomp2dbg on its own: https://github.com/mahaloz/decomp2dbg?tab=readme-ov-file#install .\n"
+        )
+
+        check = input("Are you sure you want to continue [y/N]: ")
+        if check.lower() != "y":
+            return
+
+        print()
+
+    # If the user is not connecting to localhost, but they decided to continue regardless,
+    # then we will still enforce this check.
     if not check_decomp2dbg_version():
         return
 
@@ -332,29 +355,38 @@ def disconnect():
 
 
 def connect(also_sync: bool):
-    if not check_decomp2dbg_version():
+    # Doesn't make sense to check the version this if the local decomp2dbg is not being used.
+    if decompiler_host == "localhost" and not check_decomp2dbg_version():
         return
 
     if pwndbg.integration.manager.is_connected():
-        print("Reconnecting..")
+        print("Reconnecting: ", end="")
+
+    print(f"Connecting to {decompiler_host}:{decompiler_port}.")
 
     ok = pwndbg.integration.manager.connect(str(decompiler_host), int(decompiler_port))
     if ok:
-        # If we are connected to localhost Ghidra, we need to check that the plugin version is fine.
-        if (
-            pwndbg.integration.manager.decompiler_id() == pwndbg.integration.DecompilerID.GHIDRA
-            and decompiler_host == "localhost"
-            and not check_outdated_ghidra_plugin()
-        ):
-            print(message.error("Disconnecting.."))
-            pwndbg.integration.manager.disconnect()
-            return
+        if decompiler_host != "localhost":
+            print(
+                "\nConnecting to a remote machine. "
+                + message.system("Make sure")
+                + " that the version"
+            )
+            print(
+                f"of the decompiler plugin there is {message.system(d2d_required_version_str)}!\n"
+            )
+        else:
+            # If we are connected to localhost Ghidra, we need to check that the plugin version is fine.
+            if (
+                pwndbg.integration.manager.decompiler_id() == pwndbg.integration.DecompilerID.GHIDRA
+                and not check_outdated_ghidra_plugin()
+            ):
+                print(message.error("Disconnecting.."))
+                pwndbg.integration.manager.disconnect()
+                return
 
         decomp_name = pwndbg.integration.manager.decompiler_name()
-        print(
-            message.success("Connected")
-            + f" to {decomp_name} on {str(decompiler_host)}:{int(decompiler_port)}."
-        )
+        print(message.success("Connected") + f" to {decomp_name}.")
 
         if also_sync:
             # In case the binary isn't loaded yet, lets not yell to the user about failing.

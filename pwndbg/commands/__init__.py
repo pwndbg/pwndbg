@@ -901,15 +901,11 @@ def load_commands() -> None:
     if pwndbg.dbg.is_gdblib_available():
         import pwndbg.commands.ai
         import pwndbg.commands.attachp
-
-        # import pwndbg.commands.binja_functions
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
         import pwndbg.commands.got
         import pwndbg.commands.got_tracking
         import pwndbg.commands.ptmalloc2_tracking
-
-        # import pwndbg.commands.ida
         import pwndbg.commands.ignore
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.killthreads
@@ -923,8 +919,6 @@ def load_commands() -> None:
     import pwndbg.commands.asm
     import pwndbg.commands.auxv
     import pwndbg.commands.binder
-
-    # import pwndbg.commands.binja
     import pwndbg.commands.buddydump
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
