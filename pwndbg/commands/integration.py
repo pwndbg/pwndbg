@@ -497,10 +497,10 @@ def list_(list_all: bool):
         return
 
     if list_all:
-        stack_vars: dict[int, str] = pwndbg.integration.manager.get_all_stack_variables()
+        stack_vars: dict[int, str] = pwndbg.integration.manager.get_stack_var_dict_all()
     else:
         if frame := pwndbg.dbg.selected_frame():
-            stack_vars = pwndbg.integration.manager.get_stack_vars_from_frame(frame)
+            stack_vars = pwndbg.integration.manager.get_stack_var_dict_from_frame(frame)
         else:
             print(message.error("Could not find current stack frame."))
             return

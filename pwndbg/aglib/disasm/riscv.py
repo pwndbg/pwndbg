@@ -181,7 +181,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.annotation = register_assign(
                 result_operand.str,
                 MemoryColor.get_address_and_symbol(
-                    address, pwndbg.integration.manager.get_all_stack_variables()
+                    address, pwndbg.integration.manager.get_stack_var_dict_all()
                 ),
             )
 
@@ -195,7 +195,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.annotation = register_assign(
                 result_operand.str,
                 MemoryColor.get_address_and_symbol(
-                    address, pwndbg.integration.manager.get_all_stack_variables()
+                    address, pwndbg.integration.manager.get_stack_var_dict_all()
                 ),
             )
 

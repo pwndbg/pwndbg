@@ -83,10 +83,23 @@ class StackVariable:
     # (which usually contains the saved return address). Positive number.
     from_frame: Optional[int]
 
+@dataclass
+class RebasedStackVariable:
+    name: str
+    type: str
+    # Actual valid address in the address space.
+    addr: int
+
 
 @dataclass
 class FuncVariables:
     stack_vars: list[StackVariable]
+    reg_vars: list[RegisterVariable]
+
+
+@dataclass
+class RebasedFuncVariables:
+    stack_vars: list[RebasedStackVariable]
     reg_vars: list[RegisterVariable]
 
 
@@ -555,21 +568,26 @@ class IntegrationManager:
 
         return type_str
 
-    def _try_setting_conv_var_with_type(self, name: str, value: str, type: str) -> None:
+    def _try_setting_conv_var_with_type(self, name: str, value: str, type: str) -> bool:
         """
         Try setting a convenience variable with a type. If it fails try with void* .
         If that fails as well, thats okay, you can't win them all.
+
+        Return True if we succeeded, False otherwise.
         """
         try:
             pwndbg.dbg.set_convenience_var(name, value, type)
-            return
+            return True
         except Exception:
             pass
 
         try:
             pwndbg.dbg.set_convenience_var(name, value, "void*")
+            return True
         except Exception:
             pass
+
+        return False
 
     def update_function_variables(self, addr: int) -> int:
         """
@@ -580,7 +598,7 @@ class IntegrationManager:
         from the plugin.
 
         Returns:
-            The number of variables the decompiler returned for the function.
+            The number of variables we successfully updated in the debugger.
 
         FIXME: Currently this kinda doesn't work if it runs while we are in the function
         prologue. We should ideally run it only when we enter new functions and are past
@@ -592,36 +610,24 @@ class IntegrationManager:
         # Invalidate the cache for this address.
         self._function_data.pop(addr, None)
 
-        maybe_func_data: Optional[FuncVariables] = self.function_data(addr)
-        if maybe_func_data is None:
+        rebased_vars: Optional[RebasedFuncVariables] = self.get_function_vars_rebased_from_current(addr)
+        if rebased_vars is None:
             return 0
 
-        func_data: FuncVariables = maybe_func_data
+        nupdated: int = 0
 
-        for reg_var in func_data.reg_vars:
+        for reg_var in rebased_vars.reg_vars:
             cleaned_type: str = self._clean_type_str(reg_var.type)
-            self._try_setting_conv_var_with_type(reg_var.name, f"${reg_var.reg_name}", cleaned_type)
+            ok = self._try_setting_conv_var_with_type(reg_var.name, f"${reg_var.reg_name}", cleaned_type)
+            nupdated += 1 if ok else 0
 
-        for stack_var in func_data.stack_vars:
+        for stack_var in rebased_vars.stack_vars:
             # Pointer to the type.
             cleaned_type = f"{self._clean_type_str(stack_var.type)}*"
-            from_sp: Optional[int] = stack_var.from_sp
-            from_frame: Optional[int] = stack_var.from_frame
+            ok = self._try_setting_conv_var_with_type(stack_var.name, hex(stack_var.addr), cleaned_type)
+            nupdated += 1 if ok else 0
 
-            # We do not account for a stack going upwards. If you have that you have bigger issues.
-
-            if from_sp is not None and pwndbg.aglib.regs.sp is not None:
-                # We prefer sp-offseted variables because calculating their actual address will always work
-                var_addr = pwndbg.aglib.regs.sp + from_sp
-                self._try_setting_conv_var_with_type(stack_var.name, hex(var_addr), cleaned_type)
-            elif from_frame is not None and (frame := pwndbg.dbg.selected_frame()) is not None:
-                if (frame_start := frame.start()) is not None:
-                    var_addr = frame_start - from_frame
-                    self._try_setting_conv_var_with_type(
-                        stack_var.name, hex(var_addr), cleaned_type
-                    )
-
-        return len(func_data.reg_vars) + len(func_data.stack_vars)
+        return nupdated
 
     # ==== Getters ====
     # All getters are either cheap (no RPC) operations, or cached.
@@ -676,10 +682,86 @@ class IntegrationManager:
 
         return res
 
+
+    def get_function_vars_rebased_from_current(self, addr: int) -> Optional[RebasedFuncVariables]:
+        """
+        Get function variables which are valid at `addr`, and rebase them onto the current execution
+        context.
+
+        Arguments:
+            addr: Ask the decompiler for the function-local variables valid at `addr`. Note that
+                different addr's in the same function can theoretically return different variables.
+        """
+        if self._connection is None:
+            return None
+
+        raw_func_data: Optional[FuncVariables] = self.function_data(addr)
+        if raw_func_data is None:
+            return None
+
+        # Nothing to do for registers
+        new_stack_vars: list[RebasedStackVariable] = []
+
+        frame: Optional[pwndbg.dbg_mod.Frame] = pwndbg.dbg.selected_frame()
+        frame_start: Optional[int] = None
+        if frame:
+            frame_start = frame.start()
+
+        for stack_var in raw_func_data.stack_vars:
+            from_sp: Optional[int] = stack_var.from_sp
+            from_frame: Optional[int] = stack_var.from_frame
+
+            # We do not account for a stack going upwards. If you have that you have bigger issues.
+
+            if from_sp is not None and pwndbg.aglib.regs.sp is not None:
+                # We prefer sp-offseted variables because calculating their actual address will always work
+                var_addr = pwndbg.aglib.regs.sp + from_sp
+                new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
+            elif from_frame is not None and frame_start is not None:
+                var_addr = frame_start - from_frame
+                new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
+
+        return RebasedFuncVariables(reg_vars=raw_func_data.reg_vars, stack_vars=new_stack_vars)
+
+
+    def get_function_vars_rebased_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> Optional[RebasedFuncVariables]:
+        if self._connection is None:
+            return None
+
+        addr = frame.pc()
+
+        raw_func_data: Optional[FuncVariables] = self._connection.function_data(addr)
+        if raw_func_data is None:
+            return None
+
+        inf = pwndbg.dbg.selected_inferior()
+        if not inf:
+            return None
+
+        # Nothing to do for registers
+        new_stack_vars: list[RebasedStackVariable] = []
+
+        for stack_var in raw_func_data.stack_vars:
+            from_sp: Optional[int] = stack_var.from_sp
+            from_frame: Optional[int] = stack_var.from_frame
+
+            if from_sp is not None and pwndbg.aglib.regs.stack is not None:
+                stack_addr: Optional[pwndbg.dbg_mod.Value] = frame.regs().by_name(pwndbg.aglib.regs.stack)
+                if stack_addr:
+                    var_addr = int(stack_addr) + from_sp
+                    new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
+            elif from_frame is not None:
+                if (frame_start := frame.start()) is not None:
+                    var_addr = frame_start - from_frame
+                    new_stack_vars.append(RebasedStackVariable(name=stack_var.name, type=stack_var.type, addr=var_addr))
+
+        return RebasedFuncVariables(reg_vars=raw_func_data.reg_vars, stack_vars=new_stack_vars)
+
+
     # FIXME: The implementation of cache_until tells me I shouldn't return mutable types
     # should I make a read-only dict class?
     @pwndbg.lib.cache.cache_until("stop")
-    def get_stack_vars_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> dict[int, str]:
+    def get_stack_var_dict_from_frame(self, frame: pwndbg.dbg_mod.Frame) -> dict[int, str]:
         """
         Ask the decompiler for stack variable offsets in this frame and resolve
         each variable to an actual address.
@@ -690,43 +772,22 @@ class IntegrationManager:
             A dictionary that maps (stack variable address) -> (stack variable name)
             for all variables in the given frame.
         """
-        if self._connection is None:
+
+        # The function will take care of connection checking etc.
+        rebased_func_data: Optional[RebasedFuncVariables] = self.get_function_vars_rebased_from_frame(frame)
+        if not rebased_func_data:
             return {}
-
-        addr = frame.pc()
-
-        maybe_func_data: Optional[FuncVariables] = self._connection.function_data(addr)
-        if maybe_func_data is None:
-            return {}
-
-        inf = pwndbg.dbg.selected_inferior()
-        if not inf:
-            return {}
-
-        func_data: FuncVariables = maybe_func_data
 
         result: dict[int, str] = {}
-
-        for stack_var in func_data.stack_vars:
-            from_sp: Optional[int] = stack_var.from_sp
-            from_frame: Optional[int] = stack_var.from_frame
-
-            if from_sp is not None and pwndbg.aglib.regs.stack is not None:
-                stack_addr = frame.regs().by_name(pwndbg.aglib.regs.stack)
-                if stack_addr:
-                    var_addr = int(stack_addr) + from_sp
-                    result[var_addr] = stack_var.name
-            elif from_frame is not None:
-                if (frame_start := frame.start()) is not None:
-                    var_addr = frame_start - from_frame
-                    result[var_addr] = stack_var.name
+        for stack_var in rebased_func_data.stack_vars:
+            result[stack_var.addr] = stack_var.name
 
         return result
 
     # FIXME: The implementation of cache_until tells me I shouldn't return mutable types
     # should I make a read-only dict class?
     @pwndbg.lib.cache.cache_until("stop")
-    def get_all_stack_variables(self) -> dict[int, str]:
+    def get_stack_var_dict_all(self) -> dict[int, str]:
         """
         Take all valid stack frames (from the whole backtrace), ask the decompiler to
         figure out where they are, and map them to their actual addresses.
@@ -750,7 +811,7 @@ class IntegrationManager:
             cur_frame = bottom_frame
             # Crawl up the stack
             while cur_frame is not None:
-                cur_variables = self.get_stack_vars_from_frame(cur_frame)
+                cur_variables = self.get_stack_var_dict_from_frame(cur_frame)
                 # Merge dictionaries
                 result = result | cur_variables
                 cur_frame = cur_frame.parent()

@@ -180,7 +180,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     left.str,
                     MemoryColor.get_address_or_symbol(
                         right.before_value_resolved,
-                        pwndbg.integration.manager.get_all_stack_variables(),
+                        pwndbg.integration.manager.get_stack_var_dict_all(),
                     ),
                     left.type == CS_OP_MEM,
                 )
@@ -189,7 +189,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     right.str,
                     MemoryColor.get_address_or_symbol(
                         left.before_value_resolved,
-                        pwndbg.integration.manager.get_all_stack_variables(),
+                        pwndbg.integration.manager.get_stack_var_dict_all(),
                     ),
                     right.type == CS_OP_MEM,
                 )
@@ -211,7 +211,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     reg_operand.str,
                     MemoryColor.get_address_and_symbol(
                         reg_operand.after_value,
-                        pwndbg.integration.manager.get_all_stack_variables(),
+                        pwndbg.integration.manager.get_stack_var_dict_all(),
                     ),
                 )
             elif pc_is_at_instruction:
@@ -221,7 +221,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     instruction.annotation = register_assign(
                         reg_operand.str,
                         MemoryColor.get_address_and_symbol(
-                            value, pwndbg.integration.manager.get_all_stack_variables()
+                            value, pwndbg.integration.manager.get_stack_var_dict_all()
                         ),
                     )
                 except Exception:
@@ -254,7 +254,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 operand.str,
                 MemoryColor.get_address_and_symbol(
                     operand.after_value_resolved,
-                    pwndbg.integration.manager.get_all_stack_variables(),
+                    pwndbg.integration.manager.get_stack_var_dict_all(),
                 ),
                 operand.type == CS_OP_MEM,
             )

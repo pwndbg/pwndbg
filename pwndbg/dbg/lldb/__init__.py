@@ -2096,7 +2096,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         frame, if any is selected, and always picking the lowest frame on the
         stack otherwise.
         """
-        thread: LLDBThread = self.selected_thread()
+        thread: Optional[LLDBThread] = self.selected_thread()
         if thread is None:
             return None
 

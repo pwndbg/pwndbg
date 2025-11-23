@@ -341,7 +341,7 @@ class DisassemblyAssistant:
         if pwndbg.config.syntax_highlight:
             instruction.asm_string = syntax_highlight(instruction.asm_string)
 
-        stack_vars = pwndbg.integration.manager.get_all_stack_variables()
+        stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
 
         # Populate the "operands" list of the instruction
         # Set before_value, symbol, and str
@@ -742,7 +742,7 @@ class DisassemblyAssistant:
         if instruction.has_jump_target and instruction.target >= 0:
             # Only bother doing the symbol lookup if this is a jump
             instruction.target_string = MemoryColor.get_address_or_symbol(
-                instruction.target, pwndbg.integration.manager.get_all_stack_variables()
+                instruction.target, pwndbg.integration.manager.get_stack_var_dict_all()
             )
 
         # Now that we have determined the target, if it was a conditional branch,
@@ -853,7 +853,7 @@ class DisassemblyAssistant:
         Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
         """
         if operand.before_value is not None:
-            return f"[{MemoryColor.get_address_or_symbol(operand.before_value, pwndbg.integration.manager.get_all_stack_variables())}]"
+            return f"[{MemoryColor.get_address_or_symbol(operand.before_value, pwndbg.integration.manager.get_stack_var_dict_all())}]"
         else:
             return None
 
@@ -1106,7 +1106,7 @@ class DisassemblyAssistant:
                 target_operand.str,
                 MemoryColor.get_address_and_symbol(
                     target_operand.after_value_resolved,
-                    pwndbg.integration.manager.get_all_stack_variables(),
+                    pwndbg.integration.manager.get_stack_var_dict_all(),
                 ),
                 memory_assignment,
             )
@@ -1126,7 +1126,7 @@ def basic_enhance(ins: PwndbgInstruction) -> None:
         ins.asm_string = syntax_highlight(ins.asm_string)
 
     if pwndbg.config.disasm_inline_symbols:
-        stack_vars = pwndbg.integration.manager.get_all_stack_variables()
+        stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
         # Make inline replacements, so `jmp 0x400122` becomes `jmp function_name`
         for op in ins.operands:
             if op.type is CS_OP_IMM:

@@ -143,7 +143,7 @@ def format(
     arrow_right = c.arrow(f" {config_arrow_right} ")
 
     # Ask the decompiler to resolve stack variables
-    stack_vars = pwndbg.integration.manager.get_all_stack_variables()
+    stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
 
     # Colorize the chain
     rest = [M.get_address_and_symbol(addr, stack_vars) if addr >= 0 else "" for addr in chain]

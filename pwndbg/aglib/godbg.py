@@ -187,7 +187,7 @@ class FormatOpts:
 
     def fmt_ptr(self, val: int) -> str:
         return pwndbg.color.memory.get_address_and_symbol(
-            val, pwndbg.integration.manager.get_all_stack_variables()
+            val, pwndbg.integration.manager.get_stack_var_dict_all()
         )
 
 
