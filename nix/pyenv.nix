@@ -80,6 +80,7 @@ let
     "pytest-cov"
     "mypy"
     "vermin"
+    "decomp2dbg"
   ];
   pkgsNeedFlitcore = [
     "typing-extensions"
@@ -97,6 +98,8 @@ let
     "plumbum"
     "rpyc"
     "iniconfig"
+    "decomp2dbg"
+    "filelock"
   ];
   pkgsNeedPoetry = [
     "pt"
