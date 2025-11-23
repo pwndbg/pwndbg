@@ -653,6 +653,16 @@ class Process:
         """
         raise NotImplementedError()
 
+    def remove_symbol_file(self, path: str) -> bool:
+        """
+        Removes a symbol file.
+
+        Returns:
+            True if we succeeded, False if not. If the file was never
+            added or doesn't exist, that counts as failure.
+        """
+        raise NotImplementedError()
+
     def runcmd(self, cmd):
         """
         Runs a debugger command

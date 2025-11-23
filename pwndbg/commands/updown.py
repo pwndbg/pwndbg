@@ -40,7 +40,7 @@ def up(n=1) -> None:
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print("\n".join(bt))
 
-    if pwndbg.commands.integration.should_auto_jump:
+    if pwndbg.commands.integration.should_autojump:
         pwndbg.commands.integration.auto_jump()
 
 
@@ -73,5 +73,5 @@ def down(n=1) -> None:
     bt = pwndbg.commands.context.context_backtrace(with_banner=False)
     print("\n".join(bt))
 
-    if pwndbg.commands.integration.should_auto_jump:
+    if pwndbg.commands.integration.should_autojump:
         pwndbg.commands.integration.auto_jump()

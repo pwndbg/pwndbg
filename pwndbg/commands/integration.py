@@ -792,6 +792,15 @@ Check out the other decompiler-auto* configuration variables as well.
 """,
 )
 
+
+def auto_jump():
+    if pwndbg.aglib.regs.pc is None:
+        return
+    addr: int = pwndbg.aglib.regs.pc
+
+    pwndbg.integration.manager.focus_address(addr)
+
+
 @pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.STOP)
 def automatic_operations() -> None:
     # The connection and inf.alive() checks in sync() are just for better error
@@ -806,11 +815,7 @@ def automatic_operations() -> None:
         pwndbg.integration.manager.update_function_variables()
 
     if should_autojump:
-        if pwndbg.aglib.regs.pc is None:
-            return
-        addr: int = pwndbg.aglib.regs.pc
-
-        pwndbg.integration.manager.focus_address(addr)
+        auto_jump()
 
 
 # ========= End of Automatic integration handling =========

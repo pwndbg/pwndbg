@@ -431,6 +431,9 @@ class IntegrationManager:
         # It's fine if this isn't cleared on manager cache invalidation methinks.
         self.__func_curr_line: dict[str, int] = {}
 
+        # Need to maintain so we can remove-symbol-file
+        self._latest_symbol_file_path: str = ""
+
     def invalidate_caches(self) -> None:
         self._function_headers = None
         self._global_vars = None
@@ -472,9 +475,33 @@ class IntegrationManager:
         # Failed to connect.
         return False
 
+    def remove_symbols(self, inf: Optional[pwndbg.dbg_mod.Process] = None) -> bool:
+        """
+        Remove the decompiler symbols that we added latest.
+
+        Returns whether we suceeded. Resets self._latest_symbol_file_path regardless
+        of success.
+
+        FIXME: Only works for GDB :(
+        """
+        path: str = self._latest_symbol_file_path
+        self._latest_symbol_file_path = ""
+
+        if not path:
+            return False
+
+        if inf is not None or (inf := pwndbg.dbg.selected_inferior()) is not None:
+            # FIXME: Only implemented in GDB :(
+            if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
+                return inf.remove_symbol_file(path)
+
+        return False
+
     def disconnect(self) -> None:
         # We don't want to keep the data from the previous session.
-        # FIXME: Ideally, we should also remove-symbol-file and delete the convenience variables.
+        # FIXME: Ideally, we should also delete the convenience variables.
+        self.remove_symbols()
+
         self.invalidate_caches()
 
         if self._connection is not None:
@@ -503,6 +530,14 @@ class IntegrationManager:
         self._function_headers = None
         self._global_vars = None
 
+        inf: Optional[pwndbg.dbg_mod.Process] = pwndbg.dbg.selected_inferior()
+        if inf is None:
+            return 0
+
+        # Remove old symbol file.
+        # If we don't do this, the symbols will stack (run `info func` in GDB).
+        self.remove_symbols(inf)
+
         global_vars: Optional[GlobalVariables] = self.global_vars()
         func_headers: Optional[FunctionHeaders] = self.function_headers()
         # (name, address)
@@ -528,7 +563,7 @@ class IntegrationManager:
         if not syms_to_add:
             return 0
 
-        path = pwndbg.aglib.elf.create_blank_elf()
+        path: Optional[str] = pwndbg.aglib.elf.create_blank_elf()
         if path is None:
             return 0
 
@@ -545,10 +580,13 @@ class IntegrationManager:
 
             symelf.write(path)
 
-            if inf := pwndbg.dbg.selected_inferior():
-                inf.add_symbol_file(path)
-                # Success!
-                return len(syms_to_add)
+            inf.add_symbol_file(path)
+            # Success!
+
+            # Save the path so we can remove it later.
+            self._latest_symbol_file_path = path
+
+            return len(syms_to_add)
         except Exception as e:
             print(message.error(e))
 
