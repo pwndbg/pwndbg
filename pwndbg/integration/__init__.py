@@ -715,7 +715,7 @@ class IntegrationManager:
 
         return res
 
-    def decompile_pretty(self, mapped_addr: int, nlines: int = -1) -> Optional[list[str]]:
+    def decompile_pretty(self, mapped_addr: int, nlines: int) -> Optional[list[str]]:
         """
         Get the prettified decompilation of a function.
 

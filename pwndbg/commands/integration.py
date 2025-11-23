@@ -645,7 +645,8 @@ parser.add_argument(
     "lines",
     type=int,
     nargs="?",
-    default=10,
+    # Same as the default for context-code-lines
+    default=14,
     help="Number of lines of decompilation to show.",
 )
 
