@@ -81,6 +81,7 @@ let
     "mypy"
     "vermin"
     "decomp2dbg"
+    "ghidra-bridge"
   ];
   pkgsNeedFlitcore = [
     "typing-extensions"
