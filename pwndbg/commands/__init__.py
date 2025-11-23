@@ -913,6 +913,7 @@ def load_commands() -> None:
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
+        import pwndbg.commands.updown
 
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
