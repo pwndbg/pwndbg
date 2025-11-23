@@ -178,7 +178,7 @@ def install_generic_plugin(
     print("Deleting old files (if they exist):")
     for _, dest in paths:
         print(f"\t{dest}")
-        if dest.exists():
+        if dest.exists(follow_symlinks=False):
             if dest.is_symlink():
                 dest.unlink()
             else:

@@ -342,7 +342,7 @@ Where to install the angr integration plugin.
 
 ----------
 
-## **decompiler-auto-jump**
+## **decompiler-autojump**
 
 
 Whether to jump the decompiler cursor on every stop.
@@ -350,24 +350,38 @@ Whether to jump the decompiler cursor on every stop.
 Depending on the decompiler, this may or may not be a good idea.
 Try it out and see.
 
-Check out decompiler-auto-sync as well.
+Check out the other decompiler-auto* configuration variables as well.
 
 **Default:** off  
 
 ----------
 
-## **decompiler-auto-sync**
+## **decompiler-autosync-syms**
 
 
-Whether to sync with the decompiler on every stop.
+Whether to sync symbols with the decompiler on every stop.
 
-Depending on the decompiler, the number of symbols the binary you are
-decompiling has, and various other factors, this may or may not be a good idea.
-Try it out and see.
+Depending on the decompiler, the number of symbols (functions + global variables)
+the binary you are decompiling has, and various other factors, this may or may not
+be a good idea. Try it out and see.
 
-Check out decompiler-auto-jump as well.
+Check out the other decompiler-auto* configuration variables as well.
 
 **Default:** off  
+
+----------
+
+## **decompiler-autosync-vars**
+
+
+Whether to sync function variables with the decompiler on every stop.
+
+This is generally lightweight, so it is enabled by default. Try disabling
+it if you have performance issues.
+
+Check out the other decompiler-auto* configuration variables as well.
+
+**Default:** on  
 
 ----------
 
