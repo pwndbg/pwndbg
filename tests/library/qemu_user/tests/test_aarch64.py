@@ -164,6 +164,38 @@ def test_aarch64_syscall_annotation(qemu_assembly_run):
         assert i.syscall_name == "exit"
 
 
+def test_aarch64_be_disassembly(qemu_assembly_run):
+    """
+    Make sure disassembly of big-endian aarch64 is correct.
+    aarch64 instructions are always little-endian. The endianness refers to memory/register data layout.
+    """
+
+    qemu_assembly_run(EXIT_SYSCALL, "aarch64_be")
+
+    # Verify that it shows up in the output
+    dis = gdb.execute("context disasm", to_string=True)
+    dis = pwndbg.color.strip(dis)
+
+    expected = (
+        "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
+        "─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────\n"
+        " ► 0x1010120 <_start>       mov    x0, #0            X0 => 0\n"
+        "   0x1010124 <_start+4>     mov    x8, #0x5d         X8 => 0x5d\n"
+        "   0x1010128 <_start+8>     svc    #0 <SYS_exit>\n"
+        "   0x101012c <_start+12>    nop    \n"
+        "   0x1010130 <_start+16>    nop    \n"
+        "   0x1010134 <_start+20>    nop    \n"
+        "   0x1010138 <_start+24>    nop    \n"
+        "   0x101013c <_start+28>    nop    \n"
+        "   0x1010140 <_start+32>    nop    \n"
+        "   0x1010144 <_start+36>    nop    \n"
+        "   0x1010148 <_start+40>    nop    \n"
+        "────────────────────────────────────────────────────────────────────────────────\n"
+    )
+
+    assert dis == expected
+
+
 CONDITIONAL_JUMPS = f"""
 {AARCH64_PREAMBLE}
 mov x2, 0b1010
