@@ -20,6 +20,8 @@ import pwndbg.lib.tempfile
 import pwndbg.color as color
 from pwndbg.commands import CommandCategory
 
+# ==== Version / Installation code ====
+
 # Bump me if needed.
 # (This will trigger check_decomp2dbg_version_bumped())
 d2d_required_major = 3
@@ -29,20 +31,6 @@ d2d_required_fix = 0
 d2d_required_version_str: str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
 
 d2d_cache_dir: Path = Path(pwndbg.lib.tempfile.cachedir("d2d"))
-
-decompiler_host = pwndbg.config.add_param(
-    "decompiler-host",
-    "localhost",
-    "the host where the decompiler is exposed",
-    param_class=pwndbg.lib.config.PARAM_STRING,
-)
-
-decompiler_port = pwndbg.config.add_param(
-    "decompiler-port",
-    3662,
-    "the port on which the decompiler is exposed",
-    param_class=pwndbg.lib.config.PARAM_UINTEGER,
-)
 
 
 def decomp2dbg_path() -> Path:
@@ -316,6 +304,80 @@ def install(which_decompiler: str):
             install_angr_plugin()
 
 
+# ==== End of Version / Installation code ====
+
+decompiler_host = pwndbg.config.add_param(
+    "decompiler-host",
+    "localhost",
+    "the host where the decompiler is exposed",
+    param_class=pwndbg.lib.config.PARAM_STRING,
+)
+
+decompiler_port = pwndbg.config.add_param(
+    "decompiler-port",
+    3662,
+    "the port on which the decompiler is exposed",
+    param_class=pwndbg.lib.config.PARAM_UINTEGER,
+)
+
+
+def disconnect():
+    if not pwndbg.integration.manager.is_connected():
+        print(message.error("Am not connected in the first place."))
+        return
+
+    decompid = pwndbg.integration.manager.decompiler_id()
+    decomp_name = "???"
+    if decompid:
+        decomp_name = decompid.value
+
+    pwndbg.integration.manager.disconnect()
+    print(message.success("Disconnected") + f" from {decomp_name}.")
+
+
+def connect(also_sync: bool):
+    if not check_decomp2dbg_version():
+        return
+
+    if pwndbg.integration.manager.is_connected():
+        print("Reconnecting..")
+
+    ok = pwndbg.integration.manager.connect(str(decompiler_host), int(decompiler_port))
+    if ok:
+        # If we are connected to localhost Ghidra, we need to check that the plugin version is fine.
+        if (
+            pwndbg.integration.manager.decompiler_id() == pwndbg.integration.DecompilerID.GHIDRA
+            and decompiler_host == "localhost"
+            and not check_outdated_ghidra_plugin()
+        ):
+            print(message.error("Disconnecting.."))
+            pwndbg.integration.manager.disconnect()
+            return
+
+        decompid = pwndbg.integration.manager.decompiler_id()
+        # This branch should practically always be taken.
+        if decompid:
+            decomp_name = decompid.value
+            print(
+                message.success("Connected")
+                + f" to {decomp_name} on {str(decompiler_host)}:{int(decompiler_port)}."
+            )
+
+            if also_sync:
+                # In case the binary isn't loaded yet, lets not yell to the user about failing.
+                sync(fail_quietly=True)
+
+            return
+
+    print(message.error("Failed connecting."))
+    print(message.hint("Did you open the connection in the decompiler? (Ctrl+Shift+D)"))
+    print(
+        message.hint(
+            "(The appropriate decompiler plugin must be installed, see `di install --help`)"
+        )
+    )
+
+
 def soft_connection_check(also_sync: bool) -> bool:
     """
     If we are not connected, try to connect (and sync).
@@ -325,7 +387,7 @@ def soft_connection_check(also_sync: bool) -> bool:
     """
     if not pwndbg.integration.manager.is_connected():
         print(message.error("Not connected to a decompiler."))
-        print("Trying to connect.. ", end='')
+        print("Trying to connect.. ", end="")
 
         connect(also_sync=also_sync)
 
@@ -419,63 +481,6 @@ def list_(list_all: bool):
     for addr, varname in sorted_vars:
         # just gonna assume its a stack var and color appropriately
         print(f"{color.yellow(hex(addr))}: {varname}")
-
-
-def disconnect():
-    if not pwndbg.integration.manager.is_connected():
-        print(message.error("Am not connected in the first place."))
-        return
-
-    decompid = pwndbg.integration.manager.decompiler_id()
-    decomp_name = "???"
-    if decompid:
-        decomp_name = decompid.value
-
-    pwndbg.integration.manager.disconnect()
-    print(message.success("Disconnected") + f" from {decomp_name}.")
-
-
-def connect(also_sync: bool):
-    if not check_decomp2dbg_version():
-        return
-
-    if pwndbg.integration.manager.is_connected():
-        print("Reconnecting..")
-
-    ok = pwndbg.integration.manager.connect(str(decompiler_host), int(decompiler_port))
-    if ok:
-        # If we are connected to localhost Ghidra, we need to check that the plugin version is fine.
-        if (
-            pwndbg.integration.manager.decompiler_id() == pwndbg.integration.DecompilerID.GHIDRA
-            and decompiler_host == "localhost"
-            and not check_outdated_ghidra_plugin()
-        ):
-            print(message.error("Disconnecting.."))
-            pwndbg.integration.manager.disconnect()
-            return
-
-        decompid = pwndbg.integration.manager.decompiler_id()
-        # This branch should practically always be taken.
-        if decompid:
-            decomp_name = decompid.value
-            print(
-                message.success("Connected")
-                + f" to {decomp_name} on {str(decompiler_host)}:{int(decompiler_port)}."
-            )
-
-            if also_sync:
-                # In case the binary isn't loaded yet, lets not yell to the user about failing.
-                sync(fail_quietly=True)
-
-            return
-
-    print(message.error("Failed connecting."))
-    print(message.hint("Did you open the connection in the decompiler? (Ctrl+Shift+D)"))
-    print(
-        message.hint(
-            "(The appropriate decompiler plugin must be installed, see `di install --help`)"
-        )
-    )
 
 
 parser = argparse.ArgumentParser(description="Control Pwndbg decompiler integration.")
@@ -605,7 +610,9 @@ parser_list.add_argument(
 @pwndbg.commands.Command(
     parser, aliases=["di"], category=pwndbg.commands.CommandCategory.INTEGRATIONS
 )
-def decompiler_integration(command: str, jump_addr: Optional[int] = None, install_sub: str = "", list_all: bool = False):
+def decompiler_integration(
+    command: str, jump_addr: Optional[int] = None, install_sub: str = "", list_all: bool = False
+):
     match command:
         case "connect" | "c":
             connect(also_sync=True)
@@ -661,5 +668,3 @@ def decomp(addr: Optional[int], lines: int) -> None:
         print("Could not retrieve decompilation.")
     else:
         print("\n".join(decomp))
-
-
