@@ -34,7 +34,7 @@ def is_branch_taken(cr: int, ctr: int, bi: int, bo: int) -> bool | None:
     # 0001x - Decrement CTR. Branch if CTR is 0 and condition is false
     # 001xx - Branch if condition is false
     # 0100x - Decrement CTR. Branch if CTR is not 0 and condition is true
-    # 0101x - Decrement CTR. Branch if CTR is 0 and condition it true
+    # 0101x - Decrement CTR. Branch if CTR is 0 and condition is true
     # 011xx - Branch if the condition is true.
     # 1x00x - Decrement CTR. Branch if CTR is not 0.
     # 1x01x - Decrement CTR. Branch if CTR is 0
