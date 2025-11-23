@@ -410,6 +410,12 @@ class IntegrationManager:
         self._global_vars: Optional[GlobalVariables] = None
         self._decompiler_id: Optional[DecompilerID] = None
 
+        # FIXME: Should really be fixed on decompiler plugin side.
+        # Need to maintain this, otherwise the Ghidra decompilation pane is
+        # useless. https://github.com/mahaloz/decomp2dbg/issues/131
+        # It's fine if this isn't cleared on manager cache invalidation methinks.
+        self.__func_curr_line: dict[str, int] = {}
+
     def invalidate_caches(self) -> None:
         self._function_headers = None
         self._global_vars = None
@@ -741,6 +747,24 @@ class IntegrationManager:
             decomp = func_decomp.decompilation
 
         curr_line = func_decomp.curr_line
+
+        # Ghidra often has this for some reason
+        if decomp[0] == "":
+            # This will make the line numbers off-by-one with the decompiler, but imo
+            # saving screen space is more important.
+            decomp = decomp[1:]
+            # could be 0 or -1
+            curr_line = (curr_line - 1) if curr_line > 0 else curr_line
+
+        # Ghidra may return -1 (https://github.com/mahaloz/decomp2dbg/issues/131)
+        # Cache the curr_line for this function if its valid.
+        if curr_line == -1:
+            if func_decomp.func_name in self.__func_curr_line:
+                curr_line = self.__func_curr_line[func_decomp.func_name]
+            else:
+                curr_line = 0
+        else:
+            self.__func_curr_line[func_decomp.func_name] = curr_line
 
         formatted_decomp = pretty_print.format_source(list(decomp), nlines, curr_line)
         return formatted_decomp
