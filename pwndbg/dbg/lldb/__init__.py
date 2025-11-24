@@ -1695,14 +1695,17 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if stop_handler is not None:
 
             def handler(
-                _frame: lldb.SBFrame,
+                frame: lldb.SBFrame,
                 _bp_loc: lldb.SBBreakpointLocation,
                 _struct: lldb.SBStructuredData,
                 _internal,
-            ) -> bool:
+            ) -> None:
                 try:
                     self.dbg.lldb_python_state_callback(LLDBPythonState.LLDB_STOP_HANDLER)
-                    return stop_handler(sp)
+                    if not stop_handler(sp):
+                        # Continue the process. We can invoke LLDB directly, as the
+                        # rest of Pwndbg hasn't had a chance to be stopped yet.
+                        frame.GetThread().GetProcess().Continue()
                 finally:
                     self.dbg.lldb_python_state_callback(LLDBPythonState.PWNDBG)
 
