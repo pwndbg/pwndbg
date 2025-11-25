@@ -179,9 +179,13 @@ def install_generic_plugin(
     for _, dest in paths:
         print(f"\t{dest}")
         if dest.exists(follow_symlinks=False):
-            if dest.is_symlink():
+            if dest.is_symlink() or not dest.is_dir():
+                # Works for regular files and symlinks.
+                # Note that `dest.is_dir()` returns True for
+                # symlinks to directories.
                 dest.unlink()
             else:
+                # This is a non-symlink directory
                 shutil.rmtree(str(dest))
 
     print("\nCreating symlinks:")
