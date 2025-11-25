@@ -33,28 +33,37 @@ let
     in
     version;
 
-  pwndbg =
-    pkgs.runCommand "pwndbg"
+  mainProgram =
+    if groups == [ "lldb" ] then
+      "pwndbg-lldb"
+    else if groups == [ "gdb" ] then
+      "pwndbg"
+    else
+      "pwndbg-any";
+
+  pwndbg_any =
+    pkgs.runCommand mainProgram
       {
         version = pwndbgVersion;
         nativeBuildInputs = [ pkgs.pkgsBuildHost.makeWrapper ];
         meta = {
           pwndbgVenv = pyEnv;
           isLLDB = groups == [ "lldb" ];
+          mainProgram = mainProgram;
         };
       }
       ''
         mkdir -p $out/bin/
 
-        if [ -e "${pyEnv}/bin/pwndbg" ]; then
+        if [ -e "${pyEnv}/bin/gdb" ]; then
           makeWrapper ${pyEnv}/bin/pwndbg $out/bin/pwndbg \
             --prefix PATH : ${lib.makeBinPath extraPackags}
         fi
 
-        if [ -e "${pyEnv}/bin/pwndbg-lldb" ]; then
+        if [ -e "${pyEnv}/bin/lldb" ]; then
           makeWrapper ${pyEnv}/bin/pwndbg-lldb $out/bin/pwndbg-lldb \
             --prefix PATH : ${lib.makeBinPath extraPackags}
         fi
       '';
 in
-pwndbg
+pwndbg_any

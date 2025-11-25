@@ -8,7 +8,7 @@ let
   lib = pkgs.lib;
 
   isLLDB = pwndbg.meta.isLLDB;
-  python3 = pwndbg.meta.pwndbgVenv.meta.python;
+  python3 = pwndbg.meta.pwndbgVenv.meta.python3;
   pwndbgVenv = pwndbg.meta.pwndbgVenv;
 
   bundler = arg: (pkgsNative.callPackage ./bundle { } arg);
@@ -158,7 +158,8 @@ let
   );
   pwndbgBundled = if isLLDB then pwndbgLldbBundled else pwndbgGdbBundled;
 
-  portable =
+  portable = pwndbgBundled;
+  portable2 =
     pkgsNative.runCommand "portable-${pwndbg.name}"
       {
         meta = {

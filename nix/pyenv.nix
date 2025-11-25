@@ -267,24 +267,28 @@ let
     ) { };
 
     gdb-for-pwndbg = pkgs.callPackage (
-      { python3 }:
+      { python3, autoPatchelfHook }:
       prev.gdb-for-pwndbg.overrideAttrs (old: {
-        buildInputs =
-          (old.buildInputs or [ ])
-          ++ lib.optionals isCross [
-            python3
-          ];
+        nativeBuildInputs = builtins.filter (x: x != autoPatchelfHook) old.nativeBuildInputs;
+        postFixup = ''
+          for f in ${python3}/lib/libpython*; do
+            name=$(basename "$f")
+            ln -s "$f" "$out/lib/$name";
+          done
+        '';
       })
     ) { };
 
     lldb-for-pwndbg = pkgs.callPackage (
-      { python3 }:
+      { python3, autoPatchelfHook }:
       prev.lldb-for-pwndbg.overrideAttrs (old: {
-        buildInputs =
-          (old.buildInputs or [ ])
-          ++ lib.optionals isCross [
-            python3
-          ];
+        nativeBuildInputs = builtins.filter (x: x != autoPatchelfHook) old.nativeBuildInputs;
+        postFixup = ''
+          for f in ${python3}/lib/libpython*; do
+            name=$(basename "$f")
+            ln -s "$f" "$out/lib/$name";
+          done
+        '';
       })
     ) { };
   };
@@ -362,14 +366,8 @@ let
 
   final = (if isEditable then pyenvEditable else pyenv).overrideAttrs (old: {
     meta = {
-      python = python3;
+      python3 = python3;
     };
-    postInstall = ''
-      for f in ${python3}/lib/libpython*; do
-        name=$(basename "$f")
-        ln -s "$f" "$out/lib/$name";
-      done
-    '';
   });
 in
 final
