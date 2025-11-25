@@ -38,22 +38,28 @@ class DebugCacheDict(UserDict):  # type: ignore[type-arg]
         self.func = func
         self.name = f'{func.__module__.split(".")[-1]}.{func.__name__}'
 
-    def __getitem__(self, key: Tuple[Any, ...]) -> Any:
-        if debug & DEBUG_GET and (not debug_name or debug_name in self.name):
-            print(f"GET {self.name}: {key}")
+        def __getitem__(self, key: Tuple[Any, ...]) -> Any:
+             if debug & DEBUG_GET and (not debug_name or debug_name in self.name):
+                 print(f"GET {self.name}: {key}")
         try:
             value = self.data[key]
-            self.hits += 1
-            return value
+        except TypeError as exc:
+            raise AssertionError(
+                f"pwndbg cache error: unhashable key used: {key!r}"
+            ) from exc
         except KeyError:
             self.misses += 1
             raise
+        else:
+            self.hits += 1
+            return value
+
+
 
     def __setitem__(self, key: Tuple[Any, ...], value: Any) -> None:
         if debug & DEBUG_SET and (not debug_name or debug_name in self.name):
             print(f"SET {self.name}: {key}={value}")
         self.data[key] = value
-
     def clear(self) -> None:
         if debug & DEBUG_CLEAR and (not debug_name or debug_name in self.name):
             print(f"CLEAR {self.name} (hits: {self.hits}, misses: {self.misses})")
