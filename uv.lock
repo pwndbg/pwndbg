@@ -1583,7 +1583,7 @@ dependencies = [
 
 [package.optional-dependencies]
 gdb = [
-    { name = "gdb-for-pwndbg", version = "16.3.0.post5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15' or platform_machine != 'loongarch64' or sys_platform != 'linux'" },
+    { name = "gdb-for-pwndbg", version = "16.3.0.post5", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
     { name = "gdb-for-pwndbg", version = "16.3.0.post5", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post5/gdb_for_pwndbg-16.3.0.post5-cp310-cp310-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
     { name = "gdb-for-pwndbg", version = "16.3.0.post5", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post5/gdb_for_pwndbg-16.3.0.post5-cp311-cp311-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
     { name = "gdb-for-pwndbg", version = "16.3.0.post5", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post5/gdb_for_pwndbg-16.3.0.post5-cp312-cp312-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
@@ -1592,7 +1592,7 @@ gdb = [
 ]
 lldb = [
     { name = "gnureadline", marker = "sys_platform != 'win32'" },
-    { name = "lldb-for-pwndbg", version = "21.1.5.post1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.15' or platform_machine != 'loongarch64' or sys_platform != 'linux'" },
+    { name = "lldb-for-pwndbg", version = "21.1.5.post1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
     { name = "lldb-for-pwndbg", version = "21.1.5.post1", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.5.post1/lldb_for_pwndbg-21.1.5.post1-cp310-cp310-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
     { name = "lldb-for-pwndbg", version = "21.1.5.post1", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.5.post1/lldb_for_pwndbg-21.1.5.post1-cp311-cp311-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
     { name = "lldb-for-pwndbg", version = "21.1.5.post1", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.5.post1/lldb_for_pwndbg-21.1.5.post1-cp312-cp312-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
@@ -1646,7 +1646,7 @@ requires-dist = [
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post5/gdb_for_pwndbg-16.3.0.post5-cp312-cp312-manylinux_2_36_loongarch64.whl" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post5/gdb_for_pwndbg-16.3.0.post5-cp313-cp313-manylinux_2_36_loongarch64.whl" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post5/gdb_for_pwndbg-16.3.0.post5-cp314-cp314-manylinux_2_36_loongarch64.whl" },
-    { name = "gdb-for-pwndbg", marker = "extra == 'gdb'", specifier = "==16.3.0.post5" },
+    { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'gdb') or (sys_platform != 'linux' and extra == 'gdb')", specifier = "==16.3.0.post5" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.13,<9" },
     { name = "ipython", specifier = ">=8.37.0,<9" },
     { name = "lldb-for-pwndbg", marker = "python_full_version == '3.10.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.5.post1/lldb_for_pwndbg-21.1.5.post1-cp310-cp310-manylinux_2_36_loongarch64.whl" },
@@ -1654,7 +1654,7 @@ requires-dist = [
     { name = "lldb-for-pwndbg", marker = "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.5.post1/lldb_for_pwndbg-21.1.5.post1-cp312-cp312-manylinux_2_36_loongarch64.whl" },
     { name = "lldb-for-pwndbg", marker = "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.5.post1/lldb_for_pwndbg-21.1.5.post1-cp313-cp313-manylinux_2_36_loongarch64.whl" },
     { name = "lldb-for-pwndbg", marker = "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.5.post1/lldb_for_pwndbg-21.1.5.post1-cp314-cp314-manylinux_2_36_loongarch64.whl" },
-    { name = "lldb-for-pwndbg", marker = "extra == 'lldb'", specifier = "==21.1.5.post1" },
+    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==21.1.5.post1" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
     { name = "pwntools", specifier = ">=4.14.1,<5" },
