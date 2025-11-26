@@ -8,7 +8,7 @@ from __future__ import annotations
 import itertools
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, override
 from typing import Iterator
 from typing import List
 from typing import OrderedDict
@@ -176,7 +176,12 @@ class Reg:
     zero_extend_writes: bool = False
     """Upon writing a value to this subregister, are the higher bits of the full register zeroed out?"""
     subregisters: tuple[Reg, ...] = ()
+    """Bitmask for register. None if the register size is arch.ptrsize"""
+    mask: int | None = None
 
+    def __post_init__(self):
+        if self.size:
+            self.mask = ((1 << (self.size * 8)) - 1)
 
 class RegisterSet:
     pc: str
