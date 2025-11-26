@@ -152,7 +152,7 @@ parser.add_argument(
     parser,
     command_name="cyclic",
     category=CommandCategory.MISC,
-    notes="If you want to write the cyclic pattern to memory, use the `spray` command!"
+    notes="If you want to write the cyclic pattern to memory, use the `spray` command!",
 )
 def cyclic_cmd(
     alphabet, length: Optional[int], lookup, detect, count=100, filename="", timeout=2
