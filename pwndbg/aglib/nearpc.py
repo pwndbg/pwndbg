@@ -235,7 +235,7 @@ def nearpc(
 
                 base = operand.mem.base
                 if base > 0:
-                    address += pwndbg.aglib.regs[instr.reg_name(base)]
+                    address += pwndbg.aglib.regs.read_reg(instr.reg_name(base))
 
                 vmmap = pwndbg.aglib.vmmap.get()
                 page = next((page for page in vmmap if address in page), None)

@@ -290,7 +290,7 @@ def test_windbg_eX_commands(start_binary):
     ### Test write & output on partial write
     #########################################
     # e.g. when we make a write to the last stack address
-    stack_ea = pwndbg.aglib.regs[pwndbg.aglib.regs.stack]
+    stack_ea = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack)
     stack_page = pwndbg.aglib.vmmap.find(stack_ea)
 
     # Last possible address on stack where we can perform an 8-byte write

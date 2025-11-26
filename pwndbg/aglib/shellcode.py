@@ -32,7 +32,7 @@ def _get_syscall_return_value():
 
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
     # FIXME: `retval` is syscall abi? or sysv abi?
-    return pwndbg.aglib.regs[register_set.retval]
+    return pwndbg.aglib.regs.read_reg(register_set.retval)
 
 
 async def exec_syscall(

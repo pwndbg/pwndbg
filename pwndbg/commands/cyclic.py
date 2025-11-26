@@ -42,7 +42,7 @@ def detect_register_patterns(alphabet, length, timeout) -> None:
     all_register_names = register_set.all
 
     for reg_name in all_register_names:
-        value = pwndbg.aglib.regs[reg_name]
+        value = pwndbg.aglib.regs.read_reg(reg_name)
         if value is None:
             continue
 

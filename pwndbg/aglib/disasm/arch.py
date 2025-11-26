@@ -453,8 +453,8 @@ class DisassemblyAssistant:
             # which is relevent if we are writing to this register.
             # However, the information can still be useful for display purposes.
             if DEBUG_ENHANCEMENT:
-                print(f"Read value from process register: {pwndbg.aglib.regs[regname]}")
-            return pwndbg.aglib.regs[regname]
+                print(f"Read value from process register: {pwndbg.aglib.regs.read_reg(regname)}")
+            return pwndbg.aglib.regs.read_reg(regname)
         elif (reg_value := self.manual_register_values.read_register(regname)) is not None:
             # If we manually tracked the value of this register while disassembling, we can read from it.
             return reg_value

@@ -46,7 +46,7 @@ def decompile(func=None):
         raise Exception("r2pipe or rzpipe not available, but required for r2/rz->ghidra bridge")
 
     if pwndbg.aglib.qemu.is_qemu_kernel():
-        pc = pwndbg.aglib.regs[pwndbg.aglib.regs.current.pc]
+        pc = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.current.pc)
         if func is None:
             func = pwndbg.aglib.symbol.resolve_addr(pc)
             if func is not None:
@@ -56,7 +56,7 @@ def decompile(func=None):
 
     if not func:
         func = (
-            hex(pwndbg.aglib.regs[pwndbg.aglib.regs.current.pc])
+            hex(pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.current.pc))
             if pwndbg.aglib.proc.alive
             else "main"
         )
@@ -72,7 +72,7 @@ def decompile(func=None):
 
     # If not running there is no current pc to mark
     if pwndbg.aglib.proc.alive:
-        pc = pwndbg.aglib.regs[pwndbg.aglib.regs.current.pc]
+        pc = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.current.pc)
 
         closest = 0
         for off in (a.get("offset", 0) for a in src.get("annotations", [])):

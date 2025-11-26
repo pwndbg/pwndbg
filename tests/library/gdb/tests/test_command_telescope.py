@@ -118,7 +118,7 @@ def test_command_telescope_frame(start_binary):
     gdb.execute("run")
 
     rsp = hex(pwndbg.aglib.regs.sp)
-    rbp = hex(pwndbg.aglib.regs[pwndbg.aglib.regs.frame])
+    rbp = hex(pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame))
 
     result_str = gdb.execute("telescope --frame", to_string=True)
     result_lines = result_str.strip().split("\n")
@@ -137,7 +137,7 @@ def test_command_telescope_frame_bp_below_sp(start_binary):
     gdb.execute("run")
     gdb.execute("memoize")  # turn off cache
 
-    pwndbg.aglib.regs.sp = pwndbg.aglib.regs[pwndbg.aglib.regs.frame] + 1
+    pwndbg.aglib.regs.sp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame) + 1
 
     result_str = gdb.execute("telescope --frame", to_string=True)
 
