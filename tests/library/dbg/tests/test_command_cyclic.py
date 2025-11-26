@@ -44,8 +44,9 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 45
     pattern = cyclic(length=80, n=ptr_size)
-    pwndbg.aglib.regs.rdi = int.from_bytes(
-        pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian
+    pwndbg.aglib.regs.write_reg(
+        "rdi",
+        int.from_bytes(pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian),
     )
     out = await ctrl.execute_and_capture("cyclic -l $rdi")
 
@@ -68,7 +69,7 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
 
     await ctrl.launch(REFERENCE_BINARY)
 
-    addr = pwndbg.aglib.regs.rsp
+    addr = pwndbg.aglib.regs.read_reg("rsp")
     ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 48
     pattern = cyclic(length=80, n=ptr_size)

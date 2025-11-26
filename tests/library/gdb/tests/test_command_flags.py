@@ -12,7 +12,7 @@ REFERENCE_BINARY = get_binary("reference-binary.out")
 def test_flags_command(start_binary):
     start_binary(REFERENCE_BINARY)
 
-    old_eflags = pwndbg.aglib.regs.eflags
+    old_eflags = pwndbg.aglib.regs.read_reg("eflags")
 
     # Verify CF is not set
     assert old_eflags & 0x1 == 0
@@ -20,15 +20,15 @@ def test_flags_command(start_binary):
     gdb.execute("setflag cf 1")
 
     # Verify CF is set and no other flags have changed
-    assert (old_eflags | 1) == pwndbg.aglib.regs.eflags
+    assert (old_eflags | 1) == pwndbg.aglib.regs.read_reg("eflags")
 
     gdb.execute("setflag cf 0")
 
     # Verify CF is not set and no other flags have changed
-    assert old_eflags == pwndbg.aglib.regs.eflags
+    assert old_eflags == pwndbg.aglib.regs.read_reg("eflags")
 
     # Test setting an invalid value
     gdb.execute("setflag cf 2")
 
     # Verify no flags have changed
-    assert old_eflags == pwndbg.aglib.regs.eflags
+    assert old_eflags == pwndbg.aglib.regs.read_reg("eflags")

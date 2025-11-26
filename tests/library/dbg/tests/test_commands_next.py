@@ -45,7 +45,7 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
     await ctrl.cont()
 
     # Sanity check that we are in libc
-    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.rip).objfile
+    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.read_reg("rip")).objfile
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     await ctrl.execute("nextproginstr")
@@ -66,7 +66,7 @@ async def test_next_command_doesnt_freeze_crashed_binary(ctrl: Controller, comma
     # The nextproginstr won't step if we are already on the binary address
     # and interestingly, other commands won't step if the address can't be disassemblied
     if command == "nextproginstr":
-        pwndbg.aglib.regs.pc = 0x1234
+        pwndbg.aglib.regs.write_reg("pc", 0x1234)
 
     # This should not halt/freeze the program
     await ctrl.execute(command)

@@ -32,9 +32,9 @@ async def test_command_canary(ctrl: Controller, binary: str, reg_name: str, skip
 
     # The instruction that loads the canary is at the start of the function,
     # but it it not necessarily at any given fixed position, scan for it.
-    initial_reg = getattr(pwndbg.aglib.regs, reg_name)
+    initial_reg = pwndbg.aglib.regs.read_reg(reg_name)
     while True:
-        register = getattr(pwndbg.aglib.regs, reg_name)
+        register = pwndbg.aglib.regs.read_reg(reg_name)
         if register != initial_reg:
             if skips == 0:
                 break
