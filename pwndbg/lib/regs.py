@@ -8,7 +8,7 @@ from __future__ import annotations
 import itertools
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, override
+from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import OrderedDict
@@ -181,7 +181,8 @@ class Reg:
 
     def __post_init__(self):
         if self.size:
-            self.mask = ((1 << (self.size * 8)) - 1)
+            self.mask = (1 << (self.size * 8)) - 1
+
 
 class RegisterSet:
     pc: str
