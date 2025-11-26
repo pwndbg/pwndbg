@@ -105,6 +105,16 @@ class module(ModuleType):
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
     def read_reg(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
+        """
+        Query the underlying debugger for the value of a register.
+
+        Note that in some rare cases, debuggers won't directly expose the values of some special model specific registers.
+        Although we can sometimes determine these by other indirect means, this function does not run any extra logic to handle these special cases.
+
+        Specifically, if you need to ensure you are reading the correct value of "gs", "fs", "idt", or "idt_limit", use
+        the `read_reg_use_handler_if_exists` function instead, which will invoke specific handler functions
+        as necessary to determine the values.
+        """
         return self.read_reg_uncached(reg, frame)
 
     def read_reg_uncached(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
@@ -124,15 +134,50 @@ class module(ModuleType):
         except (ValueError, pwndbg.dbg_mod.Error):
             return None
 
-    def __getattr__(self, attr: str) -> int | None:
-        return self.read_reg(attr)
+    @pwndbg.lib.cache.cache_until("stop", "prompt")
+    def read_reg_use_handler_if_exists(
+        self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None
+    ) -> int | None:
+        """
+        Debuggers don't always expose the value of certain registers.
+        For example, in i386, GDB doesn't expose the values of the fs and gs registers.
+        However, in some cases we can determine the values by other means, such as by
+        invoking a syscall that fetches the value.
 
-    def __setattr__(self, attr: str, val: Any) -> None:
-        if attr in ("last", "previous"):
-            super().__setattr__(attr, val)
-        else:
-            if not pwndbg.dbg.selected_frame().reg_write(attr, int(val)):
-                raise RuntimeError(f"Attempted to write to a non-existent register '{attr}'")
+        This function will check if we have a special handler to determine a register value, and invoke it.
+        If the register doesn't require special handling, this falls back to read_reg(reg)
+
+        Currently, there are special handlers for the following registers:
+        - fsbase
+        - gsbase
+        - idt
+        - idt_limit
+        """
+        match reg:
+            case "fsbase":
+                return self.fsbase
+            case "gsbase":
+                return self.gsbase
+            case "idt":
+                return self.idt
+            case "idt_limit":
+                return self.idt_limit
+            case _:
+                return self.read_reg_uncached(reg, frame)
+
+    def write_reg(self, reg: str, value: int) -> None:
+        if not pwndbg.dbg.selected_frame().reg_write(reg, value):
+            raise RuntimeError(f"Attempted to write to a non-existent register '{reg}'")
+
+    @property
+    def pc(self) -> int | None:
+        """Get the value of the program counter register"""
+        return self.read_reg(self.current.pc)
+
+    @property
+    def sp(self) -> int | None:
+        """Get the value of the stack pointer register"""
+        return self.read_reg(self.current.stack)
 
     def __contains__(self, reg: str) -> bool:
         return reg_sets[pwndbg.aglib.arch.name].__contains__(reg)

@@ -50,7 +50,7 @@ def test_command_nextproginstr(start_binary):
     gdb.execute("continue")
 
     # Sanity check that we are in libc
-    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.rip).objfile
+    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.read_reg("rip")).objfile
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     gdb.execute("nextproginstr")
@@ -68,7 +68,7 @@ def test_next_command_doesnt_freeze_crashed_binary(start_binary, command):
     # The nextproginstr won't step if we are already on the binary address
     # and interestingly, other commands won't step if the address can't be disassemblied
     if command == "nextproginstr":
-        pwndbg.aglib.regs.pc = 0x1234
+        pwndbg.aglib.regs.write_reg("pc", 0x1234)
 
     # This should not halt/freeze the program
     gdb.execute(command, to_string=True)

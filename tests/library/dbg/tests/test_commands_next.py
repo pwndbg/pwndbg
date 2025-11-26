@@ -66,7 +66,7 @@ async def test_next_command_doesnt_freeze_crashed_binary(ctrl: Controller, comma
     # The nextproginstr won't step if we are already on the binary address
     # and interestingly, other commands won't step if the address can't be disassemblied
     if command == "nextproginstr":
-        pwndbg.aglib.regs.pc = 0x1234
+        pwndbg.aglib.regs.write_reg("pc", 0x1234)
 
     # This should not halt/freeze the program
     await ctrl.execute(command)
