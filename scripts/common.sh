@@ -6,6 +6,9 @@ PWNDBG_ABS_PATH=$(dirname $_COMMON_ABS_DIR)
 
 TESTING_KERNEL_IMAGES_DIR="${PWNDBG_ABS_PATH}/tests/library/qemu_system/kimages"
 
+# We run CI on ubuntu-latest which is currently 24.04
+CI_PYTHON="3.12.3"
+
 if [[ -z "${PWNDBG_VENV_PATH}" ]]; then
     PWNDBG_VENV_PATH="${PWNDBG_ABS_PATH}/.venv"
 fi
@@ -33,6 +36,7 @@ else
     UV_RUN="${UV} run"
     UV_RUN_TEST="${UV_RUN} --group dev --group tests --all-extras"
     UV_RUN_LINT="${UV_RUN} --group lint"
-    UV_RUN_DOCS="${UV_RUN} --group docs --extra gdb --extra lldb"
+    # If we don't do this, we get inconsistencies because argparse is unstable
+    UV_RUN_DOCS="${UV_RUN} --python ${CI_PYTHON} --group docs --extra gdb --extra lldb"
     UV_RUN_MYPY="${UV_RUN} --group dev --group lint --group tests --extra gdb --extra lldb"
 fi
