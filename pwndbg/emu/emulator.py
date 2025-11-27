@@ -303,7 +303,7 @@ class Emulator:
             if reg in blacklisted_regs:
                 debug(DEBUG_INIT, "Skipping blacklisted register %r", reg)
                 continue
-            value = pwndbg.aglib.regs.read_reg_use_handler_if_exists(reg)
+            value = pwndbg.aglib.regs.read_reg(reg)
             if None in (enum, value):
                 if reg not in blacklisted_regs:
                     debug(DEBUG_INIT, "# Could not set register %r", reg)
