@@ -134,37 +134,6 @@ class module(ModuleType):
         except (ValueError, pwndbg.dbg_mod.Error):
             return None
 
-    @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def read_reg_use_handler_if_exists(
-        self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None
-    ) -> int | None:
-        """
-        Debuggers don't always expose the value of certain registers.
-        For example, in i386, GDB doesn't expose the values of the fs and gs registers.
-        However, in some cases we can determine the values by other means, such as by
-        invoking a syscall that fetches the value.
-
-        This function will check if we have a special handler to determine a register value, and invoke it.
-        If the register doesn't require special handling, this falls back to read_reg(reg)
-
-        Currently, there are special handlers for the following registers:
-        - fsbase
-        - gsbase
-        - idt
-        - idt_limit
-        """
-        match reg:
-            case "fsbase":
-                return self.fsbase
-            case "gsbase":
-                return self.gsbase
-            case "idt":
-                return self.idt
-            case "idt_limit":
-                return self.idt_limit
-            case _:
-                return self.read_reg_uncached(reg, frame)
-
     def write_reg(self, reg: str, value: int) -> None:
         if not pwndbg.dbg.selected_frame().reg_write(reg, value):
             raise RuntimeError(f"Attempted to write to a non-existent register '{reg}'")
