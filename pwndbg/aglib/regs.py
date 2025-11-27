@@ -112,8 +112,7 @@ class module(ModuleType):
         Although we can sometimes determine these by other indirect means, this function does not run any extra logic to handle these special cases.
 
         Specifically, if you need to ensure you are reading the correct value of "gs", "fs", "idt", or "idt_limit", use
-        the `read_reg_use_handler_if_exists` function instead, which will invoke specific handler functions
-        as necessary to determine the values.
+        the specific helpers functions on the regs module as necessary to determine the values.
         """
         return self.read_reg_uncached(reg, frame)
 
