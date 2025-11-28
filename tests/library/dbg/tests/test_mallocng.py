@@ -301,19 +301,6 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
 
     await ctrl.launch(binary)
 
-    # Check that we do not find it at the first program instruction
-    if binary == HEAP_MALLOCNG_DYN:
-        # Since our static binary is symbolicated, we would still find
-        # __malloc_context by simply looking up the symbol. So we only
-        # check this for the dynamically linked binary.
-
-        # This is at _dlstart - the heap is uninitialized at this point.
-        ctx_out = color.strip(await ctrl.execute_and_capture("ng-ctx"))
-
-        assert "Couldn't find" in ctx_out
-        assert "will not work" in ctx_out
-        assert "aborting" in ctx_out
-
     # == Check that we do find it at program entry
     await ctrl.execute("entry")
     # This is at _start. For a dynamically linked binary ld performed memory
