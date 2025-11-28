@@ -59,8 +59,8 @@ def x86_msr_read(msr: int) -> None:
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         sc = pwndbg.aglib.asm.asm(f"mov ecx, {msr}; rdmsr")
         async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc):
-            edx = int(pwndbg.aglib.regs["edx"]) << 32
-            eax = int(pwndbg.aglib.regs["eax"])
+            edx = int(pwndbg.aglib.regs.read_reg("edx")) << 32
+            eax = int(pwndbg.aglib.regs.read_reg("eax"))
             ret = edx + eax
             print(f"{hex(msr)}:\t{hex(ret)}")
 

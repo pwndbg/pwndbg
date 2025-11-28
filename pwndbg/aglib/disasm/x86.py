@@ -428,7 +428,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             if arith:
                 sz += " + "
 
-            index = pwndbg.aglib.regs[instruction.cs_insn.reg_name(index)]
+            index = pwndbg.aglib.regs.read_reg(instruction.cs_insn.reg_name(index))
             sz += f"{index}*{op.mem.scale:#x}"
             arith = True
 

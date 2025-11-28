@@ -31,7 +31,7 @@ def xinfo_stack(page: Page, addr: int) -> None:
     # well as offsets to current stack and base pointer (if used by debuggee)
 
     sp = pwndbg.aglib.regs.sp
-    frame = pwndbg.aglib.regs[pwndbg.aglib.regs.frame]
+    frame = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame)
     frame_mapping = pwndbg.aglib.vmmap.find(frame)
 
     print_line("Stack Top", addr, page.vaddr, addr - page.vaddr, "+")

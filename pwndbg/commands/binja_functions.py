@@ -131,7 +131,7 @@ def bn_eval(expr: gdb.Value) -> int:
 
     magic_vars = {}
     for r in pwndbg.aglib.regs.current:
-        v = pwndbg.aglib.regs[r]
+        v = pwndbg.aglib.regs.read_reg(r)
         if v is not None:
             magic_vars[r] = v
     magic_vars["piebase"] = pwndbg.aglib.proc.binary_base_addr

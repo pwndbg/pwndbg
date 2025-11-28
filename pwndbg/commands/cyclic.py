@@ -42,7 +42,7 @@ def detect_register_patterns(alphabet, length, timeout) -> None:
     all_register_names = register_set.all
 
     for reg_name in all_register_names:
-        value = pwndbg.aglib.regs[reg_name]
+        value = pwndbg.aglib.regs.read_reg(reg_name)
         if value is None:
             continue
 
@@ -148,7 +148,12 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, command_name="cyclic", category=CommandCategory.MISC)
+@pwndbg.commands.Command(
+    parser,
+    command_name="cyclic",
+    category=CommandCategory.MISC,
+    notes="If you want to write the cyclic pattern to memory, use the `spray` command!",
+)
 def cyclic_cmd(
     alphabet, length: Optional[int], lookup, detect, count=100, filename="", timeout=2
 ) -> None:

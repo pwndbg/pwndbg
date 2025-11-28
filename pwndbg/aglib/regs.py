@@ -134,14 +134,6 @@ class module(ModuleType):
             if not pwndbg.dbg.selected_frame().reg_write(attr, int(val)):
                 raise RuntimeError(f"Attempted to write to a non-existent register '{attr}'")
 
-    @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def __getitem__(self, item: Any) -> int | None:
-        if not isinstance(item, str):
-            print("Unknown register type: %r" % (item))
-            return None
-
-        return self.read_reg(item)
-
     def __contains__(self, reg: str) -> bool:
         return reg_sets[pwndbg.aglib.arch.name].__contains__(reg)
 
@@ -200,7 +192,7 @@ class module(ModuleType):
 
     def items(self) -> Generator[Tuple[str, Any], None, None]:
         for regname in self.all:
-            yield regname, self[regname]
+            yield regname, self.read_reg(regname)
 
     reg_sets = reg_sets
 
@@ -208,7 +200,7 @@ class module(ModuleType):
     def changed(self) -> List[str]:
         delta: List[str] = []
         for reg, value in self.previous.items():
-            if self[reg] != value:
+            if self.read_reg(reg) != value:
                 delta.append(reg)
         return delta
 
@@ -278,7 +270,7 @@ sys.modules[__name__] = module(__name__, "")
 def update_last() -> None:
     M: module = cast(module, sys.modules[__name__])
     M.previous = M.last
-    M.last = {k: M[k] for k in M.common}
+    M.last = {k: M.read_reg(k) for k in M.common}
     # TODO: Uncomment this once the LLDB command port PR for `context` is merged
     # if pwndbg.config.show_retaddr_reg:
     #    M.last.update({k: M[k] for k in M.retaddr})
