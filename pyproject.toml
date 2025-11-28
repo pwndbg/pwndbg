@@ -27,7 +27,7 @@ dependencies = [
     # Optional? only for pretty print traceback
     "rich>=14.1.0,<15",
     # Optional? only for qemu-system vmmap
-    "pt",
+    "pt @ git+https://github.com/martinradev/gdb-pt-dump@50227bda0b6332e94027f811a15879588de6d5cb",
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
     # It is only used for the 'cymbol' command and some `asm` functionality.
     "ziglang==0.14.1",
@@ -125,9 +125,6 @@ select = [
 
 [tool.uv]
 default-groups = []
-
-[tool.uv.sources]
-pt = { git = "https://github.com/martinradev/gdb-pt-dump", rev = "50227bda0b6332e94027f811a15879588de6d5cb" }
 
 [tool.ruff.lint.flake8-builtins]
 builtins-ignorelist = [
