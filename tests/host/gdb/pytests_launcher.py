@@ -59,6 +59,10 @@ class _GDBController(host.Controller):
     async def select_thread(self, tid: int) -> None:
         gdb.execute(f"thread {tid}")
 
+    async def disable_debuginfod(self) -> None:
+        gdb.execute("set debug-file-directory")
+        gdb.execute("set debuginfod enabled off")
+
 
 def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:
     # The GDB controller is entirely synchronous, so keep advancing the

@@ -58,6 +58,10 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
         async def select_thread(self, tid: int) -> None:
             await self.pc.execute(f"thread select {tid}")
 
+        async def disable_debuginfod(self) -> None:
+            # Could also consider disabling `symbols.enable-external-lookup`
+            await self.pc.execute("settings set plugin.symbol-locator.debuginfod.server-urls {}")
+
     await outer(_LLDBController(ctrl))
 
 
