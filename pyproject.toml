@@ -38,7 +38,14 @@ lldb = [
     # The LLDB REPL requires readline.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg==20.1.8.post1",
+    "lldb-for-pwndbg==21.1.6.post1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
+
+    # pypi.org don't support loongarch64 yet. https://discuss.python.org/t/pypi-supports-loongarchs-wheel-what-should-we-do/26253
+    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_36_loongarch64.whl ; python_version == '3.10' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
+    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_36_loongarch64.whl ; python_version == '3.11' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
+    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_36_loongarch64.whl ; python_version == '3.12' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
+    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_36_loongarch64.whl ; python_version == '3.13' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
+    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_36_loongarch64.whl ; python_version == '3.14' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
 ]
 gdb = [
     "gdb-for-pwndbg==16.3.0.post6 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
