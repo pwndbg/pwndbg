@@ -393,6 +393,14 @@ class Process:
         """
         raise NotImplementedError()
 
+    def get_stack_var_name(self, address: int) -> str | None:
+        """
+        Return the name of the stack variable covering the address.
+
+        Includes offset notation like "buf+0x8" if not at variable start.
+        """
+        raise NotImplementedError()
+
     def vmmap(self) -> MemoryMap:
         """
         Returns the virtual memory map of this process, as seen by the debugger.
