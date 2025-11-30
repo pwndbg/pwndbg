@@ -47,6 +47,8 @@ def _get_current_frame_vars(frame_pc: int) -> tuple[tuple[int, int, str], ...]:
 
             try:
                 value = sym.value(frame)
+                if value.address is None:
+                    continue
                 addr = int(value.address)
                 size = value.type.sizeof
                 variables.append((addr, addr + size, sym.name))
