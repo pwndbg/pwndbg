@@ -86,39 +86,9 @@
           inherit system;
           overlays = [
             (final: prev: {
-              pwndbg_gdb = prev.gdb;
-              pwndbg_lldb = prev.lldb_20;
               libffi_portable = null;
             })
-            (final: prev: {
-              # Dynamic libiconv causes issues with our portable build.
-              # It reads /some-path/lib/gconv/gconv-modules.d/gconv-modules-extra.conf,
-              # then loads /some-path/lib/gconv/UTF-32.so dynamically.
-              pwndbg_gdb =
-                let
-                  libiconv = prev.pkgsStatic.libiconvReal;
-                in
-                (prev.pwndbg_gdb.override {
-                  inherit libiconv;
-                }).overrideAttrs
-                  (old: {
-                    buildInputs = old.buildInputs ++ [ libiconv ];
-                  });
-            })
-            (
-              final: prev:
-              nixpkgs.lib.optionalAttrs
-                (prev.stdenv.targetPlatform.isPower64 && prev.stdenv.targetPlatform.isLittleEndian)
-                {
-                  # new boost is broken: https://github.com/NixOS/nixpkgs/issues/382179
-                  boost = prev.boost183;
-                }
-            )
             overlayDarwin
-            (final: prev: {
-              pwndbg_gdb = import ./nix/overlay/gdb.nix { prev = prev; };
-              pwndbg_lldb = import ./nix/overlay/lldb.nix { prev = prev; };
-            })
           ];
         }
       );
@@ -171,10 +141,12 @@
           pwndbg = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             inputs = inputs;
+            groups = [ "gdb" ];
           };
           pwndbg-dev = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             inputs = inputs;
+            groups = [ "gdb" ];
             isDev = true;
           };
         }
@@ -184,13 +156,13 @@
           pwndbg-lldb = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             inputs = inputs;
-            isLLDB = true;
+            groups = [ "lldb" ];
           };
           pwndbg-lldb-dev = import ./nix/pwndbg.nix {
             pkgs = pkgsBySystem.${system};
             inputs = inputs;
+            groups = [ "lldb" ];
             isDev = true;
-            isLLDB = true;
           };
         }
       );
@@ -198,7 +170,7 @@
         system: cross: attrs:
         (pkgUtil.${system}.buildPackageTarball {
           drv = (
-            import ./nix/portable.nix {
+            (import ./nix/portable.nix {
               pkgs = pkgsBySystem.${system}.pkgsCross.${crossNames.${cross}};
               pwndbg = (
                 import ./nix/pwndbg.nix (
@@ -209,7 +181,7 @@
                   // attrs
                 )
               );
-            }
+            })
           );
         });
       crossDrvs =
@@ -217,11 +189,11 @@
         nixpkgs.lib.optionalAttrs pkgsBySystem.${system}.stdenv.isLinux (
           (nixpkgs.lib.attrsets.mapAttrs' (cross: value: {
             name = "pwndbg-gdb-cross-${cross}-tarball";
-            value = tarballCrossDrv system cross { };
+            value = tarballCrossDrv system cross { groups = [ "gdb" ]; };
           }) crossNames)
           // (nixpkgs.lib.attrsets.mapAttrs' (cross: value: {
             name = "pwndbg-lldb-cross-${cross}-tarball";
-            value = tarballCrossDrv system cross { isLLDB = true; };
+            value = tarballCrossDrv system cross { groups = [ "lldb" ]; };
           }) crossNames)
         );
     in
@@ -243,7 +215,6 @@
         import ./nix/devshell.nix {
           pkgs = pkgsBySystem.${system};
           inputs = inputs;
-          isLLDB = true;
         }
       );
       formatter = forAllSystems (system: pkgsBySystem.${system}.nixfmt-tree);

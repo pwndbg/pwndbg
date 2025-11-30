@@ -8,9 +8,7 @@ let
   lib = pkgs.lib;
 
   isLLDB = pwndbg.meta.isLLDB;
-  lldb = pwndbg.meta.lldb;
-  gdb = pwndbg.meta.gdb;
-  python3 = pwndbg.meta.python3;
+  python3 = pwndbg.meta.pwndbgVenv.meta.python3;
   pwndbgVenv = pwndbg.meta.pwndbgVenv;
 
   bundler = arg: (pkgsNative.callPackage ./bundle { } arg);
@@ -94,25 +92,7 @@ let
       "${lib.getLib pkgs.libffi_portable}/lib/"
       "lib/"
     ])
-    ++
-      # Darwin don't have gdbserver
-      (lib.optionals (!pkgs.stdenv.isDarwin) [
-        "${lib.getBin gdb}/bin/gdbserver"
-        "exe/gdbserver"
-
-        "${wrapperBin "exe/gdbserver"}"
-        "bin/gdbserver"
-      ])
     ++ [
-      "${lib.getBin gdb}/bin/gdb"
-      "exe/gdb"
-
-      "${wrapperBin "exe/gdb"}"
-      "bin/gdb"
-
-      "${gdb}/share/gdb/"
-      "share/gdb/"
-
       "${python3}/bin/python3"
       "exe/python3"
 
@@ -125,8 +105,20 @@ let
       "${pwndbgVenv}/bin/pwndbg"
       "exe/pwndbg"
 
+      "${pwndbgVenv}/bin/gdb"
+      "exe/gdb"
+
+      "${pwndbgVenv}/bin/gdbserver"
+      "exe/gdbserver"
+
       "${wrapperBinPy "exe/pwndbg"}"
       "bin/pwndbg"
+
+      "${wrapperBinPy "exe/gdb"}"
+      "bin/gdb"
+
+      "${wrapperBinPy "exe/gdbserver"}"
+      "bin/gdbserver"
     ]
   );
 
@@ -136,15 +128,6 @@ let
       "lib/"
     ])
     ++ [
-      "${lib.getBin lldb}/bin/.lldb-wrapped"
-      "exe/lldb"
-
-      "${lib.getBin lldb}/bin/lldb-server"
-      "exe/lldb-server"
-
-      "${lib.getLib lldb}/lib/"
-      "lib/"
-
       "${pwndbgVenv}/lib/"
       "lib/"
 
@@ -154,17 +137,23 @@ let
       "${python3}/bin/python3"
       "exe/python3"
 
-      "${wrapperBin "exe/lldb-server"}"
-      "bin/lldb-server"
-
-      "${wrapperBin "exe/lldb"}"
-      "bin/lldb"
-
       "${pwndbgVenv}/bin/pwndbg-lldb"
       "exe/pwndbg-lldb"
 
+      "${pwndbgVenv}/bin/lldb"
+      "exe/lldb"
+
+      "${pwndbgVenv}/bin/lldb-server"
+      "exe/lldb-server"
+
       "${wrapperBinPy "exe/pwndbg-lldb"}"
       "bin/pwndbg-lldb"
+
+      "${wrapperBinPy "exe/lldb"}"
+      "bin/lldb"
+
+      "${wrapperBinPy "exe/lldb-server"}"
+      "bin/lldb-server"
     ]
   );
   pwndbgBundled = if isLLDB then pwndbgLldbBundled else pwndbgGdbBundled;
@@ -175,8 +164,7 @@ let
         meta = {
           name = pwndbg.name;
           version = pwndbg.version;
-          architecture =
-            if isLLDB then lldb.stdenv.targetPlatform.system else gdb.stdenv.targetPlatform.system;
+          architecture = pwndbgVenv.stdenv.targetPlatform.system;
         };
       }
       ''
@@ -186,6 +174,17 @@ let
 
         # writable out
         chmod -R +w $out
+
+        # fix lldb/gdb in bundle
+        ${
+          if pwndbgVenv.stdenv.targetPlatform.isLinux then
+            ''
+              ${pkgsNative.patchelf}/bin/patchelf --set-rpath '$ORIGIN/../../../../../../lib' $out/pwndbg/lib/${python3.libPrefix}/site-packages/gdb_for_pwndbg/_vendor/bin/gdbserver || true
+              ${pkgsNative.patchelf}/bin/patchelf --set-rpath '$ORIGIN/../../../../../../lib' $out/pwndbg/lib/${python3.libPrefix}/site-packages/lldb_for_pwndbg/_vendor/bin/lldb-server || true
+            ''
+          else
+            ""
+        }
 
         # remove unneeded dirs
         rm -rf $out/pwndbg/lib/pkgconfig
