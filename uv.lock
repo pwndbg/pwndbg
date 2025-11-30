@@ -849,29 +849,113 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f
 
 [[package]]
 name = "lldb-for-pwndbg"
-version = "20.1.8.post1"
+version = "21.1.6.post1"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
+    "(python_full_version < '3.13' and platform_machine != 'loongarch64') or (python_full_version < '3.13' and sys_platform != 'linux')",
+]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f6/ab/591789a2d38d1a926824c74a7b8119d2a2506ab22d5e7cbd3baea51d65ad/lldb_for_pwndbg-20.1.8.post1-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:7cedc307ff0fb63f3e3446211f9d0bfa3f653c5c1bad18badd6e8aa2e2c068c3", size = 52635138, upload-time = "2025-08-14T03:14:55.683Z" },
-    { url = "https://files.pythonhosted.org/packages/c0/39/84bffeb2a3fc451a6946c6463fc76a204920d12dc8355e5aed0712417d0e/lldb_for_pwndbg-20.1.8.post1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:d5ab9342ef99178af3140bb8f958704d447dd2a5b67bc1fe4570a05cb2f901ae", size = 50252316, upload-time = "2025-08-14T04:28:23.207Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/69/a96ca9d7be8207d6322bf70595a5f75307e9baaf4c7c03bca8666a86a09b/lldb_for_pwndbg-20.1.8.post1-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:608b558b451127ddc5138e5505cdfe10e103e39ffbd1f36eacb9430ee49e1c89", size = 63191927, upload-time = "2025-08-14T00:45:50.982Z" },
-    { url = "https://files.pythonhosted.org/packages/63/32/0d566a9a9a6b5134d27dd9c7fa71dfdb4255b7407b3f5ba25422dc711b3d/lldb_for_pwndbg-20.1.8.post1-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:bc3837ab7a6699de3b913d724c05ecc7e8bc83b20164fd50fd1fe65f74572a07", size = 64851009, upload-time = "2025-08-14T01:52:32.999Z" },
-    { url = "https://files.pythonhosted.org/packages/de/b1/93cbd763067f63afa7280181b22a26a94b899ed6b3dc0947813ca426359c/lldb_for_pwndbg-20.1.8.post1-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:be4dfb68b3e65e9a620826d3b96fd5496e0392422b8ec8586bccef56a6fa633f", size = 52635159, upload-time = "2025-08-14T12:05:11.697Z" },
-    { url = "https://files.pythonhosted.org/packages/fa/f1/27ad77dae9f4c1152f7ff4c5b862cf0272e0583c949df2ccd26cadbf1501/lldb_for_pwndbg-20.1.8.post1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:21e7963dc435ebcd04b732a9363e0018d182a4b0ff241c1a98a826f5158a62ba", size = 50252314, upload-time = "2025-08-14T03:34:08.052Z" },
-    { url = "https://files.pythonhosted.org/packages/60/5b/f1e360d30052ade194c16861289aac5fc72a6e8b2abea990b204f97d3188/lldb_for_pwndbg-20.1.8.post1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:2c8640cc3739946a9fd5b0d6dd85ffba08da90cd215b65fd030ba3af23ef065d", size = 63192397, upload-time = "2025-08-14T00:46:34.48Z" },
-    { url = "https://files.pythonhosted.org/packages/c0/a0/c78f71183480da56d2f715065667ec884dbc44c8cb31a8c1e8f0ddf693ad/lldb_for_pwndbg-20.1.8.post1-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:9a121906c7056b885dd6bde4f412122a4f95759df3756debc56b2dc32eb45f37", size = 64851004, upload-time = "2025-08-14T01:48:37.314Z" },
-    { url = "https://files.pythonhosted.org/packages/02/57/a66f9cf831e7baba42aceecebf7fac8004e7afe00c9eca13d50a501e46d3/lldb_for_pwndbg-20.1.8.post1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:2d08120cbac4fd5c81b46bd7bdbcc67493d2291df06a2ed9415e06bae83271b2", size = 52635343, upload-time = "2025-08-14T02:02:52.595Z" },
-    { url = "https://files.pythonhosted.org/packages/32/99/f6cdaf993b429991cb644dbafa7d5d402a48a0db04755c84438715bba8dc/lldb_for_pwndbg-20.1.8.post1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:1a5668888f560d232ee3f5c3b9bd1c595c1fbe8a82ece779c9d456a84d4d2967", size = 50253519, upload-time = "2025-08-14T02:26:46.712Z" },
-    { url = "https://files.pythonhosted.org/packages/47/f7/3300628dbe89f62d6dd36cb7da0a1d902e4d9f75dfba4b57d0de1d4c3616/lldb_for_pwndbg-20.1.8.post1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:fb2296f00b8d7160de5333c1d10b0ca5517a7cff94125040ec562ddd4e3eb815", size = 63193871, upload-time = "2025-08-14T00:54:24.932Z" },
-    { url = "https://files.pythonhosted.org/packages/75/f3/8d16d1f52975c69c45744155096b7cfd1d91dcd4367290be61336baaec1a/lldb_for_pwndbg-20.1.8.post1-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:e0b2f437945e25af8eb9119946d28c9c491e51c1a55faa8ec8d9dcbeaad7c6bd", size = 64858202, upload-time = "2025-08-14T01:50:11.321Z" },
-    { url = "https://files.pythonhosted.org/packages/1a/7c/f681c6741f811520324834610fbbc2aefd29c945d3ef3b90e147937c5dca/lldb_for_pwndbg-20.1.8.post1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:aab0f9c7d172302039e181acb2d36bdcf142b0b6104d2ae80eb734ecbf50e3c3", size = 52635296, upload-time = "2025-08-14T01:20:23.775Z" },
-    { url = "https://files.pythonhosted.org/packages/14/a2/1fb7b60987a6411a426b2d7c0b2c6552baa3b3d5b34adaea65a2f5fcb526/lldb_for_pwndbg-20.1.8.post1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:e02436db45d61378f631b7185aa0ab0b568c4807c90cf67d5f19354f3b307fb4", size = 50253788, upload-time = "2025-08-14T04:30:46.232Z" },
-    { url = "https://files.pythonhosted.org/packages/7b/af/5e6326c0e0b2c2ffed73a072491637955b2b90bf8e6a9f14e577a8f1c756/lldb_for_pwndbg-20.1.8.post1-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:ab91760a4b0f821d48d41e671f12cadb85c957be8ec3a0ddce82c903054f8568", size = 63194448, upload-time = "2025-08-14T00:51:55.075Z" },
-    { url = "https://files.pythonhosted.org/packages/93/87/b49857fe406a0cd85952783862a73a1151a6a70372089954924e93158500/lldb_for_pwndbg-20.1.8.post1-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:6c0696d13eeba7d158964f1d2e767845c8d4d5ab85d1cfe49e8009352f8c19d2", size = 64857505, upload-time = "2025-08-14T01:50:25.452Z" },
-    { url = "https://files.pythonhosted.org/packages/5c/d5/23a755aba161d9d336ce10148b927e91a3ca3fc2f79c4a3440a4f0982aee/lldb_for_pwndbg-20.1.8.post1-cp314-cp314-macosx_10_13_x86_64.whl", hash = "sha256:61af68cbe623efbe68d977be79d784891ca4bc4d290b16a89e1d7f1568c0f379", size = 52637796, upload-time = "2025-08-14T05:35:14.112Z" },
-    { url = "https://files.pythonhosted.org/packages/73/28/b387d06024a721428fe1c6265fce0696aa7b911cd45318e80f7fa61d5fe5/lldb_for_pwndbg-20.1.8.post1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:ca25c85f3492390abe4b6d344055e04f949e5c2782a6f6b9fa650a98dc76bbf6", size = 50254385, upload-time = "2025-08-14T02:56:28.47Z" },
-    { url = "https://files.pythonhosted.org/packages/7e/98/7fa4582462169eccc994c2230123aa42fbaa8c077d11fd2b9585967fa7a2/lldb_for_pwndbg-20.1.8.post1-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:a10a2337311ee16bd130eca5254f22da3855554fac578fef3ef3733fb3770830", size = 63196928, upload-time = "2025-08-14T00:47:54.742Z" },
-    { url = "https://files.pythonhosted.org/packages/ee/56/d9e796533362dc06dd21ea08b700942a5641c96fa2566b9f3f57555c85b3/lldb_for_pwndbg-20.1.8.post1-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:a313ddb1f089792e3a31c6a8d69279235274d1cdd9cd6c3f2f2744cb5d4ecee5", size = 64858563, upload-time = "2025-08-14T01:48:06.918Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/dc/f4b8c4d50a46e791f6d8f1a283b4192cbd40c94b9d488d6649a6c16452bd/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:12011124ac542e8c60abcaeeaf855a0c18776911fcb8328379b2c908b64839a6", size = 54247216, upload-time = "2025-11-28T18:56:01.617Z" },
+    { url = "https://files.pythonhosted.org/packages/61/08/62150d2e75064e081a784fc723ab8768907036dca8de9759506d83b6b159/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:466325ff7083b2ec209943282d0d51e8cbdb31ff915b1636afde32c12e69a85e", size = 52018408, upload-time = "2025-11-28T20:42:05.343Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/af/17ca27c2e7dabd06cf102176e40fc6d4d0df8ea3199694452243ab41ce3e/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:11ab9a6ca6210996d1fe6e830aff2d1562ee030d125f82dc5bf77629e40a4de4", size = 54943485, upload-time = "2025-11-28T15:51:19.975Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/e9/d780ccd7e623c28a63869b2d476dfc474d7e2cf63be461a7acac56e0b4bb/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_28_i686.whl", hash = "sha256:9673141c6b03c7d0f0502def0bc4a9c1cc99b613dd8a0b27294185ca68c1d851", size = 60191171, upload-time = "2025-11-28T18:22:04.109Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/5d/243c76e7d3ad14699f99d18d057c2a7885d099409c8b8697a95ebb371d8a/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_28_ppc64le.whl", hash = "sha256:7d408421970106013a957bd922400f63562c6cc8a54c4d6864270904a9824d40", size = 83691125, upload-time = "2025-11-28T19:42:40.423Z" },
+    { url = "https://files.pythonhosted.org/packages/bd/7d/4798763bd5be96e87dd3dbfb53561e835c1dd4f0b4a44d3f0f39fe46a029/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_28_s390x.whl", hash = "sha256:72c1cc3d1916fe2a7cf71f896b86f5fbda5cf18838d73d88113767de4576ccf2", size = 60337218, upload-time = "2025-11-28T16:25:17.959Z" },
+    { url = "https://files.pythonhosted.org/packages/df/a3/e64af61b8e0e0fffd073b4fdd9003c7a1db442f6e14b4dfc86532314778e/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:c6133442d4e251fd146401cf3afc0af68eed8c3f43bb6df4fc3665104af380ed", size = 55983752, upload-time = "2025-11-28T16:18:10.834Z" },
+    { url = "https://files.pythonhosted.org/packages/46/8c/283308a637ed56f05ece5f68cd54642892794af2c91b8ee84c410d22701c/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_31_armv7l.whl", hash = "sha256:b5a7b846ad944fc92dd7487b67cabfb8f22e79a5568ea863608abf8ae5ad6e30", size = 56171582, upload-time = "2025-11-28T18:22:43.046Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/de/10cf3f3e4d4d23c187225a7aa28985f3265cc3cc45f1482e70c8624bb4f9/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_39_riscv64.whl", hash = "sha256:2c649966e1e26c804ce7bc4ec0c575ebb78911a0a25f206b9141c66d7f60a2d0", size = 86782691, upload-time = "2025-11-28T16:31:26.429Z" },
+    { url = "https://files.pythonhosted.org/packages/42/6b/1bfa452fbcb47f3c590b69ac4b45185704994de4dd8876ab703a87d3da1a/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:97ea8dd141d11d142a5e0633376538cb238388c345cf4323766e66fef67dd48c", size = 54247996, upload-time = "2025-11-28T18:24:26.554Z" },
+    { url = "https://files.pythonhosted.org/packages/44/5e/5788124456823f75b8578939b65aa0449ec354db3f1d884bb84f16d4040f/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:db4bffaa05d074fca1faaa964986f5befaa366dc993f91ae49e5f7907decb01f", size = 52018419, upload-time = "2025-11-28T15:51:03.545Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/94/7e4765b5c14251de5fc1d8ee7512590f2792152eb8db25d7e2554cd96763/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:ef5567b53c96b0c309b78e8916b1e6e6b95d5bbcaeda954be01cf08e36c6c2e1", size = 54943487, upload-time = "2025-11-28T15:53:13.699Z" },
+    { url = "https://files.pythonhosted.org/packages/11/65/2d88a554847a635185bc8b352a6126d52b94e0d10b002df30566084f30c5/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_28_i686.whl", hash = "sha256:d7b3202471ef83063104eb6efe6ab72a85d6bb956d5dc5c4d7d083c28dd96577", size = 60191205, upload-time = "2025-11-28T18:23:40.798Z" },
+    { url = "https://files.pythonhosted.org/packages/05/74/b6f6a9965a9d2ce6bb8c7b58f85204ef59def22d71ffce3ba0102d7ae126/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_28_ppc64le.whl", hash = "sha256:e4dc1b45c279fe0245eb28843e539ec3e90503421a1984ab2f80e38ad75f9d76", size = 83691127, upload-time = "2025-11-28T18:18:00.393Z" },
+    { url = "https://files.pythonhosted.org/packages/b1/5f/57b6f07b58da71fbbbc9394a257f828674932cf00b7c2b458149adc4e693/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_28_s390x.whl", hash = "sha256:7f69738189bbc600fb911e15625a2174f8afcb13a9cc28ed2a707f7f0f61b2c1", size = 60337224, upload-time = "2025-11-28T16:25:08.759Z" },
+    { url = "https://files.pythonhosted.org/packages/af/d6/959cc4e298698fbc0bb27f6e4443987b40d980687611c5df125f65fa2bea/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:dcecfe98f9589982752cc10aa8193635f4e953fd77712f5694573167b4024cba", size = 55983750, upload-time = "2025-11-28T16:19:36.086Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/13/af049f04f525f0f8d2fc105e713e584b5102c6002bd731aec1a2f7104628/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_31_armv7l.whl", hash = "sha256:51e58f1c6d88a44a76b5de648ec0784fe19327f17ae29eb77e0ba9da8d37fb7d", size = 56171552, upload-time = "2025-11-28T18:04:52.596Z" },
+    { url = "https://files.pythonhosted.org/packages/87/c7/ce398f7790d9b6687d187cea0214f4b6e77ea358b4fe2145f27f913f0e1a/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_39_riscv64.whl", hash = "sha256:b104682237a326ee210f72d4cd9524128deea672d1e2861ec5df5a02d35c8340", size = 86785441, upload-time = "2025-11-28T20:39:25.479Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/ad/0e775a3a1cd34cae3c77fe1559d46189e2075d3b22871d040da93f49719b/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:5d12ed634f65401bf83642d0be31bc43e82e45d8aa5b440cb6843a5dc88a75c5", size = 54252163, upload-time = "2025-11-28T20:41:06.216Z" },
+    { url = "https://files.pythonhosted.org/packages/56/5d/5c9db78a96c2fad551a6a39349d9705e9f6234fb5ae9853884fb4e946725/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:805d117367e3dc9cb17b34ab1988d6b3b4149cdae599dbdc56db759c514a780c", size = 52017161, upload-time = "2025-11-28T20:30:59.594Z" },
+    { url = "https://files.pythonhosted.org/packages/f5/65/43cb80b69f6ee8eaedc1f61de45b0c684e58126e1ed2f86cf5da995fad9c/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:e1ef7c58b6d9997cbc5bd8ece9363e58874318ef628110e4f11919f7a9bdf376", size = 54944250, upload-time = "2025-11-28T15:50:50.231Z" },
+    { url = "https://files.pythonhosted.org/packages/37/b3/7e3fb9814364fbb0cd0dbd507a60c5a328ba63e8ceaae530311e82f9998a/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_28_i686.whl", hash = "sha256:85546aad6b6b2f75021825959634064236104a6c92e00b5beaf2a0f96cafc4d1", size = 60193414, upload-time = "2025-11-28T19:59:11.662Z" },
+    { url = "https://files.pythonhosted.org/packages/61/3a/26f63b9ec3fc2bc5ec6850f54c1c0e35957305371d890c14536f5f6adfe1/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_28_ppc64le.whl", hash = "sha256:0ae98f8466df395c0f296ea70aa40457e11da2a49d7df4a29a9d26e1d783c577", size = 83689590, upload-time = "2025-11-28T18:04:53.516Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/3a/1c31cc7d7bff270311f217ddb13653434284140f5be5ae5606184b89164b/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_28_s390x.whl", hash = "sha256:f72b605146901f01c8f16cdb3d3a29b8bf37b3f1304ae0d9a1ac8c4c142342bf", size = 60355652, upload-time = "2025-11-28T16:17:16.546Z" },
+    { url = "https://files.pythonhosted.org/packages/e8/b1/c325f274b70b5c7f99f68dfbaac6de13e107013d47df811dc6f5d64e97a9/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:cf997315577bde778e6aeb36db91df61cd193faaba86abb4e2887939218f5337", size = 55988746, upload-time = "2025-11-28T16:21:31.149Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/b8/222b58d3e492a5495cf528c95b7f73e0910a529a682c3fd65dbd5bffaebe/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_31_armv7l.whl", hash = "sha256:4eebed01723c658083f368ceb8e3d3d18b1dc50c4cfa200f9d7f92e1747fa746", size = 56170631, upload-time = "2025-11-28T17:58:11.438Z" },
+    { url = "https://files.pythonhosted.org/packages/be/90/36725488b391099a879124d828bf88e564300039c7838b3c295f69549055/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_39_riscv64.whl", hash = "sha256:53f559bb85f73e024d9a61f138b888016402d1e4ade5b681209bf8d643a17670", size = 86807982, upload-time = "2025-11-28T16:32:57.067Z" },
+    { url = "https://files.pythonhosted.org/packages/ab/90/ee80340de4031029eed1f20732d1d059a4dc572ebfa481b3f08bbd6b325c/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:a33c554bae2cda5bb2b564a8c1220bb0ea1b5a19f334c59f08ffd33dff06805c", size = 54251996, upload-time = "2025-11-28T19:28:32.553Z" },
+    { url = "https://files.pythonhosted.org/packages/0b/44/0385e0f5e982cb479b9f50ac4a950bacab316ab182cad701681dff86af32/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:df00c26db565203cabe151539bd9bbdc255ae2508ba05f9ed19eb80a0f2169d9", size = 52017795, upload-time = "2025-11-28T20:00:53.477Z" },
+    { url = "https://files.pythonhosted.org/packages/96/45/1888544674f8c5e1ce05ac48fddcc32da30805e11488748aaed8e23dcc27/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:5c68111fdb4d9dd7b49ceeb6fe03f250fbac24a836bfe34f9a11ab90833625fc", size = 54944284, upload-time = "2025-11-28T16:01:36.589Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/a1/3dcf0819471e522ad64de821ad958dd8e0b725f2d73ac2a1526b965c8eea/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_28_i686.whl", hash = "sha256:403e01a0f98b595af1a0613830ab36daf4b738d72e3b8193a7e09f13d1a16c35", size = 60193087, upload-time = "2025-11-28T18:32:32.31Z" },
+    { url = "https://files.pythonhosted.org/packages/0a/69/dd71cb55c84ee7568b42b921cc4fc0b0c37b8525434c121f5e4000b9c750/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_28_ppc64le.whl", hash = "sha256:54886233dbd0a5efb4b9b4b7ce0156604c93ed517f79816cfd2ec3031f5a3626", size = 83690641, upload-time = "2025-11-28T18:02:53.343Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/c6/f2c9a3fe173b554fe09831623675d89d31596f75962f4f19c7d7985a5bdf/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_28_s390x.whl", hash = "sha256:49d292fb48e15c6286f4ab5357223c4b4764d447ee41359086565b0f81b54a38", size = 60357592, upload-time = "2025-11-28T17:59:47.272Z" },
+    { url = "https://files.pythonhosted.org/packages/25/c2/9479f5f6751c253cd55252b68608f3c805e3098839b68751c7b939b2326d/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:558858a5169d250b804862475544ad5029ae9cce7bbfc6926915eb9a7b8b1470", size = 55989578, upload-time = "2025-11-28T16:15:15.04Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/b2/1a381925d88d4a9307025839634465128692eb7f91e521b3deb661d7ba37/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_31_armv7l.whl", hash = "sha256:c42b9123d99209a3ab38c1dd0a2548ebff0305c62106b3cf641d7af1b8b4d241", size = 56170777, upload-time = "2025-11-28T19:57:57.632Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/af/27e3f5d1b5d0a05ca807eedb95929c44b8cca521fdf3db0c6bf61c07645d/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_39_riscv64.whl", hash = "sha256:77b36c751f5be5ad01ef24c2b1507487077580f0ecd67c5d579d7d304554dcfd", size = 86807990, upload-time = "2025-11-28T18:02:39.411Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/88/1e7cdadc47faa7e134c228a86f1ef9c78b1549424217ffb6b1e59260d7b2/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-macosx_10_13_x86_64.whl", hash = "sha256:c7a0b05c0a4eee81164fdb0fc47180bed95dd5e59872838e080a373f8bc41c9b", size = 54253648, upload-time = "2025-11-28T18:35:20.752Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/91/def6e40f0290568c4b443c211de60593105342d99b88962562ec13bbbed4/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:fc507f0f06bac580ddb574fd5421594b456d3236ae72a745082c28157fbf96b1", size = 52016766, upload-time = "2025-11-28T21:04:20.806Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/88/08ca8b58584328f3a7ee764e8717ad19032d369310bc79ff9befee258535/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:f4c38070a6ebaf73a72aaca5353e73e7e5f37adbd514f78c109e43063b59e751", size = 54944968, upload-time = "2025-11-28T15:56:14.093Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/67/0d2bb7f699c7a441cb6fd2f3100d6355d346eba471e33b27e329a1ebd7f4/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_28_i686.whl", hash = "sha256:c07ea105b0cbef42bb2cb8c35a98624cdee953d00ebd27594777ffe01a4fb0ae", size = 60193691, upload-time = "2025-11-28T18:19:21.771Z" },
+    { url = "https://files.pythonhosted.org/packages/94/bb/b1dfd22b927ada3d858ef8896b59dac2b6b17fcd8e8694e2808612ea4c80/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_28_ppc64le.whl", hash = "sha256:cda4bfc0b03eb0d1bc7cdbd0edf236f06893f29636d1f56acade42ca47a02e6e", size = 83690628, upload-time = "2025-11-28T18:02:58.979Z" },
+    { url = "https://files.pythonhosted.org/packages/3a/46/636c5c076961561d15ecd6a34f83a4fd4cbe5efda7aeeeb6be9f904d3adb/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_28_s390x.whl", hash = "sha256:203ae9ba7ab48f7163f0782cfaa516e200c95c818b279f2617e6b5eaeefed6cf", size = 60338456, upload-time = "2025-11-28T17:54:29.252Z" },
+    { url = "https://files.pythonhosted.org/packages/69/08/b298c3d2cad099b866c333fc4a098c2ec746940fe8a8dfd099d9b19f57e0/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:82d364ad74400c5f16aca970cf9aafbf098f35cd4397eba35bda4c2fa83755c5", size = 55989812, upload-time = "2025-11-28T16:21:57.609Z" },
+    { url = "https://files.pythonhosted.org/packages/5f/fe/4c928352954e6b75024b8cfa140136c564d28cb3fbb6fa75f3986a8a012d/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_31_armv7l.whl", hash = "sha256:338068101d5fde0a9bf567780590afb2475c3db8587325a9c59e3491e52ad67d", size = 56171054, upload-time = "2025-11-28T20:20:38.625Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/61/7598a18e07e27728493eee8bc40e529f829422edebb04addc83d85ec93c9/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_39_riscv64.whl", hash = "sha256:3a5686e462ee206205c8d87c0bc39bae00d50c89f62c1b6b7a972a796a9a0e77", size = 86810370, upload-time = "2025-11-28T18:28:34.119Z" },
+]
+
+[[package]]
+name = "lldb-for-pwndbg"
+version = "21.1.6.post1"
+source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_36_loongarch64.whl" }
+resolution-markers = [
+    "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_36_loongarch64.whl", hash = "sha256:3a664f305199064da9254c9dbfbcdf8337de4a85b696e8892ba2ff706a657fc7" },
+]
+
+[[package]]
+name = "lldb-for-pwndbg"
+version = "21.1.6.post1"
+source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_36_loongarch64.whl" }
+resolution-markers = [
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_36_loongarch64.whl", hash = "sha256:fc25061a8807034c86b4dd1f45a1b3b60c5b8596a883e95961cd8d4e09597d94" },
+]
+
+[[package]]
+name = "lldb-for-pwndbg"
+version = "21.1.6.post1"
+source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_36_loongarch64.whl" }
+resolution-markers = [
+    "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_36_loongarch64.whl", hash = "sha256:34d464c4aaea7a8deef4ae76b4f1d4a097fcd9d1722703cd872c8f42824fbc06" },
+]
+
+[[package]]
+name = "lldb-for-pwndbg"
+version = "21.1.6.post1"
+source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_36_loongarch64.whl" }
+resolution-markers = [
+    "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_36_loongarch64.whl", hash = "sha256:b14b9b25da15ae47a2c0ea9012c129eca8cc34f134e22b06117b77d5760e9e5d" },
+]
+
+[[package]]
+name = "lldb-for-pwndbg"
+version = "21.1.6.post1"
+source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_36_loongarch64.whl" }
+resolution-markers = [
+    "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_36_loongarch64.whl", hash = "sha256:c687eced0c9dea219473cd0cb319fbf4f115ac12bcb8e4b305fcca6c8560adf7" },
 ]
 
 [[package]]
@@ -1509,7 +1593,12 @@ gdb = [
 ]
 lldb = [
     { name = "gnureadline", marker = "sys_platform != 'win32'" },
-    { name = "lldb-for-pwndbg" },
+    { name = "lldb-for-pwndbg", version = "21.1.6.post1", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
+    { name = "lldb-for-pwndbg", version = "21.1.6.post1", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
+    { name = "lldb-for-pwndbg", version = "21.1.6.post1", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
+    { name = "lldb-for-pwndbg", version = "21.1.6.post1", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
+    { name = "lldb-for-pwndbg", version = "21.1.6.post1", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
+    { name = "lldb-for-pwndbg", version = "21.1.6.post1", source = { url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_36_loongarch64.whl" }, marker = "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'" },
     { name = "pyreadline3", marker = "sys_platform == 'win32'" },
 ]
 
@@ -1561,7 +1650,12 @@ requires-dist = [
     { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'gdb') or (sys_platform != 'linux' and extra == 'gdb')", specifier = "==16.3.0.post6" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.13,<9" },
     { name = "ipython", specifier = ">=8.37.0,<9" },
-    { name = "lldb-for-pwndbg", marker = "extra == 'lldb'", specifier = "==20.1.8.post1" },
+    { name = "lldb-for-pwndbg", marker = "python_full_version == '3.10.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_36_loongarch64.whl" },
+    { name = "lldb-for-pwndbg", marker = "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_36_loongarch64.whl" },
+    { name = "lldb-for-pwndbg", marker = "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_36_loongarch64.whl" },
+    { name = "lldb-for-pwndbg", marker = "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_36_loongarch64.whl" },
+    { name = "lldb-for-pwndbg", marker = "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_36_loongarch64.whl" },
+    { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==21.1.6.post1" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
     { name = "pwntools", specifier = ">=4.14.1,<5" },

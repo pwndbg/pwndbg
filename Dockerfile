@@ -22,19 +22,17 @@ ENV UV_PROJECT_ENVIRONMENT=/venv
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     apt-get update && \
-    apt-get install -y locales && \
-    rm -rf /var/lib/apt/lists/* && \
+    apt-get install -y --no-install-recommends \
+        locales vim && \
     localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
-    apt-get update && \
-    apt-get install -y vim
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # setup.sh needs scripts/common.sh
-RUN mkdir scripts
-ADD ./scripts/common.sh /pwndbg/scripts/
+COPY ./scripts/common.sh /pwndbg/scripts/
 
-ADD ./setup.sh /pwndbg/
-ADD ./uv.lock /pwndbg/
-ADD ./pyproject.toml /pwndbg/
+COPY ./setup.sh /pwndbg/
+COPY ./uv.lock /pwndbg/
+COPY ./pyproject.toml /pwndbg/
 
 # pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
@@ -42,7 +40,7 @@ RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 RUN DEBIAN_FRONTEND=noninteractive ./setup.sh
 
 # Comment these lines if you won't run the tests.
-ADD ./setup-dev.sh /pwndbg/
+COPY ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
 # Cleanup dummy files
@@ -50,7 +48,7 @@ RUN rm README.md && rm -rf pwndbg
 
 FROM base AS full
 
-ADD . /pwndbg/
+COPY . /pwndbg/
 
 ARG LOW_PRIVILEGE_USER="vscode"
 
