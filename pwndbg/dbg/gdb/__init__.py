@@ -25,7 +25,6 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.gdblib
 import pwndbg.gdblib.events
-import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
@@ -92,9 +91,7 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
         return gdb.parse_and_eval(expression)
 
 
-@pwndbg.lib.cache.cache_until("stop", "start")
-def _get_frame_stack_variables(frame: gdb.Frame, frame_pc: int) -> Tuple[Tuple[int, int, str], ...]:
-    # frame_pc used as cache key to differentiate frames
+def _get_frame_stack_variables(frame: gdb.Frame) -> Tuple[Tuple[int, int, str], ...]:
     try:
         block = frame.block()
     except (gdb.error, RuntimeError):
@@ -236,7 +233,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
-        return _get_frame_stack_variables(self.inner, int(self.inner.pc()))
+        return _get_frame_stack_variables(self.inner)
 
     @override
     def __eq__(self, rhs: object) -> bool:
