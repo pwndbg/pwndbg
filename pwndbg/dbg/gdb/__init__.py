@@ -407,6 +407,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             raise pwndbg.dbg_mod.Error(e)
 
     @override
+    def get_stack_var_name(self, address: int) -> str | None:
+        import pwndbg.gdblib.stack_vars
+
+        return pwndbg.gdblib.stack_vars.get_stack_var_name(address)
+
+    @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
         import pwndbg.aglib.qemu
         from pwndbg.aglib.kernel.vmmap import kernel_vmmap
