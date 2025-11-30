@@ -79,7 +79,9 @@ class LLDBRegisters(pwndbg.dbg_mod.Registers):
 
 
 @pwndbg.lib.cache.cache_until("stop", "start")
-def _get_frame_stack_variables(frame: lldb.SBFrame, frame_pc: int) -> Tuple[Tuple[int, int, str], ...]:
+def _get_frame_stack_variables(
+    frame: lldb.SBFrame, frame_pc: int
+) -> Tuple[Tuple[int, int, str], ...]:
     # frame_pc used as cache key to differentiate frames
     try:
         # GetVariables(arguments, locals, statics, in_scope_only)
@@ -2274,3 +2276,4 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     @override
     def set_python_diagnostics(self, enabled: bool) -> None:
         pass
+    
