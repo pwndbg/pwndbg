@@ -112,9 +112,9 @@ def get(
     if text is None:
         text = pwndbg.lib.pretty_print.int_to_string(address)
 
-    if prefix:
-        # Prepend the prefix and a space before the existing text
-        text = f"{prefix} {text}"
+    if prefix is not None:
+                # Prepend the prefix and a space before the existing text
+                        text = f"{prefix} {text}"
 
     return color(text)
 
