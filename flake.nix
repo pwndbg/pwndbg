@@ -168,8 +168,8 @@
       );
       tarballCrossDrv =
         system: cross: attrs:
-#        (pkgUtil.${system}.buildPackageTarball {
-#          drv = (
+        (pkgUtil.${system}.buildPackageTarball {
+          drv = (
             (import ./nix/portable.nix {
               pkgs = pkgsBySystem.${system}.pkgsCross.${crossNames.${cross}};
               pwndbg = (
@@ -181,9 +181,9 @@
                   // attrs
                 )
               );
-            });
-#          );
-#        });
+            })
+          );
+        });
       crossDrvs =
         system:
         nixpkgs.lib.optionalAttrs pkgsBySystem.${system}.stdenv.isLinux (

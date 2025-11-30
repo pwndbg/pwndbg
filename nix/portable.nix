@@ -158,8 +158,7 @@ let
   );
   pwndbgBundled = if isLLDB then pwndbgLldbBundled else pwndbgGdbBundled;
 
-  portable = pwndbgBundled;
-  portable2 =
+  portable =
     pkgsNative.runCommand "portable-${pwndbg.name}"
       {
         meta = {
@@ -175,6 +174,17 @@ let
 
         # writable out
         chmod -R +w $out
+
+        # fix lldb/gdb in bundle
+        ${
+          if pwndbgVenv.stdenv.targetPlatform.isLinux then
+            ''
+              ${pkgsNative.patchelf}/bin/patchelf --set-rpath '$ORIGIN/../../../../../../lib' $out/pwndbg/lib/${python3.libPrefix}/site-packages/gdb_for_pwndbg/_vendor/bin/gdbserver || true
+              ${pkgsNative.patchelf}/bin/patchelf --set-rpath '$ORIGIN/../../../../../../lib' $out/pwndbg/lib/${python3.libPrefix}/site-packages/lldb_for_pwndbg/_vendor/bin/lldb-server || true
+            ''
+          else
+            ""
+        }
 
         # remove unneeded dirs
         rm -rf $out/pwndbg/lib/pkgconfig
