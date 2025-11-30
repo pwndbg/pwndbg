@@ -18,7 +18,7 @@ def _get_frame_pc() -> int | None:
     if not frame:
         return None
 
-    return frame.pc()
+    return int(frame.pc())
 
 
 @pwndbg.lib.cache.cache_until("stop", "start")
