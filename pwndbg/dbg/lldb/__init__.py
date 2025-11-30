@@ -819,6 +819,64 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         return LLDBValue(value, self)
 
+    def _get_frame_pc(self) -> int | None:
+        try:
+            thread = self.process.GetSelectedThread()
+            if not thread.IsValid():
+                return None
+            frame = thread.GetSelectedFrame()
+            if not frame.IsValid():
+                return None
+            return frame.GetPC()
+        except Exception:
+            return None
+
+    @pwndbg.lib.cache.cache_until("stop", "start")
+    def _get_current_frame_vars(self, frame_pc: int) -> Tuple[Tuple[int, int, str], ...]:
+        try:
+            thread = self.process.GetSelectedThread()
+            if not thread.IsValid():
+                return ()
+
+            frame = thread.GetSelectedFrame()
+            if not frame.IsValid():
+                return ()
+
+            # GetVariables(arguments, locals, statics, in_scope_only)
+            variables = frame.GetVariables(True, True, False, True)
+
+            result = []
+            for i in range(variables.GetSize()):
+                var = variables.GetValueAtIndex(i)
+                if not var.IsValid():
+                    continue
+
+                addr = var.GetLoadAddress()
+                if addr == lldb.LLDB_INVALID_ADDRESS:
+                    continue
+
+                size = var.GetType().GetByteSize()
+                result.append((int(addr), int(addr) + size, var.GetName()))
+
+            return tuple(result)
+        except Exception:
+            return ()
+
+    @override
+    def get_stack_var_name(self, address: int) -> str | None:
+        frame_pc = self._get_frame_pc()
+        if frame_pc is None:
+            return None
+
+        variables = self._get_current_frame_vars(frame_pc)
+
+        for start, end, name in variables:
+            if start <= address < end:
+                offset = address - start
+                return name if offset == 0 else f"{name}+{offset:#x}"
+
+        return None
+
     def get_known_pages(self) -> List[pwndbg.lib.memory.Page]:
         regions = self.process.GetMemoryRegions()
 
