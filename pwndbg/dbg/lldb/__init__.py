@@ -27,7 +27,6 @@ from typing_extensions import override
 
 import pwndbg
 import pwndbg.color.message as M
-import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
@@ -78,11 +77,7 @@ class LLDBRegisters(pwndbg.dbg_mod.Registers):
         return None
 
 
-@pwndbg.lib.cache.cache_until("stop", "start")
-def _get_frame_stack_variables(
-    frame: lldb.SBFrame, frame_pc: int
-) -> Tuple[Tuple[int, int, str], ...]:
-    # frame_pc used as cache key to differentiate frames
+def _get_frame_stack_variables(frame: lldb.SBFrame) -> Tuple[Tuple[int, int, str], ...]:
     try:
         # GetVariables(arguments, locals, statics, in_scope_only)
         variables = frame.GetVariables(True, True, False, True)
@@ -291,7 +286,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
-        return _get_frame_stack_variables(self.inner, self.inner.GetPC())
+        return _get_frame_stack_variables(self.inner)
 
     @override
     def __eq__(self, rhs: object) -> bool:
