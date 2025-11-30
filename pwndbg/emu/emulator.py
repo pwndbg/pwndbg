@@ -303,7 +303,7 @@ class Emulator:
             if reg in blacklisted_regs:
                 debug(DEBUG_INIT, "Skipping blacklisted register %r", reg)
                 continue
-            value = pwndbg.aglib.regs.read_reg(reg)
+            value = getattr(pwndbg.aglib.regs, reg)
             if None in (enum, value):
                 if reg not in blacklisted_regs:
                     debug(DEBUG_INIT, "# Could not set register %r", reg)
@@ -629,16 +629,12 @@ class Emulator:
         if arch == "armcm":
             mode |= (
                 (U.UC_MODE_MCLASS | U.UC_MODE_THUMB)
-                if (pwndbg.aglib.regs.read_reg("xpsr") & (1 << 24))
+                if (pwndbg.aglib.regs.xpsr & (1 << 24))
                 else U.UC_MODE_MCLASS
             )
 
         elif arch in ("arm", "aarch64"):
-            mode |= (
-                U.UC_MODE_THUMB
-                if (pwndbg.aglib.regs.read_reg("cpsr") & (1 << 5))
-                else U.UC_MODE_ARM
-            )
+            mode |= U.UC_MODE_THUMB if (pwndbg.aglib.regs.cpsr & (1 << 5)) else U.UC_MODE_ARM
 
         elif (
             arch == "mips"

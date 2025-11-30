@@ -52,7 +52,7 @@ Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning 
 GDB will attach to a [`binary`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb/conftest.py)
 or connect to a [`QEMU instance`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-user/conftest.py).
 Each test runs some commands and uses Python `assert` statements to verify correctness. We can access Pwndbg
-library code like `pwndbg.aglib.regs.sp` as well as execute GDB commands with `gdb.execute()`.
+library code like `pwndbg.aglib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
 
 We can take a look at [`tests/library/gdb/tests/test_symbol.py`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb/tests/test_symbol.py)
 for an example of a simple test. Looking at a simplified version of the top-level code, we have this:
@@ -77,7 +77,7 @@ def test_hexdump(start_binary):
     pwndbg.config.hexdump_group_width.value = -1
 
     gdb.execute("set hexdump-byte-separator")
-    stack_addr = pwndbg.aglib.regs.sp - 0x100
+    stack_addr = pwndbg.aglib.regs.rsp - 0x100
 ```
 
 `pytest` will run any function that starts with `test_` as a new test, so there is no need to register your new

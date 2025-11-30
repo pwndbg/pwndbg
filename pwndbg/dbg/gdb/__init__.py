@@ -756,9 +756,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 # appear to expose this in information through any command/API. Since Cortex-M has the .xpsr flags register
                 # instead of .cpsr, we will check if it's present.
                 # See: https://github.com/pwndbg/pwndbg/issues/2153
-                if match == "arm" and (
-                    "-m" in arch or pwndbg.aglib.regs.read_reg("xpsr") is not None
-                ):
+                if match == "arm" and ("-m" in arch or pwndbg.aglib.regs.xpsr is not None):
                     match = "armcm"
                 elif match.startswith("riscv:"):
                     match = match[6:]

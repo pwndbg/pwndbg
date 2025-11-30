@@ -1077,8 +1077,8 @@ def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functi
             # TODO: Support resolution of Objective-C method calls in x86-64.
             return None
 
-        obj_ptr = pwndbg.aglib.regs.read_reg(obj_reg)
-        sel_ptr = pwndbg.aglib.regs.read_reg(sel_reg)
+        obj_ptr = getattr(pwndbg.aglib.regs, obj_reg)
+        sel_ptr = getattr(pwndbg.aglib.regs, sel_reg)
 
         obj = Object(obj_ptr)
         sel = Selector(sel_ptr)

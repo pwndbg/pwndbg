@@ -353,9 +353,9 @@ class x86_64PagingInfo(ArchPagingInfo):
 class Aarch64PagingInfo(ArchPagingInfo):
     def __init__(self):
         self.tcr_el1 = pwndbg.lib.regs.aarch64_tcr_flags
-        self.tcr_el1.value = pwndbg.aglib.regs.read_reg("TCR_EL1")
+        self.tcr_el1.value = pwndbg.aglib.regs.TCR_EL1
         id_aa64mmfr2_el1 = pwndbg.lib.regs.aarch64_mmfr_flags
-        id_aa64mmfr2_el1.value = pwndbg.aglib.regs.read_reg("ID_AA64MMFR2_EL1")
+        id_aa64mmfr2_el1.value = pwndbg.aglib.regs.ID_AA64MMFR2_EL1
         feat_lva = id_aa64mmfr2_el1.value is not None and id_aa64mmfr2_el1["VARange"] == 0b0001
         self.va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
         self.PAGE_OFFSET = self._PAGE_OFFSET(self.va_bits)  # physmap base address without KASLR
@@ -400,7 +400,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self):
-        return self.kbase_helper(pwndbg.aglib.regs.read_reg("vbar"))
+        return self.kbase_helper(pwndbg.aglib.regs.vbar)
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -635,9 +635,9 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
-                entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
+                entry = pwndbg.aglib.regs.TTBR1_EL1
             else:
-                entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
+                entry = pwndbg.aglib.regs.TTBR0_EL1
         self.entry = entry
         return self.pagewalk_helper(target, entry)
 

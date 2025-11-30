@@ -71,7 +71,7 @@ async def test_telescope_command_with_address_as_count(ctrl: Controller) -> None
     await ctrl.launch(TELESCOPE_BINARY)
 
     out = (await ctrl.execute_and_capture("telescope 2")).splitlines()
-    rsp = pwndbg.aglib.regs.read_reg("rsp")
+    rsp = pwndbg.aglib.regs.rsp
 
     assert len(out) == 2
     assert out[0] == "00:0000│ rsp %#x ◂— 1" % rsp
@@ -87,7 +87,7 @@ async def test_telescope_command_with_address_as_count_and_reversed_flag(ctrl: C
     await ctrl.launch(TELESCOPE_BINARY)
 
     out = (await ctrl.execute_and_capture("telescope -r 2")).splitlines()
-    rsp = pwndbg.aglib.regs.read_reg("rsp")
+    rsp = pwndbg.aglib.regs.rsp
 
     assert out == ["00:0000│     %#x ◂— 0" % (rsp - 8), "01:0008│ rsp %#x ◂— 1" % rsp]
 
@@ -105,10 +105,9 @@ async def test_command_telescope_reverse_skipped_records_shows_input_address(
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("up")
 
-    rsp = pwndbg.aglib.regs.read_reg("rsp")
-    pwndbg.aglib.memory.write(rsp - 8 * 3, b"\x00" * 8 * 4)
+    pwndbg.aglib.memory.write(pwndbg.aglib.regs.rsp - 8 * 3, b"\x00" * 8 * 4)
 
-    expected_value = hex(rsp)
+    expected_value = hex(pwndbg.aglib.regs.rsp)
     result_str = await ctrl.execute_and_capture("telescope -r $rsp")
     result_lines = result_str.strip("\n").split("\n")
 
@@ -144,7 +143,7 @@ async def test_command_telescope_frame_bp_below_sp(ctrl: Controller) -> None:
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("memoize")  # turn off cache
 
-    pwndbg.aglib.regs.write_reg("sp", pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame) + 1)
+    pwndbg.aglib.regs.sp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame) + 1
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
 
@@ -164,8 +163,8 @@ async def test_command_telescope_frame_bp_sp_different_vmmaps(ctrl: Controller) 
 
     pages = pwndbg.aglib.vmmap.get()
 
-    pwndbg.aglib.regs.write_reg("sp", pages[0].start)
-    pwndbg.aglib.regs.write_reg("rbp", pages[1].start)
+    pwndbg.aglib.regs.sp = pages[0].start
+    pwndbg.aglib.regs.rbp = pages[1].start
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
 

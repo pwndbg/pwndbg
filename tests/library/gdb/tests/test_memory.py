@@ -50,7 +50,7 @@ def test_memory_peek_poke(start_binary):
     assert pwndbg.aglib.memory.poke(0) is False
     assert pwndbg.aglib.memory.peek(0) is None
 
-    stack_addr = pwndbg.aglib.regs.read_reg("rsp")
+    stack_addr = pwndbg.aglib.regs.rsp
 
     for v in range(256):
         data = bytearray([v, 0, 0, 0])

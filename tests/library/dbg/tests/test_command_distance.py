@@ -14,12 +14,12 @@ async def test_command_distance(ctrl: Controller):
     await ctrl.launch(REFERENCE_BINARY)
 
     # Test against regs
-    rsp = pwndbg.aglib.regs.read_reg("rsp")
+    rsp = pwndbg.aglib.regs.rsp
     result = await ctrl.execute_and_capture("distance $rsp $rsp+0x10")
     assert result == f"{rsp:#x}->{rsp + 0x10:#x} is 0x10 bytes (0x2 words)\n"
 
     # Test if it works with symbols
-    rip = pwndbg.aglib.regs.read_reg("rip")
+    rip = pwndbg.aglib.regs.rip
 
     main = pwndbg.aglib.symbol.lookup_symbol_addr("main")
     break_here = pwndbg.aglib.symbol.lookup_symbol_addr("break_here")

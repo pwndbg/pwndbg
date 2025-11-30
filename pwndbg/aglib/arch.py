@@ -240,7 +240,7 @@ class ArmArch(PwndbgArchitecture):
     @override
     def read_thumb_bit(self) -> Literal[0, 1]:
         # When program initially starts, cpsr may not be readable
-        if (cpsr := pwndbg.aglib.regs.read_reg("cpsr")) is not None:
+        if (cpsr := pwndbg.aglib.regs.cpsr) is not None:
             return (cpsr >> 5) & 1  # type: ignore[return-value]
 
         return 0

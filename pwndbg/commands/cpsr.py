@@ -30,6 +30,6 @@ def cpsr(cpsr_value=None) -> None:
     if cpsr_value is not None:
         reg_val = cpsr_value
     else:
-        reg_val = pwndbg.aglib.regs.read_reg(reg)
+        reg_val = getattr(pwndbg.aglib.regs, reg)
 
     print(f"{reg} {context.format_flags(reg_val, reg_flags)}")
