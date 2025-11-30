@@ -12,7 +12,7 @@ import pwndbg.lib.cache
 def _get_frame_pc() -> int | None:
     try:
         frame = gdb.selected_frame()
-    except gdb.error:
+    except (gdb.error, RuntimeError):
         return None
 
     if not frame:
@@ -25,7 +25,7 @@ def _get_frame_pc() -> int | None:
 def _get_current_frame_vars(frame_pc: int) -> tuple[tuple[int, int, str], ...]:
     try:
         frame = gdb.selected_frame()
-    except gdb.error:
+    except (gdb.error, RuntimeError):
         return ()
 
     if not frame:
@@ -33,7 +33,7 @@ def _get_current_frame_vars(frame_pc: int) -> tuple[tuple[int, int, str], ...]:
 
     try:
         block = frame.block()
-    except gdb.error:
+    except (gdb.error, RuntimeError):
         return ()
 
     if not block:
