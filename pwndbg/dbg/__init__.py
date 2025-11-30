@@ -253,6 +253,15 @@ class Frame:
         """
         raise NotImplementedError()
 
+    def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
+        """
+        Get all stack variables (local variables and arguments) in current frame.
+
+        Returns a tuple of (start_address, end_address, name) for each variable.
+        Returns an empty tuple if no debug information is available or on error.
+        """
+        raise NotImplementedError()
+
     def __eq__(self, rhs: object) -> bool:
         """
         Whether this frame is the same as the given frame. Two frames are the
@@ -390,14 +399,6 @@ class Process:
         """
         Evaluate the given expression in the context of the current process, and
         return a `Value`.
-        """
-        raise NotImplementedError()
-
-    def get_stack_var_name(self, address: int) -> str | None:
-        """
-        Return the name of the stack variable covering the address.
-
-        Includes offset notation like "buf+0x8" if not at variable start.
         """
         raise NotImplementedError()
 

@@ -35,7 +35,7 @@ def get_address_and_symbol(address: int) -> str:
     else:
         page = pwndbg.aglib.vmmap.find(address)
         if page and "[stack" in page.objfile:
-            var = pwndbg.dbg.selected_inferior().get_stack_var_name(address)
+            var = pwndbg.aglib.stack.get_stack_var_name(address)
             if not var:
                 var = pwndbg.integration.provider.get_stack_var_name(address)
             if var:
@@ -60,7 +60,7 @@ def attempt_colorized_symbol(address: int) -> str | None:
     else:
         page = pwndbg.aglib.vmmap.find(address)
         if page and "[stack" in page.objfile:
-            var = pwndbg.dbg.selected_inferior().get_stack_var_name(address)
+            var = pwndbg.aglib.stack.get_stack_var_name(address)
             if not var:
                 var = pwndbg.integration.provider.get_stack_var_name(address)
             if var:

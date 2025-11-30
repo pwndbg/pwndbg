@@ -25,6 +25,7 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.gdblib
 import pwndbg.gdblib.events
+import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
@@ -89,6 +90,36 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
         return gdb.parse_and_eval(expression, global_context)
     except TypeError:
         return gdb.parse_and_eval(expression)
+
+
+@pwndbg.lib.cache.cache_until("stop", "start")
+def _get_frame_stack_variables(frame: gdb.Frame, frame_pc: int) -> Tuple[Tuple[int, int, str], ...]:
+    # frame_pc used as cache key to differentiate frames
+    try:
+        block = frame.block()
+    except (gdb.error, RuntimeError):
+        return ()
+
+    if not block:
+        return ()
+
+    variables = []
+    while block:
+        for sym in block:
+            if not (sym.is_variable or sym.is_argument):
+                continue
+
+            try:
+                value = sym.value(frame)
+                addr = int(value.address)
+                size = value.type.sizeof
+                variables.append((addr, addr + size, sym.name))
+            except (gdb.error, AttributeError, TypeError):
+                continue
+
+        block = block.superblock
+
+    return tuple(variables)
 
 
 class GDBRegisters(pwndbg.dbg_mod.Registers):
@@ -202,6 +233,10 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             return None
 
         return sal.symtab.fullname(), sal.line
+
+    @override
+    def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
+        return _get_frame_stack_variables(self.inner, int(self.inner.pc()))
 
     @override
     def __eq__(self, rhs: object) -> bool:
@@ -405,12 +440,6 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             return GDBValue(parse_and_eval(expression, global_context=True))
         except gdb.error as e:
             raise pwndbg.dbg_mod.Error(e)
-
-    @override
-    def get_stack_var_name(self, address: int) -> str | None:
-        import pwndbg.gdblib.stack_vars
-
-        return pwndbg.gdblib.stack_vars.get_stack_var_name(address)
 
     @override
     def vmmap(self) -> pwndbg.dbg_mod.MemoryMap:
