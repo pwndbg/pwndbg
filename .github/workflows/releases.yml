@@ -25,7 +25,9 @@ jobs:
           pwndbg-lldb-cross-loong64-tarball,
         ]
     runs-on: ubuntu-24.04-arm  # aarch64-linux
-    timeout-minutes: 360
+    timeout-minutes: 60
+    permissions:
+      contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
@@ -35,19 +37,18 @@ jobs:
     - name: build ${{ matrix.attribute }}
       run: nix build '.#${{ matrix.attribute }}' --accept-flake-config -o dist-tarball
 
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # @v4
+      with:
+        name: ${{ matrix.os }}_${{ matrix.attribute }}
+        retention-days: 90
+        path: ./dist-tarball/*
+
     - name: release
       uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1
       with:
         files: |
           ./dist-tarball/*
         draft: true
-        token: ${{ secrets.TOKEN }}
-
-    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # @v4
-      with:
-        name: ${{ matrix.os }}_${{ matrix.attribute }}
-        retention-days: 90
-        path: ./dist-tarball/*
 
   releases-linux:
     strategy:
@@ -58,12 +59,12 @@ jobs:
           ubuntu-24.04-arm,  # aarch64-linux
         ]
         attribute: [
-          pwndbg-lldb-portable-tarball,
           pwndbg-gdb-portable-tarball,
           pwndbg-gdb-portable-rpm,
           pwndbg-gdb-portable-deb,
           pwndbg-gdb-portable-apk,
           pwndbg-gdb-portable-archlinux,
+          pwndbg-lldb-portable-tarball,
           pwndbg-lldb-portable-rpm,
           pwndbg-lldb-portable-deb,
           pwndbg-lldb-portable-apk,
@@ -71,6 +72,8 @@ jobs:
         ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    permissions:
+      contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
@@ -80,19 +83,18 @@ jobs:
     - name: build ${{ matrix.attribute }}
       run: nix build '.#${{ matrix.attribute }}' --accept-flake-config -o dist-tarball
 
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # @v4
+      with:
+        name: ${{ matrix.os }}_${{ matrix.attribute }}
+        retention-days: 90
+        path: ./dist-tarball/*
+
     - name: release
       uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1
       with:
         files: |
           ./dist-tarball/*
         draft: true
-        token: ${{ secrets.TOKEN }}
-
-    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # @v4
-      with:
-        name: ${{ matrix.os }}_${{ matrix.attribute }}
-        retention-days: 90
-        path: ./dist-tarball/*
 
   releases-macos:
     strategy:
@@ -108,6 +110,8 @@ jobs:
         ]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    permissions:
+      contents: write  # IMPORTANT: this permission is mandatory for github-release upload
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9  # @v3
     - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72  # @v30
@@ -117,16 +121,15 @@ jobs:
     - name: build ${{ matrix.attribute }}
       run: nix build '.#${{ matrix.attribute }}' --accept-flake-config -o dist-tarball
 
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # @v4
+      with:
+        name: ${{ matrix.os }}_${{ matrix.attribute }}
+        retention-days: 90
+        path: ./dist-tarball/*
+
     - name: release
       uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # @v1
       with:
         files: |
           ./dist-tarball/*
         draft: true
-        token: ${{ secrets.TOKEN }}
-
-    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # @v4
-      with:
-        name: ${{ matrix.os }}_${{ matrix.attribute }}
-        retention-days: 90
-        path: ./dist-tarball/*
