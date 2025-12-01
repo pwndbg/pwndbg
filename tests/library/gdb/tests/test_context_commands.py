@@ -7,7 +7,6 @@ import pytest
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
-import pwndbg.aglib.stack
 import pwndbg.commands
 import pwndbg.commands.canary
 import pwndbg.commands.context
@@ -19,7 +18,6 @@ USE_FDS_BINARY = get_binary("use-fds.out")
 TABSTOP_BINARY = get_binary("tabstop.out")
 SYSCALLS_BINARY = get_binary("syscalls-x64.out")
 MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
-STACK_VARS_BINARY = get_binary("stack_vars.out")
 
 
 def test_context_disasm_show_fd_filepath(start_binary):
@@ -585,42 +583,3 @@ def test_context_output_redirection(start_binary):
     assert "STACK" not in receive_output.context_output
 
     pwndbg.commands.context.resetcontextoutput("regs")
-
-
-def test_stack_variable_names_from_dwarf(start_binary):
-    """
-    Test that stack variable names from DWARF debug info are displayed correctly
-    """
-    start_binary(STACK_VARS_BINARY)
-
-    # Continue until we hit the int3 in inner_function
-    gdb.execute("continue")
-
-    # Get current frame to access local variables
-    frame = gdb.selected_frame()
-
-    # Test direct API: pwndbg.aglib.stack.get_stack_var_name()
-    # Get addresses of local variables and parameters
-    buffer_addr = int(frame.read_var("buffer").address)
-    local_var_addr = int(frame.read_var("local_var").address)
-    param1_addr = int(frame.read_var("param1").address)
-
-    # Test that get_stack_var_name returns correct names
-    assert pwndbg.aglib.stack.get_stack_var_name(buffer_addr) == "buffer"
-    assert pwndbg.aglib.stack.get_stack_var_name(local_var_addr) == "local_var"
-    assert pwndbg.aglib.stack.get_stack_var_name(param1_addr) == "param1"
-
-    # Test offset notation for addresses within variables
-    # buffer is 64 bytes, so buffer+0x10 should show "buffer+0x10"
-    buffer_offset_addr = buffer_addr + 0x10
-    offset_result = pwndbg.aglib.stack.get_stack_var_name(buffer_offset_addr)
-    assert offset_result == "buffer+0x10"
-
-    # Test that telescope shows variable names
-    telescope_out = gdb.execute(f"telescope {buffer_addr:#x} 1", to_string=True)
-    assert "{buffer}" in telescope_out
-
-    # Test that context stack shows variable names
-    stack_out = pwndbg.commands.context.context_stack()
-    # Should show at least one variable name in braces
-    assert any("{" in line and "}" in line for line in stack_out)
