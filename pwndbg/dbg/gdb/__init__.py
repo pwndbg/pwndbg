@@ -96,7 +96,7 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> Tuple[Tuple[int, int, str], 
         block = frame.block()
     except (gdb.error, RuntimeError):
         # gdb.error: No frame selected (no active inferior)
-        # RuntimeError: Frame exists and selected, 
+        # RuntimeError: Frame exists and selected,
         # But no DWARF info, such as in the case of stripped binaries
         return ()
 
