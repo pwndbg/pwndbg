@@ -191,6 +191,7 @@ def callstack() -> List[int]:
     return addresses
 
 
+@pwndbg.lib.cache.cache_until("stop", "start")
 def get_stack_var_name(address: int) -> str | None:
     """
     Get the name of the stack variable covering the given address.
