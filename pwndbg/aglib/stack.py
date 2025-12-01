@@ -203,9 +203,7 @@ def get_stack_var_name(address: int) -> str | None:
     if frame is None:
         return None
 
-    variables = frame.stack_variables()
-
-    for start, end, name in variables:
+    for start, end, name in frame.stack_variables():
         if start <= address < end:
             offset = address - start
             return name if offset == 0 else f"{name}+{offset:#x}"
