@@ -276,10 +276,12 @@ def plist(
 
     # Check if the field is a pointer type, or an integer type with pointer size
     # (e.g., size_t, uintptr_t, unsigned long on 64-bit systems)
-    is_pointer_type = next_ptr.type.code == pwndbg.dbg_mod.TypeCode.POINTER
+    # Strip typedefs to get the underlying type (e.g., size_t -> unsigned long)
+    underlying_type = next_ptr.type.strip_typedefs()
+    is_pointer_type = underlying_type.code == pwndbg.dbg_mod.TypeCode.POINTER
     is_pointer_sized_int = (
-        next_ptr.type.code == pwndbg.dbg_mod.TypeCode.INT
-        and next_ptr.type.sizeof == pwndbg.aglib.arch.ptrsize
+        underlying_type.code == pwndbg.dbg_mod.TypeCode.INT
+        and underlying_type.sizeof == pwndbg.aglib.arch.ptrsize
     )
 
     if not (is_pointer_type or is_pointer_sized_int):
