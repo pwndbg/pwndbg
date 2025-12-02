@@ -9,7 +9,7 @@ import pwndbg.aglib.vmmap
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 CRASH_SIMPLE_BINARY = get_binary("crash_simple.out.hardcoded")
 
 NEXT_COMMANDS = (

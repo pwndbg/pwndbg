@@ -7,7 +7,7 @@ from . import get_binary
 from . import get_expr
 from . import pwndbg_test
 
-LINKED_LISTS_BINARY = get_binary("linked-lists.out")
+LINKED_LISTS_BINARY = get_binary("linked-lists.native.out")
 
 
 async def startup(ctrl: Controller):

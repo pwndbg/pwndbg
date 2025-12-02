@@ -5,8 +5,8 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-NESTED_STRUCTS_BINARY = get_binary("nested_structs.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+NESTED_STRUCTS_BINARY = get_binary("nested_structs.native.out")
 
 
 @pwndbg_test

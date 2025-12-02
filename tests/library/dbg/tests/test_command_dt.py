@@ -7,7 +7,7 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
+HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 
 
 @pwndbg_test

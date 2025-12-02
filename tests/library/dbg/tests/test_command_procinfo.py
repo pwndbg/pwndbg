@@ -11,7 +11,7 @@ from . import break_at_sym
 from . import get_binary
 from . import pwndbg_test
 
-REFERENCE_BINARY_NET = get_binary("reference-binary-net.out")
+REFERENCE_BINARY_NET = get_binary("reference-binary-net.native.out")
 
 
 class TCPServerThread(threading.Thread):

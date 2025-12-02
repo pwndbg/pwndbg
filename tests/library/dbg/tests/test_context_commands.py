@@ -10,11 +10,11 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-USE_FDS_BINARY = get_binary("use-fds.out")
-TABSTOP_BINARY = get_binary("tabstop.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+USE_FDS_BINARY = get_binary("use-fds.native.out")
+TABSTOP_BINARY = get_binary("tabstop.native.out")
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
-MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
+MANGLING_BINARY = get_binary("symbol_1600_and_752.native.out")
 
 
 @pwndbg_test

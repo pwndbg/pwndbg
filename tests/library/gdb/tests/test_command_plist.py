@@ -6,7 +6,7 @@ import gdb
 
 from . import get_binary
 
-LINKED_LISTS_BINARY = get_binary("linked-lists.out")
+LINKED_LISTS_BINARY = get_binary("linked-lists.native.out")
 
 
 def startup(start_binary) -> None:

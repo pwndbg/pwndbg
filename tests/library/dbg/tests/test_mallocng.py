@@ -11,8 +11,8 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-HEAP_MALLOCNG_DYN = get_binary("heap_musl_dyn.out")
-HEAP_MALLOCNG_STATIC = get_binary("heap_musl_static.out")
+HEAP_MALLOCNG_DYN = get_binary("heap_musl_dyn.native.out")
+HEAP_MALLOCNG_STATIC = get_binary("heap_musl_static.native.out")
 
 # Userland only
 re_addr = r"0x[0-9a-fA-F]{1,12}"

@@ -9,7 +9,7 @@ import pwndbg.lib.memory
 
 from . import get_binary
 
-USE_FDS_BINARY = get_binary("use-fds.out")
+USE_FDS_BINARY = get_binary("use-fds.native.out")
 
 
 def test_mmap_executes_properly(start_binary):

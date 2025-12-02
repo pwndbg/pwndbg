@@ -5,7 +5,7 @@ from .. import get_binary
 from .. import launch_to
 from .. import pwndbg_test
 
-BINARY = get_binary("heap_bins.out")
+BINARY = get_binary("heap_bins.native.out")
 
 
 @pwndbg_test

@@ -4,7 +4,7 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-USE_FDS_BINARY = get_binary("use-fds.out")
+USE_FDS_BINARY = get_binary("use-fds.native.out")
 
 
 @pwndbg_test

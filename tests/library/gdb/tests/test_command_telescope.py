@@ -11,7 +11,7 @@ import pwndbg.aglib.vmmap
 
 from . import get_binary
 
-TELESCOPE_BINARY = get_binary("telescope_binary.out")
+TELESCOPE_BINARY = get_binary("telescope_binary.native.out")
 
 
 def test_command_telescope(start_binary):

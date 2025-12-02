@@ -8,7 +8,7 @@ from . import get_expr
 from . import launch_to
 from . import pwndbg_test
 
-TELESCOPE_BINARY = get_binary("telescope_binary.out")
+TELESCOPE_BINARY = get_binary("telescope_binary.native.out")
 
 
 @pwndbg_test

@@ -9,7 +9,7 @@ from pwndbg.commands import command_names
 
 from . import get_binary
 
-BINARY = get_binary("heap_bins.out")
+BINARY = get_binary("heap_bins.native.out")
 
 # TODO: See if we can reduce the number of commands we need to skip
 disallowed_commands = {

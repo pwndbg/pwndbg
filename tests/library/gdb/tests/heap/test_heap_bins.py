@@ -12,7 +12,7 @@ from pwndbg.aglib.heap.ptmalloc import BinType
 
 from .. import get_binary
 
-BINARY = get_binary("heap_bins.out")
+BINARY = get_binary("heap_bins.native.out")
 
 
 def test_heap_bins(start_binary):
