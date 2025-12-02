@@ -71,7 +71,7 @@ def test_context_disasm_show_fd_filepath(start_binary):
     line_call_read, line_fd, line_buf, line_nbytes, *_rest = lines_after_call_read
 
     line_fd = line_fd.strip()
-    assert re.match(r"fd:\s+3 \([a-z/]*pwndbg/tests/binaries/host/use-fds.out\)", line_fd)
+    assert re.match(r"fd:\s+3 \([a-z/]*pwndbg/tests/binaries/host/use-fds.native.out\)", line_fd)
 
     line_buf = line_buf.strip()
     assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0", line_buf)
@@ -104,7 +104,7 @@ def test_source_code_tabstop(start_binary):
     start_binary(TABSTOP_BINARY)
 
     # Run until line 6
-    gdb.execute("break tabstop.c:6")
+    gdb.execute("break tabstop.native.c:6")
     gdb.execute("continue")
 
     # Default context-code-tabstop = 8

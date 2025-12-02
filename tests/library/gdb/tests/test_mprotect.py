@@ -7,7 +7,7 @@ import pwndbg.aglib.vmmap
 
 from . import get_binary
 
-SMALL_BINARY = get_binary("crash_simple.x86-64.out.hardcoded")
+SMALL_BINARY = get_binary("crash_simple.x86-64.out")
 
 
 def test_mprotect_executes_properly(start_binary):

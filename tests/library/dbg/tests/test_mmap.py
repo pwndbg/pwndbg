@@ -65,7 +65,7 @@ async def test_mmap_executes_properly(ctrl: Controller) -> None:
     assert ptr == base_addr
 
     # Continue the program until just before close(2) is called.
-    await ctrl.execute("b use-fds.c:16")
+    await ctrl.execute("b use-fds.native.c:16")
     await ctrl.cont()
 
     # Retrieve the file descriptor number and map it to memory.
