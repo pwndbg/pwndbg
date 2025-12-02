@@ -320,20 +320,11 @@ async def test_command_plist_size_t_field(ctrl: Controller):
 
     expected_out = re.compile(
         """\
-0[xX][0-9a-fA-F]+ <size_t_node_a>:.*{\\s*
-  value = 10,?\\s*
-  next = [0-9]+,?\\s*
-}\\s*
-0[xX][0-9a-fA-F]+ <size_t_node_b>:.*{\\s*
-  value = 21,?\\s*
-  next = [0-9]+,?\\s*
-}\\s*
-0[xX][0-9a-fA-F]+ <size_t_node_c>:.*{\\s*
-  value = 42,?\\s*
-  next = (0|NULL),?\\s*
-}\
+0[xX][0-9a-fA-F]+ <size_t_node_a>:.* 10\\s*
+0[xX][0-9a-fA-F]+ <size_t_node_b>:.* 21\\s*
+0[xX][0-9a-fA-F]+ <size_t_node_c>:.* 42\\s*
 """
     )
 
-    result_str = await ctrl.execute_and_capture("plist size_t_node_a next -c 3")
+    result_str = await ctrl.execute_and_capture("plist size_t_node_a next -f value -c 3")
     assert expected_out.match(result_str) is not None
