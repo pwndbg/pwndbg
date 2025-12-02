@@ -11,7 +11,7 @@ import pwndbg.aglib.heap
 
 from .. import get_binary
 
-HEAP_BINARY = get_binary("heap_bugs.out")
+HEAP_BINARY = get_binary("heap_bugs.x86-64.out")
 HEAP_CODE = get_binary("heap_bugs.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 

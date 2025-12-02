@@ -13,9 +13,6 @@ SOURCES_ASM     =      $(wildcard *.asm)
 COMPILED_ASM    =      $(SOURCES_ASM:.asm=.o)
 LINKED_ASM      =      $(SOURCES_ASM:.asm=.out)
 LDFLAGS         =
-EXTRA_FLAGS     =
-EXTRA_FLAGS_ASM =
-#EXTRA_FLAGS_ASM =      -g -F dwarf
 
 GO              =      go
 SOURCES_GO      =      $(wildcard *.go)
@@ -47,11 +44,12 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
-	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -w -o $@ $? $(LDFLAGS)
+	@$(CC) $(CFLAGS) -w -o $@ $? $(LDFLAGS)
 
+# TODO: architecture
 %.o : %.asm
 	@echo "[+] Building '$@'"
-	@$(NASM) $(EXTRA_FLAGS_ASM) -o $@ $?
+	@$(NASM) -o $@ $?
 
 %.out : %.o
 	@echo "[+] Linking '$@'"
@@ -67,8 +65,8 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 	@GOARCH=amd64 $(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
-heap_bugs.out: heap_bugs.c
-	@echo "[+] Building heap_bugs.out"
+heap_bugs.x86-64.out: heap_bugs.c
+	@echo "[+] Building heap_bugs.x86-64.out"
 	${ZIGCC} \
 	${CFLAGS} \
 	-Wno-int-to-pointer-cast -Wno-int-conversion -Wno-unused-variable \
@@ -124,6 +122,7 @@ heap_musl_static.out: heap_musl.c
 multiple_threads.out: multiple_threads.c
 	@echo "[+] Building multiple_threads.out"
 	${CC} -g -O0 -o multiple_threads.out multiple_threads.c -pthread -lpthread
+
 tls.x86-64.out: tls.x86-64.c
 	@echo "[+] Building tls.x86-64.c"
 	${ZIGCC} \
@@ -143,20 +142,20 @@ issue_1565.out: issue_1565.c
 	${CC} -g -O0 -o issue_1565.out issue_1565.c -pthread -lpthread
 
 # TODO: Link against a specific GLIBC version >= 2.26
-initialized_heap_i386_big.out: initialized_heap.c
-	@echo "[+] Building initialized_heap_i386_big.out"
+initialized_heap_big.i386.out: initialized_heap.c
+	@echo "[+] Building initialized_heap_big.i386.out"
 	${ZIGCC} \
 	${CFLAGS} \
 	-target x86-linux-gnu \
-	-o initialized_heap_i386_big.out initialized_heap.c
+	-o initialized_heap_big.i386.out initialized_heap.c
 
 # TODO: Link against a specific GLIBC version.
-initialized_heap_x64.out: initialized_heap.c
-	@echo "[+] Building initialized_heap_x64.out"
+initialized_heap.x86-64.out: initialized_heap.c
+	@echo "[+] Building initialized_heap.x86-64.out"
 	${ZIGCC} \
 	${CFLAGS} \
 	-target x86_64-linux-gnu \
-	-o initialized_heap_x64.out initialized_heap.c
+	-o initialized_heap.x86-64.out initialized_heap.c
 
 onegadget.x86-64.out: onegadget.c
 	@echo "[+] Building onegadget.x86-64.out"
