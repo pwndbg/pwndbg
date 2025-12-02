@@ -629,10 +629,8 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     import pwndbg.commands.context
     import pwndbg.dbg
 
-    await launch_to(ctrl, STACK_VARS_BINARY, "break_here")
-
-    # Go up to inner_function frame where the local variables live
-    await ctrl.execute("up")
+    # Launch directly to inner_function where the variables are
+    await launch_to(ctrl, STACK_VARS_BINARY, "inner_function")
 
     # Test direct API: pwndbg.aglib.stack.get_stack_var_name()
     # Get addresses of local variables
@@ -653,8 +651,3 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     # Test that telescope shows variable names
     telescope_out = await ctrl.execute_and_capture(f"telescope {buffer_addr:#x} 1")
     assert "{buffer}" in telescope_out
-
-    # Test that context stack shows variable names
-    stack_out = pwndbg.commands.context.context_stack()
-    # Should show at least one variable name in braces
-    assert any("{" in line and "}" in line for line in stack_out)

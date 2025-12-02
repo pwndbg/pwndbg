@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// Portable breakpoint
-void break_here(void) {}
-
 void inner_function(void) {
     char buffer[64];
     int local_var = 42;
@@ -12,8 +9,6 @@ void inner_function(void) {
 
     printf("local_var = %d\n", local_var);
     printf("buffer = %s\n", buffer);
-
-    break_here();
 }
 
 void outer_function() {
