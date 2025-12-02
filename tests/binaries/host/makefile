@@ -69,7 +69,7 @@ gosample.x86-64.out : gosample.go
 	@GOARCH=amd64 $(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
-heap_bugs.x86-64.out: heap_bugs.c
+heap_bugs.x86-64.out: heap_bugs.x86-64.c
 	@echo "[+] Building heap_bugs.x86-64.out"
 	${ZIGCC} \
 	${CFLAGS} \
@@ -77,7 +77,7 @@ heap_bugs.x86-64.out: heap_bugs.c
 	-target x86_64-linux-gnu.2.33 \
 	-Wl,-rpath=${GLIBC_2_33}:\
 	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
-	-o heap_bugs.out heap_bugs.c
+	-o heap_bugs.x86-64.out heap_bugs.x86-64.c
 
 # TODO/FIXME: We should probably force this to 2.29? a version with tcache?
 #heap_bins.out: heap_bins.c
