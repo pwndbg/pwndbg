@@ -304,7 +304,6 @@ def test_command_plist_size_t_field(start_binary):
     Tests the plist command with size_t fields (pointer-sized integers)
     """
     startup(start_binary)
-    gdb.execute("set dereference-limit 5")
 
     expected_out = re.compile(
         """\
@@ -323,5 +322,5 @@ def test_command_plist_size_t_field(start_binary):
 """
     )
 
-    result_str = gdb.execute("plist size_t_node_a next", to_string=True)
+    result_str = gdb.execute("plist size_t_node_a next -c 3", to_string=True)
     assert expected_out.match(result_str) is not None

@@ -317,7 +317,6 @@ async def test_command_plist_size_t_field(ctrl: Controller):
     Tests the plist command with size_t fields (pointer-sized integers)
     """
     await startup(ctrl)
-    await ctrl.execute("set dereference-limit 5")
 
     expected_out = re.compile(
         """\
@@ -336,5 +335,5 @@ async def test_command_plist_size_t_field(ctrl: Controller):
 """
     )
 
-    result_str = await ctrl.execute_and_capture("plist size_t_node_a next")
+    result_str = await ctrl.execute_and_capture("plist size_t_node_a next -c 3")
     assert expected_out.match(result_str) is not None
