@@ -16,7 +16,7 @@ from . import get_binary
 REFERENCE_BINARY = get_binary("reference-binary.out")
 USE_FDS_BINARY = get_binary("use-fds.out")
 TABSTOP_BINARY = get_binary("tabstop.out")
-SYSCALLS_BINARY = get_binary("syscalls-x64.out")
+SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
 MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
 
 
@@ -378,7 +378,7 @@ def test_context_disasm_fsbase_annotations(start_binary):
     assert found
 
 
-LONG_FUNCTION_X64_BINARY = get_binary("long_function_x64.out")
+LONG_FUNCTION_X64_BINARY = get_binary("long_function.x86-64.out")
 
 
 def test_context_disasm_call_instruction_split(start_binary):

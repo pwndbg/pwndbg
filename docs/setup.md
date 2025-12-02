@@ -60,10 +60,13 @@ You may want to install Pwndbg through your distribution's package manager. This
     ```
     Pwndbg will be started every time you invoke `gdb` now.
 
+    Note that the Arch package is [quite outdated](https://archlinux.org/packages/extra/any/pwndbg/). Once it gets updated you will not need the `source` line in your `~/.gdbinit` and will be able to run Pwndbg with the `pwndbg` and `pwndbg-lldb` commands. See [packaging Pwndbg](tutorials/packaging.md).
+
 === "Gentoo"
     ```{.bash .copy}
     sudo emerge --ask dev-debug/pwndbg
     ```
+    Pwndbg will now be available with the `pwndbg` and `pwndbg-lldb` commands.
 
 ----
 
@@ -119,4 +122,9 @@ xattr -rd com.apple.quarantine pwndbg
 Assuming that the files were extracted to a folder called `pwndbg`.
 
 ## Installing from source
-See [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section.
+See [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section. The TLDR is to run the following (but see the aforementioned link for more details):
+```{.bash .copy}
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+./setup.sh
+```

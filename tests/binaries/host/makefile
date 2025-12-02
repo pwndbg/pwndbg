@@ -3,23 +3,18 @@ CC              =      gcc
 MUSLCC          =      musl-gcc
 DEBUG           =      1
 CFLAGS         +=      -Wall
-SOURCES         =      $(wildcard *.c)
-COMPILED        =      $(SOURCES:.c=.o)
-LINKED          =      $(SOURCES:.c=.out)
+SOURCES_C       =      $(wildcard *.c)
+LINKED_C        =      $(SOURCES_C:.c=.out)
 
 NASM            =      nasm -f elf64
 LD              =      ld
 SOURCES_ASM     =      $(wildcard *.asm)
-COMPILED_ASM    =      $(SOURCES_ASM:.asm=.o)
 LINKED_ASM      =      $(SOURCES_ASM:.asm=.out)
 LDFLAGS         =
-EXTRA_FLAGS     =
-EXTRA_FLAGS_ASM =
-#EXTRA_FLAGS_ASM =      -g -F dwarf
 
 GO              =      go
 SOURCES_GO      =      $(wildcard *.go)
-COMPILED_GO     =      $(SOURCES_GO:.go=.x86) $(SOURCES_GO:.go=.x64)
+LINKED_GO       =      $(SOURCES_GO:.go=.out)
 
 ifeq ($(TARGET), x86)
 CFLAGS         +=      -m32
@@ -41,41 +36,44 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.out heap_jemalloc_heap.out heap_musl_dyn.out heap_musl_static.out
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.out heap_jemalloc_heap.out heap_musl_dyn.out heap_musl_static.out gosample.i386.out gosample.x86-64.out
+ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(CUSTOM_TARGETS)
 
-all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
+all: $(ALL_TARGETS)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
-	@$(CC) $(CFLAGS) $(EXTRA_FLAGS) -w -o $@ $? $(LDFLAGS)
+	@$(CC) $(CFLAGS) -w -o $@ $? $(LDFLAGS)
 
-%.o : %.asm
+%.out : %.asm
+	@echo "[+] Building and linking '$@'"
+	@$(NASM) -o $@.o $?
+	@$(LD) -Ttext 0x400080 --section-start .note.gnu.property=0x8000000 -o $@ $@.o
+
+%.out : %.go
 	@echo "[+] Building '$@'"
-	@$(NASM) $(EXTRA_FLAGS_ASM) -o $@ $?
+	@$(GO) build -gcflags "-N -l" -o $@ $?
+	@# Not stripped on purpose
 
-%.out : %.o
-	@echo "[+] Linking '$@'"
-	@$(LD) -Ttext 0x400080 --section-start .note.gnu.property=0x8000000 -o $@ $?
-
-%.x86 : %.go
-	@echo "[+] Building '$@'"
+gosample.i386.out : gosample.go
+	@echo "[+] Building gosample.i386.out"
 	@GOARCH=386 $(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
-%.x64 : %.go
-	@echo "[+] Building '$@'"
+gosample.x86-64.out : gosample.go
+	@echo "[+] Building gosample.x86-64.out"
 	@GOARCH=amd64 $(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
-heap_bugs.out: heap_bugs.c
-	@echo "[+] Building heap_bugs.out"
+heap_bugs.x86-64.out: heap_bugs.x86-64.c
+	@echo "[+] Building heap_bugs.x86-64.out"
 	${ZIGCC} \
 	${CFLAGS} \
 	-Wno-int-to-pointer-cast -Wno-int-conversion -Wno-unused-variable \
 	-target x86_64-linux-gnu.2.33 \
 	-Wl,-rpath=${GLIBC_2_33}:\
 	-Wl,--dynamic-linker=${GLIBC_2_33}/ld-linux-x86-64.so.2 \
-	-o heap_bugs.out heap_bugs.c
+	-o heap_bugs.x86-64.out heap_bugs.x86-64.c
 
 # TODO/FIXME: We should probably force this to 2.29? a version with tcache?
 #heap_bins.out: heap_bins.c
@@ -124,6 +122,7 @@ heap_musl_static.out: heap_musl.c
 multiple_threads.out: multiple_threads.c
 	@echo "[+] Building multiple_threads.out"
 	${CC} -g -O0 -o multiple_threads.out multiple_threads.c -pthread -lpthread
+
 tls.x86-64.out: tls.x86-64.c
 	@echo "[+] Building tls.x86-64.c"
 	${ZIGCC} \
@@ -143,20 +142,20 @@ issue_1565.out: issue_1565.c
 	${CC} -g -O0 -o issue_1565.out issue_1565.c -pthread -lpthread
 
 # TODO: Link against a specific GLIBC version >= 2.26
-initialized_heap_i386_big.out: initialized_heap.c
-	@echo "[+] Building initialized_heap_i386_big.out"
+initialized_heap_big.i386.out: initialized_heap.c
+	@echo "[+] Building initialized_heap_big.i386.out"
 	${ZIGCC} \
 	${CFLAGS} \
 	-target x86-linux-gnu \
-	-o initialized_heap_i386_big.out initialized_heap.c
+	-o initialized_heap_big.i386.out initialized_heap.c
 
 # TODO: Link against a specific GLIBC version.
-initialized_heap_x64.out: initialized_heap.c
-	@echo "[+] Building initialized_heap_x64.out"
+initialized_heap.x86-64.out: initialized_heap.c
+	@echo "[+] Building initialized_heap.x86-64.out"
 	${ZIGCC} \
 	${CFLAGS} \
 	-target x86_64-linux-gnu \
-	-o initialized_heap_x64.out initialized_heap.c
+	-o initialized_heap.x86-64.out initialized_heap.c
 
 onegadget.x86-64.out: onegadget.c
 	@echo "[+] Building onegadget.x86-64.out"
@@ -174,7 +173,7 @@ onegadget.i386.out: onegadget.c
 
 clean :
 	@echo "[+] Cleaning stuff"
-	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO) *.out *.o
+	@rm -f $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) *.out *.o
 
 linked_lists.out: linked-lists.c
 	@echo "[+] Building $<"

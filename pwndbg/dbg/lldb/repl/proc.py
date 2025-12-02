@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import enum
 import sys
 from asyncio import CancelledError
 from typing import Any
@@ -171,10 +172,27 @@ def _updates_scope_counter(target: str) -> Callable[[Callable[..., Any]], Any]:
     return sub0
 
 
+class _IODriverState(enum.Enum):
+    STOPPED = 0
+    "The IODriver is not running, and must be entirely restarted"
+    RUNNING = 1
+    "The IODriver is running"
+    PAUSED = 2
+    "The IODriver is not running, but is alive and can be resumed"
+
+
 class ProcessDriver:
     """
     Drives the execution of a process, responding to its events and handling its
     I/O, and exposes a simple synchronous interface to the REPL interface.
+
+    # IODriver State Machine
+    Because LLDB can make Python code from Pwndbg execute while an I/O driver is
+    active, and having the I/O driver active while Pwndbg is running leads to
+    all sorts of fun failure modes, we want to be able to pause it temporarily.
+
+    We, thus, use the states described in _IODriverState to keep track of what
+    operations may be performed on the current IODriver.
     """
 
     io: IODriver
@@ -195,6 +213,9 @@ class ProcessDriver:
     _in_run_coroutine: int
     "Nested scope counter for run_coroutine"
 
+    _io_driver_state: _IODriverState
+    "Whether the I/O driver is currently running"
+
     def __init__(self, event_handler: EventHandler, debug=False):
         self.io = None
         self.process = None
@@ -205,20 +226,31 @@ class ProcessDriver:
         self._pending_cancellation = False
         self._in_run_until_next_stop = 0
         self._in_run_coroutine = 0
+        self._io_driver_state = _IODriverState.STOPPED
+
+    def __enter__(self) -> ProcessDriver:
+        return self
+
+    def __exit__(self, _exc_type, _exc_val, _exc_tb) -> None:
+        if self.io is not None:
+            self.io.close()
 
     def debug_print(self, *args, **kwargs) -> None:
         if self.debug:
-            try:
-                print("[*] ProcessDriver: ", end="")
-                print(*args, **kwargs)
-            except BlockingIOError as e:
+            from io import StringIO
+
+            with StringIO() as out:
+                print("[*] ProcessDriver: ", end="", file=out)
+                print(*args, file=out, **kwargs)
+
+                message = out.getvalue().encode(sys.stdout.encoding)
+
+            while len(message) > 0:
                 try:
-                    # Try to inform the user of the error.
-                    print(
-                        f"[-] ProcessDriver: Error after printing {e.characters_written} characters in the previous debug message. Information may be missing."
-                    )
-                except BlockingIOError:
-                    pass
+                    message = message[sys.stdout.buffer.write(message) :]
+                    sys.stdout.buffer.flush()
+                except BlockingIOError as e:
+                    message = message[e.characters_written :]
 
     def has_process(self) -> bool:
         """
@@ -296,6 +328,63 @@ class ProcessDriver:
                 # Perform the called-provided action.
                 interrupt()
 
+    def _start_io_driver(self):
+        """
+        Starts the IODriver handling I/O from the process.
+        """
+        assert self._io_driver_state == _IODriverState.STOPPED
+        self.io.start(process=self.process)
+
+        self.debug_print(f"{self._io_driver_state} -> {_IODriverState.RUNNING}")
+        self._io_driver_state = _IODriverState.RUNNING
+
+    def _stop_io_driver(self):
+        """
+        Stops the IODriver handling I/O from the process.
+        """
+        assert (
+            self._io_driver_state == _IODriverState.PAUSED
+            or self._io_driver_state == _IODriverState.RUNNING
+        )
+
+        if self._io_driver_state == _IODriverState.PAUSED:
+            # Not invalid, but currently a NOP. See pause_io_if_running()
+            self._io_driver_state = _IODriverState.STOPPED
+            return
+
+        self.io.stop()
+
+        self.debug_print(f"{self._io_driver_state} -> {_IODriverState.STOPPED}")
+        self._io_driver_state = _IODriverState.STOPPED
+
+    def pause_io_if_running(self) -> None:
+        """
+        Pauses the handling of process I/O if it is currently running.
+        """
+        if self._io_driver_state != _IODriverState.RUNNING:
+            return
+
+        # Currently, pausing and stopping both stop the IODriver. Nonetheless,
+        # these operations must stay separate in the state machine, as they are
+        # meaningfully distinct in other ways.
+        self.io.stop()
+
+        self.debug_print(f"{self._io_driver_state} -> {_IODriverState.PAUSED}")
+        self._io_driver_state = _IODriverState.PAUSED
+
+    def resume_io_if_running(self) -> None:
+        """
+        Resumes the handling of process I/O if it is currently running.
+        """
+        if self._io_driver_state != _IODriverState.PAUSED:
+            return
+
+        assert self.process is not None
+        self.io.start(process=self.process)
+
+        self.debug_print(f"{self._io_driver_state} -> {_IODriverState.RUNNING}")
+        self._io_driver_state = _IODriverState.RUNNING
+
     @_updates_scope_counter(target="_in_run_until_next_stop")
     def _run_until_next_stop(
         self,
@@ -319,113 +408,126 @@ class ProcessDriver:
         # If `only_if_started` is set, we defer the starting of the I/O driver
         # to the moment the start event is observed. Otherwise, we just start it
         # immediately.
-        io_started = False
-        if with_io and not only_if_started:
-            self.io.start(process=self.process)
-            io_started = True
+        try:
+            if with_io and not only_if_started:
+                self._start_io_driver()
 
-        # Pick the first timeout value.
-        timeout_time = first_timeout
+            # Pick the first timeout value.
+            timeout_time = first_timeout
 
-        # If `only_if_started` is not set, assume the process must have been
-        # started by a previous action and is running.
-        running = not only_if_started
+            # If `only_if_started` is not set, assume the process must have been
+            # started by a previous action and is running.
+            running = not only_if_started
 
-        result = None
-        last_event = None
-        while True:
-            event = lldb.SBEvent()
-            if not self.listener.WaitForEvent(timeout_time, event):
-                self.debug_print(
-                    f"Timed out after {timeout_time}s",
-                )
-                timeout_time = timeout
-
-                # If the process isn't running, we should stop.
-                if not running:
+            result = None
+            last_event = None
+            delay_until_io_stopped: List[Callable[[], None]] = []
+            while True:
+                event = lldb.SBEvent()
+                if not self.listener.WaitForEvent(timeout_time, event):
                     self.debug_print(
-                        "Waited too long for process to start running, giving up",
+                        f"Timed out after {timeout_time}s",
                     )
-                    result = _PollResultTimedOut(last_event)
-                    break
+                    timeout_time = timeout
 
-                continue
-            last_event = event
-
-            if self.debug:
-                descr = lldb.SBStream()
-                if event.GetDescription(descr):
-                    self.debug_print(descr.GetData())
-                else:
-                    self.debug_print(f"No description for {event}")
-
-            if lldb.SBTarget.EventIsTargetEvent(event):
-                if event.GetType() == lldb.SBTarget.eBroadcastBitModulesLoaded:
-                    # Notify the event handler that new modules got loaded in.
-                    if fire_events:
-                        self.eh.modules_loaded()
-
-            elif lldb.SBProcess.EventIsProcessEvent(event):
-                if (
-                    event.GetType() == lldb.SBProcess.eBroadcastBitSTDOUT
-                    or event.GetType() == lldb.SBProcess.eBroadcastBitSTDERR
-                ):
-                    # Notify the I/O driver that the process might have something
-                    # new for it to consume.
-                    self.io.on_output_event()
-                elif event.GetType() == lldb.SBProcess.eBroadcastBitStateChanged:
-                    # The state of the process has changed.
-                    new_state = lldb.SBProcess.GetStateFromEvent(event)
-                    was_resumed = lldb.SBProcess.GetRestartedFromEvent(event)
-
-                    if new_state == lldb.eStateStopped and not was_resumed:
-                        # The process has stopped, so we're done processing events
-                        # for the time being. Trigger the stopped event and return.
-                        if fire_events:
-                            self.eh.suspended(event)
-                        result = _PollResultStopped(event)
-                        break
-
-                    if new_state == lldb.eStateRunning or new_state == lldb.eStateStepping:
-                        running = True
-                        # Start the I/O driver here if its start got deferred
-                        # because of `only_if_started` being set.
-                        if only_if_started and with_io:
-                            self.io.start(process=self.process)
-                            io_started = True
-
-                    if (
-                        new_state == lldb.eStateExited
-                        or new_state == lldb.eStateCrashed
-                        or new_state == lldb.eStateDetached
-                    ):
-                        # Nothing else for us to do here. Clear our internal
-                        # references to the process, fire the exit event, and leave.
+                    # If the process isn't running, we should stop.
+                    if not running:
                         self.debug_print(
-                            f"Process exited with state {new_state}",
+                            "Waited too long for process to start running, giving up",
                         )
-                        self.process = None
-                        self.listener = None
-
-                        if fire_events:
-                            self.eh.exited()
-
-                        if new_state == lldb.eStateExited:
-                            proc = lldb.SBProcess.GetProcessFromEvent(event)
-                            desc = (
-                                "" if not proc.exit_description else f" ({proc.exit_description})"
-                            )
-                            print_info(f"process exited with status {proc.exit_state}{desc}")
-                        elif new_state == lldb.eStateCrashed:
-                            print_info("process crashed")
-                        elif new_state == lldb.eStateDetached:
-                            print_info("process detached")
-
-                        result = _PollResultExited(new_state)
+                        result = _PollResultTimedOut(last_event)
                         break
 
-        if io_started:
-            self.io.stop()
+                    continue
+                last_event = event
+
+                if self.debug:
+                    descr = lldb.SBStream()
+                    if event.GetDescription(descr):
+                        self.debug_print(descr.GetData())
+                    else:
+                        self.debug_print(f"No description for {event}")
+
+                if lldb.SBTarget.EventIsTargetEvent(event):
+                    if event.GetType() == lldb.SBTarget.eBroadcastBitModulesLoaded:
+                        # Notify the event handler that new modules got loaded in.
+                        if fire_events:
+                            self.eh.modules_loaded()
+
+                elif lldb.SBProcess.EventIsProcessEvent(event):
+                    if (
+                        event.GetType() == lldb.SBProcess.eBroadcastBitSTDOUT
+                        or event.GetType() == lldb.SBProcess.eBroadcastBitSTDERR
+                    ):
+                        # Notify the I/O driver that the process might have something
+                        # new for it to consume.
+                        self.io.on_output_event()
+                    elif event.GetType() == lldb.SBProcess.eBroadcastBitStateChanged:
+                        # The state of the process has changed.
+                        new_state = lldb.SBProcess.GetStateFromEvent(event)
+                        was_resumed = lldb.SBProcess.GetRestartedFromEvent(event)
+
+                        if new_state == lldb.eStateStopped and not was_resumed:
+                            # The process has stopped, so we're done processing events
+                            # for the time being. Trigger the stopped event and return.
+                            if fire_events:
+                                self.eh.suspended(event)
+                            result = _PollResultStopped(event)
+                            break
+
+                        if new_state == lldb.eStateRunning or new_state == lldb.eStateStepping:
+                            running = True
+                            # Start the I/O driver here if its start got deferred
+                            # because of `only_if_started` being set.
+                            if only_if_started and with_io:
+                                self._start_io_driver()
+
+                        if (
+                            new_state == lldb.eStateExited
+                            or new_state == lldb.eStateCrashed
+                            or new_state == lldb.eStateDetached
+                        ):
+                            # Nothing else for us to do here. Clear our internal
+                            # references to the process, fire the exit event, and leave.
+                            self.debug_print(
+                                f"Process exited with state {new_state}",
+                            )
+                            self.process = None
+                            self.listener = None
+
+                            if fire_events:
+                                self.eh.exited()
+
+                            if new_state == lldb.eStateExited:
+                                proc = lldb.SBProcess.GetProcessFromEvent(event)
+                                desc = (
+                                    ""
+                                    if not proc.exit_description
+                                    else f" ({proc.exit_description})"
+                                )
+                                delay_until_io_stopped.append(
+                                    lambda: print_info(
+                                        f"process exited with status {proc.exit_state}{desc}"
+                                    )
+                                )
+                            elif new_state == lldb.eStateCrashed:
+                                delay_until_io_stopped.append(lambda: print_info("process crashed"))
+                            elif new_state == lldb.eStateDetached:
+                                delay_until_io_stopped.append(
+                                    lambda: print_info("process detached")
+                                )
+
+                            result = _PollResultExited(new_state)
+                            break
+        finally:
+            if self._io_driver_state != _IODriverState.STOPPED:
+                self._stop_io_driver()
+            if isinstance(result, _PollResultExited):
+                self.io.close()
+                self.io = None
+
+        for fn in delay_until_io_stopped:
+            fn()
 
         return result
 
@@ -725,6 +827,7 @@ class ProcessDriver:
         This function always uses a plain text IODriver, as there is no way to
         guarantee any other driver will work.
         """
+        assert self.io is None
         self.io = IODriverPlainText()
 
         error = lldb.SBError()
@@ -754,6 +857,7 @@ class ProcessDriver:
         """
         Launch a process in the host system.
         """
+        assert self.io is None
         self.io = io
 
         error = lldb.SBError()
@@ -779,6 +883,7 @@ class ProcessDriver:
         if pid == 0:
             return lldb.SBError("PID of 0 or no PID was given")
 
+        assert self.io is None
         self.io = IODriverPlainText()
 
         error = lldb.SBError()
@@ -789,6 +894,7 @@ class ProcessDriver:
         """
         Attatch to a process in the host system.
         """
+        assert self.io is None
         self.io = IODriverPlainText()
 
         error = lldb.SBError()
@@ -868,6 +974,7 @@ class ProcessDriver:
         assert self.listener.IsValid()
         assert self.process.IsValid()
 
+        assert self.io is None
         self.io = io
 
         # It's not guaranteed that the process is actually alive, as it might be

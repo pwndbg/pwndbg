@@ -6,8 +6,8 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-GOSAMPLE_X64 = get_binary("gosample.x64")
-GOSAMPLE_X86 = get_binary("gosample.x86")
+GOSAMPLE_X64 = get_binary("gosample.x86-64.out")
+GOSAMPLE_X86 = get_binary("gosample.i386.out")
 
 
 async def helper_test_dump(ctrl: Controller, target: str) -> None:
