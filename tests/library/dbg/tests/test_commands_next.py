@@ -9,7 +9,7 @@ from . import launch_to
 from . import pwndbg_test
 
 REFERENCE_BINARY = get_binary("reference-binary.native.out")
-CRASH_SIMPLE_BINARY = get_binary("crash_simple.out.hardcoded")
+CRASH_SIMPLE_BINARY = get_binary("crash_simple.x86-64.out.hardcoded")
 
 NEXT_COMMANDS = (
     "pc",
