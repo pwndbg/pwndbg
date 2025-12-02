@@ -39,6 +39,16 @@ struct inner_b_node inner_b_node_c = { 2, { NULL } };
 struct inner_b_node inner_b_node_b = { 1, { &inner_b_node_c } };
 struct inner_b_node inner_b_node_a = { 0, { &inner_b_node_b } };
 
+/* Linked list using size_t for next pointer to test pointer-sized integer support. */
+#include <stdint.h>
+struct size_t_node {
+    int value;
+    size_t next;
+};
+struct size_t_node size_t_node_c = { 42, 0 };
+struct size_t_node size_t_node_b = { 21, (size_t)&size_t_node_c };
+struct size_t_node size_t_node_a = { 10, (size_t)&size_t_node_b };
+
 
 void break_here(void) {}
 int main(void)
