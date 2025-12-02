@@ -8,7 +8,7 @@ import pwndbg.aglib.vmmap
 
 from . import get_binary
 
-MEMORY_BINARY = get_binary("memory.out")
+MEMORY_BINARY = get_binary("memory.x86-64.out")
 X86_BINARY = get_binary("gosample.i386.out")
 
 data_addr = "0x401000"

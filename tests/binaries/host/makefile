@@ -4,13 +4,11 @@ MUSLCC          =      musl-gcc
 DEBUG           =      1
 CFLAGS         +=      -Wall
 SOURCES_C       =      $(wildcard *.c)
-COMPILED_C      =      $(SOURCES_C:.c=.o)
 LINKED_C        =      $(SOURCES_C:.c=.out)
 
 NASM            =      nasm -f elf64
 LD              =      ld
 SOURCES_ASM     =      $(wildcard *.asm)
-COMPILED_ASM    =      $(SOURCES_ASM:.asm=.o)
 LINKED_ASM      =      $(SOURCES_ASM:.asm=.out)
 LDFLAGS         =
 
@@ -39,20 +37,18 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 .PHONY : all clean
 
 CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.out heap_jemalloc_heap.out heap_musl_dyn.out heap_musl_static.out
+ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(CUSTOM_TARGETS)
 
-all: $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(CUSTOM_TARGETS)
+all: $(ALL_TARGETS)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
 	@$(CC) $(CFLAGS) -w -o $@ $? $(LDFLAGS)
 
-%.o : %.asm
-	@echo "[+] Building '$@'"
-	@$(NASM) -o $@ $?
-
-%.out : %.o
-	@echo "[+] Linking '$@'"
-	@$(LD) -Ttext 0x400080 --section-start .note.gnu.property=0x8000000 -o $@ $?
+%.out : %.asm
+	@echo "[+] Building and linking '$@'"
+	@$(NASM) -o $@.o $?
+	@$(LD) -Ttext 0x400080 --section-start .note.gnu.property=0x8000000 -o $@ $@.o
 
 %.out : %.go
 	@echo "[+] Building '$@'"
@@ -177,7 +173,7 @@ onegadget.i386.out: onegadget.c
 
 clean :
 	@echo "[+] Cleaning stuff"
-	@rm -f $(COMPILED_C) $(LINKED_C) $(COMPILED_ASM) $(LINKED_ASM) $(LINKED_GO) *.out *.o
+	@rm -f $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) *.out *.o
 
 linked_lists.out: linked-lists.c
 	@echo "[+] Building $<"
