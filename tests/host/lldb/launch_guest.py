@@ -10,6 +10,7 @@ from typing import Callable
 from typing import Coroutine
 from typing import Dict
 from typing import List
+
 import pytest
 
 
