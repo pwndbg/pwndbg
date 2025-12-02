@@ -26,6 +26,9 @@ class _GDBController(host.Controller):
         GDB hides the asynchronous heavy lifting from us, so this call is
         synchronous.
         """
+        if not os.path.exists(binary_path):
+            pytest.skip("%s does not exist. Probably platform not supported" % binary_path)
+
         os.environ["PWNDBG_IN_TEST"] = "1"
         gdb.execute(f"file {binary_path}")
         gdb.execute("set exception-verbose on")

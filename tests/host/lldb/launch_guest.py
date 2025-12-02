@@ -10,6 +10,7 @@ from typing import Callable
 from typing import Coroutine
 from typing import Dict
 from typing import List
+import pytest
 
 
 async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> None:
@@ -30,6 +31,9 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
         async def launch(
             self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
         ) -> None:
+            if not os.path.exists(binary):
+                pytest.skip("%s does not exist. Probably platform not supported" % binary)
+
             await self.pc.execute("set context-reserve-lines never")
             await self.pc.execute(f"target create {binary}")
             env_args = " ".join((f"-E{k}={v}" for k, v in env.items()))
