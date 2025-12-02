@@ -317,6 +317,7 @@ async def test_command_plist_size_t_field(ctrl: Controller):
     Tests the plist command with size_t fields (pointer-sized integers)
     """
     await startup(ctrl)
+    await ctrl.execute("set dereference-limit 5")
 
     expected_out = re.compile(
         """\
