@@ -512,7 +512,9 @@ def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
 ##
 HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.out")
 HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.out")
-re_match_valid_address = r"0x7ffff[0-9a-fA-F]{6,9}"
+# Relax address regex to accept different virtual address layouts (ASLR / jemalloc mappings).
+# Old pattern assumed addresses starting with 0x7ffff and a limited digit count which fails on some hosts.
+re_match_valid_address = r"0x[0-9a-fA-F]{6,16}"
 
 
 def test_jemalloc_find_extent(start_binary):
