@@ -32,7 +32,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
         ) -> None:
             if not os.path.exists(binary):
-                pytest.skip("%s does not exist. Probably platform not supported" % binary)
+                pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
 
             await self.pc.execute("set context-reserve-lines never")
             await self.pc.execute(f"target create {binary}")

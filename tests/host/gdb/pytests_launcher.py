@@ -27,7 +27,7 @@ class _GDBController(host.Controller):
         synchronous.
         """
         if not os.path.exists(binary_path):
-            pytest.skip("%s does not exist. Probably platform not supported" % binary_path)
+            pytest.skip(f"{os.path.basename(binary_path)} does not exist. Platform not supported.")
 
         os.environ["PWNDBG_IN_TEST"] = "1"
         gdb.execute(f"file {binary_path}")

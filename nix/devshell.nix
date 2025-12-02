@@ -66,8 +66,6 @@ in
           parallel
           qemu
           go
-          zig_0_14
-          musl
 
           # for onegadget command
           one_gadget
