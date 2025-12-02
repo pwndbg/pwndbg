@@ -15,7 +15,7 @@ USE_FDS_BINARY = get_binary("use-fds.out")
 TABSTOP_BINARY = get_binary("tabstop.out")
 SYSCALLS_BINARY = get_binary("syscalls-x64.out")
 MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
-STACK_VARS_BINARY = get_binary("stack_vars.native.out")
+STACK_VARS_BINARY = get_binary("stack_vars.out")
 
 
 @pwndbg_test
