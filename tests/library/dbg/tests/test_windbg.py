@@ -9,7 +9,7 @@ from . import get_binary
 from . import pwndbg_test
 
 MEMORY_BINARY = get_binary("memory.out")
-X86_BINARY = get_binary("gosample.x86")
+X86_BINARY = get_binary("gosample.i386.out")
 
 data_addr = "0x401000"
 

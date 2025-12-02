@@ -3,9 +3,9 @@ CC              =      gcc
 MUSLCC          =      musl-gcc
 DEBUG           =      1
 CFLAGS         +=      -Wall
-SOURCES         =      $(wildcard *.c)
-COMPILED        =      $(SOURCES:.c=.o)
-LINKED          =      $(SOURCES:.c=.out)
+SOURCES_C       =      $(wildcard *.c)
+COMPILED_C      =      $(SOURCES_C:.c=.o)
+LINKED_C        =      $(SOURCES_C:.c=.out)
 
 NASM            =      nasm -f elf64
 LD              =      ld
@@ -16,7 +16,7 @@ LDFLAGS         =
 
 GO              =      go
 SOURCES_GO      =      $(wildcard *.go)
-COMPILED_GO     =      $(SOURCES_GO:.go=.x86) $(SOURCES_GO:.go=.x64)
+LINKED_GO       =      $(SOURCES_GO:.go=.out)
 
 ifeq ($(TARGET), x86)
 CFLAGS         +=      -m32
@@ -38,15 +38,14 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap_x64.out initialized_heap_i386_big.out linked_lists.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.out heap_jemalloc_heap.out heap_musl_dyn.out heap_musl_static.out
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.out heap_jemalloc_heap.out heap_musl_dyn.out heap_musl_static.out
 
-all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
+all: $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(CUSTOM_TARGETS)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
 	@$(CC) $(CFLAGS) -w -o $@ $? $(LDFLAGS)
 
-# TODO: architecture
 %.o : %.asm
 	@echo "[+] Building '$@'"
 	@$(NASM) -o $@ $?
@@ -55,13 +54,18 @@ all: $(LINKED) $(LINKED_ASM) $(COMPILED_GO) $(CUSTOM_TARGETS)
 	@echo "[+] Linking '$@'"
 	@$(LD) -Ttext 0x400080 --section-start .note.gnu.property=0x8000000 -o $@ $?
 
-%.x86 : %.go
+%.out : %.go
 	@echo "[+] Building '$@'"
+	@$(GO) build -gcflags "-N -l" -o $@ $?
+	@# Not stripped on purpose
+
+gosample.i386.out : gosample.go
+	@echo "[+] Building gosample.i386.out"
 	@GOARCH=386 $(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
-%.x64 : %.go
-	@echo "[+] Building '$@'"
+gosample.x86-64.out : gosample.go
+	@echo "[+] Building gosample.x86-64.out"
 	@GOARCH=amd64 $(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
@@ -173,7 +177,7 @@ onegadget.i386.out: onegadget.c
 
 clean :
 	@echo "[+] Cleaning stuff"
-	@rm -f $(COMPILED) $(LINKED) $(COMPILED_ASM) $(LINKED_ASM) $(COMPILED_GO) *.out *.o
+	@rm -f $(COMPILED_C) $(LINKED_C) $(COMPILED_ASM) $(LINKED_ASM) $(LINKED_GO) *.out *.o
 
 linked_lists.out: linked-lists.c
 	@echo "[+] Building $<"
