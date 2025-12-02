@@ -36,7 +36,7 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.out heap_jemalloc_heap.out heap_musl_dyn.out heap_musl_static.out
+CUSTOM_TARGETS = reference_bin_pie.out reference_bin_nopie.out reference_bin_nopie.i386.out symbol_1600_and_752.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.out heap_jemalloc_heap.out heap_musl_dyn.out heap_musl_static.out gosample.i386.out gosample.x86-64.out
 ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(CUSTOM_TARGETS)
 
 all: $(ALL_TARGETS)
