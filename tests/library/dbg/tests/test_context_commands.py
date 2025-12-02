@@ -630,9 +630,8 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     import pwndbg.dbg
 
     await launch_to(ctrl, STACK_VARS_BINARY, "break_here")
-    await ctrl.execute("continue")
 
-    # Go up to inner_function frame where the local var lives
+    # Go up to inner_function frame where the local variables live
     await ctrl.execute("up")
 
     # Test direct API: pwndbg.aglib.stack.get_stack_var_name()
