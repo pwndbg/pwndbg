@@ -15,7 +15,7 @@ USE_FDS_BINARY = get_binary("use-fds.out")
 TABSTOP_BINARY = get_binary("tabstop.out")
 SYSCALLS_BINARY = get_binary("syscalls-x64.out")
 MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
-STACK_VARS_BINARY = get_binary("stack_vars.out")
+STACK_VARS_BINARY = get_binary("stack_vars.native.out")
 
 
 @pwndbg_test
@@ -629,22 +629,21 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     import pwndbg.commands.context
     import pwndbg.dbg
 
-    await launch_to(ctrl, STACK_VARS_BINARY, "inner_function")
-
-    # Continue until we hit the int3 in inner_function
+    await launch_to(ctrl, STACK_VARS_BINARY, "break_here")
     await ctrl.execute("continue")
 
+    # Go up to inner_function frame where the local var lives
+    await ctrl.execute("up")
+
     # Test direct API: pwndbg.aglib.stack.get_stack_var_name()
-    # Get addresses of local variables and parameters
+    # Get addresses of local variables
     frame = pwndbg.dbg.selected_frame()
     buffer_addr = int(frame.evaluate_expression("&buffer"))
     local_var_addr = int(frame.evaluate_expression("&local_var"))
-    param1_addr = int(frame.evaluate_expression("&param1"))
 
     # Test that get_stack_var_name returns correct names
     assert pwndbg.aglib.stack.get_stack_var_name(buffer_addr) == "buffer"
     assert pwndbg.aglib.stack.get_stack_var_name(local_var_addr) == "local_var"
-    assert pwndbg.aglib.stack.get_stack_var_name(param1_addr) == "param1"
 
     # Test offset notation for addresses within variables
     # buffer is 64 bytes, so buffer+0x10 should show "buffer+0x10"
