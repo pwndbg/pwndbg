@@ -1,4 +1,5 @@
 #include <stddef.h> /* For NULL. */
+#include <stdint.h> /* For size_t. */
 
 /* Linked list in which the pointer to the next element in inside the node
  * structure itself. */
@@ -40,7 +41,6 @@ struct inner_b_node inner_b_node_b = { 1, { &inner_b_node_c } };
 struct inner_b_node inner_b_node_a = { 0, { &inner_b_node_b } };
 
 /* Linked list using size_t for next pointer to test pointer-sized integer support. */
-#include <stdint.h>
 struct size_t_node {
     int value;
     size_t next;
