@@ -18,6 +18,6 @@ void outer_function() {
 int main() {
     printf("Starting test program...\n");
     outer_function();
-    printf("Done!\n");
+    printf("Done\n");
     return 0;
 }
