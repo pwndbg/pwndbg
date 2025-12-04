@@ -1265,7 +1265,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
         try:
             counts = tcache["counts"]
-        except Exception as e:
+        except Exception:
             counts = tcache["num_slots"]
         entries = tcache["entries"]
 
