@@ -1263,6 +1263,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             )
             setattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued", True)
 
+        # counts was renamed to num_slots in newer version of GLIBC 2.42
         try:
             counts = tcache["counts"]
         except Exception:
@@ -1579,6 +1580,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return self._main_arena
 
     def has_tcache(self) -> bool:
+        # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
         return self.mp is not None and any(
             x in self.mp.type.keys() for x in ["tcache_bins", "tcache_small_bins"]
         )
@@ -1726,6 +1728,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_malloc_initialized")
         if addr is None:
             addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_initialized")
+        # fallback for GLIBC 2.42 as __malloc_initialized was removed
         if addr is None:
             return int(self.mp["sbrk_base"]) != 0
         return pwndbg.aglib.memory.s32(addr) > 0
