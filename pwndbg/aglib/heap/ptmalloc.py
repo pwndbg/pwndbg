@@ -5,7 +5,6 @@ import importlib
 import sys
 import types
 from collections import OrderedDict
-from typing_extensions import Counter
 
 if sys.version_info >= (3, 11):
     # Python 3.11, see https://docs.python.org/3/whatsnew/3.11.html#enum
