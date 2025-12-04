@@ -5,6 +5,7 @@ import importlib
 import sys
 import types
 from collections import OrderedDict
+from typing_extensions import Counter
 
 if sys.version_info >= (3, 11):
     # Python 3.11, see https://docs.python.org/3/whatsnew/3.11.html#enum
@@ -1263,7 +1264,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             )
             setattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued", True)
 
-        counts = tcache["counts"] if "counts" in tcache else tcache["num_slots"]
+        try:
+            counts = tcache["counts"]
+        except Exception as e:
+            counts = tcache["num_slots"]
         entries = tcache["entries"]
 
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
