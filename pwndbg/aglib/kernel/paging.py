@@ -507,6 +507,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         self._vmalloc = self._PAGE_END(
             self.va_bits_min
         )  # also includes KASAN and kernel module regions
+        self.VMEMMAP_START = self.VMEMMAP_SIZE = None
         if self.paging_level == 4:
             self.pagetable_level_names = (
                 "Page",
@@ -707,6 +708,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
         vmalloc_end = None
         if self.vmemmap and self.pci and self.fixmap:
             vmalloc_end = min(self.vmemmap, self.pci, self.fixmap)
+        if self.VMEMMAP_START is None or self.VMEMMAP_SIZE is None:
+            return ()
         return (
             (self.USERLAND, 0),
             (None, self.PAGE_OFFSET),
