@@ -172,6 +172,12 @@ class IODriver:
         """
         raise NotImplementedError()
 
+    def close(self) -> None:
+        """
+        Terminate this driver and release all resources associated with it.
+        """
+        raise NotImplementedError()
+
 
 def get_io_driver() -> IODriver:
     """
@@ -197,6 +203,12 @@ class IODriverPlainText(IODriver):
     in_thr: threading.Thread
     out_thr: threading.Thread
     stop_requested: threading.Event
+    stop_fulfilled: threading.Semaphore
+    start_requested: threading.Semaphore
+    _closed: threading.Event
+    _running: bool
+    _stdout_nonblock_failed: bool
+    _stderr_nonblock_failed: bool
 
     process: lldb.SBProcess
 
@@ -204,59 +216,104 @@ class IODriverPlainText(IODriver):
         self.likely_output = threading.BoundedSemaphore(1)
         self.process = None
         self.stop_requested = threading.Event()
+        self.start_requested = threading.BoundedSemaphore(2)
+        self.stop_fulfilled = threading.BoundedSemaphore(2)
+        self._closed = threading.Event()
+        self._running = False
+        self._stdout_nonblock_failed = False
+        self._stderr_nonblock_failed = False
+
+        assert self.start_requested.acquire()
+        assert self.start_requested.acquire()
+        assert self.stop_fulfilled.acquire()
+        assert self.stop_fulfilled.acquire()
+
+        self.in_thr = threading.Thread(target=self._handle_input)
+        self.out_thr = threading.Thread(target=self._handle_output)
+        self.in_thr.start()
+        self.out_thr.start()
 
     @override
     def stdio(self) -> Tuple[str | None, str | None, str | None]:
         return None, None, None
 
     def _handle_input(self):
-        while not self.stop_requested.is_set():
-            if SELECT_AVAILABLE:
-                select.select([sys.stdin], [], [], 0.2)
+        while not self._closed.is_set():
+            if not self.start_requested.acquire(blocking=True, timeout=1):
+                continue
 
-            try:
-                data = sys.stdin.read()
-                self.process.PutSTDIN(data)
-            except (BlockingIOError, TypeError):
-                # We have to check for TypeError here too, as, even though you
-                # *can* set stdin into nonblocking mode, it doesn't handle it
-                # very gracefully.
-                #
-                # See https://github.com/python/cpython/issues/57531
+            while not self.stop_requested.is_set():
+                if SELECT_AVAILABLE:
+                    select.select([sys.stdin], [], [], 0.2)
 
-                # Ignore blocking errors, but wait for a little bit before
-                # trying again if we don't have select().
-                if not SELECT_AVAILABLE:
-                    time.sleep(0.1)
+                try:
+                    data = sys.stdin.read()
+                    self.process.PutSTDIN(data)
+                except (BlockingIOError, TypeError):
+                    # We have to check for TypeError here too, as, even though you
+                    # *can* set stdin into nonblocking mode, it doesn't handle it
+                    # very gracefully.
+                    #
+                    # See https://github.com/python/cpython/issues/57531
+
+                    # Ignore blocking errors, but wait for a little bit before
+                    # trying again if we don't have select().
+                    if not SELECT_AVAILABLE:
+                        time.sleep(0.1)
+            self.stop_fulfilled.release()
 
     def _handle_output(self):
-        while not self.stop_requested.is_set():
-            # Try to acquire the semaphore. This will not succeed until the next
-            # process output event is received by the event loop.
-            self.likely_output.acquire(timeout=0.2)
+        while not self._closed.is_set():
+            if not self.start_requested.acquire(blocking=True, timeout=1):
+                continue
 
-            # Don't actually stop ourselves, even if we can't acquire the
-            # semaphore. LLDB can be a little lazy with the standard output
-            # events, so we use the semaphore as way to respond much faster to
-            # output than we otherwise would, but, even if we don't get an
-            # event, we should still read the output, albeit at a slower pace.
+            while not self.stop_requested.is_set():
+                # Try to acquire the semaphore. This will not succeed until the next
+                # process output event is received by the event loop.
+                self.likely_output.acquire(blocking=True, timeout=0.2)
 
-            # Copy everything out to standard outputs.
-            while True:
-                stdout = self.process.GetSTDOUT(1024)
-                stderr = self.process.GetSTDERR(1024)
+                # Don't actually stop ourselves, even if we can't acquire the
+                # semaphore. LLDB can be a little lazy with the standard output
+                # events, so we use the semaphore as way to respond much faster to
+                # output than we otherwise would, but, even if we don't get an
+                # event, we should still read the output, albeit at a slower pace.
 
-                if len(stdout) == 0 and len(stderr) == 0:
-                    break
+                # Copy everything out to standard outputs.
+                stdout = b""
+                stderr = b""
+                while True:
+                    stdout += self.process.GetSTDOUT(1024).encode(sys.stdout.encoding)
+                    stderr += self.process.GetSTDERR(1024).encode(sys.stderr.encoding)
 
-                print(stdout, file=sys.stdout, end="")
-                print(stderr, file=sys.stderr, end="")
+                    if len(stdout) == 0 and len(stderr) == 0:
+                        # Note that, even if we have pulled nothing new from LLDB,
+                        # we still only exit the loop once we manage to push out
+                        # both buffers in their entirety.
+                        #
+                        # This is consistent with the behavior of blocking on STDOUT
+                        # and STDERR that we want, even if the underlying files are
+                        # actually non-blocking.
+                        break
 
-                sys.stdout.flush()
-                sys.stderr.flush()
+                    try:
+                        stdout = stdout[sys.stdout.buffer.write(stdout) :]
+                        sys.stdout.buffer.flush()
+                    except BlockingIOError as e:
+                        # STDOUT is nonblocking at this point, and so writes may
+                        # fail. We trim off however much we have managed to write
+                        # from the buffer, and try again in the next iteration.
+                        stdout = stdout[e.characters_written :]
 
-            # Crutially, we don't release the semaphore here. Releasing is the
-            # job of the on_output_event function.
+                    try:
+                        stderr = stderr[sys.stderr.buffer.write(stderr) :]
+                        sys.stderr.buffer.flush()
+                    except BlockingIOError as e:
+                        # Same goes for STDERR as goes for STDOUT.
+                        stderr = stderr[e.characters_written :]
+
+                # Crucially, we don't release the semaphore here. Releasing is the
+                # job of the on_output_event function.
+            self.stop_fulfilled.release()
 
     @override
     def on_output_event(self) -> None:
@@ -283,20 +340,83 @@ class IODriverPlainText(IODriver):
         self.process = process
         self.stop_requested.clear()
         os.set_blocking(sys.stdin.fileno(), False)
-        self.in_thr = threading.Thread(target=self._handle_input)
-        self.out_thr = threading.Thread(target=self._handle_output)
-        self.in_thr.start()
-        self.out_thr.start()
+
+        # Nonblocking output is NOT what we want, but in UNIX systems O_NONBLOCK
+        # is set in the context of the so-called "open file description"[1][2],
+        # rather than in the context of the file descriptor itself. So, these
+        # systems will helpfully - and silently, of course - propagate a change
+        # in blocking policy to all file descriptors that share the same open
+        # file description - such as ones created through F_DUPFD or dup(2).
+        #
+        # Since, in general, we can't know how STDIN, STDOUT and STDERR are
+        # related to each other ahead of time, and, more specifically, they
+        # often share the exact same open file description, we have to be able
+        # to gracefully handle the case in which setting O_NONBLOCK for STDIN
+        # will also necessarily set it for STDOUT and STDERR.
+        #
+        # The strategy this class elects to use, then, is to explicitly set all
+        # of them to the same blocking policy. While this doesn't solve the
+        # issue, it at least makes it so that it's not as surprising as it would
+        # be, otherwise. :)
+        #
+        # [1]: https://pubs.opengroup.org/onlinepubs/9799919799/
+        # [2]: https://linux.die.net/man/2/fcntl
+        try:
+            os.set_blocking(sys.stdout.fileno(), False)
+        except OSError:
+            # It's not guaranteed that sys.stdout is actually backed by a file,
+            # or that that file supports non-blocking operation. In fact, the
+            # Pwndbg CLI itself supports swapping out output the output streams
+            # as part of capturing command output.
+            #
+            # As such, we must also be able to gracefully handle this case.
+            self._stdout_nonblock_failed = True
+
+        try:
+            os.set_blocking(sys.stderr.fileno(), False)
+        except OSError:
+            # Same as above.
+            self._stderr_nonblock_failed = True
+
+        self.start_requested.release(2)
+        self._running = True
 
     @override
     def stop(self) -> None:
         # Politely ask for the I/O processors to stop, and wait until they have
         # stopped on their own terms.
+        assert self._running, "Tried to stop an IODriverPlainText that is not running"
         self.stop_requested.set()
+        self.stop_fulfilled.acquire(blocking=True)
+        self.stop_fulfilled.acquire(blocking=True)
+
+        os.set_blocking(sys.stdin.fileno(), True)
+
+        # See start()
+        try:
+            os.set_blocking(sys.stdout.fileno(), True)
+        except OSError:
+            if not self._stdout_nonblock_failed:
+                raise
+
+        try:
+            os.set_blocking(sys.stderr.fileno(), True)
+        except OSError:
+            if not self._stderr_nonblock_failed:
+                raise
+
+        self._stdout_nonblock_failed = False
+        self._stderr_nonblock_failed = False
+        self.process = None
+        self._running = False
+
+    @override
+    def close(self) -> None:
+        if self._running:
+            self.stop()
+        self._closed.set()
         self.in_thr.join()
         self.out_thr.join()
-        os.set_blocking(sys.stdin.fileno(), True)
-        self.process = None
 
 
 def make_pty() -> Tuple[str, int] | None:
@@ -361,6 +481,8 @@ class IODriverPseudoTerminal(IODriver):
     io_thread: threading.Thread
     process: lldb.SBProcess
     termcontrol: OpportunisticTerminalControl
+    _stdout_nonblock_failed: bool
+    _stderr_nonblock_failed: bool
 
     has_terminal_control: bool
 
@@ -412,6 +534,9 @@ class IODriverPseudoTerminal(IODriver):
         self.input_buffer = b""
         self.process = None
 
+        self._stdout_nonblock_failed = False
+        self._stderr_nonblock_failed = False
+
     @override
     def stdio(self) -> Tuple[str | None, str | None, str | None]:
         return self.worker, self.worker, self.worker
@@ -440,8 +565,14 @@ class IODriverPseudoTerminal(IODriver):
                     data = os.read(self.manager, 1024)
                     if len(data) == 0:
                         break
-                    print(data.decode("utf-8"), end="")
-                    sys.stdout.flush()
+
+                    while len(data) > 0:
+                        try:
+                            data = data[sys.stdout.buffer.write(data) :]
+                            sys.stdout.buffer.flush()
+                        except BlockingIOError as e:
+                            data = data[e.characters_written :]
+
             except IOError:
                 pass
 
@@ -452,6 +583,17 @@ class IODriverPseudoTerminal(IODriver):
         self.process = process
         self.stop_requested.clear()
         os.set_blocking(sys.stdin.fileno(), False)
+
+        # Same reasoning as IODriverPlainText applies here.
+        try:
+            os.set_blocking(sys.stdout.fileno(), False)
+        except OSError:
+            self._stdout_nonblock_failed = True
+
+        try:
+            os.set_blocking(sys.stderr.fileno(), False)
+        except OSError:
+            self._stderr_nonblock_failed = True
 
         self.was_line_buffering = self.termcontrol.get_line_buffering()
         self.was_echoing = self.termcontrol.get_echo()
@@ -470,8 +612,24 @@ class IODriverPseudoTerminal(IODriver):
         self.io_thread.join()
         os.set_blocking(sys.stdin.fileno(), True)
 
+        # Same reasoning as IODriverPlainText applies here.
+        try:
+            os.set_blocking(sys.stdout.fileno(), True)
+        except OSError:
+            if not self._stdout_nonblock_failed:
+                raise
+
+        try:
+            os.set_blocking(sys.stderr.fileno(), True)
+        except OSError:
+            if not self._stderr_nonblock_failed:
+                raise
+
         self.termcontrol.set_line_buffering(self.was_line_buffering)
         self.termcontrol.set_echo(self.was_echoing)
+
+        self._stdout_nonblock_failed = False
+        self._stderr_nonblock_failed = False
 
         self.process = None
 
@@ -488,4 +646,8 @@ class IODriverPseudoTerminal(IODriver):
         # this process.
         #
         # TODO: Replace controlling PTY of the process once it is set up.
+        pass
+
+    @override
+    def close(self) -> None:
         pass

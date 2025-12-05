@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import bisect
 import collections
+import enum
 import os
 import random
 import re
@@ -1699,7 +1700,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 _struct: lldb.SBStructuredData,
                 _internal,
             ) -> bool:
-                return stop_handler(sp)
+                try:
+                    self.dbg.lldb_python_state_callback(LLDBPythonState.LLDB_STOP_HANDLER)
+                    return stop_handler(sp)
+                finally:
+                    self.dbg.lldb_python_state_callback(LLDBPythonState.PWNDBG)
 
             sys.modules[self.dbg.module].__dict__[stop_handler_name] = handler
 
@@ -1842,6 +1847,35 @@ class LLDBCommand(pwndbg.dbg_mod.CommandHandle):
         self.command_name = command_name
 
 
+class LLDBPythonState(enum.Enum):
+    """
+    State of LLDB Python execution.
+
+    Unlike in pwndbg-gdb, in pwndbg-lldb the responsibility of driving execution
+    of Python code forward is shared between Pwndbg and LLDB. Knowing which one
+    is in charge is crucial to the correct functioning of the Pwndbg REPL.
+
+    This class defines the different kinds of states we can be in.
+    """
+
+    PWNDBG = 1
+    "Pwndbg is driving execution of Python code"
+
+    LLDB_COMMAND_HANDLER = 0
+    "Python code is executing from inside an LLDB command handler"
+
+    LLDB_STOP_HANDLER = 2
+    "Python code is executing from an LLDB breakpoint/watchpoint hook handler"
+
+
+def _default_lldb_python_state_callback(_state: LLDBPythonState) -> None:
+    """
+    Before being set by the Pwndbg REPL, LLDB instances need a sensible default
+    value for lldb_python_state_callback. This is it.
+    """
+    raise RuntimeError("Pwndbg REPL failed to set lldb_python_state_callback")
+
+
 class LLDB(pwndbg.dbg_mod.Debugger):
     exec_states: List[lldb.SBExecutionState]
 
@@ -1867,8 +1901,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     # Relay used for exceptions originating from commands called through LLDB.
     _exception_relay: BaseException | None
 
-    in_lldb_command_handler: bool
-    "Whether an LLDB command handler is currently running"
+    lldb_python_state_callback: Callable[[LLDBPythonState], None]
+    "Callback to the REPL, used to notify it of LLDB driving Python code"
 
     # temporarily suspend context output
     should_suspend_ctx: bool
@@ -1884,7 +1918,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.controllers = []
         self._current_process_is_gdb_remote = False
         self._exception_relay = None
-        self.in_lldb_command_handler = False
+        self.lldb_python_state_callback = _default_lldb_python_state_callback
         self.should_suspend_ctx = False
 
         import pwndbg
@@ -1959,12 +1993,12 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             def __call__(self, _, command, exe_context, result):
                 try:
                     debugger.exec_states.append(exe_context)
-                    debugger.in_lldb_command_handler = True
+                    debugger.lldb_python_state_callback(LLDBPythonState.LLDB_COMMAND_HANDLER)
                     handler(debugger, command, True)
                 except BaseException as e:
                     debugger._exception_relay = e
                 finally:
-                    debugger.in_lldb_command_handler = False
+                    debugger.lldb_python_state_callback(LLDBPythonState.PWNDBG)
                     assert (
                         debugger.exec_states.pop() == exe_context
                     ), "Execution state mismatch on command handler"

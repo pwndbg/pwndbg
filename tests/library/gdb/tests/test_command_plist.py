@@ -297,3 +297,21 @@ def test_command_plist_nested_indirect(start_binary):
 
     result_str = gdb.execute("plist inner_a_node_a -i inner next", to_string=True)
     assert expected_out.match(result_str) is not None
+
+
+def test_command_plist_size_t_field(start_binary):
+    """
+    Tests the plist command with size_t fields (pointer-sized integers)
+    """
+    startup(start_binary)
+
+    expected_out = re.compile(
+        """\
+0[xX][0-9a-fA-F]+ <size_t_node_a>: 10\\s*
+0[xX][0-9a-fA-F]+ <size_t_node_b>: 21\\s*
+0[xX][0-9a-fA-F]+ <size_t_node_c>: 42\\s*
+"""
+    )
+
+    result_str = gdb.execute("plist size_t_node_a next -f value -c 3", to_string=True)
+    assert expected_out.match(result_str) is not None
