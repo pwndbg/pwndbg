@@ -214,6 +214,7 @@ def test_try_free_corrupted_unsorted_chunks(start_binary):
     assert "free(): corrupted unsorted chunks" in result
     os.remove(OUTPUT_FILE)
 
+
 def test_try_free_invalid_overflow_2_42(start_binary):
     chunks = setup_heap(start_binary, 1, HEAP_BINARY_2_42)
 

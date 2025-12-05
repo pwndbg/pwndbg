@@ -231,6 +231,7 @@ async def test_try_free_corrupted_unsorted_chunks(ctrl: Controller) -> None:
     assert "free(): corrupted unsorted chunks" in result
     os.remove(OUTPUT_FILE)
 
+
 @pwndbg_test
 async def test_try_free_invalid_overflow_2_42(ctrl: Controller) -> None:
     chunks = await setup_heap(ctrl, 1, HEAP_BINARY_2_42)
