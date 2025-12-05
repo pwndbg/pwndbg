@@ -72,8 +72,9 @@ def get_signature_markdown(func: ExtractedFunction, debugger: str):
         " object at " in func.signature or "<" in func.signature
     ):  # '>' is valid in type annotation (->)
         print(f'Signature of {func.name} (from {debugger}) is rendered as "{func.signature}",')
-        print("please edit the sanitize_signature() function (in the extractor) to display")
-        print("the signature better in the docs.")
+        print(
+            "please edit the sanitize_signature() function (./scripts/_docs/extract_function_docs.py) to display the signature better in the docs."
+        )
         sys.exit(5)
 
     return func_signature_code

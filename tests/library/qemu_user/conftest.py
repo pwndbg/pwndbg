@@ -30,6 +30,7 @@ COMPILATION_TARGETS_TYPE = Literal[
     "loongarch64",
     "powerpc32",
     "powerpc64",
+    "powerpc64le",
     "mips32",
     "mipsel32",
     "mips64el",
@@ -56,6 +57,7 @@ COMPILE_AND_RUN_INFO: Dict[COMPILATION_TARGETS_TYPE, Tuple[str, Tuple[str, ...],
     "sparc64": ("sparc64-freestanding", (), "sparc64"),
     "powerpc32": ("powerpc-freestanding", (), "ppc"),
     "powerpc64": ("powerpc64-freestanding", (), "ppc64"),
+    "powerpc64le": ("powerpc64le-freestanding", (), "ppc64le"),
 }
 
 

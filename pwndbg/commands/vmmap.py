@@ -43,14 +43,14 @@ def pages_filter(gdbval_or_str):
         raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
 
 
-def print_vmmap_table_header() -> None:
+def print_vmmap_table_header(prefix: str = "") -> None:
     """
     Prints the table header for the vmmap command.
     """
     prefer_relpaths = "on" if pwndbg.config.vmmap_prefer_relpaths else "off"
     width = 2 + 2 * pwndbg.aglib.arch.ptrsize
     print(
-        f"{'Start':>{width}} {'End':>{width}} {'Perm'} {'Size':>8} {'Offset':>7} "
+        f"{prefix}{'Start':>{width}} {'End':>{width}} {'Perm'} {'Size':>8} {'Offset':>7} "
         f"{'File'} (set vmmap-prefer-relpaths {prefer_relpaths})"
     )
 
@@ -271,8 +271,13 @@ def vmmap(
         print_vmmap_gaps(tuple(total_pages))
         return
 
+    # Determine prefix width for alignment when showing filtered results
+    prefix_str = str(pwndbg.config.backtrace_prefix)
+    empty_prefix = " " * len(prefix_str) if filtered_pages else None
+    header_prefix = f"{empty_prefix} " if filtered_pages else ""
+
     print(M.legend())
-    print_vmmap_table_header()
+    print_vmmap_table_header(header_prefix)
 
     shared_cache_first = None
     shared_cache_last = None
@@ -308,12 +313,12 @@ def vmmap(
             continue
         flush_shared_cache_info()
 
-        backtrace_prefix = None
+        backtrace_prefix = empty_prefix
         display_text = str(page)
 
         if page in filtered_pages:
             # If page was one of the original results, add an arrow for clarity
-            backtrace_prefix = str(pwndbg.config.backtrace_prefix)
+            backtrace_prefix = prefix_str
 
             # If the page is the only filtered page, insert offset
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):

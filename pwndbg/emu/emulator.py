@@ -14,6 +14,7 @@ from typing import Tuple
 
 import capstone as C
 import unicorn as U
+import unicorn.ppc_const
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.disasm.disassembly
@@ -33,6 +34,7 @@ import pwndbg.lib.regs
 from pwndbg import color
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color.syntax_highlight import syntax_highlight
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
@@ -80,7 +82,7 @@ def create_reg_to_const_map(
 
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
-arch_to_UC = {
+arch_to_UC: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, int] = {
     "i386": U.UC_ARCH_X86,
     "x86-64": U.UC_ARCH_X86,
     "mips": U.UC_ARCH_MIPS,
@@ -88,14 +90,14 @@ arch_to_UC = {
     "arm": U.UC_ARCH_ARM,
     "armcm": U.UC_ARCH_ARM,
     "aarch64": U.UC_ARCH_ARM64,
-    # 'powerpc': U.UC_ARCH_PPC,
+    "powerpc": U.UC_ARCH_PPC,
     "rv32": U.UC_ARCH_RISCV,
     "rv64": U.UC_ARCH_RISCV,
     "s390x": U.UC_ARCH_S390X,
 }
 
 # Architecture specific maps: Map<"UC_*_REG_*",constant>
-arch_to_UC_consts = {
+arch_to_UC_consts: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[str, int]] = {
     "i386": parse_consts(U.x86_const),
     "x86-64": parse_consts(U.x86_const),
     "mips": parse_consts(U.mips_const),
@@ -103,13 +105,14 @@ arch_to_UC_consts = {
     "arm": parse_consts(U.arm_const),
     "armcm": parse_consts(U.arm_const),
     "aarch64": parse_consts(U.arm64_const),
+    "powerpc": parse_consts(unicorn.ppc_const),
     "rv32": parse_consts(U.riscv_const),
     "rv64": parse_consts(U.riscv_const),
     "s390x": parse_consts(U.s390x_const),
 }
 
 # Architecture specific maps: Map<reg_name, Unicorn constant>
-arch_to_reg_const_map = {
+arch_to_reg_const_map: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[str, int]] = {
     "i386": create_reg_to_const_map(arch_to_UC_consts["i386"]),
     "x86-64": create_reg_to_const_map(
         arch_to_UC_consts["x86-64"],
@@ -122,15 +125,50 @@ arch_to_reg_const_map = {
     "aarch64": create_reg_to_const_map(
         arch_to_UC_consts["aarch64"], {"CPSR": U.arm64_const.UC_ARM64_REG_NZCV}
     ),
+    "powerpc": create_reg_to_const_map(
+        arch_to_UC_consts["powerpc"],
+        {
+            "R0": unicorn.ppc_const.UC_PPC_REG_0,
+            "SP": unicorn.ppc_const.UC_PPC_REG_1,
+            "R2": unicorn.ppc_const.UC_PPC_REG_2,
+            "R3": unicorn.ppc_const.UC_PPC_REG_3,
+            "R4": unicorn.ppc_const.UC_PPC_REG_4,
+            "R5": unicorn.ppc_const.UC_PPC_REG_5,
+            "R6": unicorn.ppc_const.UC_PPC_REG_6,
+            "R7": unicorn.ppc_const.UC_PPC_REG_7,
+            "R8": unicorn.ppc_const.UC_PPC_REG_8,
+            "R9": unicorn.ppc_const.UC_PPC_REG_9,
+            "R10": unicorn.ppc_const.UC_PPC_REG_10,
+            "R11": unicorn.ppc_const.UC_PPC_REG_11,
+            "R12": unicorn.ppc_const.UC_PPC_REG_12,
+            "R13": unicorn.ppc_const.UC_PPC_REG_13,
+            "R14": unicorn.ppc_const.UC_PPC_REG_14,
+            "R15": unicorn.ppc_const.UC_PPC_REG_15,
+            "R16": unicorn.ppc_const.UC_PPC_REG_16,
+            "R17": unicorn.ppc_const.UC_PPC_REG_17,
+            "R18": unicorn.ppc_const.UC_PPC_REG_18,
+            "R19": unicorn.ppc_const.UC_PPC_REG_19,
+            "R20": unicorn.ppc_const.UC_PPC_REG_20,
+            "R21": unicorn.ppc_const.UC_PPC_REG_21,
+            "R22": unicorn.ppc_const.UC_PPC_REG_22,
+            "R23": unicorn.ppc_const.UC_PPC_REG_23,
+            "R24": unicorn.ppc_const.UC_PPC_REG_24,
+            "R25": unicorn.ppc_const.UC_PPC_REG_25,
+            "R26": unicorn.ppc_const.UC_PPC_REG_26,
+            "R27": unicorn.ppc_const.UC_PPC_REG_27,
+            "R28": unicorn.ppc_const.UC_PPC_REG_28,
+            "R29": unicorn.ppc_const.UC_PPC_REG_29,
+            "R30": unicorn.ppc_const.UC_PPC_REG_30,
+            "R31": unicorn.ppc_const.UC_PPC_REG_31,
+        },
+    ),
     "rv32": create_reg_to_const_map(arch_to_UC_consts["rv32"]),
     "rv64": create_reg_to_const_map(arch_to_UC_consts["rv64"]),
     "s390x": create_reg_to_const_map(arch_to_UC_consts["s390x"]),
 }
 
 # Architectures for which we want to enable virtual TLB mode
-enable_virtual_tlb = {
-    "s390x": True,
-}
+enable_virtual_tlb = {"s390x": True, "powerpc": True}
 
 # combine the flags with | operator. -1 for all
 (

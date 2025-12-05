@@ -401,7 +401,7 @@ class x86_64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def paging_level(self) -> int:
-        return 4 if (pwndbg.aglib.regs["cr4"] & (1 << 12)) == 0 else 5
+        return 4 if (pwndbg.aglib.regs.read_reg("cr4") & (1 << 12)) == 0 else 5
 
     @pwndbg.lib.cache.cache_until("stop")
     def markers(self) -> Tuple[Tuple[str, int], ...]:
@@ -461,13 +461,13 @@ class x86_64PagingInfo(ArchPagingInfo):
                     page.objfile = self.KERNELBSS
                 else:
                     page.objfile = self.KERNELRO
-            if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
+            if pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack) in page:
                 page.objfile = "kernel [stack]"
 
     def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
         # kpti is not an issue here
         if entry is None:
-            entry = pwndbg.aglib.regs["cr3"]
+            entry = pwndbg.aglib.regs.read_reg("cr3")
         return self.pagewalk_helper(target, entry)
 
     def pagetable_scan(self, entry=None) -> List[Page]:
@@ -757,7 +757,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
                     page.objfile = self.KERNELBSS
                 else:
                     page.objfile = self.KERNELRO
-            if pwndbg.aglib.regs[pwndbg.aglib.regs.stack] in page:
+            if pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack) in page:
                 page.objfile = "kernel [stack]"
 
     @property

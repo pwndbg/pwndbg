@@ -6,7 +6,7 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-SYSCALLS_BINARY = get_binary("syscalls-x64.out")
+SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
 
 OPCODE_BYTES_TESTS_EXPECTED_OUTPUT = {
     1: [

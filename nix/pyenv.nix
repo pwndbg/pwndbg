@@ -3,8 +3,8 @@
   inputs,
   python3 ? pkgs.python3,
   isDev ? false,
-  isLLDB ? false,
   isEditable ? false,
+  groups,
   ...
 }:
 let
@@ -133,8 +133,6 @@ let
     paramiko = dummy;
     pip = dummy;
     uv = dummy;
-    gdb-for-pwndbg = dummy;
-    lldb-for-pwndbg = dummy;
 
     # ziglang is only supported on few platforms
     ziglang =
@@ -267,6 +265,32 @@ let
           ];
       })
     ) { };
+
+    gdb-for-pwndbg = pkgs.callPackage (
+      { python3, autoPatchelfHook }:
+      prev.gdb-for-pwndbg.overrideAttrs (old: {
+        nativeBuildInputs = builtins.filter (x: x != autoPatchelfHook) old.nativeBuildInputs;
+        postFixup = ''
+          for f in ${python3}/lib/libpython*; do
+            name=$(basename "$f")
+            ln -s "$f" "$out/lib/$name";
+          done
+        '';
+      })
+    ) { };
+
+    lldb-for-pwndbg = pkgs.callPackage (
+      { python3, autoPatchelfHook }:
+      prev.lldb-for-pwndbg.overrideAttrs (old: {
+        nativeBuildInputs = builtins.filter (x: x != autoPatchelfHook) old.nativeBuildInputs;
+        postFixup = ''
+          for f in ${python3}/lib/libpython*; do
+            name=$(basename "$f")
+            ln -s "$f" "$out/lib/$name";
+          done
+        '';
+      })
+    ) { };
   };
 
   overlays = lib.composeManyExtensions [
@@ -321,30 +345,29 @@ let
   pyenv = pythonSet.mkVirtualEnv "pwndbg-env" {
     pwndbg =
       [ ]
-      ++ lib.optionals isLLDB [
-        "lldb"
-      ]
       ++ lib.optionals isDev [
         "dev"
         "tests"
         # We don't need linters in "dev" build
         # "lint"
-      ];
+      ]
+      ++ groups;
   };
 
   pyenvEditable = editablePythonSet.mkVirtualEnv "pwndbg-editable-env" {
     pwndbg =
       [ ]
-      ++ lib.optionals isLLDB [
-        "lldb"
-      ]
-      ++ lib.optionals (!isLLDB) [
-        "gdb"
-      ]
       ++ lib.optionals isDev [
         "dev"
         "tests"
-      ];
+      ]
+      ++ groups;
   };
+
+  final = (if isEditable then pyenvEditable else pyenv).overrideAttrs (old: {
+    meta = {
+      python3 = python3;
+    };
+  });
 in
-if isEditable then pyenvEditable else pyenv
+final

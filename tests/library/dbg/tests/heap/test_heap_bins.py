@@ -167,7 +167,7 @@ async def test_largebins_size_range_64bit(ctrl: Controller) -> None:
     Ensure the "largebins" command displays the correct largebin size ranges.
     This test targets 64-bit architectures.
     """
-    await launch_to(ctrl, get_binary("initialized_heap_x64.out"), "break_here")
+    await launch_to(ctrl, get_binary("initialized_heap.x86-64.out"), "break_here")
 
     command_output = (await ctrl.execute_and_capture("largebins --verbose")).splitlines()[1:]
 
@@ -247,7 +247,7 @@ async def test_largebins_size_range_32bit_big(ctrl: Controller) -> None:
     Ensure the "largebins" command displays the correct largebin size ranges.
     This test targets 32-bit architectures with MALLOC_ALIGNMENT == 16.
     """
-    await launch_to(ctrl, get_binary("initialized_heap_i386_big.out"), "break_here")
+    await launch_to(ctrl, get_binary("initialized_heap_big.i386.out"), "break_here")
 
     command_output = (await ctrl.execute_and_capture("largebins --verbose")).splitlines()[1:]
 
@@ -327,7 +327,7 @@ async def test_smallbins_sizes_64bit(ctrl: Controller) -> None:
     Ensure the "smallbins" command displays the correct smallbin sizes.
     This test targets 64-bit architectures.
     """
-    await launch_to(ctrl, get_binary("initialized_heap_x64.out"), "break_here")
+    await launch_to(ctrl, get_binary("initialized_heap.x86-64.out"), "break_here")
 
     command_output = (await ctrl.execute_and_capture("smallbins --verbose")).splitlines()[1:]
 
@@ -407,7 +407,7 @@ async def test_smallbins_sizes_32bit_big(ctrl: Controller) -> None:
     This test targets 32-bit architectures with MALLOC_ALIGNMENT == 16.
     """
 
-    await launch_to(ctrl, get_binary("initialized_heap_i386_big.out"), "break_here")
+    await launch_to(ctrl, get_binary("initialized_heap_big.i386.out"), "break_here")
 
     command_output = (await ctrl.execute_and_capture("smallbins --verbose")).splitlines()[1:]
 

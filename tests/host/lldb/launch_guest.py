@@ -50,13 +50,21 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             )
 
         async def step_instruction(self) -> None:
+            # Since LLDB 21+, `step-inst` will stop on breakpoints too.. so `step-instr` will not move forward
+            # See: https://github.com/llvm/llvm-project/issues/160219
+            await self.pc.execute("break disable")
             await self.pc.execute("thread step-inst")
+            await self.pc.execute("break enable")
 
         async def finish(self) -> None:
             await self.pc.execute("thread step-out")
 
         async def select_thread(self, tid: int) -> None:
             await self.pc.execute(f"thread select {tid}")
+
+        async def disable_debuginfod(self) -> None:
+            # Could also consider disabling `symbols.enable-external-lookup`
+            await self.pc.execute("settings set plugin.symbol-locator.debuginfod.server-urls {}")
 
     await outer(_LLDBController(ctrl))
 

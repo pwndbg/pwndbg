@@ -24,6 +24,7 @@ import pwndbg.aglib.disasm.arm
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.disasm.loongarch64
 import pwndbg.aglib.disasm.mips
+import pwndbg.aglib.disasm.ppc
 import pwndbg.aglib.disasm.riscv
 import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
@@ -401,7 +402,7 @@ def near(
     # Copy register values to the enhancer for use in manual register tracking
     if assistant.supports_manual_emulation and address == pc:
         for reg in pwndbg.aglib.regs.current.common:
-            if (reg_value := pwndbg.aglib.regs[reg]) is not None:
+            if (reg_value := pwndbg.aglib.regs.read_reg(reg)) is not None:
                 assistant.manual_register_values.write_register(reg, reg_value)
 
     # Start at the current instruction using emulation if available.
@@ -555,6 +556,7 @@ ALL_DISASSEMBLY_ASSISTANTS: Dict[
     "loongarch64": lambda: pwndbg.aglib.disasm.loongarch64.Loong64DisassemblyAssistant(
         "loongarch64"
     ),
+    "powerpc": lambda: pwndbg.aglib.disasm.ppc.PowerPCDisassemblyAssistant("powerpc"),
 }
 
 

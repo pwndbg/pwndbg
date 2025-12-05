@@ -11,7 +11,6 @@
     import nixpkgs { overlays = [ ]; },
   python3 ? pkgs.python3,
   inputs ? null,
-  isLLDB ? false,
   ...
 }:
 let
@@ -22,10 +21,13 @@ let
       lib
       python3
       inputs
-      isLLDB
       ;
     isDev = true;
     isEditable = true;
+    groups = [
+      "lldb"
+      "gdb"
+    ];
   };
   jemalloc-static = pkgs.jemalloc.overrideAttrs (
     finalAttrs: previousAttrs: {
@@ -74,11 +76,7 @@ in
       }
       ++ [
         jemalloc-static
-        pkgs.gdb
         pyEnv
-      ]
-      ++ pkgs.lib.optionals isLLDB [
-        pkgs.lldb_20
       ];
     shellHook = ''
       # lldb looks for the `debugserver` binary in `DEVELOPER_DIR`,

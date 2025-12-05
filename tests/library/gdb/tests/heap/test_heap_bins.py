@@ -165,7 +165,7 @@ def test_largebins_size_range_64bit(start_binary):
     Ensure the "largebins" command displays the correct largebin size ranges.
     This test targets 64-bit architectures.
     """
-    start_binary(get_binary("initialized_heap_x64.out"))
+    start_binary(get_binary("initialized_heap.x86-64.out"))
     gdb.execute("break break_here")
     gdb.execute("continue")
 
@@ -247,7 +247,7 @@ def test_largebins_size_range_32bit_big(start_binary):
     This test targets 32-bit architectures with MALLOC_ALIGNMENT == 16.
     """
     try:
-        start_binary(get_binary("initialized_heap_i386_big.out"))
+        start_binary(get_binary("initialized_heap_big.i386.out"))
     except gdb.error:
         pytest.skip("Test not supported on this platform.")
 
@@ -331,7 +331,7 @@ def test_smallbins_sizes_64bit(start_binary):
     Ensure the "smallbins" command displays the correct smallbin sizes.
     This test targets 64-bit architectures.
     """
-    start_binary(get_binary("initialized_heap_x64.out"))
+    start_binary(get_binary("initialized_heap.x86-64.out"))
     gdb.execute("break break_here")
     gdb.execute("continue")
 
@@ -412,7 +412,7 @@ def test_smallbins_sizes_32bit_big(start_binary):
     This test targets 32-bit architectures with MALLOC_ALIGNMENT == 16.
     """
     try:
-        start_binary(get_binary("initialized_heap_i386_big.out"))
+        start_binary(get_binary("initialized_heap_big.i386.out"))
     except gdb.error:
         pytest.skip("Test not supported on this platform.")
 

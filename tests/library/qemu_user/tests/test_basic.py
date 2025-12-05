@@ -65,3 +65,7 @@ def test_basic_s390x(qemu_start_binary):
 
 def test_basic_loongarch64(qemu_start_binary):
     helper(qemu_start_binary, "basic.loongarch64.out", "loongarch64")
+
+
+def test_basic_powerpc64le(qemu_start_binary):
+    helper(qemu_start_binary, "basic.powerpc64le.out", "powerpc64le")

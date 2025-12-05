@@ -124,7 +124,7 @@ async def test_command_telescope_frame(ctrl: Controller) -> None:
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
 
     rsp = hex(pwndbg.aglib.regs.sp)
-    rbp = hex(pwndbg.aglib.regs[pwndbg.aglib.regs.frame])
+    rbp = hex(pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame))
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
     result_lines = result_str.strip().split("\n")
@@ -143,7 +143,7 @@ async def test_command_telescope_frame_bp_below_sp(ctrl: Controller) -> None:
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("memoize")  # turn off cache
 
-    pwndbg.aglib.regs.sp = pwndbg.aglib.regs[pwndbg.aglib.regs.frame] + 1
+    pwndbg.aglib.regs.sp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame) + 1
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
 

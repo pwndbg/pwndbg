@@ -55,7 +55,7 @@ def setflag(flag: str, value: int) -> None:
                     print(f"Maximum value for flag is {max_val} (size={size})")
                     return
 
-                old_val = int(pwndbg.aglib.regs[flag_reg])
+                old_val = int(pwndbg.aglib.regs.read_reg(flag_reg))
                 mask = max_val << bit
                 bit_value = value << bit
 

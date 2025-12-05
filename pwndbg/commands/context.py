@@ -953,7 +953,7 @@ class RegisterContext:
         return f"{m}{regname}"
 
     def get_register_value(self, reg):
-        val = pwndbg.aglib.regs[reg]
+        val = pwndbg.aglib.regs.read_reg(reg)
         if val is None:
             print(message.warn(f"Unknown register: {reg!r}"))
             return None

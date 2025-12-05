@@ -27,11 +27,31 @@ def sanitize_signature(func_name: str, sig: str) -> str:
     some functions that don't display properly.
     """
     sig = sig.replace("'", "")
-    match func_name:
-        case "fsbase":
-            sig = re.sub(r"<gdb\.Value object at 0x[0-9a-fA-F]+>", "gdb.Value(0)", sig)
-        case "gsbase":
-            sig = re.sub(r"<gdb\.Value object at 0x[0-9a-fA-F]+>", "gdb.Value(0)", sig)
+
+    # Fixup default values. Example, change this:
+    # fsbase(offset: gdb.Value = <gdb.Value object at 0x7fb49fd2b9b0>) -> int
+    #   into
+    # fsbase(offset: gdb.Value = gdb.Value(0)) -> int
+    # Unfortunately, I don't know how to extract the `0` from gdb.Value(0), and
+    # the number can be any arbitrary number so I cannot just count on it being zero.
+    # Thus, we will hardcode the doc fixes here (thankfully there aren't too many
+    # functions like this).
+    gdb_value_fixups: dict[str, int] = {
+        # convenience function name: the value inside gdb.Value(<this one>)
+        "fsbase": 0,
+        "gsbase": 0,
+        "heap": 0,
+        "stack": 0,
+        "bss": 0,
+        "got": 0,
+    }
+    if func_name in gdb_value_fixups:
+        sig = re.sub(
+            r"<gdb\.Value object at 0x[0-9a-fA-F]+>",
+            f"gdb.Value({gdb_value_fixups[func_name]})",
+            sig,
+        )
+
     return sig
 
 

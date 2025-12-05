@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from typing import Optional
 
+import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.chain
@@ -272,8 +273,21 @@ def plist(
     if next_ptr.is_optimized_out:
         print(message.error(f"{path}{sep}{next_ptr_name} has been optimized out"))
         return
-    if next_ptr.type.code != pwndbg.dbg_mod.TypeCode.POINTER:
-        print(message.error(f"{path}{sep}{next_ptr_name} is not a pointer"))
+
+    # Check if the field is a pointer type, or an integer type with pointer size
+    # (e.g., size_t, uintptr_t, unsigned long on 64-bit systems)
+    # Strip typedefs to get the underlying type (e.g., size_t -> unsigned long)
+    underlying_type = next_ptr.type.strip_typedefs()
+    is_pointer_type = underlying_type.code == pwndbg.dbg_mod.TypeCode.POINTER
+    is_pointer_sized_int = (
+        underlying_type.code == pwndbg.dbg_mod.TypeCode.INT
+        and underlying_type.sizeof == pwndbg.aglib.arch.ptrsize
+    )
+
+    if not (is_pointer_type or is_pointer_sized_int):
+        print(
+            message.error(f"{path}{sep}{next_ptr_name} is not a pointer or pointer-sized integer")
+        )
         return
 
     # If the user wants a specific field to be displayed, resolve it.
@@ -359,7 +373,17 @@ def plist(
     # Here, we figure out how many bytes to subtract from *typeof(inner) so that
     # we can have a *typeof(first).
     pointee_offset = 0
-    if inner is not None and next_ptr.type.target() == inner.type:
+
+    # For pointer-sized integers (like size_t), we can't validate the target type
+    # since they don't have a target() method. We assume they point to the outer structure.
+    if is_pointer_sized_int:
+        # For integer types, we assume pointee_offset is 0 (pointing to outer structure)
+        # unless we have an inner structure, in which case the user needs to use --inner
+        # and we can't automatically determine the offset.
+        if inner is not None:
+            # We can't determine if it points to inner or outer type, so assume outer
+            pointee_offset = 0
+    elif inner is not None and next_ptr.type.target() == inner.type:
         pointee_offset = inner_offset
     elif next_ptr.type.target() == first.type:
         # We've already got everything we need for this mode.

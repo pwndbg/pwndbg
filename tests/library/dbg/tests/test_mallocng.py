@@ -299,6 +299,9 @@ async def test_mallocng_meta(ctrl: Controller, binary: str):
 async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
     import pwndbg.color as color
 
+    # Make sure we are not working with symbols when we think we aren't
+    await ctrl.disable_debuginfod()
+
     await ctrl.launch(binary)
 
     # Check that we do not find it at the first program instruction

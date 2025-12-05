@@ -4,8 +4,8 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-EMULATE_DISASM_BINARY = get_binary("emulate_disasm.out")
-EMULATE_DISASM_LOOP_BINARY = get_binary("emulate_disasm_loop.out")
+EMULATE_DISASM_BINARY = get_binary("emulate_disasm.x86-64.out")
+EMULATE_DISASM_LOOP_BINARY = get_binary("emulate_disasm_loop.x86-64.out")
 
 
 @pwndbg_test

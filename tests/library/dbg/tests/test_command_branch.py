@@ -8,7 +8,7 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-CONDBR_X64_BINARY = get_binary("conditional_branch_breakpoints_x64.out")
+CONDBR_X64_BINARY = get_binary("conditional_branch_breakpoints.x86-64.out")
 
 
 @pwndbg_test
