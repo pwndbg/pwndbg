@@ -472,7 +472,7 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     def pagetable_scan(self, entry=None) -> List[Page]:
         if entry is None:
-            entry = pwndbg.aglib.regs["cr3"]
+            entry = pwndbg.aglib.regs.read_reg("cr3")
         return self.pagetable_scan_helper(entry)
 
     def pageentry_bitflags(self, is_last) -> BitFlags:
