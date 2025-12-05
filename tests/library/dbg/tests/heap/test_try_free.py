@@ -12,6 +12,7 @@ from .. import get_binary
 from .. import pwndbg_test
 
 HEAP_BINARY = get_binary("heap_bugs.x86-64.out")
+HEAP_BINARY_2_42 = get_binary("heap_bugs_2_42.x86-64.out")
 HEAP_CODE = get_binary("heap_bugs.x86-64.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
@@ -62,7 +63,7 @@ def binary_parse_breakpoints(binary_code: str) -> Dict[str, Tuple[int, int]]:
 breakpoints = binary_parse_breakpoints(HEAP_CODE)
 
 
-async def setup_heap(ctrl: Controller, bug_no: int) -> Dict[str, int]:
+async def setup_heap(ctrl: Controller, bug_no: int, binary: str) -> Dict[str, int]:
     """
     Start binary
     Pause after (valid) heap is set-up
@@ -96,7 +97,7 @@ async def setup_heap(ctrl: Controller, bug_no: int) -> Dict[str, int]:
 
 @pwndbg_test
 async def test_try_free_invalid_overflow(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 1)
+    chunks = await setup_heap(ctrl, 1, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
     assert "free(): invalid pointer -> &chunk + chunk->size > max memory" in result
@@ -105,7 +106,7 @@ async def test_try_free_invalid_overflow(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_invalid_misaligned(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 2)
+    chunks = await setup_heap(ctrl, 2, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'] + 2)}")
     assert "free(): invalid pointer -> misaligned chunk" in result
@@ -114,7 +115,7 @@ async def test_try_free_invalid_misaligned(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_invalid_size_minsize(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 3)
+    chunks = await setup_heap(ctrl, 3, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
     assert "free(): invalid size -> chunk's size smaller than MINSIZE" in result
@@ -123,7 +124,7 @@ async def test_try_free_invalid_size_minsize(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_invalid_size_misaligned(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 4)
+    chunks = await setup_heap(ctrl, 4, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
     assert "free(): invalid size -> chunk's size is not aligned" in result
@@ -132,7 +133,7 @@ async def test_try_free_invalid_size_misaligned(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_double_free_tcache(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 5)
+    chunks = await setup_heap(ctrl, 5, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
     assert "Will do checks for tcache double-free" in result
@@ -141,7 +142,7 @@ async def test_try_free_double_free_tcache(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_invalid_next_size_fast(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 6)
+    chunks = await setup_heap(ctrl, 6, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
     assert "free(): invalid next size (fast)" in result
@@ -150,7 +151,7 @@ async def test_try_free_invalid_next_size_fast(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_double_free(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 7)
+    chunks = await setup_heap(ctrl, 7, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
     assert "double free or corruption (fasttop)" in result
@@ -159,7 +160,7 @@ async def test_try_free_double_free(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_invalid_fastbin_entry(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 8)
+    chunks = await setup_heap(ctrl, 8, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['c'])}")
     assert "invalid fastbin entry (free)" in result
@@ -171,7 +172,7 @@ async def test_try_free_double_free_or_corruption_top(ctrl: Controller) -> None:
     import pwndbg.aglib.arch
     import pwndbg.aglib.heap
 
-    await setup_heap(ctrl, 9)
+    await setup_heap(ctrl, 9, HEAP_BINARY)
     allocator = pwndbg.aglib.heap.current
 
     ptr_size = pwndbg.aglib.arch.ptrsize
@@ -185,7 +186,7 @@ async def test_try_free_double_free_or_corruption_top(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_double_free_or_corruption_out(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 10)
+    chunks = await setup_heap(ctrl, 10, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['d'])}")
     assert "double free or corruption (out)" in result
@@ -194,7 +195,7 @@ async def test_try_free_double_free_or_corruption_out(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_double_free_or_corruption_prev(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 11)
+    chunks = await setup_heap(ctrl, 11, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['d'])}")
     assert "double free or corruption (!prev)" in result
@@ -203,7 +204,7 @@ async def test_try_free_double_free_or_corruption_prev(ctrl: Controller) -> None
 
 @pwndbg_test
 async def test_try_free_invalid_next_size_normal(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 12)
+    chunks = await setup_heap(ctrl, 12, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['d'])}")
     assert "free(): invalid next size (normal)" in result
@@ -212,7 +213,7 @@ async def test_try_free_invalid_next_size_normal(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_corrupted_consolidate_backward(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 13)
+    chunks = await setup_heap(ctrl, 13, HEAP_BINARY)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['e'])}")
     assert "corrupted size vs. prev_size while consolidating" in result
@@ -224,7 +225,143 @@ async def test_try_free_corrupted_consolidate_backward(ctrl: Controller) -> None
 )
 @pwndbg_test
 async def test_try_free_corrupted_unsorted_chunks(ctrl: Controller) -> None:
-    chunks = await setup_heap(ctrl, 14)
+    chunks = await setup_heap(ctrl, 14, HEAP_BINARY)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['f'])}")
+    assert "free(): corrupted unsorted chunks" in result
+    os.remove(OUTPUT_FILE)
+
+@pwndbg_test
+async def test_try_free_invalid_overflow_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 1, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
+    assert "free(): invalid pointer -> &chunk + chunk->size > max memory" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_invalid_misaligned_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 2, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'] + 2)}")
+    assert "free(): invalid pointer -> misaligned chunk" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_invalid_size_minsize_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 3, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
+    assert "free(): invalid size -> chunk's size smaller than MINSIZE" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_invalid_size_misaligned_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 4, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
+    assert "free(): invalid size -> chunk's size is not aligned" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_double_free_tcache_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 5, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
+    assert "Will do checks for tcache double-free" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_invalid_next_size_fast_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 6, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
+    assert "free(): invalid next size (fast)" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_double_free_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 7, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['a'])}")
+    assert "double free or corruption (fasttop)" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_invalid_fastbin_entry_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 8, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['c'])}")
+    assert "invalid fastbin entry (free)" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_double_free_or_corruption_top_2_42(ctrl: Controller) -> None:
+    import pwndbg.aglib.arch
+    import pwndbg.aglib.heap
+
+    await setup_heap(ctrl, 9, HEAP_BINARY_2_42)
+    allocator = pwndbg.aglib.heap.current
+
+    ptr_size = pwndbg.aglib.arch.ptrsize
+    arena = allocator.thread_arena or allocator.main_arena
+    top_chunk = arena.top + (2 * ptr_size)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(top_chunk)}")
+    assert "double free or corruption (top)" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_double_free_or_corruption_out_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 10, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['d'])}")
+    assert "double free or corruption (out)" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_double_free_or_corruption_prev_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 11, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['d'])}")
+    assert "double free or corruption (!prev)" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_invalid_next_size_normal_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 12, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['d'])}")
+    assert "free(): invalid next size (normal)" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pwndbg_test
+async def test_try_free_corrupted_consolidate_backward_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 13, HEAP_BINARY_2_42)
+
+    result = await ctrl.execute_and_capture(f"try-free {hex(chunks['e'])}")
+    assert "corrupted size vs. prev_size while consolidating" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pytest.mark.skip(
+    reason="Needs review. In the heap.py on the line 972 the condition is true always. The heap_bug.c file has the function: corrupted_unsorted_chunks()"
+)
+@pwndbg_test
+async def test_try_free_corrupted_unsorted_chunks_2_42(ctrl: Controller) -> None:
+    chunks = await setup_heap(ctrl, 14, HEAP_BINARY_2_42)
 
     result = await ctrl.execute_and_capture(f"try-free {hex(chunks['f'])}")
     assert "free(): corrupted unsorted chunks" in result

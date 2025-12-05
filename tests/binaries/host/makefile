@@ -33,6 +33,7 @@ PWD=$(shell pwd)
 # Apparently we don't have this version? :(
 #GLIBC=/glibc_versions/2.29/tcache_x64
 GLIBC_2_33=$(PWD)/glibcs/2.33
+GLIBC_2_42=$(PWD)/glibcs/2.42
 
 .PHONY : all clean
 
@@ -64,6 +65,16 @@ gosample.x86-64.out : gosample.go
 	@echo "[+] Building gosample.x86-64.out"
 	@GOARCH=amd64 $(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
+
+heap_bugs_2_42.x86-64.out: heap_bugs_2_42.x86-64.c
+	@echo "[+] Building heap_bugs.x86-64.out"
+	${ZIGCC} \
+	${CFLAGS} \
+	-Wno-int-to-pointer-cast -Wno-int-conversion -Wno-unused-variable \
+	-target x86_64-linux-gnu.2.42 \
+	-Wl,-rpath=${GLIBC_2_42}:\
+	-Wl,--dynamic-linker=${GLIBC_2_42}/ld-linux-x86-64.so.2 \
+	-o heap_bugs_2_42.x86-64.out heap_bugs_2_42.x86-64.c
 
 heap_bugs.x86-64.out: heap_bugs.x86-64.c
 	@echo "[+] Building heap_bugs.x86-64.out"

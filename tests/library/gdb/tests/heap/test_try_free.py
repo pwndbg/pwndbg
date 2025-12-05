@@ -12,6 +12,7 @@ import pwndbg.aglib.heap
 from .. import get_binary
 
 HEAP_BINARY = get_binary("heap_bugs.x86-64.out")
+HEAP_BINARY_2_42 = get_binary("heap_bugs_2_42.x86-64.out")
 HEAP_CODE = get_binary("heap_bugs.x86-64.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
@@ -62,7 +63,7 @@ def binary_parse_breakpoints(binary_code):
 breakpoints = binary_parse_breakpoints(HEAP_CODE)
 
 
-def setup_heap(start_binary, bug_no):
+def setup_heap(start_binary, bug_no, binary):
     """
     Start binary
     Pause after (valid) heap is set-up
@@ -77,7 +78,7 @@ def setup_heap(start_binary, bug_no):
     except FileNotFoundError:
         pass
 
-    start_binary(HEAP_BINARY, str(bug_no), OUTPUT_FILE)
+    start_binary(binary, str(bug_no), OUTPUT_FILE)
     gdb.execute("break " + str(breakpoints[bug_no][0]))
     gdb.execute("break " + str(breakpoints[bug_no][1]))
 
@@ -95,7 +96,7 @@ def setup_heap(start_binary, bug_no):
 
 
 def test_try_free_invalid_overflow(start_binary):
-    chunks = setup_heap(start_binary, 1)
+    chunks = setup_heap(start_binary, 1, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
     assert "free(): invalid pointer -> &chunk + chunk->size > max memory" in result
@@ -103,7 +104,7 @@ def test_try_free_invalid_overflow(start_binary):
 
 
 def test_try_free_invalid_misaligned(start_binary):
-    chunks = setup_heap(start_binary, 2)
+    chunks = setup_heap(start_binary, 2, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['a'] + 2)}", to_string=True)
     assert "free(): invalid pointer -> misaligned chunk" in result
@@ -111,7 +112,7 @@ def test_try_free_invalid_misaligned(start_binary):
 
 
 def test_try_free_invalid_size_minsize(start_binary):
-    chunks = setup_heap(start_binary, 3)
+    chunks = setup_heap(start_binary, 3, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
     assert "free(): invalid size -> chunk's size smaller than MINSIZE" in result
@@ -119,7 +120,7 @@ def test_try_free_invalid_size_minsize(start_binary):
 
 
 def test_try_free_invalid_size_misaligned(start_binary):
-    chunks = setup_heap(start_binary, 4)
+    chunks = setup_heap(start_binary, 4, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
     assert "free(): invalid size -> chunk's size is not aligned" in result
@@ -127,7 +128,7 @@ def test_try_free_invalid_size_misaligned(start_binary):
 
 
 def test_try_free_double_free_tcache(start_binary):
-    chunks = setup_heap(start_binary, 5)
+    chunks = setup_heap(start_binary, 5, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
     assert "Will do checks for tcache double-free" in result
@@ -135,7 +136,7 @@ def test_try_free_double_free_tcache(start_binary):
 
 
 def test_try_free_invalid_next_size_fast(start_binary):
-    chunks = setup_heap(start_binary, 6)
+    chunks = setup_heap(start_binary, 6, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
     assert "free(): invalid next size (fast)" in result
@@ -143,7 +144,7 @@ def test_try_free_invalid_next_size_fast(start_binary):
 
 
 def test_try_free_double_free(start_binary):
-    chunks = setup_heap(start_binary, 7)
+    chunks = setup_heap(start_binary, 7, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
     assert "double free or corruption (fasttop)" in result
@@ -151,7 +152,7 @@ def test_try_free_double_free(start_binary):
 
 
 def test_try_free_invalid_fastbin_entry(start_binary):
-    chunks = setup_heap(start_binary, 8)
+    chunks = setup_heap(start_binary, 8, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['c'])}", to_string=True)
     assert "invalid fastbin entry (free)" in result
@@ -159,7 +160,7 @@ def test_try_free_invalid_fastbin_entry(start_binary):
 
 
 def test_try_free_double_free_or_corruption_top(start_binary):
-    setup_heap(start_binary, 9)
+    setup_heap(start_binary, 9, HEAP_BINARY)
     allocator = pwndbg.aglib.heap.current
 
     ptr_size = pwndbg.aglib.arch.ptrsize
@@ -172,7 +173,7 @@ def test_try_free_double_free_or_corruption_top(start_binary):
 
 
 def test_try_free_double_free_or_corruption_out(start_binary):
-    chunks = setup_heap(start_binary, 10)
+    chunks = setup_heap(start_binary, 10, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['d'])}", to_string=True)
     assert "double free or corruption (out)" in result
@@ -180,7 +181,7 @@ def test_try_free_double_free_or_corruption_out(start_binary):
 
 
 def test_try_free_double_free_or_corruption_prev(start_binary):
-    chunks = setup_heap(start_binary, 11)
+    chunks = setup_heap(start_binary, 11, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['d'])}", to_string=True)
     assert "double free or corruption (!prev)" in result
@@ -188,7 +189,7 @@ def test_try_free_double_free_or_corruption_prev(start_binary):
 
 
 def test_try_free_invalid_next_size_normal(start_binary):
-    chunks = setup_heap(start_binary, 12)
+    chunks = setup_heap(start_binary, 12, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['d'])}", to_string=True)
     assert "free(): invalid next size (normal)" in result
@@ -196,7 +197,7 @@ def test_try_free_invalid_next_size_normal(start_binary):
 
 
 def test_try_free_corrupted_consolidate_backward(start_binary):
-    chunks = setup_heap(start_binary, 13)
+    chunks = setup_heap(start_binary, 13, HEAP_BINARY)
 
     result = gdb.execute(f"try-free {hex(chunks['e'])}", to_string=True)
     assert "corrupted size vs. prev_size while consolidating" in result
@@ -207,7 +208,126 @@ def test_try_free_corrupted_consolidate_backward(start_binary):
     reason="Needs review. In the heap.py on the line 972 the condition is true always. The heap_bug.c file has the function: corrupted_unsorted_chunks()"
 )
 def test_try_free_corrupted_unsorted_chunks(start_binary):
-    chunks = setup_heap(start_binary, 14)
+    chunks = setup_heap(start_binary, 14, HEAP_BINARY)
+
+    result = gdb.execute(f"try-free {hex(chunks['f'])}", to_string=True)
+    assert "free(): corrupted unsorted chunks" in result
+    os.remove(OUTPUT_FILE)
+
+def test_try_free_invalid_overflow_2_42(start_binary):
+    chunks = setup_heap(start_binary, 1, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
+    assert "free(): invalid pointer -> &chunk + chunk->size > max memory" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_invalid_misaligned_2_42(start_binary):
+    chunks = setup_heap(start_binary, 2, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['a'] + 2)}", to_string=True)
+    assert "free(): invalid pointer -> misaligned chunk" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_invalid_size_minsize_2_42(start_binary):
+    chunks = setup_heap(start_binary, 3, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
+    assert "free(): invalid size -> chunk's size smaller than MINSIZE" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_invalid_size_misaligned_2_42(start_binary):
+    chunks = setup_heap(start_binary, 4, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
+    assert "free(): invalid size -> chunk's size is not aligned" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_double_free_tcache_2_42(start_binary):
+    chunks = setup_heap(start_binary, 5, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
+    assert "Will do checks for tcache double-free" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_invalid_next_size_fast_2_42(start_binary):
+    chunks = setup_heap(start_binary, 6, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
+    assert "free(): invalid next size (fast)" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_double_free_2_42(start_binary):
+    chunks = setup_heap(start_binary, 7, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
+    assert "double free or corruption (fasttop)" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_invalid_fastbin_entry_2_42(start_binary):
+    chunks = setup_heap(start_binary, 8, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['c'])}", to_string=True)
+    assert "invalid fastbin entry (free)" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_double_free_or_corruption_top_2_42(start_binary):
+    setup_heap(start_binary, 9, HEAP_BINARY_2_42)
+    allocator = pwndbg.aglib.heap.current
+
+    ptr_size = pwndbg.aglib.arch.ptrsize
+    arena = allocator.thread_arena or allocator.main_arena
+    top_chunk = arena.top + (2 * ptr_size)
+
+    result = gdb.execute(f"try-free {hex(top_chunk)}", to_string=True)
+    assert "double free or corruption (top)" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_double_free_or_corruption_out_2_42(start_binary):
+    chunks = setup_heap(start_binary, 10, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['d'])}", to_string=True)
+    assert "double free or corruption (out)" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_double_free_or_corruption_prev_2_42(start_binary):
+    chunks = setup_heap(start_binary, 11, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['d'])}", to_string=True)
+    assert "double free or corruption (!prev)" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_invalid_next_size_normal_2_42(start_binary):
+    chunks = setup_heap(start_binary, 12, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['d'])}", to_string=True)
+    assert "free(): invalid next size (normal)" in result
+    os.remove(OUTPUT_FILE)
+
+
+def test_try_free_corrupted_consolidate_backward_2_42(start_binary):
+    chunks = setup_heap(start_binary, 13, HEAP_BINARY_2_42)
+
+    result = gdb.execute(f"try-free {hex(chunks['e'])}", to_string=True)
+    assert "corrupted size vs. prev_size while consolidating" in result
+    os.remove(OUTPUT_FILE)
+
+
+@pytest.mark.skip(
+    reason="Needs review. In the heap.py on the line 972 the condition is true always. The heap_bug.c file has the function: corrupted_unsorted_chunks()"
+)
+def test_try_free_corrupted_unsorted_chunks_2_42(start_binary):
+    chunks = setup_heap(start_binary, 14, HEAP_BINARY_2_42)
 
     result = gdb.execute(f"try-free {hex(chunks['f'])}", to_string=True)
     assert "free(): corrupted unsorted chunks" in result
