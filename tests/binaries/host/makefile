@@ -68,6 +68,10 @@ all: $(ALL_TARGETS)
 	@$(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
+crash_simple.native.out: crash_simple.native.c
+	@echo "[+] Building '$@'"
+	${ZIGCC} -O0 -nostdlib -ffreestanding -fno-stack-protector -fno-sanitize=all -o $@ $?
+
 gosample.i386.out : gosample.native.go
 	@echo "[+] Building '$@'"
 	@GOARCH=386 $(GO) build -gcflags "-N -l" -o $@ $?
