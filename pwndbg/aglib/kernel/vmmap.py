@@ -401,7 +401,12 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_pages() -> Tuple[Page, ...]:
-    match kernel_vmmap_mode:
+    mode = kernel_vmmap_mode
+    if mode == "page-tables" and pwndbg.aglib.arch.name in ("rv32", "rv64"):
+        # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
+        print(M.warn("`page-tables` unsupported for riscv, defaulting to `monitor info mem`"))
+        mode = "monitor"
+    match mode:
         case "page-tables":
             # has the user set the pgd with kcurrent?
             # None if not which gets properly handled
