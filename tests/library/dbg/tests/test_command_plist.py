@@ -309,3 +309,22 @@ async def test_command_plist_nested_indirect(ctrl: Controller):
 
     result_str = await ctrl.execute_and_capture("plist inner_a_node_a -i inner next")
     assert expected_out.match(result_str) is not None
+
+
+@pwndbg_test
+async def test_command_plist_size_t_field(ctrl: Controller):
+    """
+    Tests the plist command with size_t fields (pointer-sized integers)
+    """
+    await startup(ctrl)
+
+    expected_out = re.compile(
+        """\
+0[xX][0-9a-fA-F]+ <size_t_node_a>:.* 10\\s*
+0[xX][0-9a-fA-F]+ <size_t_node_b>:.* 21\\s*
+0[xX][0-9a-fA-F]+ <size_t_node_c>:.* 42\\s*
+"""
+    )
+
+    result_str = await ctrl.execute_and_capture("plist size_t_node_a next -f value -c 3")
+    assert expected_out.match(result_str) is not None
