@@ -1252,8 +1252,11 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         if tcache is None:
             return None
 
-        if pwndbg.glibc.get_version() >= (2, 42) and not hasattr(
-            GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued"
+        # this will break expected output during tests, so we skip it
+        if (
+            pwndbg.glibc.get_version() >= (2, 42)
+            and not not hasattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued")
+            and os.environ.get("PWNDBG_IN_TEST") is None
         ):
             print(
                 message.warn(

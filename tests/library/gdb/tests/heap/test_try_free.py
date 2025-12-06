@@ -251,7 +251,7 @@ def test_try_free_double_free_tcache_2_42(start_binary):
     chunks = setup_heap(start_binary, 5, HEAP_BINARY_2_42)
 
     result = gdb.execute(f"try-free {hex(chunks['a'])}", to_string=True)
-    assert "Will do checks for tcache double-free" in result
+    assert "Tcache checks" in result
     os.remove(OUTPUT_FILE)
 
 

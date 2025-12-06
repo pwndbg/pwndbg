@@ -38,6 +38,14 @@ services:
     volumes:
       - .:/pwndbg
 
+  ubuntu26.04:
+    <<: *base-spec
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        image: ubuntu:26.04
+
   debian12:
     <<: *base-spec
     build:
