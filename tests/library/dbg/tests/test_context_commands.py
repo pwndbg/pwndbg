@@ -34,6 +34,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     await ctrl.execute("nextcall")
 
     out = pwndbg.commands.context.context_disasm()
+    # todo: regex
     assert "[ DISASM / x86-64 / set emulate on ]" in out[0]  # Sanity check
 
     call_read_line_idx = out.index(
@@ -65,6 +66,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     await ctrl.execute("nextcall")
 
     out = pwndbg.commands.context.context_disasm()
+    # todo: regex
     assert "[ DISASM / x86-64 / set emulate on ]" in out[0]  # Sanity check
 
     call_read_line_idx = out.index(
@@ -268,7 +270,7 @@ async def test_context_backtrace_show_proper_symbol_names(ctrl: Controller) -> N
         == "─────────────────────────────────[ BACKTRACE ]──────────────────────────────────"
     )
 
-    assert re.match(r".*0   0x[0-9a-f]+ A::foo\(int, int\)", backtrace[2])
+    assert re.match(r".*0   0x[0-9a-f]+ A::foo\(int, int\)(\+\d+)?", backtrace[2])
 
     # Match A::call_foo()+38 or similar: the offset may change so we match \d+ at the end
     assert re.match(r".*1   0x[0-9a-f]+ A::call_foo\(\)\+\d+", backtrace[3])

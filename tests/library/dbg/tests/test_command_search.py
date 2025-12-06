@@ -197,6 +197,7 @@ async def test_command_search_asm(ctrl: Controller) -> None:
     """
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
+    # todo: multi arch
     result_str = await ctrl.execute_and_capture('search --asm "add rax, rdx" search_memory')
     result_count = 0
     for line in result_str.split("\n"):
@@ -212,6 +213,7 @@ async def test_command_set_breakpoint_search_asm(ctrl: Controller) -> None:
     """
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
+    # todo: multi arch
     result_str = await ctrl.execute_and_capture('search --asmbp "add rax, rdx" search_memory')
     result_count = 0
     for line in result_str.split("\n"):
