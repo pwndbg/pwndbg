@@ -125,7 +125,7 @@ heap_jemalloc_heap.native.out: heap_jemalloc_heap.native.c
 
 heap_musl_dyn.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
-	${MUSLCC} -g3 -O0 -o $@ $? || true
+	${MUSLCC} -g3 -O0 -o $@ $?
 
 # Ideally I would do:
 # strip heap_musl_static.out
@@ -134,7 +134,7 @@ heap_musl_dyn.native.out: heap_musl.native.c
 # write the tests.
 heap_musl_static.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
-	${MUSLCC} -g3 -O0 -static -o $@ $? || true
+	${MUSLCC} -g3 -O0 -static -o $@ $?
 
 multiple_threads.native.out: multiple_threads.native.c
 	@echo "[+] Building '$@'"
