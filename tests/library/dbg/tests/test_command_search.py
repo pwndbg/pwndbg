@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from ....host import Controller
 from . import get_binary
 from . import launch_to
@@ -28,7 +30,7 @@ async def test_command_search_literal(ctrl: Controller) -> None:
     assert result1 == result2
 
     for line in result0:
-        assert re.match(".* .* 0x216f6c6c6548 /\\* 'Hello!' \\*/", line) is not None
+        assert re.match(".*? /\\* 'Hello!' \\*/", line) is not None
 
 
 @pwndbg_test
@@ -195,9 +197,13 @@ async def test_command_search_asm(ctrl: Controller) -> None:
     """
     Tests searching for asm instructions
     """
+    import pwndbg.aglib.arch
+
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
-    # todo: multi arch
+    if pwndbg.aglib.arch.name != "x86_64":
+        pytest.skip("TODO multiarch")
+
     result_str = await ctrl.execute_and_capture('search --asm "add rax, rdx" search_memory')
     result_count = 0
     for line in result_str.split("\n"):
@@ -211,9 +217,13 @@ async def test_command_set_breakpoint_search_asm(ctrl: Controller) -> None:
     """
     Tests setting breakpoints on found asm instructions
     """
+    import pwndbg.aglib.arch
+
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
-    # todo: multi arch
+    if pwndbg.aglib.arch.name != "x86_64":
+        pytest.skip("TODO multiarch")
+
     result_str = await ctrl.execute_and_capture('search --asmbp "add rax, rdx" search_memory')
     result_count = 0
     for line in result_str.split("\n"):

@@ -34,8 +34,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     await ctrl.execute("nextcall")
 
     out = pwndbg.commands.context.context_disasm()
-    # todo: regex
-    assert "[ DISASM / x86-64 / set emulate on ]" in out[0]  # Sanity check
+    assert "[ DISASM " in out[0]  # Sanity check
 
     call_read_line_idx = out.index(
         next(line for line in out if "<read@plt>" in line or "<read>" in line)
@@ -44,7 +43,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
 
     line_call_read, line_fd, line_buf, line_nbytes, *_rest = lines_after_call_read
 
-    assert "call   read@plt" in line_call_read or "call   read" in line_call_read
+    assert "read@plt" in line_call_read or "read" in line_call_read
 
     # When running tests with GNU Parallel, sometimes the file name looks
     # '/tmp/parZ4YC4.par', and occasionally '(deleted)' is present after the
@@ -66,8 +65,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     await ctrl.execute("nextcall")
 
     out = pwndbg.commands.context.context_disasm()
-    # todo: regex
-    assert "[ DISASM / x86-64 / set emulate on ]" in out[0]  # Sanity check
+    assert "[ DISASM " in out[0]  # Sanity check
 
     call_read_line_idx = out.index(
         next(line for line in out if "<read@plt>" in line or "<read>" in line)
@@ -77,7 +75,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     line_call_read, line_fd, line_buf, line_nbytes, *_rest = lines_after_call_read
 
     line_fd = line_fd.strip()
-    assert re.match(r"fd:\s+3 \([a-z/]*pwndbg/tests/binaries/host/use-fds.native.out\)", line_fd)
+    assert re.match(r"fd:\s+3\s+\(.*?pwndbg/tests/binaries/host/use-fds.native.out\)", line_fd)
 
     line_buf = line_buf.strip()
     assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0", line_buf)
@@ -548,7 +546,12 @@ async def test_context_history_prev_next(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_context_history_search(ctrl: Controller) -> None:
+    import pwndbg.aglib.arch
+
     await ctrl.launch(REFERENCE_BINARY)
+    if pwndbg.aglib.arch.name != "x86_64":
+        pytest.skip("TODO multiarch")
+
     await ctrl.execute("context")
 
     break_at_sym("main")
