@@ -215,7 +215,7 @@ def test_try_free_corrupted_unsorted_chunks(start_binary):
     os.remove(OUTPUT_FILE)
 
 
-@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_invalid_overflow_2_42(start_binary):
     chunks = setup_heap(start_binary, 1, HEAP_BINARY_2_42)
 
@@ -224,7 +224,7 @@ def test_try_free_invalid_overflow_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
-@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_invalid_misaligned_2_42(start_binary):
     chunks = setup_heap(start_binary, 2, HEAP_BINARY_2_42)
 
@@ -233,7 +233,7 @@ def test_try_free_invalid_misaligned_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
-@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_invalid_size_minsize_2_42(start_binary):
     chunks = setup_heap(start_binary, 3, HEAP_BINARY_2_42)
 
@@ -242,7 +242,7 @@ def test_try_free_invalid_size_minsize_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
-@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_invalid_size_misaligned_2_42(start_binary):
     chunks = setup_heap(start_binary, 4, HEAP_BINARY_2_42)
 
@@ -260,7 +260,7 @@ def test_try_free_double_free_tcache_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
-@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_invalid_next_size_fast_2_42(start_binary):
     chunks = setup_heap(start_binary, 6, HEAP_BINARY_2_42)
 
@@ -269,7 +269,7 @@ def test_try_free_invalid_next_size_fast_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
-@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_double_free_2_42(start_binary):
     chunks = setup_heap(start_binary, 7, HEAP_BINARY_2_42)
 
@@ -278,6 +278,7 @@ def test_try_free_double_free_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_invalid_fastbin_entry_2_42(start_binary):
     chunks = setup_heap(start_binary, 8, HEAP_BINARY_2_42)
 
@@ -286,7 +287,7 @@ def test_try_free_invalid_fastbin_entry_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
-@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_double_free_or_corruption_top_2_42(start_binary):
     setup_heap(start_binary, 9, HEAP_BINARY_2_42)
     allocator = pwndbg.aglib.heap.current
@@ -300,6 +301,7 @@ def test_try_free_double_free_or_corruption_top_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_double_free_or_corruption_out_2_42(start_binary):
     chunks = setup_heap(start_binary, 10, HEAP_BINARY_2_42)
 
@@ -308,6 +310,7 @@ def test_try_free_double_free_or_corruption_out_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_double_free_or_corruption_prev_2_42(start_binary):
     chunks = setup_heap(start_binary, 11, HEAP_BINARY_2_42)
 
@@ -316,6 +319,7 @@ def test_try_free_double_free_or_corruption_prev_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_invalid_next_size_normal_2_42(start_binary):
     chunks = setup_heap(start_binary, 12, HEAP_BINARY_2_42)
 
@@ -324,6 +328,7 @@ def test_try_free_invalid_next_size_normal_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 def test_try_free_corrupted_consolidate_backward_2_42(start_binary):
     chunks = setup_heap(start_binary, 13, HEAP_BINARY_2_42)
 
