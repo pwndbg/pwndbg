@@ -10,6 +10,7 @@ HEAP_VIS = get_binary("heap_vis.native.out")
 
 @pwndbg_test
 async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
+    # TODO: x86-64 only
     import pwndbg.aglib.arch
     import pwndbg.aglib.memory
     import pwndbg.aglib.vmmap

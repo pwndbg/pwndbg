@@ -41,7 +41,7 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
 
     await ctrl.launch(REFERENCE_BINARY)
 
-    reg_name = pwndbg.aglib.regs.current.gpr[0]
+    reg_name = pwndbg.aglib.regs.gpr[0]
     ptr_size = pwndbg.aglib.arch.ptrsize
 
     test_offset = 45
@@ -49,7 +49,7 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     test_data = int.from_bytes(
         pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian
     )
-    setattr(pwndbg.aglib.regs, reg_name, test_offset)
+    setattr(pwndbg.aglib.regs, reg_name, test_data)
     out = await ctrl.execute_and_capture(f"cyclic -l ${reg_name}")
 
     assert out == (

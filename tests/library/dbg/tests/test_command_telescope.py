@@ -164,9 +164,10 @@ async def test_command_telescope_frame_bp_sp_different_vmmaps(ctrl: Controller) 
     await ctrl.execute("memoize")  # turn off cache
 
     pages = pwndbg.aglib.vmmap.get()
+    frame_reg_name = pwndbg.aglib.regs.frame
 
     pwndbg.aglib.regs.sp = pages[0].start
-    pwndbg.aglib.regs.fp = pages[1].start
+    setattr(pwndbg.aglib.regs, frame_reg_name, pages[1].start)
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
 
