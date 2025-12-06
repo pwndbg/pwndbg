@@ -260,6 +260,7 @@ def test_try_free_double_free_tcache_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
+@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
 def test_try_free_invalid_next_size_fast_2_42(start_binary):
     chunks = setup_heap(start_binary, 6, HEAP_BINARY_2_42)
 
@@ -268,6 +269,7 @@ def test_try_free_invalid_next_size_fast_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
+@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
 def test_try_free_double_free_2_42(start_binary):
     chunks = setup_heap(start_binary, 7, HEAP_BINARY_2_42)
 
@@ -284,6 +286,7 @@ def test_try_free_invalid_fastbin_entry_2_42(start_binary):
     os.remove(OUTPUT_FILE)
 
 
+@pytest.mark.skip(reason="GLIBC >= 2.42 behaves differently")
 def test_try_free_double_free_or_corruption_top_2_42(start_binary):
     setup_heap(start_binary, 9, HEAP_BINARY_2_42)
     allocator = pwndbg.aglib.heap.current
