@@ -10,12 +10,11 @@ import pwndbg.aglib.vmmap
 import pwndbg.dbg
 from pwndbg.aglib.heap.ptmalloc import BinType
 
-from .. import get_binary, get_host_glibc_version
+from .. import get_binary
 
 BINARY = get_binary("heap_bins.out")
 
 
-@pytest.mark.skipif(get_host_glibc_version() >= (2, 42), reason="GLIBC >= 2.42 behaves differently")
 def test_heap_bins(start_binary):
     """
     Tests pwndbg.aglib.heap bins commands

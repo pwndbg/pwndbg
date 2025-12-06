@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import gdb
-import pytest
 
 import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 
-from .. import get_binary, get_host_glibc_version
+from .. import get_binary
 
 HEAP_VIS = get_binary("heap_vis.out")
 
 
-@pytest.mark.skipif(get_host_glibc_version() >= (2, 42), reason="GLIBC >= 2.42 behaves differently")
 def test_vis_heap_chunk_command(start_binary):
     start_binary(HEAP_VIS)
     gdb.execute("break break_here")

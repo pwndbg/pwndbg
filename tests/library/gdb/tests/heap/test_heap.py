@@ -12,7 +12,7 @@ import pwndbg.aglib.typeinfo
 import pwndbg.dbg
 from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
 
-from .. import get_binary, get_host_glibc_version
+from .. import get_binary
 
 HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
 HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.out")
@@ -342,7 +342,6 @@ def test_main_arena_heuristic(start_binary):
         assert pwndbg.aglib.heap.current.main_arena.address == main_arena_addr_via_debug_symbol
 
 
-@pytest.mark.skipif(get_host_glibc_version() >= (2, 42), reason="GLIBC >= 2.42 behaves differently")
 def test_mp_heuristic(start_binary):
     start_binary(HEAP_MALLOC_CHUNK)
     gdb.execute("set resolve-heap-via-heuristic force")
@@ -370,7 +369,6 @@ def test_mp_heuristic(start_binary):
         assert pwndbg.aglib.heap.current.mp.address == mp_addr_via_debug_symbol
 
 
-@pytest.mark.skipif(get_host_glibc_version() >= (2, 42), reason="GLIBC >= 2.42 behaves differently")
 @pytest.mark.parametrize(
     "is_multi_threaded", [False, True], ids=["single-threaded", "multi-threaded"]
 )
