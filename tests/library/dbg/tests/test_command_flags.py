@@ -17,7 +17,7 @@ async def test_flags_command(ctrl: Controller) -> None:
 
     old_eflags = pwndbg.aglib.regs.eflags
     if old_eflags is None:
-        pytest.skip("no eflags register not available")
+        pytest.skip("eflags register is missing")
 
     # Verify CF is not set
     assert old_eflags & 0x1 == 0
