@@ -9,7 +9,6 @@ from . import pwndbg_test
 REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
-# todo: x86-64 only
 @pwndbg_test
 async def test_flags_command(ctrl: Controller) -> None:
     import pwndbg.aglib.regs
