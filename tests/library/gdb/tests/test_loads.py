@@ -35,10 +35,10 @@ def test_loads_binary_without_crashing():
 def test_loads_core_without_crashing(tmp_path):
     # Generate the corefile if it doesn't already exist
     CORE = str(tmp_path / "corefile.core")
-    assert os.path.isfile(CORE) is None
+    assert os.path.isfile(CORE) is False
     create_coredump = ["run", f"generate-core-file {CORE}"]
     run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
-    assert os.path.isfile(CORE) is not None
+    assert os.path.isfile(CORE) is True
 
     # Attempt loading both a binary and a corefile
     output = run_gdb_with_script(binary=BINARY, core=CORE).splitlines()
