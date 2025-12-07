@@ -469,10 +469,14 @@ class IntegrationManager:
             # Success!
             self._connection = DecompilerConnection(server)
             return True
-        except Exception:
+        except xmlrpc.client.Fault:
+            # It's possible that Ghidra is on the other side.
+            pass
+        except ConnectionRefusedError:
+            # The server probably just isn't running
             pass
 
-        # The connection could fail because its a Ghidra connection on endpoint d2d
+        # The connection could have failed because it's a Ghidra connection on endpoint d2d
         try:
             server = xmlrpc.client.ServerProxy(f"http://{host}:{port}").d2d
             server.ping()
@@ -480,7 +484,7 @@ class IntegrationManager:
             self._connection = DecompilerConnection(server)
             return True
         except (ConnectionRefusedError, AttributeError):
-            # We could also catch xmlrpc.client.Fault
+            # We could also silently catch xmlrpc.client.Fault
             # but those are usually genuine bugs, so we kinda want to know about them.
             pass
 

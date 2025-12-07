@@ -104,7 +104,7 @@ def check_outdated_ghidra_plugin() -> bool:
 
     # The plugin is outdated.
     print(
-        message.error("Ghidra plugin outdated.")
+        message.error("Ghidra plugin outdated. ")
         + f"You have version {version_spec} but required is {d2d_required_version_str}."
     )
     print("Please run `di install ghidra`.")
