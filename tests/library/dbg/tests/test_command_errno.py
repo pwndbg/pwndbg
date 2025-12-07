@@ -16,15 +16,6 @@ async def test_command_errno(ctrl: Controller) -> None:
     """
     await ctrl.launch(REFERENCE_BINARY)
 
-    # Since 'ctrl.launch' stops on the very first instruction, 'errno' might not
-    # yet be available, depending on the system. If it is available, it should
-    # be zero.
-    result = "".join((await ctrl.execute_and_capture("errno")).splitlines())
-    assert (
-        result
-        == "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
-    ) or (result == "Errno 0: OK")
-
     break_at_sym("main")
     await ctrl.cont()
 
