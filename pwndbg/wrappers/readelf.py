@@ -32,6 +32,11 @@ def get_got_entry(local_path: str) -> Dict[RelocationType, List[Dict[str, int | 
                 continue
 
             for rel in section.iter_relocations():
+                # Get the symbol table and look up the symbol for this relocation
+                symbol_table = elf.get_section(section["sh_link"])
+                symbol = symbol_table.get_symbol(rel["r_info_sym"])
+                symbol_name = symbol.name
+
                 # We need to match the relocation type from the file (which is an integer)
                 # to our internal RelocationType enum (JUMP_SLOT, GLOB_DAT, IRELATIVE).
                 #
