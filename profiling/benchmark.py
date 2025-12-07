@@ -143,7 +143,7 @@ parser.add_argument("name", type=str, help="Name placed into output pstats filen
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.DEV)
 def benchmark_large_telescope(name: str):
     # Telescope entire stack
-    stack_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs[pwndbg.aglib.regs.stack])
+    stack_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack))
     start = stack_page.start
     len = stack_page.memsz
     

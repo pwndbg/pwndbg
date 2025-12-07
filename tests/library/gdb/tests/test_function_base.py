@@ -4,7 +4,7 @@ import gdb
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 def test_function_base(start_binary):

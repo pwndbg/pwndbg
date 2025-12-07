@@ -7,7 +7,7 @@ from .. import get_binary
 from .. import launch_to
 from .. import pwndbg_test
 
-HEAP_FIND_FAKE_FAST = get_binary("heap_find_fake_fast.out")
+HEAP_FIND_FAKE_FAST = get_binary("heap_find_fake_fast.native.out")
 
 target_address = None
 

@@ -203,6 +203,15 @@ class Controller:
         """
         raise NotImplementedError()
 
+    def disable_debuginfod(self) -> Awaitable[None]:
+        """
+        Tells the debugger not to use debuginfod (for retrieving
+        debugging information / symbols).
+
+        This should be called before .launch().
+        """
+        raise NotImplementedError()
+
 
 def start(controller: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:
     """

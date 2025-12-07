@@ -26,6 +26,9 @@ class _GDBController(host.Controller):
         GDB hides the asynchronous heavy lifting from us, so this call is
         synchronous.
         """
+        if not os.path.exists(binary_path):
+            pytest.skip(f"{os.path.basename(binary_path)} does not exist. Platform not supported.")
+
         os.environ["PWNDBG_IN_TEST"] = "1"
         gdb.execute(f"file {binary_path}")
         gdb.execute("set exception-verbose on")
@@ -58,6 +61,10 @@ class _GDBController(host.Controller):
 
     async def select_thread(self, tid: int) -> None:
         gdb.execute(f"thread {tid}")
+
+    async def disable_debuginfod(self) -> None:
+        gdb.execute("set debug-file-directory")
+        gdb.execute("set debuginfod enabled off")
 
 
 def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:

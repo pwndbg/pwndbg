@@ -6,7 +6,7 @@ import pwndbg.aglib.regs
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 def test_command_distance(start_binary):

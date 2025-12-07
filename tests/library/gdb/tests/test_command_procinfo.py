@@ -11,7 +11,7 @@ import pwndbg.aglib.proc
 
 from . import get_binary
 
-REFERENCE_BINARY_NET = get_binary("reference-binary-net.out")
+REFERENCE_BINARY_NET = get_binary("reference-binary-net.native.out")
 
 
 class TCPServerThread(threading.Thread):

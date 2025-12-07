@@ -4,7 +4,7 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-STEPSYSCALL_X64_BINARY = get_binary("stepsyscall_x64.out")
+STEPSYSCALL_X64_BINARY = get_binary("stepsyscall.x86-64.out")
 
 
 @pwndbg_test

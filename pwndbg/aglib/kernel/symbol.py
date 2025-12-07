@@ -575,4 +575,4 @@ class Aarch64Symbols(ArchSymbols):
         return self.qword_adrp_add_const(disass)
 
     def _current_task(self):
-        return pwndbg.aglib.regs["sp_el0"]
+        return pwndbg.aglib.regs.read_reg("sp_el0")

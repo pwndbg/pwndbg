@@ -12,7 +12,7 @@ import pwndbg.dbg
 
 from .. import get_binary
 
-HEAP_FIND_FAKE_FAST = get_binary("heap_find_fake_fast.out")
+HEAP_FIND_FAKE_FAST = get_binary("heap_find_fake_fast.native.out")
 
 target_address = None
 

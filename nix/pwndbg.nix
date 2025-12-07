@@ -2,10 +2,8 @@
   pkgs,
   inputs,
   python3 ? pkgs.python3,
-  gdb ? pkgs.pwndbg_gdb,
-  lldb ? pkgs.pwndbg_lldb,
   isDev ? false,
-  isLLDB ? false,
+  groups,
   ...
 }:
 let
@@ -22,8 +20,8 @@ let
       pkgs
       inputs
       python3
+      groups
       isDev
-      isLLDB
       ;
   };
 
@@ -35,38 +33,37 @@ let
     in
     version;
 
-  pwndbg_gdb =
-    pkgs.runCommand "pwndbg"
+  mainProgram =
+    if groups == [ "lldb" ] then
+      "pwndbg-lldb"
+    else if groups == [ "gdb" ] then
+      "pwndbg"
+    else
+      "pwndbg-any";
+
+  pwndbg_any =
+    pkgs.runCommand mainProgram
       {
         version = pwndbgVersion;
         nativeBuildInputs = [ pkgs.pkgsBuildHost.makeWrapper ];
+        meta = {
+          pwndbgVenv = pyEnv;
+          isLLDB = groups == [ "lldb" ];
+          mainProgram = mainProgram;
+        };
       }
       ''
         mkdir -p $out/bin/
-        makeWrapper ${pyEnv}/bin/pwndbg $out/bin/pwndbg \
-            --prefix PATH : ${lib.makeBinPath ([ gdb ] ++ extraPackags)}
-      '';
 
-  pwndbg_lldb =
-    pkgs.runCommand "pwndbg-lldb"
-      {
-        version = pwndbgVersion;
-        nativeBuildInputs = [ pkgs.pkgsBuildHost.makeWrapper ];
-      }
-      ''
-        mkdir -p $out/bin/
-        makeWrapper ${pyEnv}/bin/pwndbg-lldb $out/bin/pwndbg-lldb \
-            --prefix PATH : ${lib.makeBinPath ([ lldb ] ++ extraPackags)}
-      '';
+        if [ -e "${pyEnv}/bin/gdb" ]; then
+          makeWrapper ${pyEnv}/bin/pwndbg $out/bin/pwndbg \
+            --prefix PATH : ${lib.makeBinPath extraPackags}
+        fi
 
-  pwndbg_final = (if isLLDB then pwndbg_lldb else pwndbg_gdb) // {
-    meta = {
-      pwndbgVenv = pyEnv;
-      python3 = python3;
-      gdb = gdb;
-      lldb = lldb;
-      isLLDB = isLLDB;
-    };
-  };
+        if [ -e "${pyEnv}/bin/lldb" ]; then
+          makeWrapper ${pyEnv}/bin/pwndbg-lldb $out/bin/pwndbg-lldb \
+            --prefix PATH : ${lib.makeBinPath extraPackags}
+        fi
+      '';
 in
-pwndbg_final
+pwndbg_any

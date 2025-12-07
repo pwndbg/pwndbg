@@ -5,7 +5,7 @@ from .. import get_binary
 from .. import launch_to
 from .. import pwndbg_test
 
-HEAP_VIS = get_binary("heap_vis.out")
+HEAP_VIS = get_binary("heap_vis.native.out")
 
 
 @pwndbg_test
