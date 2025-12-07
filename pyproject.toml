@@ -33,7 +33,7 @@ dependencies = [
     "ziglang==0.14.1",
     # For installing the decompiler plugins (we don't actually use it as a python library).
     # If you bump this, also bump the pwndbg/commands/integration.py:d2d_required* variables.
-    "decomp2dbg==3.12.0",
+    "decomp2dbg==3.12.2",
 ]
 
 [project.optional-dependencies]

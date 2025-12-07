@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.10, <4"
 resolution-markers = [
     "python_full_version >= '3.15' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
@@ -8,7 +8,9 @@ resolution-markers = [
     "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
     "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
-    "(python_full_version < '3.13' and platform_machine != 'loongarch64') or (python_full_version < '3.13' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'loongarch64') or (python_full_version == '3.12.*' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'loongarch64') or (python_full_version == '3.11.*' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'loongarch64') or (python_full_version < '3.11' and sys_platform != 'linux')",
     "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 
@@ -488,16 +490,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/f1/2a/8c3ac3d8bc94e6de8
 
 [[package]]
 name = "decomp2dbg"
-version = "3.12.0"
+version = "3.12.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "libbs" },
     { name = "pyelftools" },
     { name = "sortedcontainers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ab/d6/07cc22acbc75412796614d63ba99b9442b04915b44700173834fec6611f9/decomp2dbg-3.12.0.tar.gz", hash = "sha256:8dc0d18f7d18c530bae60807e31fa740afdf906387e0a7a50bf319346b2147f6", size = 34204, upload-time = "2025-11-20T20:57:23.443Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/5b/84a488ba422e1fdf58a67aa8d381d289ea3d45aa25f15f6e8d034e942d06/decomp2dbg-3.12.2.tar.gz", hash = "sha256:a49a58986b5122db7d23819cafbfe59e44c2a81d20a1b1357bd0946e9c6be270", size = 34328, upload-time = "2025-11-25T22:40:01.955Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/eb/8f/72eb97ba85fc1ff4f47cff006cc713af55c53134ed42e197e99fa385877d/decomp2dbg-3.12.0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:7be72d9855384ba5b95ca027c9ceea7f0c2dbd684d578a30c530d8cb4af570e2", size = 41860, upload-time = "2025-11-20T20:57:22.587Z" },
+    { url = "https://files.pythonhosted.org/packages/01/44/d72bc702c9f164bac85d75ebd867b6fa161c4283e1367ee72a1cd0634e65/decomp2dbg-3.12.2-py3-none-manylinux2014_x86_64.whl", hash = "sha256:056d3d3605ab85d5876ad1478b59e805342d76e1ebd9a69be0834d5ce69eae07", size = 41984, upload-time = "2025-11-25T22:40:00.729Z" },
 ]
 
 [[package]]
@@ -545,7 +547,9 @@ version = "16.3.0.post6"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
-    "(python_full_version < '3.13' and platform_machine != 'loongarch64') or (python_full_version < '3.13' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'loongarch64') or (python_full_version == '3.12.*' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'loongarch64') or (python_full_version == '3.11.*' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'loongarch64') or (python_full_version < '3.11' and sys_platform != 'linux')",
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/96/18/7f806d320d8aebcbd1ad1e3ab4bfd4ac693d4c7b06a1f2a753c984438ab9/gdb_for_pwndbg-16.3.0.post6-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:fe8938786f1f05e5ee2130bf9b5aa5df1abd0a3b65dde636aaf30f3df2b95d0e", size = 10985740, upload-time = "2025-11-26T19:56:39.468Z" },
@@ -947,7 +951,9 @@ version = "21.1.6.post1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
-    "(python_full_version < '3.13' and platform_machine != 'loongarch64') or (python_full_version < '3.13' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'loongarch64') or (python_full_version == '3.12.*' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'loongarch64') or (python_full_version == '3.11.*' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'loongarch64') or (python_full_version < '3.11' and sys_platform != 'linux')",
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9d/dc/f4b8c4d50a46e791f6d8f1a283b4192cbd40c94b9d488d6649a6c16452bd/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:12011124ac542e8c60abcaeeaf855a0c18776911fcb8328379b2c908b64839a6", size = 54247216, upload-time = "2025-11-28T18:56:01.617Z" },
@@ -1505,7 +1511,8 @@ name = "networkx"
 version = "3.4.2"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version < '3.11'",
+    "(python_full_version < '3.11' and platform_machine != 'loongarch64') or (python_full_version < '3.11' and sys_platform != 'linux')",
+    "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/fd/1d/06475e1cd5264c0b870ea2cc6fdb3e37177c1e565c43f56ff17a10e3937f/networkx-3.4.2.tar.gz", hash = "sha256:307c3669428c5362aab27c8a1260aa8f47c4e91d3891f48be0141738d8d053e1", size = 2151368, upload-time = "2024-10-21T12:39:38.695Z" }
 wheels = [
@@ -1517,9 +1524,14 @@ name = "networkx"
 version = "3.5"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.13'",
-    "python_full_version == '3.12.*'",
-    "python_full_version == '3.11.*'",
+    "python_full_version >= '3.15' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
+    "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "(python_full_version == '3.12.*' and platform_machine != 'loongarch64') or (python_full_version == '3.12.*' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'loongarch64') or (python_full_version == '3.11.*' and sys_platform != 'linux')",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6c/4f/ccdb8ad3a38e583f214547fd2f7ff1fc160c43a75af88e6aec213404b96a/networkx-3.5.tar.gz", hash = "sha256:d4c6f9cf81f52d69230866796b82afbccdec3db7ae4fbd1b65ea750feed50037", size = 2471065, upload-time = "2025-05-29T11:35:07.804Z" }
 wheels = [
@@ -1772,7 +1784,7 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "capstone", specifier = "==6.0.0a5" },
-    { name = "decomp2dbg", specifier = "==3.12.0" },
+    { name = "decomp2dbg", specifier = "==3.12.2" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.10.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp310-cp310-manylinux_2_36_loongarch64.whl" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp311-cp311-manylinux_2_36_loongarch64.whl" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp312-cp312-manylinux_2_36_loongarch64.whl" },
