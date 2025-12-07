@@ -1,7 +1,8 @@
+from __future__ import annotations
 
-from unittest.mock import MagicMock
-import sys
 import os
+import sys
+from unittest.mock import MagicMock
 
 # Mock gdb before importing pwndbg
 sys.modules["gdb"] = MagicMock()
@@ -9,6 +10,7 @@ sys.modules["gdb"].VERSION = "12.1"
 
 import pwndbg.wrappers.readelf
 from pwndbg.wrappers.readelf import RelocationType
+
 
 def test_get_got_entry(tmp_path):
     # We need a binary to test. 
