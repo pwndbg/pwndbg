@@ -21,7 +21,6 @@ NASM            =      nasm -f elf64
 LD              =      ld
 SOURCES_ASM     =      $(wildcard *.$(HOST_ARCH).asm) $(wildcard *.$(HOST_ARCH_32).asm)
 LINKED_ASM      =      $(SOURCES_ASM:.asm=.out)
-LDFLAGS         =
 
 GO              =      go
 SOURCES_GO      =      $(wildcard *.native.go) $(wildcard *.$(HOST_ARCH).go) $(wildcard *.$(HOST_ARCH_32).go)
@@ -56,7 +55,7 @@ all: $(ALL_TARGETS)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
-	@$(CC) $(CFLAGS) -w -o $@ $? $(LDFLAGS)
+	${ZIGCC} ${CFLAGS} -w -o $@ $?
 
 %.out : %.asm
 	@echo "[+] Building '$@'"
@@ -105,11 +104,11 @@ heap_bugs.x86-64.out: heap_bugs.x86-64.c
 # https://sourceware.org/bugzilla/show_bug.cgi?id=24548
 heap_vis.native.out: heap_vis.native.c
 	@echo "[+] Building '$@'"
-	${CC} -g -O0 -Wno-nonnull -o $@ $? -pthread -lpthread
+	${ZIGCC} -g -O0 -Wno-nonnull -o $@ $? -pthread -lpthread
 
 heap_malloc_chunk.native.out: heap_malloc_chunk.native.c
 	@echo "[+] Building '$@'"
-	${CC} -g -O0 -Wno-nonnull -Wno-unused-result -o $@ $? -pthread -lpthread
+	${ZIGCC} -g -O0 -Wno-nonnull -Wno-unused-result -o $@ $? -pthread -lpthread
 
 heap_jemalloc_extent_info.native.out: heap_jemalloc_extent_info.native.c
 	@echo "[+] Building '$@'"
@@ -138,7 +137,7 @@ heap_musl_static.native.out: heap_musl.native.c
 
 multiple_threads.native.out: multiple_threads.native.c
 	@echo "[+] Building '$@'"
-	${CC} -g -O0 -o $@ $? -pthread -lpthread
+	${ZIGCC} -g -O0 -o $@ $? -pthread -lpthread
 
 tls.x86-64.out: tls.x86-64.c
 	@echo "[+] Building '$@'"
@@ -156,7 +155,7 @@ tls.i386.out: tls.i386.c
 
 issue_1565.native.out: issue_1565.native.c
 	@echo "[+] Building '$@'"
-	${CC} -g -O0 -o $@ $? -pthread -lpthread
+	${ZIGCC} -g -O0 -o $@ $? -pthread -lpthread
 
 # TODO: Link against a specific GLIBC version >= 2.26
 initialized_heap_big.i386.out: initialized_heap.native.c
