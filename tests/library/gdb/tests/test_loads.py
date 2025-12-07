@@ -32,12 +32,13 @@ def test_loads_binary_without_crashing():
     assert any("pwndbg: loaded" in line for line in output)
 
 
-def test_loads_core_without_crashing():
+def test_loads_core_without_crashing(tmp_path):
     # Generate the corefile if it doesn't already exist
-    if not os.path.isfile(CORE):
-        create_coredump = ["run", f"generate-core-file {CORE}"]
-        run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
-        assert os.path.isfile(CORE)
+    CORE = str(tmp_path / "corefile.core")
+    assert os.path.isfile(CORE) is None
+    create_coredump = ["run", f"generate-core-file {CORE}"]
+    run_gdb_with_script(binary=BINARY, pyafter=create_coredump)
+    assert os.path.isfile(CORE) is not None
 
     # Attempt loading both a binary and a corefile
     output = run_gdb_with_script(binary=BINARY, core=CORE).splitlines()
