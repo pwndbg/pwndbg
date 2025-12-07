@@ -133,6 +133,9 @@ _api_name_to_id = {
     "angr": DecompilerID.ANGR,
 }
 
+# If the user wants to override our automatic detection
+manual_binary_address: int = -1
+
 
 class DecompilerConnection:
     """
@@ -176,6 +179,10 @@ class DecompilerConnection:
         self._find_binary_addr(print_failure=True)
 
     def _find_binary_addr(self, print_failure: bool = False) -> None:
+        if manual_binary_address != -1:
+            self._binary_base_addr = manual_binary_address
+            return
+
         if inf := pwndbg.dbg.selected_inferior():
             if not inf.alive():
                 return
@@ -197,8 +204,11 @@ class DecompilerConnection:
                         print(
                             message.notice(
                                 f"The decompiled program {basename} doesn't seem to be loaded."
-                                " We will keep an eye out for it."
+                                " We will keep an eye out for it.\n"
                             )
+                            + "If you know that it is actually loaded, check out "
+                            + message.hint("`di set-base --help`")
+                            + ".\n"
                         )
                     return
                 else:

@@ -597,6 +597,23 @@ def list_(list_all: bool) -> None:
         list_one_frame(frame)
 
 
+def set_base(base_addr: int) -> None:
+    # I use a command like this instead of a config parameter because it seems
+    # GDB doesn't allow values > 2^32.
+    if base_addr < -1:
+        print(message.error("Valid values are in [-1, 2^64)."))
+        return
+
+    pwndbg.integration.manual_binary_address = base_addr
+    print(f"Base address of the decompiled binary set to {base_addr:#x}.")
+    if base_addr == -1:
+        print("(back to automatic detection)")
+
+    if pwndbg.integration.manager.is_connected():
+        print("Reconnecting to apply changes..\n")
+        connect(also_sync=True)
+
+
 parser = argparse.ArgumentParser(description="Control Pwndbg decompiler integration.")
 subparsers = parser.add_subparsers(dest="command")
 subparsers.required = True
@@ -649,7 +666,7 @@ Check out `help set decompiler-auto-jump`.
 parser_jump.add_argument(
     "jump_addr",
     metavar="addr",
-    type=pwndbg.commands.sloppy_gdb_parse,
+    type=int,
     nargs="?",
     default=None,
     help="Address to jump to. (default: pc)",
@@ -729,12 +746,41 @@ parser_list.add_argument(
     dest="list_all",
 )
 
+parser_set_base = subparsers.add_parser(
+    "set-base",
+    prog="di set-base",
+    help="Manually set the base memory address of the decompiled binary",
+    description="""
+Manually set the base memory address of the decompiled binary.
+
+Normally, Pwndbg will use the file path that the decompiler reports for the binary and
+check it against all files mapped into memory to find the correct base address.
+
+If for some reason the file names differ or your binary does not show up in the memory
+mappings, you can manually set the base address using this command. This is commonly
+needed when debugging a kernel module.
+
+If you wish to re-enable automatic base address detection, set this value to -1 (or
+restart Pwndbg).
+""",
+)
+parser_set_base.add_argument(
+    "binary_addr",
+    metavar="addr",
+    type=int,
+    help="Memory address of the decompiled binary in the address space",
+)
+
 
 @pwndbg.commands.Command(
     parser, aliases=["di"], category=pwndbg.commands.CommandCategory.INTEGRATIONS
 )
 def decompiler_integration(
-    command: str, jump_addr: Optional[int] = None, install_sub: str = "", list_all: bool = False
+    command: str,
+    jump_addr: Optional[int] = None,
+    install_sub: str = "",
+    list_all: bool = False,
+    binary_addr: int = -1,
 ):
     match command:
         case "connect" | "c":
@@ -751,6 +797,8 @@ def decompiler_integration(
             print(message.notice("Just use the `decomp` command."))
         case "list" | "l":
             list_(list_all)
+        case "set-base":
+            set_base(binary_addr)
 
 
 # ========= End of decompiler-integration command handling =========
