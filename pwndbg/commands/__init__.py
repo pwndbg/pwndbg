@@ -910,7 +910,7 @@ def load_commands() -> None:
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
-
+        import pwndbg.commands.dp
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
     import pwndbg.commands.asm
