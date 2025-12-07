@@ -74,7 +74,7 @@ crash_simple.native.out: crash_simple.native.c
 
 div_zero.native.out: div_zero.native.c
 	@echo "[+] Building '$@'"
-	${ZIGCC} -g -O0 -fsanitize-trap=undefined -Wno-division-by-zero -o $@ $?
+	${ZIGCC} -g -ggdb -O0 -gdwarf-4 -fsanitize-trap=undefined -Wno-division-by-zero -o $@ $?
 
 gosample.i386.out : gosample.native.go
 	@echo "[+] Building '$@'"
