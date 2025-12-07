@@ -64,7 +64,7 @@ async def test_command_search_limit_multiple_pages(ctrl: Controller) -> None:
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
     def filter_results(line):
-        return hex(SEARCH_PATTERN2).lower() in line.lower()
+        return 'search_memory.native.out' in line.lower()
 
     total_entries = 3
     result_str: str = await ctrl.execute_and_capture(f"search -8 {SEARCH_PATTERN2}")

@@ -67,7 +67,7 @@ def test_command_search_limit_multiple_pages(start_binary):
     gdb.execute("run")
 
     def filter_results(line):
-        return hex(SEARCH_PATTERN2).lower() in line.lower()
+        return 'search_memory.native.out' in line.lower()
 
     total_entries = 3
     result_str: str = gdb.execute(f"search -8 {SEARCH_PATTERN2}", to_string=True)

@@ -38,6 +38,7 @@ endif
 
 # LLDB does not support PLT symbolication with -fcf-protection :(
 CFLAGS         += -fcf-protection=none
+CFLAGS         += -fno-sanitize=all
 
 PWD=$(shell pwd)
 # Apparently we don't have this version? :(
