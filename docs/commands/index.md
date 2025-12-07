@@ -160,6 +160,7 @@
 -  [cyclic](misc/cyclic.md) - Cyclic pattern creator/finder.
 -  [cymbol](misc/cymbol.md) - Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit.
 -  [down](misc/down.md) - Select and print stack frame called by this one.
+-  [dp](misc/dp.md) - Debugger-evaluated dprintf-style breakpoint: dp <location> <fmt> [args ...].
 -  [dt](misc/dt.md) - Dump out information on a type (e.g. ucontext_t).
 -  [dumpargs](misc/dumpargs.md) - Prints determined arguments for call/syscall instruction.
 -  [getfile](misc/getfile.md) - Gets the current file.
