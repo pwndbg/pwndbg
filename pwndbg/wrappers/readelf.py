@@ -32,38 +32,19 @@ def get_got_entry(local_path: str) -> Dict[RelocationType, List[Dict[str, int | 
                 continue
 
             for rel in section.iter_relocations():
-                # Check if the relocation type matches one of our interesting types
-                # The relocation type is an integer, but we can look up its name
-                # or just match the name if we know the mapping.
-                # pyelftools provides `_RELOC_TYPE_ARCH` but it's private.
-                # However, `rel['r_info_type']` gives the integer type.
-                # We can use `describe_reloc_type` to get the string name if needed,
-                # or just use the integer if we map it correctly.
-                # But `RelocationType` enum values are integers (1, 2, 3).
-                # These are NOT the ELF relocation type values.
-                # They are just internal IDs for Pwndbg.
-                # We need to match the ELF relocation type name.
-
-                # rel.entry.r_info_type is the integer type.
-                # We can get the symbol table to look up the symbol name.
-                symbol_table = elf.get_section(section["sh_link"])
-                symbol = symbol_table.get_symbol(rel["r_info_sym"])
-                symbol_name = symbol.name
-
-                # We need the relocation type name to match against RelocationType enum names
-                # (JUMP_SLOT, GLOB_DAT, IRELATIVE)
-                # We can use `pwndbg.aglib.arch` to know the arch, but `local_path` might be foreign.
-                # `ELFFile` knows the arch: `elf.get_machine_arch()`
-
-                # Let's use `describe_reloc_type` from elftools to get the name
+                # We need to match the relocation type from the file (which is an integer)
+                # to our internal RelocationType enum (JUMP_SLOT, GLOB_DAT, IRELATIVE).
+                #
+                # pyelftools gives us the integer type via `rel['r_info_type']`.
+                # We use `describe_reloc_type` to translate that integer into a human-readable string
+                # like "R_X86_64_JUMP_SLOT".
                 from elftools.elf.descriptions import describe_reloc_type
 
                 reloc_type_name = describe_reloc_type(rel["r_info_type"], elf)
 
-                # Now check if this type name contains our interesting types
-                # The original code checked: `if c.name in category`
-                # where `category` was the string from readelf (e.g. R_X86_64_JUMP_SLOT)
-                # and `c.name` is JUMP_SLOT.
+                # Now we check if this string contains one of the types we care about.
+                # For example, if we are looking for JUMP_SLOT, we check if "JUMP_SLOT"
+                # is inside "R_X86_64_JUMP_SLOT".
 
                 for c in RelocationType:
                     if c.name in reloc_type_name:

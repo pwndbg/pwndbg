@@ -151,8 +151,9 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
             if not accept_readonly and not pwndbg.aglib.vmmap.find(address).write:
                 continue
             if not name and category == RelocationType.IRELATIVE:
-                # TODO/FIXME: I don't know the naming logic behind this yet, I'm just modifying @bata24's code here :p
-                # We might need to add some comments here to explain the logic in the future, and also fix it if something wrong
+                # I'm not entirely sure why this naming logic exists, but I'm preserving
+                # the behavior from the original implementation (credit to @bata24).
+                # If we figure out the "why" later, we should update this comment!
                 if pwndbg.aglib.arch.name == "i386":
                     name = "*ABS*"
                 else:
