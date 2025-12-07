@@ -146,6 +146,11 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
             value = entry["value"]
             name = entry["name"]
 
+            # Ensure types for mypy
+            assert isinstance(offset, int)
+            assert isinstance(value, int)
+            assert isinstance(name, str)
+
             address = offset + bin_base_offset
             # TODO/FIXME: This check might not work correctly if we failed to get the correct vmmap result
             if not accept_readonly and not pwndbg.aglib.vmmap.find(address).write:
