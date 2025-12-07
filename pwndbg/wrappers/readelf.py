@@ -35,6 +35,40 @@ def get_got_entry(local_path: str) -> Dict[RelocationType, List[Dict[str, int | 
                 symbol = symbol_table.get_symbol(rel["r_info_sym"])
                 symbol_name = symbol.name
 
+                # Try to get the symbol version (e.g., @GLIBC_2.2.5)
+                # This matches the output format of readelf
+                symbol_version = ""
+                try:
+                    # Get the version section if it exists
+                    versym_section = elf.get_section_by_name(".gnu.version")
+                    verneed_section = elf.get_section_by_name(".gnu.version_r")
+
+                    if (
+                        versym_section
+                        and verneed_section
+                        and rel["r_info_sym"] < versym_section.num_symbols()
+                    ):
+                        # Get the version index for this symbol
+                        version_index = versym_section.get_symbol(rel["r_info_sym"])["ndx"]
+
+                        # Version index 0 and 1 are special (local/global)
+                        if version_index > 1:
+                            # Iterate through version requirements to find the matching version
+                            # iter_versions() returns tuples of (verneed, vernaux_iter)
+                            for verneed_item, vernaux_iter in verneed_section.iter_versions():
+                                for vernaux in vernaux_iter:
+                                    if vernaux["vna_other"] == version_index:
+                                        symbol_version = f"@{vernaux.name}"
+                                        break
+                                if symbol_version:
+                                    break
+                except Exception:
+                    # If we can't get version info, just use the base name
+                    pass
+
+                # Combine symbol name with version if available
+                full_symbol_name = symbol_name + symbol_version
+
                 # We need to match the relocation type from the file (which is an integer)
                 # to our internal RelocationType enum (JUMP_SLOT, GLOB_DAT, IRELATIVE).
                 #
@@ -57,7 +91,7 @@ def get_got_entry(local_path: str) -> Dict[RelocationType, List[Dict[str, int | 
                                 "info": rel["r_info"],
                                 "type": reloc_type_name,
                                 "value": symbol["st_value"],
-                                "name": symbol_name,
+                                "name": full_symbol_name,
                                 "addend": rel.entry.get("r_addend", 0),
                             }
                         )
