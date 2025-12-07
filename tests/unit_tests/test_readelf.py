@@ -9,7 +9,6 @@ sys.modules["gdb"] = MagicMock()
 sys.modules["gdb"].VERSION = "12.1"
 
 import pwndbg.wrappers.readelf
-from pwndbg.wrappers.readelf import RelocationType
 
 
 def test_get_got_entry(tmp_path):

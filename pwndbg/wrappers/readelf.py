@@ -7,8 +7,6 @@ from typing import List
 from elftools.elf.elffile import ELFFile
 from elftools.elf.relocation import RelocationSection
 
-import pwndbg.wrappers
-
 cmd_name = "readelf"
 
 
