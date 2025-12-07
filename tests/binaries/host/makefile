@@ -72,6 +72,10 @@ crash_simple.native.out: crash_simple.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -O0 -nostdlib -ffreestanding -fno-stack-protector -fno-sanitize=all -o $@ $?
 
+div_zero.native.out: div_zero.native.c
+	@echo "[+] Building '$@'"
+	${ZIGCC} -g -O0 -fsanitize-trap=undefined -Wno-division-by-zero -o $@ $?
+
 gosample.i386.out : gosample.native.go
 	@echo "[+] Building '$@'"
 	@GOARCH=386 $(GO) build -gcflags "-N -l" -o $@ $?

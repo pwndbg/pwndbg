@@ -15,7 +15,6 @@ HELLO = [
 ]
 
 BINARY = get_binary("div_zero.native.out")
-CORE = "/tmp/pwndbg-tests-div-zero-core"
 
 
 def test_loads_pure_gdb_without_crashing():
@@ -45,7 +44,7 @@ def test_loads_core_without_crashing(tmp_path):
 
     assert any(f"Reading symbols from {BINARY}..." in line for line in output)
     assert any("pwndbg: loaded" in line for line in output)
-    assert "Program terminated with signal SIGFPE, Arithmetic exception." in output
+    assert "Program received signal SIGTRAP, Trace/breakpoint trap." in output
     for h in HELLO:
         assert h in output
 
@@ -62,7 +61,7 @@ def test_loads_core_without_crashing(tmp_path):
     output = run_gdb_with_script(core=CORE).splitlines()
 
     expected = [
-        "Program terminated with signal SIGFPE, Arithmetic exception.",
+        "Program received signal SIGTRAP, Trace/breakpoint trap.",
     ]
     expected += HELLO
 
