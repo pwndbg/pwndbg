@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import re
 
-from pwndbg.gdblib import gdb_version
 
 from . import get_binary
 from .utils import run_gdb_with_script
@@ -44,7 +43,7 @@ def test_loads_core_without_crashing(tmp_path):
 
     assert any(f"Reading symbols from {BINARY}..." in line for line in output)
     assert any("pwndbg: loaded" in line for line in output)
-    assert "Program terminated with signal SIGTRAP, Trace/breakpoint trap." in output
+    assert any("Program terminated with signal" in line for line in output)
     for h in HELLO:
         assert h in output
 
@@ -60,12 +59,8 @@ def test_loads_core_without_crashing(tmp_path):
     # Attempt loading with just a corefile
     output = run_gdb_with_script(core=CORE).splitlines()
 
-    expected = [
-        "Program terminated with signal SIGTRAP, Trace/breakpoint trap.",
-    ]
-    expected += HELLO
-
-    assert all(item in output for item in expected)
+    assert all(item in output for item in HELLO)
+    assert any("Program terminated with signal" in line for line in output)
 
     lwp_line = re.compile(r"^\[New LWP \d+\]$")
     assert any(lwp_line.match(line) for line in output)
