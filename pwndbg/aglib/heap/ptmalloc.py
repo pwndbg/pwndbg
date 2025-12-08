@@ -1692,10 +1692,11 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
     def tcache_small_bins(self) -> int | None:
         if not self.has_tcache():
             return None
-        if "tcache_small_bins" in self.mp.type.keys():
-            return int(self.mp["tcache_small_bins"])
-        elif "tcache_bins" in self.mp.type.keys():
-            return int(self.mp["tcache_bins"])
+        mp = self.mp
+        if "tcache_small_bins" in mp.type.keys():
+            return int(mp["tcache_small_bins"])
+        elif "tcache_bins" in mp.type.keys():
+            return int(mp["tcache_bins"])
         return None
 
     @property
@@ -2243,10 +2244,11 @@ class HeuristicHeap(
     def tcache_small_bins(self) -> int | None:
         if not self.has_tcache():
             return None
-        if "tcache_small_bins" in self.mp.type.keys():
-            return int(self.mp["tcache_small_bins"])
-        elif "tcache_bins" in self.mp.type.keys():
-            return int(self.mp["tcache_bins"])
+        mp = self.mp
+        if "tcache_small_bins" in mp.type.keys():
+            return int(mp["tcache_small_bins"])
+        elif "tcache_bins" in mp.type.keys():
+            return int(mp["tcache_bins"])
         return None
 
     @property
