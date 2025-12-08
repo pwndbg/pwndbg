@@ -78,7 +78,6 @@ let
     "mypy-extensions"
     "pytest"
     "pytest-cov"
-    "pytest-rerunfailures"
     "mypy"
     "vermin"
   ];

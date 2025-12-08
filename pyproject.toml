@@ -77,7 +77,6 @@ tests = [
     # Newer versions of pytest break CI on GitHub
     "pytest==8.0.2",
     "pytest-cov>=4.1.0,<5",
-    "pytest-rerunfailures==15.0",
     "coverage[toml]>=7.5.0,<8",
 ]
 docs = [
