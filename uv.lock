@@ -490,16 +490,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/f1/2a/8c3ac3d8bc94e6de8
 
 [[package]]
 name = "decomp2dbg"
-version = "3.12.2"
+version = "3.12.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "libbs" },
     { name = "pyelftools" },
     { name = "sortedcontainers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b2/5b/84a488ba422e1fdf58a67aa8d381d289ea3d45aa25f15f6e8d034e942d06/decomp2dbg-3.12.2.tar.gz", hash = "sha256:a49a58986b5122db7d23819cafbfe59e44c2a81d20a1b1357bd0946e9c6be270", size = 34328, upload-time = "2025-11-25T22:40:01.955Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2e/7d/2f955db58cf55bd86a3c4efe9f82a7d332916ddbfbb2f4d568ec7ad22f13/decomp2dbg-3.12.3.tar.gz", hash = "sha256:c415074d288e746d5fd897c39b6c49bd264cb31eecfdc729917594bd0e36e0af", size = 34415, upload-time = "2025-12-08T22:40:16.835Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/44/d72bc702c9f164bac85d75ebd867b6fa161c4283e1367ee72a1cd0634e65/decomp2dbg-3.12.2-py3-none-manylinux2014_x86_64.whl", hash = "sha256:056d3d3605ab85d5876ad1478b59e805342d76e1ebd9a69be0834d5ce69eae07", size = 41984, upload-time = "2025-11-25T22:40:00.729Z" },
+    { url = "https://files.pythonhosted.org/packages/1f/b7/9aab5e4591737a99ebee4c14a8d06fdd1f0f0fb0d2bbec19b60b7a1822ee/decomp2dbg-3.12.3-py3-none-manylinux2014_x86_64.whl", hash = "sha256:416a40a7255689354b7222b7ad99506f7719fe8a1d29ce18639888a347bd26ca", size = 42054, upload-time = "2025-12-08T22:40:15.713Z" },
 ]
 
 [[package]]
@@ -516,7 +516,7 @@ name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "(python_full_version < '3.13' and platform_machine != 'loongarch64') or (python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux') or (python_full_version < '3.13' and sys_platform != 'linux')" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0b/9f/a65090624ecf468cdca03533906e7c69ed7588582240cfe7cc9e770b50eb/exceptiongroup-1.3.0.tar.gz", hash = "sha256:b241f5885f560bc56a59ee63ca4c6a8bfa46ae4ad651af316d4e81817bb9fd88", size = 29749, upload-time = "2025-05-10T17:42:51.123Z" }
 wheels = [
@@ -1784,7 +1784,7 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "capstone", specifier = "==6.0.0a5" },
-    { name = "decomp2dbg", specifier = "==3.12.2" },
+    { name = "decomp2dbg", specifier = "==3.12.3" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.10.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp310-cp310-manylinux_2_36_loongarch64.whl" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp311-cp311-manylinux_2_36_loongarch64.whl" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp312-cp312-manylinux_2_36_loongarch64.whl" },
