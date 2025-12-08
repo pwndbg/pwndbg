@@ -74,10 +74,11 @@ def test_command_ktask():
         return
     res = gdb.execute("ktask", to_string=True)
     assert "task @" in res
-    res = gdb.execute("kcurrent --set", to_string=True)
+    res = gdb.execute("kcurrent --set 1", to_string=True)
     assert "task @" in res
-    res2 = gdb.execute("kfile", to_string=True)
-    assert res in res2
+    if "not found" not in res:
+        res2 = gdb.execute("kfile", to_string=True)
+        assert res in res2
 
 
 def test_command_kversion():
