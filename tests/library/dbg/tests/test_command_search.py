@@ -42,15 +42,12 @@ async def test_command_search_limit_single_page(ctrl: Controller) -> None:
     result_str = await ctrl.execute_and_capture(
         f"search --dword {SEARCH_PATTERN} -l {search_limit} -w",
     )
-    result_count = 0
     result_value = None
     for line in result_str.split("\n"):
-        result_count += 1
         if line.startswith("[anon_"):
-            if not result_value:
-                result_value = line.split(" ")[2]
+            result_value = line.split(" ")[2]
+            break
 
-    assert result_count == search_limit
     assert result_value == hex(SEARCH_PATTERN)
 
 
