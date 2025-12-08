@@ -146,11 +146,8 @@ class ArchPagingInfo:
     VMALLOC = "vmalloc"
     VMEMMAP = "vmemmap"
 
-    addr_marker_sz: int
-    va_bits: int
     pagetable_cache: Dict[pwndbg.dbg_mod.Value, Dict[int, int]] = {}
     pagetableptr_cache: Dict[int, pwndbg.dbg_mod.Value] = {}
-    pagetable_level_names: Tuple[str, ...]
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
@@ -307,32 +304,34 @@ class ArchPagingInfo:
     def phys_offset(self):
         return 0
 
+    @property
+    def va_bits(self) -> int:
+        raise NotImplementedError()
+
+    @property
+    def pagetable_level_names(self) -> Tuple[str, ...]:
+        raise NotImplementedError()
+
     def pageentry_flags(self, entry) -> int:
         raise NotImplementedError()
 
 
 class x86_64PagingInfo(ArchPagingInfo):
-    def __init__(self):
-        self.va_bits = 48 if self.paging_level == 4 else 51
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def pagetable_level_names(self) -> Tuple[str, ...]:
         # https://blog.zolutal.io/understanding-paging/
-        self.pagetable_level_names = (
-            (
-                "Page",
-                "PT",
-                "PMD",
-                "PUD",
-                "PGD",
-            )
-            if self.paging_level == 4
-            else (
-                "Page",
-                "PT",
-                "PMD",
-                "P4D",
-                "PUD",
-                "PGD",
-            )
-        )
+        match self.paging_level:
+            case 4:
+                return ("Page", "PT", "PMD", "PUD", "PGD")
+            case 5:
+                return ("Page", "PT", "PMD", "P4D", "PUD", "PGD")
+        return ()
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def va_bits(self) -> int:
+        return 48 if self.paging_level == 4 else 51
 
     @pwndbg.lib.cache.cache_until("stop")
     def get_vmalloc_vmemmap_bases(self):
@@ -492,46 +491,49 @@ class x86_64PagingInfo(ArchPagingInfo):
 
 class Aarch64PagingInfo(ArchPagingInfo):
     def __init__(self):
-        self.tcr_el1 = pwndbg.lib.regs.aarch64_tcr_flags
-        self.tcr_el1.value = pwndbg.aglib.regs.TCR_EL1
+        self.VMEMMAP_START = self.VMEMMAP_SIZE = self.PAGE_OFFSET = None
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def pagetable_level_names(self):
+        match self.paging_level:
+            case 4:
+                return ("Page", "L3", "L2", "L1", "L0")
+            case 3:
+                return ("Page", "L3", "L2", "L1")
+            case 2:
+                return ("Page", "L3", "L2")
+        return ()
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def tcr_el1(self):
+        tcr = pwndbg.lib.regs.aarch64_tcr_flags
+        tcr.value = pwndbg.aglib.regs.TCR_EL1
+        return tcr
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def va_bits(self):
         id_aa64mmfr2_el1 = pwndbg.lib.regs.aarch64_mmfr_flags
         id_aa64mmfr2_el1.value = pwndbg.aglib.regs.ID_AA64MMFR2_EL1
         feat_lva = id_aa64mmfr2_el1.value is not None and id_aa64mmfr2_el1["VARange"] == 0b0001
-        self.va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
-        self.PAGE_OFFSET = self._PAGE_OFFSET(self.va_bits)  # physmap base address without KASLR
+        va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
+        self.PAGE_OFFSET = self._PAGE_OFFSET(va_bits)  # physmap base address without KASLR
         if feat_lva:
-            self.va_bits = min(52, self.va_bits)
-        self.va_bits_min = 48 if self.va_bits > 48 else self.va_bits
-        self._vmalloc = self._PAGE_END(
-            self.va_bits_min
-        )  # also includes KASAN and kernel module regions
-        self.VMEMMAP_START = self.VMEMMAP_SIZE = None
-        if self.paging_level == 4:
-            self.pagetable_level_names = (
-                "Page",
-                "L3",
-                "L2",
-                "L1",
-                "L0",
-            )
-        elif self.paging_level == 3:
-            self.pagetable_level_names = (
-                "Page",
-                "L3",
-                "L2",
-                "L1",
-            )
-
-        elif self.paging_level == 2:
-            self.pagetable_level_names = (
-                "Page",
-                "L3",
-                "L2",
-            )
+            va_bits = min(52, va_bits)
+        return va_bits
 
     @property
+    @pwndbg.lib.cache.cache_until("stop")
+    def va_bits_min(self):
+        return 48 if self.va_bits > 48 else self.va_bits
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
     def vmalloc(self) -> int:
-        return self._vmalloc
+        # also includes KASAN and kernel module regions
+        return self._PAGE_END(self.va_bits_min)
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -576,6 +578,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         if self.kversion is None:
             return INVALID_ADDR
         vmemmap_shift = self.page_shift - self.STRUCT_PAGE_SHIFT
+        # self.PAGE_OFFSET is set by self.va_bits(_min) so must exist
         if self.kversion < (5, 4):
             self.VMEMMAP_SIZE = 1 << (self.va_bits - self.page_shift - 1 + self.STRUCT_PAGE_SHIFT)
             self.VMEMMAP_START = self.PAGE_OFFSET - self.VMEMMAP_SIZE
@@ -676,7 +679,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         return self.page_shift_heuristic
 
     @property
-    @pwndbg.lib.cache.cache_until("forever")
+    @pwndbg.lib.cache.cache_until("stop")
     def paging_level(self):
         # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
         if self.page_shift == 16:
@@ -706,7 +709,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         vmalloc_end = None
         if self.vmemmap and self.pci and self.fixmap:
             vmalloc_end = min(self.vmemmap, self.pci, self.fixmap)
-        if self.VMEMMAP_START is None or self.VMEMMAP_SIZE is None:
+        if self.VMEMMAP_START is None or self.VMEMMAP_SIZE is None or self.PAGE_OFFSET is None:
             return ()
         return (
             (self.USERLAND, 0),
