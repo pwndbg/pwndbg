@@ -88,10 +88,6 @@ def page_info(page):
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def pagewalk(vaddr, entry=None):
-    if not pwndbg.aglib.memory.is_kernel(pwndbg.aglib.regs.pc):
-        # physmap base can not be properly determined
-        print(M.warn("pagewalking when stopped at userland is prohibitted"))
-        return
     if entry is not None:
         entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
     else:
