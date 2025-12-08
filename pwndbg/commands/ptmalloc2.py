@@ -1337,13 +1337,7 @@ def try_free(addr: str | int) -> None:
         and "key" in allocator.tcache_entry.keys()
     ):
         tc_idx = (chunk_size_unmasked - chunk_minsize + malloc_alignment - 1) // malloc_alignment
-        # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
-        tcache_bins = int(
-            allocator.mp["tcache_bins"]
-            if "tcache_bins" in allocator.mp.type.keys()
-            else allocator.mp["tcache_small_bins"]
-        )
-        if allocator.mp is not None and tc_idx < tcache_bins:
+        if allocator.mp is not None and tc_idx < allocator.tcache_small_bins:
             print(message.notice("Tcache checks"))
             e = addr + 2 * size_sz
             e += allocator.tcache_entry.keys().index("key") * ptr_size

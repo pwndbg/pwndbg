@@ -1106,6 +1106,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         raise NotImplementedError()
 
     @property
+    def tcache_small_bins(self) -> int | None:
+        raise NotImplementedError()
+
+    @property
     def mallinfo(self) -> TheType | None:
         raise NotImplementedError()
 
@@ -1685,6 +1689,17 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
+    def tcache_small_bins(self) -> int | None:
+        if not self.has_tcache():
+            return None
+        if "tcache_small_bins" in self.mp.type.keys():
+            return int(self.mp["tcache_small_bins"])
+        elif "tcache_bins" in self.mp.type.keys():
+            return int(self.mp["tcache_bins"])
+        return None
+
+    @property
+    @pwndbg.lib.cache.cache_until("objfile")
     def mallinfo(self) -> pwndbg.dbg_mod.Type | None:
         return pwndbg.aglib.typeinfo.load("struct mallinfo")
 
@@ -2222,6 +2237,17 @@ class HeuristicHeap(
         if not self.struct_module:
             return None
         return self.struct_module.TcacheEntry
+
+    @property
+    @pwndbg.lib.cache.cache_until("objfile")
+    def tcache_small_bins(self) -> int | None:
+        if not self.has_tcache():
+            return None
+        if "tcache_small_bins" in self.mp.type.keys():
+            return int(self.mp["tcache_small_bins"])
+        elif "tcache_bins" in self.mp.type.keys():
+            return int(self.mp["tcache_bins"])
+        return None
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
