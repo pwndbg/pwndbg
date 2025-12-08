@@ -149,13 +149,14 @@ class PageTableScan:
             result[i].virt = addr  # phys addr at this point
             result[i].idx = idx
             result[i].entry = entry
-            resolved = entry & self.PAGE_ENTRY_MASK
+            offset_mask = (1 << self.page_shift + self.PAGE_INDEX_LEN * (i - 1)) - 1
+            resolved = (entry & self.PAGE_ENTRY_MASK, i)
             if self.should_stop_pagewalk(entry):
                 break
-        if resolved:
-            i = 0
-            result[i].virt = resolved
-            result[i].entry = entry
+        if resolved is not None:
+            resolved, offset_mask = resolved
+            result[0].virt = resolved + (target & offset_mask)
+            result[0].entry = entry
         return result
 
 
