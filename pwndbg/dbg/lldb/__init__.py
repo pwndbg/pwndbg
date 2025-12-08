@@ -2303,14 +2303,14 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         Surround this function with try/except.
         """
-        type = "void*"
+        # The `type` parameter is unused, we coerce void* in LLDB.
         try:
             # https://stackoverflow.com/questions/11192511/does-lldb-have-convenience-variables-var
-            self._execute_lldb_command(f"expr {type} ${name} = (({type})({value}))")
+            self._execute_lldb_command(f"expr void* ${name} = ((void*)({value}))")
         except pwndbg.dbg_mod.Error as e:
             if "redefinition" in str(e).lower():
                 # The variable is already defined with a set type, we can try to set the value
                 # anyway and hope for the best. The brackets are important.
-                self._execute_lldb_command(f"expr ${name} = (({type}){value})")
+                self._execute_lldb_command(f"expr ${name} = ((void*){value})")
             else:
                 raise e
