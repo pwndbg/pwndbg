@@ -34,13 +34,13 @@ async def test_command_search_literal(ctrl: Controller) -> None:
 
 
 @pwndbg_test
-async def test_command_search_limit_single_page(ctrl: Cotnroller) -> None:
+async def test_command_search_limit_single_page(ctrl: Controller) -> None:
     """
     Tests simple search limit for single memory page
     """
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
-    search_limit = 10
+    search_limit = 5
     result_str = await ctrl.execute_and_capture(
         f"search --dword {SEARCH_PATTERN} -l {search_limit} -w",
     )
@@ -197,19 +197,14 @@ async def test_command_search_asm(ctrl: Controller) -> None:
     """
     Tests searching for asm instructions
     """
-    import pwndbg.aglib.arch
-
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
-    if pwndbg.aglib.arch.name != "x86_64":
-        pytest.skip("TODO multiarch")
-
-    result_str = await ctrl.execute_and_capture('search --asm "add rax, rdx" search_memory')
+    result_str = await ctrl.execute_and_capture('search --asm "ret" search_memory')
     result_count = 0
     for line in result_str.split("\n"):
         if line.startswith("search_memory"):
             result_count += 1
-    assert result_count == 2
+    assert result_count > 2
 
 
 @pwndbg_test
@@ -217,16 +212,11 @@ async def test_command_set_breakpoint_search_asm(ctrl: Controller) -> None:
     """
     Tests setting breakpoints on found asm instructions
     """
-    import pwndbg.aglib.arch
-
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
-    if pwndbg.aglib.arch.name != "x86_64":
-        pytest.skip("TODO multiarch")
-
-    result_str = await ctrl.execute_and_capture('search --asmbp "add rax, rdx" search_memory')
+    result_str = await ctrl.execute_and_capture('search --asmbp "ret" search_memory')
     result_count = 0
     for line in result_str.split("\n"):
         if line.startswith("Breakpoint"):
             result_count += 1
-    assert result_count == 2
+    assert result_count > 2
