@@ -11,8 +11,8 @@ import pytest
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-USE_FDS_BINARY = get_binary("use-fds.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+USE_FDS_BINARY = get_binary("use-fds.native.out")
 
 
 class TCPServerThread(threading.Thread):

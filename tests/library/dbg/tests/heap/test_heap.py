@@ -11,8 +11,8 @@ from .. import get_binary
 from .. import launch_to
 from .. import pwndbg_test
 
-HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
-HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.out")
+HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
+HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.native.out")
 
 
 def generate_expected_malloc_chunk_output(chunks: Dict[str, ...]) -> Dict[str, ...]:
@@ -559,8 +559,8 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
 ##
 # Jemalloc Tests
 ##
-HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.out")
-HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.out")
+HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.native.out")
+HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.native.out")
 re_match_valid_address = r"0x7ffff[0-9a-fA-F]{6,9}"
 
 

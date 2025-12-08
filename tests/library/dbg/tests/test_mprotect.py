@@ -4,7 +4,7 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-SMALL_BINARY = get_binary("crash_simple.out.hardcoded")
+SMALL_BINARY = get_binary("crash_simple.native.out")
 
 
 @pwndbg_test

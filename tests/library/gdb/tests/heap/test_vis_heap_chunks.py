@@ -8,7 +8,7 @@ import pwndbg.aglib.vmmap
 
 from .. import get_binary
 
-HEAP_VIS = get_binary("heap_vis.out")
+HEAP_VIS = get_binary("heap_vis.native.out")
 
 
 def test_vis_heap_chunk_command(start_binary):

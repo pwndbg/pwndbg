@@ -5,7 +5,7 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 @pwndbg_test

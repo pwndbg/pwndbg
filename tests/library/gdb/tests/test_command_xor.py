@@ -8,7 +8,7 @@ from pwndbg.commands.xor import memfrob
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 def test_command_xor_with_gdb_execute(start_binary):

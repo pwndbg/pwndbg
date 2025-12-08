@@ -14,8 +14,8 @@ from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
 
 from .. import get_binary
 
-HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
-HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.out")
+HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
+HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.native.out")
 
 
 def generate_expected_malloc_chunk_output(chunks):
@@ -510,8 +510,8 @@ def test_heuristic_fail_gracefully(start_binary, is_multi_threaded):
 ##
 # Jemalloc Tests
 ##
-HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.out")
-HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.out")
+HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.native.out")
+HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.native.out")
 # Relax address regex to accept different virtual address layouts (ASLR / jemalloc mappings).
 # Old pattern assumed addresses starting with 0x7ffff and a limited digit count which fails on some hosts.
 re_match_valid_address = r"0x[0-9a-fA-F]{6,16}"

@@ -6,7 +6,7 @@ import pwndbg.aglib.proc
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 def test_command_ignore_no_breakpoint_set():

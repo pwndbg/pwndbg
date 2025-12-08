@@ -9,9 +9,9 @@ import pwndbg.aglib.proc
 
 from . import get_binary
 
-GAPS_MAP_BINARY = get_binary("mmap_gaps.out")
-CRASH_SIMPLE_BINARY = get_binary("crash_simple.out.hardcoded")
-BINARY_ISSUE_1565 = get_binary("issue_1565.out")
+GAPS_MAP_BINARY = get_binary("mmap_gaps.native.out")
+CRASH_SIMPLE_BINARY = get_binary("crash_simple.native.out")
+BINARY_ISSUE_1565 = get_binary("issue_1565.native.out")
 
 
 def get_proc_maps():

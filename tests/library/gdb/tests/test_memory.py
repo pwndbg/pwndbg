@@ -9,8 +9,8 @@ import pwndbg.dbg
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-NESTED_STRUCTS_BINARY = get_binary("nested_structs.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+NESTED_STRUCTS_BINARY = get_binary("nested_structs.native.out")
 
 
 def test_memory_read_write(start_binary):
