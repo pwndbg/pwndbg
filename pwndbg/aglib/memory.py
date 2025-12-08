@@ -445,5 +445,5 @@ def is_pagefault_supported() -> bool:
     return pwndbg.dbg.selected_inferior().is_linux()
 
 
-def is_kernel(addr: int):
-    return (addr >> 63 == 1) and peek(addr) is not None
+def is_kernel(addr: int | None):
+    return addr is not None and (addr >> 63 == 1) and peek(addr) is not None

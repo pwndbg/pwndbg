@@ -160,7 +160,11 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
         if result is not None:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
-    if config_start is None or config_end is None:
+    if (
+        not pwndbg.aglib.memory.is_kernel(config_start)
+        or not pwndbg.aglib.memory.is_kernel(config_end)
+        or config_start >= config_end
+    ):
         _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
         return _kconfig
 
