@@ -45,7 +45,6 @@ class PageTableScan:
     MAX_SAME_PG_TABLE_ENTRY = 0x10
 
     def __init__(self, pi, is_kernel):  # is_kernel is used only for Aarch64
-        assert pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") == b"1"
         # from ArchPagingInfo:
         self.paging_level = pi.paging_level
         self.PAGE_ENTRY_MASK = pi.PAGE_ENTRY_MASK
@@ -241,7 +240,6 @@ class ArchPagingInfo:
         raise NotImplementedError()
 
     def pagetable_scan(self, entry=None) -> List[Page]:
-        # TODO: does aarch64 need multiple entries (el0 and el1)
         raise NotImplementedError()
 
     @property
@@ -256,12 +254,29 @@ class ArchPagingInfo:
     def PAGE_INDEX_MASK(self):
         return (1 << (self.PAGE_INDEX_LEN)) - 1
 
+    @pwndbg.lib.cache.cache_until("stop")
+    def scan_pagetable(self, entry, is_kernel) -> PageTableScan | None:
+        # only two possible return values: https://qemu-project.gitlab.io/qemu/system/gdb.html
+        oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
+        pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
+        if pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") != b"1":
+            return None
+        try:
+            scan = PageTableScan(self, is_kernel)
+            scan.scan(entry, self.paging_level)
+        finally:  # so that the PhyMemMode value is always restored
+            pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
+        return scan
+
     def pagewalk_helper(self, target, entry) -> Tuple[PageTableLevel, ...]:
         base = self.physmap
         if entry > base:
             # user inputted a physmap address as pointer to pgd
             entry -= base
-        result = self.scan.walk(target, entry)  # scan is initialized in pagetable_scan_helper
+        scan = self.scan_pagetable(entry, pwndbg.aglib.memory.is_kernel(target))
+        if scan is None:
+            return ()
+        result = scan.walk(target, entry)
         for i, level in enumerate(result):
             if level.virt is None:
                 continue
@@ -270,15 +285,10 @@ class ArchPagingInfo:
         return tuple(result)
 
     def pagetable_scan_helper(self, entry, is_kernel=None) -> List[Page]:
-        # only two possible return values: https://qemu-project.gitlab.io/qemu/system/gdb.html
-        oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
-        pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
-        try:
-            self.scan = PageTableScan(self, is_kernel)
-            self.scan.scan(entry, self.paging_level)
-        finally:  # so that the PhyMemMode value is always restored
-            pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
-        return self.scan.result
+        scan = self.scan_pagetable(entry, is_kernel)
+        if scan is None:
+            return []
+        return scan.result
 
     def pageentry_bitflags(self, level) -> BitFlags:
         raise NotImplementedError()
