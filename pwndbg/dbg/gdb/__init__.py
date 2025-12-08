@@ -1834,7 +1834,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         Read the docstring in pwndbg.dbg.set_convenience_var()!!
 
-        Surround this function with try/catch.
+        Surround this function with try/except.
         """
         if type is not None:
             gdb.execute(f"set ${name} = (({type})({value}))")

@@ -2301,7 +2301,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         Read the docstring in pwndbg.dbg.set_convenience_var()!!
 
-        Surround this function with try/catch.
+        Surround this function with try/except.
         """
         type = "void*"
         try:

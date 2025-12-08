@@ -1332,6 +1332,6 @@ class Debugger:
             evaluation of this expression requires the target program to be active
             pwndbg>
 
-        You should always surround this function with a try/catch.
+        You should always surround this function with a try/except.
         """
         raise NotImplementedError()
