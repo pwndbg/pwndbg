@@ -18,7 +18,7 @@ async def test_command_dt_works_with_address(ctrl: Controller) -> None:
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
 
-    if pwndbg.aglib.arch.name != "x86_64":
+    if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
     tcache = await ctrl.execute_and_capture("print tcache")
@@ -41,7 +41,7 @@ async def test_command_dt_works_with_no_address(ctrl: Controller) -> None:
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
 
-    if pwndbg.aglib.arch.name != "x86_64":
+    if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
     out = await ctrl.execute_and_capture('dt "struct tcache_perthread_struct"')

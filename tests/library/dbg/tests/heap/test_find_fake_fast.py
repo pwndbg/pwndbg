@@ -56,7 +56,7 @@ async def test_find_fake_fast_command(ctrl: Controller) -> None:
 
     await launch_to(ctrl, HEAP_FIND_FAKE_FAST, "break_here")
 
-    if pwndbg.aglib.arch.name != "x86_64":
+    if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
     # Ensure memory at fake_chunk's heap_info struct isn't mapped.

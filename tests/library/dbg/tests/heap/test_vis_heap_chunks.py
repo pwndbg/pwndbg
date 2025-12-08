@@ -18,7 +18,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     await launch_to(ctrl, HEAP_VIS, "break_here")
 
-    if pwndbg.aglib.arch.name != "x86_64":
+    if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
     # TODO/FIXME: Shall we have a standard method to do this kind of filtering?

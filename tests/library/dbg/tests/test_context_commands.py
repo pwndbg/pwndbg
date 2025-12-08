@@ -549,7 +549,7 @@ async def test_context_history_search(ctrl: Controller) -> None:
     import pwndbg.aglib.arch
 
     await ctrl.launch(REFERENCE_BINARY)
-    if pwndbg.aglib.arch.name != "x86_64":
+    if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
     await ctrl.execute("context")

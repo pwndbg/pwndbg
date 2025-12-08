@@ -73,7 +73,7 @@ async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> 
 
     await ctrl.launch(binary)
 
-    if pwndbg.aglib.arch.name != "x86_64":
+    if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO multiarch")
 
     out = (await ctrl.execute_and_capture("elf")).splitlines()

@@ -23,7 +23,7 @@ async def test_command_search_literal(ctrl: Controller) -> None:
 
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 
-    if pwndbg.aglib.arch.name != "x86_64":
+    if pwndbg.aglib.arch.name != "x86-64":
         pytest.skip("TODO weird bug only on github-ci")
 
     # Perform three equivalent searches, and chop off the first line of verbosity.
