@@ -82,7 +82,7 @@ def kcurrent(pid=None, set_pid=False, verbose=True):
     if pid is None:
         kcurrent = pwndbg.aglib.kernel.current_task()
         kcurrent = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", kcurrent)
-        if kcurrent:
+        if kcurrent and pwndbg.aglib.memory.is_kernel(int(kcurrent)):
             pid = int(kcurrent["pid"])
     if pid is not None:
         for task in pwndbg.commands.ktask.get_ktasks():

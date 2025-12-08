@@ -293,9 +293,8 @@ class ArchPagingInfo:
         try:
             scan = PageTableScan(self, is_kernel)
             scan.scan(entry, self.paging_level)
-        except Exception:  # so that the PhyMemMode value is always restored
-            pass
-        pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
+        finally:  # so that the PhyMemMode value is always restored
+            pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
         return scan.result
 
     def pageentry_bitflags(self, level) -> BitFlags:
@@ -465,7 +464,6 @@ class x86_64PagingInfo(ArchPagingInfo):
                 page.objfile = "kernel [stack]"
 
     def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
-        # kpti is not an issue here
         if entry is None:
             entry = pwndbg.aglib.regs.read_reg("cr3")
         return self.pagewalk_helper(target, entry)
