@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import re
 
-import pytest
-
 from ....host import Controller
 from . import get_binary
 from . import launch_to
@@ -47,10 +45,10 @@ async def test_command_search_limit_single_page(ctrl: Controller) -> None:
     result_count = 0
     result_value = None
     for line in result_str.split("\n"):
+        result_count += 1
         if line.startswith("[anon_"):
             if not result_value:
                 result_value = line.split(" ")[2]
-            result_count += 1
 
     assert result_count == search_limit
     assert result_value == hex(SEARCH_PATTERN)

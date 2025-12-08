@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 import re
 
-
 from . import get_binary
 from .utils import run_gdb_with_script
 
