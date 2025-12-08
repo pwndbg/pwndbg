@@ -3,7 +3,7 @@
 
 ```text
 usage: decompiler-integration [-h]
-                              {connect,c,disconnect,d,sync,s,jump,j,install,decomp,list,l,set-base}
+                              {connect,c,disconnect,d,sync,s,jump,j,install,decomp,list,l,setbase}
                               ...
 
 ```

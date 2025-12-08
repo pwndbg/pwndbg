@@ -207,7 +207,7 @@ class DecompilerConnection:
                                 " We will keep an eye out for it.\n"
                             )
                             + "If you know that it is actually loaded, check out "
-                            + message.hint("`di set-base --help`")
+                            + message.hint("`di setbase --help`")
                             + ".\n"
                         )
                     return

@@ -595,7 +595,7 @@ def list_(list_all: bool) -> None:
         list_one_frame(frame)
 
 
-def set_base(base_addr: int) -> None:
+def setbase(base_addr: int) -> None:
     # I use a command like this instead of a config parameter because it seems
     # GDB doesn't allow values > 2^32.
     if base_addr < -1:
@@ -745,8 +745,8 @@ parser_list.add_argument(
 )
 
 parser_set_base = subparsers.add_parser(
-    "set-base",
-    prog="di set-base",
+    "setbase",
+    prog="di setbase",
     help="Manually set the base memory address of the decompiled binary",
     description="""
 Manually set the base memory address of the decompiled binary.
@@ -795,8 +795,8 @@ def decompiler_integration(
             print(message.notice("Just use the `decomp` command."))
         case "list" | "l":
             list_(list_all)
-        case "set-base":
-            set_base(binary_addr)
+        case "setbase":
+            setbase(binary_addr)
 
 
 # ========= End of decompiler-integration command handling =========
