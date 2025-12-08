@@ -785,11 +785,10 @@ class Aarch64PagingInfo(ArchPagingInfo):
         return self.pagewalk_helper(target, entry)
 
     def pagetable_scan(self, entry=None) -> List[Page]:
-        if entry is not None:
-            return self.pagetable_scan_helper(
-                entry | 3, is_kernel=True
-            )  # marks the entry as a table
-        result = self.pagetable_scan_helper(pwndbg.aglib.regs.TTBR0_EL1 | 3, is_kernel=False)
+        # assumes entry should be from `kcurrent --set` and should be TTBR0_EL1 for a task
+        if entry is None:
+            entry = pwndbg.aglib.regs.TTBR0_EL1
+        result = self.pagetable_scan_helper(entry | 3, is_kernel=False)
         if pwndbg.aglib.memory.is_kernel(pwndbg.aglib.regs.pc):
             result += self.pagetable_scan_helper(pwndbg.aglib.regs.TTBR1_EL1 | 3, is_kernel=True)
         return result
