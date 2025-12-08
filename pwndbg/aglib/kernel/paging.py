@@ -4,7 +4,6 @@ import math
 import re
 import struct
 from dataclasses import dataclass
-from typing import Dict
 from typing import List
 from typing import Tuple
 
@@ -14,7 +13,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap_custom
-import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.regs
@@ -52,6 +50,7 @@ class PageTableScan:
         self.paging_level = pi.paging_level
         self.PAGE_ENTRY_MASK = pi.PAGE_ENTRY_MASK
         self.PAGE_INDEX_LEN = pi.PAGE_INDEX_LEN
+        self.PAGE_INDEX_MASK = pi.PAGE_INDEX_MASK
         self.page_shift = pi.page_shift
         self.pageentry_flags = pi.pageentry_flags
         self.should_stop_pagewalk = pi.should_stop_pagewalk
@@ -134,6 +133,32 @@ class PageTableScan:
             self.result.append(self.curr)
             self.curr = None
 
+    def walk(self, target, entry) -> List[PageTableLevel]:
+        page_shift = self.page_shift
+        result = [PageTableLevel(None, None, None, None) for _ in range(self.paging_level + 1)]
+        resolved = None
+        for i in range(self.paging_level, 0, -1):
+            resolved = None
+            shift = (i - 1) * (page_shift - 3) + page_shift
+            idx = (target & (self.PAGE_INDEX_MASK << shift)) >> shift
+            addr = entry & self.PAGE_ENTRY_MASK
+            if addr not in self.cache:
+                break
+            entry = self.cache[addr][idx]
+            if not entry:
+                break
+            result[i].virt = addr  # phys addr at this point
+            result[i].idx = idx
+            result[i].entry = entry
+            resolved = entry & self.PAGE_ENTRY_MASK
+            if self.should_stop_pagewalk(entry):
+                break
+        if resolved:
+            i = 0
+            result[i].virt = resolved
+            result[i].entry = entry
+        return result
+
 
 class ArchPagingInfo:
     USERLAND = "userland"
@@ -145,9 +170,6 @@ class ArchPagingInfo:
     PHYSMAP = "physmap"
     VMALLOC = "vmalloc"
     VMEMMAP = "vmemmap"
-
-    pagetable_cache: Dict[pwndbg.dbg_mod.Value, Dict[int, int]] = {}
-    pagetableptr_cache: Dict[int, pwndbg.dbg_mod.Value] = {}
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
@@ -239,48 +261,12 @@ class ArchPagingInfo:
         if entry > base:
             # user inputted a physmap address as pointer to pgd
             entry -= base
-        level = self.paging_level
-        result = [PageTableLevel(None, None, None, None)] * (level + 1)
-        page_shift = self.page_shift
-        ENTRYMASK = self.PAGE_ENTRY_MASK
-        IDXMASK = self.PAGE_INDEX_MASK
-        for i in range(level, 0, -1):
-            vaddr = (entry & ENTRYMASK) + base - self.phys_offset
-            if self.should_stop_pagewalk(entry):
-                break
-            shift = (i - 1) * (page_shift - 3) + page_shift
-            offset = target & ((1 << shift) - 1)
-            idx = (target & (IDXMASK << shift)) >> shift
-            entry = 0
-            try:
-                # with this optimization, roughly x2 as fast on average
-                # especially useful when parsing a large number of pages, e.g. set kernel-vmmap monitor
-                if vaddr not in self.pagetableptr_cache:
-                    self.pagetableptr_cache[vaddr] = pwndbg.aglib.memory.get_typed_pointer(
-                        "unsigned long", vaddr
-                    )
-                table = self.pagetableptr_cache[vaddr]
-                if table not in self.pagetable_cache:
-                    self.pagetable_cache[table] = {}
-                table_cache = self.pagetable_cache[table]
-                if idx not in table_cache:
-                    table_cache[idx] = int(table[idx])
-                entry = table_cache[idx]
-                # Prior to optimization:
-                # table = pwndbg.aglib.memory.get_typed_pointer("unsigned long", vaddr)
-                # entry = int(table[idx])
-            except Exception as e:
-                print(M.warn(f"Exception while page walking: {e}"))
-                entry = 0
-            if entry == 0:
-                return tuple(result)
-            result[i] = PageTableLevel(self.pagetable_level_names[i], entry, vaddr, idx)
-        result[0] = PageTableLevel(
-            self.pagetable_level_names[0],
-            entry,
-            (entry & ENTRYMASK) + base + offset - self.phys_offset,
-            None,
-        )
+        result = self.scan.walk(target, entry)  # scan is initialized in pagetable_scan_helper
+        for i, level in enumerate(result):
+            if level.virt is None:
+                continue
+            level.virt = level.virt + base - self.phys_offset
+            level.name = self.pagetable_level_names[i]
         return tuple(result)
 
     def pagetable_scan_helper(self, entry, is_kernel=None) -> List[Page]:
@@ -288,11 +274,11 @@ class ArchPagingInfo:
         oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
         pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
         try:
-            scan = PageTableScan(self, is_kernel)
-            scan.scan(entry, self.paging_level)
+            self.scan = PageTableScan(self, is_kernel)
+            self.scan.scan(entry, self.paging_level)
         finally:  # so that the PhyMemMode value is always restored
             pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
-        return scan.result
+        return self.scan.result
 
     def pageentry_bitflags(self, level) -> BitFlags:
         raise NotImplementedError()
