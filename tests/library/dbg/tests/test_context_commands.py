@@ -43,7 +43,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
 
     line_call_read, line_fd, line_buf, line_nbytes, *_rest = lines_after_call_read
 
-    assert "read@plt" in line_call_read or "read" in line_call_read
+    assert "read" in line_call_read
 
     # When running tests with GNU Parallel, sometimes the file name looks
     # '/tmp/parZ4YC4.par', and occasionally '(deleted)' is present after the
