@@ -47,7 +47,7 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.native.out heap_jemalloc_heap.native.out heap_musl_dyn.native.out heap_musl_static.native.out gosample.i386.out gosample.x86-64.out
+CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.native.out heap_jemalloc_heap.native.out heap_musl_dyn.native.out heap_musl_static.native.out gosample.i386.out gosample.x86-64.out
 NATIVE_CUSTOM_TARGETS  := $(filter %.native.out %.$(HOST_ARCH).out %.$(HOST_ARCH_32).out,$(CUSTOM_TARGETS))
 
 ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(NATIVE_CUSTOM_TARGETS)
@@ -114,6 +114,10 @@ heap_vis.native.out: heap_vis.native.c
 heap_malloc_chunk.native.out: heap_malloc_chunk.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} ${CFLAGS} -g -O0 -Wno-nonnull -Wno-unused-result -o $@ $? -pthread -lpthread
+
+heap_find_fake_fast.native.out: heap_find_fake_fast.native.c
+	@echo "[+] Building '$@'"
+	${CC} ${CFLAGS} -w -o $@ $? -pthread -lpthread
 
 heap_jemalloc_extent_info.native.out: heap_jemalloc_extent_info.native.c
 	@echo "[+] Building '$@'"
