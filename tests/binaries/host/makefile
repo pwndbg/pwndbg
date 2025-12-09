@@ -109,11 +109,11 @@ heap_bugs.x86-64.out: heap_bugs.x86-64.c
 # https://sourceware.org/bugzilla/show_bug.cgi?id=24548
 heap_vis.native.out: heap_vis.native.c
 	@echo "[+] Building '$@'"
-	${ZIGCC} -g -O0 -Wno-nonnull -o $@ $? -pthread -lpthread
+	${ZIGCC} ${CFLAGS} -g -O0 -Wno-nonnull -o $@ $? -pthread -lpthread
 
 heap_malloc_chunk.native.out: heap_malloc_chunk.native.c
 	@echo "[+] Building '$@'"
-	${ZIGCC} -g -O0 -Wno-nonnull -Wno-unused-result -o $@ $? -pthread -lpthread
+	${ZIGCC} ${CFLAGS} -g -O0 -Wno-nonnull -Wno-unused-result -o $@ $? -pthread -lpthread
 
 heap_jemalloc_extent_info.native.out: heap_jemalloc_extent_info.native.c
 	@echo "[+] Building '$@'"
