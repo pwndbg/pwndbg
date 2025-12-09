@@ -4,6 +4,7 @@ import re
 from asyncio import CancelledError
 from contextlib import contextmanager
 from contextlib import nullcontext
+from os import environ
 from pathlib import Path
 from typing import Any
 from typing import Coroutine
@@ -1384,7 +1385,10 @@ class GDB(pwndbg.dbg_mod.Debugger):
         if disable_any:
             return
 
-        home_file = Path("~/.gdbinit").expanduser().resolve()
+        config_home = environ.get("XDG_CONFIG_HOME", Path("~/.config").expanduser().resolve())
+        home_file = (Path(config_home) / "gdb" / "gdbinit").resolve()
+        if not home_file.exists():
+            home_file = Path("~/.gdbinit").expanduser().resolve()
         local_file = Path("./.gdbinit").resolve()
 
         def load_source(file_path: str):
@@ -1395,7 +1399,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         is_home_loaded = False
         if not disable_home and home_file.exists():
-            load_source("~/.gdbinit")
+            load_source(str(home_file))
             is_home_loaded = True
 
         disable_local = not gdb.parameter("auto-load local-gdbinit")

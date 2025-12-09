@@ -96,7 +96,7 @@ class KmemTracepointsData:
             cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
             name = cache.name
         except Exception:
-            self.results.append(M.warn(f"{prefix} invalid SLUB object @ {objaddr}"))
+            self.results.append(M.warn(f"{prefix} invalid SLUB object @ {objaddr:#x}"))
             return
         result = self._format_kmem_tracepoint_output(prefix, name, "obj", objaddr)
         self.add_result(result)

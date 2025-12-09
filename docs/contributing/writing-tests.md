@@ -62,7 +62,7 @@ import gdb
 import pwndbg
 import tests
 
-BINARY = tests.get_binary("symbol_1600_and_752.out")
+BINARY = tests.get_binary("symbol_1600_and_752.native.out")
 ```
 
 Since these tests run inside GDB, we can import the `gdb` Python library. We also import the `tests` module,

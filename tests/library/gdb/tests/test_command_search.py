@@ -6,7 +6,7 @@ import gdb
 
 from . import get_binary
 
-SEARCH_BINARY = get_binary("search_memory.out")
+SEARCH_BINARY = get_binary("search_memory.native.out")
 SEARCH_PATTERN = 0xD00DBEEF
 SEARCH_PATTERN2 = 0xABCDEF1234567890
 

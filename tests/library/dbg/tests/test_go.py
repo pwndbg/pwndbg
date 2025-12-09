@@ -13,7 +13,7 @@ GOSAMPLE_X86 = get_binary("gosample.i386.out")
 async def helper_test_dump(ctrl: Controller, target: str) -> None:
     await ctrl.launch(target, env={"GOMAXPROCS": "1"})
 
-    await ctrl.execute("b gosample.go:6")
+    await ctrl.execute("b gosample.native.go:6")
     await ctrl.cont()
 
     dump = await ctrl.execute_and_capture("go-dump any &x")

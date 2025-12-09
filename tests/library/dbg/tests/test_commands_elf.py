@@ -9,8 +9,8 @@ from . import get_binary
 from . import pwndbg_test
 
 NO_SECTS_BINARY = get_binary("gosample.i386.out")
-PIE_BINARY_WITH_PLT = "reference_bin_pie.out"
-NOPIE_BINARY_WITH_PLT = "reference_bin_nopie.out"
+PIE_BINARY_WITH_PLT = "reference_bin_pie.native.out"
+NOPIE_BINARY_WITH_PLT = "reference_bin_nopie.native.out"
 NOPIE_I386_BINARY_WITH_PLT = "reference_bin_nopie.i386.out"
 
 
