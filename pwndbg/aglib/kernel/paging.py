@@ -135,11 +135,11 @@ class PageTableScan:
     def walk(self, target, entry) -> List[PageTableLevel]:
         page_shift = self.page_shift
         result = [PageTableLevel(None, None, None, None) for _ in range(self.paging_level + 1)]
-        resolved = None
+        resolved = offset_mask = None
         for i in range(self.paging_level, 0, -1):
             resolved = None
-            shift = (i - 1) * (page_shift - 3) + page_shift
-            idx = (target & (self.PAGE_INDEX_MASK << shift)) >> shift
+            shift = page_shift + self.PAGE_INDEX_LEN * (i - 1)
+            idx = (target >> shift) & self.PAGE_INDEX_MASK
             addr = entry & self.PAGE_ENTRY_MASK
             if addr not in self.cache:
                 break
@@ -149,11 +149,11 @@ class PageTableScan:
             result[i].virt = addr  # phys addr at this point
             result[i].idx = idx
             result[i].entry = entry
-            offset_mask = (1 << self.page_shift + self.PAGE_INDEX_LEN * (i - 1)) - 1
-            resolved = (entry & self.PAGE_ENTRY_MASK, i)
+            offset_mask = (1 << shift) - 1
+            resolved = (entry & self.PAGE_ENTRY_MASK, offset_mask)
             if self.should_stop_pagewalk(entry):
                 break
-        if resolved is not None:
+        if resolved and offset_mask is not None:
             resolved, offset_mask = resolved
             result[0].virt = resolved + (target & offset_mask)
             result[0].entry = entry
