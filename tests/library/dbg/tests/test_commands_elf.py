@@ -88,7 +88,7 @@ async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> 
         if is_pie:
             address = section.split()
             addr = int(address[0], 16)
-            assert 0x0000550000000000 <= addr <= 0x00007fffffffffff
+            assert 0x0000550000000000 <= addr <= 0x00007FFFFFFFFFFF
 
     # if this is a pie binary, test for --no-rebase
     if is_pie:
