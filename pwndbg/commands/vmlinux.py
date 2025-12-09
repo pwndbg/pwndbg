@@ -108,7 +108,7 @@ def vmlinux(filepath: str, tool: str = None) -> None:
         # Add the symbol file with the kernel base address
         print(f"Loading symbols at address {hex(base)}...")
         pwndbg.dbg.selected_inferior().add_symbol_file(tmpfile_path, base)
-        print(M.success("Kernel symbols loaded successfully"))
+        print(M.success(f"Loaded kernel symbols from {filepath} successfully"))
 
     except FileNotFoundError:
         print(
