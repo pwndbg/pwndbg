@@ -1749,9 +1749,14 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return sbrk_region
 
     def is_initialized(self) -> bool:
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_malloc_initialized")
+        libc_name = pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
+        addr = pwndbg.aglib.symbol.lookup_symbol_addr(
+            "__libc_malloc_initialized", objfile_endswith=libc_name
+        )
         if addr is None:
-            addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_initialized")
+            addr = pwndbg.aglib.symbol.lookup_symbol_addr(
+                "__malloc_initialized", objfile_endswith=libc_name
+            )
         # fallback for GLIBC 2.42 as __malloc_initialized was removed
         if addr is None:
             return int(self.mp["sbrk_base"]) != 0
