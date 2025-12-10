@@ -141,6 +141,7 @@ EOF
         nasm \
         gcc \
         glibc-debug \
+        lib32-glibc \
         curl \
         wget \
         base-devel \
