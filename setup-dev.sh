@@ -158,12 +158,15 @@ EOF
 install_dnf() {
     sudo dnf upgrade || true
     sudo dnf install -y \
+        make \
         nasm \
         gcc \
         curl \
         wget \
-        gdb \
+        musl-gcc \
+        g++ \
         parallel \
+        qemu-system-x86 \
         qemu-system-arm \
         qemu-user
 

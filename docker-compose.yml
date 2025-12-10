@@ -52,3 +52,11 @@ services:
       dockerfile: Dockerfile.arch
       args:
         image: archlinux:latest
+
+  fedora41:
+    <<: *base-spec
+    build:
+      context: .
+      dockerfile: Dockerfile.dnf
+      args:
+        image: fedora:41
