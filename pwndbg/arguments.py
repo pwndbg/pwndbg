@@ -63,7 +63,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
             return []
     elif CS_GRP_INT in instruction.groups:
         # Get the syscall number and name
-        name = instruction.syscall_name
+        name = f"SYS_{instruction.syscall_name}"
         abi = pwndbg.aglib.arch.syscall_abi
         target = None
 
