@@ -341,6 +341,10 @@
          <lastmod>2025-12-10</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/commands/kernel/vmlinux/</loc>
+         <lastmod>2025-12-10</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/commands/linux_libc_elf/argc/</loc>
          <lastmod>2025-12-10</lastmod>
     </url>
@@ -1670,6 +1674,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/version/</loc>
+         <lastmod>2025-12-10</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/vmlinux/</loc>
          <lastmod>2025-12-10</lastmod>
     </url>
     <url>
