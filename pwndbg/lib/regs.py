@@ -12,15 +12,39 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import OrderedDict
+from typing import Protocol
 from typing import Set
 from typing import Tuple
 from typing import Union
 
+from typing_extensions import override
+
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
+# The printing logic for registers uses the Visitor Pattern
+# An implementation of RegisterContextProtocol is defined outside of this class
+# (this is a lib/ file, so it shouldn't directly be able to access the process)
+# 
+# Instances of VisitableRegister will call the methods of RegisterContextProtocol to do their logic.
 
-class BitFlags:
+class RegisterContextProtocol(Protocol):
+    def flag_register_context(self, reg: str, bit_flags: BitFlags) -> str | None:
+        ...
+
+    def addressing_register_context(self, reg: str, is_virtual: bool) -> str | None:
+        ...
+
+    def segment_registers_context(self,regs: list[str]) -> str | None:
+        ...
+
+
+# Represents a register or a set of registers that can be printed in the context register view
+class VisitableRegister(Protocol):
+    def context(self, rc: RegisterContextProtocol) -> str | None:
+        ...
+
+class BitFlags(VisitableRegister):
     # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
     # for example
     #   - aarch64_cpsr_flags is used for "cpsr", "spsr_el1", "spsr_el2", "spsr_el3"
@@ -31,27 +55,25 @@ class BitFlags:
 
     def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = [], value=None):
         self.regname = ""
-        self.flags = {}
+        self.flags = OrderedDict()
         for name, bits in flags:
             self.flags[name] = bits
         self.value = value
 
     def __getattr__(self, name):
-        if name in {"regname"}:
-            return self.__dict__[name]
         return getattr(self.flags, name)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> int:
         r = self.flags[key]
         if isinstance(r, int):
             return (self.value >> r) & 1
         s, e = r
         return ((~((1 << s) - 1) & ((1 << (e + 1)) - 1)) & self.value) >> s
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: int) -> None:
         self.flags[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str):
         del self.flags[key]
 
     def __iter__(self):
@@ -63,14 +85,15 @@ class BitFlags:
     def __repr__(self):
         return f"BitFlags({self.flags})"
 
-    def update(self, regname: str):
+    def update(self, regname: str) -> None:
         self.regname = regname
 
-    def context(self, rc):
+    @override
+    def context(self, rc: RegisterContextProtocol) -> str | None:
         return rc.flag_register_context(self.regname, self)
 
 
-class AddressingRegister:
+class AddressingRegister(VisitableRegister):
     """
     Represents a register that is used to store an address, e.g. cr3, gsbase, fsbase
     """
@@ -84,14 +107,15 @@ class AddressingRegister:
         self.value = 0
         self.is_virtual = is_virtual
 
-    def update(self, regname: str):
+    def update(self, regname: str) -> None:
         pass
 
-    def context(self, rc):
+    @override
+    def context(self, rc: RegisterContextProtocol) -> str | None:
         return rc.addressing_register_context(self.reg, self.is_virtual)
 
 
-class SegmentRegisters:
+class SegmentRegisters(VisitableRegister):
     """
     Represents the x86 segment register set
     """
@@ -101,7 +125,8 @@ class SegmentRegisters:
     def __init__(self, regs: List[str]):
         self.regs = regs
 
-    def context(self, rc):
+    @override
+    def context(self, rc: RegisterContextProtocol) -> str | None:
         return rc.segment_registers_context(self.regs)
 
 
