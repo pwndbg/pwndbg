@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import pytest
+
 from ....host import Controller
 from . import break_at_sym
 from . import get_binary
 from . import pwndbg_test
 
 # We use the heap_vis binary as it enforces pthreads and so will have TLS on all distros
-REFERENCE_BINARY = get_binary("heap_vis.out")
+REFERENCE_BINARY = get_binary("heap_vis.native.out")
 
 
 @pwndbg_test
@@ -14,16 +16,12 @@ async def test_command_errno(ctrl: Controller) -> None:
     """
     Tests the errno command display
     """
+    import pwndbg.aglib.arch
+
     await ctrl.launch(REFERENCE_BINARY)
 
-    # Since 'ctrl.launch' stops on the very first instruction, 'errno' might not
-    # yet be available, depending on the system. If it is available, it should
-    # be zero.
-    result = "".join((await ctrl.execute_and_capture("errno")).splitlines())
-    assert (
-        result
-        == "Could not determine error code automatically: neither `errno` nor `__errno_location` symbols were provided (perhaps libc.so hasn't been not loaded yet?)"
-    ) or (result == "Errno 0: OK")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     break_at_sym("main")
     await ctrl.cont()

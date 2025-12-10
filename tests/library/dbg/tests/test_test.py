@@ -56,7 +56,7 @@ async def test_launch(ctrl: Controller) -> None:
     import pwndbg
     import pwndbg.aglib.typeinfo
 
-    await ctrl.launch(get_binary("memory.out"))
+    await ctrl.launch(get_binary("memory.x86-64.out"))
 
     inf = pwndbg.dbg.selected_inferior()
     addr = inf.lookup_symbol("short_str")

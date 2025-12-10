@@ -189,3 +189,23 @@ def callstack() -> List[int]:
         frame = frame.parent()
 
     return addresses
+
+
+@pwndbg.lib.cache.cache_until("stop", "start")
+def get_stack_var_name(address: int) -> str | None:
+    """
+    Get the name of the stack variable covering the given address.
+
+    Returns the variable name with optional offset (e.g., "buf+0x8") if the address
+    is within a variable but not at its start. Returns None if no variable is found.
+    """
+    frame = pwndbg.dbg.selected_frame()
+    if frame is None:
+        return None
+
+    for start, end, name in frame.stack_variables():
+        if start <= address < end:
+            offset = address - start
+            return name if offset == 0 else f"{name}+{offset:#x}"
+
+    return None

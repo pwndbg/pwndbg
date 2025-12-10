@@ -289,7 +289,7 @@ def load_custom_structure(custom_structure_name: str, custom_structure_path: str
         return  # generate_debug_symbols prints on failures
     pwndbg.dbg.selected_inferior().add_symbol_file(pwndbg_debug_symbols_output_file)
     loaded_symbols[custom_structure_name] = pwndbg_debug_symbols_output_file
-    print(message.success("Symbols are loaded!"))
+    print(message.success(f"Loaded custom symbols! (from {custom_structure_path})"))
 
 
 @OnlyWhenStructFileExists

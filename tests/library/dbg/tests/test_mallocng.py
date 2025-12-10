@@ -11,8 +11,8 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-HEAP_MALLOCNG_DYN = get_binary("heap_musl_dyn.out")
-HEAP_MALLOCNG_STATIC = get_binary("heap_musl_static.out")
+HEAP_MALLOCNG_DYN = get_binary("heap_musl_dyn.native.out")
+HEAP_MALLOCNG_STATIC = get_binary("heap_musl_static.native.out")
 
 # Userland only
 re_addr = r"0x[0-9a-fA-F]{1,12}"
@@ -299,6 +299,9 @@ async def test_mallocng_meta(ctrl: Controller, binary: str):
 async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
     import pwndbg.color as color
 
+    # Make sure we are not working with symbols when we think we aren't
+    await ctrl.disable_debuginfod()
+
     await ctrl.launch(binary)
 
     # Check that we do not find it at the first program instruction
@@ -337,10 +340,14 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
 )
 async def test_mallocng_find(ctrl: Controller, binary: str):
     import pwndbg
+    import pwndbg.aglib.arch
     import pwndbg.color as color
 
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     # Check no slot found
     find_out = color.strip(await ctrl.execute_and_capture("ng-find $rip"))

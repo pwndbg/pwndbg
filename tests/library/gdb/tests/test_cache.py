@@ -6,7 +6,7 @@ from pwndbg.lib import cache
 
 from . import get_binary
 
-BINARY = get_binary("reference-binary.out")
+BINARY = get_binary("reference-binary.native.out")
 
 
 def test_cache_single_value(start_binary):

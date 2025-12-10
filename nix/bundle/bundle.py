@@ -365,7 +365,7 @@ def bundle_library(binary_path: Path, root_dst: Path, *, is_exe: bool, dst_path:
 
 
 def bundle_python_venv(src_lib_dir: Path, out_lib_dir: Path, root_dst: Path):
-    bundle_binaries = set()
+    bundle_libs = set()
     for _, files in iter_dir_recursive(src_lib_dir):
         for src_file_path in files:
             # search for so files:
@@ -379,9 +379,9 @@ def bundle_python_venv(src_lib_dir: Path, out_lib_dir: Path, root_dst: Path):
 
             real_file = copy_with_symlink_normal(src_file_path, src_lib_dir, out_lib_dir, is_so=is_so)
             if is_so and real_file:
-                bundle_binaries.add(real_file)
+                bundle_libs.add(real_file)
 
-    for file in bundle_binaries:
+    for file in bundle_libs:
         bundle_library(file, root_dst, is_exe=False)
 
 

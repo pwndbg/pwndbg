@@ -5,7 +5,7 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-STEPUNTILASM_X64_BINARY = get_binary("stepuntilasm_x64.out")
+STEPUNTILASM_X64_BINARY = get_binary("stepuntilasm.x86-64.out")
 
 
 @pwndbg_test

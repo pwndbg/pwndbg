@@ -28,7 +28,7 @@ def _get_syscall_return_value():
     """
 
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
-    return pwndbg.aglib.regs[register_set.retval]
+    return pwndbg.aglib.regs.read_reg(register_set.retval)
 
 
 def exec_syscall(
@@ -82,7 +82,7 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
-    registers = {reg: pwndbg.aglib.regs[reg] for reg in preserve_set}
+    registers = {reg: pwndbg.aglib.regs.read_reg(reg) for reg in preserve_set}
     starting_address = registers[register_set.pc]
 
     # Make sure the blob fits in the rest of the space we have in this page.

@@ -11,8 +11,8 @@ from .....host import Controller
 from .. import get_binary
 from .. import pwndbg_test
 
-HEAP_BINARY = get_binary("heap_bugs.out")
-HEAP_CODE = get_binary("heap_bugs.c")
+HEAP_BINARY = get_binary("heap_bugs.x86-64.out")
+HEAP_CODE = get_binary("heap_bugs.x86-64.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
 

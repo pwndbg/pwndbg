@@ -7,7 +7,7 @@ import pwndbg.aglib.regs
 
 from . import get_binary
 
-CONDBR_X64_BINARY = get_binary("conditional_branch_breakpoints_x64.out")
+CONDBR_X64_BINARY = get_binary("conditional_branch_breakpoints.x86-64.out")
 
 
 @pytest.mark.parametrize("binary", [CONDBR_X64_BINARY], ids=["x86-64"])

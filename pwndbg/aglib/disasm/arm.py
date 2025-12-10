@@ -243,7 +243,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.groups.remove(CS_GRP_CALL)
 
         # Disable Unicorn while in IT instruction blocks since Unicorn cannot be paused in it.
-        flags_value = pwndbg.aglib.regs[self.flags_reg]
+        flags_value = pwndbg.aglib.regs.read_reg(self.flags_reg)
         it_state = itstate_from_cpsr(flags_value)
 
         if (instruction.id == ARM_INS_IT or it_state != 0) and emu:
@@ -326,7 +326,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             parts.append("%#x" % op.mem.disp)
 
         if op.mem.index != 0:
-            index = pwndbg.aglib.regs[instruction.cs_insn.reg_name(op.mem.index)]
+            index = pwndbg.aglib.regs.read_reg(instruction.cs_insn.reg_name(op.mem.index))
             scale = op.mem.scale
             parts.append(f"{index}*{scale:#x}")
 

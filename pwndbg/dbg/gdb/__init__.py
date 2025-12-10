@@ -4,6 +4,7 @@ import re
 from asyncio import CancelledError
 from contextlib import contextmanager
 from contextlib import nullcontext
+from os import environ
 from pathlib import Path
 from typing import Any
 from typing import Coroutine
@@ -89,6 +90,37 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
         return gdb.parse_and_eval(expression, global_context)
     except TypeError:
         return gdb.parse_and_eval(expression)
+
+
+def _get_frame_stack_variables(frame: gdb.Frame) -> Tuple[Tuple[int, int, str], ...]:
+    try:
+        block = frame.block()
+    except (gdb.error, RuntimeError):
+        # gdb.error: No frame selected (no active inferior)
+        # RuntimeError: Frame exists and selected,
+        # But no DWARF info, such as in the case of stripped binaries
+        return ()
+
+    if not block:
+        return ()
+
+    variables = []
+    while block:
+        for sym in block:
+            if not (sym.is_variable or sym.is_argument):
+                continue
+
+            try:
+                value = sym.value(frame)
+                addr = int(value.address)
+                size = value.type.sizeof
+                variables.append((addr, addr + size, sym.name))
+            except (gdb.error, AttributeError, TypeError):
+                continue
+
+        block = block.superblock
+
+    return tuple(variables)
 
 
 class GDBRegisters(pwndbg.dbg_mod.Registers):
@@ -202,6 +234,10 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             return None
 
         return sal.symtab.fullname(), sal.line
+
+    @override
+    def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
+        return _get_frame_stack_variables(self.inner)
 
     @override
     def __eq__(self, rhs: object) -> bool:
@@ -1384,7 +1420,10 @@ class GDB(pwndbg.dbg_mod.Debugger):
         if disable_any:
             return
 
-        home_file = Path("~/.gdbinit").expanduser().resolve()
+        config_home = environ.get("XDG_CONFIG_HOME", Path("~/.config").expanduser().resolve())
+        home_file = (Path(config_home) / "gdb" / "gdbinit").resolve()
+        if not home_file.exists():
+            home_file = Path("~/.gdbinit").expanduser().resolve()
         local_file = Path("./.gdbinit").resolve()
 
         def load_source(file_path: str):
@@ -1395,7 +1434,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         is_home_loaded = False
         if not disable_home and home_file.exists():
-            load_source("~/.gdbinit")
+            load_source(str(home_file))
             is_home_loaded = True
 
         disable_local = not gdb.parameter("auto-load local-gdbinit")

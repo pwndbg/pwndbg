@@ -402,7 +402,7 @@ def near(
     # Copy register values to the enhancer for use in manual register tracking
     if assistant.supports_manual_emulation and address == pc:
         for reg in pwndbg.aglib.regs.current.common:
-            if (reg_value := pwndbg.aglib.regs[reg]) is not None:
+            if (reg_value := pwndbg.aglib.regs.read_reg(reg)) is not None:
                 assistant.manual_register_values.write_register(reg, reg_value)
 
     # Start at the current instruction using emulation if available.
