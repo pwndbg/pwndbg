@@ -179,7 +179,7 @@ install_dnf() {
     command -v go &> /dev/null || sudo dnf install -y go
 
     if [[ "$1" != "" ]]; then
-        sudo dnf install shfmt
+        sudo dnf install -y shfmt
     fi
 }
 
