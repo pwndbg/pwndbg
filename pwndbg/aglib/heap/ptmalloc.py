@@ -1169,7 +1169,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         """Is malloc operating within a multithreaded environment."""
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_multiple_threads")
         if addr:
-            return pwndbg.aglib.memory.s32(addr) > 0
+            return pwndbg.aglib.memory.u32(addr) > 0
         # glibc 2.42 replaced __libc_multiple_threads with __libc_single_threaded
         elif bool(addr := pwndbg.aglib.symbol.lookup_symbol_addr("__libc_single_threaded")):
             return pwndbg.aglib.memory.s32(addr) == 0
@@ -1284,9 +1284,9 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
         # counts was renamed to num_slots in newer version of GLIBC 2.42
         try:
-            counts = tcache["counts"]
-        except Exception:
             counts = tcache["num_slots"]
+        except Exception:
+            counts = tcache["counts"]
         entries = tcache["entries"]
 
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof

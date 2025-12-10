@@ -1357,9 +1357,9 @@ def try_free(addr: str | int) -> None:
             # counts was renamed to num_slots in newer version of GLIBC 2.42
             tcache = allocator.get_tcache()
             try:
-                counts = tcache["counts"]
-            except Exception:
                 counts = tcache["num_slots"]
+            except Exception:
+                counts = tcache["counts"]
             if int(counts.address.cast(counts.type.target().pointer())[tc_idx]) < int(
                 allocator.mp["tcache_count"]
             ):
