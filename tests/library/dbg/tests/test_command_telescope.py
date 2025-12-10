@@ -146,7 +146,7 @@ async def test_command_telescope_frame_bp_below_sp(ctrl: Controller) -> None:
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("memoize")  # turn off cache
 
-    pwndbg.aglib.regs.write_reg("sp", pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame) + 1)
+    pwndbg.aglib.regs.sp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame) + 1
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
 

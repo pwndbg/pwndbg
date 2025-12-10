@@ -138,7 +138,7 @@ def test_command_telescope_frame_bp_below_sp(start_binary):
     gdb.execute("run")
     gdb.execute("memoize")  # turn off cache
 
-    pwndbg.aglib.regs.write_reg("sp", pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame) + 1)
+    pwndbg.aglib.regs.sp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame) + 1
 
     result_str = gdb.execute("telescope --frame", to_string=True)
 
@@ -157,7 +157,7 @@ def test_command_telescope_frame_bp_sp_different_vmmaps(start_binary):
 
     pages = pwndbg.aglib.vmmap.get()
 
-    pwndbg.aglib.regs.write_reg("sp", pages[0].start)
+    pwndbg.aglib.regs.sp = pages[0].start
     pwndbg.aglib.regs.write_reg("bp", pages[1].start)
 
     result_str = gdb.execute("telescope --frame", to_string=True)

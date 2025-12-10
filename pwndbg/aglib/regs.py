@@ -142,10 +142,19 @@ class module(ModuleType):
         """Get the value of the program counter register"""
         return self.read_reg(self.current.pc)
 
+    @pc.setter
+    def pc(self, val: int) -> None:
+        self.write_reg(self.current.pc, val)
+
     @property
     def sp(self) -> int | None:
         """Get the value of the stack pointer register"""
         return self.read_reg(self.current.stack)
+
+    @sp.setter
+    def sp(self, val: int) -> None:
+        """Get the value of the stack pointer register"""
+        self.write_reg(self.current.stack, val)
 
     def __contains__(self, reg: str) -> bool:
         return reg_sets[pwndbg.aglib.arch.name].__contains__(reg)
