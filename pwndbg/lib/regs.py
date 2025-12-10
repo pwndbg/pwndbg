@@ -262,6 +262,9 @@ class RegisterSet:
         # Otherwise, the values will be clobbered
         # https://github.com/pwndbg/pwndbg/pull/2337
         self.emulated_regs_order: List[UnicornRegisterWrite] = []
+        
+        # Avoid duplicates
+        seen_emulated_register: set[str] = set()
 
         for regname in itertools.chain(
             (self.pc,),
@@ -271,9 +274,10 @@ class RegisterSet:
             self.misc,
             self.gpr,
         ):
-            if regname and regname not in self.emulated_regs_order:
+            if regname and regname not in seen_emulated_register:
                 emu_reg = UnicornRegisterWrite(regname, True if regname in flags else False)
                 self.emulated_regs_order.append(emu_reg)
+                seen_emulated_register.add(regname)
 
         self.all = (
             set(self.misc)
@@ -451,7 +455,7 @@ class PseudoEmulatedRegisterFile:
 
         self.masks[full_reg_def.name] = ~new_mask & self.masks[full_reg_def.name]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(
             {
                 "masks": {x: hex(y) for x, y in self.masks.items()},

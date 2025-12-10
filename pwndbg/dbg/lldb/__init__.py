@@ -173,10 +173,14 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
 
         current_reg_set = reg_sets[pwndbg.aglib.arch.name]
 
+        full_reg_name = name
+        if reg_info := current_reg_set.full_register_lookup.get(name):
+            full_reg_name = reg_info.name
+
         # Writing to the PC (or any subregister of the PC) using the normal register write flow causes the
         # inner object to be automatically invalidated by LLDB, so we have to
         # handle jumps manually using SBFrame::SetPC.
-        if name == "pc" or current_reg_set.full_register_lookup.get(name) == current_reg_set.pc:
+        if name == "pc" or full_reg_name == current_reg_set.pc:
             ret = self.inner.SetPC(val)
             self.proc.dbg._trigger_event(pwndbg.dbg_mod.EventType.REGISTER_CHANGED)
             return ret
@@ -234,8 +238,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                     # If we set the stack pointer (or a subregister of the stack pointer), the inner object might have been invalidated, try
                     # to restore it, as it should still be the selected frame.
                     if (
-                        name == "sp"
-                        or current_reg_set.full_register_lookup.get(name) == current_reg_set.stack
+                        name == "sp" or full_reg_name == current_reg_set.stack
                     ) and not self.inner.IsValid():
                         self.inner = thread.GetSelectedFrame()
                         assert self.inner.GetSP() == val
