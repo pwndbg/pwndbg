@@ -1630,7 +1630,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
         tcache_ptr = pwndbg.aglib.symbol.lookup_symbol_addr(
             "tcache",
-            objfile_endswith=pwndbg.glibc.get_libc_filename_from_info_sharedlibrary,
+            objfile_endswith=pwndbg.glibc.get_libc_filename_from_info_sharedlibrary(),
             prefer_static=True,
         )
         if not tcache_ptr:
@@ -1749,6 +1749,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return sbrk_region
 
     def is_initialized(self) -> bool:
+        libc_name = pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_malloc_initialized")
         if addr is None:
             addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_initialized")
