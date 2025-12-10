@@ -6,7 +6,7 @@ import pwndbg.dbg
 
 from . import get_binary
 
-MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
+MANGLING_BINARY = get_binary("symbol_1600_and_752.native.out")
 
 
 def test_symbol_get(start_binary):

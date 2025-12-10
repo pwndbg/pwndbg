@@ -8,7 +8,7 @@ on:
       - '!*.md'
 
 jobs:
-  docker:
+  docker_x86-64:
     strategy:
       fail-fast: false
       matrix:
@@ -40,4 +40,36 @@ jobs:
     - name: Run DBG Tests on LLDB on ${{ matrix.images }}
       run: |
         docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
-        
+
+  docker_aarch64:
+    strategy:
+      fail-fast: false
+      matrix:
+        images: [ubuntu24.04]
+
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Cache for docker images
+      uses: jpribyl/action-docker-layer-caching@v0.1.1
+      # Ignore the failure of a step and avoid terminating the job.
+      continue-on-error: true
+      with:
+        key: ${{ matrix.images }}-cache-images-aarch64-{hash}
+
+    - name: Docker Build ${{ matrix.images }}
+      run: docker compose build ${{ matrix.images }}
+
+    - name: Run Cross Tests on GDB on ${{ matrix.images }}
+      run: |
+        docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g cross-arch-user
+
+    - name: Run DBG Tests on GDB on ${{ matrix.images }}
+      run: |
+        docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
+
+    - name: Run DBG Tests on LLDB on ${{ matrix.images }}
+      run: |
+        docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg

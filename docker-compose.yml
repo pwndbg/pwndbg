@@ -1,7 +1,6 @@
 services:
   base: &base-spec
     build: .
-    platform: linux/amd64
     security_opt:
       - seccomp:unconfined
     cap_add:

@@ -33,7 +33,7 @@ def test_typeinfo_go_x86():
 def helper_test_dump(start_binary, filename):
     gdb.execute("set environment GOMAXPROCS=1")
     start_binary(filename)
-    gdb.execute("break gosample.go:6", to_string=True)
+    gdb.execute("break gosample.native.go:6", to_string=True)
     gdb.execute("continue")
 
     dump = gdb.execute("go-dump any &x", to_string=True)

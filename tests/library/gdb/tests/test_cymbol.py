@@ -10,7 +10,7 @@ if pwndbg.dbg.is_gdblib_available():
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 # Might be useful for future expansion of the test case

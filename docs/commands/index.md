@@ -104,6 +104,7 @@
 -  [pagewalk](kernel/pagewalk.md) - Performs pagewalk.
 -  [slab](kernel/slab.md) - Prints information about the linux kernel's slab allocator SLUB.
 -  [v2p](kernel/v2p.md) - Translate virtual address to its corresponding physmap address.
+-  [vmlinux](kernel/vmlinux.md) - Load bzImage or vmlinux file to add kernel debug symbols.
 
 ## Linux/libc/ELF
 

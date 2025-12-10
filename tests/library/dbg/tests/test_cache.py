@@ -4,7 +4,7 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-BINARY = get_binary("reference-binary.out")
+BINARY = get_binary("reference-binary.native.out")
 
 
 @pwndbg_test

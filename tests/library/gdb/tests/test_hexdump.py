@@ -11,7 +11,7 @@ import pwndbg.aglib.vmmap
 
 from . import get_binary
 
-BINARY = get_binary("reference-binary.out")
+BINARY = get_binary("reference-binary.native.out")
 
 
 def run_tests(stack, use_big_endian, expected):

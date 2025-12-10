@@ -8,8 +8,8 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-CRASH_SIMPLE_BINARY = get_binary("crash_simple.out.hardcoded")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+CRASH_SIMPLE_BINARY = get_binary("crash_simple.native.out")
 
 NEXT_COMMANDS = (
     "pc",
@@ -45,7 +45,7 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
     await ctrl.cont()
 
     # Sanity check that we are in libc
-    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.rip).objfile
+    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc).objfile
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     await ctrl.execute("nextproginstr")
