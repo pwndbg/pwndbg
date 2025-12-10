@@ -57,7 +57,7 @@ def test_command_cyclic_address(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    addr = pwndbg.aglib.regs.read_reg("rsp")
+    addr = pwndbg.aglib.regs.sp
     ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 48
     pattern = cyclic(length=80, n=ptr_size)
@@ -103,7 +103,7 @@ def test_command_cyclic_detect(start_binary):
     pwndbg.aglib.regs.write_reg("rax", value_rax)
 
     offset_rbx_ptr = 40
-    stack_addr = pwndbg.aglib.regs.read_reg("rsp")
+    stack_addr = pwndbg.aglib.regs.sp
     pwndbg.aglib.memory.write(
         stack_addr, pattern_default[offset_rbx_ptr : offset_rbx_ptr + ptr_size]
     )

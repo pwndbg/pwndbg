@@ -166,8 +166,9 @@ async def test_command_telescope_frame_bp_sp_different_vmmaps(ctrl: Controller) 
 
     pages = pwndbg.aglib.vmmap.get()
     frame_reg_name = pwndbg.aglib.regs.frame
+    stack_reg_name = pwndbg.aglib.regs.stack
 
-    pwndbg.aglib.regs.sp = pages[0].start
+    pwndbg.aglib.regs.write_reg(stack_reg_name, pages[0].start)
     pwndbg.aglib.regs.write_reg(frame_reg_name, pages[1].start)
 
     result_str = await ctrl.execute_and_capture("telescope --frame")
