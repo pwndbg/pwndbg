@@ -1629,7 +1629,9 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
             return None
 
         tcache_ptr = pwndbg.aglib.symbol.lookup_symbol_addr(
-            "tcache", objfile_endswith="/libc.so.6", prefer_static=True
+            "tcache",
+            objfile_endswith=pwndbg.glibc.get_libc_filename_from_info_sharedlibrary,
+            prefer_static=True,
         )
         if not tcache_ptr:
             tcache_ptr = pwndbg.aglib.symbol.lookup_symbol_addr("tcache", prefer_static=True)
