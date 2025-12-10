@@ -308,7 +308,7 @@ parser = argparse.ArgumentParser(
 subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
 
 add_parser = subparsers.add_parser("add", help="Add a custom structure")
-add_parser.add_argument("name", help="Name of custom structure")
+add_parser.add_argument("name", help="Name of custom structure", type=str)
 add_parser.add_argument(
     "--force", action="store_true", help="Overwrite if structure already exists"
 )
@@ -317,17 +317,17 @@ remove_parser = subparsers.add_parser("remove", help="Remove a custom structure"
 remove_parser.add_argument("name", help="Name of custom structure")
 
 edit_parser = subparsers.add_parser("edit", help="Edit a custom structure")
-edit_parser.add_argument("name", help="Name of custom structure")
+edit_parser.add_argument("name", help="Name of custom structure", type=str)
 
 load_parser = subparsers.add_parser("load", help="Load a custom structure")
-load_parser.add_argument("name", help="Name of custom structure")
+load_parser.add_argument("name", help="Name of custom structure", type=str)
 
 show_parser = subparsers.add_parser("show", help="Show a custom structure")
-show_parser.add_argument("name", help="Name of custom structure")
+show_parser.add_argument("name", help="Name of custom structure", type=str)
 
 file_parser = subparsers.add_parser("file", help="Add a structure from a header file")
-file_parser.add_argument("path", help="Path to header file")
-file_parser.add_argument("--name", help="Optional structure name")
+file_parser.add_argument("path", help="Path to header file", type=str)
+file_parser.add_argument("--name", help="Optional structure name", type=str)
 file_parser.add_argument("--force", action="store_true", help="Overwrite if exists")
 
 show_all_parser = subparsers.add_parser("show-all", help="Show all stored structure")
