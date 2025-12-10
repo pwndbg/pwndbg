@@ -24,7 +24,7 @@ const size_t largebin_size = LARGEBIN_SIZE;
 const size_t largebin_count = LARGEBIN_COUNT;
 
 int break_id = 0;
-void *tcachebin[TCACHE_COUNT];
+void *tcache[TCACHE_COUNT];
 void *fastbin[FASTBIN_COUNT];
 void *smallbin[SMALLBIN_COUNT + TCACHE_COUNT];
 void *largebin[LARGEBIN_COUNT];
@@ -39,7 +39,7 @@ void alloc_chunks()
 {
     void *padding;
     for (int i = 0; i < TCACHE_COUNT; i++)
-        tcachebin[i] = malloc(TCACHE_SIZE);
+        tcache[i] = malloc(TCACHE_SIZE);
     for (int i = 0; i < FASTBIN_COUNT; i++)
         fastbin[i] = malloc(FASTBIN_SIZE);
     for (int i = 0; i < SMALLBIN_COUNT + TCACHE_COUNT; i++)
@@ -61,7 +61,7 @@ void alloc_chunks()
 void tcache_test()
 {
     for (int i = 0; i < TCACHE_COUNT; i++)
-        free(tcachebin[i]);
+        free(tcache[i]);
     breakpoint();
     return;
 }

@@ -1627,9 +1627,14 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         if not self.has_tcache():
             print(message.warn("This version of GLIBC was not compiled with tcache support."))
             return None
-        if (
-            tcache_ptr := pwndbg.aglib.symbol.lookup_symbol_addr("tcache", prefer_static=True)
-        ) and (tcache_addr := pwndbg.aglib.memory.read_pointer_width(tcache_ptr)):
+
+        tcache_ptr = pwndbg.aglib.symbol.lookup_symbol_addr(
+            "tcache", objfile_endswith="/libc.so.6", prefer_static=True
+        )
+        if not tcache_ptr:
+            tcache_ptr = pwndbg.aglib.symbol.lookup_symbol_addr("tcache", prefer_static=True)
+
+        if tcache_ptr and (tcache_addr := pwndbg.aglib.memory.read_pointer_width(tcache_ptr)):
             tcache = tcache_addr
         elif not self.multithreaded:
             tcache = self.main_arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
