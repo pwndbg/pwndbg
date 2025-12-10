@@ -1652,7 +1652,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         except Exception:
             print(
                 message.error(
-                    "Error fetching tcache. GDB cannot access "
+                    "Error fetching tcache. Cannot access "
                     "thread-local variables unless you compile with -lpthread."
                 )
             )
