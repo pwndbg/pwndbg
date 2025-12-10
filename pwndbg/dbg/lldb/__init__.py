@@ -78,6 +78,29 @@ class LLDBRegisters(pwndbg.dbg_mod.Registers):
         return None
 
 
+def _get_frame_stack_variables(frame: lldb.SBFrame) -> Tuple[Tuple[int, int, str], ...]:
+    try:
+        # GetVariables(arguments, locals, statics, in_scope_only)
+        variables = frame.GetVariables(True, True, False, True)
+
+        result = []
+        for i in range(variables.GetSize()):
+            var = variables.GetValueAtIndex(i)
+            if not var.IsValid():
+                continue
+
+            addr = var.GetLoadAddress()
+            if addr == lldb.LLDB_INVALID_ADDRESS:
+                continue
+
+            size = var.GetType().GetByteSize()
+            result.append((int(addr), int(addr) + size, var.GetName()))
+
+        return tuple(result)
+    except Exception:
+        return ()
+
+
 class LLDBFrame(pwndbg.dbg_mod.Frame):
     inner: lldb.SBFrame
     proc: LLDBProcess
@@ -261,6 +284,10 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
             return line_entry.file.fullpath, line_entry.line
 
         return None
+
+    @override
+    def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
+        return _get_frame_stack_variables(self.inner)
 
     @override
     def __eq__(self, rhs: object) -> bool:

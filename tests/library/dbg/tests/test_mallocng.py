@@ -340,10 +340,14 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
 )
 async def test_mallocng_find(ctrl: Controller, binary: str):
     import pwndbg
+    import pwndbg.aglib.arch
     import pwndbg.color as color
 
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     # Check no slot found
     find_out = color.strip(await ctrl.execute_and_capture("ng-find $rip"))

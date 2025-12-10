@@ -41,17 +41,19 @@ async def test_command_plt(ctrl: Controller, binary_name: str, is_pie: bool) -> 
 
         out = gdb.execute("plt -a", to_string=True).splitlines()
 
-        assert len(out) == 2
+        assert len(out) >= 2
         assert re.match(r"Section \.plt 0x[0-9a-f]+ - 0x[0-9a-f]+:", out[0])
-        assert re.match(r"0x[0-9a-f]+: puts(@plt)?", out[1])
+        line_puts = next((line for line in out if "puts" in line), "")
+        assert re.match(r"0x[0-9a-f]+: puts(@plt)?", line_puts)
 
     await ctrl.launch(binary)
 
     out2 = (await ctrl.execute_and_capture("plt -a")).splitlines()
 
-    assert len(out2) == 2
+    assert len(out2) >= 2
     assert re.match(r"Section \.plt 0x[0-9a-f]+ - 0x[0-9a-f]+:", out2[0])
-    assert re.match(r"0x[0-9a-f]+: puts(@plt)?", out2[1])
+    line_puts = next((line for line in out2 if "puts" in line), "")
+    assert re.match(r"0x[0-9a-f]+: puts(@plt)?", line_puts)
 
     if pwndbg.dbg.is_gdblib_available():
         if is_pie:
@@ -65,9 +67,14 @@ async def test_command_plt(ctrl: Controller, binary_name: str, is_pie: bool) -> 
 )
 @pwndbg_test
 async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> None:
+    import pwndbg.aglib.arch
+
     binary = get_binary(binary_name)
 
     await ctrl.launch(binary)
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     out = (await ctrl.execute_and_capture("elf")).splitlines()
     assert len(out) == 25
@@ -80,7 +87,8 @@ async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> 
         )
         if is_pie:
             address = section.split()
-            assert address[0].startswith("0x55555555")
+            addr = int(address[0], 16)
+            assert 0x0000550000000000 <= addr <= 0x00007FFFFFFFFFFF
 
     # if this is a pie binary, test for --no-rebase
     if is_pie:

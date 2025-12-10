@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
@@ -14,6 +16,8 @@ async def test_flags_command(ctrl: Controller) -> None:
     await ctrl.launch(REFERENCE_BINARY)
 
     old_eflags = pwndbg.aglib.regs.eflags
+    if old_eflags is None:
+        pytest.skip("eflags register is missing")
 
     # Verify CF is not set
     assert old_eflags & 0x1 == 0

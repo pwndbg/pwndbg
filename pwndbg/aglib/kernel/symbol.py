@@ -40,21 +40,27 @@ def migratetype_names() -> Tuple[str, ...]:
 
 
 # try getting value of a symbol as an unsigned integer
-def try_usymbol(name: str, size=pwndbg.aglib.kernel.ptr_size) -> int:
+def try_usymbol(name: str, size=None) -> int:
     if not pwndbg.aglib.kernel.has_debug_symbols():
         return None
     try:
         if pwndbg.aglib.kernel.has_debug_info():
             return pwndbg.aglib.symbol.lookup_symbol_value(name)
+
         symbol = pwndbg.aglib.symbol.lookup_symbol_addr(name)
         if symbol is None:
             return None
+
+        if size is None:
+            size = pwndbg.aglib.kernel.ptr_size()
+
         if size == 8:
             return pwndbg.aglib.memory.u(symbol)
         if size == 16:
             return pwndbg.aglib.memory.u16(symbol)
         if size == 32:
             return pwndbg.aglib.memory.u32(symbol)
+
         return pwndbg.aglib.memory.u64(symbol)
     except Exception:
         # for kpti

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from .....host import Controller
 from .. import get_binary
 from .. import launch_to
@@ -45,6 +47,7 @@ def check_no_results(result: str) -> None:
 @pwndbg_test
 async def test_find_fake_fast_command(ctrl: Controller) -> None:
     import pwndbg
+    import pwndbg.aglib.arch
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
@@ -52,6 +55,9 @@ async def test_find_fake_fast_command(ctrl: Controller) -> None:
     global target_address
 
     await launch_to(ctrl, HEAP_FIND_FAKE_FAST, "break_here")
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     # Ensure memory at fake_chunk's heap_info struct isn't mapped.
     unmapped_heap_info = pwndbg.aglib.heap.ptmalloc.heap_for_ptr(

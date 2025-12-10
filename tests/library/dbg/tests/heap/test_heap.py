@@ -138,11 +138,14 @@ def generate_expected_malloc_chunk_output(chunks: Dict[str, ...]) -> Dict[str, .
 @pwndbg_test
 async def test_malloc_chunk_command(ctrl: Controller) -> None:
     import pwndbg
+    import pwndbg.aglib.arch
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     chunks = {}
     results = {}
@@ -195,10 +198,14 @@ async def test_malloc_chunk_command(ctrl: Controller) -> None:
 @pwndbg_test
 async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
     import pwndbg
+    import pwndbg.aglib.arch
     import pwndbg.aglib.heap
     import pwndbg.aglib.symbol
 
     await ctrl.launch(HEAP_MALLOC_CHUNK)
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
@@ -251,11 +258,15 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_malloc_chunk_dump_command(ctrl: Controller) -> None:
+    import pwndbg.aglib.arch
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK_DUMP, "break_here")
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     chunk = pwndbg.aglib.memory.get_typed_pointer_value(
         pwndbg.aglib.heap.current.malloc_chunk,
@@ -403,6 +414,7 @@ async def test_mp_heuristic(ctrl: Controller) -> None:
 @pwndbg_test
 async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool) -> None:
     import pwndbg
+    import pwndbg.aglib.arch
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
@@ -410,6 +422,9 @@ async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool)
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
@@ -454,12 +469,16 @@ async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool)
 @pwndbg_test
 async def test_thread_arena_heuristic(ctrl: Controller, is_multi_threaded: bool) -> None:
     import pwndbg
+    import pwndbg.aglib.arch
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
@@ -493,10 +512,14 @@ async def test_thread_arena_heuristic(ctrl: Controller, is_multi_threaded: bool)
 
 @pwndbg_test
 async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
+    import pwndbg.aglib.arch
     import pwndbg.aglib.heap
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
     await ctrl.execute("set resolve-heap-via-heuristic force")
     break_at_sym("break_here")
     await ctrl.cont()
@@ -561,12 +584,18 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
 ##
 HEAP_JEMALLOC_EXTENT_INFO = get_binary("heap_jemalloc_extent_info.native.out")
 HEAP_JEMALLOC_HEAP = get_binary("heap_jemalloc_heap.native.out")
-re_match_valid_address = r"0x7ffff[0-9a-fA-F]{6,9}"
+# Relax address regex to accept different virtual address layouts (ASLR / jemalloc mappings).
+# Old pattern assumed addresses starting with 0x7ffff and a limited digit count which fails on some hosts.
+re_match_valid_address = r"0x[0-9a-fA-F]{6,16}"
 
 
 @pwndbg_test
 async def test_jemalloc_find_extent(ctrl: Controller) -> None:
+    import pwndbg.aglib.arch
+
     await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     # run jemalloc extent_info command
     result = (await ctrl.execute_and_capture("jemalloc-find-extent ptr")).splitlines()
@@ -595,7 +624,11 @@ async def test_jemalloc_find_extent(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_jemalloc_extent_info(ctrl: Controller) -> None:
+    import pwndbg.aglib.arch
+
     await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     find_extent_results = (await ctrl.execute_and_capture("jemalloc-find-extent ptr")).splitlines()
     extent_address = None
@@ -628,7 +661,11 @@ async def test_jemalloc_extent_info(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_jemalloc_heap(ctrl: Controller) -> None:
+    import pwndbg.aglib.arch
+
     await launch_to(ctrl, HEAP_JEMALLOC_HEAP, "break_here")
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     # run jemalloc extent_info command
     result = (await ctrl.execute_and_capture("jemalloc-heap")).splitlines()

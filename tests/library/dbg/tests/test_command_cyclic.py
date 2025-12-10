@@ -41,13 +41,16 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
 
     await ctrl.launch(REFERENCE_BINARY)
 
+    reg_name = pwndbg.aglib.regs.gpr[0]
     ptr_size = pwndbg.aglib.arch.ptrsize
+
     test_offset = 45
     pattern = cyclic(length=80, n=ptr_size)
-    pwndbg.aglib.regs.rdi = int.from_bytes(
+    test_data = int.from_bytes(
         pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian
     )
-    out = await ctrl.execute_and_capture("cyclic -l $rdi")
+    setattr(pwndbg.aglib.regs, reg_name, test_data)
+    out = await ctrl.execute_and_capture(f"cyclic -l ${reg_name}")
 
     assert out == (
         "Finding cyclic pattern of 8 bytes: b'aaagaaaa' (hex: 0x6161616761616161)\n"
@@ -68,7 +71,7 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
 
     await ctrl.launch(REFERENCE_BINARY)
 
-    addr = pwndbg.aglib.regs.rsp
+    addr = pwndbg.aglib.regs.sp
     ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 48
     pattern = cyclic(length=80, n=ptr_size)

@@ -993,6 +993,7 @@ def load_commands() -> None:
     import pwndbg.commands.tls
     import pwndbg.commands.valist
     import pwndbg.commands.version
+    import pwndbg.commands.vmlinux
     import pwndbg.commands.vmmap
     import pwndbg.commands.windbg
     import pwndbg.commands.xinfo
