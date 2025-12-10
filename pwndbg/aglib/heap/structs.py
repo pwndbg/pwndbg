@@ -63,6 +63,7 @@ DEFAULT_MMAP_THRESHOLD = 128 * 1024
 DEFAULT_TRIM_THRESHOLD = 128 * 1024
 DEFAULT_PAGE_SIZE = 4096
 TCACHE_FILL_COUNT = 7
+MAX_TCACHE_SMALL_SIZE = (TCACHE_SMALL_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
 
 
 class c_pvoid(PTR):
@@ -1071,8 +1072,12 @@ if (MallocPar._c_struct != c_malloc_par_2_23) and (MallocPar._c_struct != c_mall
     DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT
     if MallocPar._c_struct == c_malloc_par_2_42:
         DEFAULT_MP_.tcache_small_bins = TCACHE_SMALL_BINS
+        DEFAULT_MP_.tcache_max_bytes = (
+            MAX_TCACHE_SMALL_SIZE + SIZE_SZ + MALLOC_ALIGN_MASK
+        ) & ~MALLOC_ALIGN_MASK + 1
+
     else:
         DEFAULT_MP_.tcache_bins = TCACHE_SMALL_BINS
-    DEFAULT_MP_.tcache_max_bytes = (TCACHE_SMALL_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
+        DEFAULT_MP_.tcache_max_bytes = MAX_TCACHE_SMALL_SIZE
 if MallocPar._c_struct == c_malloc_par_2_12:
     DEFAULT_MP_.pagesize = DEFAULT_PAGE_SIZE
