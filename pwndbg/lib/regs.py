@@ -154,47 +154,52 @@ class Reg:
 
 
 class RegisterSet:
-    #: Program counter register
     pc: str
+    """Program counter register"""
 
-    #: Stack pointer register
     stack: str
+    """Stack pointer register"""
 
-    #: Frame pointer register
     frame: str | None = None
+    """Frame pointer register"""
 
-    #: Return address register
     retaddr: Tuple[str, ...]
+    """Return address register"""
 
-    #: Flags register (eflags, cpsr)
     flags: Dict[str, BitFlags]
+    """Maps name of flag register (eflags, cpsr) to a structure detailing what the bits mean"""
 
-    #: List of native-size general-purpose registers
     gpr: Tuple[str, ...]
+    """List of native-size general-purpose registers"""
 
-    #: List of miscellaneous, valid registers
     misc: Tuple[str, ...]
+    """List of miscellaneous, valid registers"""
 
-    #: Register-based arguments for most common ABI
     args: Tuple[str, ...]
+    """Register-based arguments for most common ABI"""
 
-    #: Return value register
     retval: str | None
+    """Return value register"""
 
-    #: Common registers which should be displayed in the register context
     common: List[str] = []
+    """Common registers which should be displayed in the register context"""
 
-    #: Extra registers for kernel debugging
     kernel: KernelRegisterSet | None
+    """Extra registers for kernel debugging"""
 
-    #: All valid registers
     all: Set[str]
+    """All valid registers"""
 
-    #: Reg objects containing information on each register
     reg_definitions: Dict[str, Reg]
+    """Map of register name to Reg objects containing information on the register"""
 
-    #: Map of register name to the full register it resides in. Example mapping: "eax" -> Reg("rax")
     full_register_lookup: Dict[str, Reg]
+    """
+    Map of register name to the full register it resides in.
+    Example mapping: "eax" -> Reg("rax")
+
+    A full size register maps to itself.
+    """
 
     def __init__(
         self,
