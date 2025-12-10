@@ -1170,6 +1170,9 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_multiple_threads")
         if addr:
             return pwndbg.aglib.memory.s32(addr) > 0
+        # glibc 2.42 replaced __libc_multiple_threads with __libc_single_threaded
+        elif bool(addr := pwndbg.aglib.symbol.lookup_symbol_addr("__libc_single_threaded")):
+            return pwndbg.aglib.memory.s32(addr) == 0
         return len(pwndbg.dbg.selected_inferior().threads()) > 1
 
     def _request2size(self, req: int) -> int:
@@ -1621,36 +1624,34 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         """Locate a thread's tcache struct. If it doesn't have one, use the main
         thread's tcache.
         """
-        if self.has_tcache():
-            if self.multithreaded:
-                tcache_addr = pwndbg.aglib.memory.read_pointer_width(
-                    pwndbg.aglib.symbol.lookup_symbol_addr("tcache", prefer_static=True)
-                )
-                if tcache_addr == 0:
-                    # This thread doesn't have a tcache yet
-                    return None
-                tcache = tcache_addr
-            else:
-                tcache = self.main_arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
+        if not self.has_tcache():
+            print(message.warn("This version of GLIBC was not compiled with tcache support."))
+            return None
+        if (
+            tcache_ptr := pwndbg.aglib.symbol.lookup_symbol_addr("tcache", prefer_static=True)
+        ) and (tcache_addr := pwndbg.aglib.memory.read_pointer_width(tcache_ptr)):
+            tcache = tcache_addr
+        elif not self.multithreaded:
+            tcache = self.main_arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
+        else:
+            # This thread doesn't have a tcache yet
+            return None
 
-            try:
-                self._thread_cache = pwndbg.aglib.memory.get_typed_pointer_value(
-                    self.tcache_perthread_struct, tcache
+        try:
+            self._thread_cache = pwndbg.aglib.memory.get_typed_pointer_value(
+                self.tcache_perthread_struct, tcache
+            )
+            self._thread_cache["entries"].fetch_lazy()
+        except Exception:
+            print(
+                message.error(
+                    "Error fetching tcache. GDB cannot access "
+                    "thread-local variables unless you compile with -lpthread."
                 )
-                self._thread_cache["entries"].fetch_lazy()
-            except Exception:
-                print(
-                    message.error(
-                        "Error fetching tcache. GDB cannot access "
-                        "thread-local variables unless you compile with -lpthread."
-                    )
-                )
-                return None
+            )
+            return None
 
-            return self._thread_cache
-
-        print(message.warn("This version of GLIBC was not compiled with tcache support."))
-        return None
+        return self._thread_cache
 
     @property
     def mp(self) -> pwndbg.dbg_mod.Value | None:
