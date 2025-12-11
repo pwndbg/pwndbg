@@ -85,10 +85,14 @@ opcode_separator_bytes = pwndbg.config.add_param(
     param_class=pwndbg.lib.config.PARAM_ZUINTEGER,
 )
 
+nearpc_lines = pwndbg.config.add_param(
+    "nearpc-lines", 10, "number of lines to print for the nearpc command"
+)
+
 
 def nearpc(
     pc: int = None,
-    lines: int = 5,  # consistent with previous nearpc_lines
+    lines: int = None,
     back_lines: int = 0,
     total_lines: int = None,
     emulate=False,
@@ -122,6 +126,9 @@ def nearpc(
     # Check whether we can even read this address
     if not pwndbg.aglib.memory.peek(pc):
         result.append(message.error("Invalid address %#x" % pc))
+
+    if lines is None:
+        lines = int(nearpc_lines)
 
     # # Load source data if it's available
     # pc_to_linenos = collections.defaultdict(lambda: [])

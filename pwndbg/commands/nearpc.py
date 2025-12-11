@@ -5,10 +5,6 @@ import argparse
 import pwndbg.aglib.nearpc
 from pwndbg.commands import CommandCategory
 
-nearpc_lines = pwndbg.config.add_param(
-    "nearpc-lines", 10, "number of lines to print for the nearpc command"
-)
-
 nearpc_backwards_lines = pwndbg.config.add_param(
     "nearpc-backwards-lines", 5, "number of lines before the pc to print for the nearpc command"
 )
@@ -65,9 +61,6 @@ def nearpc(
 
     if pc is None:
         pc = pwndbg.aglib.regs.pc
-
-    if lines is None:
-        lines = int(nearpc_lines)
 
     back_lines = 0
 
