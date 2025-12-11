@@ -5,7 +5,7 @@ from . import break_at_sym
 from . import get_binary
 from . import pwndbg_test
 
-MMAP_GAPS_BINARY = get_binary("mmap_gaps.out")
+MMAP_GAPS_BINARY = get_binary("mmap_gaps.native.out")
 
 
 @pwndbg_test

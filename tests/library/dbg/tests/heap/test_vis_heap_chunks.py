@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import pytest
+
 from .....host import Controller
 from .. import get_binary
 from .. import launch_to
 from .. import pwndbg_test
 
-HEAP_VIS = get_binary("heap_vis.out")
+HEAP_VIS = get_binary("heap_vis.native.out")
 
 
 @pwndbg_test
@@ -15,6 +17,9 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     import pwndbg.aglib.vmmap
 
     await launch_to(ctrl, HEAP_VIS, "break_here")
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     # TODO/FIXME: Shall we have a standard method to do this kind of filtering?
     # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh

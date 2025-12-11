@@ -615,7 +615,7 @@ aarch64 = RegisterSet(
         "ttbr0_el1": BitFlags(),
         "ttbr1_el1": BitFlags(),
     },
-    frame=Reg("fp", 8, subregisters=(Reg("w29", 4, zero_extend_writes=True),)),  # x29
+    frame=Reg("x29", 8, subregisters=(Reg("w29", 4, zero_extend_writes=True),)),  # x29
     gpr=(
         Reg("x0", 8, subregisters=(Reg("w0", 4, zero_extend_writes=True),)),
         Reg("x1", 8, subregisters=(Reg("w1", 4, zero_extend_writes=True),)),

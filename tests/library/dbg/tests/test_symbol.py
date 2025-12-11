@@ -5,7 +5,7 @@ from . import break_at_sym
 from . import get_binary
 from . import pwndbg_test
 
-MANGLING_BINARY = get_binary("symbol_1600_and_752.out")
+MANGLING_BINARY = get_binary("symbol_1600_and_752.native.out")
 
 
 @pwndbg_test

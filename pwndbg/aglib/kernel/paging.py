@@ -796,7 +796,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         return result
 
     def pageentry_bitflags(self, level: int) -> BitFlags:
-        if level == 0:
+        if level != 0:
             # block or page
             return BitFlags([("UNX", 54), ("PNX", 53), ("AP", (6, 7))])
         return BitFlags([("UNX", 60), ("PNX", 59), ("AP", (61, 62))])

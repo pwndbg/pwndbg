@@ -6,7 +6,7 @@ import pwndbg.color.message
 
 from . import get_binary
 
-BINARY = get_binary("reference-binary.out")
+BINARY = get_binary("reference-binary.native.out")
 
 
 def prepare_prompt(is_proc_alive):

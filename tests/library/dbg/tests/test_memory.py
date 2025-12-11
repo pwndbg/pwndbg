@@ -5,8 +5,8 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-NESTED_STRUCTS_BINARY = get_binary("nested_structs.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+NESTED_STRUCTS_BINARY = get_binary("nested_structs.native.out")
 
 
 @pwndbg_test
@@ -52,7 +52,7 @@ async def test_memory_peek_poke(ctrl: Controller) -> None:
     assert pwndbg.aglib.memory.poke(0) is False
     assert pwndbg.aglib.memory.peek(0) is None
 
-    stack_addr = pwndbg.aglib.regs.rsp
+    stack_addr = pwndbg.aglib.regs.sp
 
     for v in range(256):
         data = bytearray([v, 0, 0, 0])

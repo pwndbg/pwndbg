@@ -2,17 +2,24 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from ....host import Controller
 from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
+HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 
 
 @pwndbg_test
 async def test_command_dt_works_with_address(ctrl: Controller) -> None:
+    import pwndbg.aglib.arch
+
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     tcache = await ctrl.execute_and_capture("print tcache")
 
@@ -30,7 +37,12 @@ async def test_command_dt_works_with_address(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_command_dt_works_with_no_address(ctrl: Controller) -> None:
+    import pwndbg.aglib.arch
+
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     out = await ctrl.execute_and_capture('dt "struct tcache_perthread_struct"')
 

@@ -9,7 +9,7 @@ import pwndbg.lib.memory
 
 from . import get_binary
 
-USE_FDS_BINARY = get_binary("use-fds.out")
+USE_FDS_BINARY = get_binary("use-fds.native.out")
 
 
 def test_mmap_executes_properly(start_binary):
@@ -64,7 +64,7 @@ def test_mmap_executes_properly(start_binary):
     assert ptr == base_addr
 
     # Continue the program until just before close(2) is called.
-    gdb.execute("break use-fds.c:16")
+    gdb.execute("break use-fds.native.c:16")
     gdb.execute("continue")
 
     # Retrieve the file descriptor number and map it to memory.
