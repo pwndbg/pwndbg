@@ -574,6 +574,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self) -> int:
+        _ = self.va_bits_min
         if self.kversion is None or self.PAGE_OFFSET is None:
             return INVALID_ADDR
         vmemmap_shift = self.page_shift - self.STRUCT_PAGE_SHIFT
