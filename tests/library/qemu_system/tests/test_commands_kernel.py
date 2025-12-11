@@ -141,7 +141,7 @@ def test_x64_extra_registers_under_kernel_mode():
         assert reg.upper() in res
     # those are the most important ones, and their presence should indicate it's working as intended
     for flag in ["smep", "smap", "wp"]:
-        assert flag in res or flag.upper() in re
+        assert flag in res or flag.upper() in res
 
 
 def get_slab_object_address():
