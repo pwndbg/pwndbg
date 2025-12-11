@@ -3,9 +3,9 @@ from __future__ import annotations
 import getpass
 import os
 import re
+import shutil
 import subprocess
 import tempfile
-import shutil
 from pathlib import Path
 
 import pytest
