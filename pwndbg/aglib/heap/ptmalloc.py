@@ -1271,12 +1271,12 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         # this will break expected output during tests, so we skip it
         if (
             pwndbg.glibc.get_version() >= (2, 42)
-            and not not hasattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued")
+            and not hasattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued")
             and os.environ.get("PWNDBG_IN_TEST") is None
         ):
             print(
                 message.warn(
-                    "Changes to tcache in GLIBC 2.42 have not been fully implemented. "
+                    "Support for tcache large bins (a GLIBC 2.42 addition) has not been fully implemented. "
                     "PR contributions are highly appreciated!"
                 )
             )
@@ -1632,9 +1632,6 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
             "tcache",
             prefer_static=True,
         )
-        if not tcache_ptr:
-            tcache_ptr = pwndbg.aglib.symbol.lookup_symbol_addr("tcache", prefer_static=True)
-
         if tcache_ptr and (tcache_addr := pwndbg.aglib.memory.read_pointer_width(tcache_ptr)):
             tcache = tcache_addr
         elif not self.multithreaded:

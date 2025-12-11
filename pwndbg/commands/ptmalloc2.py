@@ -362,6 +362,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
 @pwndbg.commands.OnlyWhenUserspace
 def tcache(addr: int | None = None) -> None:
@@ -744,6 +745,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
 @pwndbg.commands.OnlyWhenUserspace
 def tcachebins(addr: int | None = None, verbose: bool = False) -> None:
