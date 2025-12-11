@@ -77,7 +77,7 @@ async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> 
         pytest.skip("TODO multiarch")
 
     out = (await ctrl.execute_and_capture("elf")).splitlines()
-    # Never versions of gcc emit an additional `.sframe` section.
+    # Newer versions of gcc emit an additional `.sframe` section.
     assert len(out) == 25 or len(out) == 26
 
     # test for default
