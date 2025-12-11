@@ -5,8 +5,7 @@ ifeq ($(HOST_ARCH),x86_64)
     HOST_ARCH = x86-64
 
     # Not all kernels support IA32, it can be disabled `ia32_emulation=off` OR `CONFIG_IA32=n`
-    $(shell $(MAKE) check_ia32.i386.out >/dev/null 2>&1)
-    IA32_OK := $(shell ./check_ia32.i386.out >/dev/null 2>&1 && echo yes || echo no)
+    IA32_OK := $(shell ./check_ia32.i386.out.hardcoded >/dev/null 2>&1 && echo yes || echo no)
     ifeq ($(IA32_OK),yes)
         HOST_ARCH_32 := i386
     endif
@@ -74,9 +73,9 @@ all: $(ALL_TARGETS)
 	@$(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
-check_ia32.i386.out: check_ia32.i386.c
+check_ia32.i386.out.hardcoded: check_ia32.i386.c
 	@echo "[+] Building IA-32 check binary"
-	${ZIGCC} -m32 -o $@ $<
+	${ZIGCC} -target x86-linux-gnu -Os -o $@ $<
 
 crash_simple.native.out: crash_simple.native.c
 	@echo "[+] Building '$@'"
