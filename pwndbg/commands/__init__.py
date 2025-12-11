@@ -655,18 +655,21 @@ def OnlyWithKernelDebugInfo(function: Callable[P, T]) -> Callable[P, Optional[T]
     return _OnlyWithKernelDebugInfo
 
 
-def OnlyWithKernelDebugSymbols(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWithKernelSymbols(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
-    def _OnlyWithKernelDebugSymbols(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWithKernelSymbols(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         if pwndbg.aglib.kernel.has_debug_symbols():
             return function(*a, **kw)
         else:
             log.error(
-                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with debug symbols."
+                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with symbols.\n"
+                + message.hint(
+                    "Check out vmlinux-to-elf to get them easily (https://github.com/marin-m/vmlinux-to-elf) or compile the kernel yourself."
+                )
             )
             return None
 
-    return _OnlyWithKernelDebugSymbols
+    return _OnlyWithKernelSymbols
 
 
 def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
