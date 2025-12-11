@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import tempfile
+import shutil
 from pathlib import Path
 
 import pytest
@@ -39,8 +40,11 @@ DEFAULT_SLEEP = "10"
 @pytest.fixture
 def launched_sleep_binary():
     path = tempfile.mktemp()
-    sleep_path = subprocess.check_output(["which", "sleep"]).decode().strip()
-    subprocess.check_output(["cp", sleep_path, path])
+    sleep_path = shutil.which("sleep")
+    if not sleep_path:
+        raise RuntimeError("Could not find the 'sleep' binary in PATH.")
+
+    shutil.copy(sleep_path, path)
 
     # Add a default sleep time so the process lives for at least the length of the test
     process = subprocess.Popen([path, DEFAULT_SLEEP], stdout=subprocess.PIPE, stdin=subprocess.PIPE)
