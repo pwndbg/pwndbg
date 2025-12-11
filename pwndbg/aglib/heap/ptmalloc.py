@@ -1167,11 +1167,16 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     @pwndbg.lib.cache.cache_until("objfile", "thread")
     def multithreaded(self) -> bool:
         """Is malloc operating within a multithreaded environment."""
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_multiple_threads")
+        libc_name = pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
+        addr = pwndbg.aglib.symbol.lookup_symbol_addr(
+            "__libc_multiple_threads", objfile_endswith=libc_name
+        )
         if addr:
             return pwndbg.aglib.memory.u32(addr) > 0
         # glibc 2.42 replaced __libc_multiple_threads with __libc_single_threaded
-        elif bool(addr := pwndbg.aglib.symbol.lookup_symbol_addr("__libc_single_threaded")):
+        elif addr := pwndbg.aglib.symbol.lookup_symbol_addr(
+            "__libc_single_threaded", objfile_endswith=libc_name
+        ):
             return pwndbg.aglib.memory.s32(addr) == 0
         return len(pwndbg.dbg.selected_inferior().threads()) > 1
 
