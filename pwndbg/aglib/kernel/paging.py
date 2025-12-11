@@ -4,6 +4,7 @@ import math
 import re
 import struct
 from dataclasses import dataclass
+from typing import Dict
 from typing import List
 from typing import Tuple
 
@@ -26,7 +27,7 @@ INVALID_ADDR = 1 << 64
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def first_kernel_page_start():
+def first_kernel_page_start() -> int:
     for page in kernel_vmmap_pages():
         if page.start and pwndbg.aglib.memory.is_kernel(page.start):
             return page.start
@@ -44,7 +45,8 @@ class PageTableLevel:
 class PageTableScan:
     MAX_SAME_PG_TABLE_ENTRY = 0x10
 
-    def __init__(self, pi, is_kernel):  # is_kernel is used only for Aarch64
+    # is_kernel is used only for Aarch64
+    def __init__(self, pi: ArchPagingInfo, is_kernel: bool) -> None:
         # from ArchPagingInfo:
         self.paging_level = pi.paging_level
         self.PAGE_ENTRY_MASK = pi.PAGE_ENTRY_MASK
@@ -54,20 +56,20 @@ class PageTableScan:
         self.pageentry_flags = pi.pageentry_flags
         self.should_stop_pagewalk = pi.should_stop_pagewalk
         # for scanning
-        self.result = []
+        self.result: List[Page] = []
         self.pagesz = 1 << self.page_shift
-        self.counters = {}
+        self.counters: Dict[int, int] = {}
         self.ptrsize = pwndbg.aglib.arch.ptrsize
         self.inf = pwndbg.dbg.selected_inferior()
         self.fmt = "<" + ("Q" if self.ptrsize == 8 else "I") * (self.pagesz // self.ptrsize)
-        self.cache = {}
+        self.cache: Dict[int, List[int]] = {}
         # below are info relating to the current page chunks being coalesced
         self.level_idxes = [0] * (self.paging_level + 1)
         self.curr = None
         self.is_kernel = is_kernel
         self.arch = pwndbg.aglib.arch.name
 
-    def scan(self, entry, level_remaining):
+    def scan(self, entry: int, level_remaining: int) -> None:
         # this needs to be EXTREMELY optimized as it is used to display context
         # making as few functions calls or memory reads as possible
         # avoid unnecessary python pointer deferences or repetative computations whenever possible
@@ -132,7 +134,7 @@ class PageTableScan:
             self.result.append(self.curr)
             self.curr = None
 
-    def walk(self, target, entry) -> List[PageTableLevel]:
+    def walk(self, target: int, entry: int) -> List[PageTableLevel]:
         page_shift = self.page_shift
         result = [PageTableLevel(None, None, None, None) for _ in range(self.paging_level + 1)]
         resolved = offset_mask = None
@@ -154,8 +156,8 @@ class PageTableScan:
             if self.should_stop_pagewalk(entry):
                 break
         if resolved and offset_mask is not None:
-            resolved, offset_mask = resolved
-            result[0].virt = resolved + (target & offset_mask)
+            addr, offset_mask = resolved
+            result[0].virt = addr + (target & offset_mask)
             result[0].entry = entry
         return result
 
@@ -173,7 +175,7 @@ class ArchPagingInfo:
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def STRUCT_PAGE_SIZE(self):
+    def STRUCT_PAGE_SIZE(self) -> int:
         a = pwndbg.aglib.typeinfo.load("struct page")
         if a is None:
             # true with the most common set of configurations
@@ -184,7 +186,7 @@ class ArchPagingInfo:
 
     @property
     @pwndbg.lib.cache.cache_until("objfile")
-    def STRUCT_PAGE_SHIFT(self):
+    def STRUCT_PAGE_SHIFT(self) -> int:
         return int(math.log2(self.STRUCT_PAGE_SIZE))
 
     @property
@@ -217,11 +219,11 @@ class ArchPagingInfo:
     def markers(self) -> Tuple[Tuple[str, int], ...]:
         raise NotImplementedError()
 
-    def handle_kernel_pages(self, pages):
+    def handle_kernel_pages(self, pages: Tuple[Page, ...]) -> None:
         # this is arch dependent
         raise NotImplementedError()
 
-    def kbase_helper(self, address):
+    def kbase_helper(self, address: int) -> int | None:
         if address is None:
             return None
         for mapping in kernel_vmmap_pages():
@@ -237,26 +239,26 @@ class ArchPagingInfo:
 
         return None
 
-    def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
+    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...]:
         raise NotImplementedError()
 
-    def pagetable_scan(self, entry=None) -> List[Page]:
+    def pagetable_scan(self, entry: int | None = None) -> List[Page]:
         raise NotImplementedError()
 
     @property
-    def PAGE_ENTRY_MASK(self):
+    def PAGE_ENTRY_MASK(self) -> int:
         return ~((1 << self.page_shift) - 1) & ((1 << self.va_bits) - 1)
 
     @property
-    def PAGE_INDEX_LEN(self):
+    def PAGE_INDEX_LEN(self) -> int:
         return self.page_shift - math.ceil(math.log2(pwndbg.aglib.arch.ptrsize))
 
     @property
-    def PAGE_INDEX_MASK(self):
+    def PAGE_INDEX_MASK(self) -> int:
         return (1 << (self.PAGE_INDEX_LEN)) - 1
 
     @pwndbg.lib.cache.cache_until("stop")
-    def scan_pagetable(self, entry, is_kernel) -> PageTableScan | None:
+    def scan_pagetable(self, entry: int, is_kernel: bool) -> PageTableScan | None:
         # only two possible return values: https://qemu-project.gitlab.io/qemu/system/gdb.html
         oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
         pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
@@ -269,7 +271,7 @@ class ArchPagingInfo:
             pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
         return scan
 
-    def pagewalk_helper(self, target, entry) -> Tuple[PageTableLevel, ...]:
+    def pagewalk_helper(self, target: int, entry: int) -> Tuple[PageTableLevel, ...]:
         base = self.physmap
         if entry > base:
             # user inputted a physmap address as pointer to pgd
@@ -285,20 +287,20 @@ class ArchPagingInfo:
             level.name = self.pagetable_level_names[i]
         return tuple(result)
 
-    def pagetable_scan_helper(self, entry, is_kernel=None) -> List[Page]:
+    def pagetable_scan_helper(self, entry: int, is_kernel: bool = False) -> List[Page]:
         scan = self.scan_pagetable(entry, is_kernel)
         if scan is None:
             return []
         return scan.result
 
-    def pageentry_bitflags(self, level) -> BitFlags:
+    def pageentry_bitflags(self, level: int) -> BitFlags:
         raise NotImplementedError()
 
-    def should_stop_pagewalk(self, is_last):
+    def should_stop_pagewalk(self, level: int) -> bool:
         raise NotImplementedError()
 
     @property
-    def phys_offset(self):
+    def phys_offset(self) -> int:
         return 0
 
     @property
@@ -309,7 +311,7 @@ class ArchPagingInfo:
     def pagetable_level_names(self) -> Tuple[str, ...]:
         raise NotImplementedError()
 
-    def pageentry_flags(self, entry) -> int:
+    def pageentry_flags(self, entry: int) -> int:
         raise NotImplementedError()
 
 
@@ -331,7 +333,7 @@ class x86_64PagingInfo(ArchPagingInfo):
         return 48 if self.paging_level == 4 else 51
 
     @pwndbg.lib.cache.cache_until("stop")
-    def get_vmalloc_vmemmap_bases(self):
+    def get_vmalloc_vmemmap_bases(self) -> Tuple[int, int]:
         result = None
         try:
             target = self.physmap.to_bytes(8, byteorder="little")
@@ -351,7 +353,7 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def physmap(self):
+    def physmap(self) -> int:
         result = pwndbg.aglib.kernel.symbol.try_usymbol("page_offset_base")
         if result is None:
             result = first_kernel_page_start()
@@ -359,7 +361,7 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def kbase(self):
+    def kbase(self) -> int | None:
         idt_entries = pwndbg.aglib.kernel.get_idt_entries()
         if len(idt_entries) == 0:
             return None
@@ -371,7 +373,7 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def vmalloc(self):
+    def vmalloc(self) -> int:
         result = pwndbg.aglib.kernel.symbol.try_usymbol("vmalloc_base")
         if result is not None:
             return result
@@ -383,7 +385,7 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def vmemmap(self):
+    def vmemmap(self) -> int:
         result = pwndbg.aglib.kernel.symbol.try_usymbol("vmemmap_base")
         if result is not None:
             return result
@@ -417,7 +419,7 @@ class x86_64PagingInfo(ArchPagingInfo):
             (None, 0xFFFFFFFFFFFFFFFF),
         )
 
-    def adjust(self, name):
+    def adjust(self, name: str) -> str:
         name = name.lower()
         if "low kernel" in name:
             return self.PHYSMAP
@@ -431,7 +433,7 @@ class x86_64PagingInfo(ArchPagingInfo):
             return name[:-5]
         return name
 
-    def handle_kernel_pages(self, pages):
+    def handle_kernel_pages(self, pages: Tuple[Page, ...]) -> None:
         kernel_idx = None
         kbase = self.kbase
         for i, page in enumerate(pages):
@@ -459,23 +461,23 @@ class x86_64PagingInfo(ArchPagingInfo):
             if pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack) in page:
                 page.objfile = "kernel [stack]"
 
-    def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
+    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...]:
         if entry is None:
             entry = pwndbg.aglib.regs.read_reg("cr3")
         return self.pagewalk_helper(target, entry)
 
-    def pagetable_scan(self, entry=None) -> List[Page]:
+    def pagetable_scan(self, entry: int | None = None) -> List[Page]:
         if entry is None:
             entry = pwndbg.aglib.regs.read_reg("cr3")
         return self.pagetable_scan_helper(entry)
 
-    def pageentry_bitflags(self, is_last) -> BitFlags:
+    def pageentry_bitflags(self, _: int) -> BitFlags:
         return BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("U", 2), ("W", 1), ("P", 0)])
 
-    def should_stop_pagewalk(self, entry):
+    def should_stop_pagewalk(self, entry: int) -> bool:
         return entry & (1 << 7) > 0
 
-    def pageentry_flags(self, entry) -> int:
+    def pageentry_flags(self, entry: int) -> int:
         if entry & 1 == 0:  # not present
             return 0
         flags = Page.R_OK
@@ -487,12 +489,12 @@ class x86_64PagingInfo(ArchPagingInfo):
 
 
 class Aarch64PagingInfo(ArchPagingInfo):
-    def __init__(self):
+    def __init__(self) -> None:
         self.VMEMMAP_START = self.VMEMMAP_SIZE = self.PAGE_OFFSET = None
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def pagetable_level_names(self):
+    def pagetable_level_names(self) -> Tuple[str, ...]:
         match self.paging_level:
             case 4:
                 return ("Page", "L3", "L2", "L1", "L0")
@@ -504,18 +506,18 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def tcr_el1(self):
+    def tcr_el1(self) -> BitFlags:
         tcr = pwndbg.lib.regs.aarch64_tcr_flags
         tcr.value = pwndbg.aglib.regs.TCR_EL1
         return tcr
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def va_bits(self):
+    def va_bits(self) -> int:
         id_aa64mmfr2_el1 = pwndbg.lib.regs.aarch64_mmfr_flags
         id_aa64mmfr2_el1.value = pwndbg.aglib.regs.ID_AA64MMFR2_EL1
         feat_lva = id_aa64mmfr2_el1.value is not None and id_aa64mmfr2_el1["VARange"] == 0b0001
-        va_bits = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
+        va_bits: int = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
         self.PAGE_OFFSET = self._PAGE_OFFSET(va_bits)  # physmap base address without KASLR
         if feat_lva:
             va_bits = min(52, va_bits)
@@ -523,7 +525,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def va_bits_min(self):
+    def va_bits_min(self) -> int:
         return 48 if self.va_bits > 48 else self.va_bits
 
     @property
@@ -534,22 +536,22 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def physmap(self):
+    def physmap(self) -> int:
         return first_kernel_page_start()
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def kbase(self):
+    def kbase(self) -> int:
         return self.kbase_helper(pwndbg.aglib.regs.vbar)
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def kversion(self):
+    def kversion(self) -> Tuple[int, ...] | None:
         return pwndbg.aglib.kernel.krelease()
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def module_start(self):
+    def module_start(self) -> int:
         if self.kbase is None:
             return None
         res = None
@@ -563,16 +565,16 @@ class Aarch64PagingInfo(ArchPagingInfo):
                 break
         return res
 
-    def _PAGE_OFFSET(self, va):  # aka PAGE_START
+    def _PAGE_OFFSET(self, va: int) -> int:  # aka PAGE_START
         return (-(1 << va)) & 0xFFFFFFFFFFFFFFFF
 
-    def _PAGE_END(self, va):
+    def _PAGE_END(self, va: int) -> int:
         return (-(1 << (va - 1))) & 0xFFFFFFFFFFFFFFFF
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def vmemmap(self):
-        if self.kversion is None:
+    def vmemmap(self) -> int:
+        if self.kversion is None or self.PAGE_OFFSET is None:
             return INVALID_ADDR
         vmemmap_shift = self.page_shift - self.STRUCT_PAGE_SHIFT
         # self.PAGE_OFFSET is set by self.va_bits(_min) so must exist
@@ -600,8 +602,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def pci(self):
-        if self.kversion is None:
+    def pci(self) -> int:
+        if self.kversion is None or self.VMEMMAP_START is None or self.VMEMMAP_SIZE is None:
             return None
         self.pci_end = INVALID_ADDR
         if self.kversion >= (6, 9):
@@ -616,7 +618,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def fixmap(self):
+    def fixmap(self) -> int:
         if self.kversion is None:
             return INVALID_ADDR
         if self.kversion < (5, 11):
@@ -632,7 +634,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def ksize(self):
+    def ksize(self) -> int:
         start = pwndbg.aglib.symbol.lookup_symbol_addr("_text")
         end = pwndbg.aglib.symbol.lookup_symbol_addr("_end")
         if start is not None and end is not None:
@@ -677,7 +679,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def paging_level(self):
+    def paging_level(self) -> int:
         # https://www.kernel.org/doc/html/v5.3/arm64/memory.html
         if self.page_shift == 16:
             return 2
@@ -723,7 +725,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             (None, 0xFFFFFFFFFFFFFFFF),
         )
 
-    def adjust(self, name):
+    def adjust(self, name: str) -> str:
         name = name.lower()
         if "end" in name:
             return None
@@ -737,7 +739,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             return self.VMALLOC
         return " ".join(name.strip().split()[:-1])
 
-    def handle_kernel_pages(self, pages):
+    def handle_kernel_pages(self, pages: Tuple[Page, ...]) -> None:
         if self.kbase is None:
             return
         for i in range(len(pages)):
@@ -760,7 +762,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("start")
-    def phys_offset(self):
+    def phys_offset(self) -> int:
         found_system = False
         try:
             for line in pwndbg.dbg.selected_inferior().send_monitor("info mtree -f").splitlines():
@@ -775,7 +777,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             pass
         return 0x40000000  # default
 
-    def pagewalk(self, target, entry) -> Tuple[PageTableLevel, ...]:
+    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...]:
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
                 entry = pwndbg.aglib.regs.TTBR1_EL1
@@ -784,7 +786,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         entry |= 3  # marks the entry as a table
         return self.pagewalk_helper(target, entry)
 
-    def pagetable_scan(self, entry=None) -> List[Page]:
+    def pagetable_scan(self, entry: int | None = None) -> List[Page]:
         # assumes entry should be from `kcurrent --set` and should be TTBR0_EL1 for a task
         if entry is None:
             entry = pwndbg.aglib.regs.TTBR0_EL1
@@ -793,16 +795,16 @@ class Aarch64PagingInfo(ArchPagingInfo):
             result += self.pagetable_scan_helper(pwndbg.aglib.regs.TTBR1_EL1 | 3, is_kernel=True)
         return result
 
-    def pageentry_bitflags(self, is_last) -> BitFlags:
-        if is_last:
+    def pageentry_bitflags(self, level: int) -> BitFlags:
+        if level == 0:
             # block or page
             return BitFlags([("UNX", 54), ("PNX", 53), ("AP", (6, 7))])
         return BitFlags([("UNX", 60), ("PNX", 59), ("AP", (61, 62))])
 
-    def should_stop_pagewalk(self, entry):
+    def should_stop_pagewalk(self, entry: int) -> bool:
         return (entry & 1) == 0 or (entry & 3) == 1
 
-    def pageentry_flags(self, entry) -> int:
+    def pageentry_flags(self, entry: int) -> int:
         if entry & 1 == 0:
             return 0
         flags = Page.R_OK
