@@ -72,4 +72,4 @@ def test_symbol_duplicated_symbols_issue_1610():
 def _get_section_addr(sect):
     result = gdb.execute("maintenance info sections", to_string=True).split("\n")
     text_line = next(line for line in result if f": {sect} " in line)
-    return int(text_line.split(" at ")[1].split(":")[0], 16)
+    return int("0x" + text_line.split("->")[0].split("0x")[1], 16)
