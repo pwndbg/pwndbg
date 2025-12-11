@@ -1174,9 +1174,11 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         if addr:
             return pwndbg.aglib.memory.u32(addr) > 0
         # glibc 2.42 replaced __libc_multiple_threads with __libc_single_threaded
-        elif bool(addr := pwndbg.aglib.symbol.lookup_symbol_addr(
-            "__libc_single_threaded", objfile_endswith=libc_name
-        )):
+        elif bool(
+            addr := pwndbg.aglib.symbol.lookup_symbol_addr(
+                "__libc_single_threaded", objfile_endswith=libc_name
+            )
+        ):
             return pwndbg.aglib.memory.u32(addr) == 0
         return len(pwndbg.dbg.selected_inferior().threads()) > 1
 
