@@ -166,6 +166,12 @@ install_dnf() {
         qemu-system-arm \
         qemu-user
 
+    # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
+    if uname -m | grep -q x86_64; then
+        sudo dnf -y install glibc.i686
+        sudo dnf -y debuginfo-install glibc
+    fi
+
     command -v go &> /dev/null || sudo dnf install -y go
 
     if [[ "$1" != "" ]]; then
