@@ -1167,18 +1167,11 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     @pwndbg.lib.cache.cache_until("objfile", "thread")
     def multithreaded(self) -> bool:
         """Is malloc operating within a multithreaded environment."""
-        libc_name = pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr(
-            "__libc_multiple_threads", objfile_endswith=libc_name
-        )
+        addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_multiple_threads")
         if addr:
             return pwndbg.aglib.memory.u32(addr) > 0
         # glibc 2.42 replaced __libc_multiple_threads with __libc_single_threaded
-        elif bool(
-            addr := pwndbg.aglib.symbol.lookup_symbol_addr(
-                "__libc_single_threaded", objfile_endswith=libc_name
-            )
-        ):
+        elif addr := pwndbg.aglib.symbol.lookup_symbol_addr("__libc_single_threaded"):
             return pwndbg.aglib.memory.u32(addr) == 0
         return len(pwndbg.dbg.selected_inferior().threads()) > 1
 
@@ -1637,7 +1630,6 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
 
         tcache_ptr = pwndbg.aglib.symbol.lookup_symbol_addr(
             "tcache",
-            objfile_endswith=pwndbg.glibc.get_libc_filename_from_info_sharedlibrary(),
             prefer_static=True,
         )
         if not tcache_ptr:
@@ -1756,14 +1748,9 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return sbrk_region
 
     def is_initialized(self) -> bool:
-        libc_name = pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr(
-            "__libc_malloc_initialized", objfile_endswith=libc_name
-        )
+        addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_malloc_initialized")
         if addr is None:
-            addr = pwndbg.aglib.symbol.lookup_symbol_addr(
-                "__malloc_initialized", objfile_endswith=libc_name
-            )
+            addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_initialized")
         # fallback for GLIBC 2.42 as __malloc_initialized was removed
         if addr is None:
             return int(self.mp["sbrk_base"]) != 0
