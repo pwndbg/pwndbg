@@ -65,7 +65,7 @@ parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", h
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def slab(
     command,
