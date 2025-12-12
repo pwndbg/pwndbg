@@ -67,15 +67,45 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     first_hexdump = await hexdump_16B(hex(heap_page.start))
 
+    # Since glibc 2.42 we don't store the amount of chunks in the tcache bin, but rather
+    # the amount of chunks still needed to fill the bin.
+    num_slots_check = pwndbg.aglib.memory.u8(heap_page.start + pwndbg.aglib.arch.ptrsize * 2)
+    using_num_slots = num_slots_check == 7
+
     expected = [
         "",
         f"{heap_iter(0):#x}\t0x0000000000000000\t{first_chunk_size | 1:#018x}\t{first_hexdump}",
     ]
-    for _ in range(first_chunk_size // 16 - 1):
-        expected.append(
-            "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
-        )
-    expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
+
+    if using_num_slots:
+        # The tcache struct is made up of 2-byte num_slots values and 8-byte pointers to the starts
+        # of the bins.
+        ntcachebins: int = first_chunk_size // (2 + 8)
+        nslotslines: float = ntcachebins * 2 / 0x10
+        nptrlines: int = first_chunk_size // 0x10 - int(nslotslines)
+
+        for _ in range(int(nslotslines)):
+            expected.append(
+                "%#x\t0x0007000700070007\t0x0007000700070007\t................" % heap_iter()
+            )
+        if nslotslines - int(nslotslines) == 0.5:
+            expected.append(
+                "%#x\t0x0007000700070007\t0x0000000000000000\t................" % heap_iter()
+            )
+            nptrlines -= 1
+        for _ in range(nptrlines - 1):
+            expected.append(
+                "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
+            )
+        expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
+
+    else:
+        for _ in range(first_chunk_size // 16 - 1):
+            expected.append(
+                "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
+            )
+        expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
+
     assert result == expected
 
     ## This time using `default-visualize-chunk-number` to set `count`, to make sure that the config can work
