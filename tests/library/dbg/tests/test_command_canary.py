@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from ....host import Controller
 from . import get_binary
 from . import launch_to
 from . import pwndbg_test
@@ -27,6 +28,7 @@ async def test_command_canary(ctrl: Controller, binary: str, reg_name: str, skip
     import pwndbg
     import pwndbg.aglib.memory
     import pwndbg.aglib.regs
+    import pwndbg.commands.canary
 
     await launch_to(ctrl, binary, "main")
 
@@ -44,6 +46,7 @@ async def test_command_canary(ctrl: Controller, binary: str, reg_name: str, skip
         await ctrl.step_instruction()
 
     canary_value, at_random = pwndbg.commands.canary.canary_value()
+    assert at_random is not None
 
     raw = pwndbg.aglib.memory.read_pointer_width(at_random)
     mask = pwndbg.aglib.arch.ptrmask ^ 0xFF

@@ -332,7 +332,7 @@ v
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def buddydump(
     zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, node: int, find: int

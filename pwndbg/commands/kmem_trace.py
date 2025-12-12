@@ -276,7 +276,7 @@ steps out of the current function. You may also find `-c finish` and `-c continu
     only_debuggers={DebuggerType.GDB, DebuggerType.LLDB},
 )
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str, all: bool) -> None:
     if pwndbg.aglib.regs.retval is None:
