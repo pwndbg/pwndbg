@@ -172,7 +172,7 @@ class QemuMachine(Machine):
         if register_name.startswith("$"):
             register_name = register_name[1:]
 
-        return int(getattr(pwndbg.aglib.regs, register_name))
+        return int(pwndbg.aglib.regs.read_reg(register_name))
 
 
 @pwndbg.lib.cache.cache_until("stop")

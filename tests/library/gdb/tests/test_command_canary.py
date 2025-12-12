@@ -31,7 +31,7 @@ def test_command_canary(start_binary, binary, reg_name):
     gdb.execute("run")
     gdb.execute("stepi")
 
-    register = getattr(pwndbg.aglib.regs, reg_name)
+    register = pwndbg.aglib.regs.read_reg(reg_name)
     canary_value, at_random = pwndbg.commands.canary.canary_value()
 
     raw = pwndbg.aglib.memory.read_pointer_width(at_random)

@@ -111,15 +111,15 @@ def _ctx_registers() -> Iterator[int]:
 
     try:
         # Jump to the target address in preparation.
-        setattr(pwndbg.aglib.regs, register_set.pc, shell_starting_address)
+        pwndbg.aglib.regs.write_reg(register_set.pc, shell_starting_address)
 
         yield shell_starting_address
     finally:
         # Restore the code and the program counter and, if requested, the rest of
         # the registers.
-        setattr(pwndbg.aglib.regs, register_set.pc, starting_address)
+        pwndbg.aglib.regs.write_reg(register_set.pc, starting_address)
         for reg, val in registers.items():
-            setattr(pwndbg.aglib.regs, reg, val)
+            pwndbg.aglib.regs.write_reg(reg, val)
 
 
 async def _execute_until_addr(ec: ExecutionController, target_address: int) -> None:
