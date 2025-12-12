@@ -793,7 +793,9 @@ class Aarch64PagingInfo(ArchPagingInfo):
             entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
         result = self.pagetable_scan_helper(entry | 3, is_kernel=False)
         if pwndbg.aglib.memory.is_kernel(pwndbg.aglib.regs.pc):
-            result += self.pagetable_scan_helper(pwndbg.aglib.regs.read_reg("TTBR1_EL1") | 3, is_kernel=True)
+            result += self.pagetable_scan_helper(
+                pwndbg.aglib.regs.read_reg("TTBR1_EL1") | 3, is_kernel=True
+            )
         return result
 
     def pageentry_bitflags(self, level: int) -> BitFlags:
