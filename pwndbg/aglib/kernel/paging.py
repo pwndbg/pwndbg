@@ -508,14 +508,14 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @pwndbg.lib.cache.cache_until("stop")
     def tcr_el1(self) -> BitFlags:
         tcr = pwndbg.lib.regs.aarch64_tcr_flags
-        tcr.value = pwndbg.aglib.regs.TCR_EL1
+        tcr.value = pwndbg.aglib.regs.read_reg("TCR_EL1")
         return tcr
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def va_bits(self) -> int:
         id_aa64mmfr2_el1 = pwndbg.lib.regs.aarch64_mmfr_flags
-        id_aa64mmfr2_el1.value = pwndbg.aglib.regs.ID_AA64MMFR2_EL1
+        id_aa64mmfr2_el1.value = pwndbg.aglib.regs.read_reg("ID_AA64MMFR2_EL1")
         feat_lva = id_aa64mmfr2_el1.value is not None and id_aa64mmfr2_el1["VARange"] == 0b0001
         va_bits: int = 64 - self.tcr_el1["T1SZ"]  # this is prob only `vabits_actual`
         self.PAGE_OFFSET = self._PAGE_OFFSET(va_bits)  # physmap base address without KASLR
@@ -790,10 +790,10 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def pagetable_scan(self, entry: int | None = None) -> List[Page]:
         # assumes entry should be from `kcurrent --set` and should be TTBR0_EL1 for a task
         if entry is None:
-            entry = pwndbg.aglib.regs.TTBR0_EL1
+            entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
         result = self.pagetable_scan_helper(entry | 3, is_kernel=False)
         if pwndbg.aglib.memory.is_kernel(pwndbg.aglib.regs.pc):
-            result += self.pagetable_scan_helper(pwndbg.aglib.regs.TTBR1_EL1 | 3, is_kernel=True)
+            result += self.pagetable_scan_helper(pwndbg.aglib.regs.read_reg("TTBR1_EL1") | 3, is_kernel=True)
         return result
 
     def pageentry_bitflags(self, level: int) -> BitFlags:
