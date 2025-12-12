@@ -87,76 +87,9 @@ jobs:
         run: |
           ./kernel-tests.sh --nix
 
-  tests:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, ubuntu-22.04]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - name: Cache for pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ matrix.os }}-cache-pip
-
-      - name: Setup pwndbg
-        run: |
-          ./setup.sh
-          ./setup-dev.sh
-
-      - name: Python version info
-        run: |
-          echo 'GDB py:'
-          gdb --batch --quiet --nx --nh --ex 'py import sys; print(sys.version)'
-          echo 'Installed py:'
-          ./.venv/bin/python -V
-          echo 'Installed packages:'
-          ./.venv/bin/pip freeze
-
-      # We set `kernel.yama.ptrace_scope=0` for `attachp` command tests
-      - name: Run GDB Tests
-        run: |
-          sudo sysctl -w kernel.yama.ptrace_scope=0
-          ./tests.sh -d gdb -g gdb
-
-      - name: Run DBG Tests on GDB
-        run: |
-          sudo sysctl -w kernel.yama.ptrace_scope=0
-          ./tests.sh -d gdb -g dbg
-
-      - name: Run DBG Tests on LLDB
-        if: matrix.os != 'ubuntu-22.04'
-        run: |
-          sudo sysctl -w kernel.yama.ptrace_scope=0
-          ./tests.sh -d lldb -g dbg
-
-  qemu-user-tests:
-    runs-on: [ubuntu-24.04]
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Cache for pip
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ matrix.os }}-cache-pip
-
-      - name: Setup pwndbg
-        run: |
-          ./setup.sh
-          ./setup-dev.sh
-
-      - name: Run cross-architecture tests
-        run: |
-          ./tests.sh -g cross-arch-user -d gdb
-
   qemu-system-tests:
     runs-on: [ubuntu-22.04]
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 

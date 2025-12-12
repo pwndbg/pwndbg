@@ -5,9 +5,12 @@ import math
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.paging
+import pwndbg.aglib.memory
 import pwndbg.aglib.regs
+import pwndbg.chain
 import pwndbg.color as C
 import pwndbg.color.message as M
+import pwndbg.commands
 from pwndbg.aglib.kernel.paging import PageTableLevel
 from pwndbg.commands import CommandCategory
 
@@ -125,7 +128,7 @@ p2v_parser.add_argument("paddr", type=str, help="")
 
 @pwndbg.commands.Command(p2v_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def p2v(paddr):
@@ -147,7 +150,7 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 
 @pwndbg.commands.Command(v2p_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def v2p(vaddr):
@@ -171,7 +174,7 @@ page_parser.add_argument("page", type=str, help="")
 
 @pwndbg.commands.Command(page_parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def pageinfo(page):

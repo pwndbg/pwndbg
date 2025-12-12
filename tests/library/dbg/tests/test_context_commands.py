@@ -351,7 +351,7 @@ async def test_context_disasm_proper_render_on_mem_change_issue_1818(
         await ctrl.execute("patch $rip+5 nop;nop;nop;nop;nop")
     else:
         # Do the same, but through write API
-        pwndbg.aglib.memory.write(pwndbg.aglib.regs.rip + 5, b"\x90" * 5)
+        pwndbg.aglib.memory.write(pwndbg.aglib.regs.pc + 5, b"\x90" * 5)
 
     # Actual test: we expect the read memory to be different now ;)
     # (and not e.g. returned incorrectly from a not cleared cache)

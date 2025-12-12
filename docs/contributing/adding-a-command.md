@@ -175,7 +175,7 @@ OnlyWithFile
 OnlyWhenQemuKernel
 OnlyWhenUserspace
 OnlyWithKernelDebugInfo
-OnlyWithKernelDebugSymbols
+OnlyWithKernelSymbols
 OnlyWhenPagingEnabled
 OnlyWithTcache
 OnlyWhenHeapIsInitialized

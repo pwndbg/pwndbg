@@ -15,7 +15,15 @@ parser.add_argument(
 )
 
 
-@pwndbg.commands.Command(parser, aliases=["kallsyms", "ks"], category=CommandCategory.KERNEL)
+@pwndbg.commands.Command(
+    parser,
+    aliases=["kallsyms", "ks"],
+    category=CommandCategory.KERNEL,
+    notes="""
+Using `--apply` makes sense for kernel modules. If you want to symbolize the whole kernel,
+use vmlinux-to-elf (https://github.com/marin-m/vmlinux-to-elf) or compile it yourself.
+""",
+)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 def klookup(symbol: str, apply: bool) -> None:

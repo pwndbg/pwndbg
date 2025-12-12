@@ -154,47 +154,52 @@ class Reg:
 
 
 class RegisterSet:
-    #: Program counter register
     pc: str
+    """Program counter register"""
 
-    #: Stack pointer register
     stack: str
+    """Stack pointer register"""
 
-    #: Frame pointer register
     frame: str | None = None
+    """Frame pointer register"""
 
-    #: Return address register
     retaddr: Tuple[str, ...]
+    """Return address register"""
 
-    #: Flags register (eflags, cpsr)
     flags: Dict[str, BitFlags]
+    """Maps name of flag register (eflags, cpsr) to a structure detailing what the bits mean"""
 
-    #: List of native-size general-purpose registers
     gpr: Tuple[str, ...]
+    """List of native-size general-purpose registers"""
 
-    #: List of miscellaneous, valid registers
     misc: Tuple[str, ...]
+    """List of miscellaneous, valid registers"""
 
-    #: Register-based arguments for most common ABI
     args: Tuple[str, ...]
+    """Register-based arguments for most common ABI"""
 
-    #: Return value register
     retval: str | None
+    """Return value register"""
 
-    #: Common registers which should be displayed in the register context
     common: List[str] = []
+    """Common registers which should be displayed in the register context"""
 
-    #: Extra registers for kernel debugging
     kernel: KernelRegisterSet | None
+    """Extra registers for kernel debugging"""
 
-    #: All valid registers
     all: Set[str]
+    """All valid registers"""
 
-    #: Reg objects containing information on each register
     reg_definitions: Dict[str, Reg]
+    """Map of register name to Reg objects containing information on the register"""
 
-    #: Map of register name to the full register it resides in. Example mapping: "eax" -> Reg("rax")
     full_register_lookup: Dict[str, Reg]
+    """
+    Map of register name to the full register it resides in.
+    Example mapping: "eax" -> Reg("rax")
+
+    A full size register maps to itself.
+    """
 
     def __init__(
         self,
@@ -257,6 +262,9 @@ class RegisterSet:
         # Otherwise, the values will be clobbered
         # https://github.com/pwndbg/pwndbg/pull/2337
         self.emulated_regs_order: List[UnicornRegisterWrite] = []
+        
+        # Avoid duplicates
+        seen_emulated_register: set[str] = set()
 
         for regname in itertools.chain(
             (self.pc,),
@@ -266,9 +274,10 @@ class RegisterSet:
             self.misc,
             self.gpr,
         ):
-            if regname and regname not in self.emulated_regs_order:
+            if regname and regname not in seen_emulated_register:
                 emu_reg = UnicornRegisterWrite(regname, True if regname in flags else False)
                 self.emulated_regs_order.append(emu_reg)
+                seen_emulated_register.add(regname)
 
         self.all = (
             set(self.misc)
@@ -446,7 +455,7 @@ class PseudoEmulatedRegisterFile:
 
         self.masks[full_reg_def.name] = ~new_mask & self.masks[full_reg_def.name]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(
             {
                 "masks": {x: hex(y) for x, y in self.masks.items()},

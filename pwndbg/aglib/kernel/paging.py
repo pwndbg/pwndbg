@@ -542,7 +542,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def kbase(self) -> int:
-        return self.kbase_helper(pwndbg.aglib.regs.vbar)
+        return self.kbase_helper(pwndbg.aglib.regs.read_reg("vbar"))
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -781,9 +781,9 @@ class Aarch64PagingInfo(ArchPagingInfo):
     def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...]:
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
-                entry = pwndbg.aglib.regs.TTBR1_EL1
+                entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
             else:
-                entry = pwndbg.aglib.regs.TTBR0_EL1
+                entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
         entry |= 3  # marks the entry as a table
         return self.pagewalk_helper(target, entry)
 

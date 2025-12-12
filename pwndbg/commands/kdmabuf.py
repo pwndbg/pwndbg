@@ -5,6 +5,7 @@ import argparse
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.dmabuf
 import pwndbg.color.message as M
+import pwndbg.commands
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.exception import IndentContextManager
@@ -60,7 +61,7 @@ def print_sgl(sgl, indent):
 # adapted from https://github.com/bata24/gef/tree/dev
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kdmabuf():
     db_name = "db_list"

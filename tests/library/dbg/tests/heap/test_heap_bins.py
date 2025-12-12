@@ -27,22 +27,30 @@ async def test_heap_bins(ctrl: Controller) -> None:
 
     # check if all bins are empty at first
     allocator = pwndbg.aglib.heap.current
+    assert allocator is not None
 
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("tcache_size")
+    assert addr is not None
     tcache_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("tcache_count")
+    assert addr is not None
     tcache_count = pwndbg.aglib.memory.u64(addr)
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("fastbin_size")
     fastbin_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("fastbin_count")
+    assert addr is not None
     fastbin_count = pwndbg.aglib.memory.u64(addr)
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("smallbin_size")
+    assert addr is not None
     smallbin_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("smallbin_count")
+    assert addr is not None
     smallbin_count = pwndbg.aglib.memory.u64(addr)
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("largebin_size")
+    assert addr is not None
     largebin_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("largebin_count")
+    assert addr is not None
     largebin_count = pwndbg.aglib.memory.u64(addr)
 
     result = allocator.tcachebins()
@@ -108,9 +116,13 @@ async def test_heap_bins(ctrl: Controller) -> None:
 
     result = allocator.unsortedbin()
     assert result.bin_type == BinType.UNSORTED
+    fd_chain_len = len(result.bins["all"].fd_chain)
+    bk_chain_len = len(result.bins["all"].bk_chain)
     assert (
-        len(result.bins["all"].fd_chain) == smallbin_count + 2
-        and len(result.bins["all"].bk_chain) == smallbin_count + 2
+        (fd_chain_len == smallbin_count + 2 and bk_chain_len == smallbin_count + 2)
+        # Since glibc 2.42, freed small-bin-sized chunks go directly to the smallbin instead of going
+        # to the unsorted bin.
+        or (fd_chain_len == 1 and bk_chain_len == 1)
     )
     assert not result.bins["all"].is_corrupted
     for addr in result.bins["all"].fd_chain[:-1]:
