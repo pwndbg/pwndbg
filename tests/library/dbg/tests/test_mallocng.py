@@ -44,8 +44,8 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
         f"  start:          {re_addr}    ",
         f"  user start:     {re_addr}    aka `p`",
         rf"  end:            {re_addr}    start \+ stride - 4",
-        "  stride:         0x30              distance between adjacent slots",
-        """  user size:      0x20              aka "nominal size", `n`""",
+        "  stride:         0x60              distance between adjacent slots",
+        """  user size:      0x50              aka "nominal size", `n`""",
         r"  slack:          0x0 \(0x0\)         slot's unused memory \/ 0x10",
         "  state:          allocated         ",
         "in-band",
@@ -77,15 +77,15 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
     cyclic_idx = 17
 
     # Check stride
-    assert "stride" in buffer2_out[stride_idx] and " 0x30 " in buffer2_out[stride_idx]
+    assert "stride" in buffer2_out[stride_idx] and " 0x60 " in buffer2_out[stride_idx]
     assert "stride" in buffer4_out[stride_idx] and " 0x2a0 " in buffer4_out[stride_idx]
 
     # Check user size
-    assert "user size" in buffer2_out[user_size_idx] and " 0x20 " in buffer2_out[user_size_idx]
+    assert "user size" in buffer2_out[user_size_idx] and " 0x50 " in buffer2_out[user_size_idx]
     assert "user size" in buffer4_out[user_size_idx] and " 0x211 " in buffer4_out[user_size_idx]
 
     # Check slack
-    assert "slack" in buffer2_out[slack_idx] and " 0x0 " in buffer2_out[slack_idx]
+    assert "slack" in buffer2_out[slack_idx] and " 0x0 (0x0)" in buffer2_out[slack_idx]
     assert "slack" in buffer4_out[slack_idx] and " 0x8 (0x80) " in buffer4_out[slack_idx]
 
     # Check allocation status
@@ -93,7 +93,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
     assert "state" in buffer4_out[state_idx] and " allocated " in buffer4_out[state_idx]
 
     # Check offset
-    assert "offset" in buffer2_out[offset_idx] and " 0x3 (0x30) " in buffer2_out[offset_idx]
+    assert "offset" in buffer2_out[offset_idx] and " 0x6 (0x60) " in buffer2_out[offset_idx]
     if binary == HEAP_MALLOCNG_STATIC:
         # Because it's cyclic
         assert "offset" in buffer4_out[offset_idx] and " 0x1 (0x10) " in buffer4_out[offset_idx]
@@ -218,7 +218,7 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
         "group",
         f"  @ {re_addr} - {re_addr}",
         f"  meta:           {re_addr}    ",
-        "  active_idx:     0x9               ",
+        "  active_idx:     0x4               ",
         f"  storage:        {re_addr}    start of slots",
         "---",
         "  group size:     0x1f0             ",
@@ -227,16 +227,16 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
         f"  prev:           {re_addr}    ",
         f"  next:           {re_addr}    ",
         f"  mem:            {re_addr}    the group",
-        "  avail_mask:     0x3f8             0b00000000000000000000001111111000",
+        "  avail_mask:     0x18              0b00000000000000000000000000011000",
         "  freed_mask:     0x0               0b00000000000000000000000000000000",
-        r"  last_idx:       0x9 \(cnt: 0xa\)    index of last slot",
+        r"  last_idx:       0x4 \(cnt: 0x5\)    index of last slot",
         "  freeable:       True              ",
-        r"  sizeclass:      0x2 \(stride: 0x30\)  ",
+        r"  sizeclass:      0x5 \(stride: 0x60\)  ",
         "  maplen:         0x0               ",
         "",
         rf"Group nested in slot of another group \({re_addr}\).",
         "",
-        "Slot statuses: UUUAAAAAAA",
+        "Slot statuses: UUUAA",
         r"  \(U: Inuse \(allocated\) / F: Freed / A: Available\)",
     ]
 
@@ -440,25 +440,26 @@ async def test_mallocng_vis(ctrl: Controller, binary: str):
         "LEGEND: .*",
         "LEGEND: .*",
         "",
-        rf"{re_addr}0\t0x[0-9a-fA-F]{{16}}\t0x0000ff0000000009\t................",
+        # the dots match anything but w/e
+        rf"{re_addr}0\t0x[0-9a-fA-F]{{16}}\t0x0000ff0000000004\t................",
+        rf"{re_addr}0\t0x0a0a0a0a0a0a0a0a\t0x0a0a0a0a0a0a0a0a\t................",
+        rf"{re_addr}0\t0x0a0a0a0a0a0a0a0a\t0x0a0a0a0a0a0a0a0a\t................",
+        rf"{re_addr}0\t0x0a0a0a0a0a0a0a0a\t0x0a0a0a0a0a0a0a0a\t................",
         rf"{re_addr}0\t0x0a0a0a0a0a0a0a0a\t0x0a0a0a0a0a0a0a0a\t................",
         rf"{re_addr}0\t0x0a0a0a0a0a0a0a0a\t0x0a0a0a0a0a0a0a0a\t................",
         rf"{re_addr}0\t0x0000000000000000\t0x0000ff000000000c\t................",
         rf"{re_addr}0\t0x0b0b0b0b0b0b0b0b\t0x0b0b0b0b0b0b0b0b\t................",
         rf"{re_addr}0\t0x0b0b0b0b0b0b0b0b\t0x0b0b0b0b0b0b0b0b\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0006a2000000000c\t................   2 \+ \(5 << 5\)",
+        rf"{re_addr}0\t0x0b0b0b0b0b0b0b0b\t0x0b0b0b0b0b0b0b0b\t................",
+        rf"{re_addr}0\t0x0b0b0b0b0b0b0b0b\t0x0b0b0b0b0b0b0b0b\t................",
+        rf"{re_addr}0\t0x0b0b0b0b0b0b0b0b\t0x0b0b0b0b0b0b0b0b\t................",
+        rf"{re_addr}0\t0x0000000000000000\t0x000ca2000000000c\t................   2 \+ \(5 << 5\)",
+        rf"{re_addr}0\t0x0c0c0c0c0c0c0c0c\t0x0c0c0c0c0c0c0c0c\t................",
+        rf"{re_addr}0\t0x0c0c0c0c0c0c0c0c\t0x0c0c0c0c0c0c0c0c\t................",
+        rf"{re_addr}0\t0x0c0c0c0c0c0c0c0c\t0x0c0c0c0c0c0c0c0c\t................",
         rf"{re_addr}0\t0x0c0c0c0c0c0c0c0c\t0x0c0c0c0c0c0c0c0c\t................",
         rf"{re_addr}0\t0x0c0c0c0c0c0c0c0c\t0x0c0c0c0c0c0c0c0c\t................",
         rf"{re_addr}0\t0x0000000000000000\t0x000000000000000c\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
-        rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
         rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
         rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
         rf"{re_addr}0\t0x0000000000000000\t0x0000000000000000\t................",
@@ -502,8 +503,8 @@ async def test_mallocng_dump(ctrl: Controller, binary: str):
     dump_out = await ctrl.execute_and_capture("ng-dump")
     assert "meta_area" in dump_out
     assert "group @" in dump_out
-    assert "(slot size: 0x30)" in dump_out  # buffer{1,2,3}
+    assert "(slot size: 0x60)" in dump_out  # buffer{1,2,3}
     assert "(slot size: 0x2a0)" in dump_out  # buffer{4,5}
-    # 10 slots in the buffer{1,2,3} group.
-    for idx in range(10):
+    # 5 slots in the buffer{1,2,3} group.
+    for idx in range(5):
         assert f"[{idx}]" in dump_out
