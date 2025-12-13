@@ -513,10 +513,9 @@ class Heap:
                 raise ValueError(f"Cannot build heap object on an unmapped address ({hex(addr)})")
 
             heap_info = allocator.get_heap(addr)
-            try:
+            ar_ptr = None
+            if heap_info is not None:
                 ar_ptr = int(heap_info["ar_ptr"])
-            except pwndbg.dbg_mod.Error:
-                ar_ptr = None
 
             if ar_ptr is not None and ar_ptr in (ar.address for ar in allocator.arenas):
                 # Case 2; non-main arena.
