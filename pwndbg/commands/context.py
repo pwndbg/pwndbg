@@ -1011,9 +1011,10 @@ class RegisterContext(RegisterContextProtocol):
 
 
 def get_regs(in_regs: List[str | VisitableRegister | None] | None = None):
+    # Python default parameters are instantiated once and shared across calls.
+    # Instead of a default value of [], we need to do this check so we get a fresh list each time
     if in_regs is None:
         in_regs = []
-
     regs: List[str | VisitableRegister | None] = in_regs
     result: List[str] = []
     rc = RegisterContext()
