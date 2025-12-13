@@ -1713,7 +1713,10 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         if self.heap_info is None:
             return None
-        return pwndbg.aglib.memory.get_typed_pointer_value(self.heap_info, heap_for_ptr(addr))
+        haddr = heap_for_ptr(addr)
+        if pwndbg.aglib.memory.peek(haddr) is None:
+            return None
+        return pwndbg.aglib.memory.get_typed_pointer_value(self.heap_info, haddr)
 
     def get_tcache(
         self, tcache_addr: int | pwndbg.dbg_mod.Value | None = None
