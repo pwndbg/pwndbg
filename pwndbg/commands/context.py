@@ -1010,13 +1010,13 @@ class RegisterContext(RegisterContextProtocol):
         return f"{prefix} {desc}"
 
 
-def get_regs(in_regs: List[str] = None):
+def get_regs(in_regs: List[str | VisitableRegister | None] | None = None):
+    if in_regs is None:
+        in_regs = []
+
     regs: List[str | VisitableRegister | None] = in_regs
     result: List[str] = []
     rc = RegisterContext()
-
-    if regs is None:
-        regs = []
 
     if len(regs) == 0:
         regs += pwndbg.aglib.regs.gpr

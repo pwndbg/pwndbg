@@ -53,14 +53,14 @@ class BitFlags(VisitableRegister):
     flags: OrderedDict[str, Union[int, Tuple[int, int]]]
     value: int
 
-    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = [], value=None):
+    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
         self.regname = ""
         self.flags = OrderedDict()
         for name, bits in flags:
             self.flags[name] = bits
-        self.value = value
+        self.value = 0
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         return getattr(self.flags, name)
 
     def __getitem__(self, key: str) -> int:
@@ -147,7 +147,7 @@ class KernelRegisterSet:
 
     def __init__(
         self,
-        segments: SegmentRegisters | None,
+        segments: SegmentRegisters,
         controls: Dict[str, BitFlags | AddressingRegister] = {},
         msrs: Dict[str, BitFlags | AddressingRegister] = {},
     ):
