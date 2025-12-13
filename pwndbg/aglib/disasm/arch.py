@@ -212,10 +212,10 @@ class DisassemblyAssistant:
         # Ensure emulator's program counter is at the correct location.
         # This occurs very rarely - observed sometimes when the remote is stalling, ctrl-c, and for some reason emulator returns PC=0.
         if emu:
-            if emu.pc != instruction.address:
+            if emu.pc() != instruction.address:
                 if DEBUG_ENHANCEMENT:
                     print(
-                        f"Program counter and emu.pc do not line up: {hex(pwndbg.aglib.regs.pc)=} {hex(emu.pc)=}"
+                        f"Program counter and emu.pc do not line up: {hex(pwndbg.aglib.regs.pc)=} {hex(emu.pc())=}"
                     )
                 emu = jump_emu = None
 
@@ -716,7 +716,7 @@ class DisassemblyAssistant:
             # 1. Only use it to determine non-call's (`nexti` should step over calls)
             # 2. Make sure we haven't manually set .condition to False (which should override the emulators prediction)
             if not instruction.call_like and instruction.condition != InstructionCondition.FALSE:
-                next_addr = jump_emu.pc
+                next_addr = jump_emu.pc()
 
         # Handle edge case - if the target happens to be the next address in memory and it's a jump, we need this variable
         # so the disasm output is accurate.

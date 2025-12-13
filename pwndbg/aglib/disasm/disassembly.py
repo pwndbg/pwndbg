@@ -466,7 +466,7 @@ def near(
                 # Upon execution the previous instruction, the Thumb mode bit may have changed.
                 # This means we know whether the next instruction executed will be Thumb or not.
                 # This returns None in the case the Thumb bit is not relevent.
-                last_emulated_thumb_bit_value = emulated_arm_mode_cache[emu.pc] = (
+                last_emulated_thumb_bit_value = emulated_arm_mode_cache[emu.pc()] = (
                     emu.read_thumb_bit()
                 )
 

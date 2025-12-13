@@ -19,7 +19,9 @@ import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory as memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.typeinfo
+import pwndbg.auxv
 import pwndbg.color.message as message
+import pwndbg.search
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
 # Slot granularity.
@@ -1055,19 +1057,19 @@ class MallocContext:
 
         assert len(size_classes) == 48
 
-        for i in range(len(size_classes)):
+        for _ in range(len(size_classes)):
             cur_active = next_int(ptrsize)
             self.active.append(cur_active)
 
-        for i in range(len(size_classes)):
+        for _ in range(len(size_classes)):
             cur_usage = next_int(size_tsize)
             self.usage_by_class.append(cur_usage)
 
-        for i in range(32):
+        for _ in range(32):
             cur_seq = next_int(uint8size)
             self.unmap_seq.append(cur_seq)
 
-        for i in range(32):
+        for _ in range(32):
             cur_bounce = next_int(uint8size)
             self.bounces.append(cur_bounce)
 
@@ -1213,7 +1215,11 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         if pwndbg.dbg.selected_inferior().is_dynamically_linked():
             for addr, mapname in possible:
-                if mapname.endswith("libc.so"):
+                # Unlike glibc, for musl the libc and ld are loaded as one object file.
+                # On some distro's the object file shows up as libc
+                # (e.g. /usr/lib/musl/lib/libc.so on archlinux) and on some as ld
+                # (e.g. /usr/lib/ld-musl-x86_64.so.1 on fedora).
+                if mapname.endswith("libc.so") or "/ld-musl-" in mapname:
                     maybe_ctx = MallocContext(addr)
                     if maybe_ctx.looks_valid():
                         self.ctx_addr = addr
@@ -1223,7 +1229,18 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         known_invalid.add(addr)
 
             for addr, mapname in possible:
-                if "libc" in mapname and addr not in known_invalid:
+                if addr in known_invalid:
+                    continue
+
+                # It is probably better for this matching to be overly eager than overly restrictive,
+                # we can fix it later if we ever actually encounter false positives.
+                # The .startswith() logic is there for CTF-type setups when the libc/ld is in the same folder as the binary.
+                if (
+                    "/libc" in mapname
+                    or "/ld-" in mapname
+                    or mapname.startswith("libc")
+                    or mapname.startswith("ld-")
+                ):
                     maybe_ctx = MallocContext(addr)
                     if maybe_ctx.looks_valid():
                         self.ctx_addr = addr
@@ -1234,7 +1251,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
             print(
                 message.warn(
-                    "Couldn't find __malloc_context in a 'libc' mapping, trying elsewhere."
+                    "Couldn't find __malloc_context in a 'libc' or 'ld-' mapping, trying elsewhere."
                 )
             )
         else:
