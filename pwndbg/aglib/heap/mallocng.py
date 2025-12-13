@@ -19,9 +19,9 @@ import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory as memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.typeinfo
+import pwndbg.auxv
 import pwndbg.color.message as message
 import pwndbg.search
-import pwndbg.auxv
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
 # Slot granularity.
@@ -1235,7 +1235,12 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                 # It is probably better for this matching to be overly eager than overly restrictive,
                 # we can fix it later if we ever actually encounter false positives.
                 # The .startswith() logic is there for CTF-type setups when the libc/ld is in the same folder as the binary.
-                if "/libc" in mapname or "/ld-" in mapname or mapname.startswith("libc") or mapname.startswith("ld-"):
+                if (
+                    "/libc" in mapname
+                    or "/ld-" in mapname
+                    or mapname.startswith("libc")
+                    or mapname.startswith("ld-")
+                ):
                     maybe_ctx = MallocContext(addr)
                     if maybe_ctx.looks_valid():
                         self.ctx_addr = addr
