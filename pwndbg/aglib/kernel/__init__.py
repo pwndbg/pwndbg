@@ -160,7 +160,11 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
         if result is not None:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
-    if config_start is None or config_end is None:
+    if (
+        not pwndbg.aglib.memory.is_kernel(config_start)
+        or not pwndbg.aglib.memory.is_kernel(config_end)
+        or config_start >= config_end
+    ):
         _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
         return _kconfig
 
@@ -619,6 +623,15 @@ def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry)
+    else:
+        raise NotImplementedError()
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def pagetable_scan(entry=None) -> Tuple[pwndbg.lib.memory.Page, ...]:
+    pi = arch_paginginfo()
+    if pi:
+        return tuple(pi.pagetable_scan(entry))
     else:
         raise NotImplementedError()
 

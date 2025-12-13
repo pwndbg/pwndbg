@@ -129,7 +129,15 @@ class module(ModuleType):
                 if self.cs is None:
                     return None
                 value += self.cs * 16
-            return int(value) & pwndbg.aglib.arch.ptrmask
+
+            # The value that the native debugger returns can be negative.
+            # We convert this to the unsigned bit representation by masking it
+            reg_definition = pwndbg.aglib.regs.current.reg_definitions.get(reg.lower())
+            if reg_definition and reg_definition.mask is not None:
+                mask = reg_definition.mask
+            else:
+                mask = pwndbg.aglib.arch.ptrmask
+            return int(value) & mask
         except (ValueError, pwndbg.dbg_mod.Error):
             return None
 
@@ -208,6 +216,12 @@ class module(ModuleType):
         return reg_sets[pwndbg.aglib.arch.name].all
 
     def fix(self, expression: str) -> str:
+        """
+        This is used in CLI parsing.
+        It takes in a string with a register name, "rax", and prefixes it with
+        a $ ("$rax") so that the underlying debugger can evaluate it to resolve the value
+        """
+        expression = pwndbg.aglib.regs.current.resolve_aliases(expression)
         for regname in self.all:
             expression = re.sub(rf"\$?\b{regname}\b", r"$" + regname, expression)
         return expression
