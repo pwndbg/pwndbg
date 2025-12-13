@@ -179,7 +179,7 @@ class Reg:
     """Bitmask for register. None if the register size is arch.ptrsize"""
     mask: int | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.size:
             self.mask = (1 << (self.size * 8)) - 1
 
