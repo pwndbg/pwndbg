@@ -25,7 +25,7 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 # The printing logic for registers uses the Visitor Pattern
 # An implementation of RegisterContextProtocol is defined outside of this class
 # (this is a lib/ file, so it shouldn't directly be able to access the process)
-# 
+#
 # Instances of VisitableRegister will call the methods of RegisterContextProtocol to do their logic.
 
 class RegisterContextProtocol(Protocol):
@@ -287,7 +287,7 @@ class RegisterSet:
         # Otherwise, the values will be clobbered
         # https://github.com/pwndbg/pwndbg/pull/2337
         self.emulated_regs_order: List[UnicornRegisterWrite] = []
-        
+
         # Avoid duplicates
         seen_emulated_register: set[str] = set()
 
