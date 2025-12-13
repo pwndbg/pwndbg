@@ -37,7 +37,7 @@ import pwndbg.lib.cache
 import pwndbg.lib.elftypes
 import pwndbg.lib.memory
 from pwndbg.color import message
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4

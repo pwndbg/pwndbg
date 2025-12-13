@@ -16,7 +16,7 @@ import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

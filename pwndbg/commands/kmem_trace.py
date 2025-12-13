@@ -12,8 +12,8 @@ import pwndbg.color as C
 import pwndbg.color.message as M
 import pwndbg.commands.context
 import pwndbg.lib.cache
-from pwndbg.dbg import BreakpointLocation
-from pwndbg.dbg import DebuggerType
+from pwndbg.dbg_mod import BreakpointLocation
+from pwndbg.dbg_mod import DebuggerType
 
 parser = argparse.ArgumentParser(
     description="""

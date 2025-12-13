@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 import pwndbg.aglib.dt
-import pwndbg.dbg
+import pwndbg.dbg_mod
 
 if pwndbg.dbg.is_gdblib_available():
     import pwndbg.commands.cymbol

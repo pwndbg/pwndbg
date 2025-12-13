@@ -5,7 +5,7 @@ import gdb
 import pwndbg.aglib.memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
-import pwndbg.dbg
+import pwndbg.dbg_mod
 
 from . import get_binary
 

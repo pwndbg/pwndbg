@@ -38,7 +38,7 @@ from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstructionImpl
 from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import message
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}

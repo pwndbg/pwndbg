@@ -8,7 +8,7 @@ import pytest
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
-import pwndbg.dbg
+import pwndbg.dbg_mod
 
 
 def test_command_kchecksec():

@@ -26,7 +26,7 @@ import pwndbg.aglib.qemu
 import pwndbg.aglib.remote
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import KernelRegisterSet
 from pwndbg.lib.regs import RegisterSet

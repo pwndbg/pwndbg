@@ -325,7 +325,7 @@ async def test_windbg_commands_x86(ctrl: Controller) -> None:
     like dq, dw, db, ds etc.
     """
     import pwndbg
-    from pwndbg.dbg import DebuggerType
+    from pwndbg.dbg_mod import DebuggerType
 
     if pwndbg.dbg.name() == DebuggerType.LLDB:
         pytest.skip(

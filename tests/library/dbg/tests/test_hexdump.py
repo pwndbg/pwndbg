@@ -125,7 +125,7 @@ async def test_hexdump_limit_check(ctrl: Controller):
     Tests that the hexdump command respects the hexdump-limit-mb settings.
     """
     import pwndbg.aglib.regs
-    from pwndbg.dbg import Error
+    from pwndbg.dbg_mod import Error
 
     await ctrl.launch(BINARY)
     sp = pwndbg.aglib.regs.sp

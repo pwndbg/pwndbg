@@ -8,7 +8,7 @@ import pwndbg.aglib.heap.heap
 import pwndbg.aglib.proc
 import pwndbg.lib.config
 from pwndbg.color import message
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.config import Scope
 
 current: pwndbg.aglib.heap.heap.MemoryAllocator | None = None
@@ -108,9 +108,9 @@ See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html .
 E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and
 32-bit binaries):
 ```bash
-sudo apt-get install libc6-dbg
+sudo apt-get install libc6-dbg_mod
 sudo dpkg --add-architecture i386
-sudo apt-get install libc-dbg:i386
+sudo apt-get install libc-dbg_mod:i386
 ```
 If you used setup.sh on Arch based distro you'll need to do a power cycle or set
 environment variable manually like this:

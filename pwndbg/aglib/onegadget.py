@@ -17,7 +17,7 @@ import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.color.message as M
-import pwndbg.dbg
+import pwndbg.dbg_mod
 import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.tempfile

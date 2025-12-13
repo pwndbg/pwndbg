@@ -61,30 +61,30 @@ import lldb
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.dbg.lldb
+import pwndbg.dbg_mod.lldb
 from pwndbg.color import message
-from pwndbg.dbg import EventType
-from pwndbg.dbg.lldb import LLDB
-from pwndbg.dbg.lldb import LLDBProcess
-from pwndbg.dbg.lldb import LLDBPythonState
-from pwndbg.dbg.lldb import OneShotAwaitable
-from pwndbg.dbg.lldb.pset import InvalidParse
-from pwndbg.dbg.lldb.pset import pget
-from pwndbg.dbg.lldb.pset import pset
-from pwndbg.dbg.lldb.repl.io import IODriver
-from pwndbg.dbg.lldb.repl.io import get_io_driver
+from pwndbg.dbg_mod import EventType
+from pwndbg.dbg_mod.lldb import LLDB
+from pwndbg.dbg_mod.lldb import LLDBProcess
+from pwndbg.dbg_mod.lldb import LLDBPythonState
+from pwndbg.dbg_mod.lldb import OneShotAwaitable
+from pwndbg.dbg_mod.lldb.pset import InvalidParse
+from pwndbg.dbg_mod.lldb.pset import pget
+from pwndbg.dbg_mod.lldb.pset import pset
+from pwndbg.dbg_mod.lldb.repl.io import IODriver
+from pwndbg.dbg_mod.lldb.repl.io import get_io_driver
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 
 HAS_FZF = shutil.which("fzf") is not None
 if HAS_FZF:
-    from pwndbg.dbg.lldb.repl.fuzzy import PROMPT
-    from pwndbg.dbg.lldb.repl.fuzzy import get_prompt_session
-    from pwndbg.dbg.lldb.repl.fuzzy import wrap_with_history
+    from pwndbg.dbg_mod.lldb.repl.fuzzy import PROMPT
+    from pwndbg.dbg_mod.lldb.repl.fuzzy import get_prompt_session
+    from pwndbg.dbg_mod.lldb.repl.fuzzy import wrap_with_history
 else:
-    from pwndbg.dbg.lldb.repl.readline import PROMPT
-    from pwndbg.dbg.lldb.repl.readline import enable_readline
-    from pwndbg.dbg.lldb.repl.readline import wrap_with_history
+    from pwndbg.dbg_mod.lldb.repl.readline import PROMPT
+    from pwndbg.dbg_mod.lldb.repl.readline import enable_readline
+    from pwndbg.dbg_mod.lldb.repl.readline import wrap_with_history
 
 
 class UserCancelledError(CancelledError):
@@ -126,12 +126,12 @@ def print_info(msg: str, *args):
     print(message.info("info:"), msg, *args)
 
 
-from pwndbg.dbg.lldb.repl.proc import EventHandler
-from pwndbg.dbg.lldb.repl.proc import LaunchResultConnected
-from pwndbg.dbg.lldb.repl.proc import LaunchResultEarlyExit
-from pwndbg.dbg.lldb.repl.proc import LaunchResultError
-from pwndbg.dbg.lldb.repl.proc import LaunchResultSuccess
-from pwndbg.dbg.lldb.repl.proc import ProcessDriver
+from pwndbg.dbg_mod.lldb.repl.proc import EventHandler
+from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultConnected
+from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultEarlyExit
+from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultError
+from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultSuccess
+from pwndbg.dbg_mod.lldb.repl.proc import ProcessDriver
 
 show_tip = pwndbg.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"

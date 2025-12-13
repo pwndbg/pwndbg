@@ -17,7 +17,7 @@ import pwndbg.lib.cache
 import pwndbg.profiling
 from pwndbg.color import disable_colors
 from pwndbg.color import message
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
 

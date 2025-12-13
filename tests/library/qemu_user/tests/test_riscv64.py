@@ -5,7 +5,7 @@ import gdb
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.symbol
 import pwndbg.color
-import pwndbg.dbg
+import pwndbg.dbg_mod
 
 from . import get_binary
 

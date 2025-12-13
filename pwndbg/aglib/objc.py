@@ -25,7 +25,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
-from pwndbg.dbg import Type
+from pwndbg.dbg_mod import Type
 
 T = TypeVar("T")
 

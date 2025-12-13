@@ -28,7 +28,7 @@ import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
-from pwndbg.dbg import selection
+from pwndbg.dbg_mod import selection
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 from pwndbg.lib.arch import ArchAttribute
@@ -149,8 +149,8 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         *,
         type: pwndbg.dbg_mod.SymbolLookupType = pwndbg.dbg_mod.SymbolLookupType.ANY,
     ) -> pwndbg.dbg_mod.Value | None:
-        from pwndbg.dbg.gdb.symbol import Domain
-        from pwndbg.dbg.gdb.symbol import lookup_frame_symbol
+        from pwndbg.dbg_mod.gdb.symbol import Domain
+        from pwndbg.dbg_mod.gdb.symbol import lookup_frame_symbol
 
         domain = {
             pwndbg.dbg_mod.SymbolLookupType.ANY: Domain.ANY,
@@ -709,7 +709,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def symbol_name_at_address(self, address: int) -> str | None:
-        from pwndbg.dbg.gdb.symbol import resolve_addr
+        from pwndbg.dbg_mod.gdb.symbol import resolve_addr
 
         return resolve_addr(address) or None
 
@@ -722,8 +722,8 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         type: pwndbg.dbg_mod.SymbolLookupType = pwndbg.dbg_mod.SymbolLookupType.ANY,
         objfile_endswith: str | None = None,
     ) -> pwndbg.dbg_mod.Value | None:
-        from pwndbg.dbg.gdb.symbol import Domain
-        from pwndbg.dbg.gdb.symbol import lookup_symbol
+        from pwndbg.dbg_mod.gdb.symbol import Domain
+        from pwndbg.dbg_mod.gdb.symbol import lookup_symbol
 
         domain = {
             pwndbg.dbg_mod.SymbolLookupType.ANY: Domain.ANY,
@@ -1462,7 +1462,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         # Importing `pwndbg.gdblib.prompt` ends up importing code that has the
         # side effect of setting a command up. Because command setup requires
-        # `pwndbg.dbg` to already be set, and this module is used as part of the
+        # `pwndbg.dbg_mod` to already be set, and this module is used as part of the
         # process of setting it, we have to wait, and do the import as part of
         # this method.
         from pwndbg.gdblib import prompt
@@ -1507,7 +1507,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         config_mod.init_params()
 
-        from pwndbg.dbg.gdb import debug_sym
+        from pwndbg.dbg_mod.gdb import debug_sym
 
         self._load_gdbinit()
 

@@ -8,7 +8,7 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-from pwndbg.dbg import MemoryMap
+from pwndbg.dbg_mod import MemoryMap
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.memory import Page
 

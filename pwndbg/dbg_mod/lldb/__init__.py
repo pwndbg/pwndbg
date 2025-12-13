@@ -30,7 +30,7 @@ import pwndbg
 import pwndbg.color.message as M
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
-from pwndbg.dbg import selection
+from pwndbg.dbg_mod import selection
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.regs import reg_sets
@@ -1273,7 +1273,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # to a remote process while keeping the host platform, but we can't do
         # much beyond that at this point.
         #
-        # [2]: See `pwndbg.dbg.lldb.repl.process_connect`.
+        # [2]: See `pwndbg.dbg_mod.lldb.repl.process_connect`.
         platform = self.target.GetPlatform()
 
         remote = lldb.SBFileSpec(remote_path)
@@ -1483,7 +1483,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # Directly finding local variables is not possible using t.FindSymbols
         #
         # Local/Global Variables, Functions, or Any Symbol:
-        # Use pwndbg.dbg.selected_frame().evaluate_expression('&result_local')
+        # Use pwndbg.dbg_mod.selected_frame().evaluate_expression('&result_local')
         # Note that this approach works for both local and global variables as well as functions.
         #
         # Note using `evaluate_expression` on TLS Variables:
@@ -1979,7 +1979,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         pwndbg.commands.comments.init()
 
-        import pwndbg.dbg.lldb.hooks
+        import pwndbg.dbg_mod.lldb.hooks
 
     def relay_exceptions(self) -> None:
         """

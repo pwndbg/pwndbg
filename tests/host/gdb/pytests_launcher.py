@@ -43,7 +43,7 @@ class _GDBController(host.Controller):
         gdb.execute("continue")
 
     async def execute(self, command: str) -> None:
-        from pwndbg.dbg import Error
+        from pwndbg.dbg_mod import Error
 
         try:
             gdb.execute(command)

@@ -632,7 +632,7 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     """
     import pwndbg.aglib.stack
     import pwndbg.commands.context
-    import pwndbg.dbg
+    import pwndbg.dbg_mod
 
     # Launch directly to inner_function where the variables are
     await launch_to(ctrl, STACK_VARS_BINARY, "inner_function")

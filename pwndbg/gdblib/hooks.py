@@ -9,7 +9,7 @@ import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
 import pwndbg.gdblib.events
 from pwndbg.aglib import arch_mod as arch_mod_aglib
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 # TODO: Combine these `update_*` hook callbacks into one method
 

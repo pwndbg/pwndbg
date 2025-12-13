@@ -7,7 +7,7 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.symbol
 import pwndbg.lib.cache
 import pwndbg.lib.kernel
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 #########################################
 # helpers

@@ -13,7 +13,7 @@ from typing import Tuple
 import lldb
 from typing_extensions import override
 
-from pwndbg.dbg.lldb.util import system_decode
+from pwndbg.dbg_mod.lldb.util import system_decode
 
 if os.name == "posix":
     # We use select for files when not on POSIX. Additionally, we support pseudo

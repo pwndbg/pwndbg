@@ -8,7 +8,7 @@ import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 
 from . import get_binary

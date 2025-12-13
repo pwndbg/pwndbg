@@ -8,8 +8,8 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-from pwndbg.dbg import EventType
-from pwndbg.dbg import TypeCode
+from pwndbg.dbg_mod import EventType
+from pwndbg.dbg_mod import TypeCode
 from pwndbg.lib.memory import PAGE_SIZE
 
 GdbDict = Dict[str, Union["GdbDict", int]]

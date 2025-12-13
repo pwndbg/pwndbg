@@ -7,7 +7,7 @@ import pytest
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.kallsyms
 import pwndbg.aglib.symbol
-import pwndbg.dbg
+import pwndbg.dbg_mod
 
 ARCH = os.getenv("PWNDBG_ARCH")
 KERNEL_TYPE = os.getenv("PWNDBG_KERNEL_TYPE")

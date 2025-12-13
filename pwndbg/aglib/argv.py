@@ -5,7 +5,7 @@ import pwndbg.aglib.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.typeinfo
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 #: Total number of arguments
 _argc_numbers: int = None

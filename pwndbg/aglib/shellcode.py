@@ -20,8 +20,8 @@ import pwndbg.aglib.asm
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
-from pwndbg.dbg import BreakpointLocation
-from pwndbg.dbg import ExecutionController
+from pwndbg.dbg_mod import BreakpointLocation
+from pwndbg.dbg_mod import ExecutionController
 
 
 def _get_syscall_return_value():
