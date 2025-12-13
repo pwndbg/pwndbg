@@ -1060,6 +1060,10 @@ def get_regs(in_regs: List[str | VisitableRegister | None] | None = None):
             if desc is not None:
                 result.append(desc)
             continue
+
+        # Resolve "sp" and "pc" to the real architectural register names
+        reg = pwndbg.aglib.regs.current.resolve_aliases(reg)
+
         desc = rc.register_context_default(reg)
         if desc is not None:
             result.append(desc)

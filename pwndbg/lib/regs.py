@@ -232,6 +232,13 @@ class RegisterSet:
     A full size register maps to itself.
     """
 
+    special_aliases: Dict[str, str]
+    """
+    Contains two values:
+    - "sp" -> stack pointer register name
+    - "pc" -> instruction pointer register name
+    """
+
     def __init__(
         self,
         pc: Reg = Reg("pc"),
@@ -320,6 +327,17 @@ class RegisterSet:
         )
         self.all -= {None}
         self.all |= {"pc", "sp"}
+
+        self.special_aliases = {}
+        self.special_aliases["sp"] = self.stack
+        self.special_aliases["pc"] = self.pc
+
+    def resolve_aliases(self, reg: str) -> str:
+        """
+        Convert "sp" and "pc" to the real architectural registers.
+        For all others, returns `reg`
+        """
+        return self.special_aliases.get(reg, reg)
 
     def __contains__(self, reg: str) -> bool:
         return reg in self.all
