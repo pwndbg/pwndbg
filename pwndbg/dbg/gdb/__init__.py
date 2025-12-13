@@ -28,13 +28,10 @@ import pwndbg.gdblib.events
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg import selection
-from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
-from pwndbg.lib.memory import PAGE_MASK
-from pwndbg.lib.memory import PAGE_SIZE
 
 T = TypeVar("T")
 
@@ -366,6 +363,99 @@ class GDBStopPoint(pwndbg.dbg_mod.StopPoint):
             BPWP_DEFERRED_DELETE.add(self)
         else:
             self.inner.delete()
+
+
+def _extract_hex_value(s: str) -> str | None:
+    """
+    Extract a hexadecimal value (0x...) from the beginning of a string.
+
+    Parses a string to find and extract a hexadecimal number in the format "0x"
+    followed by valid hex digits (0-9, a-f, A-F). Stops at the first non-hex character.
+
+    Args:
+        s: Input string to parse. Should start with "0x" followed by hex digits.
+
+    Returns:
+        str: The extracted hex value (e.g., "0x12ab") if found, or None if the
+             string doesn't start with "0x" or contains no hex digits.
+
+    Example:
+        >>> _extract_hex_value("0x155555200350, End: 0x...")
+        '0x155555200350'
+
+        >>> _extract_hex_value("0xABCDEF")
+        '0xABCDEF'
+
+        >>> _extract_hex_value("no hex here")
+        None
+
+    Note:
+        This function is intentionally simple and avoids regex to maintain
+        performance when parsing large GDB command outputs.
+    """
+    if not s.startswith("0x"):
+        return None
+    hex_end = 2
+    while hex_end < len(s) and s[hex_end] in "0123456789abcdefABCDEF":
+        hex_end += 1
+    return s[:hex_end]
+
+
+def _parse_maintenance_info_target_sections() -> List[Tuple[int, int, str, str]]:
+    """Parse GDB 'maintenance info target-sections' output for module section locations."""
+    result: List[Tuple[int, int, str, str]] = []
+
+    try:
+        output = gdb.execute("maintenance info target-sections", to_string=True)
+    except gdb.error:
+        return result
+
+    current_module = None
+    section_name = None
+
+    for line in output.splitlines():
+        line = line.rstrip()
+
+        # Detect module header: "From '<path>', file type ..."
+        if line.startswith("From '"):
+            quote_end = line.find("', file type")
+            if quote_end != -1:
+                current_module = line[5:quote_end]
+            continue
+
+        # Extract section name from section line: [0]      0xADDR->0xADDR at offset: .section_name
+        if line.lstrip().startswith("[") and "->" in line and ":" in line:
+            colon_idx = line.find(": ")
+            if colon_idx != -1:
+                after_colon = line[colon_idx + 2 :]
+                section_name = after_colon.split()[0] if after_colon else None
+            continue
+
+        # Parse runtime start/end addresses from "Start: 0xADDR, End: 0xADDR, ..."
+        if not line.strip().startswith("Start:"):
+            continue
+
+        if not (section_name and current_module):
+            continue
+
+        try:
+            # Extract Start: 0x... and End: 0x... from the line
+            start_str = _extract_hex_value(line[line.find("Start:") + 6 :].lstrip())
+            end_str = _extract_hex_value(line[line.find("End:") + 4 :].lstrip())
+
+            if start_str and end_str:
+                try:
+                    start = int(start_str, 16)
+                    end = int(end_str, 16)
+                    result.append((start, end - start, section_name, current_module))
+                except ValueError:
+                    pass
+        except Exception:
+            pass
+        finally:
+            section_name = None
+
+    return result
 
 
 class GDBProcess(pwndbg.dbg_mod.Process):
@@ -891,59 +981,16 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def module_section_locations(self) -> List[Tuple[int, int, str, str]]:
-        import pwndbg.gdblib.info
+        """
+        Retrieve module section locations using 'maintenance info target-sections'.
 
-        # Example:
-        #
-        # 0x0000555555572f70 - 0x0000555555572f78 is .init_array
-        # 0x0000555555572f78 - 0x0000555555572f80 is .fini_array
-        # 0x0000555555572f80 - 0x0000555555573a78 is .data.rel.ro
-        # 0x0000555555573a78 - 0x0000555555573c68 is .dynamic
-        # 0x0000555555573c68 - 0x0000555555573ff8 is .got
-        # 0x0000555555574000 - 0x0000555555574278 is .data
-        # 0x0000555555574280 - 0x0000555555575540 is .bss
-        # 0x00007ffff7fc92a8 - 0x00007ffff7fc92e8 is .note.gnu.property in /lib64/ld-linux-x86-64.so.2
-        # 0x00007ffff7fc92e8 - 0x00007ffff7fc930c is .note.gnu.build-id in /lib64/ld-linux-x86-64.so.2
-        # 0x00007ffff7fc9310 - 0x00007ffff7fc94f8 is .gnu.hash in /lib64/ld-linux-x86-64.so.2
+        Returns a list of tuples (start_addr, size, section_name, module_path) for
+        all loaded module sections.
 
-        files = pwndbg.gdblib.info.files()
-
-        main = self.main_module_name()
-        result = []
-        for line in files.splitlines():
-            line = line.strip()
-            if " - " not in line or " is " not in line:
-                # Ignore non-location lines.
-                continue
-
-            div0 = line.split(" is ", 1)
-            assert (
-                len(div0) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
-
-            div1 = div0[1].split(" in ", 1)
-            assert (
-                len(div1) == 1 or len(div1) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
-
-            div2 = div0[0].split(" - ", 1)
-            assert (
-                len(div2) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
-
-            beg = int(div2[0].strip(), 0)
-            end = int(div2[1].strip(), 0)
-
-            if len(div1) == 2:
-                module = div1[1].strip()
-            else:
-                module = main
-
-            section = div1[0].strip()
-
-            result.append((beg, end - beg, section, module))
-
-        return result
+        Returns:
+            List of (start_address, size, section_name, module_path) tuples.
+        """
+        return _parse_maintenance_info_target_sections()
 
     @override
     def main_module_name(self) -> str | None:
