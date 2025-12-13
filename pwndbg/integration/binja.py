@@ -28,8 +28,7 @@ from typing_extensions import ParamSpec
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.aglib.arch
-import pwndbg.aglib.elf
+import pwndbg.aglib
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol

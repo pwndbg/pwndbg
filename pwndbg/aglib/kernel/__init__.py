@@ -14,14 +14,11 @@ from elftools.elf.elffile import ELFFile
 from typing_extensions import ParamSpec
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
-import pwndbg.aglib.vmmap
-import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
@@ -29,7 +26,6 @@ import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
 from pwndbg.aglib.kernel.paging import PageTableLevel
-from pwndbg.lib.regs import BitFlags
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
 

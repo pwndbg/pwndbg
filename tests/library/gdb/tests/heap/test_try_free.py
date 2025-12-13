@@ -6,7 +6,7 @@ import tempfile
 import gdb
 import pytest
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.heap
 
 from .. import get_binary

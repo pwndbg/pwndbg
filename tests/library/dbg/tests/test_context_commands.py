@@ -547,7 +547,7 @@ async def test_context_history_prev_next(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_context_history_search(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
     if pwndbg.aglib.arch.name != "x86-64":

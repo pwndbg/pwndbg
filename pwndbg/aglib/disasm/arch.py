@@ -9,7 +9,7 @@ from typing import Tuple
 from capstone import *  # noqa: F403
 from pwnlib.constants import linux
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.remote
@@ -20,7 +20,6 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
 import pwndbg.color.syntax_highlight as H
-import pwndbg.enhance
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP

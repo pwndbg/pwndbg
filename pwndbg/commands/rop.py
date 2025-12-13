@@ -8,8 +8,7 @@ from typing import Iterator
 from typing import List
 from typing import Tuple
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.memory
+import pwndbg.aglib
 import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
 import pwndbg.color.message as M

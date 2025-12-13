@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.commands

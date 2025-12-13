@@ -29,7 +29,7 @@ from typing_extensions import ParamSpec
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs

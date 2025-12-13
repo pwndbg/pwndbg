@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from os.path import relpath
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 
 PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE - 1)

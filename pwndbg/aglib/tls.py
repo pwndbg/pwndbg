@@ -4,13 +4,10 @@ Getting Thread Local Storage (TLS) information.
 
 from __future__ import annotations
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.disasm.disassembly
-import pwndbg.aglib.memory
+import pwndbg.aglib
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
-import pwndbg.aglib.vmmap
 
 
 def __call_pthread_self() -> int:

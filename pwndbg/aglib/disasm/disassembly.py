@@ -17,7 +17,7 @@ from typing import Tuple
 from capstone import *  # noqa: F403
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.aarch64
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.disasm.arm

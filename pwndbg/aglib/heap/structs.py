@@ -8,7 +8,7 @@ from typing import Tuple
 from typing import Type
 from typing import cast
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.glibc

@@ -8,9 +8,8 @@ import struct
 from typing import Set
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.asm
-import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands

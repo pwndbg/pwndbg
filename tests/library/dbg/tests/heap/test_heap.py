@@ -137,8 +137,7 @@ def generate_expected_malloc_chunk_output(chunks: Dict[str, ...]) -> Dict[str, .
 
 @pwndbg_test
 async def test_malloc_chunk_command(ctrl: Controller) -> None:
-    import pwndbg
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
@@ -197,8 +196,7 @@ async def test_malloc_chunk_command(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
-    import pwndbg
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.symbol
 
@@ -258,7 +256,7 @@ async def test_malloc_chunk_command_heuristic(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_malloc_chunk_dump_command(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
@@ -413,8 +411,7 @@ async def test_mp_heuristic(ctrl: Controller) -> None:
 )
 @pwndbg_test
 async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool) -> None:
-    import pwndbg
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
@@ -468,8 +465,7 @@ async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool)
 )
 @pwndbg_test
 async def test_thread_arena_heuristic(ctrl: Controller, is_multi_threaded: bool) -> None:
-    import pwndbg
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol
@@ -512,7 +508,7 @@ async def test_thread_arena_heuristic(ctrl: Controller, is_multi_threaded: bool)
 
 @pwndbg_test
 async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.heap
 
     # TODO: Support other architectures or different libc versions
@@ -591,7 +587,7 @@ re_match_valid_address = r"0x[0-9a-fA-F]{6,16}"
 
 @pwndbg_test
 async def test_jemalloc_find_extent(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":
@@ -624,7 +620,7 @@ async def test_jemalloc_find_extent(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_jemalloc_extent_info(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await launch_to(ctrl, HEAP_JEMALLOC_EXTENT_INFO, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":
@@ -661,7 +657,7 @@ async def test_jemalloc_extent_info(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_jemalloc_heap(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await launch_to(ctrl, HEAP_JEMALLOC_HEAP, "break_here")
     if pwndbg.aglib.arch.name != "x86-64":

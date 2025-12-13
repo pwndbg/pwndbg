@@ -14,7 +14,7 @@ from typing import Tuple
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory as memory
 import pwndbg.aglib.stack

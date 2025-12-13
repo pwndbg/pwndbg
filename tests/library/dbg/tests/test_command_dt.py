@@ -14,7 +14,7 @@ HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 
 @pwndbg_test
 async def test_command_dt_works_with_address(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
 
@@ -38,7 +38,7 @@ async def test_command_dt_works_with_address(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_command_dt_works_with_no_address(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await launch_to(ctrl, HEAP_MALLOC_CHUNK, "break_here")
 

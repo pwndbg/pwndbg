@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from typing import Optional
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.chain

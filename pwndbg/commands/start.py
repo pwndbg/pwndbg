@@ -9,7 +9,7 @@ import argparse
 from shlex import quote
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs

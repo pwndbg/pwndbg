@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Generator
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 
 
 def find_fastbin_size(mem: bytes, max_size: int, step: int) -> Generator[int, None, None]:

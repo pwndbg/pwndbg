@@ -11,10 +11,9 @@ from typing import Tuple
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
-import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as M

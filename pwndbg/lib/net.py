@@ -10,7 +10,7 @@ import socket
 import struct
 from typing import List
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 
 # http://students.mimuw.edu.pl/lxr/source/include/net/tcp_states.h
 TCP_STATUSES = {

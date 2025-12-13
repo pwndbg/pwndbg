@@ -12,7 +12,7 @@ from typing import Tuple
 
 from tabulate import tabulate
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap

@@ -3,7 +3,7 @@ from __future__ import annotations
 import gdb
 from pwnlib.util.cyclic import cyclic
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 

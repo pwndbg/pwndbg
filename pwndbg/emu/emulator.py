@@ -16,7 +16,7 @@ import capstone as C
 import unicorn as U
 import unicorn.ppc_const
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
@@ -604,7 +604,7 @@ class Emulator:
 
         Return None if the Thumb bit is not relevent to the current architecture
 
-        Mimics the `read_thumb_bit` function defined in aglib/arch.py
+        Mimics the `read_thumb_bit` function defined in aglib/arch_mod.py
         """
         if self.arch == "arm":
             if (cpsr := self.read_register("cpsr")) is not None:

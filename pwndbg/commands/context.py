@@ -21,7 +21,7 @@ from typing_extensions import ParamSpec
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.qemu
@@ -37,7 +37,7 @@ import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.integration
 import pwndbg.ui
-from pwndbg.aglib.arch import get_thumb_mode_string
+from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import message

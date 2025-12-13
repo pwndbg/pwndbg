@@ -4,7 +4,7 @@ import bisect
 from typing import Tuple
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
 import pwndbg.lib.memory

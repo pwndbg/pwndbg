@@ -24,8 +24,6 @@ from elftools.elf.relocation import Relocation
 from elftools.elf.relocation import RelocationSection
 
 import pwndbg
-import pwndbg.aglib.arch
-import pwndbg.aglib.ctypes
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc

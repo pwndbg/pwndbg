@@ -28,7 +28,7 @@ from typing_extensions import ParamSpec
 from typing_extensions import Protocol
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.commands
 import pwndbg.lib.config
 import pwndbg.lib.tempfile

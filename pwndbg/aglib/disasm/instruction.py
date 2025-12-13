@@ -62,7 +62,6 @@ from capstone.x86 import X86_INS_RET
 from capstone.x86 import X86Op
 from typing_extensions import override
 
-import pwndbg.dbg_mod
 from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally

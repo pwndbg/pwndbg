@@ -67,7 +67,7 @@ async def test_command_plt(ctrl: Controller, binary_name: str, is_pie: bool) -> 
 )
 @pwndbg_test
 async def test_command_elf(ctrl: Controller, binary_name: str, is_pie: bool) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     binary = get_binary(binary_name)
 

@@ -15,7 +15,7 @@ target_address = None
 
 
 def check_result(result: str, expected_size: int) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     ptrsize = pwndbg.aglib.arch.ptrsize
 
@@ -46,8 +46,7 @@ def check_no_results(result: str) -> None:
 
 @pwndbg_test
 async def test_find_fake_fast_command(ctrl: Controller) -> None:
-    import pwndbg
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.heap
     import pwndbg.aglib.memory
     import pwndbg.aglib.symbol

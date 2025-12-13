@@ -4,7 +4,7 @@ from typing import Dict
 from typing import Set
 from typing import Union
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.memory

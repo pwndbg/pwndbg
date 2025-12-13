@@ -14,7 +14,7 @@ import ctypes
 import sys
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 from pwndbg.dbg_mod import EventType
 
 module = sys.modules[__name__]
