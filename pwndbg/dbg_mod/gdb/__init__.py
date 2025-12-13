@@ -1462,7 +1462,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         # Importing `pwndbg.gdblib.prompt` ends up importing code that has the
         # side effect of setting a command up. Because command setup requires
-        # `pwndbg.dbg_mod` to already be set, and this module is used as part of the
+        # `pwndbg.dbg` to already be set, and this module is used as part of the
         # process of setting it, we have to wait, and do the import as part of
         # this method.
         from pwndbg.gdblib import prompt

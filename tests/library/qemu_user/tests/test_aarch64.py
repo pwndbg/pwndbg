@@ -4,9 +4,8 @@ import gdb
 import pytest
 from capstone.aarch64_const import AARCH64_INS_BL
 
+import pwndbg
 import pwndbg.aglib.disasm.disassembly
-import pwndbg.aglib.nearpc
-import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.dbg_mod
 from pwndbg.aglib.disasm.instruction import InstructionCondition

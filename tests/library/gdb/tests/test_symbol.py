@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.dbg_mod
+import pwndbg
 
 from . import get_binary
 
