@@ -108,9 +108,9 @@ See also: https://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html .
 E.g. on Ubuntu/Debian you might need to do the following steps (for 64-bit and
 32-bit binaries):
 ```bash
-sudo apt-get install libc6-dbg_mod
+sudo apt-get install libc6-dbg
 sudo dpkg --add-architecture i386
-sudo apt-get install libc-dbg_mod:i386
+sudo apt-get install libc-dbg:i386
 ```
 If you used setup.sh on Arch based distro you'll need to do a power cycle or set
 environment variable manually like this:
