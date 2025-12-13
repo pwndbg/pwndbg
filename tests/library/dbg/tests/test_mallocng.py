@@ -347,7 +347,7 @@ async def test_mallocng_find(ctrl: Controller, binary: str):
     await ctrl.finish()
 
     # Check no slot found
-    find_out = color.strip(await ctrl.execute_and_capture("ng-find $rip"))
+    find_out = color.strip(await ctrl.execute_and_capture("ng-find $pc"))
     assert "No slot found containing that address.\n" == find_out
 
     buffer1_addr = int(pwndbg.dbg.selected_frame().evaluate_expression("buffer1"))
