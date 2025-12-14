@@ -91,7 +91,7 @@ def get_all_tips() -> List[str]:
     """
     Returns all tips applicable to the current debugger.
     """
-    import pwndbg.dbg
+    import pwndbg.dbg_mod
 
     if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
         return GDB_TIPS + PWNDBG_TIPS

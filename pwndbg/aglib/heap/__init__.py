@@ -8,7 +8,7 @@ import pwndbg.aglib.heap.heap
 import pwndbg.aglib.proc
 import pwndbg.lib.config
 from pwndbg.color import message
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.config import Scope
 
 current: pwndbg.aglib.heap.heap.MemoryAllocator | None = None

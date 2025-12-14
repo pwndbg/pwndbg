@@ -351,7 +351,7 @@ async def test_context_disasm_proper_render_on_mem_change_issue_1818(
         await ctrl.execute("patch $rip+5 nop;nop;nop;nop;nop")
     else:
         # Do the same, but through write API
-        pwndbg.aglib.memory.write(pwndbg.aglib.regs.rip + 5, b"\x90" * 5)
+        pwndbg.aglib.memory.write(pwndbg.aglib.regs.pc + 5, b"\x90" * 5)
 
     # Actual test: we expect the read memory to be different now ;)
     # (and not e.g. returned incorrectly from a not cleared cache)
@@ -547,7 +547,7 @@ async def test_context_history_prev_next(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_context_history_search(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
     if pwndbg.aglib.arch.name != "x86-64":
@@ -632,7 +632,7 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     """
     import pwndbg.aglib.stack
     import pwndbg.commands.context
-    import pwndbg.dbg
+    import pwndbg.dbg_mod
 
     # Launch directly to inner_function where the variables are
     await launch_to(ctrl, STACK_VARS_BINARY, "inner_function")
@@ -656,3 +656,62 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     # Test that telescope shows variable names
     telescope_out = await ctrl.execute_and_capture(f"telescope {buffer_addr:#x} 1")
     assert "{buffer}" in telescope_out
+
+
+@pwndbg_test
+async def test_regs_command_resolves_sp_pc_aliases(ctrl: Controller) -> None:
+    """
+    If running `regs pc` or `regs sp`, these aliases should be resolved
+    to the real architectural names of the registers.
+    """
+    import pwndbg.aglib.regs
+
+    await ctrl.launch(REFERENCE_BINARY)
+
+    sp_name = pwndbg.aglib.regs.current.stack
+    pc_name = pwndbg.aglib.regs.current.pc
+
+    real_sp_value = pwndbg.aglib.regs.read_reg(sp_name)
+    real_pc_value = pwndbg.aglib.regs.read_reg(pc_name)
+
+    regs_sp_output = await ctrl.execute_and_capture("regs sp")
+    regs_pc_output = await ctrl.execute_and_capture("regs pc")
+
+    assert sp_name.upper() in regs_sp_output
+    assert hex(real_sp_value) in regs_sp_output
+
+    assert pc_name.upper() in regs_pc_output
+    assert hex(real_pc_value) in regs_pc_output
+
+
+@pwndbg_test
+async def test_cli_fixup_resolves_sp_pc_aliases(ctrl: Controller) -> None:
+    """
+    CLI argument fixup should resolve "sp" and "pc" correctly.
+
+    Note:
+    The fixup process by default (without any special handling of these aliases)
+    would just adds a "$" infront of register names.
+    GDB reading $sp and $pc will internally handle the conversion, meaning this test
+    passes without any special logic in the register fixup.
+
+    However, this is not necessarily true of all underlying debuggers.
+    """
+    import pwndbg.aglib.regs
+
+    await ctrl.launch(REFERENCE_BINARY)
+
+    sp_name = pwndbg.aglib.regs.current.stack
+    pc_name = pwndbg.aglib.regs.current.pc
+
+    real_sp_value = pwndbg.aglib.regs.read_reg(sp_name)
+    real_pc_value = pwndbg.aglib.regs.read_reg(pc_name)
+
+    regs_sp_output = await ctrl.execute_and_capture("telescope sp 1")
+    regs_pc_output = await ctrl.execute_and_capture("telescope pc 1")
+
+    assert sp_name in regs_sp_output
+    assert hex(real_sp_value) in regs_sp_output
+
+    assert pc_name in regs_pc_output
+    assert hex(real_pc_value) in regs_pc_output

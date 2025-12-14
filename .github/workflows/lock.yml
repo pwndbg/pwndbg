@@ -87,7 +87,7 @@ jobs:
         run: nix develop --accept-flake-config
 
   lock_flake:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # @v3
@@ -99,7 +99,7 @@ jobs:
         run: nix flake lock --no-update-lock-file
 
   lock_uv:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # @v3

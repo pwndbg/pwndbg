@@ -29,7 +29,7 @@ from typing_extensions import ParamSpec
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
@@ -39,7 +39,7 @@ import pwndbg.integration
 import pwndbg.lib.cache
 import pwndbg.lib.funcparser
 from pwndbg.color import message
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.functions import Function
 
 ida_rpc_host = pwndbg.config.add_param("ida-rpc-host", "127.0.0.1", "ida xmlrpc server address")

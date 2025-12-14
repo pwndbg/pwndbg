@@ -13,7 +13,7 @@ async def test_command_cyclic_value(ctrl: Controller) -> None:
     """
     from pwnlib.util.cyclic import cyclic
 
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -36,7 +36,7 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     """
     from pwnlib.util.cyclic import cyclic
 
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.regs
 
     await ctrl.launch(REFERENCE_BINARY)
@@ -46,10 +46,10 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
 
     test_offset = 45
     pattern = cyclic(length=80, n=ptr_size)
-    test_data = int.from_bytes(
-        pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian
+    pwndbg.aglib.regs.write_reg(
+        reg_name,
+        int.from_bytes(pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian),
     )
-    setattr(pwndbg.aglib.regs, reg_name, test_data)
     out = await ctrl.execute_and_capture(f"cyclic -l ${reg_name}")
 
     assert out == (
@@ -65,7 +65,7 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
     """
     from pwnlib.util.cyclic import cyclic
 
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.memory
     import pwndbg.aglib.regs
 

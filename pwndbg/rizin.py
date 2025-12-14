@@ -5,7 +5,7 @@ Rizin integration with rzpipe.
 from __future__ import annotations
 
 import pwndbg.aglib.elf
-import pwndbg.dbg
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.color import message
 

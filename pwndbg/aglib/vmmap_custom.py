@@ -12,7 +12,7 @@ import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.

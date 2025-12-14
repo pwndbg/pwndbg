@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.commands
@@ -30,6 +30,6 @@ def cpsr(cpsr_value=None) -> None:
     if cpsr_value is not None:
         reg_val = cpsr_value
     else:
-        reg_val = getattr(pwndbg.aglib.regs, reg)
+        reg_val = pwndbg.aglib.regs.read_reg(reg)
 
     print(f"{reg} {context.format_flags(reg_val, reg_flags)}")

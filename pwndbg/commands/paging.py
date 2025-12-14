@@ -31,7 +31,7 @@ PAGETYPES = (
 
 
 def print_pagetable_entry(ptl: PageTableLevel, level: int, is_last: bool):
-    pageflags = pwndbg.aglib.kernel.arch_paginginfo().pageentry_flags(is_last)
+    pageflags = pwndbg.aglib.kernel.arch_paginginfo().pageentry_bitflags(is_last)
     flags = ""
     arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
     name, entry, vaddr, idx = ptl.name, ptl.entry, ptl.virt, ptl.idx

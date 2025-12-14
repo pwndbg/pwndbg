@@ -894,7 +894,7 @@ def HexOrAddressExpr(s: str) -> int:
 
 def load_commands() -> None:
     # pylint: disable=import-outside-toplevel
-    import pwndbg.dbg
+    import pwndbg.dbg_mod
 
     if pwndbg.dbg.is_gdblib_available():
         import pwndbg.commands.ai
@@ -996,7 +996,6 @@ def load_commands() -> None:
     import pwndbg.commands.tls
     import pwndbg.commands.valist
     import pwndbg.commands.version
-    import pwndbg.commands.vmlinux
     import pwndbg.commands.vmmap
     import pwndbg.commands.windbg
     import pwndbg.commands.xinfo

@@ -189,7 +189,6 @@ disable_error_code = ["name-defined"]
 
 [[tool.mypy.overrides]]
 module = [
-    "pwndbg.aglib.arch",
     "pwndbg.color.*",
     "pwndbg.commands.context",
     "pwndbg.commands.cymbol",

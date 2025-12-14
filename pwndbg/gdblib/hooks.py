@@ -3,13 +3,13 @@ from __future__ import annotations
 import gdb
 
 import pwndbg
+import pwndbg.aglib.arch_mod
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
 import pwndbg.gdblib.events
-from pwndbg.aglib import arch_mod as arch_mod_aglib
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 # TODO: Combine these `update_*` hook callbacks into one method
 
@@ -41,7 +41,7 @@ def update_typeinfo() -> None:
 @pwndbg.dbg.event_handler(EventType.STOP)
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def update_arch() -> None:
-    arch_mod_aglib.update()
+    pwndbg.aglib.arch_mod.update()
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)

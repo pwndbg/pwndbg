@@ -1,6 +1,6 @@
-# This dockerfile was created for development & testing purposes, for APT-based distro.
+# This dockerfile was created for development & testing purposes, for DNF-based distro.
 #
-# Build as:             docker build -t pwndbg .
+# Build as:             docker build -f Dockerfile.dnf -t pwndbg .
 #
 # For testing use:      docker run --rm -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined pwndbg bash
 #
@@ -8,8 +8,8 @@
 #   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
 #
 
-ARG image=mcr.microsoft.com/devcontainers/base:jammy
-FROM $image AS base
+ARG image=fedora:41
+FROM $image
 
 WORKDIR /pwndbg
 
@@ -19,12 +19,13 @@ ENV PWNDBG_VENV_PATH=/venv
 ENV UV_PROJECT_ENVIRONMENT=/venv
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        locales vim && \
-    localedef -i en_US -c -f UTF-8 en_US.UTF-8 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    dnf -y install \
+        glibc-langpack-en \
+        glibc-locale-source \
+        vim-minimal && \
+    localedef -i en_US -f UTF-8 en_US.UTF-8 && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
 
 # setup.sh needs scripts/common.sh
 COPY ./scripts/common.sh /pwndbg/scripts/
@@ -36,7 +37,11 @@ COPY ./pyproject.toml /pwndbg/
 # pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 
-RUN DEBIAN_FRONTEND=noninteractive ./setup.sh
+# fix for py3.14
+# RUN dnf install -y uv git python3-devel patch ncurses-devel gcc
+# RUN uv sync --all-groups --all-extras
+RUN dnf install -y uv git python3-devel patch ncurses-devel gcc
+RUN ./setup.sh
 
 # Comment these lines if you won't run the tests.
 COPY ./setup-dev.sh /pwndbg/
@@ -44,8 +49,6 @@ RUN ./setup-dev.sh
 
 # Cleanup dummy files
 RUN rm README.md && rm -rf pwndbg
-
-FROM base AS full
 
 COPY . /pwndbg/
 

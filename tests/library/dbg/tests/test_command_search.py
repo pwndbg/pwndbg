@@ -19,7 +19,7 @@ async def test_command_search_literal(ctrl: Controller) -> None:
     """
     Searches for a string literal in a few different ways
     """
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await launch_to(ctrl, SEARCH_BINARY, "break_here")
 

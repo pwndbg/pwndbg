@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.regs
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
@@ -62,7 +63,7 @@ def setflag(flag: str, value: int) -> None:
                 cleared_val = old_val & ~mask
                 new_val = cleared_val | bit_value
 
-                setattr(pwndbg.aglib.regs, flag_reg, new_val)
+                pwndbg.aglib.regs.write_reg(flag_reg, new_val)
                 print(
                     f"Set flag {flag}={value} in flag register {flag_reg} (old val={old_val:#x}, new val={new_val:#x})"
                 )

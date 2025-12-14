@@ -11,7 +11,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.color as C
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 # Manually add error code 0 for "OK"

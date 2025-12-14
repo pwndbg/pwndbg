@@ -19,14 +19,13 @@ from typing import Tuple
 from typing import cast
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.color.memory
-import pwndbg.hexdump
 import pwndbg.lib.cache
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message

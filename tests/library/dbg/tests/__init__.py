@@ -42,7 +42,7 @@ def get_binary(name: str) -> str:
 
 def break_at_sym(sym: str) -> None:
     import pwndbg
-    from pwndbg.dbg import BreakpointLocation
+    from pwndbg.dbg_mod import BreakpointLocation
 
     inf = pwndbg.dbg.selected_inferior()
     addr = inf.lookup_symbol(sym)
@@ -52,7 +52,7 @@ def break_at_sym(sym: str) -> None:
 async def launch_to(ctrl: Controller, target: str, sym: str) -> None:
     import pwndbg
     import pwndbg.aglib.regs
-    from pwndbg.dbg import BreakpointLocation
+    from pwndbg.dbg_mod import BreakpointLocation
 
     await ctrl.launch(target)
 

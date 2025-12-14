@@ -11,7 +11,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.color as C
 import pwndbg.commands
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.macros import container_of
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.aglib.kernel.rbtree import for_each_rb_entry

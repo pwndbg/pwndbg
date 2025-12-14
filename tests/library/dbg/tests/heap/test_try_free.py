@@ -168,7 +168,7 @@ async def test_try_free_invalid_fastbin_entry(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_try_free_double_free_or_corruption_top(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.heap
 
     await setup_heap(ctrl, 9)

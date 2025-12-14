@@ -14,7 +14,7 @@ from typing import Dict
 from typing import List
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.typeinfo

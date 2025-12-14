@@ -11,9 +11,8 @@ from capstone.arm import *  # noqa: F403
 from pwnlib.util.misc import align_down
 from typing_extensions import override
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.saved_register_frames
 import pwndbg.lib.disasm.helpers as bit_math

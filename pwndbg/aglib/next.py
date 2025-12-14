@@ -15,7 +15,7 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message
-from pwndbg.dbg import BreakpointLocation
+from pwndbg.dbg_mod import BreakpointLocation
 
 interrupts = {capstone.CS_GRP_INT}
 

@@ -3,14 +3,12 @@ from __future__ import annotations
 import argparse
 
 import pwndbg
-import pwndbg.aglib.arch
-import pwndbg.aglib.memory
+import pwndbg.aglib
 import pwndbg.aglib.regs
 import pwndbg.aglib.stack
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.wrappers
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.memory import Page
 

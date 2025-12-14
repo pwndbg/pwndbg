@@ -16,7 +16,7 @@ async def test_command_errno(ctrl: Controller) -> None:
     """
     Tests the errno command display
     """
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 

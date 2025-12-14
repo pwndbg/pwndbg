@@ -9,7 +9,7 @@ from typing import Tuple
 from capstone import *  # noqa: F403
 from pwnlib.constants import linux
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.remote
@@ -20,7 +20,6 @@ import pwndbg.color.context as C
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
 import pwndbg.color.syntax_highlight as H
-import pwndbg.enhance
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
@@ -212,10 +211,10 @@ class DisassemblyAssistant:
         # Ensure emulator's program counter is at the correct location.
         # This occurs very rarely - observed sometimes when the remote is stalling, ctrl-c, and for some reason emulator returns PC=0.
         if emu:
-            if emu.pc != instruction.address:
+            if emu.pc() != instruction.address:
                 if DEBUG_ENHANCEMENT:
                     print(
-                        f"Program counter and emu.pc do not line up: {hex(pwndbg.aglib.regs.pc)=} {hex(emu.pc)=}"
+                        f"Program counter and emu.pc do not line up: {hex(pwndbg.aglib.regs.pc)=} {hex(emu.pc())=}"
                     )
                 emu = jump_emu = None
 
@@ -716,7 +715,7 @@ class DisassemblyAssistant:
             # 1. Only use it to determine non-call's (`nexti` should step over calls)
             # 2. Make sure we haven't manually set .condition to False (which should override the emulators prediction)
             if not instruction.call_like and instruction.condition != InstructionCondition.FALSE:
-                next_addr = jump_emu.pc
+                next_addr = jump_emu.pc()
 
         # Handle edge case - if the target happens to be the next address in memory and it's a jump, we need this variable
         # so the disasm output is accurate.

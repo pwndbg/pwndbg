@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.symbol
 import pwndbg.color
-import pwndbg.dbg
 
 from . import get_binary
 
