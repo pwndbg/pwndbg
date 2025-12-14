@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sys
 
 
 # Test the readelf wrapper directly without importing pwndbg
