@@ -24,14 +24,14 @@ def get_got_entry(local_path: str) -> Dict[RelocationType, List[Dict[str, int | 
     }
 
     with open(local_path, "rb") as f:
-        elf = ELFFile(f)  # type: ignore[no-untyped-call]
-        for section in elf.iter_sections():  # type: ignore[no-untyped-call]
+        elf = ELFFile(f)
+        for section in elf.iter_sections():
             if not isinstance(section, RelocationSection):
                 continue
 
-            for rel in section.iter_relocations():  # type: ignore[no-untyped-call]
+            for rel in section.iter_relocations():
                 # Get the symbol table and look up the symbol for this relocation
-                symbol_table = elf.get_section(section["sh_link"])  # type: ignore[no-untyped-call]
+                symbol_table = elf.get_section(section["sh_link"])
                 symbol = symbol_table.get_symbol(rel["r_info_sym"])
                 symbol_name = symbol.name
 
@@ -40,8 +40,8 @@ def get_got_entry(local_path: str) -> Dict[RelocationType, List[Dict[str, int | 
                 symbol_version = ""
                 try:
                     # Get the version section if it exists
-                    versym_section = elf.get_section_by_name(".gnu.version")  # type: ignore[no-untyped-call]
-                    verneed_section = elf.get_section_by_name(".gnu.version_r")  # type: ignore[no-untyped-call]
+                    versym_section = elf.get_section_by_name(".gnu.version")
+                    verneed_section = elf.get_section_by_name(".gnu.version_r")
 
                     if (
                         versym_section
@@ -77,7 +77,7 @@ def get_got_entry(local_path: str) -> Dict[RelocationType, List[Dict[str, int | 
                 # like "R_X86_64_JUMP_SLOT".
                 from elftools.elf.descriptions import describe_reloc_type
 
-                reloc_type_name = describe_reloc_type(rel["r_info_type"], elf)  # type: ignore[no-untyped-call]
+                reloc_type_name = describe_reloc_type(rel["r_info_type"], elf)
 
                 # Now we check if this string contains one of the types we care about.
                 # For example, if we are looking for JUMP_SLOT, we check if "JUMP_SLOT"
