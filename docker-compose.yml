@@ -1,6 +1,7 @@
 services:
   base: &base-spec
     build: .
+    network_mode: host
     security_opt:
       - seccomp:unconfined
     cap_add:
@@ -76,3 +77,11 @@ services:
       dockerfile: Dockerfile.dnf
       args:
         image: fedora:43
+
+  nix:
+    <<: *base-spec
+    build:
+      context: .
+      dockerfile: Dockerfile.nix
+      args:
+        image: nixos/nix:latest

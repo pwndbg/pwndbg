@@ -53,7 +53,7 @@ let
   );
 in
 {
-  default = pkgs.mkShell {
+  default = pkgs.mkShellNoCC {
     NIX_CONFIG = "extra-experimental-features = nix-command flakes";
     # Anything not handled by the poetry env
     nativeBuildInputs =
@@ -61,11 +61,11 @@ in
         inherit (pkgs)
           # from setup-dev.sh
           nasm
-          gcc
           curl
           parallel
           qemu
           go
+          pkg-config
 
           # for onegadget command
           one_gadget
@@ -77,6 +77,17 @@ in
       ++ [
         jemalloc-static
         pyEnv
+
+        (pkgs.runCommandNoCC "gcc-minimal-bin" {} ''
+          mkdir -p $out/bin
+          ln -s ${pkgs.gcc}/bin/gcc $out/bin/gcc
+          ln -s ${pkgs.gcc}/bin/ld  $out/bin/ld
+          ln -s ${pkgs.gcc}/bin/g++  $out/bin/g++
+        '')
+        (pkgs.runCommandNoCC "musl-gcc-minimal-bin" {} ''
+          mkdir -p $out/bin
+          ln -s ${pkgs.pkgsMusl.gcc}/bin/gcc $out/bin/musl-gcc
+        '')
       ];
     shellHook = ''
       # lldb looks for the `debugserver` binary in `DEVELOPER_DIR`,
