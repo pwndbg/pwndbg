@@ -8,7 +8,7 @@ import os
 import sys
 
 import pwndbg.color.context as C
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg import config
 from pwndbg.color import ljust_colored
 from pwndbg.color import rjust_colored

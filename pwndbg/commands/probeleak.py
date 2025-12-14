@@ -4,8 +4,7 @@ import argparse
 import math
 import os
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.elf
+import pwndbg.aglib
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M

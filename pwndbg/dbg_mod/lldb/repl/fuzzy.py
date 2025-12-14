@@ -33,7 +33,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.key_binding import KeyPressEvent
 from prompt_toolkit.output import create_output
 
-from pwndbg.dbg.lldb import LLDB
+from pwndbg.dbg_mod.lldb import LLDB
 
 # global variables
 P = ParamSpec("P")

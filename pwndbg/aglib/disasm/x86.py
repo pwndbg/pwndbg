@@ -9,15 +9,13 @@ from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.typeinfo
-import pwndbg.chain
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor
-import pwndbg.enhance
 from pwndbg.aglib.disasm.arch import memory_or_register_assign
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import EnhancedOperand

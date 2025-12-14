@@ -13,12 +13,12 @@ from typing import List
 import lldb
 
 import pwndbg
-from pwndbg.dbg.lldb import YieldContinue
-from pwndbg.dbg.lldb import YieldSingleStep
-from pwndbg.dbg.lldb.repl import UserCancelledError
-from pwndbg.dbg.lldb.repl import print_info
-from pwndbg.dbg.lldb.repl.io import IODriver
-from pwndbg.dbg.lldb.repl.io import IODriverPlainText
+from pwndbg.dbg_mod.lldb import YieldContinue
+from pwndbg.dbg_mod.lldb import YieldSingleStep
+from pwndbg.dbg_mod.lldb.repl import UserCancelledError
+from pwndbg.dbg_mod.lldb.repl import print_info
+from pwndbg.dbg_mod.lldb.repl.io import IODriver
+from pwndbg.dbg_mod.lldb.repl.io import IODriverPlainText
 
 
 class EventHandler:
@@ -764,7 +764,7 @@ class ProcessDriver:
         """
         Prepares the internal event listener for the given target.
         """
-        self.listener = lldb.SBListener("pwndbg.dbg.lldb.repl.proc.ProcessDriver")
+        self.listener = lldb.SBListener("pwndbg.dbg_mod.lldb.repl.proc.ProcessDriver")
         assert self.listener.IsValid()
 
         self.listener.StartListeningForEvents(

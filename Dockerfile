@@ -13,7 +13,6 @@ FROM $image AS base
 
 WORKDIR /pwndbg
 
-ENV PIP_NO_CACHE_DIR=true
 ENV LANG=en_US.utf8
 ENV TZ=America/New_York
 ENV PWNDBG_VENV_PATH=/venv
@@ -24,7 +23,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         locales vim && \
-    localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
+    localedef -i en_US -c -f UTF-8 en_US.UTF-8 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # setup.sh needs scripts/common.sh
@@ -50,13 +49,4 @@ FROM base AS full
 
 COPY . /pwndbg/
 
-ARG LOW_PRIVILEGE_USER="vscode"
-
 ENV PATH="${PWNDBG_VENV_PATH}/bin:${PATH}"
-
-# Add .gdbinit to the home folder of both root and vscode users (if vscode user exists)
-# This is useful for a VSCode dev container, not really for test builds
-RUN if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi && \
-    if id -u ${LOW_PRIVILEGE_USER} > /dev/null 2>&1; then \
-        su ${LOW_PRIVILEGE_USER} -c 'if [ ! -f ~/.gdbinit ]; then echo "source /pwndbg/gdbinit.py" >> ~/.gdbinit; fi'; \
-    fi

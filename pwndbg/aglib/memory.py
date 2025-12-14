@@ -4,12 +4,12 @@ from typing import Dict
 from typing import Set
 from typing import Union
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-from pwndbg.dbg import EventType
-from pwndbg.dbg import TypeCode
+from pwndbg.dbg_mod import EventType
+from pwndbg.dbg_mod import TypeCode
 from pwndbg.lib.memory import PAGE_SIZE
 
 GdbDict = Dict[str, Union["GdbDict", int]]
@@ -445,5 +445,5 @@ def is_pagefault_supported() -> bool:
     return pwndbg.dbg.selected_inferior().is_linux()
 
 
-def is_kernel(addr: int):
-    return (addr >> 63 == 1) and peek(addr) is not None
+def is_kernel(addr: int | None):
+    return addr is not None and (addr >> 63 == 1) and peek(addr) is not None

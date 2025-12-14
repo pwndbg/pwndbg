@@ -19,4 +19,4 @@ class MockDebugger(pwndbg.dbg_mod.Debugger):
         return MockInferior()
 
 
-pwndbg.dbg = MockDebugger()
+dbg = MockDebugger()

@@ -68,7 +68,7 @@ parser.add_argument(
     "--set",
     dest="set_pid",
     action="store_true",
-    help="sets the kernel task used for supported pwndbg commands (kfile, pagewalk), this option does not change internal mem (purely effects how certain commands behaves)",
+    help="sets the kernel task used for supported pwndbg commands (kfile, pagewalk, vmmap), this option does not change internal mem (purely effects how certain commands behaves)",
 )
 
 
@@ -82,7 +82,7 @@ def kcurrent(pid=None, set_pid=False, verbose=True):
     if pid is None:
         kcurrent = pwndbg.aglib.kernel.current_task()
         kcurrent = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", kcurrent)
-        if kcurrent:
+        if kcurrent and pwndbg.aglib.memory.is_kernel(int(kcurrent)):
             pid = int(kcurrent["pid"])
     if pid is not None:
         for task in pwndbg.commands.ktask.get_ktasks():
@@ -97,7 +97,7 @@ def kcurrent(pid=None, set_pid=False, verbose=True):
     if set_pid:
         mm = kthread.mm
         if not mm:
-            print(M.warn("current kernel task not set."))
+            print(M.warn("mm not found, current kernel task not set."))
             return
         KCURRENT_PID = pid
         KCURRENT_PGD = int(mm["pgd"])

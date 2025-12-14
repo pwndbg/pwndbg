@@ -14,12 +14,12 @@ async def test_command_distance(ctrl: Controller):
     await ctrl.launch(REFERENCE_BINARY)
 
     # Test against regs
-    rsp = pwndbg.aglib.regs.rsp
-    result = await ctrl.execute_and_capture("distance $rsp $rsp+0x10")
-    assert result == f"{rsp:#x}->{rsp + 0x10:#x} is 0x10 bytes (0x2 words)\n"
+    sp = pwndbg.aglib.regs.sp
+    result = await ctrl.execute_and_capture("distance $sp $sp+0x10")
+    assert result == f"{sp:#x}->{sp + 0x10:#x} is 0x10 bytes (0x2 words)\n"
 
     # Test if it works with symbols
-    rip = pwndbg.aglib.regs.rip
+    pc = pwndbg.aglib.regs.pc
 
     main = pwndbg.aglib.symbol.lookup_symbol_addr("main")
     break_here = pwndbg.aglib.symbol.lookup_symbol_addr("break_here")
@@ -33,11 +33,11 @@ async def test_command_distance(ctrl: Controller):
             assert result == f"{main:#x}->{break_here:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
 
     # Test if it works with reg + symbol
-    diff = break_here - rip
-    result = await ctrl.execute_and_capture("distance $rip &break_here")
-    assert result == f"{rip:#x}->{break_here:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
+    diff = break_here - pc
+    result = await ctrl.execute_and_capture("distance $pc &break_here")
+    assert result == f"{pc:#x}->{break_here:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
 
     # Test if it works with symbol + reg
-    diff = rip - break_here
-    result = await ctrl.execute_and_capture("distance &break_here $rip")
-    assert result == f"{break_here:#x}->{rip:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
+    diff = pc - break_here
+    result = await ctrl.execute_and_capture("distance &break_here $pc")
+    assert result == f"{break_here:#x}->{pc:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"

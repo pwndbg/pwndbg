@@ -13,19 +13,18 @@ from typing import Tuple
 
 from capstone import CS_GRP_INT
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
+import pwndbg.aglib.objc
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.chain
+import pwndbg.dbg_mod
+import pwndbg.enhance
 import pwndbg.integration
 import pwndbg.lib.abi
-import pwndbg.lib.funcparser
 import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N

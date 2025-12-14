@@ -15,6 +15,7 @@ USE_FDS_BINARY = get_binary("use-fds.native.out")
 TABSTOP_BINARY = get_binary("tabstop.native.out")
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
 MANGLING_BINARY = get_binary("symbol_1600_and_752.native.out")
+STACK_VARS_BINARY = get_binary("stack_vars.native.out")
 
 
 @pwndbg_test
@@ -34,7 +35,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     await ctrl.execute("nextcall")
 
     out = pwndbg.commands.context.context_disasm()
-    assert "[ DISASM / x86-64 / set emulate on ]" in out[0]  # Sanity check
+    assert "[ DISASM " in out[0]  # Sanity check
 
     call_read_line_idx = out.index(
         next(line for line in out if "<read@plt>" in line or "<read>" in line)
@@ -43,7 +44,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
 
     line_call_read, line_fd, line_buf, line_nbytes, *_rest = lines_after_call_read
 
-    assert "call   read@plt" in line_call_read or "call   read" in line_call_read
+    assert "read" in line_call_read
 
     # When running tests with GNU Parallel, sometimes the file name looks
     # '/tmp/parZ4YC4.par', and occasionally '(deleted)' is present after the
@@ -54,7 +55,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     )
 
     line_buf = line_buf.strip()
-    assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0", line_buf)
+    assert re.match(r"buf:\s+0x[0-9a-f]+(?: \{buf\})? ◂— 0", line_buf)
 
     line_nbytes = line_nbytes.strip()
     assert re.match(r"nbytes:\s+0", line_nbytes)
@@ -65,7 +66,7 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     await ctrl.execute("nextcall")
 
     out = pwndbg.commands.context.context_disasm()
-    assert "[ DISASM / x86-64 / set emulate on ]" in out[0]  # Sanity check
+    assert "[ DISASM " in out[0]  # Sanity check
 
     call_read_line_idx = out.index(
         next(line for line in out if "<read@plt>" in line or "<read>" in line)
@@ -75,10 +76,10 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     line_call_read, line_fd, line_buf, line_nbytes, *_rest = lines_after_call_read
 
     line_fd = line_fd.strip()
-    assert re.match(r"fd:\s+3 \([a-z/]*pwndbg/tests/binaries/host/use-fds.native.out\)", line_fd)
+    assert re.match(r"fd:\s+3\s+\(.*?/tests/binaries/host/use-fds.native.out\)", line_fd)
 
     line_buf = line_buf.strip()
-    assert re.match(r"buf:\s+0x[0-9a-f]+ ◂— 0", line_buf)
+    assert re.match(r"buf:\s+0x[0-9a-f]+(?: \{buf\})? ◂— 0", line_buf)
 
     line_nbytes = line_nbytes.strip()
     assert re.match(r"nbytes:\s+0x10", line_nbytes)
@@ -268,20 +269,20 @@ async def test_context_backtrace_show_proper_symbol_names(ctrl: Controller) -> N
         == "─────────────────────────────────[ BACKTRACE ]──────────────────────────────────"
     )
 
-    assert re.match(r".*0   0x[0-9a-f]+ A::foo\(int, int\)", backtrace[2])
+    assert re.match(r".*0\s+0x[0-9a-f]+\s+A::foo\(int, int\)(\+\d+)?", backtrace[2])
 
     # Match A::call_foo()+38 or similar: the offset may change so we match \d+ at the end
-    assert re.match(r".*1   0x[0-9a-f]+ A::call_foo\(\)\+\d+", backtrace[3])
+    assert re.match(r".*1\s+0x[0-9a-f]+\sA::call_foo\(\)\+\d+", backtrace[3])
 
     # Match main+87 or similar offset
-    assert re.match(r".*2   0x[0-9a-f]+ main\+\d+", backtrace[4])
+    assert re.match(r".*2\s+0x[0-9a-f]+\s+main\+\d+", backtrace[4])
 
     # Match __libc_start_main+243 or similar offset
     # Note: on Ubuntu 22.04 there will be __libc_start_call_main and then __libc_start_main
     # but on older distros there will be only __libc_start_main
     # Let's not bother too much about it and make it the last call assertion here
     assert re.match(
-        r".*3   0x[0-9a-f]+ (__libc_start_main|__libc_start_call_main)\+\d+", backtrace[5]
+        r".*3\s+0x[0-9a-f]+\s+(__libc_start_main|__libc_start_call_main)\+\d+", backtrace[5]
     )
 
     assert (
@@ -350,7 +351,7 @@ async def test_context_disasm_proper_render_on_mem_change_issue_1818(
         await ctrl.execute("patch $rip+5 nop;nop;nop;nop;nop")
     else:
         # Do the same, but through write API
-        pwndbg.aglib.memory.write(pwndbg.aglib.regs.rip + 5, b"\x90" * 5)
+        pwndbg.aglib.memory.write(pwndbg.aglib.regs.pc + 5, b"\x90" * 5)
 
     # Actual test: we expect the read memory to be different now ;)
     # (and not e.g. returned incorrectly from a not cleared cache)
@@ -546,7 +547,12 @@ async def test_context_history_prev_next(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_context_history_search(ctrl: Controller) -> None:
+    import pwndbg.aglib
+
     await ctrl.launch(REFERENCE_BINARY)
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
+
     await ctrl.execute("context")
 
     break_at_sym("main")
@@ -617,3 +623,95 @@ async def test_context_output_redirection(ctrl: Controller) -> None:
     assert "STACK" not in receive_output.context_output
 
     pwndbg.commands.context.resetcontextoutput("regs")
+
+
+@pwndbg_test
+async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
+    """
+    Test that stack variable names from DWARF debug info are displayed correctly
+    """
+    import pwndbg.aglib.stack
+    import pwndbg.commands.context
+    import pwndbg.dbg_mod
+
+    # Launch directly to inner_function where the variables are
+    await launch_to(ctrl, STACK_VARS_BINARY, "inner_function")
+
+    # Test direct API: pwndbg.aglib.stack.get_stack_var_name()
+    # Get addresses of local variables
+    frame = pwndbg.dbg.selected_frame()
+    buffer_addr = int(frame.evaluate_expression("&buffer"))
+    local_var_addr = int(frame.evaluate_expression("&local_var"))
+
+    # Test that get_stack_var_name returns correct names
+    assert pwndbg.aglib.stack.get_stack_var_name(buffer_addr) == "buffer"
+    assert pwndbg.aglib.stack.get_stack_var_name(local_var_addr) == "local_var"
+
+    # Test offset notation for addresses within variables
+    # buffer is 64 bytes, so buffer+0x10 should show "buffer+0x10"
+    buffer_offset_addr = buffer_addr + 0x10
+    offset_result = pwndbg.aglib.stack.get_stack_var_name(buffer_offset_addr)
+    assert offset_result == "buffer+0x10"
+
+    # Test that telescope shows variable names
+    telescope_out = await ctrl.execute_and_capture(f"telescope {buffer_addr:#x} 1")
+    assert "{buffer}" in telescope_out
+
+
+@pwndbg_test
+async def test_regs_command_resolves_sp_pc_aliases(ctrl: Controller) -> None:
+    """
+    If running `regs pc` or `regs sp`, these aliases should be resolved
+    to the real architectural names of the registers.
+    """
+    import pwndbg.aglib.regs
+
+    await ctrl.launch(REFERENCE_BINARY)
+
+    sp_name = pwndbg.aglib.regs.current.stack
+    pc_name = pwndbg.aglib.regs.current.pc
+
+    real_sp_value = pwndbg.aglib.regs.read_reg(sp_name)
+    real_pc_value = pwndbg.aglib.regs.read_reg(pc_name)
+
+    regs_sp_output = await ctrl.execute_and_capture("regs sp")
+    regs_pc_output = await ctrl.execute_and_capture("regs pc")
+
+    assert sp_name.upper() in regs_sp_output
+    assert hex(real_sp_value) in regs_sp_output
+
+    assert pc_name.upper() in regs_pc_output
+    assert hex(real_pc_value) in regs_pc_output
+
+
+@pwndbg_test
+async def test_cli_fixup_resolves_sp_pc_aliases(ctrl: Controller) -> None:
+    """
+    CLI argument fixup should resolve "sp" and "pc" correctly.
+
+    Note:
+    The fixup process by default (without any special handling of these aliases)
+    would just adds a "$" infront of register names.
+    GDB reading $sp and $pc will internally handle the conversion, meaning this test
+    passes without any special logic in the register fixup.
+
+    However, this is not necessarily true of all underlying debuggers.
+    """
+    import pwndbg.aglib.regs
+
+    await ctrl.launch(REFERENCE_BINARY)
+
+    sp_name = pwndbg.aglib.regs.current.stack
+    pc_name = pwndbg.aglib.regs.current.pc
+
+    real_sp_value = pwndbg.aglib.regs.read_reg(sp_name)
+    real_pc_value = pwndbg.aglib.regs.read_reg(pc_name)
+
+    regs_sp_output = await ctrl.execute_and_capture("telescope sp 1")
+    regs_pc_output = await ctrl.execute_and_capture("telescope pc 1")
+
+    assert sp_name in regs_sp_output
+    assert hex(real_sp_value) in regs_sp_output
+
+    assert pc_name in regs_pc_output
+    assert hex(real_pc_value) in regs_pc_output

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.color.memory as M
 import pwndbg.commands
 from pwndbg.commands import CommandCategory

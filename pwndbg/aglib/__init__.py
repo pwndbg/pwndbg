@@ -11,9 +11,8 @@ for more information.
 
 from __future__ import annotations
 
-from pwndbg.aglib import arch as arch_mod
-from pwndbg.aglib.arch import PwndbgArchitecture
-from pwndbg.aglib.arch import get_pwndbg_architecture
+from pwndbg.aglib.arch_mod import PwndbgArchitecture
+from pwndbg.aglib.arch_mod import get_pwndbg_architecture
 
 regs = None
 

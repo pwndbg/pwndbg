@@ -14,14 +14,11 @@ from elftools.elf.elffile import ELFFile
 from typing_extensions import ParamSpec
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
-import pwndbg.aglib.vmmap
-import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
@@ -29,7 +26,6 @@ import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
 from pwndbg.aglib.kernel.paging import PageTableLevel
-from pwndbg.lib.regs import BitFlags
 
 _kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
 
@@ -160,7 +156,11 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
         if result is not None:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
-    if config_start is None or config_end is None:
+    if (
+        not pwndbg.aglib.memory.is_kernel(config_start)
+        or not pwndbg.aglib.memory.is_kernel(config_end)
+        or config_start >= config_end
+    ):
         _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
         return _kconfig
 
@@ -338,7 +338,7 @@ class x86Ops(ArchOps):
 
     @staticmethod
     def paging_enabled() -> bool:
-        return int(pwndbg.aglib.regs.cr0) & BIT(31) != 0
+        return int(pwndbg.aglib.regs.read_reg("cr0")) & BIT(31) != 0
 
 
 class i386Ops(x86Ops):
@@ -453,7 +453,7 @@ class Aarch64Ops(ArchOps):
 
     @staticmethod
     def paging_enabled() -> bool:
-        return int(pwndbg.aglib.regs.SCTLR) & BIT(0) != 0
+        return int(pwndbg.aglib.regs.read_reg("SCTLR")) & BIT(0) != 0
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -623,6 +623,15 @@ def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
         raise NotImplementedError()
 
 
+@pwndbg.lib.cache.cache_until("stop")
+def pagetable_scan(entry=None) -> Tuple[pwndbg.lib.memory.Page, ...]:
+    pi = arch_paginginfo()
+    if pi:
+        return tuple(pi.pagetable_scan(entry))
+    else:
+        raise NotImplementedError()
+
+
 def paging_enabled() -> bool:
     arch_name = pwndbg.aglib.arch.name
     if arch_name == "i386":
@@ -635,7 +644,9 @@ def paging_enabled() -> bool:
         # https://starfivetech.com/uploads/u74_core_complex_manual_21G1.pdf
         # page 41, satp.MODE, bits: 60,61,62,63
         # "When satp.MODE=0x0, supervisor virtual addresses are equal to supervisor physical addresses"
-        return int(pwndbg.aglib.regs.satp) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
+        return (
+            int(pwndbg.aglib.regs.read_reg("satp")) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
+        )
     else:
         raise NotImplementedError()
 

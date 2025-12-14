@@ -30,7 +30,7 @@ import pwndbg
 import pwndbg.color.message as M
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
-from pwndbg.dbg import selection
+from pwndbg.dbg_mod import selection
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.regs import reg_sets
@@ -76,6 +76,29 @@ class LLDBRegisters(pwndbg.dbg_mod.Registers):
                 return LLDBValue(member, self.proc)
 
         return None
+
+
+def _get_frame_stack_variables(frame: lldb.SBFrame) -> Tuple[Tuple[int, int, str], ...]:
+    try:
+        # GetVariables(arguments, locals, statics, in_scope_only)
+        variables = frame.GetVariables(True, True, False, True)
+
+        result = []
+        for i in range(variables.GetSize()):
+            var = variables.GetValueAtIndex(i)
+            if not var.IsValid():
+                continue
+
+            addr = var.GetLoadAddress()
+            if addr == lldb.LLDB_INVALID_ADDRESS:
+                continue
+
+            size = var.GetType().GetByteSize()
+            result.append((int(addr), int(addr) + size, var.GetName()))
+
+        return tuple(result)
+    except Exception:
+        return ()
 
 
 class LLDBFrame(pwndbg.dbg_mod.Frame):
@@ -148,10 +171,16 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         if name not in pwndbg.aglib.regs:
             return False
 
-        # Writing to the PC using the normal register write flow causes the
+        current_reg_set = reg_sets[pwndbg.aglib.arch.name]
+
+        full_reg_name = name
+        if reg_info := current_reg_set.full_register_lookup.get(name):
+            full_reg_name = reg_info.name
+
+        # Writing to the PC (or any subregister of the PC) using the normal register write flow causes the
         # inner object to be automatically invalidated by LLDB, so we have to
         # handle jumps manually using SBFrame::SetPC.
-        if name in (reg_sets[pwndbg.aglib.arch.name].pc, "pc"):
+        if name == "pc" or full_reg_name == current_reg_set.pc:
             ret = self.inner.SetPC(val)
             self.proc.dbg._trigger_event(pwndbg.dbg_mod.EventType.REGISTER_CHANGED)
             return ret
@@ -206,12 +235,11 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                     # event.
                     self.proc.dbg._trigger_event(pwndbg.dbg_mod.EventType.REGISTER_CHANGED)
 
-                    # If we set the stack pointer, the inner object might have been invalidated, try
+                    # If we set the stack pointer (or a subregister of the stack pointer), the inner object might have been invalidated, try
                     # to restore it, as it should still be the selected frame.
                     if (
-                        name in (reg_sets[pwndbg.aglib.arch.name].frame, "sp")
-                        and not self.inner.IsValid()
-                    ):
+                        name == "sp" or full_reg_name == current_reg_set.stack
+                    ) and not self.inner.IsValid():
                         self.inner = thread.GetSelectedFrame()
                         assert self.inner.GetSP() == val
 
@@ -261,6 +289,10 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
             return line_entry.file.fullpath, line_entry.line
 
         return None
+
+    @override
+    def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
+        return _get_frame_stack_variables(self.inner)
 
     @override
     def __eq__(self, rhs: object) -> bool:
@@ -1241,7 +1273,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # to a remote process while keeping the host platform, but we can't do
         # much beyond that at this point.
         #
-        # [2]: See `pwndbg.dbg.lldb.repl.process_connect`.
+        # [2]: See `pwndbg.dbg_mod.lldb.repl.process_connect`.
         platform = self.target.GetPlatform()
 
         remote = lldb.SBFileSpec(remote_path)
@@ -1451,7 +1483,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # Directly finding local variables is not possible using t.FindSymbols
         #
         # Local/Global Variables, Functions, or Any Symbol:
-        # Use pwndbg.dbg.selected_frame().evaluate_expression('&result_local')
+        # Use pwndbg.dbg_mod.selected_frame().evaluate_expression('&result_local')
         # Note that this approach works for both local and global variables as well as functions.
         #
         # Note using `evaluate_expression` on TLS Variables:
@@ -1947,7 +1979,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         pwndbg.commands.comments.init()
 
-        import pwndbg.dbg.lldb.hooks
+        import pwndbg.dbg_mod.lldb.hooks
 
     def relay_exceptions(self) -> None:
         """

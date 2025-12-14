@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pwndbg.aglib.arch import registered_architectures
+from pwndbg.aglib.arch_mod import registered_architectures
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES
 
 

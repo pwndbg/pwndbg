@@ -14,8 +14,8 @@ import ctypes
 import sys
 
 import pwndbg
-import pwndbg.aglib.arch
-from pwndbg.dbg import EventType
+import pwndbg.aglib
+from pwndbg.dbg_mod import EventType
 
 module = sys.modules[__name__]
 Structure = ctypes.LittleEndianStructure  # default Structure type

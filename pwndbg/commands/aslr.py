@@ -8,7 +8,7 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.commands
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

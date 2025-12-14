@@ -253,6 +253,15 @@ class Frame:
         """
         raise NotImplementedError()
 
+    def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
+        """
+        Get all stack variables (local variables and arguments) in current frame.
+
+        Returns a tuple of (start_address, end_address, name) for each variable.
+        Returns an empty tuple if no debug information is available or on error.
+        """
+        raise NotImplementedError()
+
     def __eq__(self, rhs: object) -> bool:
         """
         Whether this frame is the same as the given frame. Two frames are the

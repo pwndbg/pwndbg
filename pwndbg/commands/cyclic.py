@@ -8,7 +8,7 @@ from typing import Optional
 from pwnlib.util.cyclic import cyclic
 from pwnlib.util.cyclic import cyclic_find
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.commands

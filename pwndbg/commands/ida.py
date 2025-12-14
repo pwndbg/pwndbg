@@ -11,10 +11,10 @@ import pwndbg
 import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.commands.context
-import pwndbg.dbg
+import pwndbg.dbg_mod
 import pwndbg.integration.ida
 from pwndbg.commands import CommandCategory
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 from pwndbg.gdblib.functions import GdbFunction
 
 

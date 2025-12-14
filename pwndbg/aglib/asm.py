@@ -6,7 +6,7 @@ from typing import List
 import pwnlib.context
 import pwnlib.data
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.lib.zig
 
 

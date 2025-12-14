@@ -5,7 +5,7 @@ import argparse
 import pwndbg.aglib.kernel
 import pwndbg.color.message as M
 import pwndbg.commands
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg import config
 from pwndbg.commands import CommandCategory
 

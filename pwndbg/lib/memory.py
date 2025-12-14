@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from os.path import relpath
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 
 PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE - 1)
@@ -66,6 +66,13 @@ class Page:
     Represents the address space and page permissions of at least
     one page of memory.
     """
+
+    """
+    consts
+    """
+    R_OK = os.R_OK
+    W_OK = os.W_OK
+    X_OK = os.X_OK
 
     vaddr = 0  #: Starting virtual address
     memsz = 0  #: Size of the address space, in bytes
@@ -131,15 +138,15 @@ class Page:
 
     @property
     def read(self) -> bool:
-        return bool(self.flags & os.R_OK)
+        return bool(self.flags & self.R_OK)
 
     @property
     def write(self) -> bool:
-        return bool(self.flags & os.W_OK)
+        return bool(self.flags & self.W_OK)
 
     @property
     def execute(self) -> bool:
-        return bool(self.flags & os.X_OK)
+        return bool(self.flags & self.X_OK)
 
     @property
     def rw(self) -> bool:
@@ -162,9 +169,9 @@ class Page:
         flags = self.flags
         return "".join(
             [
-                "r" if flags & os.R_OK else "-",
-                "w" if flags & os.W_OK else "-",
-                "x" if flags & os.X_OK else "-",
+                "r" if flags & self.R_OK else "-",
+                "w" if flags & self.W_OK else "-",
+                "x" if flags & self.X_OK else "-",
                 "p",
             ]
         )

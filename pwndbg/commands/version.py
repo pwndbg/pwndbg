@@ -19,7 +19,7 @@ import pwndbg.commands
 import pwndbg.integration
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.dbg import DebuggerType
+from pwndbg.dbg_mod import DebuggerType
 
 
 def os_info():

@@ -6,13 +6,11 @@ from __future__ import annotations
 
 from typing import List
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
 import pwndbg.enhance
-import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme

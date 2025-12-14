@@ -7,7 +7,7 @@ from typing import Union
 
 from elftools.elf.elffile import ELFFile
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
@@ -16,7 +16,6 @@ import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.memory as M
 import pwndbg.commands
-import pwndbg.enhance
 import pwndbg.gdblib.info
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf

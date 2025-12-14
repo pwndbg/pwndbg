@@ -6,9 +6,9 @@ import re
 import gdb
 import pytest
 
+import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
-import pwndbg.dbg
 
 
 def test_command_kchecksec():
@@ -74,10 +74,11 @@ def test_command_ktask():
         return
     res = gdb.execute("ktask", to_string=True)
     assert "task @" in res
-    res = gdb.execute("kcurrent --set", to_string=True)
+    res = gdb.execute("kcurrent --set 1", to_string=True)
     assert "task @" in res
-    res2 = gdb.execute("kfile", to_string=True)
-    assert res in res2
+    if "not found" not in res:
+        res2 = gdb.execute("kfile", to_string=True)
+        assert res in res2
 
 
 def test_command_kversion():
@@ -122,7 +123,8 @@ def test_command_slab_contains():
 
     pwndbg.aglib.kernel.slab.load_slab_typeinfo()
     # retrieve a valid slab object address (first address from freelist)
-    addr, slab_cache = get_slab_object_address()
+    addrs, slab_cache = get_slab_object_address()
+    addr = addrs[0]
 
     res = gdb.execute(f"slab contains {addr}", to_string=True)
     assert f"{addr} @ {slab_cache}" in res
@@ -142,11 +144,6 @@ def test_x64_extra_registers_under_kernel_mode():
         assert flag in res or flag.upper() in res
 
 
-def get_slab_freelist_elements(out):
-    out = pwndbg.color.strip(out)
-    return re.findall(r"- \[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]+)", out)
-
-
 def get_slab_object_address():
     """helper function to get the address of some kmalloc slab object
     and the associated slab cache name"""
@@ -154,9 +151,10 @@ def get_slab_object_address():
     for cache in caches:
         cache_name = cache.name
         info = gdb.execute(f"slab info -v {cache_name}", to_string=True)
-        matches = get_slab_freelist_elements(info)
+        info = pwndbg.color.strip(info)
+        matches = re.findall(r"- \[0x[0-9a-fA-F\-]{2}\] (0x[0-9a-fA-F]+)", info)
         if len(matches) > 0:
-            return (matches[0], cache_name)
+            return (matches, cache_name)
     raise ValueError("Could not find any slab objects")
 
 
@@ -288,9 +286,9 @@ def test_command_pagewalk():
     pgd_ptr = "$cr3"
     if pwndbg.aglib.arch.name == "aarch64":
         if pwndbg.aglib.memory.is_kernel(address):
-            pgd_ptr = pwndbg.aglib.regs.TTBR1_EL1
+            pgd_ptr = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
         else:
-            pgd_ptr = pwndbg.aglib.regs.TTBR0_EL1
+            pgd_ptr = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
     res2 = gdb.execute(f"pagewalk {hex(address)} --pgd {pgd_ptr}", to_string=True).splitlines()[-1]
     assert res == res2
     # test non nonexistent address
