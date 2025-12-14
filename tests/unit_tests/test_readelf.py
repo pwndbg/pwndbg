@@ -5,7 +5,7 @@ import os
 
 # Test the readelf wrapper directly without importing pwndbg
 # to avoid complex mock dependencies
-def test_get_got_entry_direct():
+def test_get_got_entry_direct() -> None:
     """Test get_got_entry using pyelftools directly to verify our implementation"""
     from elftools.elf.elffile import ELFFile
     from elftools.elf.relocation import RelocationSection
@@ -17,11 +17,11 @@ def test_get_got_entry_direct():
     # Test that we can extract relocation entries
     found_symbols = []
     with open(binary_path, "rb") as f:
-        elf = ELFFile(f)
-        for section in elf.iter_sections():
+        elf = ELFFile(f)  # type: ignore[no-untyped-call]
+        for section in elf.iter_sections():  # type: ignore[no-untyped-call]
             if isinstance(section, RelocationSection):
-                for rel in section.iter_relocations():
-                    symbol_table = elf.get_section(section["sh_link"])
+                for rel in section.iter_relocations():  # type: ignore[no-untyped-call]
+                    symbol_table = elf.get_section(section["sh_link"])  # type: ignore[no-untyped-call]
                     symbol = symbol_table.get_symbol(rel["r_info_sym"])
                     if symbol.name:
                         found_symbols.append(symbol.name)
@@ -32,11 +32,11 @@ def test_get_got_entry_direct():
 
 
 # Only run full test if mocks are properly set up
-def test_get_got_entry():
+def test_get_got_entry() -> None:
     """Full integration test - requires proper mock setup"""
     try:
         import pwndbg.wrappers.readelf
-        import tests.unit_tests.mocks.dbg  # noqa: F401
+        import tests.unit_tests.mocks.dbg  # type: ignore[import-untyped]  # noqa: F401
         import tests.unit_tests.mocks.gdb  # noqa: F401
     except (ImportError, NotImplementedError):
         # Skip if mocks aren't fully set up yet
@@ -62,7 +62,7 @@ def test_get_got_entry():
             assert item["offset"] >= 0
 
     # Check for specific expected symbols
-    all_names = [item["name"] for items in entries.values() for item in items]
+    all_names = [str(item["name"]) for items in entries.values() for item in items]
 
     assert any("puts" in name for name in all_names), "Expected 'puts' symbol"
     assert any(

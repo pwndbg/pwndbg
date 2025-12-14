@@ -136,7 +136,7 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
         text_section_addr = pwndbg.gdblib.info.parsed_sharedlibrary()[path][0]
         with open(local_path, "rb") as f:
             bin_base_offset = (
-                text_section_addr - ELFFile(f).get_section_by_name(".text").header["sh_addr"]
+                text_section_addr - ELFFile(f).get_section_by_name(".text").header["sh_addr"]  # type: ignore[no-untyped-call]
             )
 
     # Parse the output of readelf line by line
