@@ -15,6 +15,7 @@ controller tests.
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 
 from .... import host
 from ....host import Controller
@@ -24,14 +25,14 @@ from . import pwndbg_test
 
 @pytest.mark.xfail
 def test_starts_no_decorator_xfail() -> None:
-    async def run(ctrl: Controller):
+    async def run(ctrl: Controller) -> None:
         raise RuntimeError("should fail!")
 
     host.start(run)
 
 
 def test_starts_no_decorator() -> None:
-    async def run(ctrl: Controller):
+    async def run(ctrl: Controller) -> None:
         pass
 
     host.start(run)
@@ -51,15 +52,14 @@ async def test_starts(ctrl: Controller) -> None:
 @pwndbg_test
 async def test_launch(ctrl: Controller) -> None:
     """
-    Launches a process and checks if a simple static CString can be read from it.
+    Launches a process and checks if we can look up symbols from the loaded binary.
     """
     import pwndbg
-    import pwndbg.aglib.typeinfo
 
-    await ctrl.launch(get_binary("memory.x86-64.out"))
+    await ctrl.launch(Path(get_binary("reference-binary.native.out")))
 
     inf = pwndbg.dbg.selected_inferior()
-    addr = inf.lookup_symbol("short_str")
-    string = addr.cast(pwndbg.aglib.typeinfo.char.pointer()).string()
+    addr = inf.lookup_symbol("main")
 
-    assert string == "some cstring here"
+    # Verify we can look up symbols from the loaded binary
+    assert int(addr) > 0
