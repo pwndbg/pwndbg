@@ -26,7 +26,8 @@ RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf
 
 RUN nix develop --accept-flake-config --profile /nix-profile
+RUN nix develop --accept-flake-config /nix-profile
 
 COPY . /pwndbg/
 
-ENTRYPOINT ["nix", "develop", "--accept-flake-config", "/nix-profile"]
+ENTRYPOINT ["nix", "develop", "--accept-flake-config", "/nix-profile", "--command"]
