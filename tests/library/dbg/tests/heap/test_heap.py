@@ -641,7 +641,9 @@ async def test_jemalloc_extent_info(ctrl: Controller) -> None:
         if "Extent Address:" in line:
             extent_address = int(line.split(" ")[-1], 16)
     if extent_address is None:
-        pytest.skip("jemalloc-find-extent did not return an extent address; skipping jemalloc-extent-info test")
+        pytest.skip(
+            "jemalloc-find-extent did not return an extent address; skipping jemalloc-extent-info test"
+        )
     # run jemalloc extent_info command
     result = (await ctrl.execute_and_capture(f"jemalloc-extent-info {extent_address}")).splitlines()
 

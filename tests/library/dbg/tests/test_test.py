@@ -14,8 +14,9 @@ controller tests.
 
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from .... import host
 from ....host import Controller
