@@ -3,17 +3,18 @@ from __future__ import annotations
 import os
 import sys
 
+
 # Test the readelf wrapper directly without importing pwndbg
 # to avoid complex mock dependencies
 def test_get_got_entry_direct():
     """Test get_got_entry using pyelftools directly to verify our implementation"""
     from elftools.elf.elffile import ELFFile
     from elftools.elf.relocation import RelocationSection
-    
+
     binary_path = "tests/binaries/host/reference-binary"
     if not os.path.exists(binary_path):
         return
-    
+
     # Test that we can extract relocation entries
     found_symbols = []
     with open(binary_path, "rb") as f:
@@ -25,7 +26,7 @@ def test_get_got_entry_direct():
                     symbol = symbol_table.get_symbol(rel["r_info_sym"])
                     if symbol.name:
                         found_symbols.append(symbol.name)
-    
+
     # Verify expected symbols exist
     assert any("puts" in s for s in found_symbols), "Expected 'puts' symbol"
     assert any("libc_start_main" in s for s in found_symbols), "Expected '__libc_start_main' symbol"
@@ -35,9 +36,9 @@ def test_get_got_entry_direct():
 def test_get_got_entry():
     """Full integration test - requires proper mock setup"""
     try:
-        import tests.unit_tests.mocks.gdb  # noqa: F401
-        import tests.unit_tests.mocks.dbg  # noqa: F401
         import pwndbg.wrappers.readelf
+        import tests.unit_tests.mocks.dbg  # noqa: F401
+        import tests.unit_tests.mocks.gdb  # noqa: F401
     except (ImportError, NotImplementedError):
         # Skip if mocks aren't fully set up yet
         import pytest
