@@ -1,26 +1,17 @@
 from __future__ import annotations
 
 import os
-import sys
-from unittest.mock import MagicMock
 
-# Mock gdb before importing pwndbg
-sys.modules["gdb"] = MagicMock()
-sys.modules["gdb"].VERSION = "12.1"
+import tests.unit_tests.mocks.gdb  # noqa: F401
 
 import pwndbg.wrappers.readelf
 
 
 def test_get_got_entry(tmp_path):
-    # We need a binary to test.
-    # We can use the one we compiled: tests/binaries/host/reference-binary
-    # Or we can mock ELFFile? Mocking ELFFile is hard.
-    # Using a real binary is better.
-
+    # Test with a real binary to ensure pyelftools correctly extracts GOT entries
     binary_path = "tests/binaries/host/reference-binary"
     if not os.path.exists(binary_path):
-        # If binary doesn't exist, skip or fail.
-        # For now, let's assume it exists as we compiled it.
+        # If binary doesn't exist, skip the test
         return
 
     entries = pwndbg.wrappers.readelf.get_got_entry(binary_path)
@@ -28,9 +19,10 @@ def test_get_got_entry(tmp_path):
     # Check if we got some entries
     assert entries
 
-    # Check structure
+    # Check structure and verify actual values
     for category, items in entries.items():
         for item in items:
+            # Verify structure
             assert "offset" in item
             assert "info" in item
             assert "type" in item
@@ -42,7 +34,17 @@ def test_get_got_entry(tmp_path):
             assert isinstance(item["value"], int)
             assert isinstance(item["name"], str)
 
-    print("test_get_got_entry passed")
+            # Verify offset is a valid address (non-negative)
+            assert item["offset"] >= 0
+
+    # Verify we have expected categories populated
+    assert any(
+        len(entries[cat]) > 0
+        for cat in [
+            pwndbg.wrappers.readelf.RelocationType.JUMP_SLOT,
+            pwndbg.wrappers.readelf.RelocationType.GLOB_DAT,
+        ]
+    )
 
 
 if __name__ == "__main__":

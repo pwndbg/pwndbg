@@ -142,14 +142,9 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     # Parse the output of readelf line by line
     for category, entries in got_entry.items():
         for entry in entries:
-            offset = entry["offset"]
-            value = entry["value"]
-            name = entry["name"]
-
-            # Ensure types for mypy
-            assert isinstance(offset, int)
-            assert isinstance(value, int)
-            assert isinstance(name, str)
+            offset: int = entry["offset"]
+            value: int = entry["value"]
+            name: str = entry["name"]
 
             address = offset + bin_base_offset
             # TODO/FIXME: This check might not work correctly if we failed to get the correct vmmap result
