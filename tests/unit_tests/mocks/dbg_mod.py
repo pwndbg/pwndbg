@@ -15,8 +15,12 @@ class MockInferior(pwndbg.dbg_mod.Process):
 
 class MockDebugger(pwndbg.dbg_mod.Debugger):
     @override
-    def selected_inferior(self) -> dbg_mod.Process:
+    def selected_inferior(self) -> pwndbg.dbg_mod.Process:
         return MockInferior()
+
+    @override
+    def name(self) -> str:
+        return "gdb"
 
 
 dbg = MockDebugger()
