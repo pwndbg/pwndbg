@@ -1058,6 +1058,17 @@ Minimum amount of repeated values before skipping lines.
 
 ----------
 
+## **vis-skip-repeating-val**
+
+
+Whether to skip repeating lines in vis command output.
+
+
+
+**Default:** on  
+
+----------
+
 ## **vmmap-prefer-relpaths**
 
 

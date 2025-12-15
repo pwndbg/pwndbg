@@ -11,6 +11,8 @@ Visualize chunks on a heap.
 
 Default to the current arena's active heap.
 
+Repeated lines can be collapsed by setting 'vis-skip-repeating-val' config (on by default).
+
 **Alias:** vis
 ### Positional arguments
 
