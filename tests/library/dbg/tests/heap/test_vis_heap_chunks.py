@@ -76,7 +76,6 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     using_num_slots = num_slots_check == 7
 
     expected = [
-        "",
         f"{heap_iter(0):#x}\t0x0000000000000000\t{first_chunk_size | 1:#018x}\t{first_hexdump}",
     ]
 
@@ -216,7 +215,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     heap_addr = heap_page.start
 
-    expected_all3 = [""]
+    expected_all3 = []
 
     # Add the biggest chunk, the one from libc
     expected_all3.append(await vis_heap_line(0))

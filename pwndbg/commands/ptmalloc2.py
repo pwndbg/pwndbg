@@ -1187,7 +1187,7 @@ def vis_heap_chunks(
 
                 # Build complete line content (address + cells + ascii + labels)
                 complete_line = (
-                    "\n"
+                    ("\n" if out else "")
                     + saved_line_addr
                     + line_buffer
                     + colored_cell_hex
@@ -1235,7 +1235,7 @@ def vis_heap_chunks(
         # Need to add the address, first cell, and padding
         machine_word_string_length = 2 + (2 * ptr_size)
         out += (
-            "\n"
+            ("\n" if out else "")
             + saved_line_addr
             + line_buffer
             + "\t"
