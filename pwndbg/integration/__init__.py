@@ -1,7 +1,13 @@
 """
-Provides decompiler integration by leveraging
+Provides decompiler integration by leveraging decomp2dbg
+(https://github.com/mahaloz/decomp2dbg).
 
-https://github.com/mahaloz/decomp2dbg
+Communicates with the decomp2dbg decompiler plugins by
+following the API laid out in https://github.com/mahaloz/decomp2dbg/blob/main/decompilers/server_template.py.
+
+Code used as reference:
++ https://github.com/mahaloz/decomp2dbg/blob/main/decomp2dbg/clients/client.py
++ https://github.com/mahaloz/decomp2dbg/blob/main/decomp2dbg/clients/gdb/gdb_client.py
 """
 
 from __future__ import annotations
@@ -612,6 +618,7 @@ class IntegrationManager:
         # FIXME:
         # 1. this is too aggressive
         # 2. if we start adding types to the debugger then it doesn't matter
+        # Copied from: https://github.com/mahaloz/decomp2dbg/blob/b23f2e232625c6ebe11b86c065c27b95da16aa3b/decomp2dbg/clients/gdb/gdb_client.py#L95
         if "__" in type_str:
             type_str = type_str.replace("__", "")
             idx = type_str.find("[")
