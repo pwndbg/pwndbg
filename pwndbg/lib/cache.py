@@ -7,7 +7,7 @@ new library/objfile are loaded, etc.
 from __future__ import annotations
 
 from collections import UserDict
-from enum import Enum
+from enum import IntFlag
 from functools import wraps
 from typing import Any
 from typing import Callable
@@ -94,9 +94,14 @@ class _CacheUntilEvent:
 
 
 # fmt: off
-class CacheUntilEvent(Enum):
+class CacheUntilEvent(IntFlag):
     """
-    Some of these are explained in pwndbg.dbg_mod.EventType .
+    Not necessarily 1:1 with pwndbg.dbg_mod.EventTypes , but
+    read the definition of that enum to get an idea of how these
+    work.
+
+    Notably, STOP is also triggered when the user changes debugee
+    memory or register state.
     """
     STOP    = 0b00000001
     EXIT    = 0b00000010
