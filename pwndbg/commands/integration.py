@@ -27,7 +27,7 @@ from pwndbg.commands import CommandCategory
 
 # Bump me if needed.
 # (This will trigger check_decomp2dbg_version_bumped())
-d2d_required_major, d2d_required_minor, d2d_required_fix = 3, 12, 3
+d2d_required_major, d2d_required_minor, d2d_required_fix = 3, 14, 0
 
 d2d_required_version_str: str = f"{d2d_required_major}.{d2d_required_minor}.{d2d_required_fix}"
 

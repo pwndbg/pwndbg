@@ -490,16 +490,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/f1/2a/8c3ac3d8bc94e6de8
 
 [[package]]
 name = "decomp2dbg"
-version = "3.12.3"
+version = "3.14.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "libbs" },
     { name = "pyelftools" },
     { name = "sortedcontainers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/7d/2f955db58cf55bd86a3c4efe9f82a7d332916ddbfbb2f4d568ec7ad22f13/decomp2dbg-3.12.3.tar.gz", hash = "sha256:c415074d288e746d5fd897c39b6c49bd264cb31eecfdc729917594bd0e36e0af", size = 34415, upload-time = "2025-12-08T22:40:16.835Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/de/d4/7e94f59da5f3a6bac1c545425f2d2993ce304c2c32a70d5e3f1360928e38/decomp2dbg-3.14.0.tar.gz", hash = "sha256:8164c92ca29450aa13272b22222e1712d4a7d78c2519a5f9f1c6f902462d09a1", size = 34404, upload-time = "2025-12-15T18:29:09.704Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1f/b7/9aab5e4591737a99ebee4c14a8d06fdd1f0f0fb0d2bbec19b60b7a1822ee/decomp2dbg-3.12.3-py3-none-manylinux2014_x86_64.whl", hash = "sha256:416a40a7255689354b7222b7ad99506f7719fe8a1d29ce18639888a347bd26ca", size = 42054, upload-time = "2025-12-08T22:40:15.713Z" },
+    { url = "https://files.pythonhosted.org/packages/05/28/c05892bf6cc4247c4dc4b4d4cd9ba7d25909a7200a4b39e791aba77f6d44/decomp2dbg-3.14.0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:d361b3f530e3923dc24bb1211e418ac3493c6271e457f6feb961312af93c10fc", size = 42054, upload-time = "2025-12-15T18:29:08.858Z" },
 ]
 
 [[package]]
@@ -1784,7 +1784,7 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "capstone", specifier = "==6.0.0a5" },
-    { name = "decomp2dbg", specifier = "==3.12.3" },
+    { name = "decomp2dbg", specifier = "==3.14.0" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.10.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp310-cp310-manylinux_2_36_loongarch64.whl" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp311-cp311-manylinux_2_36_loongarch64.whl" },
     { name = "gdb-for-pwndbg", marker = "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", url = "https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp312-cp312-manylinux_2_36_loongarch64.whl" },
