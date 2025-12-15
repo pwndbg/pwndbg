@@ -393,5 +393,15 @@ def after_reload(fire_start: bool = True) -> None:
 
 
 def on_reload() -> None:
+    # Disconnect all old event handlers from GDB
+    for event_handler, handler in connected.items():
+        try:
+            event_handler.disconnect(handler)
+        except Exception:
+            # If disconnection fails, just continue
+            pass
+    
+    # Clear both registered and connected dictionaries
     for functions in registered.values():
         functions.clear()
+    connected.clear()
