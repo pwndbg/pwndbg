@@ -1053,6 +1053,7 @@ class EventType(Enum):
     """
     Events that can be listened for and reacted to in a debugger.
     """
+
     SUSPEND_ALL = -1
 
     START = 0

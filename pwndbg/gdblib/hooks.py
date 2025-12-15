@@ -65,6 +65,7 @@ def on_exit() -> None:
 
 
 import pwndbg.lib.cache
+from pwndbg.lib.cache import CacheUntilEvent
 
 pwndbg.lib.cache.connect_clear_caching_events(
     {
@@ -72,22 +73,22 @@ pwndbg.lib.cache.connect_clear_caching_events(
         # if the user does an operation to modify memory or registers while the program is stopped.
         # We don't do this for the other events, because they hopefully don't change memory or
         # registers
-        "stop": (
+        CacheUntilEvent.STOP: (
             pwndbg.gdblib.events.stop,
             pwndbg.gdblib.events.mem_changed,
             pwndbg.gdblib.events.reg_changed,
         ),
-        "exit": (pwndbg.gdblib.events.exit,),
-        "objfile": (pwndbg.gdblib.events.new_objfile,),
-        "start": (pwndbg.gdblib.events.start,),
-        "cont": (
+        CacheUntilEvent.EXIT: (pwndbg.gdblib.events.exit,),
+        CacheUntilEvent.OBJFILE: (pwndbg.gdblib.events.new_objfile,),
+        CacheUntilEvent.START: (pwndbg.gdblib.events.start,),
+        CacheUntilEvent.CONT: (
             pwndbg.gdblib.events.cont,
             pwndbg.gdblib.events.mem_changed,
             pwndbg.gdblib.events.reg_changed,
         ),
-        "thread": (pwndbg.gdblib.events.thread,),
-        "prompt": (pwndbg.gdblib.events.before_prompt,),
-        "forever": (),
+        CacheUntilEvent.THREAD: (pwndbg.gdblib.events.thread,),
+        CacheUntilEvent.PROMPT: (pwndbg.gdblib.events.before_prompt,),
+        CacheUntilEvent.FOREVER: (),
     },
     priority=pwndbg.gdblib.events.HandlerPriority.CACHE_CLEAR,
 )

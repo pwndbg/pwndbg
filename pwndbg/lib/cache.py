@@ -7,6 +7,7 @@ new library/objfile are loaded, etc.
 from __future__ import annotations
 
 from collections import UserDict
+from enum import Enum
 from functools import wraps
 from typing import Any
 from typing import Callable
@@ -36,7 +37,7 @@ class DebugCacheDict(UserDict):  # type: ignore[type-arg]
         self.hits = 0
         self.misses = 0
         self.func = func
-        self.name = f'{func.__module__.split(".")[-1]}.{func.__name__}'
+        self.name = f"{func.__module__.split('.')[-1]}.{func.__name__}"
 
     def __getitem__(self, key: Tuple[Any, ...]) -> Any:
         if debug & DEBUG_GET and (not debug_name or debug_name in self.name):
@@ -67,6 +68,7 @@ Cache = Union[Dict[Tuple[Any, ...], Any], DebugCacheDict]
 
 class CachedFunction(Protocol[T]):
     cache: Cache
+
     def __call__(self, *args: Any, **kwargs: Any) -> T: ...
 
 
@@ -91,22 +93,60 @@ class _CacheUntilEvent:
         self.caches.append(cache)
 
 
-_ALL_CACHE_UNTIL_EVENTS: Dict[str, _CacheUntilEvent] = {
-    "stop": _CacheUntilEvent(),
-    "exit": _CacheUntilEvent(),
-    "objfile": _CacheUntilEvent(),
-    "start": _CacheUntilEvent(),
-    "cont": _CacheUntilEvent(),
-    "thread": _CacheUntilEvent(),
-    "prompt": _CacheUntilEvent(),
-    "forever": _CacheUntilEvent(),
-}
-_ALL_CACHE_EVENT_NAMES = tuple(_ALL_CACHE_UNTIL_EVENTS.keys())
-
-
-def connect_clear_caching_events(event_dicts: Dict[str, Tuple[Any, ...]], **kwargs: Any) -> None:
+# fmt: off
+class CacheUntilEvent(Enum):
     """
-    Connect given debugger event hooks to correspoonding _CacheUntilEvent instances
+    Some of these are explained in pwndbg.dbg_mod.EventType .
+    """
+    STOP    = 0b00000001
+    EXIT    = 0b00000010
+    OBJFILE = 0b00000100
+    START   = 0b00001000
+    CONT    = 0b00010000
+    THREAD  = 0b00100000
+    PROMPT  = 0b01000000
+    FOREVER = 0b10000000
+
+# fmt: on
+
+# OR (|) events together to make a set
+EventSet = int
+
+
+_ALL_CACHE_UNTIL_EVENTS: Dict[CacheUntilEvent, _CacheUntilEvent] = {
+    CacheUntilEvent.STOP: _CacheUntilEvent(),
+    CacheUntilEvent.EXIT: _CacheUntilEvent(),
+    CacheUntilEvent.OBJFILE: _CacheUntilEvent(),
+    CacheUntilEvent.START: _CacheUntilEvent(),
+    CacheUntilEvent.CONT: _CacheUntilEvent(),
+    CacheUntilEvent.THREAD: _CacheUntilEvent(),
+    CacheUntilEvent.PROMPT: _CacheUntilEvent(),
+    CacheUntilEvent.FOREVER: _CacheUntilEvent(),
+}
+
+_NAME_TO_EVENT: Dict[str, CacheUntilEvent] = {
+    "stop": CacheUntilEvent.STOP,
+    "exit": CacheUntilEvent.EXIT,
+    "objfile": CacheUntilEvent.OBJFILE,
+    "start": CacheUntilEvent.START,
+    "cont": CacheUntilEvent.CONT,
+    "thread": CacheUntilEvent.THREAD,
+    "prompt": CacheUntilEvent.PROMPT,
+    "forever": CacheUntilEvent.FOREVER,
+}
+_ALL_CACHE_EVENT_NAMES = tuple(_NAME_TO_EVENT.keys())
+
+
+def events_to_event_set(event_list: List[CacheUntilEvent]) -> EventSet:
+    res = 0
+    for an_event in event_list:
+        res |= an_event.value
+    return res
+
+
+def connect_clear_caching_events(event_dicts: Dict[CacheUntilEvent, Tuple[Any, ...]], **kwargs: Any) -> None:
+    """
+    Connect given debugger event hooks to corresponding _CacheUntilEvent instances
     """
     for event_name, event_hooks in event_dicts.items():
         _ALL_CACHE_UNTIL_EVENTS[event_name].connect_event_hooks(event_hooks, **kwargs)
@@ -117,20 +157,17 @@ _NOT_FOUND_IN_CACHE = object()
 _KWARGS_SEPARATOR = object()
 
 # Global value whether the results from cache are returned or not
+# Used for debugging (by pwndbg.commands.memoize).
 IS_CACHING = True
 
 
 # Global value that allows disabling of individual cache types.
-IS_CACHING_DISABLED_FOR: Dict[str, bool] = {
-    "stop": False,
-    "exit": False,
-    "objfile": False,
-    "start": False,
-    "cont": False,
-    "thread": False,
-    "prompt": False,
-    "forever": False,
-}
+# This should only be set by the debugger at bring-up time. Thus
+# it should be possible to perform this check at decoration time
+# rather than at runtime and get a nice performance improvement, but
+# I'm not sure how to do this safely exactly.
+# The value is an event set (an OR (|) of different events)
+IS_CACHING_DISABLED_FOR: EventSet = 0
 
 
 def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[T]]:
@@ -145,6 +182,10 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
             f"Expected: {_ALL_CACHE_EVENT_NAMES}"
         )
 
+    # We could require that CacheUntilEvent's be passed instead of strings as cache_until arguments.
+    event_list: List[CacheUntilEvent] = [_NAME_TO_EVENT[event_name] for event_name in event_names]
+    event_set: EventSet = events_to_event_set(event_list)
+
     def inner(func: Callable[P, T]) -> CachedFunction[T]:
         if hasattr(func, "cache"):
             raise ValueError(
@@ -156,7 +197,7 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
 
         @wraps(func)
         def decorator(*a: P.args, **kw: P.kwargs) -> T:
-            if IS_CACHING and not any((IS_CACHING_DISABLED_FOR[e] for e in event_names)):
+            if IS_CACHING and (event_set & IS_CACHING_DISABLED_FOR) == 0:
                 key: Tuple[Any, ...] = (a, _KWARGS_SEPARATOR, *kw.items())
 
                 # Check if the value is in the cache; if we have a cache miss,
@@ -189,10 +230,10 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
         # ^ now the decorator is a CachedFunction
 
         # Register the cache for the given event so it can be cleared
-        for event_name in event_names:
-            _ALL_CACHE_UNTIL_EVENTS[event_name].add_cache(cache)
+        for an_event in event_list:
+            _ALL_CACHE_UNTIL_EVENTS[an_event].add_cache(cache)
 
-        return decorator # type: ignore[return-value]
+        return decorator  # type: ignore[return-value]
 
     return inner
 
@@ -202,5 +243,7 @@ def clear_caches() -> None:
         cache.clear()
 
 
-def clear_cache(cache_name: str) -> None:
-    _ALL_CACHE_UNTIL_EVENTS[cache_name].clear()
+def clear_cache(cache_event: CacheUntilEvent) -> None:
+    # I could imagine this being a hot path, so I don't want to do the
+    # `str -> CacheUntilEvent` conversion here.
+    _ALL_CACHE_UNTIL_EVENTS[cache_event].clear()
