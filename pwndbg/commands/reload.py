@@ -30,7 +30,7 @@ def reload(*a) -> None:
     pwndbg.gdblib.events.on_reload()
     rreload(pwndbg)
     pwndbg.gdblib.events.after_reload()
-    
+
     # Restore the prompt hook after reload
     # This is necessary because the old prompt_hook function was deleted during reload
     from pwndbg.gdblib import prompt

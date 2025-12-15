@@ -398,9 +398,10 @@ def on_reload() -> None:
         try:
             event_handler.disconnect(handler)
         except Exception:
-            # If disconnection fails, just continue
+            # Some event handlers (like gdb.events.before_prompt) may not support
+            # disconnection. We ignore these errors and continue with the cleanup.
             pass
-    
+
     # Clear both registered and connected dictionaries
     for functions in registered.values():
         functions.clear()
