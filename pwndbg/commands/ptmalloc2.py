@@ -964,21 +964,28 @@ group.add_argument(
 )
 parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
 parser.add_argument(
-    "--beyond_top",
+    "--beyond-top",
     "-b",
     action="store_true",
     default=False,
     help="Attempt to keep printing beyond the top chunk.",
 )
 parser.add_argument(
-    "--no_truncate",
+    "--no-skip",
+    "-s",
+    action="store_true",
+    default=False,
+    help="Don't skip repeating vals (Ignore the `visp-skip-repeating-val` configuration).",
+)
+parser.add_argument(
+    "--no-truncate",
     "-n",
     action="store_true",
     default=False,
     help="Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration).",
 )
 group.add_argument(
-    "--all_chunks",
+    "--all-chunks",
     "-a",
     action="store_true",
     default=False,
@@ -993,6 +1000,7 @@ group.add_argument(
 def vis_heap_chunks(
     addr: int | None = None,
     count: int | None = None,
+    no_skip: bool = False,
     beyond_top: bool = False,
     no_truncate: bool = False,
     all_chunks: bool = False,
@@ -1116,7 +1124,7 @@ def vis_heap_chunks(
     bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
 
     # For collapsing repeated lines
-    skip_repeating = pwndbg.config.vis_skip_repeating_val
+    skip_repeating = False if no_skip else pwndbg.config.vis_skip_repeating_val
     prev_line_content = None
     repeat_count = 0
     line_buffer = ""  # Temporary buffer for building current line (holds first cell)
