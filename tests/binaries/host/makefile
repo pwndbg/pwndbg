@@ -31,6 +31,10 @@ GO              =      go
 SOURCES_GO      =      $(wildcard *.native.go) $(wildcard *.$(HOST_ARCH).go) $(wildcard *.$(HOST_ARCH_32).go)
 LINKED_GO       =      $(SOURCES_GO:.go=.out)
 
+PKG_CONFIG ?= pkg-config
+JEMALLOC_CFLAGS := $(shell $(PKG_CONFIG) --cflags jemalloc)
+JEMALLOC_LIBS   := $(shell $(PKG_CONFIG) --libs jemalloc)
+
 ifeq ($(TARGET), x86)
 CFLAGS         +=      -m32
 endif
@@ -132,13 +136,13 @@ heap_jemalloc_extent_info.native.out: heap_jemalloc_extent_info.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -g -O0 -Wno-nonnull -Wno-unused-result \
 	-o $@ $? \
-	-Wl,-Bstatic -ljemalloc -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
+	$(JEMALLOC_CFLAGS) -Wl,-Bstatic $(JEMALLOC_LIBS) -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
 
 heap_jemalloc_heap.native.out: heap_jemalloc_heap.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -g -O0 -Wno-nonnull -Wno-unused-result \
 	-o $@ $? \
-	-Wl,-Bstatic -ljemalloc -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
+	$(JEMALLOC_CFLAGS) -Wl,-Bstatic $(JEMALLOC_LIBS) -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
 
 heap_musl_dyn.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
