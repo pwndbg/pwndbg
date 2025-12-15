@@ -8,11 +8,10 @@ import argparse
 import codecs
 from itertools import chain
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 

@@ -226,7 +226,7 @@ def print_bpf_maps(verbose):
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kbpf(verbose: int, print_progs: bool, print_maps: bool):
     if not pwndbg.aglib.kernel.has_debug_info():

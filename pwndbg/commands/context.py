@@ -17,9 +17,10 @@ from typing import TypeVar
 
 import unicorn as U
 from typing_extensions import ParamSpec
+from typing_extensions import override
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.qemu
@@ -37,12 +38,15 @@ import pwndbg.integration
 import pwndbg.lib.cache
 import pwndbg.lib.pretty_print as pretty_print
 import pwndbg.ui
-from pwndbg.aglib.arch import get_thumb_mode_string
+from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
+from pwndbg.lib.regs import BitFlags
+from pwndbg.lib.regs import RegisterContextProtocol
+from pwndbg.lib.regs import VisitableRegister
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
@@ -787,7 +791,7 @@ def calculate_padding_to_align(length, align):
     return 0 if length % align == 0 else (align - (length % align))
 
 
-def compact_regs(regs, width=None, target=sys.stdout):
+def compact_regs(regs: List[str], width=None, target=sys.stdout) -> List[str]:
     columns = max(0, int(pwndbg.config.show_compact_regs_columns))
     min_width = max(1, int(pwndbg.config.show_compact_regs_min_width))
     separation = max(1, int(pwndbg.config.show_compact_regs_separation))
@@ -808,7 +812,7 @@ def compact_regs(regs, width=None, target=sys.stdout):
         # => min_width = (window_width - (columns - 1) * separation) / columns
         min_width = max(min_width, (width - (columns - 1) * separation) // columns)
 
-    result = []
+    result: List[str] = []
 
     line = ""
     line_length = 0
@@ -895,13 +899,13 @@ pwndbg.config.add_param("show-flags", False, "whether to show flags registers")
 pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return address register")
 
 
-class RegisterContext:
+class RegisterContext(RegisterContextProtocol):
     changed: List[str]
 
     def __init__(self):
         self.changed = pwndbg.aglib.regs.changed
 
-    def get_prefix(self, reg):
+    def get_prefix(self, reg: str) -> str:
         # Make the register stand out and give a color if changed
         regname = C.register(reg.ljust(4).upper())
         if reg in self.changed:
@@ -916,14 +920,15 @@ class RegisterContext:
         )
         return f"{m}{regname}"
 
-    def get_register_value(self, reg):
+    def get_register_value(self, reg: str) -> int | None:
         val = pwndbg.aglib.regs.read_reg(reg)
         if val is None:
             print(message.warn(f"Unknown register: {reg!r}"))
             return None
         return val
 
-    def flag_register_context(self, reg, bit_flags):
+    @override
+    def flag_register_context(self, reg: str, bit_flags: BitFlags) -> str | None:
         val = self.get_register_value(reg)
         if val is None:
             return None
@@ -931,7 +936,8 @@ class RegisterContext:
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
 
-    def segment_registers_context(self, regs):
+    @override
+    def segment_registers_context(self, regs: list[str]) -> str | None:
         result = ""
         for reg in regs:
             val = self.get_register_value(reg)
@@ -941,7 +947,8 @@ class RegisterContext:
             result += f"{prefix} {hex(val)}   "
         return result
 
-    def addressing_register_context(self, reg, is_virtual):
+    @override
+    def addressing_register_context(self, reg: str, is_virtual: bool) -> str | None:
         if is_virtual:
             return self.register_context_default(reg)
         val = self.get_register_value(reg)
@@ -957,7 +964,7 @@ class RegisterContext:
                 pass
         return f"{prefix} {desc}"
 
-    def register_context_default(self, reg):
+    def register_context_default(self, reg: str) -> str | None:
         val = self.get_register_value(reg)
         if val is None:
             return None
@@ -967,13 +974,14 @@ class RegisterContext:
         return f"{prefix} {desc}"
 
 
-def get_regs(regs: List[str] = None):
-    regs: List[Any] = regs
-    result = []
+def get_regs(in_regs: List[str | VisitableRegister | None] | None = None):
+    # Python default parameters are instantiated once and shared across calls.
+    # Instead of a default value of [], we need to do this check so we get a fresh list each time
+    if in_regs is None:
+        in_regs = []
+    regs: List[str | VisitableRegister | None] = in_regs
+    result: List[str] = []
     rc = RegisterContext()
-
-    if regs is None:
-        regs = []
 
     if len(regs) == 0:
         regs += pwndbg.aglib.regs.gpr
@@ -1010,11 +1018,16 @@ def get_regs(regs: List[str] = None):
     for reg in regs:
         if reg is None:
             continue
+        # If it's a VisitableRegister which has special logic to determine what to print
         if not isinstance(reg, str):
             desc = reg.context(rc)
             if desc is not None:
                 result.append(desc)
-                continue
+            continue
+
+        # Resolve "sp" and "pc" to the real architectural register names
+        reg = pwndbg.aglib.regs.current.resolve_aliases(reg)
+
         desc = rc.register_context_default(reg)
         if desc is not None:
             result.append(desc)

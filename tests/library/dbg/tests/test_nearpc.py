@@ -178,7 +178,7 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
 @pwndbg_test
 async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
-    from pwndbg.dbg import BreakpointLocation
+    from pwndbg.dbg_mod import BreakpointLocation
 
     await ctrl.launch(SYSCALLS_BINARY)
 

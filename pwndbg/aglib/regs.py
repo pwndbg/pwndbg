@@ -20,13 +20,11 @@ from typing import Tuple
 from typing import cast
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.aglib.qemu
 import pwndbg.aglib.remote
-import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import KernelRegisterSet
 from pwndbg.lib.regs import RegisterSet
@@ -105,6 +103,15 @@ class module(ModuleType):
 
     @pwndbg.lib.cache.cache_until("stop", "prompt")
     def read_reg(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
+        """
+        Query the underlying debugger for the value of a register.
+
+        Note that in some rare cases, debuggers won't directly expose the values of some special model specific registers.
+        Although we can sometimes determine these by other indirect means, this function does not run any extra logic to handle these special cases.
+
+        Specifically, if you need to ensure you are reading the correct value of "gs", "fs", "idt", or "idt_limit", use
+        the specific helpers functions on the regs module as necessary to determine the values.
+        """
         return self.read_reg_uncached(reg, frame)
 
     def read_reg_uncached(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
@@ -120,19 +127,40 @@ class module(ModuleType):
                 if self.cs is None:
                     return None
                 value += self.cs * 16
-            return int(value) & pwndbg.aglib.arch.ptrmask
+
+            # The value that the native debugger returns can be negative.
+            # We convert this to the unsigned bit representation by masking it
+            reg_definition = pwndbg.aglib.regs.current.reg_definitions.get(reg.lower())
+            if reg_definition and reg_definition.mask is not None:
+                mask = reg_definition.mask
+            else:
+                mask = pwndbg.aglib.arch.ptrmask
+            return int(value) & mask
         except (ValueError, pwndbg.dbg_mod.Error):
             return None
 
-    def __getattr__(self, attr: str) -> int | None:
-        return self.read_reg(attr)
+    def write_reg(self, reg: str, value: int) -> None:
+        if not pwndbg.dbg.selected_frame().reg_write(reg, value):
+            raise RuntimeError(f"Attempted to write to a non-existent register '{reg}'")
 
-    def __setattr__(self, attr: str, val: Any) -> None:
-        if attr in ("last", "previous"):
-            super().__setattr__(attr, val)
-        else:
-            if not pwndbg.dbg.selected_frame().reg_write(attr, int(val)):
-                raise RuntimeError(f"Attempted to write to a non-existent register '{attr}'")
+    @property
+    def pc(self) -> int | None:
+        """Get the value of the program counter register"""
+        return self.read_reg(self.current.pc)
+
+    @pc.setter
+    def pc(self, val: int) -> None:
+        self.write_reg(self.current.pc, val)
+
+    @property
+    def sp(self) -> int | None:
+        """Get the value of the stack pointer register"""
+        return self.read_reg(self.current.stack)
+
+    @sp.setter
+    def sp(self, val: int) -> None:
+        """Get the value of the stack pointer register"""
+        self.write_reg(self.current.stack, val)
 
     def __contains__(self, reg: str) -> bool:
         return reg_sets[pwndbg.aglib.arch.name].__contains__(reg)
@@ -186,6 +214,12 @@ class module(ModuleType):
         return reg_sets[pwndbg.aglib.arch.name].all
 
     def fix(self, expression: str) -> str:
+        """
+        This is used in CLI parsing.
+        It takes in a string with a register name, "rax", and prefixes it with
+        a $ ("$rax") so that the underlying debugger can evaluate it to resolve the value
+        """
+        expression = pwndbg.aglib.regs.current.resolve_aliases(expression)
         for regname in self.all:
             expression = re.sub(rf"\$?\b{regname}\b", r"$" + regname, expression)
         return expression

@@ -12,8 +12,8 @@ import pwndbg.color as C
 import pwndbg.color.message as M
 import pwndbg.commands.context
 import pwndbg.lib.cache
-from pwndbg.dbg import BreakpointLocation
-from pwndbg.dbg import DebuggerType
+from pwndbg.dbg_mod import BreakpointLocation
+from pwndbg.dbg_mod import DebuggerType
 
 parser = argparse.ArgumentParser(
     description="""
@@ -96,7 +96,7 @@ class KmemTracepointsData:
             cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
             name = cache.name
         except Exception:
-            self.results.append(M.warn(f"{prefix} invalid SLUB object @ {objaddr:#x}"))
+            self.add_result(M.warn(f"{prefix} invalid SLUB object @ {objaddr:#x}"))
             return
         result = self._format_kmem_tracepoint_output(prefix, name, "obj", objaddr)
         self.add_result(result)
@@ -276,7 +276,7 @@ steps out of the current function. You may also find `-c finish` and `-c continu
     only_debuggers={DebuggerType.GDB, DebuggerType.LLDB},
 )
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str, all: bool) -> None:
     if pwndbg.aglib.regs.retval is None:

@@ -9,17 +9,17 @@ import argparse
 from shlex import quote
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.color.message as M
 import pwndbg.commands
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
-from pwndbg.dbg import BreakpointLocation
-from pwndbg.dbg import DebuggerType
+from pwndbg.dbg_mod import BreakpointLocation
+from pwndbg.dbg_mod import DebuggerType
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb

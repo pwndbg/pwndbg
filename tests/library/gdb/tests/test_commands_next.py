@@ -50,7 +50,7 @@ def test_command_nextproginstr(start_binary):
     gdb.execute("continue")
 
     # Sanity check that we are in libc
-    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.rip).objfile
+    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc).objfile
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     gdb.execute("nextproginstr")

@@ -5,7 +5,7 @@ from typing import Callable
 
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.integration
+import pwndbg.aglib.stack
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import normal
@@ -35,8 +35,10 @@ def get_address_and_symbol(address: int, decompiler_stack_variables: dict[int, s
     if symbol:
         symbol = f"{address:#x} ({symbol})"
     else:
-        var = decompiler_stack_variables.get(address)
-        if var:
+        var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
+        if var is None:
+            var = decompiler_stack_variables.get(address)
+        if var is not None:
             symbol = f"{address:#x} {{{var}}}"
     return get(address, symbol)
 
@@ -58,8 +60,10 @@ def attempt_colorized_symbol(
     if symbol:
         return get(address, symbol)
     else:
-        var = decompiler_stack_variables.get(address)
-        if var:
+        var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
+        if var is None:
+            var = decompiler_stack_variables.get(address)
+        if var is not None:
             return get(address, f"{{{var}}}")
     return None
 
@@ -108,7 +112,7 @@ def get(
     if text is None:
         text = pwndbg.lib.pretty_print.int_to_string(address)
 
-    if prefix:
+    if prefix is not None:
         # Prepend the prefix and a space before the existing text
         text = f"{prefix} {text}"
 

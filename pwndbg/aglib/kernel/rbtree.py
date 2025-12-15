@@ -6,7 +6,7 @@ import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 from pwndbg.aglib.kernel.macros import container_of
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 rb_root_type: pwndbg.dbg_mod.Type = None
 rb_node_type: pwndbg.dbg_mod.Type = None

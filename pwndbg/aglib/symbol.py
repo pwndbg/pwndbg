@@ -8,7 +8,7 @@ from __future__ import annotations
 import pwndbg.aglib.memory
 import pwndbg.integration
 import pwndbg.lib.cache
-from pwndbg.dbg import SymbolLookupType
+from pwndbg.dbg_mod import SymbolLookupType
 
 
 def lookup_symbol_addr(

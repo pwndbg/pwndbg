@@ -72,7 +72,7 @@ def test_telescope_command_with_address_as_count(start_binary):
     start_binary(TELESCOPE_BINARY)
 
     out = gdb.execute("telescope 2", to_string=True).splitlines()
-    rsp = pwndbg.aglib.regs.rsp
+    rsp = pwndbg.aglib.regs.sp
 
     assert len(out) == 2
     assert out[0] == "00:0000│ rsp %#x ◂— 1" % rsp
@@ -85,7 +85,7 @@ def test_telescope_command_with_address_as_count_and_reversed_flag(start_binary)
     start_binary(TELESCOPE_BINARY)
 
     out = gdb.execute("telescope -r 2", to_string=True).splitlines()
-    rsp = pwndbg.aglib.regs.rsp
+    rsp = pwndbg.aglib.regs.sp
 
     assert out == ["00:0000│     %#x ◂— 0" % (rsp - 8), "01:0008│ rsp %#x ◂— 1" % rsp]
 
@@ -99,9 +99,10 @@ def test_command_telescope_reverse_skipped_records_shows_input_address(start_bin
     gdb.execute("break break_here")
     gdb.execute("run")
     gdb.execute("up")
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.rsp - 8 * 3, b"\x00" * 8 * 4)
+    rsp = pwndbg.aglib.regs.sp
+    pwndbg.aglib.memory.write(rsp - 8 * 3, b"\x00" * 8 * 4)
 
-    expected_value = hex(pwndbg.aglib.regs.rsp)
+    expected_value = hex(rsp)
     result_str = gdb.execute("telescope -r $rsp", to_string=True)
     result_lines = result_str.strip("\n").split("\n")
 
@@ -157,7 +158,7 @@ def test_command_telescope_frame_bp_sp_different_vmmaps(start_binary):
     pages = pwndbg.aglib.vmmap.get()
 
     pwndbg.aglib.regs.sp = pages[0].start
-    pwndbg.aglib.regs.bp = pages[1].start
+    pwndbg.aglib.regs.write_reg("bp", pages[1].start)
 
     result_str = gdb.execute("telescope --frame", to_string=True)
 

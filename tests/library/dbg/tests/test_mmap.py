@@ -12,7 +12,7 @@ async def test_mmap_executes_properly(ctrl: Controller) -> None:
     """
     Tests the mmap command
     """
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.memory
     import pwndbg.aglib.vmmap
     import pwndbg.lib.memory

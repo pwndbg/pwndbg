@@ -6,7 +6,7 @@ from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.regs
 import pwndbg.color.memory as MemoryColor

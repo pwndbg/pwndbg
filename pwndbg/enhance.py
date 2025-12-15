@@ -13,16 +13,14 @@ from __future__ import annotations
 import string
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
-import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.color.enhance as E
 import pwndbg.color.memory
 import pwndbg.integration
-import pwndbg.lib.cache
 import pwndbg.lib.pretty_print
 from pwndbg import color
 

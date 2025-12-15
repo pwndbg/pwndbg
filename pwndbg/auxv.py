@@ -11,19 +11,16 @@ import re
 import struct
 from typing import Optional
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.file
-import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.regs
 import pwndbg.aglib.stack
-import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.config
-import pwndbg.lib.memory
 from pwndbg.lib.elftypes import AT_CONSTANT_NAMES
 from pwndbg.lib.elftypes import AUXV
 

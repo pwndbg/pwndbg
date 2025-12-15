@@ -19,7 +19,7 @@ from typing import Tuple
 from typing import cast
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
@@ -339,6 +339,9 @@ def get_go_version() -> Tuple[int, ...] | None:
     if not version_string.startswith("go"):
         emit_warning(f"Go version string {version_string!r} doesn't start with 'go'")
         return None
+
+    # Cleanup a string that looks like "go1.25.5 X:nodwarf5"
+    version_string = version_string.split(" ")[0]
     return tuple(int(x) for x in version_string[2:].split("."))
 
 

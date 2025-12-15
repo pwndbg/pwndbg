@@ -26,8 +26,6 @@ from elftools.elf.relocation import Relocation
 from elftools.elf.relocation import RelocationSection
 
 import pwndbg
-import pwndbg.aglib.arch
-import pwndbg.aglib.ctypes
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
@@ -42,7 +40,7 @@ import pwndbg.lib.elftypes
 import pwndbg.lib.memory
 import pwndbg.lib.zig
 from pwndbg.color import message
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4

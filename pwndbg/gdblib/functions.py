@@ -244,7 +244,7 @@ def envp(index: gdb.Value) -> gdb.Value:
 
 
 def dbg_value_to_gdb(d: pwndbg.dbg_mod.Value) -> gdb.Value:
-    from pwndbg.dbg.gdb import GDBValue
+    from pwndbg.dbg_mod.gdb import GDBValue
 
     assert isinstance(d, GDBValue)
     return d.inner

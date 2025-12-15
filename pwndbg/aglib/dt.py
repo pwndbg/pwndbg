@@ -9,7 +9,7 @@ from typing import List
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.dbg
+import pwndbg.dbg_mod
 
 
 def _field_to_human(

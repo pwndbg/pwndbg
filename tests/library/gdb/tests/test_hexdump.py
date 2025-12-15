@@ -41,7 +41,7 @@ def test_hexdump(start_binary):
 
     # TODO: Setting theme options with Python isn't working
     gdb.execute("set hexdump-byte-separator")
-    stack_addr = pwndbg.aglib.regs.rsp - 0x100
+    stack_addr = pwndbg.aglib.regs.sp - 0x100
 
     expected = [
         f"""+0000 0x{stack_addr:x}  6161616261616161 6161616461616163 │aaaabaaa│caaadaaa│
@@ -64,7 +64,7 @@ def test_hexdump(start_binary):
 
 def test_hexdump_collapse_lines(start_binary):
     start_binary(BINARY)
-    sp = pwndbg.aglib.regs.rsp
+    sp = pwndbg.aglib.regs.sp
 
     pwndbg.aglib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
 
@@ -90,7 +90,7 @@ def test_hexdump_saved_address_and_offset(start_binary):
     # TODO There is no way to verify repetition: the last_address and offset are reset
     # before each command
     start_binary(BINARY)
-    sp = pwndbg.aglib.regs.rsp
+    sp = pwndbg.aglib.regs.sp
 
     SIZE = 21
 
@@ -112,7 +112,7 @@ def test_hexdump_limit_check(start_binary):
     Tests that the hexdump command respects the hexdump-limit-mb settings.
     """
     start_binary(BINARY)
-    sp = pwndbg.aglib.regs.rsp
+    sp = pwndbg.aglib.regs.sp
 
     # Default limit is 10 MB
     default_limit_mb = 10
@@ -162,7 +162,7 @@ def test_hexdump_limit_check(start_binary):
 
 def test_hexdump_code_py_format(start_binary):
     start_binary(BINARY)
-    sp = pwndbg.aglib.regs.rsp
+    sp = pwndbg.aglib.regs.sp
 
     pwndbg.aglib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
 
@@ -180,7 +180,7 @@ def test_hexdump_code_py_format(start_binary):
 
 def test_hexdump_code_c_format(start_binary):
     start_binary(BINARY)
-    sp = pwndbg.aglib.regs.rsp
+    sp = pwndbg.aglib.regs.sp
 
     pwndbg.aglib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
 

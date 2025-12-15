@@ -8,13 +8,12 @@ from typing import Tuple
 
 import pwnlib.rop.srop
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.regs
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
-import pwndbg.color.message
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.regs import aarch64

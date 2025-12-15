@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.lib.memory

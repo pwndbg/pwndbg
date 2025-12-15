@@ -19,7 +19,7 @@ from typing import Tuple
 
 import gdb
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.dynamic
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc

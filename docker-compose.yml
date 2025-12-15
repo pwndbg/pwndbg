@@ -1,7 +1,6 @@
 services:
   base: &base-spec
     build: .
-    platform: linux/amd64
     security_opt:
       - seccomp:unconfined
     cap_add:
@@ -53,3 +52,27 @@ services:
       dockerfile: Dockerfile.arch
       args:
         image: archlinux:latest
+
+  fedora41:
+    <<: *base-spec
+    build:
+      context: .
+      dockerfile: Dockerfile.dnf
+      args:
+        image: fedora:41
+
+  fedora42:
+    <<: *base-spec
+    build:
+      context: .
+      dockerfile: Dockerfile.dnf
+      args:
+        image: fedora:42
+
+  fedora43:
+    <<: *base-spec
+    build:
+      context: .
+      dockerfile: Dockerfile.dnf
+      args:
+        image: fedora:43
