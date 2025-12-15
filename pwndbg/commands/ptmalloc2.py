@@ -191,7 +191,7 @@ def heap(addr: int | None = None, verbose: bool = False, simple: bool = False) -
         chunk = Chunk(addr)
         while chunk is not None:
             malloc_chunk(chunk.address, verbose=verbose, simple=simple)
-            chunk = chunk.next_chunk()  # type: ignore[no-untyped-call]
+            chunk = chunk.next_chunk()
     else:
         arena = allocator.thread_arena
         # arena might be None if the current thread doesn't allocate the arena
@@ -550,7 +550,7 @@ def malloc_chunk(
     if next:
         print(C.banner(f"Next {next} chunk(s):"))
         for _ in range(next):
-            chunk = chunk.next_chunk()  # type: ignore[no-untyped-call]
+            chunk = chunk.next_chunk()
 
             if not chunk:
                 print("No next chunk found")
