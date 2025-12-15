@@ -23,10 +23,31 @@ def rreload(module, _exclude_mods=None) -> None:
     # erroring out on re-registering the same commands we had registered before
     gdb.pwndbg_is_reloading = True
     importlib.import_module("pwndbg")
+    
+    # After reimporting pwndbg, we need to explicitly load commands again
+    # because the setup() function is not called during module reimport
+    import pwndbg.commands
+    pwndbg.commands.load_commands()
+    
+    # Unset the reloading flag
+    gdb.pwndbg_is_reloading = False
 
 
 @pwndbg.commands.Command("Reload Pwndbg.", category=CommandCategory.PWNDBG)
 def reload(*a) -> None:
+    """
+    Reload all Pwndbg modules and commands.
+    
+    This command performs a full reload of Pwndbg by:
+    1. Disconnecting all event handlers
+    2. Deleting all Pwndbg modules from memory
+    3. Reimporting all modules
+    4. Re-registering all commands with updated code
+    5. Restoring event handlers and hooks
+    
+    Use this command when you have modified Pwndbg source code and want
+    to see the changes without restarting GDB.
+    """
     pwndbg.gdblib.events.on_reload()
     rreload(pwndbg)
     pwndbg.gdblib.events.after_reload()
@@ -37,10 +58,22 @@ def reload(*a) -> None:
     gdb.prompt_hook = prompt.prompt_hook
 
 
-@pwndbg.commands.Command("Makes Pwndbg reinitialize all state.", category=CommandCategory.PWNDBG)
+@pwndbg.commands.Command("Reinitialize Pwndbg state.", category=CommandCategory.PWNDBG)
 def reinit_pwndbg() -> None:
     """
-    Makes pwndbg reinitialize all state.
+    Reinitialize Pwndbg state without reloading modules.
+    
+    This command refreshes Pwndbg's internal state by:
+    1. Clearing all caches
+    2. Re-firing events to update state
+    
+    This is lighter weight than 'reload' and is useful when:
+    - You want to reset cached values
+    - The debugged process has changed state significantly
+    - You want to refresh Pwndbg's view of the process
+    
+    Unlike 'reload', this does NOT reload source code changes.
+    Use 'reload' if you have modified Pwndbg source files.
     """
     pwndbg.lib.cache.clear_caches()
     pwndbg.gdblib.events.after_reload()
