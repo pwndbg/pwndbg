@@ -4,6 +4,7 @@ import argparse
 import shutil
 import sys
 import urllib.request
+import urllib.error
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -259,11 +260,22 @@ def install_ghidra_plugin() -> None:
     print("\nSince the Ghidra extension is written in Java, we download it as already built.")
     print(f"Downloading:\n\t{download_url}\n\t-> {download_dest}")
 
-    with (
-        urllib.request.urlopen(download_url) as response,
-        open(str(download_dest), "wb") as out_file,
-    ):
-        shutil.copyfileobj(response, out_file)
+    try:
+        with (
+            urllib.request.urlopen(download_url) as response,
+            open(str(download_dest), "wb") as out_file,
+        ):
+            shutil.copyfileobj(response, out_file)
+    except urllib.error.HTTPError as e:
+        print(message.error("\nHTTP Error while fetching the plugin. Aborting."))
+        print("Status code:", e.code)
+        print("Reason:", e.reason)
+        print("Response body:", e.read())
+        return
+    except urllib.error.URLError as e:
+        print(message.error("\nURL Error while fetching the plugin. Aborting."))
+        print("Reason:", e.reason)
+        return
 
     print(message.success("Done.\n"))
 
