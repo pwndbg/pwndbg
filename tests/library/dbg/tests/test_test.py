@@ -53,14 +53,16 @@ async def test_starts(ctrl: Controller) -> None:
 @pwndbg_test
 async def test_launch(ctrl: Controller) -> None:
     """
-    Launches a process and checks if we can look up symbols from the loaded binary.
+    Launches a process and checks if a simple static CString can be read from it.
     """
     import pwndbg
+    import pwndbg.aglib.typeinfo
 
     await ctrl.launch(Path(get_binary("reference-binary.native.out")))
 
     inf = pwndbg.dbg.selected_inferior()
-    addr = inf.lookup_symbol("main")
+    addr = inf.lookup_symbol("short_str")
+    string = addr.cast(pwndbg.aglib.typeinfo.char.pointer()).string()
 
-    # Verify we can look up symbols from the loaded binary
-    assert int(addr) > 0
+    assert string == "some cstring here"
+
