@@ -1052,35 +1052,38 @@ class CommandHandle:
 class EventType(Enum):
     """
     Events that can be listened for and reacted to in a debugger.
-
-    The events types listed here are defined as follows:
-        - `START`: This event is fired some time between the creation of or
-          attachment to the process to be debugged, and the start of its
-          execution.
-        - `STOP`: This event is fired after execution of the process has been
-          suspended, but before control is returned to the user for interactive
-          debugging.
-        - `EXIT`: This event is fired after the process being debugged has been
-          detached from or has finished executing.
-        - `MEMORY_CHANGED`: This event is fired when the user interactively makes
-          changes to the memory of the process being debugged.
-        - `REGISTER_CHANGED`: Like `MEMORY_CHANGED`, but for registers.
-        - `CONTINUE`: This event is fired after the user has requested for
-          process execution to continue after it had been previously suspended.
-        - `NEW_MODULE`: This event is fired when a new application module has
-          been encountered by the debugger. This usually happens when a new
-          application module is loaded into the memory space of the process being
-          debugged. In GDB terminology, these are called `objfile`s.
     """
-
     SUSPEND_ALL = -1
+
     START = 0
+    """This event is fired some time between the creation of or attachment to the
+    process to be debugged, and the start of its execution."""
+
     STOP = 1
+    """This event is fired after execution of the process has been suspended, but
+    before control is returned to the user for interactive debugging."""
+
     EXIT = 2
+    """This event is fired after the process being debugged has been
+    detached from or has finished executing."""
+
     MEMORY_CHANGED = 3
+    """This event is fired when the user interactively makes changes to the memory
+    of the process being debugged."""
+
     REGISTER_CHANGED = 4
+    """This event is fired when the user interactively makes changes to the registers
+    of the process being debugged."""
+
     CONTINUE = 5
+    """This event is fired after the user has requested for process execution to continue
+    after it had been previously suspended."""
+
     NEW_MODULE = 6
+    """This event is fired when a new application module has been encountered by the
+    debugger. This usually happens when a new application module is loaded into the
+    memory space of the process being debugged. In GDB terminology, these are called
+    `objfile`s."""
 
 
 class Debugger:

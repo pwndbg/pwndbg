@@ -134,6 +134,11 @@ IS_CACHING_DISABLED_FOR: Dict[str, bool] = {
 
 
 def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[T]]:
+    """
+    All possible values of the function arguments must be hashable
+    (so e.g. `frame: Frame | None = None` is not allowed).
+    The return value of the function should not be mutable, must not be mutated.
+    """
     if any(event_name not in _ALL_CACHE_EVENT_NAMES for event_name in event_names):
         raise ValueError(
             f"Unknown event name[s] passed to the `cache_until` decorator: {event_names}.\n"
