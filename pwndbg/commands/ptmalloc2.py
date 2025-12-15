@@ -20,6 +20,7 @@ import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.commands.hexdump
 import pwndbg.glibc
 import pwndbg.lib.heap.helpers
 from pwndbg.aglib.heap import heap_chain_limit
@@ -135,7 +136,7 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
     return result
 
 
-def print_no_arena_found_error(tid=None) -> None:
+def print_no_arena_found_error(tid: int | None = None) -> None:
     if tid is None:
         tid = pwndbg.aglib.proc.thread_id
     print(
@@ -190,7 +191,7 @@ def heap(addr: int | None = None, verbose: bool = False, simple: bool = False) -
         chunk = Chunk(addr)
         while chunk is not None:
             malloc_chunk(chunk.address, verbose=verbose, simple=simple)
-            chunk = chunk.next_chunk()
+            chunk = chunk.next_chunk()  # type: ignore[no-untyped-call]
     else:
         arena = allocator.thread_arena
         # arena might be None if the current thread doesn't allocate the arena
@@ -549,7 +550,7 @@ def malloc_chunk(
     if next:
         print(C.banner(f"Next {next} chunk(s):"))
         for _ in range(next):
-            chunk = chunk.next_chunk()
+            chunk = chunk.next_chunk()  # type: ignore[no-untyped-call]
 
             if not chunk:
                 print("No next chunk found")
@@ -1130,7 +1131,7 @@ def vis_heap_chunks(
     line_buffer = ""  # Temporary buffer for building current line (holds first cell)
     saved_line_addr = ""  # Saved address for the current line
 
-    def flush_repeats():
+    def flush_repeats() -> None:
         """Add collapse message for accumulated repeated lines."""
         nonlocal out, repeat_count, prev_line_content
         if repeat_count > 0:
@@ -1271,11 +1272,11 @@ def vis_heap_chunks(
 VALID_CHARS = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
 
 
-def bin_ascii(bs):
+def bin_ascii(bs: bytes | bytearray) -> str:
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
-def bin_labels_mapping(collections):
+def bin_labels_mapping(collections: List[Bins | None]) -> Dict[int, List[str]]:
     """
     Returns all potential bin labels for all potential addresses
     We precompute all of them because doing this on demand was too slow and inefficient
@@ -1342,7 +1343,7 @@ def try_free(addr: str | int) -> None:
 
     ptr_size = pwndbg.aglib.arch.ptrsize
 
-    def unsigned_size(size: int):
+    def unsigned_size(size: int) -> int:
         # read_chunk()['size'] is signed in pwndbg ;/
         # there may be better way to handle that
         if ptr_size < 8:
@@ -1350,7 +1351,7 @@ def try_free(addr: str | int) -> None:
         x = ctypes.c_uint64(size).value
         return x
 
-    def chunksize(chunk_size: int):
+    def chunksize(chunk_size: int) -> int:
         # maybe move this to ptmalloc.py
         return chunk_size & (~7)
 
@@ -1482,7 +1483,7 @@ def try_free(addr: str | int) -> None:
         except pwndbg.dbg_mod.Error as e:
             print(
                 message.error(
-                    f"Can't read next chunk at address 0x{chunk + chunk_size_unmasked:x}, memory error"
+                    f"Can't read next chunk at address 0x{addr + chunk_size_unmasked:x}, memory error"
                 )
             )
             finalize(errors_found, returned_before_error)

@@ -150,13 +150,13 @@ class PwndbgArchitecture(ArchDefinition):
     def pack(self, integer: int) -> bytes:
         return struct.pack(self.fmt, integer & self.ptrmask)
 
-    def unpack(self, data: bytes) -> int:
+    def unpack(self, data: bytes | bytearray) -> int:
         return struct.unpack(self.fmt, data)[0]
 
     def pack_size(self, integer: int, size: int) -> bytes:
         return struct.pack(self.fmts[size], integer & self.ptrmask)
 
-    def unpack_size(self, data: bytes, size: int) -> int:
+    def unpack_size(self, data: bytes | bytearray, size: int) -> int:
         return struct.unpack(self.fmts[size], data)[0]
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int] | None:
