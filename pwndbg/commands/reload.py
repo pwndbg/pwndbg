@@ -22,15 +22,16 @@ def rreload(module, _exclude_mods=None) -> None:
     # Mark that we are reloading; this is used to prevent the Command decorator from
     # erroring out on re-registering the same commands we had registered before
     gdb.pwndbg_is_reloading = True
-    importlib.import_module("pwndbg")
-    
-    # After reimporting pwndbg, we need to explicitly load commands again
-    # because the setup() function is not called during module reimport
-    import pwndbg.commands
-    pwndbg.commands.load_commands()
-    
-    # Unset the reloading flag
-    gdb.pwndbg_is_reloading = False
+    try:
+        importlib.import_module("pwndbg")
+        
+        # After reimporting pwndbg, we need to explicitly load commands again
+        # because the setup() function is not called during module reimport
+        import pwndbg.commands
+        pwndbg.commands.load_commands()
+    finally:
+        # Always unset the reloading flag, even if an error occurs
+        gdb.pwndbg_is_reloading = False
 
 
 @pwndbg.commands.Command("Reload Pwndbg.", category=CommandCategory.PWNDBG)
