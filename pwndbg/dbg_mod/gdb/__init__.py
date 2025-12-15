@@ -24,6 +24,7 @@ from typing_extensions import Set
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.memory
@@ -206,7 +207,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
     def start(self) -> Optional[int]:
         # How is it possible that this isn't in the API?
         # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
-        import pwndbg.aglib.arch
+        import pwndbg.aglib
 
         # It is possible that self.inner is not the frame selected in the debugger, so we will save
         # the selected frame, move gdb to this frame, do `info frame`, and then restore the selected frame.

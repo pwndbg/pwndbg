@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 import shutil
 import sys
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import List
 from typing import Optional

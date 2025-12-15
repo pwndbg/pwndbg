@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Any
 from typing import Callable
 
+import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.aglib.stack
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import normal

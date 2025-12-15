@@ -29,6 +29,7 @@ from typing_extensions import override
 
 import pwndbg
 import pwndbg.color.message as M
+import pwndbg.dbg_mod
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
 from pwndbg.dbg_mod import selection
@@ -268,7 +269,7 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def start(self) -> Optional[int]:
-        import pwndbg.aglib.arch
+        import pwndbg.aglib
 
         # https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.GetCFA
         val = self.inner.GetCFA()
