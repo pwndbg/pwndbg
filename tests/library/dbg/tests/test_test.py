@@ -65,4 +65,3 @@ async def test_launch(ctrl: Controller) -> None:
     string = addr.cast(pwndbg.aglib.typeinfo.char.pointer()).string()
 
     assert string == "some cstring here"
-
