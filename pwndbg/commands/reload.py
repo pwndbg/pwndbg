@@ -24,7 +24,7 @@ def rreload(module, _exclude_mods=None) -> None:
     gdb.pwndbg_is_reloading = True
     try:
         importlib.import_module("pwndbg")
-        
+
         # After reimporting pwndbg, we need to explicitly load commands again
         # because the setup() function is not called during module reimport
         import pwndbg.commands
