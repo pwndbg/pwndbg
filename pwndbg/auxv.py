@@ -78,7 +78,7 @@ def procfs_auxv() -> AUXV | None:
     field_size = struct.calcsize(field_format)
 
     try:
-        data = pwndbg.aglib.file.get(f"/proc/{pwndbg.aglib.proc.tid}/auxv")
+        data = pwndbg.aglib.file.get(f"/proc/{pwndbg.aglib.proc.tid()}/auxv")
     except OSError:
         return None
 

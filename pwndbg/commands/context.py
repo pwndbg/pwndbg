@@ -380,7 +380,7 @@ def serve_context_history(function: Callable[P, List[str]]) -> Callable[P, List[
 
         # Add the current section to the history if it is not already there
         current_output = []
-        if pwndbg.aglib.proc.alive:
+        if pwndbg.aglib.proc.alive():
             # Do not reevaluate the expressions section because its content is not deterministic.
             # Instead, reuse the last evaluated expression and rely on the other sections to deselect
             # the history entry if the output changed.
@@ -730,7 +730,7 @@ def context(subcontext=None, enabled=None) -> None:
     Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
     """
     # Allow to view history after the program has exited
-    if not pwndbg.aglib.proc.alive and (context_history_size <= 0 or not context_history):
+    if not pwndbg.aglib.proc.alive() and (context_history_size <= 0 or not context_history):
         log.error("context: The program is not being run.")
         return None
 

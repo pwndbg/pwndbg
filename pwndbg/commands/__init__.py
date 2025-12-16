@@ -601,7 +601,7 @@ def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, Optional[T]]:
 def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if pwndbg.aglib.proc.exe:
+        if pwndbg.aglib.proc.exe():
             return function(*a, **kw)
         else:
             if pwndbg.aglib.qemu.is_qemu():
@@ -690,7 +690,7 @@ def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         # TODO: Properly support OnlyWhenRunning without `gdblib`.
-        if pwndbg.aglib.proc.alive:
+        if pwndbg.aglib.proc.alive():
             return function(*a, **kw)
         else:
             log.error(f"{func_name(function)}: The program is not being run.")

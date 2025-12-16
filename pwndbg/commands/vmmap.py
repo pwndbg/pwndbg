@@ -18,6 +18,8 @@ import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.dbg_mod
+import pwndbg.lib.memory
 from pwndbg.color import cyan
 from pwndbg.color import green
 from pwndbg.color import red
@@ -285,13 +287,14 @@ def vmmap(
     def flush_shared_cache_info():
         nonlocal shared_cache_first
         nonlocal shared_cache_last
-        if shared_cache_last is not None:
+        if shared_cache_first is not None and shared_cache_last is not None:
             print(
                 pwndbg.lib.memory.format_address(
                     shared_cache_first.start,
                     shared_cache_last.end - shared_cache_first.start,
                     "---p",
                     shared_cache_first.offset,
+                    pwndbg.aglib.arch.ptrsize,
                     "[DYLD Shared Cache]",
                 )
             )

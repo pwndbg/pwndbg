@@ -141,7 +141,7 @@ def got_report(soname=".*", writable=False, fnname=".*") -> None:
     for _, (tracker, patcher) in pwndbg.gdblib.got.all_tracked_entries():
         objname = tracker.link_map_entry.name()
         if objname == b"":
-            objname = pwndbg.aglib.proc.exe
+            objname = pwndbg.aglib.proc.exe()
         else:
             objname = pwndbg.gdblib.got.display_name(objname)
 
@@ -215,7 +215,7 @@ def got_tracking_status(address) -> None:
 
     objname = tracker.link_map_entry.name()
     if objname == b"":
-        objname = pwndbg.aglib.proc.exe
+        objname = pwndbg.aglib.proc.exe()
     else:
         objname = pwndbg.gdblib.got.display_name(objname)
 

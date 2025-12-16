@@ -57,7 +57,7 @@ def decompile(func=None):
     if not func:
         func = (
             hex(pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.current.pc))
-            if pwndbg.aglib.proc.alive
+            if pwndbg.aglib.proc.alive()
             else "main"
         )
 
@@ -71,7 +71,7 @@ def decompile(func=None):
     closest_line = 1
 
     # If not running there is no current pc to mark
-    if pwndbg.aglib.proc.alive:
+    if pwndbg.aglib.proc.alive():
         pc = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.current.pc)
 
         closest = 0
@@ -101,7 +101,7 @@ def decompile(func=None):
         if pwndbg.dbg.is_gdblib_available():
             src_filename = pwndbg.gdblib.symbol.selected_frame_source_absolute_filename()
         if not src_filename:
-            filename = pwndbg.aglib.proc.exe
+            filename = pwndbg.aglib.proc.exe()
             src_filename = filename + ".c" if os.path.basename(filename).find(".") < 0 else filename
         source = H.syntax_highlight(source, src_filename)
 

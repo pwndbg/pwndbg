@@ -628,7 +628,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
 
 def in_program_code_stack() -> bool:
-    exe = pwndbg.aglib.proc.exe
+    exe = pwndbg.aglib.proc.exe()
     binary_exec_page_ranges = tuple(
         (p.start, p.end) for p in pwndbg.aglib.vmmap.get() if p.objfile == exe and p.execute
     )

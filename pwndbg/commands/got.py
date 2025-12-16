@@ -92,7 +92,7 @@ def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str)
     # Calculate the base address
     if not path_filter:
         first_print = False
-        _got(pwndbg.aglib.proc.exe, accept_readonly, symbol_filter)
+        _got(pwndbg.aglib.proc.exe(), accept_readonly, symbol_filter)
     else:
         first_print = True
 
@@ -128,8 +128,8 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     # The following code is inspired by the "got" command of https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
     # TODO/FIXME: Maybe a -v option to show more information will be better
     outputs: List[Dict[str, Union[str, int]]] = []
-    if path == pwndbg.aglib.proc.exe:
-        bin_base_offset = pwndbg.aglib.proc.binary_base_addr if "PIE enabled" in pie_status else 0
+    if path == pwndbg.aglib.proc.exe():
+        bin_base_offset = pwndbg.aglib.proc.binary_base_addr() if "PIE enabled" in pie_status else 0
     else:
         # TODO/FIXME: Is there a better way to get the base address of the loaded shared library?
         # I guess parsing the vmmap result might also work, but what if it's not reliable or not available? (e.g. debugging with qemu-user)

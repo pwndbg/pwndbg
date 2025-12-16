@@ -264,12 +264,12 @@ def withBinja(func: Callable[P, T]) -> Callable[P, T | None]:
 
 
 def l2r(addr: int) -> int:
-    result = (addr - pwndbg.aglib.proc.binary_base_addr + base()) & pwndbg.aglib.arch.ptrmask
+    result = (addr - pwndbg.aglib.proc.binary_base_addr() + base()) & pwndbg.aglib.arch.ptrmask
     return result
 
 
 def r2l(addr: int) -> int:
-    result = (addr - base() + pwndbg.aglib.proc.binary_base_addr) & pwndbg.aglib.arch.ptrmask
+    result = (addr - base() + pwndbg.aglib.proc.binary_base_addr()) & pwndbg.aglib.arch.ptrmask
     return result
 
 
@@ -281,7 +281,7 @@ def base():
 @pwndbg.dbg.event_handler(EventType.STOP)
 @enabledBinja()
 def auto_update_pc() -> None:
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         return
     pc = pwndbg.aglib.regs.pc
     if bn_autosync.value:
@@ -297,7 +297,7 @@ _managed_bps: Dict[int, StopPoint] = {}
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
 @enabledBinja()
 def auto_update_bp() -> None:
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         return
     bps: List[int] = _bn.get_bp_tags()
     binja_bps = {r2l(addr) for addr in bps}

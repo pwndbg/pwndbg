@@ -145,7 +145,7 @@ def entry(args=None) -> None:
         # `pwndbg-lldb` implements starting as a partial command override in the CLI.
         #
         # TODO: In the future, we should handle starts using an in-command mechanism.
-        if not pwndbg.aglib.proc.alive:
+        if not pwndbg.aglib.proc.alive():
             print(
                 M.error(
                     "The program is not running. Start the program with `run -s` and then use `entry` to set the breakpoint."

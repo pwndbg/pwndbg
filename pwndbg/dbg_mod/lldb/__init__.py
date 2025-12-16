@@ -31,7 +31,6 @@ import pwndbg
 import pwndbg.color.message as M
 import pwndbg.dbg_mod
 import pwndbg.lib.memory
-from pwndbg.aglib import load_aglib
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
 from pwndbg.lib.arch import ArchDefinition
@@ -2007,6 +2006,8 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         self.debugger = debugger
 
         self.debug = kwargs["debug"] if "debug" in kwargs else False
+
+        from pwndbg.aglib import load_aglib
 
         load_aglib()
 

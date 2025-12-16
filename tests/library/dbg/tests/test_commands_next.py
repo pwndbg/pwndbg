@@ -36,7 +36,7 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
 
     # Sanity check
     exec_bin_pages = [
-        p for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe and p.execute
+        p for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe() and p.execute
     ]
     assert any(pwndbg.aglib.regs.pc in p for p in exec_bin_pages)
     main_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc)

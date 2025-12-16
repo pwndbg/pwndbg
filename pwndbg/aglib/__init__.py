@@ -12,14 +12,19 @@ for more information.
 from __future__ import annotations
 
 from typing import cast
+from typing import TYPE_CHECKING
 
-from pwndbg.aglib.arch_mod import PwndbgArchitecture
-from pwndbg.aglib.regs_mod import RegisterManager
+if TYPE_CHECKING:
+    from pwndbg.aglib.arch_mod import PwndbgArchitecture
+    from pwndbg.aglib.regs_mod import RegisterManager
 
-# These will be set during debugger setup.
-# Thus you can't import them with `from pwndbg.aglib import arch`.
-arch: PwndbgArchitecture = cast(PwndbgArchitecture, None)
-regs: RegisterManager = cast(RegisterManager, None)
+    # These will be set during debugger setup.
+    # Thus you can't import them with `from pwndbg.aglib import arch`.
+    arch: PwndbgArchitecture = cast(PwndbgArchitecture, None)
+    regs: RegisterManager = cast(RegisterManager, None)
+else:
+    arch = None
+    regs = None
 
 
 def load_aglib():

@@ -161,8 +161,8 @@ def parse_size(size_str: str) -> int:
 
 
 def iterate_over_pages(mem_limit: int) -> Iterator[Tuple[str, pwndbg.lib.memory.Page | None]]:
-    if not pwndbg.aglib.proc.alive:
-        yield pwndbg.aglib.proc.exe, None
+    if not pwndbg.aglib.proc.alive():
+        yield pwndbg.aglib.proc.exe(), None
         return
 
     proc = pwndbg.dbg.selected_inferior()

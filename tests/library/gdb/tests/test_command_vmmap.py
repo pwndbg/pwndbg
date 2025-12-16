@@ -33,7 +33,7 @@ def get_proc_maps():
 
     # Note: info proc mappings may not have permissions information,
     # so we get it here and fill from `perms`
-    with open("/proc/%d/maps" % pwndbg.aglib.proc.pid) as f:
+    with open("/proc/%d/maps" % pwndbg.aglib.proc.pid()) as f:
         for line in f.read().splitlines():
             addrs, perms, offset, _inode, size, objfile = line.split(maxsplit=6)
             start, end = (int(v, 16) for v in addrs.split("-"))

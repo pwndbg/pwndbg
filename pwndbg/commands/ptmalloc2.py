@@ -138,7 +138,7 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
 
 def print_no_arena_found_error(tid: int | None = None) -> None:
     if tid is None:
-        tid = pwndbg.aglib.proc.thread_id
+        tid = pwndbg.aglib.proc.thread_id()
     print(
         message.notice(
             f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
@@ -148,7 +148,7 @@ def print_no_arena_found_error(tid: int | None = None) -> None:
 
 def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
     if tid is None:
-        tid = pwndbg.aglib.proc.thread_id
+        tid = pwndbg.aglib.proc.thread_id()
     print(
         message.notice(
             f"No tcache bins found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
@@ -278,7 +278,7 @@ def arena(addr: int | None = None) -> None:
         arena = Arena(addr)
     else:
         arena = allocator.thread_arena
-        tid = pwndbg.aglib.proc.thread_id
+        tid = pwndbg.aglib.proc.thread_id()
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
             print_no_arena_found_error(tid)
@@ -375,7 +375,7 @@ def tcache(addr: int | None = None) -> None:
 
     tcache = allocator.get_tcache(addr)
     # if the current thread doesn't allocate the arena, tcache will be NULL
-    tid = pwndbg.aglib.proc.thread_id
+    tid = pwndbg.aglib.proc.thread_id()
     if tcache:
         print(
             message.notice(

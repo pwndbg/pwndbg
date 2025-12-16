@@ -51,7 +51,7 @@ def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     mappings are available.
     """
     # Note: debugging a coredump does still show proc.alive == True
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         return ()
 
     if is_corefile():
@@ -286,7 +286,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
     # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
 
-    tid = pwndbg.aglib.proc.tid
+    tid = pwndbg.aglib.proc.tid()
     locations = [
         # Linux distro
         f"/proc/{tid}/maps",

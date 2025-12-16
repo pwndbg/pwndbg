@@ -858,7 +858,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         else:
             endian = "big"
 
-        if pwndbg.aglib.proc.alive:
+        if pwndbg.aglib.proc.alive():
             arch = gdb.newest_frame().architecture().name()
         else:
             arch = gdb.execute("show architecture", to_string=True).strip()

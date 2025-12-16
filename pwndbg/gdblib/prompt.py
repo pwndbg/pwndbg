@@ -87,14 +87,14 @@ def prompt_hook(*a: Any) -> None:
         pwndbg.gdblib.events.after_reload(fire_start=cur is None)
         cur = new
 
-    if not context_shown and pwndbg.aglib.proc.alive and thread_is_stopped():
+    if not context_shown and pwndbg.aglib.proc.alive() and thread_is_stopped():
         pwndbg.commands.context.selected_history_index = None
         pwndbg.commands.context.context()
         context_shown = True
 
     # set prompt again when alive state changes
-    if last_alive_state != pwndbg.aglib.proc.alive:
-        last_alive_state = pwndbg.aglib.proc.alive
+    if last_alive_state != pwndbg.aglib.proc.alive():
+        last_alive_state = pwndbg.aglib.proc.alive()
         set_prompt()
 
 
@@ -109,7 +109,7 @@ def set_prompt() -> None:
     prompt = "pwndbg> "
 
     if not disable_colors:
-        if pwndbg.aglib.proc.alive:
+        if pwndbg.aglib.proc.alive():
             prompt = message.readline_escape(message.alive_prompt, prompt)
         else:
             prompt = message.readline_escape(message.prompt, prompt)

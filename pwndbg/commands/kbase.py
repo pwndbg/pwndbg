@@ -44,7 +44,7 @@ def kbase(rebase=False, verbose=False) -> None:
     if not rebase:
         return
 
-    symbol_file = pwndbg.aglib.proc.exe
+    symbol_file = pwndbg.aglib.proc.exe()
 
     if symbol_file:
         pwndbg.dbg.selected_inferior().add_symbol_file(symbol_file, base)

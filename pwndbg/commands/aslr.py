@@ -35,9 +35,9 @@ def check_aslr() -> Tuple[bool | None, str]:
         print("Could not check ASLR: can't read randomize_va_space")
 
     # Check the personality of the process
-    if pwndbg.aglib.proc.alive:
+    if pwndbg.aglib.proc.alive():
         try:
-            data = pwndbg.aglib.file.get("/proc/%i/personality" % pwndbg.aglib.proc.tid)
+            data = pwndbg.aglib.file.get("/proc/%i/personality" % pwndbg.aglib.proc.tid())
             personality = int(data, 16)
             return (personality & 0x40000 == 0), "read status from process' personality"
         except Exception:

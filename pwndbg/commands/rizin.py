@@ -42,7 +42,7 @@ def rz(arguments, no_seek=False, no_rebase=False) -> None:
     # Build up the command line to run
     cmd = ["rizin"]
     flags = ["-e", "io.cache=true"]
-    if pwndbg.aglib.proc.alive:
+    if pwndbg.aglib.proc.alive():
         addr = pwndbg.aglib.regs.pc
         if pwndbg.aglib.elf.get_elf_info(filename).is_pie:
             if no_rebase:

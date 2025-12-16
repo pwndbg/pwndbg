@@ -136,7 +136,7 @@ def save_ida() -> None:
 
 
 def _ida_local(name: str) -> int | None:
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         return None
 
     pc = int(pwndbg.dbg.selected_frame().pc())

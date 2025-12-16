@@ -147,7 +147,7 @@ def resolve_heap(is_first_run: bool = False) -> None:
     global current
     if resolve_heap_via_heuristic == "force":
         current = pwndbg.aglib.heap.ptmalloc.HeuristicHeap()
-        if not is_first_run and pwndbg.aglib.proc.alive and current.libc_has_debug_syms():
+        if not is_first_run and pwndbg.aglib.proc.alive() and current.libc_has_debug_syms():
             print(
                 message.warn(
                     "You are going to resolve the heap via heuristic even though you have libc debug symbols."

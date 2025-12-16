@@ -100,9 +100,9 @@ def netlink(tid: int):
 class Process:
     def __init__(self, pid=None, tid=None) -> None:
         if pid is None:
-            pid = pwndbg.aglib.proc.pid
+            pid = pwndbg.aglib.proc.pid()
         if tid is None:
-            tid = pwndbg.aglib.proc.tid
+            tid = pwndbg.aglib.proc.tid()
         if not tid:
             tid = pid
         self.pid = pid
@@ -192,7 +192,7 @@ class Process:
         fds = {}
 
         for i in range(self.fdsize):
-            link = pwndbg.aglib.file.readlink("/proc/%i/fd/%i" % (pwndbg.aglib.proc.pid, i))
+            link = pwndbg.aglib.file.readlink("/proc/%i/fd/%i" % (pwndbg.aglib.proc.pid(), i))
 
             if link:
                 fds[i] = link
@@ -229,7 +229,7 @@ class Process:
 @pwndbg.commands.Command("Gets the pid.", aliases=["getpid"], category=CommandCategory.PROCESS)
 @pwndbg.commands.OnlyWhenRunning
 def pid() -> None:
-    print(pwndbg.aglib.proc.pid)
+    print(pwndbg.aglib.proc.pid())
 
 
 @pwndbg.commands.Command(

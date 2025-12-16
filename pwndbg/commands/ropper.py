@@ -41,11 +41,11 @@ pwndbg> ropper -- --search 'pop rdi; ret;'
 def ropper(argument) -> None:
     with tempfile.NamedTemporaryFile() as corefile:
         # If the process is running, dump a corefile so we get actual addresses.
-        if pwndbg.aglib.proc.alive:
+        if pwndbg.aglib.proc.alive():
             filename = corefile.name
             gdb.execute(f"gcore {filename}")
         else:
-            filename = pwndbg.aglib.proc.exe
+            filename = pwndbg.aglib.proc.exe()
 
         # Build up the command line to run
         cmd = ["ropper", "--file", filename]

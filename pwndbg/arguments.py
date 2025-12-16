@@ -212,7 +212,7 @@ def format_args(instruction: PwndbgInstruction) -> List[str]:
         # Enhance args display
         if arg.name in FILE_DESCRIPTOR_ARG_NAMES and isinstance(value, int):
             # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
-            pid = pwndbg.aglib.proc.pid
+            pid = pwndbg.aglib.proc.pid()
             if pid is not None:
                 path = pwndbg.aglib.file.readlink("/proc/%d/fd/%d" % (pid, value))
                 if path:

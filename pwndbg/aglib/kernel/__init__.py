@@ -47,7 +47,7 @@ def has_debug_symbols(*required: str, checkall: bool = True) -> bool:
 
 @pwndbg.lib.cache.cache_until("objfile")
 def has_debug_info() -> bool:
-    path = pwndbg.aglib.proc.exe
+    path = pwndbg.aglib.proc.exe()
     if path is None:
         return False
     vmlinux = open(path, "rb")

@@ -341,7 +341,7 @@ def nearpc(
         # For Comment Function
         try:
             line += " " * 10 + C.comment(
-                pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe][hex(instr.address)]
+                pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe()][hex(instr.address)]
             )
         except Exception:
             pass

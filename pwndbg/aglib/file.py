@@ -42,7 +42,7 @@ def get_proc_exe_file() -> str:
     """
     Returns the local path to the debugged file name.
     """
-    return get_file(pwndbg.aglib.proc.exe, try_local_path=True)
+    return get_file(pwndbg.aglib.proc.exe(), try_local_path=True)
 
 
 @pwndbg.lib.cache.cache_until("start")

@@ -44,7 +44,7 @@ def xuntil(target) -> None:
         spec = target
 
     gdb.Breakpoint(spec, temporary=True)
-    if pwndbg.aglib.proc.alive:
+    if pwndbg.aglib.proc.alive():
         gdb.execute("continue", from_tty=False)
     else:
         gdb.execute("run", from_tty=False)

@@ -24,7 +24,7 @@ class TimeoutException(Exception):
 
 
 def detect_register_patterns(alphabet, length, timeout) -> None:
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         print(message.error("Error: Process is not running."))
         return
 
