@@ -245,6 +245,13 @@ module = [
 ]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = [
+    "pwndbg.wrappers.readelf",
+    "pwndbg.commands.got",
+]
+disable_error_code = ["no-untyped-call"]
+
 [tool.isort]
 profile = "black"
 force_single_line = true
