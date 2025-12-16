@@ -20,9 +20,19 @@ Thus, the only Pwndbg code you should be importing in a `pwndbg/lib` file, is an
 
 The `aglib` depends on `dbg_mod`, not the other way around. No `dbg_mod/` file should have a top-level `aglib`. Further, no `dbg_mod/` file should have an `aglib` import anywhere (even function-level). Currently the second rule is not followed, and stuff works, but lets not make it any worse.
 
+#### Don't import commands
+
+When a command is written, it is written with the user in mind and all that entails. This means appropriate error handling, message printing etc. A `pwndbg/command/` file has access to every submodule in Pwndbg. As such, it is **not** made to be used as an API for some other command/functionality. If there exists a command which you want to use as API, refactor it into an `aglib/` file, make sure there are no `print`s, make sure that it returns an error instead of silently eating it when appropriate etc.
+
+Doing it this way prevents "fun" surprises, makes the code more maintanable, makes the dependancy graph cleaner and as such prevents import cycles.
+
 #### `from pwndbg.aglib import arch` doesn't work
 
 If you look at `pwndbg/aglib/__init__.py` you will see that `arch` is a None-initialized object and gets swapped out at runtime depending on which architecture we are debugging. As such, to get the correct information about the current architecture you must always do `aglib.arch.whatever()`.
+
+#### `from pwndbg.aglib import regs` doesn't work
+
+If you look at `pwndbg/aglib/__init__.py` you will see that `regs` is a None-initialized object and gets swapped out during initialization. To use it properly you must do `aglib.regs.whatever()`.
 
 #### No `class module` magic
 
