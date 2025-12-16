@@ -418,7 +418,8 @@ def update() -> None:
     pwnlib.context.context.endian = a.endian
     pwnlib.context.context.os = PWNLIB_PLATFORM_MAPPINGS.get(a.platform, "linux")
 
-    if a.name != pwndbg.aglib.arch.name:
+    # Will be None the first time around.
+    if pwndbg.aglib.arch is None or a.name != pwndbg.aglib.arch.name:
         pwndbg_arch = get_pwndbg_architecture(a.name)
         if pwndbg_arch is None:
             raise pwndbg.dbg_mod.Error(

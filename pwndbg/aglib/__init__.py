@@ -14,7 +14,14 @@ from __future__ import annotations
 from typing import cast
 from typing import TYPE_CHECKING
 
+# Since pwndbg.aglib.whatever is a common pattern in the aglib/ files
+# we have to make sure that python can quickly initialize the pwndbg.aglib
+# submodule without importing anything else (specifically, without importing
+# any aglib file, or anything that depends on an aglib file, because we would
+# get a circular import).
+
 if TYPE_CHECKING:
+    # Without ^this if-statement, we get a circular import.
     from pwndbg.aglib.arch_mod import PwndbgArchitecture
     from pwndbg.aglib.regs_mod import RegisterManager
 
@@ -28,6 +35,11 @@ else:
 
 
 def load_aglib():
+    # We need this for the reason commented above. If we changed the
+    # pwndbg/aglib/ files to access their siblings via
+    # `import .memory` instead of `import pwndbg.aglib.memory`
+    # we could get rid of this function.
+    
     import pwndbg.aglib.argv
     import pwndbg.aglib.ctypes
     import pwndbg.aglib.dynamic
