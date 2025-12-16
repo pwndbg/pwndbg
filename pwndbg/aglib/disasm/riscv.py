@@ -8,7 +8,6 @@ from typing_extensions import override
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.regs
 import pwndbg.color.memory as MemoryColor
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign

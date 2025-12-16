@@ -25,11 +25,11 @@ from typing import TypeVar
 from typing_extensions import ParamSpec
 from typing_extensions import override
 
+import pwndbg.aglib
 import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.regs
 import pwndbg.color.message as message
 import pwndbg.exception
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap

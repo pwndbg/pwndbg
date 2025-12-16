@@ -51,7 +51,7 @@ def break_at_sym(sym: str) -> None:
 
 async def launch_to(ctrl: Controller, target: str, sym: str) -> None:
     import pwndbg
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
     from pwndbg.dbg_mod import BreakpointLocation
 
     await ctrl.launch(target)

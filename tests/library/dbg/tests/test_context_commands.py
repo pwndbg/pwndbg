@@ -23,8 +23,8 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     """
     Tests context disasm command and whether it shows properly opened fd filepath
     """
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
     import pwndbg.commands
     import pwndbg.commands.canary
     import pwndbg.commands.context
@@ -664,7 +664,7 @@ async def test_regs_command_resolves_sp_pc_aliases(ctrl: Controller) -> None:
     If running `regs pc` or `regs sp`, these aliases should be resolved
     to the real architectural names of the registers.
     """
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -697,7 +697,7 @@ async def test_cli_fixup_resolves_sp_pc_aliases(ctrl: Controller) -> None:
 
     However, this is not necessarily true of all underlying debuggers.
     """
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 

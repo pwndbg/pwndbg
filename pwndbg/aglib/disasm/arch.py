@@ -11,7 +11,6 @@ from pwnlib.constants import linux
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.remote
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap

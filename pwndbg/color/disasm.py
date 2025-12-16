@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import List
 
+import pwndbg.aglib
 import pwndbg.aglib.nearpc
-import pwndbg.aglib.regs
 import pwndbg.chain
 import pwndbg.color.context as C
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS

@@ -4,7 +4,6 @@ import argparse
 
 import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.commands
 from pwndbg.color import context
 from pwndbg.commands import CommandCategory

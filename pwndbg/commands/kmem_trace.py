@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 import threading
 
+import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.arguments
 import pwndbg.color as C

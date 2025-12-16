@@ -37,7 +37,6 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     from pwnlib.util.cyclic import cyclic
 
     import pwndbg.aglib
-    import pwndbg.aglib.regs
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -67,7 +66,6 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
 
     import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
 
     await ctrl.launch(REFERENCE_BINARY)
 

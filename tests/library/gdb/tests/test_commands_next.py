@@ -3,8 +3,8 @@ from __future__ import annotations
 import gdb
 import pytest
 
+import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 
 from . import get_binary

@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 import subprocess
 
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.radare2
 from pwndbg.commands import CommandCategory

@@ -4,9 +4,9 @@ import re
 
 import gdb
 
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 
 from . import get_binary

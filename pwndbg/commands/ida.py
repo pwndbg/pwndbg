@@ -8,7 +8,7 @@ import os
 import gdb
 
 import pwndbg
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.dbg_mod

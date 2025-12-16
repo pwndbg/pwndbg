@@ -18,7 +18,6 @@ import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.objc
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.chain
 import pwndbg.dbg_mod

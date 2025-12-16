@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.integration

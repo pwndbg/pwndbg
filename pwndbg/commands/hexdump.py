@@ -5,7 +5,6 @@ import argparse
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.hexdump
 from pwndbg.color import message

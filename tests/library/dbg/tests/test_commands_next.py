@@ -25,8 +25,8 @@ NEXT_COMMANDS = (
 
 @pwndbg_test
 async def test_command_nextproginstr(ctrl: Controller) -> None:
+    import pwndbg.aglib
     import pwndbg.aglib.proc
-    import pwndbg.aglib.regs
     import pwndbg.aglib.vmmap
 
     await launch_to(ctrl, REFERENCE_BINARY, "main")
@@ -59,7 +59,7 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
 @pytest.mark.parametrize("command", NEXT_COMMANDS)
 @pwndbg_test
 async def test_next_command_doesnt_freeze_crashed_binary(ctrl: Controller, command: str) -> None:
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(CRASH_SIMPLE_BINARY)
 

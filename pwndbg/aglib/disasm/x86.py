@@ -12,7 +12,6 @@ from typing_extensions import override
 import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.typeinfo
 import pwndbg.color.memory as MemoryColor
 import pwndbg.color.message as MessageColor

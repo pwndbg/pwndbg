@@ -5,9 +5,8 @@ from typing import List
 from capstone import *  # noqa: F403
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
-import pwndbg.aglib.regs
-import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color
@@ -17,8 +16,6 @@ import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.integration
 import pwndbg.lib.config
-import pwndbg.lib.functions
-import pwndbg.ui
 from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.commands
 import pwndbg.integration.binja
 from pwndbg.commands import CommandCategory

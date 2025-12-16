@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import os
 
+import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.color.context as C
 import pwndbg.color.syntax_highlight as H
 import pwndbg.dbg_mod

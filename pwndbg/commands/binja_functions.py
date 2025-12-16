@@ -4,8 +4,8 @@ from typing import Tuple
 
 import gdb
 
+import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.gdblib.functions
 import pwndbg.integration.binja

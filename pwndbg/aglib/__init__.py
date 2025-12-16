@@ -11,12 +11,15 @@ for more information.
 
 from __future__ import annotations
 
+from typing import cast
+
 from pwndbg.aglib.arch_mod import PwndbgArchitecture
-from pwndbg.aglib.arch_mod import get_pwndbg_architecture
+from pwndbg.aglib.regs_mod import RegisterManager
 
-regs = None
-
-arch: PwndbgArchitecture = get_pwndbg_architecture("i386")
+# These will be set during debugger setup.
+# Thus you can't import them with `from pwndbg.aglib import arch`.
+arch: PwndbgArchitecture = cast(PwndbgArchitecture, None)
+regs: RegisterManager = cast(RegisterManager, None)
 
 
 def load_aglib():
@@ -36,7 +39,7 @@ def load_aglib():
     import pwndbg.aglib.onegadget
     import pwndbg.aglib.proc
     import pwndbg.aglib.qemu
-    import pwndbg.aglib.regs as regs_mod
+    import pwndbg.aglib.regs_mod
     import pwndbg.aglib.remote
     import pwndbg.aglib.stack
     import pwndbg.aglib.strings
@@ -45,10 +48,8 @@ def load_aglib():
     import pwndbg.aglib.vmmap
     import pwndbg.aglib.vmmap_custom
 
-    # This is necessary so that mypy understands the actual type of the regs module
-    regs_: regs_mod.module = regs_mod
     global regs
-    regs = regs_
+    regs = pwndbg.aglib.regs_mod.regs
 
 
 def set_arch(pwndbg_arch: PwndbgArchitecture):

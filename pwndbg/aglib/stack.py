@@ -11,9 +11,9 @@ from typing import Dict
 from typing import List
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.message as M

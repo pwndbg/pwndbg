@@ -17,7 +17,6 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.kconfig

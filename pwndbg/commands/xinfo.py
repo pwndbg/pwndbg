@@ -4,7 +4,6 @@ import argparse
 
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.regs
 import pwndbg.aglib.stack
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M

@@ -15,7 +15,6 @@ import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.regs
 import pwndbg.aglib.stack
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as M

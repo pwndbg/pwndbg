@@ -38,7 +38,7 @@ async def run_tests(ctrl: Controller, stack: int, use_big_endian: bool, expected
 @pwndbg_test
 async def test_hexdump(ctrl: Controller) -> None:
     import pwndbg
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(BINARY)
     pwndbg.config.hexdump_group_width.value = -1
@@ -67,8 +67,8 @@ async def test_hexdump(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_hexdump_collapse_lines(ctrl: Controller) -> None:
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
 
     await ctrl.launch(BINARY)
     sp = pwndbg.aglib.regs.sp
@@ -95,8 +95,8 @@ async def test_hexdump_collapse_lines(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_hexdump_saved_address_and_offset(ctrl: Controller) -> None:
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
     import pwndbg.commands.hexdump
 
     # TODO There is no way to verify repetition: the last_address and offset are reset
@@ -124,7 +124,7 @@ async def test_hexdump_limit_check(ctrl: Controller):
     """
     Tests that the hexdump command respects the hexdump-limit-mb settings.
     """
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
     from pwndbg.dbg_mod import Error
 
     await ctrl.launch(BINARY)

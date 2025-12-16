@@ -12,7 +12,6 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.color.message as M
 import pwndbg.commands
