@@ -80,7 +80,7 @@ def aslr(state=None) -> None:
                 f"set disable-randomization {options[state]}", from_tty=False, to_string=True
             )
 
-            if pwndbg.aglib.proc.alive:
+            if pwndbg.aglib.proc.alive():
                 print("Change will take effect when the process restarts")
         else:
             # TODO: lldb settings set target.disable-aslr false

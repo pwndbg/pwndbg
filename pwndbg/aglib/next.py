@@ -13,6 +13,7 @@ import capstone
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.proc
+import pwndbg.dbg_mod
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message
 from pwndbg.dbg_mod import BreakpointLocation
@@ -121,12 +122,12 @@ async def break_next_branch(
     """
     ins = next_branch(address, including_current=including_current)
 
-    proc = pwndbg.dbg.selected_inferior()
+    inf = pwndbg.dbg.selected_inferior()
     if ins:
         # If the branch we found was not at the current program counter, we should step to it.
         # Otherwise, return the current instruction.
         if ins.address != pwndbg.aglib.regs.pc:
-            with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
+            with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
                 await ec.cont(bp)
         return ins
 
@@ -258,12 +259,11 @@ async def break_on_program_code(ec: pwndbg.dbg_mod.ExecutionController) -> bool:
             print(message.error("The pc is already at the binary objfile code. Not stepping."))
             return False
 
-    proc = pwndbg.aglib.proc
     regs = pwndbg.aglib.regs
 
-    while proc.alive:
+    while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
-        if proc.stopped_with_signal:
+        if pwndbg.aglib.proc.stopped_with_signal():
             return False
 
         await break_next_ret(ec)

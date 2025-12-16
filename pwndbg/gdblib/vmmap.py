@@ -51,7 +51,7 @@ def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     the mappings are known, like if it's a coredump, or if process
     mappings are available.
     """
-    # Note: debugging a coredump does still show proc.alive == True
+    # Note: debugging a coredump does still show proc.alive() == True
     if not pwndbg.aglib.proc.alive():
         return ()
 

@@ -8,6 +8,8 @@ import argparse
 
 import pwndbg.aglib.next
 import pwndbg.commands
+import pwndbg.commands.context
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 
