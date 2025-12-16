@@ -7,5 +7,6 @@ nav:
   - writing-tests.md
   - adding-a-command.md
   - adding-a-parameter.md
+  - common-pitfalls.md
   - improving-annotations.md
   - making-a-gif.md
