@@ -43,11 +43,9 @@ import re
 import shutil
 import signal
 import sys
-import threading
 from asyncio import CancelledError
 from contextlib import contextmanager
 from io import BytesIO
-from io import TextIOBase
 from io import TextIOWrapper
 from typing import Any
 from typing import Awaitable
@@ -55,23 +53,19 @@ from typing import BinaryIO
 from typing import Callable
 from typing import Coroutine
 from typing import List
-from typing import Tuple
 
 import lldb
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.dbg_mod.lldb
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod.lldb import LLDB
-from pwndbg.dbg_mod.lldb import LLDBProcess
 from pwndbg.dbg_mod.lldb import LLDBPythonState
 from pwndbg.dbg_mod.lldb import OneShotAwaitable
 from pwndbg.dbg_mod.lldb.pset import InvalidParse
 from pwndbg.dbg_mod.lldb.pset import pget
 from pwndbg.dbg_mod.lldb.pset import pset
-from pwndbg.dbg_mod.lldb.repl.io import IODriver
 from pwndbg.dbg_mod.lldb.repl.io import get_io_driver
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
@@ -127,10 +121,8 @@ def print_info(msg: str, *args):
 
 
 from pwndbg.dbg_mod.lldb.repl.proc import EventHandler
-from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultConnected
 from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultEarlyExit
 from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultError
-from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultSuccess
 from pwndbg.dbg_mod.lldb.repl.proc import ProcessDriver
 
 show_tip = pwndbg.config.add_param(

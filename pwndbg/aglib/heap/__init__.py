@@ -5,7 +5,6 @@ from typing import Sequence
 
 import pwndbg
 import pwndbg.aglib.heap.heap
-import pwndbg.aglib.proc
 import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType

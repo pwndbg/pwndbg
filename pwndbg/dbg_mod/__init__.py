@@ -20,7 +20,6 @@ from typing import TypedDict
 from typing import TypeVar
 
 import pwndbg.lib.memory
-from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 
 dbg: Debugger = None

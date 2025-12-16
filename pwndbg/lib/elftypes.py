@@ -31,8 +31,6 @@ from __future__ import annotations
 
 import ctypes
 from typing import Dict
-from typing import Optional
-from typing import Union
 
 import pwndbg.lib.ctypes
 

@@ -32,13 +32,10 @@ import pwndbg.lib.memory
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import selection
-from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
-from pwndbg.lib.memory import PAGE_MASK
-from pwndbg.lib.memory import PAGE_SIZE
 
 T = TypeVar("T")
 
@@ -1605,7 +1602,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         config_mod.init_params()
 
-        from pwndbg.dbg_mod.gdb import debug_sym
+        from pwndbg.dbg_mod.gdb import debug_sym as debug_sym
 
         self._load_gdbinit()
 

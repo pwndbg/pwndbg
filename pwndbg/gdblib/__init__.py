@@ -5,7 +5,6 @@ Library for handling GDB logic. Being removed in favour of aglib.
 from __future__ import annotations
 
 import re
-from types import ModuleType
 
 import gdb
 
