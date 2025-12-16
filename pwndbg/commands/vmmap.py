@@ -376,7 +376,7 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
             return
         perm |= flag_val
 
-    page = pwndbg.lib.memory.Page(start, size, perm, offset)
+    page = pwndbg.lib.memory.Page(start, size, perm, offset, pwndbg.aglib.arch.ptrsize)
     pwndbg.aglib.vmmap_custom.add_custom_page(page)
 
     print("%r added" % page)
@@ -448,6 +448,7 @@ def vmmap_load(filename) -> None:
     with open(filename, "rb") as f:
         elffile = ELFFile(f)
 
+        ptrsize: int = pwndbg.aglib.arch.ptrsize
         for section in elffile.iter_sections():
             vaddr = section["sh_addr"]
             memsz = section["sh_size"]
@@ -466,7 +467,8 @@ def vmmap_load(filename) -> None:
                 flags |= pwndbg.aglib.elf.PF_X
 
             page = pwndbg.lib.memory.Page(
-                vaddr, memsz, flags, offset, f"[{section.name}]: {file_basename}"
+                vaddr, memsz, flags, offset, ptrsize,
+                f"[{section.name}]: {file_basename}"
             )
             pages.append(page)
 

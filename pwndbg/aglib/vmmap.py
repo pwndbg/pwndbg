@@ -40,6 +40,8 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
     images = list(shared_cache.images_sorted)
     images_base = [image[1] for image in images]
 
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
+
     for page in pages.ranges():
         if page.end < shared_cache_start or page.start >= shared_cache_end:
             # No overlap with the shared cache.
@@ -86,6 +88,7 @@ def _refine_memory_map(pages: MemoryMap) -> MemoryMap:
                     end - curr_base,
                     page.flags,
                     curr_base - shared_cache_start,
+                    ptrsize,
                     objfile,
                     in_darwin_shared_cache=True,
                 )

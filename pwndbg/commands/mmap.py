@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from typing import Union
 
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.shellcode
 import pwndbg.chain
@@ -184,7 +185,7 @@ instead.\
         # need to bother them with any of this information, and get a nice
         # speedup as a bonus.
         if not force:
-            page = pwndbg.lib.memory.Page(addr, int(length), 0, 0)
+            page = pwndbg.lib.memory.Page(addr, int(length), 0, 0, pwndbg.aglib.arch.ptrsize)
             collisions = []
             vm = pwndbg.aglib.vmmap.get()
 

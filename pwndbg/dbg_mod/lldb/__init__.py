@@ -888,6 +888,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return LLDBValue(value, self)
 
     def get_known_pages(self) -> List[pwndbg.lib.memory.Page]:
+        import pwndbg.aglib
+
         regions = self.process.GetMemoryRegions()
 
         pages = []
@@ -950,6 +952,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     size=region.GetRegionEnd() - region.GetRegionBase(),
                     flags=perms,
                     offset=offset,
+                    arch_ptrsize=pwndbg.aglib.arch.ptrsize,
                     objfile=objfile,
                 )
             )

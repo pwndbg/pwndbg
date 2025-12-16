@@ -157,4 +157,4 @@ def find_boundaries(addr: int, name: str = "", min: int = 0) -> pwndbg.lib.memor
     start = max(start, min)
     end = max(end, min)
 
-    return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)
+    return pwndbg.lib.memory.Page(start, end - start, 4, 0, pwndbg.aglib.arch.ptrsize, name)
