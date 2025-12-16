@@ -241,7 +241,9 @@ def get_commpage_mappings() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     start_ro = _comm_start_page_ro.get(pwndbg.aglib.arch.name, None)
     if start_ro is None or not pwndbg.aglib.memory.peek(start_ro):
-        return (pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, ptrsize, "[commpage]"),)
+        return (
+            pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, ptrsize, "[commpage]"),
+        )
 
     return (
         pwndbg.lib.memory.Page(start_ro, _comm_max_size, ro_flags, 0, ptrsize, "[commpage]"),

@@ -467,8 +467,7 @@ def vmmap_load(filename) -> None:
                 flags |= pwndbg.aglib.elf.PF_X
 
             page = pwndbg.lib.memory.Page(
-                vaddr, memsz, flags, offset, ptrsize,
-                f"[{section.name}]: {file_basename}"
+                vaddr, memsz, flags, offset, ptrsize, f"[{section.name}]: {file_basename}"
             )
             pages.append(page)
 

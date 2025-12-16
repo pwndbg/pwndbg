@@ -15,11 +15,11 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.lib.cache
-import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search

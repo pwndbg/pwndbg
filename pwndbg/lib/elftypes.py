@@ -34,7 +34,7 @@ from typing import Dict
 from typing import Optional
 from typing import Union
 
-import pwndbg.aglib.ctypes
+import pwndbg.lib.ctypes
 
 Elf32_Addr = ctypes.c_uint32
 Elf32_Half = ctypes.c_uint16
@@ -275,7 +275,7 @@ class constants:
     AT_L3_CACHESHAPE = 37
 
 
-class Elf32_Ehdr(pwndbg.aglib.ctypes.Structure):
+class Elf32_Ehdr(pwndbg.lib.ctypes.Structure):
     _fields_ = [
         ("e_ident", (ctypes.c_ubyte * 16)),
         ("e_type", Elf32_Half),
@@ -294,7 +294,7 @@ class Elf32_Ehdr(pwndbg.aglib.ctypes.Structure):
     ]
 
 
-class Elf64_Ehdr(pwndbg.aglib.ctypes.Structure):
+class Elf64_Ehdr(pwndbg.lib.ctypes.Structure):
     _fields_ = [
         ("e_ident", (ctypes.c_ubyte * 16)),
         ("e_type", Elf64_Half),
@@ -313,7 +313,7 @@ class Elf64_Ehdr(pwndbg.aglib.ctypes.Structure):
     ]
 
 
-class Elf32_Phdr(pwndbg.aglib.ctypes.Structure):
+class Elf32_Phdr(pwndbg.lib.ctypes.Structure):
     _fields_ = [
         ("p_type", Elf32_Word),
         ("p_offset", Elf32_Off),
@@ -326,7 +326,7 @@ class Elf32_Phdr(pwndbg.aglib.ctypes.Structure):
     ]
 
 
-class Elf64_Phdr(pwndbg.aglib.ctypes.Structure):
+class Elf64_Phdr(pwndbg.lib.ctypes.Structure):
     _fields_ = [
         ("p_type", Elf64_Word),
         ("p_flags", Elf64_Word),

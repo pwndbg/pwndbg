@@ -451,8 +451,11 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
                 page.flags = flags
             else:
                 page = pwndbg.lib.memory.Page(
-                    page_addr, pwndbg.lib.memory.PAGE_SIZE, flags, offset + (page_addr - vaddr),
-                    ptrsize
+                    page_addr,
+                    pwndbg.lib.memory.PAGE_SIZE,
+                    flags,
+                    offset + (page_addr - vaddr),
+                    ptrsize,
                 )
                 pages.append(page)
 

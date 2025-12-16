@@ -76,12 +76,12 @@ def tcp(tid: int):
     up into 3 parts because of the length of the line):
     """
     data = pwndbg.aglib.file.get(f"/proc/{tid}/net/tcp").decode()
-    return pwndbg.lib.net.tcp(data)
+    return pwndbg.lib.net.tcp(data, pwndbg.aglib.arch.endian)
 
 
 def tcp6(tid: int):
     data = pwndbg.aglib.file.get(f"/proc/{tid}/net/tcp6").decode()
-    return pwndbg.lib.net.tcp6(data)
+    return pwndbg.lib.net.tcp6(data, pwndbg.aglib.arch.endian)
 
 
 def unix(tid: int):

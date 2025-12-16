@@ -12,7 +12,7 @@ import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.glibc
-from pwndbg.aglib.ctypes import Structure
+from pwndbg.lib.ctypes import Structure
 
 
 def request2size(req: int) -> int:

@@ -962,6 +962,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def _process_vmmap_pages(
         self, pages: List[pwndbg.lib.memory.Page]
     ) -> List[pwndbg.lib.memory.Page]:
+        import pwndbg.aglib
+        import pwndbg.lib.memory
+
         # Do a final, coalescing pass, for identical ranges that are sequential
         # and contiguous to each other in the virtual address space, and join
         # them into a single range.
@@ -971,6 +974,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # identical. This seems to happen because LLDB internally distinguishes
         # between different Mach-O sections. That information, however, is not
         # made reliably available to us.
+        ptrsize: int = pwndbg.aglib.arch.ptrsize
         final_pages: List[pwndbg.lib.memory.Page] = []
         start = None
         end = None
@@ -995,6 +999,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                         target.end - start.start,
                         start.flags,
                         start.offset,
+                        ptrsize,
                         start.objfile,
                         start.in_darwin_shared_cache,
                     )

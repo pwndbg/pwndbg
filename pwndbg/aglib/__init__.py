@@ -11,8 +11,8 @@ for more information.
 
 from __future__ import annotations
 
-from typing import cast
 from typing import TYPE_CHECKING
+from typing import cast
 
 # Since pwndbg.aglib.whatever is a common pattern in the aglib/ files
 # we have to make sure that python can quickly initialize the pwndbg.aglib
@@ -39,9 +39,8 @@ def load_aglib():
     # pwndbg/aglib/ files to access their siblings via
     # `import .memory` instead of `import pwndbg.aglib.memory`
     # we could get rid of this function.
-    
+
     import pwndbg.aglib.argv
-    import pwndbg.aglib.ctypes
     import pwndbg.aglib.dynamic
     import pwndbg.aglib.elf
     import pwndbg.aglib.file

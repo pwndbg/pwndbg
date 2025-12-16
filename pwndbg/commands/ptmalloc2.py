@@ -22,7 +22,6 @@ import pwndbg.color.memory as M
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.glibc
-import pwndbg.lib.heap.helpers
 from pwndbg.aglib.heap import heap_chain_limit
 from pwndbg.aglib.heap.ptmalloc import Arena
 from pwndbg.aglib.heap.ptmalloc import Bins

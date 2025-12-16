@@ -7,6 +7,7 @@ from __future__ import annotations
 import sys
 from typing import Dict
 from typing import Optional
+import pwndbg.dbg_mod
 
 import pwndbg
 
