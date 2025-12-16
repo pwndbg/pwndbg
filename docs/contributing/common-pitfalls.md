@@ -11,14 +11,14 @@ Lets reiterate some of the most important submodules in Pwndbg:
 
 To keep this architecture coherent, maintainable, and prevent import cycles, there are a few things we need to obide by that we see being violated from time to time.
 
-#### Only access pwndbg.lib when in pwndbg/lib
+#### pwndbg/lib/ files should only access pwndbg.lib
 
-The `pwndbg/lib/` files must be importable from anywhere at anytime, they must not depend on any debugger state.
+The `pwndbg/lib/` files must be importable and usable from anywhere at anytime, they must not depend on any debugger state.
 Thus, the only Pwndbg code you should be importing in a `pwndbg/lib` file, is another `pwndbg/lib` file. God forbid you do `import pwndbg.aglib` or use `pwndbg.dbg` **anywhere** in such a file (even in a non-top-level, function import).
 
-#### Don't access aglib in pwndbg/dbg_mod
+#### Don't access aglib in pwndbg/dbg_mod/
 
-The `aglib` depends on `dbg_mod`, not the other way around. No `dbg_mod/` file should have a top-level `aglib`. Further, no `dbg_mod/` file should have an `aglib` import anywhere (even function-level). Currently the second rule is not followed, and stuff works, but lets not make it any worse.
+The `aglib` depends on `dbg_mod`, not the other way around. No `dbg_mod/` file should have a top-level `aglib` import. Further, no `dbg_mod/` file should have an `aglib` import anywhere (even function-level). Currently the second rule is not followed, and stuff works, but lets not make it any worse.
 
 #### Don't import commands
 
