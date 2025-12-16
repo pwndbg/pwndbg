@@ -20,6 +20,7 @@ import pwndbg.chain
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.commands.hexdump
 import pwndbg.glibc
 import pwndbg.lib.heap.helpers
 from pwndbg.aglib.heap import heap_chain_limit
@@ -135,7 +136,7 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
     return result
 
 
-def print_no_arena_found_error(tid=None) -> None:
+def print_no_arena_found_error(tid: int | None = None) -> None:
     if tid is None:
         tid = pwndbg.aglib.proc.thread_id
     print(
@@ -941,10 +942,18 @@ pwndbg.config.add_param(
     "default number of chunks to visualize",
 )
 
+pwndbg.config.add_param(
+    "vis-skip-repeating-val",
+    True,
+    "whether to skip repeating lines in vis command output",
+)
+
 parser = argparse.ArgumentParser(
     description="""Visualize chunks on a heap.
 
-Default to the current arena's active heap.""",
+Default to the current arena's active heap.
+
+Repeated lines can be collapsed by setting 'vis-skip-repeating-val' config (on by default).""",
 )
 group = parser.add_mutually_exclusive_group()
 group.add_argument(
@@ -956,21 +965,28 @@ group.add_argument(
 )
 parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
 parser.add_argument(
-    "--beyond_top",
+    "--beyond-top",
     "-b",
     action="store_true",
     default=False,
     help="Attempt to keep printing beyond the top chunk.",
 )
 parser.add_argument(
-    "--no_truncate",
+    "--no-skip",
+    "-s",
+    action="store_true",
+    default=False,
+    help="Don't skip repeating vals (Ignore the `visp-skip-repeating-val` configuration).",
+)
+parser.add_argument(
+    "--no-truncate",
     "-n",
     action="store_true",
     default=False,
     help="Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration).",
 )
 group.add_argument(
-    "--all_chunks",
+    "--all-chunks",
     "-a",
     action="store_true",
     default=False,
@@ -985,6 +1001,7 @@ group.add_argument(
 def vis_heap_chunks(
     addr: int | None = None,
     count: int | None = None,
+    no_skip: bool = False,
     beyond_top: bool = False,
     no_truncate: bool = False,
     all_chunks: bool = False,
@@ -1107,6 +1124,21 @@ def vis_heap_chunks(
 
     bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
 
+    # For collapsing repeated lines
+    skip_repeating = False if no_skip else pwndbg.config.vis_skip_repeating_val
+    prev_line_content = None
+    repeat_count = 0
+    line_buffer = ""  # Temporary buffer for building current line (holds first cell)
+    saved_line_addr = ""  # Saved address for the current line
+
+    def flush_repeats() -> None:
+        """Add collapse message for accumulated repeated lines."""
+        nonlocal out, repeat_count, prev_line_content
+        if repeat_count > 0:
+            out += f"\n\t... ↓     {repeat_count:>3} repeated lines skipped"
+            repeat_count = 0
+        prev_line_content = None
+
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
 
@@ -1116,6 +1148,10 @@ def vis_heap_chunks(
         # round down to align with 2*ptr_size
         begin_addr = pwndbg.lib.memory.round_down(cursor, ptr_size << 1)
         end_addr = pwndbg.lib.memory.round_down(stop, ptr_size << 1)
+
+        # Reset repeat tracking at chunk boundaries (only if skip_repeating is enabled)
+        if skip_repeating:
+            flush_repeats()
 
         while cursor != stop:
             # skip the middle part of a huge chunk
@@ -1131,13 +1167,15 @@ def vis_heap_chunks(
                 continue
 
             if printed % 2 == 0:
-                out += "\n0x%x" % cursor
+                saved_line_addr = "0x%x" % cursor
 
             data = pwndbg.aglib.memory.read(cursor, ptr_size)
             cell = pwndbg.aglib.arch.unpack(data)
             cell_hex = f"\t0x{cell:0{ptr_size * 2}x}"
 
-            out += color_func(cell_hex)
+            # Temporarily store colored cell_hex
+            colored_cell_hex = color_func(cell_hex)
+
             printed += 1
 
             labels.extend(bin_labels_map.get(cursor, []))
@@ -1145,18 +1183,75 @@ def vis_heap_chunks(
                 labels.append("Top chunk")
                 reached_top = True
 
+            # Build up the cell part (2 cells per line)
             asc += bin_ascii(data)
-            if printed % 2 == 0:
-                out += "\t" + color_func(asc) + ("\t <-- " + ", ".join(labels) if labels else "")
+
+            if printed % 2 == 1:
+                # First cell of the line, just accumulate
+                line_buffer += colored_cell_hex
+            else:
+                # Second cell - complete the line
+                line_label_part = "\t <-- " + ", ".join(labels) if labels else ""
+                colored_asc = color_func(asc)
+
+                # Build complete line content (address + cells + ascii + labels)
+                complete_line = (
+                    ("\n" if out else "")
+                    + saved_line_addr
+                    + line_buffer
+                    + colored_cell_hex
+                    + "\t"
+                    + colored_asc
+                    + line_label_part
+                )
+
+                if skip_repeating:
+                    # When skip_repeating is enabled, check for and collapse repeated lines
+                    # Don't collapse lines with labels (they're important markers)
+                    if not labels:
+                        # Compare just the hex values and ASCII part (exclude address and labels)
+                        current_hex_and_ascii = line_buffer + colored_cell_hex + "\t" + asc
+                        if prev_line_content == current_hex_and_ascii:
+                            # This line repeats the previous one, increment counter
+                            repeat_count += 1
+                        else:
+                            # Different line, flush any accumulated repeats and output this line
+                            flush_repeats()
+                            out += complete_line
+                            prev_line_content = current_hex_and_ascii
+                    else:
+                        # Line has labels, always output it
+                        flush_repeats()
+                        out += complete_line
+                        prev_line_content = None
+                else:
+                    # When skip_repeating is disabled, output every line directly
+                    out += complete_line
+
+                # Reset line building vars
+                line_buffer = ""
                 asc = ""
                 labels = []
 
             cursor += ptr_size
 
+    # Flush any remaining repeats (only matters if skip_repeating is enabled)
+    if skip_repeating:
+        flush_repeats()
+
     if printed % 2 != 0:
-        # Alignment whitespace of ("0x" + "00" * ptr_size) length.
+        # We have an incomplete line with only one cell
+        # Need to add the address, first cell, and padding
         machine_word_string_length = 2 + (2 * ptr_size)
-        out += "\t" + " " * machine_word_string_length + "\t" + color_func(asc)
+        out += (
+            ("\n" if out else "")
+            + saved_line_addr
+            + line_buffer
+            + "\t"
+            + " " * machine_word_string_length
+            + "\t"
+            + color_func(asc)
+        )
 
     print(out)
 
@@ -1177,11 +1272,11 @@ def vis_heap_chunks(
 VALID_CHARS = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
 
 
-def bin_ascii(bs):
+def bin_ascii(bs: bytes | bytearray) -> str:
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
-def bin_labels_mapping(collections):
+def bin_labels_mapping(collections: List[Bins | None]) -> Dict[int, List[str]]:
     """
     Returns all potential bin labels for all potential addresses
     We precompute all of them because doing this on demand was too slow and inefficient
@@ -1248,7 +1343,7 @@ def try_free(addr: str | int) -> None:
 
     ptr_size = pwndbg.aglib.arch.ptrsize
 
-    def unsigned_size(size: int):
+    def unsigned_size(size: int) -> int:
         # read_chunk()['size'] is signed in pwndbg ;/
         # there may be better way to handle that
         if ptr_size < 8:
@@ -1256,7 +1351,7 @@ def try_free(addr: str | int) -> None:
         x = ctypes.c_uint64(size).value
         return x
 
-    def chunksize(chunk_size: int):
+    def chunksize(chunk_size: int) -> int:
         # maybe move this to ptmalloc.py
         return chunk_size & (~7)
 
@@ -1388,7 +1483,7 @@ def try_free(addr: str | int) -> None:
         except pwndbg.dbg_mod.Error as e:
             print(
                 message.error(
-                    f"Can't read next chunk at address 0x{chunk + chunk_size_unmasked:x}, memory error"
+                    f"Can't read next chunk at address 0x{addr + chunk_size_unmasked:x}, memory error"
                 )
             )
             finalize(errors_found, returned_before_error)

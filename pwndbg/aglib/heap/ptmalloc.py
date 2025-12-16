@@ -442,7 +442,7 @@ class Chunk:
 
         return self._is_top_chunk
 
-    def next_chunk(self):
+    def next_chunk(self) -> Chunk | None:
         if self.is_top_chunk:
             return None
 
