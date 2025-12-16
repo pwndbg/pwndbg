@@ -34,9 +34,16 @@ If you look at `pwndbg/aglib/__init__.py` you will see that `arch` is a None-ini
 
 If you look at `pwndbg/aglib/__init__.py` you will see that `regs` is a None-initialized object and gets swapped out during initialization. To use it properly you must do `aglib.regs.whatever()`.
 
-#### No `class module` magic
+#### No `module` magic
 
 If you think you need a `class module`, you don't. Any amount of convenience you gain by that is dwarfed by the pain you bring to readability, maintainability, type system processing, LSP analysis etc.
+
+The same goes for
+```python
+module = sys.modules[__name__]
+module.my_cool_thing = 42
+```
+. This is bad. Don't do this.
 
 #### Don't name the object the same as the file
 
