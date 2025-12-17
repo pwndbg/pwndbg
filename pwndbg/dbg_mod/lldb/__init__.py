@@ -28,8 +28,10 @@ from typing_extensions import override
 
 import pwndbg
 import pwndbg.color.message as M
+import pwndbg.dbg_mod
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
+from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
@@ -1913,7 +1915,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     # We keep track of all installed event handlers here. The REPL will trigger
     # them by means of the `_trigger_event()` method.
-    event_handlers: Dict[pwndbg.dbg_mod.EventType, List[Callable[..., T]]]
+    event_handlers: Dict[
+        pwndbg.dbg_mod.EventType, Dict[EventHandlerPriority, List[Callable[..., None]]]
+    ]
 
     # Event types may be suspended. We keep track of that here.
     suspended_events: Dict[pwndbg.dbg_mod.EventType, bool]
@@ -2188,14 +2192,17 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def event_handler(
-        self, ty: pwndbg.dbg_mod.EventType
-    ) -> Callable[[Callable[..., T]], Callable[..., T]]:
-        def decorator(fn: Callable[..., T]) -> Callable[..., T]:
-            if ty not in self.event_handlers:
-                self.event_handlers[ty] = []
+        self,
+        event_type: pwndbg.dbg_mod.EventType,
+        priority: EventHandlerPriority = EventHandlerPriority.STANDARD,
+    ) -> Callable[[Callable[..., None]], Callable[..., None]]:
+        def decorator(fn: Callable[..., None]) -> Callable[..., None]:
+            if event_type not in self.event_handlers:
+                self.event_handlers[event_type] = {priority: []}
+            elif priority not in self.event_handlers[event_type]:
+                self.event_handlers[event_type][priority] = []
 
-            # [...] incompatible type "Callable[..., T]"; expected "Callable[..., T]"
-            self.event_handlers[ty].append(fn)  # type: ignore[arg-type]
+            self.event_handlers[event_type][priority].append(fn)
             return fn
 
         return decorator
@@ -2233,14 +2240,19 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             # This event has been suspended.
             return
 
-        for handler in self.event_handlers[ty]:
-            try:
-                handler()
-            except Exception as e:
-                from pwndbg.exception import handle as pwndbg_exception
+        # Run the handlers in order of their priority.
+        # We should optimize this by using a Dict[EventType, List[Tuple[EventHandlerPriority, Callable[..., None]]]]
+        # type for self.event_handlers, and sort it only once after everything is registered.
+        for prio in EventHandlerPriority:
+            handlers = self.event_handlers[ty].get(prio, [])
+            for handler in handlers:
+                try:
+                    handler()
+                except Exception as e:
+                    from pwndbg.exception import handle as pwndbg_exception
 
-                pwndbg_exception()
-                raise e
+                    pwndbg_exception()
+                    raise e
 
     @override
     def set_sysroot(self, sysroot: str) -> bool:

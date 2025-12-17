@@ -1,0 +1,1 @@
+set debug-events on

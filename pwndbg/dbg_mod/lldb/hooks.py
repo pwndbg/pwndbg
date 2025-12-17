@@ -12,6 +12,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
+from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod.lldb import LLDB
 from pwndbg.lib.cache import CacheUntilEvent
@@ -63,6 +64,7 @@ pwndbg.lib.cache.connect_clear_caching_events(
         CacheUntilEvent.PROMPT: (),
         CacheUntilEvent.FOREVER: (),
     },
+    priority=EventHandlerPriority.CACHE_CLEAR,
 )
 
 # As we don't have support for MEMORY_CHANGED, REGISTER_CHANGED, or NEW_THREAD

@@ -1087,6 +1087,24 @@ class EventType(Enum):
     `objfile`s."""
 
 
+class EventHandlerPriority(Enum):
+    """
+    Determines the order in which event handlers are called when
+    a given event is triggered.
+    """
+
+    # If you wish to add another priority, feel free to. Prefer descriptive names
+    # like "CACHE_CLEAR" to something generic like "LOW" or "HIGH" which doesn't
+    # make it obvious which handlers are registered with this priority.
+    # Make sure that the values are defined in increasing order!!
+    # (https://docs.python.org/3/library/enum.html#enum.EnumType.__iter__)
+    CACHE_CLEAR = 0
+    """The first thing we want to do is clear the cache, so we aren't working on stale
+    data."""
+    STANDARD = 100
+    """The default value."""
+
+
 class Debugger:
     """
     The base class representing a debugger.
@@ -1167,11 +1185,18 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def event_handler(self, ty: EventType) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    def event_handler(
+        self, event_type: EventType, priority: EventHandlerPriority = EventHandlerPriority.STANDARD
+    ) -> Callable[[Callable[..., None]], Callable[..., None]]:
         """
         Sets up the given function to be called when an event of the given type
         gets fired. Returns a callable that corresponds to the wrapped function.
-        This function my be used as a decorator.
+        The wrapped function must return None.
+
+        You may control the order in which the handlers for a specific event will
+        be called by setting the `priority` argument.
+
+        This function may be used as a decorator.
         """
         raise NotImplementedError()
 

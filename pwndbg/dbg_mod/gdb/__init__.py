@@ -24,10 +24,12 @@ from typing_extensions import Set
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.memory
 from pwndbg.aglib import load_aglib
+from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
@@ -1688,24 +1690,26 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def event_handler(
-        self, ty: pwndbg.dbg_mod.EventType
-    ) -> Callable[[Callable[..., T]], Callable[..., T]]:
+        self,
+        event_type: pwndbg.dbg_mod.EventType,
+        priority: EventHandlerPriority = EventHandlerPriority.STANDARD,
+    ) -> Callable[[Callable[..., None]], Callable[..., None]]:
         # Make use of the existing gdblib event handlers.
-        if ty == pwndbg.dbg_mod.EventType.EXIT:
+        if event_type == pwndbg.dbg_mod.EventType.EXIT:
             return pwndbg.gdblib.events.exit
-        elif ty == pwndbg.dbg_mod.EventType.CONTINUE:
+        elif event_type == pwndbg.dbg_mod.EventType.CONTINUE:
             return pwndbg.gdblib.events.cont
-        elif ty == pwndbg.dbg_mod.EventType.START:
+        elif event_type == pwndbg.dbg_mod.EventType.START:
             return pwndbg.gdblib.events.start
-        elif ty == pwndbg.dbg_mod.EventType.STOP:
+        elif event_type == pwndbg.dbg_mod.EventType.STOP:
             return pwndbg.gdblib.events.stop
-        elif ty == pwndbg.dbg_mod.EventType.NEW_MODULE:
+        elif event_type == pwndbg.dbg_mod.EventType.NEW_MODULE:
             return pwndbg.gdblib.events.new_objfile
-        elif ty == pwndbg.dbg_mod.EventType.MEMORY_CHANGED:
+        elif event_type == pwndbg.dbg_mod.EventType.MEMORY_CHANGED:
             return pwndbg.gdblib.events.mem_changed
-        elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
+        elif event_type == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
             return pwndbg.gdblib.events.reg_changed
-        elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
+        elif event_type == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
             raise RuntimeError("invalid usage, this event is not supported")
 
     @override

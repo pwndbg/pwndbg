@@ -9,8 +9,6 @@ from __future__ import annotations
 import sys
 from collections import defaultdict
 from collections import deque
-from enum import Enum
-from enum import auto
 from functools import partial
 from functools import wraps
 from typing import Any
@@ -26,6 +24,7 @@ from typing_extensions import ParamSpec
 import pwndbg
 from pwndbg import config
 from pwndbg.color import message
+from pwndbg.dbg_mod import EventHandlerPriority
 
 DISABLED = "disabled"
 DISABLED_DEADLOCK = "disabled-deadlock"
@@ -248,18 +247,9 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
     return _inner_handler
 
 
-class HandlerPriority(Enum):
-    """
-    A priority level for an event handler, ordered from highest to lowest priority.
-    """
-
-    CACHE_CLEAR = auto()
-    LOW = auto()
-
-
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-registered: Dict[Any, Dict[HandlerPriority, List[Callable[..., Any]]]] = {
+registered: Dict[Any, Dict[EventHandlerPriority, List[Callable[..., None]]]] = {
     gdb.events.exited: {},
     gdb.events.cont: {},
     gdb.events.new_objfile: {},
@@ -288,11 +278,11 @@ def unpause(event_registry) -> None:
 
 
 def connect(
-    func: Callable[[], T],
+    func: Callable[[], None],
     event_handler: Any,
     name: str = "",
-    priority: HandlerPriority = HandlerPriority.LOW,
-) -> Callable[[], T]:
+    priority: EventHandlerPriority = EventHandlerPriority.STANDARD,
+) -> Callable[[], None]:
     if debug:
         print("Connecting", func.__name__, event_handler)
 
@@ -302,7 +292,7 @@ def connect(
             return None
 
         if debug:
-            sys.stdout.write(f"{name!r} {func.__module__}.{func.__name__} {a!r}\n")
+            sys.stdout.write(f"{name!r} ({priority.name}) {func.__module__}.{func.__name__} {a!r}\n")
 
         try:
             # Don't pass the event along to the decorated function.
@@ -324,39 +314,39 @@ def connect(
     return func
 
 
-def exit(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+def exit(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
     return connect(func, gdb.events.exited, "exit", **kwargs)
 
 
-def cont(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+def cont(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
     return connect(func, gdb.events.cont, "cont", **kwargs)
 
 
-def new_objfile(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+def new_objfile(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
     return connect(func, gdb.events.new_objfile, "obj", **kwargs)
 
 
-def stop(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+def stop(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
     return connect(func, gdb.events.stop, "stop", **kwargs)
 
 
-def start(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+def start(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
     return connect(func, gdb.events.start, "start", **kwargs)
 
 
-def thread(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+def thread(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
     return connect(func, gdb.events.new_thread, "thread", **kwargs)
 
 
-def before_prompt(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+def before_prompt(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
     return connect(func, gdb.events.before_prompt, "before_prompt", **kwargs)
 
 
-def reg_changed(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+def reg_changed(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
     return connect(func, gdb.events.register_changed, "reg_changed", **kwargs)
 
 
-def mem_changed(func: Callable[[], T], **kwargs: Any) -> Callable[[], T]:
+def mem_changed(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
     return connect(func, gdb.events.memory_changed, "mem_changed", **kwargs)
 
 
@@ -378,7 +368,7 @@ gdb.events.new_objfile.connect(log_objfiles)
 def invoke_event(event: Any, *args: Any, **kwargs: Any) -> None:
     handlers = registered.get(event)
     if handlers is not None:
-        for prio in HandlerPriority:
+        for prio in EventHandlerPriority:
             for f in handlers.get(prio, []):
                 f(*args, **kwargs)
 

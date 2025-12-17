@@ -9,6 +9,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
 import pwndbg.gdblib.events
+from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 
 # TODO: Combine these `update_*` hook callbacks into one method
@@ -90,7 +91,7 @@ pwndbg.lib.cache.connect_clear_caching_events(
         CacheUntilEvent.PROMPT: (pwndbg.gdblib.events.before_prompt,),
         CacheUntilEvent.FOREVER: (),
     },
-    priority=pwndbg.gdblib.events.HandlerPriority.CACHE_CLEAR,
+    priority=EventHandlerPriority.CACHE_CLEAR,
 )
 
 
