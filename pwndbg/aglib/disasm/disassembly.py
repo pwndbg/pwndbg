@@ -72,9 +72,6 @@ next_addresses_cache: Set[int] = set()
 # Register GDB event listeners for all stop events
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
-    # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.aglib.regs.read_reg.cache.clear()
-
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
