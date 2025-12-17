@@ -14,8 +14,6 @@ controller tests.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from .... import host
@@ -26,14 +24,14 @@ from . import pwndbg_test
 
 @pytest.mark.xfail
 def test_starts_no_decorator_xfail() -> None:
-    async def run(ctrl: Controller) -> None:
+    async def run(ctrl: Controller):
         raise RuntimeError("should fail!")
 
     host.start(run)
 
 
 def test_starts_no_decorator() -> None:
-    async def run(ctrl: Controller) -> None:
+    async def run(ctrl: Controller):
         pass
 
     host.start(run)
@@ -58,7 +56,7 @@ async def test_launch(ctrl: Controller) -> None:
     import pwndbg
     import pwndbg.aglib.typeinfo
 
-    await ctrl.launch(Path(get_binary("reference-binary.native.out")))
+    await ctrl.launch(get_binary("memory.x86-64.out"))
 
     inf = pwndbg.dbg.selected_inferior()
     addr = inf.lookup_symbol("short_str")
