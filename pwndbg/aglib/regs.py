@@ -23,6 +23,7 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.proc
 import pwndbg.aglib.remote
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.dbg_mod import EventType
 from pwndbg.lib.regs import BitFlags
@@ -37,19 +38,8 @@ def regs_in_frame(frame: pwndbg.dbg_mod.Frame) -> pwndbg.dbg_mod.Registers:
 
 
 @pwndbg.aglib.proc.OnlyWhenRunning
-def get_register(
-    name: str, frame: pwndbg.dbg_mod.Frame | None = None
-) -> pwndbg.dbg_mod.Value | None:
-    if frame is None:
-        frame = pwndbg.dbg.selected_frame()
-        if frame is None:
-            # `read_reg` will return None when it catches this exception. This
-            # mirrors how a `gdb.error` causes `read_reg` to return `None` in
-            # gdblib when no frame is selected.
-            raise pwndbg.dbg_mod.Error("No currently selected frame to read registers from")
-
+def get_register(name: str, frame: pwndbg.dbg_mod.Frame) -> pwndbg.dbg_mod.Value | None:
     regs = regs_in_frame(frame)
-
     value = regs.by_name(name)
     return value if value is not None else regs.by_name(name.upper())
 
@@ -101,20 +91,7 @@ class module(ModuleType):
     previous: Dict[str, int] = {}
     last: Dict[str, int] = {}
 
-    @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def read_reg(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
-        """
-        Query the underlying debugger for the value of a register.
-
-        Note that in some rare cases, debuggers won't directly expose the values of some special model specific registers.
-        Although we can sometimes determine these by other indirect means, this function does not run any extra logic to handle these special cases.
-
-        Specifically, if you need to ensure you are reading the correct value of "gs", "fs", "idt", or "idt_limit", use
-        the specific helpers functions on the regs module as necessary to determine the values.
-        """
-        return self.read_reg_uncached(reg, frame)
-
-    def read_reg_uncached(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
+    def read_reg_uncached_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame) -> int | None:
         reg = reg.lstrip("$")
         try:
             value = get_register(reg, frame)
@@ -138,6 +115,39 @@ class module(ModuleType):
             return int(value) & mask
         except (ValueError, pwndbg.dbg_mod.Error):
             return None
+
+    def read_reg_uncached(self, reg: str) -> int | None:
+        frame = pwndbg.dbg.selected_frame()
+        if frame is None:
+            return None
+        return self.read_reg_uncached_in_frame(reg, frame)
+
+    @pwndbg.lib.cache.cache_until("stop")
+    def read_reg_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame) -> int | None:
+        """
+        Same as read_reg() except for the provided frame, rather than the currently
+        selected frame.
+        """
+        return self.read_reg_uncached_in_frame(reg, frame)
+
+    def read_reg(self, reg: str) -> int | None:
+        """
+        Query the underlying debugger for the value of a register.
+
+        Note that in some rare cases, debuggers won't directly expose the values of some special model specific registers.
+        Although we can sometimes determine these by other indirect means, this function does not run any extra logic to handle these special cases.
+
+        Specifically, if you need to ensure you are reading the correct value of "gs", "fs", "idt", or "idt_limit", use
+        the specific helpers functions on the regs module as necessary to determine the values.
+
+        Use read_reg_in_frame() if you have a `frame` object, its faster.
+        """
+        # Adding a cache_until decorator to read_reg() is semantically incorrect since it will return
+        # the same register value even if the frame changes.
+        frame = pwndbg.dbg.selected_frame()
+        if frame is None:
+            return None
+        return self.read_reg_in_frame(reg, frame)
 
     def write_reg(self, reg: str, value: int) -> None:
         if not pwndbg.dbg.selected_frame().reg_write(reg, value):
@@ -267,7 +277,10 @@ class module(ModuleType):
         Requires ptrace'ing the child directory if i386."""
 
         if pwndbg.aglib.arch.name == "x86-64":
-            reg_value = get_register(regname)
+            frame = pwndbg.dbg.selected_frame()
+            if frame is None:
+                return 0
+            reg_value = get_register(regname, frame)
             return int(reg_value) if reg_value is not None else 0
 
         # We can't really do anything if the process is remote.

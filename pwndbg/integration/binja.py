@@ -598,7 +598,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     def get_stack_var_name(self, addr: int) -> str | None:
         cur = pwndbg.dbg.selected_frame()
         # there is no earlier frame so we give up
-        if addr < pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack, frame=cur):
+        if addr < pwndbg.aglib.regs.read_reg_in_frame(pwndbg.aglib.regs.stack, cur):
             return None
         newest = True
         # try to find the oldest frame that's earlier than the address
@@ -607,7 +607,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             if upper is None:
                 break
 
-            upper_sp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack, frame=upper)
+            upper_sp = pwndbg.aglib.regs.read_reg_in_frame(pwndbg.aglib.regs.stack, upper)
             if upper_sp > addr:
                 break
 
@@ -617,7 +617,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         regs = [
             (name, val)
             for name in pwndbg.aglib.regs.common
-            if (val := pwndbg.aglib.regs.read_reg(name, frame=cur)) is not None
+            if (val := pwndbg.aglib.regs.read_reg_in_frame(name, cur)) is not None
         ]
         # put stack pointer and frame pointer at the front
         regs.sort(
