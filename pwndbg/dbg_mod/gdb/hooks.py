@@ -8,6 +8,7 @@ import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
+import pwndbg.dbg_mod
 import pwndbg.gdblib.events
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
@@ -87,6 +88,7 @@ def on_start() -> None:
 @pwndbg.dbg.event_handler(EventType.STOP)
 def on_stop() -> None:
     pwndbg.aglib.strings.update_length()
+    pwndbg.dbg_mod.number_of_stops_since_birth += 1
 
 
 @pwndbg.dbg.event_handler(EventType.EXIT)

@@ -309,6 +309,32 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         # https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.idx
         return self.inner.idx
 
+    @override
+    def __hash__(self) -> int:
+        # There is a GetFrameID API [1], but it isn't really documented
+        # and looking at its implementation [2] does not fill me with confidence.
+        # Looking at the SBFrame equality check [3], it uses StackFrame.GetStackID()
+        # [4] which updates and returns StackFrame.m_id the comparison of which is
+        # implemented here [5]. But I don't see how it guarantees that two frames at
+        # the same stack and pc but at different times will be different. Maybe it
+        # just doesn't?
+        # In any case the StackID class doesn't expose an integer, so we are rolling
+        # our own thing.
+        # [1] https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.GetFrameID
+        # [2] https://github.com/llvm/llvm-project/blob/1deee91bf52ca15e47b59a2929e5e5a323f4864c/lldb/source/API/SBFrame.cpp#L255
+        # [3] https://github.com/llvm/llvm-project/blob/1deee91bf52ca15e47b59a2929e5e5a323f4864c/lldb/source/API/SBFrame.cpp#L585
+        # [4] https://github.com/llvm/llvm-project/blob/1deee91bf52ca15e47b59a2929e5e5a323f4864c/lldb/source/Target/StackFrame.cpp#L154
+        # [5] https://github.com/llvm/llvm-project/blob/1deee91bf52ca15e47b59a2929e5e5a323f4864c/lldb/source/Target/StackID.cpp#L53
+        # I think a (number of stops, thread index, frame index) tuple uniquely identifies a stack frame.
+        # There probably won't be >= 65,536 stack frames in a thread stack, or
+        # >= 65,536 threads in a process.
+        # We cut off int values larger than 64 bits so python can hopefully optimize this a bit.
+        return (
+            self.idx()
+            + (self.inner.thread.idx << 16)
+            + (pwndbg.dbg_mod.number_of_stops_since_birth << 32)
+        ) & 0xFFFFFFFFFFFFFFFF
+
 
 class LLDBThread(pwndbg.dbg_mod.Thread):
     inner: lldb.SBThread

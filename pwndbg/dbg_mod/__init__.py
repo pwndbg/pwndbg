@@ -27,6 +27,9 @@ dbg: Debugger = None
 
 T = TypeVar("T")
 
+# Increased by one on every stop event.
+number_of_stops_since_birth: int = 0
+
 
 @contextlib.contextmanager
 def selection(target: T, get_current: Callable[[], T], select: Callable[[T], None]):
@@ -285,6 +288,15 @@ class Frame:
         The index of this stack frame on the thread's stack. Index zero is the most
         fresh frame.
         """
+        raise NotImplementedError()
+
+    def __hash__(self) -> int:
+        """
+        The hash value of this stack frame. Needs to guarantee uniqueness both within
+        a stop and *accross time* so caches can work properly.
+        """
+        # Looking at how the debugger implements the frame equality check can help you
+        # figure this out.
         raise NotImplementedError()
 
 

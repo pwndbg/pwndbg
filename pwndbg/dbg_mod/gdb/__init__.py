@@ -255,6 +255,18 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python:~:text=Frame%2Elevel
         return self.inner.level()
 
+    @override
+    def __hash__(self) -> int:
+        # GDB implements the equality comparison in gdb/python/py-frame.c:frapy_richcompare()
+        # Unfortunately it doesn't expose frame_id and frame_id_is_next.
+        # Thus, we are rolling our own hash (see the LLDB implementation as well).
+        # Since GDB doesn't provide us with a way to get the thread id, we're just going to use the
+        # the SP (with a bit cut off the top :p) because it should be unique between threads.
+        # FIXME: self.sp() might be slow, can we do something better?
+        return (
+            self.idx() + (pwndbg.dbg_mod.number_of_stops_since_birth << 16) + (self.sp() << 32)
+        ) & 0xFFFFFFFFFFFFFFFF
+
 
 class GDBThread(pwndbg.dbg_mod.Thread):
     def __init__(self, inner: gdb.InferiorThread):
