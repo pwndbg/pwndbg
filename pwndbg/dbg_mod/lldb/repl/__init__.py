@@ -174,22 +174,22 @@ class EventRelay(EventHandler):
     there's a bit of work we have to do to properly convey certain events.
     """
 
-    def __init__(self, dbg: LLDB):
+    def __init__(self, dbg: LLDB) -> None:
         self.dbg = dbg
         self.ignore_resumed = 0
 
-    def _set_ignore_resumed(self, count: int):
+    def _set_ignore_resumed(self, count: int) -> None:
         """
         Don't relay next given number of resumed events.
         """
         self.ignore_resumed += count
 
     @override
-    def created(self):
+    def created(self) -> None:
         self.dbg._trigger_event(EventType.START)
 
     @override
-    def suspended(self, event: lldb.SBEvent):
+    def suspended(self, event: lldb.SBEvent) -> None:
         # The event might have originated from a different source than the user
         # currently has selected. Move focus to the where the event happened.
         #
@@ -211,7 +211,7 @@ class EventRelay(EventHandler):
         self.dbg._trigger_event(EventType.STOP)
 
     @override
-    def resumed(self):
+    def resumed(self) -> None:
         if self.ignore_resumed > 0:
             self.ignore_resumed -= 1
             return
@@ -219,11 +219,11 @@ class EventRelay(EventHandler):
         self.dbg._trigger_event(EventType.CONTINUE)
 
     @override
-    def exited(self):
+    def exited(self) -> None:
         self.dbg._trigger_event(EventType.EXIT)
 
     @override
-    def modules_loaded(self):
+    def modules_loaded(self) -> None:
         self.dbg._trigger_event(EventType.NEW_MODULE)
 
 
