@@ -23,7 +23,6 @@ import gdb
 from typing_extensions import ParamSpec
 
 import pwndbg
-import pwndbg.dbg_mod.gdb
 import pwndbg.lib.config
 from pwndbg import config
 from pwndbg.color import message
@@ -32,8 +31,6 @@ from pwndbg.dbg_mod import EventHandlerPriority
 DISABLED = "disabled"
 DISABLED_DEADLOCK = "disabled-deadlock"
 ENABLED = "enabled"
-
-debug = config.add_param("debug-events", False, "display internal event debugging info")
 
 gdb_workaround_stop_event = config.add_param(
     "gdb-workaround-stop-event",
@@ -293,7 +290,7 @@ def event_handler_factory(
     def decorator(fn: Callable[..., None]) -> Callable[..., None]:
         # This is only executed once.
 
-        if debug:
+        if pwndbg.config.dev_debug_events:
             print("Connecting", fn.__name__, event_name)
 
         should_connect: bool = False
@@ -305,9 +302,9 @@ def event_handler_factory(
         # Wrap the function for dev instrumentation
         @functools.wraps(fn)
         def _dev_wrapper(*a, **kw) -> None:
-            if debug:
+            if pwndbg.config.dev_debug_events:
                 sys.stdout.write(
-                    f"{event_name} ({priority.name}) {fn.__module__}.{fn.__name__} {a!r}\n"
+                    f"{event_name} ({priority.name}) {fn.__module__}.{fn.__qualname__}\n"
                 )
 
             return fn(*a, **kw)
@@ -331,7 +328,7 @@ def event_handler_factory(
 
 
 def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
-    if not (debug and ofile):
+    if not (pwndbg.config.dev_debug_events and ofile):
         return None
 
     name = ofile.new_objfile.filename

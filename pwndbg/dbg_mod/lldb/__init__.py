@@ -3,6 +3,7 @@ from __future__ import annotations
 import bisect
 import collections
 import enum
+import functools
 import os
 import random
 import re
@@ -2202,14 +2203,26 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         # not a decorator itself - it returns a decorator which is then
         # immediately applied to the function.
         def decorator(fn: Callable[..., None]) -> Callable[..., None]:
-            # This is only executed once.
+            if pwndbg.config.dev_debug_events:
+                print("Connecting", fn.__name__, event_type.name)
+
             if event_type not in self.event_handlers:
                 self.event_handlers[event_type] = {priority: []}
             elif priority not in self.event_handlers[event_type]:
                 self.event_handlers[event_type][priority] = []
 
-            self.event_handlers[event_type][priority].append(fn)
-            return fn
+            # Wrap the function for dev instrumentation
+            @functools.wraps(fn)
+            def _dev_wrapper(*a, **kw) -> None:
+                if pwndbg.config.dev_debug_events:
+                    sys.stdout.write(
+                        f"{event_type.name} ({priority.name}) {fn.__module__}.{fn.__qualname__}\n"
+                    )
+
+                return fn(*a, **kw)
+
+            self.event_handlers[event_type][priority].append(_dev_wrapper)
+            return _dev_wrapper
 
         return decorator
 
