@@ -250,6 +250,11 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
         return self.inner == other.inner
 
+    @override
+    def idx(self) -> int:
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python:~:text=Frame%2Elevel
+        return self.inner.level()
+
 
 class GDBThread(pwndbg.dbg_mod.Thread):
     def __init__(self, inner: gdb.InferiorThread):

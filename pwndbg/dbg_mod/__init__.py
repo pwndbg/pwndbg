@@ -172,6 +172,16 @@ class SymbolLookupType(Enum):
 
 
 class Frame:
+    """
+    A lightweight object referencing a stack frame in a given thread.
+
+    It does not hold state, it allows us to ask the debugger for state
+    (registers, symbols etc.) associated with this stack frame.
+
+    This is a very short-lived object and easily becomes invalid so do not
+    store it, and especially not between debugger stops.
+    """
+
     def lookup_symbol(
         self,
         name: str,
@@ -267,6 +277,13 @@ class Frame:
         Whether this frame is the same as the given frame. Two frames are the
         same if they point to the same stack frame and have the same execution
         context.
+        """
+        raise NotImplementedError()
+
+    def idx(self) -> int:
+        """
+        The index of this stack frame on the thread's stack. Index zero is the most
+        fresh frame.
         """
         raise NotImplementedError()
 

@@ -304,6 +304,11 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
 
         return self.inner == other.inner
 
+    @override
+    def idx(self) -> int:
+        # https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.idx
+        return self.inner.idx
+
 
 class LLDBThread(pwndbg.dbg_mod.Thread):
     inner: lldb.SBThread
