@@ -328,12 +328,14 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         # I think a (number of stops, thread index, frame index) tuple uniquely identifies a stack frame.
         # There probably won't be >= 65,536 stack frames in a thread stack, or
         # >= 65,536 threads in a process.
-        # We cut off int values larger than 64 bits so python can hopefully optimize this a bit.
+        # The `pwndbg.dbg_mod.number_of_stops_since_birth` part might not be necessary, because
+        # if you are comparing frames from different stops that means your code is buggy; but it
+        # lets me sleep at night better.
         return (
             self.idx()
             + (self.inner.thread.idx << 16)
             + (pwndbg.dbg_mod.number_of_stops_since_birth << 32)
-        ) & 0xFFFFFFFFFFFFFFFF
+        )
 
 
 class LLDBThread(pwndbg.dbg_mod.Thread):
