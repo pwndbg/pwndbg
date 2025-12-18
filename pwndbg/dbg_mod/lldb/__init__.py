@@ -2259,19 +2259,19 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             # This event has been suspended.
             return
 
-        # Run the handlers in order of their priority.
-        # We should optimize this by using a Dict[EventType, List[Tuple[EventHandlerPriority, Callable[..., None]]]]
-        # type for self.event_handlers, and sort it only once after everything is registered.
-        for prio in EventHandlerPriority:
-            handlers = self.event_handlers[ty].get(prio, [])
-            for handler in handlers:
-                try:
+        try:
+            # Run the handlers in order of their priority.
+            # We should optimize this by using a Dict[EventType, List[Tuple[EventHandlerPriority, Callable[..., None]]]]
+            # type for self.event_handlers, and sort it only once after everything is registered.
+            for prio in EventHandlerPriority:
+                handlers = self.event_handlers[ty].get(prio, [])
+                for handler in handlers:
                     handler()
-                except Exception as e:
-                    from pwndbg.exception import handle as pwndbg_exception
+        except Exception as e:
+            from pwndbg.exception import handle as pwndbg_exception
 
-                    pwndbg_exception()
-                    raise e
+            pwndbg_exception()
+            raise e
 
     @override
     def set_sysroot(self, sysroot: str) -> bool:
