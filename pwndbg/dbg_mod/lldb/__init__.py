@@ -1983,7 +1983,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         pwndbg.commands.comments.init()
 
-        import pwndbg.dbg_mod.lldb.hooks
+        # Register event hooks.
+        # (We can't do them in this file because pwndbg.dbg isn't initialized yet.)
+        from pwndbg.dbg_mod.lldb import hooks as hooks
 
     def relay_exceptions(self) -> None:
         """
@@ -2196,7 +2198,11 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         event_type: pwndbg.dbg_mod.EventType,
         priority: EventHandlerPriority = EventHandlerPriority.STANDARD,
     ) -> Callable[[Callable[..., None]], Callable[..., None]]:
+        # Note that event_handler is actually a decorator factory and
+        # not a decorator itself - it returns a decorator which is then
+        # immediately applied to the function.
         def decorator(fn: Callable[..., None]) -> Callable[..., None]:
+            # This is only executed once.
             if event_type not in self.event_handlers:
                 self.event_handlers[event_type] = {priority: []}
             elif priority not in self.event_handlers[event_type]:

@@ -28,8 +28,8 @@ import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.memory
-from pwndbg.aglib import load_aglib
 from pwndbg.dbg_mod import EventHandlerPriority
+from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import selection
 from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
@@ -187,6 +187,8 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def reg_write(self, name: str, val: int) -> bool:
+        import pwndbg.aglib
+
         if name not in pwndbg.aglib.regs:
             return False
 
@@ -289,32 +291,7 @@ class GDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
 BPWP_DEFERRED_DELETE: Set[GDBStopPoint] = set()
 BPWP_DEFERRED_ENABLE: Set[GDBStopPoint] = set()
 BPWP_DEFERRED_DISABLE: Set[GDBStopPoint] = set()
-
-
-@pwndbg.gdblib.events.stop
-def _bpwp_process_deferred():
-    for to_enable in BPWP_DEFERRED_ENABLE:
-        to_enable.inner.enabled = True
-    for to_disable in BPWP_DEFERRED_DISABLE:
-        to_disable.inner.enabled = False
-    for to_delete in BPWP_DEFERRED_DELETE:
-        to_delete.inner.delete()
-    _bpwp_clear_deferred()
-
-
-@pwndbg.gdblib.events.start
-@pwndbg.gdblib.events.exit
-def _bpwp_clear_deferred():
-    for elem in BPWP_DEFERRED_DELETE:
-        elem._clear()
-    for elem in BPWP_DEFERRED_ENABLE:
-        elem._clear()
-    for elem in BPWP_DEFERRED_DISABLE:
-        elem._clear()
-
-    BPWP_DEFERRED_DELETE.clear()
-    BPWP_DEFERRED_ENABLE.clear()
-    BPWP_DEFERRED_DISABLE.clear()
+# See pwndbg/dbg_mod/gdb/hooks.py !
 
 
 class BreakpointAdapter(gdb.Breakpoint):
@@ -1359,15 +1336,15 @@ class GDBValue(pwndbg.dbg_mod.Value):
             raise pwndbg.dbg_mod.Error(e)
 
 
-def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
+def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]:
     """
-    Returns the GDB event class that corresponds to the given event type.
+    Returns the GDB event registry that corresponds to the given event type.
     """
-    if ty == pwndbg.dbg_mod.EventType.EXIT:
+    if ty == EventType.EXIT:
         return gdb.events.exited
-    elif ty == pwndbg.dbg_mod.EventType.CONTINUE:
+    elif ty == EventType.CONTINUE:
         return gdb.events.cont
-    elif ty == pwndbg.dbg_mod.EventType.START:
+    elif ty == EventType.START:
         # Pwndbg installs this one when it loads the GDB event support module.
         #
         # We should never run this function before it gets loaded, but, if this
@@ -1377,15 +1354,15 @@ def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
             gdb.events, "start"
         ), "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
         return gdb.events.start
-    elif ty == pwndbg.dbg_mod.EventType.STOP:
+    elif ty == EventType.STOP:
         return gdb.events.stop
-    elif ty == pwndbg.dbg_mod.EventType.NEW_MODULE:
+    elif ty == EventType.NEW_MODULE:
         return gdb.events.new_objfile
-    elif ty == pwndbg.dbg_mod.EventType.MEMORY_CHANGED:
+    elif ty == EventType.MEMORY_CHANGED:
         return gdb.events.memory_changed
-    elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
+    elif ty == EventType.REGISTER_CHANGED:
         return gdb.events.register_changed
-    elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
+    elif ty == EventType.SUSPEND_ALL:
         assert hasattr(
             gdb.events, "suspend_all"
         ), "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
@@ -1456,11 +1433,16 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         pwnlib.update.disabled = True
 
+        from pwndbg.aglib import load_aglib
         from pwndbg.commands import load_commands
 
         load_gdblib()
         load_aglib()
         load_commands()
+
+        # Register event hooks.
+        # (We can't do them in this file because pwndbg.dbg isn't initialized yet.)
+        from pwndbg.dbg_mod.gdb import hooks as hooks
 
         # Importing `pwndbg.gdblib.prompt` ends up importing code that has the
         # side effect of setting a command up. Because command setup requires
@@ -1684,33 +1666,23 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return True
 
     @override
-    def has_event_type(self, ty: pwndbg.dbg_mod.EventType) -> bool:
+    def has_event_type(self, ty: EventType) -> bool:
         # Currently GDB supports all event types.
         return True
 
     @override
     def event_handler(
         self,
-        event_type: pwndbg.dbg_mod.EventType,
+        event_type: EventType,
         priority: EventHandlerPriority = EventHandlerPriority.STANDARD,
     ) -> Callable[[Callable[..., None]], Callable[..., None]]:
-        # Make use of the existing gdblib event handlers.
-        if event_type == pwndbg.dbg_mod.EventType.EXIT:
-            return pwndbg.gdblib.events.exit
-        elif event_type == pwndbg.dbg_mod.EventType.CONTINUE:
-            return pwndbg.gdblib.events.cont
-        elif event_type == pwndbg.dbg_mod.EventType.START:
-            return pwndbg.gdblib.events.start
-        elif event_type == pwndbg.dbg_mod.EventType.STOP:
-            return pwndbg.gdblib.events.stop
-        elif event_type == pwndbg.dbg_mod.EventType.NEW_MODULE:
-            return pwndbg.gdblib.events.new_objfile
-        elif event_type == pwndbg.dbg_mod.EventType.MEMORY_CHANGED:
-            return pwndbg.gdblib.events.mem_changed
-        elif event_type == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
-            return pwndbg.gdblib.events.reg_changed
-        elif event_type == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
-            raise RuntimeError("invalid usage, this event is not supported")
+        import pwndbg.gdblib.events
+
+        event_registry: gdb.EventRegistry[Any] = _gdb_event_registry_from_event_type(event_type)
+        decorator = pwndbg.gdblib.events.event_handler_factory(
+            event_registry, event_type.name, priority
+        )
+        return decorator
 
     @override
     @contextmanager
@@ -1718,12 +1690,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
         pwndbg.gdblib.prompt.context_shown = True
 
     @override
-    def suspend_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
-        pwndbg.gdblib.events.pause(_gdb_event_class_from_event_type(ty))
+    def suspend_events(self, ty: EventType) -> None:
+        pwndbg.gdblib.events.pause(_gdb_event_registry_from_event_type(ty))
 
     @override
-    def resume_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
-        pwndbg.gdblib.events.unpause(_gdb_event_class_from_event_type(ty))
+    def resume_events(self, ty: EventType) -> None:
+        pwndbg.gdblib.events.unpause(_gdb_event_registry_from_event_type(ty))
 
     @override
     def set_sysroot(self, sysroot: str) -> bool:

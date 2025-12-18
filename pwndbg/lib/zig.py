@@ -85,6 +85,7 @@ def get_zig_executable() -> str:
     """
     try:
         import ziglang  # type: ignore[import-untyped]
+
         return os.path.join(os.path.dirname(ziglang.__file__), "zig")
     except ImportError:
         pass

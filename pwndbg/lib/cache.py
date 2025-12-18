@@ -76,14 +76,16 @@ class _CacheUntilEvent:
     def __init__(self) -> None:
         self.caches: List[Cache] = []
 
-    def connect_event_hooks(self, event_hooks: Tuple[Any, ...], **kwargs: Any) -> None:
+    def connect_event_hooks(self, event_hooks: Tuple[Any, ...]) -> None:
         """
         A given _CacheUntilEvent object may require multiple debugger events
         to be handled properly. E.g. our `stop` cache needs to be handled
         by `stop`, `mem_changed` and `reg_changed` events.
         """
         for event_hook in event_hooks:
-            event_hook(self.clear, **kwargs)
+            # This will just run a decorator (which will return a function, but
+            # that return value is not used here).
+            event_hook(self.clear)
 
     def clear(self) -> None:
         for cache in self.caches:
@@ -149,12 +151,12 @@ def events_to_event_set(event_list: List[CacheUntilEvent]) -> EventSet:
     return res
 
 
-def connect_clear_caching_events(event_dicts: Dict[CacheUntilEvent, Tuple[Any, ...]], **kwargs: Any) -> None:
+def connect_clear_caching_events(event_dicts: Dict[CacheUntilEvent, Tuple[Any, ...]]) -> None:
     """
     Connect given debugger event hooks to corresponding _CacheUntilEvent instances
     """
     for event_name, event_hooks in event_dicts.items():
-        _ALL_CACHE_UNTIL_EVENTS[event_name].connect_event_hooks(event_hooks, **kwargs)
+        _ALL_CACHE_UNTIL_EVENTS[event_name].connect_event_hooks(event_hooks)
 
 
 # A singleton used to mark a cache miss

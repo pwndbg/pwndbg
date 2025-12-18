@@ -11,8 +11,37 @@ import pwndbg.aglib.typeinfo
 import pwndbg.gdblib.events
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
+from pwndbg.dbg_mod.gdb import BPWP_DEFERRED_DELETE
+from pwndbg.dbg_mod.gdb import BPWP_DEFERRED_DISABLE
+from pwndbg.dbg_mod.gdb import BPWP_DEFERRED_ENABLE
 
 # TODO: Combine these `update_*` hook callbacks into one method
+
+
+@pwndbg.dbg.event_handler(EventType.STOP)
+def bpwp_process_deferred() -> None:
+    for to_enable in BPWP_DEFERRED_ENABLE:
+        to_enable.inner.enabled = True
+    for to_disable in BPWP_DEFERRED_DISABLE:
+        to_disable.inner.enabled = False
+    for to_delete in BPWP_DEFERRED_DELETE:
+        to_delete.inner.delete()
+    bpwp_clear_deferred()
+
+
+@pwndbg.dbg.event_handler(EventType.START)
+@pwndbg.dbg.event_handler(EventType.EXIT)
+def bpwp_clear_deferred() -> None:
+    for elem in BPWP_DEFERRED_DELETE:
+        elem._clear()
+    for elem in BPWP_DEFERRED_ENABLE:
+        elem._clear()
+    for elem in BPWP_DEFERRED_DISABLE:
+        elem._clear()
+
+    BPWP_DEFERRED_DELETE.clear()
+    BPWP_DEFERRED_ENABLE.clear()
+    BPWP_DEFERRED_DISABLE.clear()
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
@@ -74,24 +103,37 @@ pwndbg.lib.cache.connect_clear_caching_events(
         # if the user does an operation to modify memory or registers while the program is stopped.
         # We don't do this for the other events, because they hopefully don't change memory or
         # registers
+        CacheUntilEvent.EXIT: (
+            pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.CACHE_CLEAR),
+        ),
+        CacheUntilEvent.OBJFILE: (
+            pwndbg.dbg.event_handler(EventType.NEW_MODULE, EventHandlerPriority.CACHE_CLEAR),
+        ),
+        CacheUntilEvent.START: (
+            pwndbg.dbg.event_handler(EventType.START, EventHandlerPriority.CACHE_CLEAR),
+        ),
         CacheUntilEvent.STOP: (
-            pwndbg.gdblib.events.stop,
-            pwndbg.gdblib.events.mem_changed,
-            pwndbg.gdblib.events.reg_changed,
+            pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED, EventHandlerPriority.CACHE_CLEAR),
         ),
-        CacheUntilEvent.EXIT: (pwndbg.gdblib.events.exit,),
-        CacheUntilEvent.OBJFILE: (pwndbg.gdblib.events.new_objfile,),
-        CacheUntilEvent.START: (pwndbg.gdblib.events.start,),
         CacheUntilEvent.CONT: (
-            pwndbg.gdblib.events.cont,
-            pwndbg.gdblib.events.mem_changed,
-            pwndbg.gdblib.events.reg_changed,
+            pwndbg.dbg.event_handler(EventType.CONTINUE, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED, EventHandlerPriority.CACHE_CLEAR),
         ),
-        CacheUntilEvent.THREAD: (pwndbg.gdblib.events.thread,),
-        CacheUntilEvent.PROMPT: (pwndbg.gdblib.events.before_prompt,),
+        CacheUntilEvent.THREAD: (
+            pwndbg.gdblib.events.event_handler_factory(
+                gdb.events.new_thread, "THREAD", EventHandlerPriority.CACHE_CLEAR
+            ),
+        ),
+        CacheUntilEvent.PROMPT: (
+            pwndbg.gdblib.events.event_handler_factory(
+                gdb.events.before_prompt, "PROMPT", EventHandlerPriority.CACHE_CLEAR
+            ),
+        ),
         CacheUntilEvent.FOREVER: (),
-    },
-    priority=EventHandlerPriority.CACHE_CLEAR,
+    }
 )
 
 

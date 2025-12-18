@@ -6,6 +6,7 @@ by using a decorator.
 
 from __future__ import annotations
 
+import functools
 import sys
 from collections import defaultdict
 from collections import deque
@@ -22,6 +23,8 @@ import gdb
 from typing_extensions import ParamSpec
 
 import pwndbg
+import pwndbg.dbg_mod.gdb
+import pwndbg.lib.config
 from pwndbg import config
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventHandlerPriority
@@ -95,6 +98,7 @@ class StartEvent:
         self.on_new_objfile()
 
 
+# Monkeypatching GDB hihi
 gdb.events.start = StartEvent()
 gdb.events.suspend_all = object()
 
@@ -249,7 +253,7 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
 
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-registered: Dict[Any, Dict[EventHandlerPriority, List[Callable[..., None]]]] = {
+registered: Dict[gdb.EventRegistry[Any], Dict[EventHandlerPriority, List[Callable[..., None]]]] = {
     gdb.events.exited: {},
     gdb.events.cont: {},
     gdb.events.new_objfile: {},
@@ -261,93 +265,69 @@ registered: Dict[Any, Dict[EventHandlerPriority, List[Callable[..., None]]]] = {
     gdb.events.register_changed: {},
 }
 
-# Registered events are wrapped and aren't directly connected to GDB
-# This is a map from event to the actual handler connected to GDB
-connected = {}
-
 # Keys are gdb.events.*
 paused = defaultdict(bool)
 
 
-def pause(event_registry) -> None:
+def pause(event_registry: gdb.EventRegistry[Any]) -> None:
     paused[event_registry] = True
 
 
-def unpause(event_registry) -> None:
+def unpause(event_registry: gdb.EventRegistry[Any]) -> None:
     paused[event_registry] = False
 
 
-def connect(
-    func: Callable[[], None],
-    event_handler: Any,
-    name: str = "",
-    priority: EventHandlerPriority = EventHandlerPriority.STANDARD,
-) -> Callable[[], None]:
-    if debug:
-        print("Connecting", func.__name__, event_handler)
+def event_handler_factory(
+    event_registry: gdb.EventRegistry[Any], event_name: str, priority: EventHandlerPriority
+) -> Callable[[Callable[..., None]], Callable[..., None]]:
+    """
+    Essentially the implementation of pwndbg.dbg_mod.gdb.event_handler().
 
-    @wraps(func)
-    def caller(*a: Any, **kw: Any) -> None:
-        if paused[event_handler] or paused[gdb.events.suspend_all]:
-            return None
+    Takes a gdb.EventRegistry because that contains some events that pwndbg.dbg_mod.EventType
+    doesn't.
+
+    Read the first few paragraphs of:
+    https://sourceware.org/gdb/current/onlinedocs/gdb.html/Events-In-Python.html#Events-In-Python
+    """
+
+    def decorator(fn: Callable[..., None]) -> Callable[..., None]:
+        # This is only executed once.
 
         if debug:
-            sys.stdout.write(f"{name!r} ({priority.name}) {func.__module__}.{func.__name__} {a!r}\n")
+            print("Connecting", fn.__name__, event_name)
 
-        try:
-            # Don't pass the event along to the decorated function.
-            # This is because there are functions with multiple event decorators
-            func()
-        except Exception as e:
-            import pwndbg.exception
+        should_connect: bool = False
 
-            pwndbg.exception.handle()
-            raise e
+        if not registered[event_registry]:
+            # We've never seen this type of event before.
+            should_connect = True
 
-    registered[event_handler].setdefault(priority, []).append(caller)
-    if event_handler not in connected:
-        handle = partial(invoke_event, event_handler)
-        handle = wrap_safe_event_handler(handle, event_handler)
+        # Wrap the function for dev instrumentation
+        @functools.wraps(fn)
+        def _dev_wrapper(*a, **kw) -> None:
+            if debug:
+                sys.stdout.write(
+                    f"{event_name} ({priority.name}) {fn.__module__}.{fn.__name__} {a!r}\n"
+                )
 
-        event_handler.connect(handle)
-        connected[event_handler] = handle
-    return func
+            return fn(*a, **kw)
 
+        # Register this event handler with us.
+        registered[event_registry].setdefault(priority, []).append(_dev_wrapper)
 
-def exit(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
-    return connect(func, gdb.events.exited, "exit", **kwargs)
+        if should_connect:
+            # We actually need to tell gdb to run `invoke_event` when
+            # the appropriate event is invoked. Then inside `invoke_event`
+            # we will call all `registered` functions.
 
+            wrapped_invoke_event = partial(invoke_event, event_registry)
+            wrapped_invoke_event = wrap_safe_event_handler(wrapped_invoke_event, event_registry)
 
-def cont(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
-    return connect(func, gdb.events.cont, "cont", **kwargs)
+            event_registry.connect(wrapped_invoke_event)
 
+        return _dev_wrapper
 
-def new_objfile(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
-    return connect(func, gdb.events.new_objfile, "obj", **kwargs)
-
-
-def stop(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
-    return connect(func, gdb.events.stop, "stop", **kwargs)
-
-
-def start(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
-    return connect(func, gdb.events.start, "start", **kwargs)
-
-
-def thread(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
-    return connect(func, gdb.events.new_thread, "thread", **kwargs)
-
-
-def before_prompt(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
-    return connect(func, gdb.events.before_prompt, "before_prompt", **kwargs)
-
-
-def reg_changed(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
-    return connect(func, gdb.events.register_changed, "reg_changed", **kwargs)
-
-
-def mem_changed(func: Callable[[], None], **kwargs: Any) -> Callable[[], None]:
-    return connect(func, gdb.events.memory_changed, "mem_changed", **kwargs)
+    return decorator
 
 
 def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
@@ -364,13 +344,28 @@ def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
 gdb.events.new_objfile.connect(log_objfiles)
 
 
-# invoke all registered handlers of a certain event type
-def invoke_event(event: Any, *args: Any, **kwargs: Any) -> None:
-    handlers = registered.get(event)
-    if handlers is not None:
+def invoke_event(event_registry: gdb.EventRegistry[Any], event_data: Any = None) -> None:
+    """
+    Invoke all registered handlers for a certain event_registry.
+    event_data may be None if we manually ran this function.
+    """
+    if paused[event_registry] or paused[gdb.events.suspend_all]:
+        return
+
+    handlers = registered.get(event_registry)
+    if handlers is None:
+        return
+
+    try:
+        # Run all the event handlers for this event from lowest to highest priority.
         for prio in EventHandlerPriority:
-            for f in handlers.get(prio, []):
-                f(*args, **kwargs)
+            for func in handlers.get(prio, []):
+                func()
+    except Exception as e:
+        import pwndbg.exception
+
+        pwndbg.exception.handle()
+        raise e
 
 
 def after_reload(fire_start: bool = True) -> None:

@@ -48,23 +48,28 @@ def on_exit() -> None:
 
 pwndbg.lib.cache.connect_clear_caching_events(
     {
-        CacheUntilEvent.EXIT: (pwndbg.dbg.event_handler(EventType.EXIT),),
-        CacheUntilEvent.OBJFILE: (pwndbg.dbg.event_handler(EventType.NEW_MODULE),),
-        CacheUntilEvent.START: (pwndbg.dbg.event_handler(EventType.START),),
+        CacheUntilEvent.EXIT: (
+            pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.CACHE_CLEAR),
+        ),
+        CacheUntilEvent.OBJFILE: (
+            pwndbg.dbg.event_handler(EventType.NEW_MODULE, EventHandlerPriority.CACHE_CLEAR),
+        ),
+        CacheUntilEvent.START: (
+            pwndbg.dbg.event_handler(EventType.START, EventHandlerPriority.CACHE_CLEAR),
+        ),
         CacheUntilEvent.STOP: (
-            pwndbg.dbg.event_handler(EventType.STOP),
-            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED),
-            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED),
+            pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED, EventHandlerPriority.CACHE_CLEAR),
         ),
         CacheUntilEvent.CONT: (
-            pwndbg.dbg.event_handler(EventType.CONTINUE),
-            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED),
-            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED),
+            pwndbg.dbg.event_handler(EventType.CONTINUE, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED, EventHandlerPriority.CACHE_CLEAR),
         ),
         CacheUntilEvent.PROMPT: (),
         CacheUntilEvent.FOREVER: (),
     },
-    priority=EventHandlerPriority.CACHE_CLEAR,
 )
 
 # As we don't have support for MEMORY_CHANGED, REGISTER_CHANGED, or NEW_THREAD
