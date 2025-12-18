@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from ....host import Controller
 from . import get_binary
-from . import pwndbg_test
 from . import launch_to
+from . import pwndbg_test
 
 BINARY = get_binary("reference-binary.native.out")
 TELESCOPE_BINARY = get_binary("telescope_binary.native.out")
@@ -125,4 +125,3 @@ async def test_cache_registers_account_frame(ctrl: Controller) -> None:
     sp2 = pwndbg.aglib.regs.sp
 
     assert sp != sp2
-
