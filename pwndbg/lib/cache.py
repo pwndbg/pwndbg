@@ -213,8 +213,12 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
                 try:
                     cached_value: Any = cache.get(key, _NOT_FOUND_IN_CACHE)
                 except TypeError:
-                    # skip caching unhashable arguments
-                    return func(*a, **kw)
+                    print("Unhashable argument passed to a cache_until decorated function.")
+                    print("Make the argument hashable or refactor.")
+                    print(f"Function: {func.__module__}.{func.__qualname__}", )
+                    print(f"Arguments: {repr(key)}")
+                    assert False, "Unhashable argument passed to a cache_until decorated function."
+
                 if cached_value is not _NOT_FOUND_IN_CACHE:
                     return cached_value
 
