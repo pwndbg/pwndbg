@@ -111,8 +111,7 @@ class CacheUntilEvent(IntFlag):
     START   = 0b00001000
     CONT    = 0b00010000
     THREAD  = 0b00100000
-    PROMPT  = 0b01000000
-    FOREVER = 0b10000000
+    FOREVER = 0b01000000
 
 # fmt: on
 
@@ -127,7 +126,6 @@ _ALL_CACHE_UNTIL_EVENTS: Dict[CacheUntilEvent, _CacheUntilEvent] = {
     CacheUntilEvent.START: _CacheUntilEvent(),
     CacheUntilEvent.CONT: _CacheUntilEvent(),
     CacheUntilEvent.THREAD: _CacheUntilEvent(),
-    CacheUntilEvent.PROMPT: _CacheUntilEvent(),
     CacheUntilEvent.FOREVER: _CacheUntilEvent(),
 }
 
@@ -138,7 +136,6 @@ _NAME_TO_EVENT: Dict[str, CacheUntilEvent] = {
     "start": CacheUntilEvent.START,
     "cont": CacheUntilEvent.CONT,
     "thread": CacheUntilEvent.THREAD,
-    "prompt": CacheUntilEvent.PROMPT,
     "forever": CacheUntilEvent.FOREVER,
 }
 _ALL_CACHE_EVENT_NAMES = tuple(_NAME_TO_EVENT.keys())

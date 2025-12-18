@@ -32,7 +32,7 @@ from pwndbg.lib.regs import RegisterSet
 from pwndbg.lib.regs import reg_sets
 
 
-@pwndbg.lib.cache.cache_until("stop", "prompt")
+@pwndbg.lib.cache.cache_until("stop")
 def regs_in_frame(frame: pwndbg.dbg_mod.Frame) -> pwndbg.dbg_mod.Registers:
     return frame.regs()
 

@@ -69,7 +69,6 @@ pwndbg.lib.cache.connect_clear_caching_events(
             pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED, EventHandlerPriority.CACHE_CLEAR),
             pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED, EventHandlerPriority.CACHE_CLEAR),
         ),
-        CacheUntilEvent.PROMPT: (),
         CacheUntilEvent.FOREVER: (),
     },
 )
@@ -93,9 +92,6 @@ def renew_show_context():
 
 
 def prompt_hook():
-    # Clear the prompt cache manually.
-    pwndbg.lib.cache.clear_cache(CacheUntilEvent.PROMPT)
-
     dbg: LLDB = pwndbg.dbg
     ctx_suspend_once = dbg.should_suspend_ctx
     global should_show_context

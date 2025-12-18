@@ -129,11 +129,6 @@ pwndbg.lib.cache.connect_clear_caching_events(
                 gdb.events.new_thread, "THREAD", EventHandlerPriority.CACHE_CLEAR
             ),
         ),
-        CacheUntilEvent.PROMPT: (
-            pwndbg.gdblib.events.event_handler_factory(
-                gdb.events.before_prompt, "PROMPT", EventHandlerPriority.CACHE_CLEAR
-            ),
-        ),
         CacheUntilEvent.FOREVER: (),
     }
 )
