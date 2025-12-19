@@ -1355,35 +1355,36 @@ def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]
     """
     Returns the GDB event registry that corresponds to the given event type.
     """
-    if ty == EventType.EXIT:
-        return gdb.events.exited
-    elif ty == EventType.CONTINUE:
-        return gdb.events.cont
-    elif ty == EventType.START:
-        # Pwndbg installs this one when it loads the GDB event support module.
-        #
-        # We should never run this function before it gets loaded, but, if this
-        # ever changes by mistake, we want the mistake to be caught early, with
-        # a clear error.
-        assert hasattr(
-            gdb.events, "start"
-        ), "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
-        return gdb.events.start
-    elif ty == EventType.STOP:
-        return gdb.events.stop
-    elif ty == EventType.NEW_MODULE:
-        return gdb.events.new_objfile
-    elif ty == EventType.MEMORY_CHANGED:
-        return gdb.events.memory_changed
-    elif ty == EventType.REGISTER_CHANGED:
-        return gdb.events.register_changed
-    elif ty == EventType.SUSPEND_ALL:
-        assert hasattr(
-            gdb.events, "suspend_all"
-        ), "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
-        return gdb.events.suspend_all
-
-    raise NotImplementedError(f"unknown event type {ty}")
+    match ty:
+        case EventType.EXIT:
+            return gdb.events.exited
+        case EventType.CONTINUE:
+            return gdb.events.cont
+        case EventType.START:
+            # Pwndbg installs this one when it loads the GDB event support module.
+            #
+            # We should never run this function before it gets loaded, but, if this
+            # ever changes by mistake, we want the mistake to be caught early, with
+            # a clear error.
+            assert hasattr(
+                gdb.events, "start"
+            ), "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
+            return gdb.events.start
+        case EventType.STOP:
+            return gdb.events.stop
+        case EventType.NEW_MODULE:
+            return gdb.events.new_objfile
+        case EventType.MEMORY_CHANGED:
+            return gdb.events.memory_changed
+        case EventType.REGISTER_CHANGED:
+            return gdb.events.register_changed
+        case EventType.SUSPEND_ALL:
+            assert hasattr(
+                gdb.events, "suspend_all"
+            ), "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+            return gdb.events.suspend_all
+        case _:
+            raise NotImplementedError(f"unknown event type {ty}")
 
 
 class GDB(pwndbg.dbg_mod.Debugger):
