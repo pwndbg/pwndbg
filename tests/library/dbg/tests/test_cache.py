@@ -117,11 +117,11 @@ async def test_cache_registers_account_frame(ctrl: Controller) -> None:
     import pwndbg.aglib.regs
 
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
-    # Get the value of sp in the freshest stack frame
-    sp = pwndbg.aglib.regs.sp
+    # Get the value of pc in the freshest stack frame
+    pc1 = pwndbg.aglib.regs.pc
 
-    # Get the value of sp in a higher stack frame
+    # Get the value of pc in a higher stack frame
     await ctrl.execute("up")
-    sp2 = pwndbg.aglib.regs.sp
+    pc2 = pwndbg.aglib.regs.pc
 
-    assert sp != sp2
+    assert pc1 != pc2
