@@ -1695,10 +1695,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         import pwndbg.gdblib.events
 
         event_registry: gdb.EventRegistry[Any] = _gdb_event_registry_from_event_type(event_type)
-        decorator = pwndbg.gdblib.events.event_handler_factory(
-            event_registry, event_type.name, priority
-        )
-        return decorator
+        return pwndbg.gdblib.events.event_handler_factory(event_registry, event_type.name, priority)
 
     @override
     @contextmanager
