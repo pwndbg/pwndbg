@@ -665,7 +665,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
                     addr, enhance=False
                 )
 
-                if (result := pattern.search(instr.op_str)) is not None:
+                if instr.mnemonic == "MOV" and (result := pattern.search(instr.op_str)) is not None:
                     return int(math.log2(int(result.group(1), 16)))
 
                 addr = instr.next
