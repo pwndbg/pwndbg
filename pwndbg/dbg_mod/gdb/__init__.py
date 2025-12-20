@@ -285,6 +285,8 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         Note that artificial_depth == 0 means invalid.
         """
         # See gdb/frame-id.h and gdb/frame.c:frame_id::to_string().
+        # This obviously isn't guaranteed to be stable, but looking at the blame
+        # of to_string() it has been.
 
         # Here is an example of what is can look like:
         # "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"
@@ -334,6 +336,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
     @override
     def __hash__(self) -> int:
         if self._hash is not None:
+            # The object is immutable, so this works.
             return self._hash
 
         # GDB implements the equality comparison in gdb/python/py-frame.c:frapy_richcompare()
@@ -355,7 +358,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             # Still using idx() for good measure (maybe it helps with the lack of frame_id_is_next?)
             # Still using number_of_stops_since_birth because I want to guarantee that same frames at
             # different times return different hashes.
-            f"{self.idx()}|{pwndbg.dbg_mod.number_of_stops_since_birth << 16}"
+            f"{self.idx()}|{pwndbg.dbg_mod.number_of_stops_since_birth}"
         )
 
         return self._hash
