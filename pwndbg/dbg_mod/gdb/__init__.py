@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from contextlib import nullcontext
 from os import environ
 from pathlib import Path
+from random import randint
 from typing import Any
 from typing import Coroutine
 from typing import Generator
@@ -143,6 +144,8 @@ class GDBRegisters(pwndbg.dbg_mod.Registers):
 class GDBFrame(pwndbg.dbg_mod.Frame):
     def __init__(self, inner: gdb.Frame):
         self.inner = inner
+        # caching the hash since calculating it involves some string operations
+        self._hash: int | None = None
 
     @override
     def lookup_symbol(
@@ -205,7 +208,17 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def sp(self) -> int:
-        return int(self.regs().by_name("sp"))
+        # We're gonna use a little trick to prevent an expensive register read.
+        # e.g. `str(self.inner) == "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"`
+        # See gdb/python/py-frame.c:frapy_str() and gdb/frame.c:frame_id::to_string()
+        # They really could just expose .stack() as an API...
+        str_id = str(self.inner)
+        if "stack=0x" in str_id:
+            return int(str_id.partition("stack=")[2].partition(",")[0], 16)
+        else:
+            # We got "!stack", "stack=<unavailable>", "stack=<sentinel>" or "stack=<outer>".
+            # Not sure what sp will actually resolve to here...
+            return int(self.regs().by_name("sp"))
 
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
@@ -255,15 +268,97 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python:~:text=Frame%2Elevel
         return self.inner.level()
 
+    def _frame_id(self) -> tuple[int, int, int, int]:
+        """
+        Returns a tuple which recovers the frame_id struct of the GDB frame object (self.inner).
+        We cannot recover only frame_id.user_created_p.
+
+        Format is (stack_addr, code_addr, special_addr, artificial_depth).
+
+        The status fields are returned implicitly in the following:
+            stack_addr == -1 means stack_status == FID_STACK_INVALID
+            stack_addr == -2 means stack_status == FID_STACK_UNAVAILABLE
+            stack_addr == -3 means stack_status == FID_STACK_SENTINEL
+            stack_addr == -4 means stack_status == FID_STACK_OUTER
+            code_addr == -1 means code_addr_p == 0
+            special_addr == -1 means special_addr_p == 0
+        Note that artificial_depth == 0 means invalid.
+        """
+        # See gdb/frame-id.h and gdb/frame.c:frame_id::to_string().
+
+        # Here is an example of what is can look like:
+        # "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"
+        frame_id_str: str = str(self.inner)
+
+        # Get rid of curly braces and split into individual fields.
+        splitted: list[str] = frame_id_str[1:-1].split(",")
+
+        stack_addr: int
+        code_addr: int
+        special_addr: int
+        artificial_addr: int
+
+        match splitted[0]:
+            case "!stack":
+                stack_addr = -1
+            case "stack=<unavailable>":
+                stack_addr = -2
+            case "stack=<sentinel>":
+                stack_addr = -3
+            case "stack=<outer>":
+                stack_addr = -4
+            case _:
+                # We have an actual address (len("stack=") == 6)
+                stack_addr = int(splitted[0][6:], 16)
+
+        if splitted[1] == "!code":
+            code_addr = -1
+        else:
+            # len("code=") == 5
+            code_addr = int(splitted[1][5:], 16)
+
+        if splitted[2] == "!special":
+            special_addr = -1
+        else:
+            # len("special=") == 8
+            special_addr = int(splitted[2][8:], 16)
+
+        if len(splitted) == 3:
+            artificial_addr = -1
+        else:
+            # len("artificial=") == 11
+            artificial_addr = int(splitted[3][11:], 16)
+
+        return (stack_addr, code_addr, special_addr, artificial_addr)
+
     @override
     def __hash__(self) -> int:
+        if self._hash is not None:
+            return self._hash
+
         # GDB implements the equality comparison in gdb/python/py-frame.c:frapy_richcompare()
-        # Unfortunately it doesn't expose frame_id and frame_id_is_next.
-        # Thus, we are rolling our own hash (see the LLDB implementation for rationale).
-        # Since GDB doesn't provide us with a way to get the thread id, we're just going to use the
-        # the SP because it should be unique between threads.
-        # FIXME: self.sp() might be slow, can we do something better?
-        return self.idx() + (pwndbg.dbg_mod.number_of_stops_since_birth << 16) + (self.sp() << 32)
+        # and gdb/frame.c:frame_id::operator==().
+        # The frame_id is not exposed to the python API, but we can exploit str(self.inner)
+        # to recover it. (though still don't have frame_id_is_next, but oh well..)
+        # This is much faster than reading the stack pointer from the inferior, and will give
+        # more accurate results as well.
+        stack_addr, code_addr, special_addr, artificial_depth = self._frame_id()
+        # stack_addr == -1 (FID_STACK_INVALID) acts as NaN, so we have to be unique
+        if stack_addr == -1:
+            self._hash = randint(0, 1 << 63)
+            return self._hash
+
+        # I don't want to make assumptions on the sizes of all these fields so I will just build up a
+        # string and use the string's hash. Using "|" for domain separation.
+        self._hash = hash(
+            f"{stack_addr}|{code_addr}|{special_addr}|{artificial_depth}|"
+            # Still using idx() for good measure (maybe it helps with the lack of frame_id_is_next?)
+            # Still using number_of_stops_since_birth because I want to guarantee that same frames at
+            # different times return different hashes.
+            f"{self.idx()}|{pwndbg.dbg_mod.number_of_stops_since_birth << 16}"
+        )
+
+        return self._hash
 
 
 class GDBThread(pwndbg.dbg_mod.Thread):
