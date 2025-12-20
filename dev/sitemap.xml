@@ -1701,6 +1701,10 @@
          <lastmod>2025-12-20</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/dbg_mod/gdb/hooks/</loc>
+         <lastmod>2025-12-20</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/dbg_mod/gdb/symbol/</loc>
          <lastmod>2025-12-20</lastmod>
     </url>
@@ -1782,10 +1786,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/gdblib/got/</loc>
-         <lastmod>2025-12-20</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/gdblib/hooks/</loc>
          <lastmod>2025-12-20</lastmod>
     </url>
     <url>
