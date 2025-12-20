@@ -1578,8 +1578,9 @@ dependencies = [
     { name = "tabulate" },
     { name = "typing-extensions" },
     { name = "unicorn" },
-    { name = "uv" },
-    { name = "ziglang" },
+    { name = "uv", version = "0.8.15", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
+    { name = "uv", version = "0.9.18", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
+    { name = "ziglang", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
 ]
 
 [package.optional-dependencies]
@@ -1625,12 +1626,14 @@ docs = [
     { name = "mkdocstrings" },
     { name = "mkdocstrings-python" },
     { name = "pymdown-extensions" },
-    { name = "ruff" },
+    { name = "ruff", version = "0.4.10", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
+    { name = "ruff", version = "0.14.9", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
 ]
 lint = [
     { name = "isort" },
     { name = "mypy" },
-    { name = "ruff" },
+    { name = "ruff", version = "0.4.10", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
+    { name = "ruff", version = "0.14.9", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
     { name = "vermin" },
 ]
 tests = [
@@ -1670,8 +1673,9 @@ requires-dist = [
     { name = "tabulate", specifier = ">=0.9.0,<0.10" },
     { name = "typing-extensions", specifier = ">=4.15.0,<5" },
     { name = "unicorn", specifier = ">=2.1.4,<3" },
-    { name = "uv", specifier = ">=0.8.14" },
-    { name = "ziglang", specifier = "==0.14.1" },
+    { name = "uv", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'", specifier = ">=0.8.14" },
+    { name = "uv", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'", specifier = ">=0.8.14", index = "https://mirrors.loong64.com/pypi/simple" },
+    { name = "ziglang", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'", specifier = "==0.14.1" },
 ]
 provides-extras = ["lldb", "gdb"]
 
@@ -1698,12 +1702,14 @@ docs = [
     { name = "mkdocstrings" },
     { name = "mkdocstrings-python" },
     { name = "pymdown-extensions" },
-    { name = "ruff" },
+    { name = "ruff", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
+    { name = "ruff", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'", index = "https://mirrors.loong64.com/pypi/simple" },
 ]
 lint = [
     { name = "isort", specifier = ">=5.13.2,<6" },
     { name = "mypy", specifier = ">=1.18.2,<2" },
-    { name = "ruff", specifier = ">=0.4.1,<0.5" },
+    { name = "ruff", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'", specifier = ">=0.4.1,<0.15" },
+    { name = "ruff", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'", specifier = ">=0.4.1,<0.15", index = "https://mirrors.loong64.com/pypi/simple" },
     { name = "vermin", specifier = ">=1.6.0,<2" },
 ]
 tests = [
@@ -2149,6 +2155,10 @@ wheels = [
 name = "ruff"
 version = "0.4.10"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
+    "(python_full_version < '3.13' and platform_machine != 'loongarch64') or (python_full_version < '3.13' and sys_platform != 'linux')",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/ea/04/b660bc832ebfa40e1788edf6934388340751cbc6f733d1f807edca9d96e6/ruff-0.4.10.tar.gz", hash = "sha256:3aa4f2bc388a30d346c56524f7cacca85945ba124945fe489952aadb6b5cd804", size = 2577674, upload-time = "2024-06-20T17:42:56.184Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/53/0d/134fdd72f566d37b0c59b6e55f60993c705f93a0fe3c1faa6f8a269057c7/ruff-0.4.10-py3-none-macosx_10_12_x86_64.whl", hash = "sha256:5c2c4d0859305ac5a16310eec40e4e9a9dec5dcdfbe92697acd99624e8638dac", size = 8510271, upload-time = "2024-06-20T17:41:49.591Z" },
@@ -2167,6 +2177,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e8/94/3bb62a0086e9c61d0506e546e7cf68456fd93bf569a8adfa5e324812970d/ruff-0.4.10-py3-none-win32.whl", hash = "sha256:ffe3cd2f89cb54561c62e5fa20e8f182c0a444934bf430515a4b422f1ab7b7ca", size = 7707741, upload-time = "2024-06-20T17:42:45.061Z" },
     { url = "https://files.pythonhosted.org/packages/d8/4e/6fd32ebd0a09f25ed9911b77c5273b7a6b3b50a78d6ed0508d66a24398b8/ruff-0.4.10-py3-none-win_amd64.whl", hash = "sha256:67f67cef43c55ffc8cc59e8e0b97e9e60b4837c8f21e8ab5ffd5d66e196e25f7", size = 8519153, upload-time = "2024-06-20T17:42:48.907Z" },
     { url = "https://files.pythonhosted.org/packages/dc/78/5109b7db3b44a64157b025e45eec6591e4beb53732104637d8e0ee0c5570/ruff-0.4.10-py3-none-win_arm64.whl", hash = "sha256:dd1fcee327c20addac7916ca4e2653fbbf2e8388d8a6477ce5b4e986b68ae6c0", size = 7906942, upload-time = "2024-06-20T17:42:52.972Z" },
+]
+
+[[package]]
+name = "ruff"
+version = "0.14.9"
+source = { registry = "https://mirrors.loong64.com/pypi/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/2ad5fb4c70315b3d6f9a8c1bde4e48ba4c77cb93374977526ac78558148bcd61/ruff-0.14.9-py3-none-manylinux_2_36_loongarch64.whl", hash = "sha256:2ad5fb4c70315b3d6f9a8c1bde4e48ba4c77cb93374977526ac78558148bcd61" },
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/b50a7a43aff0ac2cd5dabc447338a51b7ae835dd578d18ae26b797b5ca62d517/ruff-0.14.9-py3-none-musllinux_1_2_loongarch64.whl", hash = "sha256:b50a7a43aff0ac2cd5dabc447338a51b7ae835dd578d18ae26b797b5ca62d517" },
 ]
 
 [[package]]
@@ -2410,6 +2437,10 @@ wheels = [
 name = "uv"
 version = "0.8.15"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
+    "(python_full_version < '3.13' and platform_machine != 'loongarch64') or (python_full_version < '3.13' and sys_platform != 'linux')",
+]
 sdist = { url = "https://files.pythonhosted.org/packages/4f/7c/ab905b0425f88842f3d8e5da50491524f45a231b7a3dc9c988608162adb2/uv-0.8.15.tar.gz", hash = "sha256:8ea57b78be9f0911a2a50b6814d15aec7d1f8aa6517059dc8250b1414156f93a", size = 3602914, upload-time = "2025-09-03T14:32:15.552Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/67/1d/794352a01b40f2b0a0abe02f4f020219b3f59ee6ed900561be3b2b47a82b/uv-0.8.15-py3-none-linux_armv6l.whl", hash = "sha256:f02e6b8be08b840f86b8d5997b658b657acdda95bc216ecf62fce6c71414bdc7", size = 20136396, upload-time = "2025-09-03T14:31:30.404Z" },
@@ -2430,6 +2461,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/5e/b8/40ce3d385254ac87a664a5d9a4664fac697e2734352f404382b81d03235b/uv-0.8.15-py3-none-win32.whl", hash = "sha256:89c7c10089e07d944c72d388fd88666c650dec2f8c79ca541e365f32843882c6", size = 19077103, upload-time = "2025-09-03T14:32:08.628Z" },
     { url = "https://files.pythonhosted.org/packages/2b/9d/081a0af395c0e307c0c930e80161a2aa551c25064cfb636d060574566fa4/uv-0.8.15-py3-none-win_amd64.whl", hash = "sha256:6aa824ab933dfafe11efe32e6541c6bcd65ecaa927e8e834ea6b14d3821020f6", size = 21179816, upload-time = "2025-09-03T14:32:11.42Z" },
     { url = "https://files.pythonhosted.org/packages/30/47/d8f50264a8c8ebbb9a44a8fed08b6e873d943adf299d944fe3a776ff5fbf/uv-0.8.15-py3-none-win_arm64.whl", hash = "sha256:a395fa1fc8948eacdd18e4592ed489fad13558b13fea6b3544cb16e5006c5b02", size = 19448833, upload-time = "2025-09-03T14:32:13.639Z" },
+]
+
+[[package]]
+name = "uv"
+version = "0.9.18"
+source = { registry = "https://mirrors.loong64.com/pypi/simple" }
+resolution-markers = [
+    "python_full_version >= '3.15' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.14.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.13.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.12.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version == '3.11.*' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+    "python_full_version < '3.11' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
+]
+wheels = [
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/5f55f2999cc8a1eb210b38f38f57984af4278aac149759a1ccb147bcaa9ef024/uv-0.9.18-py3-none-manylinux_2_36_loongarch64.whl", hash = "sha256:5f55f2999cc8a1eb210b38f38f57984af4278aac149759a1ccb147bcaa9ef024" },
+    { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/4953a317385d8998541c6aff81444d61924969a44d72d7928fa2c0a171f1efbd/uv-0.9.18-py3-none-musllinux_1_2_loongarch64.whl", hash = "sha256:4953a317385d8998541c6aff81444d61924969a44d72d7928fa2c0a171f1efbd" },
 ]
 
 [[package]]
