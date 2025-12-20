@@ -20,6 +20,12 @@ Thus, the only Pwndbg code you should be importing in a `pwndbg/lib` file, is an
 
 The `aglib` depends on `dbg_mod`, not the other way around. No `dbg_mod/` file should have a top-level `aglib` import. Further, no `dbg_mod/` file should have an `aglib` import anywhere (even function-level). Currently the second rule is not followed, and stuff works, but lets not make it any worse.
 
+#### Don't access pwndbg/dbg_mod/<debugger\>/ in pwndbg/dbg_mod/\_\_init\_\_.py
+
+The top-level debugger abstraction interface, currently only consisting of the `pwndbg/dbg_mod/__init__.py` file, should never reach into or import debugger-specific code like the `pwndbg/dbg_mod/gdb/` files.
+
+On the other hand, it is **okay** to do it the other way around. In other words, you may access `pwndbg/dbg_mod/__init__.py` from debugger-specific code like e.g. `pwndbg/dbg_mod/lldb/hooks.py`.
+
 #### Don't import commands
 
 When a command is written, it is written with the user in mind and all that entails. This means appropriate error handling, message printing etc. A `pwndbg/command/` file has access to every submodule in Pwndbg. As such, it is **not** made to be used as an API for some other command/functionality. If there exists a command which you want to use as API, refactor it into an `aglib/` file, make sure there are no `print`s, make sure that it returns an error instead of silently eating it when appropriate etc.
@@ -55,3 +61,32 @@ from pwndbg.dbg import dbg as dbg
 Don't do this. It inhibits readability, causes confusion on what is a submodule and what is an object when importing, messes with type analysis and LSP operations. If you can't think of an original name for your object, name your file `objname_mod.py`. It is a recognizable idiom in the codebase.
 
 See https://github.com/pwndbg/pwndbg/pull/3492 for more info.
+
+#### Don't `import x as y`
+
+In order to keep the code more readable, we should reach for consistency throughout the codebase. Renaming imports in a non-conventional way hurts readability. To provide an example, some files in the codebase do `import pwndbg.color.memory as M` while some do `import pwndbg.color.message as M`. Fun! Prefer to use:
+```python
+import pwndbg.aglib as aglib
+import pwndbg.aglib.memory as memory
+import pwndbg.color as color
+import pwndbg.color.message as message
+import pwndbg.color.memory as mem_color
+import pwndbg.color.context as ctx_color
+```
+
+#### Try not to touch `pwndbg/gdblib/`
+
+We want to refactor everything from `pwndbg/gdblib/` into `pwndbg/dbg_mod/gdb/`. So if you're writing code into `gdblib` or
+writing code that uses `gdblib` you must have a really good reason to do so.
+
+#### Imports have side-effects
+
+A large amount of imports in the codebase have side-effects. Some/most are not immediately visible, but it is good to keep in mind. For instance the `@pwndbg.commands.Command` and `@pwndbg.lib.cache.cache_until` decorators and the `pwndbg.config.add_param` function all modify non-local state.
+
+#### mypy is complaining about an unecessary import
+
+If your import is truly unecessary then remove it. If you are performing an import because you wish to trigger the side-effects of that import, you can use this syntax to appease mypy:
+```python
+from pwndbg.dbg_mod.gdb import debug_sym as debug_sym
+```
+
