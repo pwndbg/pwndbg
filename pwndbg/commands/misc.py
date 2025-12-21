@@ -8,7 +8,7 @@ import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.color as C
+import pwndbg.color as color
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
@@ -99,7 +99,7 @@ parser.add_argument(
 def pwndbg_(filter_pattern, category_, list_categories) -> None:
     if list_categories:
         for category in CommandCategory:
-            print(C.bold(C.green(f"{category.value}")))
+            print(color.bold(color.green(f"{category.value}")))
         return
 
     from tabulate import tabulate
@@ -108,10 +108,10 @@ def pwndbg_(filter_pattern, category_, list_categories) -> None:
     for name, aliases, category, docs in list_and_filter_commands(filter_pattern):
         alias_str = ""
         if aliases:
-            aliases = map(C.blue, aliases)
+            aliases = map(color.blue, aliases)
             alias_str = f" [{', '.join(aliases)}]"
 
-        command_names = C.green(name) + alias_str
+        command_names = color.green(name) + alias_str
         table_data[category].append((command_names, docs))
 
     for category in CommandCategory:
@@ -119,11 +119,12 @@ def pwndbg_(filter_pattern, category_, list_categories) -> None:
             continue
         data = table_data[category]
 
-        category_header = C.bold(C.green(category + " Commands"))
-        alias_header = C.bold(C.blue("Aliases"))
+        category_header = color.bold(color.green(category + " Commands"))
+        alias_header = color.bold(color.blue("Aliases"))
         print(
             tabulate(
-                data, headers=[f"{category_header} [{alias_header}]", f"{C.bold('Description')}"]
+                data,
+                headers=[f"{category_header} [{alias_header}]", f"{color.bold('Description')}"],
             )
         )
         print()

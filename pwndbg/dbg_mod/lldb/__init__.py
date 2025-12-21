@@ -28,7 +28,7 @@ import lldb
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.memory
 from pwndbg.dbg_mod import EventHandlerPriority
@@ -1601,7 +1601,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                         # Detect if we have proper symbol by size, we can't do better here
                         if cast_type.sizeof != resolved_size:
                             print(
-                                M.warn(
+                                message.warn(
                                     f"WARNING: Symbol {sym_name} has invalid size (has:{cast_type.sizeof:02x}, needed:{resolved_size:02x}), should not happen"
                                 )
                             )

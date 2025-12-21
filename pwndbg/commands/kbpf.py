@@ -10,7 +10,7 @@ import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.bpf
 import pwndbg.aglib.memory
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.exception import IndentContextManager
@@ -122,7 +122,7 @@ def print_bpf_progs(verbose):
     indent = IndentContextManager()
     prog_idr = pwndbg.aglib.kernel.prog_idr()
     if int(prog_idr) == 0:
-        print(M.warn("cannot find prog_idr"))
+        print(message.warn("cannot find prog_idr"))
         return
     prog_idr = pwndbg.aglib.memory.get_typed_pointer("struct idr", prog_idr)
     xa_node = prog_idr["idr_rt"]["xa_head"]
@@ -136,7 +136,9 @@ def print_bpf_progs(verbose):
             t = bpf_prog["type"].value_to_human_readable()
             attach_t = bpf_prog["expected_attach_type"].value_to_human_readable()
             prefix = indent.prefix(f"[0x{idx:02x}] {indent.addr_hex(slot)}")
-            indent.print(f"{prefix} (type: {M.success(t)}, attach: {M.success(attach_t)})")
+            indent.print(
+                f"{prefix} (type: {message.success(t)}, attach: {message.success(attach_t)})"
+            )
             with indent:
                 func = int(bpf_prog["bpf_func"])
                 aux = int(bpf_prog["aux"])
@@ -158,7 +160,7 @@ def print_bpf_progs(verbose):
                             if i == MAX_BPF_VERBOSE_LEVEL1_OUTPUT_LEN and verbose == 1:
                                 indent.print("... (truncated)")
                                 indent.print(
-                                    M.warn("max output len reached, use -vv for full output")
+                                    message.warn("max output len reached, use -vv for full output")
                                 )
                                 break
                             off = i * 8
@@ -170,7 +172,7 @@ def print_bpf_progs(verbose):
                                 bytecode = ""
                                 for b in insns_bytes[off : off + 8]:
                                     bytecode += f"{b:02x} "
-                                desc = M.error(f"invalid insn: {bytecode}")
+                                desc = message.error(f"invalid insn: {bytecode}")
                                 indent.print(f"{indent.addr_hex(address)}\t{desc}")
                                 continue
                             insn = disass[0]
@@ -184,7 +186,7 @@ def print_bpf_maps(verbose):
     indent = IndentContextManager()
     map_idr = pwndbg.aglib.kernel.map_idr()
     if int(map_idr) == 0:
-        print(M.warn("cannot find map_idr"))
+        print(message.warn("cannot find map_idr"))
         return
     map_idr = pwndbg.aglib.memory.get_typed_pointer("struct idr", map_idr)
     xa_node = map_idr["idr_rt"]["xa_head"]
@@ -197,7 +199,7 @@ def print_bpf_maps(verbose):
             bpf_array = pwndbg.aglib.memory.get_typed_pointer("struct bpf_array", slot)
             prefix = indent.prefix(f"[0x{idx:02x}] {indent.addr_hex(slot)}")
             t = bpf_array["map"]["map_type"].value_to_human_readable()
-            indent.print(f"{prefix} (type: {M.success(t)})")
+            indent.print(f"{prefix} (type: {message.success(t)})")
             with indent:
                 key_size = int(bpf_array["map"]["key_size"])
                 value_size = int(bpf_array["map"]["value_size"])
@@ -215,7 +217,7 @@ def print_bpf_maps(verbose):
                             if i == MAX_BPF_VERBOSE_LEVEL1_OUTPUT_LEN and verbose == 1:
                                 indent.print("... (truncated)")
                                 indent.print(
-                                    M.warn("max output len reached, use -vv for full output")
+                                    message.warn("max output len reached, use -vv for full output")
                                 )
                                 break
                             idxfmt = f"[0x{i:02x}]"
@@ -224,7 +226,7 @@ def print_bpf_maps(verbose):
                             for b in pwndbg.aglib.memory.read(bpf_array + off + i * entrysz, sz):
                                 value += f"{b:02x} "
                             if sz < value_size:
-                                value += "... (" + M.warn("truncated") + ")"
+                                value += "... (" + message.warn("truncated") + ")"
                             indent.print(f"- {indent.prefix(idxfmt)} {value}")
 
 

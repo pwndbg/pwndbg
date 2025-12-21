@@ -9,7 +9,7 @@ from contextlib import contextmanager
 
 import gdb
 
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.lib.stdio
 from pwndbg.commands import CommandCategory
@@ -37,7 +37,7 @@ def ipi() -> None:
             gdb.execute("pi import IPython")
         except gdb.error:
             print(
-                M.warn(
+                message.warn(
                     "Cannot import IPython.\n"
                     "You need to install IPython if you want to use this command.\n"
                     "Maybe you can try `pip install ipython` first."
