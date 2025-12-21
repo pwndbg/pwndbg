@@ -286,6 +286,8 @@ class CommandObj:
             if not isinstance(action, argparse._SubParsersAction) and action.help is None:
                 # When we do `cmd -h` we want each argument to have a one-line
                 # description.
+                # Unfortunately, I don't know how to enforce that each subcommand has a help=
+                # passed to its add_parser() :(
                 print(message.error(f"Error parsing arguments for command: {parser.prog}"))
                 print("You must add a `help=` string to your argument.")
                 print(f"Erroneous action:\n\t{repr(action)}\n")
