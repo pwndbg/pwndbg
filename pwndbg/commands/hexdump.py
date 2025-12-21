@@ -5,7 +5,6 @@ import argparse
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.hexdump
 from pwndbg.color import message
@@ -82,7 +81,11 @@ parser.add_argument(
     help="Address or module name to dump",
 )
 parser.add_argument(
-    "count", nargs="?", default=pwndbg.config.hexdump_bytes, help="Number of bytes to dump"
+    "count",
+    type=int,
+    nargs="?",
+    default=pwndbg.config.hexdump_bytes,
+    help="Number of bytes to dump",
 )
 parser.add_argument(
     "-C",
@@ -97,7 +100,9 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def hexdump(address, count=pwndbg.config.hexdump_bytes, code: str | None = None) -> None:
+def hexdump(
+    address: str | int, count: int = int(pwndbg.config.hexdump_bytes), code: str | None = None
+) -> None:
     if hexdump.repeat:
         address = hexdump.last_address
     else:

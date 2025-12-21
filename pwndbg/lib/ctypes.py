@@ -13,19 +13,12 @@ from __future__ import annotations
 import ctypes
 import sys
 
-import pwndbg
-import pwndbg.aglib
-from pwndbg.dbg_mod import EventType
-
 module = sys.modules[__name__]
 Structure = ctypes.LittleEndianStructure  # default Structure type
 
-
-@pwndbg.dbg.event_handler(EventType.START)
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-def update() -> None:
+def update(endianness: str) -> None:
     global Structure
-    if pwndbg.aglib.arch.endian == "little":
+    if endianness == "little":
         Structure = ctypes.LittleEndianStructure
     else:
         Structure = ctypes.BigEndianStructure

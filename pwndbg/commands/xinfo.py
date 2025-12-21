@@ -4,7 +4,6 @@ import argparse
 
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.regs
 import pwndbg.aglib.stack
 import pwndbg.aglib.vmmap
 import pwndbg.color.memory as M
@@ -15,7 +14,7 @@ from pwndbg.lib.memory import Page
 parser = argparse.ArgumentParser(
     description="Shows offsets of the specified address from various useful locations."
 )
-parser.add_argument("address", nargs="?", default="$pc", help="Address to inspect")
+parser.add_argument("address", nargs="?", default="$pc", help="Address to inspect", type=int)
 
 
 def print_line(name, addr, first, second, op, width=20) -> None:

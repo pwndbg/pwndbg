@@ -4,8 +4,8 @@ import argparse
 import errno
 from collections import defaultdict
 
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color as C

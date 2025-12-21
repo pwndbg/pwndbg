@@ -11,7 +11,6 @@ import pwnlib.rop.srop
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.color.context as C
 import pwndbg.color.memory as M
 import pwndbg.commands

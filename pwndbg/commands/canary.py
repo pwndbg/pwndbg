@@ -4,8 +4,8 @@ import argparse
 from typing import Optional
 from typing import Tuple
 
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.stack
 import pwndbg.aglib.tls
 import pwndbg.auxv

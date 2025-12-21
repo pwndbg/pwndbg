@@ -27,7 +27,7 @@ def kconfig(config_name=None, file_path=None) -> None:
             val = kconfig_[config_name]
             print(f"{key} = {val}")
         else:
-            key = pwndbg.lib.kernel.kconfig.config_to_key(config_name)
+            key = pwndbg.aglib.kernel.kconfig_mod.config_to_key(config_name)
             print(f"Config {key} not set")
     else:
         for name, val in kconfig_.items():

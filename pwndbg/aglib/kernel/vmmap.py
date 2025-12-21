@@ -19,7 +19,6 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.qemu
-import pwndbg.aglib.regs
 import pwndbg.color.message as M
 import pwndbg.lib.cache
 import pwndbg.lib.memory
@@ -204,7 +203,8 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
         )
         return ()
 
-    arch = pwndbg.aglib.arch.name
+    arch: str = pwndbg.aglib.arch.name
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
     if arch == "aarch64":
         arch_backend = PT_Aarch64_Backend(machine_backend)
     elif arch == "i386":
@@ -240,7 +240,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
         if page.pwndbg_is_executable():
             flags |= 1
         objfile = f"[pt_{hex(start)[2:-3]}]"
-        retpages.append(Page(start, size, flags, 0, objfile))
+        retpages.append(Page(start, size, flags, 0, ptrsize, objfile))
     return tuple(retpages)
 
 
@@ -290,7 +290,7 @@ def _parser_mem_info_line_x86(line: str) -> Page | None:
         )
         monitor_info_mem_not_warned = False
 
-    return Page(start, size, flags, 0, "<qemu>")
+    return Page(start, size, flags, 0, pwndbg.aglib.arch.ptrsize, "<qemu>")
 
 
 def _parser_mem_info_line_riscv64(line: str) -> Page | None:
@@ -322,7 +322,7 @@ def _parser_mem_info_line_riscv64(line: str) -> Page | None:
     if "x" in perm:
         flags |= Page.X_OK
 
-    return Page(start, size, flags, 0, "<qemu>")
+    return Page(start, size, flags, 0, pwndbg.aglib.arch.ptrsize, "<qemu>")
 
 
 @pwndbg.lib.cache.cache_until("stop")

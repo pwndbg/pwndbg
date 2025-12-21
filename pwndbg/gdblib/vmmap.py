@@ -16,6 +16,7 @@ from typing import Tuple
 import gdb
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
@@ -50,8 +51,8 @@ def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     the mappings are known, like if it's a coredump, or if process
     mappings are available.
     """
-    # Note: debugging a coredump does still show proc.alive == True
-    if not pwndbg.aglib.proc.alive:
+    # Note: debugging a coredump does still show proc.alive() == True
+    if not pwndbg.aglib.proc.alive():
         return ()
 
     if is_corefile():
@@ -67,6 +68,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
     and tries to make sense out of the result :)
     """
     pages = list(info_proc_maps(parse_flags=False))
+    ptrsize = pwndbg.aglib.arch.ptrsize
 
     started_sections = False
     for line in gdb.execute("maintenance info sections", to_string=True).splitlines():
@@ -113,7 +115,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
         if known_page:
             continue
 
-        pages.append(pwndbg.lib.memory.Page(start, end - start, flags, offset, name))
+        pages.append(pwndbg.lib.memory.Page(start, end - start, flags, offset, ptrsize, name))
 
     if not pages:
         return ()
@@ -199,7 +201,8 @@ def parse_info_proc_mappings_line(
         if "x" in perm:
             flags |= 1
 
-    return pwndbg.lib.memory.Page(start, size, flags, offset, objfile)
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    return pwndbg.lib.memory.Page(start, size, flags, offset, ptrsize, objfile)
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
@@ -286,7 +289,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
     # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
 
-    tid = pwndbg.aglib.proc.tid
+    tid = pwndbg.aglib.proc.tid()
     locations = [
         # Linux distro
         f"/proc/{tid}/maps",
@@ -307,6 +310,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     if data == "":
         return ()
 
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
     pages: List[pwndbg.lib.memory.Page] = []
     for line in data.splitlines():
         maps, perm, offset, dev, inode_objfile = line.split(maxsplit=4)
@@ -332,7 +336,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
         if "x" in perm:
             flags |= 1
 
-        page = pwndbg.lib.memory.Page(start, size, flags, offset, objfile)
+        page = pwndbg.lib.memory.Page(start, size, flags, offset, ptrsize, objfile)
         pages.append(page)
 
     return tuple(pages)

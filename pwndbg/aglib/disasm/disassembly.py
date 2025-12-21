@@ -72,9 +72,6 @@ next_addresses_cache: Set[int] = set()
 # Register GDB event listeners for all stop events
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
-    # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.aglib.regs.read_reg.cache.clear()
-
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
@@ -159,12 +156,12 @@ def get_disassembler(cs_info: Tuple[int, int]):
 
 
 def get_one_instruction(
-    address,
-    emu: pwndbg.emu.emulator.Emulator = None,
-    enhance=True,
-    from_cache=False,
-    put_cache=False,
-    assistant: DisassemblyAssistant = None,
+    address: int,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
+    enhance: bool = True,
+    from_cache: bool = False,
+    put_cache: bool = False,
+    assistant: DisassemblyAssistant | None = None,
 ) -> PwndbgInstruction:
     """
     If passed an emulator, this will pass it to the DisassemblyAssistant which will
@@ -251,13 +248,13 @@ def one_raw(address=None) -> PwndbgInstruction | None:
 
 
 def get(
-    address,
-    instructions=1,
-    emu: pwndbg.emu.emulator.Emulator = None,
-    enhance=True,
-    from_cache=False,
-    put_cache=False,
-    assistant: DisassemblyAssistant = None,
+    address: int,
+    instructions: int = 1,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
+    enhance: bool = True,
+    from_cache: bool = False,
+    put_cache: bool = False,
+    assistant: DisassemblyAssistant | None = None,
 ) -> List[PwndbgInstruction]:
     address = int(address)
 

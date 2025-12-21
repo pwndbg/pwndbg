@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import math
 import re
 from abc import ABC
 from abc import abstractmethod
@@ -15,19 +14,18 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.lib.cache
-import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
 from pwndbg.aglib.kernel.paging import PageTableLevel
 
-_kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
+_kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
 P = ParamSpec("P")
 D = TypeVar("D")
@@ -48,7 +46,7 @@ def has_debug_symbols(*required: str, checkall: bool = True) -> bool:
 
 @pwndbg.lib.cache.cache_until("objfile")
 def has_debug_info() -> bool:
-    path = pwndbg.aglib.proc.exe
+    path = pwndbg.aglib.proc.exe()
     if path is None:
         return False
     vmlinux = open(path, "rb")
@@ -141,7 +139,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
 
 
 @pwndbg.lib.cache.cache_until("start")
-def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
+def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig | None:
     global _kconfig
     config_start, config_end = None, None
     if has_debug_symbols():
@@ -161,13 +159,13 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
         or not pwndbg.aglib.memory.is_kernel(config_end)
         or config_start >= config_end
     ):
-        _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
+        _kconfig = pwndbg.aglib.kernel.kconfig_mod.Kconfig(None)
         return _kconfig
 
     config_size = config_end - config_start
 
     compressed_config = pwndbg.aglib.memory.read(config_start, config_size)
-    _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(compressed_config)
+    _kconfig = pwndbg.aglib.kernel.kconfig_mod.Kconfig(compressed_config)
     return _kconfig
 
 

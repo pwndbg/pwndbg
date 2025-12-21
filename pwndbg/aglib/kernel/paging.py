@@ -9,6 +9,7 @@ from typing import List
 from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
@@ -17,6 +18,7 @@ import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 import pwndbg.lib.regs
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.kernel.vmmap import kernel_vmmap_pages
 from pwndbg.lib.memory import Page
 from pwndbg.lib.regs import BitFlags
@@ -80,6 +82,7 @@ class PageTableScan:
         pagesz = self.pagesz
         addr = entry & self.PAGE_ENTRY_MASK
         entries = self.cache.get(addr, None)
+        ptrsize: int = pwndbg.aglib.arch.ptrsize
         if not entries:
             self.cache[addr] = entries = struct.unpack(self.fmt, self.inf.read_memory(addr, pagesz))
         for i, entry in enumerate(entries):
@@ -124,7 +127,7 @@ class PageTableScan:
                     addr <<= self.PAGE_INDEX_LEN
                     addr += 0 if i < level_remaining else self.level_idxes[i]
                 addr <<= self.page_shift
-                self.curr = Page(addr, size, flags, 0)
+                self.curr = Page(addr, size, flags, ptrsize, 0)
             else:  # only call when should keep scanning the page tree
                 self.level_idxes[level_remaining] = i
                 # we need to reduce this recursive call as much as possible
@@ -646,13 +649,29 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("objfile")
     def page_shift_heuristic(self) -> int:
+        default_val = 12
         sym = pwndbg.aglib.symbol.lookup_symbol_addr("copy_page_to_iter")
         if sym is not None:
-            pattern = re.compile(r"mov.*(0x1000|0x10000|0x4000)")
-            for inst in pwndbg.aglib.nearpc.nearpc(int(sym), lines=50):
-                if (result := pattern.search(inst)) is not None:
+            pattern = re.compile(r".*(0x1000|0x10000|0x4000)")
+            addr = int(sym)
+            # sanity check.
+            if not pwndbg.aglib.memory.peek(addr):
+                return default_val
+
+            for _ in range(50):
+                # It is **crucial** that we don't enhance, because enhancing will run vmmap
+                # which will end up running this code, causing infinite recursion.
+                # https://github.com/pwndbg/pwndbg/actions/runs/20342890859/job/58446963784?pr=3512
+                instr: PwndbgInstruction = pwndbg.aglib.disasm.disassembly.get_one_instruction(
+                    addr, enhance=False
+                )
+
+                if instr.mnemonic == "MOV" and (result := pattern.search(instr.op_str)) is not None:
                     return int(math.log2(int(result.group(1), 16)))
-        return 12  # default
+
+                addr = instr.next
+
+        return default_val
 
     @property
     @pwndbg.lib.cache.cache_until("stop")

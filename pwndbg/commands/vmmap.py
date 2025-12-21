@@ -18,6 +18,8 @@ import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.memory as M
 import pwndbg.commands
+import pwndbg.dbg_mod
+import pwndbg.lib.memory
 from pwndbg.color import cyan
 from pwndbg.color import green
 from pwndbg.color import red
@@ -285,13 +287,14 @@ def vmmap(
     def flush_shared_cache_info():
         nonlocal shared_cache_first
         nonlocal shared_cache_last
-        if shared_cache_last is not None:
+        if shared_cache_first is not None and shared_cache_last is not None:
             print(
                 pwndbg.lib.memory.format_address(
                     shared_cache_first.start,
                     shared_cache_last.end - shared_cache_first.start,
                     "---p",
                     shared_cache_first.offset,
+                    pwndbg.aglib.arch.ptrsize,
                     "[DYLD Shared Cache]",
                 )
             )
@@ -373,7 +376,7 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
             return
         perm |= flag_val
 
-    page = pwndbg.lib.memory.Page(start, size, perm, offset)
+    page = pwndbg.lib.memory.Page(start, size, perm, offset, pwndbg.aglib.arch.ptrsize)
     pwndbg.aglib.vmmap_custom.add_custom_page(page)
 
     print("%r added" % page)
@@ -445,6 +448,7 @@ def vmmap_load(filename) -> None:
     with open(filename, "rb") as f:
         elffile = ELFFile(f)
 
+        ptrsize: int = pwndbg.aglib.arch.ptrsize
         for section in elffile.iter_sections():
             vaddr = section["sh_addr"]
             memsz = section["sh_size"]
@@ -463,7 +467,7 @@ def vmmap_load(filename) -> None:
                 flags |= pwndbg.aglib.elf.PF_X
 
             page = pwndbg.lib.memory.Page(
-                vaddr, memsz, flags, offset, f"[{section.name}]: {file_basename}"
+                vaddr, memsz, flags, offset, ptrsize, f"[{section.name}]: {file_basename}"
             )
             pages.append(page)
 

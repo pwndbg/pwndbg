@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 import math
 
+import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.chain
 import pwndbg.color as C
 import pwndbg.color.message as M

@@ -11,17 +11,36 @@ for more information.
 
 from __future__ import annotations
 
-from pwndbg.aglib.arch_mod import PwndbgArchitecture
-from pwndbg.aglib.arch_mod import get_pwndbg_architecture
+from typing import TYPE_CHECKING
+from typing import cast
 
-regs = None
+# Since pwndbg.aglib.whatever is a common pattern in the aglib/ files
+# we have to make sure that python can quickly initialize the pwndbg.aglib
+# submodule without importing anything else (specifically, without importing
+# any aglib file, or anything that depends on an aglib file, because we would
+# get a circular import).
 
-arch: PwndbgArchitecture = get_pwndbg_architecture("i386")
+if TYPE_CHECKING:
+    # Without ^this if-statement, we get a circular import.
+    from pwndbg.aglib.arch_mod import PwndbgArchitecture
+    from pwndbg.aglib.regs_mod import RegisterManager
+
+    # These will be set during debugger setup.
+    # Thus you can't import them with `from pwndbg.aglib import arch`.
+    arch: PwndbgArchitecture = cast(PwndbgArchitecture, None)
+    regs: RegisterManager = cast(RegisterManager, None)
+else:
+    arch = None
+    regs = None
 
 
 def load_aglib():
+    # We need this for the reason commented above. If we changed the
+    # pwndbg/aglib/ files to access their siblings via
+    # `import .memory` instead of `import pwndbg.aglib.memory`
+    # we could get rid of this function.
+
     import pwndbg.aglib.argv
-    import pwndbg.aglib.ctypes
     import pwndbg.aglib.dynamic
     import pwndbg.aglib.elf
     import pwndbg.aglib.file
@@ -36,7 +55,7 @@ def load_aglib():
     import pwndbg.aglib.onegadget
     import pwndbg.aglib.proc
     import pwndbg.aglib.qemu
-    import pwndbg.aglib.regs as regs_mod
+    import pwndbg.aglib.regs_mod
     import pwndbg.aglib.remote
     import pwndbg.aglib.stack
     import pwndbg.aglib.strings
@@ -45,10 +64,8 @@ def load_aglib():
     import pwndbg.aglib.vmmap
     import pwndbg.aglib.vmmap_custom
 
-    # This is necessary so that mypy understands the actual type of the regs module
-    regs_: regs_mod.module = regs_mod
     global regs
-    regs = regs_
+    regs = pwndbg.aglib.regs_mod.regs
 
 
 def set_arch(pwndbg_arch: PwndbgArchitecture):

@@ -11,7 +11,7 @@ REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 @pwndbg_test
 async def test_flags_command(ctrl: Controller) -> None:
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 

@@ -11,9 +11,9 @@ from typing import Dict
 from typing import List
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
 import pwndbg.color.message as M
@@ -156,6 +156,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     # This helps prevent scanning the same page multiple times.
     thread_sp.sort(key=lambda t: t[0])
 
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
     stacks: Dict[int, pwndbg.lib.memory.Page] = {}
     for sp, thread_idx in thread_sp:
         start = pwndbg.lib.memory.page_align(sp) - pwndbg.lib.memory.PAGE_SIZE
@@ -168,7 +169,12 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
 
         stop = find_upper_stack_boundary(sp)
         page = pwndbg.lib.memory.Page(
-            start, stop - start, 6 if not is_executable() else 7, 0, f"[stack:{thread_idx}]"
+            start,
+            stop - start,
+            6 if not is_executable() else 7,
+            0,
+            ptrsize,
+            f"[stack:{thread_idx}]",
         )
         stacks[thread_idx] = page
         pwndbg.aglib.vmmap_custom.add_custom_page(page)

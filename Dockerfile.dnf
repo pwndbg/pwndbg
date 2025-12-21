@@ -1,12 +1,10 @@
 # This dockerfile was created for development & testing purposes, for DNF-based distro.
 #
-# Build as:             docker build -f Dockerfile.dnf -t pwndbg .
+# Build as:
+#   docker build -f Dockerfile.dnf -t pwndbg-deb .
 #
-# For testing use:      docker run --rm -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined pwndbg bash
-#
-# For development, mount the directory so the host changes are reflected into container:
-#   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
-#
+# To run use (we mount the directory so the host changes are reflected into container):
+#   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $(pwd):/pwndbg pwndbg-deb bash
 
 ARG image=fedora:41
 FROM $image

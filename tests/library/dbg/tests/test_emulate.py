@@ -51,7 +51,7 @@ async def test_emulate_disasm(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_emulate_disasm_loop(ctrl: Controller) -> None:
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(EMULATE_DISASM_LOOP_BINARY)
 

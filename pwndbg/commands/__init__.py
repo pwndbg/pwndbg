@@ -8,28 +8,24 @@ from __future__ import annotations
 
 import argparse
 import functools
-import inspect
-import io
 import logging
 from enum import Enum
 from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
-from typing import Literal
 from typing import Optional
 from typing import Set
-from typing import Tuple
 from typing import TypeVar
 
 from typing_extensions import ParamSpec
 from typing_extensions import override
 
+import pwndbg.aglib
 import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.regs
 import pwndbg.color.message as message
 import pwndbg.exception
 import pwndbg.integration
@@ -241,8 +237,14 @@ class CommandObj:
                     continue
                 if action.type is int:
                     action.type = fix_int_reraise_arg
-                elif action.type is None:
-                    action.type = fix_reraise_arg
+                elif type(action) == argparse._StoreAction and action.type is None:
+                    # Prevents bugs like https://github.com/pwndbg/pwndbg/pull/3477
+                    print(
+                        message.error(f"Error parsing arguments for command: {self.command_name}")
+                    )
+                    print("You must set the argument type for a store action.")
+                    print(f"Erroneous action:\n\t{repr(action)}\n")
+                    assert False, "You must set the argument type for a store action."
 
         process_actions(self.parser._actions)
 
@@ -602,7 +604,7 @@ def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, Optional[T]]:
 def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if pwndbg.aglib.proc.exe:
+        if pwndbg.aglib.proc.exe():
             return function(*a, **kw)
         else:
             if pwndbg.aglib.qemu.is_qemu():
@@ -691,7 +693,7 @@ def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         # TODO: Properly support OnlyWhenRunning without `gdblib`.
-        if pwndbg.aglib.proc.alive:
+        if pwndbg.aglib.proc.alive():
             return function(*a, **kw)
         else:
             log.error(f"{func_name(function)}: The program is not being run.")

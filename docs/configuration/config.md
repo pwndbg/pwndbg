@@ -319,18 +319,6 @@ Path to the editor for editing custom structures.
 
 ----------
 
-## **debug-events**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Display internal event debugging info.
-
-
-
-**Default:** off  
-
-----------
-
 ## **decompiler-angr-plugin-path**
 
 
@@ -448,6 +436,17 @@ Max number of pointers to dereference in a chain.
 
 
 **Default:** 5  
+
+----------
+
+## **dev-debug-events**
+
+
+Display internal event debugging info.
+
+
+
+**Default:** off  
 
 ----------
 
@@ -980,6 +979,17 @@ Minimum amount of repeated values before skipping lines.
 
 
 **Default:** 3  
+
+----------
+
+## **vis-skip-repeating-val**
+
+
+Whether to skip repeating lines in vis command output.
+
+
+
+**Default:** on  
 
 ----------
 

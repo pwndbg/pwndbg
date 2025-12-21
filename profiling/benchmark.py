@@ -9,7 +9,7 @@ import pwndbg
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.lib.cache
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.aglib.vmmap
 import pwndbg.commands.telescope
 

@@ -8,6 +8,8 @@ import argparse
 
 import pwndbg.aglib.next
 import pwndbg.commands
+import pwndbg.commands.context
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 
@@ -73,7 +75,7 @@ async def _stepret(ec: pwndbg.dbg_mod.ExecutionController):
     Execution controller for the `stepret` command.
     """
     while (
-        pwndbg.aglib.proc.alive
+        pwndbg.aglib.proc.alive()
         and not (await pwndbg.aglib.next.break_next_ret(ec))
         and (await pwndbg.aglib.next.break_next_branch(ec))
     ):
@@ -132,7 +134,7 @@ async def _nextsyscall(ec: pwndbg.dbg_mod.ExecutionController):
     Execution controller for the `nextsyscall` command
     """
     while (
-        pwndbg.aglib.proc.alive
+        pwndbg.aglib.proc.alive()
         and not (await pwndbg.aglib.next.break_next_interrupt(ec))
         and (await pwndbg.aglib.next.break_next_branch(ec))
     ):
@@ -158,7 +160,7 @@ async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController):
     """
 
     while (
-        pwndbg.aglib.proc.alive
+        pwndbg.aglib.proc.alive()
         and not (await pwndbg.aglib.next.break_next_interrupt(ec, honor_current_branch=True))
         and (await pwndbg.aglib.next.break_next_branch(ec, including_current=True))
     ):

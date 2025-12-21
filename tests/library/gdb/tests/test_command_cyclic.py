@@ -5,7 +5,6 @@ from pwnlib.util.cyclic import cyclic
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 
 from . import get_binary
 

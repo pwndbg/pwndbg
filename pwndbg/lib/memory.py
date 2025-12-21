@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from os.path import relpath
 
-import pwndbg.aglib
+import pwndbg
 
 PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE - 1)
@@ -30,11 +30,11 @@ def round_up(address: int, align: int) -> int:
 
 
 def format_address(
-    vaddr: int, memsz: int, permstr: str, offset: int, objfile: str | None = None
+    vaddr: int, memsz: int, permstr: str, offset: int, ptrsize: int, objfile: str | None = None
 ) -> str:
     "Format the given address as a string."
 
-    width = 2 + 2 * pwndbg.aglib.arch.ptrsize
+    width = 2 + 2 * ptrsize
     if memsz > 0x100000000:
         return f"{vaddr:#{width}x} {vaddr + memsz:#{width}x} {permstr} {memsz:8x} {offset:6x} {objfile or ''}"
 
@@ -100,6 +100,7 @@ class Page:
         size: int,
         flags: int,
         offset: int,
+        arch_ptrsize: int,
         objfile: str = "",
         in_darwin_shared_cache: bool = False,
     ) -> None:
@@ -109,6 +110,7 @@ class Page:
         self.offset = offset
         self.objfile = objfile
         self.in_darwin_shared_cache = in_darwin_shared_cache
+        self.arch_ptrsize = arch_ptrsize
 
         # if self.rwx:
         # self.flags = self.flags ^ 1
@@ -184,7 +186,7 @@ class Page:
         else:
             objfile = self.objfile
 
-        return format_address(self.vaddr, self.memsz, self.permstr, self.offset, objfile=objfile)
+        return format_address(self.vaddr, self.memsz, self.permstr, self.offset, self.arch_ptrsize, objfile=objfile)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.__str__()!r})"
