@@ -90,3 +90,12 @@ If your import is truly unecessary then remove it. If you are performing an impo
 from pwndbg.dbg_mod.gdb import debug_sym as debug_sym
 ```
 
+#### Import what you use!
+
+We have some places in the codebase that do stuff like `import pwndbg` and then use `pwndbg.aglib.nearpc.whatever()`. This will work at runtime because the `pwndbg.aglib.nearpc` module does exist, but you should import it explicitly with `import pwndbg.aglib.nearpc`! This makes it easier for readers to figure out inter-file dependancies and makes it possible for static checkers to resolve correct types. If after importing at the top you get a circular import error, this means it's time to refactor!
+
+#### Import at the top!
+
+If you need to peform a function-level import this is likely an omen that the code deserves a refactor. So import at the top of the file! There are even places in the code where function-level imports are used but they could easily be moved to top-level imports with no other changes; do not contribute to this confusion!
+
+There are some exceptions to this rule of course, such as `dbg.setup()`, `aglib.load_aglib()`, `commands.load_commands()` and `gdblib.load_gdblib()`. But these are rare and have a clear intention.
