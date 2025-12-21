@@ -7,6 +7,7 @@ import sys
 import textwrap
 from typing import Dict
 from typing import Tuple
+from typing import Any
 
 from mdutils.mdutils import MdUtils
 
@@ -69,6 +70,7 @@ def get_markdown_body(cmd: ExtractedCommand) -> str:
     if cmd.subcommands:
         # Add all the subcommand's bodies as well.
         for subcmd in cmd.subcommands:
+            print("subcmd! ", subcmd)
             subcmd_md: str = get_markdown_body(subcmd)
             mdFile.write(f"### {cmd.name} {subcmd.name}\n")
             mdFile.write(subcmd_md + "\n")
@@ -301,6 +303,21 @@ def file_has_handwritten(filename: str) -> bool:
         return False
 
 
+def dict_to_extracted(dictionary: dict[str, Any]) -> ExtractedCommand:
+    cmd: ExtractedCommand = ExtractedCommand(**dictionary)
+
+    # We may still need to unpack the subcommands
+    if cmd.subcommands:
+        actual_subcommands: list[ExtractedCommand] = []
+        for subcmd_dict in cmd.subcommands:
+            # The type is wrong because mypy thinks cmd.subcommands is an array of ExtractedCommand's
+            # but it's actually an array of dict[str, Any].
+            actual_subcommands.append(dict_to_extracted(subcmd_dict)) # type: ignore[attr-assigned]
+        # Now the type is correct :)
+        cmd.subcommands = actual_subcommands
+
+    return cmd
+
 def read_extracted() -> list[Tuple[str, Dict[str, ExtractedCommand]]]:
     """
     Read json files from disk.
@@ -321,7 +338,7 @@ def read_extracted() -> list[Tuple[str, Dict[str, ExtractedCommand]]]:
         # Convert the dict objs to ExtractedCommands
         data: Dict[str, ExtractedCommand] = {}
         for filename, cmd_dict in raw_data.items():
-            data[filename] = ExtractedCommand(**cmd_dict)
+            data[filename] = dict_to_extracted(cmd_dict)
 
         result.append((debugger, data))
 
