@@ -320,8 +320,14 @@ class CommandObj:
         # Run recursively on subparsers (if any)
         for action in parser._actions:
             if isinstance(action, argparse._SubParsersAction):
+                last_prog = "<doesn't exist>"
                 for subparser in action.choices.values():
-                    CommandObj.initialize_parser_recursively(subparser, parser.prog, False)
+                    # Argparse creates duplicate objects for aliases, we don't need to
+                    # reparse them (and shouldn't, as we will mess up the parser.prog).
+                    if subparser.prog != last_prog:
+                        CommandObj.initialize_parser_recursively(subparser, parser.prog, False)
+
+                    last_prog = subparser.prog
 
     def initialize_parser(self) -> None:
         # Set parser.prog so the help is generated properly.
