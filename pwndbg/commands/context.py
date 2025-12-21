@@ -13,6 +13,7 @@ from typing import DefaultDict
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import TextIO
 from typing import Tuple
 from typing import TypeVar
 
@@ -216,7 +217,7 @@ def validate_context_sections() -> None:
 class StdOutput:
     """A context manager wrapper to give stdout"""
 
-    def __enter__(self):
+    def __enter__(self) -> TextIO:
         return sys.stdout
 
     def __exit__(self, *args, **kwargs) -> None:
@@ -236,7 +237,7 @@ class FileOutput:
         self.args = args
         self.handle = None
 
-    def __enter__(self):
+    def __enter__(self) -> TextIO:
         self.handle = open(*self.args)
         return self.handle
 
@@ -287,7 +288,11 @@ class CallOutput:
             return False
 
 
-def output(section: str):
+OutputWrapper = StdOutput | FileOutput | CallOutput
+OutputTarget = TextIO | CallOutput
+
+
+def output(section: str) -> OutputWrapper:
     """Creates a context manager corresponding to configured context output"""
     target = outputs.get(section, str(config_output))
     if not target or target == "stdout":
@@ -622,7 +627,10 @@ def contextunwatch(num: int) -> None:
 
 @serve_context_history
 def context_expressions(
-    target=sys.stdout, with_banner: bool = True, width: int | None = None, height: int | None = None
+    target: OutputTarget = sys.stdout,
+    with_banner: bool = True,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     if not expressions:
         return []
@@ -670,7 +678,10 @@ config_context_ghidra = pwndbg.config.add_param(
 
 @serve_context_history
 def context_ghidra(
-    target=sys.stdout, with_banner: bool = True, width: int | None = None, height: int | None = None
+    target: OutputTarget = sys.stdout,
+    with_banner: bool = True,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     """
     Print out the source of the current function decompiled by ghidra.
@@ -757,12 +768,12 @@ def context(subcontext: List[str] | None = None, enabled: bool | None = None) ->
 
     if subcontext is None:
         subcontext = []
-    args = subcontext
+    args: List[str] = subcontext
 
     if len(args) == 0:
         args = config_context_sections.split()
 
-    sections = []
+    sections: List[Tuple[str, Callable[..., List[str]] | None]] = []
     if args:
         if selected_history_index is None:
             sections.append(("legend", lambda *args, **kwargs: [M.legend()]))
@@ -773,8 +784,8 @@ def context(subcontext: List[str] | None = None, enabled: bool | None = None) ->
 
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
-    result = defaultdict(list)
-    result_settings: DefaultDict[str, Dict[Any, Any]] = defaultdict(dict)
+    result: DefaultDict[OutputWrapper, List[str]] = defaultdict(list)
+    result_settings: DefaultDict[OutputWrapper, Dict[str, Any]] = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)
@@ -911,7 +922,10 @@ def compact_regs(regs: List[str], width: int | None = None, target=sys.stdout) -
 
 @serve_context_history
 def context_regs(
-    target=sys.stdout, with_banner: bool = True, width: int | None = None, height: int | None = None
+    target: OutputTarget = sys.stdout,
+    with_banner: bool = True,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     regs = get_regs()
     if pwndbg.config.show_compact_regs:
@@ -927,7 +941,10 @@ def context_regs(
 
 @serve_context_history
 def context_heap_tracker(
-    target=sys.stdout, with_banner: bool = True, width: int | None = None, height: int | None = None
+    target: OutputTarget = sys.stdout,
+    with_banner: bool = True,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     if not pwndbg.gdblib.ptmalloc2_tracking.is_enabled():
         return []
@@ -1117,7 +1134,10 @@ def try_emulate_if_bug_disable(handler: Callable[[], T]) -> T:
 
 @serve_context_history
 def context_disasm(
-    target=sys.stdout, with_banner: bool = True, width: int | None = None, height: int | None = None
+    target: OutputTarget = sys.stdout,
+    with_banner: bool = True,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     flavor = pwndbg.dbg.x86_disassembly_flavor()
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
@@ -1251,7 +1271,10 @@ should_decompile = pwndbg.config.add_param(
 
 @serve_context_history
 def context_code(
-    target=sys.stdout, with_banner: bool = True, width: int | None = None, height: int | None = None
+    target: OutputTarget = sys.stdout,
+    with_banner: bool = True,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     filename, formatted_source, line = get_filename_and_formatted_source(height)
 
@@ -1282,7 +1305,10 @@ stack_lines = pwndbg.config.add_param(
 
 @serve_context_history
 def context_stack(
-    target=sys.stdout, with_banner: bool = True, width: int | None = None, height: int | None = None
+    target: OutputTarget = sys.stdout,
+    with_banner: bool = True,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     tui_stack_lines = max(int(stack_lines), height or 0)
     result = [pwndbg.ui.banner("stack", target=target, width=width)] if with_banner else []
@@ -1304,7 +1330,10 @@ backtrace_frame_label = theme.add_param(
 
 @serve_context_history
 def context_backtrace(
-    with_banner: bool = True, target=sys.stdout, width: int | None = None, height: int | None = None
+    with_banner: bool = True,
+    target: OutputTarget = sys.stdout,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     result = []
 
@@ -1355,7 +1384,10 @@ def context_backtrace(
 
 @serve_context_history
 def context_args(
-    with_banner: bool = True, target=sys.stdout, width: int | None = None, height: int | None = None
+    with_banner: bool = True,
+    target: OutputTarget = sys.stdout,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     args = pwndbg.arguments.format_args(pwndbg.aglib.disasm.disassembly.one())
 
@@ -1391,7 +1423,10 @@ def get_thread_status(thread: gdb.InferiorThread) -> str:
 
 @serve_context_history
 def context_threads(
-    with_banner: bool = True, target=sys.stdout, width: int | None = None, height: int | None = None
+    with_banner: bool = True,
+    target: OutputTarget = sys.stdout,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     try:
         original_thread = gdb.selected_thread()
@@ -1519,7 +1554,10 @@ if pwndbg.dbg.is_gdblib_available():
 
 @serve_context_history
 def context_last_signal(
-    with_banner: bool = True, target=sys.stdout, width: int | None = None, height: int | None = None
+    with_banner: bool = True,
+    target: OutputTarget = sys.stdout,
+    width: int | None = None,
+    height: int | None = None,
 ) -> List[str]:
     if not last_signal:
         return []
@@ -1531,7 +1569,7 @@ def context_last_signal(
     return result
 
 
-context_sections = {
+context_sections: Dict[str, Callable[..., List[str]]] = {
     "a": context_args,
     "r": context_regs,
     "d": context_disasm,
