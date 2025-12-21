@@ -158,7 +158,6 @@ class CommandObj:
         else:
             self.command_name = command_name
 
-
         assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
         assert self.command_name not in command_names and "Command already exists."
         assert (
@@ -262,12 +261,16 @@ class CommandObj:
         self.parser.epilog = self.epilog = self.epilog.strip()
 
     @staticmethod
-    def initialize_parser_recursively(parser: argparse.ArgumentParser, parent_name: str, is_top_level: bool) -> None:
+    def initialize_parser_recursively(
+        parser: argparse.ArgumentParser, parent_name: str, is_top_level: bool
+    ) -> None:
         if is_top_level:
             assert parser.prog[0] != " "
             assert parent_name == ""
         else:
-            assert parser.prog[0] == " ", "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+            assert (
+                parser.prog[0] == " "
+            ), "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
             assert parent_name != ""
 
         parser.prog = parent_name + parser.prog

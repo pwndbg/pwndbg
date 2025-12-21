@@ -37,7 +37,7 @@ if (sys.version_info.major, sys.version_info.minor) >= (3, 7):
     subparsers.required = True
 
 
-parser_list = subparsers.add_parser("list", prog="slab list")
+parser_list = subparsers.add_parser("list", description="List SLUB caches filtered by name.")
 parser_list.add_argument(
     "filter_",
     metavar="filter",
@@ -47,7 +47,7 @@ parser_list.add_argument(
     help="Only show caches that contain the given filter string",
 )
 
-parser_info = subparsers.add_parser("info", prog="slab info")
+parser_info = subparsers.add_parser("info", description="Dump information about a cache.")
 parser_info.add_argument("names", metavar="name", type=str, nargs="+", help="")
 parser_info.add_argument("-v", "--verbose", action="store_true", help="")
 parser_info.add_argument("-c", "--cpu", type=int, help="CPU to display")
@@ -59,7 +59,7 @@ parser_info.add_argument(
     "-a", "--active-only", action="store_true", help="only displays the active list"
 )
 
-parser_contains = subparsers.add_parser("contains", prog="slab contains")
+parser_contains = subparsers.add_parser("contains", description="Get the cache for an address.")
 parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
 
 
