@@ -20,13 +20,13 @@ from dataclasses import asdict
 
 shutil.get_terminal_size = lambda fallback=(80, 24): os.terminal_size((80, 24))
 
+import argparse
 import json
 import sys
+from dataclasses import dataclass
 from typing import Tuple
 
 import pwndbg.commands
-import argparse
-from dataclasses import dataclass
 from pwndbg.commands import CommandObj
 from scripts._docs.command_docs_common import BASE_PATH
 from scripts._docs.command_docs_common import ExtractedCommand
@@ -233,7 +233,7 @@ def distill_sources(commandobjs: list[CommandObj]) -> list[ExtractedCommand]:
                 parser_data.usage,
                 parser_data.positionals,
                 parser_data.optionals,
-                subcommands
+                subcommands,
             )
         )
 

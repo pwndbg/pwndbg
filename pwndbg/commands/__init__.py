@@ -268,6 +268,9 @@ class CommandObj:
             assert parser.prog[0] != " "
             assert parent_name == ""
         else:
+            # Workaround until https://github.com/pwndbg/pwndbg/issues/3523
+            # is fixed.
+            parser.prog = parser.prog.replace("pwndbg-lldb", "")
             assert (
                 parser.prog[0] == " "
             ), "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
