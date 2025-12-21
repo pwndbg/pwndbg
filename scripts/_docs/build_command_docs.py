@@ -5,9 +5,9 @@ import json
 import os
 import sys
 import textwrap
+from typing import Any
 from typing import Dict
 from typing import Tuple
-from typing import Any
 
 from mdutils.mdutils import MdUtils
 
@@ -320,11 +320,12 @@ def dict_to_extracted(dictionary: dict[str, Any]) -> ExtractedCommand:
         for subcmd_dict in cmd.subcommands:
             # The type is wrong because mypy thinks cmd.subcommands is an array of ExtractedCommand's
             # but it's actually an array of dict[str, Any].
-            actual_subcommands.append(dict_to_extracted(subcmd_dict)) # type: ignore[attr-assigned]
+            actual_subcommands.append(dict_to_extracted(subcmd_dict))  # type: ignore[attr-assigned]
         # Now the type is correct :)
         cmd.subcommands = actual_subcommands
 
     return cmd
+
 
 def read_extracted() -> list[Tuple[str, Dict[str, ExtractedCommand]]]:
     """
