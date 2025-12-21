@@ -151,11 +151,13 @@ class CommandObj:
         assert function
         self.function = function
 
-        self.command_name = command_name
-        if self.command_name is None:
+        if command_name is None:
             # Take the command name from the name of the function
             # which defines it, but replace '_' with '-'.
-            self.command_name = function.__name__.replace("_", "-")
+            self.command_name: str = function.__name__.replace("_", "-")
+        else:
+            self.command_name = command_name
+
 
         assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
         assert self.command_name not in command_names and "Command already exists."
@@ -217,60 +219,7 @@ class CommandObj:
     def has_examples_string(text: str) -> bool:
         return any(ex in text.lower() for ex in ("example:", "examples:"))
 
-    def initialize_parser(self):
-        # Set parser.prog so the help is generated properly.
-        self.parser.prog = self.command_name
-
-        # We want to run all integer and otherwise-unspecified arguments
-        # through fix() so that GDB parses it.
-        # FIXME: this is weird
-        def process_actions(actions):
-            """Recursively process actions, including subparsers"""
-            for action in actions:
-                if isinstance(action, argparse._SubParsersAction):
-                    action.type = str
-                    # Recursively process each subparser's actions
-                    for subparser in action.choices.values():
-                        process_actions(subparser._actions)
-                if action.dest == "help":
-                    continue
-                if action.type is int:
-                    action.type = fix_int_reraise_arg
-                elif type(action) == argparse._StoreAction and action.type is None:
-                    # Prevents bugs like https://github.com/pwndbg/pwndbg/pull/3477
-                    print(
-                        message.error(f"Error parsing arguments for command: {self.command_name}")
-                    )
-                    print("You must set the argument type for a store action.")
-                    print(f"Erroneous action:\n\t{repr(action)}\n")
-                    assert False, "You must set the argument type for a store action."
-
-        process_actions(self.parser._actions)
-
-        assert (
-            self.parser.formatter_class is argparse.HelpFormatter
-            and "All pwndbg commands should use the same formatter."
-        )
-
-        self.parser.formatter_class = CommandFormatter
-
-        # Used by `pwndbg [filter]`
-        assert (
-            self.parser.description
-            and self.parser.description.strip()
-            and "A command must contain a description."
-        )
-        self.description = self.parser.description = self.parser.description.strip()
-
-        assert (
-            not self.has_examples_string(self.description)
-            and "Put examples into pwndbg.commands.Command(examples=your_example)."
-        )
-        assert (
-            not self.has_notes_string(self.description)
-            and "Put notes into pwndbg.commands.Command(notes=your_note)."
-        )
-
+    def setup_epilog(self) -> None:
         # Build the actual epilog from the examples, notes and passed epilog.
         self.epilog = ""
         self.pure_epilog = ""
@@ -311,6 +260,75 @@ class CommandObj:
 
         # Update the parser so the help is correctly generated.
         self.parser.epilog = self.epilog = self.epilog.strip()
+
+    @staticmethod
+    def initialize_parser_recursively(parser: argparse.ArgumentParser, parent_name: str, is_top_level: bool) -> None:
+        if is_top_level:
+            assert parser.prog[0] != " "
+            assert parent_name == ""
+        else:
+            assert parser.prog[0] == " ", "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+            assert parent_name != ""
+
+        parser.prog = parent_name + parser.prog
+
+        # We want to run all integer and otherwise-unspecified arguments
+        # through fix() so that GDB parses it.
+        for action in parser._actions:
+            if action.dest == "help":
+                continue
+            if action.type is int:
+                action.type = fix_int_reraise_arg
+            elif type(action) is argparse._StoreAction and action.type is None:
+                # Prevents bugs like https://github.com/pwndbg/pwndbg/pull/3477
+                print(
+                    message.error(f"Error parsing arguments for command: {parser.prog}")
+                )
+                print("You must set the argument type for a store action.")
+                print(f"Erroneous action:\n\t{repr(action)}\n")
+                assert False, "You must set the argument type for a store action."
+
+        assert (
+            parser.formatter_class is argparse.HelpFormatter
+            and "All pwndbg commands should use the same formatter."
+        )
+
+        parser.formatter_class = CommandFormatter
+
+        # Used by `pwndbg [filter]`
+        assert (
+            parser.description
+            and parser.description.strip()
+            and "A command must contain a description."
+        )
+        parser.description = parser.description.strip()
+
+        # Run recursively on subparsers (if any)
+        for action in parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                for subparser in action.choices.values():
+                    CommandObj.initialize_parser_recursively(subparser, parser.prog, False)
+
+    def initialize_parser(self) -> None:
+        # Set parser.prog so the help is generated properly.
+        self.parser.prog = self.command_name
+
+        # Clean up and check subcommands as well
+        CommandObj.initialize_parser_recursively(self.parser, "", True)
+
+        assert self.parser.description
+        self.description: str = self.parser.description
+
+        assert (
+            not self.has_examples_string(self.description)
+            and "Put examples into pwndbg.commands.Command(examples=your_example)."
+        )
+        assert (
+            not self.has_notes_string(self.description)
+            and "Put notes into pwndbg.commands.Command(notes=your_note)."
+        )
+
+        self.setup_epilog()
 
         # Generate command help (after stripping the parser's variables
         # and defining a formatter).
