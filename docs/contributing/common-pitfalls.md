@@ -38,7 +38,7 @@ If you look at `pwndbg/aglib/__init__.py` you will see that `arch` is a None-ini
 
 #### `from pwndbg.aglib import regs` doesn't work
 
-If you look at `pwndbg/aglib/__init__.py` you will see that `regs` is a None-initialized object and gets swapped out during initialization. To use it properly you must not make a copy of it via `from pwndbg.aglib import regs` and instead always access it via `aglib.regs` like: `aglib.regs.whatever()`.
+If you look at `pwndbg/aglib/__init__.py` you will see that `regs` is a None-initialized object and gets swapped out during initialization. Doing `from pwndbg.aglib import regs` binds `regs` to `None`. Instead always access it via `aglib.regs` like: `aglib.regs.whatever()`.
 
 #### No `module` magic
 
