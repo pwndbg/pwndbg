@@ -1192,14 +1192,39 @@ class GDBCommand(gdb.Command):
         name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
+        subcommand_names: list[str] | None,
     ):
+        # We can't do `list[str] = []` in the signature because python..
         self.debugger = debugger
         self.handler = handler
         self.__doc__ = doc
-        super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+        if subcommand_names is None:
+            super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+        else:
+            self.subcommand_names: list[str] = subcommand_names
+            super().__init__(name, gdb.COMMAND_USER)
 
     def invoke(self, args: str, from_tty: bool) -> None:
         self.handler(self.debugger, args, from_tty)
+
+    def complete(self, text: str, word: str | None):
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/CLI-Commands-In-Python.html#CLI-Commands-In-Python:~:text=Command%2Ecomplete
+        # > `text` holds the complete command line up to the cursor’s location
+        # > `word` holds the last word of the command line
+        # The description is kind of misleading. If you type `slab li ny<TAB>`
+        # you will get text="li ny", word="ny".
+        # Actually, the function seems to be called twice for some reason, the first invocation having
+        # word=None. Why?
+        # Since we only support one level of subcommand completion (i.e. we dont support subsubcommand completion),
+        # we don't really care about the text and word distinction.
+        if word is None or text != word:
+            return []
+        if text == "":
+            # Return all subcommands
+            return self.subcommand_names
+
+        # Find all with matching prefix
+        return [valid for valid in self.subcommand_names if valid.startswith(text)]
 
 
 class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
@@ -1615,8 +1640,9 @@ class GDB(pwndbg.dbg_mod.Debugger):
         name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
+        subcommand_names: list[str] | None = None,
     ) -> pwndbg.dbg_mod.CommandHandle:
-        command = GDBCommand(self, name, handler, doc)
+        command = GDBCommand(self, name, handler, doc, subcommand_names)
         return GDBCommandHandle(command)
 
     @override

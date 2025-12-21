@@ -149,7 +149,7 @@ class CommandObj:
         /,  # All parameters must be passed in positionally
     ) -> None:
         assert function
-        self.function = function
+        self.function: Callable[..., str | None] = function
 
         if command_name is None:
             # Take the command name from the name of the function
@@ -170,15 +170,18 @@ class CommandObj:
         )
 
         assert category
-        self.category = category
+        self.category: CommandCategory = category
 
-        self.aliases = aliases
-        self.examples = examples.strip()
-        self.notes = notes.strip()
+        self.aliases: list[str] = aliases
+        self.examples: str = examples.strip()
+        self.notes: str = notes.strip()
 
         assert parser
-        self.parser = parser
-        # Sets self.help_str and self.description (among other stuff).
+        self.parser: argparse.ArgumentParser = parser
+        # Sets self.help_str, self.description and self.subcommand_names (among other stuff).
+        self.help_str: str
+        self.description: str
+        self.subcommand_names: list[str] | None
         self.initialize_parser()
 
         # Let the debugger and pwndbg global state know about it.
@@ -186,7 +189,7 @@ class CommandObj:
 
         # For commands like hexdump where you get new output from
         # continuous invocations.
-        self.repeat = False
+        self.repeat: bool = False
 
     def register_command(self):
         """
@@ -202,10 +205,16 @@ class CommandObj:
         self.handles = []
 
         # Tell the debugger about the command...
-        self.handles.append(pwndbg.dbg.add_command(self.command_name, _handler, self.help_str))
+        self.handles.append(
+            pwndbg.dbg.add_command(
+                self.command_name, _handler, self.help_str, self.subcommand_names
+            )
+        )
         # ...and all of its aliases.
         for alias in self.aliases:
-            self.handles.append(pwndbg.dbg.add_command(alias, _handler, self.help_str))
+            self.handles.append(
+                pwndbg.dbg.add_command(alias, _handler, self.help_str, self.subcommand_names)
+            )
 
         command_names.add(self.command_name)
         commands.append(self)
@@ -339,8 +348,22 @@ class CommandObj:
         # Clean up and check subcommands as well
         CommandObj.initialize_parser_recursively(self.parser, "", True)
 
+        # Add non-alias subcommands to self.subcommand_names which will
+        # register them for tab-completion in the debugger.
+        self.subcommand_names = None
+        for action in self.parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                self.subcommand_names = []
+                last_prog = "<doesn't exist>"
+                for subcmd_name, subparser in action.choices.items():
+                    if subparser.prog != last_prog:
+                        self.subcommand_names.append(subcmd_name)
+                    last_prog = subparser.prog
+                # Not sure what multiple subparser actions would mean..
+                break
+
         assert self.parser.description
-        self.description: str = self.parser.description
+        self.description = self.parser.description
 
         assert (
             not self.has_examples_string(self.description)

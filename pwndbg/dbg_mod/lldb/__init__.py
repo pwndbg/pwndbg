@@ -2059,9 +2059,10 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     @override
     def add_command(
         self,
-        command_name: str,
+        name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
+        subcommand_names: list[str] | None = None,
     ) -> pwndbg.dbg_mod.CommandHandle:
         debugger = self
 
@@ -2088,19 +2089,19 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         # its happiest when its pulling objects straight off the module that was
         # first imported with `command script import`, so, we install the class
         # we've just created as a global value in its dictionary.
-        name = f"__LLDB_COMMAND_{command_name}"
+        handler_name = f"__LLDB_COMMAND_{name}"
 
         if self.debug:
-            print(f"[-] LLDB: Adding command {command_name}, under the path {self.module}.{name}")
+            print(f"[-] LLDB: Adding command {name}, under the path {self.module}.{handler_name}")
 
-        sys.modules[self.module].__dict__[name] = CommandHandler
+        sys.modules[self.module].__dict__[handler_name] = CommandHandler
 
         # Install the command under the name we've just picked.
         self.debugger.HandleCommand(
-            f"command script add -c {self.module}.{name} -s synchronous {command_name}"
+            f"command script add -c {self.module}.{handler_name} -s synchronous {name}"
         )
 
-        return LLDBCommand(name, command_name)
+        return LLDBCommand(handler_name, name)
 
     @override
     def history(self, last: int = 10) -> List[Tuple[int, str]]:
