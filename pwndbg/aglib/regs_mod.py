@@ -74,11 +74,10 @@ class RegisterManager:
                 return None
             value = int(value)
             if reg == "pc" and pwndbg.aglib.arch.name == "i8086":
-                # FIXME: What is going on here?
-                # if self.cs is None:
-                #     return None
-                # value += self.cs * 16
-                pass
+                cs = self.get_register("cs", frame)
+                if cs is None:
+                    return None
+                value += int(cs) * 0x10
 
             # The value that the native debugger returns can be negative.
             # We convert this to the unsigned bit representation by masking it
