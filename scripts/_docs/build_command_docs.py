@@ -66,6 +66,13 @@ def get_markdown_body(cmd: ExtractedCommand) -> str:
         )
         mdFile.write("\n")
 
+    if cmd.subcommands:
+        # Add all the subcommand's bodies as well.
+        for subcmd in cmd.subcommands:
+            subcmd_md: str = get_markdown_body(subcmd)
+            mdFile.write(f"### {cmd.name} {subcmd.name}\n")
+            mdFile.write(subcmd_md + "\n")
+
     if cmd.examples:
         # Put the examples into a code block so they are formatted sensically.
         mdFile.write("### Examples\n```text\n" + cmd.examples + "\n```\n")
