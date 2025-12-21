@@ -324,7 +324,7 @@ parser.add_argument(
     type=int,
     nargs="?",
     default=None,
-    help="Sets a fixed height (used for number of lines to display before cutoff). Set to None for auto",
+    help="Sets a fixed height (used for number of lines to display before cutoff). Only applies to sections where more data can be displayed like disasm, stack, and threads and overrides their section specific limits. Set to None for auto",
 )
 
 

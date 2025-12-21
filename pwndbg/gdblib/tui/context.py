@@ -20,10 +20,10 @@ tui_adjust_height = pwndbg.config.add_param(
     True,
     "adjust height of context sections to fit the TUI",
     help_docstring="""
-    Adjust the height of context sections to fit the TUI window, ignoring section specific limits.
-    This uses all vertical space available in the TUI windows if the context section supports it
-    like the "disasm" or "stack" windows.
-    """,
+Adjust the height of context sections to fit the TUI window, ignoring section specific limits.
+This uses all vertical space available in the TUI windows if the context section supports it
+like the "disasm" or "stack" windows.
+""",
 )
 
 

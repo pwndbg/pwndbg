@@ -375,6 +375,20 @@ Number of lines to print in the stack context.
 
 ----------
 
+## **context-tui-adjust-height**
+<small style="color: lightgray;">(only in GDB)</small>
+
+
+Adjust height of context sections to fit the TUI.
+
+Adjust the height of context sections to fit the TUI window, ignoring section specific limits.
+This uses all vertical space available in the TUI windows if the context section supports it
+like the "disasm" or "stack" windows.
+
+**Default:** on  
+
+----------
+
 ## **cymbol-editor**
 <small style="color: lightgray;">(only in GDB)</small>
 
