@@ -46,8 +46,15 @@ def flags_str2int(flags_s):
 parser = argparse.ArgumentParser(
     description="Pointer scan for possible offset leaks.",
 )
-parser.add_argument("address", nargs="?", default="$sp", help="Leak memory address")
-parser.add_argument("count", nargs="?", default=0x40, help="Leak size in bytes")
+parser.add_argument(
+    "address",
+    nargs="?",
+    type=int,
+    # Legal because it will get parsed by the debugger.
+    default="$sp",
+    help="Leak memory address",
+)
+parser.add_argument("count", nargs="?", default=0x40, type=int, help="Leak size in bytes")
 parser.add_argument(
     "--max-distance",
     type=int,

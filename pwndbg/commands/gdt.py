@@ -26,7 +26,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "count", nargs="?", default=8, help="Number of entries to dump (should be (GDTR.size+1)/8)"
+    "count",
+    nargs="?",
+    default=8,
+    help="Number of entries to dump (should be (GDTR.size+1)/8)",
+    type=int,
 )
 
 

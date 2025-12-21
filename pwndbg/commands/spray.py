@@ -9,7 +9,7 @@ import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Spray memory with cyclic() generated values")
-parser.add_argument("addr", help="Address to spray")
+parser.add_argument("addr", help="Address to spray", type=int)
 parser.add_argument(
     "length",
     help="Length of byte sequence, when unspecified sprays until the end of vmmap which address belongs to",

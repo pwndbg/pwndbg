@@ -40,7 +40,7 @@ def translate_addr(offset, module):
 
 
 parser = argparse.ArgumentParser(description="Calculate VA of RVA from PIE base.")
-parser.add_argument("offset", nargs="?", default=0, help="Offset from PIE base.")
+parser.add_argument("offset", nargs="?", type=int, default=0, help="Offset from PIE base.")
 parser.add_argument(
     "module",
     type=str,
@@ -52,7 +52,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def piebase(offset=None, module=None) -> None:
+def piebase(offset: int = 0, module: str = "") -> None:
     offset = int(offset)
     if not module:
         module = pwndbg.aglib.proc.exe
@@ -68,7 +68,7 @@ def piebase(offset=None, module=None) -> None:
 if pwndbg.dbg.is_gdblib_available():
     parser = argparse.ArgumentParser()
     parser.description = "Break at RVA from PIE base."
-    parser.add_argument("offset", nargs="?", default=0, help="Offset to add.")
+    parser.add_argument("offset", nargs="?", type=int, default=0, help="Offset to add.")
     parser.add_argument(
         "module",
         type=str,
@@ -79,7 +79,7 @@ if pwndbg.dbg.is_gdblib_available():
 
     @pwndbg.commands.Command(parser, aliases=["brva"], category=CommandCategory.BREAKPOINT)
     @pwndbg.commands.OnlyWhenRunning
-    def breakrva(offset=0, module=None) -> None:
+    def breakrva(offset: int = 0, module: str = "") -> None:
         offset = int(offset)
         if not module:
             module = pwndbg.aglib.proc.exe

@@ -314,7 +314,7 @@ add_parser.add_argument(
 )
 
 remove_parser = subparsers.add_parser("remove", help="Remove a custom structure")
-remove_parser.add_argument("name", help="Name of custom structure")
+remove_parser.add_argument("name", help="Name of custom structure", type=str)
 
 edit_parser = subparsers.add_parser("edit", help="Edit a custom structure")
 edit_parser.add_argument("name", help="Name of custom structure", type=str)

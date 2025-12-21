@@ -240,8 +240,14 @@ class CommandObj:
                     continue
                 if action.type is int:
                     action.type = fix_int_reraise_arg
-                elif action.type is None:
-                    action.type = fix_reraise_arg
+                elif type(action) == argparse._StoreAction and action.type is None:
+                    # Prevents bugs like https://github.com/pwndbg/pwndbg/pull/3477
+                    print(
+                        message.error(f"Error parsing arguments for command: {self.command_name}")
+                    )
+                    print("You must set the argument type for a store action.")
+                    print(f"Erroneous action:\n\t{repr(action)}\n")
+                    assert False, "You must set the argument type for a store action."
 
         process_actions(self.parser._actions)
 

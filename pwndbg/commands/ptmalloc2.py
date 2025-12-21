@@ -963,7 +963,13 @@ group.add_argument(
     default=pwndbg.config.default_visualize_chunk_number,
     help="Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead.",
 )
-parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
+parser.add_argument(
+    "addr",
+    nargs="?",
+    default=None,
+    help="Address of the first chunk.",
+    type=int,
+)
 parser.add_argument(
     "--beyond-top",
     "-b",
@@ -1306,7 +1312,7 @@ def bin_labels_mapping(collections: List[Bins | None]) -> Dict[int, List[str]]:
 try_free_parser = argparse.ArgumentParser(
     description="Check what would happen if free was called with given address."
 )
-try_free_parser.add_argument("addr", help="Address passed to free")
+try_free_parser.add_argument("addr", type=int, help="Address passed to free")
 
 
 @pwndbg.commands.Command(try_free_parser, category=CommandCategory.PTMALLOC2)
