@@ -345,7 +345,7 @@ file_parser.add_argument("--name", help="Optional structure name", type=str)
 file_parser.add_argument("--force", action="store_true", help="Overwrite if exists")
 
 show_all_parser = subparsers.add_parser(
-    "show-all", help="Show all stored structure", description="Show all stored structure."
+    "show-all", help="Show all stored structures", description="Show all stored structures."
 )
 
 
