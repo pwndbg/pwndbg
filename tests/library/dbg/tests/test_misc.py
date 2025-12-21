@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ....host import Controller
 from . import pwndbg_test
 
 STACK_COMMANDS = [

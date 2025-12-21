@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pwndbg.aglib
+
 from ....host import Controller
 from . import get_binary
 from . import launch_to
@@ -114,7 +116,6 @@ async def test_cache_registers_account_frame(ctrl: Controller) -> None:
     # Test that the registers don't get cached without an associated frame
     # and thus reuse a stale value.
     # https://github.com/pwndbg/pwndbg/issues/3508
-    import pwndbg.aglib.regs
 
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     # Get the value of pc in the freshest stack frame

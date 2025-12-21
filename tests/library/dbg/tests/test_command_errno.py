@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from ....host import Controller
 from . import break_at_sym
 from . import get_binary
@@ -16,7 +14,7 @@ async def test_command_errno(ctrl: Controller) -> None:
     """
     Tests the errno command display
     """
-    await ctrl.launch(Path(REFERENCE_BINARY))
+    await ctrl.launch(REFERENCE_BINARY)
 
     break_at_sym("main")
     await ctrl.cont()
