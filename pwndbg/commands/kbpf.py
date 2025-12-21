@@ -18,9 +18,13 @@ from pwndbg.lib.exception import IndentContextManager
 parser = argparse.ArgumentParser(
     description="Prints information about the linux kernel bpf progs and maps."
 )
-parser.add_argument("-v", "--verbose", action="count", default=0)
-parser.add_argument("-p", "--progs", dest="print_progs", action="store_true", default=False)
-parser.add_argument("-m", "--maps", dest="print_maps", action="store_true", default=False)
+parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase the verbosity.")
+parser.add_argument(
+    "-p", "--progs", dest="print_progs", action="store_true", default=False, help="Print progs"
+)
+parser.add_argument(
+    "-m", "--maps", dest="print_maps", action="store_true", default=False, help="Print maps"
+)
 
 _bpf_map_array_off = None
 MAX_PRINTED_VALUE_SIZE = 0x20

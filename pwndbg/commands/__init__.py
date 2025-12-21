@@ -279,14 +279,23 @@ class CommandObj:
         # through fix() so that GDB parses it.
         for action in parser._actions:
             if action.dest == "help":
+                # The HelpAction exists by default and handles `-h` and `--help`.
+                # No need to do anything about it.
                 continue
+
+            if not isinstance(action, argparse._SubParsersAction) and action.help is None:
+                # When we do `cmd -h` we want each argument to have a one-line
+                # description.
+                print(message.error(f"Error parsing arguments for command: {parser.prog}"))
+                print("You must add a `help=` string to your argument.")
+                print(f"Erroneous action:\n\t{repr(action)}\n")
+                assert False, "You must add a `help=` string to your argument."
+
             if action.type is int:
                 action.type = fix_int_reraise_arg
             elif type(action) is argparse._StoreAction and action.type is None:
                 # Prevents bugs like https://github.com/pwndbg/pwndbg/pull/3477
-                print(
-                    message.error(f"Error parsing arguments for command: {parser.prog}")
-                )
+                print(message.error(f"Error parsing arguments for command: {parser.prog}"))
                 print("You must set the argument type for a store action.")
                 print(f"Erroneous action:\n\t{repr(action)}\n")
                 assert False, "You must set the argument type for a store action."

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.commands
 import pwndbg.profiling
 from pwndbg.commands import CommandCategory
 

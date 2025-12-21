@@ -186,7 +186,9 @@ class Page:
         else:
             objfile = self.objfile
 
-        return format_address(self.vaddr, self.memsz, self.permstr, self.offset, self.arch_ptrsize, objfile=objfile)
+        return format_address(
+            self.vaddr, self.memsz, self.permstr, self.offset, self.arch_ptrsize, objfile=objfile
+        )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.__str__()!r})"

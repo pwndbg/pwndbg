@@ -5,12 +5,10 @@ import re
 from typing import Any
 from typing import Dict
 
-import pwndbg.aglib.dynamic
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
-import pwndbg.dbg_mod
 import pwndbg.gdblib.got
 from pwndbg.commands import CommandCategory
 
