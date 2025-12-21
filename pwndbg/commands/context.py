@@ -23,14 +23,15 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib.kernel
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
-import pwndbg.color.context as C
-import pwndbg.color.memory as M
+import pwndbg.color.context as ctx_color
+import pwndbg.color.memory as mem_color
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
@@ -610,7 +611,7 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
     banner = [pwndbg.ui.banner("expressions", target=target, width=width)]
     output = []
     for i, (exp, cmd) in enumerate(expressions):
-        header = f"{i + 1}: {C.highlight(exp)}"
+        header = f"{i + 1}: {ctx_color.highlight(exp)}"
         try:
             if cmd == "eval":
                 value = str(gdb.parse_and_eval(exp))
@@ -744,11 +745,13 @@ def context(subcontext=None, enabled=None) -> None:
     sections = []
     if args:
         if selected_history_index is None:
-            sections.append(("legend", lambda *args, **kwargs: [M.legend()]))
+            sections.append(("legend", lambda *args, **kwargs: [mem_color.legend()]))
         else:
             longest_history = max(len(h) for h in context_history.values())
             history_status = f" (history {selected_history_index + 1}/{longest_history})"
-            sections.append(("legend", lambda *args, **kwargs: [M.legend() + history_status]))
+            sections.append(
+                ("legend", lambda *args, **kwargs: [mem_color.legend() + history_status])
+            )
 
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
@@ -942,16 +945,16 @@ class RegisterContext(RegisterContextProtocol):
 
     def get_prefix(self, reg: str) -> str:
         # Make the register stand out and give a color if changed
-        regname = C.register(reg.ljust(4).upper())
+        regname = ctx_color.register(reg.ljust(4).upper())
         if reg in self.changed:
-            regname = C.register_changed(regname)
+            regname = ctx_color.register_changed(regname)
 
         # Show a marker next to the register if it changed
-        change_marker = f"{C.config_register_changed_marker}"
+        change_marker = f"{ctx_color.config_register_changed_marker}"
         m = (
             " " * len(change_marker)
             if reg not in self.changed
-            else C.register_changed(change_marker)
+            else ctx_color.register_changed(change_marker)
         )
         return f"{m}{regname}"
 
@@ -967,7 +970,7 @@ class RegisterContext(RegisterContextProtocol):
         val = self.get_register_value(reg)
         if val is None:
             return None
-        desc = C.format_flags(val, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
+        desc = ctx_color.format_flags(val, bit_flags, pwndbg.aglib.regs.last.get(reg, 0))
         prefix = self.get_prefix(reg)
         return f"{prefix} {desc}"
 
@@ -1188,7 +1191,7 @@ def get_filename_and_formatted_source():
     source = source[start:end]
 
     # Compute the prefix_sign length
-    prefix_sign = C.prefix(str(pwndbg.config.code_prefix))
+    prefix_sign = ctx_color.prefix(str(pwndbg.config.code_prefix))
     prefix_width = len(prefix_sign)
 
     # Format the output
@@ -1198,7 +1201,7 @@ def get_filename_and_formatted_source():
             code = code.replace("\t", " " * pwndbg.config.context_code_tabstop)
         fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
         if pwndbg.config.highlight_source and line_number == closest_line:
-            fmt = C.highlight(fmt)
+            fmt = ctx_color.highlight(fmt)
 
         line = fmt.format(
             prefix_sign=prefix_sign if line_number == closest_line else "",
@@ -1413,7 +1416,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
             thread.switch()
             pc = gdb.selected_frame().pc()
 
-            pc_colored = M.get(pc)
+            pc_colored = mem_color.get(pc)
             symbol = pwndbg.aglib.symbol.resolve_addr(int(pc))
 
             line += f"{pc_colored}"

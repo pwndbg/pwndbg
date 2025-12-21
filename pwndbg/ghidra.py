@@ -8,9 +8,9 @@ import os
 
 import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.color.context as C
+import pwndbg.color.context as ctx_color
 import pwndbg.color.syntax_highlight as H
-import pwndbg.dbg_mod
+import pwndbg.lib.config
 import pwndbg.radare2
 import pwndbg.rizin
 
@@ -106,7 +106,7 @@ def decompile(func=None):
         source = H.syntax_highlight(source, src_filename)
 
     # Replace code prefix marker after syntax highlighting
-    source = source.replace(current_line_marker, C.prefix(pwndbg.config.code_prefix), 1)
+    source = source.replace(current_line_marker, ctx_color.prefix(pwndbg.config.code_prefix), 1)
 
     if not func_specified:
         source = source.split("\n")
