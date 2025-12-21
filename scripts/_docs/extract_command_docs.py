@@ -122,16 +122,16 @@ def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
     return ExtractedParserData(usage, positionals, optionals)
 
 
-def distill_one_subcommand(parser: argparse.ArgumentParser) -> ExtractedCommand:
+def distill_one_subcommand(cmdname, parser: argparse.ArgumentParser) -> ExtractedCommand:
     """
     The `parser` argument is the subcommand we are distilling.
     """
-    name = parser.prog
     category = "<is subcommand>"
     filename = "<is subcommand>"
     description = parser.description
     assert description
-    # aliases = parser.aliases
+    # We will fix the aliases up later.
+    aliases = []
     examples = ""
     notes = ""
     pure_epilog = ""
@@ -141,11 +141,11 @@ def distill_one_subcommand(parser: argparse.ArgumentParser) -> ExtractedCommand:
     subcommands: list[ExtractedCommand] = distill_subcommands(parser)
 
     return ExtractedCommand(
-        name,
+        cmdname,
         category,
         filename,
         description,
-        [],
+        aliases,
         examples,
         notes,
         pure_epilog,
@@ -162,13 +162,36 @@ def distill_subcommands(parser: argparse.ArgumentParser) -> list[ExtractedComman
     If there are no subcommands an empty list is returned.
     """
     subcommands: list[ExtractedCommand] = []
+    alias_map: dict[str, list[str]] = {}
 
     for action in parser._actions:
         if isinstance(action, argparse._SubParsersAction):
             # This command does have subcommands! Iterate over them and
             # create a CommandObj for each.
-            for subparser in action.choices.values():
-                subcommands.append(distill_one_subcommand(subparser))
+            # Argparse creates duplicate objects for aliases but we don't need to
+            # re-extract them.
+            last_prog = "<prog doesn't exist>"
+            last_real_cmdname = "<cmdname doesn't exist>"
+            for cmdname, subparser in action.choices.items():
+                # Check if alias.
+                if subparser.prog != last_prog:
+                    subcommands.append(distill_one_subcommand(cmdname, subparser))
+                    last_real_cmdname = cmdname
+                else:
+                    # Save to an alias map.
+                    if last_real_cmdname not in alias_map:
+                        alias_map[last_real_cmdname] = []
+                    alias_map[last_real_cmdname].append(cmdname)
+
+                last_prog = subparser.prog
+
+    # Fix up the aliases.
+    for i in range(len(subcommands)):
+        if subcommands[i].name not in alias_map:
+            # Doesn't have any aliases.
+            continue
+
+        subcommands[i].aliases = alias_map[subcommands[i].name]
 
     return subcommands
 
