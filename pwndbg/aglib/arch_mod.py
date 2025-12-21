@@ -36,7 +36,6 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.disasm
-import pwndbg.aglib.disasm.disassembly
 import pwndbg.dbg_mod
 from pwndbg.aglib import typeinfo
 from pwndbg.lib.abi import ABI
