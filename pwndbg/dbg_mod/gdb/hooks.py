@@ -45,9 +45,6 @@ def bpwp_clear_deferred() -> None:
     BPWP_DEFERRED_DISABLE.clear()
 
 
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-@pwndbg.dbg.event_handler(EventType.START)
-@pwndbg.dbg.event_handler(EventType.STOP)
 def update_typeinfo() -> None:
     # Initialize the typing information in aglib.
     # Workaround for Rust stuff, see https://github.com/pwndbg/pwndbg/issues/855
@@ -68,11 +65,12 @@ def update_typeinfo() -> None:
         gdb.execute(f"set language {restore_lang}")
 
 
-@pwndbg.dbg.event_handler(EventType.START)
-@pwndbg.dbg.event_handler(EventType.STOP)
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.START, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
 def update_arch() -> None:
     pwndbg.aglib.arch_mod.update()
+    update_typeinfo()
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)

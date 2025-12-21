@@ -20,12 +20,12 @@ from pwndbg.dbg_mod.lldb import LLDB
 from pwndbg.lib.cache import CacheUntilEvent
 
 
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-@pwndbg.dbg.event_handler(EventType.START)
-@pwndbg.dbg.event_handler(EventType.STOP)
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.START, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
 def update_typeinfo() -> None:
-    pwndbg.aglib.typeinfo.update()
     pwndbg.aglib.arch_mod.update()
+    pwndbg.aglib.typeinfo.update()
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
