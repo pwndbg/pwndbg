@@ -909,6 +909,10 @@
          <lastmod>2025-12-21</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/contributing/common-pitfalls/</loc>
+         <lastmod>2025-12-21</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/contributing/dev-notes/</loc>
          <lastmod>2025-12-21</lastmod>
     </url>
@@ -998,10 +1002,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/commpage/</loc>
-         <lastmod>2025-12-21</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/ctypes/</loc>
          <lastmod>2025-12-21</lastmod>
     </url>
     <url>
@@ -1117,6 +1117,10 @@
          <lastmod>2025-12-21</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/kernel/kconfig_mod/</loc>
+         <lastmod>2025-12-21</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/kernel/kmod/</loc>
          <lastmod>2025-12-21</lastmod>
     </url>
@@ -1181,7 +1185,7 @@
          <lastmod>2025-12-21</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/regs/</loc>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/regs_mod/</loc>
          <lastmod>2025-12-21</lastmod>
     </url>
     <url>
@@ -1881,6 +1885,10 @@
          <lastmod>2025-12-21</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/lib/ctypes/</loc>
+         <lastmod>2025-12-21</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/lib/disasm/</loc>
          <lastmod>2025-12-21</lastmod>
     </url>
@@ -1909,19 +1917,7 @@
          <lastmod>2025-12-21</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/lib/heap/</loc>
-         <lastmod>2025-12-21</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/lib/heap/helpers/</loc>
-         <lastmod>2025-12-21</lastmod>
-    </url>
-    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/lib/kernel/</loc>
-         <lastmod>2025-12-21</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/lib/kernel/kconfig/</loc>
          <lastmod>2025-12-21</lastmod>
     </url>
     <url>
