@@ -5,18 +5,21 @@ from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib
+import pwndbg.aglib.macho
 import pwndbg.aglib.vmmap_custom
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.dbg_mod import MemoryMap
 from pwndbg.lib.arch import Platform
+from pwndbg.lib.config import PARAM_BOOLEAN
 from pwndbg.lib.memory import Page
 
 pwndbg.config.add_param(
     "vmmap-prefer-relpaths",
     True,
     "show relative paths by default in vmmap",
-    param_class=pwndbg.lib.config.PARAM_BOOLEAN,
+    param_class=PARAM_BOOLEAN,
 )
 
 

@@ -16,7 +16,7 @@ import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.glibc
 import pwndbg.lib.cache
@@ -574,16 +574,16 @@ def check_gadget(
         is_valid_gadget = is_valid_gadget & result
         if result == SAT:
             if verbose:
-                verbose_msg += msg + M.success(f"SAT: {line}") + "\n"
-            result_list.append((M.success(result), M.success(line)))
+                verbose_msg += msg + message.success(f"SAT: {line}") + "\n"
+            result_list.append((message.success(result), message.success(line)))
         elif result == UNSAT:
             if verbose:
-                verbose_msg += msg + M.error(f"UNSAT: {line}") + "\n"
-            result_list.append((M.error(result), M.error(line)))
+                verbose_msg += msg + message.error(f"UNSAT: {line}") + "\n"
+            result_list.append((message.error(result), message.error(line)))
         else:
             if verbose:
-                verbose_msg += msg + M.warn(f"UNKNOWN: {line}") + "\n"
-            result_list.append((M.warn(result), M.warn(line)))
+                verbose_msg += msg + message.warn(f"UNKNOWN: {line}") + "\n"
+            result_list.append((message.warn(result), message.warn(line)))
 
     if verbose:
         output_msg += verbose_msg

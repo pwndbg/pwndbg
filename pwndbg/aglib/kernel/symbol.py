@@ -4,9 +4,10 @@ import re
 from typing import Tuple
 
 import pwndbg.aglib.kernel
+import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
-import pwndbg.lib.kernel
 from pwndbg.dbg_mod import EventType
 
 #########################################

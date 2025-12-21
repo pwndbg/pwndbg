@@ -8,7 +8,7 @@ from typing_extensions import override
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
-import pwndbg.color.memory as MemoryColor
+import pwndbg.color.memory as mem_color
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -177,7 +177,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 address = instruction.address + (right.before_value << 12)
 
             instruction.annotation = register_assign(
-                result_operand.str, MemoryColor.get_address_and_symbol(address)
+                result_operand.str, mem_color.get_address_and_symbol(address)
             )
 
     def _lui_annotator(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -188,7 +188,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 address = right.before_value << 12
 
             instruction.annotation = register_assign(
-                result_operand.str, MemoryColor.get_address_and_symbol(address)
+                result_operand.str, mem_color.get_address_and_symbol(address)
             )
 
     def _is_condition_taken(

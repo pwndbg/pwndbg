@@ -15,9 +15,9 @@ import pwndbg.aglib.remote
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
-import pwndbg.color.context as C
-import pwndbg.color.memory as MemoryColor
-import pwndbg.color.message as MessageColor
+import pwndbg.color.context as ctx_color
+import pwndbg.color.memory as mem_color
+import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
@@ -349,7 +349,7 @@ class DisassemblyAssistant:
                     op.before_value &= pwndbg.aglib.arch.ptrmask
 
                 if op.before_value >= 0:
-                    op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
+                    op.symbol = mem_color.attempt_colorized_symbol(op.before_value)
 
                 op.before_value_resolved = self._resolve_used_value(
                     op.before_value, instruction, op, emu
@@ -736,7 +736,7 @@ class DisassemblyAssistant:
 
         if instruction.has_jump_target and instruction.target >= 0:
             # Only bother doing the symbol lookup if this is a jump
-            instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
+            instruction.target_string = mem_color.get_address_or_symbol(instruction.target)
 
         # Now that we have determined the target, if it was a conditional branch,
         # go back and correct the instruction condition to reflect the branch decision of the emulator
@@ -829,7 +829,7 @@ class DisassemblyAssistant:
         Return colorized register string
         """
         reg = operand.reg
-        name = C.register(instruction.cs_insn.reg_name(reg).upper())
+        name = ctx_color.register(instruction.cs_insn.reg_name(reg).upper())
 
         # If using emulation and we determined the value didn't change, don't colorize
         if (
@@ -839,14 +839,14 @@ class DisassemblyAssistant:
         ):
             return name
         else:
-            return C.register_changed(name)
+            return ctx_color.register_changed(name)
 
     def _memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
         """
         Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
         """
         if operand.before_value is not None:
-            return f"[{MemoryColor.get_address_or_symbol(operand.before_value)}]"
+            return f"[{mem_color.get_address_or_symbol(operand.before_value)}]"
         else:
             return None
 
@@ -916,7 +916,7 @@ class DisassemblyAssistant:
             if emu:
                 eflags_bits = pwndbg.aglib.regs.flags[flags_register_name]
                 emu_eflags = emu.read_register(flags_register_name)
-                eflags_formatted = C.format_flags(emu_eflags, eflags_bits)
+                eflags_formatted = ctx_color.format_flags(emu_eflags, eflags_bits)
 
                 display_result = register_assign(FLAG_REG_NAME_DISPLAY, eflags_formatted)
 
@@ -961,8 +961,8 @@ class DisassemblyAssistant:
 
         # If the address is not mapped, we segfaulted
         if not pwndbg.aglib.memory.peek(address):
-            instruction.annotation = MessageColor.error(
-                f"<Cannot dereference [{MemoryColor.get(address)}]>"
+            instruction.annotation = message.error(
+                f"<Cannot dereference [{mem_color.get(address)}]>"
             )
         else:
             # In this branch, it is assumed that the address IS in a mapped page
@@ -1026,8 +1026,8 @@ class DisassemblyAssistant:
             return
 
         if not pwndbg.aglib.memory.peek(address):
-            instruction.annotation = MessageColor.error(
-                f"<Cannot dereference [{MemoryColor.get(address)}]>"
+            instruction.annotation = message.error(
+                f"<Cannot dereference [{mem_color.get(address)}]>"
             )
         elif value is not None:
             # To make this annotation work with emulation disabled,
@@ -1097,7 +1097,7 @@ class DisassemblyAssistant:
         if target_operand.after_value_resolved is not None:
             instruction.annotation = memory_or_register_assign(
                 target_operand.str,
-                MemoryColor.get_address_and_symbol(target_operand.after_value_resolved),
+                mem_color.get_address_and_symbol(target_operand.after_value_resolved),
                 memory_assignment,
             )
             if math_string:
@@ -1122,7 +1122,7 @@ def basic_enhance(ins: PwndbgInstruction) -> None:
                 op.before_value = op.imm
 
                 if op.before_value >= 0:
-                    op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
+                    op.symbol = mem_color.attempt_colorized_symbol(op.before_value)
 
                 if op.symbol:
                     ins.asm_string = ins.asm_string.replace(hex(op.before_value), op.symbol)

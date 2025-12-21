@@ -13,6 +13,7 @@ import capstone
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.proc
+import pwndbg.aglib.vmmap
 import pwndbg.dbg_mod
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.color import message

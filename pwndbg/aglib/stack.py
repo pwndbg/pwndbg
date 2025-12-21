@@ -16,7 +16,7 @@ import pwndbg.aglib.elf
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
@@ -130,7 +130,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     """
     if auto_explore.value == "warn":
         print(
-            M.warn(
+            message.warn(
                 "Warning: All methods to detect STACK have failed.\n"
                 "You can explore STACK using exploration, but it may be very slow.\n"
                 "To explicitly explore, use the command: `stack-explore`\n"

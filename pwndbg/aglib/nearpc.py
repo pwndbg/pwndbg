@@ -10,8 +10,8 @@ import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color
-import pwndbg.color.context as C
-import pwndbg.color.disasm as D
+import pwndbg.color.context as ctx_color
+import pwndbg.color.disasm
 import pwndbg.color.theme
 import pwndbg.commands.comments
 import pwndbg.integration
@@ -172,7 +172,7 @@ def nearpc(
         symbols = ljust_padding(symbols)
         addresses = ljust_padding(addresses)
 
-    assembly_strings = D.instructions_and_padding(instructions)
+    assembly_strings = pwndbg.color.disasm.instructions_and_padding(instructions)
 
     breakpoint_locations = pwndbg.dbg.breakpoint_locations()
 
@@ -219,8 +219,8 @@ def nearpc(
             # If this instruction is the one the PC is at.
             # In case of tight loops, with emulation we may display the same instruction multiple times.
             # Only highlight current instance, not past or future times.
-            address_str = C.highlight(address_str)
-            symbol = C.highlight(symbol)
+            address_str = ctx_color.highlight(address_str)
+            symbol = ctx_color.highlight(symbol)
 
         # If this instruction performs a memory access operation, we should tell
         # the user anything we can figure out about the memory it's trying to
@@ -316,7 +316,7 @@ def nearpc(
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align)
             if pwndbg.config.highlight_pc and i == index_of_pc:
-                opcodes = C.highlight(opcodes)
+                opcodes = ctx_color.highlight(opcodes)
 
         # Example line:
         # ► 0x7ffff7f1aeb6 0f bd c0    <__strrchr_avx2+70>    bsr    eax, eax
@@ -340,7 +340,7 @@ def nearpc(
 
         # For Comment Function
         try:
-            line += " " * 10 + C.comment(
+            line += " " * 10 + ctx_color.comment(
                 pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe()][hex(instr.address)]
             )
         except Exception:
