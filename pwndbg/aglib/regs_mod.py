@@ -73,7 +73,7 @@ class RegisterManager:
             if value is None:
                 return None
             value = int(value)
-            if reg == "pc" and pwndbg.aglib.arch.name == "i8086":
+            if reg == "eip" and pwndbg.aglib.arch.name == "i8086":
                 cs = self.get_register("cs", frame)
                 if cs is None:
                     return None
