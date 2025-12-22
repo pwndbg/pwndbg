@@ -110,11 +110,6 @@ def _rop(
         if not insts:
             continue
 
-        if grep:
-            # grep search
-            if not re.search(grep, insts):
-                continue
-
         vaddr = gadget["vaddr"]
 
         n_insts = insts.count(";") + 1
@@ -122,9 +117,13 @@ def _rop(
         func = pwndbg.color.memory.get_address_and_symbol if symbols else pwndbg.color.memory.get
 
         out = f"{func(vaddr)}: {' ; '.join(pwndbg.color.disasm.one_instruction(ins).replace(' ' * 4, ' ').replace(' ' * 3, ' ').strip() for ins in enhanced_insts)}"
-        if plain:
-            out = pwndbg.color.strip(out)
-        print(out)
+        plain_out = pwndbg.color.strip(out)
+        if grep:
+            # grep search
+            if not re.search(grep, insts) and not re.search(grep, plain_out):
+                continue
+
+        print(plain_out if plain else out)
 
     print("\nUnique gadgets found: %d" % (len(c.gadgets())))
 
