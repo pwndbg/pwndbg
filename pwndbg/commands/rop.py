@@ -75,22 +75,30 @@ def _rop(
     symbols: bool = False,
     plain: bool = False,
 ) -> None:
+    import contextlib
+    from io import StringIO
+
     from ropgadget.args import Args
     from ropgadget.core import Core
 
-    try:
-        args = Args(
-            arguments=[
-                "--binary",
-                file_path,
-                *argument,
-            ]
-        )
-    except SystemExit:  # we don't want to exit gdb
-        return
-    except ValueError as e:
-        print(M.error(f"rop invalid args: {e}"))
-        return
+    stderr = StringIO()
+
+    with contextlib.redirect_stderr(stderr):
+        try:
+            args = Args(
+                arguments=[
+                    "--binary",
+                    file_path,
+                    *argument,
+                ]
+            )
+        except SystemExit as e:  # ropgadget runs argparse which calls sys.exit
+            if e.code == 2:  # invalid args
+                full = stderr.getvalue()
+                print(
+                    M.error(full.splitlines()[-1].removeprefix(": error: "))
+                )  # we skip the usage block, and only print the error
+            return
 
     options = args.getArgs()
     c = Core(options)
