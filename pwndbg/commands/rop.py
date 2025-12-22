@@ -74,7 +74,7 @@ def _rop(
     start_addr: int | None = None,
     symbols: bool = False,
     plain: bool = False,
-) -> None:
+) -> bool:
     import contextlib
     from io import StringIO
 
@@ -98,7 +98,7 @@ def _rop(
                 print(
                     M.error(full.splitlines()[-1].removeprefix(": error: "))
                 )  # we skip the usage block, and only print the error
-            return
+            return False
 
     options = args.getArgs()
     c = Core(options)
@@ -141,6 +141,7 @@ def _rop(
         print(plain_out if plain else out)
 
     print("\nUnique gadgets found: %d" % (len(c.gadgets())))
+    return True
 
 
 def split_range_to_chunks(
@@ -258,7 +259,7 @@ def rop(grep: str | None, memlimit: str, symbols: bool, plain: bool, arguments: 
     memlimit = parse_size(memlimit)
 
     for file_path, page in iterate_over_pages(memlimit):
-        _rop(
+        should_continue = _rop(
             file_path,
             grep,
             arguments,
@@ -266,3 +267,5 @@ def rop(grep: str | None, memlimit: str, symbols: bool, plain: bool, arguments: 
             symbols=symbols,
             plain=plain,
         )
+        if not should_continue:
+            break
