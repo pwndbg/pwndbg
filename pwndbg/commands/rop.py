@@ -124,7 +124,14 @@ def _rop(
         enhanced_insts = pwndbg.aglib.disasm.disassembly.get(vaddr, n_insts, enhance=not plain)
         func = pwndbg.color.memory.get_address_and_symbol if symbols else pwndbg.color.memory.get
 
-        out = f"{func(vaddr)}: {' ; '.join(pwndbg.color.disasm.one_instruction(ins).replace(' ' * 4, ' ').replace(' ' * 3, ' ').strip() for ins in enhanced_insts)}"
+        insts_str = " ; ".join(
+            pwndbg.color.disasm.one_instruction(ins)
+            .replace(" " * 4, " ")  # we only want one space, not 4 or 3
+            .replace(" " * 3, " ")
+            .strip()
+            for ins in enhanced_insts
+        )
+        out = f"{func(vaddr)}: {insts_str}"
         plain_out = pwndbg.color.strip(out)
         if grep:
             # grep search
