@@ -224,14 +224,18 @@ class CommandObj:
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
         # FIXME: this is weird
-        def process_actions(actions):
+        def process_actions(actions, parent_prog):
             """Recursively process actions, including subparsers"""
             for action in actions:
                 if isinstance(action, argparse._SubParsersAction):
                     action.type = str
                     # Recursively process each subparser's actions
-                    for subparser in action.choices.values():
-                        process_actions(subparser._actions)
+                    for choice_name, subparser in action.choices.items():
+                        # Fix for https://github.com/pwndbg/pwndbg/issues/3523
+                        # Force the prog to be what we want; otherwise it defaults to
+                        # sys.argv[0] if it was created before we set parser.prog
+                        subparser.prog = f"{parent_prog} {choice_name}"
+                        process_actions(subparser._actions, subparser.prog)
                 if action.dest == "help":
                     continue
                 if action.type is int:
@@ -245,7 +249,7 @@ class CommandObj:
                     print(f"Erroneous action:\n\t{repr(action)}\n")
                     assert False, "You must set the argument type for a store action."
 
-        process_actions(self.parser._actions)
+        process_actions(self.parser._actions, self.parser.prog)
 
         assert (
             self.parser.formatter_class is argparse.HelpFormatter
