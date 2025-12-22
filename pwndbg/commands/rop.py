@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import binascii
 import re
 import tempfile
 from typing import Iterator
@@ -69,7 +68,12 @@ class RawMemoryBinary(object):
 
 
 def _rop(
-    file_path: str, grep: str | None, argument: List[str], start_addr: int | None = None
+    file_path: str,
+    grep: str | None,
+    argument: list[str],
+    start_addr: int | None = None,
+    symbols: bool = False,
+    plain: bool = False,
 ) -> None:
     from ropgadget.args import Args
     from ropgadget.core import Core
@@ -82,6 +86,8 @@ def _rop(
                 *argument,
             ]
         )
+    except SystemExit:  # we don't want to exit gdb
+        return
     except ValueError as e:
         print(M.error(f"rop invalid args: {e}"))
         return
@@ -110,12 +116,15 @@ def _rop(
                 continue
 
         vaddr = gadget["vaddr"]
-        bytesStr = " // " + binascii.hexlify(gadget["bytes"]).decode("utf8") if options.dump else ""
-        print(
-            "0x{{0:0{}x}} : {{1}}{{2}}".format(pwndbg.aglib.arch.ptrsize).format(
-                vaddr, insts, bytesStr
-            )
-        )
+
+        n_insts = insts.count(";") + 1
+        enhanced_insts = pwndbg.aglib.disasm.disassembly.get(vaddr, n_insts, enhance=not plain)
+        func = pwndbg.color.memory.get_address_and_symbol if symbols else pwndbg.color.memory.get
+
+        out = f"{func(vaddr)}: {' ; '.join(pwndbg.color.disasm.one_instruction(ins).replace(' ' * 4, ' ').replace(' ' * 3, ' ').strip() for ins in enhanced_insts)}"
+        if plain:
+            out = pwndbg.color.strip(out)
+        print(out)
 
     print("\nUnique gadgets found: %d" % (len(c.gadgets())))
 
@@ -203,8 +212,14 @@ parser = argparse.ArgumentParser(
     description="Dump ROP gadgets with Jon Salwan's ROPgadget tool.",
 )
 parser.add_argument("--grep", type=str, help="String to grep the output for")
-parser.add_argument("--memlimit", type=str, default="50MB", help="String to grep the output for")
-parser.add_argument("argument", nargs="*", type=str, help="Arguments to pass to ROPgadget")
+parser.add_argument(
+    "--memlimit", type=str, default="50MB", help="Maximum size of memory pages to scan"
+)
+parser.add_argument(
+    "--symbols", action="store_true", help="Show symbols for/of gadgets (if there are any)"
+)
+parser.add_argument("--plain", action="store_true", help="Plain output (no highlighting)")
+parser.add_argument("arguments", nargs="*", type=str, help="Arguments to pass to ROPgadget")
 
 
 @pwndbg.commands.Command(
@@ -225,8 +240,15 @@ Unique gadgets found: 8514
     """,
 )
 @pwndbg.commands.OnlyWithFile
-def rop(grep: str | None, memlimit: str, argument: List[str]) -> None:
+def rop(grep: str | None, memlimit: str, symbols: bool, plain: bool, arguments: List[str]) -> None:
     memlimit = parse_size(memlimit)
 
     for file_path, page in iterate_over_pages(memlimit):
-        _rop(file_path, grep, argument, start_addr=page.start if page else None)
+        _rop(
+            file_path,
+            grep,
+            arguments,
+            start_addr=page.start if page else None,
+            symbols=symbols,
+            plain=plain,
+        )
