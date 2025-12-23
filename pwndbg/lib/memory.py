@@ -5,7 +5,6 @@ Reading, writing, and describing memory.
 from __future__ import annotations
 
 import os
-from ast import List
 from os.path import relpath
 
 import pwndbg
@@ -105,7 +104,7 @@ class Page:
         objfile: str = "",
         in_darwin_shared_cache: bool = False,
         protection_key: int | None = None,
-        vm_flags: List[str] | None = None,
+        vm_flags: list[str] | None = None,
     ) -> None:
         self.vaddr = start
         self.memsz = size

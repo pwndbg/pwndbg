@@ -309,7 +309,7 @@ def parse_tid_maps(data: str) -> List[pwndbg.lib.memory.Page]:
     return pages
 
 
-def parse_tid_smaps_dict(data: List[str]) -> dict[str, str]:
+def parse_tid_smaps_dict(data: List[str]) -> dict[str, List[str]]:
     smaps_dict: dict[str, List[str]] = {}
     for line in data:
         try:

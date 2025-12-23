@@ -5,12 +5,14 @@ Generating detailed information about signals received by the debugged process.
 from __future__ import annotations
 
 from enum import Enum
+from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Optional
 from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib.vmmap
 import pwndbg.lib.arch
 
 if pwndbg.dbg.is_gdblib_available():
@@ -45,18 +47,18 @@ LONG_SEGV_DESCRIPTIONS_X86_64: Dict[SegvCodeX86_64, Callable[[], str]] = {
     SegvCodeX86_64.SEGV_PKUERR: get_segv_pkuerr_description
 }
 
-PER_ARCH_SEGV_CODES: Dict[pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Enum] = {
+PER_ARCH_SEGV_CODES: Dict[pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, type[Enum]] = {
     "x86-64": SegvCodeX86_64,
 }
 
 SHORT_SEGV_DESCRIPTIONS: Dict[
-    pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[Enum, str]
+    pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[Any, str]
 ] = {
     "x86-64": SHORT_SEGV_DESCRIPTIONS_X86_64,
 }
 
 LONG_SEGV_DESCRIPTIONS: Dict[
-    pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[Enum, str]
+    pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[Any, Callable[[], Optional[str]]]
 ] = {
     "x86-64": LONG_SEGV_DESCRIPTIONS_X86_64,
 }
