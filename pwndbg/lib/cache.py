@@ -212,7 +212,9 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
                 except TypeError:
                     print("Unhashable argument passed to a cache_until decorated function.")
                     print("Make the argument hashable or refactor.")
-                    print(f"Function: {func.__module__}.{func.__qualname__}", )
+                    print(
+                        f"Function: {func.__module__}.{func.__qualname__}",
+                    )
                     print(f"Arguments: {repr(key)}")
                     assert False, "Unhashable argument passed to a cache_until decorated function."
 

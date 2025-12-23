@@ -5,12 +5,10 @@ import re
 from typing import Any
 from typing import Dict
 
-import pwndbg.aglib.dynamic
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
-import pwndbg.dbg_mod
 import pwndbg.gdblib.got
 from pwndbg.commands import CommandCategory
 
@@ -50,15 +48,25 @@ subparsers = parser.add_subparsers(
 )
 
 # Subcommand that enables the tracker.
-enable = subparsers.add_parser("enable", help="Enable GOT parsing")
+enable = subparsers.add_parser(
+    "enable",
+    help="Enable GOT parsing",
+    description="Enable GOT parsing.",
+)
 enable.set_defaults(mode="enable")
 
 # Subcommand that disables the tracker.
-disable = subparsers.add_parser("disable", help="Disable GOT tracking")
+disable = subparsers.add_parser(
+    "disable", help="Disable GOT tracking", description="Disable GOT tracking."
+)
 disable.set_defaults(mode="disable")
 
 # Subcommand that produces a report.
-report = subparsers.add_parser("info", help="Give an overview of the GOT tracker")
+report = subparsers.add_parser(
+    "info",
+    help="Give an overview of the GOT tracker",
+    description="Give an overview of the GOT tracker.",
+)
 report.add_argument(
     "-s",
     "--so-name",
@@ -86,7 +94,9 @@ report.set_defaults(mode="report")
 
 # Subcommand that queries for information about a specific tracker.
 status = subparsers.add_parser(
-    "query", help="Queries detailed tracking information about a single entry in the GOT"
+    "query",
+    help="Queries detailed tracking information about a single entry in the GOT",
+    description="Queries detailed tracking information about a single entry in the GOT.",
 )
 status.add_argument(
     "address",

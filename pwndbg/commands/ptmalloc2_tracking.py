@@ -23,7 +23,11 @@ subparsers = parser.add_subparsers(
 )
 
 # Subcommand that enables the tracker.
-enable = subparsers.add_parser("enable", help="Enable heap tracking")
+enable = subparsers.add_parser(
+    "enable",
+    help="Enable heap tracking",
+    description="Enable heap tracking.",
+)
 enable.add_argument(
     "-b",
     "--hardware-breakpoints",
@@ -35,12 +39,16 @@ enable.add_argument(
 enable.set_defaults(mode="enable")
 
 # Subcommand that disables the tracker.
-disable = subparsers.add_parser("disable", help="Disable heap tracking")
+disable = subparsers.add_parser(
+    "disable", help="Disable heap tracking", description="Disable heap tracking."
+)
 disable.set_defaults(mode="disable")
 
 # Subcommand that produces a report.
 toggle_break = subparsers.add_parser(
-    "toggle-break", help="Toggles whether possible UAF conditions will pause execution"
+    "toggle-break",
+    help="Toggles whether possible UAF conditions will pause execution",
+    description="Toggles whether possible UAF conditions will pause execution.",
 )
 toggle_break.set_defaults(mode="toggle-break")
 
