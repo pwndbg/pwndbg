@@ -26,6 +26,7 @@ import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
+import pwndbg.aglib.signal
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
@@ -1436,7 +1437,6 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
     return out
 
-
 def save_signal(signal) -> None:
     global last_signal
     last_signal = result = []
@@ -1457,8 +1457,11 @@ def save_signal(signal) -> None:
                 msg += f" (current pc: {pwndbg.aglib.regs.pc:#x})"
             else:
                 try:
+                    desc_short, desc_long = pwndbg.aglib.signal.get_segv_information()
                     si_addr = gdb.parse_and_eval("$_siginfo._sifields._sigfault.si_addr")
-                    msg += f" (fault address {int(si_addr):#x})"
+                    msg = f"Program received signal {desc_short}(fault address {int(si_addr):#x})"
+                    if desc_long:
+                        msg += f" - {desc_long}"
                 except gdb.error:
                     pass
         result.append(message.signal(msg))
