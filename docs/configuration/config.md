@@ -394,7 +394,7 @@ Where to install the binary ninja integration plugin.
 
 
 
-**Default:** '/home/user/.binaryninja/plugins'  
+**Default:** 'last_signal regs disasm code ghidra stack backtrace expressions threads heap_tracker'  
 
 ----------
 
