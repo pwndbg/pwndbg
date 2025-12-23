@@ -4,8 +4,8 @@ Reading, writing, and describing memory.
 
 from __future__ import annotations
 
-from ast import List
 import os
+from ast import List
 from os.path import relpath
 
 import pwndbg

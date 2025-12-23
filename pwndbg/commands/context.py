@@ -25,8 +25,8 @@ import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.symbol
 import pwndbg.aglib.signal
+import pwndbg.aglib.symbol
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.color
@@ -1436,6 +1436,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
         original_frame.select()
 
     return out
+
 
 def save_signal(signal) -> None:
     global last_signal

@@ -251,6 +251,7 @@ def info_proc_maps(parse_flags=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     return tuple(pages)
 
+
 def parse_tid_maps_line(line: str) -> pwndbg.lib.memory.Page:
     # Example /proc/$tid/maps
     # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
@@ -298,6 +299,7 @@ def parse_tid_maps_line(line: str) -> pwndbg.lib.memory.Page:
 
     return pwndbg.lib.memory.Page(start, size, flags, offset, ptrsize, objfile)
 
+
 def parse_tid_maps(data: str) -> List[pwndbg.lib.memory.Page]:
     pages: List[pwndbg.lib.memory.Page] = []
     for line in data.splitlines():
@@ -306,17 +308,19 @@ def parse_tid_maps(data: str) -> List[pwndbg.lib.memory.Page]:
 
     return pages
 
+
 def parse_tid_smaps_dict(data: List[str]) -> dict[str, str]:
     smaps_dict: dict[str, List[str]] = {}
     for line in data:
         try:
             key, *value = line.strip().split()
-            key = key.rstrip(':')
-            smaps_dict[key.replace(':', '')] = value
+            key = key.rstrip(":")
+            smaps_dict[key.replace(":", "")] = value
         except ValueError:
             continue
 
     return smaps_dict
+
 
 def group_tid_smaps_segments(data: str) -> List[List[str]]:
     # Example segment of /proc/$tid/smaps
@@ -348,10 +352,10 @@ def group_tid_smaps_segments(data: str) -> List[List[str]]:
     # VmFlags: rd wr mr mw me ac sd
     segments: List[List[str]] = []
     lines = data.splitlines()
-    
+
     # Group lines into segments by detecting address range lines
     current_segment: List[str] = []
-    
+
     for line in lines:
         # Check if this line starts with an address range (e.g., "7f0bd1c25000-7f0bd1c27000")
         # An address range line starts with hex digits followed by a dash
@@ -360,31 +364,32 @@ def group_tid_smaps_segments(data: str) -> List[List[str]]:
             # Try to detect if this is an address range line
             try:
                 first_token = line.split()[0]
-                if '-' in first_token:
+                if "-" in first_token:
                     # Try to parse both parts as hex addresses
-                    start, end = first_token.split('-', 1)
+                    start, end = first_token.split("-", 1)
                     int(start, 16)
                     int(end, 16)
                     is_address_line = True
             except (ValueError, IndexError):
                 pass
-        
+
         if is_address_line:
             # Process the previous segment if it exists
             if current_segment:
                 segments.append(current_segment)
-            
+
             # Start a new segment
             current_segment = [line]
         else:
             # Add to current segment
             current_segment.append(line)
-    
+
     # Process the last segment
     if current_segment:
         segments.append(current_segment)
 
     return segments
+
 
 def parse_tid_smaps(data: str) -> List[pwndbg.lib.memory.Page]:
     pages: List[pwndbg.lib.memory.Page] = []
@@ -392,12 +397,13 @@ def parse_tid_smaps(data: str) -> List[pwndbg.lib.memory.Page]:
     for segment in segments:
         page = parse_tid_maps_line(segment[0])
         smaps_dict = parse_tid_smaps_dict(segment[1:])
-        if 'ProtectionKey' in smaps_dict:
-            page.protection_key = int(smaps_dict.get('ProtectionKey')[0])
-        page.vm_flags = smaps_dict.get('VmFlags')
+        if "ProtectionKey" in smaps_dict:
+            page.protection_key = int(smaps_dict.get("ProtectionKey")[0])
+        page.vm_flags = smaps_dict.get("VmFlags")
         pages.append(page)
 
     return pages
+
 
 @pwndbg.lib.cache.cache_until("start", "stop")
 def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
