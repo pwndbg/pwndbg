@@ -23,7 +23,7 @@ Control Pwndbg decompiler integration.
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-### **decompiler-integration connect** (c)
+### **decompiler-integration connect**
 
 ```text
 usage: decompiler-integration connect [-h]
@@ -42,7 +42,7 @@ and `decompiler-port` config variables. Try `help set decompiler-host`.
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-### **decompiler-integration disconnect** (d)
+### **decompiler-integration disconnect**
 
 ```text
 usage: decompiler-integration disconnect [-h]
@@ -58,7 +58,7 @@ Disconnect from the decompiler.
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-### **decompiler-integration sync** (s)
+### **decompiler-integration sync**
 
 ```text
 usage: decompiler-integration sync [-h]
@@ -76,7 +76,7 @@ Check out `help set decompiler-auto-sync`.
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-### **decompiler-integration jump** (j)
+### **decompiler-integration jump**
 
 ```text
 usage: decompiler-integration jump [-h] [addr]
@@ -130,7 +130,7 @@ because we implement the debugger-side logic independently, and it might conflic
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-### **install ida**
+### **decompiler-integration install ida**
 
 ```text
 usage: decompiler-integration install ida [-h]
@@ -138,13 +138,13 @@ usage: decompiler-integration install ida [-h]
 ```
 
 Install the IDA decompiler plugin.
-##### Optional arguments
+#### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-### **install binja**
+### **decompiler-integration install binja**
 
 ```text
 usage: decompiler-integration install binja [-h]
@@ -152,13 +152,13 @@ usage: decompiler-integration install binja [-h]
 ```
 
 Install the Binary Ninja decompiler plugin.
-##### Optional arguments
+#### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-### **install ghidra**
+### **decompiler-integration install ghidra**
 
 ```text
 usage: decompiler-integration install ghidra [-h]
@@ -166,13 +166,13 @@ usage: decompiler-integration install ghidra [-h]
 ```
 
 Install the Ghidra decompiler plugin.
-##### Optional arguments
+#### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-### **install angr**
+### **decompiler-integration install angr**
 
 ```text
 usage: decompiler-integration install angr [-h]
@@ -180,7 +180,7 @@ usage: decompiler-integration install angr [-h]
 ```
 
 Install the angr-managment decompiler plugin.
-##### Optional arguments
+#### Optional arguments
 
 |Short|Long|Help|
 | :--- | :--- | :--- |
@@ -200,7 +200,7 @@ Just use the `decomp` command.
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
-### **decompiler-integration list** (l)
+### **decompiler-integration list**
 
 ```text
 usage: decompiler-integration list [-h] [-a]
