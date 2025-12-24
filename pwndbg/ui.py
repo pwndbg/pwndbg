@@ -56,7 +56,7 @@ def addrsz(address) -> str:
     return pwndbg.dbg.addrsz(address)
 
 
-def get_window_size(target=sys.stdout):
+def get_window_size(target=sys.stdout) -> tuple[int, int]:
     fallback = (int(os.environ.get("LINES", 24)), int(os.environ.get("COLUMNS", 80)))
     if not target.isatty():
         return fallback

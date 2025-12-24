@@ -843,7 +843,7 @@ pwndbg.config.add_param(
 )
 
 
-def calculate_padding_to_align(length, align):
+def calculate_padding_to_align(length: int, align: int) -> int:
     """Calculates the number of spaces to append to reach the next alignment.
     The next alignment point is given by "x * align >= length".
     """
