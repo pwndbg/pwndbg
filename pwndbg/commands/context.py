@@ -6,6 +6,7 @@ import functools
 import logging
 import os
 import sys
+import math
 from collections import defaultdict
 from typing import Any
 from typing import Callable
@@ -849,36 +850,45 @@ def compact_regs(regs: List[str], width=None, target=sys.stdout) -> List[str]:
 
     result: List[str] = []
 
-    line = ""
-    line_length = 0
-    for reg in regs:
-        # Strip the color / hightlight information the get the raw text width of the register
-        reg_length = len(pwndbg.color.strip(reg))
+    line: str = ""
+    line_length: int = 0
+    nregs: int = len(regs)
+    nrows: int = math.ceil(nregs / columns)
+    for row_idx in range(nrows):
+        for column_idx in range(columns):
+            reg_idx = column_idx * nrows + row_idx
+            if reg_idx >= nregs:
+                # Some columns will not have all rows filled.
+                continue
+            reg = regs[reg_idx]
+            
+            # Strip the color / hightlight information the get the raw text width of the register
+            reg_length = len(pwndbg.color.strip(reg))
 
-        # Length of line with unoccupied space and padding is required
-        # to fit the register string onto the screen / display.
-        line_length_with_padding = line_length
-        line_length_with_padding += (
-            separation if line_length != 0 else 0
-        )  # No separation at the start of a line
-        line_length_with_padding += calculate_padding_to_align(
-            line_length_with_padding, min_width + separation
-        )
+            # Length of line with unoccupied space and padding is required
+            # to fit the register string onto the screen / display.
+            line_length_with_padding = line_length
+            line_length_with_padding += (
+                separation if line_length != 0 else 0
+            )  # No separation at the start of a line
+            line_length_with_padding += calculate_padding_to_align(
+                line_length_with_padding, min_width + separation
+            )
 
-        # When element does not fully fit, then start a new line
-        if line_length_with_padding + max(reg_length, min_width) > width:
-            result.append(line)
+            # When element does not fully fit, then start a new line
+            if line_length_with_padding + max(reg_length, min_width) > width:
+                result.append(line)
 
-            line = ""
-            line_length = 0
-            line_length_with_padding = 0
+                line = ""
+                line_length = 0
+                line_length_with_padding = 0
 
-        # Add padding in front of the next printed register
-        if line_length != 0:
-            line += " " * (line_length_with_padding - line_length)
+            # Add padding in front of the next printed register
+            if line_length != 0:
+                line += " " * (line_length_with_padding - line_length)
 
-        line += reg
-        line_length = line_length_with_padding + reg_length
+            line += reg
+            line_length = line_length_with_padding + reg_length
 
     # Append last line if required
     if line_length != 0:
