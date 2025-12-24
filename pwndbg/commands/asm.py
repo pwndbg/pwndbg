@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import argparse
+from typing import cast
 
-import pwnlib
-import pwnlib.context
-
+import pwndbg.aglib
+import pwndbg.aglib.asm
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 parser = argparse.ArgumentParser(description="Assemble shellcode into bytes")
 
@@ -17,34 +19,9 @@ parser.add_argument(
 
 parser.add_argument(
     "--arch",
-    choices=pwnlib.context.context.architectures.keys(),
+    choices=PWNDBG_SUPPORTED_ARCHITECTURES,
     type=str,
     help="Target architecture",
-)
-
-parser.add_argument(
-    "-v",
-    "--avoid",
-    action="append",
-    help="Encode the shellcode to avoid the listed bytes (provided as hex)",
-)
-
-parser.add_argument(
-    "-n",
-    "--newline",
-    dest="avoid",
-    action="append_const",
-    const="0a",
-    help="Encode the shellcode to avoid newlines",
-)
-
-parser.add_argument(
-    "-z",
-    "--zero",
-    dest="avoid",
-    action="append_const",
-    const="00",
-    help="Encode the shellcode to avoid NULL bytes",
 )
 
 input_group = parser.add_mutually_exclusive_group(required=True)
@@ -57,25 +34,29 @@ input_group.add_argument("-i", "--infile", default=None, type=str, help="Specify
 
 
 @pwndbg.commands.Command(parser, command_name="asm", category=CommandCategory.MISC)
-def asm(shellcode, format, arch, avoid, infile) -> None:
+def asm(shellcode: list[str], format: str, arch: str | None, infile: str) -> None:
     if infile:
         print(message.warn("Going to read from file: " + infile))
         with open(infile) as file:
             shellcode = [file.read()]
 
-    if not arch:
-        arch = pwnlib.context.context.arch
-
-    bits_for_arch = pwnlib.context.context.architectures.get(arch, {}).get("bits")
-    assembly = pwnlib.asm.asm(" ".join(shellcode), arch=arch, bits=bits_for_arch)
-
-    if avoid:
-        avoid = (str(byte) for byte in avoid)
-        avoid = pwnlib.unhex("".join(avoid))
-        print(message.warn("Going to avoid these bytes in hex: " + avoid.hex(" ")))
-        assembly = pwnlib.encode(assembly, avoid)
+    if arch is None:
+        # We want to use the current architecture.
+        # But check first that it is actually set.
+        if pwndbg.aglib.arch is None:
+            print(
+                message.error("No architecture currently set.") + " Pass it in the --arch argument."
+            )
+            return
+        assembly: bytes = pwndbg.aglib.asm.asm(" ".join(shellcode))
+    else:
+        # Is enforced by argparse.
+        assert arch in PWNDBG_SUPPORTED_ARCHITECTURES
+        assembly = pwndbg.aglib.asm.asm_for_arch(
+            " ".join(shellcode), cast(PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, arch)
+        )
 
     if format == "hex":
-        assembly = assembly.hex()
-
-    print(assembly)
+        print(assembly.hex())
+    else:
+        print(assembly)

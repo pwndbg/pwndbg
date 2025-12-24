@@ -846,6 +846,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def arch(self) -> ArchDefinition:
+        import pwndbg.aglib.proc
+        import pwndbg.aglib.typeinfo
+
         ptrsize = pwndbg.aglib.typeinfo.ptrsize
         not_exactly_arch = False
 

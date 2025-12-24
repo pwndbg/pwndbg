@@ -7,6 +7,7 @@ from typing import Literal
 from typing import Tuple
 
 import pwnlib
+import pwnlib.context
 from capstone import CS_ARCH_AARCH64
 from capstone import CS_ARCH_ARM
 from capstone import CS_ARCH_LOONGARCH
