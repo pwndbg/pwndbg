@@ -4,10 +4,11 @@ import argparse
 import ast
 import functools
 import logging
+import math
 import os
 import sys
-import math
 from collections import defaultdict
+from enum import Enum
 from typing import Any
 from typing import Callable
 from typing import DefaultDict
@@ -36,6 +37,7 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.integration
+import pwndbg.lib.config
 import pwndbg.ui
 from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
@@ -808,8 +810,18 @@ def context(subcontext=None, enabled=None) -> None:
     reserve_lines_maybe(cmd_lines)
 
 
+class CompactRegsOptions(Enum):
+    NO = "off"
+    YES = "on"
+    VERY = "very"
+
+
 pwndbg.config.add_param(
-    "show-compact-regs", False, "whether to show a compact register view with columns"
+    "show-compact-regs",
+    CompactRegsOptions.NO.value,
+    "whether to show a compact register view with columns",
+    param_class=pwndbg.lib.config.PARAM_ENUM,
+    enum_sequence=[x.value for x in CompactRegsOptions],
 )
 pwndbg.config.add_param(
     "show-compact-regs-columns", 2, "the number of columns (0 for dynamic number of columns)"
@@ -827,27 +839,128 @@ def calculate_padding_to_align(length, align):
     return 0 if length % align == 0 else (align - (length % align))
 
 
-def compact_regs(regs: List[str], width=None, target=sys.stdout) -> List[str]:
-    columns = max(0, int(pwndbg.config.show_compact_regs_columns))
-    min_width = max(1, int(pwndbg.config.show_compact_regs_min_width))
-    separation = max(1, int(pwndbg.config.show_compact_regs_separation))
+def compact_regs_normal(
+    regs: List[str], terminal_width: int, column_width: int, columns: int, separation: int
+) -> List[str]:
+    """
+    Will try to group similar registers together, and may increase the number of rows (as opposed to compact_regs_very)
+    in order to achieve this.
 
-    if width is None:
-        _height, width = pwndbg.ui.get_window_size(target)
+    column_width does not include separation.
 
-    if columns > 0:
-        # Adjust the minimum_width (column) according to the
-        # layout depicted below, where there are "columns" columns
-        # and "columns - 1" separations.
-        #
-        # |<----------------- window width -------------------->|
-        # | column | sep. | column | sep. | ... | sep. | column |
-        #
-        # Which results in the following formula:
-        # window_width = columns * min_width + (columns - 1) * separation
-        # => min_width = (window_width - (columns - 1) * separation) / columns
-        min_width = max(min_width, (width - (columns - 1) * separation) // columns)
+    Example:
+     RAX  0xfffffffffffffdfe           R8   0                            R14  0
+     RBX  0                            R9    ⏎                           R15   ⏎
+     RCX   ⏎                           R10  0                            RBP  1
+     RDX  0                            R11  0x202                        RSP  0x7fffffffcb70 ◂— 0
+     RDI  1                            R12  0x7fffffffccb0 ◂— 1          RIP   ⏎
+     RSI  0x7fffffffccb0 ◂— 1          R13  0                            EFLAGS   ⏎
+    ↪ R9   0x7fffffffcbd0 —▸ 0x7ffff7f83e60 (_rl_orig_sigset) ◂— 0
+    ↪ R15  0x7ffff7f83e60 (_rl_orig_sigset) ◂— 0
+    ↪ RCX  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
+    ↪ RIP  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
+    ↪ EFLAGS 0x202 [ cf pf af zf sf IF df of ac ]
+    """
+    result: List[str] = []
 
+    def extract_reg_name(one_reg: str) -> str:
+        # We want the whitespace right after the name too. Also the change marker.
+        # Tricky because we want to preserve colors.
+        # state = 0 means i'm before the register name
+        # state = 1 means i'm in the register name
+        # state = 2 means i'm in the whitespace after the register name
+        state: int = 0
+        last_ws: int = -1
+        for i in range(len(one_reg)):
+            match state:
+                case 0:
+                    if one_reg[i] == change_marker or one_reg[i] == " ":
+                        state = 1
+                case 1:
+                    if one_reg[i] == " ":
+                        state = 2
+                case 2:
+                    if one_reg[i] != " ":
+                        last_ws = i - 1
+                        break
+        assert last_ws != -1
+        return one_reg[:last_ws]
+
+    will_wrap_char: str = pwndbg.color.light_gray("  ⏎")
+    wrapping_char: str = pwndbg.color.gray("↪")
+    change_marker: str = str(C.config_register_changed_marker)
+
+    line: str = ""
+    line_length: int = 0
+    nregs: int = len(regs)
+    nrows: int = math.ceil(nregs / columns)
+    pending: List[str] = []
+    for row_idx in range(nrows):
+        for column_idx in range(columns):
+            # Pad the line from the last register.
+            if column_idx != 0:
+                padding = calculate_padding_to_align(line_length, column_width + separation)
+                line += " " * padding
+                line_length += padding
+
+            reg_idx = column_idx * nrows + row_idx
+            if reg_idx >= nregs:
+                # Some columns will not have all rows filled.
+                continue
+            reg = regs[reg_idx]
+
+            # Strip the color / hightlight information the get the raw text width of the register
+            reg_length = len(pwndbg.color.strip(reg))
+
+            if reg_length > column_width:
+                # We cannot put this register here without displacing the next one, so we will
+                # print this register in a lone line at the end.
+                pending.append(reg)
+                # We want to leave a marker that we will wrap here.
+                # We extract the register name from the `reg` string which is a bit tricky.
+                # Look at the RegisterContext class for reference.
+                reg_name = extract_reg_name(reg)
+                addition = reg_name + will_wrap_char
+                line += addition
+                line_length += len(pwndbg.color.strip(addition))
+            else:
+                line += reg
+                line_length += reg_length
+
+        # Add the line.
+        result.append(line)
+        line = ""
+        line_length = 0
+
+    # Add all registers that couldn't fit into their slot.
+    if pending:
+        for pending_line in pending:
+            result.append(wrapping_char + pending_line)
+        pending.clear()
+
+    return result
+
+
+def compact_regs_very(
+    regs: List[str], terminal_width: int, column_width: int, columns: int, separation: int
+) -> List[str]:
+    """
+    Will try to group similar registers together, but will sacrifice the grouping if it can be more compact.
+
+    column_width does not include separation.
+
+    Example:
+     RAX  0xfffffffffffffdfe           R8   0                            R14  0
+     RBX  0                            R9   0x7fffffffcbd0 —▸ 0x7ffff7f83e60 (_rl_orig_sigset) ◂— 0
+     R15  0x7ffff7f83e60 (_rl_orig_sigset) ◂— 0
+     RCX  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
+     R10  0                            RBP  1                            RDX  0
+     R11  0x202                        RSP  0x7fffffffcb70 ◂— 0          RDI  1
+     R12  0x7fffffffccb0 ◂— 1
+     RIP  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
+     RSI  0x7fffffffccb0 ◂— 1          R13  0
+     EFLAGS 0x202 [ cf pf af zf sf IF df of ac ]
+    """
     result: List[str] = []
 
     line: str = ""
@@ -861,7 +974,7 @@ def compact_regs(regs: List[str], width=None, target=sys.stdout) -> List[str]:
                 # Some columns will not have all rows filled.
                 continue
             reg = regs[reg_idx]
-            
+
             # Strip the color / hightlight information the get the raw text width of the register
             reg_length = len(pwndbg.color.strip(reg))
 
@@ -872,11 +985,11 @@ def compact_regs(regs: List[str], width=None, target=sys.stdout) -> List[str]:
                 separation if line_length != 0 else 0
             )  # No separation at the start of a line
             line_length_with_padding += calculate_padding_to_align(
-                line_length_with_padding, min_width + separation
+                line_length_with_padding, column_width + separation
             )
 
             # When element does not fully fit, then start a new line
-            if line_length_with_padding + max(reg_length, min_width) > width:
+            if line_length_with_padding + max(reg_length, column_width) > terminal_width:
                 result.append(line)
 
                 line = ""
@@ -897,15 +1010,44 @@ def compact_regs(regs: List[str], width=None, target=sys.stdout) -> List[str]:
     return result
 
 
+def compact_regs(regs: List[str], width=None, target=sys.stdout) -> List[str]:
+    columns = max(0, int(pwndbg.config.show_compact_regs_columns))
+    min_width = max(1, int(pwndbg.config.show_compact_regs_min_width))
+    separation = max(1, int(pwndbg.config.show_compact_regs_separation))
+
+    if width is None:
+        _, width = pwndbg.ui.get_window_size(target)
+
+    if columns > 0:
+        # Adjust the minimum_width (column) according to the
+        # layout depicted below, where there are "columns" columns
+        # and "columns - 1" separations.
+        #
+        # |<----------------- window width -------------------->|
+        # | column | sep. | column | sep. | ... | sep. | column |
+        #
+        # Which results in the following formula:
+        # window_width = columns * min_width + (columns - 1) * separation
+        # => min_width = (window_width - (columns - 1) * separation) / columns
+        min_width = max(min_width, (width - (columns - 1) * separation) // columns)
+
+    match pwndbg.config.show_compact_regs.value:
+        case CompactRegsOptions.YES.value:
+            return compact_regs_normal(regs, width, min_width, columns, separation)
+        case CompactRegsOptions.VERY.value:
+            return compact_regs_very(regs, width, min_width, columns, separation)
+        case _:
+            assert False, "Invalid compact regs value."
+
+
 @serve_context_history
 def context_regs(target=sys.stdout, with_banner=True, width=None):
     regs = get_regs()
-    if pwndbg.config.show_compact_regs:
+    if pwndbg.config.show_compact_regs.value != CompactRegsOptions.NO.value:
         regs = compact_regs(regs, target=target, width=width)
 
     info = " / show-flags {} / show-compact-regs {}".format(
-        "on" if pwndbg.config.show_flags else "off",
-        "on" if pwndbg.config.show_compact_regs else "off",
+        "on" if pwndbg.config.show_flags else "off", pwndbg.config.show_compact_regs
     )
     banner = [pwndbg.ui.banner("registers", target=target, width=width, extra=info)]
     return banner + regs if with_banner else regs
