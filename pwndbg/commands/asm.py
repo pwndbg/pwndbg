@@ -50,6 +50,8 @@ def asm(shellcode: list[str], format: str, arch: str | None, infile: str) -> Non
             return
         assembly: bytes = pwndbg.aglib.asm.asm(" ".join(shellcode))
     else:
+        print(message.error("Passing --arch is not available until #3534 is fixed."))
+        return
         # Is enforced by argparse.
         assert arch in PWNDBG_SUPPORTED_ARCHITECTURES
         assembly = pwndbg.aglib.asm.asm_for_arch(
