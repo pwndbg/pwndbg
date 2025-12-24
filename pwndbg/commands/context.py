@@ -814,6 +814,7 @@ class CompactRegsOptions(Enum):
     NO = "off"
     YES = "on"
     VERY = "very"
+    HARDCUT = "hardcut"
 
 
 pwndbg.config.add_param(
@@ -822,6 +823,9 @@ pwndbg.config.add_param(
     "whether to show a compact register view with columns",
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=[x.value for x in CompactRegsOptions],
+    help_docstring="""
+AAAAAAA
+"""
 )
 pwndbg.config.add_param(
     "show-compact-regs-columns", 2, "the number of columns (0 for dynamic number of columns)"
@@ -837,6 +841,73 @@ def calculate_padding_to_align(length, align):
     The next alignment point is given by "x * align >= length".
     """
     return 0 if length % align == 0 else (align - (length % align))
+
+def compact_regs_hardcut(
+        regs: List[str], terminal_width: int, column_width: int, columns: int, separation: int
+) -> List[str]:
+    """
+    If the string of any register overflows its column_width, it will be hard cut to the column_width.
+
+    Example:
+     RAX  0xfffffffffffffdfe              R8   0                               R14  0
+     RBX  0                               R9   0x7fffffffcbd0 —▸ 0x7fff...     R15  0x7ffff7f83e60 (_rl_orig...
+     RCX  0x7ffff7c90efa (__intern...     R10  0                               RBP  1
+     RDX  0                               R11  0x202                           RSP  0x7fffffffcb70 ◂— 0
+     RDI  1                               R12  0x7fffffffccb0 ◂— 1             RIP  0x7ffff7c90efa (__intern...
+     RSI  0x7fffffffccb0 ◂— 1             R13  0                               EFLAGS 0x202 [ cf pf af zf sf...
+    """
+    result: List[str] = []
+
+    cut_marker = pwndbg.color.white("...")
+
+    def hardcut(reg: str) -> tuple[str, int]:
+        # Returns the cut string and the new size
+        # I don't know of a better way to do this while retaining the coloring.
+        reglen = len(reg)
+        for i in range(reglen, 0, -1):
+            candidate = reg[0:i] + cut_marker
+            candidate_len = len(pwndbg.color.strip(candidate))
+            if candidate_len <= column_width:
+                return candidate, candidate_len
+        # Shouldn't happen anyway, but we return non-zero so padding alignment
+        # can proceed.
+        return " ", 1
+
+    line: str = ""
+    line_length: int = 0
+    nregs: int = len(regs)
+    nrows: int = math.ceil(nregs / columns)
+    for row_idx in range(nrows):
+        for column_idx in range(columns):
+            # Pad the line from the last register.
+            if column_idx != 0:
+                padding = calculate_padding_to_align(line_length, column_width + separation)
+                line += " " * padding
+                line_length += padding
+
+            reg_idx = column_idx * nrows + row_idx
+            if reg_idx >= nregs:
+                # Some columns will not have all rows filled.
+                continue
+            reg = regs[reg_idx]
+
+            # Strip the color / hightlight information the get the raw text width of the register
+            reg_length = len(pwndbg.color.strip(reg))
+
+            if reg_length > column_width:
+                txt, txtlen = hardcut(reg)
+                line += txt
+                line_length += txtlen
+            else:
+                line += reg
+                line_length += reg_length
+
+        # Add the line.
+        result.append(line)
+        line = ""
+        line_length = 0
+
+    return result
 
 
 def compact_regs_normal(
@@ -1036,6 +1107,8 @@ def compact_regs(regs: List[str], width=None, target=sys.stdout) -> List[str]:
             return compact_regs_normal(regs, width, min_width, columns, separation)
         case CompactRegsOptions.VERY.value:
             return compact_regs_very(regs, width, min_width, columns, separation)
+        case CompactRegsOptions.HARDCUT.value:
+            return compact_regs_hardcut(regs, width, min_width, columns, separation)
         case _:
             assert False, "Invalid compact regs value."
 
