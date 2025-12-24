@@ -11,10 +11,12 @@ from typing import List
 
 import pwndbg
 import pwndbg.aglib.memory
+import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.memory as mem_color
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

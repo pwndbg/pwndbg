@@ -14,7 +14,7 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.chain
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.gdblib.info
 import pwndbg.wrappers.checksec
@@ -192,5 +192,5 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     )
     for output in outputs:
         print(
-            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.aglib.memory.read_pointer_width(output['address']))}"  # type: ignore[arg-type]
+            f"[{mem_color.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.aglib.memory.read_pointer_width(output['address']))}"  # type: ignore[arg-type]
         )

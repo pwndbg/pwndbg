@@ -24,7 +24,7 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.enhance as E
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.dbg_mod
 import pwndbg.enhance
 import pwndbg.integration
@@ -432,7 +432,7 @@ class Emulator:
             symbol = pwndbg.aglib.symbol.resolve_addr(link) or None
             if symbol:
                 symbol = f"{link:#x} ({symbol})"
-            rest.append(M.get(link, symbol))
+            rest.append(mem_color.get(link, symbol))
 
         # If the dereference limit is zero, skip any enhancements.
         if limit == 0:

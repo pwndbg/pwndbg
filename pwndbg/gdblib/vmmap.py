@@ -24,7 +24,6 @@ import pwndbg.aglib.qemu
 import pwndbg.auxv
 import pwndbg.gdblib.info
 import pwndbg.lib.cache
-import pwndbg.lib.config
 import pwndbg.lib.memory
 
 

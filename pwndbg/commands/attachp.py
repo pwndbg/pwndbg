@@ -13,6 +13,7 @@ import gdb
 from tabulate import tabulate
 
 import pwndbg.commands
+import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.ui import get_window_size

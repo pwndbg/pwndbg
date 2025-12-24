@@ -12,6 +12,7 @@ import pwndbg.color as color
 import pwndbg.color.context as ctx_color
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.commands.kcurrent
 from pwndbg.aglib.kernel.paging import PageTableLevel
 from pwndbg.commands import CommandCategory
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.file
-import pwndbg.color
 import pwndbg.commands
 import pwndbg.wrappers.checksec
 from pwndbg.commands import CommandCategory

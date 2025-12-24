@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 

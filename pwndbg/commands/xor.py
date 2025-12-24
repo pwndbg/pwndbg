@@ -5,6 +5,7 @@ import argparse
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 

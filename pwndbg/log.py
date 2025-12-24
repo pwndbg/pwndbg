@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 
-import pwndbg.color
+import pwndbg.color.message
 
 
 class ColorFormatter(logging.Formatter):

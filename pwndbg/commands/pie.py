@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
-import pwndbg.auxv
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory

@@ -13,6 +13,8 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
 import pwndbg.commands
+import pwndbg.commands.hexdump
+import pwndbg.commands.next
 from pwndbg.commands import CommandCategory
 
 if pwndbg.dbg.is_gdblib_available():

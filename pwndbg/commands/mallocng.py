@@ -13,8 +13,11 @@ import pwndbg
 import pwndbg.aglib.heap.mallocng as mallocng
 import pwndbg.aglib.memory as memory
 import pwndbg.aglib.typeinfo as typeinfo
+import pwndbg.aglib.vmmap
 import pwndbg.color as color
+import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.lib.config
 from pwndbg import config
 from pwndbg.aglib.heap.mallocng import ng
@@ -84,9 +87,9 @@ def dump_group(group: mallocng.Group) -> str:
         print(color.bold("Cannot determine group size."))
         group_size = -1
 
-    group_range = "@ " + color.memory.get(group.addr)
+    group_range = "@ " + mem_color.get(group.addr)
     if group_size != -1:
-        group_range += " - " + color.memory.get(group.addr + group_size)
+        group_range += " - " + mem_color.get(group.addr + group_size)
 
     output = from_properties(
         "group",
@@ -138,7 +141,7 @@ def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
             Property(name="sizeclass", value=meta.sizeclass, alt_value=f"stride: {meta.stride:#x}"),
             Property(name="maplen", value=meta.maplen),
         ],
-        preamble="@ " + color.memory.get(meta.addr),
+        preamble="@ " + mem_color.get(meta.addr),
     )
 
     if meta.is_donated:
@@ -161,7 +164,7 @@ def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
         try:
             parent_group = meta.parent_group()
             assert parent_group != -1
-            output += " (" + color.memory.get(parent_group) + ")"
+            output += " (" + mem_color.get(parent_group) + ")"
         except pwndbg.dbg_mod.Error as e:
             print(message.error(f"Could not fetch parent group: {e}"))
         output += color.bold(".\n")
@@ -406,7 +409,7 @@ def smart_dump_slot(
             if fslot.p == slot.p:
                 output += "Found it.\n\n"
             else:
-                output += "\nFound a slot with p @ " + color.memory.get(fslot.p) + "."
+                output += "\nFound a slot with p @ " + mem_color.get(fslot.p) + "."
                 output += " The slot you are looking for\ndoesn't seem to exist. Maybe its group got freed?\n\n"
                 output += "Local memory:\n"
                 output += dump_slot(slot, all, False, False)
@@ -431,9 +434,9 @@ def dump_meta_area(meta_area: mallocng.MetaArea, coming_from_dump: bool = False)
     else:
         area_range = (
             "@ "
-            + color.memory.get(meta_area.addr)
+            + mem_color.get(meta_area.addr)
             + " - "
-            + color.memory.get(meta_area.addr + meta_area.area_size)
+            + mem_color.get(meta_area.addr + meta_area.area_size)
         )
 
     if coming_from_dump:
@@ -507,7 +510,7 @@ def dump_malloc_context(ctx: mallocng.MallocContext) -> str:
         ]
     )
 
-    ctx_addr = "@ " + color.memory.get(ctx.addr)
+    ctx_addr = "@ " + mem_color.get(ctx.addr)
     output = from_properties("ctx", props, preamble=ctx_addr, value_offset=22)
 
     return output
@@ -664,7 +667,7 @@ def mallocng_group(address: int, index: Optional[int] = None) -> None:
         if index < 0:
             print(message.error("Index is negative."))
             return
-        print(f"Start of slot {index} is @ " + color.memory.get(group.at_index(index)))
+        print(f"Start of slot {index} is @ " + mem_color.get(group.at_index(index)))
 
     try:
         meta = group.meta
@@ -724,7 +727,7 @@ def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:
                 print(message.error("\nIndex is negative."))
                 return
 
-            print(f"\nMeta {index} is @ " + color.memory.get(meta_area.at_index(index)))
+            print(f"\nMeta {index} is @ " + mem_color.get(meta_area.at_index(index)))
 
             if index >= meta_area.nslots:
                 print(
@@ -998,8 +1001,8 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
     meta: mallocng.Meta = first_grouped_slot.meta
     first_idx: int = first_grouped_slot.idx
 
-    print("group @ " + color.memory.get(group.addr))
-    print("meta @ " + color.memory.get(meta.addr))
+    print("group @ " + mem_color.get(group.addr))
+    print("meta @ " + mem_color.get(meta.addr))
 
     if first_idx + count >= meta.cnt:
         if count != default_vis_count:
@@ -1077,7 +1080,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
             except pwndbg.dbg_mod.Error as e:
                 print(
                     message.error(
-                        f"Error while reading slot {idx} @ {color.memory.get(start_address)}: {e}"
+                        f"Error while reading slot {idx} @ {mem_color.get(start_address)}: {e}"
                     )
                 )
                 return

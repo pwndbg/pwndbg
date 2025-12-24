@@ -9,11 +9,13 @@ import argparse
 from typing import Tuple
 
 import pwndbg.aglib.kernel
+import pwndbg.aglib.symbol
 import pwndbg.color as color
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib
+import pwndbg.lib.cache
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.lib.exception import IndentContextManager
 

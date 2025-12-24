@@ -62,6 +62,9 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
+import pwndbg.arguments
+import pwndbg.color
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.color import message
 from pwndbg.lib.cache import CacheUntilEvent

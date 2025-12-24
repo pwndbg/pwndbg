@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.chain
 import pwndbg.commands
 import pwndbg.gdblib.ptmalloc2_tracking
 from pwndbg.commands import CommandCategory
