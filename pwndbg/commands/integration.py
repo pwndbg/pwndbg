@@ -630,7 +630,6 @@ subparsers.required = True
 
 parser_connect = subparsers.add_parser(
     "connect",
-    prog="di connect",
     aliases=["c"],
     help="Connect to the decompiler",
     description="""
@@ -644,7 +643,6 @@ and `decompiler-port` config variables. Try `help set decompiler-host`.
 
 parser_disconnect = subparsers.add_parser(
     "disconnect",
-    prog="di disconnect",
     aliases=["d"],
     help="Disconnect from the decompiler",
     description="Disconnect from the decompiler.",
@@ -652,7 +650,6 @@ parser_disconnect = subparsers.add_parser(
 
 parser_sync = subparsers.add_parser(
     "sync",
-    prog="di sync",
     aliases=["s"],
     help="Sync data from the decompiler",
     description="""
@@ -664,7 +661,6 @@ Check out `help set decompiler-auto-sync`.
 
 parser_jump = subparsers.add_parser(
     "jump",
-    prog="di jump",
     aliases=["j"],
     help="Make the decompiler's cursor jump to the PC",
     description="""
@@ -684,7 +680,6 @@ parser_jump.add_argument(
 
 parser_install = subparsers.add_parser(
     "install",
-    prog="di install",
     help="Install the decompiler plugins",
     description="""
 Install/update the decompiler plugins.
@@ -705,39 +700,33 @@ install_subparsers.required = True
 
 parser_install_ida = install_subparsers.add_parser(
     "ida",
-    prog="di install ida",
     help="Install the IDA decompiler plugin",
     description="Install the IDA decompiler plugin.",
 )
 parser_install_binja = install_subparsers.add_parser(
     "binja",
-    prog="di install binja",
     help="Install the Binary Ninja decompiler plugin",
     description="Install the Binary Ninja decompiler plugin.",
 )
 parser_install_ghidra = install_subparsers.add_parser(
     "ghidra",
-    prog="di install ghidra",
     help="Install the Ghidra decompiler plugin",
     description="Install the Ghidra decompiler plugin.",
 )
 parser_install_angr = install_subparsers.add_parser(
     "angr",
-    prog="di install angr",
     help="Install the angr-management decompiler plugin",
     description="Install the angr-managment decompiler plugin.",
 )
 
 parser_decomp = subparsers.add_parser(
     "decomp",
-    prog="di decomp",
     help="Just use the `decomp` command",
     description="Just use the `decomp` command.",
 )
 
 parser_list = subparsers.add_parser(
     "list",
-    prog="di list",
     aliases=["l"],
     help="List the variables for the current stack frame",
     description="""
@@ -758,7 +747,6 @@ parser_list.add_argument(
 
 parser_set_base = subparsers.add_parser(
     "setbase",
-    prog="di setbase",
     help="Manually set the base memory address of the decompiled binary",
     description="""
 Manually set the base memory address of the decompiled binary.

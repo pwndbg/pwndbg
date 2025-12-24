@@ -272,11 +272,12 @@ class CommandObj:
 
     @staticmethod
     def initialize_parser_recursively(
-        parser: argparse.ArgumentParser, parent_name: str, is_top_level: bool
+        parser: argparse.ArgumentParser, top_level_name: str, level: int
     ) -> None:
-        if is_top_level:
+        if level == 0:
+            # Top level command
             assert parser.prog[0] != " "
-            assert parent_name == ""
+            assert top_level_name == ""
         else:
             # Workaround until https://github.com/pwndbg/pwndbg/issues/3523
             # is fixed.
@@ -285,12 +286,23 @@ class CommandObj:
                 .replace("launch_guest.py", "")
                 .replace("python3 -m tests.host.lldb.launch_guest", "")
             )
-            assert (
-                parser.prog[0] == " "
-            ), "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
-            assert parent_name != ""
+            # A level one subcommand will have parser.prog == " install"
+            # while a level two subcommand will have parser.prog == "install ida".
+            # Except on lldb, where its " install ida" (after the replace).
+            # How does this make sense? So annoying..
+            assert top_level_name != ""
+            if level == 1:
+                assert (
+                    parser.prog[0] == " "
+                ), "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+            else:
+                parser.prog = parser.prog.strip()
+                assert (
+                    parser.prog.count(" ") == level - 1
+                ), "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+                parser.prog = " " + parser.prog
 
-        parser.prog = parent_name + parser.prog
+        parser.prog = top_level_name + parser.prog
 
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
@@ -337,12 +349,16 @@ class CommandObj:
         # Run recursively on subparsers (if any)
         for action in parser._actions:
             if isinstance(action, argparse._SubParsersAction):
+                if level == 0:
+                    top_level_name = parser.prog
                 last_prog = "<doesn't exist>"
                 for subparser in action.choices.values():
                     # Argparse creates duplicate objects for aliases, we don't need to
                     # reparse them (and shouldn't, as we will mess up the parser.prog).
                     if subparser.prog != last_prog:
-                        CommandObj.initialize_parser_recursively(subparser, parser.prog, False)
+                        CommandObj.initialize_parser_recursively(
+                            subparser, top_level_name, level + 1
+                        )
 
                     last_prog = subparser.prog
 
@@ -351,7 +367,7 @@ class CommandObj:
         self.parser.prog = self.command_name
 
         # Clean up and check subcommands as well
-        CommandObj.initialize_parser_recursively(self.parser, "", True)
+        CommandObj.initialize_parser_recursively(self.parser, "", 0)
 
         # Add non-alias subcommands to self.subcommand_names which will
         # register them for tab-completion in the debugger.
