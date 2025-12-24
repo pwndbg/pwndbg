@@ -823,9 +823,16 @@ pwndbg.config.add_param(
     "whether to show a compact register view with columns",
     param_class=pwndbg.lib.config.PARAM_ENUM,
     enum_sequence=[x.value for x in CompactRegsOptions],
-    help_docstring="""
-AAAAAAA
-"""
+    help_docstring=f"""
+Values explained:
+
++ `{CompactRegsOptions.NO.value}` - Disable compact registers (default). Every other option tries to make the register context use less rows by putting the registers into multiple columns.
++ `{CompactRegsOptions.YES.value}` - If a register printout doesn't fit it will be added to the end of the register context.
++ `{CompactRegsOptions.VERY.value}` - Try to very hard to compress. May save more lines than `{CompactRegsOptions.YES.value}` but logical register grouping may suffer.
++ `{CompactRegsOptions.HARDCUT.value}` - If a register printout doesn't fit its slot, it will simply be truncated.
+
+See also show-compact-regs-columns, show-compact-regs-min-width and show-compact-regs-separation.
+""",
 )
 pwndbg.config.add_param(
     "show-compact-regs-columns", 2, "the number of columns (0 for dynamic number of columns)"
@@ -842,8 +849,9 @@ def calculate_padding_to_align(length, align):
     """
     return 0 if length % align == 0 else (align - (length % align))
 
+
 def compact_regs_hardcut(
-        regs: List[str], terminal_width: int, column_width: int, columns: int, separation: int
+    regs: List[str], terminal_width: int, column_width: int, columns: int, separation: int
 ) -> List[str]:
     """
     If the string of any register overflows its column_width, it will be hard cut to the column_width.

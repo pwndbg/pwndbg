@@ -908,9 +908,17 @@ Whether glibc uses safe-linking.
 
 Whether to show a compact register view with columns.
 
+Values explained:
 
++ `off` - Disable compact registers (default). Every other option tries to make the register context use less rows by putting the registers into multiple columns.
++ `on` - If a register printout doesn't fit it will be added to the end of the register context.
++ `very` - Try to very hard to compress. May save more lines than on but logical register grouping may suffer.
++ `hardcut` - If a register printout doesn't fit its slot, it will simply be truncated.
 
-**Default:** off  
+See also show-compact-regs-columns, show-compact-regs-min-width and show-compact-regs-separation.
+
+**Default:** 'off'  
+**Valid values:** 'off', 'on', 'very', 'hardcut'
 
 ----------
 
