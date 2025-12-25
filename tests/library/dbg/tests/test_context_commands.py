@@ -430,7 +430,7 @@ async def test_context_disasm_call_instruction_split(ctrl: Controller) -> None:
         "   0x40008a <_start+10>    mov    ebx, 3       EBX => 3\n"
         "   0x40008f <_start+15>    add    rax, rbx     RAX => 5 (2 + 3)\n"
         "   0x400092 <_start+18>    xor    rax, rbx     RAX => 6 (5 ^ 3)\n"
-        "   0x400095 <_start+21>    nop    \n"
+        "   0x400095 <_start+21>    nop   \n"
         "   0x400096 <_start+22>    jmp    exit                        <exit>\n"
         "    ↓\n"
         "   0x4000ab <exit>         mov    eax, 0x3c              EAX => 0x3c\n"
