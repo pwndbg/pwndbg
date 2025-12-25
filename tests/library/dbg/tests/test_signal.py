@@ -14,7 +14,7 @@ async def test_pku(ctrl: Controller) -> None:
     """
     import pwndbg
 
-    await ctrl.launch(get_binary(PKU_BINARY))
+    await ctrl.launch(PKU_BINARY)
     await ctrl.execute("set context-sections last_signal")
     await ctrl.cont()
     output = await ctrl.execute_and_capture("ctx")

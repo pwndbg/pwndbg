@@ -7,13 +7,13 @@ from dataclasses import dataclass
 class SigInfoKill:
     si_pid: int
     si_uid: int
-    
+
 @dataclass
 class SigInfoTimer:
     si_tid: int
     si_overrun: int
     si_sigval: SigInfoSigVal
-    
+
 @dataclass
 class SigInfoSigVal:
     sival_int: int
@@ -36,12 +36,12 @@ class SigInfoSigChld:
 @dataclass
 class SigInfoSigFault:
     si_addr: int
-    
+
 @dataclass
 class SigInfoSigPoll:
     si_band: int
     si_fd: int
-    
+
 @dataclass
 class SigInfoSigSys:
     call_addr: int
@@ -53,7 +53,7 @@ class SigInfo:
     si_signo:  int
     si_errno: int
     si_code: int
-    
+
     kill: SigInfoKill
     timer: SigInfoTimer
     rt: SigInfoRt

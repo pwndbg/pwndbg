@@ -374,7 +374,7 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
     def siginfo(self) -> SigInfo:
         lldb_siginfo = self.inner.GetSiginfo()
 
-        int_cast = lambda x: int(x, 16) if x.startswith("0x") else int(x)
+        int_cast: Callable[[str], int] = lambda x: int(x, 16) if x.startswith("0x") else int(x)
 
         si_signo = int_cast(lldb_siginfo.GetChildMemberWithName("si_signo").value)
         si_errno = int_cast(lldb_siginfo.GetChildMemberWithName("si_errno").value)
@@ -969,7 +969,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         )
 
     @override
-    def stopped_at_breakpoint(self):
+    def stopped_at_breakpoint(self) -> bool:
         return self.process.GetState() == lldb.eStateStopped and any(
             (
                 thread.GetStopReason() == lldb.eStopReasonBreakpoint
