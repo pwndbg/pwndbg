@@ -66,7 +66,7 @@ def test_mips32_delay_slot(qemu_assembly_run, arch):
         "   0x20160 <_target+4>    nop   \n"
         "   0x20164 <end>          addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
         "   0x20168 <end+4>        addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
-        "   0x2016c <end+8>        syscall \n"
+        "   0x2016c <end+8>        syscall\n"
         "\n"
         "\n"
         "\n"
@@ -91,7 +91,7 @@ def test_mips32_delay_slot(qemu_assembly_run, arch):
         "   0x20160 <_target+4>    nop   \n"
         "   0x20164 <end>          addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
         "   0x20168 <end+4>        addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
-        "   0x2016c <end+8>        syscall \n"
+        "   0x2016c <end+8>        syscall\n"
         "\n"
         "\n"
         "\n"
@@ -134,7 +134,7 @@ def test_mips32_bnez_instruction(qemu_assembly_run, arch):
         "    ↓\n"
         "   0x20168 <end>          addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
         "   0x2016c <end+4>        addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
-        "   0x20170 <end+8>        syscall \n"
+        "   0x20170 <end+8>        syscall\n"
         "\n"
         "\n"
         "\n"
@@ -162,7 +162,7 @@ def test_mips32_bnez_instruction(qemu_assembly_run, arch):
         "   0x20164 <__start+20>    nop   \n"
         "   0x20168 <end>           addiu  $v0, $zero, 0xfa1\n"
         "   0x2016c <end+4>         addiu  $a0, $zero, 0\n"
-        "   0x20170 <end+8>         syscall \n"
+        "   0x20170 <end+8>         syscall\n"
         "\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
@@ -184,7 +184,7 @@ def test_mips32_bnez_instruction(qemu_assembly_run, arch):
         "    ↓\n"
         "   0x20168 <end>          addiu  $v0, $zero, 0xfa1\n"
         "   0x2016c <end+4>        addiu  $a0, $zero, 0\n"
-        "   0x20170 <end+8>        syscall \n"
+        "   0x20170 <end+8>        syscall\n"
         "\n"
         "\n"
         "\n"
@@ -240,7 +240,7 @@ def test_mips32_call_instruction(qemu_assembly_run, arch):
         "    ↓\n"
         "   0x20170 <end>           addiu  $v0, $zero, 0xfa1\n"
         "   0x20174 <end+4>         addiu  $a0, $zero, 0\n"
-        "   0x20178 <end+8>         syscall \n"
+        "   0x20178 <end+8>         syscall\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
@@ -266,7 +266,7 @@ def test_mips32_call_instruction(qemu_assembly_run, arch):
         "    ↓\n"
         " ► 0x20170 <end>           addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
         "   0x20174 <end+4>         addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
-        "   0x20178 <end+8>         syscall \n"
+        "   0x20178 <end+8>         syscall\n"
         "\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
@@ -498,7 +498,7 @@ def test_mips32_multiple_branches_followed(qemu_assembly_run, arch):
         "    ↓\n"
         "   0x20188 <end>          addiu  $v0, $zero, 0xfa1     V0 => 0xfa1 (0x0 + 0xfa1)\n"
         "   0x2018c <end+4>        addiu  $a0, $zero, 0         A0 => 0 (0 + 0)\n"
-        "   0x20190 <end+8>        syscall \n"
+        "   0x20190 <end+8>        syscall\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 
