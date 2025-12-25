@@ -1476,7 +1476,8 @@ def save_signal() -> None:
         except pwndbg.dbg_mod.Error:
             pass
     elif signal == "SIGTRAP":
-        msg = f"Breakpoint hit at {pwndbg.aglib.regs.pc:#x}"
+        result.append(message.breakpoint(f"Breakpoint hit at {pwndbg.aglib.regs.pc:#x}"))
+        return
     result.append(message.signal(msg))
 
 

@@ -14,6 +14,7 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Literal
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import TypedDict
@@ -320,7 +321,7 @@ class Thread:
         """
         raise NotImplementedError()
 
-    def siginfo(self) -> SigInfo:
+    def siginfo(self) -> Optional[SigInfo]:
         """
         The siginfo of this thread.
         """

@@ -182,6 +182,8 @@ def get_segv_information() -> Tuple[str, Optional[str]]:
 def get_last_signal() -> Optional[SIGNALS]:
     """Get the last signal received by the debugged process."""
     siginfo = pwndbg.dbg.selected_thread().siginfo()
+    if siginfo is None:
+        return None
     curr_arch = pwndbg.aglib.arch.name
     sig_mapping = PER_ARCH_SIGNAL_MAPPINGS.get(curr_arch, COMMON_NUM_TO_SIGNAL_MAPPING)
     return sig_mapping.get(siginfo.si_signo)

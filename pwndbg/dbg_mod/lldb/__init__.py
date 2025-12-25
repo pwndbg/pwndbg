@@ -20,6 +20,7 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Literal
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import TypeVar
@@ -371,7 +372,7 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
         return self.inner.idx
 
     @override
-    def siginfo(self) -> SigInfo:
+    def siginfo(self) -> Optional[SigInfo]:
         lldb_siginfo = self.inner.GetSiginfo()
 
         int_cast: Callable[[str], int] = lambda x: int(x, 16) if x.startswith("0x") else int(x)
