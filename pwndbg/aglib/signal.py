@@ -127,7 +127,7 @@ SHORT_SEGV_DESCRIPTIONS_X86_64: Dict[SegvCodeX86_64, str] = {
     SegvCodeX86_64.SEGV_PKUERR: "SEGV_PKUERR"
 }
 
-LONG_SEGV_DESCRIPTIONS_X86_64: Dict[SegvCodeX86_64, Callable[[], str]] = {
+LONG_SEGV_DESCRIPTIONS_X86_64: Dict[SegvCodeX86_64, Callable[[], Optional[str]]] = {
     SegvCodeX86_64.SEGV_PKUERR: get_segv_pkuerr_description
 }
 
@@ -136,13 +136,14 @@ PER_ARCH_SEGV_CODES: Dict[pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, t
 }
 
 SHORT_SEGV_DESCRIPTIONS: Dict[
-    pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[Any, str]
+    pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[Any, str]
 ] = {
     "x86-64": SHORT_SEGV_DESCRIPTIONS_X86_64,
 }
 
 LONG_SEGV_DESCRIPTIONS: Dict[
-    pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[Any, Callable[[], Optional[str]]]
+    pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE,
+    Dict[Any, Callable[[], Optional[str]]],
 ] = {
     "x86-64": LONG_SEGV_DESCRIPTIONS_X86_64,
 }
