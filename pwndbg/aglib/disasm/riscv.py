@@ -8,7 +8,7 @@ from typing_extensions import override
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
-import pwndbg.color.memory as MemoryColor
+import pwndbg.color.memory as mem_color
 import pwndbg.integration
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
@@ -179,7 +179,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
             instruction.annotation = register_assign(
                 result_operand.str,
-                MemoryColor.get_address_and_symbol(
+                mem_color.get_address_and_symbol(
                     address, pwndbg.integration.manager.get_stack_var_dict_all()
                 ),
             )
@@ -193,7 +193,7 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
             instruction.annotation = register_assign(
                 result_operand.str,
-                MemoryColor.get_address_and_symbol(
+                mem_color.get_address_and_symbol(
                     address, pwndbg.integration.manager.get_stack_var_dict_all()
                 ),
             )

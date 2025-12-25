@@ -9,8 +9,10 @@ from typing import List
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
+import pwndbg.dbg_mod
 import pwndbg.enhance
+import pwndbg.integration
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import theme
@@ -144,7 +146,9 @@ def format(
     stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
 
     # Colorize the chain
-    rest = [M.get_address_and_symbol(addr, stack_vars) if addr >= 0 else "" for addr in chain]
+    rest = [
+        mem_color.get_address_and_symbol(addr, stack_vars) if addr >= 0 else "" for addr in chain
+    ]
 
     # If the dereference limit is zero, skip any enhancements.
     if limit == 0:

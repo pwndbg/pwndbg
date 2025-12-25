@@ -12,6 +12,7 @@ import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.commands
+import pwndbg.dbg_mod
 import pwndbg.lib.regs
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory

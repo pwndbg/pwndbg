@@ -13,8 +13,9 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
 import pwndbg.color.disasm
 import pwndbg.color.memory
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 import pwndbg.integration
 import pwndbg.lib.memory
 from pwndbg.aglib.disasm.disassembly import get_disassembler
@@ -100,7 +101,7 @@ def _rop(
             if e.code == 2:  # invalid args
                 full = stderr.getvalue()
                 print(
-                    M.error(full.splitlines()[-1].removeprefix(": error: "))
+                    message.error(full.splitlines()[-1].removeprefix(": error: "))
                 )  # we skip the usage block, and only print the error
             return False
 
@@ -130,14 +131,10 @@ def _rop(
         vaddr = gadget["vaddr"]
 
         n_insts = insts.count(";") + 1
-        enhanced_insts = pwndbg.aglib.disasm.disassembly.get(vaddr, n_insts, enhance=not plain)
-        insts_str = " ; ".join(
-            pwndbg.color.disasm.one_instruction(ins)
-            .replace(" " * 4, " ")  # we only want one space, not 4 or 3
-            .replace(" " * 3, " ")
-            .strip()
-            for ins in enhanced_insts
+        enhanced_insts = pwndbg.aglib.disasm.disassembly.get(
+            vaddr, n_insts, enhance=not plain, padding=0
         )
+        insts_str = " ; ".join(ins.asm_string for ins in enhanced_insts)
 
         if symbols:
             out = f"{pwndbg.color.memory.get_address_and_symbol(vaddr, decomp_stack_vars)}: {insts_str}"
@@ -207,10 +204,10 @@ def iterate_over_pages(mem_limit: int) -> Iterator[Tuple[str, pwndbg.lib.memory.
         if not page.execute:
             continue
 
-        print(M.info(f"Searching in {hex(page.start)} {hex(page.end)} {page.objfile}"))
+        print(message.info(f"Searching in {hex(page.start)} {hex(page.end)} {page.objfile}"))
         if page.memsz > mem_limit:
             print(
-                M.hint(
+                message.hint(
                     "WARNING: The memory page size is too large to dump.\n"
                     "WARNING: Parsing this large memory page might take an excessive amount of time...\n"
                     "WARNING: To process larger pages, increase the `--memlimit` parameter (e.g., `--memlimit 100MB`)."
@@ -224,12 +221,12 @@ def iterate_over_pages(mem_limit: int) -> Iterator[Tuple[str, pwndbg.lib.memory.
                     page.start, page.end
                 ):
                     if progress_max > 1:
-                        print(M.hint(f"Dumping memory... {progress_cur} / {progress_max}"))
+                        print(message.hint(f"Dumping memory... {progress_cur} / {progress_max}"))
 
                     mem_data = proc.read_memory(address=start, size=size)
                     fmem.write(mem_data)
             except pwndbg.dbg_mod.Error as e:
-                print(M.error(f"WARNING: failed to read page: {e}"))
+                print(message.error(f"WARNING: failed to read page: {e}"))
                 continue
 
             fmem.flush()

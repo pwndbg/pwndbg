@@ -5,7 +5,6 @@ from typing import Tuple
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
-import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 
 #########################################

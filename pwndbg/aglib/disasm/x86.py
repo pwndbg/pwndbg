@@ -13,8 +13,8 @@ import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.color.memory as MemoryColor
-import pwndbg.color.message as MessageColor
+import pwndbg.color.memory as mem_color
+import pwndbg.color.message as message
 import pwndbg.integration
 from pwndbg.aglib.disasm.arch import memory_or_register_assign
 from pwndbg.aglib.disasm.arch import register_assign
@@ -145,8 +145,8 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             alignment_mask = mem_operand.cs_op.size - 1
 
             if mem_operand.before_value & alignment_mask != 0:
-                instruction.annotation = MessageColor.error(
-                    f"<[{MemoryColor.get(mem_operand.before_value)}] not aligned to {mem_operand.cs_op.size} bytes>"
+                instruction.annotation = message.error(
+                    f"<[{mem_color.get(mem_operand.before_value)}] not aligned to {mem_operand.cs_op.size} bytes>"
                 )
 
     def handle_lea(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -175,7 +175,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.annotation = (
                 memory_or_register_assign(
                     left.str,
-                    MemoryColor.get_address_or_symbol(
+                    mem_color.get_address_or_symbol(
                         right.before_value_resolved,
                         pwndbg.integration.manager.get_stack_var_dict_all(),
                     ),
@@ -184,7 +184,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 + ", "
                 + memory_or_register_assign(
                     right.str,
-                    MemoryColor.get_address_or_symbol(
+                    mem_color.get_address_or_symbol(
                         left.before_value_resolved,
                         pwndbg.integration.manager.get_stack_var_dict_all(),
                     ),
@@ -206,7 +206,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 # After emulation, the register has taken on the popped value
                 instruction.annotation = register_assign(
                     reg_operand.str,
-                    MemoryColor.get_address_and_symbol(
+                    mem_color.get_address_and_symbol(
                         reg_operand.after_value,
                         pwndbg.integration.manager.get_stack_var_dict_all(),
                     ),
@@ -217,7 +217,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                     value = pwndbg.aglib.memory.read_pointer_width(pwndbg.aglib.regs.sp)
                     instruction.annotation = register_assign(
                         reg_operand.str,
-                        MemoryColor.get_address_and_symbol(
+                        mem_color.get_address_and_symbol(
                             value, pwndbg.integration.manager.get_stack_var_dict_all()
                         ),
                     )
@@ -249,7 +249,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if operand.after_value_resolved is not None:
             instruction.annotation = memory_or_register_assign(
                 operand.str,
-                MemoryColor.get_address_and_symbol(
+                mem_color.get_address_and_symbol(
                     operand.after_value_resolved,
                     pwndbg.integration.manager.get_stack_var_dict_all(),
                 ),

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from typing import Dict
 
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.commands

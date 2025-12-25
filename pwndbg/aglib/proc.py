@@ -16,6 +16,7 @@ from typing import TypeVar
 from elftools.elf.relocation import Relocation
 from typing_extensions import ParamSpec
 
+import pwndbg
 import pwndbg.aglib.qemu
 import pwndbg.lib.arch
 import pwndbg.lib.cache

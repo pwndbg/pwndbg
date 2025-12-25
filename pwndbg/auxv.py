@@ -19,7 +19,7 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.stack
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -170,7 +170,7 @@ _warn_explore_once = True
 def explore_stack_auxv() -> AUXV | None:
     if auto_explore.value == "warn":
         print(
-            M.warn(
+            message.warn(
                 "Warning: All methods to detect AUXV have failed.\n"
                 "You can explore AUXV using stack exploration, but it may be very slow.\n"
                 "To explicitly explore, use the command: `auxv-explore`\n"

@@ -21,7 +21,6 @@ import pwndbg.aglib
 import pwndbg.aglib.disasm.aarch64
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.disasm.arm
-import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.disasm.loongarch64
 import pwndbg.aglib.disasm.mips
 import pwndbg.aglib.disasm.ppc
@@ -162,6 +161,7 @@ def get_one_instruction(
     from_cache: bool = False,
     put_cache: bool = False,
     assistant: DisassemblyAssistant | None = None,
+    padding: int = 6,
 ) -> PwndbgInstruction:
     """
     If passed an emulator, this will pass it to the DisassemblyAssistant which will
@@ -174,7 +174,7 @@ def get_one_instruction(
 
     cs_info = pwndbg.aglib.arch.get_capstone_constants(address)
     if cs_info is None:
-        instr = ManualPwndbgInstruction(address)
+        instr = ManualPwndbgInstruction(address, padding)
         if enhance:
             pwndbg.aglib.disasm.arch.basic_enhance(instr)
         return instr
@@ -182,7 +182,7 @@ def get_one_instruction(
     md = get_disassembler(cs_info)
     data = pwndbg.aglib.memory.read(address, pwndbg.aglib.arch.max_instruction_size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
-        pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins)
+        pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins, padding)
 
         if enhance:
             if assistant is None:
@@ -255,6 +255,7 @@ def get(
     from_cache: bool = False,
     put_cache: bool = False,
     assistant: DisassemblyAssistant | None = None,
+    padding: int = 6,
 ) -> List[PwndbgInstruction]:
     address = int(address)
 
@@ -271,6 +272,7 @@ def get(
             from_cache=from_cache,
             put_cache=put_cache,
             assistant=assistant,
+            padding=padding,
         )
         if i is None:
             break

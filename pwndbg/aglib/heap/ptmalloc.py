@@ -35,12 +35,11 @@ import pwndbg.aglib.tls
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
+import pwndbg.color.memory as mem_color
 import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-import pwndbg.search
 from pwndbg.color import message
-from pwndbg.color.memory import c as M
 
 PREV_INUSE = 1
 IS_MMAPPED = 2
@@ -571,7 +570,7 @@ class Heap:
 
     def __str__(self) -> str:
         fmt = "[%%%ds]" % (pwndbg.aglib.arch.ptrsize * 2)
-        return message.hint(fmt % (hex(self.first_chunk.address))) + M.heap(
+        return message.hint(fmt % (hex(self.first_chunk.address))) + mem_color.c.heap(
             str(pwndbg.aglib.vmmap.find(self.start))
         )
 

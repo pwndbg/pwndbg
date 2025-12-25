@@ -5,12 +5,14 @@ import math
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
-import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.chain
-import pwndbg.color as C
-import pwndbg.color.message as M
+import pwndbg.color as color
+import pwndbg.color.context as ctx_color
+import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.commands.kcurrent
 from pwndbg.aglib.kernel.paging import PageTableLevel
 from pwndbg.commands import CommandCategory
 
@@ -42,8 +44,8 @@ def print_pagetable_entry(ptl: PageTableLevel, level: int, is_last: bool):
     )  # each idx has that many bits
     idxlen = len(str((1 << nbits) - 1))
     if entry is not None:
-        flags = f"[{idx:0{idxlen}}] {arrow_right} {name + 'e'}: {C.context.format_flags(entry, pageflags, entry)}"
-    print(f"{C.blue(name)} @ {C.yellow(hex(vaddr))}{flags}")
+        flags = f"[{idx:0{idxlen}}] {arrow_right} {name + 'e'}: {ctx_color.format_flags(entry, pageflags, entry)}"
+    print(f"{color.blue(name)} @ {color.yellow(hex(vaddr))}{flags}")
 
 
 def page_type(page):
@@ -80,10 +82,10 @@ def page_info(page):
     try:
         refcount = pwndbg.aglib.memory.u32(page + 0x34)
         print(
-            f"{C.green('page')} @ {C.yellow(hex(page))} [{page_type(page)}, refcount: {refcount}]"
+            f"{color.green('page')} @ {color.yellow(hex(page))} [{page_type(page)}, refcount: {refcount}]"
         )
     except (ValueError, TypeError):
-        print(M.warn("invalid page address"))
+        print(message.warn("invalid page address"))
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
@@ -107,17 +109,17 @@ def pagewalk(vaddr, entry=None):
         print_pagetable_entry(curr, i, next.entry is None or i == 1)
     vaddr = levels[0].virt
     if vaddr is None:
-        print(M.warn("address is not mapped"))
+        print(message.warn("address is not mapped"))
         return
     pi = pwndbg.aglib.kernel.arch_paginginfo()
     phys = vaddr - pi.physmap + pi.phys_offset
-    print(f"pagewalk result: {C.green(hex(vaddr))} [phys: {C.yellow(hex(phys))}]")
+    print(f"pagewalk result: {color.green(hex(vaddr))} [phys: {color.yellow(hex(phys))}]")
 
 
 def paging_print_helper(name, addr):
     if addr is None:
         return
-    print(f"{C.green(name)}: {C.yellow(hex(addr))}")
+    print(f"{color.green(name)}: {color.yellow(hex(addr))}")
 
 
 p2v_parser = argparse.ArgumentParser(
@@ -139,7 +141,7 @@ def p2v(paddr):
         page = pwndbg.aglib.kernel.virt_to_page(vaddr)
         page_info(page)
     except Exception:
-        print(M.warn("physical to virtual address failed, invalid physical address?"))
+        print(message.warn("physical to virtual address failed, invalid physical address?"))
 
 
 v2p_parser = argparse.ArgumentParser(
@@ -158,7 +160,7 @@ def v2p(vaddr):
     level = pwndbg.aglib.kernel.pagewalk(vaddr)[0]  # more accurate
     entry, paddr = level.entry, level.virt
     if not entry:
-        print(M.warn("virtual to physical address failed, unmapped virtual address?"))
+        print(message.warn("virtual to physical address failed, unmapped virtual address?"))
         return
     paging_print_helper("Physmap address", paddr)
     # paddr is the physmap address which is a virtual address
@@ -184,4 +186,4 @@ def pageinfo(page):
         paging_print_helper("Virtual address", vaddr)
         page_info(page)
     except Exception:
-        print(M.warn("invalid page struct pointer"))
+        print(message.warn("invalid page struct pointer"))

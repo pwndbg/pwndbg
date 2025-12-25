@@ -17,7 +17,6 @@ import pwndbg.color as color
 import pwndbg.color.memory as color_mem
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.dbg_mod
 import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.tempfile

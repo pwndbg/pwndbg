@@ -11,8 +11,9 @@ import pwnlib.rop.srop
 import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.color.context as C
-import pwndbg.color.memory as M
+import pwndbg.chain
+import pwndbg.color.context as ctx_color
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.regs import aarch64
@@ -86,7 +87,7 @@ def sigreturn(address: int = None, display_all=False, print_address=False) -> No
         # Subtract the offset of start of frame, to get the correct offset into "mem"
         mem_offset = stack_offset - frame_start_offset
 
-        regname = C.register(reg.ljust(4).upper())
+        regname = ctx_color.register(reg.ljust(4).upper())
         value = pwndbg.aglib.arch.unpack(mem[mem_offset : mem_offset + ptr_size])
 
         if reg in core_registers:
@@ -96,16 +97,16 @@ def sigreturn(address: int = None, display_all=False, print_address=False) -> No
 
         elif reg in pwndbg.aglib.regs.flags:  # eflags or cpsr
             reg_flags = pwndbg.aglib.regs.flags[reg]
-            desc = C.format_flags(value, reg_flags)
+            desc = ctx_color.format_flags(value, reg_flags)
 
             print_value(f"{regname} {desc}", address + stack_offset, print_address)
 
         elif display_all:
-            print_value(f"{reg} {M.get(value)}", address + stack_offset, print_address)
+            print_value(f"{reg} {mem_color.get(value)}", address + stack_offset, print_address)
 
 
 def print_value(string: str, address: int, print_address) -> None:
     addr = ""
     if print_address:
-        addr = f"{M.get(address)}: "
+        addr = f"{mem_color.get(address)}: "
     print(f"{addr}{string}")

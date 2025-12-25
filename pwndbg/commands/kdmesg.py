@@ -15,8 +15,12 @@ from __future__ import annotations
 import argparse
 import time
 
+import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 
 parser = argparse.ArgumentParser(description="Displays the kernel ring buffer (dmesg) contents.")
 

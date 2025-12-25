@@ -5,10 +5,12 @@ import math
 import os
 
 import pwndbg.aglib
+import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -137,7 +139,7 @@ def probeleak(
             if flags is not None and not satisfied_flags(require_flags, page.flags):
                 continue
             if not found:
-                print(M.legend())
+                print(mem_color.legend())
                 found = True
 
             mod_name = page.objfile
@@ -162,7 +164,7 @@ def probeleak(
 
             offset_text = "0x%0*x" % (off_zeros, i)
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
-            text = f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
+            text = f"{offset_text}: {mem_color.get(p, text=p_text)} = {mem_color.get(p, text=right_text)}"
 
             symbol = pwndbg.aglib.symbol.resolve_addr(p)
             if symbol:

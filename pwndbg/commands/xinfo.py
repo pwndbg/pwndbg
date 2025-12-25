@@ -5,8 +5,9 @@ import argparse
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.stack
+import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.memory import Page
@@ -19,7 +20,7 @@ parser.add_argument("address", nargs="?", default="$pc", help="Address to inspec
 
 def print_line(name, addr, first, second, op, width=20) -> None:
     print(
-        f"{name.rjust(width)} {M.get(addr)} = {M.get(first) if not isinstance(first, str) else first.ljust(len(hex(addr).rstrip('L')))} {op} {second:#x}"
+        f"{name.rjust(width)} {mem_color.get(addr)} = {mem_color.get(first) if not isinstance(first, str) else first.ljust(len(hex(addr).rstrip('L')))} {op} {second:#x}"
     )
 
 
@@ -86,7 +87,7 @@ def xinfo_mmap_file(page: Page, addr: int) -> None:
             print_line("File (Disk)", addr, file_name, file_offset, "+")
             break
     else:
-        print(f"{'File (Disk)'.rjust(20)} {M.get(addr)} = [not file backed]")
+        print(f"{'File (Disk)'.rjust(20)} {mem_color.get(addr)} = [not file backed]")
 
     containing_sections = pwndbg.aglib.elf.get_containing_sections(file_name, region_start, addr)
     if len(containing_sections) > 0:
@@ -115,10 +116,10 @@ def xinfo(address=None) -> None:
         print(f"\n  Virtual address {addr:#x} is not mapped.")
         return
 
-    print(f"Extended information for virtual address {M.get(addr)}:")
+    print(f"Extended information for virtual address {mem_color.get(addr)}:")
 
     print("\n  Containing mapping:")
-    print(M.get(address, text=str(page)))
+    print(mem_color.get(address, text=str(page)))
 
     print("\n  Offset information:")
 

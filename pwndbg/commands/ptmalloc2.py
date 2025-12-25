@@ -14,13 +14,13 @@ import pwndbg.aglib.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
-import pwndbg.color.context as C
-import pwndbg.color.memory as M
+import pwndbg.color.context as ctx_color
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.commands.hexdump
+import pwndbg.dbg_mod
 import pwndbg.glibc
 from pwndbg.aglib.heap import heap_chain_limit
 from pwndbg.aglib.heap.ptmalloc import Arena
@@ -333,7 +333,7 @@ def arenas() -> None:
         ]
 
         for mapping_data in str(pwndbg.aglib.vmmap.find(first_heap.start)).split():
-            row.append(M.c.heap(mapping_data))
+            row.append(mem_color.c.heap(mapping_data))
 
         table.append(row)
 
@@ -345,7 +345,7 @@ def arenas() -> None:
             ]
 
             for mapping_data in str(pwndbg.aglib.vmmap.find(extra_heap.start)).split():
-                row.append(M.c.heap(mapping_data))
+                row.append(mem_color.c.heap(mapping_data))
 
             table.append(row)
 
@@ -472,7 +472,7 @@ def malloc_chunk(
 
     headers_to_print: List[str] = []  # both state (free/allocated) and flags
     fields_to_print: Set[str] = set()  # in addition to addr and size
-    out_fields = f"Addr: {M.get(chunk.address)}\n"
+    out_fields = f"Addr: {mem_color.get(chunk.address)}\n"
 
     if fake:
         headers_to_print.append(message.on("Fake chunk"))
@@ -480,7 +480,7 @@ def malloc_chunk(
 
     if simple:
         if not headers_to_print:
-            headers_to_print.append(message.hint(M.get(chunk.address)))
+            headers_to_print.append(message.hint(mem_color.get(chunk.address)))
 
         out_fields = ""
         verbose = True
@@ -541,13 +541,13 @@ def malloc_chunk(
     print(" | ".join(headers_to_print) + "\n" + out_fields)
 
     if dump:
-        print(C.banner("hexdump"))
+        print(ctx_color.banner("hexdump"))
 
         ptr_size = pwndbg.aglib.arch.ptrsize
         pwndbg.commands.hexdump.hexdump(chunk.address, chunk.real_size + ptr_size)
 
     if next:
-        print(C.banner(f"Next {next} chunk(s):"))
+        print(ctx_color.banner(f"Next {next} chunk(s):"))
         for _ in range(next):
             chunk = chunk.next_chunk()
 
@@ -623,7 +623,7 @@ def fastbins(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(fastbins, verbose)
 
-    print(C.banner("fastbins"))
+    print(ctx_color.banner("fastbins"))
     for node in formatted_bins:
         print(node)
 
@@ -658,7 +658,7 @@ def unsortedbin(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(unsortedbin, verbose)
 
-    print(C.banner("unsortedbin"))
+    print(ctx_color.banner("unsortedbin"))
     for node in formatted_bins:
         print(node)
 
@@ -693,7 +693,7 @@ def smallbins(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(smallbins, verbose)
 
-    print(C.banner("smallbins"))
+    print(ctx_color.banner("smallbins"))
     for node in formatted_bins:
         print(node)
 
@@ -727,7 +727,7 @@ def largebins(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(largebins, verbose)
 
-    print(C.banner("largebins"))
+    print(ctx_color.banner("largebins"))
     for node in formatted_bins:
         print(node)
 
@@ -761,7 +761,7 @@ def tcachebins(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(tcachebins, verbose, offset=allocator.tcache_next_offset)
 
-    print(C.banner("tcachebins"))
+    print(ctx_color.banner("tcachebins"))
     for node in formatted_bins:
         print(node)
 
@@ -904,7 +904,7 @@ def find_fake_fast(
 
     search_region = pwndbg.aglib.memory.read(search_start, search_end - search_start, partial=True)
 
-    print(C.banner("FAKE CHUNKS"))
+    print(ctx_color.banner("FAKE CHUNKS"))
     step = allocator.malloc_alignment if align else 1
     for i in range(0, len(search_region), step):
         candidate = search_region[i : i + size_field_width]

@@ -18,9 +18,12 @@ import pwndbg.aglib
 import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory as memory
 import pwndbg.aglib.stack
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
+import pwndbg.aglib.vmmap
 import pwndbg.auxv
 import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.search
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
@@ -1110,7 +1113,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
     By leveraging the __malloc_context symbol.
 
     Import this singleton class like:
-    from pwndbg.aglib.heap.mallocng import mallocng as ng
+    from pwndbg.aglib.heap.mallocng import ng
 
     and make sure that you have run ng.init_if_needed()
     before you used the object.
@@ -1331,7 +1334,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         f"Mallocng.containing: Could not read meta_area ({e}), returning early."
                     )
                 )
-                return (None, None)
+                return None, None
 
             # Iterate over all metas in the meta_area.
             for i in range(meta_area.nslots):
@@ -1368,7 +1371,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             meta_area_addr = meta_area.next
 
         if hit_group is None:
-            return (None, None)
+            return None, None
 
         # Need to read memory for the .contains_group() check.
         hit_slot: Optional[Slot] = None
@@ -1394,7 +1397,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         f"The initial match was for group @ {backup_addr}.\n"
                     )
                 )
-                return (None, None)
+                return None, None
 
         try:
             # Recursively go into deeper nested groups until we find a slot
@@ -1413,7 +1416,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     # top level group (either mmap()ed or donated).
                     # We could return *some* information to the callee
                     # but alas, let's be technically correct.
-                    return (None, None)
+                    return None, None
 
                 # Calculate the correct inner slot.
                 slot_idx = (address - valid_start) // hit_group.meta.stride
@@ -1500,4 +1503,4 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         )
 
 
-mallocng = Mallocng()
+ng = Mallocng()

@@ -4,8 +4,11 @@ import argparse
 
 from pwnlib.util.cyclic import cyclic
 
-import pwndbg.color.message as M
+import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
+import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Spray memory with cyclic() generated values")
@@ -39,7 +42,7 @@ def spray(addr, length, value, only_funcptrs) -> None:
         page = pwndbg.aglib.vmmap.find(addr)
         if page is None:
             print(
-                M.error(
+                message.error(
                     f"Invalid address {addr}: can't find vmmap containing it to determine the spray length"
                 )
             )
@@ -74,8 +77,8 @@ def spray(addr, length, value, only_funcptrs) -> None:
                 if page is not None and page.execute:
                     pwndbg.aglib.memory.write(addr + i, value_bytes[i : i + ptrsize])
                     addresses_written += 1
-            print(M.notice(f"Overwritten {addresses_written} function pointers"))
+            print(message.notice(f"Overwritten {addresses_written} function pointers"))
         else:
             pwndbg.aglib.memory.write(addr, value_bytes)
     except pwndbg.dbg_mod.Error as e:
-        print(M.error(e))
+        print(message.error(e))

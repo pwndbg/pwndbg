@@ -68,9 +68,12 @@ def update_typeinfo() -> None:
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
 @pwndbg.dbg.event_handler(EventType.START, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
 @pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
-def update_arch() -> None:
-    pwndbg.aglib.arch_mod.update()
+def update_arch_and_typeinfo() -> None:
+    # It is important to update the typeinfo first because
+    # pwndbg/dbg_mod/gdb/__init__.py:GDBProcess::arch() relies on it (maybe it shouldn't),
+    # and arch_mod.update() relies on pwndbg.dbg.selected_inferior().arch().
     update_typeinfo()
+    pwndbg.aglib.arch_mod.update()
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
@@ -136,7 +139,7 @@ def init() -> None:
     """Calls all GDB hook functions that need to be called when GDB/pwndbg
     itself is loaded, as opposed to when an actual hook event occurs
     """
-    update_arch()
+    update_arch_and_typeinfo()
     update_typeinfo()
 
 

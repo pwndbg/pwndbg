@@ -9,6 +9,7 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
+import pwndbg.commands
 import pwndbg.gdblib.got
 from pwndbg.commands import CommandCategory
 

@@ -16,8 +16,8 @@ import gdb
 import pwndbg.aglib.argv
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
-import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
+import pwndbg.dbg_mod
 from pwndbg.lib.common import hex2ptr_common
 
 functions: List[_GdbFunction] = []

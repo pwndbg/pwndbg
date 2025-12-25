@@ -18,8 +18,7 @@ import pwndbg.aglib.asm
 import pwndbg.aglib.memory
 import pwndbg.aglib.shellcode
 import pwndbg.commands
-import pwndbg.lib.abi
-import pwndbg.lib.memory
+import pwndbg.dbg_mod
 import pwndbg.lib.regs
 from pwndbg.commands import CommandCategory
 
