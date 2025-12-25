@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10, <4"
 resolution-markers = [
     "python_full_version >= '3.15' and platform_machine == 'loongarch64' and sys_platform == 'linux'",
@@ -801,15 +801,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/85/31/10ac88f3357fc276dc8a64e8880c82e80e7459326ae1d0a211b40abf6665/ipython-8.37.0.tar.gz", hash = "sha256:ca815841e1a41a1e6b73a0b08f3038af9b2252564d01fc405356d34033012216", size = 5606088, upload-time = "2025-05-31T16:39:09.613Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/91/d0/274fbf7b0b12643cbbc001ce13e6a5b1607ac4929d1b11c72460152c9fc3/ipython-8.37.0-py3-none-any.whl", hash = "sha256:ed87326596b878932dbcb171e3e698845434d8c61b8d8cd474bf663041a9dcf2", size = 831864, upload-time = "2025-05-31T16:39:06.38Z" },
-]
-
-[[package]]
-name = "isort"
-version = "5.13.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/87/f9/c1eb8635a24e87ade2efce21e3ce8cd6b8630bb685ddc9cdaca1349b2eb5/isort-5.13.2.tar.gz", hash = "sha256:48fdfcb9face5d58a4f6dde2e72a1fb8dcaf8ab26f95ab49fab84c2ddefb0109", size = 175303, upload-time = "2023-12-13T20:37:26.124Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/b3/8def84f539e7d2289a02f0524b944b15d7c75dab7628bedf1c4f0992029c/isort-5.13.2-py3-none-any.whl", hash = "sha256:8ca5e72a8d85860d5a3fa69b8745237f2939afe12dbf656afbcb47fe72d947a6", size = 92310, upload-time = "2023-12-13T20:37:23.244Z" },
 ]
 
 [[package]]
@@ -1694,7 +1685,6 @@ docs = [
     { name = "ruff", version = "0.14.9", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
 ]
 lint = [
-    { name = "isort" },
     { name = "mypy" },
     { name = "ruff", version = "0.4.10", source = { registry = "https://pypi.org/simple" }, marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'" },
     { name = "ruff", version = "0.14.9", source = { registry = "https://mirrors.loong64.com/pypi/simple" }, marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'" },
@@ -1763,7 +1753,6 @@ docs = [
     { name = "ruff", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'", index = "https://mirrors.loong64.com/pypi/simple" },
 ]
 lint = [
-    { name = "isort", specifier = ">=5.13.2,<6" },
     { name = "mypy", specifier = ">=1.18.2,<2" },
     { name = "ruff", marker = "platform_machine != 'loongarch64' or sys_platform != 'linux'", specifier = ">=0.4.1,<0.15" },
     { name = "ruff", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux'", specifier = ">=0.4.1,<0.15", index = "https://mirrors.loong64.com/pypi/simple" },
@@ -2227,7 +2216,9 @@ version = "0.4.10"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
-    "(python_full_version < '3.13' and platform_machine != 'loongarch64') or (python_full_version < '3.13' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'loongarch64') or (python_full_version == '3.12.*' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'loongarch64') or (python_full_version == '3.11.*' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'loongarch64') or (python_full_version < '3.11' and sys_platform != 'linux')",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ea/04/b660bc832ebfa40e1788edf6934388340751cbc6f733d1f807edca9d96e6/ruff-0.4.10.tar.gz", hash = "sha256:3aa4f2bc388a30d346c56524f7cacca85945ba124945fe489952aadb6b5cd804", size = 2577674, upload-time = "2024-06-20T17:42:56.184Z" }
 wheels = [
@@ -2250,15 +2241,6 @@ wheels = [
 ]
 
 [[package]]
-name = "setuptools"
-version = "80.9.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c", size = 1319958, upload-time = "2025-05-27T00:56:51.443Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922", size = 1201486, upload-time = "2025-05-27T00:56:49.664Z" },
-]
-
-[[package]]
 name = "ruff"
 version = "0.14.9"
 source = { registry = "https://mirrors.loong64.com/pypi/simple" }
@@ -2273,6 +2255,15 @@ resolution-markers = [
 wheels = [
     { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/2ad5fb4c70315b3d6f9a8c1bde4e48ba4c77cb93374977526ac78558148bcd61/ruff-0.14.9-py3-none-manylinux_2_36_loongarch64.whl", hash = "sha256:2ad5fb4c70315b3d6f9a8c1bde4e48ba4c77cb93374977526ac78558148bcd61" },
     { url = "https://gitlab.com/api/v4/projects/65746188/packages/pypi/files/b50a7a43aff0ac2cd5dabc447338a51b7ae835dd578d18ae26b797b5ca62d517/ruff-0.14.9-py3-none-musllinux_1_2_loongarch64.whl", hash = "sha256:b50a7a43aff0ac2cd5dabc447338a51b7ae835dd578d18ae26b797b5ca62d517" },
+]
+
+[[package]]
+name = "setuptools"
+version = "80.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c", size = 1319958, upload-time = "2025-05-27T00:56:51.443Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922", size = 1201486, upload-time = "2025-05-27T00:56:49.664Z" },
 ]
 
 [[package]]
@@ -2539,7 +2530,9 @@ version = "0.8.15"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "(python_full_version >= '3.13' and platform_machine != 'loongarch64') or (python_full_version >= '3.13' and sys_platform != 'linux')",
-    "(python_full_version < '3.13' and platform_machine != 'loongarch64') or (python_full_version < '3.13' and sys_platform != 'linux')",
+    "(python_full_version == '3.12.*' and platform_machine != 'loongarch64') or (python_full_version == '3.12.*' and sys_platform != 'linux')",
+    "(python_full_version == '3.11.*' and platform_machine != 'loongarch64') or (python_full_version == '3.11.*' and sys_platform != 'linux')",
+    "(python_full_version < '3.11' and platform_machine != 'loongarch64') or (python_full_version < '3.11' and sys_platform != 'linux')",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/4f/7c/ab905b0425f88842f3d8e5da50491524f45a231b7a3dc9c988608162adb2/uv-0.8.15.tar.gz", hash = "sha256:8ea57b78be9f0911a2a50b6814d15aec7d1f8aa6517059dc8250b1414156f93a", size = 3602914, upload-time = "2025-09-03T14:32:15.552Z" }
 wheels = [

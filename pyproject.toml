@@ -58,7 +58,6 @@ dev = [
 ]
 lint = [
     "mypy>=1.18.2,<2",
-    "isort>=5.13.2,<6",
     "ruff>=0.4.1,<0.15",
     "vermin>=1.6.0,<2",
 ]
@@ -117,6 +116,7 @@ select = [
     "F",      # pyflakes
     "W",      # pycodestyle
     "C4",     # flake8-comprehensions
+    "I",      # isort
     "ISC",    # flake8-implicit-str-concat
     "SLOT",   # flake8-slots
     "FLY",    # flynt
@@ -150,6 +150,17 @@ builtins-ignorelist = [
     "next",
     "type",
 ]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+known-third-party = [
+    "capstone",
+    "unicorn",
+    "pycparser",
+    "gdb",
+    "lldb",
+]
+required-imports = ["from __future__ import annotations"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -254,18 +265,6 @@ module = [
     "decomp2dbg.*"
 ]
 ignore_missing_imports = true
-
-[tool.isort]
-profile = "black"
-force_single_line = true
-known_third_party = [
-    "capstone",
-    "unicorn",
-    "pycparser",
-    "gdb",
-    "lldb",
-]
-add_imports = "from __future__ import annotations"
 
 [tool.coverage.run]
 branch = true
