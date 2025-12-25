@@ -119,7 +119,6 @@ let
     "pt"
     "rich"
     "sortedcontainers-stubs"
-    "isort"
   ];
 
   genPkgsNeeded =
