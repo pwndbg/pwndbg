@@ -36,7 +36,15 @@ from pwndbg.gdblib import load_gdblib
 from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
-from pwndbg.lib.siginfo import SigInfo, SigInfoKill, SigInfoRt, SigInfoSigChld, SigInfoSigFault, SigInfoSigPoll, SigInfoSigSys, SigInfoSigVal, SigInfoTimer
+from pwndbg.lib.siginfo import SigInfo
+from pwndbg.lib.siginfo import SigInfoKill
+from pwndbg.lib.siginfo import SigInfoRt
+from pwndbg.lib.siginfo import SigInfoSigChld
+from pwndbg.lib.siginfo import SigInfoSigFault
+from pwndbg.lib.siginfo import SigInfoSigPoll
+from pwndbg.lib.siginfo import SigInfoSigSys
+from pwndbg.lib.siginfo import SigInfoSigVal
+from pwndbg.lib.siginfo import SigInfoTimer
 
 T = TypeVar("T")
 
@@ -396,8 +404,12 @@ class GDBThread(pwndbg.dbg_mod.Thread):
                 si_tid=int(gdb_siginfo_expr["_sifields"]["_timer"]["si_tid"]),
                 si_overrun=int(gdb_siginfo_expr["_sifields"]["_timer"]["si_overrun"]),
                 si_sigval=SigInfoSigVal(
-                    sival_int=int(gdb_siginfo_expr["_sifields"]["_timer"]["si_sigval"]["sival_int"]),
-                    sival_ptr=int(gdb_siginfo_expr["_sifields"]["_timer"]["si_sigval"]["sival_ptr"]),
+                    sival_int=int(
+                        gdb_siginfo_expr["_sifields"]["_timer"]["si_sigval"]["sival_int"]
+                    ),
+                    sival_ptr=int(
+                        gdb_siginfo_expr["_sifields"]["_timer"]["si_sigval"]["sival_ptr"]
+                    ),
                 ),
             ),
             rt=SigInfoRt(
@@ -573,7 +585,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def stopped_with_signal(self) -> bool:
         return "It stopped with signal " in gdb.execute("info program", to_string=True)
-    
+
     @override
     def stopped_at_breakpoint(self) -> bool:
         return "It stopped at a breakpoint " in gdb.execute("info program", to_string=True)

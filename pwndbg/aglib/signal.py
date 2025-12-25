@@ -5,18 +5,16 @@ Generating detailed information about signals received by the debugged process.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, List, Literal
+from typing import Any
 from typing import Callable
 from typing import Dict
+from typing import Literal
 from typing import Optional
 from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.vmmap
 import pwndbg.lib.arch
-
-if pwndbg.dbg.is_gdblib_available():
-    import gdb
 
 
 def get_segv_pkuerr_description() -> Optional[str]:
@@ -34,88 +32,92 @@ def get_segv_pkuerr_description() -> Optional[str]:
     msg += f"(AD={ad}, WD={wd})"
     return msg
 
+
 SIGNALS = Literal[
-    'SIGABRT',
-    'SIGALRM',
-    'SIGBUS',
-    'SIGCHLD',
-    'SIGCLD',
-    'SIGCONT',
-    'SIGEMT',
-    'SIGFPE',
-    'SIGHUP',
-    'SIGILL',
-    'SIGINFO',
-    'SIGINT',
-    'SIGIO',
-    'SIGIOT',
-    'SIGKILL',
-    'SIGLOST',
-    'SIGPIPE',
-    'SIGPOLL',
-    'SIGPROF',
-    'SIGPWR',
-    'SIGQUIT',
-    'SIGSEGV',
-    'SIGSTKFLT',
-    'SIGSTOP',
-    'SIGTSTP',
-    'SIGSYS',
-    'SIGTERM',
-    'SIGTRAP',
-    'SIGTTIN',
-    'SIGTTOU',
-    'SIGUNUSED',
-    'SIGURG',
-    'SIGUSR1',
-    'SIGUSR2',
-    'SIGVTALRM',
-    'SIGXCPU',
-    'SIGXFSZ',
-    'SIGWINCH',
+    "SIGABRT",
+    "SIGALRM",
+    "SIGBUS",
+    "SIGCHLD",
+    "SIGCLD",
+    "SIGCONT",
+    "SIGEMT",
+    "SIGFPE",
+    "SIGHUP",
+    "SIGILL",
+    "SIGINFO",
+    "SIGINT",
+    "SIGIO",
+    "SIGIOT",
+    "SIGKILL",
+    "SIGLOST",
+    "SIGPIPE",
+    "SIGPOLL",
+    "SIGPROF",
+    "SIGPWR",
+    "SIGQUIT",
+    "SIGSEGV",
+    "SIGSTKFLT",
+    "SIGSTOP",
+    "SIGTSTP",
+    "SIGSYS",
+    "SIGTERM",
+    "SIGTRAP",
+    "SIGTTIN",
+    "SIGTTOU",
+    "SIGUNUSED",
+    "SIGURG",
+    "SIGUSR1",
+    "SIGUSR2",
+    "SIGVTALRM",
+    "SIGXCPU",
+    "SIGXFSZ",
+    "SIGWINCH",
 ]
 
 COMMON_NUM_TO_SIGNAL_MAPPING: Dict[int, SIGNALS] = {
-    1: 'SIGHUP',
-    2: 'SIGINT',
-    3: 'SIGQUIT',
-    4: 'SIGILL',
-    5: 'SIGTRAP',
-    6: 'SIGABRT',
-    8: 'SIGFPE',
-    9: 'SIGKILL',
-    11: 'SIGSEGV',
-    13: 'SIGPIPE',
-    14: 'SIGALRM',
-    15: 'SIGTERM',
+    1: "SIGHUP",
+    2: "SIGINT",
+    3: "SIGQUIT",
+    4: "SIGILL",
+    5: "SIGTRAP",
+    6: "SIGABRT",
+    8: "SIGFPE",
+    9: "SIGKILL",
+    11: "SIGSEGV",
+    13: "SIGPIPE",
+    14: "SIGALRM",
+    15: "SIGTERM",
 }
 
 X86_64_NUM_TO_SIGNAL_MAPPING: Dict[int, SIGNALS] = {
     **COMMON_NUM_TO_SIGNAL_MAPPING,
-    7: 'SIGBUS',
-    10: 'SIGUSR1',
-    12: 'SIGUSR2',
-    16: 'SIGSTKFLT',
-    17: 'SIGCHLD',
-    18: 'SIGCONT',
-    19: 'SIGSTOP',
-    20: 'SIGTSTP',
-    21: 'SIGTTIN',
-    22: 'SIGTTOU',
-    23: 'SIGURG',
-    24: 'SIGXCPU',
-    25: 'SIGXFSZ',
-    26: 'SIGVTALRM',
-    27: 'SIGPROF',
-    28: 'SIGWINCH',
-    29: 'SIGIO',
-    30: 'SIGPWR',
-    31: 'SIGSYS',
+    7: "SIGBUS",
+    10: "SIGUSR1",
+    12: "SIGUSR2",
+    16: "SIGSTKFLT",
+    17: "SIGCHLD",
+    18: "SIGCONT",
+    19: "SIGSTOP",
+    20: "SIGTSTP",
+    21: "SIGTTIN",
+    22: "SIGTTOU",
+    23: "SIGURG",
+    24: "SIGXCPU",
+    25: "SIGXFSZ",
+    26: "SIGVTALRM",
+    27: "SIGPROF",
+    28: "SIGWINCH",
+    29: "SIGIO",
+    30: "SIGPWR",
+    31: "SIGSYS",
 }
 
-PER_ARCH_SIGNAL_MAPPINGS: Dict[pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[int, SIGNALS]] = {
+PER_ARCH_SIGNAL_MAPPINGS: Dict[
+    pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[int, SIGNALS]
+] = {
     "x86-64": X86_64_NUM_TO_SIGNAL_MAPPING,
 }
+
 
 class SegvCodeX86_64(Enum):
     SEGV_PKUERR = 4  # Protection key violation (PKU)
@@ -152,7 +154,7 @@ def get_segv_information() -> Tuple[str, Optional[str]]:
         siginfo = pwndbg.dbg.selected_thread().siginfo()
         si_code = siginfo.si_code
         desc_short = "SIGSEGV"
-        desc_long = f' (fault address: {siginfo.sigfault.si_addr:#x}).'
+        desc_long = f" (fault address: {siginfo.sigfault.si_addr:#x})."
         curr_arch = pwndbg.aglib.arch.name
         segv_code_enum = PER_ARCH_SEGV_CODES.get(curr_arch)
         if segv_code_enum is None:
@@ -174,6 +176,7 @@ def get_segv_information() -> Tuple[str, Optional[str]]:
 
     except pwndbg.dbg_mod.Error:
         return "SIGSEGV", None
+
 
 def get_last_signal() -> Optional[SIGNALS]:
     """Get the last signal received by the debugged process."""

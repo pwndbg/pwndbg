@@ -319,7 +319,7 @@ class Thread:
         The unique index of this thread from the perspective of the debugger.
         """
         raise NotImplementedError()
-    
+
     def siginfo(self) -> SigInfo:
         """
         The siginfo of this thread.

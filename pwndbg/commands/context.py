@@ -43,11 +43,11 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg_mod import EventHandlerPriority
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import RegisterContextProtocol
 from pwndbg.lib.regs import VisitableRegister
-from pwndbg.dbg_mod import EventHandlerPriority
-from pwndbg.dbg_mod import EventType
 
 if pwndbg.dbg.is_gdblib_available():
     import gdb
@@ -1439,25 +1439,26 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
 
     return out
 
+
 @pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
 @pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
 @pwndbg.dbg.event_handler(EventType.CONTINUE, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
 def save_signal() -> None:
     global last_signal
     last_signal = result = []
-    
+
     if pwndbg.dbg.is_gdblib_available() and _is_rr_present():
         # When users use rr (https://rr-project.org or https://github.com/mozilla/rr)
         # we can't access $_siginfo, so lets just show current pc
         # see also issue 476
-        result.append(message.signal(f" (current pc: {pwndbg.aglib.regs.pc:#x})"))
+        if pwndbg.aglib.regs.pc is not None:
+            result.append(message.signal(f"current pc: {pwndbg.aglib.regs.pc:#x}"))
         return
-    
+
     process = pwndbg.dbg.selected_inferior()
     if not process:
         return
 
-    
     if not (process.stopped_with_signal() or process.stopped_at_breakpoint()):
         return
 
@@ -1475,8 +1476,9 @@ def save_signal() -> None:
         except pwndbg.dbg_mod.Error:
             pass
     elif signal == "SIGTRAP":
-        msg = f'Breakpoint hit at {pwndbg.aglib.regs.pc:#x}'
+        msg = f"Breakpoint hit at {pwndbg.aglib.regs.pc:#x}"
     result.append(message.signal(msg))
+
 
 @serve_context_history
 def context_last_signal(with_banner=True, target=sys.stdout, width=None):
