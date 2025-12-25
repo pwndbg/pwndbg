@@ -3,7 +3,7 @@
 
 ```text
 usage: asm [-h] [-f {hex,string}]
-           [--arch {x86-64,i386,i8086,mips,aarch64,arm,armcm,rv32,rv64,sparc,powerpc,loongarch64,s390x}]
+           [--arch {powerpc64,aarch64,powerpc,riscv32,riscv64,sparc64,mips64,msp430,alpha,amd64,sparc,thumb,cris,i386,ia64,m68k,mips,s390,none,avr,arm,vax}]
            [-i INFILE]
            [shellcode ...]
 

@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import argparse
-from typing import cast
 
-import pwndbg.aglib
-import pwndbg.aglib.asm
+import pwnlib
+import pwnlib.asm
+import pwnlib.context
+
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES
-from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 parser = argparse.ArgumentParser(description="Assemble shellcode into bytes")
 
@@ -19,7 +18,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--arch",
-    choices=PWNDBG_SUPPORTED_ARCHITECTURES,
+    choices=pwnlib.context.context.architectures.keys(),
     type=str,
     help="Target architecture",
 )
@@ -41,22 +40,10 @@ def asm(shellcode: list[str], format: str, arch: str | None, infile: str) -> Non
             shellcode = [file.read()]
 
     if arch is None:
-        # We want to use the current architecture.
-        # But check first that it is actually set.
-        if pwndbg.aglib.arch is None:
-            print(
-                message.error("No architecture currently set.") + " Pass it in the --arch argument."
-            )
-            return
-        assembly: bytes = pwndbg.aglib.asm.asm(" ".join(shellcode))
-    else:
-        print(message.error("Passing --arch is not available until #3534 is fixed."))
-        return
-        # Is enforced by argparse.
-        assert arch in PWNDBG_SUPPORTED_ARCHITECTURES
-        assembly = pwndbg.aglib.asm.asm_for_arch(
-            " ".join(shellcode), cast(PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, arch)
-        )
+        arch = pwnlib.context.context.arch
+
+    bits_for_arch = pwnlib.context.context.architectures.get(arch, {}).get("bits")
+    assembly = pwnlib.asm.asm(" ".join(shellcode), arch=arch, bits=bits_for_arch)
 
     if format == "hex":
         print(assembly.hex())
