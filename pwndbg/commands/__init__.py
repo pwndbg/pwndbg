@@ -292,14 +292,14 @@ class CommandObj:
             # How does this make sense? So annoying..
             assert top_level_name != ""
             if level == 1:
-                assert (
-                    parser.prog[0] == " "
-                ), "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+                assert parser.prog[0] == " ", (
+                    "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+                )
             else:
                 parser.prog = parser.prog.strip()
-                assert (
-                    parser.prog.count(" ") == level - 1
-                ), "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+                assert parser.prog.count(" ") == level - 1, (
+                    "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+                )
                 parser.prog = " " + parser.prog
 
         parser.prog = top_level_name + parser.prog

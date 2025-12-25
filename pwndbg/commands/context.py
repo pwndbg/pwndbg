@@ -1581,7 +1581,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
             f" {selected} {thread.global_num} "
             f"{' ' * global_num_padding}"
             f'"{pwndbg.color.cyan(name)}" '
-            f'{" " * name_padding}'
+            f"{' ' * name_padding}"
             f"{status}: "
         )
 

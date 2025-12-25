@@ -355,7 +355,7 @@ def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
             return UNSAT, output_msg
         if result == 0:
             if n > 1 and "-c" in exprs[n - 1]:
-                output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL because argv[{n-1}] = "-c"\n'
+                output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL because argv[{n - 1}] = "-c"\n'
                 return UNSAT, output_msg
             else:
                 output_msg += f"argv[{n}] = {color_str} = NULL\n"

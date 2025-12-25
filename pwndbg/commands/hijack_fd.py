@@ -44,9 +44,9 @@ def get_shellcode_regs() -> ShellcodeRegs:
             and reg_name != syscall_abi.syscall_register
         )
     )
-    assert (
-        newfd_reg is not None
-    ), f"architecture {pwndbg.aglib.arch.name} don't have unused register..."
+    assert newfd_reg is not None, (
+        f"architecture {pwndbg.aglib.arch.name} don't have unused register..."
+    )
 
     return ShellcodeRegs(newfd_reg, register_set.retval, register_set.stack)
 
@@ -133,9 +133,9 @@ async def exec_shellcode_with_stack(ec: pwndbg.dbg_mod.ExecutionController, blob
             stack_diff_size = stack_start_diff - pwndbg.aglib.regs.sp
 
             # Make sure stack is not corrupted somehow
-            assert not (
-                stack_diff_size > stack_size
-            ), f"stack is probably corrupted size_current=f{stack_diff_size} size_max_want={stack_size}"
+            assert not (stack_diff_size > stack_size), (
+                f"stack is probably corrupted size_current=f{stack_diff_size} size_max_want={stack_size}"
+            )
 
             yield
     finally:

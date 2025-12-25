@@ -131,16 +131,16 @@ def test_command_cyclic_detect(start_binary):
     }
 
     assert "rax" in results_default, "Pattern in RAX not detected"
-    assert (
-        results_default["rax"] == offset_rax
-    ), f"Incorrect offset for RAX: Got {results_default['rax']}, expected {offset_rax}"
+    assert results_default["rax"] == offset_rax, (
+        f"Incorrect offset for RAX: Got {results_default['rax']}, expected {offset_rax}"
+    )
 
     assert "rbx->" in results_default, "Pattern pointed to by RBX not detected"
-    assert (
-        results_default["rbx->"] == offset_rbx_ptr
-    ), f"Incorrect offset for RBX->: Got {results_default['rbx->']}, expected {offset_rbx_ptr}"
+    assert results_default["rbx->"] == offset_rbx_ptr, (
+        f"Incorrect offset for RBX->: Got {results_default['rbx->']}, expected {offset_rbx_ptr}"
+    )
 
     assert "rcx" in results_custom, "Pattern in RCX with custom alphabet not detected"
-    assert (
-        results_custom["rcx"] == offset_rcx
-    ), f"Incorrect offset for RCX: Got {results_custom['rcx']}, expected {offset_rcx}"
+    assert results_custom["rcx"] == offset_rcx, (
+        f"Incorrect offset for RCX: Got {results_custom['rcx']}, expected {offset_rcx}"
+    )

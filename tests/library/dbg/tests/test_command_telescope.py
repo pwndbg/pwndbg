@@ -91,7 +91,7 @@ async def test_telescope_command_with_address_as_count_and_reversed_flag(ctrl: C
     sp = pwndbg.aglib.regs.sp
 
     assert len(out) == 2
-    assert re.match(rf"00:0000│\s+{sp-8:#x} ◂— 0", out[0])
+    assert re.match(rf"00:0000│\s+{sp - 8:#x} ◂— 0", out[0])
     assert re.match(rf"01:0008│\s+\w+\s+{sp:#x} ◂— 1", out[1])
 
 

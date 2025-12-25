@@ -747,9 +747,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def send_remote(self, packet: str) -> bytes:
         conn = self.inner.connection
-        assert isinstance(
-            conn, gdb.RemoteTargetConnection
-        ), "Called send_remote() on a local process"
+        assert isinstance(conn, gdb.RemoteTargetConnection), (
+            "Called send_remote() on a local process"
+        )
         assert conn.is_valid(), "connection is invalid"
 
         # NOTE: `send_packet` don't handle reading multiple responses
@@ -1069,19 +1069,19 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 continue
 
             div0 = line.split(" is ", 1)
-            assert (
-                len(div0) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
+            assert len(div0) == 2, (
+                "Wrong string format assumption while parsing the output of `info files`"
+            )
 
             div1 = div0[1].split(" in ", 1)
-            assert (
-                len(div1) == 1 or len(div1) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
+            assert len(div1) == 1 or len(div1) == 2, (
+                "Wrong string format assumption while parsing the output of `info files`"
+            )
 
             div2 = div0[0].split(" - ", 1)
-            assert (
-                len(div2) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
+            assert len(div2) == 2, (
+                "Wrong string format assumption while parsing the output of `info files`"
+            )
 
             beg = int(div2[0].strip(), 0)
             end = int(div2[1].strip(), 0)
@@ -1519,9 +1519,9 @@ def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]
             # We should never run this function before it gets loaded, but, if this
             # ever changes by mistake, we want the mistake to be caught early, with
             # a clear error.
-            assert hasattr(
-                gdb.events, "start"
-            ), "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
+            assert hasattr(gdb.events, "start"), (
+                "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
+            )
             return gdb.events.start
         case EventType.STOP:
             return gdb.events.stop
@@ -1532,9 +1532,9 @@ def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]
         case EventType.REGISTER_CHANGED:
             return gdb.events.register_changed
         case EventType.SUSPEND_ALL:
-            assert hasattr(
-                gdb.events, "suspend_all"
-            ), "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+            assert hasattr(gdb.events, "suspend_all"), (
+                "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+            )
             return gdb.events.suspend_all
         case _:
             raise NotImplementedError(f"unknown event type {ty}")

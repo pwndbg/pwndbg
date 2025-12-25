@@ -48,8 +48,7 @@ def extract_params() -> Dict[str, list[Parameter]]:
         scope_dict[scope].sort(key=lambda p: p.attr_name())
 
     assert len(scope_dict) == len(pwndbg.lib.config.Scope) and (
-        "The amount of detected scopes "
-        "does not match the number of scopes defined in the source."
+        "The amount of detected scopes does not match the number of scopes defined in the source."
     )
 
     return scope_dict

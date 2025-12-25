@@ -281,9 +281,9 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     collapse_lines_disabled = [
         line for line in full_result_no_collapse if "repeated lines skipped" in line
     ]
-    assert (
-        len(collapse_lines_disabled) == 0
-    ), "Should have no collapse messages when skip-repeating is disabled"
+    assert len(collapse_lines_disabled) == 0, (
+        "Should have no collapse messages when skip-repeating is disabled"
+    )
 
     # Now test with skip-repeating enabled on the same state
     await ctrl.execute("set vis-skip-repeating-val on")
@@ -295,15 +295,15 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     # Verify format of collapse message (should have tab prefix and right-aligned count)
     for collapse_line in collapse_lines:
-        assert collapse_line.strip().startswith(
-            "... ↓"
-        ), "Collapse message should start with '... ↓'"
+        assert collapse_line.strip().startswith("... ↓"), (
+            "Collapse message should start with '... ↓'"
+        )
         assert "repeated lines skipped" in collapse_line, "Should say 'repeated lines skipped'"
 
     # Full result should have more lines than collapsed result
-    assert len(full_result_no_collapse) > len(
-        collapsed_result
-    ), "Full output should have more lines than collapsed output"
+    assert len(full_result_no_collapse) > len(collapsed_result), (
+        "Full output should have more lines than collapsed output"
+    )
 
     # Set back to off for any remaining tests
     await ctrl.execute("set vis-skip-repeating-val off")
