@@ -18,7 +18,6 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.asm
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 from pwndbg.dbg_mod import BreakpointLocation
 from pwndbg.dbg_mod import ExecutionController

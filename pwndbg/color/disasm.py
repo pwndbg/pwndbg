@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import List
 
+import pwndbg.aglib
 import pwndbg.aglib.nearpc
-import pwndbg.aglib.regs
-import pwndbg.chain
-import pwndbg.color.context as C
+import pwndbg.color.context as ctx_color
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -39,7 +38,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
 
     # Highlight the current line if enabled
     if pwndbg.config.highlight_pc and ins.address == pwndbg.aglib.regs.pc:
-        asm = C.highlight(asm)
+        asm = ctx_color.highlight(asm)
 
     is_call_or_jump = ins.groups & ALL_JUMP_GROUPS
 

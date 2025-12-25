@@ -138,18 +138,6 @@ Banner title surrounding char (right side).
 
 ----------
 
-## **bn-decomp-style**
-
-
-Decompilation highlight theme for Binary Ninja.
-
-
-
-**Default:** 'dark'  
-**Valid values:** 'dark', 'light'
-
-----------
-
 ## **chain-arrow-color**
 
 

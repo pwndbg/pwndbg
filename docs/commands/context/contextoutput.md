@@ -13,7 +13,7 @@ Sets the output of a context section.
 
 |Positional Argument|Help|
 | :--- | :--- |
-|section|The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')|
+|section|The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')|
 |path|The path to which the output is written|
 |clearing|Indicates whether to clear the output|
 |banner|Where a banner should be placed: both, top , bottom, none (default: 'both')|

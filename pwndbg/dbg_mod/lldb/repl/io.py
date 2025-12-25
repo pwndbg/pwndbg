@@ -487,9 +487,9 @@ class IODriverPseudoTerminal(IODriver):
     has_terminal_control: bool
 
     def __init__(self, manager: int, worker: str):
-        assert (
-            PTY_AVAILABLE
-        ), "IODriverPseudoTerminal should never be created unless PTY_AVAILABLE is set"
+        assert PTY_AVAILABLE, (
+            "IODriverPseudoTerminal should never be created unless PTY_AVAILABLE is set"
+        )
 
         global LIVE_PSEUDO_TERMINAL_OBJECTS
         LIVE_PSEUDO_TERMINAL_OBJECTS = True

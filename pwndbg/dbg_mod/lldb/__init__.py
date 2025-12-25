@@ -3,6 +3,7 @@ from __future__ import annotations
 import bisect
 import collections
 import enum
+import functools
 import os
 import random
 import re
@@ -19,6 +20,7 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Literal
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import TypeVar
@@ -27,9 +29,10 @@ import lldb
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.color.message as M
+import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.lib.memory
-from pwndbg.aglib import load_aglib
+from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
@@ -251,9 +254,9 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                     # the thread in the way we do is enough to make LLDB write to the
                     # right register in all cases, so we check the value of the register
                     # against what we wrote, to be extra safe.
-                    assert (
-                        int(self.regs().by_name(name)) == val
-                    ), "wrote to a register, but read back different value. this is a bug"
+                    assert int(self.regs().by_name(name)) == val, (
+                        "wrote to a register, but read back different value. this is a bug"
+                    )
 
                     return True
 
@@ -264,6 +267,18 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
     @override
     def sp(self) -> int:
         return self.inner.GetSP()
+
+    @override
+    def start(self) -> Optional[int]:
+        import pwndbg.aglib
+
+        # https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.GetCFA
+        val = self.inner.GetCFA()
+        if val == lldb.LLDB_INVALID_ADDRESS:
+            return None
+        # For some reason returns +8 on top of retaddr, just like GDB.
+        # I guess the DWARF just looks like that?
+        return val - pwndbg.aglib.arch.ptrsize
 
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
@@ -300,6 +315,39 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         other: LLDBFrame = rhs
 
         return self.inner == other.inner
+
+    @override
+    def idx(self) -> int:
+        # https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.idx
+        return self.inner.idx
+
+    @override
+    def __hash__(self) -> int:
+        # There is a GetFrameID API [1], but it isn't really documented
+        # and looking at its implementation [2] does not fill me with confidence.
+        # Looking at the SBFrame equality check [3], it uses StackFrame.GetStackID()
+        # [4] which updates and returns StackFrame.m_id the comparison of which is
+        # implemented here [5]. But I don't see how it guarantees that two frames at
+        # the same stack and pc but at different times will be different. Maybe it
+        # just doesn't?
+        # In any case the StackID class doesn't expose an integer, so we are rolling
+        # our own thing.
+        # [1] https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.GetFrameID
+        # [2] https://github.com/llvm/llvm-project/blob/1deee91bf52ca15e47b59a2929e5e5a323f4864c/lldb/source/API/SBFrame.cpp#L255
+        # [3] https://github.com/llvm/llvm-project/blob/1deee91bf52ca15e47b59a2929e5e5a323f4864c/lldb/source/API/SBFrame.cpp#L585
+        # [4] https://github.com/llvm/llvm-project/blob/1deee91bf52ca15e47b59a2929e5e5a323f4864c/lldb/source/Target/StackFrame.cpp#L154
+        # [5] https://github.com/llvm/llvm-project/blob/1deee91bf52ca15e47b59a2929e5e5a323f4864c/lldb/source/Target/StackID.cpp#L53
+        # I think a (number of stops, thread index, frame index) tuple uniquely identifies a stack frame.
+        # There probably won't be >= 65,536 stack frames in a thread stack, or
+        # >= 65,536 threads in a process.
+        # The `pwndbg.dbg_mod.number_of_stops_since_birth` part might not be necessary, because
+        # if you are comparing frames from different stops that means your code is buggy; but it
+        # lets me sleep at night better.
+        return (
+            self.idx()
+            + (self.inner.thread.idx << 16)
+            + (pwndbg.dbg_mod.number_of_stops_since_birth << 32)
+        )
 
 
 class LLDBThread(pwndbg.dbg_mod.Thread):
@@ -853,6 +901,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         return LLDBValue(value, self)
 
     def get_known_pages(self) -> List[pwndbg.lib.memory.Page]:
+        import pwndbg.aglib
+
         regions = self.process.GetMemoryRegions()
 
         pages = []
@@ -861,9 +911,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         for i in range(regions.GetSize()):
             region = lldb.SBMemoryRegionInfo()
-            assert regions.GetMemoryRegionAtIndex(
-                i, region
-            ), "invalid region despite being in bounds"
+            assert regions.GetMemoryRegionAtIndex(i, region), (
+                "invalid region despite being in bounds"
+            )
 
             start = region.GetRegionBase()
             size = region.GetRegionEnd() - start
@@ -915,6 +965,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     size=region.GetRegionEnd() - region.GetRegionBase(),
                     flags=perms,
                     offset=offset,
+                    arch_ptrsize=pwndbg.aglib.arch.ptrsize,
                     objfile=objfile,
                 )
             )
@@ -924,6 +975,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def _process_vmmap_pages(
         self, pages: List[pwndbg.lib.memory.Page]
     ) -> List[pwndbg.lib.memory.Page]:
+        import pwndbg.aglib
+        import pwndbg.lib.memory
+
         # Do a final, coalescing pass, for identical ranges that are sequential
         # and contiguous to each other in the virtual address space, and join
         # them into a single range.
@@ -933,6 +987,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # identical. This seems to happen because LLDB internally distinguishes
         # between different Mach-O sections. That information, however, is not
         # made reliably available to us.
+        ptrsize: int = pwndbg.aglib.arch.ptrsize
         final_pages: List[pwndbg.lib.memory.Page] = []
         start = None
         end = None
@@ -957,6 +1012,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                         target.end - start.start,
                         start.flags,
                         start.offset,
+                        ptrsize,
                         start.objfile,
                         start.in_darwin_shared_cache,
                     )
@@ -1056,9 +1112,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 last_page = page
                 vmmap_size = page.memsz - (address - page.start)
             elif last_page:
-                assert (
-                    last_page.end <= page.start
-                ), "memory map regions should be sorted and not overlap at this point"
+                assert last_page.end <= page.start, (
+                    "memory map regions should be sorted and not overlap at this point"
+                )
 
                 if page.start == last_page.end:
                     last_page = page
@@ -1343,9 +1399,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # matched. Act as if we found nothing.
             return None
 
-        assert (
-            sym_addr <= address
-        ), f"LLDB returned an out-of-range address {sym_addr:#x} for a requested symbol with address {address:#x}"
+        assert sym_addr <= address, (
+            f"LLDB returned an out-of-range address {sym_addr:#x} for a requested symbol with address {address:#x}"
+        )
 
         if sym_addr != address:
             # Print the symbol name along with an offset value if the address we
@@ -1558,7 +1614,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                         # Detect if we have proper symbol by size, we can't do better here
                         if cast_type.sizeof != resolved_size:
                             print(
-                                M.warn(
+                                message.warn(
                                     f"WARNING: Symbol {sym_name} has invalid size (has:{cast_type.sizeof:02x}, needed:{resolved_size:02x}), should not happen"
                                 )
                             )
@@ -1650,9 +1706,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     return frame.regs().by_name("xpsr") is not None
 
             has_xpsr = [_has_xpsr(thread) for thread in self.threads()]
-            assert (
-                all(has_xpsr) or not any(has_xpsr)
-            ), "Either all threads are Cortex-M or none are, Pwndbg doesn't know how to handle other cases"
+            assert all(has_xpsr) or not any(has_xpsr), (
+                "Either all threads are Cortex-M or none are, Pwndbg doesn't know how to handle other cases"
+            )
 
             if any(has_xpsr):
                 arch_name = "armcm"
@@ -1913,7 +1969,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     # We keep track of all installed event handlers here. The REPL will trigger
     # them by means of the `_trigger_event()` method.
-    event_handlers: Dict[pwndbg.dbg_mod.EventType, List[Callable[..., T]]]
+    event_handlers: Dict[
+        pwndbg.dbg_mod.EventType, Dict[EventHandlerPriority, List[Callable[..., None]]]
+    ]
 
     # Event types may be suspended. We keep track of that here.
     suspended_events: Dict[pwndbg.dbg_mod.EventType, bool]
@@ -1955,12 +2013,12 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         import pwndbg
 
-        self.suspended_events = {a: False for a in pwndbg.dbg_mod.EventType}
+        self.suspended_events = dict.fromkeys(pwndbg.dbg_mod.EventType, False)
 
         debugger: lldb.SBDebugger = args[0]
-        assert (
-            debugger.__class__ is lldb.SBDebugger
-        ), "lldbinit.py should call setup() with an lldb.SBDebugger object"
+        assert debugger.__class__ is lldb.SBDebugger, (
+            "lldbinit.py should call setup() with an lldb.SBDebugger object"
+        )
 
         module = args[1]
         assert module.__class__ is str, "lldbinit.py should call setup() with __name__"
@@ -1970,16 +2028,21 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         self.debug = kwargs["debug"] if "debug" in kwargs else False
 
+        from pwndbg.aglib import load_aglib
+
         load_aglib()
 
         # Load all of our commands.
         import pwndbg.commands
+        import pwndbg.commands.comments
 
         pwndbg.commands.load_commands()
 
         pwndbg.commands.comments.init()
 
-        import pwndbg.dbg_mod.lldb.hooks
+        # Register event hooks.
+        # (We can't do them in this file because pwndbg.dbg isn't initialized yet.)
+        from pwndbg.dbg_mod.lldb import hooks as hooks
 
     def relay_exceptions(self) -> None:
         """
@@ -2010,9 +2073,10 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     @override
     def add_command(
         self,
-        command_name: str,
+        name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
+        subcommand_names: list[str] | None = None,
     ) -> pwndbg.dbg_mod.CommandHandle:
         debugger = self
 
@@ -2031,27 +2095,27 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                     debugger._exception_relay = e
                 finally:
                     debugger.lldb_python_state_callback(LLDBPythonState.PWNDBG)
-                    assert (
-                        debugger.exec_states.pop() == exe_context
-                    ), "Execution state mismatch on command handler"
+                    assert debugger.exec_states.pop() == exe_context, (
+                        "Execution state mismatch on command handler"
+                    )
 
         # LLDB is very particular with the object paths it will accept. It is at
         # its happiest when its pulling objects straight off the module that was
         # first imported with `command script import`, so, we install the class
         # we've just created as a global value in its dictionary.
-        name = f"__LLDB_COMMAND_{command_name}"
+        handler_name = f"__LLDB_COMMAND_{name}"
 
         if self.debug:
-            print(f"[-] LLDB: Adding command {command_name}, under the path {self.module}.{name}")
+            print(f"[-] LLDB: Adding command {name}, under the path {self.module}.{handler_name}")
 
-        sys.modules[self.module].__dict__[name] = CommandHandler
+        sys.modules[self.module].__dict__[handler_name] = CommandHandler
 
         # Install the command under the name we've just picked.
         self.debugger.HandleCommand(
-            f"command script add -c {self.module}.{name} -s synchronous {command_name}"
+            f"command script add -c {self.module}.{handler_name} -s synchronous {name}"
         )
 
-        return LLDBCommand(name, command_name)
+        return LLDBCommand(handler_name, name)
 
     @override
     def history(self, last: int = 10) -> List[Tuple[int, str]]:
@@ -2133,9 +2197,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         t = self.exec_states[-1].thread
         if t.IsValid():
             inf_q = self.selected_inferior()
-            assert isinstance(
-                inf_q, LLDBProcess
-            ), "LLDB.selected_inferior() must be an instance of LLDBProcess"
+            assert isinstance(inf_q, LLDBProcess), (
+                "LLDB.selected_inferior() must be an instance of LLDBProcess"
+            )
             inf: LLDBProcess = inf_q
 
             return LLDBThread(t, inf)
@@ -2148,7 +2212,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         frame, if any is selected, and always picking the lowest frame on the
         stack otherwise.
         """
-        thread: LLDBThread = self.selected_thread()
+        thread: Optional[LLDBThread] = self.selected_thread()
         if thread is None:
             return None
 
@@ -2169,9 +2233,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         f = self.exec_states[-1].frame
         if f.IsValid():
             inf_q = self.selected_inferior()
-            assert isinstance(
-                inf_q, LLDBProcess
-            ), "LLDB.selected_inferior() must be an instance of LLDBProcess"
+            assert isinstance(inf_q, LLDBProcess), (
+                "LLDB.selected_inferior() must be an instance of LLDBProcess"
+            )
             inf: LLDBProcess = inf_q
 
             return LLDBFrame(f, inf)
@@ -2188,15 +2252,34 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def event_handler(
-        self, ty: pwndbg.dbg_mod.EventType
-    ) -> Callable[[Callable[..., T]], Callable[..., T]]:
-        def decorator(fn: Callable[..., T]) -> Callable[..., T]:
-            if ty not in self.event_handlers:
-                self.event_handlers[ty] = []
+        self,
+        event_type: pwndbg.dbg_mod.EventType,
+        priority: EventHandlerPriority = EventHandlerPriority.STANDARD,
+    ) -> Callable[[Callable[..., None]], Callable[..., None]]:
+        # Note that event_handler is actually a decorator factory and
+        # not a decorator itself - it returns a decorator which is then
+        # immediately applied to the function.
+        def decorator(fn: Callable[..., None]) -> Callable[..., None]:
+            if pwndbg.config.dev_debug_events:
+                print("Connecting", fn.__name__, event_type.name)
 
-            # [...] incompatible type "Callable[..., T]"; expected "Callable[..., T]"
-            self.event_handlers[ty].append(fn)  # type: ignore[arg-type]
-            return fn
+            if event_type not in self.event_handlers:
+                self.event_handlers[event_type] = {priority: []}
+            elif priority not in self.event_handlers[event_type]:
+                self.event_handlers[event_type][priority] = []
+
+            # Wrap the function for dev instrumentation
+            @functools.wraps(fn)
+            def _dev_wrapper(*a, **kw) -> None:
+                if pwndbg.config.dev_debug_events:
+                    sys.stdout.write(
+                        f"{event_type.name} ({priority.name}) {fn.__module__}.{fn.__qualname__}\n"
+                    )
+
+                return fn(*a, **kw)
+
+            self.event_handlers[event_type][priority].append(_dev_wrapper)
+            return _dev_wrapper
 
         return decorator
 
@@ -2233,14 +2316,19 @@ class LLDB(pwndbg.dbg_mod.Debugger):
             # This event has been suspended.
             return
 
-        for handler in self.event_handlers[ty]:
-            try:
-                handler()
-            except Exception as e:
-                from pwndbg.exception import handle as pwndbg_exception
+        try:
+            # Run the handlers in order of their priority.
+            # We should optimize this by using a Dict[EventType, List[Tuple[EventHandlerPriority, Callable[..., None]]]]
+            # type for self.event_handlers, and sort it only once after everything is registered.
+            for prio in EventHandlerPriority:
+                handlers = self.event_handlers[ty].get(prio, [])
+                for handler in handlers:
+                    handler()
+        except Exception as e:
+            from pwndbg.exception import handle as pwndbg_exception
 
-                pwndbg_exception()
-                raise e
+            pwndbg_exception()
+            raise e
 
     @override
     def set_sysroot(self, sysroot: str) -> bool:
@@ -2310,3 +2398,25 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     @override
     def set_python_diagnostics(self, enabled: bool) -> None:
         pass
+
+    @override
+    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
+
+        Read the docstring in pwndbg.dbg.set_convenience_var()!!
+
+        Surround this function with try/except.
+        """
+        # The `type` parameter is unused, we coerce void* in LLDB.
+        try:
+            # https://stackoverflow.com/questions/11192511/does-lldb-have-convenience-variables-var
+            self._execute_lldb_command(f"expr void* ${name} = ((void*)({value}))")
+        except pwndbg.dbg_mod.Error as e:
+            if "redefinition" in str(e).lower():
+                # The variable is already defined with a set type, we can try to set the value
+                # anyway and hope for the best. The brackets are important.
+                self._execute_lldb_command(f"expr ${name} = ((void*){value})")
+            else:
+                raise e

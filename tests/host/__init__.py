@@ -113,9 +113,9 @@ class TestResult:
         stderr: str | None,
         context: str | None,
     ):
-        assert (stdout is None and stderr is None) or (
-            stdout is not None and stderr is not None
-        ), "either both stderr and stdout are captured, or neither is"
+        assert (stdout is None and stderr is None) or (stdout is not None and stderr is not None), (
+            "either both stderr and stdout are captured, or neither is"
+        )
 
         self.status = status
         self.duration_ns = duration_ns

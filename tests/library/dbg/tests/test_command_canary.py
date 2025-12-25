@@ -26,8 +26,8 @@ async def test_command_canary(ctrl: Controller, binary: str, reg_name: str, skip
     Tests the canary command for x86-64 and i386 architectures
     """
     import pwndbg
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
     import pwndbg.commands.canary
 
     await launch_to(ctrl, binary, "main")

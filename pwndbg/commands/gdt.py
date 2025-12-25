@@ -5,7 +5,7 @@ import argparse
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.color as C
+import pwndbg.color as color
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
@@ -26,7 +26,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "count", nargs="?", default=8, help="Number of entries to dump (should be (GDTR.size+1)/8)"
+    "count",
+    nargs="?",
+    default=8,
+    help="Number of entries to dump (should be (GDTR.size+1)/8)",
+    type=int,
 )
 
 
@@ -96,7 +100,7 @@ def decode_gdt_entry(value):
     # Must be set for a valid segment
     present_bit = (access_byte & (1 << 7)) >> 7
 
-    colorme = lambda label, val: (C.green if val else C.red)(label)
+    colorme = lambda label, val: (color.green if val else color.red)(label)
 
     access_str = "|".join(
         (

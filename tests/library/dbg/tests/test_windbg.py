@@ -20,7 +20,7 @@ async def test_windbg_dX_commands(ctrl: Controller) -> None:
     Tests windbg compatibility commands that dump memory
     like dq, dw, db, ds etc.
     """
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(MEMORY_BINARY)
 

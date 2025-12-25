@@ -18,7 +18,7 @@ async def test_emulate_disasm(ctrl: Controller) -> None:
     disasm_with_emu_0x400080 = [
         " ► 0x400080 <_start>    jmp    label                       <label>",
         "    ↓",
-        "   0x400083 <label>     nop    ",
+        "   0x400083 <label>     nop   ",
         "   0x400084             add    byte ptr [rax], al",
         "   0x400086             add    byte ptr [rax], al",
         "   0x400088             add    byte ptr [rax], al",
@@ -33,8 +33,8 @@ async def test_emulate_disasm(ctrl: Controller) -> None:
     disasm_without_emu_0x400080 = [
         " ► 0x400080 <_start>      jmp    label                       <label>",
         " ",
-        "   0x400082 <_start+2>    nop    ",
-        "   0x400083 <label>       nop    ",
+        "   0x400082 <_start+2>    nop   ",
+        "   0x400083 <label>       nop   ",
         "   0x400084               add    byte ptr [rax], al",
         "   0x400086               add    byte ptr [rax], al",
         "   0x400088               add    byte ptr [rax], al",
@@ -51,7 +51,7 @@ async def test_emulate_disasm(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_emulate_disasm_loop(ctrl: Controller) -> None:
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(EMULATE_DISASM_LOOP_BINARY)
 

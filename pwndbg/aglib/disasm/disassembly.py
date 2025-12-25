@@ -21,7 +21,6 @@ import pwndbg.aglib
 import pwndbg.aglib.disasm.aarch64
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.disasm.arm
-import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.disasm.loongarch64
 import pwndbg.aglib.disasm.mips
 import pwndbg.aglib.disasm.ppc
@@ -72,9 +71,6 @@ next_addresses_cache: Set[int] = set()
 # Register GDB event listeners for all stop events
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
-    # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.aglib.regs.read_reg.cache.clear()
-
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
@@ -159,12 +155,13 @@ def get_disassembler(cs_info: Tuple[int, int]):
 
 
 def get_one_instruction(
-    address,
-    emu: pwndbg.emu.emulator.Emulator = None,
-    enhance=True,
-    from_cache=False,
-    put_cache=False,
-    assistant: DisassemblyAssistant = None,
+    address: int,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
+    enhance: bool = True,
+    from_cache: bool = False,
+    put_cache: bool = False,
+    assistant: DisassemblyAssistant | None = None,
+    padding: int = 6,
 ) -> PwndbgInstruction:
     """
     If passed an emulator, this will pass it to the DisassemblyAssistant which will
@@ -177,7 +174,7 @@ def get_one_instruction(
 
     cs_info = pwndbg.aglib.arch.get_capstone_constants(address)
     if cs_info is None:
-        instr = ManualPwndbgInstruction(address)
+        instr = ManualPwndbgInstruction(address, padding)
         if enhance:
             pwndbg.aglib.disasm.arch.basic_enhance(instr)
         return instr
@@ -185,7 +182,7 @@ def get_one_instruction(
     md = get_disassembler(cs_info)
     data = pwndbg.aglib.memory.read(address, pwndbg.aglib.arch.max_instruction_size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
-        pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins)
+        pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins, padding)
 
         if enhance:
             if assistant is None:
@@ -251,13 +248,14 @@ def one_raw(address=None) -> PwndbgInstruction | None:
 
 
 def get(
-    address,
-    instructions=1,
-    emu: pwndbg.emu.emulator.Emulator = None,
-    enhance=True,
-    from_cache=False,
-    put_cache=False,
-    assistant: DisassemblyAssistant = None,
+    address: int,
+    instructions: int = 1,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
+    enhance: bool = True,
+    from_cache: bool = False,
+    put_cache: bool = False,
+    assistant: DisassemblyAssistant | None = None,
+    padding: int = 6,
 ) -> List[PwndbgInstruction]:
     address = int(address)
 
@@ -274,6 +272,7 @@ def get(
             from_cache=from_cache,
             put_cache=put_cache,
             assistant=assistant,
+            padding=padding,
         )
         if i is None:
             break

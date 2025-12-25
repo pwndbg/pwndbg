@@ -4,7 +4,8 @@ import argparse
 from typing import List
 
 import pwndbg
-import pwndbg.aglib.memory
+import pwndbg.aglib.strings
+import pwndbg.aglib.vmmap
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 

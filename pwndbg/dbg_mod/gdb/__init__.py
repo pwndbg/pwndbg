@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from contextlib import nullcontext
 from os import environ
 from pathlib import Path
+from random import randint
 from typing import Any
 from typing import Coroutine
 from typing import Generator
@@ -24,18 +25,17 @@ from typing_extensions import Set
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.memory
-from pwndbg.aglib import load_aglib
+from pwndbg.dbg_mod import EventHandlerPriority
+from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import selection
-from pwndbg.gdblib import gdb_version
 from pwndbg.gdblib import load_gdblib
 from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
-from pwndbg.lib.memory import PAGE_MASK
-from pwndbg.lib.memory import PAGE_SIZE
 
 T = TypeVar("T")
 
@@ -141,6 +141,8 @@ class GDBRegisters(pwndbg.dbg_mod.Registers):
 class GDBFrame(pwndbg.dbg_mod.Frame):
     def __init__(self, inner: gdb.Frame):
         self.inner = inner
+        # caching the hash since calculating it involves some string operations
+        self._hash: int | None = None
 
     @override
     def lookup_symbol(
@@ -185,6 +187,8 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def reg_write(self, name: str, val: int) -> bool:
+        import pwndbg.aglib
+
         if name not in pwndbg.aglib.regs:
             return False
 
@@ -201,7 +205,39 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def sp(self) -> int:
-        return int(self.regs().by_name("sp"))
+        # We're gonna use a little trick to prevent an expensive register read.
+        # e.g. `str(self.inner) == "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"`
+        # See gdb/python/py-frame.c:frapy_str() and gdb/frame.c:frame_id::to_string()
+        # They really could just expose .stack() as an API...
+        str_id = str(self.inner)
+        if "stack=0x" in str_id:
+            return int(str_id.partition("stack=")[2].partition(",")[0], 16)
+        else:
+            # We got "!stack", "stack=<unavailable>", "stack=<sentinel>" or "stack=<outer>".
+            # Not sure what sp will actually resolve to here...
+            return int(self.regs().by_name("sp"))
+
+    def start(self) -> Optional[int]:
+        # How is it possible that this isn't in the API?
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
+        import pwndbg.aglib
+
+        # It is possible that self.inner is not the frame selected in the debugger, so we will save
+        # the selected frame, move gdb to this frame, do `info frame`, and then restore the selected frame.
+        with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
+            try:
+                frame_txt: str = gdb.execute("info frame", to_string=True)
+                match = re.search(r"frame at (0x[0-9a-fA-F]+):", frame_txt)
+                if match:
+                    frame_addr = int(match.group(1), 16)
+                    # Happens often at the entry point
+                    if frame_addr == 0:
+                        return None
+                    # GDB for some reason returns one ptr past retaddr
+                    return frame_addr - pwndbg.aglib.arch.ptrsize
+                return None
+            except gdb.error as e:
+                raise pwndbg.dbg_mod.Error(e)
 
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
@@ -246,6 +282,106 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
         return self.inner == other.inner
 
+    @override
+    def idx(self) -> int:
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python:~:text=Frame%2Elevel
+        return self.inner.level()
+
+    def _frame_id(self) -> tuple[int, int, int, int]:
+        """
+        Returns a tuple which recovers the frame_id struct of the GDB frame object (self.inner).
+        We cannot recover only frame_id.user_created_p.
+
+        Format is (stack_addr, code_addr, special_addr, artificial_depth).
+
+        The status fields are returned implicitly in the following:
+            stack_addr == -1 means stack_status == FID_STACK_INVALID
+            stack_addr == -2 means stack_status == FID_STACK_UNAVAILABLE
+            stack_addr == -3 means stack_status == FID_STACK_SENTINEL
+            stack_addr == -4 means stack_status == FID_STACK_OUTER
+            code_addr == -1 means code_addr_p == 0
+            special_addr == -1 means special_addr_p == 0
+        Note that artificial_depth == 0 means invalid.
+        """
+        # See gdb/frame-id.h and gdb/frame.c:frame_id::to_string().
+        # This obviously isn't guaranteed to be stable, but looking at the blame
+        # of to_string() it has been.
+
+        # Here is an example of what is can look like:
+        # "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"
+        frame_id_str: str = str(self.inner)
+
+        # Get rid of curly braces and split into individual fields.
+        splitted: list[str] = frame_id_str[1:-1].split(",")
+
+        stack_addr: int
+        code_addr: int
+        special_addr: int
+        artificial_addr: int
+
+        match splitted[0]:
+            case "!stack":
+                stack_addr = -1
+            case "stack=<unavailable>":
+                stack_addr = -2
+            case "stack=<sentinel>":
+                stack_addr = -3
+            case "stack=<outer>":
+                stack_addr = -4
+            case _:
+                # We have an actual address (len("stack=") == 6)
+                stack_addr = int(splitted[0][6:], 16)
+
+        if splitted[1] == "!code":
+            code_addr = -1
+        else:
+            # len("code=") == 5
+            code_addr = int(splitted[1][5:], 16)
+
+        if splitted[2] == "!special":
+            special_addr = -1
+        else:
+            # len("special=") == 8
+            special_addr = int(splitted[2][8:], 16)
+
+        if len(splitted) == 3:
+            artificial_addr = -1
+        else:
+            # len("artificial=") == 11
+            artificial_addr = int(splitted[3][11:], 16)
+
+        return (stack_addr, code_addr, special_addr, artificial_addr)
+
+    @override
+    def __hash__(self) -> int:
+        if self._hash is not None:
+            # The object is immutable, so this works.
+            return self._hash
+
+        # GDB implements the equality comparison in gdb/python/py-frame.c:frapy_richcompare()
+        # and gdb/frame.c:frame_id::operator==().
+        # The frame_id is not exposed to the python API, but we can exploit str(self.inner)
+        # to recover it. (though still don't have frame_id_is_next, but oh well..)
+        # This is much faster than reading the stack pointer from the inferior, and will give
+        # more accurate results as well.
+        stack_addr, code_addr, special_addr, artificial_depth = self._frame_id()
+        # stack_addr == -1 (FID_STACK_INVALID) acts as NaN, so we have to be unique
+        if stack_addr == -1:
+            self._hash = randint(0, 1 << 63)
+            return self._hash
+
+        # I don't want to make assumptions on the sizes of all these fields so I will just build up a
+        # string and use the string's hash. Using "|" for domain separation.
+        self._hash = hash(
+            f"{stack_addr}|{code_addr}|{special_addr}|{artificial_depth}|"
+            # Still using idx() for good measure (maybe it helps with the lack of frame_id_is_next?)
+            # Still using number_of_stops_since_birth because I want to guarantee that same frames at
+            # different times return different hashes.
+            f"{self.idx()}|{pwndbg.dbg_mod.number_of_stops_since_birth}"
+        )
+
+        return self._hash
+
 
 class GDBThread(pwndbg.dbg_mod.Thread):
     def __init__(self, inner: gdb.InferiorThread):
@@ -287,32 +423,7 @@ class GDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
 BPWP_DEFERRED_DELETE: Set[GDBStopPoint] = set()
 BPWP_DEFERRED_ENABLE: Set[GDBStopPoint] = set()
 BPWP_DEFERRED_DISABLE: Set[GDBStopPoint] = set()
-
-
-@pwndbg.gdblib.events.stop
-def _bpwp_process_deferred():
-    for to_enable in BPWP_DEFERRED_ENABLE:
-        to_enable.inner.enabled = True
-    for to_disable in BPWP_DEFERRED_DISABLE:
-        to_disable.inner.enabled = False
-    for to_delete in BPWP_DEFERRED_DELETE:
-        to_delete.inner.delete()
-    _bpwp_clear_deferred()
-
-
-@pwndbg.gdblib.events.start
-@pwndbg.gdblib.events.exit
-def _bpwp_clear_deferred():
-    for elem in BPWP_DEFERRED_DELETE:
-        elem._clear()
-    for elem in BPWP_DEFERRED_ENABLE:
-        elem._clear()
-    for elem in BPWP_DEFERRED_DISABLE:
-        elem._clear()
-
-    BPWP_DEFERRED_DELETE.clear()
-    BPWP_DEFERRED_ENABLE.clear()
-    BPWP_DEFERRED_DISABLE.clear()
+# See pwndbg/dbg_mod/gdb/hooks.py !
 
 
 class BreakpointAdapter(gdb.Breakpoint):
@@ -636,9 +747,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def send_remote(self, packet: str) -> bytes:
         conn = self.inner.connection
-        assert isinstance(
-            conn, gdb.RemoteTargetConnection
-        ), "Called send_remote() on a local process"
+        assert isinstance(conn, gdb.RemoteTargetConnection), (
+            "Called send_remote() on a local process"
+        )
         assert conn.is_valid(), "connection is invalid"
 
         # NOTE: `send_packet` don't handle reading multiple responses
@@ -757,6 +868,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def arch(self) -> ArchDefinition:
+        import pwndbg.aglib.proc
+        import pwndbg.aglib.typeinfo
+
         ptrsize = pwndbg.aglib.typeinfo.ptrsize
         not_exactly_arch = False
 
@@ -766,7 +880,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         else:
             endian = "big"
 
-        if pwndbg.aglib.proc.alive:
+        if pwndbg.aglib.proc.alive():
             arch = gdb.newest_frame().architecture().name()
         else:
             arch = gdb.execute("show architecture", to_string=True).strip()
@@ -955,19 +1069,19 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 continue
 
             div0 = line.split(" is ", 1)
-            assert (
-                len(div0) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
+            assert len(div0) == 2, (
+                "Wrong string format assumption while parsing the output of `info files`"
+            )
 
             div1 = div0[1].split(" in ", 1)
-            assert (
-                len(div1) == 1 or len(div1) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
+            assert len(div1) == 1 or len(div1) == 2, (
+                "Wrong string format assumption while parsing the output of `info files`"
+            )
 
             div2 = div0[0].split(" - ", 1)
-            assert (
-                len(div2) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
+            assert len(div2) == 2, (
+                "Wrong string format assumption while parsing the output of `info files`"
+            )
 
             beg = int(div2[0].strip(), 0)
             end = int(div2[1].strip(), 0)
@@ -1044,6 +1158,14 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         gdb.execute(f"add-symbol-file {path} {base}")
 
     @override
+    def remove_symbol_file(self, path: str) -> bool:
+        resp: str = gdb.execute(f"remove-symbol-file {path}", to_string=True)
+        if "No symbol file found" in resp:
+            return False
+        else:
+            return True
+
+    @override
     def runcmd(self, cmd) -> str:
         return gdb.execute(cmd, to_string=True)
 
@@ -1103,14 +1225,39 @@ class GDBCommand(gdb.Command):
         name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
+        subcommand_names: list[str] | None,
     ):
+        # We can't do `list[str] = []` in the signature because python..
         self.debugger = debugger
         self.handler = handler
         self.__doc__ = doc
-        super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+        if subcommand_names is None:
+            super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+        else:
+            self.subcommand_names: list[str] = subcommand_names
+            super().__init__(name, gdb.COMMAND_USER)
 
     def invoke(self, args: str, from_tty: bool) -> None:
         self.handler(self.debugger, args, from_tty)
+
+    def complete(self, text: str, word: str | None):
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/CLI-Commands-In-Python.html#CLI-Commands-In-Python:~:text=Command%2Ecomplete
+        # > `text` holds the complete command line up to the cursor’s location
+        # > `word` holds the last word of the command line
+        # The description is kind of misleading. If you type `slab li ny<TAB>`
+        # you will get text="li ny", word="ny".
+        # Actually, the function seems to be called twice for some reason, the first invocation having
+        # word=None. Why?
+        # Since we only support one level of subcommand completion (i.e. we dont support subsubcommand completion),
+        # we don't really care about the text and word distinction.
+        if word is None or text != word:
+            return []
+        if text == "":
+            # Return all subcommands
+            return self.subcommand_names
+
+        # Find all with matching prefix
+        return [valid for valid in self.subcommand_names if valid.startswith(text)]
 
 
 class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
@@ -1357,39 +1504,40 @@ class GDBValue(pwndbg.dbg_mod.Value):
             raise pwndbg.dbg_mod.Error(e)
 
 
-def _gdb_event_class_from_event_type(ty: pwndbg.dbg_mod.EventType) -> Any:
+def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]:
     """
-    Returns the GDB event class that corresponds to the given event type.
+    Returns the GDB event registry that corresponds to the given event type.
     """
-    if ty == pwndbg.dbg_mod.EventType.EXIT:
-        return gdb.events.exited
-    elif ty == pwndbg.dbg_mod.EventType.CONTINUE:
-        return gdb.events.cont
-    elif ty == pwndbg.dbg_mod.EventType.START:
-        # Pwndbg installs this one when it loads the GDB event support module.
-        #
-        # We should never run this function before it gets loaded, but, if this
-        # ever changes by mistake, we want the mistake to be caught early, with
-        # a clear error.
-        assert hasattr(
-            gdb.events, "start"
-        ), "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
-        return gdb.events.start
-    elif ty == pwndbg.dbg_mod.EventType.STOP:
-        return gdb.events.stop
-    elif ty == pwndbg.dbg_mod.EventType.NEW_MODULE:
-        return gdb.events.new_objfile
-    elif ty == pwndbg.dbg_mod.EventType.MEMORY_CHANGED:
-        return gdb.events.memory_changed
-    elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
-        return gdb.events.register_changed
-    elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
-        assert hasattr(
-            gdb.events, "suspend_all"
-        ), "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
-        return gdb.events.suspend_all
-
-    raise NotImplementedError(f"unknown event type {ty}")
+    match ty:
+        case EventType.EXIT:
+            return gdb.events.exited
+        case EventType.CONTINUE:
+            return gdb.events.cont
+        case EventType.START:
+            # Pwndbg installs this one when it loads the GDB event support module.
+            #
+            # We should never run this function before it gets loaded, but, if this
+            # ever changes by mistake, we want the mistake to be caught early, with
+            # a clear error.
+            assert hasattr(gdb.events, "start"), (
+                "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
+            )
+            return gdb.events.start
+        case EventType.STOP:
+            return gdb.events.stop
+        case EventType.NEW_MODULE:
+            return gdb.events.new_objfile
+        case EventType.MEMORY_CHANGED:
+            return gdb.events.memory_changed
+        case EventType.REGISTER_CHANGED:
+            return gdb.events.register_changed
+        case EventType.SUSPEND_ALL:
+            assert hasattr(gdb.events, "suspend_all"), (
+                "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+            )
+            return gdb.events.suspend_all
+        case _:
+            raise NotImplementedError(f"unknown event type {ty}")
 
 
 class GDB(pwndbg.dbg_mod.Debugger):
@@ -1454,11 +1602,16 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         pwnlib.update.disabled = True
 
+        from pwndbg.aglib import load_aglib
         from pwndbg.commands import load_commands
 
         load_gdblib()
         load_aglib()
         load_commands()
+
+        # Register event hooks.
+        # (We can't do them in this file because pwndbg.dbg isn't initialized yet.)
+        from pwndbg.dbg_mod.gdb import hooks as hooks
 
         # Importing `pwndbg.gdblib.prompt` ends up importing code that has the
         # side effect of setting a command up. Because command setup requires
@@ -1507,7 +1660,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         config_mod.init_params()
 
-        from pwndbg.dbg_mod.gdb import debug_sym
+        from pwndbg.dbg_mod.gdb import debug_sym as debug_sym
 
         self._load_gdbinit()
 
@@ -1520,8 +1673,9 @@ class GDB(pwndbg.dbg_mod.Debugger):
         name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
+        subcommand_names: list[str] | None = None,
     ) -> pwndbg.dbg_mod.CommandHandle:
-        command = GDBCommand(self, name, handler, doc)
+        command = GDBCommand(self, name, handler, doc, subcommand_names)
         return GDBCommandHandle(command)
 
     @override
@@ -1682,31 +1836,20 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return True
 
     @override
-    def has_event_type(self, ty: pwndbg.dbg_mod.EventType) -> bool:
+    def has_event_type(self, ty: EventType) -> bool:
         # Currently GDB supports all event types.
         return True
 
     @override
     def event_handler(
-        self, ty: pwndbg.dbg_mod.EventType
-    ) -> Callable[[Callable[..., T]], Callable[..., T]]:
-        # Make use of the existing gdblib event handlers.
-        if ty == pwndbg.dbg_mod.EventType.EXIT:
-            return pwndbg.gdblib.events.exit
-        elif ty == pwndbg.dbg_mod.EventType.CONTINUE:
-            return pwndbg.gdblib.events.cont
-        elif ty == pwndbg.dbg_mod.EventType.START:
-            return pwndbg.gdblib.events.start
-        elif ty == pwndbg.dbg_mod.EventType.STOP:
-            return pwndbg.gdblib.events.stop
-        elif ty == pwndbg.dbg_mod.EventType.NEW_MODULE:
-            return pwndbg.gdblib.events.new_objfile
-        elif ty == pwndbg.dbg_mod.EventType.MEMORY_CHANGED:
-            return pwndbg.gdblib.events.mem_changed
-        elif ty == pwndbg.dbg_mod.EventType.REGISTER_CHANGED:
-            return pwndbg.gdblib.events.reg_changed
-        elif ty == pwndbg.dbg_mod.EventType.SUSPEND_ALL:
-            raise RuntimeError("invalid usage, this event is not supported")
+        self,
+        event_type: EventType,
+        priority: EventHandlerPriority = EventHandlerPriority.STANDARD,
+    ) -> Callable[[Callable[..., None]], Callable[..., None]]:
+        import pwndbg.gdblib.events
+
+        event_registry: gdb.EventRegistry[Any] = _gdb_event_registry_from_event_type(event_type)
+        return pwndbg.gdblib.events.event_handler_factory(event_registry, event_type.name, priority)
 
     @override
     @contextmanager
@@ -1714,12 +1857,12 @@ class GDB(pwndbg.dbg_mod.Debugger):
         pwndbg.gdblib.prompt.context_shown = True
 
     @override
-    def suspend_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
-        pwndbg.gdblib.events.pause(_gdb_event_class_from_event_type(ty))
+    def suspend_events(self, ty: EventType) -> None:
+        pwndbg.gdblib.events.pause(_gdb_event_registry_from_event_type(ty))
 
     @override
-    def resume_events(self, ty: pwndbg.dbg_mod.EventType) -> None:
-        pwndbg.gdblib.events.unpause(_gdb_event_class_from_event_type(ty))
+    def resume_events(self, ty: EventType) -> None:
+        pwndbg.gdblib.events.unpause(_gdb_event_registry_from_event_type(ty))
 
     @override
     def set_sysroot(self, sysroot: str) -> bool:
@@ -1832,3 +1975,18 @@ class GDB(pwndbg.dbg_mod.Debugger):
             command = "set python print-stack message"
 
         gdb.execute(command, from_tty=True, to_string=True)
+
+    @override
+    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
+
+        Read the docstring in pwndbg.dbg.set_convenience_var()!!
+
+        Surround this function with try/except.
+        """
+        if type is not None:
+            gdb.execute(f"set ${name} = (({type})({value}))")
+        else:
+            gdb.execute(f"set ${name} = ({value})")
