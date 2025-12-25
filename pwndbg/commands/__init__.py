@@ -989,11 +989,11 @@ def load_commands() -> None:
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
         import pwndbg.commands.got_tracking
-        import pwndbg.commands.ptmalloc2_tracking
         import pwndbg.commands.ignore
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.killthreads
         import pwndbg.commands.peda
+        import pwndbg.commands.ptmalloc2_tracking
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments

@@ -9,12 +9,12 @@ from typing import Protocol
 from typing import Set
 
 import pwnlib
+from capstone import *  # noqa: F403
 
 # Reverse lookup tables for debug printing
 from capstone import CS_AC
 from capstone import CS_GRP
 from capstone import CS_OP
-from capstone import *  # noqa: F403
 from capstone.aarch64 import AARCH64_INS_BL
 from capstone.aarch64 import AARCH64_INS_BLR
 from capstone.aarch64 import AARCH64_INS_BR
