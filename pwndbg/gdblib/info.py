@@ -4,7 +4,6 @@ Runs a few useful commands which are available under "info".
 
 from __future__ import annotations
 
-
 import gdb
 
 import pwndbg.lib.cache
