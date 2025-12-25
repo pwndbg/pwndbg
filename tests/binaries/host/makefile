@@ -289,3 +289,10 @@ canary.i386.out: canary.i386.c
 	${CFLAGS} \
 	-target x86-linux-gnu \
 	-o $@ $?
+
+pku.i386.out: pku.x86_64.c
+	@echo "[+] Building '$@'"
+	${ZIGCC} \
+	${CFLAGS} \
+	-target x86_64-linux-gnu \
+	-o $@ $?
