@@ -972,7 +972,6 @@ def load_commands() -> None:
         import pwndbg.commands.binja_functions
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
-        import pwndbg.commands.got
         import pwndbg.commands.got_tracking
         import pwndbg.commands.ptmalloc2_tracking
         import pwndbg.commands.ida
@@ -1008,6 +1007,7 @@ def load_commands() -> None:
     import pwndbg.commands.gdt
     import pwndbg.commands.ghidra
     import pwndbg.commands.godbg
+    import pwndbg.commands.got
     import pwndbg.commands.hex2ptr
     import pwndbg.commands.hexdump
     import pwndbg.commands.hijack_fd
