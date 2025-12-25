@@ -94,6 +94,7 @@ def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str)
         return
 
     paths = [o.objfile for o in iter_objfiles()]
+    paths.sort()
     for path in paths:
         if path_filter not in path:
             continue
