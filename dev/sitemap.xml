@@ -165,15 +165,11 @@
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/integrations/bn-sync/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
          <loc>https://pwndbg.re/stable/commands/integrations/decomp/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/commands/integrations/j/</loc>
+         <loc>https://pwndbg.re/stable/commands/integrations/decompiler-integration/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
@@ -198,10 +194,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/commands/integrations/rzpipe/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/commands/integrations/save-ida/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
@@ -937,6 +929,10 @@
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/tutorials/decompiler-integration/</loc>
+         <lastmod>2025-12-25</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/tutorials/env-vars/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
@@ -966,18 +962,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/tutorials/splitting-the-context/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/tutorials/decompiler-integration/binja-integration/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/tutorials/decompiler-integration/ghidra-integration/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/tutorials/decompiler-integration/ida-integration/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
@@ -1313,14 +1297,6 @@
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/binja/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/binja_functions/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/branch/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
@@ -1393,10 +1369,6 @@
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/ghidra/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/godbg/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
@@ -1418,10 +1390,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/hijack_fd/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/ida/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
@@ -1669,6 +1637,10 @@
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/updown/</loc>
+         <lastmod>2025-12-25</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/valist/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
@@ -1833,10 +1805,6 @@
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/ghidra/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/glibc/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
@@ -1846,14 +1814,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/integration/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/integration/binja/</loc>
-         <lastmod>2025-12-25</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/integration/ida/</loc>
          <lastmod>2025-12-25</lastmod>
     </url>
     <url>
