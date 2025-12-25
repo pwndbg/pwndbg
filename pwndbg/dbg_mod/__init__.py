@@ -20,12 +20,14 @@ from typing import TypedDict
 from typing import TypeVar
 
 import pwndbg.lib.memory
-from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 
 dbg: Debugger = None
 
 T = TypeVar("T")
+
+# Increased by one on every stop event.
+number_of_stops_since_birth: int = 0
 
 
 @contextlib.contextmanager
@@ -172,6 +174,16 @@ class SymbolLookupType(Enum):
 
 
 class Frame:
+    """
+    A lightweight object referencing a stack frame in a given thread.
+
+    It does not hold state, it allows us to ask the debugger for state
+    (registers, symbols etc.) associated with this stack frame.
+
+    This is a very short-lived object and easily becomes invalid so do not
+    store it, and especially not between debugger stops.
+    """
+
     def lookup_symbol(
         self,
         name: str,
@@ -268,6 +280,22 @@ class Frame:
         same if they point to the same stack frame and have the same execution
         context.
         """
+        raise NotImplementedError()
+
+    def idx(self) -> int:
+        """
+        The index of this stack frame on the thread's stack. Index zero is the most
+        fresh frame.
+        """
+        raise NotImplementedError()
+
+    def __hash__(self) -> int:
+        """
+        The hash value of this stack frame. Needs to guarantee uniqueness both within
+        a stop and *accross time* so caches can work properly.
+        """
+        # Looking at how the debugger implements the frame equality check can help you
+        # figure this out.
         raise NotImplementedError()
 
 
@@ -1052,35 +1080,60 @@ class CommandHandle:
 class EventType(Enum):
     """
     Events that can be listened for and reacted to in a debugger.
-
-    The events types listed here are defined as follows:
-        - `START`: This event is fired some time between the creation of or
-          attachment to the process to be debugged, and the start of its
-          execution.
-        - `STOP`: This event is fired after execution of the process has been
-          suspended, but before control is returned to the user for interactive
-          debugging.
-        - `EXIT`: This event is fired after the process being debugged has been
-          detached from or has finished executing.
-        - `MEMORY_CHANGED`: This event is fired when the user interactively makes
-          changes to the memory of the process being debugged.
-        - `REGISTER_CHANGED`: Like `MEMORY_CHANGED`, but for registers.
-        - `CONTINUE`: This event is fired after the user has requested for
-          process execution to continue after it had been previously suspended.
-        - `NEW_MODULE`: This event is fired when a new application module has
-          been encountered by the debugger. This usually happens when a new
-          application module is loaded into the memory space of the process being
-          debugged. In GDB terminology, these are called `objfile`s.
     """
 
     SUSPEND_ALL = -1
+
     START = 0
+    """This event is fired some time between the creation of or attachment to the
+    process to be debugged, and the start of its execution."""
+
     STOP = 1
+    """This event is fired after execution of the process has been suspended, but
+    before control is returned to the user for interactive debugging."""
+
     EXIT = 2
+    """This event is fired after the process being debugged has been
+    detached from or has finished executing."""
+
     MEMORY_CHANGED = 3
+    """This event is fired when the user interactively makes changes to the memory
+    of the process being debugged."""
+
     REGISTER_CHANGED = 4
+    """This event is fired when the user interactively makes changes to the registers
+    of the process being debugged."""
+
     CONTINUE = 5
+    """This event is fired after the user has requested for process execution to continue
+    after it had been previously suspended."""
+
     NEW_MODULE = 6
+    """This event is fired when a new application module has been encountered by the
+    debugger. This usually happens when a new application module is loaded into the
+    memory space of the process being debugged. In GDB terminology, these are called
+    `objfile`s."""
+
+
+class EventHandlerPriority(Enum):
+    """
+    Determines the order in which event handlers are called when
+    a given event is triggered.
+    """
+
+    # If you wish to add another priority, feel free to. Prefer descriptive names
+    # like "CACHE_CLEAR" to something generic like "LOW" or "HIGH" which doesn't
+    # make it obvious which handlers are registered with this priority.
+    # Make sure that the values are defined in increasing order!!
+    # (https://docs.python.org/3/library/enum.html#enum.EnumType.__iter__)
+    CACHE_CLEAR = 0
+    """The first thing we want to do is clear the cache, so we aren't working on stale
+    data."""
+    UPDATE_ARCH_AND_TYPEINFO = 10
+    """We need to initialize the architecture and type information before doing anything
+    else substantial."""
+    STANDARD = 100
+    """The default value."""
 
 
 class Debugger:
@@ -1148,11 +1201,17 @@ class Debugger:
         raise NotImplementedError()
 
     def add_command(
-        self, name: str, handler: Callable[[Debugger, str, bool], None], doc: str | None
+        self,
+        name: str,
+        handler: Callable[[Debugger, str, bool], None],
+        doc: str | None,
+        subcommand_names: list[str] | None = None,
     ) -> CommandHandle:
         """
         Adds a command with the given name to the debugger, that invokes the
         given function every time it is called.
+
+        subcommand_names is used for tab-completion.
         """
         raise NotImplementedError()
 
@@ -1163,11 +1222,18 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def event_handler(self, ty: EventType) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    def event_handler(
+        self, event_type: EventType, priority: EventHandlerPriority = EventHandlerPriority.STANDARD
+    ) -> Callable[[Callable[..., None]], Callable[..., None]]:
         """
         Sets up the given function to be called when an event of the given type
         gets fired. Returns a callable that corresponds to the wrapped function.
-        This function my be used as a decorator.
+        The wrapped function must return None.
+
+        You may control the order in which the handlers for a specific event will
+        be called by setting the `priority` argument.
+
+        This function may be used as a decorator.
         """
         raise NotImplementedError()
 

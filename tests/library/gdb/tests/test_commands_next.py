@@ -3,8 +3,8 @@ from __future__ import annotations
 import gdb
 import pytest
 
+import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 
 from . import get_binary
@@ -41,7 +41,7 @@ def test_command_nextproginstr(start_binary):
 
     # Sanity check
     exec_bin_pages = [
-        p for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe and p.execute
+        p for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe() and p.execute
     ]
     assert any(pwndbg.aglib.regs.pc in p for p in exec_bin_pages)
     main_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc)

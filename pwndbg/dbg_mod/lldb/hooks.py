@@ -11,14 +11,20 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
 import pwndbg.aglib.typeinfo
+import pwndbg.dbg_mod
+import pwndbg.lib.cache
+import pwndbg.lib.ctypes
+from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod.lldb import LLDB
+from pwndbg.lib.cache import CacheUntilEvent
 
 
-@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-@pwndbg.dbg.event_handler(EventType.START)
-@pwndbg.dbg.event_handler(EventType.STOP)
-def update_typeinfo() -> None:
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.START, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+def update_arch_and_typeinfo() -> None:
+    # Updating typeinfo first for consistency with GDB where it's required.
     pwndbg.aglib.typeinfo.update()
     pwndbg.aglib.arch_mod.update()
 
@@ -29,6 +35,12 @@ def reset_config() -> None:
 
 
 @pwndbg.dbg.event_handler(EventType.START)
+@pwndbg.dbg.event_handler(EventType.NEW_MODULE)
+def update_ctypes() -> None:
+    pwndbg.lib.ctypes.update(str(pwndbg.aglib.arch.endian))
+
+
+@pwndbg.dbg.event_handler(EventType.START)
 def on_start() -> None:
     pwndbg.aglib.memory.update_min_addr()
 
@@ -36,6 +48,7 @@ def on_start() -> None:
 @pwndbg.dbg.event_handler(EventType.STOP)
 def on_stop() -> None:
     pwndbg.aglib.strings.update_length()
+    pwndbg.dbg_mod.number_of_stops_since_birth += 1
 
 
 @pwndbg.dbg.event_handler(EventType.EXIT)
@@ -43,25 +56,28 @@ def on_exit() -> None:
     pwndbg.aglib.file.reset_remote_files()
 
 
-import pwndbg.lib.cache
-
 pwndbg.lib.cache.connect_clear_caching_events(
     {
-        "exit": (pwndbg.dbg.event_handler(EventType.EXIT),),
-        "objfile": (pwndbg.dbg.event_handler(EventType.NEW_MODULE),),
-        "start": (pwndbg.dbg.event_handler(EventType.START),),
-        "stop": (
-            pwndbg.dbg.event_handler(EventType.STOP),
-            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED),
-            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED),
+        CacheUntilEvent.EXIT: (
+            pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.CACHE_CLEAR),
         ),
-        "cont": (
-            pwndbg.dbg.event_handler(EventType.CONTINUE),
-            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED),
-            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED),
+        CacheUntilEvent.OBJFILE: (
+            pwndbg.dbg.event_handler(EventType.NEW_MODULE, EventHandlerPriority.CACHE_CLEAR),
         ),
-        "prompt": (),
-        "forever": (),
+        CacheUntilEvent.START: (
+            pwndbg.dbg.event_handler(EventType.START, EventHandlerPriority.CACHE_CLEAR),
+        ),
+        CacheUntilEvent.STOP: (
+            pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED, EventHandlerPriority.CACHE_CLEAR),
+        ),
+        CacheUntilEvent.CONT: (
+            pwndbg.dbg.event_handler(EventType.CONTINUE, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.MEMORY_CHANGED, EventHandlerPriority.CACHE_CLEAR),
+            pwndbg.dbg.event_handler(EventType.REGISTER_CHANGED, EventHandlerPriority.CACHE_CLEAR),
+        ),
+        CacheUntilEvent.FOREVER: (),
     },
 )
 
@@ -72,9 +88,7 @@ pwndbg.lib.cache.connect_clear_caching_events(
 # TODO: Implement missing event types and re-enable the cache types that depend on them.
 #
 # FIXME: `stop` and `cont` have been enabled for performance reasons, but aren't 100% correct.
-pwndbg.lib.cache.IS_CACHING_DISABLED_FOR["stop"] = False
-pwndbg.lib.cache.IS_CACHING_DISABLED_FOR["thread"] = True
-pwndbg.lib.cache.IS_CACHING_DISABLED_FOR["cont"] = False
+pwndbg.lib.cache.IS_CACHING_DISABLED_FOR = CacheUntilEvent.THREAD
 
 should_show_context = False
 
@@ -86,9 +100,6 @@ def renew_show_context():
 
 
 def prompt_hook():
-    # Clear the prompt cache manually.
-    pwndbg.lib.cache.clear_cache("prompt")
-
     dbg: LLDB = pwndbg.dbg
     ctx_suspend_once = dbg.should_suspend_ctx
     global should_show_context

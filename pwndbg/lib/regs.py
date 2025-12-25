@@ -28,21 +28,19 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 #
 # Instances of VisitableRegister will call the methods of RegisterContextProtocol to do their logic.
 
+
 class RegisterContextProtocol(Protocol):
-    def flag_register_context(self, reg: str, bit_flags: BitFlags) -> str | None:
-        ...
+    def flag_register_context(self, reg: str, bit_flags: BitFlags) -> str | None: ...
 
-    def addressing_register_context(self, reg: str, is_virtual: bool) -> str | None:
-        ...
+    def addressing_register_context(self, reg: str, is_virtual: bool) -> str | None: ...
 
-    def segment_registers_context(self,regs: list[str]) -> str | None:
-        ...
+    def segment_registers_context(self, regs: list[str]) -> str | None: ...
 
 
 # Represents a register or a set of registers that can be printed in the context register view
 class VisitableRegister(Protocol):
-    def context(self, rc: RegisterContextProtocol) -> str | None:
-        ...
+    def context(self, rc: RegisterContextProtocol) -> str | None: ...
+
 
 class BitFlags(VisitableRegister):
     # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers

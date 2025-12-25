@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.nearpc
+import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
 nearpc_lines = pwndbg.config.add_param(

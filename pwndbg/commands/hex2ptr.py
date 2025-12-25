@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.common import hex2ptr_common
@@ -21,6 +21,6 @@ def hex2ptr(hex_string) -> None:
     hex_string = hex_string.replace(" ", "")
     try:
         pointer = hex2ptr_common(hex_string)
-        print(M.success(f"{hex(pointer)}"))
+        print(message.success(f"{hex(pointer)}"))
     except Exception as e:
-        print(M.error(str(e)))
+        print(message.error(str(e)))

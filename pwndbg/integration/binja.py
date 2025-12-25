@@ -30,7 +30,6 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.color
 import pwndbg.color.context as context_color
@@ -265,12 +264,12 @@ def withBinja(func: Callable[P, T]) -> Callable[P, T | None]:
 
 
 def l2r(addr: int) -> int:
-    result = (addr - pwndbg.aglib.proc.binary_base_addr + base()) & pwndbg.aglib.arch.ptrmask
+    result = (addr - pwndbg.aglib.proc.binary_base_addr() + base()) & pwndbg.aglib.arch.ptrmask
     return result
 
 
 def r2l(addr: int) -> int:
-    result = (addr - base() + pwndbg.aglib.proc.binary_base_addr) & pwndbg.aglib.arch.ptrmask
+    result = (addr - base() + pwndbg.aglib.proc.binary_base_addr()) & pwndbg.aglib.arch.ptrmask
     return result
 
 
@@ -282,7 +281,7 @@ def base():
 @pwndbg.dbg.event_handler(EventType.STOP)
 @enabledBinja()
 def auto_update_pc() -> None:
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         return
     pc = pwndbg.aglib.regs.pc
     if bn_autosync.value:
@@ -298,7 +297,7 @@ _managed_bps: Dict[int, StopPoint] = {}
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
 @enabledBinja()
 def auto_update_bp() -> None:
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         return
     bps: List[int] = _bn.get_bp_tags()
     binja_bps = {r2l(addr) for addr in bps}
@@ -598,7 +597,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
     def get_stack_var_name(self, addr: int) -> str | None:
         cur = pwndbg.dbg.selected_frame()
         # there is no earlier frame so we give up
-        if addr < pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack, frame=cur):
+        if addr < pwndbg.aglib.regs.read_reg_in_frame(pwndbg.aglib.regs.stack, cur):
             return None
         newest = True
         # try to find the oldest frame that's earlier than the address
@@ -607,7 +606,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
             if upper is None:
                 break
 
-            upper_sp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack, frame=upper)
+            upper_sp = pwndbg.aglib.regs.read_reg_in_frame(pwndbg.aglib.regs.stack, upper)
             if upper_sp > addr:
                 break
 
@@ -617,7 +616,7 @@ class BinjaProvider(pwndbg.integration.IntegrationProvider):
         regs = [
             (name, val)
             for name in pwndbg.aglib.regs.common
-            if (val := pwndbg.aglib.regs.read_reg(name, frame=cur)) is not None
+            if (val := pwndbg.aglib.regs.read_reg_in_frame(name, cur)) is not None
         ]
         # put stack pointer and frame pointer at the front
         regs.sort(

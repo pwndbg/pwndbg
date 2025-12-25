@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.aglib.regs
+import pwndbg.aglib
 
 from . import get_binary
 

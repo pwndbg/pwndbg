@@ -13,6 +13,7 @@ import gdb
 from tabulate import tabulate
 
 import pwndbg.commands
+import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.ui import get_window_size
@@ -230,7 +231,7 @@ def attachp(
 ) -> None:
     # As a default, the user may want to attach to a binary name taken from currently loaded file name
     if target is None:
-        bin_path = pwndbg.aglib.proc.exe
+        bin_path = pwndbg.aglib.proc.exe()
         if bin_path is None:
             print(
                 message.error(

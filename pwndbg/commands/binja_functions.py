@@ -4,8 +4,8 @@ from typing import Tuple
 
 import gdb
 
+import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.gdblib.functions
 import pwndbg.integration.binja
@@ -134,7 +134,7 @@ def bn_eval(expr: gdb.Value) -> int:
         v = pwndbg.aglib.regs.read_reg(r)
         if v is not None:
             magic_vars[r] = v
-    magic_vars["piebase"] = pwndbg.aglib.proc.binary_base_addr
+    magic_vars["piebase"] = pwndbg.aglib.proc.binary_base_addr()
     ret: int | None = pwndbg.integration.binja._bn.parse_expr(expr.string(), magic_vars)
     if ret is None:
         print(message.error("Not found."))

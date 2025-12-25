@@ -21,6 +21,7 @@ class ExtractedCommand:
     usage: str
     positionals: list[Tuple[str, str]]
     optionals: list[Tuple[str, str, str]]
+    subcommands: list[ExtractedCommand]
 
 
 def category_to_folder_name(category) -> str:

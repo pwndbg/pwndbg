@@ -8,7 +8,7 @@ import os
 import gdb
 
 import pwndbg
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.dbg_mod
@@ -136,7 +136,7 @@ def save_ida() -> None:
 
 
 def _ida_local(name: str) -> int | None:
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         return None
 
     pc = int(pwndbg.dbg.selected_frame().pc())

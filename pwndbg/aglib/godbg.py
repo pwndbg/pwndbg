@@ -284,7 +284,7 @@ def emit_warning(msg: str):
 def get_elf() -> pwndbg.aglib.elf.ELFInfo | None:
     try:
         return pwndbg.aglib.elf.get_elf_info_rebased(
-            pwndbg.aglib.file.get_proc_exe_file(), pwndbg.aglib.proc.binary_base_addr
+            pwndbg.aglib.file.get_proc_exe_file(), pwndbg.aglib.proc.binary_base_addr()
         )
     except OSError:
         return None

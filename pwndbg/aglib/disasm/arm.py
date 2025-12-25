@@ -13,7 +13,6 @@ from typing_extensions import override
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.regs
 import pwndbg.aglib.saved_register_frames
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import EnhancedOperand

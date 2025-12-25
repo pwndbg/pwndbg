@@ -65,8 +65,8 @@ async def test_command_telescope_n_records(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_telescope_command_with_address_as_count(ctrl: Controller) -> None:
+    import pwndbg.aglib
     import pwndbg.aglib.proc
-    import pwndbg.aglib.regs
 
     await ctrl.launch(TELESCOPE_BINARY)
 
@@ -77,13 +77,13 @@ async def test_telescope_command_with_address_as_count(ctrl: Controller) -> None
     expected = rf"00:0000│ (.*?)sp {sp:#x} ◂— 1"
     assert re.search(expected, out[0])
 
-    expected = rf"01:0008│     {sp + 8:#x} —▸ 0x[0-9a-f]+ ◂— '{pwndbg.aglib.proc.exe}'"
+    expected = rf"01:0008│     {sp + 8:#x} —▸ 0x[0-9a-f]+ ◂— '{pwndbg.aglib.proc.exe()}'"
     assert re.search(expected, out[1])
 
 
 @pwndbg_test
 async def test_telescope_command_with_address_as_count_and_reversed_flag(ctrl: Controller) -> None:
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(TELESCOPE_BINARY)
 
@@ -102,8 +102,8 @@ async def test_command_telescope_reverse_skipped_records_shows_input_address(
     """
     Tests reversed telescope with skipped records shows input address
     """
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
 
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("up")
@@ -122,7 +122,7 @@ async def test_command_telescope_frame(ctrl: Controller) -> None:
     """
     Tests telescope --frame
     """
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
 
@@ -141,7 +141,7 @@ async def test_command_telescope_frame_bp_below_sp(ctrl: Controller) -> None:
     """
     Tests telescope --frame when base pointer is below stack pointer
     """
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
     await ctrl.execute("memoize")  # turn off cache
@@ -158,7 +158,7 @@ async def test_command_telescope_frame_bp_sp_different_vmmaps(ctrl: Controller) 
     """
     Tests telescope --frame when base pointer and stack pointer are on different vmmap pages
     """
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
     import pwndbg.aglib.vmmap
 
     await launch_to(ctrl, TELESCOPE_BINARY, "break_here")

@@ -11,7 +11,6 @@ from typing import Tuple
 import pwndbg
 import pwndbg.lib.config
 import pwndbg.lib.functions
-from pwndbg.color import message
 
 
 class IntegrationProvider:

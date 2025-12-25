@@ -30,7 +30,7 @@ dependencies = [
     "pt @ git+https://github.com/martinradev/gdb-pt-dump@50227bda0b6332e94027f811a15879588de6d5cb",
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
     # It is only used for the 'cymbol' command and some `asm` functionality.
-    "ziglang==0.14.1",
+    "ziglang==0.14.1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
 ]
 
 [project.optional-dependencies]
@@ -38,24 +38,10 @@ lldb = [
     # The LLDB REPL requires readline.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg==21.1.6.post1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
-
-    # pypi.org don't support loongarch64 yet. https://discuss.python.org/t/pypi-supports-loongarchs-wheel-what-should-we-do/26253
-    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp310-cp310-manylinux_2_36_loongarch64.whl ; python_version == '3.10' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
-    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp311-cp311-manylinux_2_36_loongarch64.whl ; python_version == '3.11' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
-    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp312-cp312-manylinux_2_36_loongarch64.whl ; python_version == '3.12' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
-    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp313-cp313-manylinux_2_36_loongarch64.whl ; python_version == '3.13' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
-    "lldb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/lldb-v21.1.6.post1/lldb_for_pwndbg-21.1.6.post1-cp314-cp314-manylinux_2_36_loongarch64.whl ; python_version == '3.14' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
+    "lldb-for-pwndbg==21.1.6.post1",
 ]
 gdb = [
-    "gdb-for-pwndbg==16.3.0.post6 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
-
-    # pypi.org don't support loongarch64 yet. https://discuss.python.org/t/pypi-supports-loongarchs-wheel-what-should-we-do/26253
-    "gdb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp310-cp310-manylinux_2_36_loongarch64.whl ; python_version == '3.10' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
-    "gdb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp311-cp311-manylinux_2_36_loongarch64.whl ; python_version == '3.11' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
-    "gdb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp312-cp312-manylinux_2_36_loongarch64.whl ; python_version == '3.12' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
-    "gdb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp313-cp313-manylinux_2_36_loongarch64.whl ; python_version == '3.13' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
-    "gdb-for-pwndbg @ https://github.com/pwndbg/pypi-for-pwndbg/releases/download/gdb-v16.3.0.post6/gdb_for_pwndbg-16.3.0.post6-cp314-cp314-manylinux_2_36_loongarch64.whl ; python_version == '3.14' and platform_system == 'Linux' and platform_machine == 'loongarch64'",
+    "gdb-for-pwndbg==16.3.0.post6",
 ]
 
 [dependency-groups]
@@ -70,7 +56,7 @@ dev = [
 lint = [
     "mypy>=1.18.2,<2",
     "isort>=5.13.2,<6",
-    "ruff>=0.4.1,<0.5",
+    "ruff>=0.4.1,<0.15",
     "vermin>=1.6.0,<2",
 ]
 tests = [
@@ -96,6 +82,25 @@ docs = [
     "mike",
     "mkdocs-awesome-nav",
 ]
+
+[tool.uv.sources]
+uv = [
+  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+]
+ruff = [
+  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+]
+lldb-for-pwndbg = [
+  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+]
+gdb-for-pwndbg = [
+  { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
+]
+
+[[tool.uv.index]]
+name = "loong64"
+url = "https://mirrors.loong64.com/pypi/simple"
+explicit = true
 
 [tool.ruff]
 line-length = 100
@@ -161,7 +166,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"]
+# FIXME
+"pwndbg/gdblib/__init__.py" = ["F401"]
 
 [tool.mypy]
 strict_optional = false

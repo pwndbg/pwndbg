@@ -8,7 +8,9 @@ from typing import Optional
 from typing import Tuple
 
 import pwndbg
-import pwndbg.color as color
+import pwndbg.color
+import pwndbg.color.memory
+import pwndbg.lib.config
 from pwndbg.color import theme
 
 max_decimal_number = pwndbg.config.add_param(
@@ -207,13 +209,13 @@ def from_properties(
 
         text += (
             indentation_str
-            + color.ljust_colored(prop_name_cfunc(prop.name) + ":", value_offset)
+            + pwndbg.color.ljust_colored(prop_name_cfunc(prop.name) + ":", value_offset)
             + "  "
         )
 
         if prop.is_addr:
             base = 16 if prop.use_hex else 10
-            colored_val = color.memory.get(int(prop.value, base))
+            colored_val = pwndbg.color.memory.get(int(prop.value, base))
         else:
             colored_val = prop_value_cfunc(prop.value)
 
@@ -221,7 +223,7 @@ def from_properties(
         if prop.alt_value is not None:
             colored_alt_val = f" ({prop_value_cfunc(prop.alt_value)})"
 
-        text += color.ljust_colored(colored_val + colored_alt_val, extra_offset)
+        text += pwndbg.color.ljust_colored(colored_val + colored_alt_val, extra_offset)
 
         if isinstance(prop.extra, str):
             text += "  " + prop.extra

@@ -6,6 +6,7 @@ vice-versa.
 from __future__ import annotations
 
 import pwndbg.aglib.memory
+import pwndbg.dbg_mod
 import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg.dbg_mod import SymbolLookupType

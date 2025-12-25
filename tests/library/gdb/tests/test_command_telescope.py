@@ -4,9 +4,9 @@ import re
 
 import gdb
 
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 
 from . import get_binary
@@ -77,7 +77,7 @@ def test_telescope_command_with_address_as_count(start_binary):
     assert len(out) == 2
     assert out[0] == "00:0000│ rsp %#x ◂— 1" % rsp
 
-    expected = rf"01:0008│     {rsp + 8:#x} —▸ 0x[0-9a-f]+ ◂— '{pwndbg.aglib.proc.exe}'"
+    expected = rf"01:0008│     {rsp + 8:#x} —▸ 0x[0-9a-f]+ ◂— '{pwndbg.aglib.proc.exe()}'"
     assert re.search(expected, out[1])
 
 

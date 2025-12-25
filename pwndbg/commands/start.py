@@ -12,9 +12,8 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
@@ -28,7 +27,7 @@ if pwndbg.dbg.is_gdblib_available():
 def breakpoint_at_entry():
     addr = int(pwndbg.aglib.elf.entry())
     if not addr:
-        print(M.error("No entry address found for the binary."))
+        print(message.error("No entry address found for the binary."))
         return
 
     if int(pwndbg.aglib.regs.pc) == addr:
@@ -146,9 +145,9 @@ def entry(args=None) -> None:
         # `pwndbg-lldb` implements starting as a partial command override in the CLI.
         #
         # TODO: In the future, we should handle starts using an in-command mechanism.
-        if not pwndbg.aglib.proc.alive:
+        if not pwndbg.aglib.proc.alive():
             print(
-                M.error(
+                message.error(
                     "The program is not running. Start the program with `run -s` and then use `entry` to set the breakpoint."
                 )
             )

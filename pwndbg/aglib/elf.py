@@ -24,6 +24,7 @@ from elftools.elf.relocation import Relocation
 from elftools.elf.relocation import RelocationSection
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
@@ -412,6 +413,7 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
         return ()
 
     base = int(ehdr.address)
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
 
     # For each Program Header which would load data into our
     # address space, create a representation of each individual
@@ -449,7 +451,11 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
                 page.flags = flags
             else:
                 page = pwndbg.lib.memory.Page(
-                    page_addr, pwndbg.lib.memory.PAGE_SIZE, flags, offset + (page_addr - vaddr)
+                    page_addr,
+                    pwndbg.lib.memory.PAGE_SIZE,
+                    flags,
+                    offset + (page_addr - vaddr),
+                    ptrsize,
                 )
                 pages.append(page)
 
@@ -477,7 +483,7 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
         a_end = a.vaddr + a.memsz
         b_begin = b.vaddr
         if a_end != b_begin:
-            gaps.append(pwndbg.lib.memory.Page(a_end, b_begin - a_end, 0, b.offset))
+            gaps.append(pwndbg.lib.memory.Page(a_end, b_begin - a_end, 0, b.offset, ptrsize))
 
     pages.extend(gaps)
 

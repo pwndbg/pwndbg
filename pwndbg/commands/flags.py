@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 

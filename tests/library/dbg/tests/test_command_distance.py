@@ -9,7 +9,7 @@ REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 @pwndbg_test
 async def test_command_distance(ctrl: Controller):
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 

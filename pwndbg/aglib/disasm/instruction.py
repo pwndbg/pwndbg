@@ -225,7 +225,7 @@ class PwndbgInstruction(Protocol):
 # Pwndbg commands like "nextcall" that need to know the instructions target to set breakpoints
 # The information in this class is backed by metadata from Capstone
 class PwndbgInstructionImpl(PwndbgInstruction):
-    def __init__(self, cs_insn: CsInsn) -> None:
+    def __init__(self, cs_insn: CsInsn, padding: int = 6) -> None:
         self.cs_insn: CsInsn = cs_insn
         """
         The underlying Capstone instruction object.
@@ -276,7 +276,11 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         # in pwndbg.aglib.disasm.arch.py
         # ***********
 
-        self.asm_string: str = f"{self.mnemonic:<6} {self.op_str}"
+        self.asm_string: str = (
+            f"{self.mnemonic:<{padding}} {self.op_str}"
+            if self.op_str
+            else f"{self.mnemonic:<{padding}}"
+        )
         """
         The full string representing the instruction - `mov    rdi, rsp` with appropriate padding.
 
@@ -681,7 +685,7 @@ class EnhancedOperand:
 # Represents a disassembled instruction
 # Conforms to the PwndbgInstruction interface
 class ManualPwndbgInstruction(PwndbgInstruction):
-    def __init__(self, address: int) -> None:
+    def __init__(self, address: int, padding: int = 6) -> None:
         """
         This class provides an implementation of PwndbgInstruction for cases where the architecture
         at hand is not supported by the Capstone disassembler. The backing information is sourced from
@@ -709,7 +713,11 @@ class ManualPwndbgInstruction(PwndbgInstruction):
 
         self.operands = []
 
-        self.asm_string = f"{self.mnemonic:<6} {self.op_str}"
+        self.asm_string = (
+            f"{self.mnemonic:<{padding}} {self.op_str}"
+            if self.op_str
+            else f"{self.mnemonic:<{padding}}"
+        )
 
         self.next = address + self.size
         self.target = self.next

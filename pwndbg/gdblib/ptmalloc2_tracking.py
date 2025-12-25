@@ -62,8 +62,12 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
+import pwndbg.arguments
+import pwndbg.color
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.lib.cache import CacheUntilEvent
 
 LIBC_NAME = "libc.so.6"
 MALLOC_NAME = "malloc"
@@ -158,7 +162,7 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
         super().__init__(loc, type=gdb.BP_WATCHPOINT, internal=True)
 
     def stop(self):
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         if not in_program_code_stack():
             # Untracked.
             return False
@@ -394,7 +398,7 @@ class MallocEnterBreakpoint(gdb.Breakpoint):
         self.tracker = tracker
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         requested_size = pwndbg.arguments.argument(0)
         if self.tracker.is_performing_memory_management():
             # This call was made from inside another memory management call.
@@ -412,7 +416,7 @@ class CallocEnterBreakpoint(gdb.Breakpoint):
         self.tracker = tracker
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
 
         num_elements = pwndbg.arguments.argument(0)
         element_size = pwndbg.arguments.argument(1)
@@ -452,7 +456,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
         self.name = name
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         if not in_program_code_stack():
             # Untracked.
             self.tracker.exit_memory_management()
@@ -487,7 +491,7 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
         self.tracker = tracker
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
 
         freed_pointer = pwndbg.arguments.argument(0)
         requested_size = pwndbg.arguments.argument(1)
@@ -527,7 +531,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker = tracker
 
     def stop(self):
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         if not in_program_code_stack():
             # Untracked.
             self.tracker.exit_memory_management()
@@ -574,7 +578,7 @@ class FreeEnterBreakpoint(gdb.Breakpoint):
         self.tracker = tracker
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         ptr = pwndbg.arguments.argument(0)
         if self.tracker.is_performing_memory_management():
             # This call was made from inside another memory management call.
@@ -598,7 +602,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker = tracker
 
     def stop(self):
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         if not in_program_code_stack():
             # Untracked.
             self.tracker.exit_memory_management()
@@ -627,7 +631,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
 
 def in_program_code_stack() -> bool:
-    exe = pwndbg.aglib.proc.exe
+    exe = pwndbg.aglib.proc.exe()
     binary_exec_page_ranges = tuple(
         (p.start, p.end) for p in pwndbg.aglib.vmmap.get() if p.objfile == exe and p.execute
     )

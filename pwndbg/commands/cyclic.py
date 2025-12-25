@@ -12,6 +12,7 @@ import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.commands
+import pwndbg.dbg_mod
 import pwndbg.lib.regs
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -24,7 +25,7 @@ class TimeoutException(Exception):
 
 
 def detect_register_patterns(alphabet, length, timeout) -> None:
-    if not pwndbg.aglib.proc.alive:
+    if not pwndbg.aglib.proc.alive():
         print(message.error("Error: Process is not running."))
         return
 

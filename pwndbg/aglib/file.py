@@ -16,6 +16,7 @@ from typing import Tuple
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.remote
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 
 _remote_files_dir = None
@@ -42,7 +43,7 @@ def get_proc_exe_file() -> str:
     """
     Returns the local path to the debugged file name.
     """
-    return get_file(pwndbg.aglib.proc.exe, try_local_path=True)
+    return get_file(pwndbg.aglib.proc.exe(), try_local_path=True)
 
 
 @pwndbg.lib.cache.cache_until("start")

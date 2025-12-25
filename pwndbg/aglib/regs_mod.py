@@ -7,22 +7,19 @@ from __future__ import annotations
 
 import ctypes
 import re
-import sys
-from types import ModuleType
 from typing import Any
-from typing import Callable
 from typing import Dict
 from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Set
 from typing import Tuple
-from typing import cast
 
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.proc
 import pwndbg.aglib.remote
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.dbg_mod import EventType
 from pwndbg.lib.regs import BitFlags
@@ -30,103 +27,57 @@ from pwndbg.lib.regs import KernelRegisterSet
 from pwndbg.lib.regs import RegisterSet
 from pwndbg.lib.regs import reg_sets
 
-
-@pwndbg.lib.cache.cache_until("stop", "prompt")
-def regs_in_frame(frame: pwndbg.dbg_mod.Frame) -> pwndbg.dbg_mod.Registers:
-    return frame.regs()
-
-
-@pwndbg.aglib.proc.OnlyWhenRunning
-def get_register(
-    name: str, frame: pwndbg.dbg_mod.Frame | None = None
-) -> pwndbg.dbg_mod.Value | None:
-    if frame is None:
-        frame = pwndbg.dbg.selected_frame()
-        if frame is None:
-            # `read_reg` will return None when it catches this exception. This
-            # mirrors how a `gdb.error` causes `read_reg` to return `None` in
-            # gdblib when no frame is selected.
-            raise pwndbg.dbg_mod.Error("No currently selected frame to read registers from")
-
-    regs = regs_in_frame(frame)
-
-    value = regs.by_name(name)
-    return value if value is not None else regs.by_name(name.upper())
-
-
-@pwndbg.aglib.proc.OnlyWhenQemuKernel
-@pwndbg.aglib.proc.OnlyWhenRunning
-def get_qemu_register(name: str) -> int | None:
-    out = pwndbg.dbg.selected_inferior().send_monitor("info registers")
-    match = re.search(rf'{name.split("_")[0]}=\s+([\da-fA-F]+)\s+([\da-fA-F]+)', out)
-
-    if match:
-        base = int(match.group(1), 16)
-        limit = int(match.group(2), 16)
-
-        if name.endswith("LIMIT"):
-            return limit
-        else:
-            return base
-
-    return None
-
-
 # We need to manually make some ptrace calls to get fs/gs bases on Intel
 PTRACE_ARCH_PRCTL = 30
 ARCH_GET_FS = 0x1003
 ARCH_GET_GS = 0x1004
 
-gpr: Tuple[str, ...]
-common: List[str]
-frame: str | None
-retaddr: Tuple[str, ...]
-flags: Dict[str, BitFlags]
-extra_flags: Dict[str, BitFlags]
-stack: str
-retval: str | None
-all: List[str]
-changed: List[str]
-fsbase: int
-gsbase: int
-current: RegisterSet
-fix: Callable[[str], str]
-items: Callable[[], Generator[Tuple[str, Any], None, None]]
-previous: Dict[str, int]
-last: Dict[str, int]
-pc: int | None
 
+class RegisterManager:
+    previous: Dict[str, int | None] = {}
+    last: Dict[str, int | None] = {}
 
-class module(ModuleType):
-    previous: Dict[str, int] = {}
-    last: Dict[str, int] = {}
+    @pwndbg.lib.cache.cache_until("stop")
+    def regs_in_frame(self, frame: pwndbg.dbg_mod.Frame) -> pwndbg.dbg_mod.Registers:
+        return frame.regs()
 
-    @pwndbg.lib.cache.cache_until("stop", "prompt")
-    def read_reg(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
-        """
-        Query the underlying debugger for the value of a register.
+    @pwndbg.aglib.proc.OnlyWhenRunning
+    def get_register(self, name: str, frame: pwndbg.dbg_mod.Frame) -> pwndbg.dbg_mod.Value | None:
+        regs = self.regs_in_frame(frame)
+        value = regs.by_name(name)
+        return value if value is not None else regs.by_name(name.upper())
 
-        Note that in some rare cases, debuggers won't directly expose the values of some special model specific registers.
-        Although we can sometimes determine these by other indirect means, this function does not run any extra logic to handle these special cases.
+    @pwndbg.aglib.proc.OnlyWhenQemuKernel
+    @pwndbg.aglib.proc.OnlyWhenRunning
+    def get_qemu_register(self, name: str) -> int | None:
+        out = pwndbg.dbg.selected_inferior().send_monitor("info registers")
+        match = re.search(rf'{name.split("_")[0]}=\s+([\da-fA-F]+)\s+([\da-fA-F]+)', out)
 
-        Specifically, if you need to ensure you are reading the correct value of "gs", "fs", "idt", or "idt_limit", use
-        the specific helpers functions on the regs module as necessary to determine the values.
-        """
-        return self.read_reg_uncached(reg, frame)
+        if match:
+            base = int(match.group(1), 16)
+            limit = int(match.group(2), 16)
 
-    def read_reg_uncached(self, reg: str, frame: pwndbg.dbg_mod.Frame | None = None) -> int | None:
+            if name.endswith("LIMIT"):
+                return limit
+            else:
+                return base
+
+        return None
+
+    def read_reg_uncached_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame) -> int | None:
         reg = reg.lstrip("$")
         try:
-            value = get_register(reg, frame)
+            value = self.get_register(reg, frame)
             if value is None and reg.lower() == "xpsr":
-                value = get_register("xPSR", frame)
+                value = self.get_register("xPSR", frame)
             if value is None:
                 return None
             value = int(value)
-            if reg == "pc" and pwndbg.aglib.arch.name == "i8086":
-                if self.cs is None:
+            if reg == "eip" and pwndbg.aglib.arch.name == "i8086":
+                cs = self.get_register("cs", frame)
+                if cs is None:
                     return None
-                value += self.cs * 16
+                value += int(cs) * 0x10
 
             # The value that the native debugger returns can be negative.
             # We convert this to the unsigned bit representation by masking it
@@ -138,6 +89,39 @@ class module(ModuleType):
             return int(value) & mask
         except (ValueError, pwndbg.dbg_mod.Error):
             return None
+
+    def read_reg_uncached(self, reg: str) -> int | None:
+        frame = pwndbg.dbg.selected_frame()
+        if frame is None:
+            return None
+        return self.read_reg_uncached_in_frame(reg, frame)
+
+    @pwndbg.lib.cache.cache_until("stop")
+    def read_reg_in_frame(self, reg: str, frame: pwndbg.dbg_mod.Frame) -> int | None:
+        """
+        Same as read_reg() except for the provided frame, rather than the currently
+        selected frame.
+        """
+        return self.read_reg_uncached_in_frame(reg, frame)
+
+    def read_reg(self, reg: str) -> int | None:
+        """
+        Query the underlying debugger for the value of a register.
+
+        Note that in some rare cases, debuggers won't directly expose the values of some special model specific registers.
+        Although we can sometimes determine these by other indirect means, this function does not run any extra logic to handle these special cases.
+
+        Specifically, if you need to ensure you are reading the correct value of "gs", "fs", "idt", or "idt_limit", use
+        the specific helpers functions on the regs module as necessary to determine the values.
+
+        Use read_reg_in_frame() if you have a `frame` object, its faster.
+        """
+        # Adding a cache_until decorator to read_reg() is semantically incorrect since it will return
+        # the same register value even if the frame changes.
+        frame = pwndbg.dbg.selected_frame()
+        if frame is None:
+            return None
+        return self.read_reg_in_frame(reg, frame)
 
     def write_reg(self, reg: str, value: int) -> None:
         if not pwndbg.dbg.selected_frame().reg_write(reg, value):
@@ -190,7 +174,7 @@ class module(ModuleType):
         return reg_sets[pwndbg.aglib.arch.name].retaddr
 
     @property
-    def kernel(self) -> KernelRegisterSet:
+    def kernel(self) -> KernelRegisterSet | None:
         return reg_sets[pwndbg.aglib.arch.name].kernel
 
     @property
@@ -242,15 +226,15 @@ class module(ModuleType):
     @pwndbg.aglib.proc.OnlyWhenQemuKernel
     @pwndbg.aglib.proc.OnlyWithArch(["i386", "x86-64"])
     @pwndbg.lib.cache.cache_until("stop")
-    def idt(self) -> int:
-        return get_qemu_register("IDT")
+    def idt(self) -> int | None:
+        return self.get_qemu_register("IDT")
 
     @property
     @pwndbg.aglib.proc.OnlyWhenQemuKernel
     @pwndbg.aglib.proc.OnlyWithArch(["i386", "x86-64"])
     @pwndbg.lib.cache.cache_until("stop")
-    def idt_limit(self) -> int:
-        return get_qemu_register("IDT_LIMIT")
+    def idt_limit(self) -> int | None:
+        return self.get_qemu_register("IDT_LIMIT")
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -267,7 +251,10 @@ class module(ModuleType):
         Requires ptrace'ing the child directory if i386."""
 
         if pwndbg.aglib.arch.name == "x86-64":
-            reg_value = get_register(regname)
+            frame = pwndbg.dbg.selected_frame()
+            if frame is None:
+                return 0
+            reg_value = self.get_register(regname, frame)
             return int(reg_value) if reg_value is not None else 0
 
         # We can't really do anything if the process is remote.
@@ -290,21 +277,15 @@ class module(ModuleType):
 
         return 0
 
-    def __repr__(self) -> str:
-        return "<module pwndbg.aglib.regs>"
 
-
-# To prevent garbage collection
-tether = sys.modules[__name__]
-sys.modules[__name__] = module(__name__, "")
+regs: RegisterManager = RegisterManager()
 
 
 @pwndbg.dbg.event_handler(EventType.CONTINUE)
 @pwndbg.dbg.event_handler(EventType.STOP)
 def update_last() -> None:
-    M: module = cast(module, sys.modules[__name__])
-    M.previous = M.last
-    M.last = {k: M.read_reg(k) for k in M.common}
+    regs.previous = regs.last
+    regs.last = {k: regs.read_reg(k) for k in regs.common}
     # TODO: Uncomment this once the LLDB command port PR for `context` is merged
     # if pwndbg.config.show_retaddr_reg:
     #    M.last.update({k: M[k] for k in M.retaddr})
