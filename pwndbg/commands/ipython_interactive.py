@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import sys
 from contextlib import contextmanager
+from typing import Iterator
 
 import gdb
 
@@ -16,7 +17,7 @@ from pwndbg.commands import CommandCategory
 
 
 @contextmanager
-def switch_to_ipython_env():
+def switch_to_ipython_env() -> Iterator[None]:
     saved_excepthook = sys.excepthook
     try:
         saved_ps = sys.ps1, sys.ps2
