@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import sys
 from contextlib import contextmanager
+from typing import Iterator
 
 import gdb
 
@@ -16,16 +17,20 @@ from pwndbg.commands import CommandCategory
 
 
 @contextmanager
-def switch_to_ipython_env():
-    """We need to change stdout/stderr to the default ones, otherwise we can't use tab or autocomplete"""
-    # Save GDB's excepthook
+def switch_to_ipython_env() -> Iterator[None]:
     saved_excepthook = sys.excepthook
-    # Switch to default stdout/stderr
-    with pwndbg.lib.stdio.stdio:
-        yield
-    # Restore Python's default ps1, ps2, and excepthook for GDB's `pi` command
-    sys.ps1 = ">>> "
-    sys.ps2 = "... "
+    try:
+        saved_ps = sys.ps1, sys.ps2
+    except AttributeError:
+        saved_ps = None
+    yield
+    # Restore Python's default `ps1`, `ps2`, and `excepthook`
+    # to ensure proper behavior of the GDB repl.
+    if saved_ps is not None:
+        sys.ps1, sys.ps2 = saved_ps
+    else:
+        del sys.ps1
+        del sys.ps2
     sys.excepthook = saved_excepthook
 
 

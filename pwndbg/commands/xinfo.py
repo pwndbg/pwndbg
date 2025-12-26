@@ -103,20 +103,16 @@ def xinfo_default(page: Page, addr: int) -> None:
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def xinfo(address=None) -> None:
-    address = address.cast(
-        pwndbg.aglib.typeinfo.pvoid
-    )  # Fixes issues with function ptrs (xinfo malloc)
-    addr = int(address)
-    addr &= pwndbg.aglib.arch.ptrmask
+def xinfo(address: int) -> None:
+    address &= pwndbg.aglib.arch.ptrmask
 
-    page = pwndbg.aglib.vmmap.find(addr)
+    page = pwndbg.aglib.vmmap.find(address)
 
     if page is None:
-        print(f"\n  Virtual address {addr:#x} is not mapped.")
+        print(f"\n  Virtual address {address:#x} is not mapped.")
         return
 
-    print(f"Extended information for virtual address {mem_color.get(addr)}:")
+    print(f"Extended information for virtual address {mem_color.get(address)}:")
 
     print("\n  Containing mapping:")
     print(mem_color.get(address, text=str(page)))
@@ -124,9 +120,9 @@ def xinfo(address=None) -> None:
     print("\n  Offset information:")
 
     if page.is_stack:
-        xinfo_stack(page, addr)
+        xinfo_stack(page, address)
     else:
-        xinfo_default(page, addr)
+        xinfo_default(page, address)
 
     if page.is_memory_mapped_file:
-        xinfo_mmap_file(page, addr)
+        xinfo_mmap_file(page, address)

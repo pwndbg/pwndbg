@@ -8,6 +8,7 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 
 from __future__ import annotations
 
+from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -39,7 +40,15 @@ def is_corefile() -> bool:
 
     As the two differ in output slighty.
     """
-    return "Local core dump file:\n" in pwndbg.gdblib.info.target()
+    inf = gdb.selected_inferior()
+    if inf is None:
+        return False
+    conn = inf.connection
+    if conn is None:
+        return False
+    if not isinstance(inf.connection, gdb.TargetConnection):
+        return False
+    return conn.type == "core"
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
@@ -59,27 +68,26 @@ def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     return proc_tid_maps()
 
 
-@pwndbg.lib.cache.cache_until("objfile", "start")
-def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    """
-    Parses `info proc mappings` and `maintenance info sections`
-    and tries to make sense out of the result :)
-    """
-    pages = list(info_proc_maps(parse_flags=False))
+def iter_coredump_sections() -> Iterator[pwndbg.lib.memory.Page]:
+    lines = gdb.execute("maintenance info sections", to_string=True)
+    started_sections = False
     ptrsize = pwndbg.aglib.arch.ptrsize
 
-    started_sections = False
-    for line in gdb.execute("maintenance info sections", to_string=True).splitlines():
+    for line in lines.splitlines():
         if not started_sections:
             if "Core file:" in line:
                 started_sections = True
             continue
 
+        if not line.startswith(" "):
+            # End of section
+            break
+
         # We look for lines like:
         # ['[9]', '0x00000000->0x00000150', 'at', '0x00098c40:', '.auxv', 'HAS_CONTENTS']
         # ['[15]', '0x555555555000->0x555555556000', 'at', '0x00001430:', 'load2', 'ALLOC', 'LOAD', 'READONLY', 'CODE', 'HAS_CONTENTS']
         try:
-            _idx, start_end, _at_str, _at, name, *flags_list = line.split()
+            _idx, start_end, _at_str, _at, section_name, *flags_list = line.split()
             start, end = (int(v, 16) for v in start_end.split("->"))
 
             # Skip pages with start=0x0, this is unlikely this is valid vmmap
@@ -101,23 +109,34 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
         if "CODE" in flags_list:
             flags |= 1
 
+        page = pwndbg.lib.memory.Page(
+            start, end - start, flags, offset, ptrsize, f"[{section_name}]"
+        )
+        yield page
+
+
+def enhance_coredump_sections_pages_info(pages: List[pwndbg.lib.memory.Page]) -> None:
+    for section in iter_coredump_sections():
         # Now, if the section is already in pages, just add its perms
         known_page = False
 
         for page in pages:
-            if start in page:
-                page.flags |= flags
+            if section.start in page:
+                page.flags |= section.flags
                 known_page = True
                 break
 
         if known_page:
             continue
 
-        pages.append(pwndbg.lib.memory.Page(start, end - start, flags, offset, ptrsize, name))
+        pages.append(section)
 
+
+def enhance_known_pages_info(pages: List[pwndbg.lib.memory.Page]) -> None:
     if not pages:
-        return ()
+        return
 
+    # ffffffffff600000-ffffffffff601000
     # If the last page starts on e.g. 0xffffffffff600000 it must be vsyscall
     vsyscall_page = pages[-1]
     if vsyscall_page.start > 0xFFFFFFFFFF000000 and vsyscall_page.flags & 1:
@@ -126,6 +145,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     # Detect stack based on addresses in AUXV from stack memory
     stack_addr = None
+    vdso_addr = None
 
     # TODO/FIXME: Can we uxe `pwndbg.auxv.get()` for this somehow?
     auxv = pwndbg.gdblib.info.auxv().splitlines()
@@ -135,15 +155,34 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
                 stack_addr = int(line.split()[-2], 16)
             except Exception:
                 pass
-            break
+        if "AT_SYSINFO_EHDR" in line:
+            try:
+                vdso_addr = int(line.split()[-1], 16)
+            except Exception:
+                pass
 
-    if stack_addr is not None:
-        for page in pages:
-            if stack_addr in page:
-                page.objfile = "[stack]"
-                page.flags |= 6
-                page.offset = 0
-                break
+    for page in pages:
+        if stack_addr and stack_addr in page:
+            page.objfile = "[stack]"
+            page.flags |= 6
+            page.offset = 0
+        if vdso_addr:
+            if vdso_addr == page.start:
+                page.objfile = "[vdso]"
+            elif vdso_addr == page.end:
+                page.objfile = "[maybe: vvar/vvar_vclock]"
+
+
+@pwndbg.lib.cache.cache_until("objfile", "start")
+def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
+    """
+    Parses `info proc mappings` and `maintenance info sections`
+    and tries to make sense out of the result :)
+    """
+    pages = list(info_proc_maps(parse_flags=False))
+
+    enhance_coredump_sections_pages_info(pages)
+    enhance_known_pages_info(pages)
 
     pages.sort(key=lambda page: page.start)
     return tuple(pages)
@@ -204,7 +243,7 @@ def parse_info_proc_mappings_line(
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def info_proc_maps(parse_flags=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def info_proc_maps(parse_flags: bool = True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parse the result of info proc mappings.
 
