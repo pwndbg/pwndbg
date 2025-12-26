@@ -14,6 +14,7 @@ else ifeq ($(HOST_ARCH),i686)
 endif
 
 ZIGCC           = uv run python3 -m ziglang cc
+PKG_CONFIG      ?=     pkg-config
 CC              =      gcc
 CXX             =      g++
 MUSLCC          =      musl-gcc
@@ -31,9 +32,13 @@ GO              =      go
 SOURCES_GO      =      $(wildcard *.native.go) $(wildcard *.$(HOST_ARCH).go) $(wildcard *.$(HOST_ARCH_32).go)
 LINKED_GO       =      $(SOURCES_GO:.go=.out)
 
-ifeq ($(TARGET), x86)
-CFLAGS         +=      -m32
+HAVE_JEMALLOC := $(shell $(PKG_CONFIG) --exists jemalloc && echo yes || echo no)
+ifeq ($(HAVE_JEMALLOC),yes)
+JEMALLOC_CFLAGS := $(shell $(PKG_CONFIG) --cflags jemalloc)
+JEMALLOC_LIBS   := $(shell $(PKG_CONFIG) --libs jemalloc)
 endif
+
+HAVE_MUSL := $(shell command -v $(firstword $(MUSLCC)) >/dev/null 2>&1 && echo yes || echo no)
 
 ifeq ($(DEBUG), 1)
 CFLAGS         +=      -DDEBUG=1 -ggdb -O0 -gdwarf-4
@@ -52,10 +57,22 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.native.out heap_jemalloc_heap.native.out heap_musl_dyn.native.out heap_musl_static.native.out gosample.i386.out gosample.x86-64.out
+ALL_JEMALLOC_TARGETS :=
+ifeq ($(HAVE_JEMALLOC),yes)
+ALL_JEMALLOC_TARGETS += heap_jemalloc_extent_info.native.out heap_jemalloc_heap.native.out
+endif
+
+ALL_MUSL_TARGETS :=
+ifeq ($(HAVE_MUSL),yes)
+ALL_MUSL_TARGETS += heap_musl_dyn.native.out heap_musl_static.native.out
+endif
+
+CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_musl_dyn.native.out heap_musl_static.native.out gosample.i386.out gosample.x86-64.out
 NATIVE_CUSTOM_TARGETS  := $(filter %.native.out %.$(HOST_ARCH).out %.$(HOST_ARCH_32).out,$(CUSTOM_TARGETS))
 
-ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(NATIVE_CUSTOM_TARGETS)
+ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(NATIVE_CUSTOM_TARGETS) \
+    $(ALL_JEMALLOC_TARGETS) \
+    $(ALL_MUSL_TARGETS)
 
 all: $(ALL_TARGETS)
 
@@ -128,17 +145,36 @@ heap_find_fake_fast.native.out: heap_find_fake_fast.native.c
 	@echo "[+] Building '$@'"
 	${CC} ${CFLAGS} -w -o $@ $? -pthread -lpthread
 
+ifeq ($(HAVE_JEMALLOC),yes)
+
 heap_jemalloc_extent_info.native.out: heap_jemalloc_extent_info.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -g -O0 -Wno-nonnull -Wno-unused-result \
+	$(JEMALLOC_CFLAGS) \
 	-o $@ $? \
-	-Wl,-Bstatic -ljemalloc -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
+	-Wl,-Bstatic $(JEMALLOC_LIBS) -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
 
 heap_jemalloc_heap.native.out: heap_jemalloc_heap.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -g -O0 -Wno-nonnull -Wno-unused-result \
+	$(JEMALLOC_CFLAGS) \
 	-o $@ $? \
-	-Wl,-Bstatic -ljemalloc -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
+	-Wl,-Bstatic $(JEMALLOC_LIBS) -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
+
+else
+
+heap_jemalloc_extent_info.native.out: heap_jemalloc_extent_info.native.c
+	@echo "[!] Skip '$@'"
+
+heap_jemalloc_heap.native.out: heap_jemalloc_heap.native.c
+	@echo "[!] Skip '$@'"
+
+$(info [!] jemalloc not found via $(PKG_CONFIG) – skipping jemalloc targets)
+
+endif
+
+
+ifeq ($(HAVE_MUSL),yes)
 
 heap_musl_dyn.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
@@ -152,6 +188,18 @@ heap_musl_dyn.native.out: heap_musl.native.c
 heap_musl_static.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
 	${MUSLCC} -g3 -O0 -static -o $@ $?
+
+else
+
+heap_musl_dyn.native.out: heap_musl.native.c
+	@echo "[!] Skip '$@'"
+
+heap_musl_static.native.out: heap_musl.native.c
+	@echo "[!] Skip '$@'"
+
+$(info [!] musl compiler not found ($(MUSLCC)) – skipping musl targets)
+
+endif
 
 multiple_threads.native.out: multiple_threads.native.c
 	@echo "[+] Building '$@'"

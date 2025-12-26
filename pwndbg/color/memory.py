@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any
 from typing import Callable
 
-import pwndbg.integration
+import pwndbg.aglib.stack
+import pwndbg.aglib.symbol
+import pwndbg.aglib.vmmap
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import normal
@@ -24,7 +26,7 @@ c = ColorConfig(
 )
 
 
-def get_address_and_symbol(address: int) -> str:
+def get_address_and_symbol(address: int, decompiler_stack_variables: dict[int, str]) -> str:
     """
     Convert and colorize address 0x7ffff7fcecd0 to string `0x7ffff7fcecd0 (_dl_fini)`
     If no symbol exists for the address, return colorized address
@@ -33,24 +35,24 @@ def get_address_and_symbol(address: int) -> str:
     if symbol:
         symbol = f"{address:#x} ({symbol})"
     else:
-        page = pwndbg.aglib.vmmap.find(address)
-        if page and "[stack" in page.objfile:
-            var = pwndbg.aglib.stack.get_stack_var_name(address)
-            if not var:
-                var = pwndbg.integration.provider.get_stack_var_name(address)
-            if var:
-                symbol = f"{address:#x} {{{var}}}"
+        var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
+        if var is None:
+            var = decompiler_stack_variables.get(address)
+        if var is not None:
+            symbol = f"{address:#x} {{{var}}}"
     return get(address, symbol)
 
 
-def get_address_or_symbol(address: int) -> str:
+def get_address_or_symbol(address: int, decompiler_stack_variables: dict[int, str]) -> str:
     """
     Convert and colorize address to symbol if it can be resolved, else return colorized address
     """
-    return attempt_colorized_symbol(address) or get(address)
+    return attempt_colorized_symbol(address, decompiler_stack_variables) or get(address)
 
 
-def attempt_colorized_symbol(address: int) -> str | None:
+def attempt_colorized_symbol(
+    address: int, decompiler_stack_variables: dict[int, str]
+) -> str | None:
     """
     Convert address to colorized symbol (if symbol is there), else None
     """
@@ -58,13 +60,11 @@ def attempt_colorized_symbol(address: int) -> str | None:
     if symbol:
         return get(address, symbol)
     else:
-        page = pwndbg.aglib.vmmap.find(address)
-        if page and "[stack" in page.objfile:
-            var = pwndbg.aglib.stack.get_stack_var_name(address)
-            if not var:
-                var = pwndbg.integration.provider.get_stack_var_name(address)
-            if var:
-                return get(address, f"{{{var}}}")
+        var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
+        if var is None:
+            var = decompiler_stack_variables.get(address)
+        if var is not None:
+            return get(address, f"{{{var}}}")
     return None
 
 

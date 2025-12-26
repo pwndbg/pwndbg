@@ -24,7 +24,7 @@ def r2pipe():
 
     Returns a r2pipe.open handle.
     """
-    filename = pwndbg.aglib.proc.exe
+    filename = pwndbg.aglib.proc.exe()
     if not filename:
         raise Exception("Could not find objfile to create a r2pipe for")
 
@@ -32,7 +32,7 @@ def r2pipe():
 
     if pwndbg.aglib.qemu.is_qemu_kernel():
         flags = ["-e", "bin.cache=true", "-e", "bin.relocs.apply=true"]
-        if (kbase := pwndbg.aglib.kernel.kbase()) and filename == pwndbg.aglib.proc.exe:
+        if (kbase := pwndbg.aglib.kernel.kbase()) and filename == pwndbg.aglib.proc.exe():
             flags.extend(
                 [
                     "-e",

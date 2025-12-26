@@ -5,6 +5,7 @@ from typing import Iterator
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
+import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.macros import container_of
 from pwndbg.dbg_mod import EventType
 

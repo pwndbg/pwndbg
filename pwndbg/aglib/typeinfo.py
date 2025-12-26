@@ -9,6 +9,7 @@ from typing import Dict
 from typing import Optional
 
 import pwndbg
+import pwndbg.dbg_mod
 
 module = sys.modules[__name__]
 

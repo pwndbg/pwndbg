@@ -5,7 +5,7 @@ import shutil
 
 import pwndbg.aglib.onegadget
 import pwndbg.aglib.proc
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.glibc
 from pwndbg.commands import CommandCategory
@@ -28,22 +28,24 @@ parser.add_argument("-v", "--verbose", help="Show verbose output.", action="stor
 @pwndbg.commands.OnlyWhenRunning
 def onegadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool = False) -> None:
     if not shutil.which("one_gadget"):
-        print(M.error("Could not find one_gadget. Please ensure it's installed and in $PATH."))
+        print(
+            message.error("Could not find one_gadget. Please ensure it's installed and in $PATH.")
+        )
         return
 
     path = pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
     if not path:
-        print(M.error("Could not find libc. Please ensure it's loaded."))
+        print(message.error("Could not find libc. Please ensure it's loaded."))
         return
-    print(f"Using libc: {M.hint(path)}")
+    print(f"Using libc: {message.hint(path)}")
     print()
 
     gadgets_count = pwndbg.aglib.onegadget.find_gadgets(show_unsat, no_unknown, verbose)
     for result, count in gadgets_count.items():
-        print(f"Found {M.hint(count)} {result} gadgets.")
+        print(f"Found {message.hint(count)} {result} gadgets.")
     if not gadgets_count[pwndbg.aglib.onegadget.SAT] and not show_unsat:
         print(
-            M.warn(
+            message.warn(
                 "No valid gadgets found, you might want to run with --show-unsat again to check unsatisfiable gadgets.\n"
                 "To see why they are unsatisfiable, you might want to run with -v or --verbose."
             )

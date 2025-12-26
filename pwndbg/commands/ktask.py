@@ -8,10 +8,14 @@ from __future__ import annotations
 import argparse
 from typing import Tuple
 
-import pwndbg.color as C
+import pwndbg.aglib.kernel
+import pwndbg.aglib.symbol
+import pwndbg.color as color
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 import pwndbg.lib
+import pwndbg.lib.cache
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.lib.exception import IndentContextManager
 
@@ -62,12 +66,12 @@ class Kthread:
         return None
 
     def __str__(self):
-        thread = C.blue(hex(int(self.thread)))
+        thread = color.blue(hex(int(self.thread)))
         prefix = f"[pid {self.pid}]"
         desc = " "
-        prefix = C.blue(f"{prefix:<9}") + f"task @ {thread}: {self.name:<16}"
+        prefix = color.blue(f"{prefix:<9}") + f"task @ {thread}: {self.name:<16}"
         user = ", has user pages" if self.has_user_page else ""
-        desc = C.red(f"cpu #{self.cpu} (uid: {self.uid}, gid: {self.gid}{user})")
+        desc = color.red(f"cpu #{self.cpu} (uid: {self.uid}, gid: {self.gid}{user})")
         return f"{prefix} {desc}"
 
 

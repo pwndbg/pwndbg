@@ -10,8 +10,9 @@ from typing import Set
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.asm
+import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.enhance
 import pwndbg.search
@@ -41,8 +42,8 @@ def print_search_hit(address: int) -> None:
 
     region = region.ljust(15)
 
-    region = M.get(address, region)
-    addr = M.get(address)
+    region = mem_color.get(address, region)
+    addr = mem_color.get(address)
     display = pwndbg.enhance.enhance(address)
     print(region, addr, display)
 

@@ -531,9 +531,9 @@ class DyldSharedCache:
         # we're doing something wrong than have to track a random bug back to
         # this point.
         mapping_fileoff = pwndbg.aglib.memory.u64(mapping_ptr + 0x10)
-        assert (
-            mapping_fileoff == 0
-        ), "First mapping of the shared cache is not at the start of the shared cache"
+        assert mapping_fileoff == 0, (
+            "First mapping of the shared cache is not at the start of the shared cache"
+        )
 
         slide = self.base - mapping_base
         assert slide >= 0, "Slide value is negative, but we don't expect it to be"
@@ -627,9 +627,9 @@ class DyldSharedCache:
 
             # Technically possible, but we have *no* idea what to do if this
             # happens, and it's more likely that we got something wrong.
-            assert (
-                offset != 0
-            ), "Tried to query builtin selector identity, but have no Objective-C optimization header?"
+            assert offset != 0, (
+                "Tried to query builtin selector identity, but have no Objective-C optimization header?"
+            )
         else:
             raise NotImplementedError(
                 "Objective-C optimization queries are not yet supported for shared caches that have no objcOptsOffset value"

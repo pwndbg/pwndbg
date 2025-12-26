@@ -9,7 +9,7 @@ from typing import Tuple
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
-import pwndbg.color as C
+import pwndbg.color as color
 import pwndbg.commands
 import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.macros import container_of
@@ -19,10 +19,10 @@ from pwndbg.commands import CommandCategory
 
 log = logging.getLogger(__name__)
 
-addrc = C.green
-fieldnamec = C.blue
-fieldvaluec = C.yellow
-typenamec = C.red
+addrc = color.green
+fieldnamec = color.blue
+fieldvaluec = color.yellow
+typenamec = color.red
 
 
 def for_each_transaction(addr: pwndbg.dbg_mod.Value, field: str) -> Iterator[pwndbg.dbg_mod.Value]:

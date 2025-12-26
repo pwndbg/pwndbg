@@ -4,6 +4,8 @@ import argparse
 
 import pwndbg
 import pwndbg.aglib.dt
+import pwndbg.aglib.memory
+import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

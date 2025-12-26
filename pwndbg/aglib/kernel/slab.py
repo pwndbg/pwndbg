@@ -8,8 +8,8 @@ from typing import Tuple
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
-import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
+import pwndbg.dbg_mod
 from pwndbg.aglib import kernel
 from pwndbg.aglib.kernel.macros import compound_head
 from pwndbg.aglib.kernel.macros import for_each_entry
