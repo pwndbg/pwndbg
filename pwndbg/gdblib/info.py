@@ -38,6 +38,13 @@ def files() -> str:
         return ""
 
 
+def target() -> str:
+    try:
+        return gdb.execute("info target", to_string=True)
+    except gdb.error:
+        return ""
+
+
 class Section(NamedTuple):
     objfile: str
     section: str
