@@ -5,8 +5,8 @@ Runs a few useful commands which are available under "info".
 from __future__ import annotations
 
 from typing import Iterator
-from typing import List
 from typing import NamedTuple
+from typing import Tuple
 
 import gdb
 
@@ -106,5 +106,5 @@ def iter_sections() -> Iterator[Section]:
 
 
 @pwndbg.lib.cache.cache_until("stop", "objfile")
-def sections() -> List[Section]:
-    return list(iter_sections())
+def sections() -> Tuple[Section, ...]:
+    return tuple(iter_sections())
