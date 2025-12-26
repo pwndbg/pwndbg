@@ -53,7 +53,6 @@ class Section(NamedTuple):
     offset: int
 
 
-@pwndbg.lib.cache.cache_until("stop", "objfile")
 def sections() -> Iterator[Section]:
     """
     Parse sections from GDB `maintenance info target-sections`.
