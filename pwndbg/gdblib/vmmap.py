@@ -243,7 +243,7 @@ def parse_info_proc_mappings_line(
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def info_proc_maps(parse_flags: bool=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def info_proc_maps(parse_flags: bool = True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parse the result of info proc mappings.
 
