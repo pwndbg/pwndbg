@@ -33,10 +33,3 @@ def files() -> str:
         return gdb.execute("info files", to_string=True)
     except gdb.error:
         return ""
-
-
-def target() -> str:
-    try:
-        return gdb.execute("info target", to_string=True)
-    except gdb.error:
-        return ""
