@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 
 from . import get_binary

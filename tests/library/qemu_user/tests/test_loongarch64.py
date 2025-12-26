@@ -56,9 +56,9 @@ def test_loongarch64_simple_branches(qemu_assembly_run):
         " \n"
         "   0x10101a8 <two+12>    b      end                         <end>\n"
         "    ↓\n"
-        "   0x10101c0 <end>       nop    \n"
-        "   0x10101c4 <end+4>     nop    \n"
-        "   0x10101c8 <end+8>     nop    \n"
+        "   0x10101c0 <end>       nop   \n"
+        "   0x10101c4 <end+4>     nop   \n"
+        "   0x10101c8 <end+8>     nop   \n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
 

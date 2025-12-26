@@ -7,8 +7,8 @@ from typing import NamedTuple
 from typing import Tuple
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.commands
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.arch import Platform
@@ -237,11 +237,15 @@ def get_commpage_mappings() -> Tuple[pwndbg.lib.memory.Page, ...]:
     if start_rw is None or not pwndbg.aglib.memory.peek(start_rw):
         return ()
 
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
+
     start_ro = _comm_start_page_ro.get(pwndbg.aglib.arch.name, None)
     if start_ro is None or not pwndbg.aglib.memory.peek(start_ro):
-        return (pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, "[commpage]"),)
+        return (
+            pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, ptrsize, "[commpage]"),
+        )
 
     return (
-        pwndbg.lib.memory.Page(start_ro, _comm_max_size, ro_flags, 0, "[commpage]"),
-        pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, "[commpage]"),
+        pwndbg.lib.memory.Page(start_ro, _comm_max_size, ro_flags, 0, ptrsize, "[commpage]"),
+        pwndbg.lib.memory.Page(start_rw, _comm_max_size, rw_flags, 0, ptrsize, "[commpage]"),
     )

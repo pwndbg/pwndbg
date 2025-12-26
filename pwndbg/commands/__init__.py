@@ -8,30 +8,29 @@ from __future__ import annotations
 
 import argparse
 import functools
-import inspect
-import io
 import logging
 from enum import Enum
 from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
-from typing import Literal
 from typing import Optional
 from typing import Set
-from typing import Tuple
 from typing import TypeVar
 
 from typing_extensions import ParamSpec
 from typing_extensions import override
 
+import pwndbg.aglib
 import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.regs
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.exception
+import pwndbg.integration
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
@@ -153,13 +152,14 @@ class CommandObj:
         /,  # All parameters must be passed in positionally
     ) -> None:
         assert function
-        self.function = function
+        self.function: Callable[..., str | None] = function
 
-        self.command_name = command_name
-        if self.command_name is None:
+        if command_name is None:
             # Take the command name from the name of the function
             # which defines it, but replace '_' with '-'.
-            self.command_name = function.__name__.replace("_", "-")
+            self.command_name: str = function.__name__.replace("_", "-")
+        else:
+            self.command_name = command_name
 
         assert "_" not in self.command_name and "Use '-' instead of '_' in command names."
         assert self.command_name not in command_names and "Command already exists."
@@ -173,15 +173,18 @@ class CommandObj:
         )
 
         assert category
-        self.category = category
+        self.category: CommandCategory = category
 
-        self.aliases = aliases
-        self.examples = examples.strip()
-        self.notes = notes.strip()
+        self.aliases: list[str] = aliases
+        self.examples: str = examples.strip()
+        self.notes: str = notes.strip()
 
         assert parser
-        self.parser = parser
-        # Sets self.help_str and self.description (among other stuff).
+        self.parser: argparse.ArgumentParser = parser
+        # Sets self.help_str, self.description and self.subcommand_names (among other stuff).
+        self.help_str: str
+        self.description: str
+        self.subcommand_names: list[str] | None
         self.initialize_parser()
 
         # Let the debugger and pwndbg global state know about it.
@@ -189,7 +192,7 @@ class CommandObj:
 
         # For commands like hexdump where you get new output from
         # continuous invocations.
-        self.repeat = False
+        self.repeat: bool = False
 
     def register_command(self):
         """
@@ -205,10 +208,16 @@ class CommandObj:
         self.handles = []
 
         # Tell the debugger about the command...
-        self.handles.append(pwndbg.dbg.add_command(self.command_name, _handler, self.help_str))
+        self.handles.append(
+            pwndbg.dbg.add_command(
+                self.command_name, _handler, self.help_str, self.subcommand_names
+            )
+        )
         # ...and all of its aliases.
         for alias in self.aliases:
-            self.handles.append(pwndbg.dbg.add_command(alias, _handler, self.help_str))
+            self.handles.append(
+                pwndbg.dbg.add_command(alias, _handler, self.help_str, self.subcommand_names)
+            )
 
         command_names.add(self.command_name)
         commands.append(self)
@@ -221,54 +230,7 @@ class CommandObj:
     def has_examples_string(text: str) -> bool:
         return any(ex in text.lower() for ex in ("example:", "examples:"))
 
-    def initialize_parser(self):
-        # Set parser.prog so the help is generated properly.
-        self.parser.prog = self.command_name
-
-        # We want to run all integer and otherwise-unspecified arguments
-        # through fix() so that GDB parses it.
-        # FIXME: this is weird
-        def process_actions(actions):
-            """Recursively process actions, including subparsers"""
-            for action in actions:
-                if isinstance(action, argparse._SubParsersAction):
-                    action.type = str
-                    # Recursively process each subparser's actions
-                    for subparser in action.choices.values():
-                        process_actions(subparser._actions)
-                if action.dest == "help":
-                    continue
-                if action.type is int:
-                    action.type = fix_int_reraise_arg
-                elif action.type is None:
-                    action.type = fix_reraise_arg
-
-        process_actions(self.parser._actions)
-
-        assert (
-            self.parser.formatter_class is argparse.HelpFormatter
-            and "All pwndbg commands should use the same formatter."
-        )
-
-        self.parser.formatter_class = CommandFormatter
-
-        # Used by `pwndbg [filter]`
-        assert (
-            self.parser.description
-            and self.parser.description.strip()
-            and "A command must contain a description."
-        )
-        self.description = self.parser.description = self.parser.description.strip()
-
-        assert (
-            not self.has_examples_string(self.description)
-            and "Put examples into pwndbg.commands.Command(examples=your_example)."
-        )
-        assert (
-            not self.has_notes_string(self.description)
-            and "Put notes into pwndbg.commands.Command(notes=your_note)."
-        )
-
+    def setup_epilog(self) -> None:
         # Build the actual epilog from the examples, notes and passed epilog.
         self.epilog = ""
         self.pure_epilog = ""
@@ -309,6 +271,133 @@ class CommandObj:
 
         # Update the parser so the help is correctly generated.
         self.parser.epilog = self.epilog = self.epilog.strip()
+
+    @staticmethod
+    def initialize_parser_recursively(
+        parser: argparse.ArgumentParser, top_level_name: str, level: int
+    ) -> None:
+        if level == 0:
+            # Top level command
+            assert parser.prog[0] != " "
+            assert top_level_name == ""
+        else:
+            # Workaround until https://github.com/pwndbg/pwndbg/issues/3523
+            # is fixed.
+            parser.prog = (
+                parser.prog.replace("pwndbg-lldb", "")
+                .replace("launch_guest.py", "")
+                .replace("python3 -m tests.host.lldb.launch_guest", "")
+            )
+            # A level one subcommand will have parser.prog == " install"
+            # while a level two subcommand will have parser.prog == "install ida".
+            # Except on lldb, where its " install ida" (after the replace).
+            # How does this make sense? So annoying..
+            assert top_level_name != ""
+            if level == 1:
+                assert parser.prog[0] == " ", (
+                    "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+                )
+            else:
+                parser.prog = parser.prog.strip()
+                assert parser.prog.count(" ") == level - 1, (
+                    "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+                )
+                parser.prog = " " + parser.prog
+
+        parser.prog = top_level_name + parser.prog
+
+        # We want to run all integer and otherwise-unspecified arguments
+        # through fix() so that GDB parses it.
+        for action in parser._actions:
+            if action.dest == "help":
+                # The HelpAction exists by default and handles `-h` and `--help`.
+                # No need to do anything about it.
+                continue
+
+            if not isinstance(action, argparse._SubParsersAction) and action.help is None:
+                # When we do `cmd -h` we want each argument to have a one-line
+                # description.
+                # Unfortunately, I don't know how to enforce that each subcommand has a help=
+                # passed to its add_parser() :(
+                print(message.error(f"Error parsing arguments for command: {parser.prog}"))
+                print("You must add a `help=` string to your argument.")
+                print(f"Erroneous action:\n\t{repr(action)}\n")
+                assert False, "You must add a `help=` string to your argument."
+
+            if action.type is int:
+                action.type = fix_int_reraise_arg
+            elif type(action) is argparse._StoreAction and action.type is None:
+                # Prevents bugs like https://github.com/pwndbg/pwndbg/pull/3477
+                print(message.error(f"Error parsing arguments for command: {parser.prog}"))
+                print("You must set the argument type for a store action.")
+                print(f"Erroneous action:\n\t{repr(action)}\n")
+                assert False, "You must set the argument type for a store action."
+
+        assert (
+            parser.formatter_class is argparse.HelpFormatter
+            and "All pwndbg commands should use the same formatter."
+        )
+
+        parser.formatter_class = CommandFormatter
+
+        # Used by `pwndbg [filter]`
+        assert (
+            parser.description
+            and parser.description.strip()
+            and "A command must contain a description."
+        )
+        parser.description = parser.description.strip()
+
+        # Run recursively on subparsers (if any)
+        for action in parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                if level == 0:
+                    top_level_name = parser.prog
+                last_prog = "<doesn't exist>"
+                for subparser in action.choices.values():
+                    # Argparse creates duplicate objects for aliases, we don't need to
+                    # reparse them (and shouldn't, as we will mess up the parser.prog).
+                    if subparser.prog != last_prog:
+                        CommandObj.initialize_parser_recursively(
+                            subparser, top_level_name, level + 1
+                        )
+
+                    last_prog = subparser.prog
+
+    def initialize_parser(self) -> None:
+        # Set parser.prog so the help is generated properly.
+        self.parser.prog = self.command_name
+
+        # Clean up and check subcommands as well
+        CommandObj.initialize_parser_recursively(self.parser, "", 0)
+
+        # Add non-alias subcommands to self.subcommand_names which will
+        # register them for tab-completion in the debugger.
+        self.subcommand_names = None
+        for action in self.parser._actions:
+            if isinstance(action, argparse._SubParsersAction):
+                self.subcommand_names = []
+                last_prog = "<doesn't exist>"
+                for subcmd_name, subparser in action.choices.items():
+                    if subparser.prog != last_prog:
+                        self.subcommand_names.append(subcmd_name)
+                    last_prog = subparser.prog
+                # Not sure what multiple subparser actions would mean..
+                break
+
+        assert self.parser.description
+        self.description = self.parser.description
+
+        assert (
+            not self.has_examples_string(self.description)
+            and "Put examples into pwndbg.commands.Command(examples=your_example)."
+        )
+        assert (
+            not self.has_notes_string(self.description)
+            and "Put notes into pwndbg.commands.Command(notes=your_note)."
+        )
+
+        self.setup_epilog()
 
         # Generate command help (after stripping the parser's variables
         # and defining a formatter).
@@ -380,15 +469,15 @@ class CommandObj:
             pwndbg.exception.handle(self.function.__name__)
         except ConnectionRefusedError:
             print(message.error("Connection Refused Exception."))
-            print(message.hint("Did an integration provider die?"), end="")
-            # If yes, the resulting state can be really messy.
-            if pwndbg.integration.provider_name != "none":
-                print(
-                    message.hint(
-                        f" Automatically disabled {pwndbg.integration.provider_name} integration."
-                    )
-                )
-                pwndbg.integration.provider.disable()
+            print(message.hint("Did the decompiler integration connection die?"), end="")
+            # If yes, we need to throw the connection out and fix up the manager's
+            # state. The manager has not yet realized that the connection is doomed,
+            # so we can check like this if we *were* connected.
+            if pwndbg.integration.manager.is_connected():
+                decompiler_name = pwndbg.integration.manager.decompiler_name()
+                pwndbg.integration.manager.disconnect()
+                print(message.hint(f" Automatically disabled {decompiler_name} integration."))
+                print("Feel free to re-enable manually.")
             else:
                 print()
 
@@ -569,7 +658,15 @@ def fix_int_reraise(*a, **kw) -> int:
 def fix_int_reraise_arg(arg) -> int:
     """fix_int_reraise wrapper for evaluating command arguments"""
     try:
-        fixed = fix_reraise_arg(arg)
+        fixed: pwndbg.dbg_mod.Value = fix_reraise_arg(arg)
+        if fixed.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+            # Fixes issues with function ptrs (e.g. passing in `malloc`).
+            func_addr = fixed.address
+            if func_addr is None:
+                raise argparse.ArgumentTypeError(
+                    f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Function is not addressable."
+                )
+            return int(func_addr)
         return int(fixed)
     except pwndbg.dbg_mod.Error as e:
         raise argparse.ArgumentTypeError(
@@ -601,7 +698,7 @@ def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, Optional[T]]:
 def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> Optional[T]:
-        if pwndbg.aglib.proc.exe:
+        if pwndbg.aglib.proc.exe():
             return function(*a, **kw)
         else:
             if pwndbg.aglib.qemu.is_qemu():
@@ -690,7 +787,7 @@ def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     @functools.wraps(function)
     def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> Optional[T]:
         # TODO: Properly support OnlyWhenRunning without `gdblib`.
-        if pwndbg.aglib.proc.alive:
+        if pwndbg.aglib.proc.alive():
             return function(*a, **kw)
         else:
             log.error(f"{func_name(function)}: The program is not being run.")
@@ -899,27 +996,24 @@ def load_commands() -> None:
     if pwndbg.dbg.is_gdblib_available():
         import pwndbg.commands.ai
         import pwndbg.commands.attachp
-        import pwndbg.commands.binja_functions
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
-        import pwndbg.commands.got
         import pwndbg.commands.got_tracking
-        import pwndbg.commands.ptmalloc2_tracking
-        import pwndbg.commands.ida
         import pwndbg.commands.ignore
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.killthreads
         import pwndbg.commands.peda
+        import pwndbg.commands.ptmalloc2_tracking
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
+        import pwndbg.commands.updown
 
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
     import pwndbg.commands.asm
     import pwndbg.commands.auxv
     import pwndbg.commands.binder
-    import pwndbg.commands.binja
     import pwndbg.commands.buddydump
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
@@ -936,8 +1030,8 @@ def load_commands() -> None:
     import pwndbg.commands.elf
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
-    import pwndbg.commands.ghidra
     import pwndbg.commands.godbg
+    import pwndbg.commands.got
     import pwndbg.commands.hex2ptr
     import pwndbg.commands.hexdump
     import pwndbg.commands.hijack_fd

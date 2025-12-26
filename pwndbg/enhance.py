@@ -73,7 +73,9 @@ def enhance(
 
     # If it's a pointer that we told we cannot deference, then color it accordingly and add symbol if can
     if page and not attempt_dereference:
-        return pwndbg.color.memory.get_address_and_symbol(value)
+        return pwndbg.color.memory.get_address_and_symbol(
+            value, pwndbg.integration.manager.get_stack_var_dict_all()
+        )
 
     if not can_read:
         return E.integer(int_str(value))
@@ -87,10 +89,6 @@ def enhance(
     # For the purpose of following pointers, don't display
     # anything on the stack or heap as 'code'
     if "[stack" in page.objfile or "[heap" in page.objfile:
-        rwx = exe = False
-
-    # If integration doesn't think it's in a function, don't display it as code.
-    if not pwndbg.integration.provider.is_in_function(value):
         rwx = exe = False
 
     if exe:
@@ -152,7 +150,9 @@ def enhance(
         # It might be a pointer or just a plain integer
         new_page = pwndbg.aglib.vmmap.find(intval0)
         if new_page:
-            return pwndbg.color.memory.get_address_and_symbol(intval0)
+            return pwndbg.color.memory.get_address_and_symbol(
+                intval0, pwndbg.integration.manager.get_stack_var_dict_all()
+            )
         else:
             return E.integer(int_str(intval0))
 

@@ -10,16 +10,15 @@ from typing import Tuple
 from urllib.parse import ParseResult
 from urllib.parse import urlparse
 
-from pwnlib import asm
 from pwnlib import constants
 from pwnlib import shellcraft
 from pwnlib.util.net import sockaddr
 
+import pwndbg.aglib.asm
 import pwndbg.aglib.memory
 import pwndbg.aglib.shellcode
 import pwndbg.commands
-import pwndbg.lib.abi
-import pwndbg.lib.memory
+import pwndbg.dbg_mod
 import pwndbg.lib.regs
 from pwndbg.commands import CommandCategory
 
@@ -45,9 +44,9 @@ def get_shellcode_regs() -> ShellcodeRegs:
             and reg_name != syscall_abi.syscall_register
         )
     )
-    assert (
-        newfd_reg is not None
-    ), f"architecture {pwndbg.aglib.arch.name} don't have unused register..."
+    assert newfd_reg is not None, (
+        f"architecture {pwndbg.aglib.arch.name} don't have unused register..."
+    )
 
     return ShellcodeRegs(newfd_reg, register_set.retval, register_set.stack)
 
@@ -60,7 +59,7 @@ def stack_size_alignment(s: int) -> int:
     return s + (syscall_abi.arg_alignment - (s % syscall_abi.arg_alignment))
 
 
-def asm_replace_file(replace_fd: int, filename: str) -> Tuple[int, str]:
+def asm_replace_file(replace_fd: int, filename: str) -> Tuple[int, bytes]:
     filename = filename.encode() + b"\x00"
 
     regs = get_shellcode_regs()
@@ -78,7 +77,7 @@ def asm_replace_file(replace_fd: int, filename: str) -> Tuple[int, str]:
         else shellcraft.syscall("SYS_dup3", regs.newfd, replace_fd, 0)
     )
 
-    return stack_size, asm.asm(
+    return stack_size, pwndbg.aglib.asm.asm(
         "".join(
             [
                 shellcraft.pushstr(filename, False),
@@ -91,7 +90,7 @@ def asm_replace_file(replace_fd: int, filename: str) -> Tuple[int, str]:
     )
 
 
-def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> Tuple[int, str]:
+def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> Tuple[int, bytes]:
     sockdata, addr_len, _ = sockaddr(socket_data.address, socket_data.port, socket_data.ip_version)
     socktype = {"tcp": "SOCK_STREAM", "udp": "SOCK_DGRAM"}[socket_data.protocol]
     family = {"ipv4": "AF_INET", "ipv6": "AF_INET6"}[socket_data.ip_version]
@@ -105,7 +104,7 @@ def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> Tuple[int,
         else shellcraft.syscall("SYS_dup3", regs.newfd, replace_fd, 0)
     )
 
-    return stack_size, asm.asm(
+    return stack_size, pwndbg.aglib.asm.asm(
         "".join(
             [
                 shellcraft.syscall("SYS_socket", family, socktype, 0),
@@ -134,9 +133,9 @@ async def exec_shellcode_with_stack(ec: pwndbg.dbg_mod.ExecutionController, blob
             stack_diff_size = stack_start_diff - pwndbg.aglib.regs.sp
 
             # Make sure stack is not corrupted somehow
-            assert not (
-                stack_diff_size > stack_size
-            ), f"stack is probably corrupted size_current=f{stack_diff_size} size_max_want={stack_size}"
+            assert not (stack_diff_size > stack_size), (
+                f"stack is probably corrupted size_current=f{stack_diff_size} size_max_want={stack_size}"
+            )
 
             yield
     finally:

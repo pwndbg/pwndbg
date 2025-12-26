@@ -9,7 +9,7 @@ REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 @pwndbg_test
 async def test_command_distance(ctrl: Controller):
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -30,14 +30,16 @@ async def test_command_distance(ctrl: Controller):
     for sym1 in ("main", "&main"):
         for sym2 in ("break_here", "&break_here"):
             result = await ctrl.execute_and_capture(f"distance {sym1} {sym2}")
-            assert result == f"{main:#x}->{break_here:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
+            assert (
+                result == f"{main:#x}->{break_here:#x} is {diff:#x} bytes ({diff // 8:#x} words)\n"
+            )
 
     # Test if it works with reg + symbol
     diff = break_here - pc
     result = await ctrl.execute_and_capture("distance $pc &break_here")
-    assert result == f"{pc:#x}->{break_here:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
+    assert result == f"{pc:#x}->{break_here:#x} is {diff:#x} bytes ({diff // 8:#x} words)\n"
 
     # Test if it works with symbol + reg
     diff = pc - break_here
     result = await ctrl.execute_and_capture("distance &break_here $pc")
-    assert result == f"{break_here:#x}->{pc:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
+    assert result == f"{break_here:#x}->{pc:#x} is {diff:#x} bytes ({diff // 8:#x} words)\n"

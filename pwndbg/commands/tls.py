@@ -8,11 +8,13 @@ import argparse
 
 from tabulate import tabulate
 
+import pwndbg.aglib.dt
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.tls
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
@@ -178,7 +180,7 @@ def threads(num_threads, respect_config) -> None:
             thread.switch()
             pc = pwndbg.dbg.selected_frame().pc()
 
-            pc_colored = M.get(pc)
+            pc_colored = mem_color.get(pc)
             symbol = pwndbg.aglib.symbol.resolve_addr(pc)
 
             row.append(pc_colored)

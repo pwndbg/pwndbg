@@ -2,14 +2,10 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.aglib.file
 import pwndbg.aglib.shellcode
-import pwndbg.chain
 import pwndbg.commands
-import pwndbg.enhance
+import pwndbg.dbg_mod
 import pwndbg.lib.memory
-import pwndbg.wrappers.checksec
-import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(

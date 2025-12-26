@@ -10,8 +10,6 @@ import socket
 import struct
 from typing import List
 
-import pwndbg.aglib
-
 # http://students.mimuw.edu.pl/lxr/source/include/net/tcp_states.h
 TCP_STATUSES = {
     "01": "established",
@@ -68,7 +66,7 @@ class UnixSocket(inode):
         return f"UnixSocket({self})"
 
 
-def _tcp_parser(data: str, ip_family: socket.AddressFamily) -> List[Connection]:
+def _tcp_parser(data: str, ip_family: socket.AddressFamily, endianness: str) -> List[Connection]:
     # For reference, see:
     # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
     """
@@ -125,7 +123,7 @@ def _tcp_parser(data: str, ip_family: socket.AddressFamily) -> List[Connection]:
             host, port = hostport.split(":")
             host = binascii.unhexlify(host)
 
-            if pwndbg.aglib.arch.endian == "little":
+            if endianness == "little":
                 if ip_family == socket.AF_INET:
                     words = struct.unpack("<1I", host)
                     host = struct.pack(">1I", *words)
@@ -153,12 +151,12 @@ def _tcp_parser(data: str, ip_family: socket.AddressFamily) -> List[Connection]:
     return result
 
 
-def tcp(data: str) -> List[Connection]:
-    return _tcp_parser(data, socket.AF_INET)
+def tcp(data: str, endianness: str) -> List[Connection]:
+    return _tcp_parser(data, socket.AF_INET, endianness)
 
 
-def tcp6(data: str) -> List[Connection]:
-    return _tcp_parser(data, socket.AF_INET6)
+def tcp6(data: str, endianness: str) -> List[Connection]:
+    return _tcp_parser(data, socket.AF_INET6, endianness)
 
 
 def unix(data: str) -> List[UnixSocket]:

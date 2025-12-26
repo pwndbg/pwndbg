@@ -43,11 +43,9 @@ import re
 import shutil
 import signal
 import sys
-import threading
 from asyncio import CancelledError
 from contextlib import contextmanager
 from io import BytesIO
-from io import TextIOBase
 from io import TextIOWrapper
 from typing import Any
 from typing import Awaitable
@@ -55,23 +53,19 @@ from typing import BinaryIO
 from typing import Callable
 from typing import Coroutine
 from typing import List
-from typing import Tuple
 
 import lldb
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.dbg_mod.lldb
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod.lldb import LLDB
-from pwndbg.dbg_mod.lldb import LLDBProcess
 from pwndbg.dbg_mod.lldb import LLDBPythonState
 from pwndbg.dbg_mod.lldb import OneShotAwaitable
 from pwndbg.dbg_mod.lldb.pset import InvalidParse
 from pwndbg.dbg_mod.lldb.pset import pget
 from pwndbg.dbg_mod.lldb.pset import pset
-from pwndbg.dbg_mod.lldb.repl.io import IODriver
 from pwndbg.dbg_mod.lldb.repl.io import get_io_driver
 from pwndbg.lib.tips import color_tip
 from pwndbg.lib.tips import get_tip_of_the_day
@@ -127,10 +121,8 @@ def print_info(msg: str, *args):
 
 
 from pwndbg.dbg_mod.lldb.repl.proc import EventHandler
-from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultConnected
 from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultEarlyExit
 from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultError
-from pwndbg.dbg_mod.lldb.repl.proc import LaunchResultSuccess
 from pwndbg.dbg_mod.lldb.repl.proc import ProcessDriver
 
 show_tip = pwndbg.config.add_param(
@@ -174,22 +166,22 @@ class EventRelay(EventHandler):
     there's a bit of work we have to do to properly convey certain events.
     """
 
-    def __init__(self, dbg: LLDB):
+    def __init__(self, dbg: LLDB) -> None:
         self.dbg = dbg
         self.ignore_resumed = 0
 
-    def _set_ignore_resumed(self, count: int):
+    def _set_ignore_resumed(self, count: int) -> None:
         """
         Don't relay next given number of resumed events.
         """
         self.ignore_resumed += count
 
     @override
-    def created(self):
+    def created(self) -> None:
         self.dbg._trigger_event(EventType.START)
 
     @override
-    def suspended(self, event: lldb.SBEvent):
+    def suspended(self, event: lldb.SBEvent) -> None:
         # The event might have originated from a different source than the user
         # currently has selected. Move focus to the where the event happened.
         #
@@ -211,7 +203,7 @@ class EventRelay(EventHandler):
         self.dbg._trigger_event(EventType.STOP)
 
     @override
-    def resumed(self):
+    def resumed(self) -> None:
         if self.ignore_resumed > 0:
             self.ignore_resumed -= 1
             return
@@ -219,11 +211,11 @@ class EventRelay(EventHandler):
         self.dbg._trigger_event(EventType.CONTINUE)
 
     @override
-    def exited(self):
+    def exited(self) -> None:
         self.dbg._trigger_event(EventType.EXIT)
 
     @override
-    def modules_loaded(self):
+    def modules_loaded(self) -> None:
         self.dbg._trigger_event(EventType.NEW_MODULE)
 
 
@@ -873,7 +865,9 @@ class AutoTarget:
         elif count == 1:
             # Just use the current target.
             self.target = dbg.debugger.GetTargetAtIndex(0)
-            assert self.target, f"SBDebugger::GetNumTargets() is 1, but SBDebugger::GetTargetAtIndex(0) is {self.target}"
+            assert self.target, (
+                f"SBDebugger::GetNumTargets() is 1, but SBDebugger::GetTargetAtIndex(0) is {self.target}"
+            )
         else:
             raise AssertionError(
                 f"Pwndbg does not support multiple targets, so SBDebugger::GetNumTargets() must always be 0 or 1, but is {count}"
@@ -884,9 +878,9 @@ class AutoTarget:
 
     def close(self):
         if self._created_target:
-            assert self._dbg.debugger.DeleteTarget(
-                self.target
-            ), "Could not delete the target we've just created. What?"
+            assert self._dbg.debugger.DeleteTarget(self.target), (
+                "Could not delete the target we've just created. What?"
+            )
 
 
 def run_ipython_shell():

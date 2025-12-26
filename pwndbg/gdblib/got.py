@@ -258,7 +258,7 @@ class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
         # tracker will use.
         objfile = self.tracker.link_map_entry.name()
         if objfile == b"":
-            objfile = pwndbg.aglib.proc.exe
+            objfile = pwndbg.aglib.proc.exe()
         self.tracker.obj_display_name = display_name(objfile, basename=True)
 
         self.tracker.sym_display_name = display_name(
@@ -366,7 +366,7 @@ def _update_watchpoints() -> None:
     for obj in pwndbg.aglib.dynamic.link_map():
         name = obj.name()
         if name == b"":
-            name = pwndbg.aglib.proc.exe
+            name = pwndbg.aglib.proc.exe()
 
         try:
             dynamic = pwndbg.aglib.dynamic.DynamicSegment(obj.dynamic(), obj.load_bias())

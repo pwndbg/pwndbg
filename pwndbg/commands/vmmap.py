@@ -16,8 +16,10 @@ import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
+import pwndbg.dbg_mod
+import pwndbg.lib.memory
 from pwndbg.color import cyan
 from pwndbg.color import green
 from pwndbg.color import red
@@ -74,9 +76,9 @@ def calculate_total_memory(pages: Tuple[Page, ...]) -> None:
     for page in pages:
         total += page.memsz
     if total > 1024 * 1024:
-        print(f"Total memory mapped: {total:#x} ({total//1024//1024} MB)")
+        print(f"Total memory mapped: {total:#x} ({total // 1024 // 1024} MB)")
     else:
-        print(f"Total memory mapped: {total:#x} ({total//1024} KB)")
+        print(f"Total memory mapped: {total:#x} ({total // 1024} KB)")
 
 
 def gap_text(page: Page) -> str:
@@ -275,7 +277,7 @@ def vmmap(
     empty_prefix = " " * len(prefix_str) if filtered_pages else None
     header_prefix = f"{empty_prefix} " if filtered_pages else ""
 
-    print(M.legend())
+    print(mem_color.legend())
     print_vmmap_table_header(header_prefix)
 
     shared_cache_first = None
@@ -285,13 +287,14 @@ def vmmap(
     def flush_shared_cache_info():
         nonlocal shared_cache_first
         nonlocal shared_cache_last
-        if shared_cache_last is not None:
+        if shared_cache_first is not None and shared_cache_last is not None:
             print(
                 pwndbg.lib.memory.format_address(
                     shared_cache_first.start,
                     shared_cache_last.end - shared_cache_first.start,
                     "---p",
                     shared_cache_first.offset,
+                    pwndbg.aglib.arch.ptrsize,
                     "[DYLD Shared Cache]",
                 )
             )
@@ -323,7 +326,7 @@ def vmmap(
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):
                 display_text = str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)
 
-        print(M.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
+        print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
 
     flush_shared_cache_info()
     if shared_cache_collapsed > 0:
@@ -373,7 +376,7 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
             return
         perm |= flag_val
 
-    page = pwndbg.lib.memory.Page(start, size, perm, offset)
+    page = pwndbg.lib.memory.Page(start, size, perm, offset, pwndbg.aglib.arch.ptrsize)
     pwndbg.aglib.vmmap_custom.add_custom_page(page)
 
     print("%r added" % page)
@@ -445,6 +448,7 @@ def vmmap_load(filename) -> None:
     with open(filename, "rb") as f:
         elffile = ELFFile(f)
 
+        ptrsize: int = pwndbg.aglib.arch.ptrsize
         for section in elffile.iter_sections():
             vaddr = section["sh_addr"]
             memsz = section["sh_size"]
@@ -463,7 +467,7 @@ def vmmap_load(filename) -> None:
                 flags |= pwndbg.aglib.elf.PF_X
 
             page = pwndbg.lib.memory.Page(
-                vaddr, memsz, flags, offset, f"[{section.name}]: {file_basename}"
+                vaddr, memsz, flags, offset, ptrsize, f"[{section.name}]: {file_basename}"
             )
             pages.append(page)
 

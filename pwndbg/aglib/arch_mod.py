@@ -7,6 +7,7 @@ from typing import Literal
 from typing import Tuple
 
 import pwnlib
+import pwnlib.context
 from capstone import CS_ARCH_AARCH64
 from capstone import CS_ARCH_ARM
 from capstone import CS_ARCH_LOONGARCH
@@ -36,6 +37,7 @@ from typing_extensions import override
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.disasm
+import pwndbg.dbg_mod
 from pwndbg.aglib import typeinfo
 from pwndbg.lib.abi import ABI
 from pwndbg.lib.abi import DEFAULT_ABIS
@@ -150,13 +152,13 @@ class PwndbgArchitecture(ArchDefinition):
     def pack(self, integer: int) -> bytes:
         return struct.pack(self.fmt, integer & self.ptrmask)
 
-    def unpack(self, data: bytes) -> int:
+    def unpack(self, data: bytes | bytearray) -> int:
         return struct.unpack(self.fmt, data)[0]
 
     def pack_size(self, integer: int, size: int) -> bytes:
         return struct.pack(self.fmts[size], integer & self.ptrmask)
 
-    def unpack_size(self, data: bytes, size: int) -> int:
+    def unpack_size(self, data: bytes | bytearray, size: int) -> int:
         return struct.unpack(self.fmts[size], data)[0]
 
     def get_capstone_constants(self, address: int) -> Tuple[int, int] | None:
@@ -418,7 +420,8 @@ def update() -> None:
     pwnlib.context.context.endian = a.endian
     pwnlib.context.context.os = PWNLIB_PLATFORM_MAPPINGS.get(a.platform, "linux")
 
-    if a.name != pwndbg.aglib.arch.name:
+    # Will be None the first time around.
+    if pwndbg.aglib.arch is None or a.name != pwndbg.aglib.arch.name:
         pwndbg_arch = get_pwndbg_architecture(a.name)
         if pwndbg_arch is None:
             raise pwndbg.dbg_mod.Error(

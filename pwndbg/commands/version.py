@@ -12,9 +12,11 @@ import sys
 from subprocess import check_call
 from subprocess import check_output
 from tempfile import NamedTemporaryFile
+from typing import Optional
 from urllib.parse import quote
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.commands
 import pwndbg.integration
 from pwndbg.color import message
@@ -53,14 +55,20 @@ def debugger_version():
 
 def all_versions():
     py_version = sys.version.replace("\n", " ")
-    return (
+    most = (
         f"Pwndbg:   {pwndbg.__version__} ({os.uname().sysname})",
         f"Python:   {py_version}",
         debugger_version(),
         f"Capstone: {module_version('capstone')}",
         f"Unicorn:  {module_version('unicorn')}",
         f"Pwnlib:   {module_version('pwnlib')}",
-    ) + pwndbg.integration.provider.get_versions()
+    )
+
+    integration_ver_text: Optional[str] = pwndbg.integration.manager.version_string()
+    if integration_ver_text is not None:
+        return most + (integration_ver_text,)
+    else:
+        return most
 
 
 def get_target_arch():

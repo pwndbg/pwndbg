@@ -23,4 +23,9 @@ def _get_pwntools_includes() -> List[pathlib.Path]:
 
 
 def asm(data: str) -> bytes:
+    """
+    Assemble the `data` string for the current architecture and return the assembled bytes.
+
+    Only call this if the pwndbg.aglib.arch is not None.
+    """
     return pwndbg.lib.zig.asm(pwndbg.aglib.arch, data, includes=_get_pwntools_includes())

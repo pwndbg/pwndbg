@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import argparse
 
-import pwndbg.color as C
-import pwndbg.color.message as M
+import pwndbg.aglib.kernel
+import pwndbg.aglib.memory
+import pwndbg.chain
+import pwndbg.color as color
+import pwndbg.color.context as ctx_color
+import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.lib
+import pwndbg.commands.ktask
 from pwndbg.lib.exception import IndentContextManager
 from pwndbg.lib.regs import BitFlags
 
@@ -32,7 +36,7 @@ def kfile(pid=None, fd=None):
             kcurrent(None, set_pid=True, verbose=False)
         pid = KCURRENT_PID
     if pid is None:
-        print(M.warn("no pid specified (either specify pid or set with kcurrent)"))
+        print(message.warn("no pid specified (either specify pid or set with kcurrent)"))
         return
     indent = IndentContextManager()
     threads = []
@@ -49,8 +53,8 @@ def kfile(pid=None, fd=None):
                 addr = int(file)
                 ops = int(file["f_op"])
                 prefix = indent.prefix(f"[fileno {i:03}]")
-                flags = C.context.format_flags(int(file["f_mode"]), fmode_flags)
-                desc = f"ops @ {C.red(pwndbg.chain.format(ops, limit=0))}"
+                flags = ctx_color.format_flags(int(file["f_mode"]), fmode_flags)
+                desc = f"ops @ {color.red(pwndbg.chain.format(ops, limit=0))}"
                 indent.print(f"- {prefix} file @ {indent.addr_hex(addr)}: {desc}")
                 private_data = int(file["private_data"])
                 with indent:
@@ -90,14 +94,14 @@ def kcurrent(pid=None, set_pid=False, verbose=True):
                 if _kthread.pid == pid:
                     kthread = _kthread
     if kthread is None:
-        print(M.warn("cannot find kernel task"))
+        print(message.warn("cannot find kernel task"))
         return
     if verbose:
         indent.print(kthread)
     if set_pid:
         mm = kthread.mm
         if not mm:
-            print(M.warn("mm not found, current kernel task not set."))
+            print(message.warn("mm not found, current kernel task not set."))
             return
         KCURRENT_PID = pid
         KCURRENT_PGD = int(mm["pgd"])

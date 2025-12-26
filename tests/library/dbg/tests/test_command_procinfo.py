@@ -51,8 +51,8 @@ async def test_command_procinfo_net(ctrl: Controller, ip_connect: str) -> None:
 
     await ctrl.launch(REFERENCE_BINARY_NET, args=[ip_connect, str(server.port)])
 
-    bin_path = pwndbg.aglib.proc.exe
-    pid = str(pwndbg.aglib.proc.pid)
+    bin_path = pwndbg.aglib.proc.exe()
+    pid = str(pwndbg.aglib.proc.pid())
 
     break_at_sym("break_here")
     await ctrl.cont()

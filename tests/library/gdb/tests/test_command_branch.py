@@ -3,7 +3,7 @@ from __future__ import annotations
 import gdb
 import pytest
 
-import pwndbg.aglib.regs
+import pwndbg.aglib
 
 from . import get_binary
 

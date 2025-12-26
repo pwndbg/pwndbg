@@ -16,14 +16,12 @@ from elftools.elf.relocation import Relocation
 from typing_extensions import ParamSpec
 
 import pwndbg.aglib.elf
-import pwndbg.aglib.file
 import pwndbg.aglib.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.lib.cache
 import pwndbg.lib.config
-import pwndbg.search
 from pwndbg.color import message
 from pwndbg.lib.config import Scope
 
