@@ -69,7 +69,7 @@ def sections() -> Iterator[Section]:
     # Workaround for GDB bug:
     # Without executing this command first, `maintenance info target-sections`
     # may return incomplete or missing section info. (When using with core-files)
-    gdb.execute("info sharedlibrary")
+    gdb.execute("info sharedlibrary", to_string=True)
 
     lines = gdb.execute("maintenance info target-sections", to_string=True)
     current_file = None
