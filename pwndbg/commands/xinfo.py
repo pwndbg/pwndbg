@@ -103,10 +103,7 @@ def xinfo_default(page: Page, addr: int) -> None:
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def xinfo(address=None) -> None:
-    address = address.cast(
-        pwndbg.aglib.typeinfo.pvoid
-    )  # Fixes issues with function ptrs (xinfo malloc)
+def xinfo(address: int) -> None:
     addr = int(address)
     addr &= pwndbg.aglib.arch.ptrmask
 
