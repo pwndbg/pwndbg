@@ -115,7 +115,7 @@ def iter_coredump_sections() -> Iterator[pwndbg.lib.memory.Page]:
         yield page
 
 
-def enhance_coredump_sections_pages_info(pages: List[pwndbg.lib.memory.Page]):
+def enhance_coredump_sections_pages_info(pages: List[pwndbg.lib.memory.Page]) -> None:
     for section in iter_coredump_sections():
         # Now, if the section is already in pages, just add its perms
         known_page = False
@@ -132,7 +132,7 @@ def enhance_coredump_sections_pages_info(pages: List[pwndbg.lib.memory.Page]):
         pages.append(section)
 
 
-def enhance_known_pages_info(pages: List[pwndbg.lib.memory.Page]):
+def enhance_known_pages_info(pages: List[pwndbg.lib.memory.Page]) -> None:
     if not pages:
         return
 
@@ -243,7 +243,7 @@ def parse_info_proc_mappings_line(
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def info_proc_maps(parse_flags=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def info_proc_maps(parse_flags: bool=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parse the result of info proc mappings.
 
