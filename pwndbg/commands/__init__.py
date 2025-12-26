@@ -658,11 +658,16 @@ def fix_int_reraise(*a, **kw) -> int:
 def fix_int_reraise_arg(arg) -> int:
     """fix_int_reraise wrapper for evaluating command arguments"""
     try:
-        fixed = fix_reraise_arg(arg)
-        fixed_ptr = fixed.cast(
-            pwndbg.aglib.typeinfo.pvoid
-        )  # Fixes issues with function ptrs (e.g. passing in `malloc`).
-        return int(fixed_ptr)
+        fixed: pwndbg.dbg_mod.Value = fix_reraise_arg(arg)
+        if fixed.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+            # Fixes issues with function ptrs (e.g. passing in `malloc`).
+            func_addr = fixed.address
+            if func_addr is None:
+                raise argparse.ArgumentTypeError(
+                    f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Function is not addressable."
+                )
+            return int(func_addr)
+        return int(fixed)
     except pwndbg.dbg_mod.Error as e:
         raise argparse.ArgumentTypeError(
             f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: {e}"
