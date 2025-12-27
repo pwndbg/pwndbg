@@ -121,7 +121,7 @@ class CommandFormatter(argparse.RawDescriptionHelpFormatter):
         See #3502 for more information.
         """
 
-        # Do this only if t here are at least two items
+        # Do this only if there are at least two items
         if len(self._root_section.items) >= 2:
             self._root_section.items[0], self._root_section.items[1] = (
                 self._root_section.items[1],
