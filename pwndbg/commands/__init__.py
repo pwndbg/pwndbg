@@ -100,7 +100,7 @@ class CommandFormatter(argparse.RawDescriptionHelpFormatter):
     """
 
     @override
-    def format_help(self):
+    def format_help(self) -> str:
         """
         Formats the help string to reorder it, so that its first description line is first
         and the usage string is second. This means we change the help from:
@@ -131,7 +131,7 @@ class CommandFormatter(argparse.RawDescriptionHelpFormatter):
         return super().format_help()
 
     @override
-    def _get_help_string(self, action):
+    def _get_help_string(self, action: argparse.Action) -> str:
         # Yoinked from argparse.ArgumentDefaultsHelpFormatter with
         # the added ` and action.default not in (None, False)` check.
         help_ = action.help
@@ -225,30 +225,33 @@ class CommandObj:
         # continuous invocations.
         self.repeat: bool = False
 
-    def register_command(self):
+    def register_command(self) -> None:
         """
         Register this object command with the underlying debugger
         and update pwndbg global state to know about this command.
         """
 
-        def _handler(_debugger, arguments, is_interactive):
+        def _handler(
+            _debugger: pwndbg.dbg_mod.Debugger, arguments: str, is_interactive: bool
+        ) -> None:
             self.invoke(arguments, is_interactive)
 
         # Keep a handle to the command and its aliases so we can
         # easily remove them if necessary (not supported with GDB).
-        self.handles = []
-
-        # Tell the debugger about the command...
-        self.handles.append(
+        self.handles = [
+            # Tell the debugger about the command...
             pwndbg.dbg.add_command(
                 self.command_name, _handler, self.help_str, self.subcommand_names
             )
-        )
+        ]
+
         # ...and all of its aliases.
-        for alias in self.aliases:
-            self.handles.append(
+        self.handles.extend(
+            (
                 pwndbg.dbg.add_command(alias, _handler, self.help_str, self.subcommand_names)
+                for alias in self.aliases
             )
+        )
 
         command_names.add(self.command_name)
         commands.append(self)
@@ -562,7 +565,7 @@ class Command:
         # Also make sure it raises an error if it is called from the code.
         if self.only_debuggers is not None and pwndbg.dbg.name() not in self.only_debuggers:
 
-            def decorator(*args, **kwargs):
+            def decorator(*args: Any, **kwargs: Any) -> None:
                 raise InvalidDebuggerError(
                     f"This command cannot be used in {pwndbg.dbg.name()}.\n"
                     f"It is only valid for {self.only_debuggers}."
@@ -571,7 +574,7 @@ class Command:
             return decorator  # type: ignore[return-value]
         if self.exclude_debuggers is not None and pwndbg.dbg.name() in self.exclude_debuggers:
 
-            def decorator(*args, **kwargs):
+            def decorator(*args: Any, **kwargs: Any) -> None:
                 raise InvalidDebuggerError(
                     f"This command cannot be used in {pwndbg.dbg.name()}.\n"
                     f"It is invalid for {self.exclude_debuggers}."
@@ -662,12 +665,12 @@ def fix(
     return None
 
 
-def fix_reraise(*a, **kw) -> str | pwndbg.dbg_mod.Value | None:
+def fix_reraise(*a: Any, **kw: Any) -> str | pwndbg.dbg_mod.Value | None:
     # Type error likely due to https://github.com/python/mypy/issues/6799
     return fix(*a, reraise=True, **kw)  # type: ignore[misc]
 
 
-def fix_reraise_arg(arg) -> pwndbg.dbg_mod.Value:
+def fix_reraise_arg(arg: Any) -> pwndbg.dbg_mod.Value:
     """fix_reraise wrapper for evaluating command arguments"""
     try:
         # Will always return pwndbg.dbg_mod.Value because
@@ -679,15 +682,15 @@ def fix_reraise_arg(arg) -> pwndbg.dbg_mod.Value:
         raise argparse.ArgumentTypeError(f"debugger couldn't resolve argument '{arg}': {dbge}")
 
 
-def fix_int(*a, **kw) -> int:
+def fix_int(*a: Any, **kw: Any) -> int:
     return int(fix(*a, **kw))
 
 
-def fix_int_reraise(*a, **kw) -> int:
+def fix_int_reraise(*a: Any, **kw: Any) -> int:
     return fix_int(*a, reraise=True, **kw)
 
 
-def fix_int_reraise_arg(arg) -> int:
+def fix_int_reraise_arg(arg: Any) -> int:
     """fix_int_reraise wrapper for evaluating command arguments"""
     try:
         fixed: pwndbg.dbg_mod.Value = fix_reraise_arg(arg)
