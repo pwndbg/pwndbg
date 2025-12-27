@@ -100,6 +100,33 @@ class CommandFormatter(argparse.RawDescriptionHelpFormatter):
     """
 
     @override
+    def format_help(self):
+        """
+        Formats the help string to reorder it, so that its first description line is first
+        and the usage string is second. This means we change the help from:
+            usage: command [-flags]
+
+            First line description
+
+            positional arguments: (... etc)
+
+        To:
+            First line description
+
+            usage: command [-flags]
+
+            positional arguments: (... etc)
+
+        We do this for GDB as it takes the first line of command help for its 'apropos <cmd>' command.
+        See #3502 for more information.
+        """
+        self._root_section.items[0], self._root_section.items[1] = (
+            self._root_section.items[1],
+            self._root_section.items[0],
+        )
+        return super().format_help()
+
+    @override
     def _get_help_string(self, action):
         # Yoinked from argparse.ArgumentDefaultsHelpFormatter with
         # the added ` and action.default not in (None, False)` check.
@@ -374,6 +401,7 @@ class CommandObj:
         # Add non-alias subcommands to self.subcommand_names which will
         # register them for tab-completion in the debugger.
         self.subcommand_names = None
+
         for action in self.parser._actions:
             if isinstance(action, argparse._SubParsersAction):
                 self.subcommand_names = []
