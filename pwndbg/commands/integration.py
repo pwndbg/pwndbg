@@ -208,7 +208,7 @@ def install_generic_plugin(
     )
     print(
         message.success("Installed successfully.")
-        + " If your decompiler is already open, restart it."
+        + " If your decompiler is already open, restart it. You can use `di connect` now."
     )
 
 
@@ -483,6 +483,8 @@ def sync(fail_quietly: bool) -> None:
             print(message.notice("Can only sync with the debugger while the process is alive."))
         return
 
+    print("Syncing symbols. It may take a while.")
+
     # Functions and globals
     nsyms = pwndbg.integration.manager.update_symbols()
     print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end="")
@@ -623,7 +625,11 @@ def setbase(base_addr: int) -> None:
         connect(also_sync=True)
 
 
-parser = argparse.ArgumentParser(description="Control Pwndbg decompiler integration.")
+parser = argparse.ArgumentParser(
+    description="""Control Pwndbg decompiler integration.
+
+See https://pwndbg.re/dev/tutorials/decompiler-integration/ for usage instructions."""
+)
 subparsers = parser.add_subparsers(dest="command")
 subparsers.required = True
 
@@ -637,7 +643,6 @@ Connect to the decompiler.
 The host and port to connect to are governed by the `decompiler-host`
 and `decompiler-port` config variables. Try `help set decompiler-host`.
 """,
-    # FIXME: ^^ why aren't newlines respected?
 )
 
 parser_disconnect = subparsers.add_parser(
@@ -654,7 +659,7 @@ parser_sync = subparsers.add_parser(
     description="""
 Sync data from the decompiler.
 
-Check out `help set decompiler-auto-sync`.
+Check out `help set decompiler-autosync-syms` and `help set decompiler-autosync-vars`.
 """,
 )
 
@@ -665,7 +670,7 @@ parser_jump = subparsers.add_parser(
     description="""
 Make the decompiler's cursor jump to the PC.
 
-Check out `help set decompiler-auto-jump`.
+Check out `help set decompiler-autojump`.
 """,
 )
 parser_jump.add_argument(

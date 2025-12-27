@@ -34,6 +34,7 @@ dependencies = [
     # For installing the decompiler plugins (we don't actually use it as a python library).
     # If you bump this, also bump the pwndbg/commands/integration.py:d2d_required* variables.
     "decomp2dbg==3.14.0",
+    "lief>=0.17.1",
 ]
 
 [project.optional-dependencies]
