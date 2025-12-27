@@ -275,6 +275,17 @@ let
       })
     ) { };
 
+    jpype1 = pkgs.callPackage (
+      { python3 }:
+      prev.jpype1.overrideAttrs (old: {
+        buildInputs =
+          (old.buildInputs or [ ])
+          ++ lib.optionals isCross [
+            python3
+          ];
+      })
+    ) { };
+
     ghidra-bridge = pkgs.callPackage (
       { }:
       prev.ghidra-bridge.overrideAttrs (old: {
