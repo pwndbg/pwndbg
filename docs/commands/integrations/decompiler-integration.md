@@ -10,6 +10,8 @@ usage: decompiler-integration [-h]
 
 Control Pwndbg decompiler integration.
 
+See https://pwndbg.re/dev/tutorials/decompiler-integration/ for usage instructions.
+
 **Alias:** di
 ### Positional arguments
 
@@ -67,7 +69,7 @@ usage: decompiler-integration sync [-h]
 
 Sync data from the decompiler.
 
-Check out `help set decompiler-auto-sync`.
+Check out `help set decompiler-autosync-syms` and `help set decompiler-autosync-vars`.
 
 **Alias:** s
 #### Optional arguments
@@ -85,7 +87,7 @@ usage: decompiler-integration jump [-h] [addr]
 
 Make the decompiler's cursor jump to the PC.
 
-Check out `help set decompiler-auto-jump`.
+Check out `help set decompiler-autojump`.
 
 **Alias:** j
 #### Positional arguments
