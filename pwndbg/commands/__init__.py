@@ -120,10 +120,14 @@ class CommandFormatter(argparse.RawDescriptionHelpFormatter):
         We do this for GDB as it takes the first line of command help for its 'apropos <cmd>' command.
         See #3502 for more information.
         """
-        self._root_section.items[0], self._root_section.items[1] = (
-            self._root_section.items[1],
-            self._root_section.items[0],
-        )
+
+        # Do this only if t here are at least two items
+        if len(self._root_section.items) >= 2:
+            self._root_section.items[0], self._root_section.items[1] = (
+                self._root_section.items[1],
+                self._root_section.items[0],
+            )
+
         return super().format_help()
 
     @override
