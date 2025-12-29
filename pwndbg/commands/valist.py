@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.memory
 import pwndbg.chain
-import pwndbg.color as C
+import pwndbg.color as color
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
@@ -33,7 +34,7 @@ def valist(addr: int, count: int) -> None:
     reg_save_area = pwndbg.aglib.memory.u64(addr + 16)
 
     indent = " " * len("gp_offset => ")
-    print(f"{C.blue('reg_save_area')}")
+    print(f"{color.blue('reg_save_area')}")
     for i in range(6):
         line = ""
         if i == gp_index:
@@ -45,6 +46,6 @@ def valist(addr: int, count: int) -> None:
         print(line)
 
     print()
-    print(f"{C.blue('overflow_arg_area')}")
+    print(f"{color.blue('overflow_arg_area')}")
     for i in range(count - 6):
         print(indent + pwndbg.chain.format(overflow_arg_area + i * 8))

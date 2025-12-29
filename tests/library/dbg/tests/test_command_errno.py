@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from ....host import Controller
 from . import break_at_sym
 from . import get_binary
@@ -16,12 +14,7 @@ async def test_command_errno(ctrl: Controller) -> None:
     """
     Tests the errno command display
     """
-    import pwndbg.aglib.arch
-
     await ctrl.launch(REFERENCE_BINARY)
-
-    if pwndbg.aglib.arch.name != "x86-64":
-        pytest.skip("TODO multiarch")
 
     break_at_sym("main")
     await ctrl.cont()
@@ -29,11 +22,11 @@ async def test_command_errno(ctrl: Controller) -> None:
     result = await ctrl.execute_and_capture("errno")
     assert result == "Errno 0: OK\n"
 
-    await ctrl.execute("p *(int*)&errno=11")
+    await ctrl.execute("p *((int*(*)(void))__errno_location)()=11")
     result = await ctrl.execute_and_capture("errno")
     assert result == "Errno 11: EAGAIN\n"
 
-    await ctrl.execute("p *(int*)&errno=111")
+    await ctrl.execute("p *((int*(*)(void))__errno_location)()=111")
     result = await ctrl.execute_and_capture("errno")
     assert result == "Errno 111: ECONNREFUSED\n"
 

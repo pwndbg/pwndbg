@@ -9,27 +9,26 @@ from __future__ import annotations
 
 import re
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from capstone import CS_GRP_INT
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
+import pwndbg.aglib.objc
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.chain
-import pwndbg.integration
+import pwndbg.dbg_mod
+import pwndbg.enhance
 import pwndbg.lib.abi
-import pwndbg.lib.funcparser
 import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
 from pwndbg.lib.arch import Platform
+from pwndbg.lib.functions import Function
 from pwndbg.lib.functions import format_flags_argument
 
 
@@ -84,7 +83,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         name = name.replace("_chk", "")
         name = name.strip().lstrip("_")  # _malloc
 
-    func = None
+    func: Optional[Function] = None
     if pwndbg.aglib.arch.platform == Platform.DARWIN:
         # Try to resolve an Objective-C method call.
         #
@@ -98,9 +97,10 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         # function resolution flow.
         func = pwndbg.lib.functions.functions.get(name, None)
 
+    # FIXME(provider, integration): Add this feature back at some point
     # Try to grab the data out of IDA
-    if not func and target:
-        func = pwndbg.integration.provider.get_func_type(target)
+    # if not func and target:
+    #    func = pwndbg.integration.provider.get_func_type(target)
 
     if func:
         args = func.args
@@ -214,7 +214,7 @@ def format_args(instruction: PwndbgInstruction) -> List[str]:
         # Enhance args display
         if arg.name in FILE_DESCRIPTOR_ARG_NAMES and isinstance(value, int):
             # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
-            pid = pwndbg.aglib.proc.pid
+            pid = pwndbg.aglib.proc.pid()
             if pid is not None:
                 path = pwndbg.aglib.file.readlink("/proc/%d/fd/%d" % (pid, value))
                 if path:

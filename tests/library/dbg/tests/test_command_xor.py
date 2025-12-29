@@ -12,8 +12,8 @@ async def test_command_xor_with_dbg_execute(ctrl: Controller) -> None:
     """
     Tests simple xoring
     """
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -29,8 +29,8 @@ async def test_command_xor_with_int(ctrl: Controller) -> None:
     """
     Tests simple xoring
     """
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -47,8 +47,8 @@ async def test_command_xor_with_hex(ctrl: Controller) -> None:
     """
     Tests simple xoring
     """
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -63,8 +63,8 @@ async def test_command_xor_with_hex(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_command_memfrob(ctrl: Controller) -> None:
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
     from pwndbg.commands.xor import memfrob
 
     await ctrl.launch(REFERENCE_BINARY)

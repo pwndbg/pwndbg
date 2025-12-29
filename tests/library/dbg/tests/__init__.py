@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import os
 from inspect import signature
+from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Concatenate
@@ -12,7 +13,7 @@ from typing import ParamSpec
 from .... import host
 from ....host import Controller
 
-BINARIES_PATH = os.environ.get("TEST_BINARIES_ROOT")
+BINARIES_PATH = os.environ.get("TEST_BINARIES_ROOT", "/")
 
 T = ParamSpec("T")
 
@@ -36,23 +37,23 @@ def pwndbg_test(
     return inner_test
 
 
-def get_binary(name: str) -> str:
-    return os.path.join(BINARIES_PATH, name)
+def get_binary(name: str) -> Path:
+    return Path(BINARIES_PATH) / name
 
 
 def break_at_sym(sym: str) -> None:
     import pwndbg
-    from pwndbg.dbg import BreakpointLocation
+    from pwndbg.dbg_mod import BreakpointLocation
 
     inf = pwndbg.dbg.selected_inferior()
     addr = inf.lookup_symbol(sym)
     inf.break_at(BreakpointLocation(int(addr)))
 
 
-async def launch_to(ctrl: Controller, target: str, sym: str) -> None:
+async def launch_to(ctrl: Controller, target: Path, sym: str) -> None:
     import pwndbg
-    import pwndbg.aglib.regs
-    from pwndbg.dbg import BreakpointLocation
+    import pwndbg.aglib
+    from pwndbg.dbg_mod import BreakpointLocation
 
     await ctrl.launch(target)
 

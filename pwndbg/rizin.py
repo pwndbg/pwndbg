@@ -5,7 +5,7 @@ Rizin integration with rzpipe.
 from __future__ import annotations
 
 import pwndbg.aglib.elf
-import pwndbg.dbg
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.color import message
 
@@ -22,7 +22,7 @@ def rzpipe():
     Raises Exception if anything goes fatally wrong.
     Returns a rzpipe.open handle.
     """
-    filename = pwndbg.aglib.proc.exe
+    filename = pwndbg.aglib.proc.exe()
     if not filename:
         raise Exception("Could not find objfile to create a rzpipe for")
 
@@ -30,7 +30,7 @@ def rzpipe():
 
     if pwndbg.aglib.qemu.is_qemu_kernel():
         flags = ["-e", "bin.cache=true", "-e", "bin.relocs.apply=true"]
-        if (kbase := pwndbg.aglib.kernel.kbase()) and filename == pwndbg.aglib.proc.exe:
+        if (kbase := pwndbg.aglib.kernel.kbase()) and filename == pwndbg.aglib.proc.exe():
             flags.extend(
                 [
                     "-e",

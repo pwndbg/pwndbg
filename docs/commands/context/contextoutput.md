@@ -2,7 +2,7 @@
 # contextoutput
 
 ```text
-usage: contextoutput [-h] section path clearing [banner] [width]
+usage: contextoutput [-h] section path clearing [banner] [width] [height]
 
 ```
 
@@ -13,11 +13,12 @@ Sets the output of a context section.
 
 |Positional Argument|Help|
 | :--- | :--- |
-|section|The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')|
+|section|The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')|
 |path|The path to which the output is written|
 |clearing|Indicates whether to clear the output|
 |banner|Where a banner should be placed: both, top , bottom, none (default: 'both')|
 |width|Sets a fixed width (used for banner). Set to None for auto|
+|height|Sets a fixed height (used for number of lines to display before cutoff). Only applies to sections where more data can be displayed like disasm, stack, and threads and overrides their section specific limits. Set to None for auto|
 
 ### Optional arguments
 

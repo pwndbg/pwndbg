@@ -1,19 +1,16 @@
 # This dockerfile was created for development & testing purposes, for APT-based distro.
 #
-# Build as:             docker build -t pwndbg .
+# Build as:
+#   docker build -f Dockerfile -t pwndbg .
 #
-# For testing use:      docker run --rm -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined pwndbg bash
-#
-# For development, mount the directory so the host changes are reflected into container:
-#   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v `pwd`:/pwndbg pwndbg bash
-#
+# To run use (we mount the directory so the host changes are reflected into container):
+#   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $(pwd):/pwndbg pwndbg bash
 
 ARG image=mcr.microsoft.com/devcontainers/base:jammy
 FROM $image AS base
 
 WORKDIR /pwndbg
 
-ENV PIP_NO_CACHE_DIR=true
 ENV LANG=en_US.utf8
 ENV TZ=America/New_York
 ENV PWNDBG_VENV_PATH=/venv

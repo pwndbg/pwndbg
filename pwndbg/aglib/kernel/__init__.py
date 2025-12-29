@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import math
 import re
 from abc import ABC
 from abc import abstractmethod
@@ -14,24 +13,22 @@ from elftools.elf.elffile import ELFFile
 from typing_extensions import ParamSpec
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
+import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.aglib.kernel.paging
+import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
+import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
-import pwndbg.aglib.vmmap
-import pwndbg.color.message as M
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
-import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
 from pwndbg.aglib.kernel.paging import PageTableLevel
-from pwndbg.lib.regs import BitFlags
 
-_kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
+_kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
 P = ParamSpec("P")
 D = TypeVar("D")
@@ -52,7 +49,7 @@ def has_debug_symbols(*required: str, checkall: bool = True) -> bool:
 
 @pwndbg.lib.cache.cache_until("objfile")
 def has_debug_info() -> bool:
-    path = pwndbg.aglib.proc.exe
+    path = pwndbg.aglib.proc.exe()
     if path is None:
         return False
     vmlinux = open(path, "rb")
@@ -145,7 +142,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
 
 
 @pwndbg.lib.cache.cache_until("start")
-def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
+def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig | None:
     global _kconfig
     config_start, config_end = None, None
     if has_debug_symbols():
@@ -160,14 +157,18 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
         if result is not None:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
-    if config_start is None or config_end is None:
-        _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
+    if (
+        not pwndbg.aglib.memory.is_kernel(config_start)
+        or not pwndbg.aglib.memory.is_kernel(config_end)
+        or config_start >= config_end
+    ):
+        _kconfig = pwndbg.aglib.kernel.kconfig_mod.Kconfig(None)
         return _kconfig
 
     config_size = config_end - config_start
 
     compressed_config = pwndbg.aglib.memory.read(config_start, config_size)
-    _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(compressed_config)
+    _kconfig = pwndbg.aglib.kernel.kconfig_mod.Kconfig(compressed_config)
     return _kconfig
 
 
@@ -619,6 +620,15 @@ def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry)
+    else:
+        raise NotImplementedError()
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def pagetable_scan(entry=None) -> Tuple[pwndbg.lib.memory.Page, ...]:
+    pi = arch_paginginfo()
+    if pi:
+        return tuple(pi.pagetable_scan(entry))
     else:
         raise NotImplementedError()
 

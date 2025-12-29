@@ -23,8 +23,8 @@ async def test_context_disasm_show_fd_filepath(ctrl: Controller) -> None:
     """
     Tests context disasm command and whether it shows properly opened fd filepath
     """
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
     import pwndbg.commands
     import pwndbg.commands.canary
     import pwndbg.commands.context
@@ -93,7 +93,7 @@ async def test_empty_context_sections(ctrl: Controller, sections: str) -> None:
     await ctrl.launch(USE_FDS_BINARY)
 
     # Sanity check
-    default_ctx_sects = "regs disasm code ghidra stack backtrace expressions threads heap_tracker"
+    default_ctx_sects = "regs disasm code stack backtrace expressions threads heap_tracker"
     assert pwndbg.config.context_sections.value == default_ctx_sects
     assert (await ctrl.execute_and_capture("context")) != ""
 
@@ -171,7 +171,7 @@ async def test_context_disasm_syscalls_args_display(ctrl: Controller) -> None:
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        " ► 0x400094 <_start+20>    syscall  <SYS_read>\n"
+        " ► 0x400094 <_start+20>    syscall <SYS_read>\n"
         "        fd:        0x1337\n"
         "        buf:       0xdeadbeef\n"
         "        nbytes:    0\n"
@@ -192,7 +192,7 @@ async def test_context_disasm_syscalls_args_display(ctrl: Controller) -> None:
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall  <SYS_read>\n"
+        "   0x400094 <_start+20>    syscall <SYS_read>\n"
         "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
         " ► 0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "        name:      0x1337\n"
@@ -220,7 +220,7 @@ async def test_context_disasm_syscalls_args_display_no_emulate(ctrl: Controller)
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        " ► 0x400094 <_start+20>    syscall  <SYS_read>\n"
+        " ► 0x400094 <_start+20>    syscall <SYS_read>\n"
         "        fd:        0x1337\n"
         "        buf:       0xdeadbeef\n"
         "        nbytes:    0\n"
@@ -241,7 +241,7 @@ async def test_context_disasm_syscalls_args_display_no_emulate(ctrl: Controller)
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall  <SYS_read>\n"
+        "   0x400094 <_start+20>    syscall <SYS_read>\n"
         "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
         " ► 0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "        name:      0x1337\n"
@@ -430,12 +430,12 @@ async def test_context_disasm_call_instruction_split(ctrl: Controller) -> None:
         "   0x40008a <_start+10>    mov    ebx, 3       EBX => 3\n"
         "   0x40008f <_start+15>    add    rax, rbx     RAX => 5 (2 + 3)\n"
         "   0x400092 <_start+18>    xor    rax, rbx     RAX => 6 (5 ^ 3)\n"
-        "   0x400095 <_start+21>    nop    \n"
+        "   0x400095 <_start+21>    nop   \n"
         "   0x400096 <_start+22>    jmp    exit                        <exit>\n"
         "    ↓\n"
         "   0x4000ab <exit>         mov    eax, 0x3c              EAX => 0x3c\n"
         "   0x4000b0 <exit+5>       mov    edi, 0                 EDI => 0\n"
-        "   0x4000b5 <exit+10>      syscall  <SYS_exit>\n"
+        "   0x4000b5 <exit+10>      syscall <SYS_exit>\n"
         "   0x4000b7                add    byte ptr [rax], al\n"
         "────────────────────────────────────────────────────────────────────────────────\n"
     )
@@ -547,7 +547,7 @@ async def test_context_history_prev_next(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_context_history_search(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
     if pwndbg.aglib.arch.name != "x86-64":
@@ -632,7 +632,7 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     """
     import pwndbg.aglib.stack
     import pwndbg.commands.context
-    import pwndbg.dbg
+    import pwndbg.dbg_mod
 
     # Launch directly to inner_function where the variables are
     await launch_to(ctrl, STACK_VARS_BINARY, "inner_function")
@@ -656,3 +656,62 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     # Test that telescope shows variable names
     telescope_out = await ctrl.execute_and_capture(f"telescope {buffer_addr:#x} 1")
     assert "{buffer}" in telescope_out
+
+
+@pwndbg_test
+async def test_regs_command_resolves_sp_pc_aliases(ctrl: Controller) -> None:
+    """
+    If running `regs pc` or `regs sp`, these aliases should be resolved
+    to the real architectural names of the registers.
+    """
+    import pwndbg.aglib
+
+    await ctrl.launch(REFERENCE_BINARY)
+
+    sp_name = pwndbg.aglib.regs.current.stack
+    pc_name = pwndbg.aglib.regs.current.pc
+
+    real_sp_value = pwndbg.aglib.regs.read_reg(sp_name)
+    real_pc_value = pwndbg.aglib.regs.read_reg(pc_name)
+
+    regs_sp_output = await ctrl.execute_and_capture("regs sp")
+    regs_pc_output = await ctrl.execute_and_capture("regs pc")
+
+    assert sp_name.upper() in regs_sp_output
+    assert hex(real_sp_value) in regs_sp_output
+
+    assert pc_name.upper() in regs_pc_output
+    assert hex(real_pc_value) in regs_pc_output
+
+
+@pwndbg_test
+async def test_cli_fixup_resolves_sp_pc_aliases(ctrl: Controller) -> None:
+    """
+    CLI argument fixup should resolve "sp" and "pc" correctly.
+
+    Note:
+    The fixup process by default (without any special handling of these aliases)
+    would just adds a "$" infront of register names.
+    GDB reading $sp and $pc will internally handle the conversion, meaning this test
+    passes without any special logic in the register fixup.
+
+    However, this is not necessarily true of all underlying debuggers.
+    """
+    import pwndbg.aglib
+
+    await ctrl.launch(REFERENCE_BINARY)
+
+    sp_name = pwndbg.aglib.regs.current.stack
+    pc_name = pwndbg.aglib.regs.current.pc
+
+    real_sp_value = pwndbg.aglib.regs.read_reg(sp_name)
+    real_pc_value = pwndbg.aglib.regs.read_reg(pc_name)
+
+    regs_sp_output = await ctrl.execute_and_capture("telescope sp 1")
+    regs_pc_output = await ctrl.execute_and_capture("telescope pc 1")
+
+    assert sp_name in regs_sp_output
+    assert hex(real_sp_value) in regs_sp_output
+
+    assert pc_name in regs_pc_output
+    assert hex(real_pc_value) in regs_pc_output

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
@@ -13,7 +14,7 @@ async def test_command_cyclic_value(ctrl: Controller) -> None:
     """
     from pwnlib.util.cyclic import cyclic
 
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -36,8 +37,7 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     """
     from pwnlib.util.cyclic import cyclic
 
-    import pwndbg.aglib.arch
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -65,9 +65,8 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
     """
     from pwnlib.util.cyclic import cyclic
 
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
 
     await ctrl.launch(REFERENCE_BINARY)
 

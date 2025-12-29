@@ -15,7 +15,7 @@ GOSAMPLE_X86 = get_binary("gosample.i386.out")
 async def test_go_dumping(ctrl: Controller, binary: str) -> None:
     import pwndbg
     import pwndbg.commands.godbg
-    from pwndbg.dbg import DebuggerType
+    from pwndbg.dbg_mod import DebuggerType
 
     if pwndbg.dbg.name() == DebuggerType.LLDB:
         pytest.skip("Go tests are not supported in LLDB")

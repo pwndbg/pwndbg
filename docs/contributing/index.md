@@ -16,7 +16,7 @@ Regardless of the contents of your PR, you will need to [lint](#linting) and [te
 
 Read [General developer notes](dev-notes.md) to get more familiar with the various systems in place in Pwndbg. If you have any questions don't hesitate to ask us on our [discord server](https://discord.gg/x47DssnGwm)!
 ## Linting
-The `lint.sh` script runs isort, ruff, shfmt, and vermin. isort and ruff (mostly) are able to automatically fix any issues they detect. You may apply all available fixes by running
+The `lint.sh` script runs ruff, shfmt, and vermin. ruff is (mostly) able to automatically fix issues that it detects. You may apply all available fixes by running
 ```{.bash .copy}
 ./lint.sh -f
 ```

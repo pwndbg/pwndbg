@@ -17,7 +17,7 @@ import pytest
 async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> None:
     # We only import this here, as pwndbg-lldb is responsible for setting Pwndbg
     # up on our behalf.
-    from pwndbg.dbg.lldb.repl import PwndbgController
+    from pwndbg.dbg_mod.lldb.repl import PwndbgController
 
     from ...host import Controller
 

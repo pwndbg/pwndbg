@@ -93,6 +93,13 @@ def update_deps(src_root: Path) -> None:
             print(stdout)
     else:
         print(stderr, file=sys.stderr)
+        print("\x1b[31mERROR: Pwndbg failed to update with the above uv error.\x1b[0m")
+        print(
+            "\x1b[31m"
+            "ERROR: Re-run with PWNDBG_NO_AUTOUPDATE=1 if you intend to run without an update."
+            "\x1b[0m"
+        )
+        sys.exit(return_code)
 
 
 def skip_autoupdate(src_root) -> bool:

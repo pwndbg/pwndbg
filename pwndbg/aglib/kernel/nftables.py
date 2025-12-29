@@ -8,7 +8,7 @@ from typing import Optional
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.macros import container_of
 from pwndbg.aglib.kernel.macros import for_each_entry
 

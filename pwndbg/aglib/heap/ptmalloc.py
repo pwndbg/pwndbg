@@ -35,12 +35,11 @@ import pwndbg.aglib.tls
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
+import pwndbg.color.memory as mem_color
 import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-import pwndbg.search
 from pwndbg.color import message
-from pwndbg.color.memory import c as M
 
 PREV_INUSE = 1
 IS_MMAPPED = 2
@@ -442,7 +441,7 @@ class Chunk:
 
         return self._is_top_chunk
 
-    def next_chunk(self):
+    def next_chunk(self) -> Chunk | None:
         if self.is_top_chunk:
             return None
 
@@ -513,10 +512,9 @@ class Heap:
                 raise ValueError(f"Cannot build heap object on an unmapped address ({hex(addr)})")
 
             heap_info = allocator.get_heap(addr)
-            try:
+            ar_ptr = None
+            if heap_info is not None:
                 ar_ptr = int(heap_info["ar_ptr"])
-            except pwndbg.dbg_mod.Error:
-                ar_ptr = None
 
             if ar_ptr is not None and ar_ptr in (ar.address for ar in allocator.arenas):
                 # Case 2; non-main arena.
@@ -572,7 +570,7 @@ class Heap:
 
     def __str__(self) -> str:
         fmt = "[%%%ds]" % (pwndbg.aglib.arch.ptrsize * 2)
-        return message.hint(fmt % (hex(self.first_chunk.address))) + M.heap(
+        return message.hint(fmt % (hex(self.first_chunk.address))) + mem_color.c.heap(
             str(pwndbg.aglib.vmmap.find(self.start))
         )
 
@@ -1713,7 +1711,10 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         if self.heap_info is None:
             return None
-        return pwndbg.aglib.memory.get_typed_pointer_value(self.heap_info, heap_for_ptr(addr))
+        haddr = heap_for_ptr(addr)
+        if pwndbg.aglib.memory.peek(haddr) is None:
+            return None
+        return pwndbg.aglib.memory.get_typed_pointer_value(self.heap_info, haddr)
 
     def get_tcache(
         self, tcache_addr: int | pwndbg.dbg_mod.Value | None = None

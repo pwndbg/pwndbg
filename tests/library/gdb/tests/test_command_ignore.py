@@ -38,10 +38,10 @@ def test_command_ignore_breakpoint_last_found_one():
     assert out == "Will ignore next 1 crossings of breakpoint 1.\n"
 
     gdb.execute("run")
-    assert not pwndbg.aglib.proc.alive
+    assert not pwndbg.aglib.proc.alive()
 
     gdb.execute("run")
-    assert pwndbg.aglib.proc.alive
+    assert pwndbg.aglib.proc.alive()
 
 
 def test_command_ignore_breakpoint_last_found_two():

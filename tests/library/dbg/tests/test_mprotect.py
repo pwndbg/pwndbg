@@ -12,7 +12,7 @@ async def test_mprotect_executes_properly(ctrl: Controller) -> None:
     """
     Tests the mprotect command
     """
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
     import pwndbg.aglib.vmmap
 
     await ctrl.launch(SMALL_BINARY)
