@@ -278,10 +278,24 @@ Key dependencies (see `pyproject.toml`):
 1. Make changes to code
 2. Run linter: `./lint.sh --fix`
 3. Add tests if needed (in `tests/`)
-4. Run tests: `python tests/tests.py tests`
-5. Check type hints: `uv run --group dev --group lint --group tests --extra gdb --extra lldb mypy pwndbg`
-6. Build docs if relevant: `./scripts/generate-docs.sh`
+4. Run tests: `./unit-tests.sh`
+5. Check type hints on modified files: `uv run mypy --strict <modified_files>`
+6. Verify docs if relevant: `./scripts/verify-docs.sh`
 7. Commit following project conventions
+
+### PR Preparation
+
+Use the `/complete` command to run all PR checks automatically. This will:
+- Run linting checks (`./lint.sh`)
+- Run unit tests (`./unit-tests.sh`)
+- Run mypy --strict on modified files
+- Verify documentation
+- Show git status summary
+
+The command identifies modified files using:
+```bash
+git diff dev --name-only --diff-filter=AM | grep '\.py$'
+```
 
 ## Resources
 
