@@ -156,7 +156,9 @@ def vm(show: bool = True) -> tuple[Any, ...]:
             size = page.end - page.start
             offset = f"{page.offset:#x}" if page.offset is not None else "-"
             objfile = page.objfile if page.objfile else ""
-            print(f"{page.start:#018x}-{page.end:#018x} {perms}  {size:#010x}  {offset:8}  {objfile}")
+            print(
+                f"{page.start:#018x}-{page.end:#018x} {perms}  {size:#010x}  {offset:8}  {objfile}"
+            )
 
     return pages
 
