@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
-import json
+from __future__ import annotations
+
 import re
+
 import requests
 
 URL = "https://syscalls.mebeim.net/db/x86/64/x64/latest/table.json"
@@ -25,13 +27,12 @@ def parse_arg(arg: str):
     return (type_str, deref, name)
 
 
-def main() -> None:
+def main():
     syscall_table = requests.get(URL).json()
 
     syscalls = syscall_table["syscalls"]
 
     for entry in syscalls:
-
         if "name" in entry:
             name = entry["name"]
         elif "origname" in entry:
@@ -53,7 +54,7 @@ def main() -> None:
             args.append((t, d, n))
 
         print(f'"{fname}": Function(')
-        print('     type="long",')     # syscalls all technically return long
+        print('     type="long",')  # syscalls all technically return long
         print("     derefcnt=0,")
         print(f'    name="{fname}",')
         if not args:
