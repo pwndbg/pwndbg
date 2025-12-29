@@ -33,7 +33,7 @@ def mr(addr: int, count: int = 0x40, show: bool = False) -> bytearray:
     """
     data = pwndbg.aglib.memory.read(addr, count)
     if show:
-        for line in pwndbg.hexdump.hexdump(data, address=addr, count=count):
+        for line in pwndbg.hexdump.hexdump(bytes(data), address=addr, count=count):
             print(line)
         return bytearray()  # Return empty to avoid double output
     return data
@@ -65,7 +65,7 @@ def hd(addr: int, count: int = 0x40) -> None:
         hd(0x400000, 0x100)
     """
     data = pwndbg.aglib.memory.read(addr, count)
-    for line in pwndbg.hexdump.hexdump(data, address=addr, count=count):
+    for line in pwndbg.hexdump.hexdump(bytes(data), address=addr, count=count):
         print(line)
 
 
