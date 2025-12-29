@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import sys
 from unittest.mock import MagicMock
-from unittest.mock import patch
 
 # Mock pwndbg.commands module to prevent import errors
 module_name = "pwndbg.commands"
@@ -127,18 +126,14 @@ def test_aliases_function_output():
     """Test that aliases() function produces output."""
     from pwndbg.lib.ipi_helpers import aliases
 
-    # Mock print to capture output
-    with patch("builtins.print") as mock_print:
-        # Call aliases() - it uses __builtins__["print"] internally
-        # But we can't easily test that without running it
-        # So we just verify it's callable and doesn't crash
-        assert callable(aliases), "aliases should be a callable function"
+    # Verify it's callable and doesn't crash
+    assert callable(aliases), "aliases should be a callable function"
 
-        # Test that function signature is correct (no required args)
-        import inspect
+    # Test that function signature is correct (no required args)
+    import inspect
 
-        sig = inspect.signature(aliases)
-        assert len(sig.parameters) == 0, "aliases() should take no required arguments"
+    sig = inspect.signature(aliases)
+    assert len(sig.parameters) == 0, "aliases() should take no required arguments"
 
 
 def test_module_imports():

@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
+import pwndbg.aglib.regs  # type: ignore[import-untyped]
 import pwndbg.aglib.vmmap
 import pwndbg.hexdump
 import pwndbg.search
@@ -113,8 +113,7 @@ class RegNamespace:
         """
         pwndbg.aglib.regs.write_reg(name, value)
 
-    @staticmethod
-    def __getattr__(name: str) -> int | None:
+    def __getattr__(self, name: str) -> int | None:
         """Allow pwn.reg.rax style access."""
         return pwndbg.aglib.regs.read_reg(name)
 
