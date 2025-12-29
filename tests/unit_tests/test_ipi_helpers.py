@@ -25,7 +25,7 @@ sys.modules["pwndbg.hexdump"] = MagicMock(__name__="pwndbg.hexdump")
 sys.modules["pwndbg.search"] = MagicMock(__name__="pwndbg.search")
 
 
-def test_get_ipi_namespace():
+def test_get_ipi_namespace() -> None:
     """Test that get_ipi_namespace returns all expected helpers."""
     from pwndbg.lib.ipi_helpers import get_ipi_namespace
 
@@ -40,7 +40,7 @@ def test_get_ipi_namespace():
         assert callable(ns[name]), f"{name} should be callable"
 
 
-def test_get_banner():
+def test_get_banner() -> None:
     """Test banner message contains expected content."""
     from pwndbg.lib.ipi_helpers import get_banner
 
@@ -58,7 +58,7 @@ def test_get_banner():
     assert "aliases()" in banner, "Banner should mention aliases() function"
 
 
-def test_short_aliases_exist():
+def test_short_aliases_exist() -> None:
     """Test that all short alias functions are defined."""
     from pwndbg.lib import ipi_helpers
 
@@ -82,7 +82,7 @@ def test_short_aliases_exist():
     assert callable(ipi_helpers.aliases), "aliases should be callable"
 
 
-def test_aliases_function_output():
+def test_aliases_function_output() -> None:
     """Test that aliases() function produces output."""
     from pwndbg.lib.ipi_helpers import aliases
 
@@ -96,7 +96,7 @@ def test_aliases_function_output():
     assert len(sig.parameters) == 0, "aliases() should take no required arguments"
 
 
-def test_module_imports():
+def test_module_imports() -> None:
     """Test that the module can be imported without errors."""
     # This test verifies that all imports in ipi_helpers.py work
     from pwndbg.lib import ipi_helpers
@@ -106,7 +106,7 @@ def test_module_imports():
     assert hasattr(ipi_helpers, "get_banner"), "Module should export get_banner"
 
 
-def test_no_pwntools_shadowing():
+def test_no_pwntools_shadowing() -> None:
     """Test that we don't export a 'pwn' object that would shadow pwntools."""
     from pwndbg.lib.ipi_helpers import get_ipi_namespace
 
