@@ -32,24 +32,12 @@ def test_get_ipi_namespace():
     ns = get_ipi_namespace()
 
     # Check all expected keys exist
-    expected_keys = {"pwn", "mr", "mw", "hd", "ms", "rr", "rw", "vm", "aliases"}
+    expected_keys = {"mr", "mw", "hd", "ms", "rr", "rw", "vm", "aliases"}
     assert set(ns.keys()) == expected_keys, f"Expected {expected_keys}, got {set(ns.keys())}"
 
-    # Check that values are callable or objects
-    assert callable(ns["mr"]), "mr should be callable"
-    assert callable(ns["mw"]), "mw should be callable"
-    assert callable(ns["hd"]), "hd should be callable"
-    assert callable(ns["ms"]), "ms should be callable"
-    assert callable(ns["rr"]), "rr should be callable"
-    assert callable(ns["rw"]), "rw should be callable"
-    assert callable(ns["vm"]), "vm should be callable"
-    assert callable(ns["aliases"]), "aliases should be callable"
-
-    # Check pwn namespace has expected attributes
-    pwn = ns["pwn"]
-    assert hasattr(pwn, "mem"), "pwn should have mem attribute"
-    assert hasattr(pwn, "reg"), "pwn should have reg attribute"
-    assert hasattr(pwn, "vm"), "pwn should have vm attribute"
+    # Check that all values are callable
+    for name in expected_keys:
+        assert callable(ns[name]), f"{name} should be callable"
 
 
 def test_get_banner():
@@ -67,35 +55,7 @@ def test_get_banner():
     assert "mw" in banner, "Banner should mention mw shortcut"
     assert "rr" in banner, "Banner should mention rr shortcut"
     assert "vm" in banner, "Banner should mention vm shortcut"
-    assert "pwn" in banner, "Banner should mention pwn namespace"
     assert "aliases()" in banner, "Banner should mention aliases() function"
-
-
-def test_namespace_structure():
-    """Test that pwn namespace has correct structure."""
-    from pwndbg.lib.ipi_helpers import pwn
-
-    # Check mem namespace methods
-    assert hasattr(pwn.mem, "read"), "pwn.mem should have read method"
-    assert hasattr(pwn.mem, "write"), "pwn.mem should have write method"
-    assert hasattr(pwn.mem, "hexdump"), "pwn.mem should have hexdump method"
-    assert hasattr(pwn.mem, "search"), "pwn.mem should have search method"
-
-    # Check all are static methods or callable
-    assert callable(pwn.mem.read), "pwn.mem.read should be callable"
-    assert callable(pwn.mem.write), "pwn.mem.write should be callable"
-    assert callable(pwn.mem.hexdump), "pwn.mem.hexdump should be callable"
-    assert callable(pwn.mem.search), "pwn.mem.search should be callable"
-
-    # Check reg namespace methods
-    assert hasattr(pwn.reg, "get"), "pwn.reg should have get method"
-    assert hasattr(pwn.reg, "set"), "pwn.reg should have set method"
-    assert callable(pwn.reg.get), "pwn.reg.get should be callable"
-    assert callable(pwn.reg.set), "pwn.reg.set should be callable"
-
-    # Check vm namespace methods
-    assert hasattr(pwn.vm, "map"), "pwn.vm should have map method"
-    assert callable(pwn.vm.map), "pwn.vm.map should be callable"
 
 
 def test_short_aliases_exist():
@@ -142,9 +102,15 @@ def test_module_imports():
     from pwndbg.lib import ipi_helpers
 
     # Verify key exports
-    assert hasattr(ipi_helpers, "PwnNamespace"), "Module should export PwnNamespace"
-    assert hasattr(ipi_helpers, "MemNamespace"), "Module should export MemNamespace"
-    assert hasattr(ipi_helpers, "RegNamespace"), "Module should export RegNamespace"
-    assert hasattr(ipi_helpers, "VmNamespace"), "Module should export VmNamespace"
     assert hasattr(ipi_helpers, "get_ipi_namespace"), "Module should export get_ipi_namespace"
     assert hasattr(ipi_helpers, "get_banner"), "Module should export get_banner"
+
+
+def test_no_pwntools_shadowing():
+    """Test that we don't export a 'pwn' object that would shadow pwntools."""
+    from pwndbg.lib.ipi_helpers import get_ipi_namespace
+
+    ns = get_ipi_namespace()
+
+    # Critical: pwn should NOT be in namespace to avoid shadowing pwntools
+    assert "pwn" not in ns, "Should not export 'pwn' to avoid shadowing pwntools module"
