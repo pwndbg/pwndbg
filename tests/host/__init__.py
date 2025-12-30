@@ -60,7 +60,7 @@ def _result_from_pytest(result: CompletedProcess[str], duration_ns: int) -> Test
         entries = re.search(
             r"={5} \d+ (passed|failed|skipped|xpass|xfail) in \d.\d+s ={5}",
             result.stdout,
-            re.MULTILINE
+            re.MULTILINE,
         )
         if entries:
             stdout_status = entries[1].upper()
