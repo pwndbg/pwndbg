@@ -60,27 +60,22 @@ Tests are organized into groups under `tests/`:
 - `tests/library/` - Test libraries
 
 ```bash
-# Run all tests (uses pytest)
-uv run --group dev --group tests --all-extras pytest tests/
+# Run all integration tests
+./tests.sh
 
-# Run specific test group
-python tests/tests.py tests              # Standard tests
-python tests/tests.py unit-tests         # Unit tests only
-python tests/tests.py qemu-user-tests    # QEMU user-space tests
-python tests/tests.py qemu-system-tests  # QEMU system tests
+# Run unit tests only
+./unit-tests.sh
 
-# Run with coverage
-python tests/tests.py tests --cov
+# Run kernel tests
+./kernel-tests.sh
 
-# Run specific test file
-uv run --group dev --group tests --all-extras pytest tests/unit_tests/test_specific.py
-
-# Debug tests with pdb
-python tests/tests.py tests --pdb
-
-# Run tests in serial
-python tests/tests.py tests --serial
+# Pass additional arguments to the test runner
+./tests.sh --cov          # Run with coverage
+./tests.sh --pdb          # Debug with pdb
+./tests.sh --serial       # Run tests serially
 ```
+
+**Note:** These scripts use `uv` internally for dependency management. Use `PWNDBG_NO_UV=1` to disable UV and use system Python if needed.
 
 ### Building Documentation
 ```bash
@@ -238,15 +233,14 @@ pwndbg/
 
 ## Special Notes
 
-### UV Environment Variables
+### Disabling UV
 
-The project uses UV-specific environment variables (defined in `scripts/common.sh`):
-- `UV_RUN` - Base uv run command
-- `UV_RUN_TEST` - UV with test dependencies
-- `UV_RUN_LINT` - UV with lint dependencies
-- `UV_RUN_DOCS` - UV with docs dependencies
-- `UV_RUN_MYPY` - UV with mypy dependencies
-- `PWNDBG_NO_UV=1` - Disable UV, use system Python
+By default, pwndbg uses `uv` for Python dependency management. To use system Python instead:
+
+```bash
+export PWNDBG_NO_UV=1
+./setup.sh
+```
 
 ### Platform Support
 

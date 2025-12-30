@@ -18,6 +18,8 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
+      # Enable auto-merge for patch and minor updates
+      # The --auto flag waits for all required CI checks to pass before merging
       - name: Auto-merge patch and minor updates
         if: steps.metadata.outputs.update-type == 'version-update:semver-patch' || steps.metadata.outputs.update-type == 'version-update:semver-minor'
         run: gh pr merge --auto --squash "$PR_URL"
@@ -25,6 +27,7 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Also auto-merge GitHub Actions version updates
       - name: Auto-merge GitHub Actions updates
         if: steps.metadata.outputs.package-ecosystem == 'github_actions'
         run: gh pr merge --auto --squash "$PR_URL"
