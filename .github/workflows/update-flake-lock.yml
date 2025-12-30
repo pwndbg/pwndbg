@@ -44,7 +44,7 @@ jobs:
 
       - name: Install dix
         if: steps.changes.outputs.changed == 'true'
-        run: nix profile install github:faukah/dix
+        run: nix profile install nixpkgs#dix
 
       - name: Generate diff
         if: steps.changes.outputs.changed == 'true'
