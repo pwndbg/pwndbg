@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 from itertools import chain
+from typing import Callable
 
 import capstone
 
@@ -148,6 +149,91 @@ async def break_next_interrupt(
         with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
             await ec.cont(bp)
         return ins
+
+    return None
+
+
+async def break_next_interrupt_filtered(
+    ec: pwndbg.dbg_mod.ExecutionController,
+    syscall_num: int | None = None,
+    condition: "Callable[[], bool] | None" = None,
+) -> PwndbgInstruction | None:
+    """
+    Break at the next interrupt (syscall) that matches the given filter criteria.
+
+    Args:
+        ec: Execution controller for stepping/continuing
+        syscall_num: If provided, only break when syscall number matches (read from syscall register)
+        condition: If provided, a callable that returns True when the condition is met
+                   (e.g., checking register values like $rdi==0)
+
+    Returns:
+        The instruction we stopped at, or None if process died/signaled
+    """
+    # Get the syscall register for the current architecture
+    syscall_reg = None
+    if syscall_num is not None:
+        arch_name = pwndbg.aglib.arch.name if pwndbg.aglib.arch else None
+        syscall_reg = {
+            "x86-64": "rax",
+            "i386": "eax",
+            "i8086": "ax",
+            "mips": "v0",
+            "aarch64": "x8",
+            "arm": "r7",
+            "armcm": "r7",
+            "rv32": "a7",
+            "rv64": "a7",
+            "sparc": "g1",
+            "powerpc": "r0",
+            "loongarch64": "a7",
+            "s390x": "r2",  
+        }.get(arch_name)
+
+    while pwndbg.aglib.proc.alive():
+        # Break on signal as it may be a segfault
+        if pwndbg.aglib.proc.stopped_with_signal():
+            return None
+
+        # Try to find and break at next interrupt in current basic block
+        ins = await break_next_interrupt(ec, honor_current_branch=True)
+
+        if ins:
+            # We hit an interrupt instruction - check filters
+            matches = True
+
+            # Check syscall number filter
+            if syscall_num is not None and syscall_reg:
+                current_syscall = pwndbg.aglib.regs.read_reg(syscall_reg)
+                if current_syscall != syscall_num:
+                    matches = False
+
+            # Check condition filter
+            if matches and condition is not None:
+                try:
+                    if not condition():
+                        matches = False
+                except Exception:
+                    matches = False
+
+            if matches:
+                return ins
+
+            # Didn't match - step past this syscall and continue searching
+            await ec.single_step()
+        else:
+            # No interrupt in current basic block - step to next branch and take it
+            branch = next_branch(pwndbg.aglib.regs.pc, including_current=True)
+            if branch:
+                if branch.address != pwndbg.aglib.regs.pc:
+                    proc = pwndbg.dbg.selected_inferior()
+                    with proc.break_at(BreakpointLocation(branch.address), internal=True) as bp:
+                        await ec.cont(bp)
+                # Step past the branch
+                await ec.single_step()
+            else:
+                # No branch found either, just single step
+                await ec.single_step()
 
     return None
 
