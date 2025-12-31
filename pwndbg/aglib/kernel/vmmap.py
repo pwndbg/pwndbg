@@ -400,9 +400,14 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_pages() -> Tuple[Page, ...]:
     mode = kernel_vmmap_mode
-    if mode == "page-tables" and pwndbg.aglib.arch.name in ("rv32", "rv64"):
+    arch_name = pwndbg.aglib.arch.name
+    if mode == "page-tables" and arch_name not in ("x86-64", "aarch64"):
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
-        print(message.warn("`page-tables` unsupported for riscv, defaulting to `monitor info mem`"))
+        print(
+            message.warn(
+                f"`page-tables` unsupported for {arch_name}, defaulting to `monitor info mem`"
+            )
+        )
         mode = "monitor"
     match mode:
         case "page-tables":

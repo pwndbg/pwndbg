@@ -262,9 +262,12 @@ def load_common_structs():
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-def load_common_structs_on_load():
-    if pwndbg.aglib.qemu.is_qemu_kernel():
-        load_common_structs()
+def load_common_structs_on_load_linux():
+    if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.kernel.has_debug_symbols():
+        try:
+            load_common_structs()
+        except Exception:
+            pass
 
 
 class ArchSymbols:
