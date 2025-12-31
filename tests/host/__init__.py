@@ -46,25 +46,14 @@ def _result_from_pytest(result: CompletedProcess[str], duration_ns: int) -> Test
     stdout_status = None
     stdout_context = None
     if result.stdout is not None:
-        # Match stdout for LLDB status
         entries = re.search(
-            r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)( .*::.* -)?( (.*))?",
+            r"(?:\x1b\[3.m)?(PASSED|FAILED|SKIPPED|XPASS|XFAIL)(?:\x1b\[0m)?(?: .*::.* -)?(?: (.*))?",
             result.stdout,
             re.MULTILINE,
         )
         if entries:
-            stdout_status = entries[2]
-            stdout_context = entries[5]
-
-        # Match stdout for GDB status
-        entries = re.search(
-            r"={5} \d+ (passed|failed|skipped|xpass|xfail) in \d.\d+s ={5}",
-            result.stdout,
-            re.MULTILINE,
-        )
-        if entries:
-            stdout_status = entries[1].upper()
-            stdout_context = entries[0]
+            stdout_status = entries[0]
+            stdout_context = entries[1]
 
     # If possible, augment the status with the high-granularity output.
     if stdout_status is not None:
