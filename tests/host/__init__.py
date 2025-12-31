@@ -52,8 +52,8 @@ def _result_from_pytest(result: CompletedProcess[str], duration_ns: int) -> Test
             re.MULTILINE,
         )
         if entries:
-            stdout_status = entries[0]
-            stdout_context = entries[1]
+            stdout_status = entries[1]
+            stdout_context = entries[2]
 
     # If possible, augment the status with the high-granularity output.
     if stdout_status is not None:
