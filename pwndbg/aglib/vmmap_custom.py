@@ -8,11 +8,11 @@ from typing import Tuple
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.stack
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
@@ -94,7 +94,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
             is_readable_addr = pwndbg.aglib.memory.peek(page_start)
             if is_readable_addr:
                 print(
-                    M.warn(
+                    message.warn(
                         f"Warning: Avoided exploring possible address {address_maybe:#x}.\n"
                         f"You can explicitly explore it with `vmmap-explore {page_start:#x}`"
                     )
@@ -157,4 +157,4 @@ def find_boundaries(addr: int, name: str = "", min: int = 0) -> pwndbg.lib.memor
     start = max(start, min)
     end = max(end, min)
 
-    return pwndbg.lib.memory.Page(start, end - start, 4, 0, name)
+    return pwndbg.lib.memory.Page(start, end - start, 4, 0, pwndbg.aglib.arch.ptrsize, name)

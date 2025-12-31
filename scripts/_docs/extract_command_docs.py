@@ -20,8 +20,10 @@ from dataclasses import asdict
 
 shutil.get_terminal_size = lambda fallback=(80, 24): os.terminal_size((80, 24))
 
+import argparse
 import json
 import sys
+from dataclasses import dataclass
 from typing import Tuple
 
 import pwndbg.commands
@@ -62,6 +64,138 @@ def extract_commands() -> list[CommandObj]:
     return commandobjs
 
 
+@dataclass
+class ExtractedParserData:
+    usage: str
+    positionals: list[Tuple[str, str]]
+    optionals: list[Tuple[str, str, str]]
+
+
+def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
+    formatter = parser._get_formatter()
+    usage = parser.format_usage()
+    used_actions = {}
+
+    # positional arguments
+    # [(argument name, argument help)]
+    positionals: list[Tuple[str, str]] = []
+
+    if parser._positionals._group_actions:
+        for action in parser._positionals._group_actions:
+            this_id = id(action)
+            if this_id in used_actions:
+                continue
+
+            # The formatter decides if the default should be shown.
+            param_help = formatter._expand_help(action)
+
+            positionals.append((action.dest, param_help))
+            used_actions[this_id] = True
+
+    # option arguments
+    # [(short name, long name, argument help)]
+    optionals: list[Tuple[str, str, str]] = []
+
+    if parser._option_string_actions:
+        for k in parser._option_string_actions:
+            action = parser._option_string_actions[k]
+            this_id = id(action)
+            if this_id in used_actions:
+                continue
+
+            short_name = ""
+            long_name = ""
+            for opt in action.option_strings:
+                # --, long option
+                if len(opt) > 1 and opt[1] in parser.prefix_chars:
+                    long_name = opt
+                # short opt
+                elif len(opt) > 0 and opt[0] in parser.prefix_chars:
+                    short_name = opt
+
+            # The formatter decides if the default should be shown.
+            param_help = formatter._expand_help(action)
+
+            optionals.append((short_name, long_name, param_help))
+            used_actions[this_id] = True
+
+    return ExtractedParserData(usage, positionals, optionals)
+
+
+def distill_one_subcommand(cmdname, parser: argparse.ArgumentParser) -> ExtractedCommand:
+    """
+    The `parser` argument is the subcommand we are distilling.
+    """
+    category = "<is subcommand>"
+    filename = "<is subcommand>"
+    description = parser.description
+    assert description
+    # We will fix the aliases up later.
+    aliases = []
+    examples = ""
+    notes = ""
+    pure_epilog = ""
+
+    parser_data: ExtractedParserData = distill_parser(parser)
+    # Recurse to check if we have sub-sub-[..]-commands
+    subcommands: list[ExtractedCommand] = distill_subcommands(parser)
+
+    return ExtractedCommand(
+        cmdname,
+        category,
+        filename,
+        description,
+        aliases,
+        examples,
+        notes,
+        pure_epilog,
+        parser_data.usage,
+        parser_data.positionals,
+        parser_data.optionals,
+        subcommands,
+    )
+
+
+def distill_subcommands(parser: argparse.ArgumentParser) -> list[ExtractedCommand]:
+    """
+    The `parser` argument is the command from which we want to extract subcommands.
+    If there are no subcommands an empty list is returned.
+    """
+    subcommands: list[ExtractedCommand] = []
+    alias_map: dict[str, list[str]] = {}
+
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            # This command does have subcommands! Iterate over them and
+            # create a CommandObj for each.
+            # Argparse creates duplicate objects for aliases but we don't need to
+            # re-extract them.
+            last_prog = "<prog doesn't exist>"
+            last_real_cmdname = "<cmdname doesn't exist>"
+            for cmdname, subparser in action.choices.items():
+                # Check if alias.
+                if subparser.prog != last_prog:
+                    subcommands.append(distill_one_subcommand(cmdname, subparser))
+                    last_real_cmdname = cmdname
+                else:
+                    # Save to an alias map.
+                    if last_real_cmdname not in alias_map:
+                        alias_map[last_real_cmdname] = []
+                    alias_map[last_real_cmdname].append(cmdname)
+
+                last_prog = subparser.prog
+
+    # Fix up the aliases.
+    for i in range(len(subcommands)):
+        if subcommands[i].name not in alias_map:
+            # Doesn't have any aliases.
+            continue
+
+        subcommands[i].aliases = alias_map[subcommands[i].name]
+
+    return subcommands
+
+
 def distill_sources(commandobjs: list[CommandObj]) -> list[ExtractedCommand]:
     extracted: list[ExtractedCommand] = []
     for cmdobj in commandobjs:
@@ -82,55 +216,8 @@ def distill_sources(commandobjs: list[CommandObj]) -> list[ExtractedCommand]:
         pure_epilog = cmdobj.pure_epilog
 
         # Extract data from the parser
-        parser = cmdobj.parser
-        formatter = parser._get_formatter()
-
-        usage = parser.format_usage()
-
-        used_actions = {}
-
-        # positional arguments
-        # [(argument name, argument help)]
-        positionals: list[Tuple[str, str]] = []
-
-        if parser._positionals._group_actions:
-            for action in parser._positionals._group_actions:
-                this_id = id(action)
-                if this_id in used_actions:
-                    continue
-
-                # The formatter decides if the default should be shown.
-                param_help = formatter._expand_help(action)
-
-                positionals.append((action.dest, param_help))
-                used_actions[this_id] = True
-
-        # option arguments
-        # [(short name, long name, argument help)]
-        optionals: list[Tuple[str, str, str]] = []
-
-        if parser._option_string_actions:
-            for k in parser._option_string_actions:
-                action = parser._option_string_actions[k]
-                this_id = id(action)
-                if this_id in used_actions:
-                    continue
-
-                short_name = ""
-                long_name = ""
-                for opt in action.option_strings:
-                    # --, long option
-                    if len(opt) > 1 and opt[1] in parser.prefix_chars:
-                        long_name = opt
-                    # short opt
-                    elif len(opt) > 0 and opt[0] in parser.prefix_chars:
-                        short_name = opt
-
-                # The formatter decides if the default should be shown.
-                param_help = formatter._expand_help(action)
-
-                optionals.append((short_name, long_name, param_help))
-                used_actions[this_id] = True
+        parser_data: ExtractedParserData = distill_parser(cmdobj.parser)
+        subcommands: list[ExtractedCommand] = distill_subcommands(cmdobj.parser)
 
         # Construct and append the final result
         extracted.append(
@@ -143,9 +230,10 @@ def distill_sources(commandobjs: list[CommandObj]) -> list[ExtractedCommand]:
                 examples,
                 notes,
                 pure_epilog,
-                usage,
-                positionals,
-                optionals,
+                parser_data.usage,
+                parser_data.positionals,
+                parser_data.optionals,
+                subcommands,
             )
         )
 

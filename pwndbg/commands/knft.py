@@ -24,7 +24,7 @@ parser.add_argument("nsid", type=int, nargs="?", help="Network Namespace ID")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_dump(nsid: Optional[int] = None):
     nft = pwndbg.aglib.kernel.nftables.Nftables.find(nsid=nsid)
@@ -43,7 +43,7 @@ parser.add_argument("--nsid", "-n", type=int, help="Network Namespace ID")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_tables(nsid: Optional[int] = None):
     nft = pwndbg.aglib.kernel.nftables.Nftables.find(nsid=nsid)
@@ -68,7 +68,7 @@ parser.add_argument("table_name", nargs="?", type=str, help="Table name")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_chains(
     table_family: Optional[int] = None, table_name: Optional[str] = None, nsid: Optional[int] = None
@@ -99,7 +99,7 @@ parser.add_argument("chain_name", nargs="?", type=str, help="Chain name")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_rules(
     table_family: Optional[int] = None,
@@ -133,7 +133,7 @@ parser.add_argument("rule_id", nargs="?", type=int, help="Rule Handle ID")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_exprs(
     table_family: Optional[int] = None,
@@ -170,7 +170,7 @@ parser.add_argument("table_name", nargs="?", type=str, help="Table name")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_sets(
     table_family: Optional[int] = None, table_name: Optional[str] = None, nsid: Optional[int] = None
@@ -199,7 +199,7 @@ parser.add_argument("table_name", nargs="?", type=str, help="Table name")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_objects(
     table_family: Optional[int] = None, table_name: Optional[str] = None, nsid: Optional[int] = None
@@ -228,7 +228,7 @@ parser.add_argument("table_name", nargs="?", type=str, help="Table name")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def knft_list_flowtables(
     table_family: Optional[int] = None, table_name: Optional[str] = None, nsid: Optional[int] = None

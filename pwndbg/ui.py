@@ -7,8 +7,8 @@ from __future__ import annotations
 import os
 import sys
 
-import pwndbg.color.context as C
-import pwndbg.dbg
+import pwndbg.color.context as ctx_color
+import pwndbg.lib.config
 from pwndbg import config
 from pwndbg.color import ljust_colored
 from pwndbg.color import rjust_colored
@@ -36,7 +36,7 @@ def banner(title, target=sys.stdout, width=None, extra=""):
     if title:
         title = "{}{}{}{}".format(
             config.banner_title_surrounding_left,
-            C.banner_title(title),
+            ctx_color.banner_title(title),
             extra,
             config.banner_title_surrounding_right,
         )
@@ -49,14 +49,14 @@ def banner(title, target=sys.stdout, width=None, extra=""):
             title, (width + len(strip(title))) // 2, str(config.banner_separator)
         )
         banner = ljust_colored(banner, width, str(config.banner_separator))
-    return C.banner(banner)
+    return ctx_color.banner(banner)
 
 
 def addrsz(address) -> str:
     return pwndbg.dbg.addrsz(address)
 
 
-def get_window_size(target=sys.stdout):
+def get_window_size(target=sys.stdout) -> tuple[int, int]:
     fallback = (int(os.environ.get("LINES", 24)), int(os.environ.get("COLUMNS", 80)))
     if not target.isatty():
         return fallback

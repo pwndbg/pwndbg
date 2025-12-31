@@ -76,12 +76,12 @@ def tcp(tid: int):
     up into 3 parts because of the length of the line):
     """
     data = pwndbg.aglib.file.get(f"/proc/{tid}/net/tcp").decode()
-    return pwndbg.lib.net.tcp(data)
+    return pwndbg.lib.net.tcp(data, pwndbg.aglib.arch.endian)
 
 
 def tcp6(tid: int):
     data = pwndbg.aglib.file.get(f"/proc/{tid}/net/tcp6").decode()
-    return pwndbg.lib.net.tcp6(data)
+    return pwndbg.lib.net.tcp6(data, pwndbg.aglib.arch.endian)
 
 
 def unix(tid: int):
@@ -100,9 +100,9 @@ def netlink(tid: int):
 class Process:
     def __init__(self, pid=None, tid=None) -> None:
         if pid is None:
-            pid = pwndbg.aglib.proc.pid
+            pid = pwndbg.aglib.proc.pid()
         if tid is None:
-            tid = pwndbg.aglib.proc.tid
+            tid = pwndbg.aglib.proc.tid()
         if not tid:
             tid = pid
         self.pid = pid
@@ -192,7 +192,7 @@ class Process:
         fds = {}
 
         for i in range(self.fdsize):
-            link = pwndbg.aglib.file.readlink("/proc/%i/fd/%i" % (pwndbg.aglib.proc.pid, i))
+            link = pwndbg.aglib.file.readlink("/proc/%i/fd/%i" % (pwndbg.aglib.proc.pid(), i))
 
             if link:
                 fds[i] = link
@@ -229,7 +229,7 @@ class Process:
 @pwndbg.commands.Command("Gets the pid.", aliases=["getpid"], category=CommandCategory.PROCESS)
 @pwndbg.commands.OnlyWhenRunning
 def pid() -> None:
-    print(pwndbg.aglib.proc.pid)
+    print(pwndbg.aglib.proc.pid())
 
 
 @pwndbg.commands.Command(

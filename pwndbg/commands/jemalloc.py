@@ -3,9 +3,10 @@ from __future__ import annotations
 import argparse
 
 import pwndbg
-import pwndbg.aglib.heap
 import pwndbg.aglib.heap.jemalloc as jemalloc
-import pwndbg.color.context as C
+import pwndbg.color.context as ctx_color
+import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -17,7 +18,7 @@ parser.add_argument("addr", type=int, help="Address of the allocated memory loca
 
 @pwndbg.commands.Command(parser, category=CommandCategory.JEMALLOC)
 def jemalloc_find_extent(addr) -> None:
-    print(C.banner("Jemalloc find extent"))
+    print(ctx_color.banner("Jemalloc find extent"))
     print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
     print()
 
@@ -50,7 +51,7 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=CommandCategory.JEMALLOC)
 def jemalloc_extent_info(addr, verbose=False, header=True) -> bool:
     if header:
-        print(C.banner("Jemalloc extent info"))
+        print(ctx_color.banner("Jemalloc extent info"))
         print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
         print()
 
@@ -79,7 +80,7 @@ parser = argparse.ArgumentParser(description="Prints all extents information")
 
 @pwndbg.commands.Command(parser, category=CommandCategory.JEMALLOC)
 def jemalloc_heap() -> None:
-    print(C.banner("Jemalloc heap"))
+    print(ctx_color.banner("Jemalloc heap"))
     print("This command was tested only for jemalloc 5.3.0 and does not support lower versions")
     print()
 

@@ -2,10 +2,84 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
+from typing import Any
+from typing import Callable
+from typing import Coroutine
+from typing import Dict
+from typing import List
 
 import coverage
+import gdb
 import pytest
 
+from ... import host
+
+
+class _GDBController(host.Controller):
+    async def launch(
+        self, binary_path: Path, args: List[str] = [], env: Dict[str, str] = {}
+    ) -> None:
+        """
+        Launch the given binary.
+
+        GDB hides the asynchronous heavy lifting from us, so this call is
+        synchronous.
+        """
+        if not os.path.exists(binary_path):
+            pytest.skip(f"{os.path.basename(binary_path)} does not exist. Platform not supported.")
+
+        os.environ["PWNDBG_IN_TEST"] = "1"
+        gdb.execute(f"file {binary_path}")
+        gdb.execute("set exception-verbose on")
+        gdb.execute("set width 80")
+        gdb.execute("set context-reserve-lines never")
+        os.environ["COLUMNS"] = "80"
+        for k, v in env.items():
+            gdb.execute(f"set environment {k}={v}")
+        gdb.execute("starti " + " ".join(args))
+
+    async def cont(self) -> None:
+        gdb.execute("continue")
+
+    async def execute(self, command: str) -> None:
+        from pwndbg.dbg_mod import Error
+
+        try:
+            gdb.execute(command)
+        except gdb.error as e:
+            raise Error(e)
+
+    async def execute_and_capture(self, command: str) -> str:
+        return gdb.execute(command, to_string=True)
+
+    async def step_instruction(self) -> None:
+        gdb.execute("stepi")
+
+    async def finish(self) -> None:
+        gdb.execute("finish")
+
+    async def select_thread(self, tid: int) -> None:
+        gdb.execute(f"thread {tid}")
+
+    async def disable_debuginfod(self) -> None:
+        gdb.execute("set debug-file-directory")
+        gdb.execute("set debuginfod enabled off")
+
+
+def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:
+    # The GDB controller is entirely synchronous, so keep advancing the
+    # corountine unconditionally until it ends..
+    coroutine = outer(_GDBController())
+    try:
+        coroutine.send(None)
+    except StopIteration:
+        pass
+
+
+host.start = _start
+
+# Start the test, proper.
 use_pdb = os.environ.get("USE_PDB") == "1"
 
 sys._pwndbg_unittest_run = True  # type: ignore[attr-defined]

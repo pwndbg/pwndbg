@@ -18,11 +18,11 @@ are located in the [`./tests/library/qemu-user`](https://github.com/pwndbg/pwndb
 directory. They can be run with `./tests.sh -d gdb -g cross-arch-user`.
 
 The linux kernel tests are run using qemu-system emulation. They are located in the
-[`./tests/library/qemu-system`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-system)
+[`./tests/library/qemu_system`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-system)
 directory and run for a variety kernel configurations and architectures.
 
 The unit tests are not run from within a debugger, but rather directly with pytest. They are located
-in the [`./tests/unit-tests/`](https://github.com/pwndbg/pwndbg/tree/dev/tests/unit-tests)
+in the [`./tests/unit_tests/`](https://github.com/pwndbg/pwndbg/tree/dev/tests/unit-tests)
 directory.
 
 Here are the options supported by `./tests.sh` which you can get by running `./tests.sh -h`.
@@ -52,7 +52,7 @@ Using a [`pytest`](https://docs.pytest.org/en/latest/) fixture at the beginning 
 GDB will attach to a [`binary`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb/conftest.py)
 or connect to a [`QEMU instance`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-user/conftest.py).
 Each test runs some commands and uses Python `assert` statements to verify correctness. We can access Pwndbg
-library code like `pwndbg.aglib.regs.rsp` as well as execute GDB commands with `gdb.execute()`.
+library code like `pwndbg.aglib.regs.sp` as well as execute GDB commands with `gdb.execute()`.
 
 We can take a look at [`tests/library/gdb/tests/test_symbol.py`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb/tests/test_symbol.py)
 for an example of a simple test. Looking at a simplified version of the top-level code, we have this:
@@ -62,7 +62,7 @@ import gdb
 import pwndbg
 import tests
 
-BINARY = tests.get_binary("symbol_1600_and_752.out")
+BINARY = tests.get_binary("symbol_1600_and_752.native.out")
 ```
 
 Since these tests run inside GDB, we can import the `gdb` Python library. We also import the `tests` module,
@@ -77,7 +77,7 @@ def test_hexdump(start_binary):
     pwndbg.config.hexdump_group_width.value = -1
 
     gdb.execute("set hexdump-byte-separator")
-    stack_addr = pwndbg.aglib.regs.rsp - 0x100
+    stack_addr = pwndbg.aglib.regs.sp - 0x100
 ```
 
 `pytest` will run any function that starts with `test_` as a new test, so there is no need to register your new

@@ -5,7 +5,6 @@ Determine whether the target is being run under QEMU.
 from __future__ import annotations
 
 import pwndbg
-import pwndbg.aglib.arch
 import pwndbg.lib.cache
 
 

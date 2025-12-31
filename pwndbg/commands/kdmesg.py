@@ -15,8 +15,12 @@ from __future__ import annotations
 import argparse
 import time
 
+import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 
 parser = argparse.ArgumentParser(description="Displays the kernel ring buffer (dmesg) contents.")
 
@@ -29,7 +33,7 @@ parser.add_argument("-T", "--ctime", action="store_true", help="Print human-read
 )
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 def kdmesg(ctime: bool = False) -> None:
     prb_addr = pwndbg.aglib.symbol.lookup_symbol_addr("printk_rb_static")
 
@@ -144,7 +148,7 @@ def kdmesg(ctime: bool = False) -> None:
                 epoch_time = int(tk_core["timekeeper"]["xtime_sec"])
 
                 for line in text.splitlines():
-                    print(f"[{time.ctime(int(info['ts_nsec'] ) / 1e9 + epoch_time)}] {line}")
+                    print(f"[{time.ctime(int(info['ts_nsec']) / 1e9 + epoch_time)}] {line}")
             else:
                 for line in text.splitlines():
                     print(f"[{int(info['ts_nsec']) / 1e9:12.6f}] {line}")

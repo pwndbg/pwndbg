@@ -4,20 +4,19 @@ import argparse
 from typing import Dict
 from typing import Tuple
 
-from pwnlib.asm import asm
-from pwnlib.asm import disasm
-
+import pwndbg.aglib.asm
 import pwndbg.aglib.memory
 import pwndbg.color.context
 import pwndbg.color.memory
 import pwndbg.color.syntax_highlight
 import pwndbg.commands
 import pwndbg.lib.cache
+from pwndbg.aglib.disasm.disassembly import get_disassembler
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 # Keep old patches made so we can revert them
-patches: Dict[int, Tuple[bytearray, bytearray]] = {}
+patches: Dict[int, Tuple[bytes, bytes]] = {}
 
 
 parser = argparse.ArgumentParser(description="Patches given instruction with given code or bytes.")
@@ -29,7 +28,7 @@ parser.add_argument("-q", "--quiet", action="store_true", help="don't print anyt
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC)
 @pwndbg.commands.OnlyWhenRunning
 def patch(address: int, ins: str, quiet: bool) -> None:
-    new_mem = asm(ins)
+    new_mem = pwndbg.aglib.asm.asm(ins)
 
     old_mem = pwndbg.aglib.memory.read(address, len(new_mem))
 
@@ -82,8 +81,14 @@ def patch_list() -> None:
 
     print(pwndbg.color.context.banner("Patches:"))
     for addr, (old, new) in patches.items():
-        old_insns = disasm(old, byte=False, offset=False)
-        new_insns = disasm(new, byte=False, offset=False)
+        cs = get_disassembler(pwndbg.aglib.arch.get_capstone_constants(addr))
+
+        old_insns = "\n".join(
+            [f"{x.mnemonic} {x.op_str}".strip() for x in cs.disasm(old, offset=addr)]
+        )
+        new_insns = "\n".join(
+            [f"{x.mnemonic} {x.op_str}".strip() for x in cs.disasm(new, offset=addr)]
+        )
 
         colored_addr = pwndbg.color.memory.get(addr)
 

@@ -9,18 +9,17 @@ from typing import Tuple
 from capstone import *  # noqa: F403
 from pwnlib.constants import linux
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.remote
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
-import pwndbg.color.context as C
-import pwndbg.color.memory as MemoryColor
-import pwndbg.color.message as MessageColor
+import pwndbg.color.context as ctx_color
+import pwndbg.color.memory as mem_color
+import pwndbg.color.message as message
 import pwndbg.color.syntax_highlight as H
-import pwndbg.enhance
+import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import FORWARD_JUMP_GROUP
@@ -29,6 +28,7 @@ from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import boolean_to_instruction_condition
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
+from pwndbg.lib.regs import PseudoEmulatedRegisterFile
 
 # Emulator currently requires GDB, and we only use it here for type checking.
 if TYPE_CHECKING:
@@ -144,8 +144,16 @@ def memory_or_register_assign(left: str, right: str, mem_assign: bool) -> str:
 class DisassemblyAssistant:
     architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
+    manual_register_values: PseudoEmulatedRegisterFile
+
+    supports_manual_emulation = False
+    """This feature relies on the Capstone .regs_access() features that not all architectures have reliable support for"""
+
     def __init__(self, architecture: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
         self.architecture = architecture
+        self.manual_register_values = PseudoEmulatedRegisterFile(
+            pwndbg.aglib.regs.current, pwndbg.aglib.arch.ptrsize
+        )
 
         self.op_handlers: Dict[
             int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
@@ -203,10 +211,10 @@ class DisassemblyAssistant:
         # Ensure emulator's program counter is at the correct location.
         # This occurs very rarely - observed sometimes when the remote is stalling, ctrl-c, and for some reason emulator returns PC=0.
         if emu:
-            if emu.pc != instruction.address:
+            if emu.pc() != instruction.address:
                 if DEBUG_ENHANCEMENT:
                     print(
-                        f"Program counter and emu.pc do not line up: {hex(pwndbg.aglib.regs.pc)=} {hex(emu.pc)=}"
+                        f"Program counter and emu.pc do not line up: {hex(pwndbg.aglib.regs.pc)=} {hex(emu.pc())=}"
                     )
                 emu = jump_emu = None
 
@@ -240,7 +248,10 @@ class DisassemblyAssistant:
         # Set the .target and .next fields
         self._enhance_next(instruction, emu, jump_emu)
 
-        if bool(pwndbg.config.disasm_annotations):
+        if (
+            bool(pwndbg.config.disasm_annotations)
+            and instruction.condition != InstructionCondition.FALSE
+        ):
             self._set_annotation_string(instruction, emu)
 
         # Disable emulation after CALL instructions. We do it after enhancement, as we can use emulation
@@ -252,6 +263,32 @@ class DisassemblyAssistant:
 
             if DEBUG_ENHANCEMENT:
                 print("Turned off emulation for call")
+
+        # Manually propagate register values so when enhancing the next instruction, we can read from these registers
+        if self.supports_manual_emulation:
+            if (
+                instruction.call_like
+                or (set(instruction.groups) & DO_NOT_EMULATE)
+                or (instruction.jump_like and not instruction.jump_result_is_known)
+            ):
+                # Syscalls and functions (which we step over) can clobber registers
+                # Also, if we encounter a control flow instruction where the result is unknown,
+                # we need to reset the registers because otherwise it may show annotations for instructions never actually taken.
+                self.manual_register_values.invalidate_all_registers()
+            else:
+                _, regs_written = instruction.cs_insn.regs_access()
+
+                for reg_id in regs_written:
+                    reg_name: str = instruction.cs_insn.reg_name(reg_id)
+
+                    # If we determined that this instruction wrote some value to this register, propagate it.
+                    # Otherwise, invalidate the value since we cannot reason about it.
+                    if reg_id in instruction.register_writes:
+                        self.manual_register_values.write_register(
+                            reg_name, instruction.register_writes[reg_id]
+                        )
+                    else:
+                        self.manual_register_values.invalidate_register(reg_name)
 
         if DEBUG_ENHANCEMENT:
             print(self.dump(instruction))
@@ -302,6 +339,8 @@ class DisassemblyAssistant:
         if pwndbg.config.syntax_highlight:
             instruction.asm_string = syntax_highlight(instruction.asm_string)
 
+        stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
+
         # Populate the "operands" list of the instruction
         # Set before_value, symbol, and str
         for op in instruction.operands:
@@ -313,7 +352,7 @@ class DisassemblyAssistant:
                     op.before_value &= pwndbg.aglib.arch.ptrmask
 
                 if op.before_value >= 0:
-                    op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
+                    op.symbol = mem_color.attempt_colorized_symbol(op.before_value, stack_vars)
 
                 op.before_value_resolved = self._resolve_used_value(
                     op.before_value, instruction, op, emu
@@ -330,7 +369,7 @@ class DisassemblyAssistant:
                     )
 
         # Execute the instruction
-        if jump_emu and None in jump_emu.single_step():
+        if jump_emu and None in jump_emu.single_step(instruction=instruction):
             # This branch is taken if stepping the emulator failed
             jump_emu = None
             emu = None
@@ -415,8 +454,11 @@ class DisassemblyAssistant:
             # which is relevent if we are writing to this register.
             # However, the information can still be useful for display purposes.
             if DEBUG_ENHANCEMENT:
-                print(f"Read value from process register: {pwndbg.aglib.regs[regname]}")
-            return pwndbg.aglib.regs[regname]
+                print(f"Read value from process register: {pwndbg.aglib.regs.read_reg(regname)}")
+            return pwndbg.aglib.regs.read_reg(regname)
+        elif (reg_value := self.manual_register_values.read_register(regname)) is not None:
+            # If we manually tracked the value of this register while disassembling, we can read from it.
+            return reg_value
         else:
             return None
 
@@ -506,6 +548,11 @@ class DisassemblyAssistant:
 
             address_list = [address]
 
+            if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
+                size_type = pwndbg.aglib.typeinfo.get_type(read_size)
+            else:
+                size_type = pwndbg.aglib.typeinfo.ppvoid
+
             for _ in range(limit):
                 if address_list.count(address) >= 2:
                     break
@@ -513,7 +560,9 @@ class DisassemblyAssistant:
                 page = pwndbg.aglib.vmmap.find(address)
                 if page and not page.write:
                     try:
-                        address = pwndbg.aglib.memory.read_pointer_width(address)
+                        address = int(
+                            pwndbg.aglib.memory.get_typed_pointer_value(size_type, address)
+                        )
                         address &= pwndbg.aglib.arch.ptrmask
                         address_list.append(address)
                     except pwndbg.dbg_mod.Error:
@@ -668,7 +717,7 @@ class DisassemblyAssistant:
             # 1. Only use it to determine non-call's (`nexti` should step over calls)
             # 2. Make sure we haven't manually set .condition to False (which should override the emulators prediction)
             if not instruction.call_like and instruction.condition != InstructionCondition.FALSE:
-                next_addr = jump_emu.pc
+                next_addr = jump_emu.pc()
 
         # Handle edge case - if the target happens to be the next address in memory and it's a jump, we need this variable
         # so the disasm output is accurate.
@@ -690,7 +739,9 @@ class DisassemblyAssistant:
 
         if instruction.has_jump_target and instruction.target >= 0:
             # Only bother doing the symbol lookup if this is a jump
-            instruction.target_string = MemoryColor.get_address_or_symbol(instruction.target)
+            instruction.target_string = mem_color.get_address_or_symbol(
+                instruction.target, pwndbg.integration.manager.get_stack_var_dict_all()
+            )
 
         # Now that we have determined the target, if it was a conditional branch,
         # go back and correct the instruction condition to reflect the branch decision of the emulator
@@ -776,19 +827,14 @@ class DisassemblyAssistant:
 
     # String functions assume the .before_value and .after_value have been set
     def _immediate_string(self, instruction, operand) -> str:
-        value = operand.before_value
-
-        if abs(value) < 0x10:
-            return "%i" % value
-
-        return "%#x" % value
+        return pwndbg.lib.pretty_print.int_to_string(operand.before_value)
 
     def _register_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
         """
         Return colorized register string
         """
         reg = operand.reg
-        name = C.register(instruction.cs_insn.reg_name(reg).upper())
+        name = ctx_color.register(instruction.cs_insn.reg_name(reg).upper())
 
         # If using emulation and we determined the value didn't change, don't colorize
         if (
@@ -798,14 +844,14 @@ class DisassemblyAssistant:
         ):
             return name
         else:
-            return C.register_changed(name)
+            return ctx_color.register_changed(name)
 
     def _memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
         """
         Example: return "[_IO_2_1_stdin_+16]", where the address/symbol is colorized
         """
         if operand.before_value is not None:
-            return f"[{MemoryColor.get_address_or_symbol(operand.before_value)}]"
+            return f"[{mem_color.get_address_or_symbol(operand.before_value, pwndbg.integration.manager.get_stack_var_dict_all())}]"
         else:
             return None
 
@@ -863,7 +909,9 @@ class DisassemblyAssistant:
                 if (l_value := left.before_value_resolved) is not None and (
                     r_value := right.before_value_resolved
                 ) is not None:
-                    print_left, print_right = pwndbg.enhance.format_small_int_pair(l_value, r_value)
+                    print_left, print_right = pwndbg.lib.pretty_print.int_pair_to_string(
+                        l_value, r_value
+                    )
                     # Ex: "0x7f - 0x12" or "0xdffffdea + 0x8"
                     instruction.annotation = (
                         f"{print_left} {char_to_separate_operands} {print_right}"
@@ -873,7 +921,7 @@ class DisassemblyAssistant:
             if emu:
                 eflags_bits = pwndbg.aglib.regs.flags[flags_register_name]
                 emu_eflags = emu.read_register(flags_register_name)
-                eflags_formatted = C.format_flags(emu_eflags, eflags_bits)
+                eflags_formatted = ctx_color.format_flags(emu_eflags, eflags_bits)
 
                 display_result = register_assign(FLAG_REG_NAME_DISPLAY, eflags_formatted)
 
@@ -918,8 +966,8 @@ class DisassemblyAssistant:
 
         # If the address is not mapped, we segfaulted
         if not pwndbg.aglib.memory.peek(address):
-            instruction.annotation = MessageColor.error(
-                f"<Cannot dereference [{MemoryColor.get(address)}]>"
+            instruction.annotation = message.error(
+                f"<Cannot dereference [{mem_color.get(address)}]>"
             )
         else:
             # In this branch, it is assumed that the address IS in a mapped page
@@ -983,8 +1031,8 @@ class DisassemblyAssistant:
             return
 
         if not pwndbg.aglib.memory.peek(address):
-            instruction.annotation = MessageColor.error(
-                f"<Cannot dereference [{MemoryColor.get(address)}]>"
+            instruction.annotation = message.error(
+                f"<Cannot dereference [{mem_color.get(address)}]>"
             )
         elif value is not None:
             # To make this annotation work with emulation disabled,
@@ -1014,6 +1062,9 @@ class DisassemblyAssistant:
             # If we already used emulation, use the result, otherwise take the source operand before_value
             result = left.after_value or right.before_value
             if result is not None and result >= 0:
+                # We have determined the value written to this register - propagate this to future instructions.
+                instruction.register_writes[left.reg] = result
+
                 TELESCOPE_DEPTH = max(0, int(pwndbg.config.disasm_telescope_depth))
 
                 telescope_addresses = self._telescope(
@@ -1043,7 +1094,7 @@ class DisassemblyAssistant:
         math_string = None
 
         if op_one is not None and op_two is not None:
-            print_left, print_right = pwndbg.enhance.format_small_int_pair(op_one, op_two)
+            print_left, print_right = pwndbg.lib.pretty_print.int_pair_to_string(op_one, op_two)
 
             math_string = f"{print_left} {char_to_separate_operands} {print_right}"
 
@@ -1051,7 +1102,10 @@ class DisassemblyAssistant:
         if target_operand.after_value_resolved is not None:
             instruction.annotation = memory_or_register_assign(
                 target_operand.str,
-                MemoryColor.get_address_and_symbol(target_operand.after_value_resolved),
+                mem_color.get_address_and_symbol(
+                    target_operand.after_value_resolved,
+                    pwndbg.integration.manager.get_stack_var_dict_all(),
+                ),
                 memory_assignment,
             )
             if math_string:
@@ -1070,13 +1124,14 @@ def basic_enhance(ins: PwndbgInstruction) -> None:
         ins.asm_string = syntax_highlight(ins.asm_string)
 
     if pwndbg.config.disasm_inline_symbols:
+        stack_vars = pwndbg.integration.manager.get_stack_var_dict_all()
         # Make inline replacements, so `jmp 0x400122` becomes `jmp function_name`
         for op in ins.operands:
             if op.type is CS_OP_IMM:
                 op.before_value = op.imm
 
                 if op.before_value >= 0:
-                    op.symbol = MemoryColor.attempt_colorized_symbol(op.before_value)
+                    op.symbol = mem_color.attempt_colorized_symbol(op.before_value, stack_vars)
 
                 if op.symbol:
                     ins.asm_string = ins.asm_string.replace(hex(op.before_value), op.symbol)

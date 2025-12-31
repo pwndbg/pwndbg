@@ -8,9 +8,9 @@ glibc_version=$(ldd --version | sed -n '1s/([^)]*)//g; s/.* \([0-9]\+\.[0-9]\+\)
 echo "glibc version: $glibc_version"
 
 # Run integration tests
-cd "${PWNDBG_ABS_PATH}/tests"
+cd "${PWNDBG_ABS_PATH}"
 
-$UV_RUN_TEST python3 tests.py $@
+$UV_RUN_TEST python3 -m tests.tests $@
 
 exit_code=$?
 exit $exit_code

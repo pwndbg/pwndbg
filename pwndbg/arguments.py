@@ -7,27 +7,28 @@ registers and stack values.
 
 from __future__ import annotations
 
+import re
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from capstone import CS_GRP_INT
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.disasm.disassembly
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
+import pwndbg.aglib.objc
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.chain
-import pwndbg.integration
+import pwndbg.dbg_mod
+import pwndbg.enhance
 import pwndbg.lib.abi
-import pwndbg.lib.funcparser
 import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
+from pwndbg.lib.arch import Platform
+from pwndbg.lib.functions import Function
 from pwndbg.lib.functions import format_flags_argument
 
 
@@ -38,7 +39,6 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
 
     Otherwise, returns None.
     """
-    n_args_default = 4
 
     if instruction is None:
         return []
@@ -71,11 +71,9 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
     else:
         return []
 
-    result = []
-    name = name or ""
+    original_name = name or ""
 
-    sym = pwndbg.aglib.symbol.lookup_frame_symbol(name)
-    name = name.replace("isoc99_", "")  # __isoc99_sscanf
+    name = original_name.replace("isoc99_", "")  # __isoc99_sscanf
     name = name.replace("@plt", "")  # getpwiod@plt
 
     # If we have particular `XXX_chk` function in our database, we use it.
@@ -85,34 +83,58 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         name = name.replace("_chk", "")
         name = name.strip().lstrip("_")  # _malloc
 
-    func = pwndbg.lib.functions.functions.get(name, None)
+    func: Optional[Function] = None
+    if pwndbg.aglib.arch.platform == Platform.DARWIN:
+        # Try to resolve an Objective-C method call.
+        #
+        # Checking this first keeps us from resolving these as simple calls to
+        # `objc_msgSend` and functions like it, which have definitions that are
+        # rather barren of semantics in comparison.
+        func = pwndbg.aglib.objc.try_resolve_call_at_current_pc(instruction)
 
-    if sym:
-        try:
-            target_type = sym.type.target()
-        except Exception:
-            target_type = sym.type
+    if func is None:
+        # If more specific call information can't be determined, use the regular
+        # function resolution flow.
+        func = pwndbg.lib.functions.functions.get(name, None)
 
-        if target_type and target_type.code == pwndbg.dbg_mod.TypeCode.FUNC:
-            func_args = target_type.func_arguments()
-            if func_args is not None:
-                n_args_default = len(func_args)
-
+    # FIXME(provider, integration): Add this feature back at some point
     # Try to grab the data out of IDA
-    if not func and target:
-        func = pwndbg.integration.provider.get_func_type(target)
+    # if not func and target:
+    #    func = pwndbg.integration.provider.get_func_type(target)
 
     if func:
         args = func.args
+        if len(args) > 1 and args[-1].name == "vararg":
+            format_value = pwndbg.enhance.enhance(argument(len(args) - 2, abi))
+            m = re.findall(
+                r"%[-+ #0]?(?:[0-9]+|\*)?(?:\.(?:[0-9]+|\*))?(?:hh|h|l|ll|q|L|j|z|Z|t)?[diuoxXfFeEgGaAcsCSpn]",
+                format_value,
+            )
+            vararg_cnt = len(m)
+            if vararg_cnt > 0:
+                args.pop()
+                args += [
+                    pwndbg.lib.functions.Argument("int", 0, argname(len(args) + i, abi))
+                    for i in range(vararg_cnt)
+                ]
     else:
+        n_args_default = 4
+        sym = pwndbg.aglib.symbol.lookup_frame_symbol(original_name)
+        if sym:
+            try:
+                target_type = sym.type.target()
+            except Exception:
+                target_type = sym.type
+
+            if target_type and target_type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+                func_args = target_type.func_arguments()
+                if func_args is not None:
+                    n_args_default = len(func_args)
         args = (
             pwndbg.lib.functions.Argument("int", 0, argname(i, abi)) for i in range(n_args_default)
         )
 
-    for i, arg in enumerate(args):
-        result.append((arg, argument(i, abi)))
-
-    return result
+    return [(arg, argument(i, abi)) for i, arg in enumerate(args)]
 
 
 def argname(n: int, abi: pwndbg.lib.abi.ABI) -> str:
@@ -138,7 +160,7 @@ def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
     regs = abi.register_arguments
 
     if n < len(regs):
-        return getattr(pwndbg.aglib.regs, regs[n])
+        return pwndbg.aglib.regs.read_reg_uncached(regs[n])
 
     n -= len(regs)
 
@@ -192,7 +214,7 @@ def format_args(instruction: PwndbgInstruction) -> List[str]:
         # Enhance args display
         if arg.name in FILE_DESCRIPTOR_ARG_NAMES and isinstance(value, int):
             # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
-            pid = pwndbg.aglib.proc.pid
+            pid = pwndbg.aglib.proc.pid()
             if pid is not None:
                 path = pwndbg.aglib.file.readlink("/proc/%d/fd/%d" % (pid, value))
                 if path:

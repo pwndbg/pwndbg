@@ -3,13 +3,12 @@ from __future__ import annotations
 import argparse
 import subprocess
 
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.radare2
-from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Launches radare2.")
@@ -45,7 +44,7 @@ def r2(arguments, no_seek=False, no_rebase=False) -> None:
     # Build up the command line to run
     cmd = ["radare2"]
     flags = ["-e", "io.cache=true"]
-    if pwndbg.aglib.proc.alive:
+    if pwndbg.aglib.proc.alive():
         addr = pwndbg.aglib.regs.pc
         if pwndbg.aglib.elf.get_elf_info(filename).is_pie:
             if no_rebase:
@@ -97,10 +96,4 @@ pwndbg> r2pipe pdf @ sym.main
 )
 @pwndbg.commands.OnlyWithFile
 def r2pipe(arguments) -> None:
-    try:
-        r2 = pwndbg.radare2.r2pipe()
-        print(r2.cmd(" ".join(arguments)))
-    except ImportError:
-        print(message.error("Could not import r2pipe python library. Is it installed?"))
-    except Exception as e:
-        print(message.error(e))
+    print(pwndbg.radare2.r2cmd(arguments))

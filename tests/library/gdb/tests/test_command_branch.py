@@ -3,10 +3,11 @@ from __future__ import annotations
 import gdb
 import pytest
 
-import pwndbg.aglib.regs
-import tests
+import pwndbg.aglib
 
-CONDBR_X64_BINARY = tests.get_binary("conditional_branch_breakpoints_x64.out")
+from . import get_binary
+
+CONDBR_X64_BINARY = get_binary("conditional_branch_breakpoints.x86-64.out")
 
 
 @pytest.mark.parametrize("binary", [CONDBR_X64_BINARY], ids=["x86-64"])

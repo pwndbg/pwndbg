@@ -31,10 +31,8 @@ from __future__ import annotations
 
 import ctypes
 from typing import Dict
-from typing import Optional
-from typing import Union
 
-import pwndbg.aglib.ctypes
+import pwndbg.lib.ctypes
 
 Elf32_Addr = ctypes.c_uint32
 Elf32_Half = ctypes.c_uint16
@@ -275,7 +273,7 @@ class constants:
     AT_L3_CACHESHAPE = 37
 
 
-class Elf32_Ehdr(pwndbg.aglib.ctypes.Structure):
+class Elf32_Ehdr(pwndbg.lib.ctypes.Structure):
     _fields_ = [
         ("e_ident", (ctypes.c_ubyte * 16)),
         ("e_type", Elf32_Half),
@@ -294,7 +292,7 @@ class Elf32_Ehdr(pwndbg.aglib.ctypes.Structure):
     ]
 
 
-class Elf64_Ehdr(pwndbg.aglib.ctypes.Structure):
+class Elf64_Ehdr(pwndbg.lib.ctypes.Structure):
     _fields_ = [
         ("e_ident", (ctypes.c_ubyte * 16)),
         ("e_type", Elf64_Half),
@@ -313,7 +311,7 @@ class Elf64_Ehdr(pwndbg.aglib.ctypes.Structure):
     ]
 
 
-class Elf32_Phdr(pwndbg.aglib.ctypes.Structure):
+class Elf32_Phdr(pwndbg.lib.ctypes.Structure):
     _fields_ = [
         ("p_type", Elf32_Word),
         ("p_offset", Elf32_Off),
@@ -326,7 +324,7 @@ class Elf32_Phdr(pwndbg.aglib.ctypes.Structure):
     ]
 
 
-class Elf64_Phdr(pwndbg.aglib.ctypes.Structure):
+class Elf64_Phdr(pwndbg.lib.ctypes.Structure):
     _fields_ = [
         ("p_type", Elf64_Word),
         ("p_flags", Elf64_Word),
@@ -337,40 +335,3 @@ class Elf64_Phdr(pwndbg.aglib.ctypes.Structure):
         ("p_memsz", Elf64_Xword),
         ("p_align", Elf64_Xword),
     ]
-
-
-class AUXV(Dict[str, Union[int, str]]):
-    AT_PHDR: Optional[int]
-    AT_BASE: Optional[int]
-    AT_PLATFORM: Optional[str]
-    AT_BASE_PLATFORM: Optional[str]
-    AT_ENTRY: Optional[int]
-    AT_RANDOM: Optional[int]
-    AT_EXECFN: Optional[str]
-    AT_SYSINFO: Optional[int]
-    AT_SYSINFO_EHDR: Optional[int]
-
-    def set(self, const: int, value: int) -> None:
-        name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
-
-        if name in ["AT_EXECFN", "AT_PLATFORM", "AT_BASE_PLATFORM"]:
-            try:
-                value = (
-                    pwndbg.dbg.selected_inferior()
-                    .create_value(value)
-                    .cast(pwndbg.aglib.typeinfo.pchar)
-                    .string()
-                )
-            except Exception:
-                value = "couldnt read AUXV!"
-
-        self[name] = value
-
-    def __getattr__(self, attr: str) -> Optional[Union[int, str]]:
-        if attr in AT_CONSTANT_NAMES:
-            return self.get(attr)
-
-        raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr))
-
-    def __str__(self) -> str:
-        return str({k: v for k, v in self.items() if v is not None})

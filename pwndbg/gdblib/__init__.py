@@ -5,7 +5,6 @@ Library for handling GDB logic. Being removed in favour of aglib.
 from __future__ import annotations
 
 import re
-from types import ModuleType
 
 import gdb
 
@@ -32,7 +31,6 @@ def load_gdblib() -> None:
     import pwndbg.gdblib.bpoint
     import pwndbg.gdblib.functions
     import pwndbg.gdblib.got
-    import pwndbg.gdblib.hooks
     import pwndbg.gdblib.prompt
     import pwndbg.gdblib.symbol
     import pwndbg.gdblib.tui

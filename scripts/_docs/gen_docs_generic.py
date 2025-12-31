@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Dict
 from typing import Tuple
 
@@ -91,3 +92,9 @@ def get_debugger() -> str:
     assert debugger and "Use the PWNDBG_DOCGEN_DBGNAME env variable."
     assert debugger in ALL_DEBUGGERS and "Debugger not defined in the ALL_DEBUGGERS array."
     return debugger
+
+
+def strip_ansi_color(x: str) -> str:
+    # In case some description etc. contains ANSI coloring, we need to
+    # take that out since we do not render it properly on the website.
+    return re.sub("\x1b\\[[\\d;]+m", "", x)

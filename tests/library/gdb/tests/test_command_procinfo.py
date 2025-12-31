@@ -8,9 +8,10 @@ import gdb
 import pytest
 
 import pwndbg.aglib.proc
-import tests
 
-REFERENCE_BINARY_NET = tests.get_binary("reference-binary-net.out")
+from . import get_binary
+
+REFERENCE_BINARY_NET = get_binary("reference-binary-net.native.out")
 
 
 class TCPServerThread(threading.Thread):
@@ -47,8 +48,8 @@ def test_command_procinfo_net(start_binary, ip_connect):
 
     start_binary(REFERENCE_BINARY_NET, ip_connect, str(server.port))
 
-    bin_path = pwndbg.aglib.proc.exe
-    pid = str(pwndbg.aglib.proc.pid)
+    bin_path = pwndbg.aglib.proc.exe()
+    pid = str(pwndbg.aglib.proc.pid())
 
     gdb.execute("break break_here")
     gdb.execute("continue")

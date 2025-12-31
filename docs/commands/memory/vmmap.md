@@ -2,8 +2,8 @@
 # vmmap
 
 ```text
-usage: vmmap [-h] [-w] [-x] [-A LINES_AFTER] [-B LINES_BEFORE] [-C CONTEXT]
-             [--gaps]
+usage: vmmap [-h] [-w] [-x] [-s] [-A LINES_AFTER] [-B LINES_BEFORE]
+             [-C CONTEXT] [--gaps]
              [gdbval_or_str]
 
 ```
@@ -39,6 +39,7 @@ Memory pages can also be added manually with the use of vmmap-add, vmmap-clear a
 |-h|--help|show this help message and exit|
 |-w|--writable|Display writable maps only|
 |-x|--executable|Display executable maps only|
+|-s|--expand-shared-cache|Expand all entries in the DYLD Shared Cache (Darwin only)|
 |-A|--lines-after|Number of pages to display after result (default: 1)|
 |-B|--lines-before|Number of pages to display before result (default: 1)|
 |-C|--context|Number of pages to display around the result|

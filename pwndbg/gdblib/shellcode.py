@@ -9,13 +9,12 @@ amount of code in the context of the inferior.
 from __future__ import annotations
 
 import gdb
-import pwnlib.asm
 import pwnlib.shellcraft
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
+import pwndbg.aglib.asm
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 import pwndbg.gdblib.prompt
 import pwndbg.lib.regs
@@ -28,7 +27,7 @@ def _get_syscall_return_value():
     """
 
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
-    return pwndbg.aglib.regs[register_set.retval]
+    return pwndbg.aglib.regs.read_reg(register_set.retval)
 
 
 def exec_syscall(
@@ -48,7 +47,7 @@ def exec_syscall(
 
     # Build machine code that runs the requested syscall.
     syscall_asm = pwnlib.shellcraft.syscall(syscall, arg0, arg1, arg2, arg3, arg4, arg5)
-    syscall_bin = pwnlib.asm.asm(syscall_asm)
+    syscall_bin = pwndbg.aglib.asm.asm(syscall_asm)
 
     # Run the syscall and pass its return value onward to the caller.
     return exec_shellcode(
@@ -82,7 +81,7 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
     preserve_set = register_set.gpr + register_set.args + (register_set.pc, register_set.stack)
 
-    registers = {reg: pwndbg.aglib.regs[reg] for reg in preserve_set}
+    registers = {reg: pwndbg.aglib.regs.read_reg(reg) for reg in preserve_set}
     starting_address = registers[register_set.pc]
 
     # Make sure the blob fits in the rest of the space we have in this page.
@@ -147,9 +146,9 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
     # Restore the code and the program counter and, if requested, the rest of
     # the registers.
     pwndbg.aglib.memory.write(starting_address, existing_code)
-    setattr(pwndbg.aglib.regs, register_set.pc, starting_address)
+    pwndbg.aglib.regs.write_reg(register_set.pc, starting_address)
     if restore_context:
         for reg, val in registers.items():
-            setattr(pwndbg.aglib.regs, reg, val)
+            pwndbg.aglib.regs.write_reg(reg, val)
 
     return captured

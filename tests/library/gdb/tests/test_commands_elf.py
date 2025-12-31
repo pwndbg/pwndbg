@@ -6,11 +6,11 @@ from pathlib import Path
 import gdb
 import pytest
 
-import tests
+from . import get_binary
 
-NO_SECTS_BINARY = tests.get_binary("gosample.x86")
-PIE_BINARY_WITH_PLT = "reference_bin_pie.out"
-NOPIE_BINARY_WITH_PLT = "reference_bin_nopie.out"
+NO_SECTS_BINARY = get_binary("gosample.i386.out")
+PIE_BINARY_WITH_PLT = "reference_bin_pie.native.out"
+NOPIE_BINARY_WITH_PLT = "reference_bin_nopie.native.out"
 NOPIE_I386_BINARY_WITH_PLT = "reference_bin_nopie.i386.out"
 
 
@@ -34,7 +34,7 @@ def test_commands_plt_gotplt_got_when_no_sections(start_binary):
     "binary_name,is_pie", ((PIE_BINARY_WITH_PLT, True), (NOPIE_BINARY_WITH_PLT, False))
 )
 def test_command_plt(binary_name, is_pie):
-    binary = tests.get_binary(binary_name)
+    binary = get_binary(binary_name)
     gdb.execute(f"file {binary}")
 
     out = gdb.execute("plt", to_string=True).splitlines()
@@ -61,7 +61,7 @@ def test_command_plt(binary_name, is_pie):
     "binary_name,is_pie", ((PIE_BINARY_WITH_PLT, True), (NOPIE_BINARY_WITH_PLT, False))
 )
 def test_command_got_for_target_binary(binary_name, is_pie):
-    binary = tests.get_binary(binary_name)
+    binary = get_binary(binary_name)
     gdb.execute(f"file {binary}")
 
     out = gdb.execute("got", to_string=True).splitlines()
@@ -110,7 +110,7 @@ def test_command_got_for_target_binary(binary_name, is_pie):
     "binary_name", (NOPIE_BINARY_WITH_PLT, NOPIE_I386_BINARY_WITH_PLT), ids=["x86-64", "i386"]
 )
 def test_command_got_for_target_binary_and_loaded_library(binary_name):
-    binary = tests.get_binary(binary_name)
+    binary = get_binary(binary_name)
     gdb.execute(f"file {binary}")
 
     gdb.execute("break main")
@@ -260,36 +260,3 @@ def test_command_got_for_target_binary_and_loaded_library(binary_name):
         r"GOT protection: (?:Partial|Full) RELRO \| Found 0 GOT entries passing the filter", out[10]
     )
     assert len(out) == 11
-
-
-@pytest.mark.parametrize(
-    "binary_name,is_pie", ((NOPIE_BINARY_WITH_PLT, False), (PIE_BINARY_WITH_PLT, True))
-)
-def test_command_elf(binary_name, is_pie):
-    binary = tests.get_binary(binary_name)
-    gdb.execute(f"file {binary}")
-    gdb.execute("starti")
-
-    out = gdb.execute("elf", to_string=True).splitlines()
-    assert len(out) == 25
-
-    # test for default
-    for section in out[2:]:
-        assert re.match(
-            r"^\s*0x[\da-fA-F]+\s+0x[\da-fA-F]+\s+(?:[RWX-]{3})\s+0x[\da-fA-F]+\s+\.([^\s]+)$",
-            section,
-        )
-        if is_pie:
-            address = section.split()
-            assert address[0].startswith("0x55555555")
-
-    # if this is a pie binary, test for --no-rebase
-    if is_pie:
-        out = gdb.execute("elf -R", to_string=True).splitlines()
-        assert len(out) == 25
-
-        for section in out[2:]:
-            assert re.match(
-                r"^\s*0x[\da-fA-F]+\s+0x[\da-fA-F]+\s+(?:[RWX-]{3})\s+0x[\da-fA-F]+\s+\.([^\s]+)$",
-                section,
-            )

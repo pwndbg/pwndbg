@@ -6,12 +6,13 @@ from typing import Dict
 from typing import List
 from typing import Tuple
 from typing import Type
+from typing import cast
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.glibc
-from pwndbg.aglib.ctypes import Structure
+from pwndbg.lib.ctypes import Structure
 
 
 def request2size(req: int) -> int:
@@ -44,7 +45,9 @@ MALLOC_ALIGN_MASK = MALLOC_ALIGN - 1
 MAX_FAST_SIZE = 80 * SIZE_SZ // 4
 NBINS = 128
 BINMAPSIZE = 4
-TCACHE_MAX_BINS = 64
+TCACHE_SMALL_BINS = 64
+TCACHE_LARGE_BINS = 12
+TCACHE_MAX_BINS = TCACHE_SMALL_BINS + TCACHE_LARGE_BINS
 NFASTBINS = fastbin_index(request2size(MAX_FAST_SIZE)) + 1
 
 if pwndbg.aglib.arch.ptrsize == 4:
@@ -60,6 +63,7 @@ DEFAULT_MMAP_THRESHOLD = 128 * 1024
 DEFAULT_TRIM_THRESHOLD = 128 * 1024
 DEFAULT_PAGE_SIZE = 4096
 TCACHE_FILL_COUNT = 7
+MAX_TCACHE_SMALL_SIZE = (TCACHE_SMALL_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
 
 
 class c_pvoid(PTR):
@@ -172,9 +176,10 @@ class CStruct2GDB:
         field_address = self.get_field_address(field)
         field_type = next(f for f in self._c_struct._fields_ if f[0] == field)[1]
         if hasattr(field_type, "_length_"):  # f is a ctypes Array
-            t = C2GDB_MAPPING[field_type._type_]
+            array_type = cast(ctypes.Array[Any], field_type)
+            t = C2GDB_MAPPING[array_type._type_]
             return pwndbg.aglib.memory.get_typed_pointer_value(
-                t.array(field_type._length_), field_address
+                t.array(array_type._length_), field_address
             )
         return pwndbg.aglib.memory.get_typed_pointer_value(C2GDB_MAPPING[field_type], field_address)
 
@@ -203,8 +208,9 @@ class CStruct2GDB:
             field_type = f[1]
             bitpos = getattr(cls._c_struct, field_name).offset * 8
             if hasattr(field_type, "_length_"):  # f is a ctypes Array
-                t = C2GDB_MAPPING[field_type._type_]
-                _type = t.array(field_type._length_)
+                arr_type = cast(ctypes.Array[Any], field_type)
+                t = C2GDB_MAPPING[arr_type._type_]
+                _type = t.array(arr_type._length_)
             else:
                 _type = C2GDB_MAPPING[field_type]
             fake_gdb_fields.append(FakeGDBField(bitpos, field_name, _type, cls))
@@ -542,14 +548,14 @@ class c_tcache_perthread_struct_2_29(Structure):
     """
 
     _fields_ = [
-        ("counts", ctypes.c_char * TCACHE_MAX_BINS),
-        ("entries", c_pvoid * TCACHE_MAX_BINS),
+        ("counts", ctypes.c_char * TCACHE_SMALL_BINS),
+        ("entries", c_pvoid * TCACHE_SMALL_BINS),
     ]
 
 
 class c_tcache_perthread_struct_2_30(Structure):
     """
-    This class represents the tcache_perthread_struct for GLIBC >= 2.30 as a ctypes struct.
+    This class represents the tcache_perthread_struct for 2.30 <= GLIBC < 2.42 as a ctypes struct.
 
     https://github.com/bminor/glibc/blob/glibc-2.34/malloc/malloc.c#L3025
 
@@ -561,7 +567,26 @@ class c_tcache_perthread_struct_2_30(Structure):
     """
 
     _fields_ = [
-        ("counts", ctypes.c_uint16 * TCACHE_MAX_BINS),
+        ("counts", ctypes.c_uint16 * TCACHE_SMALL_BINS),
+        ("entries", c_pvoid * TCACHE_SMALL_BINS),
+    ]
+
+
+class c_tcache_perthread_struct_2_42(Structure):
+    """
+    This class represents the tcache_perthread_struct for 2.42 <= GLIBC as a ctypes struct.
+
+    https://elixir.bootlin.com/glibc/glibc-2.42/source/malloc/malloc.c#L3127
+
+    typedef struct tcache_perthread_struct
+    {
+        uint16_t num_slots[TCACHE_MAX_BINS];
+        tcache_entry *entries[TCACHE_MAX_BINS];
+    } tcache_perthread_struct;
+    """
+
+    _fields_ = [
+        ("num_slots", ctypes.c_uint16 * TCACHE_MAX_BINS),
         ("entries", c_pvoid * TCACHE_MAX_BINS),
     ]
 
@@ -571,7 +596,9 @@ class TcachePerthreadStruct(CStruct2GDB):
     This class represents tcache_perthread_struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
-    if GLIBC_VERSION >= (2, 30):
+    if GLIBC_VERSION >= (2, 42):
+        _c_struct = c_tcache_perthread_struct_2_42
+    elif GLIBC_VERSION >= (2, 30):
         _c_struct = c_tcache_perthread_struct_2_30
     else:
         _c_struct = c_tcache_perthread_struct_2_29
@@ -923,12 +950,88 @@ class c_malloc_par_2_35(Structure):
     ]
 
 
+class c_malloc_par_2_42(Structure):
+    """
+    This class represents the malloc_par struct for GLIBC >= 2.42 as a ctypes struct.
+
+    https://elixir.bootlin.com/glibc/glibc-2.42/source/malloc/malloc.c#L1864
+
+    struct malloc_par
+    {
+      /* Tunable parameters */
+      unsigned long trim_threshold;
+      INTERNAL_SIZE_T top_pad;
+      INTERNAL_SIZE_T mmap_threshold;
+      INTERNAL_SIZE_T arena_test;
+      INTERNAL_SIZE_T arena_max;
+
+      /* Transparent Large Page support.  */
+      INTERNAL_SIZE_T thp_pagesize;
+      /* A value different than 0 means to align mmap allocation to hp_pagesize
+        add hp_flags on flags.  */
+      INTERNAL_SIZE_T hp_pagesize;
+      int hp_flags;
+
+      /* Memory map support */
+      int n_mmaps;
+      int n_mmaps_max;
+      int max_n_mmaps;
+      /* the mmap_threshold is dynamic, until the user sets
+        it manually, at which point we need to disable any
+        dynamic behavior. */
+      int no_dyn_threshold;
+
+      /* Statistics */
+      INTERNAL_SIZE_T mmapped_mem;
+      INTERNAL_SIZE_T max_mmapped_mem;
+
+      /* First address handed out by MORECORE/sbrk.  */
+      char *sbrk_base;
+
+    #if USE_TCACHE
+      /* Maximum number of small buckets to use.  */
+      size_t tcache_small_bins;
+      size_t tcache_max_bytes;
+      /* Maximum number of chunks in each bucket.  */
+      size_t tcache_count;
+      /* Maximum number of chunks to remove from the unsorted list, which
+        aren't used to prefill the cache.  */
+      size_t tcache_unsorted_limit;
+    #endif
+    };
+    """
+
+    _fields_ = [
+        ("trim_threshold", c_size_t),
+        ("top_pad", c_size_t),
+        ("mmap_threshold", c_size_t),
+        ("arena_test", c_size_t),
+        ("arena_max", c_size_t),
+        ("thp_pagesize", c_size_t),
+        ("hp_pagesize", c_size_t),
+        ("hp_flags", ctypes.c_int32),
+        ("n_mmaps", ctypes.c_int32),
+        ("n_mmaps_max", ctypes.c_int32),
+        ("max_n_mmaps", ctypes.c_int32),
+        ("no_dyn_threshold", ctypes.c_int32),
+        ("mmapped_mem", c_size_t),
+        ("max_mmapped_mem", c_size_t),
+        ("sbrk_base", c_pvoid),
+        ("tcache_small_bins", c_size_t),
+        ("tcache_max_bytes", c_size_t),
+        ("tcache_count", c_size_t),
+        ("tcache_unsorted_limit", c_size_t),
+    ]
+
+
 class MallocPar(CStruct2GDB):
     """
     This class represents the malloc_par struct with interface compatible with `pwndbg.dbg_mod.Value`.
     """
 
-    if GLIBC_VERSION >= (2, 35):
+    if GLIBC_VERSION >= (2, 42):
+        _c_struct = c_malloc_par_2_42
+    elif GLIBC_VERSION >= (2, 35):
         _c_struct = c_malloc_par_2_35
     elif GLIBC_VERSION >= (2, 26):
         _c_struct = c_malloc_par_2_26
@@ -967,7 +1070,14 @@ DEFAULT_MP_.arena_test = 2 if pwndbg.aglib.arch.ptrsize == 4 else 8
 if (MallocPar._c_struct != c_malloc_par_2_23) and (MallocPar._c_struct != c_malloc_par_2_12):
     # the only difference between 2.23 and the rest is the lack of tcache
     DEFAULT_MP_.tcache_count = TCACHE_FILL_COUNT
-    DEFAULT_MP_.tcache_bins = TCACHE_MAX_BINS
-    DEFAULT_MP_.tcache_max_bytes = (TCACHE_MAX_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
+    if MallocPar._c_struct == c_malloc_par_2_42:
+        DEFAULT_MP_.tcache_small_bins = TCACHE_SMALL_BINS
+        DEFAULT_MP_.tcache_max_bytes = (
+            MAX_TCACHE_SMALL_SIZE + SIZE_SZ + MALLOC_ALIGN_MASK
+        ) & ~MALLOC_ALIGN_MASK + 1
+
+    else:
+        DEFAULT_MP_.tcache_bins = TCACHE_SMALL_BINS
+        DEFAULT_MP_.tcache_max_bytes = MAX_TCACHE_SMALL_SIZE
 if MallocPar._c_struct == c_malloc_par_2_12:
     DEFAULT_MP_.pagesize = DEFAULT_PAGE_SIZE

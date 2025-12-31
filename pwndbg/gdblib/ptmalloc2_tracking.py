@@ -62,8 +62,12 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
+import pwndbg.arguments
+import pwndbg.color
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.color import message
+from pwndbg.lib.cache import CacheUntilEvent
 
 LIBC_NAME = "libc.so.6"
 MALLOC_NAME = "malloc"
@@ -75,6 +79,23 @@ last_issue: str | None = None
 
 # Useful to track possbile collision errors.
 PRINT_DEBUG = False
+
+PTRS_COLORS = (
+    pwndbg.color.red,
+    pwndbg.color.green,
+    pwndbg.color.yellow,
+    pwndbg.color.blue,
+    pwndbg.color.purple,
+    pwndbg.color.cyan,
+    pwndbg.color.light_gray,
+    pwndbg.color.gray,
+    pwndbg.color.light_red,
+    pwndbg.color.light_green,
+    pwndbg.color.light_yellow,
+    pwndbg.color.light_blue,
+    pwndbg.color.light_purple,
+    pwndbg.color.light_cyan,
+)
 
 
 def is_enabled() -> bool:
@@ -141,7 +162,7 @@ class FreeChunkWatchpoint(gdb.Breakpoint):
         super().__init__(loc, type=gdb.BP_WATCHPOINT, internal=True)
 
     def stop(self):
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         if not in_program_code_stack():
             # Untracked.
             return False
@@ -198,6 +219,7 @@ class Tracker:
         self.alloc_chunks: SortedDict[int, Chunk] = SortedDict()
         self.free_watchpoints: Dict[int, FreeChunkWatchpoint] = {}
         self.memory_management_calls: Dict[int, bool] = {}
+        self.colorized_heap_ptrs: Dict[int, str] = {}
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num
@@ -211,9 +233,9 @@ class Tracker:
 
         # We don't support re-entry.
         if thread in self.memory_management_calls:
-            assert not self.memory_management_calls[
-                thread
-            ], f"in {name}(): re-entrant calls are not supported"
+            assert not self.memory_management_calls[thread], (
+                f"in {name}(): re-entrant calls are not supported"
+            )
 
         self.memory_management_calls[thread] = True
 
@@ -222,11 +244,25 @@ class Tracker:
 
         # Make sure we're not doing anything wrong.
         if thread in self.memory_management_calls:
-            assert self.memory_management_calls[
-                thread
-            ], "exit_memory_management_calls assert failed"
+            assert self.memory_management_calls[thread], (
+                "exit_memory_management_calls assert failed"
+            )
 
         self.memory_management_calls[thread] = False
+
+    def colorize_ptr(self, ptr: int) -> str:
+        """
+        Returns colored string of the provided pointer/address
+        """
+        if colored_ptr := self.colorized_heap_ptrs.get(ptr):
+            return colored_ptr
+
+        idx = len(self.colorized_heap_ptrs) % len(PTRS_COLORS)
+        colored = PTRS_COLORS[idx](f"{ptr:#x}")
+
+        self.colorized_heap_ptrs[ptr] = colored
+
+        return colored
 
     def malloc(self, chunk: Chunk) -> None:
         # malloc()s may arbitrarily change the structure of freed blocks, to the
@@ -253,9 +289,9 @@ class Tracker:
 
                 lo_heap = pwndbg.aglib.heap.ptmalloc.Heap(lo_addr)
                 hi_heap = pwndbg.aglib.heap.ptmalloc.Heap(hi_addr - 1)
-                assert (
-                    lo_heap.arena is not None and hi_heap.arena is not None
-                ), "malloc assert failed"
+                assert lo_heap.arena is not None and hi_heap.arena is not None, (
+                    "malloc assert failed"
+                )
 
                 # TODO: Can this ever actually fail in real world use?
                 #
@@ -275,9 +311,9 @@ class Tracker:
                 # than to let it become a bug.
                 #
                 # [0]: https://sourceware.org/glibc/wiki/MallocInternals
-                assert (
-                    lo_heap.start == hi_heap.start and lo_heap.end == hi_heap.end
-                ), "malloc assert start failed"
+                assert lo_heap.start == hi_heap.start and lo_heap.end == hi_heap.end, (
+                    "malloc assert start failed"
+                )
 
                 # Remove all of our old handlers.
                 for i in reversed(range(lo_i, hi_i)):
@@ -291,9 +327,9 @@ class Tracker:
                 # the heap in the range of affected chunks, and add the ones that
                 # are free.
                 allocator = pwndbg.aglib.heap.current
-                assert isinstance(
-                    allocator, pwndbg.aglib.heap.ptmalloc.GlibcMemoryAllocator
-                ), "malloc allocator assert failed"
+                assert isinstance(allocator, pwndbg.aglib.heap.ptmalloc.GlibcMemoryAllocator), (
+                    "malloc allocator assert failed"
+                )
                 bins_list = [
                     allocator.fastbins(lo_heap.arena.address),
                     allocator.smallbins(lo_heap.arena.address),
@@ -362,7 +398,7 @@ class MallocEnterBreakpoint(gdb.Breakpoint):
         self.tracker = tracker
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         requested_size = pwndbg.arguments.argument(0)
         if self.tracker.is_performing_memory_management():
             # This call was made from inside another memory management call.
@@ -380,7 +416,7 @@ class CallocEnterBreakpoint(gdb.Breakpoint):
         self.tracker = tracker
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
 
         num_elements = pwndbg.arguments.argument(0)
         element_size = pwndbg.arguments.argument(1)
@@ -420,7 +456,7 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
         self.name = name
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         if not in_program_code_stack():
             # Untracked.
             self.tracker.exit_memory_management()
@@ -434,7 +470,8 @@ class AllocExitBreakpoint(gdb.FinishBreakpoint):
 
         chunk = get_chunk(ret_ptr, self.requested_size)
         self.tracker.malloc(chunk)
-        print(f"[*] {self.name} -> {ret_ptr:#x}, {chunk.size:#x} bytes real size")
+        ptr_str = self.tracker.colorize_ptr(ret_ptr)
+        print(f"[*] {self.name} -> {ptr_str}, {chunk.size:#x} bytes real size")
 
         self.tracker.exit_memory_management()
         return False
@@ -454,7 +491,7 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
         self.tracker = tracker
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
 
         freed_pointer = pwndbg.arguments.argument(0)
         requested_size = pwndbg.arguments.argument(1)
@@ -469,9 +506,10 @@ class ReallocEnterBreakpoint(gdb.Breakpoint):
             # There's no right way to handle realloc(..., 0). C23 says it's
             # undefined behavior, and prior versions say it's implementation-
             # defined. Either way, print a warning and do nothing.
+            ptr_str = self.tracker.colorize_ptr(self.freed_pointer)
             print(
                 message.warn(
-                    f"[-] realloc({self.freed_pointer:#x}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
+                    f"[-] realloc({ptr_str}, {requested_size}) ignored, as realloc(0, ...) is implementation defined"
                 )
             )
             return False
@@ -488,11 +526,12 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
     def __init__(self, tracker, freed_ptr, requested_size) -> None:
         super().__init__(internal=True)
         self.freed_ptr = freed_ptr
+        self.freed_str = tracker.colorize_ptr(self.freed_ptr)
         self.requested_size = requested_size
         self.tracker = tracker
 
     def stop(self):
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         if not in_program_code_stack():
             # Untracked.
             self.tracker.exit_memory_management()
@@ -511,7 +550,7 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
             malloc()
             self.tracker.exit_memory_management()
 
-            msg = f"realloc() to {self.requested_size} bytes with previously unknown pointer {self.freed_ptr:#x}"
+            msg = f"realloc() to {self.requested_size} bytes with previously unknown pointer {self.freed_str}"
             print(f"[!] {msg}")
 
             global stop_on_error
@@ -524,12 +563,12 @@ class ReallocExitBreakpoint(gdb.FinishBreakpoint):
         self.tracker.exit_memory_management()
 
         print(
-            f"[*] realloc({self.freed_ptr:#x}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
+            f"[*] realloc({self.freed_str}, {self.requested_size}) -> {ret_ptr:#x}, {chunk.size:#x} bytes real size"
         )
         return False
 
     def out_of_scope(self) -> None:
-        print(message.warn(f"warning: could not follow free request for chunk {self.freed_ptr:#x}"))
+        print(message.warn(f"warning: could not follow free request for chunk {self.freed_str}"))
         self.tracker.exit_memory_management()
 
 
@@ -539,7 +578,7 @@ class FreeEnterBreakpoint(gdb.Breakpoint):
         self.tracker = tracker
 
     def stop(self) -> bool:
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         ptr = pwndbg.arguments.argument(0)
         if self.tracker.is_performing_memory_management():
             # This call was made from inside another memory management call.
@@ -559,10 +598,11 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
     def __init__(self, tracker, ptr) -> None:
         super().__init__(internal=True)
         self.ptr = ptr
+        self.ptr_str = tracker.colorize_ptr(self.ptr)
         self.tracker = tracker
 
     def stop(self):
-        pwndbg.lib.cache.clear_cache("stop")
+        pwndbg.lib.cache.clear_cache(CacheUntilEvent.STOP)
         if not in_program_code_stack():
             # Untracked.
             self.tracker.exit_memory_management()
@@ -572,7 +612,7 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
             # This is a chunk we'd never seen before.
             self.tracker.exit_memory_management()
 
-            msg = f"free() with previously unknown pointer {self.ptr:#x}"
+            msg = f"free() with previously unknown pointer {self.ptr_str}"
             print(f"[!] {msg}")
             global stop_on_error
             if stop_on_error:
@@ -582,16 +622,16 @@ class FreeExitBreakpoint(gdb.FinishBreakpoint):
 
         self.tracker.exit_memory_management()
 
-        print(f"[*] free({self.ptr:#x})")
+        print(f"[*] free({self.ptr_str})")
         return False
 
     def out_of_scope(self) -> None:
-        print(message.warn(f"warning: could not follow free request for chunk {self.ptr:#x}"))
+        print(message.warn(f"warning: could not follow free request for chunk {self.ptr_str}"))
         self.tracker.exit_memory_management()
 
 
 def in_program_code_stack() -> bool:
-    exe = pwndbg.aglib.proc.exe
+    exe = pwndbg.aglib.proc.exe()
     binary_exec_page_ranges = tuple(
         (p.start, p.end) for p in pwndbg.aglib.vmmap.get() if p.objfile == exe and p.execute
     )

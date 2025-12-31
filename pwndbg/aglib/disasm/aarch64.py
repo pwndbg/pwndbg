@@ -8,11 +8,8 @@ from capstone import *  # noqa: F403
 from capstone.aarch64 import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.memory
-import pwndbg.aglib.regs
-import pwndbg.enhance
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
@@ -362,7 +359,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
         if instruction.id == AARCH64_INS_B:
             # The B instruction can be made conditional by the condition codes
             if instruction.cs_insn.cc in (AArch64CC_Invalid, AArch64CC_AL):
-                instruction.declare_conditional = False
+                instruction.declare_is_unconditional_jump = True
             else:
                 flags = super()._read_register_name(instruction, "cpsr", emu)
                 if flags is not None:

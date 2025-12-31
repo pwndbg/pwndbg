@@ -3,6 +3,9 @@ from __future__ import annotations
 import argparse
 from typing import Dict
 
+import pwndbg.aglib
+import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -29,11 +32,11 @@ def comm(addr=None, comment=None) -> None:
                 print(message.error("Invalid Address %#x" % target))
 
             else:
-                f.write(f"file:{pwndbg.aglib.proc.exe}=")
+                f.write(f"file:{pwndbg.aglib.proc.exe()}=")
                 f.write(f"{target:#x}:{comment}\n")
-                if pwndbg.aglib.proc.exe not in file_lists:
-                    file_lists[pwndbg.aglib.proc.exe] = {}
-                file_lists[pwndbg.aglib.proc.exe][hex(target)] = comment
+                if pwndbg.aglib.proc.exe() not in file_lists:
+                    file_lists[pwndbg.aglib.proc.exe()] = {}
+                file_lists[pwndbg.aglib.proc.exe()][hex(target)] = comment
     except Exception:
         print(message.error("Permission denied to create file"))
 
