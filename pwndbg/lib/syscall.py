@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from pwnlib.constants import linux
 import pwndbg.aglib
-from typing import Optional,Tuple
+from typing import Optional,Tuple,Callable
 from pwnlib.constants.constant import Constant
+import re
+from pwndbg.lib.regs import reg_sets
 
 def get_arch_module():
     """
@@ -88,3 +90,47 @@ def get_syscall(name_or_num: str) -> Tuple[Optional[int], Optional[str]]:
         return (None, None)
     return (int(num), name_or_num)
 
+def parse_condition(condition: str) -> Optional[Callable[[], bool]]:
+    """
+    Parses a condition string into a callable that returns a boolean.
+
+    Returns None if the condition cannot be parsed.
+    """
+    
+    pattern = r'^\$?(\w+)\s*(==|!=|>=|<=|>|<)\s*(.+)$'
+    match = re.match(pattern, condition.strip())
+    if not match:
+        return None
+    
+    reg_name, operator, value = match.groups()
+
+    if pwndbg.aglib.arch is not None:
+        register_set = reg_sets.get(pwndbg.aglib.arch.name)
+        if register_set and reg_name not in register_set.all:
+            return None
+    
+    ops = {
+        '==' : lambda a,b : a ==b,
+        '!=': lambda a, b: a != b,
+        '>':  lambda a, b: a > b,
+        '>=': lambda a, b: a >= b,
+        '<':  lambda a, b: a < b,
+        '<=': lambda a, b: a <= b,
+    }
+
+    op_func = ops[operator]
+
+    def evaluator() -> bool:
+        try:
+            reg_val = pwndbg.aglib.regs.read_reg(reg_name)
+            if reg_val is None:
+                return False
+            
+            # Parse comparison value
+            cmp_val = int(value.strip(), 0)
+            return op_func(reg_val, cmp_val)
+        
+        except (ValueError, KeyError):
+            return False
+    
+    return evaluator
