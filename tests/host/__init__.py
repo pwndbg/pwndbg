@@ -45,6 +45,11 @@ def _result_from_pytest(result: CompletedProcess[str], duration_ns: int) -> Test
     # Determine high-granularity status from process output, if possible.
     stdout_status = None
     stdout_context = None
+
+    # Check for the result string in STDOUT of the test.
+    # Exceptions raised by the test function itself print the result without newline.
+    # Context string can sometimes span multiple lines, only the one line is captured. This can
+    # happen anywhere withing the context string, so matching is not easy.
     if result.stdout is not None:
         entries = re.search(
             r"(?:\x1b\[3.m)?(PASSED|FAILED|SKIPPED|XPASS|XFAIL)(?:\x1b\[0m)?(?: .*::.* -)?(?: (.*))?",
