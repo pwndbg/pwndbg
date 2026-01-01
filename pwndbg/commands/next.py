@@ -12,7 +12,8 @@ import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.syscall import get_syscall, parse_condition
+from pwndbg.lib.syscall import get_syscall
+from pwndbg.lib.syscall import parse_condition
 
 
 async def _nextjmp(ec: pwndbg.dbg_mod.ExecutionController):

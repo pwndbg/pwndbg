@@ -187,7 +187,7 @@ async def break_next_interrupt_filtered(
             "sparc": "g1",
             "powerpc": "r0",
             "loongarch64": "a7",
-            "s390x": "r2",  
+            "s390x": "r2",
         }.get(arch_name)
 
     while pwndbg.aglib.proc.alive():
