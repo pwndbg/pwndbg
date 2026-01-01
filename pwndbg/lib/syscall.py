@@ -1,6 +1,20 @@
 from __future__ import annotations  
 
-from pwnlib.constants import linux
+from pwnlib.constants.linux import (
+    amd64 as linux_amd64,
+    i386 as linux_i386,
+    mips as linux_mips,
+    aarch64 as linux_aarch64,
+    arm as linux_arm,
+    thumb as linux_thumb,
+    riscv64 as linux_riscv64,
+    sparc as linux_sparc,
+    sparc64 as linux_sparc64,
+    powerpc as linux_powerpc,
+    powerpc64 as linux_powerpc64,
+    s390x as linux_s390x,
+    
+)
 import pwndbg.aglib
 from typing import Optional,Tuple,Callable
 from pwnlib.constants.constant import Constant
@@ -18,19 +32,21 @@ def get_arch_module():
         return None
     
     arch_module = { 
-        "x86-64": linux.amd64,
-        "i386": linux.i386,
-        "i8086": linux,
-        "mips": linux.mips,
-        "aarch64": linux.aarch64,
-        "arm": linux.arm,
-        "armcm": linux.thumb,
-        "rv32": linux.riscv64,
-        "rv64": linux.riscv64,
-        "sparc": linux.sparc,
-        "powerpc": linux.powerpc,
-        "loongarch64": linux.loongarch64,
-        "s390x": linux.s390x,
+        "x86-64": linux_amd64,
+        "i386": linux_i386,
+        "i8086": linux_i386,
+        "mips": linux_mips,
+        "aarch64": linux_aarch64,
+        "arm": linux_arm,
+        "armcm": linux_thumb,
+        "rv32": linux_riscv64,
+        "rv64": linux_riscv64,
+        "sparc": linux_sparc,
+        "sparc64": linux_sparc64,
+        "powerpc": linux_powerpc,
+        "powerpc64": linux_powerpc64,
+        "s390x": linux_s390x,
+        # Note: loongarch64 not available in pwnlib
     }.get(pwndbg.aglib.arch.name)
 
     return arch_module
