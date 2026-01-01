@@ -12,6 +12,7 @@ import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
+from pwndbg.lib.syscall import get_syscall, parse_condition
 
 
 async def _nextjmp(ec: pwndbg.dbg_mod.ExecutionController):
@@ -155,34 +156,87 @@ def nextsyscall() -> None:
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(_nextsyscall)
 
 
-async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController):
+async def _stepsyscall(
+    ec: pwndbg.dbg_mod.ExecutionController,
+    syscall_num: int | None = None,
+    condition=None,
+):
     """
     Execution controller for the `stepsyscall` command.
     """
-
-    while (
-        pwndbg.aglib.proc.alive()
-        and not (await pwndbg.aglib.next.break_next_interrupt(ec, honor_current_branch=True))
-        and (await pwndbg.aglib.next.break_next_branch(ec, including_current=True))
+    if await pwndbg.aglib.next.break_next_interrupt_filtered(
+        ec, syscall_num=syscall_num, condition=condition
     ):
-        # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
-        # We need to step so that we take this branch instead of ignoring it
-        await ec.single_step()
-        continue
+        pwndbg.commands.context.context()
+
+
+stepsyscall_parser = argparse.ArgumentParser(
+    description="Breaks at the next syscall by taking branches."
+)
+stepsyscall_parser.add_argument(
+    "syscall",
+    type=str,
+    nargs="?",
+    default=None,
+    help="Syscall number (e.g., 1, 0x3c) or name (e.g., SYS_write, SYS_exit)",
+)
+stepsyscall_parser.add_argument(
+    "condition",
+    type=str,
+    nargs="?",
+    default=None,
+    help="Condition to match (e.g., $rdi==0, $rsi>100)",
+)
 
 
 @pwndbg.commands.Command(
-    "Breaks at the next syscall by taking branches.",
+    stepsyscall_parser,
     aliases=["stepsc"],
     category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
-def stepsyscall() -> None:
+def stepsyscall(syscall=None, condition=None) -> None:
     """
     Breaks at the next syscall by taking branches.
-    """
 
-    pwndbg.dbg.selected_inferior().dispatch_execution_controller(_stepsyscall)
+    Examples:
+        stepsyscall                  - Break at next syscall
+        stepsyscall SYS_write        - Break at next write syscall
+        stepsyscall 1                - Break at syscall number 1
+        stepsyscall SYS_write $rdi==1  - Break at write syscall when fd==1 (stdout)
+        stepsyscall $rax==60         - Break when syscall number is 60 (exit)
+    """
+    syscall_num = None
+    cond_callable = None
+
+    # Parse syscall argument
+    if syscall is not None:
+        # Check if it's actually a condition (starts with $ or contains operator)
+        if syscall.startswith("$") or any(op in syscall for op in ["==", "!=", ">", "<"]):
+            # It's a condition, not a syscall
+            cond_callable = parse_condition(syscall)
+            if cond_callable is None:
+                print(f"Invalid condition: {syscall}")
+                return
+        else:
+            num, name = get_syscall(syscall)
+            if num is None:
+                print(f"Unknown syscall: {syscall}")
+                return
+            syscall_num = num
+            print(f"Stepping until syscall {name} ({num})")
+
+    # Parse condition argument
+    if condition is not None:
+        cond_callable = parse_condition(condition)
+        if cond_callable is None:
+            print(f"Invalid condition: {condition}")
+            return
+
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+        await _stepsyscall(ec, syscall_num=syscall_num, condition=cond_callable)
+
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
 
 
 parser = argparse.ArgumentParser(description="Breaks on the next matching instruction.")
