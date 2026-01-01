@@ -2,13 +2,20 @@
 # stepsyscall
 
 ```text
-usage: stepsyscall [-h]
+usage: stepsyscall [-h] [syscall] [condition]
 
 ```
 
 Breaks at the next syscall by taking branches.
 
 **Alias:** stepsc
+### Positional arguments
+
+|Positional Argument|Help|
+| :--- | :--- |
+|syscall|Syscall number (e.g., 1, 0x3c) or name (e.g., SYS_write, SYS_exit)|
+|condition|Condition to match (e.g., $rdi==0, $rsi>100)|
+
 ### Optional arguments
 
 |Short|Long|Help|
