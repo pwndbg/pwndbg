@@ -483,7 +483,7 @@ def sync(fail_quietly: bool) -> None:
             print(message.error("Can only sync with the debugger while the process is alive."))
         return
 
-    print("Syncing symbols. It may take a while.")
+    print("Syncing symbols...")
 
     # Functions and globals
     nsyms = pwndbg.integration.manager.update_symbols()
