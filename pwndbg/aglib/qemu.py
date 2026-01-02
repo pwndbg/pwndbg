@@ -94,6 +94,7 @@ def is_qemu_kernel() -> bool:
 
 
 def is_old_qemu_user() -> bool:
+    # qemu-user <8.1
     if not is_qemu_usermode():
         return False
 
