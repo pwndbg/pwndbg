@@ -29,6 +29,9 @@ def _parse_qgdbserverversion(response: bytes) -> tuple[int, ...] | None:
 
 @pwndbg.lib.cache.cache_until("stop")
 def qemu_gdbserver_version() -> tuple[int, ...] | None:
+    """
+    Returns QEMU version. Works since QEMU 10.1.0
+    """
     inferior = pwndbg.dbg.selected_inferior()
     if not inferior.is_remote():
         return None
@@ -91,13 +94,12 @@ def is_qemu_kernel() -> bool:
 
 
 def is_old_qemu_user() -> bool:
-    # qemu-user <8.1
     if not is_qemu_usermode():
         return False
 
-    version = qemu_gdbserver_version()
-    if version is not None:
-        return version < (8, 1)
+    # qGDBServerVersion is only available in QEMU 10.1+
+    if qemu_gdbserver_version() is not None:
+        return False
 
     return not exec_file_supported()
 
