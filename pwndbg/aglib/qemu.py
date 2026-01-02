@@ -29,6 +29,9 @@ def _parse_qgdbserverversion(response: bytes) -> tuple[int, ...] | None:
 
 @pwndbg.lib.cache.cache_until("stop")
 def qemu_gdbserver_version() -> tuple[int, ...] | None:
+    """
+    Returns QEMU version. Works since QEMU 10.1.0
+    """
     inferior = pwndbg.dbg.selected_inferior()
     if not inferior.is_remote():
         return None
