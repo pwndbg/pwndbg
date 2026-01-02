@@ -50,7 +50,6 @@ updates:
 
     labels:
       - "dependencies"
-      - "python"
 
     commit-message:
       prefix: "chore"
@@ -72,7 +71,6 @@ updates:
 
     labels:
       - "dependencies"
-      - "ci"
 
     commit-message:
       prefix: "ci"
