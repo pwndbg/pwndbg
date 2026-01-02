@@ -15,6 +15,7 @@ from __future__ import annotations
 import bisect
 import os
 import re
+import tempfile
 import xmlrpc
 import xmlrpc.client
 from dataclasses import dataclass
@@ -24,11 +25,13 @@ from typing import Optional
 from typing import Tuple
 from typing import cast
 
+import niche_elf
+
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.elf
 import pwndbg.aglib.vmmap
 import pwndbg.color.syntax_highlight
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.pretty_print as pretty_print
 from pwndbg.color import message
@@ -585,34 +588,16 @@ class IntegrationManager:
         if not syms_to_add:
             return 0
 
-        path: Optional[str] = pwndbg.aglib.elf.create_blank_elf()
-        if path is None:
-            return 0
+        _, elf_path = tempfile.mkstemp(prefix="symbols-", suffix=".elf")
+        elf = niche_elf.ELFFile(self._connection.binary_base_addr, pwndbg.aglib.arch.ptrbits)
 
-        try:
-            # path is not None means lief is installed
-            import lief
+        for sym_name, sym_addr in syms_to_add:
+            elf.add_generic_symbol(sym_name, sym_addr)
 
-            symelf = lief.ELF.parse(path)
-            if symelf is None:
-                return 0
-
-            for sym_name, sym_addr in syms_to_add:
-                symelf.add_symtab_symbol(symelf.export_symbol(sym_name, sym_addr))
-
-            symelf.write(path)
-
-            inf.add_symbol_file(path)
-            # Success!
-
-            # Save the path so we can remove it later.
-            self._latest_symbol_file_path = path
-
-            return len(syms_to_add)
-        except Exception as e:
-            print(message.error(e))
-
-        return 0
+        elf.write(elf_path)
+        inf.add_symbol_file(elf_path, self._connection.binary_base_addr)
+        self._latest_symbol_file_path = elf_path
+        return len(syms_to_add)
 
     def _clean_type_str(self, type_str: str) -> str:
         # FIXME:

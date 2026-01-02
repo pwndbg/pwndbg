@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import tempfile
 
-import pwndbg.aglib.elf
+import niche_elf
+
+import pwndbg
 import pwndbg.aglib.kernel.kallsyms
 import pwndbg.commands
 from pwndbg.color import message
@@ -43,22 +46,36 @@ def klookup(symbol: str, apply: bool) -> None:
                 syms.append(sym)
         if len(syms) == 0:
             print(message.error(f"No symbol found for {symbol}"))
-    for sym_name, sym_type, sym_addr in syms:
-        print(message.success(f"{sym_addr:#x} {sym_type} {sym_name}"))
+
+    if not apply or symbol != "":
+        for sym_name, sym_type, sym_addr in syms:
+            print(message.success(f"{sym_addr:#x} {sym_type} {sym_name}"))
 
     if apply:
-        path = pwndbg.aglib.elf.create_blank_elf()
-        if path is None:
+        paging_info = pwndbg.aglib.kernel.arch_paginginfo()
+        if paging_info is None:
+            print(message.error(f"Unsupported architecture {pwndbg.aglib.arch.name}."))
             return
-        try:
-            # path is not None means lief is installed
-            import lief
 
-            symelf = lief.ELF.parse(path)
-            for sym_name, sym_type, sym_addr in syms:
-                symelf.add_symtab_symbol(symelf.export_symbol(sym_name, sym_addr))
-            symelf.write(path)
-            pwndbg.dbg.selected_inferior().add_symbol_file(path)
-            print(message.success(f"Added {len(syms)} symbols"))
-        except Exception as e:
-            print(message.error(e))
+        base: int = paging_info.kbase
+
+        _, elf_path = tempfile.mkstemp(prefix="ks-symbols-", suffix=".elf")
+        elf = niche_elf.ELFFile(base, pwndbg.aglib.arch.ptrbits)
+
+        for sym_name, sym_type, sym_addr in syms:
+            # I trust bata: bata24/gef.py:create_symboled_elf()
+            if sym_type and sym_type in "abcdefghijklmnopqrstuvwxyz":
+                bind: int = niche_elf.datatypes.Constants.STB_LOCAL
+            else:
+                bind = niche_elf.datatypes.Constants.STB_GOBAL
+
+            if sym_type in ["T", "t", "W", None]:
+                elf.add_function(sym_name, sym_addr, bind=bind)
+            else:
+                elf.add_object(sym_name, sym_addr, bind=bind)
+
+        elf.write(elf_path)
+
+        pwndbg.dbg.selected_inferior().add_symbol_file(elf_path, base)
+        print(message.success(f"Added {len(syms)} symbols"))
+        return

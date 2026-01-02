@@ -480,7 +480,7 @@ def sync(fail_quietly: bool) -> None:
     # Check if the process is alive
     if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
         if not fail_quietly:
-            print(message.notice("Can only sync with the debugger while the process is alive."))
+            print(message.error("Can only sync with the debugger while the process is alive."))
         return
 
     print("Syncing symbols. It may take a while.")
