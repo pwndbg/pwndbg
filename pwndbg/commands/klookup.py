@@ -4,6 +4,7 @@ import argparse
 import tempfile
 
 import niche_elf
+import niche_elf.datatypes
 
 import pwndbg
 import pwndbg.aglib.kernel.kallsyms
@@ -13,7 +14,9 @@ from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Lookup kernel symbols")
 
-parser.add_argument("symbol", type=str, nargs="?", help="Address or symbol name to lookup")
+parser.add_argument(
+    "symbol", type=str, nargs="?", default="", help="Address or symbol name to lookup"
+)
 parser.add_argument(
     "-a", "--apply", action="store_true", help="applies all the symbols that satisfy the filter"
 )
@@ -67,7 +70,7 @@ def klookup(symbol: str, apply: bool) -> None:
             if sym_type and sym_type in "abcdefghijklmnopqrstuvwxyz":
                 bind: int = niche_elf.datatypes.Constants.STB_LOCAL
             else:
-                bind = niche_elf.datatypes.Constants.STB_GOBAL
+                bind = niche_elf.datatypes.Constants.STB_GLOBAL
 
             if sym_type in ["T", "t", "W", None]:
                 elf.add_function(sym_name, sym_addr, bind=bind)
