@@ -1,0 +1,78 @@
+name: Update Nix Flake Lock
+
+on:
+  schedule:
+    # Every Monday at 03:00 UTC (before Python updates on Tuesday)
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-flake-lock:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Build derivation before update
+        run: nix build .#devShells.x86_64-linux.default --accept-flake-config -o ./before-update
+
+      - name: Update flake.lock
+        run: nix flake update
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet flake.lock; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build derivation after update
+        if: steps.changes.outputs.changed == 'true'
+        run: nix build .#devShells.x86_64-linux.default --accept-flake-config -o ./after-update
+
+      - name: Install dix
+        if: steps.changes.outputs.changed == 'true'
+        run: nix profile install nixpkgs#dix
+
+      - name: Generate diff
+        if: steps.changes.outputs.changed == 'true'
+        id: diff
+        run: |
+          echo "DIFF<<EOF" >> $GITHUB_OUTPUT
+          dix ./before-update ./after-update >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(deps): update flake.lock"
+          title: "chore(deps): update flake.lock"
+          body: |
+            Automated update of Nix flake.lock file.
+
+            ## Changes
+
+            ```
+            ${{ steps.diff.outputs.DIFF }}
+            ```
+
+            This PR was created by the scheduled flake update workflow.
+          branch: deps/flake-lock-update
+          delete-branch: true
+          labels: |
+            dependencies
+            nix
