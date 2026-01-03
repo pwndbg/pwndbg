@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Callable
+
 import gdb
 
 import pwndbg.aglib
@@ -9,7 +11,7 @@ from . import get_binary
 STEPSYSCALL_X64_BINARY = get_binary("stepsyscall.x86-64.out")
 
 
-def test_command_stepsyscall(start_binary):
+def test_command_stepsyscall(start_binary: Callable[[str], None]) -> None:
     start_binary(STEPSYSCALL_X64_BINARY)
 
     # Test that the logic correctly handles multiple consecutive jumps
@@ -26,7 +28,7 @@ def test_command_stepsyscall(start_binary):
     assert pwndbg.aglib.regs.pc == address
 
 
-def test_command_nextsyscall(start_binary):
+def test_command_nextsyscall(start_binary: Callable[[str], None]) -> None:
     start_binary(STEPSYSCALL_X64_BINARY)
 
     gdb.execute("nextsyscall")
@@ -34,7 +36,7 @@ def test_command_nextsyscall(start_binary):
     assert pwndbg.aglib.regs.pc == address
 
 
-def test_command_stepsyscall_by_name(start_binary):
+def test_command_stepsyscall_by_name(start_binary: Callable[[str], None]) -> None:
     """Test stepsyscall with syscall name filter (SYS_exit)"""
     start_binary(STEPSYSCALL_X64_BINARY)
 
@@ -44,7 +46,7 @@ def test_command_stepsyscall_by_name(start_binary):
     assert pwndbg.aglib.regs.pc == address
 
 
-def test_command_stepsyscall_by_number(start_binary):
+def test_command_stepsyscall_by_number(start_binary: Callable[[str], None]) -> None:
     """Test stepsyscall with syscall number filter"""
     start_binary(STEPSYSCALL_X64_BINARY)
 
@@ -54,7 +56,7 @@ def test_command_stepsyscall_by_number(start_binary):
     assert pwndbg.aglib.regs.pc == address
 
 
-def test_command_stepsyscall_with_condition(start_binary):
+def test_command_stepsyscall_with_condition(start_binary: Callable[[str], None]) -> None:
     """Test stepsyscall with condition (stop at write to stderr)"""
     start_binary(STEPSYSCALL_X64_BINARY)
 
@@ -64,7 +66,7 @@ def test_command_stepsyscall_with_condition(start_binary):
     assert pwndbg.aglib.regs.pc == address
 
 
-def test_command_stepsyscall_condition_only(start_binary):
+def test_command_stepsyscall_condition_only(start_binary: Callable[[str], None]) -> None:
     """Test stepsyscall with condition only (no syscall filter)"""
     start_binary(STEPSYSCALL_X64_BINARY)
 

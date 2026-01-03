@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any, Callable, Optional, Tuple
+
 from pwnlib.constants.linux import (
     amd64 as linux_amd64,
     i386 as linux_i386,
@@ -15,13 +17,12 @@ from pwnlib.constants.linux import (
     s390x as linux_s390x,
 )
 import pwndbg.aglib
-from typing import Optional, Tuple, Callable
 from pwnlib.constants.constant import Constant
 import re
 from pwndbg.lib.regs import reg_sets
 
 
-def get_arch_module():
+def get_arch_module() -> Any:
     """
     Gets the architecture module for the current architecture.
 
@@ -123,7 +124,7 @@ def parse_condition(condition: str) -> Optional[Callable[[], bool]]:
         if register_set and reg_name not in register_set.all:
             return None
 
-    ops = {
+    ops: dict[str, Callable[[int, int], bool]] = {
         "==": lambda a, b: a == b,
         "!=": lambda a, b: a != b,
         ">": lambda a, b: a > b,

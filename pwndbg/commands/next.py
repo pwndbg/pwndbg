@@ -5,6 +5,7 @@ Stepping until an event occurs
 from __future__ import annotations
 
 import argparse
+from typing import Callable
 
 import pwndbg.aglib.next
 import pwndbg.aglib.proc
@@ -160,8 +161,8 @@ def nextsyscall() -> None:
 async def _stepsyscall(
     ec: pwndbg.dbg_mod.ExecutionController,
     syscall_num: int | None = None,
-    condition=None,
-):
+    condition: "Callable[[], bool] | None" = None,
+) -> None:
     """
     Execution controller for the `stepsyscall` command.
     """
@@ -196,7 +197,7 @@ stepsyscall_parser.add_argument(
     category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
-def stepsyscall(syscall=None, condition=None) -> None:
+def stepsyscall(syscall: str | None = None, condition: str | None = None) -> None:
     """
     Breaks at the next syscall by taking branches.
 
@@ -234,7 +235,7 @@ def stepsyscall(syscall=None, condition=None) -> None:
             print(f"Invalid condition: {condition}")
             return
 
-    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
+    async def ctrl(ec: pwndbg.dbg_mod.ExecutionController) -> None:
         await _stepsyscall(ec, syscall_num=syscall_num, condition=cond_callable)
 
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(ctrl)
