@@ -14,12 +14,18 @@ from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.vmmap
+import pwndbg.dbg_mod
 import pwndbg.lib.arch
 
 
 def get_segv_pkuerr_description() -> Optional[str]:
     """Retrieve the long description for SEGV_PKUERR, if applicable."""
-    siginfo = pwndbg.dbg.selected_thread().siginfo()
+    curr_thread = pwndbg.dbg.selected_thread()
+    if curr_thread is None:
+        return None
+    siginfo = curr_thread.siginfo()
+    if siginfo is None:
+        return None
     fault_mem_page = pwndbg.aglib.vmmap.find(siginfo.sigfault.si_addr)
     if fault_mem_page is None or fault_mem_page.protection_key is None:
         return None
@@ -152,7 +158,12 @@ LONG_SEGV_DESCRIPTIONS: Dict[
 def get_segv_information() -> Tuple[str, Optional[str]]:
     """Retrieve additional information about a SIGSEGV signal, if available."""
     try:
-        siginfo = pwndbg.dbg.selected_thread().siginfo()
+        curr_thread = pwndbg.dbg.selected_thread()
+        if curr_thread is None:
+            return "SIGSEGV", None
+        siginfo = curr_thread.siginfo()
+        if siginfo is None:
+            return "SIGSEGV", None
         si_code = siginfo.si_code
         desc_short = "SIGSEGV"
         desc_long = f" (fault address: {siginfo.sigfault.si_addr:#x})."
@@ -181,7 +192,10 @@ def get_segv_information() -> Tuple[str, Optional[str]]:
 
 def get_last_signal() -> Optional[SIGNALS]:
     """Get the last signal received by the debugged process."""
-    siginfo = pwndbg.dbg.selected_thread().siginfo()
+    curr_thread = pwndbg.dbg.selected_thread()
+    if curr_thread is None:
+        return None
+    siginfo = curr_thread.siginfo()
     if siginfo is None:
         return None
     curr_arch = pwndbg.aglib.arch.name
