@@ -4,8 +4,11 @@ import argparse
 from typing import Optional
 from typing import Tuple
 
+import pwndbg.aglib
 import pwndbg.aglib.asm
-import pwndbg.aglib.file
+import pwndbg.aglib.shellcode
+import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 # Taken from linux/arch/x86/include/asm/msr-index.h

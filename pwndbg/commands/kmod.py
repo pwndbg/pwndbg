@@ -11,8 +11,12 @@ from tabulate import tabulate
 
 import pwndbg
 import pwndbg.aglib.kernel.kmod
-import pwndbg.color.message as M
+import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
+import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.radare2
+import pwndbg.rizin
 
 parser = argparse.ArgumentParser(description="Displays the loaded Linux kernel modules.")
 parser.add_argument(
@@ -89,9 +93,9 @@ def kmod(module_name=None, path=None) -> None:
             elif pwndbg.config.decompiler == "rizin":
                 pwndbg.rizin.rzcmd(["o", path, addr])
         elif len(table) > 1:
-            print(M.warn("Multiple modules detected with the given filter"))
+            print(message.warn("Multiple modules detected with the given filter"))
         else:
-            print(M.warn("No modules detected with the given filter."))
+            print(message.warn("No modules detected with the given filter."))
         return
 
     print(tabulate(table, headers=headers, tablefmt="simple"))

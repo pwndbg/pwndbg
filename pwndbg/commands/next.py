@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.next
+import pwndbg.aglib.proc
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.dbg_mod

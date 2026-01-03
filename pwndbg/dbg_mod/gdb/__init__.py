@@ -226,6 +226,28 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             # Not sure what sp will actually resolve to here...
             return int(self.regs().by_name("sp"))
 
+    def start(self) -> Optional[int]:
+        # How is it possible that this isn't in the API?
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
+        import pwndbg.aglib
+
+        # It is possible that self.inner is not the frame selected in the debugger, so we will save
+        # the selected frame, move gdb to this frame, do `info frame`, and then restore the selected frame.
+        with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
+            try:
+                frame_txt: str = gdb.execute("info frame", to_string=True)
+                match = re.search(r"frame at (0x[0-9a-fA-F]+):", frame_txt)
+                if match:
+                    frame_addr = int(match.group(1), 16)
+                    # Happens often at the entry point
+                    if frame_addr == 0:
+                        return None
+                    # GDB for some reason returns one ptr past retaddr
+                    return frame_addr - pwndbg.aglib.arch.ptrsize
+                return None
+            except gdb.error as e:
+                raise pwndbg.dbg_mod.Error(e)
+
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
         try:
@@ -798,9 +820,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def send_remote(self, packet: str) -> bytes:
         conn = self.inner.connection
-        assert isinstance(
-            conn, gdb.RemoteTargetConnection
-        ), "Called send_remote() on a local process"
+        assert isinstance(conn, gdb.RemoteTargetConnection), (
+            "Called send_remote() on a local process"
+        )
         assert conn.is_valid(), "connection is invalid"
 
         # NOTE: `send_packet` don't handle reading multiple responses
@@ -919,6 +941,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def arch(self) -> ArchDefinition:
+        import pwndbg.aglib.proc
+        import pwndbg.aglib.typeinfo
+
         ptrsize = pwndbg.aglib.typeinfo.ptrsize
         not_exactly_arch = False
 
@@ -1093,55 +1118,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     def module_section_locations(self) -> List[Tuple[int, int, str, str]]:
         import pwndbg.gdblib.info
 
-        # Example:
-        #
-        # 0x0000555555572f70 - 0x0000555555572f78 is .init_array
-        # 0x0000555555572f78 - 0x0000555555572f80 is .fini_array
-        # 0x0000555555572f80 - 0x0000555555573a78 is .data.rel.ro
-        # 0x0000555555573a78 - 0x0000555555573c68 is .dynamic
-        # 0x0000555555573c68 - 0x0000555555573ff8 is .got
-        # 0x0000555555574000 - 0x0000555555574278 is .data
-        # 0x0000555555574280 - 0x0000555555575540 is .bss
-        # 0x00007ffff7fc92a8 - 0x00007ffff7fc92e8 is .note.gnu.property in /lib64/ld-linux-x86-64.so.2
-        # 0x00007ffff7fc92e8 - 0x00007ffff7fc930c is .note.gnu.build-id in /lib64/ld-linux-x86-64.so.2
-        # 0x00007ffff7fc9310 - 0x00007ffff7fc94f8 is .gnu.hash in /lib64/ld-linux-x86-64.so.2
-
-        files = pwndbg.gdblib.info.files()
-
-        main = self.main_module_name()
         result = []
-        for line in files.splitlines():
-            line = line.strip()
-            if " - " not in line or " is " not in line:
-                # Ignore non-location lines.
-                continue
-
-            div0 = line.split(" is ", 1)
-            assert (
-                len(div0) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
-
-            div1 = div0[1].split(" in ", 1)
-            assert (
-                len(div1) == 1 or len(div1) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
-
-            div2 = div0[0].split(" - ", 1)
-            assert (
-                len(div2) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
-
-            beg = int(div2[0].strip(), 0)
-            end = int(div2[1].strip(), 0)
-
-            if len(div1) == 2:
-                module = div1[1].strip()
-            else:
-                module = main
-
-            section = div1[0].strip()
-
-            result.append((beg, end - beg, section, module))
+        for section in pwndbg.gdblib.info.sections():
+            result.append((section.start, section.size, section.section, section.objfile))
 
         return result
 
@@ -1206,6 +1185,14 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         gdb.execute(f"add-symbol-file {path} {base}")
 
     @override
+    def remove_symbol_file(self, path: str) -> bool:
+        resp: str = gdb.execute(f"remove-symbol-file {path}", to_string=True)
+        if "No symbol file found" in resp:
+            return False
+        else:
+            return True
+
+    @override
     def runcmd(self, cmd) -> str:
         return gdb.execute(cmd, to_string=True)
 
@@ -1265,14 +1252,39 @@ class GDBCommand(gdb.Command):
         name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
+        subcommand_names: list[str] | None,
     ):
+        # We can't do `list[str] = []` in the signature because python..
         self.debugger = debugger
         self.handler = handler
         self.__doc__ = doc
-        super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+        if subcommand_names is None:
+            super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+        else:
+            self.subcommand_names: list[str] = subcommand_names
+            super().__init__(name, gdb.COMMAND_USER)
 
     def invoke(self, args: str, from_tty: bool) -> None:
         self.handler(self.debugger, args, from_tty)
+
+    def complete(self, text: str, word: str | None):
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/CLI-Commands-In-Python.html#CLI-Commands-In-Python:~:text=Command%2Ecomplete
+        # > `text` holds the complete command line up to the cursor’s location
+        # > `word` holds the last word of the command line
+        # The description is kind of misleading. If you type `slab li ny<TAB>`
+        # you will get text="li ny", word="ny".
+        # Actually, the function seems to be called twice for some reason, the first invocation having
+        # word=None. Why?
+        # Since we only support one level of subcommand completion (i.e. we dont support subsubcommand completion),
+        # we don't really care about the text and word distinction.
+        if word is None or text != word:
+            return []
+        if text == "":
+            # Return all subcommands
+            return self.subcommand_names
+
+        # Find all with matching prefix
+        return [valid for valid in self.subcommand_names if valid.startswith(text)]
 
 
 class GDBCommandHandle(pwndbg.dbg_mod.CommandHandle):
@@ -1534,9 +1546,9 @@ def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]
             # We should never run this function before it gets loaded, but, if this
             # ever changes by mistake, we want the mistake to be caught early, with
             # a clear error.
-            assert hasattr(
-                gdb.events, "start"
-            ), "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
+            assert hasattr(gdb.events, "start"), (
+                "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
+            )
             return gdb.events.start
         case EventType.STOP:
             return gdb.events.stop
@@ -1547,9 +1559,9 @@ def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]
         case EventType.REGISTER_CHANGED:
             return gdb.events.register_changed
         case EventType.SUSPEND_ALL:
-            assert hasattr(
-                gdb.events, "suspend_all"
-            ), "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+            assert hasattr(gdb.events, "suspend_all"), (
+                "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+            )
             return gdb.events.suspend_all
         case _:
             raise NotImplementedError(f"unknown event type {ty}")
@@ -1688,8 +1700,9 @@ class GDB(pwndbg.dbg_mod.Debugger):
         name: str,
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
+        subcommand_names: list[str] | None = None,
     ) -> pwndbg.dbg_mod.CommandHandle:
-        command = GDBCommand(self, name, handler, doc)
+        command = GDBCommand(self, name, handler, doc, subcommand_names)
         return GDBCommandHandle(command)
 
     @override
@@ -1989,3 +2002,18 @@ class GDB(pwndbg.dbg_mod.Debugger):
             command = "set python print-stack message"
 
         gdb.execute(command, from_tty=True, to_string=True)
+
+    @override
+    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
+
+        Read the docstring in pwndbg.dbg.set_convenience_var()!!
+
+        Surround this function with try/except.
+        """
+        if type is not None:
+            gdb.execute(f"set ${name} = (({type})({value}))")
+        else:
+            gdb.execute(f"set ${name} = ({value})")

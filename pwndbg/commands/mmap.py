@@ -4,15 +4,12 @@ import argparse
 from typing import Union
 
 import pwndbg.aglib
-import pwndbg.aglib.file
 import pwndbg.aglib.shellcode
-import pwndbg.chain
+import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.enhance
+import pwndbg.dbg_mod
 import pwndbg.lib.memory
-import pwndbg.wrappers.checksec
-import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -211,7 +208,7 @@ instead.\
                     m(
                         f"""\
 Trying to mmap with MAP_FIXED for an address range that collides with {len(collisions)}
-existing range{'s' if len(collisions) > 1 else ''}:\
+existing range{"s" if len(collisions) > 1 else ""}:\
 """
                     )
                 )

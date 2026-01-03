@@ -8,8 +8,8 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
 import pwndbg.aglib.symbol
 import pwndbg.arguments
-import pwndbg.color as C
-import pwndbg.color.message as M
+import pwndbg.color as color
+import pwndbg.color.message as message
 import pwndbg.commands.context
 import pwndbg.lib.cache
 from pwndbg.dbg_mod import BreakpointLocation
@@ -63,7 +63,7 @@ class KmemTracepointsData:
                         self.curr = symbol_name.split("+")[0]
 
             if self.curr is None:
-                print(M.warn("Couldn't locate frame properly. Tracing --all."))
+                print(message.warn("Couldn't locate frame properly. Tracing --all."))
 
     def add_result(self, result: str):
         if not result:
@@ -78,12 +78,12 @@ class KmemTracepointsData:
     def _format_kmem_tracepoint_output(self, prefix, name, type, addr):
         prefix = prefix.ljust(12, " ")
         if "FREE" in prefix:
-            prefix = C.red(prefix)
+            prefix = color.red(prefix)
         else:
-            prefix = C.green(prefix)
-        name = C.blue(name.ljust(20, " "))
+            prefix = color.green(prefix)
+        name = color.blue(name.ljust(20, " "))
         type = type.ljust(4, " ")
-        return f"{prefix} {name} {type} @ {C.blue(hex(addr))}"
+        return f"{prefix} {name} {type} @ {color.blue(hex(addr))}"
 
     def format_slab_kmem_tracepoint_output(self, is_free: bool, objaddr: int):
         if objaddr == 0:
@@ -96,7 +96,7 @@ class KmemTracepointsData:
             cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
             name = cache.name
         except Exception:
-            self.add_result(M.warn(f"{prefix} invalid SLUB object @ {objaddr:#x}"))
+            self.add_result(message.warn(f"{prefix} invalid SLUB object @ {objaddr:#x}"))
             return
         result = self._format_kmem_tracepoint_output(prefix, name, "obj", objaddr)
         self.add_result(result)
@@ -109,7 +109,7 @@ class KmemTracepointsData:
         name = f"order-{order}"
         physmap = pwndbg.aglib.kernel.page_to_virt(page)
         result = self._format_kmem_tracepoint_output(prefix, name, "page", page)
-        result += f" (physmap: {C.red(hex(physmap))})"
+        result += f" (physmap: {color.red(hex(physmap))})"
         self.add_result(result)
 
 
@@ -281,7 +281,7 @@ steps out of the current function. You may also find `-c finish` and `-c continu
 def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str, all: bool) -> None:
     if pwndbg.aglib.regs.retval is None:
         print(
-            M.error(
+            message.error(
                 "kmem-trace is not available on this architecture because the return value register is not defined."
             )
         )
@@ -297,7 +297,7 @@ def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str,
     # commandline ergonomics.
 
     tps.register_breakpoints(verbose, all)
-    print(M.success("Finished registering tracepoints."))
+    print(message.success("Finished registering tracepoints."))
 
     old_val = pwndbg.config.context_backtrace_lines.value
     pwndbg.config.context_backtrace_lines.value = 1000  # enable full backtrace

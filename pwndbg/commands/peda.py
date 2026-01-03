@@ -8,8 +8,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.auxv
 import pwndbg.commands
-import pwndbg.commands.context
-import pwndbg.commands.telescope
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

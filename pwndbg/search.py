@@ -8,6 +8,7 @@ from typing import Collection
 from typing import Generator
 
 import pwndbg.aglib.vmmap
+import pwndbg.lib.memory
 
 
 def search(

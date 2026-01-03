@@ -7,7 +7,6 @@ import tempfile
 import gdb
 
 import pwndbg.aglib.proc
-import pwndbg.aglib.vmmap
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 

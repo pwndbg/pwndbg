@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
@@ -36,7 +36,7 @@ def distance(a, b) -> None:
                 distance // pwndbg.aglib.arch.ptrsize,
             )
 
-            print(M.get(page.vaddr, text=display_text))
+            print(mem_color.get(page.vaddr, text=display_text))
     else:
         a = int(a) & pwndbg.aglib.arch.ptrmask
         b = int(b) & pwndbg.aglib.arch.ptrmask

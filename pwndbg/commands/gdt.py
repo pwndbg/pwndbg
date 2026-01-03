@@ -5,7 +5,7 @@ import argparse
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
-import pwndbg.color as C
+import pwndbg.color as color
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
@@ -100,7 +100,7 @@ def decode_gdt_entry(value):
     # Must be set for a valid segment
     present_bit = (access_byte & (1 << 7)) >> 7
 
-    colorme = lambda label, val: (C.green if val else C.red)(label)
+    colorme = lambda label, val: (color.green if val else color.red)(label)
 
     access_str = "|".join(
         (

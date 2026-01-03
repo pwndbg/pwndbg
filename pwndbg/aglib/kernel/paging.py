@@ -14,9 +14,7 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
-import pwndbg.aglib.vmmap_custom
 import pwndbg.lib.cache
-import pwndbg.lib.memory
 import pwndbg.lib.regs
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.kernel.vmmap import kernel_vmmap_pages

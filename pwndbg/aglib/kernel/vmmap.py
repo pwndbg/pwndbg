@@ -19,7 +19,7 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.qemu
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import Page
@@ -186,7 +186,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
         machine_backend = QemuMachine()
     except PermissionError:
         print(
-            M.error(
+            message.error(
                 "Permission error when attempting to parse page tables with gdb-pt-dump.\n"
                 "Either change the kernel-vmmap setting, re-run GDB as root, or disable "
                 "`ptrace_scope` (`echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`)"
@@ -195,7 +195,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
         return ()
     except ProcessLookupError:
         print(
-            M.error(
+            message.error(
                 "Could not find the PID for process named `qemu-system`.\n"
                 "This might happen if pwndbg is running on a different machine than `qemu-system`,\n"
                 "or if the `qemu-system` binary has a different name."
@@ -215,7 +215,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
         arch_backend = PT_RiscV64_Backend(machine_backend)
     else:
         print(
-            M.error(
+            message.error(
                 f"The {pwndbg.aglib.arch.name} architecture does"
                 " not support the `vmmap_via_page_tables`.\n"
                 "Run `help show kernel-vmmap` for other options."
@@ -278,7 +278,7 @@ def _parser_mem_info_line_x86(line: str) -> Page | None:
     global monitor_info_mem_not_warned
     if end - start != size and monitor_info_mem_not_warned:
         print(
-            M.warn(
+            message.warn(
                 (
                     "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
                     "that end-start==size failed. The values are:\n"
@@ -358,7 +358,7 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
 
     if parser_func is None or "unknown command" in monitor_info_mem:
         print(
-            M.error(
+            message.error(
                 f"The {pwndbg.aglib.arch.name} architecture does"
                 " not support the `monitor info mem` command.\n"
                 "Run `help show kernel-vmmap` for other options."
@@ -402,7 +402,7 @@ def kernel_vmmap_pages() -> Tuple[Page, ...]:
     mode = kernel_vmmap_mode
     if mode == "page-tables" and pwndbg.aglib.arch.name in ("rv32", "rv64"):
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
-        print(M.warn("`page-tables` unsupported for riscv, defaulting to `monitor info mem`"))
+        print(message.warn("`page-tables` unsupported for riscv, defaulting to `monitor info mem`"))
         mode = "monitor"
     match mode:
         case "page-tables":

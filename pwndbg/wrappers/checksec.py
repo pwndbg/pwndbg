@@ -9,7 +9,7 @@ from pwnlib.elf import ELF
 
 pwnlib.elf.elf.log._logger.disabled = True
 
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 
 
 @contextlib.contextmanager
@@ -18,9 +18,9 @@ def monkeypatch_pwnlib_term_text() -> Iterator[None]:
     # The patch is for here:
     # https://github.com/Gallopsled/pwntools/blob/f046fdd93e154bd892332f38cfbb518de130f1f2/pwnlib/elf/elf.py#L1999-L2001
     # This might break in the future, so need to update this patch when the implementation of pwnlib changes.
-    pwnlib.term.text.red = M.error
-    pwnlib.term.text.green = M.success
-    pwnlib.term.text.yellow = M.warn
+    pwnlib.term.text.red = message.error
+    pwnlib.term.text.green = message.success
+    pwnlib.term.text.yellow = message.warn
     yield
     del pwnlib.term.text.red
     del pwnlib.term.text.green

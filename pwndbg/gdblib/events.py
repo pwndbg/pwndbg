@@ -149,12 +149,15 @@ def _detect_deadlock():
     print(message.error("DEADLOCK DETECTED..."))
     print(
         message.error(
-            f"""The deadlock issue is likely caused by using 'commands[\\n]{message.hint("continue")}[\\n]end'.
+            f"""The deadlock issue is likely caused by using 'commands[\\n]{
+                message.hint("continue")
+            }[\\n]end'.
 
 To address this, you have three options:
 
 1. Avoid using '{message.hint("commands")}'. Instead, rewrite it as a Python script. For example:
-   {message.hint('''
+   {
+                message.hint('''
    # Read more at: https://github.com/pwndbg/pwndbg/issues/425#issuecomment-892302716
    class Bp(gdb.Breakpoint):
        def stop(self):
@@ -162,12 +165,17 @@ To address this, you have three options:
            return False  # False = continue to next breakpoint, True = stop inferior
 
    Bp("main")
-   ''')}
+   ''')
+            }
 
-2. Replace '{message.hint("continue")}' with '{message.hint('pi gdb.execute("continue")')}' and use '{message.hint("set gdb-workaround-stop-event 2")}'.
+2. Replace '{message.hint("continue")}' with '{
+                message.hint('pi gdb.execute("continue")')
+            }' and use '{message.hint("set gdb-workaround-stop-event 2")}'.
    This change reduces the likelihood of deadlocks, while preserving pwndbg functionality.
 
-3. Run '{message.hint("set gdb-workaround-stop-event 1")}', allowing you to keep '{message.hint("continue")}' as is.
+3. Run '{message.hint("set gdb-workaround-stop-event 1")}', allowing you to keep '{
+                message.hint("continue")
+            }' as is.
    However, this setting may cause pwndbg or gdb.execute to behave asynchronously/unpredictably.
 """
         )

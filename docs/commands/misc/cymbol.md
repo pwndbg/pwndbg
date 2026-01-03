@@ -20,6 +20,143 @@ Manage custom C structures in pwndbg. Supports project-specific auto-loading fro
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 
+### **cymbol add**
+
+```text
+usage: cymbol add [-h] [--force] name
+
+```
+
+Add a custom structure.
+#### Positional arguments
+
+|Positional Argument|Help|
+| :--- | :--- |
+|name|Name of custom structure|
+
+#### Optional arguments
+
+|Short|Long|Help|
+| :--- | :--- | :--- |
+|-h|--help|show this help message and exit|
+||--force|Overwrite if structure already exists|
+
+### **cymbol remove**
+
+```text
+usage: cymbol remove [-h] name
+
+```
+
+Remove a custom structure.
+#### Positional arguments
+
+|Positional Argument|Help|
+| :--- | :--- |
+|name|Name of custom structure|
+
+#### Optional arguments
+
+|Short|Long|Help|
+| :--- | :--- | :--- |
+|-h|--help|show this help message and exit|
+
+### **cymbol edit**
+
+```text
+usage: cymbol edit [-h] name
+
+```
+
+Edit a custom structure.
+#### Positional arguments
+
+|Positional Argument|Help|
+| :--- | :--- |
+|name|Name of custom structure|
+
+#### Optional arguments
+
+|Short|Long|Help|
+| :--- | :--- | :--- |
+|-h|--help|show this help message and exit|
+
+### **cymbol load**
+
+```text
+usage: cymbol load [-h] name
+
+```
+
+Load a custom structure.
+#### Positional arguments
+
+|Positional Argument|Help|
+| :--- | :--- |
+|name|Name of custom structure|
+
+#### Optional arguments
+
+|Short|Long|Help|
+| :--- | :--- | :--- |
+|-h|--help|show this help message and exit|
+
+### **cymbol show**
+
+```text
+usage: cymbol show [-h] name
+
+```
+
+Show a custom structure.
+#### Positional arguments
+
+|Positional Argument|Help|
+| :--- | :--- |
+|name|Name of custom structure|
+
+#### Optional arguments
+
+|Short|Long|Help|
+| :--- | :--- | :--- |
+|-h|--help|show this help message and exit|
+
+### **cymbol file**
+
+```text
+usage: cymbol file [-h] [--name NAME] [--force] path
+
+```
+
+Add a structure from a header file.
+#### Positional arguments
+
+|Positional Argument|Help|
+| :--- | :--- |
+|path|Path to header file|
+
+#### Optional arguments
+
+|Short|Long|Help|
+| :--- | :--- | :--- |
+|-h|--help|show this help message and exit|
+||--name|Optional structure name|
+||--force|Overwrite if exists|
+
+### **cymbol show-all**
+
+```text
+usage: cymbol show-all [-h]
+
+```
+
+Show all stored structures.
+#### Optional arguments
+
+|Short|Long|Help|
+| :--- | :--- | :--- |
+|-h|--help|show this help message and exit|
+
 ### Notes
 The `cymbol` command loads custom C structs and symbols into the debugger using GCC under the hood.
 

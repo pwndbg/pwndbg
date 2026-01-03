@@ -3,9 +3,8 @@ from __future__ import annotations
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
-import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 
 
 def get_struct_bpf_prog():
@@ -226,11 +225,15 @@ def load_bpf_typeinfo():
     prog_idr = pwndbg.aglib.kernel.prog_idr()
     map_idr = pwndbg.aglib.kernel.map_idr()
     if not prog_idr or not map_idr:
-        print(M.warn("cannot find either prog_idr or map_idr"))
+        print(message.warn("cannot find either prog_idr or map_idr"))
         return
     xarray_pad_sz = get_bpf_struct_offsets(prog_idr, map_idr)
     if not xarray_pad_sz:
-        print(M.warn("cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"))
+        print(
+            message.warn(
+                "cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"
+            )
+        )
         return
     result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
     result += f"""

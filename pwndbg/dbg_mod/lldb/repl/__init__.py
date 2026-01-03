@@ -865,7 +865,9 @@ class AutoTarget:
         elif count == 1:
             # Just use the current target.
             self.target = dbg.debugger.GetTargetAtIndex(0)
-            assert self.target, f"SBDebugger::GetNumTargets() is 1, but SBDebugger::GetTargetAtIndex(0) is {self.target}"
+            assert self.target, (
+                f"SBDebugger::GetNumTargets() is 1, but SBDebugger::GetTargetAtIndex(0) is {self.target}"
+            )
         else:
             raise AssertionError(
                 f"Pwndbg does not support multiple targets, so SBDebugger::GetNumTargets() must always be 0 or 1, but is {count}"
@@ -876,9 +878,9 @@ class AutoTarget:
 
     def close(self):
         if self._created_target:
-            assert self._dbg.debugger.DeleteTarget(
-                self.target
-            ), "Could not delete the target we've just created. What?"
+            assert self._dbg.debugger.DeleteTarget(self.target), (
+                "Could not delete the target we've just created. What?"
+            )
 
 
 def run_ipython_shell():

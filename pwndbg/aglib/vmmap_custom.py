@@ -8,7 +8,7 @@ from typing import Tuple
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.stack
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
@@ -94,7 +94,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
             is_readable_addr = pwndbg.aglib.memory.peek(page_start)
             if is_readable_addr:
                 print(
-                    M.warn(
+                    message.warn(
                         f"Warning: Avoided exploring possible address {address_maybe:#x}.\n"
                         f"You can explicitly explore it with `vmmap-explore {page_start:#x}`"
                     )

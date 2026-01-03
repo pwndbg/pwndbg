@@ -16,7 +16,7 @@ import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.memory
@@ -76,9 +76,9 @@ def calculate_total_memory(pages: Tuple[Page, ...]) -> None:
     for page in pages:
         total += page.memsz
     if total > 1024 * 1024:
-        print(f"Total memory mapped: {total:#x} ({total//1024//1024} MB)")
+        print(f"Total memory mapped: {total:#x} ({total // 1024 // 1024} MB)")
     else:
-        print(f"Total memory mapped: {total:#x} ({total//1024} KB)")
+        print(f"Total memory mapped: {total:#x} ({total // 1024} KB)")
 
 
 def gap_text(page: Page) -> str:
@@ -277,7 +277,7 @@ def vmmap(
     empty_prefix = " " * len(prefix_str) if filtered_pages else None
     header_prefix = f"{empty_prefix} " if filtered_pages else ""
 
-    print(M.legend())
+    print(mem_color.legend())
     print_vmmap_table_header(header_prefix)
 
     shared_cache_first = None
@@ -326,7 +326,7 @@ def vmmap(
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):
                 display_text = str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)
 
-        print(M.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
+        print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
 
     flush_shared_cache_info()
     if shared_cache_collapsed > 0:

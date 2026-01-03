@@ -16,8 +16,11 @@ import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.aglib.kernel.paging
+import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
+import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory

@@ -248,6 +248,13 @@ class Frame:
         """
         raise NotImplementedError()
 
+    def start(self) -> Optional[int]:
+        """
+        The start (highest) address of this frame. The return address
+        is usually here.
+        """
+        raise NotImplementedError()
+
     def parent(self) -> Frame | None:
         """
         The parent frame of this frame, if it exists.
@@ -692,7 +699,17 @@ class Process:
 
     def add_symbol_file(self, path, base=None):
         """
-        Adds a symbol file at base
+        Adds a symbol file at base.
+        """
+        raise NotImplementedError()
+
+    def remove_symbol_file(self, path: str) -> bool:
+        """
+        Removes a symbol file.
+
+        Returns:
+            True if we succeeded, False if not. If the file was never
+            added or doesn't exist, that counts as failure.
         """
         raise NotImplementedError()
 
@@ -1215,11 +1232,17 @@ class Debugger:
         raise NotImplementedError()
 
     def add_command(
-        self, name: str, handler: Callable[[Debugger, str, bool], None], doc: str | None
+        self,
+        name: str,
+        handler: Callable[[Debugger, str, bool], None],
+        doc: str | None,
+        subcommand_names: list[str] | None = None,
     ) -> CommandHandle:
         """
         Adds a command with the given name to the debugger, that invokes the
         given function every time it is called.
+
+        subcommand_names is used for tab-completion.
         """
         raise NotImplementedError()
 
@@ -1365,5 +1388,38 @@ class Debugger:
     def set_python_diagnostics(self, enabled: bool) -> None:
         """
         Enables or disables Python diagnostic messages for this debugger.
+        """
+        raise NotImplementedError()
+
+    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
+
+        >> Here be dragons. Wear armor. <<
+
+        This is really finicky in LLDB:
+        1. It seems convenience variables get an undefined value after process restart.
+           (see this comment
+            https://github.com/llvm/llvm-project/issues/84806#issuecomment-1995055683)
+        2. We cannot "redefine" the variable after it is once created.
+        3. Ergo, we cannot change its type.
+
+        Thus for LLDB, we will not honor the `type` parameter and will just set it to void*
+        for maximum flexibility. The parameter will be honored for GDB, though.
+
+        Next, be aware that the contents of the `value` variable are passed directly to the
+        debugger. So you must pass '"my cool string"' if you actually want the debugger to
+        see the quotes.
+
+        Futher, you cannot set convenience variables to some values/types until the process is alive.
+        For instance:
+            pwndbg> p $wow = ("this is fine")
+            $4 = "this is fine"
+            pwndbg> p $wow = ((const char*)"this will error")
+            evaluation of this expression requires the target program to be active
+            pwndbg>
+
+        You should always surround this function with a try/except.
         """
         raise NotImplementedError()

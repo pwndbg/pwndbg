@@ -23,9 +23,10 @@ from pwndbg.lib.cache import CacheUntilEvent
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
 @pwndbg.dbg.event_handler(EventType.START, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
 @pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
-def update_typeinfo() -> None:
-    pwndbg.aglib.arch_mod.update()
+def update_arch_and_typeinfo() -> None:
+    # Updating typeinfo first for consistency with GDB where it's required.
     pwndbg.aglib.typeinfo.update()
+    pwndbg.aglib.arch_mod.update()
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)

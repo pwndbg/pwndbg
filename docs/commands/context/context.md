@@ -18,7 +18,7 @@ and `up` commands).
 
 |Positional Argument|Help|
 | :--- | :--- |
-|subcontext|Submenu to display: 'regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'|
+|subcontext|Submenu to display: 'regs', 'disasm', 'code', 'stack', 'backtrace', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'|
 
 ### Optional arguments
 

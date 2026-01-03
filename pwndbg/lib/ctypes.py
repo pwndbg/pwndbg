@@ -16,6 +16,7 @@ import sys
 module = sys.modules[__name__]
 Structure = ctypes.LittleEndianStructure  # default Structure type
 
+
 def update(endianness: str) -> None:
     global Structure
     if endianness == "little":

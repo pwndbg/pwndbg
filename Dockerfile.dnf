@@ -35,10 +35,10 @@ COPY ./pyproject.toml /pwndbg/
 # pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 
-# fix for py3.14
+# fix for py3.14 because wheels aren't available so packages need to be built
 # RUN dnf install -y uv git python3-devel patch ncurses-devel gcc
 # RUN uv sync --all-groups --all-extras
-RUN dnf install -y uv git python3-devel patch ncurses-devel gcc
+RUN dnf install -y uv git python3-devel patch ncurses-devel gcc g++
 RUN ./setup.sh
 
 # Comment these lines if you won't run the tests.

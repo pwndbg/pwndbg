@@ -4,7 +4,7 @@ import argparse
 from typing import NamedTuple
 
 import pwndbg.aglib.kernel
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
 
@@ -113,9 +113,9 @@ def kchecksec() -> None:
     for opt in options:
         config_name = opt.name
         val = kconfig.get(config_name)
-        color_func = M.error
+        color_func = message.error
         if (opt.desired and val) or (not opt.desired and not val):
-            color_func = M.success
+            color_func = message.success
 
         if val:
             print(color_func(f"CONFIG_{config_name} = {val}"))
