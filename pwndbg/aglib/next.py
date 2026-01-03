@@ -173,22 +173,9 @@ async def break_next_interrupt_filtered(
     # Get the syscall register for the current architecture
     syscall_reg = None
     if syscall_num is not None:
-        arch_name = pwndbg.aglib.arch.name if pwndbg.aglib.arch else None
-        syscall_reg = {
-            "x86-64": "rax",
-            "i386": "eax",
-            "i8086": "ax",
-            "mips": "v0",
-            "aarch64": "x8",
-            "arm": "r7",
-            "armcm": "r7",
-            "rv32": "a7",
-            "rv64": "a7",
-            "sparc": "g1",
-            "powerpc": "r0",
-            "loongarch64": "a7",
-            "s390x": "r2",
-        }.get(arch_name)
+        syscall_abi = pwndbg.aglib.arch.syscall_abi
+        if syscall_abi is not None:
+            syscall_reg = syscall_abi.syscall_register
 
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
