@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
@@ -13,6 +15,14 @@ async def test_pku(ctrl: Controller) -> None:
     Test that PKU-related memory access violations are properly reported.
     """
     import pwndbg
+
+    try:
+        with open("/proc/cpuinfo", "r") as f:
+            cpuinfo = f.read()
+            if "pku" not in cpuinfo:
+                pytest.skip("PKU not supported on this CPU")
+    except FileNotFoundError:
+        pytest.skip("Cannot determine PKU support (/proc/cpuinfo not found)")
 
     await ctrl.launch(PKU_BINARY)
     await ctrl.execute("set context-sections last_signal")
