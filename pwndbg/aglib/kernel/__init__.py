@@ -115,7 +115,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
 
     banner = pwndbg.aglib.symbol.lookup_symbol_addr("linux_banner")
     fallback_mappings = []
-    for mapping in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages():
+    for mapping in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages()[:10]:
         if mapping.vaddr < base:
             continue
         if banner is not None and banner in mapping:
@@ -141,7 +141,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     return None
 
 
-@pwndbg.lib.cache.cache_until("start")
+@pwndbg.lib.cache.cache_until("objfile")
 def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig | None:
     global _kconfig
     config_start, config_end = None, None

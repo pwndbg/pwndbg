@@ -203,7 +203,7 @@ class ArchPagingInfo:
         raise NotImplementedError()
 
     @property
-    def kbase(self) -> int:
+    def kbase(self) -> int | None:
         raise NotImplementedError()
 
     @property
@@ -542,7 +542,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def kbase(self) -> int:
+    def kbase(self) -> int | None:
         return self.kbase_helper(pwndbg.aglib.regs.read_reg("vbar"))
 
     @property
@@ -552,7 +552,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
-    def module_start(self) -> int:
+    def module_start(self) -> int | None:
         if self.kbase is None:
             return None
         res = None
