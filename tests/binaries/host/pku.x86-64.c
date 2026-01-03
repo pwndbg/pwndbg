@@ -1,3 +1,11 @@
+/* This program is meant to SEGFAULT on memcpy()
+    due to protection key restrictions(man 7 pkeys).
+    It relies on the CPU support for PKU, and presence 
+    of the pkey syscalls in the host kernel.
+    Above could be checked with:
+    $ grep pku /proc/cpuinfo
+ */
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
