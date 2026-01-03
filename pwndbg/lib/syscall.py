@@ -1,24 +1,26 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Optional, Tuple
-
-from pwnlib.constants.linux import (
-    amd64 as linux_amd64,
-    i386 as linux_i386,
-    mips as linux_mips,
-    aarch64 as linux_aarch64,
-    arm as linux_arm,
-    thumb as linux_thumb,
-    riscv64 as linux_riscv64,
-    sparc as linux_sparc,
-    sparc64 as linux_sparc64,
-    powerpc as linux_powerpc,
-    powerpc64 as linux_powerpc64,
-    s390x as linux_s390x,
-)
-import pwndbg.aglib
-from pwnlib.constants.constant import Constant
 import re
+from typing import Any
+from typing import Callable
+from typing import Optional
+from typing import Tuple
+
+from pwnlib.constants.constant import Constant
+from pwnlib.constants.linux import aarch64 as linux_aarch64
+from pwnlib.constants.linux import amd64 as linux_amd64
+from pwnlib.constants.linux import arm as linux_arm
+from pwnlib.constants.linux import i386 as linux_i386
+from pwnlib.constants.linux import mips as linux_mips
+from pwnlib.constants.linux import powerpc as linux_powerpc
+from pwnlib.constants.linux import powerpc64 as linux_powerpc64
+from pwnlib.constants.linux import riscv64 as linux_riscv64
+from pwnlib.constants.linux import s390x as linux_s390x
+from pwnlib.constants.linux import sparc as linux_sparc
+from pwnlib.constants.linux import sparc64 as linux_sparc64
+from pwnlib.constants.linux import thumb as linux_thumb
+
+import pwndbg.aglib
 from pwndbg.lib.regs import reg_sets
 
 
