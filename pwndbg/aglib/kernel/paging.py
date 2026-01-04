@@ -43,10 +43,7 @@ class PageTableLevel:
 
 
 class PageTableScan:
-    MAX_SAME_PG_TABLE_ENTRY = 0x10
-
-    # is_kernel is used only for Aarch64
-    def __init__(self, pi: ArchPagingInfo, is_kernel: bool) -> None:
+    def __init__(self, pi: ArchPagingInfo) -> None:
         # from ArchPagingInfo:
         self.paging_level = pi.paging_level
         self.PAGE_ENTRY_MASK = pi.PAGE_ENTRY_MASK
@@ -56,20 +53,32 @@ class PageTableScan:
         self.pageentry_flags = pi.pageentry_flags
         self.should_stop_pagewalk = pi.should_stop_pagewalk
         # for scanning
-        self.result: List[Page] = []
         self.pagesz = 1 << self.page_shift
-        self.counters: Dict[int, int] = {}
         self.ptrsize = pwndbg.aglib.arch.ptrsize
         self.inf = pwndbg.dbg.selected_inferior()
         self.fmt = "<" + ("Q" if self.ptrsize == 8 else "I") * (self.pagesz // self.ptrsize)
-        self.cache: Dict[int, List[int]] = {}
-        # below are info relating to the current page chunks being coalesced
-        self.level_idxes = [0] * (self.paging_level + 1)
-        self.curr = None
-        self.is_kernel = is_kernel
+        self.cache: Dict[Tuple[int, int], List[Tuple[int, int, int]]] = {}
         self.arch = pwndbg.aglib.arch.name
 
-    def scan(self, entry: int, level_remaining: int) -> None:
+    def scan(self, entry: int, is_kernel: bool = False) -> List[Page]:
+        entry &= self.PAGE_ENTRY_MASK
+        if (entry, self.paging_level) not in self.cache:
+            self._scan(entry, self.paging_level)
+        result = []
+        for offset, size, flags in self.cache[(entry, self.paging_level)]:
+            if self.arch == "x86-64":
+                is_kernel = offset >= (1 << 47)
+            if is_kernel:
+                nbits = self.ptrsize * 8 - (
+                    self.paging_level * self.PAGE_INDEX_LEN + self.page_shift
+                )
+                offset += (1 * ((1 << nbits) - 1)) << (
+                    self.paging_level * self.PAGE_INDEX_LEN + self.page_shift
+                )
+            result.append(Page(offset, size, flags, self.ptrsize, 0))
+        return result
+
+    def _scan(self, addr: int, level: int) -> None:
         # this needs to be EXTREMELY optimized as it is used to display context
         # making as few functions calls or memory reads as possible
         # avoid unnecessary python pointer deferences or repetative computations whenever possible
@@ -78,62 +87,66 @@ class PageTableScan:
         # in comparison, gdb-pt-dump takes ~0.12 for x64 and a few seconds for aarch64
         # --> 25% speed up for x64 and more than 10x speed up for aarch64
         pagesz = self.pagesz
-        addr = entry & self.PAGE_ENTRY_MASK
-        entries = self.cache.get(addr, None)
-        ptrsize: int = pwndbg.aglib.arch.ptrsize
-        if not entries:
-            self.cache[addr] = entries = struct.unpack(self.fmt, self.inf.read_memory(addr, pagesz))
+        orig = addr
+        entries = struct.unpack(self.fmt, self.inf.read_memory(addr, pagesz))
+        ranges: List[Tuple[int, int, int]] = []
+        append = ranges.append
+        # the range currently being merged, curr_off == None means there is no current range being merged
+        curr_off = curr_sz = curr_flags = None
+        # len(entries) == self.pagesz // self.ptrsize, try not to do division here
+        size = pagesz * (len(entries) ** (level - 1))
+        # per entry offset relative to the start of the current pagetable, 
+        # each entry represents `size` bytes of memory, therefore, offset += size for each entry
+        offset = 0
+        # TODO: prev is used to avoid clustering the vmmap output for x86-64 with espfix ranges
+        # consecutive identical entries will be shown to be only one, None means not x86-64
+        # I believe this is what gdb-pt-dump does as this gives identical output for espfix
+        prev = 0 if self.arch == "x86-64" else None
         for i, entry in enumerate(entries):
+            if prev and prev == entry:
+                offset += size
+                continue
             if entry == 0:
-                if self.curr:
-                    self.result.append(self.curr)
-                    self.curr = None
-            elif level_remaining == 1 or self.should_stop_pagewalk(entry):
-                curr = self.curr
-                cnt = self.counters.get(entry, 0)
-                if cnt > self.MAX_SAME_PG_TABLE_ENTRY and not curr:
-                    continue
-
-                self.counters[entry] = cnt + 1
+                if curr_off is not None:
+                    append((curr_off, curr_sz, curr_flags))
+                    curr_off = None
+            elif level == 1 or self.should_stop_pagewalk(entry):
                 flags = self.pageentry_flags(entry)
-                if flags == 0:  # only append present pages
-                    continue
-
-                # len(entries) == self.pagesz // self.ptrsize, try not to do division here
-                size = pagesz * (len(entries) ** (level_remaining - 1))
-                if curr:
-                    if flags != 0 and flags == curr.flags:
-                        curr.memsz += size
-                        continue
-                    self.result.append(curr)
-                    self.curr = None
-
-                # creating a new page
-                self.level_idxes[level_remaining] = i
-                match self.arch:
-                    case "x86-64":
-                        bit = self.level_idxes[-1] >> (self.PAGE_INDEX_LEN - 1)  # highest bit
-                    case "aarch64":
-                        bit = 1 if self.is_kernel else 0
-                    case _:
-                        raise NotImplementedError()
-                nbits = self.ptrsize * 8 - (
-                    self.paging_level * self.PAGE_INDEX_LEN + self.page_shift
-                )
-                addr = bit * ((1 << nbits) - 1)
-                for i in range(self.paging_level, 0, -1):
-                    addr <<= self.PAGE_INDEX_LEN
-                    addr += 0 if i < level_remaining else self.level_idxes[i]
-                addr <<= self.page_shift
-                self.curr = Page(addr, size, flags, ptrsize, 0)
+                if flags != 0:  # only append present pages
+                    if curr_off is not None:
+                        if flags == curr_flags:
+                            curr_sz += size
+                        else:
+                            append((curr_off, curr_sz, curr_flags))
+                            curr_off = None
+                    if curr_off is None:
+                        curr_off, curr_sz, curr_flags = offset, size, flags
             else:  # only call when should keep scanning the page tree
-                self.level_idxes[level_remaining] = i
                 # we need to reduce this recursive call as much as possible
-                # each time the level_remaining decremented, garanteed to terminate
-                self.scan(entry, level_remaining - 1)
-        if level_remaining == self.paging_level and self.curr:
-            self.result.append(self.curr)
-            self.curr = None
+                # each time the level decremented, garanteed to terminate
+                addr = entry & self.PAGE_ENTRY_MASK
+                key = (addr, level - 1)
+                if key not in self.cache:
+                    self._scan(addr, level - 1)
+                arr = self.cache[key]
+                left, n = 0, len(arr)
+                if n > 0:
+                    r = arr[0]
+                    if curr_off is not None:
+                        if r[2] == curr_flags:
+                            curr_sz += r[1]
+                            left += 1
+                        append((curr_off, curr_sz, curr_flags))
+                    r = arr[n - 1]
+                    curr_off, curr_sz, curr_flags = offset + r[0], r[1], r[2]
+                for roff, rsz, rflags in arr[left : n - 1]:
+                    append((offset + roff, rsz, rflags))
+            offset += size
+            if prev is not None:
+                prev = entry
+        if curr_off is not None:
+            append((curr_off, curr_sz, curr_flags))
+        self.cache[(orig, level)] = ranges
 
     def walk(self, target: int, entry: int) -> List[PageTableLevel]:
         page_shift = self.page_shift
@@ -144,9 +157,7 @@ class PageTableScan:
             shift = page_shift + self.PAGE_INDEX_LEN * (i - 1)
             idx = (target >> shift) & self.PAGE_INDEX_MASK
             addr = entry & self.PAGE_ENTRY_MASK
-            if addr not in self.cache:
-                break
-            entry = self.cache[addr][idx]
+            entry = struct.unpack(self.fmt, self.inf.read_memory(addr, self.pagesz))[idx]
             if not entry:
                 break
             result[i].virt = addr  # phys addr at this point
@@ -259,40 +270,43 @@ class ArchPagingInfo:
         return (1 << (self.PAGE_INDEX_LEN)) - 1
 
     @pwndbg.lib.cache.cache_until("stop")
-    def scan_pagetable(self, entry: int, is_kernel: bool) -> PageTableScan | None:
-        # only two possible return values: https://qemu-project.gitlab.io/qemu/system/gdb.html
-        oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
-        pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
-        if pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") != b"1":
-            return None
-        try:
-            scan = PageTableScan(self, is_kernel)
-            scan.scan(entry, self.paging_level)
-        finally:  # so that the PhyMemMode value is always restored
-            pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
-        return scan
+    def pagetablescan(self, entry: int) -> PageTableScan | None:
+        return PageTableScan(self)
 
     def pagewalk_helper(self, target: int, entry: int) -> Tuple[PageTableLevel, ...]:
         base = self.physmap
         if entry > base:
             # user inputted a physmap address as pointer to pgd
             entry -= base
-        scan = self.scan_pagetable(entry, pwndbg.aglib.memory.is_kernel(target))
-        if scan is None:
-            return ()
-        result = scan.walk(target, entry)
-        for i, level in enumerate(result):
-            if level.virt is None:
-                continue
-            level.virt = level.virt + base - self.phys_offset
-            level.name = self.pagetable_level_names[i]
-        return tuple(result)
+        scan = self.pagetablescan(entry)
+        oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
+        pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
+        if pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") != b"1":
+            return None
+        try:
+            result = scan.walk(target, entry)
+            for i, level in enumerate(result):
+                if level.virt is None:
+                    continue
+                level.virt = level.virt + base - self.phys_offset
+                level.name = self.pagetable_level_names[i]
+            return tuple(result)
+        finally:  # so that the PhyMemMode value is always restored
+            pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
+        return None
 
-    def pagetable_scan_helper(self, entry: int, is_kernel: bool = False) -> List[Page]:
-        scan = self.scan_pagetable(entry, is_kernel)
-        if scan is None:
-            return []
-        return scan.result
+    def pagetable_scan_helper(self, entry: int, is_kernel: bool = False) -> List[Page] | None:
+        scan = self.pagetablescan(entry)
+        # only two possible return values: https://qemu-project.gitlab.io/qemu/system/gdb.html
+        oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
+        pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
+        if pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") != b"1":
+            return None
+        try:
+            return scan.scan(entry, is_kernel)
+        finally:  # so that the PhyMemMode value is always restored
+            pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
+        return None
 
     def pageentry_bitflags(self, level: int) -> BitFlags:
         raise NotImplementedError()
