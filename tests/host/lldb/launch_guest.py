@@ -137,7 +137,7 @@ if __name__ == "__main__":
             assert test_name
 
             # pytest_args = [test_name, "-vvv", "-s", "--showlocals", "--color=yes"]
-            color = "no" if os.environ.get("NO_COLOR") else "yes"
+            color = "no" if os.environ.get("NO_COLOR") == "1" else "yes"
             pytest_args = [test_name, "-vvv", "-s", "--showlocals", f"--color={color}"]
             if os.environ["TEST_PDB_ON_FAIL"] == "1":
                 pytest_args.append("--pdb")
