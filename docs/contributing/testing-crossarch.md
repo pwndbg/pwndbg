@@ -30,5 +30,20 @@ And we're debugging an aarch64 binary! Yay!
 
 If you specifically need glibc and/or dynamic linking, you will need to install the appropriate toolchain. On Arch Linux, the relevant packages would for example be `aarch64-linux-gnu-linux-api-headers`, `aarch64-linux-gnu-binutils`, `aarch64-linux-gnu-glibc`, `aarch64-linux-gnu-gcc`, `aarch64-linux-gnu-gdb`, but it may differ for your distro. For installing `qemu-user`, and `zig` you'll also need to consult your package manager, but the package names usually are literarly just `qemu-user` and `zig`.
 
+Btw if you need to strip the binary, `strip` won't work, but `llvm-strip` is architecture-agnostic :P
+
 ## Full system
 
+You might be tempted to build a development Dockerfile with a `--platform` flag (e.g. `--platform linux/arm64`) but that works by running docker inside of qemu-user, which does not implement ptrace, so you cannot actually debug inside such of a docker container.
+
+We need to bring up the system using `qemu-system`. We can do this relatively easily with https://github.com/patryk4815/kernel (aarch64 example) (you will need to install the nix package manager to run this command):
+```{.bash .copy}
+sudo nix run github:patryk4815/kernel#vm-aarch64-linux --accept-flake-config --extra-experimental-features flakes --extra-experimental-features nix-command -- -i debian:13 -v /your/path/to/pwndbg:/pwndbg
+```
+If you want to use more CPUs, you can pass `--cpus N`. If you have enough RAM you should also consider passing `--runtime tmpfs`. After it has started, we can:
+```{.bash .copy}
+bash
+cd /mnt
+./setup.sh
+```
+to install Pwndbg inside. Depending on your use-case, you may want to run `./setup-dev.sh` as well. You should expect this to be relatively slow. Note that this shell is transient, if you exit it, you will need to re-run the setup.
