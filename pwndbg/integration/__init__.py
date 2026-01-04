@@ -34,7 +34,6 @@ import pwndbg.color.syntax_highlight
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.pretty_print as pretty_print
-import pwndbg.lib.zig
 from pwndbg.color import message
 
 # Note that XML RPC cannot send 64-bit ints (it is capped at 32 bits).
@@ -590,14 +589,7 @@ class IntegrationManager:
             return 0
 
         _, elf_path = tempfile.mkstemp(prefix="symbols-", suffix=".elf")
-
-        zigtarget = pwndbg.lib.zig.get_zig_target(pwndbg.aglib.arch)
-        if zigtarget is None:
-            print(message.error(f"Unsupported architecture {pwndbg.aglib.arch.name}."))
-            return 0
-        elf = niche_elf.ELFFile(
-            self._connection.binary_base_addr, zigtarget.arch, pwndbg.aglib.arch.ptrbits
-        )
+        elf = niche_elf.ELFFile(self._connection.binary_base_addr)
 
         for sym_name, sym_addr in syms_to_add:
             elf.add_generic_symbol(sym_name, sym_addr)

@@ -10,14 +10,12 @@ from typing import Dict
 from typing import List
 from typing import Literal
 from typing import Tuple
-from dataclasses import dataclass
 
 import pwndbg.lib.cache
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 
-# Supported architectures can be obtained using the command: `zig targets`
 _arch_mapping: Dict[
     Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little", "big"], int], str
 ] = {
@@ -78,15 +76,6 @@ _asm_header: Dict[str, str] = {
 ZIG_SUPPORTED_VERSION = "0.14.1"
 
 
-@dataclass
-class ZigTarget:
-    arch: str
-    osabi: str
-
-    def __str__(self) -> str:
-        return f"{self.arch}-{self.osabi}"
-
-
 @pwndbg.lib.cache.cache_until("forever")
 def get_zig_executable() -> str:
     """
@@ -123,7 +112,7 @@ def get_zig_executable() -> str:
     return zig_path
 
 
-def get_zig_target(arch: ArchDefinition) -> ZigTarget | None:
+def _get_zig_target(arch: ArchDefinition) -> str | None:
     if arch.platform == Platform.LINUX:
         # "gnu", "gnuabin32", "gnuabi64", "gnueabi", "gnueabihf",
         # "gnuf32","gnusf", "gnux32", "gnuilp32",
@@ -138,13 +127,13 @@ def get_zig_target(arch: ArchDefinition) -> ZigTarget | None:
     if arch_mapping is None:
         return None
 
-    return ZigTarget(arch=arch_mapping, osabi=osabi)
+    return f"{arch_mapping}-{osabi}"
 
 
 def flags(arch: ArchDefinition) -> List[str]:
     zig_executable = get_zig_executable()
 
-    zig_target = get_zig_target(arch)
+    zig_target = _get_zig_target(arch)
     if zig_target is None:
         raise ValueError(
             f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})"
@@ -154,7 +143,7 @@ def flags(arch: ArchDefinition) -> List[str]:
         zig_executable,
         "cc",
         "-target",
-        str(zig_target),
+        zig_target,
     ]
 
 

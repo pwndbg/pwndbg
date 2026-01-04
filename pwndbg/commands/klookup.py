@@ -9,7 +9,6 @@ import niche_elf.datatypes
 import pwndbg
 import pwndbg.aglib.kernel.kallsyms
 import pwndbg.commands
-import pwndbg.lib.zig
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -64,12 +63,7 @@ def klookup(symbol: str, apply: bool) -> None:
         base: int = paging_info.kbase
 
         _, elf_path = tempfile.mkstemp(prefix="ks-symbols-", suffix=".elf")
-
-        zigtarget = pwndbg.lib.zig.get_zig_target(pwndbg.aglib.arch)
-        if zigtarget is None:
-            print(message.error(f"Unsupported architecture {pwndbg.aglib.arch.name}."))
-            return
-        elf = niche_elf.ELFFile(base, zigtarget.arch, pwndbg.aglib.arch.ptrbits)
+        elf = niche_elf.ELFFile(base)
 
         for sym_name, sym_type, sym_addr in syms:
             # I trust bata: bata24/gef.py:create_symboled_elf()
