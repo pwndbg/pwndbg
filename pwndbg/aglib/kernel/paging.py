@@ -58,6 +58,7 @@ class PageTableScan:
         self.inf = pwndbg.dbg.selected_inferior()
         self.fmt = "<" + ("Q" if self.ptrsize == 8 else "I") * (self.pagesz // self.ptrsize)
         self.cache: Dict[Tuple[int, int], List[Tuple[int, int, int]]] = {}
+        self.entry_cache: Dict[int, List[int]] = {}
         self.arch = pwndbg.aglib.arch.name
 
     def scan(self, entry: int, is_kernel: bool = False) -> List[Page]:
@@ -65,6 +66,7 @@ class PageTableScan:
         if (entry, self.paging_level) not in self.cache:
             self._scan(entry, self.paging_level)
         result = []
+        curr = None
         for offset, size, flags in self.cache[(entry, self.paging_level)]:
             if self.arch == "x86-64":
                 is_kernel = offset >= (1 << 47)
@@ -75,7 +77,14 @@ class PageTableScan:
                 offset += (1 * ((1 << nbits) - 1)) << (
                     self.paging_level * self.PAGE_INDEX_LEN + self.page_shift
                 )
-            result.append(Page(offset, size, flags, self.ptrsize, 0))
+            if curr and offset in curr and flags == curr.flags:
+                curr.memsz = max(curr.memsz, offset + size - curr.start)
+            else:
+                if curr:
+                    result.append(curr)
+                curr = Page(offset, size, flags, 0, self.ptrsize)
+        if curr:
+            result.append(curr)
         return result
 
     def _scan(self, addr: int, level: int) -> None:
@@ -88,14 +97,18 @@ class PageTableScan:
         # --> 25% speed up for x64 and more than 10x speed up for aarch64
         pagesz = self.pagesz
         orig = addr
-        entries = struct.unpack(self.fmt, self.inf.read_memory(addr, pagesz))
+        if addr not in self.entry_cache:
+            self.entry_cache[addr] = struct.unpack(
+                self.fmt, self.inf.read_memory(addr, self.pagesz)
+            )
+        entries = self.entry_cache[addr]
         ranges: List[Tuple[int, int, int]] = []
         append = ranges.append
         # the range currently being merged, curr_off == None means there is no current range being merged
         curr_off = curr_sz = curr_flags = None
         # len(entries) == self.pagesz // self.ptrsize, try not to do division here
         size = pagesz * (len(entries) ** (level - 1))
-        # per entry offset relative to the start of the current pagetable, 
+        # per entry offset relative to the start of the current pagetable,
         # each entry represents `size` bytes of memory, therefore, offset += size for each entry
         offset = 0
         # TODO: prev is used to avoid clustering the vmmap output for x86-64 with espfix ranges
@@ -157,7 +170,11 @@ class PageTableScan:
             shift = page_shift + self.PAGE_INDEX_LEN * (i - 1)
             idx = (target >> shift) & self.PAGE_INDEX_MASK
             addr = entry & self.PAGE_ENTRY_MASK
-            entry = struct.unpack(self.fmt, self.inf.read_memory(addr, self.pagesz))[idx]
+            if addr not in self.entry_cache:
+                self.entry_cache[addr] = struct.unpack(
+                    self.fmt, self.inf.read_memory(addr, self.pagesz)
+                )
+            entry = self.entry_cache[addr][idx]
             if not entry:
                 break
             result[i].virt = addr  # phys addr at this point

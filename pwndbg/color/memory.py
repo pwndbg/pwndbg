@@ -73,7 +73,10 @@ def attempt_colorized_symbol(
 #
 # TODO: Remove the exception for gdb.Value case from `pwndbg.color.memory.get`.
 def get(
-    address: int | pwndbg.dbg_mod.Value | Any, text: str | None = None, prefix: str | None = None
+    address: int | pwndbg.dbg_mod.Value | Any,
+    text: str | None = None,
+    prefix: str | None = None,
+    page: pwndbg.lib.memory.Page | None = None, # if we know the page, dont bother to find it as a perf improvment
 ) -> str:
     """
     Returns a colorized string representing the provided address.
@@ -84,7 +87,8 @@ def get(
         prefix: Optional text to set at beginning in the return value string, followed by a space, without modifiying the original text.
     """
     address = int(address)
-    page = pwndbg.aglib.vmmap.find(address)
+    if page is None:
+        page = pwndbg.aglib.vmmap.find(address)
 
     color: Callable[[str], str]
 
