@@ -4,8 +4,40 @@ Determine whether the target is being run under QEMU.
 
 from __future__ import annotations
 
+import re
+
 import pwndbg
 import pwndbg.lib.cache
+
+_QEMU_VERSION_RE = re.compile(r"(\d+)\.(\d+)(?:\.(\d+))?")
+
+
+def _parse_qgdbserverversion(response: bytes) -> tuple[int, ...] | None:
+    if not response or response.startswith(b"E"):
+        return None
+
+    text = response.decode(errors="ignore").strip()
+    if not text:
+        return None
+
+    match = _QEMU_VERSION_RE.search(text)
+    if not match:
+        return None
+
+    return tuple(int(part) for part in match.groups() if part is not None)
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def qemu_gdbserver_version() -> tuple[int, ...] | None:
+    """
+    Returns QEMU version. Works since QEMU 10.1.0
+    """
+    inferior = pwndbg.dbg.selected_inferior()
+    if not inferior.is_remote():
+        return None
+
+    response = inferior.send_remote("qGDBServerVersion")
+    return _parse_qgdbserverversion(response)
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -13,6 +45,9 @@ def is_qemu() -> bool:
     inferior = pwndbg.dbg.selected_inferior()
     if not inferior.is_remote():
         return False
+
+    if qemu_gdbserver_version() is not None:
+        return True
 
     # Examples:
     #
@@ -60,7 +95,14 @@ def is_qemu_kernel() -> bool:
 
 def is_old_qemu_user() -> bool:
     # qemu-user <8.1
-    return is_qemu_usermode() and not exec_file_supported()
+    if not is_qemu_usermode():
+        return False
+
+    version = qemu_gdbserver_version()
+    if version is not None:
+        return version < (8, 1)
+
+    return not exec_file_supported()
 
 
 @pwndbg.lib.cache.cache_until("stop")
