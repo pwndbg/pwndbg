@@ -8,9 +8,11 @@ If you just want to test a userspace binary on a different architecture, but are
 
 Say for instance, you would like to debug the `tests/library/dbg/tests/test_command_telescope.py` test on aarch64. First we need to compile `tests/binaries/host/telescope_binary.native.c` for aarch64. The easiest way to do this is with zig:
 ```{.bash .copy}
-zig cc tests/binaries/host/telescope_binary.native.c --target=aarch64-linux-musl -o ./tele-aarch64 -static
+zig cc tests/binaries/host/telescope_binary.native.c \
+    --target=aarch64-linux-musl -static \
+    -o ./tele-aarch64 
 ```
-We compile it with `-static` because I don't want to install `/lib/ld-linux-aarch64.so.1` which is required to run `aarch64` binaries on my x86_64 system. We use `-musl` instead of `-gnu` because glibc does not support static linking.
+We compile it with `-static` because I don't want to install `/lib/ld-linux-aarch64.so.1` which is required to run aarch64 binaries on my x86_64 system. We use `-musl` instead of `-gnu` because glibc does not support static linking.
 
 Now, if you have `qemu-user-binfmt` installed, you may be able to run the binary just like that: `./tele-aarch64`, but that includes the whole of QEMU, so we will want to use `qemu-user` explicitly to facilitate sane debugging. In particular run:
 ```{.bash .copy}
@@ -38,7 +40,10 @@ You might be tempted to build a development Dockerfile with a `--platform` flag 
 
 We need to bring up the system using `qemu-system`. We can do this relatively easily with https://github.com/patryk4815/kernel (aarch64 example) (you will need to install the nix package manager to run this command):
 ```{.bash .copy}
-sudo nix run github:patryk4815/kernel#vm-aarch64-linux --accept-flake-config --extra-experimental-features flakes --extra-experimental-features nix-command -- -i debian:13 -v /your/path/to/pwndbg:/pwndbg
+sudo nix run github:patryk4815/kernel#vm-aarch64-linux \
+    --accept-flake-config --extra-experimental-features flakes \
+    --extra-experimental-features nix-command \
+    -- -i debian:13 -v /your/path/to/pwndbg:/pwndbg
 ```
 If you want to use more CPUs, you can pass `--cpus N`. If you have enough RAM you should also consider passing `--runtime tmpfs`. After it has started, we can:
 ```{.bash .copy}
