@@ -12,16 +12,15 @@ import contextlib
 from asyncio import CancelledError
 from typing import Iterator
 
-import pwnlib.asm
 import pwnlib.shellcraft
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
+import pwndbg.aglib.asm
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
-from pwndbg.dbg import BreakpointLocation
-from pwndbg.dbg import ExecutionController
+from pwndbg.dbg_mod import BreakpointLocation
+from pwndbg.dbg_mod import ExecutionController
 
 
 def _get_syscall_return_value():
@@ -32,7 +31,7 @@ def _get_syscall_return_value():
 
     register_set = pwndbg.lib.regs.reg_sets[pwndbg.aglib.arch.name]
     # FIXME: `retval` is syscall abi? or sysv abi?
-    return pwndbg.aglib.regs[register_set.retval]
+    return pwndbg.aglib.regs.read_reg(register_set.retval)
 
 
 async def exec_syscall(
@@ -51,7 +50,7 @@ async def exec_syscall(
 
     # Build machine code that runs the requested syscall.
     syscall_asm = pwnlib.shellcraft.syscall(syscall, arg0, arg1, arg2, arg3, arg4, arg5)
-    syscall_bin = pwnlib.asm.asm(syscall_asm)
+    syscall_bin = pwndbg.aglib.asm.asm(syscall_asm)
 
     # Run the syscall and pass its return value onward to the caller.
     async with exec_shellcode(
@@ -99,14 +98,27 @@ def _ctx_registers() -> Iterator[int]:
     registers = {reg: int(uncached_regs.by_name(reg)) for reg in preserve_set}
     starting_address = registers[register_set.pc]
 
+    # Advance by one instruction boundary.
+    #
+    # Some debuggers (LLDB) may fail to write to memory if any of the addresses
+    # being written to overlap the program counter. By aiming at the next valid
+    # instruction address, we avoid that issue.
+    shell_starting_address = starting_address + pwndbg.aglib.arch.instruction_alignment
+
+    # Failing this means our value for `instruction_alignment` is wrong.
+    assert shell_starting_address % pwndbg.aglib.arch.instruction_alignment == 0
+
     try:
-        yield starting_address
+        # Jump to the target address in preparation.
+        pwndbg.aglib.regs.write_reg(register_set.pc, shell_starting_address)
+
+        yield shell_starting_address
     finally:
         # Restore the code and the program counter and, if requested, the rest of
         # the registers.
-        setattr(pwndbg.aglib.regs, register_set.pc, starting_address)
+        pwndbg.aglib.regs.write_reg(register_set.pc, starting_address)
         for reg, val in registers.items():
-            setattr(pwndbg.aglib.regs, reg, val)
+            pwndbg.aglib.regs.write_reg(reg, val)
 
 
 async def _execute_until_addr(ec: ExecutionController, target_address: int) -> None:

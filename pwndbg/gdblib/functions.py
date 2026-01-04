@@ -16,8 +16,8 @@ import gdb
 import pwndbg.aglib.argv
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
-import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
+import pwndbg.dbg_mod
 from pwndbg.lib.common import hex2ptr_common
 
 functions: List[_GdbFunction] = []
@@ -56,7 +56,7 @@ class _GdbFunction(gdb.Function):
         functools.update_wrapper(self, func)
 
     def invoke(self, *args: gdb.Value) -> Any:
-        if self.only_when_running and not pwndbg.aglib.proc.alive:
+        if self.only_when_running and not pwndbg.aglib.proc.alive():
             # Returning empty string is a workaround that we can't stop e.g. `break *$rebase(offset)`
             # Thx to that, gdb will print out 'evaluation of this expression requires the target program to be active'
             return ""
@@ -244,7 +244,7 @@ def envp(index: gdb.Value) -> gdb.Value:
 
 
 def dbg_value_to_gdb(d: pwndbg.dbg_mod.Value) -> gdb.Value:
-    from pwndbg.dbg.gdb import GDBValue
+    from pwndbg.dbg_mod.gdb import GDBValue
 
     assert isinstance(d, GDBValue)
     return d.inner

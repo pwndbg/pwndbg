@@ -5,7 +5,7 @@ import argparse
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.chain
-import pwndbg.color.context as C
+import pwndbg.color.context as ctx_color
 import pwndbg.commands
 from pwndbg.aglib.saved_register_frames import ARM_CORTEX_M_EXCEPTION_STACK
 from pwndbg.aglib.saved_register_frames import SavedRegisterFrame
@@ -34,12 +34,12 @@ def print_saved_register_frame(
         # Subtract the offset of start of frame, to get the correct offset into "mem"
         mem_offset = stack_offset - frame_start_offset
 
-        regname = C.register(reg.ljust(4).upper())
+        regname = ctx_color.register(reg.ljust(4).upper())
         value = pwndbg.aglib.arch.unpack(mem[mem_offset : mem_offset + ptr_size])
 
         if reg in pwndbg.aglib.regs.flags:  # eflags or cpsr
             reg_flags = pwndbg.aglib.regs.flags[reg]
-            desc = C.format_flags(value, reg_flags)
+            desc = ctx_color.format_flags(value, reg_flags)
         else:
             desc = pwndbg.chain.format(value)
 

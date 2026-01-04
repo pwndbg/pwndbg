@@ -3,13 +3,12 @@ from __future__ import annotations
 import argparse
 import subprocess
 
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.commands
 import pwndbg.rizin
-from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Launches rizin.")
@@ -43,7 +42,7 @@ def rz(arguments, no_seek=False, no_rebase=False) -> None:
     # Build up the command line to run
     cmd = ["rizin"]
     flags = ["-e", "io.cache=true"]
-    if pwndbg.aglib.proc.alive:
+    if pwndbg.aglib.proc.alive():
         addr = pwndbg.aglib.regs.pc
         if pwndbg.aglib.elf.get_elf_info(filename).is_pie:
             if no_rebase:
@@ -102,10 +101,4 @@ pwndbg> rzpipe pdf @ sym.main
 )
 @pwndbg.commands.OnlyWithFile
 def rzpipe(arguments) -> None:
-    try:
-        rz = pwndbg.rizin.rzpipe()
-        print(rz.cmd(" ".join(arguments)))
-    except ImportError:
-        print(message.error("Could not import rzpipe python library. Is it installed?"))
-    except Exception as e:
-        print(message.error(e))
+    print(pwndbg.rizin.rzcmd(arguments))

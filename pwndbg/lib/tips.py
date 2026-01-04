@@ -34,7 +34,7 @@ PWNDBG_TIPS: List[str] = [
     "Pwndbg context displays where the program branches to thanks to emulating few instructions into the future. You can disable this with `set emulate off` which may also speed up debugging",
     "Use the `canary` command to see all stack canary/cookie values on the stack (based on the *usual* stack canary value initialized by glibc)",
     "Use the `procinfo` command for better process introspection (than the GDB's `info proc` command)",
-    "Want to display each context panel in a separate tmux window? See https://github.com/pwndbg/pwndbg/blob/dev/FEATURES.md#splitting--layouting-context",
+    "Want to display each context panel in a separate tmux window? See https://pwndbg.re/stable/tutorials/splitting-the-context/",
     'Use `$base("heap")` to get the start address of a [heap] memory page',
     "Use the `errno` (or `errno <number>`) command to see the name of the last or provided (libc) error",
     "Pwndbg sets the SIGLARM, SIGBUS, SIGPIPE and SIGSEGV signals so they are not passed to the app; see `info signals` for full GDB signals configuration",
@@ -91,7 +91,7 @@ def get_all_tips() -> List[str]:
     """
     Returns all tips applicable to the current debugger.
     """
-    import pwndbg.dbg
+    import pwndbg.dbg_mod
 
     if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
         return GDB_TIPS + PWNDBG_TIPS

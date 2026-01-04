@@ -14,9 +14,8 @@ from typing import Dict
 from typing import List
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
@@ -139,8 +138,11 @@ def telescope(
 
     # Allow invocation of telescope -f (--frame) to dump all addresses in a frame
     if frame:
+        if not pwndbg.aglib.regs.frame:
+            print("The frame register is not defined for this architecture.")
+            return
         sp = pwndbg.aglib.regs.sp
-        bp = pwndbg.aglib.regs[pwndbg.aglib.regs.frame]
+        bp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame)
         if sp > bp:
             print("Cannot display stack frame because base pointer is below stack pointer")
             return
@@ -166,7 +168,7 @@ def telescope(
     # Map of address to register string
     reg_values: DefaultDict[int, List[str]] = collections.defaultdict(list)
     for reg in pwndbg.aglib.regs.common:
-        reg_values[pwndbg.aglib.regs[reg]].append(reg)
+        reg_values[pwndbg.aglib.regs.read_reg(reg)].append(reg)
 
     if not inverse:
         start = address
@@ -225,8 +227,7 @@ def telescope(
 
     bp = None
     if print_framepointer_offset and pwndbg.aglib.regs.frame is not None:
-        # regs.frame can be None on aarch64
-        bp = pwndbg.aglib.regs[pwndbg.aglib.regs.frame]
+        bp = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.frame)
 
     for i, addr in enumerate(range(start, stop, step)):
         if not pwndbg.aglib.memory.peek(addr):
@@ -282,7 +283,8 @@ def telescope(
 def regs_or_frame_offset(addr: int, bp: int | None, regs: Dict[int, str], longest_regs: int) -> str:
     # bp only set if print_framepointer_offset=True
     if bp is None or regs[addr] or not -0xFFF <= addr - bp <= 0xFFF:
-        return " " + T.register(regs[addr].ljust(longest_regs))
+        # We do .rjust(3) because some arches have two-letter registers.
+        return " " + T.register(regs[addr].ljust(longest_regs).rjust(3))
     else:
         # If offset to frame pointer as hex fits in hex 3 digits, print it
         return ("%+04x" % (addr - bp)).ljust(longest_regs + 1)

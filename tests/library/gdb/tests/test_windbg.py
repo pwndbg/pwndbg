@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
-import tests
 
-MEMORY_BINARY = tests.get_binary("memory.out")
-X86_BINARY = tests.get_binary("gosample.x86")
+from . import get_binary
 
-data_addr = "0x400081"
+MEMORY_BINARY = get_binary("memory.x86-64.out")
+X86_BINARY = get_binary("gosample.i386.out")
+
+data_addr = "0x401000"
 
 
 def test_windbg_dX_commands(start_binary):
@@ -47,10 +48,10 @@ def test_windbg_dX_commands(start_binary):
         == dq3
         == dq4
         == (
-            "0000000000400081     0000000000000000 0000000000000001\n"
-            "0000000000400091     0000000100000002 0001000200030004\n"
-            "00000000004000a1     0102030405060708 1122334455667788\n"
-            "00000000004000b1     0123456789abcdef 0000000000000000\n"
+            "0000000000401000     0000000000000000 0000000000000001\n"
+            "0000000000401010     0000000100000002 0001000200030004\n"
+            "0000000000401020     0102030405060708 1122334455667788\n"
+            "0000000000401030     0123456789abcdef 0000000000000000\n"
         )
     )
 
@@ -62,26 +63,26 @@ def test_windbg_dX_commands(start_binary):
         dq_count1
         == dq_count2
         == dq_count3
-        == "0000000000400081     0000000000000000 0000000000000001\n"
+        == "0000000000401000     0000000000000000 0000000000000001\n"
     )
 
-    assert gdb.execute("dq data 1", to_string=True) == "0000000000400081     0000000000000000\n"
+    assert gdb.execute("dq data 1", to_string=True) == "0000000000401000     0000000000000000\n"
     assert gdb.execute("dq data 3", to_string=True) == (
-        "0000000000400081     0000000000000000 0000000000000001\n"
-        "0000000000400091     0000000100000002\n"
+        "0000000000401000     0000000000000000 0000000000000001\n"
+        "0000000000401010     0000000100000002\n"
     )
 
     # Try 'dq' with count equal to a register, but lets set it before ;)
     # also note that we use `data2` here
     assert gdb.execute("set $eax=4", to_string=True) == ""  # assert as a sanity check
     assert gdb.execute("dq data2 $eax", to_string=True) == (
-        "00000000004000a9     1122334455667788 0123456789abcdef\n"
-        "00000000004000b9     0000000000000000 ffffffffffffffff\n"
+        "0000000000401028     1122334455667788 0123456789abcdef\n"
+        "0000000000401038     0000000000000000 ffffffffffffffff\n"
     )
 
     # See if we can repeat dq command (use count for shorter data)
     assert gdb.execute("dq data2 2", to_string=True) == (
-        "00000000004000a9     1122334455667788 0123456789abcdef\n"
+        "0000000000401028     1122334455667788 0123456789abcdef\n"
     )
 
     # TODO/FIXME: Can we test command repeating here? Neither passing `from_tty=True`
@@ -103,19 +104,19 @@ def test_windbg_dX_commands(start_binary):
         == dd3
         == dd4
         == (
-            "0000000000400081     00000000 00000000 00000001 00000000\n"
-            "0000000000400091     00000002 00000001 00030004 00010002\n"
-            "00000000004000a1     05060708 01020304 55667788 11223344\n"
-            "00000000004000b1     89abcdef 01234567 00000000 00000000\n"
+            "0000000000401000     00000000 00000000 00000001 00000000\n"
+            "0000000000401010     00000002 00000001 00030004 00010002\n"
+            "0000000000401020     05060708 01020304 55667788 11223344\n"
+            "0000000000401030     89abcdef 01234567 00000000 00000000\n"
         )
     )
 
     # count tests
     assert gdb.execute("dd data 4", to_string=True) == (
-        "0000000000400081     00000000 00000000 00000001 00000000\n"
+        "0000000000401000     00000000 00000000 00000001 00000000\n"
     )
     assert gdb.execute("dd data 3", to_string=True) == (
-        "0000000000400081     00000000 00000000 00000001\n"
+        "0000000000401000     00000000 00000000 00000001\n"
     )
 
     #################################################
@@ -131,24 +132,24 @@ def test_windbg_dX_commands(start_binary):
         == dw3
         == dw4
         == (
-            "0000000000400081     0000 0000 0000 0000 0001 0000 0000 0000\n"
-            "0000000000400091     0002 0000 0001 0000 0004 0003 0002 0001\n"
-            "00000000004000a1     0708 0506 0304 0102 7788 5566 3344 1122\n"
-            "00000000004000b1     cdef 89ab 4567 0123 0000 0000 0000 0000\n"
+            "0000000000401000     0000 0000 0000 0000 0001 0000 0000 0000\n"
+            "0000000000401010     0002 0000 0001 0000 0004 0003 0002 0001\n"
+            "0000000000401020     0708 0506 0304 0102 7788 5566 3344 1122\n"
+            "0000000000401030     cdef 89ab 4567 0123 0000 0000 0000 0000\n"
         )
     )
 
     # count tests
     assert gdb.execute("dw data 8", to_string=True) == (
-        "0000000000400081     0000 0000 0000 0000 0001 0000 0000 0000\n"
+        "0000000000401000     0000 0000 0000 0000 0001 0000 0000 0000\n"
     )
 
     assert gdb.execute("dw data 8/2", to_string=True) == (
-        "0000000000400081     0000 0000 0000 0000\n"
+        "0000000000401000     0000 0000 0000 0000\n"
     )
 
     assert gdb.execute("dw data $eax", to_string=True) == (
-        "0000000000400081     0000 0000 0000 0000\n"
+        "0000000000401000     0000 0000 0000 0000\n"
     )
 
     #################################################
@@ -164,19 +165,19 @@ def test_windbg_dX_commands(start_binary):
         == db3
         == db4
         == (
-            "0000000000400081     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
-            "0000000000400091     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01 00\n"
-            "00000000004000a1     08 07 06 05 04 03 02 01 88 77 66 55 44 33 22 11\n"
-            "00000000004000b1     ef cd ab 89 67 45 23 01 00 00 00 00 00 00 00 00\n"
+            "0000000000401000     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
+            "0000000000401010     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01 00\n"
+            "0000000000401020     08 07 06 05 04 03 02 01 88 77 66 55 44 33 22 11\n"
+            "0000000000401030     ef cd ab 89 67 45 23 01 00 00 00 00 00 00 00 00\n"
         )
     )
 
     # count tests
     assert gdb.execute("db data 31", to_string=True) == (
-        "0000000000400081     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
-        "0000000000400091     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
+        "0000000000401000     00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00\n"
+        "0000000000401010     02 00 00 00 01 00 00 00 04 00 03 00 02 00 01\n"
     )
-    assert gdb.execute("db data $ax", to_string=True) == ("0000000000400081     00 00 00 00\n")
+    assert gdb.execute("db data $ax", to_string=True) == ("0000000000401000     00 00 00 00\n")
 
     #################################################
     #### dc command tests
@@ -191,13 +192,13 @@ def test_windbg_dX_commands(start_binary):
         == dc3
         == dc4
         == (
-            "+0000 0x400081  00 00 00 00 00 00 00 00                           "
+            "+0000 0x401000  00 00 00 00 00 00 00 00                           "
             "│........│        │\n"
         )
     )
 
     assert gdb.execute("dc data 3", to_string=True) == (
-        "+0000 0x400081  00 00 00                                          │...     │        │\n"
+        "+0000 0x401000  00 00 00                                          │...     │        │\n"
     )
 
     #################################################
@@ -205,18 +206,18 @@ def test_windbg_dX_commands(start_binary):
     #################################################
     ds1 = gdb.execute("ds short_str", to_string=True)
     ds2 = gdb.execute("ds &short_str", to_string=True)
-    ds3 = gdb.execute("ds 0x4000d9", to_string=True)
-    ds4 = gdb.execute("ds 4000d9", to_string=True)
-    assert ds1 == ds2 == ds3 == ds4 == "4000d9 'some cstring here'\n"
+    ds3 = gdb.execute("ds 0x401058", to_string=True)
+    ds4 = gdb.execute("ds 401058", to_string=True)
+    assert ds1 == ds2 == ds3 == ds4 == "401058 'some cstring here'\n"
 
     # Check too low maxlen
     assert gdb.execute("ds short_str 5", to_string=True) == (
-        "Max str len of 5 too low, changing to 256\n4000d9 'some cstring here'\n"
+        "Max str len of 5 too low, changing to 256\n401058 'some cstring here'\n"
     )
 
     # Check output for a string longer than (the default) maxlen of 256
     assert gdb.execute("ds long_str", to_string=True) == (
-        "4000eb 'long string: "
+        "40106a 'long string: "
         "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...'\n"
     )
 
@@ -289,7 +290,7 @@ def test_windbg_eX_commands(start_binary):
     ### Test write & output on partial write
     #########################################
     # e.g. when we make a write to the last stack address
-    stack_ea = pwndbg.aglib.regs[pwndbg.aglib.regs.stack]
+    stack_ea = pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack)
     stack_page = pwndbg.aglib.vmmap.find(stack_ea)
 
     # Last possible address on stack where we can perform an 8-byte write
@@ -312,58 +313,66 @@ def test_windbg_commands_x86(start_binary):
     """
     start_binary(X86_BINARY)
 
+    esp = pwndbg.aglib.regs.read_reg("esp")
     # Prepare memory
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.esp, b"1234567890abcdef_")
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.esp + 16, b"\x00" * 16)
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.esp + 32, bytes(range(16)))
-    pwndbg.aglib.memory.write(pwndbg.aglib.regs.esp + 48, b"Z" * 16)
+    pwndbg.aglib.memory.write(esp, b"1234567890abcdef_")
+    pwndbg.aglib.memory.write(esp + 16, b"\x00" * 16)
+    pwndbg.aglib.memory.write(esp + 32, bytes(range(16)))
+    pwndbg.aglib.memory.write(esp + 48, b"Z" * 16)
 
     #################################################
     #### dX command tests
     #################################################
     db = gdb.execute("db $esp", to_string=True).splitlines()
+    esp = pwndbg.aglib.regs.read_reg("esp")
     assert db == [
-        "%x     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66" % pwndbg.aglib.regs.esp,
-        "%x     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" % (pwndbg.aglib.regs.esp + 16),
-        "%x     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f" % (pwndbg.aglib.regs.esp + 32),
-        "%x     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a" % (pwndbg.aglib.regs.esp + 48),
+        "%x     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66" % esp,
+        "%x     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" % (esp + 16),
+        "%x     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f" % (esp + 32),
+        "%x     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a" % (esp + 48),
     ]
 
     dw = gdb.execute("dw $esp", to_string=True).splitlines()
+    esp = pwndbg.aglib.regs.read_reg("esp")
     assert dw == [
-        "%x     3231 3433 3635 3837 3039 6261 6463 6665" % pwndbg.aglib.regs.esp,
-        "%x     0000 0000 0000 0000 0000 0000 0000 0000" % (pwndbg.aglib.regs.esp + 16),
-        "%x     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e" % (pwndbg.aglib.regs.esp + 32),
-        "%x     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a" % (pwndbg.aglib.regs.esp + 48),
+        "%x     3231 3433 3635 3837 3039 6261 6463 6665" % esp,
+        "%x     0000 0000 0000 0000 0000 0000 0000 0000" % (esp + 16),
+        "%x     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e" % (esp + 32),
+        "%x     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a" % (esp + 48),
     ]
 
     dd = gdb.execute("dd $esp", to_string=True).splitlines()
+    esp = pwndbg.aglib.regs.read_reg("esp")
     assert dd == [
-        "%x     34333231 38373635 62613039 66656463" % pwndbg.aglib.regs.esp,
-        "%x     00000000 00000000 00000000 00000000" % (pwndbg.aglib.regs.esp + 16),
-        "%x     03020100 07060504 0b0a0908 0f0e0d0c" % (pwndbg.aglib.regs.esp + 32),
-        "%x     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a" % (pwndbg.aglib.regs.esp + 48),
+        "%x     34333231 38373635 62613039 66656463" % esp,
+        "%x     00000000 00000000 00000000 00000000" % (esp + 16),
+        "%x     03020100 07060504 0b0a0908 0f0e0d0c" % (esp + 32),
+        "%x     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a" % (esp + 48),
     ]
 
     dq = gdb.execute("dq $esp", to_string=True).splitlines()
+    esp = pwndbg.aglib.regs.read_reg("esp")
     assert dq == [
-        "%x     3837363534333231 6665646362613039" % pwndbg.aglib.regs.esp,
-        "%x     0000000000000000 0000000000000000" % (pwndbg.aglib.regs.esp + 16),
-        "%x     0706050403020100 0f0e0d0c0b0a0908" % (pwndbg.aglib.regs.esp + 32),
-        "%x     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a" % (pwndbg.aglib.regs.esp + 48),
+        "%x     3837363534333231 6665646362613039" % esp,
+        "%x     0000000000000000 0000000000000000" % (esp + 16),
+        "%x     0706050403020100 0f0e0d0c0b0a0908" % (esp + 32),
+        "%x     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a" % (esp + 48),
     ]
 
     #################################################
     #### eX command tests
     #################################################
     gdb.execute("eb $esp 00")
-    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 1) == b"\x00"
+    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.read_reg("esp"), 1) == b"\x00"
 
     gdb.execute("ew $esp 4141")
-    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 2) == b"\x41\x41"
+    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.read_reg("esp"), 2) == b"\x41\x41"
 
     gdb.execute("ed $esp 5252525252")
-    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 4) == b"\x52" * 4
+    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.read_reg("esp"), 4) == b"\x52" * 4
 
     gdb.execute("eq $esp 1122334455667788")
-    assert pwndbg.aglib.memory.read(pwndbg.aglib.regs.esp, 8) == b"\x88\x77\x66\x55\x44\x33\x22\x11"
+    assert (
+        pwndbg.aglib.memory.read(pwndbg.aglib.regs.read_reg("esp"), 8)
+        == b"\x88\x77\x66\x55\x44\x33\x22\x11"
+    )

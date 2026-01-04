@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import importlib
+import os
 import sys
 import types
 from collections import OrderedDict
@@ -34,12 +35,11 @@ import pwndbg.aglib.tls
 import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
+import pwndbg.color.memory as mem_color
 import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.memory
-import pwndbg.search
 from pwndbg.color import message
-from pwndbg.color.memory import c as M
 
 PREV_INUSE = 1
 IS_MMAPPED = 2
@@ -72,7 +72,6 @@ HEAP_MAX_SIZE: int = None
 
 NBINS = 128
 BINMAPSIZE = 4
-TCACHE_MAX_BINS = 64
 NFASTBINS = 10
 NSMALLBINS = 64
 
@@ -140,8 +139,11 @@ class Bins:
         if self.bin_type == BinType.UNSORTED:
             # The unsorted bin only has one bin called 'all'
 
-            # TODO: We shouldn't be mixing int and str types like this
-            size = "all"  # type: ignore[assignment]
+            # Handle this case here, so we don't assign a str to an int-type variable
+            if "all" in self.bins:
+                return self.bins["all"].contains_chunk(chunk)
+            else:
+                return False
         elif self.bin_type == BinType.LARGE:
             # All the other bins (other than unsorted) store chunks of the same
             # size in a bin, so we can use the size directly. But the largebin
@@ -439,7 +441,7 @@ class Chunk:
 
         return self._is_top_chunk
 
-    def next_chunk(self):
+    def next_chunk(self) -> Chunk | None:
         if self.is_top_chunk:
             return None
 
@@ -510,10 +512,9 @@ class Heap:
                 raise ValueError(f"Cannot build heap object on an unmapped address ({hex(addr)})")
 
             heap_info = allocator.get_heap(addr)
-            try:
+            ar_ptr = None
+            if heap_info is not None:
                 ar_ptr = int(heap_info["ar_ptr"])
-            except pwndbg.dbg_mod.Error:
-                ar_ptr = None
 
             if ar_ptr is not None and ar_ptr in (ar.address for ar in allocator.arenas):
                 # Case 2; non-main arena.
@@ -569,7 +570,7 @@ class Heap:
 
     def __str__(self) -> str:
         fmt = "[%%%ds]" % (pwndbg.aglib.arch.ptrsize * 2)
-        return message.hint(fmt % (hex(self.first_chunk.address))) + M.heap(
+        return message.hint(fmt % (hex(self.first_chunk.address))) + mem_color.c.heap(
             str(pwndbg.aglib.vmmap.find(self.start))
         )
 
@@ -1103,6 +1104,18 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         raise NotImplementedError()
 
     @property
+    @pwndbg.lib.cache.cache_until("objfile")
+    def tcache_small_bins(self) -> int | None:
+        if not self.has_tcache():
+            return None
+        mp = self.mp
+        if "tcache_small_bins" in mp.type.keys():
+            return int(mp["tcache_small_bins"])
+        elif "tcache_bins" in mp.type.keys():
+            return int(mp["tcache_bins"])
+        return None
+
+    @property
     def mallinfo(self) -> TheType | None:
         raise NotImplementedError()
 
@@ -1154,7 +1167,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         """Is malloc operating within a multithreaded environment."""
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_multiple_threads")
         if addr:
-            return pwndbg.aglib.memory.s32(addr) > 0
+            return pwndbg.aglib.memory.u32(addr) > 0
+        # glibc 2.42 replaced __libc_multiple_threads with __libc_single_threaded
+        elif addr := pwndbg.aglib.symbol.lookup_symbol_addr("__libc_single_threaded"):
+            return pwndbg.aglib.memory.u32(addr) == 0
         return len(pwndbg.dbg.selected_inferior().threads()) > 1
 
     def _request2size(self, req: int) -> int:
@@ -1250,7 +1266,25 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         if tcache is None:
             return None
 
-        counts = tcache["counts"]
+        # this will break expected output during tests, so we skip it
+        if (
+            pwndbg.glibc.get_version() >= (2, 42)
+            and not hasattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued")
+            and os.environ.get("PWNDBG_IN_TEST") is None
+        ):
+            print(
+                message.warn(
+                    "Support for tcache large bins (a GLIBC 2.42 addition) has not been fully implemented. "
+                    "PR contributions are highly appreciated!"
+                )
+            )
+            setattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued", True)
+
+        # counts was renamed to num_slots in newer version of GLIBC 2.42
+        try:
+            counts = tcache["num_slots"]
+        except Exception:
+            counts = tcache["counts"]
         entries = tcache["entries"]
 
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
@@ -1264,6 +1298,8 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         for i in range(num_tcachebins):
             size = self._request2size(tidx2usize(i))
             count = int(counts[i])
+            if pwndbg.glibc.get_version() >= (2, 42):
+                count = int(self.mp["tcache_count"]) - count
             chain = pwndbg.chain.get(
                 int(entries[i]),
                 offset=self.tcache_next_offset,
@@ -1561,7 +1597,10 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         return self._main_arena
 
     def has_tcache(self) -> bool:
-        return self.mp is not None and "tcache_bins" in self.mp.type.keys()
+        # tcache_bins was renamed to tcache_small_bins in GLIBC 2.42
+        return self.mp is not None and any(
+            x in self.mp.type.keys() for x in ["tcache_bins", "tcache_small_bins"]
+        )
 
     @property
     def thread_arena(self) -> Arena | None:
@@ -1583,36 +1622,37 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         """Locate a thread's tcache struct. If it doesn't have one, use the main
         thread's tcache.
         """
-        if self.has_tcache():
-            if self.multithreaded:
-                tcache_addr = pwndbg.aglib.memory.read_pointer_width(
-                    pwndbg.aglib.symbol.lookup_symbol_addr("tcache", prefer_static=True)
-                )
-                if tcache_addr == 0:
-                    # This thread doesn't have a tcache yet
-                    return None
-                tcache = tcache_addr
-            else:
-                tcache = self.main_arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
+        if not self.has_tcache():
+            print(message.warn("This version of GLIBC was not compiled with tcache support."))
+            return None
 
-            try:
-                self._thread_cache = pwndbg.aglib.memory.get_typed_pointer_value(
-                    self.tcache_perthread_struct, tcache
-                )
-                self._thread_cache["entries"].fetch_lazy()
-            except Exception:
-                print(
-                    message.error(
-                        "Error fetching tcache. GDB cannot access "
-                        "thread-local variables unless you compile with -lpthread."
-                    )
-                )
-                return None
+        tcache_ptr = pwndbg.aglib.symbol.lookup_symbol_addr(
+            "tcache",
+            prefer_static=True,
+        )
+        if tcache_ptr and (tcache_addr := pwndbg.aglib.memory.read_pointer_width(tcache_ptr)):
+            tcache = tcache_addr
+        elif not self.multithreaded:
+            tcache = self.main_arena.heaps[0].start + pwndbg.aglib.arch.ptrsize * 2
+        else:
+            # This thread doesn't have a tcache yet
+            return None
 
-            return self._thread_cache
+        try:
+            self._thread_cache = pwndbg.aglib.memory.get_typed_pointer_value(
+                self.tcache_perthread_struct, tcache
+            )
+            self._thread_cache["entries"].fetch_lazy()
+        except Exception:
+            print(
+                message.error(
+                    "Error fetching tcache. Cannot access "
+                    "thread-local variables unless you compile with -lpthread."
+                )
+            )
+            return None
 
-        print(message.warn("This version of GLIBC was not compiled with tcache support."))
-        return None
+        return self._thread_cache
 
     @property
     def mp(self) -> pwndbg.dbg_mod.Value | None:
@@ -1671,7 +1711,10 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         """Find & read the heap_info struct belonging to the chunk at 'addr'."""
         if self.heap_info is None:
             return None
-        return pwndbg.aglib.memory.get_typed_pointer_value(self.heap_info, heap_for_ptr(addr))
+        haddr = heap_for_ptr(addr)
+        if pwndbg.aglib.memory.peek(haddr) is None:
+            return None
+        return pwndbg.aglib.memory.get_typed_pointer_value(self.heap_info, haddr)
 
     def get_tcache(
         self, tcache_addr: int | pwndbg.dbg_mod.Value | None = None
@@ -1706,7 +1749,9 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
         addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_malloc_initialized")
         if addr is None:
             addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_initialized")
-        assert addr is not None, "Could not find __libc_malloc_initialized or __malloc_initialized"
+        # fallback for GLIBC 2.42 as __malloc_initialized was removed
+        if addr is None:
+            return int(self.mp["sbrk_base"]) != 0
         return pwndbg.aglib.memory.s32(addr) > 0
 
 

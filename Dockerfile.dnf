@@ -1,0 +1,53 @@
+# This dockerfile was created for development & testing purposes, for DNF-based distro.
+#
+# Build as:
+#   docker build -f Dockerfile.dnf -t pwndbg-deb .
+#
+# To run use (we mount the directory so the host changes are reflected into container):
+#   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $(pwd):/pwndbg pwndbg-deb bash
+
+ARG image=fedora:41
+FROM $image
+
+WORKDIR /pwndbg
+
+ENV LANG=en_US.utf8
+ENV TZ=America/New_York
+ENV PWNDBG_VENV_PATH=/venv
+ENV UV_PROJECT_ENVIRONMENT=/venv
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    dnf -y install \
+        glibc-langpack-en \
+        glibc-locale-source \
+        vim-minimal && \
+    localedef -i en_US -f UTF-8 en_US.UTF-8 && \
+    dnf clean all && \
+    rm -rf /var/cache/dnf
+
+# setup.sh needs scripts/common.sh
+COPY ./scripts/common.sh /pwndbg/scripts/
+
+COPY ./setup.sh /pwndbg/
+COPY ./uv.lock /pwndbg/
+COPY ./pyproject.toml /pwndbg/
+
+# pyproject.toml requires these files, pip install would fail
+RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
+
+# fix for py3.14 because wheels aren't available so packages need to be built
+# RUN dnf install -y uv git python3-devel patch ncurses-devel gcc
+# RUN uv sync --all-groups --all-extras
+RUN dnf install -y uv git python3-devel patch ncurses-devel gcc g++
+RUN ./setup.sh
+
+# Comment these lines if you won't run the tests.
+COPY ./setup-dev.sh /pwndbg/
+RUN ./setup-dev.sh
+
+# Cleanup dummy files
+RUN rm README.md && rm -rf pwndbg
+
+COPY . /pwndbg/
+
+ENV PATH="${PWNDBG_VENV_PATH}/bin:${PATH}"

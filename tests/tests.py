@@ -14,9 +14,11 @@ import time
 from enum import Enum
 from pathlib import Path
 
-from host import TestHost
-from host import TestResult
-from host import TestStatus
+from pwndbg.lib.zig import get_zig_executable
+
+from .host import TestHost
+from .host import TestResult
+from .host import TestStatus
 
 
 def main():
@@ -38,7 +40,6 @@ def main():
     # building tests, even if the user has requested a nix-compatible test.
     #
     # Ideally, however, we would build the test targets as part of `nix verify`.
-    ensure_zig_path(local_pwndbg_root)
     make_all(local_pwndbg_root / args.group.binary_dir())
 
     if not args.driver.can_run(args.group):
@@ -47,11 +48,19 @@ def main():
         )
         sys.exit(1)
 
+    force_serial = False
     match args.driver:
         case Driver.GDB:
             host = get_gdb_host(args, local_pwndbg_root)
         case Driver.LLDB:
             host = get_lldb_host(args, local_pwndbg_root)
+
+            # LLDB does not properly support having its tests run in parallel,
+            # so we forcibly disable it, for now.
+            print(
+                "WARNING: LLDB tests always run in series, even when parallel execution is requested."
+            )
+            force_serial = True
 
     # Handle the case in which the user only wants the collection to run.
     if args.collect_only:
@@ -61,7 +70,12 @@ def main():
 
     # Actually run the tests.
     run_tests_and_print_stats(
-        host, args.test_name_filter, args.pdb, args.serial, args.verbose, coverage_out
+        host,
+        args.test_name_filter,
+        args.pdb,
+        force_serial or args.serial,
+        args.verbose,
+        coverage_out,
     )
 
 
@@ -137,7 +151,7 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
     """
     if args.nix:
         # Use pwndbg, as build by nix.
-        gdb_path = local_pwndbg_root / "result" / "bin" / "pwndbg"
+        gdb_path = local_pwndbg_root / "result/bin/pwndbg"
 
         if not gdb_path.exists():
             print("ERROR: No nix-compatible pwndbg found. Run nix build .#pwndbg-dev")
@@ -167,7 +181,7 @@ def get_gdb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost:
             sys.exit(1)
         gdb_path = Path(gdb_path_str)
 
-    from host.gdb import GDBTestHost
+    from .host.gdb import GDBTestHost
 
     return GDBTestHost(
         local_pwndbg_root,
@@ -185,7 +199,7 @@ def get_lldb_host(args: argparse.Namespace, local_pwndbg_root: Path) -> TestHost
         print("ERROR: Nix is currently not supported with driver LLDB")
         sys.exit(1)
 
-    from host.lldb import LLDBTestHost
+    from .host.lldb import LLDBTestHost
 
     return LLDBTestHost(
         local_pwndbg_root,
@@ -219,7 +233,7 @@ class Group(Enum):
             case Group.DBG:
                 return Path("tests/library/dbg/")
             case Group.CROSS_ARCH_USER:
-                return Path("tests/library/qemu-user/")
+                return Path("tests/library/qemu_user/")
             case other:
                 raise AssertionError(f"group {other} is unaccounted for")
 
@@ -232,7 +246,7 @@ class Group(Enum):
             case Group.GDB | Group.LLDB | Group.DBG:
                 return Path("tests/binaries/host/")
             case Group.CROSS_ARCH_USER:
-                return Path("tests/binaries/qemu-user/")
+                return Path("tests/binaries/qemu_user/")
             case other:
                 raise AssertionError(f"group {other} is unaccounted for")
 
@@ -314,14 +328,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def ensure_zig_path(local_pwndbg_root: Path):
-    if "ZIGPATH" not in os.environ:
-        # If ZIGPATH is not set, set it to $pwd/.zig
-        # In Docker environment this should by default be set to /opt/zig
-        os.environ["ZIGPATH"] = str(local_pwndbg_root / ".zig")
-    print(f'[+] ZIGPATH set to {os.environ["ZIGPATH"]}')
-
-
 def make_all(path: Path, jobs: int = multiprocessing.cpu_count()):
     """
     Build the binaries for a given test group.
@@ -331,7 +337,16 @@ def make_all(path: Path, jobs: int = multiprocessing.cpu_count()):
 
     print(f"[+] make -C {path} -j{jobs} all")
     try:
-        subprocess.check_call(["make", f"-j{jobs}", "all"], cwd=str(path))
+        zig_executable = get_zig_executable()
+        subprocess.check_call(
+            [
+                "make",
+                f"-j{jobs}",
+                f"ZIGCC={zig_executable} cc",
+                "all",
+            ],
+            cwd=str(path),
+        )
     except subprocess.CalledProcessError:
         sys.exit(1)
 

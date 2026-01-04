@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import os
-import re
 import subprocess
 import time
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import List
 
-from host import TestHost
-from host import TestResult
-from host import TestStatus
-from host import _collection_from_pytest
-from host import _result_from_pytest
+from ...host import TestHost
+from ...host import TestResult
+from ...host import _collection_from_pytest
+from ...host import _result_from_pytest
 
 
 class GDBTestHost(TestHost):
@@ -30,7 +28,7 @@ class GDBTestHost(TestHost):
 
     def _run_gdb(
         self,
-        target: Path,
+        target: str,
         gdb_args_before: List[str] = [],
         env=None,
         capture_output=True,
@@ -38,7 +36,7 @@ class GDBTestHost(TestHost):
         env = os.environ if env is None else env
 
         # Prepare the GDB command line.
-        gdb_args = ["--command", str(target)]
+        gdb_args = ["-ex", f"py import sys,os; sys.path.insert(0, os.getcwd()); import {target}"]
 
         return subprocess.run(
             [str(self._gdb_path), "--silent", "--nx"]
@@ -57,15 +55,11 @@ class GDBTestHost(TestHost):
         coverage_out: Path | None,
         interactive: bool,
     ) -> TestResult:
-        # The test itself runs under GDB, spawned by this process, and prepared
-        # by the `pytests_launcher` script.
-        target = self._pwndbg_root / "tests" / "host" / "gdb" / "pytests_launcher.py"
-
         gdb_args_before = []
         if coverage_out is not None:
             gdb_args_before = [
                 "-ex",
-                "py import sys;print(sys.path);import coverage;coverage.process_startup();",
+                "py import coverage;coverage.process_startup();",
             ]
 
         # We pass parameters to `pytests_launcher` through environment variables.
@@ -75,17 +69,22 @@ class GDBTestHost(TestHost):
         env["COVERAGE_FILE"] = str(coverage_out)
         env["COVERAGE_PROCESS_START"] = str(self._pwndbg_root / "pyproject.toml")
         env["PWNDBG_LAUNCH_TEST"] = case
-        env["PWNDBG_DISABLE_COLORS"] = "1"
+        env["NO_COLOR"] = "1"
         env["GDB_BIN_PATH"] = str(self._gdb_path)
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
-        env["TEST_PWNDBG_ROOT"] = str(self._pwndbg_root)
         if interactive:
             env["USE_PDB"] = "1"
 
         # Run the test to completion and time it.
         started_at = time.monotonic_ns()
+
+        # The test itself runs under GDB, spawned by this process, and prepared
+        # by the `pytests_launcher` script.
         result = self._run_gdb(
-            target, gdb_args_before=gdb_args_before, env=env, capture_output=not interactive
+            "tests.host.gdb.pytests_launcher",
+            gdb_args_before=gdb_args_before,
+            env=env,
+            capture_output=not interactive,
         )
         duration = time.monotonic_ns() - started_at
 
@@ -94,14 +93,12 @@ class GDBTestHost(TestHost):
     def collect(self) -> List[str]:
         # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
         # we decided to run each test in a separate GDB session
-        target = self._pwndbg_root / "tests" / "host" / "gdb" / "pytests_collect.py"
 
         env = os.environ.copy()
         env["TEST_BINARIES_ROOT"] = str(self._binaries_root)
-        env["TEST_PWNDBG_ROOT"] = str(self._pwndbg_root)
         env["TESTS_PATH"] = str(self._pytest_root)
 
-        result = self._run_gdb(target, env=env)
+        result = self._run_gdb("tests.host.gdb.pytests_collect", env=env)
         names = _collection_from_pytest(result, self._pwndbg_root, self._pytest_root)
 
         # We execute from Pwndbg root, so we need to prepend tests/ to the names.

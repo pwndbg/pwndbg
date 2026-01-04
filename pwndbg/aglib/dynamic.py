@@ -23,7 +23,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
-import pwndbg.lib.cache
+import pwndbg.dbg_mod
 from pwndbg.lib.elftypes import constants as elf
 
 

@@ -16,6 +16,7 @@ from typing import Tuple
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.remote
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 
 _remote_files_dir = None
@@ -42,7 +43,7 @@ def get_proc_exe_file() -> str:
     """
     Returns the local path to the debugged file name.
     """
-    return get_file(pwndbg.aglib.proc.exe, try_local_path=True)
+    return get_file(pwndbg.aglib.proc.exe(), try_local_path=True)
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -82,15 +83,11 @@ def get_file(path: str, try_local_path: bool = False) -> str:
         The local path to the file
     """
     has_target_prefix = path.startswith("target:")
-    has_good_prefix = path.startswith(("/", "./", "../")) or has_target_prefix
-    if not has_good_prefix:
-        raise OSError("get_file called with incorrect path", errno.ENOENT)
-
     if has_target_prefix:
         path = path[7:]  # len('target:') == 7
 
     local_path = path
-    if not pwndbg.aglib.remote.is_remote():
+    if not pwndbg.aglib.remote.is_remote() or pwndbg.aglib.qemu.is_qemu_kernel():
         if not os.path.exists(local_path):
             raise OSError(f"File '{local_path}' does not exist", errno.ENOENT)
 

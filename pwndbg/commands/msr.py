@@ -4,9 +4,11 @@ import argparse
 from typing import Optional
 from typing import Tuple
 
-import pwnlib.asm
-
-import pwndbg.aglib.file
+import pwndbg.aglib
+import pwndbg.aglib.asm
+import pwndbg.aglib.shellcode
+import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 
 # Taken from linux/arch/x86/include/asm/msr-index.h
@@ -58,10 +60,10 @@ def parse_range(msr_range: str, arch: str) -> Optional[Tuple[int, int]]:
 
 def x86_msr_read(msr: int) -> None:
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
-        sc = pwnlib.asm.asm(f"mov ecx, {msr}; rdmsr")
+        sc = pwndbg.aglib.asm.asm(f"mov ecx, {msr}; rdmsr")
         async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc):
-            edx = int(pwndbg.aglib.regs["edx"]) << 32
-            eax = int(pwndbg.aglib.regs["eax"])
+            edx = int(pwndbg.aglib.regs.read_reg("edx")) << 32
+            eax = int(pwndbg.aglib.regs.read_reg("eax"))
             ret = edx + eax
             print(f"{hex(msr)}:\t{hex(ret)}")
 
@@ -72,7 +74,7 @@ def x86_msr_write(msr: int, write_value: int) -> None:
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController):
         eax = write_value & 0xFFFFFFFF
         edx = write_value >> 32
-        sc = pwnlib.asm.asm(f"mov ecx, {msr}; mov eax, {eax}; mov edx, {edx}; wrmsr")
+        sc = pwndbg.aglib.asm.asm(f"mov ecx, {msr}; mov eax, {eax}; mov edx, {edx}; wrmsr")
         async with pwndbg.aglib.shellcode.exec_shellcode(ec, sc):
             return
 

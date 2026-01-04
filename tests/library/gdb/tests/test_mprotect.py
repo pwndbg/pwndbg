@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.aglib.vmmap
-import tests
 
-SMALL_BINARY = tests.get_binary("crash_simple.out.hardcoded")
+from . import get_binary
+
+SMALL_BINARY = get_binary("crash_simple.native.out")
 
 
 def test_mprotect_executes_properly(start_binary):

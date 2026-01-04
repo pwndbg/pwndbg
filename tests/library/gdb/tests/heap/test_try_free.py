@@ -6,12 +6,13 @@ import tempfile
 import gdb
 import pytest
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.heap
-import tests
 
-HEAP_BINARY = tests.get_binary("heap_bugs.out")
-HEAP_CODE = tests.get_binary("heap_bugs.c")
+from .. import get_binary
+
+HEAP_BINARY = get_binary("heap_bugs.x86-64.out")
+HEAP_CODE = get_binary("heap_bugs.x86-64.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
 
@@ -76,7 +77,7 @@ def setup_heap(start_binary, bug_no):
     except FileNotFoundError:
         pass
 
-    start_binary(HEAP_BINARY, str(bug_no), f"> {OUTPUT_FILE}")
+    start_binary(HEAP_BINARY, str(bug_no), OUTPUT_FILE)
     gdb.execute("break " + str(breakpoints[bug_no][0]))
     gdb.execute("break " + str(breakpoints[bug_no][1]))
 

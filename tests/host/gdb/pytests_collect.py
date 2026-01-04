@@ -5,16 +5,11 @@ import sys
 
 import pytest
 
-PWNDBG_ROOT = os.environ.get("TEST_PWNDBG_ROOT")
 TESTS_PATH = os.environ.get("TESTS_PATH")
 
 if TESTS_PATH is None:
     print("'TESTS_PATH' environment variable not set. Failed to collect tests.")
     sys.exit(1)
-
-host_home = f"{PWNDBG_ROOT}/tests/"
-if host_home not in sys.path:
-    sys.path.append(host_home)
 
 
 class CollectTestFunctionNames:

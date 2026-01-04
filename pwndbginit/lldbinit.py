@@ -4,13 +4,14 @@ import cProfile
 import os
 import sys
 import time
+from typing import Tuple
 
 import lldb
 
 from pwndbginit.common import verify_venv
 
 
-def main(debugger: lldb.SBDebugger, major: int, minor: int, debug: bool = False) -> None:
+def main(debugger: lldb.SBDebugger, lldb_version: Tuple[int, ...], debug: bool = False) -> None:
     if "pwndbg" in sys.modules:
         print("Detected double-loading of Pwndbg.")
         print("This should not happen. Please report this issue if you're not sure how to fix it.")
@@ -25,9 +26,9 @@ def main(debugger: lldb.SBDebugger, major: int, minor: int, debug: bool = False)
         profiler.enable()
 
     import pwndbg  # noqa: F811
-    import pwndbg.dbg.lldb
+    import pwndbg.dbg_mod.lldb
 
-    pwndbg.dbg_mod.lldb.LLDB_VERSION = (major, minor)
+    pwndbg.dbg_mod.lldb.LLDB_VERSION = lldb_version
 
     pwndbg.dbg = pwndbg.dbg_mod.lldb.LLDB()
     pwndbg.dbg.setup(debugger, "pwndbglldbhandler", debug=debug)

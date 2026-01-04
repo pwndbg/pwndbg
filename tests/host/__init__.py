@@ -1,15 +1,6 @@
 from __future__ import annotations
 
-import argparse
-import concurrent.futures
-import multiprocessing
-import os
 import re
-import shutil
-import signal
-import subprocess
-import sys
-import time
 from enum import Enum
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -17,8 +8,8 @@ from typing import Any
 from typing import Awaitable
 from typing import Callable
 from typing import Coroutine
+from typing import Dict
 from typing import List
-from typing import Tuple
 
 
 def _collection_from_pytest(
@@ -54,15 +45,20 @@ def _result_from_pytest(result: CompletedProcess[str], duration_ns: int) -> Test
     # Determine high-granularity status from process output, if possible.
     stdout_status = None
     stdout_context = None
+
+    # Check for the result string in STDOUT of the test.
+    # Exceptions raised by the test function itself print the result without newline.
+    # Context string can sometimes span multiple lines, only the one line is captured. This can
+    # happen anywhere withing the context string, so matching is not easy.
     if result.stdout is not None:
         entries = re.search(
-            r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)( .*::.* -)?( (.*))?",
+            r"(?:\x1b\[3.m)?(PASSED|FAILED|SKIPPED|XPASS|XFAIL)(?:\x1b\[0m)?(?: .*::.* -)?(?: (.*))?",
             result.stdout,
             re.MULTILINE,
         )
         if entries:
-            stdout_status = entries[2]
-            stdout_context = entries[5]
+            stdout_status = entries[1]
+            stdout_context = entries[2]
 
     # If possible, augment the status with the high-granularity output.
     if stdout_status is not None:
@@ -122,9 +118,9 @@ class TestResult:
         stderr: str | None,
         context: str | None,
     ):
-        assert (stdout is None and stderr is None) or (
-            stdout is not None and stderr is not None
-        ), "either both stderr and stdout are captured, or neither is"
+        assert (stdout is None and stderr is None) or (stdout is not None and stderr is not None), (
+            "either both stderr and stdout are captured, or neither is"
+        )
 
         self.status = status
         self.duration_ns = duration_ns
@@ -159,10 +155,65 @@ class TestHost:
 
 
 class Controller:
-    def launch(self, binary: Path) -> Awaitable[None]:
+    def launch(
+        self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
+    ) -> Awaitable[None]:
         """
         Launch the binary with the given path, relative to the binaries folder
         for the calling test.
+        """
+        raise NotImplementedError()
+
+    def execute_and_capture(self, command: str) -> Awaitable[str]:
+        """
+        Execute the given command and capture its output.
+
+        While this method is capable of executing any command supported by the
+        debugger, in with keeping tests debugger-agnostic, is should only ever
+        be used to invoke Pwndbg commands.
+        """
+        raise NotImplementedError()
+
+    def execute(self, command: str) -> Awaitable[None]:
+        """
+        Execute the given command.
+
+        While this method is capable of executing any command supported by the
+        debugger, in with keeping tests debugger-agnostic, is should only ever
+        be used to invoke Pwndbg commands.
+        """
+        raise NotImplementedError()
+
+    def cont(self) -> Awaitable[None]:
+        """
+        Resume execution until the next stop event.
+        """
+        raise NotImplementedError()
+
+    def step_instruction(self) -> Awaitable[None]:
+        """
+        Perform a step in the scope of a single instruction.
+        """
+        raise NotImplementedError()
+
+    def finish(self) -> Awaitable[None]:
+        """
+        Resume execution; stop after the current function returns.
+        """
+        raise NotImplementedError()
+
+    def select_thread(self, tid: int) -> Awaitable[None]:
+        """
+        Select the thread with the given ID.
+        """
+        raise NotImplementedError()
+
+    def disable_debuginfod(self) -> Awaitable[None]:
+        """
+        Tells the debugger not to use debuginfod (for retrieving
+        debugging information / symbols).
+
+        This should be called before .launch().
         """
         raise NotImplementedError()
 

@@ -3,12 +3,13 @@ from __future__ import annotations
 import gdb
 import pytest
 
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
-import tests
 
-CANARY_X86_64_BINARY = tests.get_binary("canary.x86-64.out")
-CANARY_I386_BINARY = tests.get_binary("canary.i386.out")
+from . import get_binary
+
+CANARY_X86_64_BINARY = get_binary("canary.x86-64.out")
+CANARY_I386_BINARY = get_binary("canary.i386.out")
 
 
 @pytest.mark.integration
@@ -30,7 +31,7 @@ def test_command_canary(start_binary, binary, reg_name):
     gdb.execute("run")
     gdb.execute("stepi")
 
-    register = getattr(pwndbg.aglib.regs, reg_name)
+    register = pwndbg.aglib.regs.read_reg(reg_name)
     canary_value, at_random = pwndbg.commands.canary.canary_value()
 
     raw = pwndbg.aglib.memory.read_pointer_width(at_random)

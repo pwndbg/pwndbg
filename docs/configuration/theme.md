@@ -138,18 +138,6 @@ Banner title surrounding char (right side).
 
 ----------
 
-## **bn-decomp-style**
-
-
-Decompilation highlight theme for Binary Ninja.
-
-
-
-**Default:** 'dark'  
-**Valid values:** 'dark', 'light'
-
-----------
-
 ## **chain-arrow-color**
 
 
@@ -345,6 +333,28 @@ Color for disasm (branch/call instruction).
 
 
 **Default:** 'bold'  
+
+----------
+
+## **disasm-branch-off**
+
+
+Marker for branches that will NOT be taken.
+
+
+
+**Default:** '✘'  
+
+----------
+
+## **disasm-branch-on**
+
+
+Marker for branches that WILL be taken.
+
+
+
+**Default:** '✔'  
 
 ----------
 
@@ -939,6 +949,45 @@ Prompt color.
 
 
 **Default:** 'bold,red'  
+
+----------
+
+## **prop-name-color**
+
+
+Color used to highlight the name in name-value pairs.
+
+
+Used heavily in mallocng commands.
+
+
+**Default:** 'bold'  
+
+----------
+
+## **prop-title-color**
+
+
+Color used to highlight the title of name-value pair groups.
+
+
+Used heavily in mallocng commands.
+
+
+**Default:** 'green'  
+
+----------
+
+## **prop-value-color**
+
+
+Color used to highlight the value in name-value pairs.
+
+
+Used heavily in mallocng commands.
+
+
+**Default:** 'yellow'  
 
 ----------
 

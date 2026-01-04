@@ -9,6 +9,7 @@ from typing import Dict
 from typing import Optional
 
 import pwndbg
+import pwndbg.dbg_mod
 
 module = sys.modules[__name__]
 
@@ -52,7 +53,7 @@ def lookup_types(*types: str) -> pwndbg.dbg_mod.Type:
         if len(t) > 0:
             return t[0]
 
-    raise RuntimeError(f"no type available among {types}")
+    return None
 
 
 def update() -> None:

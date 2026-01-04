@@ -2,7 +2,8 @@
 # rop
 
 ```text
-usage: rop [-h] [--grep GREP] [--memlimit MEMLIMIT] [argument ...]
+usage: rop [-h] [--grep GREP] [--memlimit MEMLIMIT] [--symbols] [--plain]
+           [arguments ...]
 
 ```
 
@@ -13,7 +14,7 @@ Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 
 |Positional Argument|Help|
 | :--- | :--- |
-|argument|Arguments to pass to ROPgadget|
+|arguments|Arguments to pass to ROPgadget|
 
 ### Optional arguments
 
@@ -21,7 +22,9 @@ Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 | :--- | :--- | :--- |
 |-h|--help|show this help message and exit|
 ||--grep|String to grep the output for|
-||--memlimit|String to grep the output for (default: '50MB')|
+||--memlimit|Maximum size of memory pages to scan (default: '50MB')|
+||--symbols|Show symbols for/of gadgets (if there are any)|
+||--plain|Plain output (no highlighting)|
 
 ### Examples
 ```text

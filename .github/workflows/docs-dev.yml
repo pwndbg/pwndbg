@@ -21,6 +21,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --group docs --all-extras
 
+      - name: Python version sanity check
+        run: ./scripts/python-is-ci-python.sh
+
       - name: Verify docs are up to date with source
         run: |
           ./scripts/verify-docs.sh

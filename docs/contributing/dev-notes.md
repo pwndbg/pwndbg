@@ -14,7 +14,7 @@ Feel free to update the list below!
 
 * We have our own `pwndbg.config.Parameter` - read about it in [Adding a Configuration Option](adding-a-parameter.md).
 
-* The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's and LLDB's prompt hook, which are defined, respectively, in `pwndbg/gdblib/prompt.py` as `prompt_hook_on_stop`, and in `pwndb/dbg/lldb/hooks.py` as `prompt_hook`.
+* The dashboard/display/context we are displaying is done by `pwndbg/commands/context.py` which is invoked through GDB's and LLDB's prompt hook, which are defined as `prompt_hook` in both `pwndbg/gdblib/prompt.py` and `pwndb/dbg/lldb/hooks.py` .
 
 * We change a bit GDB settings - this can be seen in `pwndbg/dbg/gdb.py` under `GDB.setup` - there are also imports for all Pwndbg submodules.
 
@@ -26,7 +26,7 @@ Feel free to update the list below!
 
 * Memory accesses should be done through `pwndbg/aglib/memory.py` functions.
 
-* Process properties can be retrieved thanks to `pwndbg/aglib/proc.py` - e.g. using `pwndbg.aglib.proc.pid` will give us current process pid
+* Process properties can be retrieved thanks to `pwndbg/aglib/proc.py` - e.g. using `pwndbg.aglib.proc.pid()` will give us current process pid
 
 
 * We have a wrapper for handling exceptions that are thrown by commands - defined in `pwndbg/exception.py` - current approach seems to work fine - by using `set exception-verbose on` - we get a stacktrace. If we want to debug stuff we can always do `set exception-debugger on`.

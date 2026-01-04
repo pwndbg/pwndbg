@@ -23,6 +23,10 @@
 -  [contextwatch](context/contextwatch.md) - Adds an expression to be shown on context.
 -  [regs](context/regs.md) - Print out all registers and enhance the information.
 
+## Darwin/libsystem/Mach-O
+
+-  [commpage](darwin_libsystem_mach-o/commpage.md) - Dumps all values from the macOS commpage.
+
 ## Developer
 
 -  [dev-dump-instruction](developer/dev-dump-instruction.md) - Dump internal PwndbgInstruction attributes.
@@ -56,27 +60,30 @@
 ## Integrations
 
 -  [ai](integrations/ai.md) - Ask GPT-3 a question about the current debugging context.
--  [bn-sync](integrations/bn-sync.md) - Synchronize Binary Ninja's cursor with GDB.
 -  [decomp](integrations/decomp.md) - Use the current integration to decompile code near an address.
--  [j](integrations/j.md) - Synchronize IDA's cursor with GDB.
+-  [decompiler-integration](integrations/decompiler-integration.md) - Control Pwndbg decompiler integration.
 -  [r2](integrations/r2.md) - Launches radare2.
 -  [r2pipe](integrations/r2pipe.md) - Execute stateful radare2 commands through r2pipe.
 -  [rop](integrations/rop.md) - Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 -  [ropper](integrations/ropper.md) - ROP gadget search with ropper.
 -  [rz](integrations/rz.md) - Launches rizin.
 -  [rzpipe](integrations/rzpipe.md) - Execute stateful rizin commands through rzpipe.
--  [save-ida](integrations/save-ida.md) - Save the ida database.
 
 ## Kernel
 
 -  [binder](kernel/binder.md) - Show Android Binder information
 -  [buddydump](kernel/buddydump.md) - Displays metadata and freelists of the buddy allocator.
 -  [kbase](kernel/kbase.md) - Finds the kernel virtual base address.
+-  [kbpf](kernel/kbpf.md) - Prints information about the linux kernel bpf progs and maps.
 -  [kchecksec](kernel/kchecksec.md) - Checks for kernel hardening configuration options.
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
 -  [kconfig](kernel/kconfig.md) - Outputs the kernel config.
+-  [kcurrent](kernel/kcurrent.md) - Displays the current kernel task debugged by the debugger (gdb/lldb) if pid == None
+-  [kdmabuf](kernel/kdmabuf.md) - Prints DMA buf info
 -  [kdmesg](kernel/kdmesg.md) - Displays the kernel ring buffer (dmesg) contents.
+-  [kfile](kernel/kfile.md) - Displays information about fds accessible by a kernel task.
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
+-  [kmem-trace](kernel/kmem-trace.md) - Trace kernel memory (SLUB and buddy) allocations and frees.
 -  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
 -  [knft-dump](kernel/knft-dump.md) - Dump all nftables: tables, chains, rules, expressions
 -  [knft-list-chains](kernel/knft-list-chains.md) - Dump netfilter chains form a specific table
@@ -86,6 +93,7 @@
 -  [knft-list-rules](kernel/knft-list-rules.md) - Dump netfilter rules form a specific chain
 -  [knft-list-sets](kernel/knft-list-sets.md) - Dump netfilter sets from a specific table
 -  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
+-  [ksyscalls](kernel/ksyscalls.md) - Displays Linux syscall table, including names and addresses of syscalls.
 -  [ktask](kernel/ktask.md) - Displays information about kernel tasks.
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).
 -  [msr](kernel/msr.md) - Read or write to Model Specific Register (MSR)
@@ -110,6 +118,7 @@
 -  [libcinfo](linux_libc_elf/libcinfo.md) - Show libc version and link to its sources
 -  [linkmap](linux_libc_elf/linkmap.md) - Show the state of the Link Map
 -  [onegadget](linux_libc_elf/onegadget.md) - Find gadgets which single-handedly give code execution.
+-  [parse-seccomp](linux_libc_elf/parse-seccomp.md) - Parse a struct sock_fprog from memory and dump its filter
 -  [piebase](linux_libc_elf/piebase.md) - Calculate VA of RVA from PIE base.
 -  [plt](linux_libc_elf/plt.md) - Prints any symbols found in Procedure Linkage Table sections if any exist.
 -  [strings](linux_libc_elf/strings.md) - Extracts and displays ASCII strings from readable memory pages of the debugged process.
@@ -147,7 +156,7 @@
 -  [checksec](misc/checksec.md) - Prints out the binary security settings using `checksec`.
 -  [comm](misc/comm.md) - Put comments in assembly code.
 -  [cyclic](misc/cyclic.md) - Cyclic pattern creator/finder.
--  [cymbol](misc/cymbol.md) - Add, show, load, edit, or delete custom structures in plain C.
+-  [cymbol](misc/cymbol.md) - Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit.
 -  [down](misc/down.md) - Select and print stack frame called by this one.
 -  [dt](misc/dt.md) - Dump out information on a type (e.g. ucontext_t).
 -  [dumpargs](misc/dumpargs.md) - Prints determined arguments for call/syscall instruction.
@@ -257,12 +266,16 @@
 
 ## musl
 
+-  [mallocng-dump](musl/mallocng-dump.md) - Dump the mallocng heap.
 -  [mallocng-explain](musl/mallocng-explain.md) - Gives a quick explanation of musl's mallocng allocator.
 -  [mallocng-find](musl/mallocng-find.md) - Find slot which contains the given address.
 -  [mallocng-group](musl/mallocng-group.md) - Print out information about a mallocng group at the given address.
+-  [mallocng-malloc-context](musl/mallocng-malloc-context.md) - Print out the mallocng __malloc_context (ctx) object.
+-  [mallocng-meta-area](musl/mallocng-meta-area.md) - Print out a mallocng meta_area object at the given address.
 -  [mallocng-meta](musl/mallocng-meta.md) - Print out information about a mallocng group given the address of its meta.
 -  [mallocng-slot-start](musl/mallocng-slot-start.md) - Dump information about a mallocng slot, given its start address.
 -  [mallocng-slot-user](musl/mallocng-slot-user.md) - Dump information about a mallocng slot, given its user address.
+-  [mallocng-visualize-slots](musl/mallocng-visualize-slots.md) - Visualize slots in a group.
 
 <!-- END OF AUTOGENERATED PART. Do not modify this line or the line below, they mark the end of the auto-generated part of the file. If you want to extend the documentation in a way which cannot easily be done by adding to the command help description, write below the following line. -->
 <!-- ------------\>8---- ----\>8---- ----\>8------------ -->

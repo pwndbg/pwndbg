@@ -11,44 +11,25 @@ supplemental information sources (e.g. active IDA Pro connection).
 from __future__ import annotations
 
 import string
-from typing import Tuple
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
 import pwndbg.aglib.strings
-import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.color.enhance as E
 import pwndbg.color.memory
 import pwndbg.integration
-import pwndbg.lib.cache
+import pwndbg.lib.pretty_print
 from pwndbg import color
 
 
-def format_small_int(value: int) -> str:
-    if value < 10:
-        return str(value)
-    else:
-        return hex(value)
-
-
-def format_small_int_pair(first: int, second: int) -> Tuple[str, str]:
-    if first < 10 and second < 10:
-        return (str(first), str(second))
-    else:
-        return (
-            hex(first),
-            hex(second),
-        )
-
-
 def int_str(value: int) -> str:
-    retval = format_small_int(value)
+    retval = pwndbg.lib.pretty_print.int_to_string(value)
 
     # Try to unpack the value as a string
-    packed = pwndbg.aglib.arch.pack(int(value))
+    packed = pwndbg.aglib.arch.pack(value)
     if all(c in string.printable.encode("utf-8") for c in packed):
         if len(retval) > 4:
             retval = "{} ({!r})".format(retval, str(packed.decode("ascii", "ignore")))
@@ -92,7 +73,9 @@ def enhance(
 
     # If it's a pointer that we told we cannot deference, then color it accordingly and add symbol if can
     if page and not attempt_dereference:
-        return pwndbg.color.memory.get_address_and_symbol(value)
+        return pwndbg.color.memory.get_address_and_symbol(
+            value, pwndbg.integration.manager.get_stack_var_dict_all()
+        )
 
     if not can_read:
         return E.integer(int_str(value))
@@ -106,10 +89,6 @@ def enhance(
     # For the purpose of following pointers, don't display
     # anything on the stack or heap as 'code'
     if "[stack" in page.objfile or "[heap" in page.objfile:
-        rwx = exe = False
-
-    # If integration doesn't think it's in a function, don't display it as code.
-    if not pwndbg.integration.provider.is_in_function(value):
         rwx = exe = False
 
     if exe:
@@ -133,10 +112,7 @@ def enhance(
     if safe_linking:
         intval ^= value >> 12
     intval0 = intval
-    if 0 <= intval < 10:
-        intval = E.integer(str(intval))
-    else:
-        intval = E.integer("%#x" % int(intval & pwndbg.aglib.arch.ptrmask))
+    intval = E.integer(pwndbg.lib.pretty_print.int_to_string(intval & pwndbg.aglib.arch.ptrmask))
 
     retval = []
 
@@ -174,7 +150,9 @@ def enhance(
         # It might be a pointer or just a plain integer
         new_page = pwndbg.aglib.vmmap.find(intval0)
         if new_page:
-            return pwndbg.color.memory.get_address_and_symbol(intval0)
+            return pwndbg.color.memory.get_address_and_symbol(
+                intval0, pwndbg.integration.manager.get_stack_var_dict_all()
+            )
         else:
             return E.integer(int_str(intval0))
 
@@ -184,6 +162,6 @@ def enhance(
         return E.unknown("???")
 
     if len(retval) == 1:
-        return retval[0]  # type: ignore[return-value]
+        return retval[0]
 
-    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))  # type: ignore[arg-type]
+    return retval[0] + E.comment(color.strip(f" /* {'; '.join(retval[1:])} */"))

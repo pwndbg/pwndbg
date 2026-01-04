@@ -5,9 +5,11 @@ vice-versa.
 
 from __future__ import annotations
 
+import pwndbg.aglib.memory
+import pwndbg.dbg_mod
 import pwndbg.integration
 import pwndbg.lib.cache
-from pwndbg.dbg import SymbolLookupType
+from pwndbg.dbg_mod import SymbolLookupType
 
 
 def lookup_symbol_addr(
@@ -35,7 +37,7 @@ def lookup_symbol_value(
     addr = lookup_symbol(
         name, type=type, prefer_static=prefer_static, objfile_endswith=objfile_endswith
     )
-    if not addr:
+    if not addr or not pwndbg.aglib.memory.peek(int(addr)):
         return None
 
     value = addr.dereference()
@@ -112,4 +114,4 @@ def resolve_addr(addr: int) -> str | None:
     if symbol_name:
         return symbol_name
 
-    return pwndbg.integration.provider.get_symbol(addr)
+    return pwndbg.integration.manager.symbol_at_address(addr)

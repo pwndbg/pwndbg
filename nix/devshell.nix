@@ -11,7 +11,6 @@
     import nixpkgs { overlays = [ ]; },
   python3 ? pkgs.python3,
   inputs ? null,
-  isLLDB ? false,
   ...
 }:
 let
@@ -22,10 +21,13 @@ let
       lib
       python3
       inputs
-      isLLDB
       ;
     isDev = true;
     isEditable = true;
+    groups = [
+      "lldb"
+      "gdb"
+    ];
   };
   jemalloc-static = pkgs.jemalloc.overrideAttrs (
     finalAttrs: previousAttrs: {
@@ -63,7 +65,6 @@ in
           curl
           parallel
           qemu
-          zig_0_13 # version match setup-dev.sh
           go
 
           # for onegadget command
@@ -75,17 +76,16 @@ in
       }
       ++ [
         jemalloc-static
-        pkgs.gdb
         pyEnv
-      ]
-      ++ pkgs.lib.optionals isLLDB [
-        pkgs.lldb_20
       ];
     shellHook = ''
+      # lldb looks for the `debugserver` binary in `DEVELOPER_DIR`,
+      # but nixpkgs does not provide `debugserver` there
+      unset DEVELOPER_DIR
+
       export PWNDBG_NO_AUTOUPDATE=1
       export PWNDBG_NO_UV=1
       export PWNDBG_VENV_PATH="${pyEnv}"
-      export ZIGPATH="${pkgs.lib.getBin pkgs.zig_0_13}/bin/"
       export REPO_ROOT=$(git rev-parse --show-toplevel)
     '';
   };

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.typeinfo
-from pwndbg.dbg import EventType
+import pwndbg.dbg_mod
 
 #: Total number of arguments
 _argc_numbers: int = None
@@ -24,7 +23,7 @@ _stack_ptr: int = None
 _was_updated = False
 
 
-@pwndbg.dbg.event_handler(EventType.START)
+@pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.START)
 def update() -> None:
     if not pwndbg.dbg.selected_inferior().is_linux():
         return None

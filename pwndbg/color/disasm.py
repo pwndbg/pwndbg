@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from typing import List
 
+import pwndbg.aglib
 import pwndbg.aglib.nearpc
-import pwndbg.aglib.regs
-import pwndbg.chain
-import pwndbg.color.context as C
+import pwndbg.color.context as ctx_color
 from pwndbg.aglib.disasm.instruction import ALL_JUMP_GROUPS
 from pwndbg.aglib.disasm.instruction import InstructionCondition
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -13,6 +12,7 @@ from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
 from pwndbg.color import ljust_colored
 from pwndbg.color import strip
+from pwndbg.color import theme
 from pwndbg.color.message import off
 from pwndbg.color.message import on
 
@@ -23,6 +23,13 @@ c = ColorConfig(
     ],
 )
 
+config_branch_on = theme.add_param(
+    "disasm-branch-on", "✔", "marker for branches that WILL be taken"
+)
+config_branch_off = theme.add_param(
+    "disasm-branch-off", "✘", "marker for branches that will NOT be taken"
+)
+
 
 # Returns colorized instructions assembly and operands, and checkmark if branch is taken
 #  Example: `✔ je     _IO_file_xsputn+341`. Inline symbol replacements made. No annotation or branch targets shown.
@@ -31,7 +38,7 @@ def one_instruction(ins: PwndbgInstruction) -> str:
 
     # Highlight the current line if enabled
     if pwndbg.config.highlight_pc and ins.address == pwndbg.aglib.regs.pc:
-        asm = C.highlight(asm)
+        asm = ctx_color.highlight(asm)
 
     is_call_or_jump = ins.groups & ALL_JUMP_GROUPS
 
@@ -41,9 +48,9 @@ def one_instruction(ins: PwndbgInstruction) -> str:
 
     # If we know the conditional is taken, mark it as taken.
     if ins.condition == InstructionCondition.TRUE or ins.is_conditional_jump_taken:
-        asm = on("✔ ") + asm
+        asm = on(f"{config_branch_on} ") + asm
     elif ins.condition == InstructionCondition.FALSE:
-        asm = off("✘ ") + asm
+        asm = off(f"{config_branch_off} ") + asm
     else:
         asm = f"  {asm}"
 

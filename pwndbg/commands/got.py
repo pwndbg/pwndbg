@@ -2,22 +2,20 @@ from __future__ import annotations
 
 import argparse
 from typing import Dict
+from typing import Iterator
 from typing import List
 from typing import Union
 
-from elftools.elf.elffile import ELFFile
-
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.vmmap
 import pwndbg.chain
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
-import pwndbg.enhance
-import pwndbg.gdblib.info
+import pwndbg.lib.memory
 import pwndbg.wrappers.checksec
 import pwndbg.wrappers.readelf
 from pwndbg.color import message
@@ -74,11 +72,6 @@ parser.add_argument(
 )
 @pwndbg.commands.OnlyWhenRunning
 def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str) -> None:
-    if pwndbg.aglib.qemu.is_qemu_usermode():
-        print(
-            "QEMU target detected - the result might not be accurate when checking if the entry is writable and getting the information for libraries/objfiles"
-        )
-        print()
     # Show the filters we are using
     if path_filter:
         print("Filtering by lib/objfile path: " + message.hint(path_filter))
@@ -93,14 +86,15 @@ def got(path_filter: str, all_: bool, accept_readonly: bool, symbol_filter: str)
     # Calculate the base address
     if not path_filter:
         first_print = False
-        _got(pwndbg.aglib.proc.exe, accept_readonly, symbol_filter)
+        _got(pwndbg.aglib.proc.exe(), accept_readonly, symbol_filter)
     else:
         first_print = True
 
     if not all_ and not path_filter:
         return
-    # TODO: We might fail to find shared libraries if GDB can't find them (can't show them in `info sharedlibrary`)
-    paths = pwndbg.gdblib.info.sharedlibrary_paths()
+
+    paths = [o.objfile for o in iter_objfiles()]
+    paths.sort()
     for path in paths:
         if path_filter not in path:
             continue
@@ -129,16 +123,12 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     # The following code is inspired by the "got" command of https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
     # TODO/FIXME: Maybe a -v option to show more information will be better
     outputs: List[Dict[str, Union[str, int]]] = []
-    if path == pwndbg.aglib.proc.exe:
-        bin_base_offset = pwndbg.aglib.proc.binary_base_addr if "PIE enabled" in pie_status else 0
+    if path == pwndbg.aglib.proc.exe():
+        bin_base_offset = pwndbg.aglib.proc.binary_base_addr() if "PIE enabled" in pie_status else 0
     else:
-        # TODO/FIXME: Is there a better way to get the base address of the loaded shared library?
-        # I guess parsing the vmmap result might also work, but what if it's not reliable or not available? (e.g. debugging with qemu-user)
-        text_section_addr = pwndbg.gdblib.info.parsed_sharedlibrary()[path][0]
-        with open(local_path, "rb") as f:
-            bin_base_offset = (
-                text_section_addr - ELFFile(f).get_section_by_name(".text").header["sh_addr"]
-            )
+        page = next(filter(lambda o: o.objfile == path, iter_objfiles()), None)
+        assert page is not None, f"unable to find vmmap entry for objfile: {path}"
+        bin_base_offset = page.start
 
     # Parse the output of readelf line by line
     for category, lines in got_entry.items():
@@ -193,5 +183,22 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     )
     for output in outputs:
         print(
-            f"[{M.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.aglib.memory.read_pointer_width(output['address']))}"  # type: ignore[arg-type]
+            f"[{mem_color.get(output['address'])}] {message.hint(output['name'])} -> {pwndbg.chain.format(pwndbg.aglib.memory.read_pointer_width(output['address']))}"  # type: ignore[arg-type]
         )
+
+
+def iter_objfiles() -> Iterator[pwndbg.lib.memory.Page]:
+    main = pwndbg.aglib.proc.exe()
+    uniq = set()
+
+    for page in pwndbg.aglib.vmmap.get():
+        if page.objfile == main:
+            # Skip main elf
+            continue
+        if not page.is_memory_mapped_file:
+            # Skip virtual objfiles eg: `[vdso]` etc..
+            continue
+        if page.objfile in uniq:
+            continue
+        uniq.add(page.objfile)
+        yield page

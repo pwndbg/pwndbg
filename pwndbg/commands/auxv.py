@@ -26,7 +26,7 @@ def auxv_explore() -> None:
     old_value = pwndbg.config.auto_explore_auxv.value
     pwndbg.config.auto_explore_auxv.value = "yes"
     try:
-        pwndbg.auxv.get.cache.clear()  # type: ignore[attr-defined]
+        pwndbg.auxv.get.cache.clear()
         pwndbg.auxv.get()
     finally:
         pwndbg.config.auto_explore_auxv.value = old_value

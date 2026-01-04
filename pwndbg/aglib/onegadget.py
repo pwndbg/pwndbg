@@ -12,12 +12,12 @@ from typing import Tuple
 
 from tabulate import tabulate
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
-import pwndbg.color.message as M
-import pwndbg.dbg
+import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.tempfile
@@ -355,7 +355,7 @@ def check_stack_argv(expr: str) -> Tuple[CheckSatResult, str]:
             return UNSAT, output_msg
         if result == 0:
             if n > 1 and "-c" in exprs[n - 1]:
-                output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL because argv[{n-1}] = "-c"\n'
+                output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL because argv[{n - 1}] = "-c"\n'
                 return UNSAT, output_msg
             else:
                 output_msg += f"argv[{n}] = {color_str} = NULL\n"
@@ -574,16 +574,16 @@ def check_gadget(
         is_valid_gadget = is_valid_gadget & result
         if result == SAT:
             if verbose:
-                verbose_msg += msg + M.success(f"SAT: {line}") + "\n"
-            result_list.append((M.success(result), M.success(line)))
+                verbose_msg += msg + message.success(f"SAT: {line}") + "\n"
+            result_list.append((message.success(result), message.success(line)))
         elif result == UNSAT:
             if verbose:
-                verbose_msg += msg + M.error(f"UNSAT: {line}") + "\n"
-            result_list.append((M.error(result), M.error(line)))
+                verbose_msg += msg + message.error(f"UNSAT: {line}") + "\n"
+            result_list.append((message.error(result), message.error(line)))
         else:
             if verbose:
-                verbose_msg += msg + M.warn(f"UNKNOWN: {line}") + "\n"
-            result_list.append((M.warn(result), M.warn(line)))
+                verbose_msg += msg + message.warn(f"UNKNOWN: {line}") + "\n"
+            result_list.append((message.warn(result), message.warn(line)))
 
     if verbose:
         output_msg += verbose_msg

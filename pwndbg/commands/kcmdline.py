@@ -11,7 +11,7 @@ parser = argparse.ArgumentParser(description="Return the kernel commandline (/pr
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSyms
+@pwndbg.commands.OnlyWithKernelDebugInfo
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kcmdline() -> None:
     print(pwndbg.aglib.kernel.kcmdline())

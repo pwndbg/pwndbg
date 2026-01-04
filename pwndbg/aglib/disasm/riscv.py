@@ -6,10 +6,10 @@ from capstone import *  # noqa: F403
 from capstone.riscv import *  # noqa: F403
 from typing_extensions import override
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.regs
-import pwndbg.color.memory as MemoryColor
+import pwndbg.color.memory as mem_color
+import pwndbg.integration
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.arch import register_assign
 from pwndbg.aglib.disasm.instruction import InstructionCondition
@@ -178,7 +178,10 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 address = instruction.address + (right.before_value << 12)
 
             instruction.annotation = register_assign(
-                result_operand.str, MemoryColor.get_address_and_symbol(address)
+                result_operand.str,
+                mem_color.get_address_and_symbol(
+                    address, pwndbg.integration.manager.get_stack_var_dict_all()
+                ),
             )
 
     def _lui_annotator(self, instruction: PwndbgInstruction, emu: Emulator) -> None:
@@ -189,7 +192,10 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
                 address = right.before_value << 12
 
             instruction.annotation = register_assign(
-                result_operand.str, MemoryColor.get_address_and_symbol(address)
+                result_operand.str,
+                mem_color.get_address_and_symbol(
+                    address, pwndbg.integration.manager.get_stack_var_dict_all()
+                ),
             )
 
     def _is_condition_taken(
@@ -257,13 +263,19 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         # Determine the target address of the indirect jump
         if instruction.id == RISCV_INS_JALR:
-            # jalr can be represented as:
-            # 1. jalr r1, rd, offset
-            # 2. jalr rd
-            # 3. jalr rd, offset
-            # If source is omitted, ra is implied as link register
-            # To find target, get the LAST
+            # jalr can be represented in the following ways:
+            # 1. jalr rd                // Jump to rd
+            # 2. jalr rd, offset        // Jump to rd+offset
+            # 3. jalr rX, rd, offset    // Return address stored in rX, jump to rd+offset
+            # 4. jalr x0, x1, 0         // Disassembles as "ret", jump to ra
+
+            # To find target, get the LAST register
             reg_op_count = instruction.op_count(CS_OP_REG)
+
+            if reg_op_count == 0:
+                # ra is implied as link register
+                return self._read_register_name(instruction, "ra", emu)
+
             if (target := instruction.op_find(CS_OP_REG, reg_op_count).before_value) is None:
                 return None
 
