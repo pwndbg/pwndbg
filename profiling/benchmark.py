@@ -36,7 +36,7 @@ def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> fl
     full_time = pstats.Stats(profiler).total_tt
 
     print(f"Time elapsed: {full_time}. Average time: {full_time / count}")
-    print(f"Saved benchmarkdata to {filename}")
+    print(f"Saved benchmark data to {filename}")
 
     return full_time / count
 

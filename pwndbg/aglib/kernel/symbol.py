@@ -41,7 +41,7 @@ def migratetype_names() -> Tuple[str, ...]:
 
 
 # try getting value of a symbol as an unsigned integer
-def try_usymbol(name: str, size=None) -> int:
+def try_usymbol(name: str, size=None) -> int | None:
     if not pwndbg.aglib.kernel.has_debug_symbols():
         return None
     try:
@@ -263,6 +263,9 @@ def load_common_structs():
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
 def load_common_structs_on_load_linux():
+    # basically want to be sure that the symbol file is a vmlinux with symbols
+    # has_debug_symbols without args checks for `commit_creds`
+    # load_common_structs would check if typeinfo has already been added (so doesnt readd)
     if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.kernel.has_debug_symbols():
         try:
             load_common_structs()

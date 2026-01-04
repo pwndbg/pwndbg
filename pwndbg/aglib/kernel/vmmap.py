@@ -405,7 +405,7 @@ def kernel_vmmap_pages() -> Tuple[Page, ...]:
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
         print(
             message.warn(
-                f"`page-tables` unsupported for {arch_name}, defaulting to `monitor info mem`"
+                f"`kernel-vmmap = {mode}` unsupported for {arch_name}, defaulting to `monitor`"
             )
         )
         mode = "monitor"

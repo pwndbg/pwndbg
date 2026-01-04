@@ -65,27 +65,28 @@ class PageTableScan:
         this needs to be EXTREMELY optimized as it is used to display context
         making as few functions calls or memory reads as possible
         avoid unnecessary python pointer deferences or repetative computations whenever possible
-        when benchmarked on the same linux kernels
-        on average takes less than 0.065 seconds to complete for x64 and 0.491 for aarch64
-        around 45-65% of the time is used to read qemu system memory depending on arch and kernel
-        in comparison, gdb-pt-dump takes ~0.153 for x64 and 5.572 seconds for aarch64
+        when benchmarked on the same linux kernels, on average:
+        - gdb-pt-dump takes ~0.153 for x64 and 5.572 seconds for aarch64
+        - this implementation takes less than 0.065 seconds to complete for x64 and 0.491 seconds for aarch64
+        --> around 45-65% of the time is used to read qemu system memory depending on arch and kernel
+            (the theoratical limit would be that all time consumed is used for reading memory)
         --> 2.35x speed up for x64 and more than 10x speed up for aarch64
+        one caveat is that it occasionally show unmapped (checked with pagewalk) vmalloc regions
+        but that happens for gdb-pt-dump as well
         """
         entry &= self.PAGE_ENTRY_MASK
         if (entry, self.paging_level) not in self.cache:
             self._scan(entry, self.paging_level)
         result = []
         curr = None
+        kernel_prefix_shift = self.paging_level * self.PAGE_INDEX_LEN + self.page_shift
+        # assumes self.cache[*] is sorted
         for offset, size, flags in self.cache[(entry, self.paging_level)]:
             if self.arch == "x86-64":
                 is_kernel = offset >= (1 << 47)
             if is_kernel:
-                nbits = self.ptrsize * 8 - (
-                    self.paging_level * self.PAGE_INDEX_LEN + self.page_shift
-                )
-                offset += (1 * ((1 << nbits) - 1)) << (
-                    self.paging_level * self.PAGE_INDEX_LEN + self.page_shift
-                )
+                nbits = self.ptrsize * 8 - kernel_prefix_shift
+                offset += ((1 << nbits) - 1) << kernel_prefix_shift
             if curr and offset in curr and flags == curr.flags:
                 curr.memsz = max(curr.memsz, offset + size - curr.start)
             else:
@@ -110,8 +111,8 @@ class PageTableScan:
         # per entry offset relative to the start of the current pagetable,
         # each entry represents `size` bytes of memory, therefore, offset += size for each entry
         offset = 0
-        # TODO: prev is used to avoid clustering the vmmap output for x86-64 with espfix ranges
-        # consecutive identical entries will be shown to be only one, None means not x86-64
+        # TODO: prev is used to avoid clustering the vmmap output with espfix ranges (happens for x86-64)
+        # consecutive identical pt entries will be clapsed into one. None means not x86-64
         # I believe this is what gdb-pt-dump does as this gives identical output for espfix
         prev = 0 if self.arch == "x86-64" else None
         for i, entry in enumerate(entries):
@@ -143,12 +144,13 @@ class PageTableScan:
                             curr_off = None
                     if curr_off is None:
                         curr_off, curr_sz, curr_flags = offset, size, flags
-            else:  # only call when should keep scanning the page tree
-                # we need to reduce this recursive call as much as possible
-                # each time the level decremented, garanteed to terminate
+            else:
                 addr = entry & self.PAGE_ENTRY_MASK
                 key = (addr, level - 1)
                 if key not in self.cache:
+                    # only call when should keep scanning the page tree
+                    # we need to reduce this recursive call as much as possible
+                    # each time the level is decremented, garanteed to terminate
                     self._scan(addr, level - 1)
                 arr = self.cache[key]
                 left, n = 0, len(arr)
@@ -299,15 +301,22 @@ class ArchPagingInfo:
     def pagetablescan(self, entry: int) -> PageTableScan | None:
         return PageTableScan(self)
 
-    def pagewalk_helper(self, target: int, entry: int) -> Tuple[PageTableLevel, ...]:
+    def switch_to_phymem_mode(self) -> str | None:
+        oldval: str = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
+        pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
+        # only two possible return values: https://qemu-project.gitlab.io/qemu/system/gdb.html
+        if pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") == "1":
+            return oldval
+        return None
+
+    def pagewalk_helper(self, target: int, entry: int) -> Tuple[PageTableLevel, ...] | None:
         base = self.physmap
         if entry > base:
             # user inputted a physmap address as pointer to pgd
             entry -= base
         scan = self.pagetablescan(entry)
-        oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
-        pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
-        if pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") != b"1":
+        oldval = self.switch_to_phymem_mode()
+        if oldval is None:
             return None
         try:
             result = scan.walk(target, entry)
@@ -323,10 +332,8 @@ class ArchPagingInfo:
 
     def pagetable_scan_helper(self, entry: int, is_kernel: bool = False) -> List[Page] | None:
         scan = self.pagetablescan(entry)
-        # only two possible return values: https://qemu-project.gitlab.io/qemu/system/gdb.html
-        oldval = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode").decode()
-        pwndbg.dbg.selected_inferior().send_remote("Qqemu.PhyMemMode:1")
-        if pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") != b"1":
+        oldval = self.switch_to_phymem_mode()
+        if oldval is None:
             return None
         try:
             return scan.scan(entry, is_kernel)
@@ -392,7 +399,7 @@ class x86_64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def physmap(self) -> int:
-        result = pwndbg.aglib.kernel.symbol.try_usymbol("page_offset_base")
+        result: int | None = pwndbg.aglib.kernel.symbol.try_usymbol("page_offset_base")
         if result is None:
             result = first_kernel_page_start()
         return result
@@ -412,7 +419,7 @@ class x86_64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmalloc(self) -> int:
-        result = pwndbg.aglib.kernel.symbol.try_usymbol("vmalloc_base")
+        result: int | None = pwndbg.aglib.kernel.symbol.try_usymbol("vmalloc_base")
         if result is not None:
             return result
         result, _ = self.get_vmalloc_vmemmap_bases()
@@ -424,7 +431,7 @@ class x86_64PagingInfo(ArchPagingInfo):
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def vmemmap(self) -> int:
-        result = pwndbg.aglib.kernel.symbol.try_usymbol("vmemmap_base")
+        result: int | None = pwndbg.aglib.kernel.symbol.try_usymbol("vmemmap_base")
         if result is not None:
             return result
         _, result = self.get_vmalloc_vmemmap_bases()
@@ -499,7 +506,7 @@ class x86_64PagingInfo(ArchPagingInfo):
             if pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack) in page:
                 page.objfile = "kernel [stack]"
 
-    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...]:
+    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...] | None:
         if entry is None:
             entry = pwndbg.aglib.regs.read_reg("cr3")
         return self.pagewalk_helper(target, entry)
@@ -822,7 +829,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             pass
         return 0x40000000  # default
 
-    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...]:
+    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...] | None:
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
                 entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
