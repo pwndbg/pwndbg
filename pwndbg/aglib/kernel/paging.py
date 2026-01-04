@@ -50,7 +50,6 @@ class PageTableScan:
         self.PAGE_INDEX_LEN = pi.PAGE_INDEX_LEN
         self.PAGE_INDEX_MASK = pi.PAGE_INDEX_MASK
         self.page_shift = pi.page_shift
-        self.pageentry_flags = pi.pageentry_flags
         self.should_stop_pagewalk = pi.should_stop_pagewalk
         # for scanning
         self.pagesz = 1 << self.page_shift
@@ -62,6 +61,16 @@ class PageTableScan:
         self.arch = pwndbg.aglib.arch.name
 
     def scan(self, entry: int, is_kernel: bool = False) -> List[Page]:
+        """
+        this needs to be EXTREMELY optimized as it is used to display context
+        making as few functions calls or memory reads as possible
+        avoid unnecessary python pointer deferences or repetative computations whenever possible
+        when benchmarked on the same linux kernels
+        on average takes less than 0.065 seconds to complete for x64 and 0.491 for aarch64
+        around 45-65% of the time is used to read qemu system memory depending on arch and kernel
+        in comparison, gdb-pt-dump takes ~0.153 for x64 and 5.572 seconds for aarch64
+        --> 2.35x speed up for x64 and more than 10x speed up for aarch64
+        """
         entry &= self.PAGE_ENTRY_MASK
         if (entry, self.paging_level) not in self.cache:
             self._scan(entry, self.paging_level)
@@ -88,19 +97,9 @@ class PageTableScan:
         return result
 
     def _scan(self, addr: int, level: int) -> None:
-        # this needs to be EXTREMELY optimized as it is used to display context
-        # making as few functions calls or memory reads as possible
-        # avoid unnecessary python pointer deferences or repetative computations whenever possible
-        # on average takes less than 0.09 seconds to complete for x64 and 0.12 for aarch64
-        # around 25% of the time is used to read qemu system memory
-        # in comparison, gdb-pt-dump takes ~0.12 for x64 and a few seconds for aarch64
-        # --> 25% speed up for x64 and more than 10x speed up for aarch64
         pagesz = self.pagesz
         orig = addr
-        if addr not in self.entry_cache:
-            self.entry_cache[addr] = struct.unpack(
-                self.fmt, self.inf.read_memory(addr, self.pagesz)
-            )
+        self.entry_cache[addr] = struct.unpack(self.fmt, self.inf.read_memory(addr, self.pagesz))
         entries = self.entry_cache[addr]
         ranges: List[Tuple[int, int, int]] = []
         append = ranges.append
@@ -124,8 +123,18 @@ class PageTableScan:
                     append((curr_off, curr_sz, curr_flags))
                     curr_off = None
             elif level == 1 or self.should_stop_pagewalk(entry):
-                flags = self.pageentry_flags(entry)
-                if flags != 0:  # only append present pages
+                flags = 0
+                match self.arch:
+                    case "x86-64":
+                        flags = Page.R_OK if entry & 1 != 0 else 0
+                        flags |= Page.W_OK if entry & (1 << 1) else 0
+                        flags |= Page.X_OK if entry & (1 << 63) == 0 else 0
+                    case "aarch64":
+                        flags = Page.R_OK if entry & 1 != 0 else 0
+                        flags |= Page.X_OK if (entry >> 53) & 3 != 3 else 0
+                        ap = (entry >> 6) & 3
+                        flags |= Page.W_OK if ap == 1 or ap == 0 else 0
+                if flags & Page.R_OK:  # only append present pages, read bit indicates presence
                     if curr_off is not None:
                         if flags == curr_flags:
                             curr_sz += size
@@ -343,9 +352,6 @@ class ArchPagingInfo:
     def pagetable_level_names(self) -> Tuple[str, ...]:
         raise NotImplementedError()
 
-    def pageentry_flags(self, entry: int) -> int:
-        raise NotImplementedError()
-
 
 class x86_64PagingInfo(ArchPagingInfo):
     @property
@@ -508,16 +514,6 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     def should_stop_pagewalk(self, entry: int) -> bool:
         return entry & (1 << 7) > 0
-
-    def pageentry_flags(self, entry: int) -> int:
-        if entry & 1 == 0:  # not present
-            return 0
-        flags = Page.R_OK
-        if entry & (1 << 1):
-            flags |= Page.W_OK
-        if entry & (1 << 63) == 0:
-            flags |= Page.X_OK
-        return flags
 
 
 class Aarch64PagingInfo(ArchPagingInfo):
@@ -854,14 +850,3 @@ class Aarch64PagingInfo(ArchPagingInfo):
 
     def should_stop_pagewalk(self, entry: int) -> bool:
         return (entry & 1) == 0 or (entry & 3) == 1
-
-    def pageentry_flags(self, entry: int) -> int:
-        if entry & 1 == 0:
-            return 0
-        flags = Page.R_OK
-        if (entry >> 53) & 3 != 3:
-            flags |= Page.X_OK
-        ap = (entry >> 6) & 3
-        if ap == 1 or ap == 0:
-            flags |= Page.W_OK
-        return flags

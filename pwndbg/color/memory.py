@@ -76,7 +76,8 @@ def get(
     address: int | pwndbg.dbg_mod.Value | Any,
     text: str | None = None,
     prefix: str | None = None,
-    page: pwndbg.lib.memory.Page | None = None, # if we know the page, dont bother to find it as a perf improvment
+    page: pwndbg.lib.memory.Page
+    | None = None,  # if we know the page, dont bother to find it as a perf improvment
 ) -> str:
     """
     Returns a colorized string representing the provided address.
