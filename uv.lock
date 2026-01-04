@@ -1461,8 +1461,12 @@ wheels = [
 
 [[package]]
 name = "niche-elf"
-version = "0.3.4"
-source = { editable = "../niche-elf" }
+version = "0.3.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/54/7e85718b10d410b7e92a75fbdf1da434a4e5ccdea373db2ff054ad08a003/niche_elf-0.3.5.tar.gz", hash = "sha256:56f7eec29526b610f64658c15f2b6867275d8216d8e85ca1ba328402c61aaead", size = 27881, upload-time = "2026-01-04T02:52:03.799Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/de/bb/236fb41803fe43d705c381c2d033a217cfabc1923350cb940427d04512de/niche_elf-0.3.5-py3-none-any.whl", hash = "sha256:46cc0e7667d928bcb52839fdf6a8c55463aa783cb8e3e2f3871c0964e87b915d", size = 28912, upload-time = "2026-01-04T02:52:02.334Z" },
+]
 
 [[package]]
 name = "packaging"
@@ -1712,7 +1716,7 @@ requires-dist = [
     { name = "ipython", specifier = ">=8.37.0,<9" },
     { name = "lldb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", specifier = "==21.1.6.post1", index = "https://mirrors.loong64.com/pypi/simple" },
     { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==21.1.6.post1" },
-    { name = "niche-elf", editable = "../niche-elf" },
+    { name = "niche-elf", specifier = "==0.3.5" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
     { name = "pwntools", specifier = ">=4.14.1,<5" },

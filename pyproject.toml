@@ -35,7 +35,7 @@ dependencies = [
     # If you bump this, also bump the pwndbg/commands/integration.py:d2d_required* variables.
     "decomp2dbg==3.14.0",
     # Used for symbol syncing (e.g. klookup --apply and decompiler integration)
-    "niche-elf==0.3.4",
+    "niche-elf==0.3.5",
 ]
 
 [project.optional-dependencies]
@@ -100,7 +100,6 @@ lldb-for-pwndbg = [
 gdb-for-pwndbg = [
   { index = "loong64", marker = "platform_system == 'Linux' and platform_machine == 'loongarch64'"},
 ]
-niche-elf = { path = "/home/lamb/code/niche-elf" , editable=true }
 
 [[tool.uv.index]]
 name = "loong64"
