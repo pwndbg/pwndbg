@@ -485,6 +485,46 @@ async def test_context_hide_sections(ctrl: Controller) -> None:
 
 
 @pwndbg_test
+async def test_context_all_sections_flag(ctrl: Controller) -> None:
+    """
+    Tests that context -a/--all shows all sections regardless of context-sections config.
+    """
+    await launch_to(ctrl, REFERENCE_BINARY, "main")
+
+    # Get default context output to establish baseline
+    await ctrl.execute("set context-sections regs disasm code stack backtrace")
+    default_out = await ctrl.execute_and_capture("context")
+
+    # Count section headers in default output
+    default_sections = default_out.count("[ ")
+
+    # Now restrict to minimal config
+    await ctrl.execute("set context-sections regs")
+    minimal_out = await ctrl.execute_and_capture("context")
+    minimal_sections = minimal_out.count("[ ")
+
+    # Minimal should have fewer sections
+    assert minimal_sections < default_sections
+
+    # Now use -a flag - should show all sections despite minimal config
+    all_out = await ctrl.execute_and_capture("context -a")
+    all_sections = all_out.count("[ ")
+
+    # -a should show at least as many as the default config
+    assert all_sections >= default_sections
+
+    # Verify specific core sections are present
+    assert "REGISTERS" in all_out
+    assert "DISASM" in all_out
+    assert "STACK" in all_out
+    assert "BACKTRACE" in all_out
+
+    # Verify --all alias works identically
+    alias_out = await ctrl.execute_and_capture("context --all")
+    assert alias_out.count("[ ") == all_sections
+
+
+@pwndbg_test
 async def test_context_history_prev_next(ctrl: Controller) -> None:
     import pwndbg
 
