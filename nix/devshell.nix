@@ -36,7 +36,7 @@ let
         url = "https://github.com/jemalloc/jemalloc/releases/download/${finalAttrs.version}/${finalAttrs.pname}-${finalAttrs.version}.tar.bz2";
         sha256 = "sha256-LbgtHnEZ3z5xt2QCGbbf6EeJvAU3mDw7esT3GJrs/qo=";
       };
-      configureFlags = (previousAttrs.configureFlags or [ ]) ++ [
+      configureFlags = [
         "--enable-static"
         "--disable-shared"
       ];
