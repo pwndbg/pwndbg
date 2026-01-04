@@ -123,7 +123,7 @@ def get(
     return color(text)
 
 
-def legend():
+def legend() -> str:
     return "LEGEND: " + " | ".join(
         (
             c.stack("STACK"),
