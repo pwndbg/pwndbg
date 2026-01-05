@@ -67,4 +67,4 @@ pwndbg
 ```
 And you are running pwndbg inside of another architecture!
 
-If you make some changes, you need to exit qemu-system and rebuild the docker image (be rerunning the previously shown command).
+If you make some changes, you need to exit qemu-system and rebuild the docker image (by rerunning the previously shown command).
