@@ -55,7 +55,7 @@ Now we run the image using qemu-system:
 sudo nix run github:patryk4815/kernel#vm-aarch64-linux \
     --accept-flake-config --extra-experimental-features flakes \
     --extra-experimental-features nix-command \
-    -- -i pwndbg:aarch64
+    -- -i pwndbg:aarch64 --refresh
 ```
 If you want to use more CPUs, you can pass `--cpus N`. If you have enough RAM you should also consider passing `--runtime tmpfs`. After it has started:
 ```{.bash .copy}
@@ -65,3 +65,6 @@ source /venv/bin/activate
 export PWNDBG_NO_AUTOUPDATE=1
 pwndbg
 ```
+And you are running pwndbg inside of another architecture!
+
+If you make some changes, you need to exit qemu-system and rebuild the docker image (be rerunning the previously shown command).
