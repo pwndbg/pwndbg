@@ -2180,8 +2180,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         Pick the first thread we can get our hands on, preferring the selected
         thread, if any is selected.
         """
-        inferior: LLDBProcess = cast(LLDBProcess, self.selected_inferior())
-        if inferior is None:
+        try:
+            inferior: LLDBProcess = cast(LLDBProcess, self.selected_inferior())
+        except pwndbg.dbg_mod.NoInferior:
             return None
 
         selected = inferior.process.GetSelectedThread()
@@ -2344,8 +2345,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def breakpoint_locations(self) -> List[pwndbg.dbg_mod.BreakpointLocation]:
-        inferior: LLDBProcess = self.selected_inferior()
-        if inferior is None:
+        try:
+            inferior: LLDBProcess = cast(LLDBProcess, self.selected_inferior())
+        except pwndbg.dbg_mod.NoInferior:
             return []
 
         bps: List[lldb.SBBreakpoint] = inferior.target.breakpoints
