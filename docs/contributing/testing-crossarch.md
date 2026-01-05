@@ -55,7 +55,7 @@ Now we run the image using qemu-system:
 sudo nix run github:patryk4815/kernel#vm-aarch64-linux \
     --accept-flake-config --extra-experimental-features flakes \
     --extra-experimental-features nix-command \
-    -- -i pwndbg:aarch64 --refresh
+    -- -i pwndbg:aarch64
 ```
 If you want to use more CPUs, you can pass `--cpus N`. If you have enough RAM you should also consider passing `--runtime tmpfs`. After it has started:
 ```{.bash .copy}
@@ -67,4 +67,4 @@ pwndbg
 ```
 And you are running pwndbg inside of another architecture!
 
-If you make some changes, you need to exit qemu-system and rebuild the docker image (by rerunning the previously shown command).
+If you make some changes to Pwndbg on your host machine that you want to be reflected in the guest, you need to exit qemu-system, rebuild the docker image (by rerunning the previously shown command), and rerun the nix command **with the `--refresh` flag**. If you need to communicate with the host from the guest, don't forget that QEMU exposes the host at IP address 10.0.2.2 .
