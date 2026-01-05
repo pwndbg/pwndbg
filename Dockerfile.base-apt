@@ -32,7 +32,8 @@ ARG ZIG_VERSION=0.14.1
 RUN ARCH=$(uname -m) && \
     case "$ARCH" in \
         armv7l) ZIG_ARCH="armv7a";; \
-        i386|i686) ZIG_ARCH="x86";; \
+        ppc64le) ZIG_ARCH="powerpc64le";; \
+        i686) ZIG_ARCH="x86";; \
         *) ZIG_ARCH="$ARCH";; \
     esac && \
     curl -L https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz -o /tmp/zig.tar.xz && \
