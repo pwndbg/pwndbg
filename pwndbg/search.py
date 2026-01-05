@@ -39,7 +39,7 @@ def search(
     Yields:
         An iterator on the address matches
     """
-    i = pwndbg.dbg.selected_inferior()
+    inf = pwndbg.dbg.selected_inferior()
 
     maps = mappings or pwndbg.aglib.vmmap.get()
 
@@ -72,7 +72,7 @@ def search(
         if limit and count >= limit:
             break
 
-        for element in i.find_in_memory(
+        for element in inf.find_in_memory(
             bytearray(searchfor),
             start,
             end - start,
