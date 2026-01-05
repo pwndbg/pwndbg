@@ -33,7 +33,8 @@ dependencies = [
     "ziglang==0.14.1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
     # For installing the decompiler plugins (we don't actually use it as a python library).
     # If you bump this, also bump the pwndbg/commands/integration.py:d2d_required* variables.
-    "decomp2dbg==3.14.0",
+#    "decomp2dbg==3.14.0",
+    "decomp2dbg @ git+https://github.com/patryk4815/decomp2dbg@928a3e68f8825117ed3ca16eedd08b9247194bda",
     # Optional? Used for getting symbols into the debugger with the decompiler synchronization
     "lief>=0.17.1 ; (platform_system == 'Linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'i686')) or platform_system != 'Linux'",
 ]
