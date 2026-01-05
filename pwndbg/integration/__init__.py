@@ -597,6 +597,8 @@ class IntegrationManager:
         elf.write(elf_path)
         inf.add_symbol_file(elf_path, self._connection.binary_base_addr)
         self._latest_symbol_file_path = elf_path
+        # Delete the file after GDB closes the file descriptor.
+        os.unlink(elf_path)
         return len(syms_to_add)
 
     def _clean_type_str(self, type_str: str) -> str:
