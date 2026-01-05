@@ -36,7 +36,6 @@ dependencies = [
     "decomp2dbg==3.14.0",
     # Optional? Used for getting symbols into the debugger with the decompiler synchronization
     "lief>=0.17.1 ; (platform_system == 'Linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'i686')) or platform_system != 'Linux'",
-    "mypy>=1.18.2",
 ]
 
 [project.optional-dependencies]
