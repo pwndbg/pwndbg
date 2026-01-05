@@ -31,7 +31,7 @@ RUN apt install -y make pkg-config gcc musl-tools golang libc6-dev libc6-dbg
 ARG ZIG_VERSION=0.14.1
 RUN ARCH=$(uname -m) && \
     case "$ARCH" in \
-        armv7l) ZIG_ARCH="arm";; \
+        armv7l) ZIG_ARCH="armv7a";; \
         i386|i686) ZIG_ARCH="x86";; \
         *) ZIG_ARCH="$ARCH";; \
     esac && \
