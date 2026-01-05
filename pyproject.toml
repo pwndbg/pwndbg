@@ -43,7 +43,7 @@ lldb = [
     # The LLDB REPL requires readline.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg==21.1.6.post1",
+    "lldb-for-pwndbg==21.1.7.post1",
 ]
 gdb = [
     "gdb-for-pwndbg==17.1.0.post2",

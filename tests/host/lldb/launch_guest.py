@@ -76,7 +76,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
 
 def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
     # The import path is set up before this function is called.
-    os.environ["NO_COLOR"] = "1"
+    os.environ.setdefault("NO_COLOR", "1")
 
     from pwndbginit import pwndbg_lldb
 
@@ -136,7 +136,9 @@ if __name__ == "__main__":
             # is careful.
             assert test_name
 
-            pytest_args = [test_name, "-vvv", "-s", "--showlocals", "--color=yes"]
+            # pytest_args = [test_name, "-vvv", "-s", "--showlocals", "--color=yes"]
+            color = "no" if os.environ.get("NO_COLOR") == "1" else "yes"
+            pytest_args = [test_name, "-vvv", "-s", "--showlocals", f"--color={color}"]
             if os.environ["TEST_PDB_ON_FAIL"] == "1":
                 pytest_args.append("--pdb")
 
