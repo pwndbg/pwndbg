@@ -36,19 +36,32 @@ Btw if you need to strip the binary, `strip` won't work, but `llvm-strip` is arc
 
 ## Full system
 
-You might be tempted to build a development Dockerfile with a `--platform` flag (e.g. `--platform linux/arm64`) but that works by running docker inside of qemu-user, which does not implement ptrace, so you cannot actually debug inside such of a docker container.
+We cannot just run a development Dockerfile under `qemu-user` (by leveraging the docker `--platform` flag) because qemu-user does not implement ptrace, and so debugging will not work. We can however, build that docker image using qemu-user, and then run it using qemu-system. The easiest way to do this is with https://github.com/patryk4815/kernel (you will need to install the nix package manager).
 
-We need to bring up the system using `qemu-system`. We can do this relatively easily with https://github.com/patryk4815/kernel (aarch64 example) (you will need to install the nix package manager to run this command):
+Here is an aarch64 example. First we need qemu binfmt rules, you can get this by installing your distro's flavour of `qemu-user-static-binfmt` or by running this:
+```{.bash .copy}
+docker run --privileged --rm tonistiigi/binfmt --install arm64
+```
+then we build a aarch64 image from the Pwndbg ubuntu development Dockerfile:
+```
+docker buildx build \
+  --platform linux/arm64 \
+  -t pwndbg:aarch64 \
+  --load \
+  .
+```
+Now we run the image using qemu-system:
 ```{.bash .copy}
 sudo nix run github:patryk4815/kernel#vm-aarch64-linux \
     --accept-flake-config --extra-experimental-features flakes \
     --extra-experimental-features nix-command \
-    -- -i debian:13 -v /your/path/to/pwndbg:/pwndbg
+    -- -i pwndbg:aarch64
 ```
-If you want to use more CPUs, you can pass `--cpus N`. If you have enough RAM you should also consider passing `--runtime tmpfs`. After it has started, we can:
+If you want to use more CPUs, you can pass `--cpus N`. If you have enough RAM you should also consider passing `--runtime tmpfs`. After it has started:
 ```{.bash .copy}
 bash
-cd /mnt
-./setup.sh
+cd /pwndbg
+source /venv/bin/activate
+export PWNDBG_NO_AUTOUPDATE=1
+pwndbg
 ```
-to install Pwndbg inside. Depending on your use-case, you may want to run `./setup-dev.sh` as well. You should expect this to be relatively slow. Note that this shell is transient, if you exit it, you will need to re-run the setup.
