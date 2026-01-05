@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import tempfile
 
 import niche_elf
@@ -50,7 +51,7 @@ def klookup(symbol: str, apply: bool) -> None:
         if len(syms) == 0:
             print(message.error(f"No symbol found for {symbol}"))
 
-    if not apply or symbol != "":
+    if not (apply and symbol == ""):
         for sym_name, sym_type, sym_addr in syms:
             print(message.success(f"{sym_addr:#x} {sym_type} {sym_name}"))
 
@@ -60,10 +61,15 @@ def klookup(symbol: str, apply: bool) -> None:
             print(message.error(f"Unsupported architecture {pwndbg.aglib.arch.name}."))
             return
 
-        base: int = paging_info.kbase
+        base: int | None = paging_info.kbase
 
-        _, elf_path = tempfile.mkstemp(prefix="ks-symbols-", suffix=".elf")
-        elf = niche_elf.ELFFile(base)
+        if base is None:
+            # I would be suprised if this was actually possible, we managed to find kallsyms but not
+            # kbase?
+            # But anyway, passing 0 to ELFFile and no ADDR argument to add_symbol_file should still work.
+            elf: niche_elf.ELFFile = niche_elf.ELFFile(0)
+        else:
+            elf = niche_elf.ELFFile(base)
 
         for sym_name, sym_type, sym_addr in syms:
             # I trust bata: bata24/gef.py:create_symboled_elf()
@@ -77,8 +83,16 @@ def klookup(symbol: str, apply: bool) -> None:
             else:
                 elf.add_object(sym_name, sym_addr, bind=bind)
 
+        _, elf_path = tempfile.mkstemp(prefix="ks-symbols-", suffix=".elf")
         elf.write(elf_path)
 
-        pwndbg.dbg.selected_inferior().add_symbol_file(elf_path, base)
+        if base is None:
+            pwndbg.dbg.selected_inferior().add_symbol_file(elf_path)
+        else:
+            pwndbg.dbg.selected_inferior().add_symbol_file(elf_path, base)
+
         print(message.success(f"Added {len(syms)} symbols"))
+
+        # Delete the file after GDB closes its file descriptor.
+        os.unlink(elf_path)
         return
