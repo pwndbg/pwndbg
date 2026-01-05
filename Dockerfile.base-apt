@@ -28,10 +28,17 @@ RUN apt install -y make pkg-config gcc musl-tools golang libc6-dev libc6-dbg
 # TODO: jemalloc build
 
 # Pwndbg runtime dependencies
-RUN cd /tmp/ && curl https://ziglang.org/download/0.14.1/zig-$(uname -m)-linux-0.14.1.tar.xz --output /tmp/zig.tar.xz && \
-    tar -xf /tmp/zig.tar.xz && \
+ARG ZIG_VERSION=0.14.1
+RUN ARCH=$(uname -m) && \
+    case "$ARCH" in \
+        armv7l) ZIG_ARCH="arm";; \
+        i386|i686) ZIG_ARCH="x86";; \
+        *) ZIG_ARCH="$ARCH";; \
+    esac && \
+    curl -L https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz -o /tmp/zig.tar.xz && \
+    tar -xf /tmp/zig.tar.xz -C /tmp && \
     rm /tmp/zig.tar.xz && \
-    mkdir -p /opt && \
+    mkdir -p /opt/zig && \
     mv /tmp/zig-* /opt/zig/ && \
     ln -s /opt/zig/zig /usr/local/bin/zig
 
