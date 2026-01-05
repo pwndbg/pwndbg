@@ -7,6 +7,10 @@ on:
     paths:
       - 'uv.lock'
       - 'Dockerfile.base-apt'
+  pull_request:
+    paths:
+      - 'uv.lock'
+      - 'Dockerfile.base-apt'
 
 permissions:
   contents: read
@@ -47,7 +51,16 @@ jobs:
 
       - name: Build Docker image
         run: |
-          echo "Building for platform: ${{ matrix.platform_base.platform }} with base image: ${{ matrix.platform_base.base_image }}"
+          docker buildx build \
+            --progress=plain \
+            --platform ${{ matrix.platform_base.platform }} \
+            --build-arg image=${{ matrix.platform_base.base_image }} \
+            -f ./Dockerfile.base-apt \
+            -t ghcr.io/pwndbg/base-apt:latest \
+            .
+      - name: Push Docker image
+        if: github.ref == 'refs/heads/dev'
+        run: |
           docker buildx build \
             --progress=plain \
             --platform ${{ matrix.platform_base.platform }} \
