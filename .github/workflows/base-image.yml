@@ -1,0 +1,57 @@
+name: build base pwndbg image
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'uv.lock'
+      - 'Dockerfile.base-apt'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  base-image:
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        platform_base:
+          - platform: linux/amd64
+            base_image: debian:13
+          - platform: linux/arm64
+            base_image: debian:13
+          - platform: linux/386
+            base_image: debian:13
+          - platform: linux/arm/v7
+            base_image: debian:13
+          - platform: linux/ppc64le
+            base_image: debian:13
+          - platform: linux/riscv64
+            base_image: debian:13
+          - platform: linux/s390x
+            base_image: debian:13
+          - platform: linux/loong64
+            base_image: ghcr.io/loong64/debian:trixie
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: |
+          echo "Building for platform: ${{ matrix.platform_base.platform }} with base image: ${{ matrix.platform_base.base_image }}"
+          docker buildx build \
+            --progress=plain \
+            --platform ${{ matrix.platform_base.platform }} \
+            --build-arg image=${{ matrix.platform_base.base_image }} \
+            -f ./Dockerfile.base-apt \
+            -t ghcr.io/pwndbg/base-apt:latest \
+            --push .
