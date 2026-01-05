@@ -1461,11 +1461,11 @@ wheels = [
 
 [[package]]
 name = "niche-elf"
-version = "0.3.5"
+version = "0.3.6"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6f/54/7e85718b10d410b7e92a75fbdf1da434a4e5ccdea373db2ff054ad08a003/niche_elf-0.3.5.tar.gz", hash = "sha256:56f7eec29526b610f64658c15f2b6867275d8216d8e85ca1ba328402c61aaead", size = 27881, upload-time = "2026-01-04T02:52:03.799Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/62/d9/bcc012a470097df2971381a31f23ce99030b5257744664c1aebd3a8342df/niche_elf-0.3.6.tar.gz", hash = "sha256:a4f6e68b5e6bc069a14f087bcc199411a598353d6ca050248551f112bb5565e5", size = 27975, upload-time = "2026-01-05T21:00:57.733Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/de/bb/236fb41803fe43d705c381c2d033a217cfabc1923350cb940427d04512de/niche_elf-0.3.5-py3-none-any.whl", hash = "sha256:46cc0e7667d928bcb52839fdf6a8c55463aa783cb8e3e2f3871c0964e87b915d", size = 28912, upload-time = "2026-01-04T02:52:02.334Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/5a/943007dd578307ee1497a315ef0931eab1e0df9b8337ce471a0fb6b1c239/niche_elf-0.3.6-py3-none-any.whl", hash = "sha256:cc70984985da039da12e54007445da7448d652a8af672944b742ace3e46f7f91", size = 29012, upload-time = "2026-01-05T21:00:54.96Z" },
 ]
 
 [[package]]
@@ -1729,7 +1729,7 @@ requires-dist = [
     { name = "ipython", specifier = ">=8.37.0,<9" },
     { name = "lldb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'lldb'", specifier = "==21.1.7.post1", index = "https://mirrors.loong64.com/pypi/simple" },
     { name = "lldb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'lldb') or (sys_platform != 'linux' and extra == 'lldb')", specifier = "==21.1.7.post1" },
-    { name = "niche-elf", specifier = "==0.3.5" },
+    { name = "niche-elf", specifier = "==0.3.6" },
     { name = "psutil", specifier = ">=7.0.0,<8" },
     { name = "pt", git = "https://github.com/martinradev/gdb-pt-dump?rev=50227bda0b6332e94027f811a15879588de6d5cb" },
     { name = "pwntools", specifier = ">=4.14.1,<5" },
