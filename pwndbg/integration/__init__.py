@@ -29,6 +29,7 @@ import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.vmmap
 import pwndbg.color.syntax_highlight
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.pretty_print as pretty_print
 from pwndbg.color import message
@@ -512,10 +513,14 @@ class IntegrationManager:
         if not path:
             return False
 
-        if inf is not None or (inf := pwndbg.dbg.selected_inferior()) is not None:
+        try:
+            if inf is None:
+                inf = pwndbg.dbg.selected_inferior()
             # FIXME: Only implemented in GDB :(
             if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
                 return inf.remove_symbol_file(path)
+        except pwndbg.dbg_mod.NoInferior:
+            pass
 
         return False
 
@@ -552,8 +557,9 @@ class IntegrationManager:
         self._function_headers = None
         self._global_vars = None
 
-        inf: Optional[pwndbg.dbg_mod.Process] = pwndbg.dbg.selected_inferior()
-        if inf is None:
+        try:
+            inf: pwndbg.dbg_mod.Process = pwndbg.dbg.selected_inferior()
+        except pwndbg.dbg_mod.NoInferior:
             return 0
 
         # Remove old symbol file.
