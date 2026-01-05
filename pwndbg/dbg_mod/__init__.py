@@ -68,7 +68,7 @@ class Error(Exception):
 
 
 class NoInferior(Exception):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("The debugger couldn't find a selected inferior.")
 
 

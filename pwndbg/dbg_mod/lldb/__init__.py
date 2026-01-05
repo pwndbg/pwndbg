@@ -2143,7 +2143,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         target_count = self.debugger.GetNumTargets()
         if target_count == 0:
             # No targets are available.
-            raise pwndbg.dbg_mod.NoInferior()
+            raise pwndbg.dbg_mod.NoInferior
         if target_count > 1:
             # We don't support multiple targets.
             raise RuntimeError("Multiple LLDB targets are not supported")
@@ -2154,7 +2154,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         process = target.GetProcess()
         if not process.IsValid():
             # No process we can use.
-            raise pwndbg.dbg_mod.NoInferior()
+            raise pwndbg.dbg_mod.NoInferior
 
         return LLDBProcess(self, process, target, self._current_process_is_gdb_remote)
 
@@ -2173,7 +2173,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         if p.IsValid() and t.IsValid():
             return LLDBProcess(self, p, t, self._current_process_is_gdb_remote)
 
-        raise pwndbg.dbg_mod.NoInferior()
+        raise pwndbg.dbg_mod.NoInferior
 
     def _any_thread(self) -> LLDBThread | None:
         """
