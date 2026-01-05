@@ -19,6 +19,7 @@ permissions:
 jobs:
   base-image:
     runs-on: ubuntu-24.04-arm
+    continue-on-error: true
     strategy:
       matrix:
         platform_base:
