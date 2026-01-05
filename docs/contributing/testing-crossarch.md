@@ -12,7 +12,7 @@ zig cc tests/binaries/host/telescope_binary.native.c \
     --target=aarch64-linux-musl -static \
     -o ./tele-aarch64 
 ```
-We compile it with `-static` because I don't want to install `/lib/ld-linux-aarch64.so.1` which is required to run aarch64 binaries on my x86_64 system. We use `-musl` instead of `-gnu` because glibc does not support static linking.
+We compile it with `-static` because I don't want to install `/lib/ld-linux-aarch64.so.1` which is required to run aarch64 binaries on my x86_64 system. We use `-musl` instead of `-gnu` because glibc does not officially support static linking (and thus zig doesn't allow it).
 
 Now, if you have `qemu-user-binfmt` installed, you may be able to run the binary just like that: `./tele-aarch64`, but that includes the whole of QEMU, so we will want to use `qemu-user` explicitly to facilitate sane debugging. In particular run:
 ```{.bash .copy}
