@@ -33,7 +33,7 @@ jobs:
           - platform: linux/s390x
             base_image: debian:13
           - platform: linux/loong64
-            base_image: ghcr.io/loong64/debian:trixie
+            base_image: ghcr.io/loong64/debian:trixie  # official debian image will be supported on debian:14
 
     steps:
       - name: Checkout repository
