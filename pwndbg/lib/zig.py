@@ -16,6 +16,7 @@ from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 
+# Supported architectures can be obtained using the command: `zig targets`
 _arch_mapping: Dict[
     Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little", "big"], int], str
 ] = {
