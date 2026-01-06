@@ -509,7 +509,7 @@ def extract_context_sections(output: str) -> list[str]:
 @pwndbg_test
 async def test_context_all_sections_flag(ctrl: Controller) -> None:
     """
-    Tests that context -a/--all shows all sections regardless of context-sections config.
+    Tests that context -a/--all shows all sections regardless of context-sections config
     """
     import pwndbg
 
@@ -524,7 +524,7 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
     default_sections = extract_context_sections(default_out)
     assert default_sections == ["REGISTERS"]
 
-    # Now use -a flag. It should capture all sections regardless of config.
+    # Now use -a flag. It should capture all sections regardless of config
     all_out = await ctrl.execute_and_capture("context -a")
     expected_all = ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]
     if is_gdb:
@@ -535,20 +535,12 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
     # Now proceed to next function call (i.e at func_with_args) for testing ARGUMENTS section
     await ctrl.execute("nextcall")
 
-    # Now use -a flag - should show all sections including ARGUMENTS.
+    # Now use -a flag - should include ARGUMENTS section when displaying all sections
     all_out_after_nextcall = await ctrl.execute_and_capture("ctx -a")
-    expected_all_with_args = [
-        "ARGUMENTS",
-        "REGISTERS",
-        "DISASM",
-        "STACK",
-        "BACKTRACE",
-        "SOURCE (CODE)",
-    ]
-    if is_gdb:
-        expected_all_with_args.append("LAST SIGNAL")
+    expected_all.insert(0, "ARGUMENTS")
+    
     all_sections_after_nextcall = extract_context_sections(all_out_after_nextcall)
-    assert all_sections_after_nextcall == expected_all_with_args
+    assert all_sections_after_nextcall == expected_all
 
     # Verify --all alias works identically
     alias_out = await ctrl.execute_and_capture("ctx --all")
