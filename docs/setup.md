@@ -10,7 +10,15 @@ There are multiple ways to install Pwndbg, depending on whether you want to use 
 ## Installing pwndbg-gdb
 Install via curl/sh (Linux/macOS)
 ```{.bash .copy}
-curl -qsL 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+```
+Install via GNU wget/sh (Linux/macOS)
+```{.bash .copy}
+wget --https-only --secure-protocol=TLSv1_2 -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
+```
+Install via BusyBox wget/sh (Linux/macOS)
+```{.bash .copy}
+wget -qO- 'https://install.pwndbg.re' | sh -s -- -t pwndbg-gdb
 ```
 Install via Homebrew (macOS)
 ```{.bash .copy}
@@ -25,19 +33,19 @@ When installing with GDB, you may also download a package to install through you
 
 RPM-based Systems (CentOS/Alma/Rocky/RHEL):
 ```{.bash .copy}
-dnf install ./pwndbg-2025.05.30.x86_64.rpm
+dnf install ./pwndbg-2025.10.20.x86_64.rpm
 ```
 DEB-based Systems (Debian/Ubuntu/Kali):
 ```{.bash .copy}
-apt install ./pwndbg_2025.05.30_amd64.deb
+apt install ./pwndbg_2025.10.20_amd64.deb
 ```
 Alpine:
 ```{.bash .copy}
-apk add --allow-untrusted ./pwndbg_2025.05.30_x86_64.apk
+apk add --allow-untrusted ./pwndbg_2025.10.20_x86_64.apk
 ```
 Arch Linux:
 ```{.bash .copy}
-pacman -U ./pwndbg-2025.05.30-1-x86_64.pkg.tar.zst
+pacman -U ./pwndbg-2025.10.20-1-x86_64.pkg.tar.zst
 ```
 ### Distro packages
 You may want to install Pwndbg through your distribution's package manager. This installation method is **not officially supported** because we cannot control the versions of the python dependencies Pwndbg uses in this case. Please use any other installation method when reproducing bug reports (portable package is probably simplest in this case). If a bug reproduces with a distro package but not with any of the supported installation methods, please report it to the package maintainer; if the problem cannot be fixed, let us know and we will add it to a list of known issues below.
@@ -52,10 +60,13 @@ You may want to install Pwndbg through your distribution's package manager. This
     ```
     Pwndbg will be started every time you invoke `gdb` now.
 
+    Note that the Arch package is [quite outdated](https://archlinux.org/packages/extra/any/pwndbg/). Once it gets updated you will not need the `source` line in your `~/.gdbinit` and will be able to run Pwndbg with the `pwndbg` and `pwndbg-lldb` commands. See [packaging Pwndbg](tutorials/packaging.md).
+
 === "Gentoo"
     ```{.bash .copy}
     sudo emerge --ask dev-debug/pwndbg
     ```
+    Pwndbg will now be available with the `pwndbg` and `pwndbg-lldb` commands.
 
 ----
 
@@ -68,7 +79,7 @@ command.
 
 Install via curl/sh (Linux/macOS)
 ```{.bash .copy}
-curl -qsL 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb
+curl --proto '=https' --tlsv1.2 -LsSf 'https://install.pwndbg.re' | sh -s -- -t pwndbg-lldb
 ```
 Install via Homebrew (macOS)
 ```{.bash .copy}
@@ -111,4 +122,9 @@ xattr -rd com.apple.quarantine pwndbg
 Assuming that the files were extracted to a folder called `pwndbg`.
 
 ## Installing from source
-See [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section.
+See [contributing/Installing Pwndbg from source](contributing/setup-pwndbg-dev.md#installing-pwndbg-from-source), you do not need the "The development environment" section. The TLDR is to run the following (but see the aforementioned link for more details):
+```{.bash .copy}
+git clone https://github.com/pwndbg/pwndbg
+cd pwndbg
+./setup.sh
+```

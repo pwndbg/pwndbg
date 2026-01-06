@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 @pwndbg_test
@@ -13,7 +14,7 @@ async def test_command_cyclic_value(ctrl: Controller) -> None:
     """
     from pwnlib.util.cyclic import cyclic
 
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 
@@ -36,18 +37,20 @@ async def test_command_cyclic_register(ctrl: Controller) -> None:
     """
     from pwnlib.util.cyclic import cyclic
 
-    import pwndbg.aglib.arch
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(REFERENCE_BINARY)
 
+    reg_name = pwndbg.aglib.regs.gpr[0]
     ptr_size = pwndbg.aglib.arch.ptrsize
+
     test_offset = 45
     pattern = cyclic(length=80, n=ptr_size)
-    pwndbg.aglib.regs.rdi = int.from_bytes(
-        pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian
+    pwndbg.aglib.regs.write_reg(
+        reg_name,
+        int.from_bytes(pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian),
     )
-    out = await ctrl.execute_and_capture("cyclic -l $rdi")
+    out = await ctrl.execute_and_capture(f"cyclic -l ${reg_name}")
 
     assert out == (
         "Finding cyclic pattern of 8 bytes: b'aaagaaaa' (hex: 0x6161616761616161)\n"
@@ -62,13 +65,12 @@ async def test_command_cyclic_address(ctrl: Controller) -> None:
     """
     from pwnlib.util.cyclic import cyclic
 
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
 
     await ctrl.launch(REFERENCE_BINARY)
 
-    addr = pwndbg.aglib.regs.rsp
+    addr = pwndbg.aglib.regs.sp
     ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 48
     pattern = cyclic(length=80, n=ptr_size)

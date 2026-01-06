@@ -3,15 +3,13 @@ from __future__ import annotations
 import argparse
 from typing import Union
 
-import pwndbg.aglib.file
+import pwndbg.aglib
 import pwndbg.aglib.shellcode
-import pwndbg.chain
+import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.enhance
+import pwndbg.dbg_mod
 import pwndbg.lib.memory
-import pwndbg.wrappers.checksec
-import pwndbg.wrappers.readelf
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -184,7 +182,7 @@ instead.\
         # need to bother them with any of this information, and get a nice
         # speedup as a bonus.
         if not force:
-            page = pwndbg.lib.memory.Page(addr, int(length), 0, 0)
+            page = pwndbg.lib.memory.Page(addr, int(length), 0, 0, pwndbg.aglib.arch.ptrsize)
             collisions = []
             vm = pwndbg.aglib.vmmap.get()
 
@@ -210,7 +208,7 @@ instead.\
                     m(
                         f"""\
 Trying to mmap with MAP_FIXED for an address range that collides with {len(collisions)}
-existing range{'s' if len(collisions) > 1 else ''}:\
+existing range{"s" if len(collisions) > 1 else ""}:\
 """
                     )
                 )

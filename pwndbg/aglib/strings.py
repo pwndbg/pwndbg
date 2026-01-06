@@ -11,6 +11,7 @@ from typing import Iterator
 
 import pwndbg
 import pwndbg.aglib.memory
+import pwndbg.dbg_mod
 from pwndbg.lib.memory import Page
 
 length = 15

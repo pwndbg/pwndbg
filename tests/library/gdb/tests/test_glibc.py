@@ -12,7 +12,7 @@ import pwndbg.glibc
 from . import get_binary
 
 # We used the same binary as heap tests since it will use libc, and many functions are mainly for debugging the heap
-HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.out")
+HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 
 
 @pytest.mark.parametrize(
@@ -23,6 +23,8 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
     if not have_debugging_information:
         # Make sure the (*) in the output of `info sharedlibrary` won't affect the result
         gdb.execute("set debug-file-directory")
+        gdb.execute("set debuginfod enabled off")
+
     start_binary(HEAP_MALLOC_CHUNK)
     gdb.execute("break break_here")
     gdb.execute("continue")

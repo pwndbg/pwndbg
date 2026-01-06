@@ -6,7 +6,7 @@ from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-SYSCALLS_BINARY = get_binary("syscalls-x64.out")
+SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
 
 OPCODE_BYTES_TESTS_EXPECTED_OUTPUT = {
     1: [
@@ -126,18 +126,18 @@ async def test_nearpc_opcode_bytes(ctrl: Controller, opcode_bytes: int) -> None:
     await ctrl.execute("nextsyscall")
 
     await ctrl.execute(f"set nearpc-num-opcode-bytes {opcode_bytes}")
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a {} <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f {} <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        " ► 0x400094 {} <_start+20>    syscall  <SYS_read>\n"
+        " ► 0x400094 {} <_start+20>    syscall <SYS_read>\n"
         "        fd:        0x1337\n"
         "        buf:       0xdeadbeef\n"
         "        nbytes:    0\n"
         "   0x400096 {} <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
-        "   0x40009b {} <_start+27>    int    0x80\n"
+        "   0x40009b {} <_start+27>    int    0x80 <SYS_unlink>\n"
         "   0x40009d {}                add    byte ptr [rax], al\n"
         "   0x40009f {}                add    byte ptr [rax], al\n"
         "   0x4000a1 {}                add    byte ptr [rax], al\n"
@@ -155,18 +155,18 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
     await ctrl.execute("set nearpc-num-opcode-bytes 5")
     await ctrl.execute(f"set nearpc-opcode-separator-bytes {separator_bytes}")
 
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     excepted = (
         "   0x400080 {} <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 {} <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a {} <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f {} <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        " ► 0x400094 {} <_start+20>    syscall  <SYS_read>\n"
+        " ► 0x400094 {} <_start+20>    syscall <SYS_read>\n"
         "        fd:        0x1337\n"
         "        buf:       0xdeadbeef\n"
         "        nbytes:    0\n"
         "   0x400096 {} <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
-        "   0x40009b {} <_start+27>    int    0x80\n"
+        "   0x40009b {} <_start+27>    int    0x80 <SYS_unlink>\n"
         "   0x40009d {}                add    byte ptr [rax], al\n"
         "   0x40009f {}                add    byte ptr [rax], al\n"
         "   0x4000a1 {}                add    byte ptr [rax], al\n"
@@ -178,7 +178,7 @@ async def test_nearpc_opcode_seperator(ctrl: Controller, separator_bytes: int) -
 @pwndbg_test
 async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
-    from pwndbg.dbg import BreakpointLocation
+    from pwndbg.dbg_mod import BreakpointLocation
 
     await ctrl.launch(SYSCALLS_BINARY)
 
@@ -187,15 +187,15 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     bp1 = pwndbg.dbg.selected_inferior().break_at(BreakpointLocation(start_base + 5))
     bp2 = pwndbg.dbg.selected_inferior().break_at(BreakpointLocation(start_base + 22))
 
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         " ► 0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "b+ 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall \n"
+        "   0x400094 <_start+20>    syscall <SYS_read>\n"
         "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
-        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "   0x40009d                add    byte ptr [rax], al\n"
         "   0x40009f                add    byte ptr [rax], al\n"
         "   0x4000a1                add    byte ptr [rax], al\n"
@@ -204,16 +204,16 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     await ctrl.step_instruction()
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     # When we stop on a breakpoint, we only highlight it (and not show the "b+" marker)
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         " ► 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         "   0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall \n"
+        "   0x400094 <_start+20>    syscall <SYS_read>\n"
         "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
-        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "   0x40009d                add    byte ptr [rax], al\n"
         "   0x40009f                add    byte ptr [rax], al\n"
         "   0x4000a1                add    byte ptr [rax], al\n"
@@ -222,15 +222,15 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     await ctrl.step_instruction()
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "b+ 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall \n"
+        "   0x400094 <_start+20>    syscall <SYS_read>\n"
         "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
-        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "   0x40009d                add    byte ptr [rax], al\n"
         "   0x40009f                add    byte ptr [rax], al\n"
         "   0x4000a1                add    byte ptr [rax], al\n"
@@ -239,15 +239,15 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     bp1.set_enabled(False)
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall \n"
+        "   0x400094 <_start+20>    syscall <SYS_read>\n"
         "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
-        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "   0x40009d                add    byte ptr [rax], al\n"
         "   0x40009f                add    byte ptr [rax], al\n"
         "   0x4000a1                add    byte ptr [rax], al\n"
@@ -256,15 +256,15 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     bp1.set_enabled(True)
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "b+ 0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall \n"
+        "   0x400094 <_start+20>    syscall <SYS_read>\n"
         "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
-        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "   0x40009d                add    byte ptr [rax], al\n"
         "   0x40009f                add    byte ptr [rax], al\n"
         "   0x4000a1                add    byte ptr [rax], al\n"
@@ -273,15 +273,15 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     bp1.remove()
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall \n"
+        "   0x400094 <_start+20>    syscall <SYS_read>\n"
         "b+ 0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
-        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "   0x40009d                add    byte ptr [rax], al\n"
         "   0x40009f                add    byte ptr [rax], al\n"
         "   0x4000a1                add    byte ptr [rax], al\n"
@@ -290,15 +290,15 @@ async def test_nearpc_highlight_breakpoint(ctrl: Controller) -> None:
     assert dis == expected
 
     bp2.remove()
-    dis = await ctrl.execute_and_capture("nearpc")
+    dis = await ctrl.execute_and_capture("nearpc -t 11")
     expected = (
         "   0x400080 <_start>       mov    eax, 0                 EAX => 0\n"
         "   0x400085 <_start+5>     mov    edi, 0x1337            EDI => 0x1337\n"
         " ► 0x40008a <_start+10>    mov    esi, 0xdeadbeef        ESI => 0xdeadbeef\n"
         "   0x40008f <_start+15>    mov    ecx, 0x10              ECX => 0x10\n"
-        "   0x400094 <_start+20>    syscall \n"
+        "   0x400094 <_start+20>    syscall <SYS_read>\n"
         "   0x400096 <_start+22>    mov    eax, 0xa               EAX => 0xa\n"
-        "   0x40009b <_start+27>    int    0x80\n"
+        "   0x40009b <_start+27>    int    0x80 <SYS_unlink>\n"
         "   0x40009d                add    byte ptr [rax], al\n"
         "   0x40009f                add    byte ptr [rax], al\n"
         "   0x4000a1                add    byte ptr [rax], al\n"

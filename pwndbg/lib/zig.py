@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 import os.path
 import pathlib
+import shutil
 import subprocess
 import tempfile
 from typing import Dict
@@ -9,12 +11,15 @@ from typing import List
 from typing import Literal
 from typing import Tuple
 
+import pwndbg.lib.cache
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 
 # Supported architectures can be obtained using the command: `zig targets`
-_arch_mapping: Dict[Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little", "big"], int], str] = {
+_arch_mapping: Dict[
+    Tuple[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Literal["little", "big"], int], str
+] = {
     ("x86-64", "little", 8): "x86_64",
     ("i386", "little", 4): "x86",
     ("mips", "big", 4): "mips",
@@ -44,7 +49,6 @@ _asm_header: Dict[str, str] = {
     # `.intel_syntax noprefix` forces the use of Intel assembly syntax instead of AT&T
     "x86_64": _prefix_header + ".intel_syntax noprefix\n",
     "x86": _prefix_header + ".intel_syntax noprefix\n",
-
     # `.set noreorder` disables instruction reordering for MIPS to handle delay slots correctly
     "mips": _prefix_header + ".set noreorder\n",
     "mipsel": _prefix_header + ".set noreorder\n",
@@ -52,7 +56,6 @@ _asm_header: Dict[str, str] = {
     "mips64el": _prefix_header + ".set noreorder\n",
     "aarch64": _prefix_header,
     "aarch64_be": _prefix_header,
-
     # `.syntax unified` enables the unified assembly syntax for ARM/Thumb
     "arm": _prefix_header + ".syntax unified\n",
     "armeb": _prefix_header + ".syntax unified\n",
@@ -69,6 +72,46 @@ _asm_header: Dict[str, str] = {
     "loongarch64": _prefix_header,
     "s390x": _prefix_header,
 }
+
+
+ZIG_SUPPORTED_VERSION = "0.14.1"
+
+
+@pwndbg.lib.cache.cache_until("forever")
+def get_zig_executable() -> str:
+    """
+    Get the path to the zig executable.
+    Precedence: ziglang module, zig in PATH.
+    """
+    try:
+        import ziglang  # type: ignore[import-untyped]
+
+        return os.path.join(os.path.dirname(ziglang.__file__), "zig")
+    except ImportError:
+        pass
+
+    zig_path = shutil.which("zig")
+    if zig_path is None:
+        raise ValueError("Python module ziglang not available and zig not found in PATH")
+
+    try:
+        result = subprocess.run(
+            [zig_path, "version"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        version = result.stdout.strip()
+        if version != ZIG_SUPPORTED_VERSION:
+            raise ValueError(
+                f"Unsupported Zig version: {version}. "
+                f"Only version {ZIG_SUPPORTED_VERSION} is supported."
+            )
+    except Exception as e:
+        raise ValueError(f"Failed to check Zig version at {zig_path}: {e}")
+
+    return zig_path
+
 
 def _get_zig_target(arch: ArchDefinition) -> str | None:
     if arch.platform == Platform.LINUX:
@@ -89,36 +132,34 @@ def _get_zig_target(arch: ArchDefinition) -> str | None:
 
 
 def flags(arch: ArchDefinition) -> List[str]:
-    try:
-        import ziglang  # type: ignore[import-untyped]
-    except ImportError:
-        raise ValueError("Can't import ziglang")
+    zig_executable = get_zig_executable()
 
     zig_target = _get_zig_target(arch)
     if zig_target is None:
-        raise ValueError(f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})")
+        raise ValueError(
+            f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})"
+        )
 
     return [
-        os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+        zig_executable,
         "cc",
         "-target",
         zig_target,
     ]
 
 
-def asm(arch: ArchDefinition, data: str, includes: List[pathlib.Path] | None=None) -> bytes:
+def asm(arch: ArchDefinition, data: str, includes: List[pathlib.Path] | None = None) -> bytes:
     arch_mapping = _arch_mapping.get((arch.name, arch.endian, arch.ptrsize), None)
     if arch_mapping is None:
-        raise ValueError(f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})")
+        raise ValueError(
+            f"Can't find ziglang target for ({(arch.name, arch.endian, arch.ptrsize)})"
+        )
 
     return _asm(arch_mapping, data, includes)
 
 
-def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None=None) -> bytes:
-    try:
-        import ziglang
-    except ImportError:
-        raise ValueError("Can't import ziglang")
+def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None = None) -> bytes:
+    zig_executable = get_zig_executable()
 
     header = _asm_header.get(arch_mapping, None)
     if header is None:
@@ -127,8 +168,8 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None=None)
     if includes is None:
         includes = []
 
-    includes = ''.join((f'#include "{path}"\n' for path in includes))
-    target = f'{arch_mapping}-freestanding'
+    include_str: str = "".join((f'#include "{path}"\n' for path in includes))
+    target = f"{arch_mapping}-freestanding"
 
     with tempfile.TemporaryDirectory() as tmpdir:
         asm_file = os.path.join(tmpdir, "input.S")
@@ -136,14 +177,14 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None=None)
         bytecode_file = os.path.join(tmpdir, "out.bytecode")
 
         with open(asm_file, "w") as f:
-            f.write(includes)
+            f.write(include_str)
             f.write(header)
             f.write(data)
 
         # Build the binary with Zig
         compile_process = subprocess.run(
             [
-                os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                zig_executable,
                 "cc",
                 "-target",
                 target,
@@ -162,7 +203,7 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None=None)
         # Extract bytecode
         objcopy_process = subprocess.run(
             [
-                os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                zig_executable,
                 "objcopy",
                 "-O",
                 "binary",
@@ -176,7 +217,9 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None=None)
             universal_newlines=True,
         )
         if objcopy_process.returncode != 0:
-            raise Exception("Extracting bytecode error", objcopy_process.stdout, objcopy_process.stderr)
+            raise Exception(
+                "Extracting bytecode error", objcopy_process.stdout, objcopy_process.stderr
+            )
 
         with open(bytecode_file, "rb") as f:
             return f.read()

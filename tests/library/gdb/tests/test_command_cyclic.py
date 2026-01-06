@@ -3,13 +3,12 @@ from __future__ import annotations
 import gdb
 from pwnlib.util.cyclic import cyclic
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 def test_command_cyclic_value(start_binary):
@@ -39,8 +38,9 @@ def test_command_cyclic_register(start_binary):
     ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 45
     pattern = cyclic(length=80, n=ptr_size)
-    pwndbg.aglib.regs.rdi = int.from_bytes(
-        pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian
+    pwndbg.aglib.regs.write_reg(
+        "rdi",
+        int.from_bytes(pattern[test_offset : test_offset + ptr_size], pwndbg.aglib.arch.endian),
     )
     out = gdb.execute("cyclic -l $rdi", to_string=True)
 
@@ -56,7 +56,7 @@ def test_command_cyclic_address(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    addr = pwndbg.aglib.regs.rsp
+    addr = pwndbg.aglib.regs.sp
     ptr_size = pwndbg.aglib.arch.ptrsize
     test_offset = 48
     pattern = cyclic(length=80, n=ptr_size)
@@ -99,20 +99,20 @@ def test_command_cyclic_detect(start_binary):
     offset_rax = 20
     pattern_default = cyclic(length=100, n=ptr_size)
     value_rax = int.from_bytes(pattern_default[offset_rax : offset_rax + ptr_size], endian)
-    pwndbg.aglib.regs.rax = value_rax
+    pwndbg.aglib.regs.write_reg("rax", value_rax)
 
     offset_rbx_ptr = 40
-    stack_addr = pwndbg.aglib.regs.rsp
+    stack_addr = pwndbg.aglib.regs.sp
     pwndbg.aglib.memory.write(
         stack_addr, pattern_default[offset_rbx_ptr : offset_rbx_ptr + ptr_size]
     )
-    pwndbg.aglib.regs.rbx = stack_addr
+    pwndbg.aglib.regs.write_reg("rbx", stack_addr)
 
     offset_rcx = 15
     alphabet_custom = b"0123456789ABCDEF"
     pattern_custom = cyclic(length=100, n=ptr_size, alphabet=alphabet_custom)
     value_rcx = int.from_bytes(pattern_custom[offset_rcx : offset_rcx + ptr_size], endian)
-    pwndbg.aglib.regs.rcx = value_rcx
+    pwndbg.aglib.regs.write_reg("rcx", value_rcx)
 
     out_default = gdb.execute("cyclic --detect", to_string=True)
 
@@ -131,16 +131,16 @@ def test_command_cyclic_detect(start_binary):
     }
 
     assert "rax" in results_default, "Pattern in RAX not detected"
-    assert (
-        results_default["rax"] == offset_rax
-    ), f"Incorrect offset for RAX: Got {results_default['rax']}, expected {offset_rax}"
+    assert results_default["rax"] == offset_rax, (
+        f"Incorrect offset for RAX: Got {results_default['rax']}, expected {offset_rax}"
+    )
 
     assert "rbx->" in results_default, "Pattern pointed to by RBX not detected"
-    assert (
-        results_default["rbx->"] == offset_rbx_ptr
-    ), f"Incorrect offset for RBX->: Got {results_default['rbx->']}, expected {offset_rbx_ptr}"
+    assert results_default["rbx->"] == offset_rbx_ptr, (
+        f"Incorrect offset for RBX->: Got {results_default['rbx->']}, expected {offset_rbx_ptr}"
+    )
 
     assert "rcx" in results_custom, "Pattern in RCX with custom alphabet not detected"
-    assert (
-        results_custom["rcx"] == offset_rcx
-    ), f"Incorrect offset for RCX: Got {results_custom['rcx']}, expected {offset_rcx}"
+    assert results_custom["rcx"] == offset_rcx, (
+        f"Incorrect offset for RCX: Got {results_custom['rcx']}, expected {offset_rcx}"
+    )

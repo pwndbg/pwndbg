@@ -14,12 +14,17 @@ from typing import Tuple
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.heap.heap
 import pwndbg.aglib.memory as memory
 import pwndbg.aglib.stack
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
+import pwndbg.aglib.vmmap
+import pwndbg.auxv
 import pwndbg.color.message as message
+import pwndbg.dbg_mod
+import pwndbg.search
 
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/meta.h#L14
 # Slot granularity.
@@ -1055,19 +1060,19 @@ class MallocContext:
 
         assert len(size_classes) == 48
 
-        for i in range(len(size_classes)):
+        for _ in range(len(size_classes)):
             cur_active = next_int(ptrsize)
             self.active.append(cur_active)
 
-        for i in range(len(size_classes)):
+        for _ in range(len(size_classes)):
             cur_usage = next_int(size_tsize)
             self.usage_by_class.append(cur_usage)
 
-        for i in range(32):
+        for _ in range(32):
             cur_seq = next_int(uint8size)
             self.unmap_seq.append(cur_seq)
 
-        for i in range(32):
+        for _ in range(32):
             cur_bounce = next_int(uint8size)
             self.bounces.append(cur_bounce)
 
@@ -1108,7 +1113,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
     By leveraging the __malloc_context symbol.
 
     Import this singleton class like:
-    from pwndbg.aglib.heap.mallocng import mallocng as ng
+    from pwndbg.aglib.heap.mallocng import ng
 
     and make sure that you have run ng.init_if_needed()
     before you used the object.
@@ -1213,7 +1218,11 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         if pwndbg.dbg.selected_inferior().is_dynamically_linked():
             for addr, mapname in possible:
-                if mapname.endswith("libc.so"):
+                # Unlike glibc, for musl the libc and ld are loaded as one object file.
+                # On some distro's the object file shows up as libc
+                # (e.g. /usr/lib/musl/lib/libc.so on archlinux) and on some as ld
+                # (e.g. /usr/lib/ld-musl-x86_64.so.1 on fedora).
+                if mapname.endswith("libc.so") or "/ld-musl-" in mapname:
                     maybe_ctx = MallocContext(addr)
                     if maybe_ctx.looks_valid():
                         self.ctx_addr = addr
@@ -1223,7 +1232,18 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         known_invalid.add(addr)
 
             for addr, mapname in possible:
-                if "libc" in mapname and addr not in known_invalid:
+                if addr in known_invalid:
+                    continue
+
+                # It is probably better for this matching to be overly eager than overly restrictive,
+                # we can fix it later if we ever actually encounter false positives.
+                # The .startswith() logic is there for CTF-type setups when the libc/ld is in the same folder as the binary.
+                if (
+                    "/libc" in mapname
+                    or "/ld-" in mapname
+                    or mapname.startswith("libc")
+                    or mapname.startswith("ld-")
+                ):
                     maybe_ctx = MallocContext(addr)
                     if maybe_ctx.looks_valid():
                         self.ctx_addr = addr
@@ -1234,7 +1254,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
             print(
                 message.warn(
-                    "Couldn't find __malloc_context in a 'libc' mapping, trying elsewhere."
+                    "Couldn't find __malloc_context in a 'libc' or 'ld-' mapping, trying elsewhere."
                 )
             )
         else:
@@ -1314,7 +1334,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         f"Mallocng.containing: Could not read meta_area ({e}), returning early."
                     )
                 )
-                return (None, None)
+                return None, None
 
             # Iterate over all metas in the meta_area.
             for i in range(meta_area.nslots):
@@ -1351,7 +1371,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             meta_area_addr = meta_area.next
 
         if hit_group is None:
-            return (None, None)
+            return None, None
 
         # Need to read memory for the .contains_group() check.
         hit_slot: Optional[Slot] = None
@@ -1377,7 +1397,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         f"The initial match was for group @ {backup_addr}.\n"
                     )
                 )
-                return (None, None)
+                return None, None
 
         try:
             # Recursively go into deeper nested groups until we find a slot
@@ -1396,7 +1416,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     # top level group (either mmap()ed or donated).
                     # We could return *some* information to the callee
                     # but alas, let's be technically correct.
-                    return (None, None)
+                    return None, None
 
                 # Calculate the correct inner slot.
                 slot_idx = (address - valid_start) // hit_group.meta.stride
@@ -1483,4 +1503,4 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         )
 
 
-mallocng = Mallocng()
+ng = Mallocng()

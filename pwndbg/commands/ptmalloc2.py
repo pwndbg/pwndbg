@@ -14,14 +14,14 @@ import pwndbg.aglib.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
-import pwndbg.color.context as C
-import pwndbg.color.memory as M
+import pwndbg.color.context as ctx_color
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
+import pwndbg.commands.hexdump
+import pwndbg.dbg_mod
 import pwndbg.glibc
-import pwndbg.lib.heap.helpers
 from pwndbg.aglib.heap import heap_chain_limit
 from pwndbg.aglib.heap.ptmalloc import Arena
 from pwndbg.aglib.heap.ptmalloc import Bins
@@ -135,9 +135,9 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
     return result
 
 
-def print_no_arena_found_error(tid=None) -> None:
+def print_no_arena_found_error(tid: int | None = None) -> None:
     if tid is None:
-        tid = pwndbg.aglib.proc.thread_id
+        tid = pwndbg.aglib.proc.thread_id()
     print(
         message.notice(
             f"No arena found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
@@ -147,7 +147,7 @@ def print_no_arena_found_error(tid=None) -> None:
 
 def print_no_tcache_bins_found_error(tid: int | None = None) -> None:
     if tid is None:
-        tid = pwndbg.aglib.proc.thread_id
+        tid = pwndbg.aglib.proc.thread_id()
     print(
         message.notice(
             f"No tcache bins found for thread {message.hint(tid)} (the thread hasn't performed any allocations)."
@@ -277,7 +277,7 @@ def arena(addr: int | None = None) -> None:
         arena = Arena(addr)
     else:
         arena = allocator.thread_arena
-        tid = pwndbg.aglib.proc.thread_id
+        tid = pwndbg.aglib.proc.thread_id()
         # arena might be None if the current thread doesn't allocate the arena
         if arena is None:
             print_no_arena_found_error(tid)
@@ -333,7 +333,7 @@ def arenas() -> None:
         ]
 
         for mapping_data in str(pwndbg.aglib.vmmap.find(first_heap.start)).split():
-            row.append(M.c.heap(mapping_data))
+            row.append(mem_color.c.heap(mapping_data))
 
         table.append(row)
 
@@ -345,7 +345,7 @@ def arenas() -> None:
             ]
 
             for mapping_data in str(pwndbg.aglib.vmmap.find(extra_heap.start)).split():
-                row.append(M.c.heap(mapping_data))
+                row.append(mem_color.c.heap(mapping_data))
 
             table.append(row)
 
@@ -362,6 +362,7 @@ parser.add_argument("addr", nargs="?", type=int, default=None, help="Address of 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
 @pwndbg.commands.OnlyWhenUserspace
 def tcache(addr: int | None = None) -> None:
@@ -373,7 +374,7 @@ def tcache(addr: int | None = None) -> None:
 
     tcache = allocator.get_tcache(addr)
     # if the current thread doesn't allocate the arena, tcache will be NULL
-    tid = pwndbg.aglib.proc.thread_id
+    tid = pwndbg.aglib.proc.thread_id()
     if tcache:
         print(
             message.notice(
@@ -471,7 +472,7 @@ def malloc_chunk(
 
     headers_to_print: List[str] = []  # both state (free/allocated) and flags
     fields_to_print: Set[str] = set()  # in addition to addr and size
-    out_fields = f"Addr: {M.get(chunk.address)}\n"
+    out_fields = f"Addr: {mem_color.get(chunk.address)}\n"
 
     if fake:
         headers_to_print.append(message.on("Fake chunk"))
@@ -479,7 +480,7 @@ def malloc_chunk(
 
     if simple:
         if not headers_to_print:
-            headers_to_print.append(message.hint(M.get(chunk.address)))
+            headers_to_print.append(message.hint(mem_color.get(chunk.address)))
 
         out_fields = ""
         verbose = True
@@ -540,13 +541,13 @@ def malloc_chunk(
     print(" | ".join(headers_to_print) + "\n" + out_fields)
 
     if dump:
-        print(C.banner("hexdump"))
+        print(ctx_color.banner("hexdump"))
 
         ptr_size = pwndbg.aglib.arch.ptrsize
         pwndbg.commands.hexdump.hexdump(chunk.address, chunk.real_size + ptr_size)
 
     if next:
-        print(C.banner(f"Next {next} chunk(s):"))
+        print(ctx_color.banner(f"Next {next} chunk(s):"))
         for _ in range(next):
             chunk = chunk.next_chunk()
 
@@ -622,7 +623,7 @@ def fastbins(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(fastbins, verbose)
 
-    print(C.banner("fastbins"))
+    print(ctx_color.banner("fastbins"))
     for node in formatted_bins:
         print(node)
 
@@ -657,7 +658,7 @@ def unsortedbin(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(unsortedbin, verbose)
 
-    print(C.banner("unsortedbin"))
+    print(ctx_color.banner("unsortedbin"))
     for node in formatted_bins:
         print(node)
 
@@ -692,7 +693,7 @@ def smallbins(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(smallbins, verbose)
 
-    print(C.banner("smallbins"))
+    print(ctx_color.banner("smallbins"))
     for node in formatted_bins:
         print(node)
 
@@ -726,7 +727,7 @@ def largebins(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(largebins, verbose)
 
-    print(C.banner("largebins"))
+    print(ctx_color.banner("largebins"))
     for node in formatted_bins:
         print(node)
 
@@ -744,6 +745,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWithResolvedHeapSyms
+@pwndbg.commands.OnlyWhenHeapIsInitialized
 @pwndbg.commands.OnlyWithTcache
 @pwndbg.commands.OnlyWhenUserspace
 def tcachebins(addr: int | None = None, verbose: bool = False) -> None:
@@ -759,7 +761,7 @@ def tcachebins(addr: int | None = None, verbose: bool = False) -> None:
 
     formatted_bins = format_bin(tcachebins, verbose, offset=allocator.tcache_next_offset)
 
-    print(C.banner("tcachebins"))
+    print(ctx_color.banner("tcachebins"))
     for node in formatted_bins:
         print(node)
 
@@ -902,7 +904,7 @@ def find_fake_fast(
 
     search_region = pwndbg.aglib.memory.read(search_start, search_end - search_start, partial=True)
 
-    print(C.banner("FAKE CHUNKS"))
+    print(ctx_color.banner("FAKE CHUNKS"))
     step = allocator.malloc_alignment if align else 1
     for i in range(0, len(search_region), step):
         candidate = search_region[i : i + size_field_width]
@@ -939,10 +941,18 @@ pwndbg.config.add_param(
     "default number of chunks to visualize",
 )
 
+pwndbg.config.add_param(
+    "vis-skip-repeating-val",
+    True,
+    "whether to skip repeating lines in vis command output",
+)
+
 parser = argparse.ArgumentParser(
     description="""Visualize chunks on a heap.
 
-Default to the current arena's active heap.""",
+Default to the current arena's active heap.
+
+Repeated lines can be collapsed by setting 'vis-skip-repeating-val' config (on by default).""",
 )
 group = parser.add_mutually_exclusive_group()
 group.add_argument(
@@ -952,23 +962,36 @@ group.add_argument(
     default=pwndbg.config.default_visualize_chunk_number,
     help="Number of chunks to visualize. If the value is big enough and addr isn't provided, this is interpreted as addr instead.",
 )
-parser.add_argument("addr", nargs="?", default=None, help="Address of the first chunk.")
 parser.add_argument(
-    "--beyond_top",
+    "addr",
+    nargs="?",
+    default=None,
+    help="Address of the first chunk.",
+    type=int,
+)
+parser.add_argument(
+    "--beyond-top",
     "-b",
     action="store_true",
     default=False,
     help="Attempt to keep printing beyond the top chunk.",
 )
 parser.add_argument(
-    "--no_truncate",
+    "--no-skip",
+    "-s",
+    action="store_true",
+    default=False,
+    help="Don't skip repeating vals (Ignore the `visp-skip-repeating-val` configuration).",
+)
+parser.add_argument(
+    "--no-truncate",
     "-n",
     action="store_true",
     default=False,
     help="Display all the chunk contents (Ignore the `max-visualize-chunk-size` configuration).",
 )
 group.add_argument(
-    "--all_chunks",
+    "--all-chunks",
     "-a",
     action="store_true",
     default=False,
@@ -983,6 +1006,7 @@ group.add_argument(
 def vis_heap_chunks(
     addr: int | None = None,
     count: int | None = None,
+    no_skip: bool = False,
     beyond_top: bool = False,
     no_truncate: bool = False,
     all_chunks: bool = False,
@@ -1105,6 +1129,21 @@ def vis_heap_chunks(
 
     bin_labels_map: Dict[int, List[str]] = bin_labels_mapping(bin_collections)
 
+    # For collapsing repeated lines
+    skip_repeating = False if no_skip else pwndbg.config.vis_skip_repeating_val
+    prev_line_content = None
+    repeat_count = 0
+    line_buffer = ""  # Temporary buffer for building current line (holds first cell)
+    saved_line_addr = ""  # Saved address for the current line
+
+    def flush_repeats() -> None:
+        """Add collapse message for accumulated repeated lines."""
+        nonlocal out, repeat_count, prev_line_content
+        if repeat_count > 0:
+            out += f"\n\t... ↓     {repeat_count:>3} repeated lines skipped"
+            repeat_count = 0
+        prev_line_content = None
+
     for c, stop in enumerate(chunk_delims):
         color_func = color_funcs[c % len(color_funcs)]
 
@@ -1114,6 +1153,10 @@ def vis_heap_chunks(
         # round down to align with 2*ptr_size
         begin_addr = pwndbg.lib.memory.round_down(cursor, ptr_size << 1)
         end_addr = pwndbg.lib.memory.round_down(stop, ptr_size << 1)
+
+        # Reset repeat tracking at chunk boundaries (only if skip_repeating is enabled)
+        if skip_repeating:
+            flush_repeats()
 
         while cursor != stop:
             # skip the middle part of a huge chunk
@@ -1129,13 +1172,15 @@ def vis_heap_chunks(
                 continue
 
             if printed % 2 == 0:
-                out += "\n0x%x" % cursor
+                saved_line_addr = "0x%x" % cursor
 
             data = pwndbg.aglib.memory.read(cursor, ptr_size)
             cell = pwndbg.aglib.arch.unpack(data)
             cell_hex = f"\t0x{cell:0{ptr_size * 2}x}"
 
-            out += color_func(cell_hex)
+            # Temporarily store colored cell_hex
+            colored_cell_hex = color_func(cell_hex)
+
             printed += 1
 
             labels.extend(bin_labels_map.get(cursor, []))
@@ -1143,18 +1188,75 @@ def vis_heap_chunks(
                 labels.append("Top chunk")
                 reached_top = True
 
+            # Build up the cell part (2 cells per line)
             asc += bin_ascii(data)
-            if printed % 2 == 0:
-                out += "\t" + color_func(asc) + ("\t <-- " + ", ".join(labels) if labels else "")
+
+            if printed % 2 == 1:
+                # First cell of the line, just accumulate
+                line_buffer += colored_cell_hex
+            else:
+                # Second cell - complete the line
+                line_label_part = "\t <-- " + ", ".join(labels) if labels else ""
+                colored_asc = color_func(asc)
+
+                # Build complete line content (address + cells + ascii + labels)
+                complete_line = (
+                    ("\n" if out else "")
+                    + saved_line_addr
+                    + line_buffer
+                    + colored_cell_hex
+                    + "\t"
+                    + colored_asc
+                    + line_label_part
+                )
+
+                if skip_repeating:
+                    # When skip_repeating is enabled, check for and collapse repeated lines
+                    # Don't collapse lines with labels (they're important markers)
+                    if not labels:
+                        # Compare just the hex values and ASCII part (exclude address and labels)
+                        current_hex_and_ascii = line_buffer + colored_cell_hex + "\t" + asc
+                        if prev_line_content == current_hex_and_ascii:
+                            # This line repeats the previous one, increment counter
+                            repeat_count += 1
+                        else:
+                            # Different line, flush any accumulated repeats and output this line
+                            flush_repeats()
+                            out += complete_line
+                            prev_line_content = current_hex_and_ascii
+                    else:
+                        # Line has labels, always output it
+                        flush_repeats()
+                        out += complete_line
+                        prev_line_content = None
+                else:
+                    # When skip_repeating is disabled, output every line directly
+                    out += complete_line
+
+                # Reset line building vars
+                line_buffer = ""
                 asc = ""
                 labels = []
 
             cursor += ptr_size
 
+    # Flush any remaining repeats (only matters if skip_repeating is enabled)
+    if skip_repeating:
+        flush_repeats()
+
     if printed % 2 != 0:
-        # Alignment whitespace of ("0x" + "00" * ptr_size) length.
+        # We have an incomplete line with only one cell
+        # Need to add the address, first cell, and padding
         machine_word_string_length = 2 + (2 * ptr_size)
-        out += "\t" + " " * machine_word_string_length + "\t" + color_func(asc)
+        out += (
+            ("\n" if out else "")
+            + saved_line_addr
+            + line_buffer
+            + "\t"
+            + " " * machine_word_string_length
+            + "\t"
+            + color_func(asc)
+        )
 
     print(out)
 
@@ -1175,11 +1277,11 @@ def vis_heap_chunks(
 VALID_CHARS = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
 
 
-def bin_ascii(bs):
+def bin_ascii(bs: bytes | bytearray) -> str:
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 
-def bin_labels_mapping(collections):
+def bin_labels_mapping(collections: List[Bins | None]) -> Dict[int, List[str]]:
     """
     Returns all potential bin labels for all potential addresses
     We precompute all of them because doing this on demand was too slow and inefficient
@@ -1209,7 +1311,7 @@ def bin_labels_mapping(collections):
 try_free_parser = argparse.ArgumentParser(
     description="Check what would happen if free was called with given address."
 )
-try_free_parser.add_argument("addr", help="Address passed to free")
+try_free_parser.add_argument("addr", type=int, help="Address passed to free")
 
 
 @pwndbg.commands.Command(try_free_parser, category=CommandCategory.PTMALLOC2)
@@ -1246,7 +1348,7 @@ def try_free(addr: str | int) -> None:
 
     ptr_size = pwndbg.aglib.arch.ptrsize
 
-    def unsigned_size(size: int):
+    def unsigned_size(size: int) -> int:
         # read_chunk()['size'] is signed in pwndbg ;/
         # there may be better way to handle that
         if ptr_size < 8:
@@ -1254,7 +1356,7 @@ def try_free(addr: str | int) -> None:
         x = ctypes.c_uint64(size).value
         return x
 
-    def chunksize(chunk_size: int):
+    def chunksize(chunk_size: int) -> int:
         # maybe move this to ptmalloc.py
         return chunk_size & (~7)
 
@@ -1337,7 +1439,7 @@ def try_free(addr: str | int) -> None:
         and "key" in allocator.tcache_entry.keys()
     ):
         tc_idx = (chunk_size_unmasked - chunk_minsize + malloc_alignment - 1) // malloc_alignment
-        if allocator.mp is not None and tc_idx < int(allocator.mp["tcache_bins"]):
+        if allocator.mp is not None and tc_idx < allocator.tcache_small_bins:
             print(message.notice("Tcache checks"))
             e = addr + 2 * size_sz
             e += allocator.tcache_entry.keys().index("key") * ptr_size
@@ -1354,7 +1456,12 @@ def try_free(addr: str | int) -> None:
 
             # May be an array, and tc_idx may be negative, so always cast to a
             # pointer before we index into it.
-            counts = allocator.get_tcache()["counts"]
+            # counts was renamed to num_slots in newer version of GLIBC 2.42
+            tcache = allocator.get_tcache()
+            try:
+                counts = tcache["num_slots"]
+            except Exception:
+                counts = tcache["counts"]
             if int(counts.address.cast(counts.type.target().pointer())[tc_idx]) < int(
                 allocator.mp["tcache_count"]
             ):
@@ -1381,7 +1488,7 @@ def try_free(addr: str | int) -> None:
         except pwndbg.dbg_mod.Error as e:
             print(
                 message.error(
-                    f"Can't read next chunk at address 0x{chunk + chunk_size_unmasked:x}, memory error"
+                    f"Can't read next chunk at address 0x{addr + chunk_size_unmasked:x}, memory error"
                 )
             )
             finalize(errors_found, returned_before_error)

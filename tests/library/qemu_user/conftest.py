@@ -13,9 +13,9 @@ from typing import Tuple
 
 import gdb
 import pytest
-import ziglang
 
 from pwndbg.lib import tempfile
+from pwndbg.lib.zig import get_zig_executable
 
 _start_binary_called = False
 
@@ -23,12 +23,14 @@ QEMU_PORT: str | None = None
 
 COMPILATION_TARGETS_TYPE = Literal[
     "aarch64",
+    "aarch64_be",
     "arm",
     "riscv32",
     "riscv64",
     "loongarch64",
     "powerpc32",
     "powerpc64",
+    "powerpc64le",
     "mips32",
     "mipsel32",
     "mips64el",
@@ -43,6 +45,7 @@ COMPILATION_TARGETS: list[COMPILATION_TARGETS_TYPE] = list(
 # Tuple contains (Zig target,extra_cli_args,qemu_suffix),
 COMPILE_AND_RUN_INFO: Dict[COMPILATION_TARGETS_TYPE, Tuple[str, Tuple[str, ...], str]] = {
     "aarch64": ("aarch64-freestanding", (), "aarch64"),
+    "aarch64_be": ("aarch64_be-freestanding", (), "aarch64_be"),
     "arm": ("arm-freestanding", (), "arm"),
     "riscv32": ("riscv32-freestanding", (), "riscv32"),
     "riscv64": ("riscv64-freestanding", (), "riscv64"),
@@ -54,6 +57,7 @@ COMPILE_AND_RUN_INFO: Dict[COMPILATION_TARGETS_TYPE, Tuple[str, Tuple[str, ...],
     "sparc64": ("sparc64-freestanding", (), "sparc64"),
     "powerpc32": ("powerpc-freestanding", (), "ppc"),
     "powerpc64": ("powerpc64-freestanding", (), "ppc64"),
+    "powerpc64le": ("powerpc64le-freestanding", (), "ppc64le"),
 }
 
 
@@ -148,9 +152,10 @@ def qemu_assembly_run():
         compiled_file = os.path.join(tmpdir, "out.elf")
 
         # Build the binary with Zig
+        zig_executable = get_zig_executable()
         compile_process = subprocess.run(
             [
-                os.path.join(os.path.dirname(ziglang.__file__), "zig"),
+                zig_executable,
                 "cc",
                 *extra_cli_args,
                 f"--target={zig_target}",

@@ -4,7 +4,7 @@ import argparse
 from typing import List
 from typing import Tuple
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.color

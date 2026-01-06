@@ -6,8 +6,11 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 
 parser = argparse.ArgumentParser(
     description="Displays Linux syscall table, including names and addresses of syscalls."
@@ -19,7 +22,7 @@ parser.add_argument("syscall_name", nargs="?", type=str, help="A syscall name to
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 def ksyscalls(syscall_name=None) -> None:
     # Look up the address of the sys_call_table symbol.
     table_addr = pwndbg.aglib.symbol.lookup_symbol_addr("sys_call_table")

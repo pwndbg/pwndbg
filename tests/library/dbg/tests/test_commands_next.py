@@ -8,8 +8,8 @@ from . import get_binary
 from . import launch_to
 from . import pwndbg_test
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-CRASH_SIMPLE_BINARY = get_binary("crash_simple.out.hardcoded")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+CRASH_SIMPLE_BINARY = get_binary("crash_simple.native.out")
 
 NEXT_COMMANDS = (
     "pc",
@@ -25,8 +25,8 @@ NEXT_COMMANDS = (
 
 @pwndbg_test
 async def test_command_nextproginstr(ctrl: Controller) -> None:
+    import pwndbg.aglib
     import pwndbg.aglib.proc
-    import pwndbg.aglib.regs
     import pwndbg.aglib.vmmap
 
     await launch_to(ctrl, REFERENCE_BINARY, "main")
@@ -36,7 +36,7 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
 
     # Sanity check
     exec_bin_pages = [
-        p for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe and p.execute
+        p for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe() and p.execute
     ]
     assert any(pwndbg.aglib.regs.pc in p for p in exec_bin_pages)
     main_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc)
@@ -45,7 +45,7 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
     await ctrl.cont()
 
     # Sanity check that we are in libc
-    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.rip).objfile
+    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc).objfile
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     await ctrl.execute("nextproginstr")
@@ -59,7 +59,7 @@ async def test_command_nextproginstr(ctrl: Controller) -> None:
 @pytest.mark.parametrize("command", NEXT_COMMANDS)
 @pwndbg_test
 async def test_next_command_doesnt_freeze_crashed_binary(ctrl: Controller, command: str) -> None:
-    import pwndbg.aglib.regs
+    import pwndbg.aglib
 
     await ctrl.launch(CRASH_SIMPLE_BINARY)
 

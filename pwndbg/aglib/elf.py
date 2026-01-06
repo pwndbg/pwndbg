@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import ctypes
 import importlib
+import subprocess
 import sys
+import tempfile
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -24,8 +26,7 @@ from elftools.elf.relocation import Relocation
 from elftools.elf.relocation import RelocationSection
 
 import pwndbg
-import pwndbg.aglib.arch
-import pwndbg.aglib.ctypes
+import pwndbg.aglib
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
@@ -33,11 +34,14 @@ import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.auxv
+import pwndbg.lib
 import pwndbg.lib.cache
+import pwndbg.lib.config
 import pwndbg.lib.elftypes
 import pwndbg.lib.memory
+import pwndbg.lib.zig
 from pwndbg.color import message
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 
 # ELF constants
 PF_X, PF_W, PF_R = 1, 2, 4
@@ -414,6 +418,7 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
         return ()
 
     base = int(ehdr.address)
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
 
     # For each Program Header which would load data into our
     # address space, create a representation of each individual
@@ -451,7 +456,11 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
                 page.flags = flags
             else:
                 page = pwndbg.lib.memory.Page(
-                    page_addr, pwndbg.lib.memory.PAGE_SIZE, flags, offset + (page_addr - vaddr)
+                    page_addr,
+                    pwndbg.lib.memory.PAGE_SIZE,
+                    flags,
+                    offset + (page_addr - vaddr),
+                    ptrsize,
                 )
                 pages.append(page)
 
@@ -479,7 +488,7 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
         a_end = a.vaddr + a.memsz
         b_begin = b.vaddr
         if a_end != b_begin:
-            gaps.append(pwndbg.lib.memory.Page(a_end, b_begin - a_end, 0, b.offset))
+            gaps.append(pwndbg.lib.memory.Page(a_end, b_begin - a_end, 0, b.offset, ptrsize))
 
     pages.extend(gaps)
 
@@ -487,3 +496,78 @@ def map_inner(ei_class: int, ehdr: Ehdr, objfile: str) -> Tuple[pwndbg.lib.memor
         page.objfile = objfile
 
     return tuple(sorted(pages))
+
+
+gcc_compiler_path = pwndbg.config.add_param(
+    "gcc-compiler-path",
+    "",
+    "path to the gcc/g++ toolchain for generating imported symbols",
+    param_class=pwndbg.lib.config.PARAM_OPTIONAL_FILENAME,
+)
+
+
+def compile_with_flags(gcc_extra_flags):
+    if gcc_compiler_path != "":
+        compiler_flags = [gcc_compiler_path]
+    else:
+        try:
+            compiler_flags = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
+        except ValueError as exception:
+            print(message.error(exception))
+            return False
+
+    gcc_cmd = compiler_flags + gcc_extra_flags
+
+    try:
+        subprocess.run(gcc_cmd, check=True, text=True)
+        return True
+    except subprocess.CalledProcessError as exception:
+        print(message.error(exception))
+        print(
+            message.error(
+                f"Failed to compile {gcc_extra_flags[0]}. Please fix any compilation errors there may be."
+            )
+        )
+    except Exception as exception:
+        print(message.error(exception))
+        print(message.error("An error occured while generating the debug symbols."))
+    return False
+
+
+def create_blank_elf():
+    try:
+        import lief
+    except ImportError:
+        print(
+            message.error(
+                "lief python package is not installed (this will be auto-installed with next version of Pwndbg; for now, you can install it manually in the Pwndbg venv)."
+            )
+        )
+        return None
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".S")
+    tmp.write(b".global _start\n_start:\nnop")
+    tmp.flush()
+    _, output_path = tempfile.mkstemp(prefix="blank-", suffix=".dbg")
+
+    gcc_extra_flags = [
+        tmp.name,
+        "-nostdlib",
+        "--static",
+        "-o",
+        output_path,
+    ]
+
+    if not compile_with_flags(gcc_extra_flags):
+        return None
+
+    blank_elf = lief.ELF.parse(output_path)
+    if blank_elf is None:
+        print(message.error("failed to parse blank elf"))
+        return
+
+    for s in blank_elf.symbols:
+        blank_elf.remove_symtab_symbol(s)
+
+    blank_elf.write(output_path)
+
+    return output_path

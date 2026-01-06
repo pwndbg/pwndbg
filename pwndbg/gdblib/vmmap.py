@@ -8,14 +8,15 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 
 from __future__ import annotations
 
+from typing import Iterator
 from typing import List
 from typing import Optional
-from typing import Set
 from typing import Tuple
 
 import gdb
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
@@ -23,7 +24,6 @@ import pwndbg.aglib.qemu
 import pwndbg.auxv
 import pwndbg.gdblib.info
 import pwndbg.lib.cache
-import pwndbg.lib.config
 import pwndbg.lib.memory
 
 
@@ -40,7 +40,13 @@ def is_corefile() -> bool:
 
     As the two differ in output slighty.
     """
-    return "Local core dump file:\n" in pwndbg.gdblib.info.target()
+    inf = gdb.selected_inferior()
+    conn = inf.connection
+    if conn is None:
+        return False
+    if not isinstance(inf.connection, gdb.TargetConnection):
+        return False
+    return conn.type == "core"
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
@@ -50,8 +56,8 @@ def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     the mappings are known, like if it's a coredump, or if process
     mappings are available.
     """
-    # Note: debugging a coredump does still show proc.alive == True
-    if not pwndbg.aglib.proc.alive:
+    # Note: debugging a coredump does still show proc.alive() == True
+    if not pwndbg.aglib.proc.alive():
         return ()
 
     if is_corefile():
@@ -60,26 +66,26 @@ def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     return proc_tid_maps()
 
 
-@pwndbg.lib.cache.cache_until("objfile", "start")
-def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    """
-    Parses `info proc mappings` and `maintenance info sections`
-    and tries to make sense out of the result :)
-    """
-    pages = list(info_proc_maps(parse_flags=False))
-
+def iter_coredump_sections() -> Iterator[pwndbg.lib.memory.Page]:
+    lines = gdb.execute("maintenance info sections", to_string=True)
     started_sections = False
-    for line in gdb.execute("maintenance info sections", to_string=True).splitlines():
+    ptrsize = pwndbg.aglib.arch.ptrsize
+
+    for line in lines.splitlines():
         if not started_sections:
             if "Core file:" in line:
                 started_sections = True
             continue
 
+        if not line.startswith(" "):
+            # End of section
+            break
+
         # We look for lines like:
         # ['[9]', '0x00000000->0x00000150', 'at', '0x00098c40:', '.auxv', 'HAS_CONTENTS']
         # ['[15]', '0x555555555000->0x555555556000', 'at', '0x00001430:', 'load2', 'ALLOC', 'LOAD', 'READONLY', 'CODE', 'HAS_CONTENTS']
         try:
-            _idx, start_end, _at_str, _at, name, *flags_list = line.split()
+            _idx, start_end, _at_str, _at, section_name, *flags_list = line.split()
             start, end = (int(v, 16) for v in start_end.split("->"))
 
             # Skip pages with start=0x0, this is unlikely this is valid vmmap
@@ -101,23 +107,34 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
         if "CODE" in flags_list:
             flags |= 1
 
+        page = pwndbg.lib.memory.Page(
+            start, end - start, flags, offset, ptrsize, f"[{section_name}]"
+        )
+        yield page
+
+
+def enhance_coredump_sections_pages_info(pages: List[pwndbg.lib.memory.Page]) -> None:
+    for section in iter_coredump_sections():
         # Now, if the section is already in pages, just add its perms
         known_page = False
 
         for page in pages:
-            if start in page:
-                page.flags |= flags
+            if section.start in page:
+                page.flags |= section.flags
                 known_page = True
                 break
 
         if known_page:
             continue
 
-        pages.append(pwndbg.lib.memory.Page(start, end - start, flags, offset, name))
+        pages.append(section)
 
+
+def enhance_known_pages_info(pages: List[pwndbg.lib.memory.Page]) -> None:
     if not pages:
-        return ()
+        return
 
+    # ffffffffff600000-ffffffffff601000
     # If the last page starts on e.g. 0xffffffffff600000 it must be vsyscall
     vsyscall_page = pages[-1]
     if vsyscall_page.start > 0xFFFFFFFFFF000000 and vsyscall_page.flags & 1:
@@ -126,6 +143,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
     # Detect stack based on addresses in AUXV from stack memory
     stack_addr = None
+    vdso_addr = None
 
     # TODO/FIXME: Can we uxe `pwndbg.auxv.get()` for this somehow?
     auxv = pwndbg.gdblib.info.auxv().splitlines()
@@ -135,15 +153,34 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
                 stack_addr = int(line.split()[-2], 16)
             except Exception:
                 pass
-            break
+        if "AT_SYSINFO_EHDR" in line:
+            try:
+                vdso_addr = int(line.split()[-1], 16)
+            except Exception:
+                pass
 
-    if stack_addr is not None:
-        for page in pages:
-            if stack_addr in page:
-                page.objfile = "[stack]"
-                page.flags |= 6
-                page.offset = 0
-                break
+    for page in pages:
+        if stack_addr and stack_addr in page:
+            page.objfile = "[stack]"
+            page.flags |= 6
+            page.offset = 0
+        if vdso_addr:
+            if vdso_addr == page.start:
+                page.objfile = "[vdso]"
+            elif vdso_addr == page.end:
+                page.objfile = "[maybe: vvar/vvar_vclock]"
+
+
+@pwndbg.lib.cache.cache_until("objfile", "start")
+def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
+    """
+    Parses `info proc mappings` and `maintenance info sections`
+    and tries to make sense out of the result :)
+    """
+    pages = list(info_proc_maps(parse_flags=False))
+
+    enhance_coredump_sections_pages_info(pages)
+    enhance_known_pages_info(pages)
 
     pages.sort(key=lambda page: page.start)
     return tuple(pages)
@@ -199,11 +236,12 @@ def parse_info_proc_mappings_line(
         if "x" in perm:
             flags |= 1
 
-    return pwndbg.lib.memory.Page(start, size, flags, offset, objfile)
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    return pwndbg.lib.memory.Page(start, size, flags, offset, ptrsize, objfile)
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def info_proc_maps(parse_flags=True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def info_proc_maps(parse_flags: bool = True) -> Tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parse the result of info proc mappings.
 
@@ -286,7 +324,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
     # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
 
-    tid = pwndbg.aglib.proc.tid
+    tid = pwndbg.aglib.proc.tid()
     locations = [
         # Linux distro
         f"/proc/{tid}/maps",
@@ -307,6 +345,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     if data == "":
         return ()
 
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
     pages: List[pwndbg.lib.memory.Page] = []
     for line in data.splitlines():
         maps, perm, offset, dev, inode_objfile = line.split(maxsplit=4)
@@ -332,152 +371,7 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
         if "x" in perm:
             flags |= 1
 
-        page = pwndbg.lib.memory.Page(start, size, flags, offset, objfile)
+        page = pwndbg.lib.memory.Page(start, size, flags, offset, ptrsize, objfile)
         pages.append(page)
 
     return tuple(pages)
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def info_sharedlibrary() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    """
-    Parses the output of `info sharedlibrary`.
-
-    Specifically, all we really want is any valid pointer into each library,
-    and the path to the library on disk.
-
-    With this information, we can use the ELF parser to get all of the
-    page permissions for every mapped page in the ELF.
-
-    Returns:
-        A list of pwndbg.lib.memory.Page objects.
-    """
-
-    # Example of `info sharedlibrary` on FreeBSD
-    # From        To          Syms Read   Shared Object Library
-    # 0x280fbea0  0x2810e570  Yes (*)     /libexec/ld-elf.so.1
-    # 0x281260a0  0x281495c0  Yes (*)     /lib/libncurses.so.8
-    # 0x28158390  0x2815dcf0  Yes (*)     /usr/local/lib/libintl.so.9
-    # 0x28188b00  0x2828e060  Yes (*)     /lib/libc.so.7
-    # (*): Shared library is missing debugging information.
-
-    # Example of `info sharedlibrary` on Linux
-    # From                To                  Syms Read   Shared Object Library
-    # 0x00007ffff7ddaae0  0x00007ffff7df54e0  Yes         /lib64/ld-linux-x86-64.so.2
-    # 0x00007ffff7bbd3d0  0x00007ffff7bc9028  Yes (*)     /lib/x86_64-linux-gnu/libtinfo.so.5
-    # 0x00007ffff79aded0  0x00007ffff79ae9ce  Yes         /lib/x86_64-linux-gnu/libdl.so.2
-    # 0x00007ffff76064a0  0x00007ffff774c113  Yes         /lib/x86_64-linux-gnu/libc.so.6
-    # (*): Shared library is missing debugging information.
-
-    pages: List[pwndbg.lib.memory.Page] = []
-
-    for line in pwndbg.gdblib.info.sharedlibrary().splitlines():
-        if not line.startswith("0x"):
-            continue
-
-        tokens = line.split()
-        text = int(tokens[0], 16)
-        obj = tokens[-1]
-
-        pages.extend(pwndbg.aglib.elf.map(text, obj))
-
-    return tuple(sorted(pages))
-
-
-@pwndbg.lib.cache.cache_until("stop")
-def info_files() -> Tuple[pwndbg.lib.memory.Page, ...]:
-    # Example of `info files` output:
-    # Symbols from "/bin/bash".
-    # Unix child process:
-    # Using the running image of child process 5903.
-    # While running this, GDB does not access memory from...
-    # Local exec file:
-    # `/bin/bash', file type elf64-x86-64.
-    # Entry point: 0x42020b
-    # 0x0000000000400238 - 0x0000000000400254 is .interp
-    # 0x0000000000400254 - 0x0000000000400274 is .note.ABI-tag
-    # ...
-    # 0x00000000006f06c0 - 0x00000000006f8ca8 is .data
-    # 0x00000000006f8cc0 - 0x00000000006fe898 is .bss
-    # 0x00007ffff7dda1c8 - 0x00007ffff7dda1ec is .note.gnu.build-id in /lib64/ld-linux-x86-64.so.2
-    # 0x00007ffff7dda1f0 - 0x00007ffff7dda2ac is .hash in /lib64/ld-linux-x86-64.so.2
-    # 0x00007ffff7dda2b0 - 0x00007ffff7dda38c is .gnu.hash in /lib64/ld-linux-x86-64.so.2
-
-    seen_files: Set[str] = set()
-    pages: List[pwndbg.lib.memory.Page] = []
-    main_exe = ""
-
-    for line in pwndbg.gdblib.info.files().splitlines():
-        line = line.strip()
-
-        # The name of the main executable
-        if line.startswith("`"):
-            exename, filetype = line.split(maxsplit=1)
-            main_exe = exename.strip("`,'")
-            continue
-
-        # Everything else should be addresses
-        if not line.startswith("0x"):
-            continue
-
-        # start, stop, _, segment, _, filename = line.split(maxsplit=6)
-        fields = line.split(maxsplit=6)
-        vaddr = int(fields[0], 16)
-
-        if len(fields) == 5:
-            objfile = main_exe
-        elif len(fields) == 7:
-            objfile = fields[6]
-        else:
-            print("Bad data: %r" % line)
-            continue
-
-        if objfile not in seen_files:
-            seen_files.add(objfile)
-
-        pages.extend(pwndbg.aglib.elf.map(vaddr, objfile))
-
-    return tuple(pages)
-
-
-@pwndbg.lib.cache.cache_until("exit")
-def info_auxv(skip_exe: bool = False) -> Tuple[pwndbg.lib.memory.Page, ...]:
-    """
-    Extracts the name of the executable from the output of the command
-    "info auxv". Note that if the executable path is a symlink,
-    it is not dereferenced by `info auxv` and we also don't dereference it.
-
-    Arguments:
-        skip_exe: Do not return any mappings that belong to the exe.
-
-    Returns:
-        A list of pwndbg.lib.memory.Page objects.
-    """
-    auxv = pwndbg.auxv.get()
-
-    if not auxv:
-        return ()
-
-    pages: List[pwndbg.lib.memory.Page] = []
-    exe_name = auxv.AT_EXECFN or "main.exe"
-    entry = auxv.AT_ENTRY
-    base = auxv.AT_BASE
-    vdso = auxv.AT_SYSINFO_EHDR or auxv.AT_SYSINFO
-    phdr = auxv.AT_PHDR
-
-    if not skip_exe and (entry or phdr):
-        for addr in [entry, phdr]:
-            if not addr:
-                continue
-            new_pages = pwndbg.aglib.elf.map(addr, exe_name)
-            if new_pages:
-                pages.extend(new_pages)
-                break
-
-    if base:
-        pages.extend(pwndbg.aglib.elf.map(base, "[linker]"))
-
-    if vdso:
-        pages.extend(pwndbg.aglib.elf.map(vdso, "[vdso]"))
-
-    return tuple(sorted(pages))

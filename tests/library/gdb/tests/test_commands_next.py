@@ -3,14 +3,14 @@ from __future__ import annotations
 import gdb
 import pytest
 
+import pwndbg.aglib
 import pwndbg.aglib.proc
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-CRASH_SIMPLE_BINARY = get_binary("crash_simple.out.hardcoded")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+CRASH_SIMPLE_BINARY = get_binary("crash_simple.native.out")
 
 NEXT_COMMANDS = (
     "pc",
@@ -41,7 +41,7 @@ def test_command_nextproginstr(start_binary):
 
     # Sanity check
     exec_bin_pages = [
-        p for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe and p.execute
+        p for p in pwndbg.aglib.vmmap.get() if p.objfile == pwndbg.aglib.proc.exe() and p.execute
     ]
     assert any(pwndbg.aglib.regs.pc in p for p in exec_bin_pages)
     main_page = pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc)
@@ -50,7 +50,7 @@ def test_command_nextproginstr(start_binary):
     gdb.execute("continue")
 
     # Sanity check that we are in libc
-    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.rip).objfile
+    assert "libc" in pwndbg.aglib.vmmap.find(pwndbg.aglib.regs.pc).objfile
 
     # Execute nextproginstr and see if we came back to the same vmmap page
     gdb.execute("nextproginstr")

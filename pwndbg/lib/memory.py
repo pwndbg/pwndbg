@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from os.path import relpath
 
-import pwndbg.aglib.arch
+import pwndbg
 
 PAGE_SIZE = 0x1000
 PAGE_MASK = ~(PAGE_SIZE - 1)
@@ -29,10 +29,12 @@ def round_up(address: int, align: int) -> int:
     return (address + (align - 1)) & (~(align - 1))
 
 
-def format_address(vaddr: int, memsz: int, permstr: str, offset: int, objfile: str | None = None) -> str:
+def format_address(
+    vaddr: int, memsz: int, permstr: str, offset: int, ptrsize: int, objfile: str | None = None
+) -> str:
     "Format the given address as a string."
 
-    width = 2 + 2 * pwndbg.aglib.arch.ptrsize
+    width = 2 + 2 * ptrsize
     if memsz > 0x100000000:
         return f"{vaddr:#{width}x} {vaddr + memsz:#{width}x} {permstr} {memsz:8x} {offset:6x} {objfile or ''}"
 
@@ -65,6 +67,13 @@ class Page:
     one page of memory.
     """
 
+    """
+    consts
+    """
+    R_OK = os.R_OK
+    W_OK = os.W_OK
+    X_OK = os.X_OK
+
     vaddr = 0  #: Starting virtual address
     memsz = 0  #: Size of the address space, in bytes
     flags = 0  #: Flags set by the ELF file, see PF_X, PF_R, PF_W
@@ -85,13 +94,23 @@ class Page:
     to us at all times, and having an easy way to filter them out is helpful..
     """
 
-    def __init__(self, start: int, size: int, flags: int, offset: int, objfile: str = "", in_darwin_shared_cache: bool = False) -> None:
+    def __init__(
+        self,
+        start: int,
+        size: int,
+        flags: int,
+        offset: int,
+        arch_ptrsize: int,
+        objfile: str = "",
+        in_darwin_shared_cache: bool = False,
+    ) -> None:
         self.vaddr = start
         self.memsz = size
         self.flags = flags
         self.offset = offset
         self.objfile = objfile
         self.in_darwin_shared_cache = in_darwin_shared_cache
+        self.arch_ptrsize = arch_ptrsize
 
         # if self.rwx:
         # self.flags = self.flags ^ 1
@@ -121,15 +140,15 @@ class Page:
 
     @property
     def read(self) -> bool:
-        return bool(self.flags & os.R_OK)
+        return bool(self.flags & self.R_OK)
 
     @property
     def write(self) -> bool:
-        return bool(self.flags & os.W_OK)
+        return bool(self.flags & self.W_OK)
 
     @property
     def execute(self) -> bool:
-        return bool(self.flags & os.X_OK)
+        return bool(self.flags & self.X_OK)
 
     @property
     def rw(self) -> bool:
@@ -152,22 +171,24 @@ class Page:
         flags = self.flags
         return "".join(
             [
-                "r" if flags & os.R_OK else "-",
-                "w" if flags & os.W_OK else "-",
-                "x" if flags & os.X_OK else "-",
+                "r" if flags & self.R_OK else "-",
+                "w" if flags & self.W_OK else "-",
+                "x" if flags & self.X_OK else "-",
                 "p",
             ]
         )
 
     def __str__(self) -> str:
-        if pwndbg.config.vmmap_prefer_relpaths:
+        if pwndbg.config.vmmap_prefer_relpaths and self.objfile:
             rel = relpath(self.objfile)
             # Keep the origin path when relative paths are longer than absolute ones.
             objfile = self.objfile if len(rel) > len(self.objfile) else rel
         else:
             objfile = self.objfile
-        
-        return format_address(self.vaddr, self.memsz, self.permstr, self.offset, objfile=objfile)
+
+        return format_address(
+            self.vaddr, self.memsz, self.permstr, self.offset, self.arch_ptrsize, objfile=objfile
+        )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.__str__()!r})"

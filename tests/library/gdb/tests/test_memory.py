@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.stack
 import pwndbg.aglib.symbol
-import pwndbg.dbg
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
-NESTED_STRUCTS_BINARY = get_binary("nested_structs.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
+NESTED_STRUCTS_BINARY = get_binary("nested_structs.native.out")
 
 
 def test_memory_read_write(start_binary):
@@ -50,7 +50,7 @@ def test_memory_peek_poke(start_binary):
     assert pwndbg.aglib.memory.poke(0) is False
     assert pwndbg.aglib.memory.peek(0) is None
 
-    stack_addr = pwndbg.aglib.regs.rsp
+    stack_addr = pwndbg.aglib.regs.sp
 
     for v in range(256):
         data = bytearray([v, 0, 0, 0])

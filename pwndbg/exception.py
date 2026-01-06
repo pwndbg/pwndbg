@@ -75,7 +75,7 @@ def inform_verbose_and_debug() -> None:
     )
 
 
-def handle(name="Error"):
+def handle(name="Error") -> None:
     """Displays an exception to the user, optionally displaying a full traceback
     and spawning an interactive post-moretem debugger.
 

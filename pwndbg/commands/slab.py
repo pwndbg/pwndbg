@@ -8,16 +8,16 @@ Some of the code here was inspired from https://github.com/osandov/drgn
 from __future__ import annotations
 
 import argparse
-import sys
 
 from tabulate import tabulate
 
 import pwndbg
 import pwndbg.aglib.kernel.slab
-import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
-import pwndbg.color.message as M
+import pwndbg.color
+import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.slab import CpuCache
 from pwndbg.aglib.kernel.slab import Freelist
 from pwndbg.aglib.kernel.slab import NodeCache
@@ -30,14 +30,10 @@ parser = argparse.ArgumentParser(
     description="Prints information about the linux kernel's slab allocator SLUB."
 )
 subparsers = parser.add_subparsers(dest="command")
-
-# The command will still work on 3.6 and earlier, but the help won't be shown
-# when no subcommand is provided
-if (sys.version_info.major, sys.version_info.minor) >= (3, 7):
-    subparsers.required = True
+subparsers.required = True
 
 
-parser_list = subparsers.add_parser("list", prog="slab list")
+parser_list = subparsers.add_parser("list", description="List SLUB caches filtered by name.")
 parser_list.add_argument(
     "filter_",
     metavar="filter",
@@ -47,7 +43,7 @@ parser_list.add_argument(
     help="Only show caches that contain the given filter string",
 )
 
-parser_info = subparsers.add_parser("info", prog="slab info")
+parser_info = subparsers.add_parser("info", description="Dump information about a cache.")
 parser_info.add_argument("names", metavar="name", type=str, nargs="+", help="")
 parser_info.add_argument("-v", "--verbose", action="store_true", help="")
 parser_info.add_argument("-c", "--cpu", type=int, help="CPU to display")
@@ -59,13 +55,13 @@ parser_info.add_argument(
     "-a", "--active-only", action="store_true", help="only displays the active list"
 )
 
-parser_contains = subparsers.add_parser("contains", prog="slab contains")
+parser_contains = subparsers.add_parser("contains", description="Get the cache for an address.")
 parser_contains.add_argument("addresses", metavar="addr", type=str, nargs="+", help="")
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def slab(
     command,
@@ -85,7 +81,7 @@ def slab(
     elif command == "info":
         partial, active = True, True
         if partial_only and active_only:
-            print(M.warn("partial_only and active_only are both specified"))
+            print(message.warn("partial_only and active_only are both specified"))
             return
         if partial_only:
             active = False
@@ -249,7 +245,7 @@ def slab_info(name: str, verbose: bool, cpu: int, node: int, active: bool, parti
     slab_cache = pwndbg.aglib.kernel.slab.get_cache(name)
 
     if slab_cache is None:
-        print(M.error(f"Cache {name} not found"))
+        print(message.error(f"Cache {name} not found"))
         return
 
     indent = IndentContextManager()
@@ -313,16 +309,16 @@ def slab_contains(address: str) -> None:
     try:
         addr = int(pwndbg.dbg.selected_frame().evaluate_expression(address))
     except pwndbg.dbg_mod.Error as e:
-        print(M.error(f"Could not parse '{address}'"))
-        print(M.error(f"Message: {e}"))
+        print(message.error(f"Could not parse '{address}'"))
+        print(message.error(f"Message: {e}"))
         return
 
     try:
         slab_cache = find_containing_slab_cache(addr)
-        print(f"{addr:#x} @", M.hint(f"{slab_cache.name}"))
+        print(f"{addr:#x} @", message.hint(f"{slab_cache.name}"))
         slab = slab_cache.find_containing_slab(addr)
         if slab is None:
-            print(M.warn("Did not find containing slab."))
+            print(message.warn("Did not find containing slab."))
             return
         desc = "[something went wrong]"
         inuse = desc
@@ -341,7 +337,7 @@ def slab_contains(address: str) -> None:
                     desc = f"[partial, node {slab.node_cache.node}]"
         except Exception:
             pass
-        print("slab:", M.hint(f"{hex(slab.virt_address)}"), desc)
-        print("status:", M.hint(inuse))
+        print("slab:", message.hint(f"{hex(slab.virt_address)}"), desc)
+        print("status:", message.hint(inuse))
     except Exception as e:
-        print(M.warn(f"address does not belong to a SLUB cache: {e}"))
+        print(message.warn(f"address does not belong to a SLUB cache: {e}"))

@@ -60,28 +60,30 @@
 ## Integrations
 
 -  [ai](integrations/ai.md) - Ask GPT-3 a question about the current debugging context.
--  [bn-sync](integrations/bn-sync.md) - Synchronize Binary Ninja's cursor with GDB.
 -  [decomp](integrations/decomp.md) - Use the current integration to decompile code near an address.
--  [j](integrations/j.md) - Synchronize IDA's cursor with GDB.
+-  [decompiler-integration](integrations/decompiler-integration.md) - Control Pwndbg decompiler integration.
 -  [r2](integrations/r2.md) - Launches radare2.
 -  [r2pipe](integrations/r2pipe.md) - Execute stateful radare2 commands through r2pipe.
 -  [rop](integrations/rop.md) - Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 -  [ropper](integrations/ropper.md) - ROP gadget search with ropper.
 -  [rz](integrations/rz.md) - Launches rizin.
 -  [rzpipe](integrations/rzpipe.md) - Execute stateful rizin commands through rzpipe.
--  [save-ida](integrations/save-ida.md) - Save the ida database.
 
 ## Kernel
 
 -  [binder](kernel/binder.md) - Show Android Binder information
 -  [buddydump](kernel/buddydump.md) - Displays metadata and freelists of the buddy allocator.
 -  [kbase](kernel/kbase.md) - Finds the kernel virtual base address.
+-  [kbpf](kernel/kbpf.md) - Prints information about the linux kernel bpf progs and maps.
 -  [kchecksec](kernel/kchecksec.md) - Checks for kernel hardening configuration options.
 -  [kcmdline](kernel/kcmdline.md) - Return the kernel commandline (/proc/cmdline).
 -  [kconfig](kernel/kconfig.md) - Outputs the kernel config.
+-  [kcurrent](kernel/kcurrent.md) - Displays the current kernel task debugged by the debugger (gdb/lldb) if pid == None
 -  [kdmabuf](kernel/kdmabuf.md) - Prints DMA buf info
 -  [kdmesg](kernel/kdmesg.md) - Displays the kernel ring buffer (dmesg) contents.
+-  [kfile](kernel/kfile.md) - Displays information about fds accessible by a kernel task.
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
+-  [kmem-trace](kernel/kmem-trace.md) - Trace kernel memory (SLUB and buddy) allocations and frees.
 -  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
 -  [knft-dump](kernel/knft-dump.md) - Dump all nftables: tables, chains, rules, expressions
 -  [knft-list-chains](kernel/knft-list-chains.md) - Dump netfilter chains form a specific table

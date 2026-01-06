@@ -1,20 +1,28 @@
 from __future__ import annotations
 
+import pytest
+
 from .....host import Controller
 from .. import get_binary
 from .. import launch_to
 from .. import pwndbg_test
 
-HEAP_VIS = get_binary("heap_vis.out")
+HEAP_VIS = get_binary("heap_vis.native.out")
 
 
 @pwndbg_test
 async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
-    import pwndbg.aglib.arch
+    import pwndbg.aglib
     import pwndbg.aglib.memory
     import pwndbg.aglib.vmmap
 
+    # Disable collapsible output for existing test expectations
+    await ctrl.execute("set vis-skip-repeating-val off")
+
     await launch_to(ctrl, HEAP_VIS, "break_here")
+
+    if pwndbg.aglib.arch.name != "x86-64":
+        pytest.skip("TODO multiarch")
 
     # TODO/FIXME: Shall we have a standard method to do this kind of filtering?
     # Note that we have `pages_filter` in pwndbg/pwndbg/commands/vmmap.py heh
@@ -62,15 +70,44 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     first_hexdump = await hexdump_16B(hex(heap_page.start))
 
+    # Since glibc 2.42 we don't store the amount of chunks in the tcache bin, but rather
+    # the amount of chunks still needed to fill the bin.
+    num_slots_check = pwndbg.aglib.memory.u8(heap_page.start + pwndbg.aglib.arch.ptrsize * 2)
+    using_num_slots = num_slots_check == 7
+
     expected = [
-        "",
         f"{heap_iter(0):#x}\t0x0000000000000000\t{first_chunk_size | 1:#018x}\t{first_hexdump}",
     ]
-    for _ in range(first_chunk_size // 16 - 1):
-        expected.append(
-            "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
-        )
-    expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
+
+    if using_num_slots:
+        # The tcache struct is made up of 2-byte num_slots values and 8-byte pointers to the starts
+        # of the bins.
+        ntcachebins: int = first_chunk_size // (2 + 8)
+        nslotslines: float = ntcachebins * 2 / 0x10
+        nptrlines: int = first_chunk_size // 0x10 - int(nslotslines)
+
+        for _ in range(int(nslotslines)):
+            expected.append(
+                "%#x\t0x0007000700070007\t0x0007000700070007\t................" % heap_iter()
+            )
+        if nslotslines - int(nslotslines) == 0.5:
+            expected.append(
+                "%#x\t0x0007000700070007\t0x0000000000000000\t................" % heap_iter()
+            )
+            nptrlines -= 1
+        for _ in range(nptrlines - 1):
+            expected.append(
+                "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
+            )
+        expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
+
+    else:
+        for _ in range(first_chunk_size // 16 - 1):
+            expected.append(
+                "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
+            )
+        expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
+
     assert result == expected
 
     ## This time using `default-visualize-chunk-number` to set `count`, to make sure that the config can work
@@ -178,7 +215,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
     heap_addr = heap_page.start
 
-    expected_all3 = [""]
+    expected_all3 = []
 
     # Add the biggest chunk, the one from libc
     expected_all3.append(await vis_heap_line(0))
@@ -233,3 +270,43 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     assert len(overflow_result.splitlines()) < 0x500
 
     del overflow_result
+
+    ## Test vis-skip-repeating-val config (collapsible output)
+    # Test collapsible output on default_result which has many repeated lines
+    # First ensure it's disabled (already should be from test start)
+    await ctrl.execute("set vis-skip-repeating-val off")
+    full_result_no_collapse = (await ctrl.execute_and_capture("vis-heap-chunk")).splitlines()
+
+    # Should NOT contain collapse messages
+    collapse_lines_disabled = [
+        line for line in full_result_no_collapse if "repeated lines skipped" in line
+    ]
+    assert len(collapse_lines_disabled) == 0, (
+        "Should have no collapse messages when skip-repeating is disabled"
+    )
+
+    # Now test with skip-repeating enabled on the same state
+    await ctrl.execute("set vis-skip-repeating-val on")
+    collapsed_result = (await ctrl.execute_and_capture("vis-heap-chunk")).splitlines()
+
+    # Should contain collapse messages
+    collapse_lines = [line for line in collapsed_result if "repeated lines skipped" in line]
+    assert len(collapse_lines) > 0, "Should have collapse messages when skip-repeating is enabled"
+
+    # Verify format of collapse message (should have tab prefix and right-aligned count)
+    for collapse_line in collapse_lines:
+        assert collapse_line.strip().startswith("... ↓"), (
+            "Collapse message should start with '... ↓'"
+        )
+        assert "repeated lines skipped" in collapse_line, "Should say 'repeated lines skipped'"
+
+    # Full result should have more lines than collapsed result
+    assert len(full_result_no_collapse) > len(collapsed_result), (
+        "Full output should have more lines than collapsed output"
+    )
+
+    # Set back to off for any remaining tests
+    await ctrl.execute("set vis-skip-repeating-val off")
+
+    del collapsed_result
+    del full_result_no_collapse

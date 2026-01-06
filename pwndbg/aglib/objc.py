@@ -19,13 +19,15 @@ from typing import TypeVar
 from typing_extensions import override
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.macho
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
+import pwndbg.lib.config
+import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
-from pwndbg.dbg import Type
+from pwndbg.dbg_mod import Type
 
 T = TypeVar("T")
 
@@ -1077,8 +1079,8 @@ def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functi
             # TODO: Support resolution of Objective-C method calls in x86-64.
             return None
 
-        obj_ptr = getattr(pwndbg.aglib.regs, obj_reg)
-        sel_ptr = getattr(pwndbg.aglib.regs, sel_reg)
+        obj_ptr = pwndbg.aglib.regs.read_reg(obj_reg)
+        sel_ptr = pwndbg.aglib.regs.read_reg(sel_reg)
 
         obj = Object(obj_ptr)
         sel = Selector(sel_ptr)

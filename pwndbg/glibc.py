@@ -11,21 +11,17 @@ from typing import Callable
 from typing import List
 from typing import Tuple
 from typing import TypeVar
-from typing import Union
-from typing import cast
 
 from elftools.elf.relocation import Relocation
 from typing_extensions import ParamSpec
 
 import pwndbg.aglib.elf
-import pwndbg.aglib.file
 import pwndbg.aglib.heap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.lib.cache
 import pwndbg.lib.config
-import pwndbg.search
 from pwndbg.color import message
 from pwndbg.lib.config import Scope
 
@@ -62,7 +58,7 @@ def set_glibc_version() -> None:
 def get_version() -> Tuple[int, ...] | None:
     if glibc_version:
         version_tuple = tuple(int(i) for i in glibc_version.split("."))
-        return cast(Union[Tuple[int, ...], None], version_tuple)
+        return version_tuple
 
     return _get_version()
 

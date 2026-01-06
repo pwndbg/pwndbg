@@ -5,8 +5,10 @@ from typing import List
 from typing import Tuple
 
 import pwndbg
-import pwndbg.color.message as M
-import pwndbg.commands
+import pwndbg.aglib.kernel
+import pwndbg.aglib.memory
+import pwndbg.color.message as message
+import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.macros import for_each_entry
 
 
@@ -28,7 +30,7 @@ class mod_mem_type(Enum):
 def module_name_offset():
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
-        print(M.warn("Could not find modules"))
+        print(message.warn("Could not find modules"))
         return None
     module = pwndbg.aglib.memory.read_pointer_width(int(modules))
     for i in range(0x100):
@@ -40,7 +42,7 @@ def module_name_offset():
             return offset
         except Exception:
             pass
-    print(M.warn("Could not find module->name"))
+    print(message.warn("Could not find module->name"))
     return None
 
 
@@ -48,7 +50,7 @@ def module_name_offset():
 def module_mem_offset() -> Tuple[int | None, int | None, int | None]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
-        print(M.warn("Could not find modules"))
+        print(message.warn("Could not find modules"))
         return None, None, None
     module = pwndbg.aglib.memory.read_pointer_width(int(modules))
     for i in range(0x100):
@@ -83,7 +85,7 @@ def module_mem_offset() -> Tuple[int | None, int | None, int | None]:
                     break
             if found:
                 return offset, module_memory_size, size_offset
-    print(M.warn("Could not find module->mem"))
+    print(message.warn("Could not find module->mem"))
     return None, None, None
 
 
@@ -91,7 +93,7 @@ def module_mem_offset() -> Tuple[int | None, int | None, int | None]:
 def module_layout_offset() -> Tuple[int | None, int | None]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
-        print(M.warn("Could not find modules"))
+        print(message.warn("Could not find modules"))
         return None, None
     module = pwndbg.aglib.memory.read_pointer_width(int(modules))
     for i in range(0x100):  # enough to search through the struct
@@ -110,7 +112,7 @@ def module_layout_offset() -> Tuple[int | None, int | None]:
                 break
         if valid:
             return offset, offset + pwndbg.aglib.arch.ptrsize
-    print(M.warn("Could not find module->init_layout"))
+    print(message.warn("Could not find module->init_layout"))
     return None, None
 
 
@@ -118,7 +120,7 @@ def module_layout_offset() -> Tuple[int | None, int | None]:
 def module_kallsyms_offset():
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
-        print(M.warn("Could not find modules"))
+        print(message.warn("Could not find modules"))
         return None, None
     module = pwndbg.aglib.memory.read_pointer_width(int(modules))
     for i in range(0x100):
@@ -145,7 +147,7 @@ def module_kallsyms_offset():
             if pwndbg.aglib.memory.peek(typetab) is None:
                 continue
         return offset
-    print(M.warn("Could not find module->kallsyms"))
+    print(message.warn("Could not find module->kallsyms"))
     return None
 
 
@@ -153,7 +155,7 @@ def module_kallsyms_offset():
 def module_list_with_typeinfo() -> Tuple[pwndbg.dbg_mod.Value, ...]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
-        print(M.warn("Could not find modules"))
+        print(message.warn("Could not find modules"))
         return ()
     result = []
     head = pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", modules)
@@ -167,7 +169,7 @@ def module_list_with_typeinfo() -> Tuple[pwndbg.dbg_mod.Value, ...]:
 def module_list() -> Tuple[int, ...]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
-        print(M.warn("Could not find modules"))
+        print(message.warn("Could not find modules"))
         return ()
     modules = int(modules)
     result = []

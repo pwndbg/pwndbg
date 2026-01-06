@@ -6,13 +6,13 @@ import tempfile
 import gdb
 import pytest
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.heap
 
 from .. import get_binary
 
-HEAP_BINARY = get_binary("heap_bugs.out")
-HEAP_CODE = get_binary("heap_bugs.c")
+HEAP_BINARY = get_binary("heap_bugs.x86-64.out")
+HEAP_CODE = get_binary("heap_bugs.x86-64.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
 

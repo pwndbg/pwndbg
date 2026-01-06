@@ -11,7 +11,7 @@ from . import break_at_sym
 from . import get_binary
 from . import pwndbg_test
 
-REFERENCE_BINARY_NET = get_binary("reference-binary-net.out")
+REFERENCE_BINARY_NET = get_binary("reference-binary-net.native.out")
 
 
 class TCPServerThread(threading.Thread):
@@ -51,8 +51,8 @@ async def test_command_procinfo_net(ctrl: Controller, ip_connect: str) -> None:
 
     await ctrl.launch(REFERENCE_BINARY_NET, args=[ip_connect, str(server.port)])
 
-    bin_path = pwndbg.aglib.proc.exe
-    pid = str(pwndbg.aglib.proc.pid)
+    bin_path = pwndbg.aglib.proc.exe()
+    pid = str(pwndbg.aglib.proc.pid())
 
     break_at_sym("break_here")
     await ctrl.cont()

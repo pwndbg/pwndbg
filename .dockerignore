@@ -14,3 +14,6 @@ tests/binaries/**/div_zero_binary/binary
 
 # ignore QEMU test images (could also be tainted)
 tests/library/qemu_system/kimages
+
+# ignore .git directory
+.git/

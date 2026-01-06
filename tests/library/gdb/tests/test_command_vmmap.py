@@ -9,9 +9,9 @@ import pwndbg.aglib.proc
 
 from . import get_binary
 
-GAPS_MAP_BINARY = get_binary("mmap_gaps.out")
-CRASH_SIMPLE_BINARY = get_binary("crash_simple.out.hardcoded")
-BINARY_ISSUE_1565 = get_binary("issue_1565.out")
+GAPS_MAP_BINARY = get_binary("mmap_gaps.native.out")
+CRASH_SIMPLE_BINARY = get_binary("crash_simple.native.out")
+BINARY_ISSUE_1565 = get_binary("issue_1565.native.out")
 
 
 def get_proc_maps():
@@ -33,7 +33,7 @@ def get_proc_maps():
 
     # Note: info proc mappings may not have permissions information,
     # so we get it here and fill from `perms`
-    with open("/proc/%d/maps" % pwndbg.aglib.proc.pid) as f:
+    with open("/proc/%d/maps" % pwndbg.aglib.proc.pid()) as f:
         for line in f.read().splitlines():
             addrs, perms, offset, _inode, size, objfile = line.split(maxsplit=6)
             start, end = (int(v, 16) for v in addrs.split("-"))
@@ -121,8 +121,6 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
         expected_maps.remove(binary_map)
 
     # Fix up expected maps
-    next(i for i in expected_maps if i[-1] == "[vdso]")[-1] = "load2"
-
     vdso_map = next(i for i in expected_maps if i[-1] == "[vvar]")
     expected_maps.remove(vdso_map)
 
@@ -152,9 +150,6 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
                 continue
 
             assert vmmap[:-1] == expected_map[:-1]
-            if vmmap[-1].startswith("load"):
-                continue
-            assert vmmap[-1] == expected_map[-1]
 
     assert_maps()
 

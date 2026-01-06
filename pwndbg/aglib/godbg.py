@@ -19,7 +19,7 @@ from typing import Tuple
 from typing import cast
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.file
 import pwndbg.aglib.memory
@@ -27,6 +27,7 @@ import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.color.memory
 import pwndbg.hexdump
+import pwndbg.integration
 import pwndbg.lib.cache
 from pwndbg.color import generateColorFunction
 from pwndbg.color import message
@@ -185,7 +186,9 @@ class FormatOpts:
         return f"\n{_indent(joined)}\n"
 
     def fmt_ptr(self, val: int) -> str:
-        return pwndbg.color.memory.get_address_and_symbol(val)
+        return pwndbg.color.memory.get_address_and_symbol(
+            val, pwndbg.integration.manager.get_stack_var_dict_all()
+        )
 
 
 @dataclass
@@ -285,7 +288,7 @@ def emit_warning(msg: str):
 def get_elf() -> pwndbg.aglib.elf.ELFInfo | None:
     try:
         return pwndbg.aglib.elf.get_elf_info_rebased(
-            pwndbg.aglib.file.get_proc_exe_file(), pwndbg.aglib.proc.binary_base_addr
+            pwndbg.aglib.file.get_proc_exe_file(), pwndbg.aglib.proc.binary_base_addr()
         )
     except OSError:
         return None
@@ -336,6 +339,9 @@ def get_go_version() -> Tuple[int, ...] | None:
     if not version_string.startswith("go"):
         emit_warning(f"Go version string {version_string!r} doesn't start with 'go'")
         return None
+
+    # Cleanup a string that looks like "go1.25.5 X:nodwarf5"
+    version_string = version_string.split(" ")[0]
     return tuple(int(x) for x in version_string[2:].split("."))
 
 

@@ -7,8 +7,12 @@ from typing import Tuple
 from elftools.elf.elffile import ELFFile
 
 import pwndbg.aglib
+import pwndbg.aglib.file
 import pwndbg.aglib.proc
-import pwndbg.color.memory as M
+import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
+import pwndbg.aglib.vmmap
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
@@ -43,8 +47,8 @@ def elfsections(no_rebase: bool) -> None:
 
     bin_base_addr = 0
     # Get the binary base address, for rebase the section address if we need.
-    if pwndbg.aglib.proc.alive:
-        bin_base_addr = pwndbg.aglib.proc.binary_base_addr
+    if pwndbg.aglib.proc.alive():
+        bin_base_addr = pwndbg.aglib.proc.binary_base_addr()
 
     __SH_WRITE = 1 << 0
     __SH_ALLOC = 1 << 1
@@ -73,13 +77,13 @@ def elfsections(no_rebase: bool) -> None:
         sections.sort()
 
         # print legend
-        print(M.legend())
+        print(mem_color.legend())
 
         # table header
         print(f"{'Start':>18} {'End':>18} {'Perm':>8} {'Size':>10}  {'Name':<}")
 
         # if the binary is started, use the memory permission for the coloring
-        if pwndbg.aglib.proc.alive and not no_rebase:
+        if pwndbg.aglib.proc.alive() and not no_rebase:
             for start, end, size, name, privilege in sections:
                 page = pwndbg.aglib.vmmap.find(start)
 
@@ -88,7 +92,7 @@ def elfsections(no_rebase: bool) -> None:
                 privilege_str += "X" if page.execute else "-"
 
                 print(
-                    M.get(
+                    mem_color.get(
                         start,
                         text=f"{start:>#18x} {end:>#18x} {privilege_str:>8} {size:>#10x}  {name:<}",
                     )
@@ -96,18 +100,18 @@ def elfsections(no_rebase: bool) -> None:
         else:
             # if the binary is not start, use the section flags for the coloring.
             for start, end, size, name, privilege in sections:
-                color = M.c.rodata
+                color = mem_color.c.rodata
                 privilege_str = "R"
 
                 if privilege & __SH_WRITE:
                     privilege_str += "W"
-                    color = M.c.data
+                    color = mem_color.c.data
                 else:
                     privilege_str += "-"
 
                 if privilege & __SH_EXEC:
                     privilege_str += "X"
-                    color = M.c.code
+                    color = mem_color.c.code
                 else:
                     privilege_str += "-"
 
@@ -151,8 +155,8 @@ def plt(all_symbols: bool = False) -> None:
 
     bin_base_addr = 0
     # If we started the binary and it has PIE, rebase it
-    if pwndbg.aglib.proc.alive:
-        bin_base_addr = pwndbg.aglib.proc.binary_base_addr
+    if pwndbg.aglib.proc.alive():
+        bin_base_addr = pwndbg.aglib.proc.binary_base_addr()
 
     # List of (Section name, start_addr, end_addr)
     sections_found: List[Tuple[str, int, int]] = []
@@ -224,8 +228,8 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
         return
 
     # If we started the binary and it has PIE, rebase it
-    if pwndbg.aglib.proc.alive:
-        bin_base_addr = pwndbg.aglib.proc.binary_base_addr
+    if pwndbg.aglib.proc.alive():
+        bin_base_addr = pwndbg.aglib.proc.binary_base_addr()
 
         # Rebase the start and end addresses if needed
         if start < bin_base_addr:

@@ -17,18 +17,19 @@ from typing import Tuple
 from capstone import *  # noqa: F403
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.aarch64
 import pwndbg.aglib.disasm.arch
 import pwndbg.aglib.disasm.arm
-import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.disasm.loongarch64
 import pwndbg.aglib.disasm.mips
+import pwndbg.aglib.disasm.ppc
 import pwndbg.aglib.disasm.riscv
 import pwndbg.aglib.disasm.x86
 import pwndbg.aglib.memory
 import pwndbg.emu.emulator
 import pwndbg.lib.cache
+import pwndbg.lib.config
 from pwndbg.aglib.disasm.arch import DEBUG_ENHANCEMENT
 from pwndbg.aglib.disasm.arch import DisassemblyAssistant
 from pwndbg.aglib.disasm.instruction import ManualPwndbgInstruction
@@ -36,13 +37,8 @@ from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.disasm.instruction import PwndbgInstructionImpl
 from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import message
-from pwndbg.dbg import EventType
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
-
-CapstoneEndian = {
-    "little": CS_MODE_LITTLE_ENDIAN,
-    "big": CS_MODE_BIG_ENDIAN,
-}
 
 CapstoneSyntax = {"intel": CS_OPT_SYNTAX_INTEL, "att": CS_OPT_SYNTAX_ATT}
 
@@ -75,9 +71,6 @@ next_addresses_cache: Set[int] = set()
 # Register GDB event listeners for all stop events
 @pwndbg.dbg.event_handler(EventType.STOP)
 def enhance_cache_listener() -> None:
-    # Clear the register value cache to ensure we get the correct program counter value
-    pwndbg.aglib.regs.read_reg.cache.clear()  # type: ignore[attr-defined]
-
     if pwndbg.aglib.regs.pc not in next_addresses_cache:
         # Clear the enhanced instruction cache to ensure we don't use stale values
         computed_instruction_cache.clear()
@@ -100,6 +93,11 @@ def clear_on_reg_mem_change() -> None:
 # Used to display instructions that led to current instruction
 backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
 
+# Dict of Address -> previous instruction sequentially in memory
+# Some architectures don't have fixed-sized instructions, so this is used
+# to disassemble backwards linearly in memory for those cases
+linear_backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
+
 # This allows use to retain the annotation strings from previous instructions
 computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.defaultdict(
     lambda: None
@@ -110,11 +108,38 @@ computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.de
 emulated_arm_mode_cache: DefaultDict[int, int | None] = collections.defaultdict(lambda: None)
 
 
+def get_previous_instruction(
+    address: int, use_cache: bool, linear: bool
+) -> PwndbgInstruction | None:
+    if linear:
+        prev_address = linear_backward_cache[address]
+        result = (
+            one(prev_address, from_cache=use_cache, put_backward_cache=False)
+            if prev_address
+            else None
+        )
+        if result is None and pwndbg.aglib.arch.constant_instruction_size:
+            return one(
+                address - pwndbg.aglib.arch.max_instruction_size,
+                from_cache=use_cache,
+                put_backward_cache=False,
+                linear=linear,
+            )
+        return result
+    else:
+        prev_address = backward_cache[address]
+        return (
+            one(prev_address, from_cache=use_cache, put_backward_cache=False)
+            if prev_address
+            else None
+        )
+
+
 @pwndbg.lib.cache.cache_until("objfile")
 def get_disassembler(cs_info: Tuple[int, int]):
     arch, mode = cs_info
 
-    mode |= CapstoneEndian[pwndbg.aglib.arch.endian]
+    mode |= pwndbg.aglib.arch.get_capstone_endianness()
 
     cs = Cs(arch, mode)
 
@@ -130,12 +155,13 @@ def get_disassembler(cs_info: Tuple[int, int]):
 
 
 def get_one_instruction(
-    address,
-    emu: pwndbg.emu.emulator.Emulator = None,
-    enhance=True,
-    from_cache=False,
-    put_cache=False,
-    assistant: DisassemblyAssistant = None,
+    address: int,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
+    enhance: bool = True,
+    from_cache: bool = False,
+    put_cache: bool = False,
+    assistant: DisassemblyAssistant | None = None,
+    padding: int = 6,
 ) -> PwndbgInstruction:
     """
     If passed an emulator, this will pass it to the DisassemblyAssistant which will
@@ -148,7 +174,7 @@ def get_one_instruction(
 
     cs_info = pwndbg.aglib.arch.get_capstone_constants(address)
     if cs_info is None:
-        instr = ManualPwndbgInstruction(address)
+        instr = ManualPwndbgInstruction(address, padding)
         if enhance:
             pwndbg.aglib.disasm.arch.basic_enhance(instr)
         return instr
@@ -156,7 +182,7 @@ def get_one_instruction(
     md = get_disassembler(cs_info)
     data = pwndbg.aglib.memory.read(address, pwndbg.aglib.arch.max_instruction_size, partial=True)
     for ins in md.disasm(bytes(data), address, 1):
-        pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins)
+        pwn_ins: PwndbgInstruction = PwndbgInstructionImpl(ins, padding)
 
         if enhance:
             if assistant is None:
@@ -182,6 +208,7 @@ def one(
     from_cache=False,
     put_cache=False,
     put_backward_cache=True,
+    linear=False,
     assistant: DisassemblyAssistant = None,
 ) -> PwndbgInstruction | None:
     if address is None:
@@ -201,7 +228,9 @@ def one(
         assistant=assistant,
     ):
         if put_backward_cache:
-            backward_cache[insn.next] = insn.address
+            linear_backward_cache[insn.address + insn.size] = insn.address
+            if not linear:
+                backward_cache[insn.next] = insn.address
         return insn
 
     return None
@@ -219,13 +248,14 @@ def one_raw(address=None) -> PwndbgInstruction | None:
 
 
 def get(
-    address,
-    instructions=1,
-    emu: pwndbg.emu.emulator.Emulator = None,
-    enhance=True,
-    from_cache=False,
-    put_cache=False,
-    assistant: DisassemblyAssistant = None,
+    address: int,
+    instructions: int = 1,
+    emu: pwndbg.emu.emulator.Emulator | None = None,
+    enhance: bool = True,
+    from_cache: bool = False,
+    put_cache: bool = False,
+    assistant: DisassemblyAssistant | None = None,
+    padding: int = 6,
 ) -> List[PwndbgInstruction]:
     address = int(address)
 
@@ -242,6 +272,7 @@ def get(
             from_cache=from_cache,
             put_cache=put_cache,
             assistant=assistant,
+            padding=padding,
         )
         if i is None:
             break
@@ -318,15 +349,30 @@ def one_with_config():
 
 # Return (list of PwndbgInstructions, index in list where instruction.address = passed in address)
 def near(
-    address, instructions=1, emulate=False, show_prev_insns=True, use_cache=False, linear=False
+    address,
+    forward_count: int = 1,
+    backward_count: int = 0,
+    total_count: int = None,
+    emulate=False,
+    show_prev_insns=True,
+    use_cache=False,
+    linear=False,
 ) -> Tuple[List[PwndbgInstruction], int]:
     """
-    Disasms instructions near given `address`. Passing `emulate` makes use of
+    Disassembles instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
     `show_prev_insns` makes this show previously cached instructions
 
     This allows us to maintain a context of surrounding instructions while
     single-stepping instructions.
+
+    Args:
+        forward_count: number of instructions forward from this instruction
+        backward_count: maximum number of previously executed instructions
+        total_count:
+            if set, returns a list with this many instructions in total.
+            The number of backward instructions is limited by `backward_count`.
+            If this is set, `forward_count` is ignored.
     """
 
     pc = pwndbg.aglib.regs.pc
@@ -352,8 +398,14 @@ def near(
     # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
     assistant = pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()
 
+    # Copy register values to the enhancer for use in manual register tracking
+    if assistant.supports_manual_emulation and address == pc:
+        for reg in pwndbg.aglib.regs.current.common:
+            if (reg_value := pwndbg.aglib.regs.read_reg(reg)) is not None:
+                assistant.manual_register_values.write_register(reg, reg_value)
+
     # Start at the current instruction using emulation if available.
-    current = one(address, emu, put_cache=True, assistant=assistant)
+    current = one(address, emu, put_cache=True, assistant=assistant, linear=linear)
 
     if DEBUG_ENHANCEMENT:
         if emu and not emu.last_step_succeeded:
@@ -369,20 +421,23 @@ def near(
         print(f"CACHE START -------------------, {current.address}")
 
     if show_prev_insns:
-        cached = backward_cache[current.address]
-        insn = one(cached, from_cache=use_cache, put_backward_cache=False) if cached else None
-        while insn is not None and len(insns) < instructions:
+        insn = get_previous_instruction(current.address, use_cache=use_cache, linear=linear)
+        while insn is not None and len(insns) < backward_count:
             if DEBUG_ENHANCEMENT:
-                print(f"Got instruction from cache, addr={cached:#x}")
+                print(f"Got instruction from cache, addr={insn.address:#x}")
             if insn.jump_like and insn.split == SplitType.NO_SPLIT and not insn.causes_branch_delay:
                 insn.split = SplitType.BRANCH_NOT_TAKEN
             insns.append(insn)
-            cached = backward_cache[insn.address]
-            insn = one(cached, from_cache=use_cache, put_backward_cache=False) if cached else None
+
+            insn = get_previous_instruction(insn.address, use_cache=use_cache, linear=linear)
         insns.reverse()
 
-    index_of_current_instruction = len(insns)
+    if total_count is not None:
+        target_instruction_count = total_count
+    else:
+        target_instruction_count = len(insns) + forward_count
 
+    index_of_current_instruction = len(insns)
     insns.append(current)
 
     if DEBUG_ENHANCEMENT:
@@ -396,11 +451,10 @@ def near(
     next_addresses_cache.add(current.target)
 
     insn = current
-    total_instructions = 1 + (2 * instructions)
 
     last_emulated_thumb_bit_value: int | None = None
 
-    while insn and len(insns) < total_instructions:
+    while insn and len(insns) < target_instruction_count:
         target = insn.next if not linear else insn.address + insn.size
 
         # Emulation may have failed or been disabled in the last call to one()
@@ -411,7 +465,7 @@ def near(
                 # Upon execution the previous instruction, the Thumb mode bit may have changed.
                 # This means we know whether the next instruction executed will be Thumb or not.
                 # This returns None in the case the Thumb bit is not relevent.
-                last_emulated_thumb_bit_value = emulated_arm_mode_cache[emu.pc] = (
+                last_emulated_thumb_bit_value = emulated_arm_mode_cache[emu.pc()] = (
                     emu.read_thumb_bit()
                 )
 
@@ -437,7 +491,7 @@ def near(
                 # This means the emulator's program counter will take on the value that the branch action dictates, and we would normally continue disassembling there.
                 # We disassemble the delay slot instructions here as the normal codeflow will not reach them.
 
-                split_insn = one(insn.address + insn.size, None, put_cache=True)
+                split_insn = one(insn.address + insn.size, None, put_cache=True, linear=linear)
 
                 # There might not be a valid instruction at the branch delay slot
                 if split_insn is None:
@@ -470,7 +524,7 @@ def near(
         next_addresses_cache.add(target)
 
         # The emulator is stepped within this call
-        insn = one(target, emu, put_cache=True, assistant=assistant)
+        insn = one(target, emu, put_cache=True, assistant=assistant, linear=linear)
 
         if insn:
             insns.append(insn)
@@ -501,6 +555,7 @@ ALL_DISASSEMBLY_ASSISTANTS: Dict[
     "loongarch64": lambda: pwndbg.aglib.disasm.loongarch64.Loong64DisassemblyAssistant(
         "loongarch64"
     ),
+    "powerpc": lambda: pwndbg.aglib.disasm.ppc.PowerPCDisassemblyAssistant("powerpc"),
 }
 
 

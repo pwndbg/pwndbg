@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 from pwndbg.commands.xor import memfrob
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 def test_command_xor_with_gdb_execute(start_binary):
@@ -17,7 +17,7 @@ def test_command_xor_with_gdb_execute(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    before = pwndbg.aglib.regs.rsp
+    before = pwndbg.aglib.regs.sp
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
     gdb.execute("xor $rsp ' ' 4")
     after = pwndbg.aglib.memory.read(before, 8)
@@ -30,7 +30,7 @@ def test_command_xor_with_int(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    before = pwndbg.aglib.regs.rsp
+    before = pwndbg.aglib.regs.sp
     assert isinstance(before, int)
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
     gdb.execute(f"xor {before} ' ' 4")
@@ -44,7 +44,7 @@ def test_command_xor_with_hex(start_binary):
     """
     start_binary(REFERENCE_BINARY)
 
-    before = pwndbg.aglib.regs.rsp
+    before = pwndbg.aglib.regs.sp
     before_hex = hex(before)
     assert isinstance(before_hex, str)
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
@@ -56,7 +56,7 @@ def test_command_xor_with_hex(start_binary):
 def test_command_memfrob(start_binary):
     start_binary(REFERENCE_BINARY)
 
-    before = pwndbg.aglib.regs.rsp
+    before = pwndbg.aglib.regs.sp
     pwndbg.aglib.memory.write(before, b"aaaaaaaa")
     memfrob(before, 4)
     after = pwndbg.aglib.memory.read(before, 8)

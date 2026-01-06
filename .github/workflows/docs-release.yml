@@ -1,4 +1,4 @@
-name: Latest Release Docs
+name: Stable Release Docs
 
 on:
   release:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    name: Deploy docs for latest release
+    name: Deploy docs for stable release
     runs-on: ubuntu-latest
     steps:
       - name: Only allow running on tag refs
@@ -16,11 +16,11 @@ jobs:
           echo "You must run this workflow in the context of a tag."
           exit 1
 
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6.0.1
+      - uses: actions/setup-python@v6
 
       - name: Install latest uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
 
@@ -41,4 +41,4 @@ jobs:
             --push \
             --remote origin \
             ${{ github.ref_name }} \
-            latest
+            stable

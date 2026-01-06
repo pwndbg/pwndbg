@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import os
 
+import pwndbg
 import pwndbg.aglib.dt
-import pwndbg.dbg
 
 if pwndbg.dbg.is_gdblib_available():
     import pwndbg.commands.cymbol
 
 from . import get_binary
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 # Might be useful for future expansion of the test case

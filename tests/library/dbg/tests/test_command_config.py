@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import re
 
+from ....host import Controller
 from . import get_binary
 from . import pwndbg_test
 
-REFERENCE_BINARY = get_binary("reference-binary.out")
+REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 @pwndbg_test

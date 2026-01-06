@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import gdb
 
-import pwndbg.aglib.regs
+import pwndbg.aglib
 
 from . import get_binary
 
-STEPSYSCALL_X64_BINARY = get_binary("stepsyscall_x64.out")
+STEPSYSCALL_X64_BINARY = get_binary("stepsyscall.x86-64.out")
 
 
 def test_command_stepsyscall(start_binary):

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from ....host import Controller
 from . import get_binary
 from . import launch_to
 from . import pwndbg_test
@@ -25,16 +26,17 @@ async def test_command_canary(ctrl: Controller, binary: str, reg_name: str, skip
     Tests the canary command for x86-64 and i386 architectures
     """
     import pwndbg
+    import pwndbg.aglib
     import pwndbg.aglib.memory
-    import pwndbg.aglib.regs
+    import pwndbg.commands.canary
 
     await launch_to(ctrl, binary, "main")
 
     # The instruction that loads the canary is at the start of the function,
     # but it it not necessarily at any given fixed position, scan for it.
-    initial_reg = getattr(pwndbg.aglib.regs, reg_name)
+    initial_reg = pwndbg.aglib.regs.read_reg(reg_name)
     while True:
-        register = getattr(pwndbg.aglib.regs, reg_name)
+        register = pwndbg.aglib.regs.read_reg(reg_name)
         if register != initial_reg:
             if skips == 0:
                 break
@@ -44,6 +46,7 @@ async def test_command_canary(ctrl: Controller, binary: str, reg_name: str, skip
         await ctrl.step_instruction()
 
     canary_value, at_random = pwndbg.commands.canary.canary_value()
+    assert at_random is not None
 
     raw = pwndbg.aglib.memory.read_pointer_width(at_random)
     mask = pwndbg.aglib.arch.ptrmask ^ 0xFF

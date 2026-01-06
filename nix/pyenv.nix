@@ -3,8 +3,8 @@
   inputs,
   python3 ? pkgs.python3,
   isDev ? false,
-  isLLDB ? false,
   isEditable ? false,
+  groups,
   ...
 }:
 let
@@ -80,6 +80,18 @@ let
     "pytest-cov"
     "mypy"
     "vermin"
+    # decomp2dbg deps
+    "decomp2dbg"
+    "ghidra-bridge"
+    "jfx-bridge"
+    "tqdm"
+    "toml"
+    "libbs"
+    "networkx"
+    "jpype1"
+    "pyhidra"
+    "ply"
+    # end of decomp2dbg deps
   ];
   pkgsNeedFlitcore = [
     "typing-extensions"
@@ -97,12 +109,16 @@ let
     "plumbum"
     "rpyc"
     "iniconfig"
+    # decomp2dbg deps
+    "decomp2dbg"
+    "filelock"
+    "platformdirs"
+    # end of decomp2dbg deps
   ];
   pkgsNeedPoetry = [
     "pt"
     "rich"
     "sortedcontainers-stubs"
-    "isort"
   ];
 
   genPkgsNeeded =
@@ -133,30 +149,11 @@ let
     paramiko = dummy;
     pip = dummy;
     uv = dummy;
-    gdb-for-pwndbg = dummy;
-    lldb-for-pwndbg = dummy;
 
     # ziglang is only supported on few platforms
-    ziglang =
-      if
-        (
-          pkgs.stdenv.hostPlatform.isDarwin
-          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isx86)
-          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isAarch)
-          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isS390x)
-          || (pkgs.stdenv.hostPlatform.isLinux && pkgs.stdenv.hostPlatform.isRiscV64)
-          || (
-            pkgs.stdenv.hostPlatform.isLinux
-            && pkgs.stdenv.hostPlatform.isPower64
-            && pkgs.stdenv.hostPlatform.isLittleEndian
-          )
-        )
-      then
-        prev.ziglang.override {
-          sourcePreference = "wheel";
-        }
-      else
-        dummy;
+    ziglang = prev.ziglang.override {
+      sourcePreference = "wheel";
+    };
 
     psutil = pkgs.callPackage (
       {
@@ -171,7 +168,13 @@ let
           buildInputs = [ python3 ];
         }
         // lib.optionalAttrs stdenv.hostPlatform.isDarwin {
-          NIX_CFLAGS_COMPILE = "-DkIOMainPortDefault=0";
+          postPatch = ''
+            # stick to the old SDK name for now
+            # https://developer.apple.com/documentation/iokit/kiomasterportdefault/
+            # https://developer.apple.com/documentation/iokit/kiomainportdefault/
+            substituteInPlace psutil/arch/osx/cpu.c \
+              --replace-fail kIOMainPortDefault kIOMasterPortDefault
+          '';
         }
       )
     ) { };
@@ -267,6 +270,63 @@ let
           ];
       })
     ) { };
+
+    jfx-bridge = pkgs.callPackage (
+      { stdenv }:
+      prev.jfx-bridge.overrideAttrs (old: {
+        postPatch = ''
+          substituteInPlace ./setup.py \
+            --replace-fail 'git describe --tags' 'echo ${old.version}'
+        '';
+      })
+    ) { };
+
+    jpype1 = pkgs.callPackage (
+      { python3 }:
+      prev.jpype1.overrideAttrs (old: {
+        buildInputs =
+          (old.buildInputs or [ ])
+          ++ lib.optionals isCross [
+            python3
+          ];
+      })
+    ) { };
+
+    ghidra-bridge = pkgs.callPackage (
+      { }:
+      prev.ghidra-bridge.overrideAttrs (old: {
+        postPatch = ''
+          substituteInPlace ./setup.py \
+            --replace-fail 'git describe --tags' 'echo ${old.version}'
+        '';
+      })
+    ) { };
+
+    gdb-for-pwndbg = pkgs.callPackage (
+      { python3, autoPatchelfHook }:
+      prev.gdb-for-pwndbg.overrideAttrs (old: {
+        nativeBuildInputs = builtins.filter (x: x != autoPatchelfHook) old.nativeBuildInputs;
+        postFixup = ''
+          for f in ${python3}/lib/libpython*; do
+            name=$(basename "$f")
+            ln -s "$f" "$out/lib/$name";
+          done
+        '';
+      })
+    ) { };
+
+    lldb-for-pwndbg = pkgs.callPackage (
+      { python3, autoPatchelfHook }:
+      prev.lldb-for-pwndbg.overrideAttrs (old: {
+        nativeBuildInputs = builtins.filter (x: x != autoPatchelfHook) old.nativeBuildInputs;
+        postFixup = ''
+          for f in ${python3}/lib/libpython*; do
+            name=$(basename "$f")
+            ln -s "$f" "$out/lib/$name";
+          done
+        '';
+      })
+    ) { };
   };
 
   overlays = lib.composeManyExtensions [
@@ -321,30 +381,29 @@ let
   pyenv = pythonSet.mkVirtualEnv "pwndbg-env" {
     pwndbg =
       [ ]
-      ++ lib.optionals isLLDB [
-        "lldb"
-      ]
       ++ lib.optionals isDev [
         "dev"
         "tests"
         # We don't need linters in "dev" build
         # "lint"
-      ];
+      ]
+      ++ groups;
   };
 
   pyenvEditable = editablePythonSet.mkVirtualEnv "pwndbg-editable-env" {
     pwndbg =
       [ ]
-      ++ lib.optionals isLLDB [
-        "lldb"
-      ]
-      ++ lib.optionals (!isLLDB) [
-        "gdb"
-      ]
       ++ lib.optionals isDev [
         "dev"
         "tests"
-      ];
+      ]
+      ++ groups;
   };
+
+  final = (if isEditable then pyenvEditable else pyenv).overrideAttrs (old: {
+    meta = {
+      python3 = python3;
+    };
+  });
 in
-if isEditable then pyenvEditable else pyenv
+final

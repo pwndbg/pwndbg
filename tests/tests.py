@@ -14,7 +14,7 @@ import time
 from enum import Enum
 from pathlib import Path
 
-import ziglang
+from pwndbg.lib.zig import get_zig_executable
 
 from .host import TestHost
 from .host import TestResult
@@ -337,11 +337,12 @@ def make_all(path: Path, jobs: int = multiprocessing.cpu_count()):
 
     print(f"[+] make -C {path} -j{jobs} all")
     try:
+        zig_executable = get_zig_executable()
         subprocess.check_call(
             [
                 "make",
                 f"-j{jobs}",
-                "ZIGCC=" + os.path.join(os.path.dirname(ziglang.__file__), "zig") + " cc",
+                f"ZIGCC={zig_executable} cc",
                 "all",
             ],
             cwd=str(path),

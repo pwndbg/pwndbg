@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from ....host import Controller
 from . import get_binary
+from . import launch_to
 from . import pwndbg_test
 
-BINARY = get_binary("reference-binary.out")
+BINARY = get_binary("reference-binary.native.out")
+TELESCOPE_BINARY = get_binary("telescope_binary.native.out")
 
 
 @pwndbg_test
@@ -80,7 +82,7 @@ async def test_cache_args_kwargs_properly(ctrl: Controller) -> None:
 @pwndbg_test
 async def test_cache_clear_has_priority(ctrl: Controller) -> None:
     import pwndbg
-    from pwndbg.dbg import EventType
+    from pwndbg.dbg_mod import EventType
     from pwndbg.lib import cache
 
     actions = []
@@ -105,3 +107,21 @@ async def test_cache_clear_has_priority(ctrl: Controller) -> None:
     foo()
     foo()
     assert actions == ["foo", "on_stop", "foo"]
+
+
+@pwndbg_test
+async def test_cache_registers_account_frame(ctrl: Controller) -> None:
+    # Test that the registers don't get cached without an associated frame
+    # and thus reuse a stale value.
+    # https://github.com/pwndbg/pwndbg/issues/3508
+    import pwndbg.aglib
+
+    await launch_to(ctrl, TELESCOPE_BINARY, "break_here")
+    # Get the value of pc in the freshest stack frame
+    pc1 = pwndbg.aglib.regs.pc
+
+    # Get the value of pc in a higher stack frame
+    await ctrl.execute("up")
+    pc2 = pwndbg.aglib.regs.pc
+
+    assert pc1 != pc2

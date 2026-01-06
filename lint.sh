@@ -48,12 +48,10 @@ call_shfmt() {
 }
 
 if [[ $FIX == 1 ]]; then
-    $UV_RUN_LINT isort ${LINT_FILES}
     $UV_RUN_LINT ruff format ${LINT_FILES}
     $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
     call_shfmt -w
 else
-    $UV_RUN_LINT isort --check-only --diff ${LINT_FILES}
     $UV_RUN_LINT ruff format --check --diff ${LINT_FILES}
     call_shfmt
 
@@ -71,5 +69,5 @@ $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LI
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then
-    $UV_RUN_MYPY mypy pwndbg pwndbginit tests/host
+    $UV_RUN_MYPY mypy $LINT_FILES
 fi

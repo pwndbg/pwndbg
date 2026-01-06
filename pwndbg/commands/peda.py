@@ -8,8 +8,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.auxv
 import pwndbg.commands
-import pwndbg.commands.context
-import pwndbg.commands.telescope
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -44,7 +42,7 @@ def xuntil(target) -> None:
         spec = target
 
     gdb.Breakpoint(spec, temporary=True)
-    if pwndbg.aglib.proc.alive:
+    if pwndbg.aglib.proc.alive():
         gdb.execute("continue", from_tty=False)
     else:
         gdb.execute("run", from_tty=False)

@@ -11,10 +11,8 @@ from capstone.arm import *  # noqa: F403
 from pwnlib.util.misc import align_down
 from typing_extensions import override
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.arch
-import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.saved_register_frames
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.aglib.disasm.instruction import EnhancedOperand
@@ -243,7 +241,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             instruction.groups.remove(CS_GRP_CALL)
 
         # Disable Unicorn while in IT instruction blocks since Unicorn cannot be paused in it.
-        flags_value = pwndbg.aglib.regs[self.flags_reg]
+        flags_value = pwndbg.aglib.regs.read_reg(self.flags_reg)
         it_state = itstate_from_cpsr(flags_value)
 
         if (instruction.id == ARM_INS_IT or it_state != 0) and emu:
@@ -261,7 +259,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         # These condition codes indicate unconditionally/condition is not relevant
         if instruction.cs_insn.cc in (ARM_CC_AL, ARMCC_UNDEF):
             if instruction.id in (ARM_INS_B, ARM_INS_BL, ARM_INS_BLX, ARM_INS_BX, ARM_INS_BXJ):
-                instruction.declare_conditional = False
+                instruction.declare_is_unconditional_jump = True
             return InstructionCondition.UNDETERMINED
 
         value = self._read_register_name(instruction, self.flags_reg, emu)
@@ -326,7 +324,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             parts.append("%#x" % op.mem.disp)
 
         if op.mem.index != 0:
-            index = pwndbg.aglib.regs[instruction.cs_insn.reg_name(op.mem.index)]
+            index = pwndbg.aglib.regs.read_reg(instruction.cs_insn.reg_name(op.mem.index))
             scale = op.mem.scale
             parts.append(f"{index}*{scale:#x}")
 
