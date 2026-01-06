@@ -7,6 +7,7 @@ on:
     paths:
       - 'uv.lock'
       - 'Dockerfile.base-apt'
+      - '.github/workflows/base-image.yml'
   pull_request:
     paths:
       - 'uv.lock'
@@ -23,34 +24,42 @@ jobs:
         platform_base:
           - platform: linux/amd64
             base_image: debian:13
+            tag_name: amd64
             runner: ubuntu-latest
 
           - platform: linux/arm/v7
             base_image: debian:13
+            tag_name: armv7l
             runner: ubuntu-latest
 
           - platform: linux/arm64
             base_image: debian:13
+            tag_name: arm64
             runner: ubuntu-24.04-arm
 
           - platform: linux/386
             base_image: debian:13
+            tag_name: 386
             runner: ubuntu-24.04-arm
 
           - platform: linux/ppc64le
             base_image: debian:13
+            tag_name: ppc64le
             runner: ubuntu-24.04-arm
 
           - platform: linux/riscv64
             base_image: debian:13
+            tag_name: riscv64
             runner: ubuntu-24.04-arm
 
           - platform: linux/s390x
             base_image: debian:13
+            tag_name: s390x
             runner: ubuntu-24.04-arm
 
           - platform: linux/loong64
             base_image: ghcr.io/loong64/debian:trixie
+            tag_name: loong64
             runner: ubuntu-24.04-arm
 
     runs-on: ${{ matrix.platform_base.runner }}
@@ -80,7 +89,7 @@ jobs:
             --platform ${{ matrix.platform_base.platform }} \
             --build-arg image=${{ matrix.platform_base.base_image }} \
             -f ./Dockerfile.base-apt \
-            -t ghcr.io/pwndbg/base-apt:latest \
+            -t ghcr.io/pwndbg/base-apt:latest-${{ matrix.platform_base.tag_name }} \
             .
       - name: Push Docker image
         if: github.ref == 'refs/heads/dev'
@@ -90,5 +99,56 @@ jobs:
             --platform ${{ matrix.platform_base.platform }} \
             --build-arg image=${{ matrix.platform_base.base_image }} \
             -f ./Dockerfile.base-apt \
-            -t ghcr.io/pwndbg/base-apt:latest \
+            -t ghcr.io/pwndbg/base-apt:latest-${{ matrix.platform_base.tag_name }} \
             --push .
+
+  manifest-and-cleanup:
+    runs-on: ubuntu-24.04-arm
+    if: github.ref == 'refs/heads/dev'
+    needs: base-image
+
+    env:
+      IMAGE: ghcr.io/pwndbg/base-apt
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create multi-arch manifest
+        run: |
+          docker manifest create $IMAGE:latest \
+            $IMAGE:latest-amd64 \
+            $IMAGE:latest-arm64 \
+            $IMAGE:latest-armv7l \
+            $IMAGE:latest-ppc64le \
+            $IMAGE:latest-s390x \
+            $IMAGE:latest-riscv64 \
+            $IMAGE:latest-386 \
+            $IMAGE:latest-loong64
+  
+          docker manifest push $IMAGE:latest
+
+      - name: Delete latest-* tags
+        run: |
+          apt install -y jq
+          for tag in latest-amd64 latest-arm64 latest-armv7l latest-ppc64le latest-s390x latest-riscv64 latest-386 latest-loong64; do
+            echo "Deleting $IMAGE:$tag"
+          
+            version_id=$(curl -s \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/orgs/pwndbg/packages/container/base-apt/versions \
+              | jq -r ".[] | select(.metadata.container.tags[]==\"$tag\") | .id")
+            
+            if [ -n "$version_id" ]; then
+              curl -s -X DELETE \
+                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                https://api.github.com/orgs/pwndbg/packages/container/base-apt/versions/$version_id
+              echo "Deleted version id $version_id"
+            else
+              echo "Tag $tag not found, skipping"
+            fi
+          done
