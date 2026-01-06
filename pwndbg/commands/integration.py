@@ -17,6 +17,7 @@ import pwndbg.color as color
 import pwndbg.color.memory as color_mem
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.tempfile
@@ -542,11 +543,15 @@ def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> No
             type_text = color.light_cyan(reg_var.type)
             reg_text = reg_var.reg_name.ljust(4, " ")
             reg_value_raw: Optional[pwndbg.dbg_mod.Value] = frame.regs().by_name(reg_var.reg_name)
-            reg_value = (
-                color_mem.get(int(reg_value_raw))
-                if reg_value_raw is not None
-                else color.gray("???")
-            )
+            try:
+                reg_value = (
+                    color_mem.get(int(reg_value_raw))
+                    if reg_value_raw is not None
+                    else color.gray("???")
+                )
+            except pwndbg.dbg_mod.Error:
+                # int(reg_value_raw) failed. Happens for xmm0 for instance.
+                reg_value = "not an int"
             reg_value_part = color.ljust_colored(f"(value: {reg_value})", 28)
             print(f"{reg_text} {reg_value_part} <- {name_text} (type: {type_text})")
 
