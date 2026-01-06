@@ -490,38 +490,43 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
     Tests that context -a/--all shows all sections regardless of context-sections config.
     """
     await launch_to(ctrl, REFERENCE_BINARY, "main")
+    # We need to start the binary using start command
+    await ctrl.execute("start")
 
     # Get default context output to establish baseline
     await ctrl.execute("set context-sections regs disasm code stack backtrace")
     default_out = await ctrl.execute_and_capture("context")
 
-    # Count section headers in default output
-    default_sections = default_out.count("[ ")
+    for section in ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
+        assert f"[ {section} " in default_out
+        assert "LAST SIGNAL" not in default_out
 
-    # Now restrict to minimal config
-    await ctrl.execute("set context-sections regs")
-    minimal_out = await ctrl.execute_and_capture("context")
-    minimal_sections = minimal_out.count("[ ")
+    # Now use -a flag. It should capture LAST SIGNAL 
 
-    # Minimal should have fewer sections
-    assert minimal_sections < default_sections
-
-    # Now use -a flag - should show all sections despite minimal config
     all_out = await ctrl.execute_and_capture("context -a")
-    all_sections = all_out.count("[ ")
+    for section in ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)", "LAST SIGNAL"]:
+        assert f"[ {section} " in all_out
 
-    # -a should show at least as many as the default config
-    assert all_sections >= default_sections
+    # Now proceed to next function call (i.e at puts) have different context output and ensure arguments are present
+    await ctrl.execute("nextcall")
+    await ctrl.execute("nexti")
 
-    # Verify specific core sections are present
-    assert "REGISTERS" in all_out
-    assert "DISASM" in all_out
-    assert "STACK" in all_out
-    assert "BACKTRACE" in all_out
+    default_out_after_nextcall = await ctrl.execute_and_capture("context")
+    for section in ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
+        assert f"[ {section} " in default_out_after_nextcall
+        assert "ARGUMENTS" not in default_out_after_nextcall
+
+    # Now use -a flag - should show all sections including ARGUMENTS.
+    all_out_after_nextcall = await ctrl.execute_and_capture("context -a")
+    for section in ["REGISTERS","DISASM","STACK","BACKTRACE","SOURCE (CODE)","ARGUMENTS",]:
+        assert f"[ {section} " in all_out_after_nextcall
+
+    # Now use -a flag - should show all sections 
+    all_out = await ctrl.execute_and_capture("context -a")
 
     # Verify --all alias works identically
     alias_out = await ctrl.execute_and_capture("context --all")
-    assert alias_out.count("[ ") == all_sections
+    assert alias_out == all_out
 
 
 @pwndbg_test
