@@ -55,7 +55,7 @@ dev = [
     "types-pygments>=2.19.0.20250809,<3",
     "types-requests>=2.32.4.20250809,<3",
     "types-tabulate>=0.9.0.20240106,<0.10",
-    "types-gdb>=12.1.4.20240704,<13",
+    "types-gdb>=12.1.4.20240704,<17",
     "types-psutil>=7.0.0.20250601,<8",
 ]
 lint = [
@@ -66,7 +66,7 @@ lint = [
 tests = [
     # Newer versions of pytest break CI on GitHub
     "pytest==8.0.2",
-    "pytest-cov>=4.1.0,<5",
+    "pytest-cov>=4.1.0,<8",
     "coverage[toml]>=7.5.0,<8",
 ]
 docs = [
