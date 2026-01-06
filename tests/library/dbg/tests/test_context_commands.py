@@ -501,7 +501,7 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
         assert f"[ {section} " in default_out
         assert "LAST SIGNAL" not in default_out
 
-    # Now use -a flag. It should capture LAST SIGNAL 
+    # Now use -a flag. It should capture LAST SIGNAL
 
     all_out = await ctrl.execute_and_capture("context -a")
     for section in ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)", "LAST SIGNAL"]:
@@ -518,10 +518,17 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
 
     # Now use -a flag - should show all sections including ARGUMENTS.
     all_out_after_nextcall = await ctrl.execute_and_capture("context -a")
-    for section in ["REGISTERS","DISASM","STACK","BACKTRACE","SOURCE (CODE)","ARGUMENTS",]:
+    for section in [
+        "REGISTERS",
+        "DISASM",
+        "STACK",
+        "BACKTRACE",
+        "SOURCE (CODE)",
+        "ARGUMENTS",
+    ]:
         assert f"[ {section} " in all_out_after_nextcall
 
-    # Now use -a flag - should show all sections 
+    # Now use -a flag - should show all sections
     all_out = await ctrl.execute_and_capture("context -a")
 
     # Verify --all alias works identically
