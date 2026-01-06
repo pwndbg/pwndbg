@@ -16,6 +16,7 @@ TABSTOP_BINARY = get_binary("tabstop.native.out")
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
 MANGLING_BINARY = get_binary("symbol_1600_and_752.native.out")
 STACK_VARS_BINARY = get_binary("stack_vars.native.out")
+CONTEXT_ARGS_BINARY = get_binary("context_args.native.out")
 
 
 @pwndbg_test
@@ -489,31 +490,26 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
     """
     Tests that context -a/--all shows all sections regardless of context-sections config.
     """
-    await launch_to(ctrl, REFERENCE_BINARY, "main")
-    # We need to start the binary using start command
-    await ctrl.execute("start")
+    await launch_to(ctrl, CONTEXT_ARGS_BINARY, "main")
 
-    # Get default context output to establish baseline
-    await ctrl.execute("set context-sections regs disasm code stack backtrace")
+    # First, set context-sections to only regs
+    await ctrl.execute("set context-sections regs")
     default_out = await ctrl.execute_and_capture("context")
 
-    for section in ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
-        assert f"[ {section} " in default_out
-        assert "LAST SIGNAL" not in default_out
+    for section in ["DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
+        assert f"[ {section} " not in default_out
 
-    # Now use -a flag. It should capture LAST SIGNAL
-
+    # Now use -a flag. It should capture all sections regardless of config.
     all_out = await ctrl.execute_and_capture("context -a")
-    for section in ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)", "LAST SIGNAL"]:
+    for section in ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
         assert f"[ {section} " in all_out
 
-    # Now proceed to next function call (i.e at puts) have different context output and ensure arguments are present
+    # Now proceed to next function call (i.e at func-with_args) have different context output and ensure arguments are present
     await ctrl.execute("nextcall")
-    await ctrl.execute("nexti")
 
     default_out_after_nextcall = await ctrl.execute_and_capture("context")
-    for section in ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
-        assert f"[ {section} " in default_out_after_nextcall
+    for section in ["DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
+        assert f"[ {section} " not in default_out_after_nextcall
         assert "ARGUMENTS" not in default_out_after_nextcall
 
     # Now use -a flag - should show all sections including ARGUMENTS.
