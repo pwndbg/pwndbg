@@ -67,6 +67,11 @@ class Error(Exception):
     pass
 
 
+class NoInferior(Exception):
+    def __init__(self) -> None:
+        super().__init__("The debugger couldn't find a selected inferior.")
+
+
 class DisassembledInstruction(TypedDict):
     addr: int
     asm: str
@@ -684,7 +689,7 @@ class Process:
         """
         raise NotImplementedError()
 
-    def add_symbol_file(self, path, base=None):
+    def add_symbol_file(self, path: str, base: int | None = None) -> None:
         """
         Adds a symbol file at base.
         """
@@ -700,9 +705,9 @@ class Process:
         """
         raise NotImplementedError()
 
-    def runcmd(self, cmd):
+    def runcmd(self, cmd: str) -> str:
         """
-        Runs a debugger command
+        Runs a debugger command and returns the output as a string.
         """
         raise NotImplementedError()
 
@@ -1194,9 +1199,14 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def selected_inferior(self) -> Process | None:
+    def selected_inferior(self) -> Process:
         """
         The inferior process currently being focused on in this interactive session.
+
+        Raises:
+            pwndbg.dbg_mod.NoInferior: If the debugger couldn't return an inferior. If
+                there is an alive Process (i.e. you are under @pwndbg.commands.OnlyWhenRunning)
+                this will not be raised.
         """
         raise NotImplementedError()
 

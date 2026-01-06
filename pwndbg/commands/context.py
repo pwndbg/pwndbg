@@ -700,6 +700,14 @@ parser.add_argument(
     default=None,
     help="Do not show the section(s) in subsequent context commands even though they might be in the 'context-sections' list.",
 )
+parser.add_argument(
+    "-a",
+    "--all",
+    dest="all_sections",
+    action="store_true",
+    default=False,
+    help="Show all context sections.",
+)
 
 
 @pwndbg.commands.Command(
@@ -717,7 +725,11 @@ config context
 ```
 """,
 )
-def context(subcontext: List[str] | None = None, enabled: bool | None = None) -> None:
+def context(
+    subcontext: List[str] | None = None,
+    enabled: bool | None = None,
+    all_sections: bool = False,
+) -> None:
     """
     Print out the current register, instruction, and stack context.
 
@@ -732,7 +744,9 @@ def context(subcontext: List[str] | None = None, enabled: bool | None = None) ->
         subcontext = []
     args: List[str] = subcontext
 
-    if len(args) == 0:
+    if all_sections:
+        args = [c.__name__.replace("context_", "") for c in context_sections.values()]
+    elif len(args) == 0:
         args = config_context_sections.split()
 
     sections: List[Tuple[str, Callable[..., List[str]] | None]] = []

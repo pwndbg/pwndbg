@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import re
+from typing import Any
+from typing import Optional
 from typing import Tuple
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
+import pwndbg.commands
 import pwndbg.lib.cache
 from pwndbg.dbg_mod import EventType
 
@@ -41,7 +44,7 @@ def migratetype_names() -> Tuple[str, ...]:
 
 
 # try getting value of a symbol as an unsigned integer
-def try_usymbol(name: str, size=None) -> int:
+def try_usymbol(name: str, size: Optional[int] = None) -> Optional[int]:
     if not pwndbg.aglib.kernel.has_debug_symbols():
         return None
     try:
@@ -106,7 +109,7 @@ def npcplist() -> int:
     return 0
 
 
-def kversion_cint(kversion: Tuple[int, int, int] = None):
+def kversion_cint(kversion: Tuple[int, int, int] | None = None) -> Optional[int]:
     if kversion is None:
         kversion = pwndbg.aglib.kernel.krelease()
     if kversion is None or len(kversion) != 3:
@@ -167,7 +170,7 @@ enum pageflags {
 """
 
 
-def load_common_structs():
+def load_common_structs() -> None:
     if pwndbg.aglib.kernel.has_debug_info() or not kversion_cint():
         return
     if pwndbg.aglib.typeinfo.lookup_types("struct page") is not None:
@@ -262,13 +265,19 @@ def load_common_structs():
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
-def load_common_structs_on_load():
-    if pwndbg.aglib.qemu.is_qemu_kernel():
-        load_common_structs()
+def load_common_structs_on_load_linux() -> None:
+    # basically want to be sure that the symbol file is a vmlinux with symbols
+    # has_debug_symbols without args checks for `commit_creds`
+    # load_common_structs would check if typeinfo has already been added (so doesnt readd)
+    if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.kernel.has_debug_symbols():
+        try:
+            load_common_structs()
+        except Exception:
+            pass
 
 
 class ArchSymbols:
-    def __init__(self):
+    def __init__(self) -> None:
         self.node_data_heuristic_func = "first_online_pgdat"
         self.slab_caches_heuristic_func = "slab_next"
         self.per_cpu_offset_heuristic_func = "nr_iowait_cpu"
@@ -282,14 +291,14 @@ class ArchSymbols:
         self.bpf_map_heuristic_func = "bpf_map_free_id"
         self.current_task_heuristic_func = "common_cpu_up"
 
-    def disass(self, name, lines=10):
+    def disass(self, name: str, lines=10) -> Optional[str]:
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
         if sym is None:
             return None
         disass = "\n".join(pwndbg.aglib.nearpc.nearpc(int(sym), lines=lines))
         return pwndbg.color.strip(disass)
 
-    def regex(self, s, pattern, nth):
+    def regex(self, s: str, pattern: str, nth: int) -> Optional[re.Match[Any]]:
         pattern = re.compile(pattern)
         if nth == 0:
             return pattern.search(s)
@@ -298,7 +307,7 @@ class ArchSymbols:
             return matches[nth]
         return None
 
-    def node_data(self):
+    def node_data(self) -> pwndbg.dbg_mod.Value:
         node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
         if pwndbg.aglib.kernel.has_debug_info():
             return node_data
@@ -308,7 +317,7 @@ class ArchSymbols:
             node_data = self._node_data()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", node_data)
 
-    def slab_caches(self):
+    def slab_caches(self) -> pwndbg.dbg_mod.Value:
         slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
         if slab_caches is None and pwndbg.aglib.kernel.has_debug_symbols(
             self.slab_caches_heuristic_func
@@ -316,7 +325,7 @@ class ArchSymbols:
             slab_caches = self._slab_caches()
         return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", slab_caches)
 
-    def per_cpu_offset(self):
+    def per_cpu_offset(self) -> pwndbg.dbg_mod.Value:
         per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol("__per_cpu_offset")
         if per_cpu_offset is not None:
             return per_cpu_offset
@@ -324,7 +333,7 @@ class ArchSymbols:
             per_cpu_offset = self._per_cpu_offset()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", per_cpu_offset)
 
-    def modules(self):
+    def modules(self) -> pwndbg.dbg_mod.Value:
         modules = pwndbg.aglib.symbol.lookup_symbol("modules")
         if modules:
             return modules
@@ -332,7 +341,7 @@ class ArchSymbols:
             modules = self._modules()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", modules)
 
-    def db_list(self):
+    def db_list(self) -> pwndbg.dbg_mod.Value:
         if pwndbg.aglib.kernel.krelease() >= (6, 10):
             debugfs_list = pwndbg.aglib.symbol.lookup_symbol("debugfs_list")
             # TODO: fallback not supported for >= v6.10, should look at dma_buf_debug_show later if needed
@@ -345,7 +354,7 @@ class ArchSymbols:
             db_list = self._db_list()
         return pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)
 
-    def map_idr(self):
+    def map_idr(self) -> pwndbg.dbg_mod.Value:
         map_idr = pwndbg.aglib.symbol.lookup_symbol("map_idr")
         if map_idr:
             return map_idr
@@ -353,7 +362,7 @@ class ArchSymbols:
             map_idr = self._map_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", map_idr)
 
-    def prog_idr(self):
+    def prog_idr(self) -> pwndbg.dbg_mod.Value:
         prog_idr = pwndbg.aglib.symbol.lookup_symbol("prog_idr")
         if prog_idr:
             return prog_idr
@@ -361,7 +370,7 @@ class ArchSymbols:
             prog_idr = self._prog_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
-    def current_task(self):
+    def current_task(self) -> pwndbg.dbg_mod.Value:
         current_task = pwndbg.aglib.symbol.lookup_symbol("current_task")
         if current_task:
             current_task = pwndbg.aglib.kernel.per_cpu(current_task)
@@ -376,28 +385,28 @@ class ArchSymbols:
             current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
 
-    def _node_data(self):
+    def _node_data(self) -> Optional[int]:
         raise NotImplementedError()
 
-    def _slab_caches(self):
+    def _slab_caches(self) -> Optional[int]:
         raise NotImplementedError()
 
-    def _per_cpu_offset(self):
+    def _per_cpu_offset(self) -> Optional[int]:
         raise NotImplementedError()
 
-    def _modules(self):
+    def _modules(self) -> Optional[int]:
         raise NotImplementedError()
 
-    def _db_list(self):
+    def _db_list(self) -> Optional[int]:
         raise NotImplementedError()
 
-    def _map_idr(self):
+    def _map_idr(self) -> Optional[int]:
         raise NotImplementedError()
 
-    def _prog_idr(self):
+    def _prog_idr(self) -> Optional[int]:
         raise NotImplementedError()
 
-    def _current_task(self):
+    def _current_task(self) -> Optional[int]:
         raise NotImplementedError()
 
 
@@ -405,7 +414,9 @@ class x86_64Symbols(ArchSymbols):
     # op ... [... +/- (0x...)]
     # if negative, the `-0x...`` is a kernel address displayed as a negative number
     # returns the first 0x... as an int if exists
-    def qword_op_reg_memoff(self, disass, op, sign="-", nth=0):
+    def qword_op_reg_memoff(
+        self, disass: str, op: str, sign: str = "-", nth: int = 0
+    ) -> Optional[int]:
         result = self.regex(disass, rf"{op}.*\[.*{re.escape(sign)}\s(0x[0-9a-f]+)\]", nth)
         if result is not None:
             if sign == "-":
@@ -415,19 +426,19 @@ class x86_64Symbols(ArchSymbols):
         return None
 
     # mov reg, <kernel address as a constant>
-    def qword_mov_reg_const(self, disass, nth=0):
+    def qword_mov_reg_const(self, disass: str, nth: int = 0) -> Optional[int]:
         result = self.regex(disass, r"mov.*(0x[0-9a-f]{16})", nth)
         if result is not None:
             return int(result.group(1), 16)
         return None
 
-    def dword_mov_reg_const(self, disass, nth=0):
+    def dword_mov_reg_const(self, disass: str, nth: int = 0) -> Optional[int]:
         result = self.regex(disass, r"mov.*(0x[0-9a-f]{1,8})\b(?!\])", nth)
         if result is not None:
             return int(result.group(1), 16)
         return None
 
-    def qword_mov_reg_ripoff(self, disass, nth=0):
+    def qword_mov_reg_ripoff(self, disass: str, nth: int = 0) -> Optional[int]:
         result = self.regex(
             "".join(disass.splitlines()),
             r".*?\bmov.*\[rip\s\+\s(0x[0-9a-f]+)\].*?(0x[0-9a-f]{16})\s\<",
@@ -437,18 +448,18 @@ class x86_64Symbols(ArchSymbols):
             return int(result.group(1), 16) + int(result.group(2), 16)
         return None
 
-    def _node_data(self):
+    def _node_data(self) -> Optional[int]:
         disass = self.disass(self.node_data_heuristic_func)
         result = self.qword_op_reg_memoff(disass, op="mov", sign="-")
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
-    def _slab_caches(self):
+    def _slab_caches(self) -> Optional[int]:
         disass = self.disass(self.slab_caches_heuristic_func)
         return self.qword_mov_reg_const(disass)
 
-    def _per_cpu_offset(self):
+    def _per_cpu_offset(self) -> Optional[int]:
         disass = self.disass(self.per_cpu_offset_heuristic_func)
         result = self.qword_op_reg_memoff(disass, op="add", sign="-")
         if result is not None:
@@ -458,11 +469,11 @@ class x86_64Symbols(ArchSymbols):
             return result
         return self.qword_mov_reg_ripoff(disass)
 
-    def _modules(self):
+    def _modules(self) -> Optional[int]:
         disass = self.disass(self.modules_heuristic_func)
         return self.qword_mov_reg_ripoff(disass)
 
-    def _db_list(self):
+    def _db_list(self) -> Optional[int]:
         offset = 0x10  # offset of the lock
         disass = self.disass(self.db_list_heuristic_func)
         result = self.qword_mov_reg_const(disass)
@@ -470,21 +481,21 @@ class x86_64Symbols(ArchSymbols):
             return result - offset
         return None
 
-    def _map_idr(self):
+    def _map_idr(self) -> Optional[int]:
         disass = self.disass(self.bpf_map_heuristic_func, lines=50)
         result = self.qword_mov_reg_const(disass, nth=1)
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
-    def _prog_idr(self):
+    def _prog_idr(self) -> Optional[int]:
         disass = self.disass(self.bpf_prog_heuristic_func, lines=50)
         result = self.qword_mov_reg_const(disass, nth=1)
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
-    def _current_task(self):
+    def _current_task(self) -> Optional[int]:
         disass = self.disass(self.current_task_heuristic_func)
         result = self.dword_mov_reg_const(disass)
         if result is not None:
@@ -496,7 +507,7 @@ class x86_64Symbols(ArchSymbols):
 class Aarch64Symbols(ArchSymbols):
     # adrp x?, <kernel address>
     # add x?, x?, #0x...
-    def qword_adrp_add_const(self, disass, nth=0):
+    def qword_adrp_add_const(self, disass: str, nth: int = 0) -> Optional[int]:
         prev = ""
         for line in disass.splitlines():
             if "adrp" in prev and "add" in line:
@@ -512,11 +523,11 @@ class Aarch64Symbols(ArchSymbols):
             prev = line
         return None
 
-    def _node_data(self):
+    def _node_data(self) -> Optional[int]:
         disass = self.disass(self.node_data_heuristic_func)
         return self.qword_adrp_add_const(disass)
 
-    def _slab_caches(self):
+    def _slab_caches(self) -> Optional[int]:
         disass = self.disass(self.slab_caches_heuristic_func)
         result = self.qword_adrp_add_const(disass)
         if result:
@@ -537,11 +548,11 @@ class Aarch64Symbols(ArchSymbols):
             return None
         return sum(int(m.group(i), 16) for i in [2, 3, 4])
 
-    def _per_cpu_offset(self):
+    def _per_cpu_offset(self) -> Optional[int]:
         disass = self.disass(self.per_cpu_offset_heuristic_func)
         return self.qword_adrp_add_const(disass)
 
-    def _modules(self):
+    def _modules(self) -> Optional[int]:
         disass = self.disass(self.modules_heuristic_func)
         # adrp x<num>, 0x....
         # ...
@@ -559,7 +570,7 @@ class Aarch64Symbols(ArchSymbols):
             return None
         return sum(int(m.group(i), 16) for i in [2, 3, 4])
 
-    def _db_list(self):
+    def _db_list(self) -> Optional[int]:
         offset = 0x10  # offset of the lock
         disass = self.disass(self.db_list_heuristic_func)
         result = self.qword_adrp_add_const(disass)
@@ -567,19 +578,19 @@ class Aarch64Symbols(ArchSymbols):
             return result - offset
         return None
 
-    def _map_idr(self):
+    def _map_idr(self) -> Optional[int]:
         disass = self.disass(self.bpf_map_heuristic_func, lines=50)
         result = self.qword_adrp_add_const(disass, nth=1)
         if result is not None:
             return result
         return self.qword_adrp_add_const(disass)
 
-    def _prog_idr(self):
+    def _prog_idr(self) -> Optional[int]:
         disass = self.disass(self.bpf_prog_heuristic_func, lines=50)
         result = self.qword_adrp_add_const(disass, nth=1)
         if result is not None:
             return result
         return self.qword_adrp_add_const(disass)
 
-    def _current_task(self):
+    def _current_task(self) -> int:
         return pwndbg.aglib.regs.read_reg("sp_el0")

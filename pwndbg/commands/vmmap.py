@@ -326,7 +326,7 @@ def vmmap(
             if len(filtered_pages) == 1 and isinstance(gdbval_or_str, integer_types):
                 display_text = str(page) + " +0x%x" % (int(gdbval_or_str) - page.vaddr)
 
-        print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix))
+        print(mem_color.get(page.vaddr, text=display_text, prefix=backtrace_prefix, page=page))
 
     flush_shared_cache_info()
     if shared_cache_collapsed > 0:

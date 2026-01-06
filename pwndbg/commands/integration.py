@@ -17,6 +17,7 @@ import pwndbg.color as color
 import pwndbg.color.memory as color_mem
 import pwndbg.color.message as message
 import pwndbg.commands
+import pwndbg.dbg_mod
 import pwndbg.integration
 import pwndbg.lib.config
 import pwndbg.lib.tempfile
@@ -439,15 +440,27 @@ def soft_connection_check(also_sync: bool) -> bool:
     return True
 
 
+def check_alive(error_msg: str) -> bool:
+    try:
+        inf = pwndbg.dbg.selected_inferior()
+
+        if not inf.alive():
+            # A bit hacky but whatever.
+            raise pwndbg.dbg_mod.NoInferior
+
+        return True
+    except pwndbg.dbg_mod.NoInferior:
+        print(message.error(error_msg))
+        return False
+
+
 def jump(addr: Optional[int]) -> None:
     if not pwndbg.integration.manager.is_connected():
         print(message.error("Not connected to a decompiler."))
         print(message.hint("Try `di connect`."))
         return
 
-    # Check if the process is alive
-    if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
-        print(message.error("Can only jump to address while the process is alive."))
+    if not check_alive("Can only jump to address while the process is alive."):
         return
 
     if addr is None:
@@ -477,13 +490,12 @@ def sync(fail_quietly: bool) -> None:
         if not soft_connection_check(also_sync=False):
             return
 
-    # Check if the process is alive
-    if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
-        if not fail_quietly:
-            print(message.notice("Can only sync with the debugger while the process is alive."))
+    if not check_alive(
+        "" if fail_quietly else "Can only sync with the debugger while the process is alive."
+    ):
         return
 
-    print("Syncing symbols. It may take a while.")
+    print("Syncing symbols...")
 
     # Functions and globals
     nsyms = pwndbg.integration.manager.update_symbols()
@@ -541,12 +553,18 @@ def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> No
             name_text = color.green(color.bold(reg_var.name))
             type_text = color.light_cyan(reg_var.type)
             reg_text = reg_var.reg_name.ljust(4, " ")
+            # FIXME: Should probably refactor this to use pwndbg.commands.context.get_regs (but then also
+            # refactor that, to pull it out of pwndbg/commands, maybe separate out register name and value etc.)
             reg_value_raw: Optional[pwndbg.dbg_mod.Value] = frame.regs().by_name(reg_var.reg_name)
-            reg_value = (
-                color_mem.get(int(reg_value_raw))
-                if reg_value_raw is not None
-                else color.gray("???")
-            )
+            try:
+                reg_value = (
+                    color_mem.get(int(reg_value_raw))
+                    if reg_value_raw is not None
+                    else color.gray("???")
+                )
+            except pwndbg.dbg_mod.Error:
+                # int(reg_value_raw) failed. Happens for xmm0 for instance.
+                reg_value = "not an int"
             reg_value_part = color.ljust_colored(f"(value: {reg_value})", 28)
             print(f"{reg_text} {reg_value_part} <- {name_text} (type: {type_text})")
 
@@ -593,9 +611,7 @@ def list_(list_all: bool) -> None:
     if not soft_connection_check(also_sync=True):
         return
 
-    # Check if the process is alive
-    if (inf := pwndbg.dbg.selected_inferior()) is None or not inf.alive():
-        print(message.error("Can only list function variables if the process is alive."))
+    if not check_alive("Can only list function variables if the process is alive."):
         return
 
     if list_all:

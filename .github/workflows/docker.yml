@@ -17,14 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Cache for docker images
-        uses: jpribyl/action-docker-layer-caching@v0.1.1
-        # Ignore the failure of a step and avoid terminating the job.
-        continue-on-error: true
-        with:
-          key: ${{ matrix.images }}-cache-images-{hash}
+      - uses: actions/checkout@v6.0.1
 
       - name: Docker Build ${{ matrix.images }}
         run: docker compose build ${{ matrix.images }}
@@ -50,14 +43,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Cache for docker images
-        uses: jpribyl/action-docker-layer-caching@v0.1.1
-        # Ignore the failure of a step and avoid terminating the job.
-        continue-on-error: true
-        with:
-          key: ${{ matrix.images }}-cache-images-aarch64-{hash}
+      - uses: actions/checkout@v6.0.1
 
       - name: Docker Build ${{ matrix.images }}
         run: docker compose build ${{ matrix.images }}

@@ -26,6 +26,7 @@ import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
+import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
@@ -440,7 +441,9 @@ class CommandObj:
 
     def invoke(self, argument: str, from_tty: bool) -> None:
         """Invoke the command with an argument string"""
-        if not pwndbg.dbg.selected_inferior():
+        try:
+            _ = pwndbg.dbg.selected_inferior()
+        except pwndbg.dbg_mod.NoInferior:
             log.error("Pwndbg commands require a target binary to be selected")
             return
 
@@ -614,10 +617,12 @@ def fix(
         return arg
 
     frame = pwndbg.dbg.selected_frame()
-    target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
-        frame if frame else pwndbg.dbg.selected_inferior()
-    )
-    assert target, "Reached command expression evaluation with no frame or inferior"
+    try:
+        target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
+            frame if frame else pwndbg.dbg.selected_inferior()
+        )
+    except pwndbg.dbg_mod.NoInferior:
+        raise AssertionError("Reached command expression evaluation with no frame or inferior")
 
     # Try to evaluate the expression in the local, or, failing that, global
     # context.
@@ -987,10 +992,12 @@ def sloppy_gdb_parse(s: str) -> int | str:
     """
 
     frame = pwndbg.dbg.selected_frame()
-    target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
-        frame if frame else pwndbg.dbg.selected_inferior()
-    )
-    assert target, "Reached command expression evaluation with no frame or inferior"
+    try:
+        target: pwndbg.dbg_mod.Frame | pwndbg.dbg_mod.Process = (
+            frame if frame else pwndbg.dbg.selected_inferior()
+        )
+    except pwndbg.dbg_mod.NoInferior:
+        raise AssertionError("Reached command expression evaluation with no frame or inferior")
 
     try:
         val = pwndbg.aglib.symbol.lookup_symbol(s) or target.evaluate_expression(s)
