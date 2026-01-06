@@ -46,8 +46,10 @@ ssize_t: pwndbg.dbg_mod.Type
 
 
 def lookup_types(*types: str) -> pwndbg.dbg_mod.Type:
-    process = pwndbg.dbg.selected_inferior()
-    assert process, "tried to initialize typeinfo with no inferior"
+    try:
+        process = pwndbg.dbg.selected_inferior()
+    except pwndbg.dbg_mod.NoInferior:
+        raise AssertionError("Tried to initialize typeinfo with no inferior")
     for type_str in types:
         t = process.types_with_name(type_str)
         if len(t) > 0:

@@ -60,37 +60,32 @@ jobs:
           fail_on_error: true
 
       # The PR must not contain more mypy --strict errors than the dev branch does
-      - name: Count strict mypy errors in PR branch
-        id: mypy_pr
+      - name: Count mypy --strict errors in PR and dev branch.
+        id: mypy_strict_count
         run: |
           set +e
-          uv run --group dev --group lint --group tests --all-extras mypy --strict pwndbg pwndbginit tests/host > mypy_pr.txt 2>&1
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-          ERRORS=$(grep -c "error:" mypy_pr.txt || true)
-          echo "count=$ERRORS" >> $GITHUB_OUTPUT
-          echo "PR mypy (--strict) errors: $ERRORS"
-        continue-on-error: true
+          # Taken from ./lint.sh
+          LINT_FILES="pwndbg pwndbginit tests *.py scripts"
 
-      - name: Check out dev branch
-        run: |
+          # Count `mypy --strict` errors on PR branch.
+          uv run --group dev --group lint --group tests --all-extras mypy --strict $LINT_FILES > mypy_pr.txt 2>&1
+          PR_ERRORS=$(grep -c "error:" mypy_pr.txt || true)
+          echo "pr_count=$PR_ERRORS" >> $GITHUB_OUTPUT
+          echo "PR mypy (--strict) errors: $PR_ERRORS"
+
+          # Count `mypy --strict` errors on dev branch.
           git fetch origin dev
           git checkout origin/dev
-
-      - name: Count strict mypy errors in dev branch
-        id: mypy_dev
-        run: |
-          set +e
-          uv run --group dev --group lint --group tests --all-extras mypy --strict pwndbg pwndbginit tests/host > mypy_dev.txt 2>&1
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
-          ERRORS=$(grep -c "error:" mypy_dev.txt || true)
-          echo "count=$ERRORS" >> $GITHUB_OUTPUT
-          echo "Dev mypy (--strict) errors: $ERRORS"
+          uv run --group dev --group lint --group tests --all-extras mypy --strict $LINT_FILES > mypy_dev.txt 2>&1
+          DEV_ERRORS=$(grep -c "error:" mypy_dev.txt || true)
+          echo "dev_count=$DEV_ERRORS" >> $GITHUB_OUTPUT
+          echo "Dev mypy (--strict) errors: $DEV_ERRORS"
         continue-on-error: true
 
-      - name: Compare mypy error counts
+      - name: Compare mypy --strict error counts
         run: |
-          PR_ERRORS=${{ steps.mypy_pr.outputs.count }}
-          DEV_ERRORS=${{ steps.mypy_dev.outputs.count }}
+          PR_ERRORS=${{ steps.mypy_strict_count.outputs.pr_count }}
+          DEV_ERRORS=${{ steps.mypy_strict_count.outputs.dev_count }}
 
           echo "PR errors: $PR_ERRORS"
           echo "Dev errors: $DEV_ERRORS"

@@ -24,6 +24,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import TypeVar
+from typing import cast
 
 import lldb
 from typing_extensions import override
@@ -2132,14 +2133,17 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     def lex_args(self, command_line: str) -> List[str]:
         return shlex.split(command_line)
 
-    def _any_inferior(self) -> LLDBProcess | None:
+    def _any_inferior(self) -> LLDBProcess:
         """
         Pick the first inferior in the debugger, if any is present.
+
+        Raises:
+            pwndbg.dbg_mod.NoInferior: If we couldn't find an inferior.
         """
         target_count = self.debugger.GetNumTargets()
         if target_count == 0:
             # No targets are available.
-            return None
+            raise pwndbg.dbg_mod.NoInferior
         if target_count > 1:
             # We don't support multiple targets.
             raise RuntimeError("Multiple LLDB targets are not supported")
@@ -2150,12 +2154,12 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         process = target.GetProcess()
         if not process.IsValid():
             # No process we can use.
-            return None
+            raise pwndbg.dbg_mod.NoInferior
 
         return LLDBProcess(self, process, target, self._current_process_is_gdb_remote)
 
     @override
-    def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
+    def selected_inferior(self) -> pwndbg.dbg_mod.Process:
         if len(self.exec_states) == 0:
             # The Debugger-agnostic API treats existence of an inferior the same
             # as it being selected, as multiple inferiors are not supported, so
@@ -2169,15 +2173,16 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         if p.IsValid() and t.IsValid():
             return LLDBProcess(self, p, t, self._current_process_is_gdb_remote)
 
-        return None
+        raise pwndbg.dbg_mod.NoInferior
 
     def _any_thread(self) -> LLDBThread | None:
         """
         Pick the first thread we can get our hands on, preferring the selected
         thread, if any is selected.
         """
-        inferior: LLDBProcess = self.selected_inferior()
-        if inferior is None:
+        try:
+            inferior: LLDBProcess = cast(LLDBProcess, self.selected_inferior())
+        except pwndbg.dbg_mod.NoInferior:
             return None
 
         selected = inferior.process.GetSelectedThread()
@@ -2340,8 +2345,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def breakpoint_locations(self) -> List[pwndbg.dbg_mod.BreakpointLocation]:
-        inferior: LLDBProcess = self.selected_inferior()
-        if inferior is None:
+        try:
+            inferior: LLDBProcess = cast(LLDBProcess, self.selected_inferior())
+        except pwndbg.dbg_mod.NoInferior:
             return []
 
         bps: List[lldb.SBBreakpoint] = inferior.target.breakpoints

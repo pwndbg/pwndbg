@@ -1782,7 +1782,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return existing_commands
 
     @override
-    def selected_inferior(self) -> pwndbg.dbg_mod.Process | None:
+    def selected_inferior(self) -> pwndbg.dbg_mod.Process:
         return GDBProcess(gdb.selected_inferior())
 
     @override
