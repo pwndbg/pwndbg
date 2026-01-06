@@ -85,6 +85,7 @@ def get_zig_executable() -> str:
     """
     try:
         import ziglang  # type: ignore[import-untyped]
+
         return os.path.join(os.path.dirname(ziglang.__file__), "zig")
     except ImportError:
         pass
@@ -167,7 +168,7 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None = Non
     if includes is None:
         includes = []
 
-    includes = "".join((f'#include "{path}"\n' for path in includes))
+    include_str: str = "".join((f'#include "{path}"\n' for path in includes))
     target = f"{arch_mapping}-freestanding"
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -176,7 +177,7 @@ def _asm(arch_mapping: str, data: str, includes: List[pathlib.Path] | None = Non
         bytecode_file = os.path.join(tmpdir, "out.bytecode")
 
         with open(asm_file, "w") as f:
-            f.write(includes)
+            f.write(include_str)
             f.write(header)
             f.write(data)
 

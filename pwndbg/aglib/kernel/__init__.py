@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import math
 import re
 from abc import ABC
 from abc import abstractmethod
@@ -14,24 +13,22 @@ from elftools.elf.elffile import ELFFile
 from typing_extensions import ParamSpec
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
+import pwndbg.aglib.kernel.kconfig_mod
 import pwndbg.aglib.kernel.paging
+import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
+import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
-import pwndbg.aglib.vmmap
-import pwndbg.color.message as M
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
-import pwndbg.lib.kernel.kconfig
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
 from pwndbg.aglib.kernel.paging import PageTableLevel
-from pwndbg.lib.regs import BitFlags
 
-_kconfig: pwndbg.lib.kernel.kconfig.Kconfig | None = None
+_kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
 P = ParamSpec("P")
 D = TypeVar("D")
@@ -52,7 +49,7 @@ def has_debug_symbols(*required: str, checkall: bool = True) -> bool:
 
 @pwndbg.lib.cache.cache_until("objfile")
 def has_debug_info() -> bool:
-    path = pwndbg.aglib.proc.exe
+    path = pwndbg.aglib.proc.exe()
     if path is None:
         return False
     vmlinux = open(path, "rb")
@@ -133,7 +130,8 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
             return mapping
     # optimization: observe that the first Linux kernel region is the kernel text so search it last
     # it now finds the first ro page almost instantly even for kernels that are partially initialized
-    for mapping in fallback_mappings[1:] + [fallback_mappings[0]]:
+    # should find it within the first few page chunks if debugging linux kernel (reason for [:10])
+    for mapping in fallback_mappings[1:10] + [fallback_mappings[0]]:
         # this loop handles when the kernel has not finished initialization
         # and the permission of the first ro page has not been properly set
         result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
@@ -144,8 +142,8 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     return None
 
 
-@pwndbg.lib.cache.cache_until("start")
-def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
+@pwndbg.lib.cache.cache_until("objfile")
+def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig | None:
     global _kconfig
     config_start, config_end = None, None
     if has_debug_symbols():
@@ -160,14 +158,18 @@ def kconfig() -> pwndbg.lib.kernel.kconfig.Kconfig | None:
         if result is not None:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
-    if config_start is None or config_end is None:
-        _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(None)
+    if (
+        not pwndbg.aglib.memory.is_kernel(config_start)
+        or not pwndbg.aglib.memory.is_kernel(config_end)
+        or config_start >= config_end
+    ):
+        _kconfig = pwndbg.aglib.kernel.kconfig_mod.Kconfig(None)
         return _kconfig
 
     config_size = config_end - config_start
 
     compressed_config = pwndbg.aglib.memory.read(config_start, config_size)
-    _kconfig = pwndbg.lib.kernel.kconfig.Kconfig(compressed_config)
+    _kconfig = pwndbg.aglib.kernel.kconfig_mod.Kconfig(compressed_config)
     return _kconfig
 
 
@@ -338,7 +340,7 @@ class x86Ops(ArchOps):
 
     @staticmethod
     def paging_enabled() -> bool:
-        return int(pwndbg.aglib.regs.cr0) & BIT(31) != 0
+        return int(pwndbg.aglib.regs.read_reg("cr0")) & BIT(31) != 0
 
 
 class i386Ops(x86Ops):
@@ -453,7 +455,7 @@ class Aarch64Ops(ArchOps):
 
     @staticmethod
     def paging_enabled() -> bool:
-        return int(pwndbg.aglib.regs.SCTLR) & BIT(0) != 0
+        return int(pwndbg.aglib.regs.read_reg("SCTLR")) & BIT(0) != 0
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -623,6 +625,15 @@ def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
         raise NotImplementedError()
 
 
+@pwndbg.lib.cache.cache_until("stop")
+def pagetable_scan(entry=None) -> Tuple[pwndbg.lib.memory.Page, ...]:
+    pi = arch_paginginfo()
+    if pi:
+        return tuple(pi.pagetable_scan(entry))
+    else:
+        raise NotImplementedError()
+
+
 def paging_enabled() -> bool:
     arch_name = pwndbg.aglib.arch.name
     if arch_name == "i386":
@@ -635,7 +646,9 @@ def paging_enabled() -> bool:
         # https://starfivetech.com/uploads/u74_core_complex_manual_21G1.pdf
         # page 41, satp.MODE, bits: 60,61,62,63
         # "When satp.MODE=0x0, supervisor virtual addresses are equal to supervisor physical addresses"
-        return int(pwndbg.aglib.regs.satp) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
+        return (
+            int(pwndbg.aglib.regs.read_reg("satp")) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
+        )
     else:
         raise NotImplementedError()
 

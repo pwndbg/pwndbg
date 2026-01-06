@@ -9,12 +9,12 @@ from typing import Protocol
 from typing import Set
 
 import pwnlib
+from capstone import *  # noqa: F403
 
 # Reverse lookup tables for debug printing
 from capstone import CS_AC
 from capstone import CS_GRP
 from capstone import CS_OP
-from capstone import *  # noqa: F403
 from capstone.aarch64 import AARCH64_INS_BL
 from capstone.aarch64 import AARCH64_INS_BLR
 from capstone.aarch64 import AARCH64_INS_BR
@@ -62,8 +62,7 @@ from capstone.x86 import X86_INS_RET
 from capstone.x86 import X86Op
 from typing_extensions import override
 
-import pwndbg.dbg
-from pwndbg.dbg import DisassembledInstruction
+from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
 UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
@@ -226,7 +225,7 @@ class PwndbgInstruction(Protocol):
 # Pwndbg commands like "nextcall" that need to know the instructions target to set breakpoints
 # The information in this class is backed by metadata from Capstone
 class PwndbgInstructionImpl(PwndbgInstruction):
-    def __init__(self, cs_insn: CsInsn) -> None:
+    def __init__(self, cs_insn: CsInsn, padding: int = 6) -> None:
         self.cs_insn: CsInsn = cs_insn
         """
         The underlying Capstone instruction object.
@@ -277,7 +276,11 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         # in pwndbg.aglib.disasm.arch.py
         # ***********
 
-        self.asm_string: str = f"{self.mnemonic:<6} {self.op_str}"
+        self.asm_string: str = (
+            f"{self.mnemonic:<{padding}} {self.op_str}"
+            if self.op_str
+            else f"{self.mnemonic:<{padding}}"
+        )
         """
         The full string representing the instruction - `mov    rdi, rsp` with appropriate padding.
 
@@ -533,11 +536,11 @@ class PwndbgInstructionImpl(PwndbgInstruction):
             for reg_id, reg_value in self.register_writes.items()
         }
 
-        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
+        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch, None)})
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
-        Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else 'None'}
-        Raw asm: {'%-06s %s' % (self.mnemonic, self.op_str)}
+        Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else "None"}
+        Raw asm: {"%-06s %s" % (self.mnemonic, self.op_str)}
         New asm: {self.asm_string}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}
@@ -682,7 +685,7 @@ class EnhancedOperand:
 # Represents a disassembled instruction
 # Conforms to the PwndbgInstruction interface
 class ManualPwndbgInstruction(PwndbgInstruction):
-    def __init__(self, address: int) -> None:
+    def __init__(self, address: int, padding: int = 6) -> None:
         """
         This class provides an implementation of PwndbgInstruction for cases where the architecture
         at hand is not supported by the Capstone disassembler. The backing information is sourced from
@@ -710,7 +713,11 @@ class ManualPwndbgInstruction(PwndbgInstruction):
 
         self.operands = []
 
-        self.asm_string = f"{self.mnemonic:<6} {self.op_str}"
+        self.asm_string = (
+            f"{self.mnemonic:<{padding}} {self.op_str}"
+            if self.op_str
+            else f"{self.mnemonic:<{padding}}"
+        )
 
         self.next = address + self.size
         self.target = self.next

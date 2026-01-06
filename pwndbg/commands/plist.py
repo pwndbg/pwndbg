@@ -3,12 +3,12 @@ from __future__ import annotations
 import argparse
 from typing import Optional
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.chain
 import pwndbg.commands
-import pwndbg.dbg
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 

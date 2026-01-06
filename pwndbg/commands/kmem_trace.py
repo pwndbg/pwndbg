@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import argparse
 import threading
+from typing import Tuple
 
+import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
-import pwndbg.aglib.regs
 import pwndbg.aglib.symbol
 import pwndbg.arguments
-import pwndbg.color as C
-import pwndbg.color.message as M
+import pwndbg.color as color
+import pwndbg.color.message as message
 import pwndbg.commands.context
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
-from pwndbg.dbg import BreakpointLocation
-from pwndbg.dbg import DebuggerType
+from pwndbg.dbg_mod import BreakpointLocation
+from pwndbg.dbg_mod import DebuggerType
 
 parser = argparse.ArgumentParser(
     description="""
@@ -63,7 +65,7 @@ class KmemTracepointsData:
                         self.curr = symbol_name.split("+")[0]
 
             if self.curr is None:
-                print(M.warn("Couldn't locate frame properly. Tracing --all."))
+                print(message.warn("Couldn't locate frame properly. Tracing --all."))
 
     def add_result(self, result: str):
         if not result:
@@ -78,12 +80,12 @@ class KmemTracepointsData:
     def _format_kmem_tracepoint_output(self, prefix, name, type, addr):
         prefix = prefix.ljust(12, " ")
         if "FREE" in prefix:
-            prefix = C.red(prefix)
+            prefix = color.red(prefix)
         else:
-            prefix = C.green(prefix)
-        name = C.blue(name.ljust(20, " "))
+            prefix = color.green(prefix)
+        name = color.blue(name.ljust(20, " "))
         type = type.ljust(4, " ")
-        return f"{prefix} {name} {type} @ {C.blue(hex(addr))}"
+        return f"{prefix} {name} {type} @ {color.blue(hex(addr))}"
 
     def format_slab_kmem_tracepoint_output(self, is_free: bool, objaddr: int):
         if objaddr == 0:
@@ -96,7 +98,7 @@ class KmemTracepointsData:
             cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
             name = cache.name
         except Exception:
-            self.results.append(M.warn(f"{prefix} invalid SLUB object @ {objaddr:#x}"))
+            self.add_result(message.warn(f"{prefix} invalid SLUB object @ {objaddr:#x}"))
             return
         result = self._format_kmem_tracepoint_output(prefix, name, "obj", objaddr)
         self.add_result(result)
@@ -109,7 +111,7 @@ class KmemTracepointsData:
         name = f"order-{order}"
         physmap = pwndbg.aglib.kernel.page_to_virt(page)
         result = self._format_kmem_tracepoint_output(prefix, name, "page", page)
-        result += f" (physmap: {C.red(hex(physmap))})"
+        result += f" (physmap: {color.red(hex(physmap))})"
         self.add_result(result)
 
 
@@ -167,7 +169,7 @@ class KmemTracepoints:
         self.slab_tracepoints_enabled = True
         self.buddy_tracepoints_enabled = True
 
-    def resolve_names(self, names):
+    def resolve_names(self, names: Tuple[str, ...]) -> list[int]:
         result = []
         for name in names:
             addr = pwndbg.aglib.symbol.lookup_symbol_addr(name)
@@ -209,12 +211,9 @@ class KmemTracepoints:
 
     @staticmethod
     def palloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
-        inf = pwndbg.dbg.selected_inferior()
-        assert inf
-
         self = get_kmem_tracepoints()
         order = pwndbg.arguments.argument(1)
-        inf.trace_ret(KmemTracepoints._palloc_handler, True)
+        pwndbg.dbg.selected_inferior().trace_ret(KmemTracepoints._palloc_handler, True)
         self.data.order = order
         return False
 
@@ -228,7 +227,6 @@ class KmemTracepoints:
 
     def register_breakpoints(self, verbose, trace_all):
         inf = pwndbg.dbg.selected_inferior()
-        assert inf
         self.results = []
         self.data = KmemTracepointsData(verbose, trace_all)
         if self.slab_tracepoints_enabled:
@@ -276,12 +274,12 @@ steps out of the current function. You may also find `-c finish` and `-c continu
     only_debuggers={DebuggerType.GDB, DebuggerType.LLDB},
 )
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str, all: bool) -> None:
     if pwndbg.aglib.regs.retval is None:
         print(
-            M.error(
+            message.error(
                 "kmem-trace is not available on this architecture because the return value register is not defined."
             )
         )
@@ -297,7 +295,7 @@ def kmem_trace(trace_slab: bool, trace_buddy: bool, verbose: bool, command: str,
     # commandline ergonomics.
 
     tps.register_breakpoints(verbose, all)
-    print(M.success("Finished registering tracepoints."))
+    print(message.success("Finished registering tracepoints."))
 
     old_val = pwndbg.config.context_backtrace_lines.value
     pwndbg.config.context_backtrace_lines.value = 1000  # enable full backtrace

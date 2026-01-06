@@ -6,9 +6,7 @@ from typing import Tuple
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
-import pwndbg.aglib.vmmap
 import pwndbg.commands
-import pwndbg.dbg
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -35,9 +33,9 @@ def check_aslr() -> Tuple[bool | None, str]:
         print("Could not check ASLR: can't read randomize_va_space")
 
     # Check the personality of the process
-    if pwndbg.aglib.proc.alive:
+    if pwndbg.aglib.proc.alive():
         try:
-            data = pwndbg.aglib.file.get("/proc/%i/personality" % pwndbg.aglib.proc.tid)
+            data = pwndbg.aglib.file.get("/proc/%i/personality" % pwndbg.aglib.proc.tid())
             personality = int(data, 16)
             return (personality & 0x40000 == 0), "read status from process' personality"
         except Exception:
@@ -80,7 +78,7 @@ def aslr(state=None) -> None:
                 f"set disable-randomization {options[state]}", from_tty=False, to_string=True
             )
 
-            if pwndbg.aglib.proc.alive:
+            if pwndbg.aglib.proc.alive():
                 print("Change will take effect when the process restarts")
         else:
             # TODO: lldb settings set target.disable-aslr false

@@ -3,9 +3,9 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.kernel
-import pwndbg.color.message as M
+import pwndbg.aglib.proc
+import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.dbg
 from pwndbg import config
 from pwndbg.commands import CommandCategory
 
@@ -25,28 +25,28 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kbase(rebase=False, verbose=False) -> None:
     if config.kernel_vmmap == "none":
-        print(M.error("kbase does not work when kernel-vmmap is set to none"))
+        print(message.error("kbase does not work when kernel-vmmap is set to none"))
         return
 
     base = pwndbg.aglib.kernel.arch_paginginfo().kbase
 
     if base is None:
-        print(M.error("Unable to locate the kernel base"))
+        print(message.error("Unable to locate the kernel base"))
         return
 
-    print(M.success(f"Found virtual text base address: {hex(base)}"))
+    print(message.success(f"Found virtual text base address: {hex(base)}"))
 
     if verbose:
         phys = pwndbg.aglib.kernel.virt_to_phys(base)
         if phys is not None:
-            print(M.success(f"corresponding physical address: {hex(phys)}"))
+            print(message.success(f"corresponding physical address: {hex(phys)}"))
 
     if not rebase:
         return
 
-    symbol_file = pwndbg.aglib.proc.exe
+    symbol_file = pwndbg.aglib.proc.exe()
 
     if symbol_file:
         pwndbg.dbg.selected_inferior().add_symbol_file(symbol_file, base)
     else:
-        print(M.error("No symbol file is currently loaded"))
+        print(message.error("No symbol file is currently loaded"))

@@ -22,18 +22,13 @@ osx() {
 
 install_apt() {
     sudo apt-get update || true
-    sudo apt-get install -y git gdb gdbserver python3-dev python3-venv python3-setuptools libglib2.0-dev libc6-dbg curl
-
-    if uname -m | grep -q x86_64; then
-        sudo dpkg --add-architecture i386 || true
-        sudo apt-get update || true
-        sudo apt-get install -y libc6-dbg:i386 libgcc-s1:i386 || true
-    fi
+    sudo apt-get install -y git gdb gdbserver python3-dev python3-venv python3-setuptools
+    sudo apt-get install -y libc6-dbg
 }
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install gdb gdb-gdbserver python-devel python3-devel glib2-devel make curl
+    sudo dnf -y install git gdb gdb-gdbserver python3-devel
     sudo dnf -y debuginfo-install glibc
 }
 

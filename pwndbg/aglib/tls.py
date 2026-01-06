@@ -4,13 +4,10 @@ Getting Thread Local Storage (TLS) information.
 
 from __future__ import annotations
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.disasm.disassembly
-import pwndbg.aglib.memory
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
-import pwndbg.aglib.vmmap
+import pwndbg.dbg_mod
 
 
 def __call_pthread_self() -> int:
@@ -82,14 +79,16 @@ def find_address_with_register() -> int:
         return int(pwndbg.aglib.regs.gsbase)
     elif pwndbg.aglib.arch.name == "aarch64":
         # FIXME: cleanup/remove `TPIDR_EL0` register, it was renamed to `tpidr` since GDB13+
-        return int(pwndbg.aglib.regs.tpidr or pwndbg.aglib.regs.TPIDR_EL0 or 0)
+        return int(
+            pwndbg.aglib.regs.read_reg("tpidr") or pwndbg.aglib.regs.read_reg("TPIDR_EL0") or 0
+        )
     elif pwndbg.aglib.arch.name == "arm":
         # TODO: linux ptrace for 64bit kernel?
         # In FreeBSD tls is under `tpidruro` register.
         # In Linux, the `tpidruro` register isn't available via ptrace in the 32-bit
         # kernel but it is available for an aarch32 program running under an arm64
         # kernel via the ptrace compat interface.
-        return int(pwndbg.aglib.regs.tpidruro or 0)
+        return int(pwndbg.aglib.regs.read_reg("tpidruro") or 0)
     elif pwndbg.aglib.arch.name == "loongarch64":
-        return int(pwndbg.aglib.regs.tp or 0)
+        return int(pwndbg.aglib.regs.read_reg("tp") or 0)
     return 0

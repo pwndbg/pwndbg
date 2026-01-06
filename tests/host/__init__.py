@@ -45,15 +45,20 @@ def _result_from_pytest(result: CompletedProcess[str], duration_ns: int) -> Test
     # Determine high-granularity status from process output, if possible.
     stdout_status = None
     stdout_context = None
+
+    # Check for the result string in STDOUT of the test.
+    # Exceptions raised by the test function itself print the result without newline.
+    # Context string can sometimes span multiple lines, only the one line is captured. This can
+    # happen anywhere withing the context string, so matching is not easy.
     if result.stdout is not None:
         entries = re.search(
-            r"(\x1b\[3.m(PASSED|FAILED|SKIPPED|XPASS|XFAIL)\x1b\[0m)( .*::.* -)?( (.*))?",
+            r"(?:\x1b\[3.m)?(PASSED|FAILED|SKIPPED|XPASS|XFAIL)(?:\x1b\[0m)?(?: .*::.* -)?(?: (.*))?",
             result.stdout,
             re.MULTILINE,
         )
         if entries:
-            stdout_status = entries[2]
-            stdout_context = entries[5]
+            stdout_status = entries[1]
+            stdout_context = entries[2]
 
     # If possible, augment the status with the high-granularity output.
     if stdout_status is not None:
@@ -113,9 +118,9 @@ class TestResult:
         stderr: str | None,
         context: str | None,
     ):
-        assert (stdout is None and stderr is None) or (
-            stdout is not None and stderr is not None
-        ), "either both stderr and stdout are captured, or neither is"
+        assert (stdout is None and stderr is None) or (stdout is not None and stderr is not None), (
+            "either both stderr and stdout are captured, or neither is"
+        )
 
         self.status = status
         self.duration_ns = duration_ns

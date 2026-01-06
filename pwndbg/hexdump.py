@@ -10,10 +10,11 @@ import string
 import pwnlib.util.lists
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.color.hexdump as H
+import pwndbg.dbg_mod
 from pwndbg.color import theme
 from pwndbg.commands.windbg import enhex
 

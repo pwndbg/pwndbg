@@ -4,7 +4,10 @@ import argparse
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.dmabuf
-import pwndbg.color.message as M
+import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
+import pwndbg.color.message as message
+import pwndbg.commands
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.exception import IndentContextManager
@@ -60,21 +63,21 @@ def print_sgl(sgl, indent):
 # adapted from https://github.com/bata24/gef/tree/dev
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def kdmabuf():
     db_name = "db_list"
     if pwndbg.aglib.kernel.krelease() >= (6, 10):
         db_name = "debugfs_list"
         if "CONFIG_DEBUG_FS" not in pwndbg.aglib.kernel.kconfig():
-            print(M.warn("dma_buf->priv does not exist"))
+            print(message.warn("dma_buf->priv does not exist"))
     db_list = pwndbg.aglib.kernel.db_list()
     if db_list is None:
-        print(M.warn(f"{db_name} not found"))
+        print(message.warn(f"{db_name} not found"))
         return
     db_list = pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)
     if int(db_list) == int(db_list["next"]):
-        print(M.warn(f"{db_name} ({hex(int(db_list))}) is empty"))
+        print(message.warn(f"{db_name} ({hex(int(db_list))}) is empty"))
         return
     indent = IndentContextManager()
     if not pwndbg.aglib.kernel.has_debug_info():
@@ -83,11 +86,11 @@ def kdmabuf():
         print_dmabuf(e, idx, indent)
         priv = e["priv"]
         if not pwndbg.aglib.memory.is_kernel(int(priv)):
-            indent.print(M.warn("(no entries)"))
+            indent.print(message.warn("(no entries)"))
             continue
         nents = int(priv["sg_table"]["nents"])
         if nents == 0:
-            indent.print(M.warn("(no entries)"))
+            indent.print(message.warn("(no entries)"))
             continue
         with indent:
             desc = indent.prefix("system_heap_buffer")

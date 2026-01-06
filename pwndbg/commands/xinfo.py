@@ -3,26 +3,24 @@ from __future__ import annotations
 import argparse
 
 import pwndbg
-import pwndbg.aglib.arch
-import pwndbg.aglib.memory
-import pwndbg.aglib.regs
+import pwndbg.aglib
 import pwndbg.aglib.stack
+import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
-import pwndbg.wrappers
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.memory import Page
 
 parser = argparse.ArgumentParser(
     description="Shows offsets of the specified address from various useful locations."
 )
-parser.add_argument("address", nargs="?", default="$pc", help="Address to inspect")
+parser.add_argument("address", nargs="?", default="$pc", help="Address to inspect", type=int)
 
 
 def print_line(name, addr, first, second, op, width=20) -> None:
     print(
-        f"{name.rjust(width)} {M.get(addr)} = {M.get(first) if not isinstance(first, str) else first.ljust(len(hex(addr).rstrip('L')))} {op} {second:#x}"
+        f"{name.rjust(width)} {mem_color.get(addr)} = {mem_color.get(first) if not isinstance(first, str) else first.ljust(len(hex(addr).rstrip('L')))} {op} {second:#x}"
     )
 
 
@@ -89,7 +87,7 @@ def xinfo_mmap_file(page: Page, addr: int) -> None:
             print_line("File (Disk)", addr, file_name, file_offset, "+")
             break
     else:
-        print(f"{'File (Disk)'.rjust(20)} {M.get(addr)} = [not file backed]")
+        print(f"{'File (Disk)'.rjust(20)} {mem_color.get(addr)} = [not file backed]")
 
     containing_sections = pwndbg.aglib.elf.get_containing_sections(file_name, region_start, addr)
     if len(containing_sections) > 0:
@@ -105,30 +103,26 @@ def xinfo_default(page: Page, addr: int) -> None:
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def xinfo(address=None) -> None:
-    address = address.cast(
-        pwndbg.aglib.typeinfo.pvoid
-    )  # Fixes issues with function ptrs (xinfo malloc)
-    addr = int(address)
-    addr &= pwndbg.aglib.arch.ptrmask
+def xinfo(address: int) -> None:
+    address &= pwndbg.aglib.arch.ptrmask
 
-    page = pwndbg.aglib.vmmap.find(addr)
+    page = pwndbg.aglib.vmmap.find(address)
 
     if page is None:
-        print(f"\n  Virtual address {addr:#x} is not mapped.")
+        print(f"\n  Virtual address {address:#x} is not mapped.")
         return
 
-    print(f"Extended information for virtual address {M.get(addr)}:")
+    print(f"Extended information for virtual address {mem_color.get(address)}:")
 
     print("\n  Containing mapping:")
-    print(M.get(address, text=str(page)))
+    print(mem_color.get(address, text=str(page)))
 
     print("\n  Offset information:")
 
     if page.is_stack:
-        xinfo_stack(page, addr)
+        xinfo_stack(page, address)
     else:
-        xinfo_default(page, addr)
+        xinfo_default(page, address)
 
     if page.is_memory_mapped_file:
-        xinfo_mmap_file(page, addr)
+        xinfo_mmap_file(page, address)

@@ -87,6 +87,7 @@ install_apt() {
         nasm \
         gcc \
         libc6-dev \
+        libc6-dbg \
         curl \
         wget \
         build-essential \
@@ -141,6 +142,7 @@ EOF
         nasm \
         gcc \
         glibc-debug \
+        lib32-glibc \
         curl \
         wget \
         base-devel \
@@ -156,19 +158,28 @@ EOF
 install_dnf() {
     sudo dnf upgrade || true
     sudo dnf install -y \
+        make \
         nasm \
         gcc \
         curl \
         wget \
-        gdb \
+        musl-gcc \
+        g++ \
         parallel \
+        qemu-system-x86 \
         qemu-system-arm \
         qemu-user
+
+    # Some tests require i386 libc/ld, eg: test_smallbins_sizes_32bit_big
+    if uname -m | grep -q x86_64; then
+        sudo dnf -y install glibc.i686
+        sudo dnf -y debuginfo-install glibc.i686
+    fi
 
     command -v go &> /dev/null || sudo dnf install -y go
 
     if [[ "$1" != "" ]]; then
-        sudo dnf install shfmt
+        sudo dnf install -y shfmt
     fi
 }
 

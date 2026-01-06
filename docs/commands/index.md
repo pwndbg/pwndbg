@@ -60,16 +60,14 @@
 ## Integrations
 
 -  [ai](integrations/ai.md) - Ask GPT-3 a question about the current debugging context.
--  [bn-sync](integrations/bn-sync.md) - Synchronize Binary Ninja's cursor with GDB.
 -  [decomp](integrations/decomp.md) - Use the current integration to decompile code near an address.
--  [j](integrations/j.md) - Synchronize IDA's cursor with GDB.
+-  [decompiler-integration](integrations/decompiler-integration.md) - Control Pwndbg decompiler integration.
 -  [r2](integrations/r2.md) - Launches radare2.
 -  [r2pipe](integrations/r2pipe.md) - Execute stateful radare2 commands through r2pipe.
 -  [rop](integrations/rop.md) - Dump ROP gadgets with Jon Salwan's ROPgadget tool.
 -  [ropper](integrations/ropper.md) - ROP gadget search with ropper.
 -  [rz](integrations/rz.md) - Launches rizin.
 -  [rzpipe](integrations/rzpipe.md) - Execute stateful rizin commands through rzpipe.
--  [save-ida](integrations/save-ida.md) - Save the ida database.
 
 ## Kernel
 

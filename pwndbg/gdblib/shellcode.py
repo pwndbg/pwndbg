@@ -12,10 +12,9 @@ import gdb
 import pwnlib.shellcraft
 
 import pwndbg
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.asm
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 import pwndbg.gdblib.prompt
 import pwndbg.lib.regs
@@ -147,9 +146,9 @@ def exec_shellcode(blob, restore_context=True, capture=None, disable_breakpoints
     # Restore the code and the program counter and, if requested, the rest of
     # the registers.
     pwndbg.aglib.memory.write(starting_address, existing_code)
-    setattr(pwndbg.aglib.regs, register_set.pc, starting_address)
+    pwndbg.aglib.regs.write_reg(register_set.pc, starting_address)
     if restore_context:
         for reg, val in registers.items():
-            setattr(pwndbg.aglib.regs, reg, val)
+            pwndbg.aglib.regs.write_reg(reg, val)
 
     return captured

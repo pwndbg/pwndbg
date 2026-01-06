@@ -173,62 +173,6 @@ Automatically pass --save to "search" command.
 
 ----------
 
-## **bn-autosync**
-
-
-Whether to automatically run bn-sync every step.
-
-
-
-**Default:** off  
-
-----------
-
-## **bn-il-level**
-
-
-The IL level to use when displaying Binary Ninja decompilation.
-
-
-
-**Default:** 'hlil'  
-**Valid values:** 'disasm', 'llil', 'mlil', 'hlil'
-
-----------
-
-## **bn-rpc-host**
-
-
-Binary Ninja XML-RPC server host.
-
-
-
-**Default:** '127.0.0.1'  
-
-----------
-
-## **bn-rpc-port**
-
-
-Binary Ninja XML-RPC server port.
-
-
-
-**Default:** 43717  
-
-----------
-
-## **bn-timeout**
-
-
-Time to wait for Binary Ninja XML-RPC, in seconds.
-
-
-
-**Default:** 2  
-
-----------
-
 ## **context-backtrace-lines**
 
 
@@ -258,7 +202,7 @@ Number of source code lines to print by the context command.
 
 
 
-**Default:** 10  
+**Default:** 14  
 
 ----------
 
@@ -281,18 +225,6 @@ Number of additional lines to print in the disasm context.
 
 
 **Default:** 10  
-
-----------
-
-## **context-ghidra**
-
-
-When to try to decompile the current function with ghidra.
-
-Doing this is slow and requires radare2/r2pipe or rizin/rzpipe.
-
-**Default:** 'never'  
-**Valid values:** 'always', 'never', 'if-no-source'
 
 ----------
 
@@ -360,7 +292,7 @@ Which context sections are displayed (controls order).
 
 
 
-**Default:** 'regs disasm code ghidra stack backtrace expressions threads heap_tracker'  
+**Default:** 'regs disasm code stack backtrace expressions threads heap_tracker'  
 
 ----------
 
@@ -372,6 +304,20 @@ Number of lines to print in the stack context.
 
 
 **Default:** 8  
+
+----------
+
+## **context-tui-adjust-height**
+<small style="color: lightgray;">(only in GDB)</small>
+
+
+Adjust height of context sections to fit the TUI.
+
+Adjust the height of context sections to fit the TUI window, ignoring section specific limits.
+This uses all vertical space available in the TUI windows if the context section supports it
+like the "disasm" or "stack" windows.
+
+**Default:** on  
 
 ----------
 
@@ -387,27 +333,101 @@ Path to the editor for editing custom structures.
 
 ----------
 
-## **debug-events**
-<small style="color: lightgray;">(only in GDB)</small>
+## **decompiler-angr-plugin-path**
 
 
-Display internal event debugging info.
+Where to install the angr integration plugin.
 
 
+
+**Default:** '/home/user/.local/share/angr-management/plugins'  
+
+----------
+
+## **decompiler-autojump**
+
+
+Whether to jump the decompiler cursor on every stop.
+
+Depending on the decompiler, this may or may not be a good idea.
+Try it out and see.
+
+Check out the other decompiler-auto* configuration variables as well.
 
 **Default:** off  
 
 ----------
 
-## **decompiler**
+## **decompiler-autosync-syms**
 
 
-Framework that your ghidra plugin installed.
+Whether to sync symbols with the decompiler on every stop.
+
+Depending on the decompiler, the number of symbols (functions + global variables)
+the binary you are decompiling has, and various other factors, this may or may not
+be a good idea. Try it out and see.
+
+Check out the other decompiler-auto* configuration variables as well.
+
+**Default:** off  
+
+----------
+
+## **decompiler-autosync-vars**
+
+
+Whether to sync function variables with the decompiler on every stop.
+
+This is generally lightweight, so it is enabled by default. Try disabling
+it if you have performance issues.
+
+Check out the other decompiler-auto* configuration variables as well.
+
+**Default:** on  
+
+----------
+
+## **decompiler-binja-plugin-path**
+
+
+Where to install the binary ninja integration plugin.
 
 
 
-**Default:** 'radare2'  
-**Valid values:** 'radare2', 'rizin'
+**Default:** '/home/user/.binaryninja/plugins'  
+
+----------
+
+## **decompiler-host**
+
+
+The host where the decompiler is exposed.
+
+
+
+**Default:** 'localhost'  
+
+----------
+
+## **decompiler-ida-plugin-path**
+
+
+Where to install the ida integration plugin.
+
+
+
+**Default:** '/home/user/.idapro/plugins'  
+
+----------
+
+## **decompiler-port**
+
+
+The port on which the decompiler is exposed.
+
+
+
+**Default:** 3662  
 
 ----------
 
@@ -430,6 +450,17 @@ Max number of pointers to dereference in a chain.
 
 
 **Default:** 5  
+
+----------
+
+## **dev-debug-events**
+
+
+Display internal event debugging info.
+
+
+
+**Default:** off  
 
 ----------
 
@@ -555,7 +586,6 @@ Print a full stacktrace for exceptions raised in Pwndbg commands.
 ----------
 
 ## **gcc-compiler-path**
-<small style="color: lightgray;">(only in GDB)</small>
 
 
 Path to the gcc/g++ toolchain for generating imported symbols.
@@ -664,87 +694,6 @@ Line width of hexdump command.
 
 ----------
 
-## **ida-rpc-host**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Ida xmlrpc server address.
-
-
-
-**Default:** '127.0.0.1'  
-
-----------
-
-## **ida-rpc-port**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Ida xmlrpc server port.
-
-
-
-**Default:** 43718  
-
-----------
-
-## **ida-timeout**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Time to wait for ida xmlrpc in seconds.
-
-
-
-**Default:** 2  
-
-----------
-
-## **integration-function-lookup**
-
-
-Use integration to look up function type signatures.
-
-
-
-**Default:** on  
-
-----------
-
-## **integration-provider**
-
-
-Which provider to use for integration features.
-
-
-
-**Default:** 'none'  
-**Valid values:** 'none', 'binja', 'ida'
-
-----------
-
-## **integration-smart-enhance**
-
-
-Use integration to determine when to disassemble during enhancing.
-
-
-
-**Default:** on  
-
-----------
-
-## **integration-symbol-lookup**
-
-
-Whether to use integration to look up unknown symbols.
-
-
-
-**Default:** on  
-
-----------
-
 ## **kernel-vmmap**
 
 
@@ -752,14 +701,15 @@ The method to get vmmap information when debugging via QEMU kernel.
 
 Values explained:
 
-+ `page-tables` - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
++ `page-tables` - walk page tables to render vmmap
++ `pt-dump` - read /proc/$qemu-pid/mem to parse kernel page tables to render vmmap
 + `monitor` - use QEMU's `monitor info mem` to render vmmap
 + `none` - disable vmmap rendering; useful if rendering is particularly slow
 
 Note that the page-tables method will require the QEMU kernel process to be on the same machine and within the same PID namespace. Running QEMU kernel and GDB in different Docker containers will not work. Consider running both containers with --pid=host (meaning they will see and so be able to interact with all processes on the machine).
 
 **Default:** 'page-tables'  
-**Valid values:** 'page-tables', 'monitor', 'none'
+**Valid values:** 'page-tables', 'pt-dump', 'monitor', 'none'
 
 ----------
 
@@ -811,17 +761,6 @@ Number of lines before the pc to print for the nearpc command.
 
 
 **Default:** 5  
-
-----------
-
-## **nearpc-integration-comments**
-
-
-Whether to show comments from integration provider.
-
-
-
-**Default:** on  
 
 ----------
 
@@ -908,9 +847,17 @@ Whether glibc uses safe-linking.
 
 Whether to show a compact register view with columns.
 
+Values explained:
 
++ `off` - Disable compact registers (default). Every other option tries to make the register context use less rows by putting the registers into multiple columns.
++ `on` - If a register printout doesn't fit it will be added to the end of the register context.
++ `very` - Try to very hard to compress. May save more lines than `on` but logical register grouping may suffer.
++ `hardcut` - If a register printout doesn't fit its slot, it will simply be truncated.
 
-**Default:** off  
+See also show-compact-regs-columns, show-compact-regs-min-width and show-compact-regs-separation.
+
+**Default:** 'off'  
+**Valid values:** 'off', 'on', 'very', 'hardcut'
 
 ----------
 
@@ -1054,6 +1001,17 @@ Minimum amount of repeated values before skipping lines.
 
 
 **Default:** 3  
+
+----------
+
+## **vis-skip-repeating-val**
+
+
+Whether to skip repeating lines in vis command output.
+
+
+
+**Default:** on  
 
 ----------
 

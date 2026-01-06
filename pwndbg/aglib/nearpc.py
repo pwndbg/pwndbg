@@ -5,20 +5,17 @@ from typing import List
 from capstone import *  # noqa: F403
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
-import pwndbg.aglib.regs
-import pwndbg.aglib.strings
+import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.color
-import pwndbg.color.context as C
-import pwndbg.color.disasm as D
+import pwndbg.color.context as ctx_color
+import pwndbg.color.disasm
 import pwndbg.color.theme
 import pwndbg.commands.comments
-import pwndbg.integration
 import pwndbg.lib.config
-import pwndbg.lib.functions
-import pwndbg.ui
 from pwndbg.aglib.disasm.instruction import SplitType
 from pwndbg.color import ColorConfig
 from pwndbg.color import ColorParamSpec
@@ -67,11 +64,11 @@ pwndbg.config.add_param("left-pad-disasm", True, "whether to left-pad disassembl
 show_args = pwndbg.config.add_param(
     "nearpc-show-args", True, "whether to show call arguments below instruction"
 )
-show_comments = pwndbg.config.add_param(
-    "nearpc-integration-comments",
-    True,
-    "whether to show comments from integration provider",
-)
+# show_comments = pwndbg.config.add_param(
+#     "nearpc-integration-comments",
+#     True,
+#     "whether to show comments from integration provider",
+# )
 show_opcode_bytes = pwndbg.config.add_param(
     "nearpc-num-opcode-bytes",
     0,
@@ -88,7 +85,7 @@ opcode_separator_bytes = pwndbg.config.add_param(
 
 def nearpc(
     pc: int = None,
-    lines: int = 5,  # consistent with previous nearpc_lines
+    lines: int = None,
     back_lines: int = 0,
     total_lines: int = None,
     emulate=False,
@@ -122,6 +119,9 @@ def nearpc(
     # Check whether we can even read this address
     if not pwndbg.aglib.memory.peek(pc):
         result.append(message.error("Invalid address %#x" % pc))
+
+    if lines is None:
+        lines = int(pwndbg.config.nearpc_lines)
 
     # # Load source data if it's available
     # pc_to_linenos = collections.defaultdict(lambda: [])
@@ -172,7 +172,7 @@ def nearpc(
         symbols = ljust_padding(symbols)
         addresses = ljust_padding(addresses)
 
-    assembly_strings = D.instructions_and_padding(instructions)
+    assembly_strings = pwndbg.color.disasm.instructions_and_padding(instructions)
 
     breakpoint_locations = pwndbg.dbg.breakpoint_locations()
 
@@ -219,8 +219,8 @@ def nearpc(
             # If this instruction is the one the PC is at.
             # In case of tight loops, with emulation we may display the same instruction multiple times.
             # Only highlight current instance, not past or future times.
-            address_str = C.highlight(address_str)
-            symbol = C.highlight(symbol)
+            address_str = ctx_color.highlight(address_str)
+            symbol = ctx_color.highlight(symbol)
 
         # If this instruction performs a memory access operation, we should tell
         # the user anything we can figure out about the memory it's trying to
@@ -316,7 +316,7 @@ def nearpc(
                 align += 9  # len(pwndbg.color.gray(""))
             opcodes = opcodes.ljust(align)
             if pwndbg.config.highlight_pc and i == index_of_pc:
-                opcodes = C.highlight(opcodes)
+                opcodes = ctx_color.highlight(opcodes)
 
         # Example line:
         # ► 0x7ffff7f1aeb6 0f bd c0    <__strrchr_avx2+70>    bsr    eax, eax
@@ -329,19 +329,20 @@ def nearpc(
         # mem_access was on this list, but not used due to the `and False` in the code that sets it above
         line = " ".join(filter(None, (prefix, address_str, opcodes, symbol, asm)))
 
-        if show_comments:
-            # Pull comments from integration if possible
-            result += [
-                " "
-                * (len(pwndbg.color.unstylize(line)) - len(pwndbg.color.unstylize(asm).lstrip()))
-                + c.integration_comments(x)
-                for x in pwndbg.integration.provider.get_comment_lines(instr.address)
-            ]
+        # FIXME(provider, integration): can we look into doing this on the decompiler side?
+        # if show_comments:
+        #     # Pull comments from integration if possible
+        #     result += [
+        #         " "
+        #         * (len(pwndbg.color.unstylize(line)) - len(pwndbg.color.unstylize(asm).lstrip()))
+        #         + c.integration_comments(x)
+        #         for x in pwndbg.integration.provider.get_comment_lines(instr.address)
+        #     ]
 
         # For Comment Function
         try:
-            line += " " * 10 + C.comment(
-                pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe][hex(instr.address)]
+            line += " " * 10 + ctx_color.comment(
+                pwndbg.commands.comments.file_lists[pwndbg.aglib.proc.exe()][hex(instr.address)]
             )
         except Exception:
             pass

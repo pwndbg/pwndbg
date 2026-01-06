@@ -4,12 +4,13 @@ import argparse
 import math
 import os
 
-import pwndbg.aglib.arch
-import pwndbg.aglib.elf
+import pwndbg.aglib
+import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
-import pwndbg.color.memory as M
+import pwndbg.color.memory as mem_color
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
@@ -47,8 +48,15 @@ def flags_str2int(flags_s):
 parser = argparse.ArgumentParser(
     description="Pointer scan for possible offset leaks.",
 )
-parser.add_argument("address", nargs="?", default="$sp", help="Leak memory address")
-parser.add_argument("count", nargs="?", default=0x40, help="Leak size in bytes")
+parser.add_argument(
+    "address",
+    nargs="?",
+    type=int,
+    # Legal because it will get parsed by the debugger.
+    default="$sp",
+    help="Leak memory address",
+)
+parser.add_argument("count", nargs="?", default=0x40, type=int, help="Leak size in bytes")
 parser.add_argument(
     "--max-distance",
     type=int,
@@ -131,7 +139,7 @@ def probeleak(
             if flags is not None and not satisfied_flags(require_flags, page.flags):
                 continue
             if not found:
-                print(M.legend())
+                print(mem_color.legend())
                 found = True
 
             mod_name = page.objfile
@@ -156,7 +164,7 @@ def probeleak(
 
             offset_text = "0x%0*x" % (off_zeros, i)
             p_text = "0x%0*x" % (int(ptrsize * 2), p)
-            text = f"{offset_text}: {M.get(p, text=p_text)} = {M.get(p, text=right_text)}"
+            text = f"{offset_text}: {mem_color.get(p, text=p_text)} = {mem_color.get(p, text=right_text)}"
 
             symbol = pwndbg.aglib.symbol.resolve_addr(p)
             if symbol:

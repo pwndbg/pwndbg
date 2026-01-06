@@ -11,12 +11,12 @@ from typing import Dict
 from typing import List
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.vmmap
 import pwndbg.aglib.vmmap_custom
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.config
 import pwndbg.lib.memory
@@ -130,7 +130,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     """
     if auto_explore.value == "warn":
         print(
-            M.warn(
+            message.warn(
                 "Warning: All methods to detect STACK have failed.\n"
                 "You can explore STACK using exploration, but it may be very slow.\n"
                 "To explicitly explore, use the command: `stack-explore`\n"
@@ -156,6 +156,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     # This helps prevent scanning the same page multiple times.
     thread_sp.sort(key=lambda t: t[0])
 
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
     stacks: Dict[int, pwndbg.lib.memory.Page] = {}
     for sp, thread_idx in thread_sp:
         start = pwndbg.lib.memory.page_align(sp) - pwndbg.lib.memory.PAGE_SIZE
@@ -168,7 +169,12 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
 
         stop = find_upper_stack_boundary(sp)
         page = pwndbg.lib.memory.Page(
-            start, stop - start, 6 if not is_executable() else 7, 0, f"[stack:{thread_idx}]"
+            start,
+            stop - start,
+            6 if not is_executable() else 7,
+            0,
+            ptrsize,
+            f"[stack:{thread_idx}]",
         )
         stacks[thread_idx] = page
         pwndbg.aglib.vmmap_custom.add_custom_page(page)
@@ -189,3 +195,23 @@ def callstack() -> List[int]:
         frame = frame.parent()
 
     return addresses
+
+
+@pwndbg.lib.cache.cache_until("stop", "start")
+def get_stack_var_name(address: int) -> str | None:
+    """
+    Get the name of the stack variable covering the given address.
+
+    Returns the variable name with optional offset (e.g., "buf+0x8") if the address
+    is within a variable but not at its start. Returns None if no variable is found.
+    """
+    frame = pwndbg.dbg.selected_frame()
+    if frame is None:
+        return None
+
+    for start, end, name in frame.stack_variables():
+        if start <= address < end:
+            offset = address - start
+            return name if offset == 0 else f"{name}+{offset:#x}"
+
+    return None

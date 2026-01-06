@@ -3,12 +3,18 @@ HOST_ARCH_32 := empty
 
 ifeq ($(HOST_ARCH),x86_64)
     HOST_ARCH = x86-64
-    HOST_ARCH_32 := i386
+
+    # Not all kernels support IA32, it can be disabled `ia32_emulation=off` OR `CONFIG_IA32=n`
+    IA32_OK := $(shell ./check_ia32.i386.out.hardcoded >/dev/null 2>&1 && echo yes || echo no)
+    ifeq ($(IA32_OK),yes)
+        HOST_ARCH_32 := i386
+    endif
 else ifeq ($(HOST_ARCH),i686)
     HOST_ARCH := i386
 endif
 
 ZIGCC           = uv run python3 -m ziglang cc
+PKG_CONFIG      ?=     pkg-config
 CC              =      gcc
 CXX             =      g++
 MUSLCC          =      musl-gcc
@@ -21,15 +27,18 @@ NASM            =      nasm -f elf64
 LD              =      ld
 SOURCES_ASM     =      $(wildcard *.$(HOST_ARCH).asm) $(wildcard *.$(HOST_ARCH_32).asm)
 LINKED_ASM      =      $(SOURCES_ASM:.asm=.out)
-LDFLAGS         =
 
 GO              =      go
 SOURCES_GO      =      $(wildcard *.native.go) $(wildcard *.$(HOST_ARCH).go) $(wildcard *.$(HOST_ARCH_32).go)
 LINKED_GO       =      $(SOURCES_GO:.go=.out)
 
-ifeq ($(TARGET), x86)
-CFLAGS         +=      -m32
+HAVE_JEMALLOC := $(shell $(PKG_CONFIG) --exists jemalloc && echo yes || echo no)
+ifeq ($(HAVE_JEMALLOC),yes)
+JEMALLOC_CFLAGS := $(shell $(PKG_CONFIG) --cflags jemalloc)
+JEMALLOC_LIBS   := $(shell $(PKG_CONFIG) --libs jemalloc)
 endif
+
+HAVE_MUSL := $(shell command -v $(firstword $(MUSLCC)) >/dev/null 2>&1 && echo yes || echo no)
 
 ifeq ($(DEBUG), 1)
 CFLAGS         +=      -DDEBUG=1 -ggdb -O0 -gdwarf-4
@@ -39,6 +48,7 @@ endif
 
 # LLDB does not support PLT symbolication with -fcf-protection :(
 CFLAGS         += -fcf-protection=none
+CFLAGS         += -fno-sanitize=all
 
 PWD=$(shell pwd)
 # Apparently we don't have this version? :(
@@ -47,16 +57,28 @@ GLIBC_2_33=$(PWD)/glibcs/2.33
 
 .PHONY : all clean
 
-CUSTOM_TARGETS = reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_jemalloc_extent_info.native.out heap_jemalloc_heap.native.out heap_musl_dyn.native.out heap_musl_static.native.out gosample.i386.out gosample.x86-64.out
+ALL_JEMALLOC_TARGETS :=
+ifeq ($(HAVE_JEMALLOC),yes)
+ALL_JEMALLOC_TARGETS += heap_jemalloc_extent_info.native.out heap_jemalloc_heap.native.out
+endif
+
+ALL_MUSL_TARGETS :=
+ifeq ($(HAVE_MUSL),yes)
+ALL_MUSL_TARGETS += heap_musl_dyn.native.out heap_musl_static.native.out
+endif
+
+CUSTOM_TARGETS = heap_find_fake_fast.native.out reference_bin_pie.native.out reference_bin_nopie.native.out reference_bin_nopie.i386.out symbol_1600_and_752.native.out initialized_heap.x86-64.out initialized_heap_big.i386.out linked_lists.native.out onegadget.x86-64.out onegadget.i386.out heap_musl_dyn.native.out heap_musl_static.native.out gosample.i386.out gosample.x86-64.out
 NATIVE_CUSTOM_TARGETS  := $(filter %.native.out %.$(HOST_ARCH).out %.$(HOST_ARCH_32).out,$(CUSTOM_TARGETS))
 
-ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(NATIVE_CUSTOM_TARGETS)
+ALL_TARGETS := $(LINKED_C) $(LINKED_ASM) $(LINKED_GO) $(NATIVE_CUSTOM_TARGETS) \
+    $(ALL_JEMALLOC_TARGETS) \
+    $(ALL_MUSL_TARGETS)
 
 all: $(ALL_TARGETS)
 
 %.out : %.c
 	@echo "[+] Building '$@'"
-	@$(CC) $(CFLAGS) -w -o $@ $? $(LDFLAGS)
+	${ZIGCC} ${CFLAGS} -w -o $@ $?
 
 %.out : %.asm
 	@echo "[+] Building '$@'"
@@ -68,9 +90,17 @@ all: $(ALL_TARGETS)
 	@$(GO) build -gcflags "-N -l" -o $@ $?
 	@# Not stripped on purpose
 
+check_ia32.i386.out.hardcoded: check_ia32.i386.c
+	@echo "[+] Building IA-32 check binary"
+	${ZIGCC} -target x86-linux-gnu -Os -o $@ $<
+
 crash_simple.native.out: crash_simple.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -O0 -nostdlib -ffreestanding -fno-stack-protector -fno-sanitize=all -o $@ $?
+
+div_zero.native.out: div_zero.native.c
+	@echo "[+] Building '$@'"
+	${ZIGCC} -g -ggdb -O0 -gdwarf-4 -fsanitize-trap=undefined -Wno-division-by-zero -o $@ $?
 
 gosample.i386.out : gosample.native.go
 	@echo "[+] Building '$@'"
@@ -105,23 +135,46 @@ heap_bugs.x86-64.out: heap_bugs.x86-64.c
 # https://sourceware.org/bugzilla/show_bug.cgi?id=24548
 heap_vis.native.out: heap_vis.native.c
 	@echo "[+] Building '$@'"
-	${CC} -g -O0 -Wno-nonnull -o $@ $? -pthread -lpthread
+	${ZIGCC} ${CFLAGS} -g -O0 -Wno-nonnull -o $@ $? -pthread -lpthread
 
 heap_malloc_chunk.native.out: heap_malloc_chunk.native.c
 	@echo "[+] Building '$@'"
-	${CC} -g -O0 -Wno-nonnull -Wno-unused-result -o $@ $? -pthread -lpthread
+	${ZIGCC} ${CFLAGS} -g -O0 -Wno-nonnull -Wno-unused-result -o $@ $? -pthread -lpthread
+
+heap_find_fake_fast.native.out: heap_find_fake_fast.native.c
+	@echo "[+] Building '$@'"
+	${CC} ${CFLAGS} -w -o $@ $? -pthread -lpthread
+
+ifeq ($(HAVE_JEMALLOC),yes)
 
 heap_jemalloc_extent_info.native.out: heap_jemalloc_extent_info.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -g -O0 -Wno-nonnull -Wno-unused-result \
+	$(JEMALLOC_CFLAGS) \
 	-o $@ $? \
-	-Wl,-Bstatic -ljemalloc -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
+	-Wl,-Bstatic $(JEMALLOC_LIBS) -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
 
 heap_jemalloc_heap.native.out: heap_jemalloc_heap.native.c
 	@echo "[+] Building '$@'"
 	${ZIGCC} -g -O0 -Wno-nonnull -Wno-unused-result \
+	$(JEMALLOC_CFLAGS) \
 	-o $@ $? \
-	-Wl,-Bstatic -ljemalloc -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
+	-Wl,-Bstatic $(JEMALLOC_LIBS) -Wl,-Bdynamic -lpthread -lm -lstdc++ -pthread -ldl
+
+else
+
+heap_jemalloc_extent_info.native.out: heap_jemalloc_extent_info.native.c
+	@echo "[!] Skip '$@'"
+
+heap_jemalloc_heap.native.out: heap_jemalloc_heap.native.c
+	@echo "[!] Skip '$@'"
+
+$(info [!] jemalloc not found via $(PKG_CONFIG) – skipping jemalloc targets)
+
+endif
+
+
+ifeq ($(HAVE_MUSL),yes)
 
 heap_musl_dyn.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
@@ -136,9 +189,21 @@ heap_musl_static.native.out: heap_musl.native.c
 	@echo "[+] Building '$@'"
 	${MUSLCC} -g3 -O0 -static -o $@ $?
 
+else
+
+heap_musl_dyn.native.out: heap_musl.native.c
+	@echo "[!] Skip '$@'"
+
+heap_musl_static.native.out: heap_musl.native.c
+	@echo "[!] Skip '$@'"
+
+$(info [!] musl compiler not found ($(MUSLCC)) – skipping musl targets)
+
+endif
+
 multiple_threads.native.out: multiple_threads.native.c
 	@echo "[+] Building '$@'"
-	${CC} -g -O0 -o $@ $? -pthread -lpthread
+	${ZIGCC} -g -O0 -o $@ $? -pthread -lpthread
 
 tls.x86-64.out: tls.x86-64.c
 	@echo "[+] Building '$@'"
@@ -156,7 +221,7 @@ tls.i386.out: tls.i386.c
 
 issue_1565.native.out: issue_1565.native.c
 	@echo "[+] Building '$@'"
-	${CC} -g -O0 -o $@ $? -pthread -lpthread
+	${ZIGCC} -g -O0 -o $@ $? -pthread -lpthread
 
 # TODO: Link against a specific GLIBC version >= 2.26
 initialized_heap_big.i386.out: initialized_heap.native.c

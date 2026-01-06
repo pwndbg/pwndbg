@@ -12,6 +12,7 @@ import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.commands
+import pwndbg.dbg_mod
 from pwndbg.aglib import kernel
 from pwndbg.aglib.kernel import per_cpu
 from pwndbg.aglib.kernel.macros import for_each_entry
@@ -332,7 +333,7 @@ v
 
 @pwndbg.commands.Command(parser, category=CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
-@pwndbg.commands.OnlyWithKernelDebugSymbols
+@pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 def buddydump(
     zone: str, pcp_only: bool, order: int, mtype: str, cpu: int, node: int, find: int

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.stack
 import pwndbg.aglib.vmmap
 import pwndbg.chain

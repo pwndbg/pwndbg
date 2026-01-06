@@ -16,13 +16,12 @@ from typing import List
 import gdb
 
 import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.nearpc
-import pwndbg.aglib.regs
-import pwndbg.color.message as M
+import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.commands.telescope
-import pwndbg.ghidra
 import pwndbg.lib.strings
 from pwndbg.commands import CommandCategory
 
@@ -102,7 +101,7 @@ def get_openai_api_key():
         return pwndbg.config.ai_openai_api_key.value
     key = os.environ.get("OPENAI_API_KEY", "")
     if key:
-        print(M.warn("Setting OpenAI API key from OPENAI_API_KEY environment variable."))
+        print(message.warn("Setting OpenAI API key from OPENAI_API_KEY environment variable."))
         pwndbg.config.ai_openai_api_key.value = key
         return key
     else:
@@ -114,7 +113,9 @@ def get_anthropic_api_key():
         return pwndbg.config.ai_anthropic_api_key.value
     key = os.environ.get("ANTHROPIC_API_KEY", "")
     if key:
-        print(M.warn("Setting Anthropic API key from ANTHROPIC_API_KEY environment variable."))
+        print(
+            message.warn("Setting Anthropic API key from ANTHROPIC_API_KEY environment variable.")
+        )
         pwndbg.config.ai_anthropic_api_key.value = key
         return key
     else:
@@ -126,7 +127,7 @@ def get_ollama_endpoint():
         return pwndbg.config.ai_ollama_endpoint.value
     endpoint = os.environ.get("OLLAMA_ENDPOINT", "")
     if endpoint:
-        print(M.warn("Setting Ollama Endpoint from OLLAMA_ENDPOINT environment variable."))
+        print(message.warn("Setting Ollama Endpoint from OLLAMA_ENDPOINT environment variable."))
         pwndbg.config.ai_ollama_endpoint.value = endpoint
         return endpoint
     else:
@@ -178,7 +179,7 @@ def build_context_prompt_body():
         asm_rows = pwndbg.aglib.nearpc.nearpc(emulate=True, lines=16)
         asm = "\n".join(asm_rows)
     except Exception as e:
-        print(M.error(f"Error: {e}"))
+        print(message.error(f"Error: {e}"))
         asm = gdb.execute("x/16i $pc", to_string=True)
     ## Next, let's get the registers
     regs_rows = pwndbg.commands.context.get_regs()
@@ -212,12 +213,6 @@ def build_context_prompt_body():
         source = gdb.execute("list *$pc", to_string=True)
     except gdb.error:
         pass
-    if len(source.split("\n")) < 3:
-        try:
-            source = pwndbg.ghidra.decompile()
-            decompile = True
-        except Exception:
-            pass
     ## Now, let's build the prompt
     prompt = "Consider the following context in the GDB debugger:\n"
 
@@ -271,7 +266,7 @@ def build_context_prompt_body():
 """
 
     if source:
-        prompt += f"""Here is the {'decompiled ' if decompile else ''}source code near the current instruction:
+        prompt += f"""Here is the {"decompiled " if decompile else ""}source code near the current instruction:
 
 ```
 {source}
@@ -293,7 +288,7 @@ def build_command_prompt_body(command):
 def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature=0.0):
     if verbosity > 0:
         print(
-            M.notice(
+            message.notice(
                 f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{pprint.pformat(prompt)}"
             )
         )
@@ -312,7 +307,7 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
     )
     res = r.json()
     if verbosity > 0:
-        print(M.warn(pprint.pformat(res)))
+        print(message.warn(pprint.pformat(res)))
     if "choices" not in res:
         if "error" in res:
             error_message = f"{res['error']['message']}: {res['error']['type']}"
@@ -320,8 +315,8 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
         raise Exception(res)
     if pwndbg.config.ai_show_usage:
         print(
-            M.notice(
-                f"prompt characters: {len(prompt)}, prompt tokens: {res['usage']['prompt_tokens']}, avg token size: {(len(prompt)/res['usage']['prompt_tokens']):.2f}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
+            message.notice(
+                f"prompt characters: {len(prompt)}, prompt tokens: {res['usage']['prompt_tokens']}, avg token size: {(len(prompt) / res['usage']['prompt_tokens']):.2f}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
             )
         )
     reply = res["choices"][0]["message"]["content"]
@@ -331,7 +326,7 @@ def query_openai_chat(prompt, model="gpt-3.5-turbo", max_tokens=100, temperature
 def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
     if verbosity > 0:
         print(
-            M.notice(
+            message.notice(
                 f"Querying {model} for {max_tokens} tokens at temperature {temperature} with the following prompt:\n\n{prompt}"
             )
         )
@@ -351,7 +346,7 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
     )
     res = r.json()
     if verbosity > 0:
-        print(M.warn(pprint.pformat(res)))
+        print(message.warn(pprint.pformat(res)))
     if "choices" not in res:
         if "error" in res:
             error_message = f"{res['error']['message']}: {res['error']['type']}"
@@ -360,8 +355,8 @@ def query_openai_completions(prompt, model="text-davinci-003", max_tokens=100, t
     reply = res["choices"][0]["text"]
     if pwndbg.config.ai_show_usage:
         print(
-            M.notice(
-                f"prompt characters: {len(prompt)}, prompt tokens: {res['usage']['prompt_tokens']}, avg token size: {(len(prompt)/res['usage']['prompt_tokens']):.2f}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
+            message.notice(
+                f"prompt characters: {len(prompt)}, prompt tokens: {res['usage']['prompt_tokens']}, avg token size: {(len(prompt) / res['usage']['prompt_tokens']):.2f}, completion tokens: {res['usage']['completion_tokens']}, total tokens: {res['usage']['total_tokens']}"
             )
         )
     return reply
@@ -407,7 +402,7 @@ def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):
     try:
         return data["content"][0]["text"].strip()
     except KeyError:
-        print(M.error(f"Anthropic API error: {data}"))
+        print(message.error(f"Anthropic API error: {data}"))
         return f"Anthropic API error: {data['detail']}"
 
 
@@ -429,7 +424,7 @@ def query_ollama(prompt, model="mistral", max_tokens=100, temperature=0.0):
     try:
         return data["response"].strip()
     except KeyError:
-        print(M.error(f"Ollama API error: {data}"))
+        print(message.error(f"Ollama API error: {data}"))
         return f"Ollama API error: {data['error']}"
 
 
@@ -438,7 +433,7 @@ def get_openai_models():
     r = _requests().get(url, auth=("Bearer", pwndbg.config.ai_openai_api_key))
     res = r.json()
     if verbosity > 0:
-        print(M.warn(pprint.pformat(res)))
+        print(message.warn(pprint.pformat(res)))
     return sorted([m["id"] for m in res["data"]])
 
 
@@ -477,17 +472,17 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
     if list_models:
         models = get_openai_models()
         print(
-            M.notice(
+            message.notice(
                 "The following models are available. Please visit the openai.com for information on their use."
             )
         )
         for model in models:
-            print(M.notice(f"  - {model}"))
+            print(message.notice(f"  - {model}"))
         return
 
     if not (ai_openai_api_key or ai_anthropic_api_key or ai_ollama_endpoint):
         print(
-            M.error(
+            message.error(
                 "At least one of the following must be set:\n- ai_openai_api_key config parameter\n- ai_anthropic_api_key config parameter\n- ai_ollama_endpoint config parameter\n- OPENAI_API_KEY environment variable\n- ANTHROPIC_API_KEY environment variable\n- OLLAMA_ENDPOINT environment variable"
             )
         )
@@ -514,7 +509,7 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
     try:
         res = query(prompt, model=model, max_tokens=max_tokens, temperature=temperature).strip()
     except Exception as e:
-        print(M.error(f"Error querying OpenAI: {e}"))
+        print(message.error(f"Error querying OpenAI: {e}"))
         return
     last_question.append(question)
     last_answer.append(res)
@@ -523,6 +518,6 @@ def ai(question, model, temperature, max_tokens, verbose, list_models=False, com
         last_question.pop(0)
         last_answer.pop(0)
 
-    print(M.success(res))
+    print(message.success(res))
 
     return

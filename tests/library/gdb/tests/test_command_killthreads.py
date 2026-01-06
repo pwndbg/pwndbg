@@ -4,7 +4,7 @@ import time
 
 import gdb
 
-import pwndbg.dbg
+import pwndbg
 
 from . import get_binary
 

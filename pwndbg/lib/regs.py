@@ -12,15 +12,37 @@ from typing import Dict
 from typing import Iterator
 from typing import List
 from typing import OrderedDict
+from typing import Protocol
 from typing import Set
 from typing import Tuple
 from typing import Union
 
+from typing_extensions import override
+
 import pwndbg.lib.disasm.helpers as bit_math
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
+# The printing logic for registers uses the Visitor Pattern
+# An implementation of RegisterContextProtocol is defined outside of this class
+# (this is a lib/ file, so it shouldn't directly be able to access the process)
+#
+# Instances of VisitableRegister will call the methods of RegisterContextProtocol to do their logic.
 
-class BitFlags:
+
+class RegisterContextProtocol(Protocol):
+    def flag_register_context(self, reg: str, bit_flags: BitFlags) -> str | None: ...
+
+    def addressing_register_context(self, reg: str, is_virtual: bool) -> str | None: ...
+
+    def segment_registers_context(self, regs: list[str]) -> str | None: ...
+
+
+# Represents a register or a set of registers that can be printed in the context register view
+class VisitableRegister(Protocol):
+    def context(self, rc: RegisterContextProtocol) -> str | None: ...
+
+
+class BitFlags(VisitableRegister):
     # this is intentionally uninitialized -- arm uses the same self.flags structuture for different registers
     # for example
     #   - aarch64_cpsr_flags is used for "cpsr", "spsr_el1", "spsr_el2", "spsr_el3"
@@ -29,29 +51,27 @@ class BitFlags:
     flags: OrderedDict[str, Union[int, Tuple[int, int]]]
     value: int
 
-    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = [], value=None):
+    def __init__(self, flags: List[Tuple[str, Union[int, Tuple[int, int]]]] = []):
         self.regname = ""
-        self.flags = {}
+        self.flags = OrderedDict()
         for name, bits in flags:
             self.flags[name] = bits
-        self.value = value
+        self.value = 0
 
-    def __getattr__(self, name):
-        if name in {"regname"}:
-            return self.__dict__[name]
+    def __getattr__(self, name: str):
         return getattr(self.flags, name)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> int:
         r = self.flags[key]
         if isinstance(r, int):
             return (self.value >> r) & 1
         s, e = r
         return ((~((1 << s) - 1) & ((1 << (e + 1)) - 1)) & self.value) >> s
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: int) -> None:
         self.flags[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str):
         del self.flags[key]
 
     def __iter__(self):
@@ -63,14 +83,15 @@ class BitFlags:
     def __repr__(self):
         return f"BitFlags({self.flags})"
 
-    def update(self, regname: str):
+    def update(self, regname: str) -> None:
         self.regname = regname
 
-    def context(self, rc):
+    @override
+    def context(self, rc: RegisterContextProtocol) -> str | None:
         return rc.flag_register_context(self.regname, self)
 
 
-class AddressingRegister:
+class AddressingRegister(VisitableRegister):
     """
     Represents a register that is used to store an address, e.g. cr3, gsbase, fsbase
     """
@@ -84,14 +105,15 @@ class AddressingRegister:
         self.value = 0
         self.is_virtual = is_virtual
 
-    def update(self, regname: str):
+    def update(self, regname: str) -> None:
         pass
 
-    def context(self, rc):
+    @override
+    def context(self, rc: RegisterContextProtocol) -> str | None:
         return rc.addressing_register_context(self.reg, self.is_virtual)
 
 
-class SegmentRegisters:
+class SegmentRegisters(VisitableRegister):
     """
     Represents the x86 segment register set
     """
@@ -101,7 +123,8 @@ class SegmentRegisters:
     def __init__(self, regs: List[str]):
         self.regs = regs
 
-    def context(self, rc):
+    @override
+    def context(self, rc: RegisterContextProtocol) -> str | None:
         return rc.segment_registers_context(self.regs)
 
 
@@ -122,7 +145,7 @@ class KernelRegisterSet:
 
     def __init__(
         self,
-        segments: SegmentRegisters | None,
+        segments: SegmentRegisters,
         controls: Dict[str, BitFlags | AddressingRegister] = {},
         msrs: Dict[str, BitFlags | AddressingRegister] = {},
     ):
@@ -151,50 +174,68 @@ class Reg:
     zero_extend_writes: bool = False
     """Upon writing a value to this subregister, are the higher bits of the full register zeroed out?"""
     subregisters: tuple[Reg, ...] = ()
+    """Bitmask for register. None if the register size is arch.ptrsize"""
+    mask: int | None = None
+
+    def __post_init__(self) -> None:
+        if self.size:
+            self.mask = (1 << (self.size * 8)) - 1
 
 
 class RegisterSet:
-    #: Program counter register
     pc: str
+    """Program counter register"""
 
-    #: Stack pointer register
     stack: str
+    """Stack pointer register"""
 
-    #: Frame pointer register
     frame: str | None = None
+    """Frame pointer register"""
 
-    #: Return address register
     retaddr: Tuple[str, ...]
+    """Return address register"""
 
-    #: Flags register (eflags, cpsr)
     flags: Dict[str, BitFlags]
+    """Maps name of flag register (eflags, cpsr) to a structure detailing what the bits mean"""
 
-    #: List of native-size general-purpose registers
     gpr: Tuple[str, ...]
+    """List of native-size general-purpose registers"""
 
-    #: List of miscellaneous, valid registers
     misc: Tuple[str, ...]
+    """List of miscellaneous, valid registers"""
 
-    #: Register-based arguments for most common ABI
     args: Tuple[str, ...]
+    """Register-based arguments for most common ABI"""
 
-    #: Return value register
     retval: str | None
+    """Return value register"""
 
-    #: Common registers which should be displayed in the register context
     common: List[str] = []
+    """Common registers which should be displayed in the register context"""
 
-    #: Extra registers for kernel debugging
     kernel: KernelRegisterSet | None
+    """Extra registers for kernel debugging"""
 
-    #: All valid registers
     all: Set[str]
+    """All valid registers"""
 
-    #: Reg objects containing information on each register
     reg_definitions: Dict[str, Reg]
+    """Map of register name to Reg objects containing information on the register"""
 
-    #: Map of register name to the full register it resides in. Example mapping: "eax" -> Reg("rax")
     full_register_lookup: Dict[str, Reg]
+    """
+    Map of register name to the full register it resides in.
+    Example mapping: "eax" -> Reg("rax")
+
+    A full size register maps to itself.
+    """
+
+    special_aliases: Dict[str, str]
+    """
+    Contains two values:
+    - "sp" -> stack pointer register name
+    - "pc" -> instruction pointer register name
+    """
 
     def __init__(
         self,
@@ -258,6 +299,9 @@ class RegisterSet:
         # https://github.com/pwndbg/pwndbg/pull/2337
         self.emulated_regs_order: List[UnicornRegisterWrite] = []
 
+        # Avoid duplicates
+        seen_emulated_register: set[str] = set()
+
         for regname in itertools.chain(
             (self.pc,),
             tuple(self.flags),
@@ -266,9 +310,10 @@ class RegisterSet:
             self.misc,
             self.gpr,
         ):
-            if regname and regname not in self.emulated_regs_order:
+            if regname and regname not in seen_emulated_register:
                 emu_reg = UnicornRegisterWrite(regname, True if regname in flags else False)
                 self.emulated_regs_order.append(emu_reg)
+                seen_emulated_register.add(regname)
 
         self.all = (
             set(self.misc)
@@ -280,6 +325,17 @@ class RegisterSet:
         )
         self.all -= {None}
         self.all |= {"pc", "sp"}
+
+        self.special_aliases = {}
+        self.special_aliases["sp"] = self.stack
+        self.special_aliases["pc"] = self.pc
+
+    def resolve_aliases(self, reg: str) -> str:
+        """
+        Convert "sp" and "pc" to the real architectural registers.
+        For all others, returns `reg`
+        """
+        return self.special_aliases.get(reg, reg)
 
     def __contains__(self, reg: str) -> bool:
         return reg in self.all
@@ -446,7 +502,7 @@ class PseudoEmulatedRegisterFile:
 
         self.masks[full_reg_def.name] = ~new_mask & self.masks[full_reg_def.name]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(
             {
                 "masks": {x: hex(y) for x, y in self.masks.items()},
@@ -615,7 +671,7 @@ aarch64 = RegisterSet(
         "ttbr0_el1": BitFlags(),
         "ttbr1_el1": BitFlags(),
     },
-    frame=Reg("fp", 8, subregisters=(Reg("w29", 4, zero_extend_writes=True),)),  # x29
+    frame=Reg("x29", 8, subregisters=(Reg("w29", 4, zero_extend_writes=True),)),  # x29
     gpr=(
         Reg("x0", 8, subregisters=(Reg("w0", 4, zero_extend_writes=True),)),
         Reg("x1", 8, subregisters=(Reg("w1", 4, zero_extend_writes=True),)),

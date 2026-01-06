@@ -3,12 +3,11 @@ from __future__ import annotations
 import argparse
 from typing import List
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.arguments
 import pwndbg.chain
 import pwndbg.commands
-import pwndbg.commands.telescope
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(

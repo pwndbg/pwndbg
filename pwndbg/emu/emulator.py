@@ -16,17 +16,16 @@ import capstone as C
 import unicorn as U
 import unicorn.ppc_const
 
-import pwndbg.aglib.arch
+import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs
 import pwndbg.aglib.strings
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.enhance as E
-import pwndbg.color.memory as M
-import pwndbg.dbg
+import pwndbg.color.memory as mem_color
+import pwndbg.dbg_mod
 import pwndbg.enhance
 import pwndbg.integration
 import pwndbg.lib.memory
@@ -273,7 +272,7 @@ class Emulator:
             debug(DEBUG_INIT, "# Setting TLB mode to virtual")
             self.uc.ctl_set_tlb_mode(U.UC_TLB_VIRTUAL)  # type: ignore[attr-defined]
 
-        self.regs: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
+        self.reg_set: pwndbg.lib.regs.RegisterSet = pwndbg.aglib.regs.current
 
         # Whether the emulator is allowed to emulate instructions
         # There are cases when the emulator is incorrect or we want to disable it for certain instruction types,
@@ -292,7 +291,7 @@ class Emulator:
         self.last_single_step_result = InstructionExecutedResult(None, None)
 
         # Initialize the register state
-        for emu_reg in self.regs.emulated_regs_order:
+        for emu_reg in self.reg_set.emulated_regs_order:
             reg = emu_reg.name
             enum = self.get_reg_enum(reg)
 
@@ -303,7 +302,7 @@ class Emulator:
             if reg in blacklisted_regs:
                 debug(DEBUG_INIT, "Skipping blacklisted register %r", reg)
                 continue
-            value = getattr(pwndbg.aglib.regs, reg)
+            value = pwndbg.aglib.regs.read_reg(reg)
             if None in (enum, value):
                 if reg not in blacklisted_regs:
                     debug(DEBUG_INIT, "# Could not set register %r", reg)
@@ -343,6 +342,9 @@ class Emulator:
 
         return None
         # raise AttributeError(f"AttributeError: {self!r} object has no register {name!r}")
+
+    def pc(self) -> int:
+        return self.read_register(self.reg_set.pc)
 
     # Read size worth of memory, return None on error
     def read_memory(self, address: int, size: int) -> bytes | None:
@@ -430,7 +432,7 @@ class Emulator:
             symbol = pwndbg.aglib.symbol.resolve_addr(link) or None
             if symbol:
                 symbol = f"{link:#x} ({symbol})"
-            rest.append(M.get(link, symbol))
+            rest.append(mem_color.get(link, symbol))
 
         # If the dereference limit is zero, skip any enhancements.
         if limit == 0:
@@ -476,10 +478,6 @@ class Emulator:
         # For the purpose of following pointers, don't display
         # anything on the stack or heap as 'code'
         if "[stack" in page.objfile or "[heap" in page.objfile:
-            rwx = exe = False
-
-        # If integration doesn't think it's in a function, don't display it as code.
-        if not pwndbg.integration.provider.is_in_function(value):
             rwx = exe = False
 
         if exe:
@@ -587,18 +585,10 @@ class Emulator:
 
         return sz[:max_string_len] + "..."
 
-    def __getattr__(self, name: str):
-        reg = self.get_reg_enum(name)
-
-        if reg:
-            return self.uc.reg_read(reg)
-
-        raise AttributeError(f"AttributeError: {self!r} object has no attribute {name!r}")
-
     def update_pc(self, pc=None) -> None:
         if pc is None:
             pc = pwndbg.aglib.regs.pc
-        self.uc.reg_write(self.get_reg_enum(self.regs.pc), pc)
+        self.uc.reg_write(self.get_reg_enum(self.reg_set.pc), pc)
 
     def read_thumb_bit(self) -> int:
         """
@@ -609,13 +599,13 @@ class Emulator:
 
         Return None if the Thumb bit is not relevent to the current architecture
 
-        Mimics the `read_thumb_bit` function defined in aglib/arch.py
+        Mimics the `read_thumb_bit` function defined in aglib/arch_mod.py
         """
         if self.arch == "arm":
-            if (cpsr := self.cpsr) is not None:
+            if (cpsr := self.read_register("cpsr")) is not None:
                 return (cpsr >> 5) & 1
         elif self.arch == "armcm":
-            if (xpsr := self.xpsr) is not None:
+            if (xpsr := self.read_register("xpsr")) is not None:
                 return (xpsr >> 24) & 1
         return 0
 
@@ -629,12 +619,16 @@ class Emulator:
         if arch == "armcm":
             mode |= (
                 (U.UC_MODE_MCLASS | U.UC_MODE_THUMB)
-                if (pwndbg.aglib.regs.xpsr & (1 << 24))
+                if (pwndbg.aglib.regs.read_reg("xpsr") & (1 << 24))
                 else U.UC_MODE_MCLASS
             )
 
         elif arch in ("arm", "aarch64"):
-            mode |= U.UC_MODE_THUMB if (pwndbg.aglib.regs.cpsr & (1 << 5)) else U.UC_MODE_ARM
+            mode |= (
+                U.UC_MODE_THUMB
+                if (pwndbg.aglib.regs.read_reg("cpsr") & (1 << 5))
+                else U.UC_MODE_ARM
+            )
 
         elif (
             arch == "mips"
@@ -713,34 +707,14 @@ class Emulator:
 
         Also supports general registers like 'sp' and 'pc'.
         """
-        if not self.regs:
+        if not self.reg_set:
             return None
 
-        # If we're looking for an exact register ('eax', 'ebp', 'r0') then
-        # we can look those up easily.
-        #
-        #  'eax' ==> enum
-        #
-        # if reg in self.regs.all:
+        # Look up the Unicorn enum for an exact register ('eax', 'ebp', 'r0')
+        # This does not handle aliases, such as "sp" or "pc"
         e = self.const_regs.get(reg.upper(), None)
         if e is not None:
             return e
-
-        # If we're looking for an abstract register which *is* accounted for,
-        # we can also do an indirect lookup.
-        #
-        #   'pc' ==> 'eip' ==> enum
-        #
-        if hasattr(self.regs, reg):
-            return self.get_reg_enum(getattr(self.regs, reg))
-
-        # If we're looking for an abstract register which does not exist on
-        # the RegisterSet objects, we need to do an indirect lookup.
-        #
-        #   'sp' ==> 'stack' ==> 'esp' ==> enum
-        #
-        elif reg == "sp":
-            return self.get_reg_enum(self.regs.stack)
 
         return None
 
@@ -765,7 +739,7 @@ class Emulator:
     def emulate_with_hook(self, hook, count=512) -> None:
         ident = self.hook_add(U.UC_HOOK_CODE, hook)
 
-        pc: int = self.pc
+        pc: int = self.pc()
         # Unicorn appears to disregard the UC_MODE_THUMB mode passed into the constructor, and instead
         # determines Thumb mode based on the PC that is passed to the `emu_start` function
         # https://github.com/unicorn-engine/unicorn/issues/391
@@ -880,7 +854,7 @@ class Emulator:
 
         self.last_single_step_result = InstructionExecutedResult(None, None)
 
-        pc = pc or self.pc
+        pc = pc or self.pc()
 
         if instruction is None:
             instruction = pwndbg.aglib.disasm.disassembly.one_raw(pc)
@@ -908,7 +882,7 @@ class Emulator:
 
             # If above call does not throw an Exception, we successfully executed the instruction
             self.last_pc = pc
-            debug(DEBUG_EXECUTING, "Unicorn now at pc=%#x", self.pc)
+            debug(DEBUG_EXECUTING, "Unicorn now at pc=%#x", self.pc())
         except U.unicorn.UcError:
             debug(DEBUG_EXECUTING, "Emulator failed to execute instruction")
             self.last_single_step_result = InstructionExecutedResult(None, None)
@@ -936,10 +910,10 @@ class Emulator:
     # For debugging
     def dumpregs(self) -> None:
         for reg in (
-            list(self.regs.retaddr)
-            + list(self.regs.misc)
-            + list(self.regs.common)
-            + list(self.regs.flags)
+            list(self.reg_set.retaddr)
+            + list(self.reg_set.misc)
+            + list(self.reg_set.common)
+            + list(self.reg_set.flags)
         ):
             enum = self.get_reg_enum(reg)
 
@@ -956,4 +930,4 @@ class Emulator:
         debug(DEBUG_TRACE, "# trace_hook: %#-8x %r", (address, data))
 
     def __repr__(self) -> str:
-        return f"Valid: {self.valid}, PC: {self.pc:#x}"
+        return f"Valid: {self.valid}, PC: {self.pc():#x}"
