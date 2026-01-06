@@ -28,13 +28,13 @@ from pwndbg.lib.memory import Page
 class KernelVmmap:
     def __init__(self, pages: Tuple[Page, ...]):
         self.pages = pages
-        self.sections = None
+        self.sections: Tuple[Tuple[str, int], ...] = None
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
         if self.pi:
             self.sections = self.pi.markers()
         self.adjust()
 
-    def get_name(self, addr: int) -> str:
+    def get_name(self, addr: int) -> str | None:
         if addr is None or self.sections is None:
             return None
         for i in range(len(self.sections) - 1):
@@ -46,7 +46,7 @@ class KernelVmmap:
                 return name
         return None
 
-    def adjust(self):
+    def adjust(self) -> None:
         if self.pi is None or self.pages is None or len(self.pages) == 0:
             return
         for i, page in enumerate(self.pages):
@@ -57,7 +57,7 @@ class KernelVmmap:
         self.pi.handle_kernel_pages(self.pages)
         self.handle_offsets()
 
-    def handle_user_pages(self):
+    def handle_user_pages(self) -> None:
         base_offset = self.pages[0].start
         for i in range(len(self.pages)):
             page = self.pages[i]
@@ -76,7 +76,7 @@ class KernelVmmap:
                 # page.objfile += f"_{hex(i)[2:]}"
                 base_offset = page.start
 
-    def handle_offsets(self):
+    def handle_offsets(self) -> None:
         prev_objfile, base = "", 0
         for page in self.pages:
             # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
@@ -400,9 +400,14 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_pages() -> Tuple[Page, ...]:
     mode = kernel_vmmap_mode
-    if mode == "page-tables" and pwndbg.aglib.arch.name in ("rv32", "rv64"):
+    arch_name = pwndbg.aglib.arch.name
+    if mode == "page-tables" and arch_name not in ("x86-64", "aarch64"):
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
-        print(message.warn("`page-tables` unsupported for riscv, defaulting to `monitor info mem`"))
+        print(
+            message.warn(
+                f"`kernel-vmmap = {mode}` unsupported for {arch_name}, defaulting to `monitor`"
+            )
+        )
         mode = "monitor"
     match mode:
         case "page-tables":

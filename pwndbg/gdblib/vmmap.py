@@ -41,8 +41,6 @@ def is_corefile() -> bool:
     As the two differ in output slighty.
     """
     inf = gdb.selected_inferior()
-    if inf is None:
-        return False
     conn = inf.connection
     if conn is None:
         return False

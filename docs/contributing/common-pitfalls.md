@@ -99,3 +99,20 @@ We have some places in the codebase that do stuff like `import pwndbg` and then 
 If you need to peform a function-level import this is likely an omen that the code deserves a refactor. So import at the top of the file! There are even places in the code where function-level imports are used but they could easily be moved to top-level imports with no other changes; do not contribute to this confusion!
 
 There are some exceptions to this rule of course, such as `dbg.setup()`, `aglib.load_aglib()`, `commands.load_commands()` and `gdblib.load_gdblib()`. But these are rare and have a clear intention.
+
+## Linting and typing
+
+Currently we run a relatively strict lint on PRs. First `./lint.sh` needs to pass, further, you must not increase the number of `mypy --strict` errors as compared to the `dev` branch (see `.github/workflows/lint.sh`).
+
+This is done to make sure the codebase does not deteriorate over time. Type errors are often indicative of real bugs.
+
+The easiest way to debug any typing issues is to have a type checker running in your python editor / IDE. It does not necessarily have to be mypy (pyright, ty, pyrefly etc. will also work as they all report similar issues), but mypy will be used as the source of truth for the purposes of our CI. If you are using mypy with your editor, make sure you have passed it the `--strict` flag.
+
+#### mypy and mypy --strict disagree!
+
+First of all, one might question why we run both `mypy` and `mypy --strict` over the codebase, and not just `mypy --strict`. This is done to prevent code changes that fix "trivial" type fixes, but introduce severe type issues. In these cases, our `mypy --strict` CI will pass because the total number of type issues has been reduced, but the `mypy` run will still catch the problem.
+
+This can however be troublesome in some cases. For instance, there are (rare) situations where you can reasonably add a `# type: ignore[<something>]` comment to a line of code (one such situation is when interfacing with pyelftools which includes a py.typed marker even though the codebase has no types (https://github.com/eliben/pyelftools/pull/611)). It can happen then, that `mypy --strict` requires such a comment, but that `mypy` complains about an "unused type: ignore".
+
+To fix this, ideally, you fix the source of the typing error and remove the comment. This is most often possible and will appease both `mypy` and `mypy --strict`. If this is not possible, you can often get around the issue by using `cast` as seen here: https://github.com/pwndbg/pwndbg/blob/a35bf70366645b7bbd1359aee6e0caf0958aca87/pwndbg/integration/__init__.py#L182 . If that is also not possible due to the nature of the issue, tell us, and we will figure out what to do together.
+

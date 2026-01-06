@@ -29,6 +29,7 @@ import pwndbg.aglib
 import pwndbg.aglib.elf
 import pwndbg.aglib.vmmap
 import pwndbg.color.syntax_highlight
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.pretty_print as pretty_print
 from pwndbg.color import message
@@ -189,38 +190,40 @@ class DecompilerConnection:
             self._binary_base_addr = manual_binary_address
             return
 
-        if inf := pwndbg.dbg.selected_inferior():
-            if not inf.alive():
-                return
+        try:
+            inf = pwndbg.dbg.selected_inferior()
+        except pwndbg.dbg_mod.NoInferior:
+            return
 
-            # Try to find the binary in the address space.
-            start_addr: Optional[int] = pwndbg.aglib.vmmap.named_region_start(
-                self.binary_path, exact_match=True
-            )
+        if not inf.alive():
+            return
+
+        # Try to find the binary in the address space.
+        start_addr: Optional[int] = pwndbg.aglib.vmmap.named_region_start(
+            self.binary_path, exact_match=True
+        )
+
+        if start_addr is None:
+            # Try harder! (likely we are remote debugging)
+            start_addr = pwndbg.aglib.vmmap.named_region_start(self.binary_path, exact_match=False)
 
             if start_addr is None:
-                # Try harder! (likely we are remote debugging)
-                start_addr = pwndbg.aglib.vmmap.named_region_start(
-                    self.binary_path, exact_match=False
-                )
-
-                if start_addr is None:
-                    if print_failure:
-                        basename: str = os.path.basename(self.binary_path)
-                        print(
-                            message.notice(
-                                f"The decompiled program {basename} doesn't seem to be loaded."
-                                " We will keep an eye out for it.\n"
-                            )
-                            + "If you know that it is actually loaded, check out "
-                            + message.hint("`di setbase --help`")
-                            + ".\n"
+                if print_failure:
+                    basename: str = os.path.basename(self.binary_path)
+                    print(
+                        message.notice(
+                            f"The decompiled program {basename} doesn't seem to be loaded."
+                            " We will keep an eye out for it.\n"
                         )
-                    return
-                else:
-                    self._binary_base_addr = start_addr
+                        + "If you know that it is actually loaded, check out "
+                        + message.hint("`di setbase --help`")
+                        + ".\n"
+                    )
+                return
             else:
                 self._binary_base_addr = start_addr
+        else:
+            self._binary_base_addr = start_addr
 
     def addr_to_mapped(self, rel_addr: int) -> int:
         """
@@ -512,10 +515,14 @@ class IntegrationManager:
         if not path:
             return False
 
-        if inf is not None or (inf := pwndbg.dbg.selected_inferior()) is not None:
+        try:
+            if inf is None:
+                inf = pwndbg.dbg.selected_inferior()
             # FIXME: Only implemented in GDB :(
             if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
                 return inf.remove_symbol_file(path)
+        except pwndbg.dbg_mod.NoInferior:
+            pass
 
         return False
 
@@ -552,8 +559,9 @@ class IntegrationManager:
         self._function_headers = None
         self._global_vars = None
 
-        inf: Optional[pwndbg.dbg_mod.Process] = pwndbg.dbg.selected_inferior()
-        if inf is None:
+        try:
+            inf: pwndbg.dbg_mod.Process = pwndbg.dbg.selected_inferior()
+        except pwndbg.dbg_mod.NoInferior:
             return 0
 
         # Remove old symbol file.
@@ -787,8 +795,12 @@ class IntegrationManager:
         if raw_func_data is None:
             return None
 
-        inf = pwndbg.dbg.selected_inferior()
-        if not inf:
+        try:
+            inf = pwndbg.dbg.selected_inferior()
+        except pwndbg.dbg_mod.NoInferior:
+            return None
+
+        if not inf.alive():
             return None
 
         # Nothing to do for registers

@@ -490,16 +490,16 @@ sdist = { url = "https://files.pythonhosted.org/packages/f1/2a/8c3ac3d8bc94e6de8
 
 [[package]]
 name = "decomp2dbg"
-version = "3.14.0"
+version = "3.14.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "libbs" },
     { name = "pyelftools" },
     { name = "sortedcontainers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/de/d4/7e94f59da5f3a6bac1c545425f2d2993ce304c2c32a70d5e3f1360928e38/decomp2dbg-3.14.0.tar.gz", hash = "sha256:8164c92ca29450aa13272b22222e1712d4a7d78c2519a5f9f1c6f902462d09a1", size = 34404, upload-time = "2025-12-15T18:29:09.704Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cd/01/e70e9b66a987b8f3f38c89dbb961ad89bc6bc5538a4c03817f69093fa4d8/decomp2dbg-3.14.1.tar.gz", hash = "sha256:c2dd074999b57a89d5d10a8a09a134e06f935d1cc91594b634ec4d0fd95b2c36", size = 34591, upload-time = "2026-01-05T20:04:50.11Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/05/28/c05892bf6cc4247c4dc4b4d4cd9ba7d25909a7200a4b39e791aba77f6d44/decomp2dbg-3.14.0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:d361b3f530e3923dc24bb1211e418ac3493c6271e457f6feb961312af93c10fc", size = 42054, upload-time = "2025-12-15T18:29:08.858Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/8a/7830dd87d8af25bdbafff6952d3d2ef58b3d2a79dbb85cbbdb0ce1dfd0b4/decomp2dbg-3.14.1-py3-none-any.whl", hash = "sha256:8161062717dd7d1e580abb3eff1b985f6f513c16ed2f5c648c3e892251803a0b", size = 42447, upload-time = "2026-01-05T20:04:49.072Z" },
 ]
 
 [[package]]
@@ -1773,7 +1773,7 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "capstone", specifier = "==6.0.0a5" },
-    { name = "decomp2dbg", specifier = "==3.14.0" },
+    { name = "decomp2dbg", specifier = "==3.14.1" },
     { name = "gdb-for-pwndbg", marker = "platform_machine == 'loongarch64' and sys_platform == 'linux' and extra == 'gdb'", specifier = "==17.1.0.post2", index = "https://mirrors.loong64.com/pypi/simple" },
     { name = "gdb-for-pwndbg", marker = "(platform_machine != 'loongarch64' and extra == 'gdb') or (sys_platform != 'linux' and extra == 'gdb')", specifier = "==17.1.0.post2" },
     { name = "gnureadline", marker = "sys_platform != 'win32' and extra == 'lldb'", specifier = ">=8.2.13,<9" },
