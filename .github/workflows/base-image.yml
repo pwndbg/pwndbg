@@ -18,28 +18,43 @@ permissions:
 
 jobs:
   base-image:
-    runs-on: ubuntu-24.04-arm
-    continue-on-error: true
     strategy:
       matrix:
         platform_base:
           - platform: linux/amd64
             base_image: debian:13
-          - platform: linux/arm64
-            base_image: debian:13
-          - platform: linux/386
-            base_image: debian:13
+            runner: ubuntu-latest
+
           - platform: linux/arm/v7
             base_image: debian:13
+            runner: ubuntu-latest
+
+          - platform: linux/arm64
+            base_image: debian:13
+            runner: ubuntu-24.04-arm
+
+          - platform: linux/386
+            base_image: debian:13
+            runner: ubuntu-24.04-arm
+
           - platform: linux/ppc64le
             base_image: debian:13
+            runner: ubuntu-24.04-arm
+
           - platform: linux/riscv64
             base_image: debian:13
+            runner: ubuntu-24.04-arm
+
           - platform: linux/s390x
             base_image: debian:13
-          - platform: linux/loong64
-            base_image: ghcr.io/loong64/debian:trixie  # official debian image will be supported on debian:14
+            runner: ubuntu-24.04-arm
 
+          - platform: linux/loong64
+            base_image: ghcr.io/loong64/debian:trixie
+            runner: ubuntu-24.04-arm
+
+    runs-on: ${{ matrix.platform_base.runner }}
+    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
