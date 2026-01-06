@@ -542,6 +542,8 @@ def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> No
             name_text = color.green(color.bold(reg_var.name))
             type_text = color.light_cyan(reg_var.type)
             reg_text = reg_var.reg_name.ljust(4, " ")
+            # FIXME: Should probably refactor this to use pwndbg.commands.context.get_regs (but then also
+            # refactor that, to pull it out of pwndbg/commands, maybe separate out register name and value etc.)
             reg_value_raw: Optional[pwndbg.dbg_mod.Value] = frame.regs().by_name(reg_var.reg_name)
             try:
                 reg_value = (
