@@ -302,21 +302,6 @@ let
       })
     ) { };
 
-    decomp2dbg = pkgs.callPackage (
-      { stdenv }:
-      prev.decomp2dbg.overrideAttrs (old: {
-        postPatch =
-          lib.optionalString (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) ''
-            substituteInPlace ./setup.py \
-              --replace-fail "sys.argv.append(name.replace('.', '_').replace('-', '_'))" "sys.argv.append('macosx_11_0_arm64')"
-          ''
-          + lib.optionalString (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) ''
-            substituteInPlace ./setup.py \
-              --replace-fail "sys.argv.append(name.replace('.', '_').replace('-', '_'))" "sys.argv.append('macosx_10_9_x86_64')"
-          '';
-      })
-    ) { };
-
     gdb-for-pwndbg = pkgs.callPackage (
       { python3, autoPatchelfHook }:
       prev.gdb-for-pwndbg.overrideAttrs (old: {
