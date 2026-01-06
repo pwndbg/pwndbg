@@ -86,10 +86,7 @@ def klookup(symbol: str, apply: bool) -> None:
         _, elf_path = tempfile.mkstemp(prefix="ks-symbols-", suffix=".elf")
         elf.write(elf_path)
 
-        if base is None:
-            pwndbg.dbg.selected_inferior().add_symbol_file(elf_path)
-        else:
-            pwndbg.dbg.selected_inferior().add_symbol_file(elf_path, base)
+        pwndbg.dbg.selected_inferior().add_symbol_file(elf_path, base)
 
         print(message.success(f"Added {len(syms)} symbols"))
 
