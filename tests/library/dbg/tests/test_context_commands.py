@@ -538,7 +538,7 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
     # Now use -a flag - should include ARGUMENTS section when displaying all sections
     all_out_after_nextcall = await ctrl.execute_and_capture("ctx -a")
     expected_all.insert(0, "ARGUMENTS")
-    
+
     all_sections_after_nextcall = extract_context_sections(all_out_after_nextcall)
     assert all_sections_after_nextcall == expected_all
 
