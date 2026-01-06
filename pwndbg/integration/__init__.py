@@ -555,6 +555,11 @@ class IntegrationManager:
         self._function_headers = None
         self._global_vars = None
 
+        if pwndbg.dbg.name == pwndbg.dbg_mod.DebuggerType.LLDB:
+            print(message.error("Symbolication is not yet supported on LLDB."))
+            # Until we implement add_symbol_file for LLDB.
+            return 0
+
         inf: Optional[pwndbg.dbg_mod.Process] = pwndbg.dbg.selected_inferior()
         if inf is None:
             return 0
