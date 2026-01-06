@@ -81,6 +81,7 @@ jobs:
           echo "dev_count=$DEV_ERRORS" >> $GITHUB_OUTPUT
           echo "Dev mypy (--strict) errors: $DEV_ERRORS"
 
+          echo "============================="
           echo "mypy --strict diff:"
           echo "============================="
           diff mypy_dev.txt mypy_pr.txt
@@ -96,7 +97,7 @@ jobs:
 
           if [ "$PR_ERRORS" -gt "$DEV_ERRORS" ]; then
             echo "This PR introduces more \`mypy --strict\` errors than are present on the dev branch."
-            echo "See the diff above."
+            echo "See the diff in the step above."
             echo "Ideally, a python type checker (mypy --strict/pyright/ty/pyrefly etc..) should be running in your editor."
             exit 1
           else
