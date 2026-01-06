@@ -485,51 +485,74 @@ async def test_context_hide_sections(ctrl: Controller) -> None:
     assert "DISASM" in out
 
 
+def extract_context_sections(output: str) -> list[str]:
+    # Strip ANSI color codes
+    clean_output = re.sub(r"\x1b\[[0-9;]*m", "", output)
+
+    # Match section headers: ─[ SECTION_NAME ... ]─
+    # Capture everything inside the brackets
+    section_pattern = re.compile(r"─\[\s*([^\]]+?)\s*\]─")
+
+    matches = section_pattern.findall(clean_output)
+
+    section_names = []
+    for m in matches:
+        # Split by " / " to separate section name from config info
+        # e.g., "REGISTERS / show-flags off / show-compact-regs off" -> "REGISTERS"
+        parts = m.split(" / ")
+        section_name = parts[0].strip()
+        section_names.append(section_name)
+
+    return section_names
+
+
 @pwndbg_test
 async def test_context_all_sections_flag(ctrl: Controller) -> None:
     """
     Tests that context -a/--all shows all sections regardless of context-sections config.
     """
+    import pwndbg
+
     await launch_to(ctrl, CONTEXT_ARGS_BINARY, "main")
+
+    # LAST SIGNAL section only appears in GDB, not LLDB
+    is_gdb = pwndbg.dbg.is_gdblib_available()
 
     # First, set context-sections to only regs
     await ctrl.execute("set context-sections regs")
     default_out = await ctrl.execute_and_capture("context")
-
-    for section in ["DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
-        assert f"[ {section} " not in default_out
+    default_sections = extract_context_sections(default_out)
+    assert default_sections == ["REGISTERS"]
 
     # Now use -a flag. It should capture all sections regardless of config.
     all_out = await ctrl.execute_and_capture("context -a")
-    for section in ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
-        assert f"[ {section} " in all_out
+    expected_all = ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]
+    if is_gdb:
+        expected_all.append("LAST SIGNAL")
+    all_sections = extract_context_sections(all_out)
+    assert all_sections == expected_all
 
-    # Now proceed to next function call (i.e at func-with_args) have different context output and ensure arguments are present
+    # Now proceed to next function call (i.e at func_with_args) for testing ARGUMENTS section
     await ctrl.execute("nextcall")
 
-    default_out_after_nextcall = await ctrl.execute_and_capture("context")
-    for section in ["DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]:
-        assert f"[ {section} " not in default_out_after_nextcall
-        assert "ARGUMENTS" not in default_out_after_nextcall
-
     # Now use -a flag - should show all sections including ARGUMENTS.
-    all_out_after_nextcall = await ctrl.execute_and_capture("context -a")
-    for section in [
+    all_out_after_nextcall = await ctrl.execute_and_capture("ctx -a")
+    expected_all_with_args = [
+        "ARGUMENTS",
         "REGISTERS",
         "DISASM",
         "STACK",
         "BACKTRACE",
         "SOURCE (CODE)",
-        "ARGUMENTS",
-    ]:
-        assert f"[ {section} " in all_out_after_nextcall
-
-    # Now use -a flag - should show all sections
-    all_out = await ctrl.execute_and_capture("context -a")
+    ]
+    if is_gdb:
+        expected_all_with_args.append("LAST SIGNAL")
+    all_sections_after_nextcall = extract_context_sections(all_out_after_nextcall)
+    assert all_sections_after_nextcall == expected_all_with_args
 
     # Verify --all alias works identically
-    alias_out = await ctrl.execute_and_capture("context --all")
-    assert alias_out == all_out
+    alias_out = await ctrl.execute_and_capture("ctx --all")
+    assert alias_out == all_out_after_nextcall
 
 
 @pwndbg_test
