@@ -22,11 +22,12 @@ def test_break_next_branch_predicate_false(monkeypatch):
     class DummyInferior:
         def break_at(self, *args, **kwargs):
             class CM:
-                async def __aenter__(self):
+                def __enter__(self):
                     return None
-                async def __aexit__(self, *exc):
+                def __exit__(self, exc_type, exc, tb):
                     return False
             return CM()
+
 
     monkeypatch.setattr("pwndbg.aglib.next.next_branch", fake_next_branch)
     monkeypatch.setattr("pwndbg.aglib.regs", fake_regs)
