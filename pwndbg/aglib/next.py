@@ -121,6 +121,7 @@ async def break_next_branch(
     including_current=False,
     predicate=None,
 ):
+
     """
     If including_current == True, do not step in case we are currently on a branch
     """
