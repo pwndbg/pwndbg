@@ -66,7 +66,7 @@ lint = [
 tests = [
     # Newer versions of pytest break CI on GitHub
     "pytest==8.0.2",
-    "pytest-cov>=4.1.0,<5",
+    "pytest-cov>=4.1.0,<8",
     "coverage[toml]>=7.5.0,<8",
 ]
 docs = [

@@ -43,6 +43,7 @@ import re
 import shutil
 import signal
 import sys
+import time
 from asyncio import CancelledError
 from contextlib import contextmanager
 from io import BytesIO
@@ -602,7 +603,12 @@ def _exec_repl_command(
 
     if bits[0].startswith("r") and "run".startswith(bits[0]):
         # `run` is an alias for `process launch -X true --`
-        process_launch(driver, relay, ["-X", "true", "--"] + bits[1:], dbg)
+        process_launch(driver, relay, ["-X", "true", "--"] + bits[1:], dbg, restart=True)
+        return True
+
+    if bits[0].startswith("sta") and "starti".startswith(bits[0]):
+        # `starti` is like `run` but stops at the first instruction (stop-at-entry)
+        process_launch(driver, relay, ["-s", "-X", "true", "--"] + bits[1:], dbg, restart=True)
         return True
 
     if bits[0] == "c" or (bits[0].startswith("con") and "continue".startswith(bits[0])):
@@ -1041,9 +1047,47 @@ process_launch_unsupported = [
 ]
 
 
-def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def kill_existing_process(driver: ProcessDriver, relay: EventRelay) -> bool:
+    """
+    Kills the existing process if one is running.
+    Returns True if successful or if no process was running.
+    """
+    if not driver.has_process():
+        return True
+
+    process = driver.process
+    error = process.Kill()
+    if not error.Success():
+        print_error(f"failed to kill existing process: {error}")
+        return False
+
+    # Wait for the process to actually exit
+    # LLDB will transition the process state to eStateExited
+    timeout = 5.0  # 5 second timeout
+    start = time.time()
+    while time.time() - start < timeout:
+        state = process.GetState()
+        if state == lldb.eStateExited or state == lldb.eStateDetached:
+            # Manually clean up since we're not in the event loop
+            driver.process = None
+            driver.listener = None
+            if driver.io is not None:
+                driver.io.close()
+                driver.io = None
+            relay.exited()
+            return True
+        time.sleep(0.1)
+
+    print_error("timed out waiting for process to exit")
+    return False
+
+
+def process_launch(
+    driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB, restart: bool = False
+) -> None:
     """
     Launches a process with the given arguments.
+    If restart is True, kills any existing process first.
     """
     result = parse(args, process_launch_ap, process_launch_unsupported, raw_marker="--")
     if result is None:
@@ -1062,8 +1106,12 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         return
 
     if driver.has_process():
-        print_error("a process is already being debugged")
-        return
+        if restart:
+            if not kill_existing_process(driver, relay):
+                return
+        else:
+            print_error("a process is already being debugged")
+            return
 
     target: lldb.SBTarget = dbg.debugger.GetTargetAtIndex(0)
 

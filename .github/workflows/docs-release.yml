@@ -16,7 +16,7 @@ jobs:
           echo "You must run this workflow in the context of a tag."
           exit 1
 
-      - uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
 
       - name: Install latest uv

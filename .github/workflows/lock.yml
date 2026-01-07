@@ -30,7 +30,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # @v3
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v3
       - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # @v31.9.0
         with:
           nix_path: nixpkgs=channel:nixos-unstable
@@ -65,7 +65,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # @v3
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v3
       - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # @v31.9.0
         with:
           nix_path: nixpkgs=channel:nixos-unstable
@@ -90,7 +90,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # @v3
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v3
       - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # @v31.9.0
         with:
           nix_path: nixpkgs=channel:nixos-unstable
@@ -102,7 +102,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # @v3
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v3
       - uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # @v31.9.0
         with:
           nix_path: nixpkgs=channel:nixos-unstable
