@@ -116,7 +116,10 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
 
 
 async def break_next_branch(
-    ec: pwndbg.dbg_mod.ExecutionController, address=None, including_current=False
+    ec: pwndbg.dbg_mod.ExecutionController,
+    address=None,
+    including_current=False,
+    predicate=None,
 ):
     """
     If including_current == True, do not step in case we are currently on a branch
@@ -130,7 +133,18 @@ async def break_next_branch(
         if ins.address != pwndbg.aglib.regs.pc:
             with inf.break_at(BreakpointLocation(ins.address), internal=True) as bp:
                 await ec.cont(bp)
+
+        if predicate:
+            try:
+                if not predicate():
+                    return None
+            except Exception:
+                pwndbg.log.error("Invalid stepsyscall predicate")
+                return None
+
         return ins
+
+
 
 
 async def break_next_interrupt(
