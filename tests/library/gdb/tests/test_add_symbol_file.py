@@ -67,7 +67,7 @@ def test_remove_symbol_file(start_binary):
 
     # Add symbol file first
     text_addr = _get_section_addr(".text")
-    pwndbg.dbg.add_symbol_file(MANGLING_BINARY, text_addr)
+    pwndbg.dbg.selected_inferior().add_symbol_file(MANGLING_BINARY, text_addr)
 
     # Remove the symbol file
     result = pwndbg.dbg.selected_inferior().remove_symbol_file(MANGLING_BINARY)
@@ -90,4 +90,3 @@ def test_remove_symbol_file_not_found(start_binary):
 
     # Verify removal failed (returns False)
     assert result is False
-
