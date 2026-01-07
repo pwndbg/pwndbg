@@ -5,7 +5,6 @@ Stepping until an event occurs
 from __future__ import annotations
 
 import argparse
-import pwndbg.gdblib.command
 import pwndbg.aglib.next
 import pwndbg.aglib.proc
 import pwndbg.commands
@@ -189,14 +188,13 @@ async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController):
 
 
 @pwndbg.commands.Command(
-    "Breaks at the next syscall by taking branches. Optionally stop when syscall number or expression matches.",
+    "Breaks at the next syscall by taking branches.",
     category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def stepsyscall() -> None:
-    expr = pwndbg.gdblib.command.last_command_args()
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(_stepsyscall)
 
-    pwndbg.dbg.selected_inferior().dispatch_execution_controller(_stepsyscall, expr)
 
 
 
