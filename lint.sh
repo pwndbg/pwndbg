@@ -64,6 +64,14 @@ else
     $UV_RUN_LINT ruff check --output-format="${RUFF_OUTPUT_FORMAT}" ${LINT_FILES}
 fi
 
+# Check that pwndbg/lib does not import from pwndbg.aglib
+echo "Checking for aglib usage in pwndbg/lib..."
+if grep -rE "(import .*\.aglib|from .*\.aglib)" pwndbg/lib/; then
+    echo "Error: pwndbg/lib must not import from pwndbg.aglib"
+    echo "The 'lib' module is a low-level library and cannot depend on 'aglib'"
+    exit 1
+fi
+
 # Checking minimum python version
 $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 

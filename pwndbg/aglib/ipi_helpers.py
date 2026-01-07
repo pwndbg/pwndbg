@@ -9,10 +9,10 @@ from __future__ import annotations
 from typing import Any
 
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs  # type: ignore[import-untyped]
 import pwndbg.aglib.vmmap
 import pwndbg.hexdump
 import pwndbg.search
+from pwndbg.lib.tips import color_tip
 
 
 def mr(addr: int, count: int = 0x40, show: bool = False) -> bytearray:
@@ -223,4 +223,6 @@ def get_banner() -> str:
     Returns:
         Banner string
     """
-    return "Shortcuts: mr, mw, hd, ms, rr, rw, vm | Type aliases() for help"
+    return color_tip(
+        "Shortcuts: `mr`, `mw`, `hd`, `ms`, `rr`, `rw`, `vm` | Type `aliases()` for help"
+    )
