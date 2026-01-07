@@ -7,32 +7,41 @@ source "$(dirname "$0")/scripts/common.sh"
 cd $PWNDBG_ABS_PATH
 
 help_and_exit() {
-    echo "Usage: ./lint.sh [-f|--fix] [--format] [--all]"
-    echo "  -f,  --fix         fix issues if possible"
-    echo "  --format           run only ruff, shfmt, and vermin checks (skip mypy)"
-    echo "  --all              run all checks including mypy (default behavior)"
+    echo "Usage: ./lint.sh [--check | -fo|--fix-only | -f|--fix-and-check]"
+    echo "  --check                 run all checks without applying fixes (default behavior)"
+    echo "  -fo, --fix-only         fix formatting only, without running checks"
+    echo "  -f,  --fix-and-check    fix formatting first, then run checks"
     echo ""
-    echo "By default, all checks are run.  Use --format for a quick formatting-only check."
+    echo "By default, all checks are run. Fixes are not applied unless specified."
     exit 1
 }
 
-FIX=0
-FORMAT_ONLY=0
+if [[ $# -gt 1 ]]; then
+    help_and_exit
+fi
+
+CHECK_ONLY=1
+FIX_ONLY=0
+FIX_AND_CHECK=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -f | --fix)
-            FIX=1
+        --check)
+            CHECK_ONLY=1
+            FIX_ONLY=0
+            FIX_AND_CHECK=0
             shift
             ;;
-        --format)
-            FORMAT_ONLY=1
+        -fo | --fix-only)
+            CHECK_ONLY=0
+            FIX_ONLY=1
+            FIX_AND_CHECK=0
             shift
             ;;
-        --all)
-            # Explicitly run all checks (default behavior)
-            # do we want to require --format or --all instead?
-            FORMAT_ONLY=0
+        -f | --fix-and-check)
+            CHECK_ONLY=0
+            FIX_ONLY=0
+            FIX_AND_CHECK=1
             shift
             ;;
         *)
@@ -58,13 +67,45 @@ call_shfmt() {
     fi
 }
 
-if [[ $FIX == 1 ]]; then
+if [[ $FIX_ONLY == 1 ]]; then
     $UV_RUN_LINT ruff format ${LINT_FILES}
     $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
     call_shfmt -w
+    set +o xtrace
+    echo ""
+    echo "========================================="
+    echo "NOTE: Only ruff, shfmt were run."
+    echo "      mypy and vermin were NOT run."
+    echo "      Use -f or no flags to run all checks."
+    echo "========================================="
+    exit 0
+elif [[ $FIX_AND_CHECK == 1 ]]; then
+    $UV_RUN_LINT ruff format ${LINT_FILES}
+    $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
+    call_shfmt -w
+    $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 else
-    $UV_RUN_LINT ruff format --check --diff ${LINT_FILES}
-    call_shfmt
+    if ! $UV_RUN_LINT ruff format --check --diff ${LINT_FILES}; then
+        set +o xtrace
+        echo ""
+        echo "========================================="
+        echo "ERROR: Formatting issues detected by ruff."
+        echo "       Exiting early. All checks were NOT run."
+        echo "       Use -f or --fix-and-check to fix issues automatically."
+        echo "========================================="
+        exit 1
+    fi
+
+    if ! call_shfmt; then
+        set +o xtrace
+        echo ""
+        echo "========================================="
+        echo "ERROR: Formatting issues detected by shfmt."
+        echo "       Exiting early. All checks were NOT run."
+        echo "       Use -f or --fix-and-check to fix issues automatically."
+        echo "========================================="
+        exit 1
+    fi
 
     if [[ -z "$GITHUB_ACTIONS" ]]; then
         RUFF_OUTPUT_FORMAT=full
@@ -73,21 +114,7 @@ else
     fi
 
     $UV_RUN_LINT ruff check --output-format="${RUFF_OUTPUT_FORMAT}" ${LINT_FILES}
-fi
-
-# Checking minimum python version
-$UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
-
-# Exit early if --format was specified
-if [[ $FORMAT_ONLY == 1 ]]; then
-    set +o xtrace
-    echo ""
-    echo "========================================="
-    echo "NOTE: Only ruff, shfmt, and vermin were run."
-    echo "      mypy was NOT run."
-    echo "      Use --all or no flags to run all checks."
-    echo "========================================="
-    exit 0
+    $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 fi
 
 # mypy is run in a separate step on GitHub Actions
