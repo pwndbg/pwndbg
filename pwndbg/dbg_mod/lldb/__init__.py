@@ -1926,6 +1926,13 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         self.dbg.controllers.append((self, procedure(EXECUTION_CONTROLLER)))
 
     @override
+    def add_symbol_file(self, path: str, base: int | None = None) -> None:
+        self.runcmd(f"target modules add {path}")
+        if base is not None:
+            filename = os.path.basename(path)
+            self.runcmd(f"target modules load --file {filename} --slide {base}")
+
+    @override
     def runcmd(self, cmd: str) -> str:
         return self.dbg._execute_lldb_command(cmd)
 

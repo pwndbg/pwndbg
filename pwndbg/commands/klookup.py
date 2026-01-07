@@ -57,11 +57,6 @@ def klookup(symbol: str, apply: bool) -> None:
             print(message.success(f"{sym_addr:#x} {sym_type} {sym_name}"))
 
     if apply:
-        if pwndbg.dbg.name == pwndbg.dbg_mod.DebuggerType.LLDB:
-            print(message.error("Symbolication is not yet supported on LLDB."))
-            # Until we implement add_symbol_file for LLDB.
-            return
-
         paging_info = pwndbg.aglib.kernel.arch_paginginfo()
         if paging_info is None:
             print(message.error(f"Unsupported architecture {pwndbg.aglib.arch.name}."))
