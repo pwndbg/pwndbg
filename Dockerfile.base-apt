@@ -46,7 +46,7 @@ RUN ARCH=$(uname -m) && \
 # Installing uv
 RUN python3 -m venv /venv && \
     . /venv/bin/activate && \
-    pip install uv --extra-index-url https://mirrors.loong64.com/pypi/simple && \
+    pip install uv==0.9.21 --extra-index-url https://mirrors.loong64.com/pypi/simple && \
     rm -rf ~/.cache/
 
 WORKDIR /pwndbg

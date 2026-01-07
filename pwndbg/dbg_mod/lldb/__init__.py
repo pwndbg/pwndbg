@@ -1926,7 +1926,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         self.dbg.controllers.append((self, procedure(EXECUTION_CONTROLLER)))
 
     @override
-    def runcmd(self, cmd) -> str:
+    def runcmd(self, cmd: str) -> str:
         return self.dbg._execute_lldb_command(cmd)
 
 

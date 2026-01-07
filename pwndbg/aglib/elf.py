@@ -12,7 +12,6 @@ import ctypes
 import importlib
 import subprocess
 import sys
-import tempfile
 from typing import Dict
 from typing import List
 from typing import NamedTuple
@@ -532,42 +531,3 @@ def compile_with_flags(gcc_extra_flags):
         print(message.error(exception))
         print(message.error("An error occured while generating the debug symbols."))
     return False
-
-
-def create_blank_elf():
-    try:
-        import lief
-    except ImportError:
-        print(
-            message.error(
-                "lief python package is not installed (this will be auto-installed with next version of Pwndbg; for now, you can install it manually in the Pwndbg venv)."
-            )
-        )
-        return None
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".S")
-    tmp.write(b".global _start\n_start:\nnop")
-    tmp.flush()
-    _, output_path = tempfile.mkstemp(prefix="blank-", suffix=".dbg")
-
-    gcc_extra_flags = [
-        tmp.name,
-        "-nostdlib",
-        "--static",
-        "-o",
-        output_path,
-    ]
-
-    if not compile_with_flags(gcc_extra_flags):
-        return None
-
-    blank_elf = lief.ELF.parse(output_path)
-    if blank_elf is None:
-        print(message.error("failed to parse blank elf"))
-        return
-
-    for s in blank_elf.symbols:
-        blank_elf.remove_symtab_symbol(s)
-
-    blank_elf.write(output_path)
-
-    return output_path

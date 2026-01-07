@@ -10,7 +10,7 @@ jobs:
     name: Check docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
 
       - name: Install latest uv
@@ -42,7 +42,7 @@ jobs:
     name: Deploy dev docs
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.1
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
 
       - name: Install latest uv

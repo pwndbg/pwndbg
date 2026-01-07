@@ -689,7 +689,7 @@ class Process:
         """
         raise NotImplementedError()
 
-    def add_symbol_file(self, path, base=None):
+    def add_symbol_file(self, path: str, base: int | None = None) -> None:
         """
         Adds a symbol file at base.
         """
@@ -705,9 +705,9 @@ class Process:
         """
         raise NotImplementedError()
 
-    def runcmd(self, cmd):
+    def runcmd(self, cmd: str) -> str:
         """
-        Runs a debugger command
+        Runs a debugger command and returns the output as a string.
         """
         raise NotImplementedError()
 

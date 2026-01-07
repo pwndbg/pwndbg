@@ -46,9 +46,6 @@ def is_qemu() -> bool:
     if not inferior.is_remote():
         return False
 
-    if qemu_gdbserver_version() is not None:
-        return True
-
     # Examples:
     #
     # pwndbg> maintenance packet Qqemu.sstepbits
@@ -95,14 +92,7 @@ def is_qemu_kernel() -> bool:
 
 def is_old_qemu_user() -> bool:
     # qemu-user <8.1
-    if not is_qemu_usermode():
-        return False
-
-    version = qemu_gdbserver_version()
-    if version is not None:
-        return version < (8, 1)
-
-    return not exec_file_supported()
+    return is_qemu_usermode() and not exec_file_supported()
 
 
 @pwndbg.lib.cache.cache_until("stop")
