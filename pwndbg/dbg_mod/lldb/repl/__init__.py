@@ -1081,8 +1081,9 @@ def kill_existing_process(driver: ProcessDriver, relay: EventRelay) -> bool:
     print_error("timed out waiting for process to exit")
     return False
 
-
-def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB, restart: bool = False) -> None:
+def process_launch(
+    driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB, restart: bool = False
+) -> None:
     """
     Launches a process with the given arguments.
     If restart is True, kills any existing process first.
