@@ -102,7 +102,7 @@ else
         echo "========================================="
         echo "ERROR: Formatting issues detected by shfmt."
         echo "       Exiting early. All checks were NOT run."
-        echo "       Use -f or --fix-and-check to fix issues automatically."
+        echo "       Use -f to fix issues automatically."
         echo "========================================="
         exit 1
     fi
