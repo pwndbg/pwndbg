@@ -1926,6 +1926,21 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         self.dbg.controllers.append((self, procedure(EXECUTION_CONTROLLER)))
 
     @override
+    def add_symbol_file(self, path: str, base: int | None = None) -> None:
+        if base is None:
+            self.dbg._execute_lldb_command(f"target symbols add {path}")
+            return
+        self.dbg._execute_lldb_command(f"target symbols add {path} -s {base:#x}")
+
+    @override
+    def remove_symbol_file(self, path: str) -> bool:
+        resp: str = self.dbg._execute_lldb_command(f"target symbols remove {path}")
+        if "error" in resp.lower() or "failed" in resp.lower() or "not found" in resp.lower():
+            return False
+        else:
+            return True
+
+    @override
     def runcmd(self, cmd: str) -> str:
         return self.dbg._execute_lldb_command(cmd)
 
