@@ -51,7 +51,15 @@ def ipi() -> None:
             return
         code4ipython = """import jedi
 import pwn
+from pwndbg.lib.ipi_helpers import get_ipi_namespace, get_banner
 jedi.Interpreter._allow_descriptor_getattr_default = False
-IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False, user_ns=globals())
+# Get pwndbg helpers and merge with globals
+_ipi_helpers = get_ipi_namespace()
+_user_ns = {**globals(), **_ipi_helpers}
+# Print banner
+print()
+print(get_banner())
+print()
+IPython.embed(colors='neutral',banner1='',confirm_exit=False,simple_prompt=False, user_ns=_user_ns)
 """
         gdb.execute(f"py\n{code4ipython}")

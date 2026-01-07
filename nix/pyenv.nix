@@ -92,6 +92,7 @@ let
     "pyhidra"
     "ply"
     # end of decomp2dbg deps
+    "niche-elf"
   ];
   pkgsNeedFlitcore = [
     "typing-extensions"

@@ -495,7 +495,7 @@ def sync(fail_quietly: bool) -> None:
     ):
         return
 
-    print("Syncing symbols. It may take a while.")
+    print("Syncing symbols...")
 
     # Functions and globals
     nsyms = pwndbg.integration.manager.update_symbols()

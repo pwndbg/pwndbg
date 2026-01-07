@@ -7,6 +7,7 @@ from typing import Tuple
 import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.macros import for_each_entry
