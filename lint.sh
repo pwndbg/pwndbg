@@ -7,21 +7,32 @@ source "$(dirname "$0")/scripts/common.sh"
 cd $PWNDBG_ABS_PATH
 
 help_and_exit() {
-    echo "Usage: ./lint.sh [-f|--fix]"
+    echo "Usage: ./lint.sh [-f|--fix] [--format] [--all]"
     echo "  -f,  --fix         fix issues if possible"
+    echo "  --format           run only ruff, shfmt, and vermin checks (skip mypy)"
+    echo "  --all              run all checks including mypy (default behavior)"
+    echo ""
+    echo "By default, all checks are run.  Use --format for a quick formatting-only check."
     exit 1
 }
 
-if [[ $# -gt 1 ]]; then
-    help_and_exit
-fi
-
 FIX=0
+FORMAT_ONLY=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
         -f | --fix)
             FIX=1
+            shift
+            ;;
+        --format)
+            FORMAT_ONLY=1
+            shift
+            ;;
+        --all)
+            # Explicitly run all checks (default behavior)
+            # do we want to require --format or --all instead?
+            FORMAT_ONLY=0
             shift
             ;;
         *)
@@ -66,6 +77,18 @@ fi
 
 # Checking minimum python version
 $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
+
+# Exit early if --format was specified
+if [[ $FORMAT_ONLY == 1 ]]; then
+    set +o xtrace
+    echo ""
+    echo "========================================="
+    echo "NOTE: Only ruff, shfmt, and vermin were run."
+    echo "      mypy was NOT run."
+    echo "      Use --all or no flags to run all checks."
+    echo "========================================="
+    exit 0
+fi
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then
