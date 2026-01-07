@@ -130,16 +130,33 @@ def stepover(addr=None) -> None:
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(_stepover)
 
 
-async def _nextsyscall(ec: pwndbg.dbg_mod.ExecutionController):
-    """
-    Execution controller for the `nextsyscall` command
-    """
+async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController, expr: str | None = None):
+    stop_expr = None
+    if expr:
+        expr = expr.strip()
+        if expr.isdigit():
+            stop_expr = f"$rax == {expr}"
+        elif expr.startswith("until "):
+            stop_expr = expr[len("until "):].strip()
+        else:
+            stop_expr = expr
+
+    predicate = None
+    if stop_expr:
+        def predicate():
+            val = pwndbg.gdblib.gdb.parse_and_eval(stop_expr)
+            return bool(val)
+
     while (
         pwndbg.aglib.proc.alive()
-        and not (await pwndbg.aglib.next.break_next_interrupt(ec))
-        and (await pwndbg.aglib.next.break_next_branch(ec))
+        and not (await pwndbg.aglib.next.break_next_interrupt(ec, honor_current_branch=True))
+        and (
+            await pwndbg.aglib.next.break_next_branch(
+                ec, including_current=True, predicate=predicate
+            )
+        )
     ):
-        continue
+        pass
 
 
 @pwndbg.commands.Command(
@@ -172,17 +189,14 @@ async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController):
 
 
 @pwndbg.commands.Command(
-    "Breaks at the next syscall by taking branches.",
-    aliases=["stepsc"],
+    "Breaks at the next syscall by taking branches. Optionally stop when syscall number or expression matches.",
     category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def stepsyscall() -> None:
-    """
-    Breaks at the next syscall by taking branches.
-    """
+    expr = pwndbg.dbg.last_command_args()
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(_stepsyscall, expr)
 
-    pwndbg.dbg.selected_inferior().dispatch_execution_controller(_stepsyscall)
 
 
 parser = argparse.ArgumentParser(description="Breaks on the next matching instruction.")
