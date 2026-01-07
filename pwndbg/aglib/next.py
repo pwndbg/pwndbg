@@ -117,9 +117,9 @@ def next_matching_until_branch(address=None, mnemonic=None, op_str=None):
 
 async def break_next_branch(
     ec: pwndbg.dbg_mod.ExecutionController,
-    address=None,
-    including_current=False,
-    predicate=None,
+    address: Optional[int] = None,
+    including_current: bool = False,
+    predicate: Optional[Callable[[], bool]] = None,
 ):
 
     """
@@ -140,10 +140,9 @@ async def break_next_branch(
                 if not predicate():
                     return None
             except Exception:
-                pwndbg.log.error("Invalid stepsyscall predicate")
+                pwndbg.log.error("Invalid break_next_branch predicate")
                 return None
 
-        return ins
 
 
 

@@ -5,6 +5,7 @@ Stepping until an event occurs
 from __future__ import annotations
 
 import argparse
+
 import pwndbg.aglib.next
 import pwndbg.aglib.proc
 import pwndbg.commands
@@ -129,33 +130,16 @@ def stepover(addr=None) -> None:
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(_stepover)
 
 
-async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController, expr: str | None = None):
-    stop_expr = None
-    if expr:
-        expr = expr.strip()
-        if expr.isdigit():
-            stop_expr = f"$rax == {expr}"
-        elif expr.startswith("until "):
-            stop_expr = expr[len("until "):].strip()
-        else:
-            stop_expr = expr
-
-    predicate = None
-    if stop_expr:
-        def predicate():
-            val = pwndbg.gdblib.gdb.parse_and_eval(stop_expr)
-            return bool(val)
-
+async def _nextsyscall(ec: pwndbg.dbg_mod.ExecutionController):
+    """
+    Execution controller for the `nextsyscall` command
+    """
     while (
         pwndbg.aglib.proc.alive()
-        and not (await pwndbg.aglib.next.break_next_interrupt(ec, honor_current_branch=True))
-        and (
-            await pwndbg.aglib.next.break_next_branch(
-                ec, including_current=True, predicate=predicate
-            )
-        )
+        and not (await pwndbg.aglib.next.break_next_interrupt(ec))
+        and (await pwndbg.aglib.next.break_next_branch(ec))
     ):
-        pass
+        continue
 
 
 @pwndbg.commands.Command(
@@ -189,13 +173,16 @@ async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController):
 
 @pwndbg.commands.Command(
     "Breaks at the next syscall by taking branches.",
+    aliases=["stepsc"],
     category=CommandCategory.NEXT,
 )
 @pwndbg.commands.OnlyWhenRunning
 def stepsyscall() -> None:
+    """
+    Breaks at the next syscall by taking branches.
+    """
+
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(_stepsyscall)
-
-
 
 
 parser = argparse.ArgumentParser(description="Breaks on the next matching instruction.")
