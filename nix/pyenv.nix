@@ -140,7 +140,7 @@ let
     final: prev:
     (genPkgsNeeded pkgsNeedSetuptools [ "setuptools" ] final prev)
     // (genPkgsNeeded pkgsNeedFlitcore [ "flit-core" ] final prev)
-    // (genPkgsNeeded pkgsNeedHatchling [ "hatchling" "hatch-vcs" "pytest-cov" ] final prev)
+    // (genPkgsNeeded pkgsNeedHatchling [ "hatchling" "hatch-vcs" ] final prev)
     // (genPkgsNeeded pkgsNeedPoetry [ "poetry-core" ] final prev);
 
   dummy = pkgs.runCommand "dummy" { } "mkdir $out";
