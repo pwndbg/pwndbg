@@ -156,6 +156,11 @@ let
       sourcePreference = "wheel";
     };
 
+    # use wheel to avoid build system issues with pytest-cov 7.0.0
+    pytest-cov = prev.pytest-cov.override {
+      sourcePreference = "wheel";
+    };
+
     psutil = pkgs.callPackage (
       {
         darwin,
