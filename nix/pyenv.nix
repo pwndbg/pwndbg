@@ -77,7 +77,6 @@ let
     "coverage"
     "mypy-extensions"
     "pytest"
-    "pytest-cov"
     "mypy"
     "vermin"
     # decomp2dbg deps
@@ -110,6 +109,7 @@ let
     "plumbum"
     "rpyc"
     "iniconfig"
+    "pytest-cov"
     # decomp2dbg deps
     "decomp2dbg"
     "filelock"
@@ -140,7 +140,7 @@ let
     final: prev:
     (genPkgsNeeded pkgsNeedSetuptools [ "setuptools" ] final prev)
     // (genPkgsNeeded pkgsNeedFlitcore [ "flit-core" ] final prev)
-    // (genPkgsNeeded pkgsNeedHatchling [ "hatchling" "hatch-vcs" ] final prev)
+    // (genPkgsNeeded pkgsNeedHatchling [ "hatchling" "hatch-vcs" "hatch-fancy-pypi-readme" ] final prev)
     // (genPkgsNeeded pkgsNeedPoetry [ "poetry-core" ] final prev);
 
   dummy = pkgs.runCommand "dummy" { } "mkdir $out";
