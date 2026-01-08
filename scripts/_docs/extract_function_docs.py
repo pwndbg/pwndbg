@@ -62,6 +62,8 @@ def extract_functions() -> Sequence[ConvFunction]:
     Returns a dictionary that mapes function names to
     the corresponding _GdbFunction objects.
     """
+    # Can't use pwndbg.dbg.is_gdblib_available() due to:
+    # https://github.com/astral-sh/ruff/issues/22467
     if dbg_mod.dbg.is_gdblib_available():
         import pwndbg.gdblib.functions
 
