@@ -263,7 +263,8 @@ module = [
     "pt.*",
     "lldb.*",
     "gnureadline",
-    "decomp2dbg.*"
+    "decomp2dbg.*",
+    "mdutils.*"
 ]
 ignore_missing_imports = true
 

@@ -132,7 +132,7 @@ def read_extracted() -> list[Tuple[str, Dict[str, list[ExtractedParam]]]]:
         A list of tuples of the form: (debugger name, scope-mapped
         extracted parameters for that debugger).
     """
-    result: list[Tuple[str, Dict[str, ExtractedParam]]] = []
+    result: list[Tuple[str, Dict[str, list[ExtractedParam]]]] = []
 
     for debugger in ALL_DEBUGGERS:
         filepath = extracted_filename(debugger)
@@ -142,7 +142,7 @@ def read_extracted() -> list[Tuple[str, Dict[str, list[ExtractedParam]]]]:
             raw_data = json.loads(file.read())
 
         # Convert the dict objs to ExtractedParams
-        data: Dict[str, ExtractedParam] = {}
+        data: Dict[str, list[ExtractedParam]] = {}
         for scope, param_list in raw_data.items():
             data[scope] = [ExtractedParam(**param_dict) for param_dict in param_list]
 
