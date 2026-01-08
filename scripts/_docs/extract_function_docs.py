@@ -11,7 +11,7 @@ from typing import Callable
 from typing import Protocol
 from typing import Sequence
 
-import pwndbg
+from pwndbg import dbg_mod
 from scripts._docs.function_docs_common import ExtractedFunction
 from scripts._docs.function_docs_common import extracted_filename
 from scripts._docs.gen_docs_generic import get_debugger
@@ -62,8 +62,9 @@ def extract_functions() -> Sequence[ConvFunction]:
     Returns a dictionary that mapes function names to
     the corresponding _GdbFunction objects.
     """
-    if pwndbg.dbg.is_gdblib_available():
+    if dbg_mod.dbg.is_gdblib_available():
         import pwndbg.gdblib.functions
+
         functions = pwndbg.gdblib.functions.functions
     else:
         functions = []
