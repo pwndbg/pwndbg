@@ -1085,6 +1085,10 @@
          <lastmod>2026-01-08</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/ipi_helpers/</loc>
+         <lastmod>2026-01-08</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/kernel/</loc>
          <lastmod>2026-01-08</lastmod>
     </url>
@@ -1878,10 +1882,6 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/lib/functions_data/</loc>
-         <lastmod>2026-01-08</lastmod>
-    </url>
-    <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/lib/ipi_helpers/</loc>
          <lastmod>2026-01-08</lastmod>
     </url>
     <url>
