@@ -11,6 +11,7 @@ import pwndbg.aglib.proc
 import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.dbg_mod
+from pwnlib.constants import linux
 from pwndbg.commands import CommandCategory
 
 
@@ -155,34 +156,114 @@ def nextsyscall() -> None:
     pwndbg.dbg.selected_inferior().dispatch_execution_controller(_nextsyscall)
 
 
-async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController):
+async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController, argument: str | None = None):
     """
     Execution controller for the `stepsyscall` command.
     """
+    target_syscall_nr = None
+    remaining_condition = None
 
-    while (
-        pwndbg.aglib.proc.alive()
-        and not (await pwndbg.aglib.next.break_next_interrupt(ec, honor_current_branch=True))
-        and (await pwndbg.aglib.next.break_next_branch(ec, including_current=True))
-    ):
-        # Here we are e.g. on a CALL instruction (temporarily breakpointed by `break_next_branch`)
-        # We need to step so that we take this branch instead of ignoring it
-        await ec.single_step()
-        continue
+    if argument:
+        words = argument.split()
+        first_word = words[0]
+
+        # 1. Try to resolve as syscall number
+        try:
+            target_syscall_nr = int(first_word, 0)
+            remaining_condition = " ".join(words[1:]) if len(words) > 1 else None
+        except ValueError:
+            # 2. Try to resolve as syscall name
+            arch_name = pwndbg.aglib.arch.name
+            arch_module = {
+                "arm": linux.arm,
+                "armcm": linux.arm,
+                "i386": linux.i386,
+                "mips": linux.mips,
+                "x86-64": linux.amd64,
+                "aarch64": linux.aarch64,
+                "rv32": linux.riscv64,
+                "rv64": linux.riscv64,
+            }.get(arch_name)
+
+            if arch_module:
+                name = first_word.lower()
+                if name.startswith("sys_"):
+                    name = name[4:]
+
+                # In pwnlib, constants are usually prefixed with __NR_
+                nr = getattr(arch_module, "__NR_" + name, None)
+                if nr is not None:
+                    target_syscall_nr = nr
+                    remaining_condition = " ".join(words[1:]) if len(words) > 1 else None
+                else:
+                    # Treat the whole thing as an expression
+                    remaining_condition = argument
+            else:
+                # Fallback to expression for unknown arches
+                remaining_condition = argument
+
+    while pwndbg.aglib.proc.alive():
+        # Stop at the next syscall in the block
+        ins = await pwndbg.aglib.next.break_next_interrupt(ec, honor_current_branch=True)
+        if ins:
+            # We are now at the syscall. Re-fetch the instruction to get register enhancement!
+            ins = pwndbg.aglib.disasm.disassembly.one(pwndbg.aglib.regs.pc)
+            if not ins:
+                # Should not happen
+                return
+
+            # Check criteria
+            match = True
+            if target_syscall_nr is not None:
+                if ins.syscall != target_syscall_nr:
+                    match = False
+
+            if match and remaining_condition:
+                try:
+                    val = pwndbg.dbg.selected_inferior().evaluate_expression(remaining_condition)
+                    if not val:
+                        match = False
+                except pwndbg.dbg_mod.Error:
+                    # On error, we stop and let the user see what happened
+                    return
+
+            if match:
+                # We found the syscall we were looking for
+                return
+
+            # Not a match, nudge forward so we don't hit the same syscall again
+            await ec.single_step()
+            continue
+
+        # No syscall in current block, move to next block
+        if await pwndbg.aglib.next.break_next_branch(ec, including_current=True):
+            await ec.single_step()
+            continue
+        break
 
 
-@pwndbg.commands.Command(
-    "Breaks at the next syscall by taking branches.",
-    aliases=["stepsc"],
-    category=CommandCategory.NEXT,
+parser = argparse.ArgumentParser(description="Breaks at the next syscall by taking branches.")
+parser.add_argument(
+    "argument",
+    type=str,
+    nargs="*",
+    default=None,
+    help="Syscall name, number, or expression to stop at.",
 )
+
+
+@pwndbg.commands.Command(parser, aliases=["stepsc"], category=CommandCategory.NEXT)
 @pwndbg.commands.OnlyWhenRunning
-def stepsyscall() -> None:
+def stepsyscall(argument=None) -> None:
     """
     Breaks at the next syscall by taking branches.
     """
+    # Join multiple arguments into a single string
+    full_argument = " ".join(argument) if argument else None
 
-    pwndbg.dbg.selected_inferior().dispatch_execution_controller(_stepsyscall)
+    pwndbg.dbg.selected_inferior().dispatch_execution_controller(
+        lambda ec: _stepsyscall(ec, full_argument)
+    )
 
 
 parser = argparse.ArgumentParser(description="Breaks on the next matching instruction.")

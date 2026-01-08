@@ -1411,6 +1411,17 @@ class GDBValue(pwndbg.dbg_mod.Value):
         self.inner.fetch_lazy()
 
     @override
+    def __bool__(self) -> bool:
+        try:
+            return bool(int(self.inner))
+        except (gdb.error, ValueError, TypeError):
+            try:
+                # Fallback for non-numeric types
+                return bool(self.inner)
+            except gdb.error:
+                return True
+
+    @override
     def __int__(self) -> int:
         try:
             return int(self.inner)
