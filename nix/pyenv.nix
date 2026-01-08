@@ -110,7 +110,6 @@ let
     "rpyc"
     "iniconfig"
     "pytest-cov"
-    "hatch-fancy-pypi-readme"
     # decomp2dbg deps
     "decomp2dbg"
     "filelock"
