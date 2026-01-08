@@ -139,9 +139,12 @@ async def break_next_branch(
             try:
                 if not predicate():
                     return None
-            except Exception:
-                pwndbg.log.error("Invalid break_next_branch predicate")
+            except Exception as e:
+                pwndbg.log.error(
+                    f"Stopping break_next_branch: failed to evaluate predicate with exception: {e}"
+                )
                 return None
+
 
 
 
