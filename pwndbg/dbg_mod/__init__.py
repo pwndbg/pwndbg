@@ -20,6 +20,7 @@ from typing import Tuple
 from typing import TypedDict
 from typing import TypeVar
 
+import lldb
 import pwndbg.lib.memory
 from pwndbg.lib.arch import ArchDefinition
 
@@ -693,7 +694,14 @@ class Process:
         """
         Adds a symbol file at base.
         """
-        raise NotImplementedError()
+        target = lldb.debugger.GetSelectedTarget()
+        # AddModule returns a SBModule object representing the file on disk
+        module = target.AddModule(path, None, None)
+
+        if module.IsValid and base is not None:
+            # Map the module to a specific address in the process memory
+            target.SetModuleLoadAddress(module, base)
+
 
     def remove_symbol_file(self, path: str) -> bool:
         """
@@ -703,7 +711,14 @@ class Process:
             True if we succeeded, False if not. If the file was never
             added or doesn't exist, that counts as failure.
         """
-        raise NotImplementedError()
+        target = lldb.debugger.GetSelectedTarget()
+        spec = lldb.SBFileSpec(path)
+        module = target.FindModule(spec)
+
+        if module.IsValid():
+            return target.RemoveModule(module)
+
+        return False
 
     def runcmd(self, cmd: str) -> str:
         """
