@@ -88,6 +88,7 @@ jobs:
             --progress=plain \
             --platform ${{ matrix.platform_base.platform }} \
             --build-arg image=${{ matrix.platform_base.base_image }} \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/base-apt:cache-${{ matrix.platform_base.tag_name }} \
             -f ./Dockerfile.base-apt \
             -t ghcr.io/pwndbg/base-apt:latest-${{ matrix.platform_base.tag_name }} \
             .
@@ -98,6 +99,8 @@ jobs:
             --progress=plain \
             --platform ${{ matrix.platform_base.platform }} \
             --build-arg image=${{ matrix.platform_base.base_image }} \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/base-apt:cache-${{ matrix.platform_base.tag_name }} \
+            --cache-to type=registry,ref=ghcr.io/pwndbg/base-apt:cache-${{ matrix.platform_base.tag_name }},mode=max \
             -f ./Dockerfile.base-apt \
             -t ghcr.io/pwndbg/base-apt:latest-${{ matrix.platform_base.tag_name }} \
             --push .
