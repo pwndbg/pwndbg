@@ -221,7 +221,7 @@ async def _stepsyscall(ec: pwndbg.dbg_mod.ExecutionController, argument: str | N
             if match and remaining_condition:
                 try:
                     val = pwndbg.dbg.selected_inferior().evaluate_expression(remaining_condition)
-                    if not val:
+                    if int(val) == 0:
                         match = False
                 except pwndbg.dbg_mod.Error:
                     # On error, we stop and let the user see what happened
