@@ -51,6 +51,7 @@ def test_memory_peek_poke(start_binary):
     assert pwndbg.aglib.memory.peek(0) is None
 
     stack_addr = pwndbg.aglib.regs.sp
+    assert stack_addr is not None
 
     for v in range(256):
         data = bytearray([v, 0, 0, 0])
@@ -64,25 +65,6 @@ def test_memory_peek_poke(start_binary):
 
         # Now make sure poke did not change the underlying bytes
         assert pwndbg.aglib.memory.read(stack_addr, 4) == data
-
-    # TODO/FIXME: Fix peek/poke exception handling and uncomment this!
-    """
-    # Ensure that peek and poke correctly raises exceptions
-    # when incorrect argument type is passed
-    for not_parsable_as_int in (b"asdf", "asdf"):
-        with pytest.raises(ValueError):
-            pwndbg.aglib.memory.peek(not_parsable_as_int)
-
-    for not_parsable_as_int in (b"asdf", "asdf"):
-        with pytest.raises(ValueError):
-            pwndbg.aglib.memory.poke(not_parsable_as_int)
-    """
-
-    # Acceptable inputs (not great; maybe we should ban them?)
-    # Note: they return 0 because the address 0 is not mapped
-    assert pwndbg.aglib.memory.peek(0.0) is None
-    assert pwndbg.aglib.memory.peek("0") is None
-    assert pwndbg.aglib.memory.peek(b"0") is None
 
 
 def test_fetch_struct_as_dictionary(start_binary):

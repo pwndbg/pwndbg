@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from typing import Callable
 
 import gdb
 
@@ -11,7 +12,7 @@ from . import get_binary
 REFERENCE_BINARY_THREADS = get_binary("multiple_threads.native.out")
 
 
-def wait_until(predicate: callable, timeout: int = 10):
+def wait_until(predicate: Callable[[], bool], timeout: int = 10):
     """
     Waits until the predicate returns True or timeout is reached.
     """

@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import subprocess
 import typing
+from typing import Any
 from typing import Dict
 from typing import Literal
 from typing import Tuple
@@ -130,7 +131,7 @@ def qemu_assembly_run():
 
     ensure_qemu_port()
 
-    qemu: subprocess.Popen = None
+    qemu: subprocess.Popen[Any] | None = None
 
     def _start_binary(asm: str, arch: COMPILATION_TARGETS_TYPE):
         nonlocal qemu
@@ -196,6 +197,7 @@ def qemu_assembly_run():
 
     yield _start_binary
 
+    assert qemu is not None
     qemu.kill()
 
 
@@ -207,7 +209,7 @@ def qemu_start_binary():
     Argument `path` is the path to the binary
     """
 
-    qemu: subprocess.Popen = None
+    qemu: subprocess.Popen[Any] | None = None
 
     ensure_qemu_port()
 
@@ -243,4 +245,5 @@ def qemu_start_binary():
 
     yield _start_binary
 
+    assert qemu is not None
     qemu.kill()
