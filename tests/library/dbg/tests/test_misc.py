@@ -3,7 +3,7 @@ from __future__ import annotations
 from ....host import Controller
 from . import pwndbg_test
 
-STACK_COMMANDS = [
+STACK_COMMANDS: list[tuple[str, list[str], str, str]] = [
     ("canary", [], "Stack", "Print out the current stack canary."),
     # The aliases 'do' and 'dow' were added to support the help consistency test.
     ("retaddr", [], "Stack", "Print out the stack addresses that contain return addresses."),
