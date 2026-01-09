@@ -401,6 +401,7 @@ async def test_main_arena_heuristic(ctrl: Controller) -> None:
         == pwndbg.aglib.typeinfo.lookup_types("struct malloc_state").sizeof
     )
     pwndbg.aglib.heap.current = type(pwndbg.aglib.heap.current)()  # Reset the heap object of pwndbg
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     # Check if we can get the address of `main_arena` by parsing the .data section of the ELF of libc
     with mock_for_heuristic(["main_arena"]):
@@ -436,6 +437,7 @@ async def test_mp_heuristic(ctrl: Controller) -> None:
         == pwndbg.aglib.typeinfo.lookup_types("struct malloc_par").sizeof
     )
     pwndbg.aglib.heap.current = type(pwndbg.aglib.heap.current)()  # Reset the heap object of pwndbg
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     # Check if we can get the address of `mp_` by parsing the .data section of the ELF of libc
     with mock_for_heuristic(["mp_"]):
@@ -488,20 +490,22 @@ async def test_thread_cache_heuristic(ctrl: Controller, is_multi_threaded: bool)
         == pwndbg.aglib.typeinfo.lookup_types("struct tcache_perthread_struct").sizeof
     )
     pwndbg.aglib.heap.current = type(pwndbg.aglib.heap.current)()  # Reset the heap object of pwndbg
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     # Check if we can get the address of `tcache` by using the first chunk or by brute force
     with mock_for_heuristic(["tcache"]):
         # Check if we can find tcache by brute force
-        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: True
+        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: True  # type: ignore[attr-defined]
         thread_cache = pwndbg.aglib.heap.current.thread_cache
         assert thread_cache is not None
         assert thread_cache.address == thread_cache_addr_via_debug_symbol
         pwndbg.aglib.heap.current = type(
             pwndbg.aglib.heap.current
         )()  # Reset the heap object of pwndbg
+        assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
         # Check if we can find tcache by using the first chunk
         # # Note: This will NOT work when can NOT find the heap boundaries or the the arena is been shared
-        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: False
+        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: False  # type: ignore[attr-defined]
         thread_cache = pwndbg.aglib.heap.current.thread_cache
         assert (
             thread_cache is not None and thread_cache.address == thread_cache_addr_via_debug_symbol
@@ -548,11 +552,12 @@ async def test_thread_arena_heuristic(ctrl: Controller, is_multi_threaded: bool)
     # Check the address of `thread_arena` is correct
     assert pwndbg.aglib.heap.current.thread_arena.address == thread_arena_via_debug_symbol
     pwndbg.aglib.heap.current = type(pwndbg.aglib.heap.current)()  # Reset the heap object of pwndbg
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     # Check if we can use brute-force to find the `thread_arena` when multi-threaded, and if we can use the `main_arena` as the `thread_arena` when single-threaded
     with mock_for_heuristic(["thread_arena"]):
         # mock the prompt to avoid input
-        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_arena_permission = lambda: True
+        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_arena_permission = lambda: True  # type: ignore[attr-defined]
         assert pwndbg.aglib.heap.current.thread_arena is not None
         # Check the value of `thread_arena` is correct
         assert pwndbg.aglib.heap.current.thread_arena.address == thread_arena_via_debug_symbol
@@ -588,6 +593,7 @@ async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
     # Check the address of `global_max_fast` is correct
     assert pwndbg.aglib.heap.current._global_max_fast_addr == global_max_fast_addr_via_debug_symbol
     pwndbg.aglib.heap.current = type(pwndbg.aglib.heap.current)()  # Reset the heap object of pwndbg
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     # Check if we can return the default value even if we can NOT find the address of `global_max_fast`
     with mock_for_heuristic(["global_max_fast"]):
@@ -602,7 +608,10 @@ async def test_global_max_fast_heuristic(ctrl: Controller) -> None:
 @pwndbg_test
 async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bool) -> None:
     import pwndbg.aglib.heap
+    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
     from pwndbg.aglib.heap.ptmalloc import SymbolUnresolvableError
+
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     # TODO: Support other architectures or different libc versions
     await ctrl.launch(HEAP_MALLOC_CHUNK)
@@ -624,8 +633,8 @@ async def test_heuristic_fail_gracefully(ctrl: Controller, is_multi_threaded: bo
     # Mock all address and mess up the memory
     with mock_for_heuristic(mock_all=True):
         # mock the prompt to avoid input
-        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_arena_permission = lambda: False
-        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: False
+        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_arena_permission = lambda: False  # type: ignore[attr-defined]
+        pwndbg.aglib.heap.current.prompt_for_brute_force_thread_cache_permission = lambda: False  # type: ignore[attr-defined]
         _test_heuristic_fail_gracefully("main_arena")
         _test_heuristic_fail_gracefully("mp")
         _test_heuristic_fail_gracefully("global_max_fast")
