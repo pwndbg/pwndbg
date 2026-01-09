@@ -123,7 +123,7 @@ jobs:
 
       - name: Create multi-arch manifest
         run: |
-          docker buildx imagetools create $IMAGE:latest \
+          docker buildx imagetools create -t $IMAGE:latest \
             $IMAGE:latest-amd64 \
             $IMAGE:latest-arm64 \
             $IMAGE:latest-armv7l \
@@ -135,7 +135,7 @@ jobs:
 
       - name: Delete latest-* tags
         run: |
-          apt install -y jq
+          sudo apt install -y jq
           for tag in latest-amd64 latest-arm64 latest-armv7l latest-ppc64le latest-s390x latest-riscv64 latest-386 latest-loong64; do
             echo "Deleting $IMAGE:$tag"
           
