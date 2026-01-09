@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from ....host import Controller
@@ -21,7 +23,7 @@ CANARY_I386_BINARY = get_binary("canary.i386.out")
     ],
     ids=["x86-64", "i386"],
 )
-async def test_command_canary(ctrl: Controller, binary: str, reg_name: str, skips: int) -> None:
+async def test_command_canary(ctrl: Controller, binary: Path, reg_name: str, skips: int) -> None:
     """
     Tests the canary command for x86-64 and i386 architectures
     """
@@ -53,6 +55,7 @@ async def test_command_canary(ctrl: Controller, binary: str, reg_name: str, skip
     masked_raw = raw & mask
 
     tls_addr = pwndbg.commands.canary.find_tls_canary_addr()
+    assert tls_addr is not None
     raw_tls = pwndbg.aglib.memory.read_pointer_width(tls_addr) & mask
 
     # Check AT_RANDOM

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from ....host import Controller
@@ -14,7 +16,7 @@ TLS_I386_BINARY = get_binary("tls.i386.out")
 # TODO: Support other architectures
 @pwndbg_test
 @pytest.mark.parametrize("binary", [TLS_X86_64_BINARY, TLS_I386_BINARY], ids=["x86-64", "i386"])
-async def test_tls_address_and_command(ctrl: Controller, binary: str):
+async def test_tls_address_and_command(ctrl: Controller, binary: Path):
     import pwndbg.aglib.tls
     import pwndbg.aglib.vmmap
     from pwndbg.dbg_mod import DebuggerType
@@ -25,9 +27,9 @@ async def test_tls_address_and_command(ctrl: Controller, binary: str):
 
     await launch_to(ctrl, binary, "break_here")
 
-    expected_tls_address = int(
-        pwndbg.dbg.selected_frame().evaluate_expression("(void *)tls_address")
-    )
+    frame = pwndbg.dbg.selected_frame()
+    assert frame is not None
+    expected_tls_address = int(frame.evaluate_expression("(void *)tls_address"))
 
     assert pwndbg.aglib.tls.find_address_with_register() == expected_tls_address
 
