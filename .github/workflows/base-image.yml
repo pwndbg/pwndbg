@@ -12,6 +12,11 @@ on:
     paths:
       - 'uv.lock'
       - 'Dockerfile.base-apt'
+      - '.github/workflows/base-image.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 permissions:
   contents: read
