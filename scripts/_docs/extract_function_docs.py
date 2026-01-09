@@ -11,7 +11,7 @@ from typing import Callable
 from typing import Protocol
 from typing import Sequence
 
-from pwndbg import dbg_mod
+import pwndbg
 from scripts._docs.function_docs_common import ExtractedFunction
 from scripts._docs.function_docs_common import extracted_filename
 from scripts._docs.gen_docs_generic import get_debugger
@@ -62,12 +62,12 @@ def extract_functions() -> Sequence[ConvFunction]:
     Returns a dictionary that mapes function names to
     the corresponding _GdbFunction objects.
     """
-    # Can't use pwndbg.dbg.is_gdblib_available() due to:
-    # https://github.com/astral-sh/ruff/issues/22467
-    if dbg_mod.dbg.is_gdblib_available():
-        import pwndbg.gdblib.functions
-
-        functions = pwndbg.gdblib.functions.functions
+    if pwndbg.dbg.is_gdblib_available():
+        # Since mypy and ruff both complain about this, maybe I just don't understand
+        # something?
+        # https://github.com/astral-sh/ruff/issues/22467
+        # import pwndbg.gdblib.functions
+        functions = pwndbg.gdblib.functions.functions  # type: ignore[attr-defined]
     else:
         functions = []
 
