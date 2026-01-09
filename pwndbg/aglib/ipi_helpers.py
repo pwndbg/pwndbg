@@ -9,52 +9,20 @@ from __future__ import annotations
 from typing import Any
 
 import pwndbg.aglib.memory
-import pwndbg.aglib.regs  # type: ignore[import-untyped]
 import pwndbg.aglib.vmmap
 import pwndbg.hexdump
 import pwndbg.search
+from pwndbg.lib.tips import color_tip
 
-
-def mr(addr: int, count: int = 0x40, show: bool = False) -> bytearray:
-    """Memory Read - Read memory from address.
-
-    Args:
-        addr: Address to read from
-        count: Number of bytes (default: 0x40)
-        show: Print hexdump instead of returning data
-
-    Returns:
-        bytearray of memory (if show=False)
-
-    Example:
-        mr(0x400000)        # Read 0x40 bytes
-        mr(0x400000, 0x100) # Read 0x100 bytes
-        mr(0x400000, show=True)  # Print hexdump
-    """
-    data = pwndbg.aglib.memory.read(addr, count)
-    if show:
-        for line in pwndbg.hexdump.hexdump(bytes(data), address=addr, count=count):
-            print(line)
-        return bytearray()  # Return empty to avoid double output
-    return data
-
-
-def mw(addr: int, data: bytes | str) -> None:
-    """Memory Write - Write data to memory.
-
-    Args:
-        addr: Address to write to
-        data: Bytes or string to write
-
-    Example:
-        mw(0x400000, b"\\x90\\x90")
-        mw(0x400000, "hello")
-    """
-    pwndbg.aglib.memory.write(addr, data)
+mr = pwndbg.aglib.memory.read
+mw = pwndbg.aglib.memory.write
+regs = pwndbg.aglib.regs
+rr = pwndbg.aglib.regs.read_reg
+rw = pwndbg.aglib.regs.write_reg
 
 
 def hd(addr: int, count: int = 0x40) -> None:
-    """HexDump - Print hexdump of memory.
+    """HexDump - Hexdump memory at address
 
     Args:
         addr: Address to dump
@@ -76,7 +44,7 @@ def ms(
     limit: int = 100,
     show: bool = True,
 ) -> list[int]:
-    """Memory Search - Search for byte pattern.
+    """Search Memory for byte pattern
 
     Args:
         pattern: Bytes to search for
@@ -99,35 +67,6 @@ def ms(
             print(f"{addr:#x}")
 
     return results
-
-
-def rr(name: str) -> int | None:
-    """Register Read - Read register value.
-
-    Args:
-        name: Register name
-
-    Returns:
-        Register value as int
-
-    Example:
-        rr("rax")
-        rr("rip")
-    """
-    return pwndbg.aglib.regs.read_reg(name)
-
-
-def rw(name: str, value: int) -> None:
-    """Register Write - Write register value.
-
-    Args:
-        name: Register name
-        value: Value to write
-
-    Example:
-        rw("rax", 0x1234)
-    """
-    pwndbg.aglib.regs.write_reg(name, value)
 
 
 def vm(show: bool = True) -> tuple[Any, ...]:
@@ -171,28 +110,18 @@ def aliases() -> None:
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 
 MEMORY OPERATIONS:
-  mr(addr, count=0x40, show=False)     Read memory bytes
+  mr(addr, count=0x40)                 Read memory bytes
   mw(addr, data)                       Write memory
   hd(addr, count=0x40)                 Hexdump memory
   ms(pattern, start, end, limit, show) Search memory for bytes
 
 REGISTER OPERATIONS:
+  regs.<name>                          Read register value
   rr(name)                             Read register value
   rw(name, value)                      Write register value
 
 VIRTUAL MEMORY:
-  vm(show=True)                        Show memory mappings
-
-EXAMPLES:
-  mr(0x400000)              # Read 0x40 bytes from 0x400000
-  mr(0x400000, 0x100)       # Read 0x100 bytes
-  mr(0x400000, show=True)   # Print hexdump
-  mw(0x400000, b"\\x90\\x90") # Write NOP bytes
-  hd(0x400000, 0x80)        # Hexdump 0x80 bytes
-  ms(b"ELF")                # Search for ELF magic
-  rr("rax")                 # Read RAX register
-  rw("rip", 0x401000)       # Set RIP register
-  vm()                      # Show virtual memory map
+  vm(show=True)                        Show virtual memory mappings
 
 For more info: type help(function_name), e.g., help(mr)
 """
@@ -223,4 +152,10 @@ def get_banner() -> str:
     Returns:
         Banner string
     """
-    return "Shortcuts: mr, mw, hd, ms, rr, rw, vm | Type aliases() for help"
+    is_dead_warn = "Note: `process is not alive now`\n" if not pwndbg.aglib.proc.alive() else ""
+    return color_tip(
+        "Shortcuts: read/write regs: `rr(name)`, `rw(name, val)` | memory: `mr(addr, count)`, `wr(addr, count)`\n"
+        "           hexdump: `hd(addr, count)`                 | vmmap: `vm()`\n"
+        + is_dead_warn
+        + "Use `aliases()` for help"
+    )

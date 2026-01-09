@@ -7,8 +7,12 @@ source "$(dirname "$0")/scripts/common.sh"
 cd $PWNDBG_ABS_PATH
 
 help_and_exit() {
-    echo "Usage: ./lint.sh [-f|--fix]"
-    echo "  -f,  --fix         fix issues if possible"
+    echo "Usage: ./lint.sh [--check | -fo|--fix-only | -f|--fix-and-check]"
+    echo "  --check                 run all checks without applying fixes (default behavior)"
+    echo "  -fo, --fix-only         fix formatting only, without running checks"
+    echo "  -f,  --fix-and-check    fix formatting first, then run checks"
+    echo ""
+    echo "By default, all checks are run. Fixes are not applied unless specified."
     exit 1
 }
 
@@ -16,12 +20,28 @@ if [[ $# -gt 1 ]]; then
     help_and_exit
 fi
 
-FIX=0
+CHECK_ONLY=1
+FIX_ONLY=0
+FIX_AND_CHECK=0
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -f | --fix)
-            FIX=1
+        --check)
+            CHECK_ONLY=1
+            FIX_ONLY=0
+            FIX_AND_CHECK=0
+            shift
+            ;;
+        -fo | --fix-only)
+            CHECK_ONLY=0
+            FIX_ONLY=1
+            FIX_AND_CHECK=0
+            shift
+            ;;
+        -f | --fix-and-check)
+            CHECK_ONLY=0
+            FIX_ONLY=0
+            FIX_AND_CHECK=1
             shift
             ;;
         *)
@@ -47,13 +67,45 @@ call_shfmt() {
     fi
 }
 
-if [[ $FIX == 1 ]]; then
+if [[ $FIX_ONLY == 1 ]]; then
     $UV_RUN_LINT ruff format ${LINT_FILES}
     $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
     call_shfmt -w
+    set +o xtrace
+    echo ""
+    echo "========================================="
+    echo "NOTE: Only ruff, shfmt were run."
+    echo "      mypy and vermin were NOT run."
+    echo "      Use -f or no flags to run all checks."
+    echo "========================================="
+    exit 0
+elif [[ $FIX_AND_CHECK == 1 ]]; then
+    $UV_RUN_LINT ruff format ${LINT_FILES}
+    $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
+    call_shfmt -w
+    $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 else
-    $UV_RUN_LINT ruff format --check --diff ${LINT_FILES}
-    call_shfmt
+    if ! $UV_RUN_LINT ruff format --check --diff ${LINT_FILES}; then
+        set +o xtrace
+        echo ""
+        echo "========================================="
+        echo "ERROR: Formatting issues detected by ruff."
+        echo "       Exiting early. All checks were NOT run."
+        echo "       Use -f to fix issues automatically."
+        echo "========================================="
+        exit 1
+    fi
+
+    if ! call_shfmt; then
+        set +o xtrace
+        echo ""
+        echo "========================================="
+        echo "ERROR: Formatting issues detected by shfmt."
+        echo "       Exiting early. All checks were NOT run."
+        echo "       Use -f to fix issues automatically."
+        echo "========================================="
+        exit 1
+    fi
 
     if [[ -z "$GITHUB_ACTIONS" ]]; then
         RUFF_OUTPUT_FORMAT=full
@@ -62,10 +114,17 @@ else
     fi
 
     $UV_RUN_LINT ruff check --output-format="${RUFF_OUTPUT_FORMAT}" ${LINT_FILES}
+    # Checking minimum python version
+    $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 fi
 
-# Checking minimum python version
-$UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
+# Check that pwndbg/lib does not import from pwndbg.aglib
+echo "Checking for aglib usage in pwndbg/lib..."
+if grep -rE "(import .*\.aglib|from .*\.aglib)" pwndbg/lib/; then
+    echo "Error: pwndbg/lib must not import from pwndbg.aglib"
+    echo "The 'lib' module is a low-level library and cannot depend on 'aglib'"
+    exit 1
+fi
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then
