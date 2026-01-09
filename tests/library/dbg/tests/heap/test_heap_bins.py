@@ -21,12 +21,12 @@ async def test_heap_bins(ctrl: Controller) -> None:
     from pwndbg.aglib.heap.ptmalloc import BinType
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
-    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
-
     await ctrl.launch(BINARY)
     await ctrl.execute("set context-output /dev/null")
     await ctrl.execute("b breakpoint")
     await ctrl.cont()
+
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     # check if all bins are empty at first
     allocator = pwndbg.aglib.heap.current
