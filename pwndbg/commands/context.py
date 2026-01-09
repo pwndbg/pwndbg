@@ -1402,7 +1402,7 @@ theme.add_param("code-prefix", "►", "prefix marker for 'context code' command"
 # All of these are also used for the decompilation context^^
 
 
-@pwndbg.lib.cache.cache_until("start")
+@pwndbg.lib.cache.cache_until("objfile")
 def get_highlight_source(filename: str) -> Tuple[str, ...]:
     # Notice that the code is cached
     with open(filename, encoding="utf-8", errors="ignore") as f:
