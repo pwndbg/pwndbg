@@ -365,24 +365,24 @@ async def test_mallocng_find(ctrl: Controller, binary: Path):
     find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1"))
 
     assert "No slot found" not in find_out
-    start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0].group(1), 16)
-    user_addr = int(re.findall(r"user start:\s*(0x[0-9a-fA-F]+)", find_out)[0].group(1), 16)
+    start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
+    user_addr = int(re.findall(r"user start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
     assert buffer1_addr == start_addr == user_addr
 
-    group_addr = int(re.findall(r"group:\s*(0x[0-9a-fA-F]+)", find_out)[0].group(1), 16)
+    group_addr = int(re.findall(r"group:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
 
     # Hit the buffer1 header metadata
     find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1-1"))
 
     # We should hit the slot that holds buffer1's group.
-    hit_start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0].group(1), 16)
+    hit_start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
     assert group_addr == hit_start_addr
 
     # Hit the buffer1 header metadata but with -m
     find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1-1 --metadata"))
 
     # We should hit the buffer1 slot
-    hit_start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0].group(1), 16)
+    hit_start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
     assert buffer1_addr == hit_start_addr
 
     # Check that `--shallow` works. Note that `--all` prints the group allocation method.
@@ -402,8 +402,8 @@ async def test_mallocng_metaarea(ctrl: Controller, binary: Path):
     await ctrl.finish()
 
     context = color.strip(await ctrl.execute_and_capture("ng-ctx"))
-    secret = int(re.findall(r"secret:\s*(0x[0-9a-fA-F]+)", context)[0].group(1), 16)
-    meta_area_addr = int(re.findall(r"meta_area_head:\s*(0x[0-9a-fA-F]+)", context)[0].group(1), 16)
+    secret = int(re.findall(r"secret:\s*(0x[0-9a-fA-F]+)", context)[0], 16)
+    meta_area_addr = int(re.findall(r"meta_area_head:\s*(0x[0-9a-fA-F]+)", context)[0], 16)
 
     meta_area_out = color.strip(
         await ctrl.execute_and_capture(f"ng-metaarea {meta_area_addr:#x}")
