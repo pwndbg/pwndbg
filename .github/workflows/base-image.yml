@@ -123,7 +123,7 @@ jobs:
 
       - name: Create multi-arch manifest
         run: |
-          docker manifest create $IMAGE:latest \
+          docker buildx imagetools create $IMAGE:latest \
             $IMAGE:latest-amd64 \
             $IMAGE:latest-arm64 \
             $IMAGE:latest-armv7l \
@@ -132,8 +132,6 @@ jobs:
             $IMAGE:latest-riscv64 \
             $IMAGE:latest-386 \
             $IMAGE:latest-loong64
-  
-          docker manifest push $IMAGE:latest
 
       - name: Delete latest-* tags
         run: |
