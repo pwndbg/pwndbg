@@ -231,7 +231,7 @@ class DecompilerConnection:
                     basename: str = os.path.basename(self.binary_path)
                     print(
                         message.notice(
-                            f"The decompiled program {basename} doesn't seem to be loaded."
+                            f'The decompiled program "{basename}" doesn\'t seem to be loaded.'
                             " We will keep an eye out for it.\n"
                         )
                         + "If you know that it is actually loaded, check out "

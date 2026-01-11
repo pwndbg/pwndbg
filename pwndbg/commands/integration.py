@@ -662,7 +662,7 @@ def setpath(path: str) -> None:
         pwndbg.integration.manual_binary_address = -1
 
     pwndbg.integration.manual_binary_path = path
-    print(f"Path of the decompiled binary in the address space set to {path}.")
+    print(f'Path of the decompiled binary in the address space set to "{path}".')
     if path == "":
         print("(back to automatic detection)")
 
