@@ -514,13 +514,7 @@ def sync(fail_quietly: bool) -> None:
         case _:
             print(message.error(f"Failed: {sym_err.value}."))
             if sym_err == pwndbg.integration.Error.BINARY_NOT_LOADED:
-                print(
-                    "Try "
-                    + message.hint("`di setpath --help`")
-                    + " or "
-                    + message.hint("`di setbase --help`")
-                    + "?"
-                )
+                print(message.hint("Try `di setpath --help` or `di setbase --help`?"))
             # The error is fundamental to the setup, don't even try to sync function variables.
             return
 
