@@ -428,7 +428,6 @@ def soft_connection_check(also_sync: bool) -> bool:
     otherwise False.
     """
     if not pwndbg.integration.manager.is_connected():
-        print(message.error("Not connected to a decompiler."))
         print("Trying to connect.. ", end="")
 
         connect(also_sync=also_sync)
