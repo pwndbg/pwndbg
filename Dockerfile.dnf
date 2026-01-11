@@ -28,7 +28,6 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # setup.sh needs scripts/common.sh
 COPY ./scripts/common.sh /pwndbg/scripts/
 
-COPY ./setup.sh /pwndbg/
 COPY ./uv.lock /pwndbg/
 COPY ./pyproject.toml /pwndbg/
 
@@ -36,9 +35,9 @@ COPY ./pyproject.toml /pwndbg/
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 
 # fix for py3.14 because wheels aren't available so packages need to be built
-# RUN dnf install -y uv git python3-devel patch ncurses-devel gcc
 # RUN uv sync --all-groups --all-extras
 RUN dnf install -y uv git python3-devel patch ncurses-devel gcc g++
+COPY ./setup.sh /pwndbg/
 RUN ./setup.sh
 
 # Comment these lines if you won't run the tests.
