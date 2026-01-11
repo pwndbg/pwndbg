@@ -149,6 +149,7 @@ class Error(Enum):
     BINARY_NOT_LOADED = "Couldn't find binary in address space"
     DEBUGGER_NOT_SUPPORTED = "The debugger does not support this operation"
     NOT_ALIVE = "The process is not alive"
+    NO_FRAME = "No stack frame found."
 
 
 # If the user wants to override our automatic detection
@@ -568,6 +569,12 @@ class IntegrationManager:
 
         Returns the amount of synced symbols and an error diagnostic.
 
+        Possible error values:
+            NO_CONNECTION
+            BINARY_NOT_LOADED
+            NOT_ALIVE
+            DEBUGGER_NOT_SUPPORTED
+
         FIXME: Currently they are all 8 bytes in size.
         """
         # We need to bail even if we are connected, but the binary is not loaded into
@@ -582,8 +589,7 @@ class IntegrationManager:
         self._function_headers = None
         self._global_vars = None
 
-        if pwndbg.dbg.name == pwndbg.dbg_mod.DebuggerType.LLDB:
-            print(message.error("Symbolication is not yet supported on LLDB."))
+        if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.LLDB:
             # Until we implement add_symbol_file for LLDB.
             return 0, Error.DEBUGGER_NOT_SUPPORTED
 
@@ -676,7 +682,7 @@ class IntegrationManager:
 
         return False
 
-    def update_function_variables(self) -> int:
+    def update_function_variables(self) -> tuple[int, Error]:
         """
         Update debugger convnience varibles based on the function variables in the currently
         selected frame.
@@ -686,20 +692,21 @@ class IntegrationManager:
 
         Returns:
             The number of variables we successfully updated in the debugger.
+            An error diagnostic (NO_CONNECTION or NO_FRAME).
 
         FIXME: Currently this kinda doesn't work if it runs while we are in the function
         prologue. We should ideally run it only when we enter new functions and are past
         their prologues.
         """
         if self._connection is None:
-            return 0
+            return 0, Error.NO_CONNECTION
 
         # We could do some updates without having a valid selected frame by using pwndbg.aglib.regs.sp ,
         # but this probably complicates the code uneccessarily (see some previous commits in the PR).
         # I'm simply not sure when exactly can selected_frame() actually return None.
         frame: Optional[pwndbg.dbg_mod.Frame] = pwndbg.dbg.selected_frame()
         if frame is None:
-            return 0
+            return 0, Error.NO_FRAME
 
         # Invalidate this whole cache.
         # We could invalidate just for frame.pc() for the purposes of this function, but we want to invalidate
@@ -711,7 +718,7 @@ class IntegrationManager:
             frame
         )
         if rebased_vars is None:
-            return 0
+            return 0, Error.OK
 
         nupdated: int = 0
 
@@ -730,7 +737,7 @@ class IntegrationManager:
             )
             nupdated += 1 if ok else 0
 
-        return nupdated
+        return nupdated, Error.OK
 
     # ==== Getters ====
     # All getters are either cheap (no RPC) operations, or cached.

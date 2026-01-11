@@ -497,13 +497,18 @@ def sync(fail_quietly: bool) -> None:
     print("Syncing symbols...")
 
     # Functions and globals
-    nsyms, upd_err = pwndbg.integration.manager.update_symbols()
-    match upd_err:
+    nsyms, sym_err = pwndbg.integration.manager.update_symbols()
+    match sym_err:
         case pwndbg.integration.Error.OK:
-            print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end="")
+            if nsyms == 0:
+                print("No symbols synced? Something is off. ")
+            else:
+                print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end="")
+        case pwndbg.integration.Error.DEBUGGER_NOT_SUPPORTED:
+            print("LLDB does not support syncing symbols. ", end="")
         case _:
-            print(message.error(f"Error: {upd_err.value}."))
-            if upd_err == pwndbg.integration.Error.BINARY_NOT_LOADED:
+            print(message.error(f"Error: {sym_err.value}."))
+            if sym_err == pwndbg.integration.Error.BINARY_NOT_LOADED:
                 print(
                     "Try "
                     + message.hint("`di setpath --help`")
@@ -511,15 +516,23 @@ def sync(fail_quietly: bool) -> None:
                     + message.hint("`di setbase --help`")
                     + "?"
                 )
+            # The error is fundamental to the setup, don't even try to sync function variables.
             return
 
     # Function-local variables
-    nvars = pwndbg.integration.manager.update_function_variables()
-    if nvars > 0:
-        print(message.success(f"Synced {nvars} variables") + " for the current function.")
-    else:
-        # It's fine to print this even if fail_quietly=True.
-        print("No variables synced for the current function.")
+    nvars, var_err = pwndbg.integration.manager.update_function_variables()
+    match var_err:
+        case pwndbg.integration.Error.OK:
+            if nvars > 0:
+                print(message.success(f"Synced {nvars} variables") + " for the current function.")
+            else:
+                # It's fine to print this even if fail_quietly=True.
+                print("No variables synced for the current function.")
+        case pwndbg.integration.Error.NO_FRAME:
+                # It's fine to print this even if fail_quietly=True.
+                print("No variables synced for the current function (no stack frame found).")
+        case pwndbg.integration.Error.NO_CONNECTION:
+            print(message.error(f"Error: {sym_err.value}."))
 
 
 def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> None:
