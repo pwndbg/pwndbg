@@ -503,7 +503,9 @@ def sync(fail_quietly: bool) -> None:
             if nsyms == 0:
                 print("No symbols synced? Something is off. ")
             else:
-                print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end="")
+                print(
+                    message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end=""
+                )
         case pwndbg.integration.Error.DEBUGGER_NOT_SUPPORTED:
             print("LLDB does not support syncing symbols. ", end="")
         case _:
@@ -529,8 +531,8 @@ def sync(fail_quietly: bool) -> None:
                 # It's fine to print this even if fail_quietly=True.
                 print("No variables synced for the current function.")
         case pwndbg.integration.Error.NO_FRAME:
-                # It's fine to print this even if fail_quietly=True.
-                print("No variables synced for the current function (no stack frame found).")
+            # It's fine to print this even if fail_quietly=True.
+            print("No variables synced for the current function (no stack frame found).")
         case pwndbg.integration.Error.NO_CONNECTION:
             print(message.error(f"Error: {sym_err.value}."))
 
