@@ -497,8 +497,21 @@ def sync(fail_quietly: bool) -> None:
     print("Syncing symbols...")
 
     # Functions and globals
-    nsyms = pwndbg.integration.manager.update_symbols()
-    print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end="")
+    nsyms, upd_err = pwndbg.integration.manager.update_symbols()
+    match upd_err:
+        case pwndbg.integration.Error.OK:
+            print(message.success(f"Synced {nsyms} symbols") + " (globals + functions). ", end="")
+        case _:
+            print(message.error(f"Error: {upd_err.value}."))
+            if upd_err == pwndbg.integration.Error.BINARY_NOT_LOADED:
+                print(
+                    "Try "
+                    + message.hint("`di setpath --help`")
+                    + " or "
+                    + message.hint("`di setbase --help`")
+                    + "?"
+                )
+            return
 
     # Function-local variables
     nvars = pwndbg.integration.manager.update_function_variables()

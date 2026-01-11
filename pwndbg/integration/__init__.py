@@ -142,6 +142,15 @@ _api_name_to_id = {
     "angr": DecompilerID.ANGR,
 }
 
+
+class Error(Enum):
+    OK = "Ok."
+    NO_CONNECTION = "Not connected to a decompiler"
+    BINARY_NOT_LOADED = "Couldn't find binary in address space"
+    DEBUGGER_NOT_SUPPORTED = "The debugger does not support this operation"
+    NOT_ALIVE = "The process is not alive"
+
+
 # If the user wants to override our automatic detection
 manual_binary_address: int = -1
 manual_binary_path: str = ""
@@ -544,21 +553,24 @@ class IntegrationManager:
 
     # ==== Setters ====
 
-    def update_symbols(self) -> int:
+    def update_symbols(self) -> tuple[int, Error]:
         """
         Update global variables and functions in the debugger.
 
         This always invalidates the cache for global variables and
         function headers, and requests them from the plugin.
 
-        Returns the amount of synced symbols.
+        Returns the amount of synced symbols and an error diagnostic.
 
         FIXME: Currently they are all 8 bytes in size.
         """
         # We need to bail even if we are connected, but the binary is not loaded into
         # the address space yet.
-        if self._connection is None or self._connection.binary_base_addr == -1:
-            return 0
+        if self._connection is None:
+            return 0, Error.NO_CONNECTION
+
+        if self._connection.binary_base_addr == -1:
+            return 0, Error.BINARY_NOT_LOADED
 
         # Invalidate the two caches.
         self._function_headers = None
@@ -567,12 +579,17 @@ class IntegrationManager:
         if pwndbg.dbg.name == pwndbg.dbg_mod.DebuggerType.LLDB:
             print(message.error("Symbolication is not yet supported on LLDB."))
             # Until we implement add_symbol_file for LLDB.
-            return 0
+            return 0, Error.DEBUGGER_NOT_SUPPORTED
 
         try:
             inf: pwndbg.dbg_mod.Process = pwndbg.dbg.selected_inferior()
         except pwndbg.dbg_mod.NoInferior:
-            return 0
+            # Should never happen because we already know that binary_base_address is set.
+            return 0, Error.NOT_ALIVE
+
+        if not inf.alive():
+            # Should never happen because we already know that binary_base_address is set.
+            return 0, Error.NOT_ALIVE
 
         # Remove old symbol file.
         # If we don't do this, the symbols will stack (run `info func` in GDB).
@@ -601,7 +618,7 @@ class IntegrationManager:
                 sym_name_set.add(clean_name)
 
         if not syms_to_add:
-            return 0
+            return 0, Error.OK
 
         _, elf_path = tempfile.mkstemp(prefix="symbols-", suffix=".elf")
         elf = niche_elf.ELFFile(self._connection.binary_base_addr)
@@ -614,7 +631,7 @@ class IntegrationManager:
         self._latest_symbol_file_path = elf_path
         # Delete the file after GDB closes the file descriptor.
         os.unlink(elf_path)
-        return len(syms_to_add)
+        return len(syms_to_add), Error.OK
 
     def _clean_type_str(self, type_str: str) -> str:
         # FIXME:
