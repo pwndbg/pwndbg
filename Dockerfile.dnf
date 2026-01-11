@@ -25,7 +25,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
-# Fix for BuildKit PAM error: https://github.com/docker/build-push-action/issues/1302
+# Fix for BuildKit PAM error for fedora41 tests: https://github.com/docker/build-push-action/issues/1302
 RUN printf '#!/bin/sh\nexec "$@"' > /usr/local/bin/sudo && \
     chmod +x /usr/local/bin/sudo
 
