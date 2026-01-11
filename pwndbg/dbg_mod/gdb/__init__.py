@@ -617,7 +617,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def stopped_at_breakpoint(self) -> bool:
-        return "It stopped at a breakpoint " in gdb.execute("info program", to_string=True)
+        gdb_prog: str = gdb.execute("info program", to_string=True)
+        # The first happens when e.g. running start
+        # ("It stopped at a breakpoint that has since been deleted.")
+        # the second on actual user set breakpoints
+        # ("It stopped at breakpoint 2.")
+        return "It stopped at a breakpoint " in gdb_prog or "It stopped at breakpoint " in gdb_prog
 
     @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
