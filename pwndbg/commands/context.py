@@ -28,6 +28,7 @@ import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.kernel
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.qemu
+import pwndbg.aglib.signal
 import pwndbg.aglib.symbol
 import pwndbg.arguments
 import pwndbg.chain
@@ -48,6 +49,8 @@ from pwndbg.color import ColorParamSpec
 from pwndbg.color import message
 from pwndbg.color import theme
 from pwndbg.commands import CommandCategory
+from pwndbg.dbg_mod import EventHandlerPriority
+from pwndbg.dbg_mod import EventType
 from pwndbg.lib.regs import BitFlags
 from pwndbg.lib.regs import RegisterContextProtocol
 from pwndbg.lib.regs import VisitableRegister
@@ -1702,41 +1705,45 @@ def context_threads(
     return out
 
 
-def save_signal(signal: gdb.Event) -> None:
+@pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.CONTINUE, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+def save_signal() -> None:
     global last_signal
     last_signal = result = []
 
-    if isinstance(signal, gdb.ExitedEvent):
-        # Booooo old gdb
-        if hasattr(signal, "exit_code"):
-            result.append(message.exit(f"Exited: {signal.exit_code}"))
+    if pwndbg.dbg.is_gdblib_available() and _is_rr_present():
+        # When users use rr (https://rr-project.org or https://github.com/mozilla/rr)
+        # we can't access $_siginfo, so lets just show current pc
+        # see also issue 476
+        if pwndbg.aglib.regs.pc is not None:
+            result.append(message.signal(f"current pc: {pwndbg.aglib.regs.pc:#x}"))
+        return
 
-    elif isinstance(signal, gdb.SignalEvent):
-        msg = f"Program received signal {signal.stop_signal}"
+    process = pwndbg.dbg.selected_inferior()
+    if not process:
+        return
 
-        if signal.stop_signal == "SIGSEGV":
-            # When users use rr (https://rr-project.org or https://github.com/mozilla/rr)
-            # we can't access $_siginfo, so lets just show current pc
-            # see also issue 476
-            if _is_rr_present():
-                msg += f" (current pc: {pwndbg.aglib.regs.pc:#x})"
-            else:
-                try:
-                    si_addr = gdb.parse_and_eval("$_siginfo._sifields._sigfault.si_addr")
-                    msg += f" (fault address {int(si_addr):#x})"
-                except gdb.error:
-                    pass
-        result.append(message.signal(msg))
+    if not (process.stopped_with_signal() or process.stopped_at_breakpoint()):
+        return
 
-    elif isinstance(signal, gdb.BreakpointEvent):
-        for bkpt in signal.breakpoints:
-            result.append(message.breakpoint(f"Breakpoint {(bkpt.location)}"))
+    signal = pwndbg.aglib.signal.get_last_signal()
+    if signal is None:
+        return
+    msg = f"Program received signal {signal}"
 
-
-if pwndbg.dbg.is_gdblib_available():
-    gdb.events.cont.connect(save_signal)
-    gdb.events.stop.connect(save_signal)
-    gdb.events.exited.connect(save_signal)
+    if signal == "SIGSEGV":
+        try:
+            desc_short, desc_long = pwndbg.aglib.signal.get_segv_information()
+            msg = f"Program received signal {desc_short}"
+            if desc_long:
+                msg += desc_long
+        except pwndbg.dbg_mod.Error:
+            pass
+    elif signal == "SIGTRAP":
+        result.append(message.breakpoint(f"Breakpoint hit at {pwndbg.aglib.regs.pc:#x}"))
+        return
+    result.append(message.signal(msg))
 
 
 @serve_context_history
@@ -1763,6 +1770,7 @@ context_sections: Dict[str, Callable[..., List[str]]] = {
     "s": context_stack,
     "b": context_backtrace,
     "c": context_code,
+    "l": context_last_signal,
 }
 
 
@@ -1773,7 +1781,6 @@ if pwndbg.dbg.is_gdblib_available():
         "e": context_expressions,
         "h": context_heap_tracker,
         "t": context_threads,
-        "l": context_last_signal,
     }
 
 

@@ -515,12 +515,7 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
     """
     Tests that context -a/--all shows all sections regardless of context-sections config
     """
-    import pwndbg
-
     await launch_to(ctrl, CONTEXT_ARGS_BINARY, "main")
-
-    # LAST SIGNAL section only appears in GDB, not LLDB
-    is_gdb = pwndbg.dbg.is_gdblib_available()
 
     # First, set context-sections to only regs
     await ctrl.execute("set context-sections regs")
@@ -530,9 +525,7 @@ async def test_context_all_sections_flag(ctrl: Controller) -> None:
 
     # Now use -a flag. It should capture all sections regardless of config
     all_out = await ctrl.execute_and_capture("context -a")
-    expected_all = ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)"]
-    if is_gdb:
-        expected_all.append("LAST SIGNAL")
+    expected_all = ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)", "LAST SIGNAL"]
     all_sections = extract_context_sections(all_out)
     assert all_sections == expected_all
 

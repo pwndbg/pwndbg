@@ -22,6 +22,7 @@ from typing import TypeVar
 
 import pwndbg.lib.memory
 from pwndbg.lib.arch import ArchDefinition
+from pwndbg.lib.siginfo import SigInfo
 
 dbg: Debugger = None
 
@@ -332,6 +333,12 @@ class Thread:
         """
         raise NotImplementedError()
 
+    def siginfo(self) -> Optional[SigInfo]:
+        """
+        The siginfo of this thread.
+        """
+        raise NotImplementedError()
+
 
 class MemoryMap:
     """
@@ -433,6 +440,12 @@ class Process:
     def stopped_with_signal(self) -> bool:
         """
         Returns whether this process was stopped by a signal.
+        """
+        raise NotImplementedError()
+
+    def stopped_at_breakpoint(self) -> bool:
+        """
+        Returns whether this process was stopped at a breakpoint.
         """
         raise NotImplementedError()
 

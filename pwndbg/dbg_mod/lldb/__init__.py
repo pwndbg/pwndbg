@@ -38,6 +38,15 @@ from pwndbg.dbg_mod import selection
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
 from pwndbg.lib.regs import reg_sets
+from pwndbg.lib.siginfo import SigInfo
+from pwndbg.lib.siginfo import SigInfoKill
+from pwndbg.lib.siginfo import SigInfoRt
+from pwndbg.lib.siginfo import SigInfoSigChld
+from pwndbg.lib.siginfo import SigInfoSigFault
+from pwndbg.lib.siginfo import SigInfoSigPoll
+from pwndbg.lib.siginfo import SigInfoSigSys
+from pwndbg.lib.siginfo import SigInfoSigVal
+from pwndbg.lib.siginfo import SigInfoTimer
 
 T = TypeVar("T")
 
@@ -374,6 +383,88 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
     @override
     def index(self) -> int:
         return self.inner.idx
+
+    @override
+    def siginfo(self) -> Optional[SigInfo]:
+        lldb_siginfo = self.inner.GetSiginfo()
+
+        int_cast: Callable[[str], int] = lambda x: int(x, 16) if x.startswith("0x") else int(x)
+
+        si_signo = int_cast(lldb_siginfo.GetChildMemberWithName("si_signo").value)
+        si_errno = int_cast(lldb_siginfo.GetChildMemberWithName("si_errno").value)
+        si_code = int_cast(lldb_siginfo.GetChildMemberWithName("si_code").value)
+
+        sifields = lldb_siginfo.GetChildMemberWithName("_sifields")
+
+        kill_field = sifields.GetChildMemberWithName("_kill")
+        kill = SigInfoKill(
+            si_pid=int_cast(kill_field.GetChildMemberWithName("si_pid").value),
+            si_uid=int_cast(kill_field.GetChildMemberWithName("si_uid").value),
+        )
+
+        timer_field = sifields.GetChildMemberWithName("_timer")
+        timer_sigval = timer_field.GetChildMemberWithName("si_sigval")
+        timer = SigInfoTimer(
+            si_tid=int_cast(timer_field.GetChildMemberWithName("si_tid").value),
+            si_overrun=int_cast(timer_field.GetChildMemberWithName("si_overrun").value),
+            si_sigval=SigInfoSigVal(
+                sival_int=int_cast(timer_sigval.GetChildMemberWithName("sival_int").value),
+                sival_ptr=int_cast(timer_sigval.GetChildMemberWithName("sival_ptr").value),
+            ),
+        )
+
+        rt_field = sifields.GetChildMemberWithName("_rt")
+        rt_sigval = rt_field.GetChildMemberWithName("si_sigval")
+        rt = SigInfoRt(
+            si_pid=int_cast(rt_field.GetChildMemberWithName("si_pid").value),
+            si_uid=int_cast(rt_field.GetChildMemberWithName("si_uid").value),
+            si_sigval=SigInfoSigVal(
+                sival_int=int_cast(rt_sigval.GetChildMemberWithName("sival_int").value),
+                sival_ptr=int_cast(rt_sigval.GetChildMemberWithName("sival_ptr").value),
+            ),
+        )
+
+        sigchld_field = sifields.GetChildMemberWithName("_sigchld")
+        sigchld = SigInfoSigChld(
+            si_pid=int_cast(sigchld_field.GetChildMemberWithName("si_pid").value),
+            si_uid=int_cast(sigchld_field.GetChildMemberWithName("si_uid").value),
+            si_status=int_cast(sigchld_field.GetChildMemberWithName("si_status").value),
+            si_utime=int_cast(sigchld_field.GetChildMemberWithName("si_utime").value),
+            si_stime=int_cast(sigchld_field.GetChildMemberWithName("si_stime").value),
+        )
+
+        sigfault_field = sifields.GetChildMemberWithName("_sigfault")
+        sigfault = SigInfoSigFault(
+            si_addr=int_cast(sigfault_field.GetChildMemberWithName("si_addr").value)
+        )
+
+        sigpoll_field = sifields.GetChildMemberWithName("_sigpoll")
+        sigpoll = SigInfoSigPoll(
+            si_band=int_cast(sigpoll_field.GetChildMemberWithName("si_band").value),
+            si_fd=int_cast(sigpoll_field.GetChildMemberWithName("si_fd").value),
+        )
+
+        sigsys_field = sifields.GetChildMemberWithName("_sigsys")
+        sigsys = SigInfoSigSys(
+            call_addr=int_cast(sigsys_field.GetChildMemberWithName("_call_addr").value),
+            syscall=int_cast(sigsys_field.GetChildMemberWithName("_syscall").value),
+            arch=int_cast(sigsys_field.GetChildMemberWithName("_arch").value),
+        )
+
+        siginfo = SigInfo(
+            si_signo=si_signo,
+            si_errno=si_errno,
+            si_code=si_code,
+            kill=kill,
+            timer=timer,
+            rt=rt,
+            sigchld=sigchld,
+            sigfault=sigfault,
+            sigpoll=sigpoll,
+            sigsys=sigsys,
+        )
+
+        return siginfo
 
 
 def map_type_code(type: lldb.SBType) -> pwndbg.dbg_mod.TypeCode:
@@ -889,6 +980,15 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
     def stopped_with_signal(self) -> bool:
         return self.process.GetState() == lldb.eStateStopped and any(
             (thread.GetStopReason() == lldb.eStopReasonSignal for thread in self.process.threads)
+        )
+
+    @override
+    def stopped_at_breakpoint(self) -> bool:
+        return self.process.GetState() == lldb.eStateStopped and any(
+            (
+                thread.GetStopReason() == lldb.eStopReasonBreakpoint
+                for thread in self.process.threads
+            )
         )
 
     @override

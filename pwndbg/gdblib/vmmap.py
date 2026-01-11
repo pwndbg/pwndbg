@@ -287,22 +287,7 @@ def info_proc_maps(parse_flags: bool = True) -> Tuple[pwndbg.lib.memory.Page, ..
     return tuple(pages)
 
 
-@pwndbg.lib.cache.cache_until("start", "stop")
-def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
-    """
-    Parse the contents of /proc/$TID/maps on the server.
-    (TID == Thread Identifier. We do not use PID since it may not be correct)
-
-    Returns:
-        A tuple of pwndbg.lib.memory.Page objects or None if
-        /proc/$tid/maps doesn't exist or when we debug a qemu-user target
-    """
-
-    # If we debug remotely a qemu-system target,
-    # there is no point of hitting things further
-    if pwndbg.aglib.qemu.is_qemu_kernel():
-        return None
-
+def parse_tid_maps_line(line: str) -> pwndbg.lib.memory.Page:
     # Example /proc/$tid/maps
     # 7f95266fa000-7f95268b5000 r-xp 00000000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
     # 7f95268b5000-7f9526ab5000 ---p 001bb000 08:01 418404                     /lib/x86_64-linux-gnu/libc-2.19.so
@@ -323,18 +308,169 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     # 7fff3c177000-7fff3c199000 rw-p 00000000 00:00 0                          [stack]
     # 7fff3c1e8000-7fff3c1ea000 r-xp 00000000 00:00 0                          [vdso]
     # ffffffffff600000-ffffffffff601000 r-xp 00000000 00:00 0                  [vsyscall]
+    ptrsize: int = pwndbg.aglib.arch.ptrsize
+    maps, perm, offset, dev, inode_objfile = line.split(maxsplit=4)
+
+    start, stop = maps.split("-")
+
+    try:
+        inode, objfile = inode_objfile.split(maxsplit=1)
+    except Exception:
+        # Name unnamed anonymous pages so they can be used e.g. with search commands
+        objfile = "[anon_" + start[:-3] + "]"
+
+    start = int(start, 16)
+    stop = int(stop, 16)
+    offset = int(offset, 16)
+    size = stop - start
+
+    flags = 0
+    if "r" in perm:
+        flags |= 4
+    if "w" in perm:
+        flags |= 2
+    if "x" in perm:
+        flags |= 1
+
+    return pwndbg.lib.memory.Page(start, size, flags, offset, ptrsize, objfile)
+
+
+def parse_tid_maps(data: str) -> List[pwndbg.lib.memory.Page]:
+    pages: List[pwndbg.lib.memory.Page] = []
+    for line in data.splitlines():
+        page = parse_tid_maps_line(line)
+        pages.append(page)
+
+    return pages
+
+
+def parse_tid_smaps_dict(data: List[str]) -> dict[str, List[str]]:
+    smaps_dict: dict[str, List[str]] = {}
+    for line in data:
+        try:
+            key, *value = line.strip().split()
+            key = key.rstrip(":")
+            smaps_dict[key.replace(":", "")] = value
+        except ValueError:
+            continue
+
+    return smaps_dict
+
+
+def group_tid_smaps_segments(data: str) -> List[List[str]]:
+    # Example segment of /proc/$tid/smaps
+    # 7f0bd1c25000-7f0bd1c27000 rw-p 001e8000 00:22 1655096                    /usr/lib64/libc.so.6
+    # Size:                  8 kB
+    # KernelPageSize:        4 kB
+    # MMUPageSize:           4 kB
+    # Rss:                   8 kB
+    # Pss:                   8 kB
+    # Pss_Dirty:             8 kB
+    # Shared_Clean:          0 kB
+    # Shared_Dirty:          0 kB
+    # Private_Clean:         0 kB
+    # Private_Dirty:         8 kB
+    # Referenced:            8 kB
+    # Anonymous:             8 kB
+    # KSM:                   0 kB
+    # LazyFree:              0 kB
+    # AnonHugePages:         0 kB
+    # ShmemPmdMapped:        0 kB
+    # FilePmdMapped:         0 kB
+    # Shared_Hugetlb:        0 kB
+    # Private_Hugetlb:       0 kB
+    # Swap:                  0 kB
+    # SwapPss:               0 kB
+    # Locked:                0 kB
+    # THPeligible:           0
+    # ProtectionKey:         0
+    # VmFlags: rd wr mr mw me ac sd
+    segments: List[List[str]] = []
+    lines = data.splitlines()
+
+    # Group lines into segments by detecting address range lines
+    current_segment: List[str] = []
+
+    for line in lines:
+        # Check if this line starts with an address range (e.g., "7f0bd1c25000-7f0bd1c27000")
+        # An address range line starts with hex digits followed by a dash
+        is_address_line = False
+        if line and not line[0].isspace():
+            # Try to detect if this is an address range line
+            try:
+                first_token = line.split()[0]
+                if "-" in first_token:
+                    # Try to parse both parts as hex addresses
+                    start, end = first_token.split("-", 1)
+                    int(start, 16)
+                    int(end, 16)
+                    is_address_line = True
+            except (ValueError, IndexError):
+                pass
+
+        if is_address_line:
+            # Process the previous segment if it exists
+            if current_segment:
+                segments.append(current_segment)
+
+            # Start a new segment
+            current_segment = [line]
+        else:
+            # Add to current segment
+            current_segment.append(line)
+
+    # Process the last segment
+    if current_segment:
+        segments.append(current_segment)
+
+    return segments
+
+
+def parse_tid_smaps(data: str) -> List[pwndbg.lib.memory.Page]:
+    pages: List[pwndbg.lib.memory.Page] = []
+    segments = group_tid_smaps_segments(data)
+    for segment in segments:
+        page = parse_tid_maps_line(segment[0])
+        smaps_dict = parse_tid_smaps_dict(segment[1:])
+        if "ProtectionKey" in smaps_dict:
+            page.protection_key = int(smaps_dict.get("ProtectionKey")[0])
+        page.vm_flags = smaps_dict.get("VmFlags")
+        pages.append(page)
+
+    return pages
+
+
+@pwndbg.lib.cache.cache_until("start", "stop")
+def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
+    """
+    Parse the contents of /proc/$TID/smaps on the server.
+    Falls back to /proc/$TID/maps if smaps is not available.
+    (TID == Thread Identifier. We do not use PID since it may not be correct)
+
+    Returns:
+        A tuple of pwndbg.lib.memory.Page objects or None if
+        /proc/$tid/maps doesn't exist or when we debug a qemu-user target
+    """
+
+    # If we debug remotely a qemu-system target,
+    # there is no point of hitting things further
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        return None
 
     tid = pwndbg.aglib.proc.tid()
     locations = [
         # Linux distro
-        f"/proc/{tid}/maps",
+        (f"/proc/{tid}/smaps", parse_tid_smaps),
+        (f"/proc/{tid}/maps", parse_tid_maps),
         # Freebsd in some cases
-        f"/usr/compat/linux/proc/{tid}/maps",
+        (f"/usr/compat/linux/proc/{tid}/maps", parse_tid_maps),
     ]
+    maps_parse_function = None
 
-    for location in locations:
+    for location, parse_fn in locations:
         try:
             data = pwndbg.aglib.file.get(location).decode()
+            maps_parse_function = parse_fn
             break
         except OSError:
             continue
@@ -345,33 +481,6 @@ def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
     if data == "":
         return ()
 
-    ptrsize: int = pwndbg.aglib.arch.ptrsize
-    pages: List[pwndbg.lib.memory.Page] = []
-    for line in data.splitlines():
-        maps, perm, offset, dev, inode_objfile = line.split(maxsplit=4)
-
-        start, stop = maps.split("-")
-
-        try:
-            inode, objfile = inode_objfile.split(maxsplit=1)
-        except Exception:
-            # Name unnamed anonymous pages so they can be used e.g. with search commands
-            objfile = "[anon_" + start[:-3] + "]"
-
-        start = int(start, 16)
-        stop = int(stop, 16)
-        offset = int(offset, 16)
-        size = stop - start
-
-        flags = 0
-        if "r" in perm:
-            flags |= 4
-        if "w" in perm:
-            flags |= 2
-        if "x" in perm:
-            flags |= 1
-
-        page = pwndbg.lib.memory.Page(start, size, flags, offset, ptrsize, objfile)
-        pages.append(page)
+    pages = maps_parse_function(data)
 
     return tuple(pages)

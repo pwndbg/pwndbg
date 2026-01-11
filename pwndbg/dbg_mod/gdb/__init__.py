@@ -36,6 +36,15 @@ from pwndbg.gdblib import load_gdblib
 from pwndbg.lib.arch import ArchAttribute
 from pwndbg.lib.arch import ArchDefinition
 from pwndbg.lib.arch import Platform
+from pwndbg.lib.siginfo import SigInfo
+from pwndbg.lib.siginfo import SigInfoKill
+from pwndbg.lib.siginfo import SigInfoRt
+from pwndbg.lib.siginfo import SigInfoSigChld
+from pwndbg.lib.siginfo import SigInfoSigFault
+from pwndbg.lib.siginfo import SigInfoSigPoll
+from pwndbg.lib.siginfo import SigInfoSigSys
+from pwndbg.lib.siginfo import SigInfoSigVal
+from pwndbg.lib.siginfo import SigInfoTimer
 
 T = TypeVar("T")
 
@@ -402,6 +411,66 @@ class GDBThread(pwndbg.dbg_mod.Thread):
     def index(self) -> int:
         return self.inner.num
 
+    @override
+    def siginfo(self) -> Optional[SigInfo]:
+        try:
+            gdb_siginfo_expr = pwndbg.dbg.selected_inferior().evaluate_expression("$_siginfo")
+            siginfo = SigInfo(
+                si_signo=int(gdb_siginfo_expr["si_signo"]),
+                si_errno=int(gdb_siginfo_expr["si_errno"]),
+                si_code=int(gdb_siginfo_expr["si_code"]),
+                kill=SigInfoKill(
+                    si_pid=int(gdb_siginfo_expr["_sifields"]["_kill"]["si_pid"]),
+                    si_uid=int(gdb_siginfo_expr["_sifields"]["_kill"]["si_uid"]),
+                ),
+                timer=SigInfoTimer(
+                    si_tid=int(gdb_siginfo_expr["_sifields"]["_timer"]["si_tid"]),
+                    si_overrun=int(gdb_siginfo_expr["_sifields"]["_timer"]["si_overrun"]),
+                    si_sigval=SigInfoSigVal(
+                        sival_int=int(
+                            gdb_siginfo_expr["_sifields"]["_timer"]["si_sigval"]["sival_int"]
+                        ),
+                        sival_ptr=int(
+                            gdb_siginfo_expr["_sifields"]["_timer"]["si_sigval"]["sival_ptr"]
+                        ),
+                    ),
+                ),
+                rt=SigInfoRt(
+                    si_pid=int(gdb_siginfo_expr["_sifields"]["_rt"]["si_pid"]),
+                    si_uid=int(gdb_siginfo_expr["_sifields"]["_rt"]["si_uid"]),
+                    si_sigval=SigInfoSigVal(
+                        sival_int=int(
+                            gdb_siginfo_expr["_sifields"]["_rt"]["si_sigval"]["sival_int"]
+                        ),
+                        sival_ptr=int(
+                            gdb_siginfo_expr["_sifields"]["_rt"]["si_sigval"]["sival_ptr"]
+                        ),
+                    ),
+                ),
+                sigchld=SigInfoSigChld(
+                    si_pid=int(gdb_siginfo_expr["_sifields"]["_sigchld"]["si_pid"]),
+                    si_uid=int(gdb_siginfo_expr["_sifields"]["_sigchld"]["si_uid"]),
+                    si_status=int(gdb_siginfo_expr["_sifields"]["_sigchld"]["si_status"]),
+                    si_utime=int(gdb_siginfo_expr["_sifields"]["_sigchld"]["si_utime"]),
+                    si_stime=int(gdb_siginfo_expr["_sifields"]["_sigchld"]["si_stime"]),
+                ),
+                sigfault=SigInfoSigFault(
+                    si_addr=int(gdb_siginfo_expr["_sifields"]["_sigfault"]["si_addr"]),
+                ),
+                sigpoll=SigInfoSigPoll(
+                    si_band=int(gdb_siginfo_expr["_sifields"]["_sigpoll"]["si_band"]),
+                    si_fd=int(gdb_siginfo_expr["_sifields"]["_sigpoll"]["si_fd"]),
+                ),
+                sigsys=SigInfoSigSys(
+                    call_addr=int(gdb_siginfo_expr["_sifields"]["_sigsys"]["_call_addr"]),
+                    syscall=int(gdb_siginfo_expr["_sifields"]["_sigsys"]["_syscall"]),
+                    arch=int(gdb_siginfo_expr["_sifields"]["_sigsys"]["_arch"]),
+                ),
+            )
+            return siginfo
+        except pwndbg.dbg_mod.Error:
+            return None
+
 
 class GDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
     def __init__(self, qemu: bool, pages: Sequence[pwndbg.lib.memory.Page]):
@@ -545,6 +614,15 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def stopped_with_signal(self) -> bool:
         return "It stopped with signal " in gdb.execute("info program", to_string=True)
+
+    @override
+    def stopped_at_breakpoint(self) -> bool:
+        gdb_prog: str = gdb.execute("info program", to_string=True)
+        # The first happens when e.g. running start
+        # ("It stopped at a breakpoint that has since been deleted.")
+        # the second on actual user set breakpoints
+        # ("It stopped at breakpoint 2.")
+        return "It stopped at a breakpoint " in gdb_prog or "It stopped at breakpoint " in gdb_prog
 
     @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:
