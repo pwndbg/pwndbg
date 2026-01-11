@@ -852,7 +852,7 @@ Setting this automatically unsets the `di setbase` value.
 parser_set_path.add_argument(
     "binary_path",
     metavar="path",
-    type=int,
+    type=str,
     help="File path of the decompiled binary as loaded in memory",
 )
 

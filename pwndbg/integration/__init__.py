@@ -173,8 +173,9 @@ class DecompilerConnection:
     """The XML RPC server that is connected to the decompiler."""
     server: xmlrpc.client.ServerProxy
 
-    """The (host filesystem) path of the binary loaded in the decompiler.
-    It can be both an executable and a shared library."""
+    """The (host filesystem) path of the binary loaded as reported by the decompiler.
+    It can be both an executable and a shared library.
+    May not be relevant if manual_binary_address or manual_binary_path are set."""
     binary_path: str
 
     """Version information about the decompiler we are connected to. See
@@ -199,6 +200,7 @@ class DecompilerConnection:
 
     def _find_binary_addr(self, print_failure: bool = False) -> None:
         if manual_binary_address != -1:
+            # The user hardcoded the binary base address via `di setbase`.
             self._binary_base_addr = manual_binary_address
             return
 
@@ -210,14 +212,18 @@ class DecompilerConnection:
         if not inf.alive():
             return
 
+        if manual_binary_path != "":
+            # The user overrode what the decompiler says via `di setpath`.
+            path: str = manual_binary_path
+        else:
+            path = self.binary_path
+
         # Try to find the binary in the address space.
-        start_addr: Optional[int] = pwndbg.aglib.vmmap.named_region_start(
-            self.binary_path, exact_match=True
-        )
+        start_addr: Optional[int] = pwndbg.aglib.vmmap.named_region_start(path, exact_match=True)
 
         if start_addr is None:
             # Try harder! (likely we are remote debugging)
-            start_addr = pwndbg.aglib.vmmap.named_region_start(self.binary_path, exact_match=False)
+            start_addr = pwndbg.aglib.vmmap.named_region_start(path, exact_match=False)
 
             if start_addr is None:
                 if print_failure:
