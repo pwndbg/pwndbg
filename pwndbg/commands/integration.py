@@ -436,6 +436,9 @@ def soft_connection_check(also_sync: bool) -> bool:
         if not pwndbg.integration.manager.is_connected():
             return False
 
+    # Give space to the actual command output.
+    print()
+
     return True
 
 
