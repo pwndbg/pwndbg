@@ -36,6 +36,7 @@ import pwndbg.aglib.typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.memory as mem_color
+import pwndbg.dbg_mod
 import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.memory

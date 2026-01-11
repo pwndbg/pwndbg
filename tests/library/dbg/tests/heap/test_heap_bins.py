@@ -19,11 +19,14 @@ async def test_heap_bins(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
     import pwndbg.aglib.vmmap
     from pwndbg.aglib.heap.ptmalloc import BinType
+    from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     await ctrl.launch(BINARY)
     await ctrl.execute("set context-output /dev/null")
     await ctrl.execute("b breakpoint")
     await ctrl.cont()
+
+    assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
 
     # check if all bins are empty at first
     allocator = pwndbg.aglib.heap.current
@@ -36,6 +39,7 @@ async def test_heap_bins(ctrl: Controller) -> None:
     assert addr is not None
     tcache_count = pwndbg.aglib.memory.u64(addr)
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("fastbin_size")
+    assert addr is not None
     fastbin_size = allocator._request2size(pwndbg.aglib.memory.u64(addr))
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("fastbin_count")
     assert addr is not None
@@ -54,43 +58,49 @@ async def test_heap_bins(ctrl: Controller) -> None:
     largebin_count = pwndbg.aglib.memory.u64(addr)
 
     result = allocator.tcachebins()
+    assert result is not None
     assert result.bin_type == BinType.TCACHE
     assert tcache_size in result.bins
     assert result.bins[tcache_size].bk_chain is None and len(result.bins[tcache_size].fd_chain) == 1
 
     result = allocator.fastbins()
+    assert result is not None
     assert result.bin_type == BinType.FAST
     assert fastbin_size in result.bins
     assert len(result.bins[fastbin_size].fd_chain) == 1
 
     result = allocator.unsortedbin()
+    assert result is not None
     assert result.bin_type == BinType.UNSORTED
     assert len(result.bins["all"].fd_chain) == 1
     assert not result.bins["all"].is_corrupted
 
     result = allocator.smallbins()
+    assert result is not None
     assert result.bin_type == BinType.SMALL
     assert smallbin_size in result.bins
+    bk_chain = result.bins[smallbin_size].bk_chain
     assert (
         len(result.bins[smallbin_size].fd_chain) == 1
-        and len(result.bins[smallbin_size].bk_chain) == 1
+        and bk_chain is not None
+        and len(bk_chain) == 1
     )
     assert not result.bins[smallbin_size].is_corrupted
 
     result = allocator.largebins()
+    assert result is not None
     assert result.bin_type == BinType.LARGE
     largebin_size = list(result.bins.items())[allocator.largebin_index(largebin_size) - 64][0]
     assert largebin_size in result.bins
-    assert (
-        len(result.bins[largebin_size].fd_chain) == 1
-        and len(result.bins[largebin_size].bk_chain) == 1
-    )
+    bk_chain = result.bins[largebin_size].bk_chain
+    assert len(result.bins[largebin_size].fd_chain) == 1 and len(bk_chain) == 1
     assert not result.bins[largebin_size].is_corrupted
 
     # check tcache
     await ctrl.cont()
 
     result = allocator.tcachebins()
+    assert result is not None
     assert result.bin_type == BinType.TCACHE
     assert tcache_size in result.bins
     assert (
@@ -104,6 +114,7 @@ async def test_heap_bins(ctrl: Controller) -> None:
     await ctrl.cont()
 
     result = allocator.fastbins()
+    assert result is not None
     assert result.bin_type == BinType.FAST
     assert (fastbin_size in result.bins) and (
         len(result.bins[fastbin_size].fd_chain) == fastbin_count + 1
@@ -115,9 +126,12 @@ async def test_heap_bins(ctrl: Controller) -> None:
     await ctrl.cont()
 
     result = allocator.unsortedbin()
+    assert result is not None
     assert result.bin_type == BinType.UNSORTED
+    bk_chain = result.bins["all"].bk_chain
+    assert bk_chain is not None
     fd_chain_len = len(result.bins["all"].fd_chain)
-    bk_chain_len = len(result.bins["all"].bk_chain)
+    bk_chain_len = len(bk_chain)
     assert (
         (fd_chain_len == smallbin_count + 2 and bk_chain_len == smallbin_count + 2)
         # Since glibc 2.42, freed small-bin-sized chunks go directly to the smallbin instead of going
@@ -127,46 +141,54 @@ async def test_heap_bins(ctrl: Controller) -> None:
     assert not result.bins["all"].is_corrupted
     for addr in result.bins["all"].fd_chain[:-1]:
         assert pwndbg.aglib.vmmap.find(addr)
-    for addr in result.bins["all"].bk_chain[:-1]:
+    for addr in bk_chain[:-1]:
         assert pwndbg.aglib.vmmap.find(addr)
 
     # check smallbins
     await ctrl.cont()
 
     result = allocator.smallbins()
+    assert result is not None
     assert result.bin_type == "smallbins"
+    bk_chain = result.bins[smallbin_size].bk_chain
+    assert bk_chain is not None
     assert (
         len(result.bins[smallbin_size].fd_chain) == smallbin_count + 2
-        and len(result.bins[smallbin_size].bk_chain) == smallbin_count + 2
+        and len(bk_chain) == smallbin_count + 2
     )
     assert not result.bins[smallbin_size].is_corrupted
     for addr in result.bins[smallbin_size].fd_chain[:-1]:
         assert pwndbg.aglib.vmmap.find(addr)
-    for addr in result.bins[smallbin_size].bk_chain[:-1]:
+    for addr in bk_chain[:-1]:
         assert pwndbg.aglib.vmmap.find(addr)
 
     # check largebins
     await ctrl.cont()
 
     result = allocator.largebins()
+    assert result is not None
     assert result.bin_type == BinType.LARGE
+    bk_chain = result.bins[largebin_size].bk_chain
+    assert bk_chain is not None
     assert (
         len(result.bins[largebin_size].fd_chain) == largebin_count + 2
-        and len(result.bins[largebin_size].bk_chain) == largebin_count + 2
+        and len(bk_chain) == largebin_count + 2
     )
     assert not result.bins[largebin_size].is_corrupted
     for addr in result.bins[largebin_size].fd_chain[:-1]:
         assert pwndbg.aglib.vmmap.find(addr)
-    for addr in result.bins[largebin_size].bk_chain[:-1]:
+    for addr in bk_chain[:-1]:
         assert pwndbg.aglib.vmmap.find(addr)
 
     # check corrupted
     await ctrl.cont()
     result = allocator.smallbins()
+    assert result is not None
     assert result.bin_type == BinType.SMALL
     assert result.bins[smallbin_size].is_corrupted
 
     result = allocator.largebins()
+    assert result is not None
     assert result.bin_type == BinType.LARGE
     assert result.bins[largebin_size].is_corrupted
 

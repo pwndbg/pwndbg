@@ -6,6 +6,7 @@ from typing import Union
 
 import pwndbg.aglib
 import pwndbg.aglib.typeinfo
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.dbg_mod import EventType

@@ -9,7 +9,9 @@ from . import pwndbg_test
 BINARY = get_binary("reference-binary.native.out")
 
 
-async def run_tests(ctrl: Controller, stack: int, use_big_endian: bool, expected: str) -> None:
+async def run_tests(
+    ctrl: Controller, stack: int, use_big_endian: bool, expected: list[str]
+) -> None:
     from pwnlib.util.cyclic import cyclic
 
     import pwndbg
@@ -18,7 +20,9 @@ async def run_tests(ctrl: Controller, stack: int, use_big_endian: bool, expected
     pwndbg.config.hexdump_group_use_big_endian.value = use_big_endian
 
     # Put some data onto the stack
-    pwndbg.aglib.memory.write(stack, cyclic(0x100))
+    payload = cyclic(0x100)
+    assert isinstance(payload, bytes)
+    pwndbg.aglib.memory.write(stack, payload)
 
     # Test empty hexdump
     result = await ctrl.execute_and_capture("hexdump 0")
@@ -44,7 +48,9 @@ async def test_hexdump(ctrl: Controller) -> None:
     pwndbg.config.hexdump_group_width.value = -1
 
     pwndbg.config.hexdump_byte_separator.value = ""
-    stack_addr = pwndbg.aglib.regs.sp - 0x100
+    sp = pwndbg.aglib.regs.sp
+    assert sp is not None
+    stack_addr = sp - 0x100
 
     expected = [
         f"""+0000 0x{stack_addr:x}  6161616261616161 6161616461616163 │aaaabaaa│caaadaaa│
@@ -72,6 +78,7 @@ async def test_hexdump_collapse_lines(ctrl: Controller) -> None:
 
     await ctrl.launch(BINARY)
     sp = pwndbg.aglib.regs.sp
+    assert sp is not None
 
     pwndbg.aglib.memory.write(sp, b"abcdefgh\x01\x02\x03\x04\x05\x06\x07\x08" * 16)
 
@@ -103,6 +110,7 @@ async def test_hexdump_saved_address_and_offset(ctrl: Controller) -> None:
     # before each command
     await ctrl.launch(BINARY)
     sp = pwndbg.aglib.regs.sp
+    assert sp is not None
 
     SIZE = 21
 
@@ -115,8 +123,8 @@ async def test_hexdump_saved_address_and_offset(ctrl: Controller) -> None:
     )
 
     assert out1 == out2
-    assert pwndbg.commands.hexdump.hexdump.last_address == sp + SIZE
-    assert pwndbg.commands.hexdump.hexdump.offset == SIZE
+    assert pwndbg.commands.hexdump.hexdump.last_address == sp + SIZE  # type: ignore[attr-defined]
+    assert pwndbg.commands.hexdump.hexdump.offset == SIZE  # type: ignore[attr-defined]
 
 
 @pwndbg_test

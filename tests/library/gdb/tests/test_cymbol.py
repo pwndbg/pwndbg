@@ -45,8 +45,11 @@ def test_cymbol(start_binary):
     custom_structure_example_path = create_symbol_file("example", custom_structure_example)
 
     # Test whether OnlyWhenStructFileExists decorator works properly
-    assert pwndbg.commands.cymbol.OnlyWhenStructFileExists(lambda x, y: True)("dummy") is None
-    assert pwndbg.commands.cymbol.OnlyWhenStructFileExists(lambda x, y: True)("example") is True
+    def dummyf(custom_structure_name: str, custom_structure_path: str = "") -> bool:
+        return True
+
+    assert pwndbg.commands.cymbol.OnlyWhenStructFileExists(dummyf)("dummy") is None  # type: ignore[arg-type]
+    assert pwndbg.commands.cymbol.OnlyWhenStructFileExists(dummyf)("example") is True  # type: ignore[arg-type]
 
     # Test whether generate_debug_symbols() works properly.
     assert pwndbg.commands.cymbol.generate_debug_symbols(custom_structure_example_path) is not None

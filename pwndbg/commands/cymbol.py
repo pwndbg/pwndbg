@@ -191,7 +191,7 @@ def edit_custom_structure(custom_structure_name: str, custom_structure_path: str
             check=True,
         )
     except Exception:
-        print(message.error("An error occured during opening the source file."))
+        print(message.error("An error occurred during opening the source file."))
         print(message.error(f"Path to the custom structure: {custom_structure_path}"))
         print(message.error("Please try to manually edit the structure."))
         print(

@@ -529,5 +529,5 @@ def compile_with_flags(gcc_extra_flags):
         )
     except Exception as exception:
         print(message.error(exception))
-        print(message.error("An error occured while generating the debug symbols."))
+        print(message.error("An error occurred while generating the debug symbols."))
     return False

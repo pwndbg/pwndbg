@@ -1277,7 +1277,7 @@ def vis_heap_chunks(
 VALID_CHARS = list(map(ord, set(printable) - set("\t\r\n\x0c\x0b")))
 
 
-def bin_ascii(bs: bytes | bytearray) -> str:
+def bin_ascii(bs: bytes | bytearray | list[int]) -> str:
     return "".join(chr(c) if c in VALID_CHARS else "." for c in bs)
 
 

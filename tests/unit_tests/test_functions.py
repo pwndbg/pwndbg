@@ -6,19 +6,19 @@ from pwndbg.lib.functions import functions
 from pwndbg.lib.functions_data import _functions
 
 
-def test_functions_lookup():
+def test_functions_lookup() -> None:
     # test that the lazy loading through __getitem__ works properly
     key1 = next(iter(_functions.keys()))
     assert functions.get(key1) == _functions[key1]
 
 
-def test_functions_lookup_does_not_exist():
-    no_key = object()
+def test_functions_lookup_does_not_exist() -> None:
+    no_key: str = "this key does not exist!"
     not_found = object()
     assert functions.get(no_key, not_found) is not_found
 
 
-def test_format_flags_not_found():
+def test_format_flags_not_found() -> None:
     # None of the known flags are found in the value.
     flags = (
         Flag(value=0x01, name="FLAG_1"),
@@ -29,7 +29,7 @@ def test_format_flags_not_found():
     assert format_flags_argument(flags, 0x4) == formatted
 
 
-def test_format_flags_found():
+def test_format_flags_found() -> None:
     flags = (
         Flag(value=0x03, name="FLAG_3"),
         Flag(value=0x01, name="FLAG_1"),
