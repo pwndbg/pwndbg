@@ -8,6 +8,7 @@ import textwrap
 from typing import Any
 from typing import Dict
 from typing import Tuple
+from typing import cast
 
 from mdutils.mdutils import MdUtils
 
@@ -40,7 +41,7 @@ def get_markdown_body(
     else:
         assert built_subcmd_preface != ""
         # A subcommand's title is ###
-        leveled_header: str = "####"
+        leveled_header = "####"
 
     # usage
     mdFile.insert_code(cmd.usage, language="text")
@@ -334,7 +335,7 @@ def dict_to_extracted(dictionary: dict[str, Any]) -> ExtractedCommand:
         for subcmd_dict in cmd.subcommands:
             # The type is wrong because mypy thinks cmd.subcommands is an array of ExtractedCommand's
             # but it's actually an array of dict[str, Any].
-            actual_subcommands.append(dict_to_extracted(subcmd_dict))  # type: ignore[attr-assigned]
+            actual_subcommands.append(dict_to_extracted(cast(dict[str, Any], subcmd_dict)))
         # Now the type is correct :)
         cmd.subcommands = actual_subcommands
 

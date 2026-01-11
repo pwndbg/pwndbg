@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from ....host import Controller
@@ -12,7 +14,7 @@ GOSAMPLE_X86 = get_binary("gosample.i386.out")
 
 @pwndbg_test
 @pytest.mark.parametrize("binary", [GOSAMPLE_X64, GOSAMPLE_X86], ids=["x86-64", "i386"])
-async def test_go_dumping(ctrl: Controller, binary: str) -> None:
+async def test_go_dumping(ctrl: Controller, binary: Path) -> None:
     import pwndbg
     import pwndbg.commands.godbg
     from pwndbg.dbg_mod import DebuggerType

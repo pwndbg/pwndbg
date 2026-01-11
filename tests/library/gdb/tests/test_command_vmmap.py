@@ -158,8 +158,8 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     # a bug with this popped out, so I am double checking it here
     gdb.execute("file")
 
-    vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
-    vmmaps = [i.split() for i in vmmaps[2:]]
+    vmmaps1: list[str] = gdb.execute("vmmap", to_string=True).splitlines()
+    vmmaps = [i.split() for i in vmmaps1[2:]]
 
     assert_maps()
 

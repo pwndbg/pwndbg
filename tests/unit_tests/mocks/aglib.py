@@ -32,4 +32,4 @@ sys.modules[module_name] = module
 
 import pwndbg
 
-pwndbg.aglib = sys.modules["pwndbg.aglib"]
+pwndbg.aglib = sys.modules["pwndbg.aglib"]  # type: ignore[attr-defined]

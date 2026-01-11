@@ -30,11 +30,13 @@ def run_benchmark(name: str, prefix: str, callback: Callable, count=COUNT) -> fl
     profiler.disable()
 
     pstats_file_name_base = f"{prefix}-{count}-{name}-{int(time.time())}"
-    profiler.dump_stats(f"{pstats_file_name_base}.pstats")
+    filename = f"{pstats_file_name_base}.pstats"
+    profiler.dump_stats(filename)
 
     full_time = pstats.Stats(profiler).total_tt
 
     print(f"Time elapsed: {full_time}. Average time: {full_time / count}")
+    print(f"Saved benchmark data to {filename}")
 
     return full_time / count
 
@@ -58,8 +60,8 @@ def benchmark_context(name: str):
     ## Benchmark the `context` command, no caching
 
     def run_with_clear():
-        pwndbg.commands.context.context.function()
         pwndbg.lib.cache.clear_caches()
+        pwndbg.commands.context.context.function()
 
     run_benchmark(
         name,

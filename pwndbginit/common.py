@@ -102,11 +102,7 @@ def update_deps(src_root: Path) -> None:
         sys.exit(return_code)
 
 
-def skip_autoupdate(src_root) -> bool:
-    no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE") is not None
-    if no_auto_update:
-        return True
-
+def is_system_installation(src_root: Path) -> bool:
     # If pwndbg is installed in `/venv/lib/pythonX.Y/site-packages/pwndbg/`,
     # the `.pwndbg_root` file will not exist because `src_root` will point to the
     # `/venv/lib/pythonX.Y/site-packages/` directory, not the original source directory
@@ -115,6 +111,17 @@ def skip_autoupdate(src_root) -> bool:
     # and the condition will be False, allowing auto-update.
     is_system_install = not (src_root / ".pwndbg_root").exists()
     if is_system_install:
+        return True
+
+    return False
+
+
+def skip_autoupdate(src_root: Path) -> bool:
+    no_auto_update = os.getenv("PWNDBG_NO_AUTOUPDATE") is not None
+    if no_auto_update:
+        return True
+
+    if is_system_installation(src_root):
         return True
 
     return False

@@ -3,6 +3,7 @@ from __future__ import annotations
 import gdb
 
 import pwndbg
+import pwndbg.commands
 
 
 def test_consistent_help():
