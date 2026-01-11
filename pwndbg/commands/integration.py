@@ -485,6 +485,9 @@ def sync(fail_quietly: bool) -> None:
         # Direct check, no retries.
         if not pwndbg.integration.manager.is_connected():
             return
+
+        # Something else is calling us, lets give the output some space.
+        print()
     else:
         # Noisy check with a connection attempt.
         # Don't try to sync because that sync would be quiet, and we want
