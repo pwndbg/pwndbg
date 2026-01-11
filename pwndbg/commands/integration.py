@@ -624,12 +624,39 @@ def list_(list_all: bool) -> None:
         list_one_frame(frame)
 
 
+def setpath(path: str) -> None:
+    # I make this a command instead of a config for consistency with setbase.
+
+    # Unset manual base first
+    if pwndbg.integration.manual_binary_address != -1:
+        print(
+            f"Unset the previously set `di setbase` value of {pwndbg.integration.manual_binary_address}."
+        )
+        pwndbg.integration.manual_binary_address = -1
+
+    pwndbg.integration.manual_binary_path = path
+    print(f"Path of the decompiled binary in the address space set to {path}.")
+    if path == "":
+        print("(back to automatic detection)")
+
+    if pwndbg.integration.manager.is_connected():
+        print("Reconnecting to apply changes..\n")
+        connect(also_sync=True)
+
+
 def setbase(base_addr: int) -> None:
     # I use a command like this instead of a config parameter because it seems
     # GDB doesn't allow values > 2^32.
     if base_addr < -1:
         print(message.error("Valid values are in [-1, 2^64)."))
         return
+
+    # Unset manual path first
+    if pwndbg.integration.manual_binary_path != "":
+        print(
+            f"Unset the previously set `di setpath` value of {pwndbg.integration.manual_binary_path}."
+        )
+        pwndbg.integration.manual_binary_path = ""
 
     pwndbg.integration.manual_binary_address = base_addr
     print(f"Base address of the decompiled binary set to {base_addr:#x}.")
@@ -780,6 +807,8 @@ needed when debugging a kernel module.
 
 If you wish to re-enable automatic base address detection, set this value to -1 (or
 restart Pwndbg).
+
+Setting this automatically unsets the `di setpath` value.
 """,
 )
 parser_set_base.add_argument(
@@ -787,6 +816,32 @@ parser_set_base.add_argument(
     metavar="addr",
     type=int,
     help="Memory address of the decompiled binary in the address space",
+)
+
+parser_set_path = subparsers.add_parser(
+    "setpath",
+    help="Manually set the path of the binary as loaded in memory",
+    description="""
+Manually set the path of the binary as loaded in memory.
+
+Normally, Pwndbg will use the file path that the decompiler reports for the binary and
+check it against all files mapped into memory to find the correct base address.
+
+If for some reason the file names differ or your binary does not show up in the memory
+mappings, you can manually specify the actual path of the binary as loaded in memory (
+the one reported by /proc/<pid>/maps i.e. vmmap).
+
+If you wish to re-enable automatic base address detection, set this value to "" (or
+restart Pwndbg).
+
+Setting this automatically unsets the `di setbase` value.
+""",
+)
+parser_set_path.add_argument(
+    "binary_path",
+    metavar="path",
+    type=int,
+    help="File path of the decompiled binary as loaded in memory",
 )
 
 
@@ -799,6 +854,7 @@ def decompiler_integration(
     install_sub: str = "",
     list_all: bool = False,
     binary_addr: int = -1,
+    binary_path: str = "",
 ):
     match command:
         case "connect" | "c":
@@ -817,6 +873,8 @@ def decompiler_integration(
             list_(list_all)
         case "setbase":
             setbase(binary_addr)
+        case "setpath":
+            setpath(binary_path)
 
 
 # ========= End of decompiler-integration command handling =========

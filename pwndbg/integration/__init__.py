@@ -144,6 +144,7 @@ _api_name_to_id = {
 
 # If the user wants to override our automatic detection
 manual_binary_address: int = -1
+manual_binary_path: str = ""
 
 
 class DecompilerConnection:
@@ -218,6 +219,8 @@ class DecompilerConnection:
                             " We will keep an eye out for it.\n"
                         )
                         + "If you know that it is actually loaded, check out "
+                        + message.hint("`di setpath --help`")
+                        + " or "
                         + message.hint("`di setbase --help`")
                         + ".\n"
                     )
