@@ -38,9 +38,7 @@ COPY ./pyproject.toml /pwndbg/
 # pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 
-# fix for py3.14 because wheels aren't available so packages need to be built
 # RUN uv sync --all-groups --all-extras
-RUN dnf install -y uv patch ncurses-devel gcc g++
 COPY ./setup.sh /pwndbg/
 RUN ./setup.sh
 
