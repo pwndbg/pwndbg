@@ -28,7 +28,7 @@ install_apt() {
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install git gdb gdb-gdbserver python3-devel
+    sudo dnf -y install git gdb gdb-gdbserver python3-devel gcc g++ make patch ncurses-devel
     sudo dnf -y debuginfo-install glibc
 }
 
