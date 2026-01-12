@@ -20,7 +20,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     pacman -Syu --noconfirm && \
     localedef -i en_US -c -f UTF-8 en_US.UTF-8 && \
-    pacman -S --noconfirm vim base-devel && \
+    pacman -S --noconfirm vim && \
     pacman -Scc --noconfirm
 
 # setup.sh needs scripts/common.sh

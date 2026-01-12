@@ -145,7 +145,6 @@ EOF
         lib32-glibc \
         curl \
         wget \
-        base-devel \
         gdb \
         parallel \
         musl
