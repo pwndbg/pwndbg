@@ -142,8 +142,19 @@ _api_name_to_id = {
     "angr": DecompilerID.ANGR,
 }
 
+
+class Error(Enum):
+    OK = "Ok."
+    NO_CONNECTION = "Not connected to a decompiler"
+    BINARY_NOT_LOADED = "Couldn't find binary in address space"
+    DEBUGGER_NOT_SUPPORTED = "The debugger does not support this operation"
+    NOT_ALIVE = "The process is not alive"
+    NO_FRAME = "No stack frame found."
+
+
 # If the user wants to override our automatic detection
 manual_binary_address: int = -1
+manual_binary_path: str = ""
 
 
 class DecompilerConnection:
@@ -163,8 +174,9 @@ class DecompilerConnection:
     """The XML RPC server that is connected to the decompiler."""
     server: xmlrpc.client.ServerProxy
 
-    """The (host filesystem) path of the binary loaded in the decompiler.
-    It can be both an executable and a shared library."""
+    """The (host filesystem) path of the binary loaded as reported by the decompiler.
+    It can be both an executable and a shared library.
+    May not be relevant if manual_binary_address or manual_binary_path are set."""
     binary_path: str
 
     """Version information about the decompiler we are connected to. See
@@ -189,6 +201,7 @@ class DecompilerConnection:
 
     def _find_binary_addr(self, print_failure: bool = False) -> None:
         if manual_binary_address != -1:
+            # The user hardcoded the binary base address via `di setbase`.
             self._binary_base_addr = manual_binary_address
             return
 
@@ -200,24 +213,30 @@ class DecompilerConnection:
         if not inf.alive():
             return
 
+        if manual_binary_path != "":
+            # The user overrode what the decompiler says via `di setpath`.
+            path: str = manual_binary_path
+        else:
+            path = self.binary_path
+
         # Try to find the binary in the address space.
-        start_addr: Optional[int] = pwndbg.aglib.vmmap.named_region_start(
-            self.binary_path, exact_match=True
-        )
+        start_addr: Optional[int] = pwndbg.aglib.vmmap.named_region_start(path, exact_match=True)
 
         if start_addr is None:
             # Try harder! (likely we are remote debugging)
-            start_addr = pwndbg.aglib.vmmap.named_region_start(self.binary_path, exact_match=False)
+            start_addr = pwndbg.aglib.vmmap.named_region_start(path, exact_match=False)
 
             if start_addr is None:
                 if print_failure:
                     basename: str = os.path.basename(self.binary_path)
                     print(
                         message.notice(
-                            f"The decompiled program {basename} doesn't seem to be loaded."
+                            f'The decompiled program "{basename}" doesn\'t seem to be loaded.'
                             " We will keep an eye out for it.\n"
                         )
                         + "If you know that it is actually loaded, check out "
+                        + message.hint("`di setpath --help`")
+                        + " or "
                         + message.hint("`di setbase --help`")
                         + ".\n"
                     )
@@ -541,35 +560,48 @@ class IntegrationManager:
 
     # ==== Setters ====
 
-    def update_symbols(self) -> int:
+    def update_symbols(self) -> tuple[int, Error]:
         """
         Update global variables and functions in the debugger.
 
         This always invalidates the cache for global variables and
         function headers, and requests them from the plugin.
 
-        Returns the amount of synced symbols.
+        Returns the amount of synced symbols and an error diagnostic.
+
+        Possible error values:
+            NO_CONNECTION
+            BINARY_NOT_LOADED
+            NOT_ALIVE
+            DEBUGGER_NOT_SUPPORTED
 
         FIXME: Currently they are all 8 bytes in size.
         """
         # We need to bail even if we are connected, but the binary is not loaded into
         # the address space yet.
-        if self._connection is None or self._connection.binary_base_addr == -1:
-            return 0
+        if self._connection is None:
+            return 0, Error.NO_CONNECTION
+
+        if self._connection.binary_base_addr == -1:
+            return 0, Error.BINARY_NOT_LOADED
 
         # Invalidate the two caches.
         self._function_headers = None
         self._global_vars = None
 
-        if pwndbg.dbg.name == pwndbg.dbg_mod.DebuggerType.LLDB:
-            print(message.error("Symbolication is not yet supported on LLDB."))
+        if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.LLDB:
             # Until we implement add_symbol_file for LLDB.
-            return 0
+            return 0, Error.DEBUGGER_NOT_SUPPORTED
 
         try:
             inf: pwndbg.dbg_mod.Process = pwndbg.dbg.selected_inferior()
         except pwndbg.dbg_mod.NoInferior:
-            return 0
+            # Should never happen because we already know that binary_base_address is set.
+            return 0, Error.NOT_ALIVE
+
+        if not inf.alive():
+            # Should never happen because we already know that binary_base_address is set.
+            return 0, Error.NOT_ALIVE
 
         # Remove old symbol file.
         # If we don't do this, the symbols will stack (run `info func` in GDB).
@@ -598,7 +630,7 @@ class IntegrationManager:
                 sym_name_set.add(clean_name)
 
         if not syms_to_add:
-            return 0
+            return 0, Error.OK
 
         _, elf_path = tempfile.mkstemp(prefix="symbols-", suffix=".elf")
         elf = niche_elf.ELFFile(self._connection.binary_base_addr)
@@ -611,7 +643,7 @@ class IntegrationManager:
         self._latest_symbol_file_path = elf_path
         # Delete the file after GDB closes the file descriptor.
         os.unlink(elf_path)
-        return len(syms_to_add)
+        return len(syms_to_add), Error.OK
 
     def _clean_type_str(self, type_str: str) -> str:
         # FIXME:
@@ -650,7 +682,7 @@ class IntegrationManager:
 
         return False
 
-    def update_function_variables(self) -> int:
+    def update_function_variables(self) -> tuple[int, Error]:
         """
         Update debugger convnience varibles based on the function variables in the currently
         selected frame.
@@ -660,20 +692,21 @@ class IntegrationManager:
 
         Returns:
             The number of variables we successfully updated in the debugger.
+            An error diagnostic (NO_CONNECTION or NO_FRAME).
 
         FIXME: Currently this kinda doesn't work if it runs while we are in the function
         prologue. We should ideally run it only when we enter new functions and are past
         their prologues.
         """
         if self._connection is None:
-            return 0
+            return 0, Error.NO_CONNECTION
 
         # We could do some updates without having a valid selected frame by using pwndbg.aglib.regs.sp ,
         # but this probably complicates the code uneccessarily (see some previous commits in the PR).
         # I'm simply not sure when exactly can selected_frame() actually return None.
         frame: Optional[pwndbg.dbg_mod.Frame] = pwndbg.dbg.selected_frame()
         if frame is None:
-            return 0
+            return 0, Error.NO_FRAME
 
         # Invalidate this whole cache.
         # We could invalidate just for frame.pc() for the purposes of this function, but we want to invalidate
@@ -685,7 +718,7 @@ class IntegrationManager:
             frame
         )
         if rebased_vars is None:
-            return 0
+            return 0, Error.OK
 
         nupdated: int = 0
 
@@ -704,7 +737,7 @@ class IntegrationManager:
             )
             nupdated += 1 if ok else 0
 
-        return nupdated
+        return nupdated, Error.OK
 
     # ==== Getters ====
     # All getters are either cheap (no RPC) operations, or cached.

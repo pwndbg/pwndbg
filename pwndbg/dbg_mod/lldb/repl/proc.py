@@ -216,6 +216,9 @@ class ProcessDriver:
     _io_driver_state: _IODriverState
     "Whether the I/O driver is currently running"
 
+    _is_core_file: bool
+    "Whether the current live process is actually a core file"
+
     def __init__(self, event_handler: EventHandler, debug=False):
         self.io = None
         self.process = None
@@ -227,6 +230,7 @@ class ProcessDriver:
         self._in_run_until_next_stop = 0
         self._in_run_coroutine = 0
         self._io_driver_state = _IODriverState.STOPPED
+        self._is_core_file = False
 
     def __enter__(self) -> ProcessDriver:
         return self
@@ -264,6 +268,14 @@ class ProcessDriver:
         active process also must necessarily be connected.
         """
         return self.process is not None
+
+    def is_core_file(self) -> bool:
+        """
+        Whether this driver's process is a core file.
+
+        Core file processes don't support changes to the lifetime of the process.
+        """
+        return self._is_core_file
 
     def interrupt(self, in_lldb_command_handler: bool = False) -> None:
         """
@@ -405,6 +417,8 @@ class ProcessDriver:
         will only start running after the start event is observed.
         """
 
+        assert not self._is_core_file, "_run_until_next_stop is not valid for core files"
+
         # If `only_if_started` is set, we defer the starting of the I/O driver
         # to the moment the start event is observed. Otherwise, we just start it
         # immediately.
@@ -536,6 +550,7 @@ class ProcessDriver:
         Continues execution of the process this object is driving, and returns
         whenever the process stops.
         """
+        assert not self._is_core_file, "cont is not valid for core files"
         assert self.has_process(), "called cont() on a driver with no process"
 
         self.eh.resumed()
@@ -588,7 +603,27 @@ class ProcessDriver:
                 #
                 # TODO/FIXME: Find a way to trigger the continued event before the process is resumed in LLDB
 
-                if not start_expected:
+                if self._is_core_file:
+                    # LLDB simply doesn't support continuing core file processes.
+                    # If we get here, either LLDB has completely lost it, or we
+                    # don't know how to handle this kind of command. Bail.
+                    assert not start_expected, "LLDB seemingly continued a core file process"
+
+                    # Because we don't have an event source, we can't directly
+                    # know if the process has been killed by the user. So, we
+                    # manually check against the state of the process after
+                    # every command.
+                    self.debug_print(
+                        f"Core File: Process state after command is {self.process.state:#x}"
+                    )
+                    if not self.process.IsValid() or self.process.state == lldb.eStateExited:
+                        self.process = None
+                        self._is_core_file = False
+                        self.debug_print("exited()")
+                        self.eh.exited()
+                        self.debug_print("Core File: Finished debugging core file")
+
+                elif not start_expected:
                     # Even if the current process has not been resumed, LLDB might
                     # have posted process events for us to handle. Do so now, but
                     # stop right away if there is nothing for us in the listener.
@@ -605,6 +640,7 @@ class ProcessDriver:
         process in this driver. Returns `True` if the coroutine ran to completion,
         and `False` if it was cancelled.
         """
+        assert not self._is_core_file, "run_coroutine is not valid for core files"
         try:
             return self._run_coroutine(coroutine)
         except CancelledError:
@@ -617,6 +653,7 @@ class ProcessDriver:
         This loop may be spuriously cancelled. We handle that in run_coroutine().
         """
 
+        assert not self._is_core_file, "_run_coroutine is not valid for core files"
         assert self.has_process(), "called run_coroutine() on a driver with no process"
 
         self.debug_print("Coroutine: Starting")
@@ -929,6 +966,53 @@ class ProcessDriver:
         else:
             self._prepare_listener_for(target)
             return self._enter(self._launch_local, target, io, env, args, working_dir, extra_flags)
+
+    def launch_core_file(self, target: lldb.SBTarget, core: str) -> LaunchResult:
+        """
+        Launches the given core file and puts the process driver into core file
+        mode.
+
+        In core file mode, using lifetime-related functionality - continuing,
+        running coroutines, etc. - is forbidden. Core file mode ends when the
+        process exits.
+
+        Fires the created() and suspended() events.
+        """
+
+        # The _enter machinery runs the event loop as part of initializing the
+        # new process. We don't want that here. Processes built by LoadCore
+        # don't broadcast lifetime events, and using _run_until_next_stop when
+        # there's nothing to listen to is iffy at best.
+
+        error = lldb.SBError()
+        self.process = target.LoadCore(core, error)
+
+        if not error.success:
+            self.process = None
+            return LaunchResultError(error, False)
+
+        assert self.process.IsValid()
+        self.debug_print("Core File: Loaded")
+        self.debug_print("Core File: All events will be simulated by ProcessDriver")
+
+        # Enter core file mode, disabling all lifetime controls in the process
+        # driver, as well as the event loop. This ensures that the driver won't
+        # get stuck trying to either control or handle events from a process
+        # that does not support it.
+        self._is_core_file = True
+
+        # Still fire the created event as normal. Process objects based on core
+        # files are created in the stopped state, and stay in it for the
+        # duration of their lifetimes.
+        #
+        # From the point of view of the rest of pwndbg, this is no different
+        # from firing the event after having run _wait_until_next_stop.
+        self.debug_print("Core File: created()")
+        self.eh.created()
+        self.debug_print("Core File: suspended(None)")
+        self.eh.suspended(None)
+
+        return LaunchResultSuccess()
 
     def attach(self, target: lldb.SBTarget, info: lldb.SBAttachInfo) -> LaunchResult:
         """

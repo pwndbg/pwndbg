@@ -1187,7 +1187,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         if base is None:
             gdb.execute(f"add-symbol-file {path}", to_string=True)
             return
-        gdb.execute(f"add-symbol-file {path} {base}")
+        gdb.execute(f"add-symbol-file {path} {base}", to_string=True)
 
     @override
     def remove_symbol_file(self, path: str) -> bool:

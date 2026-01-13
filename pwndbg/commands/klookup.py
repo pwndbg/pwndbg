@@ -57,7 +57,7 @@ def klookup(symbol: str, apply: bool) -> None:
             print(message.success(f"{sym_addr:#x} {sym_type} {sym_name}"))
 
     if apply:
-        if pwndbg.dbg.name == pwndbg.dbg_mod.DebuggerType.LLDB:
+        if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.LLDB:
             print(message.error("Symbolication is not yet supported on LLDB."))
             # Until we implement add_symbol_file for LLDB.
             return
