@@ -62,12 +62,12 @@ def extract_functions() -> Sequence[ConvFunction]:
     Returns a dictionary that mapes function names to
     the corresponding _GdbFunction objects.
     """
+    # https://github.com/astral-sh/ruff/issues/22467
+    global pwndbg
     if pwndbg.dbg.is_gdblib_available():
-        # Since mypy and ruff both complain about this, maybe I just don't understand
-        # something?
-        # https://github.com/astral-sh/ruff/issues/22467
-        # import pwndbg.gdblib.functions
-        functions = pwndbg.gdblib.functions.functions  # type: ignore[attr-defined]
+        import pwndbg.gdblib.functions
+
+        functions = pwndbg.gdblib.functions.functions
     else:
         functions = []
 
