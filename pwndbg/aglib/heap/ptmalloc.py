@@ -769,6 +769,10 @@ class Arena:
         return self._heaps
 
     def fastbins(self) -> Bins:
+        if pwndbg.glibc.get_version() >= (2, 43):
+            print(message.info("fastbins were removed in 2.43"))
+            return None
+
         size = pwndbg.aglib.arch.ptrsize * 2
         fd_offset = pwndbg.aglib.arch.ptrsize * 2
         safe_lnk = pwndbg.glibc.check_safe_linking()
