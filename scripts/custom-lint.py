@@ -28,7 +28,7 @@ def check_forbiden_in_lines(
     """
     Check if any of the files specified in `files` match any of the regex's
     specified in `forbidden`. If so, print the offending line, the `err_msg`,
-    and exit 1.
+    and set LINT_FAILED=True.
 
     `exceptions` is a dictionary from file to a list of lines which are hardcoded
     to be fine. The line *content* is specified, and matched for exactly.
