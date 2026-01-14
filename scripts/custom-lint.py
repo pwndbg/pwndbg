@@ -59,7 +59,14 @@ def lib_is_pure() -> None:
     Checks that pwndbg/lib/ does not contain any references
     to pwndbg.aglib, pwndbg.dbg and pwndbg.dbg_mod .
     """
-    forbidden: list[str] = ["pwndbg\\.aglib", "pwndbg\\.dbg", "pwndbg\\.dbg_mod"]
+    forbidden: list[str] = [
+        "pwndbg\\.aglib",
+        "pwndbg\\.dbg",
+        "pwndbg\\.dbg_mod",
+        "from pwndbg import aglib",
+        # import pwndbg.anything is bad, except import pwndbg.lib and pwndbg.color
+        r"import\s+pwndbg\.(?!lib)(?!color)",
+    ]
     exceptions: dict[Path, list[str]] = {
         (PWNDBG_ROOT / "pwndbg/lib/tips.py"): [
             # It's just a tip, not actual code, so it's fine.
