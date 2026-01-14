@@ -47,10 +47,10 @@ def check_forbiden_in_lines(
             for bad in forbidden:
                 if re.search(bad, line) is not None:
                     # Lint failed.
-                    print("[!] Rule violation [!]")
+                    print("\n[!] Rule violation [!]")
                     print(f"Rule: {err_msg}")
                     print(f"But matched regex `{bad}` in {file}:{line_idx} :")
-                    print(f"=============\n{line}\n=============")
+                    print(f"=============\n{line}\n=============\n")
                     LINT_FAILED = True
 
 
@@ -83,7 +83,7 @@ def lib_is_pure() -> None:
     check_forbiden_in_lines(
         pwndbg_lib_py_files,
         forbidden,
-        "You may not reference debugger-related logic in pwndbg/lib/ files!\n"
+        "[lib_is_pure] You may not reference debugger-related logic in pwndbg/lib/ files!\n"
         "See: https://pwndbg.re/dev/contributing/common-pitfalls/#pwndbglib-files-should-only-access-pwndbglib .",
         exceptions,
     )
@@ -94,6 +94,10 @@ def main() -> None:
 
     if LINT_FAILED:
         print(red("Fatal: Custom lint check failed. See the violations above^."))
+        print(
+            "If you think the check is erroneous (e.g. we matched on a comment), feel free to fix"
+        )
+        print("it or add an exception (scripts/custom-lint.py).")
         sys.exit(1)
     else:
         print("Passed!")
