@@ -83,8 +83,6 @@ def lib_is_pure() -> None:
 
 
 def main() -> None:
-    print("Checking Pwndbg custom lint rules...")
-
     lib_is_pure()
 
     if LINT_FAILED:
