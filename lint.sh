@@ -107,7 +107,16 @@ else
         exit 1
     fi
 
-    call_shfmt
+    if ! call_shfmt; then
+        set +o xtrace
+        echo ""
+        echo "========================================="
+        echo "ERROR: Formatting issues detected by shfmt."
+        echo "       Exiting early. All checks were NOT run."
+        echo "       Use -f to fix issues automatically."
+        echo "========================================="
+        exit 1
+    fi
 
     if [[ -z "$GITHUB_ACTIONS" ]]; then
         RUFF_OUTPUT_FORMAT=full
