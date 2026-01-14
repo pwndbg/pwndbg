@@ -307,17 +307,24 @@ def eX(size, address, data, hex=True) -> None:
 
 parser = argparse.ArgumentParser(description="Dump pointers and symbols at the specified address.")
 parser.add_argument("addr", type=pwndbg.commands.HexOrAddressExpr, help="The address to dump from.")
+parser.add_argument(
+    "count",
+    type=int,
+    default=8,
+    nargs="?",
+    help="The number of pointers to dump (default 8).",
+)
 
 
 @pwndbg.commands.Command(
     parser, aliases=["kd", "dps", "dqs"], category=CommandCategory.WINDBG
 )  # TODO are these really all the same? They had identical implementation...
 @pwndbg.commands.OnlyWhenRunning
-def dds(addr):
+def dds(addr, count=8):
     """
     Dump pointers and symbols at the specified address.
     """
-    return pwndbg.commands.telescope.telescope(addr)
+    return pwndbg.commands.telescope.telescope(addr, count)
 
 
 da_parser = argparse.ArgumentParser(description="Dump a string at the specified address.")
