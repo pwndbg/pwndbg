@@ -202,6 +202,7 @@ def nearpc(
             if instruction.jump_like and instruction.has_jump_target and not instruction.call_like:
                 jumps.append(JumpRange(instruction.address, instruction.target))
 
+        # Generate map to address to jump it belongs in
         for instruction in instructions:
             for pair in jumps:
                 if pair.contains(instruction.address):
