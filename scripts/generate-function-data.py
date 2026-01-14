@@ -14,12 +14,17 @@ URL = "https://syscalls.mebeim.net/db/x86/64/x64/latest/table.json"
 _IDENT_RE = re.compile(r"([A-Za-z_]\w*)\s*(\[[^\]]*\])?\s*$")
 
 
-def parse_arg(arg: str):
+def parse_arg(arg: str) -> tuple[str, int, str]:
+    """
+    Returns [type name, deref count, name].
+    """
     arg = arg.strip()
 
     m = _IDENT_RE.search(arg)
+    assert m
 
     name = m.group(1)
+    assert isinstance(name, str)
 
     type_part = arg[: m.start()].strip()
     deref = type_part.count("*")
@@ -30,7 +35,7 @@ def parse_arg(arg: str):
     return (type_str, deref, name)
 
 
-def main():
+def main() -> None:
     syscall_table = requests.get(URL).json()
 
     syscalls = syscall_table["syscalls"]
