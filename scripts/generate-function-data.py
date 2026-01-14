@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+Script to generate part of the pwndbg/lib/functions_data.py file
+"""
 
 from __future__ import annotations
 
@@ -38,8 +41,9 @@ def main():
         elif "origname" in entry:
             name = entry["origname"]
         else:
-            # Something is fucked up
+            # Something is wrong
             name = "unknown"
+            raise Exception("Unknown syscall entry: comment this exception if you want to proceed")
 
         fname = f"SYS_{name.strip()}"
 
