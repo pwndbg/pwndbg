@@ -83,7 +83,6 @@ elif [[ $FIX_AND_CHECK == 1 ]]; then
     $UV_RUN_LINT ruff format ${LINT_FILES}
     $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
     call_shfmt -w
-    $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 else
     if ! $UV_RUN_LINT ruff format --check --diff ${LINT_FILES}; then
         set +o xtrace
@@ -114,17 +113,13 @@ else
     fi
 
     $UV_RUN_LINT ruff check --output-format="${RUFF_OUTPUT_FORMAT}" ${LINT_FILES}
-    # Checking minimum python version
-    $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 fi
 
-# Check that pwndbg/lib does not import from pwndbg.aglib
-echo "Checking for aglib usage in pwndbg/lib..."
-if grep -rE "(import .*\.aglib|from .*\.aglib)" pwndbg/lib/; then
-    echo "Error: pwndbg/lib must not import from pwndbg.aglib"
-    echo "The 'lib' module is a low-level library and cannot depend on 'aglib'"
-    exit 1
-fi
+# Checking minimum python version
+$UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
+
+# Check our custom rules.
+$UV_RUN_LINT scripts/custom-lint.py
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then

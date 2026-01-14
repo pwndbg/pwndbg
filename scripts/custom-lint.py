@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+"""
+Check for custom Pwndbg lint rules on the codebase.
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+PWNDBG_ROOT: Path = Path(__file__).parent.parent
+pwndbg_lib_py_files: list[Path] = list((PWNDBG_ROOT / "pwndbg/lib/").rglob("*.py"))
+
+RED = "\x1b[31m"
+NORMAL = "\x1b[0m"
+
+LINT_FAILED: bool = False
+
+
+def red(x: str) -> str:
+    return RED + x.replace(NORMAL, NORMAL + RED) + NORMAL
+
+
+def check_forbiden_in_lines(
+    files: list[Path], forbidden: list[str], err_msg: str, exceptions: dict[Path, list[str]]
+) -> None:
+    """
+    Check if any of the files specified in `files` match any of the regex's
+    specified in `forbidden`. If so, print the offending line, the `err_msg`,
+    and exit 1.
+
+    `exceptions` is a dictionary from file to a list of lines which are hardcoded
+    to be fine. The line *content* is specified, and matched for exactly.
+    """
+    global LINT_FAILED
+
+    for file in files:
+        lines = file.read_text().splitlines()
+        line_idx = 0
+        for line in lines:
+            line_idx += 1
+            if line in exceptions.get(file, []):
+                print(f"skipping {file}:{line_idx}..")
+                continue
+
+            for bad in forbidden:
+                if re.search(bad, line) is not None:
+                    # Lint failed.
+                    print("[!] Rule violation [!]")
+                    print(f"Rule: {err_msg}")
+                    print(f"But matched regex `{bad}` in {file}:{line_idx} :")
+                    print(f"=============\n{line}\n=============")
+                    LINT_FAILED = True
+
+
+def lib_is_pure() -> None:
+    """
+    Checks that pwndbg/lib/ does not contain any references
+    to pwndbg.aglib, pwndbg.dbg and pwndbg.dbg_mod .
+    """
+    forbidden: list[str] = ["pwndbg\\.aglib", "pwndbg\\.dbg", "pwndbg\\.dbg_mod"]
+    exceptions: dict[Path, list[str]] = {
+        (PWNDBG_ROOT / "pwndbg/lib/tips.py"): [
+            # It's just a tip, not actual code, so it's fine.
+            '    "Use GDB\'s `pi` command to run an interactive Python console where you can use Pwndbg APIs like `pwndbg.aglib.memory.read(addr, len)`, `pwndbg.aglib.memory.write(addr, data)`, `pwndbg.aglib.vmmap.get()` and so on!",',
+            # It's a comment.
+            "    You should pass in pwndbg.dbg.name().value .",
+        ],
+        (PWNDBG_ROOT / "pwndbg/lib/cache.py"): [
+            # It's a comment.
+            "    Not necessarily 1:1 with pwndbg.dbg_mod.EventTypes , but"
+        ],
+    }
+
+    check_forbiden_in_lines(
+        pwndbg_lib_py_files,
+        forbidden,
+        "You may not reference debugger-related logic in pwndbg/lib/ files!\n"
+        "See: https://pwndbg.re/dev/contributing/common-pitfalls/#pwndbglib-files-should-only-access-pwndbglib .",
+        exceptions,
+    )
+
+
+def main() -> None:
+    print("Checking Pwndbg custom lint rules...")
+
+    lib_is_pure()
+
+    if LINT_FAILED:
+        print(red("Fatal: Custom lint check failed. See the violations above^."))
+        sys.exit(1)
+    else:
+        print("Passed!")
+
+
+if __name__ == "__main__":
+    main()
