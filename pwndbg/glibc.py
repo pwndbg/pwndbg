@@ -57,7 +57,7 @@ def set_glibc_version() -> None:
 @pwndbg.aglib.proc.OnlyWhenRunning
 def get_version() -> Tuple[int, ...] | None:
     if glibc_version:
-        version_tuple = tuple(int(i) for i in glibc_version.split("."))
+        version_tuple = tuple(int(i) for i in glibc_version.value.split("."))
         return version_tuple
 
     return _get_version()

@@ -689,7 +689,7 @@ def install(disable_hardware_watchpoints=True) -> None:
             "This feature is experimental and is known to report false positives, take the"
         )
     )
-    print(message.warn("diagnostics it procudes with a grain of salt. Use at your own risk."))
+    print(message.warn("diagnostics it produces with a grain of salt. Use at your own risk."))
     print()
 
     # Disable hardware watchpoints.

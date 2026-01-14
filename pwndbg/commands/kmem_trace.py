@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import threading
+from typing import Tuple
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
@@ -11,6 +12,7 @@ import pwndbg.arguments
 import pwndbg.color as color
 import pwndbg.color.message as message
 import pwndbg.commands.context
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.dbg_mod import BreakpointLocation
 from pwndbg.dbg_mod import DebuggerType
@@ -167,7 +169,7 @@ class KmemTracepoints:
         self.slab_tracepoints_enabled = True
         self.buddy_tracepoints_enabled = True
 
-    def resolve_names(self, names):
+    def resolve_names(self, names: Tuple[str, ...]) -> list[int]:
         result = []
         for name in names:
             addr = pwndbg.aglib.symbol.lookup_symbol_addr(name)
@@ -209,12 +211,9 @@ class KmemTracepoints:
 
     @staticmethod
     def palloc_handler(sp: pwndbg.dbg_mod.StopPoint) -> bool:
-        inf = pwndbg.dbg.selected_inferior()
-        assert inf
-
         self = get_kmem_tracepoints()
         order = pwndbg.arguments.argument(1)
-        inf.trace_ret(KmemTracepoints._palloc_handler, True)
+        pwndbg.dbg.selected_inferior().trace_ret(KmemTracepoints._palloc_handler, True)
         self.data.order = order
         return False
 
@@ -228,7 +227,6 @@ class KmemTracepoints:
 
     def register_breakpoints(self, verbose, trace_all):
         inf = pwndbg.dbg.selected_inferior()
-        assert inf
         self.results = []
         self.data = KmemTracepointsData(verbose, trace_all)
         if self.slab_tracepoints_enabled:

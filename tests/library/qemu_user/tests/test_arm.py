@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gdb
 
+import pwndbg.aglib
 import pwndbg.color
 
 ARM_PREAMBLE = """
@@ -389,6 +390,9 @@ def test_arm_stack_pointer_check(qemu_assembly_run):
     dis = gdb.execute("context disasm", to_string=True)
     dis = pwndbg.color.strip(dis)
 
+    sp = pwndbg.aglib.regs.sp
+    assert sp
+
     expected = (
         "LEGEND: STACK | HEAP | CODE | DATA | WX | RODATA\n"
         "──────────────────[ DISASM / arm / arm mode / set emulate on ]──────────────────\n"
@@ -396,7 +400,7 @@ def test_arm_stack_pointer_check(qemu_assembly_run):
         "   0x200b8 <_start+4>     mov    r1, #3                  R1 => 3\n"
         "   0x200bc <_start+8>     add    r2, r0, r1              R2 => 7 (4 + 3)\n"
         "   0x200c0 <_start+12>    sub    r3, r2, #2              R3 => 5 (7 - 2)\n"
-        f"   0x200c4 <_start+16>    str    r3, [sp, #-4]!          [{hex(pwndbg.aglib.regs.sp - 4)}] <= 5\n"
+        f"   0x200c4 <_start+16>    str    r3, [sp, #-4]!          [{hex(sp - 4)}] <= 5\n"
         "   0x200c8 <_start+20>    pop    {r4}\n"
         "   0x200cc <_start+24>    mul    r4, r2, r1              R4 => 0x15 (7 * 3)\n"
         "   0x200d0 <_start+28>    add    r4, r4, #1              R4 => 0x16 (0x15 + 0x1)\n"

@@ -9,7 +9,7 @@ from . import get_binary
 BINARY = get_binary("reference-binary.native.out")
 
 
-def prepare_prompt(is_proc_alive):
+def prepare_prompt(is_proc_alive) -> str:
     prompt = "pwndbg> "
 
     prompt = "\x02" + prompt + "\x01"  # STX + prompt + SOH
@@ -23,7 +23,7 @@ def prepare_prompt(is_proc_alive):
 
 
 # check if expected and actual prompts correspond
-def run_prompt_check(is_proc_alive):
+def run_prompt_check(is_proc_alive) -> None:
     expected = prepare_prompt(is_proc_alive=is_proc_alive)
     result = gdb.execute("show prompt", to_string=True)
     result = result.replace("\\001", "\x01")
@@ -31,13 +31,13 @@ def run_prompt_check(is_proc_alive):
     result = result.replace(r"\e", "\x1b")
     result = result.split('"')[1].encode("latin1")
     expected = expected.encode("latin1")
-    print(f"Expected ---> {expected}")
-    print(f"Result   ---> {result}")
+    print(f"Expected ---> {expected!r}")
+    print(f"Result   ---> {result!r}")
 
     assert result == expected
 
 
-def test_prompt_recolor(start_binary):
+def test_prompt_recolor(start_binary) -> None:
     gdb.execute("set disable-colors off")
 
     # Check normal prompt

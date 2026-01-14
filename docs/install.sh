@@ -194,7 +194,8 @@ case "$OS" in
             x86_64) FILE="${BINARY_NAME}_${VERSION}_x86_64-portable.tar.xz" ;;
             i686) FILE="${BINARY_NAME}_${VERSION}_x86_32-portable.tar.xz" ;;
             aarch64) FILE="${BINARY_NAME}_${VERSION}_arm64-portable.tar.xz" ;;
-            armv7*) FILE="${BINARY_NAME}_${VERSION}_armv7-portable.tar.xz" ;;
+            armv7l) FILE="${BINARY_NAME}_${VERSION}_armv7-portable.tar.xz" ;;
+            armv8l) FILE="${BINARY_NAME}_${VERSION}_armv7-portable.tar.xz" ;;
             riscv64) FILE="${BINARY_NAME}_${VERSION}_riscv64-portable.tar.xz" ;;
             ppc64) FILE="${BINARY_NAME}_${VERSION}_powerpc64-portable.tar.xz" ;;
             ppc64le) FILE="${BINARY_NAME}_${VERSION}_powerpc64le-portable.tar.xz" ;;

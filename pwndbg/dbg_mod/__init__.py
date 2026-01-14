@@ -22,6 +22,7 @@ from typing import TypeVar
 
 import pwndbg.lib.memory
 from pwndbg.lib.arch import ArchDefinition
+from pwndbg.lib.siginfo import SigInfo
 
 dbg: Debugger = None
 
@@ -65,6 +66,11 @@ def selection(target: T, get_current: Callable[[], T], select: Callable[[T], Non
 
 class Error(Exception):
     pass
+
+
+class NoInferior(Exception):
+    def __init__(self) -> None:
+        super().__init__("The debugger couldn't find a selected inferior.")
 
 
 class DisassembledInstruction(TypedDict):
@@ -327,6 +333,12 @@ class Thread:
         """
         raise NotImplementedError()
 
+    def siginfo(self) -> Optional[SigInfo]:
+        """
+        The siginfo of this thread.
+        """
+        raise NotImplementedError()
+
 
 class MemoryMap:
     """
@@ -428,6 +440,12 @@ class Process:
     def stopped_with_signal(self) -> bool:
         """
         Returns whether this process was stopped by a signal.
+        """
+        raise NotImplementedError()
+
+    def stopped_at_breakpoint(self) -> bool:
+        """
+        Returns whether this process was stopped at a breakpoint.
         """
         raise NotImplementedError()
 
@@ -684,7 +702,7 @@ class Process:
         """
         raise NotImplementedError()
 
-    def add_symbol_file(self, path, base=None):
+    def add_symbol_file(self, path: str, base: int | None = None) -> None:
         """
         Adds a symbol file at base.
         """
@@ -700,9 +718,9 @@ class Process:
         """
         raise NotImplementedError()
 
-    def runcmd(self, cmd):
+    def runcmd(self, cmd: str) -> str:
         """
-        Runs a debugger command
+        Runs a debugger command and returns the output as a string.
         """
         raise NotImplementedError()
 
@@ -1194,9 +1212,14 @@ class Debugger:
         """
         raise NotImplementedError()
 
-    def selected_inferior(self) -> Process | None:
+    def selected_inferior(self) -> Process:
         """
         The inferior process currently being focused on in this interactive session.
+
+        Raises:
+            pwndbg.dbg_mod.NoInferior: If the debugger couldn't return an inferior. If
+                there is an alive Process (i.e. you are under @pwndbg.commands.OnlyWhenRunning)
+                this will not be raised.
         """
         raise NotImplementedError()
 

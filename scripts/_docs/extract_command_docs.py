@@ -131,7 +131,7 @@ def distill_one_subcommand(cmdname, parser: argparse.ArgumentParser) -> Extracte
     description = parser.description
     assert description
     # We will fix the aliases up later.
-    aliases = []
+    aliases: list[str] = []
     examples = ""
     notes = ""
     pure_epilog = ""
