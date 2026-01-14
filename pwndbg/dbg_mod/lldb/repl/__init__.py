@@ -59,6 +59,7 @@ import lldb
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod.lldb import LLDB
@@ -236,7 +237,7 @@ def show_greeting() -> None:
         print(message.prompt("pwndbg: ") + message.system(line))
 
     if show_tip:
-        colored_tip = color_tip(get_tip_of_the_day())
+        colored_tip = color_tip(get_tip_of_the_day(pwndbg.dbg_mod.DebuggerType.LLDB.value))
         print(
             message.prompt("------- tip of the day (some of these don't work in LLDB yet!)")
             + message.system(" (disable with %s)" % message.notice("set show-tips off"))
