@@ -5,7 +5,7 @@ Stepping until an event occurs
 from __future__ import annotations
 
 import argparse
-from typing import Callable
+from collections.abc import Callable
 
 import pwndbg.aglib.next
 import pwndbg.aglib.proc
@@ -160,7 +160,7 @@ def nextsyscall() -> None:
 async def _stepsyscall(
     ec: pwndbg.dbg_mod.ExecutionController,
     syscall_num: int | None = None,
-    condition: "Callable[[], int] | None" = None,
+    condition: Callable[[], int] | None = None,
 ) -> None:
     """
     Execution controller for the `stepsyscall` command.
