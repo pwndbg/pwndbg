@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Union
+from typing import TypeAlias
 
 from pycparser import CParser  # type: ignore # noqa: PGH003
 from pycparser import c_ast
@@ -9,15 +9,15 @@ from pycparser import c_ast
 from pwndbg.lib.functions import Argument
 from pwndbg.lib.functions import Function
 
-CAstNode = Union[
-    c_ast.EllipsisParam,
-    c_ast.PtrDecl,
-    c_ast.ArrayDecl,
-    c_ast.FuncDecl,
-    c_ast.Struct,
-    c_ast.Union,
-    c_ast.Enum,
-]
+CAstNode: TypeAlias = (
+    c_ast.EllipsisParam
+    | c_ast.PtrDecl
+    | c_ast.ArrayDecl
+    | c_ast.FuncDecl
+    | c_ast.Struct
+    | c_ast.Union
+    | c_ast.Enum
+)
 
 
 def extractTypeAndName(n: CAstNode, defaultName: str | None = None) -> tuple[str, int, str] | None:
@@ -66,7 +66,7 @@ def ExtractFuncDecl(node: CAstNode, verbose: bool = False) -> Function | None:
 
     fargs: list[Argument] = []
     for i, (argName, arg) in enumerate(node.args.children()):
-        defname = "arg%i" % i
+        defname = f"arg{i}"
         argdata = extractTypeAndName(arg, defname)
         if argdata is not None:
             a = Argument(*argdata)

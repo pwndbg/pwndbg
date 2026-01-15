@@ -639,7 +639,7 @@ class DisassemblyAssistant:
         if instruction.syscall is not None:
             instruction.syscall_name = (
                 DisassemblyAssistant._syscall_name(instruction.syscall, syscall_arch)
-                or "<unk_%d>" % instruction.syscall
+                or f"<unk_{instruction.syscall}>"
             )
 
     def _get_syscall_arch_info(self, instruction) -> tuple[str, str]:

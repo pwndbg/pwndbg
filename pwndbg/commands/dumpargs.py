@@ -51,6 +51,6 @@ def all_args() -> list[str]:
     results: list[str] = []
 
     for name, value in pwndbg.arguments.arguments():
-        results.append("%4s = %s" % (name, pwndbg.chain.format(value)))
+        results.append(f"{name:>4} = {pwndbg.chain.format(value)}")
 
     return results

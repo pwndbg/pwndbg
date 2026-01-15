@@ -537,7 +537,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
         Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else "None"}
-        Raw asm: {"%-06s %s" % (self.mnemonic, self.op_str)}
+        Raw asm: f"{self.mnemonic:-<6} {self.op_str}"
         New asm: {self.asm_string}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}

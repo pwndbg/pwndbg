@@ -563,8 +563,8 @@ class Heap:
         return self.start <= addr < self.end
 
     def __str__(self) -> str:
-        fmt = "[%%%ds]" % (pwndbg.aglib.arch.ptrsize * 2)
-        return message.hint(fmt % (hex(self.first_chunk.address))) + mem_color.c.heap(
+        width = pwndbg.aglib.arch.ptrsize * 2
+        return message.hint(f"[{hex(self.first_chunk.address):>{width}s}]") + mem_color.c.heap(
             str(pwndbg.aglib.vmmap.find(self.start))
         )
 
@@ -786,12 +786,12 @@ class Arena:
         return result
 
     def __str__(self) -> str:
-        prefix = "[%%%ds]    " % (pwndbg.aglib.arch.ptrsize * 2)
-        prefix_len = len(prefix % (""))
-        res = [message.hint(prefix % hex(self.address)) + str(self.heaps[0])]
+        width = pwndbg.aglib.arch.ptrsize * 2
+        prefix_fmt = f"[{{:>{width}s}}]    "
+        prefix_len = len(prefix_fmt.format(""))
+        res = [message.hint(prefix_fmt.format(hex(self.address))) + str(self.heaps[0])]
         for h in self.heaps[1:]:
             res.append(" " * prefix_len + str(h))
-
         return "\n".join(res)
 
 

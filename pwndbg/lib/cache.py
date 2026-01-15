@@ -12,8 +12,8 @@ from enum import IntFlag
 from functools import wraps
 from typing import Any
 from typing import Protocol
+from typing import TypeAlias
 from typing import TypeVar
-from typing import Union
 
 from typing_extensions import ParamSpec
 
@@ -60,7 +60,7 @@ class DebugCacheDict(UserDict):  # type: ignore[type-arg]
         self.misses = 0
 
 
-Cache = Union[dict[tuple[Any, ...], Any], DebugCacheDict]
+Cache: TypeAlias = dict[tuple[Any, ...], Any] | DebugCacheDict
 
 
 class CachedFunction(Protocol[T]):
@@ -113,7 +113,7 @@ class CacheUntilEvent(IntFlag):
 # fmt: on
 
 # OR (|) events together to make a set
-EventSet = int
+EventSet: TypeAlias = int
 
 
 _ALL_CACHE_UNTIL_EVENTS: dict[CacheUntilEvent, _CacheUntilEvent] = {

@@ -140,7 +140,7 @@ def argname(n: int, abi: pwndbg.lib.abi.ABI) -> str:
     if n < len(regs):
         return regs[n]
 
-    return "arg[%i]" % n
+    return f"arg[{n}]"
 
 
 def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
@@ -213,9 +213,10 @@ def format_args(instruction: PwndbgInstruction) -> list[str]:
             # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
             pid = pwndbg.aglib.proc.pid()
             if pid is not None:
-                path = pwndbg.aglib.file.readlink("/proc/%d/fd/%d" % (pid, value))
+                path = pwndbg.aglib.file.readlink(f"/proc/{pid}/fd/{value}")
                 if path:
                     pretty += f" ({path})"
 
-        result.append("%-10s %s" % (N.argument(arg.name) + ":", pretty))
+        result.append(f"{N.argument(arg.name) + ':':<10} {pretty}")
+
     return result

@@ -154,8 +154,8 @@ def probeleak(
             else:
                 right_text = f"({page.permstr}) {mod_name} + 0x{p - page.start:x}"
 
-            offset_text = "0x%0*x" % (off_zeros, i)
-            p_text = "0x%0*x" % (int(ptrsize * 2), p)
+            offset_text = f"0x{i:0{off_zeros}x}"
+            p_text = f"0x{p:0{int(ptrsize * 2)}x}"
             text = f"{offset_text}: {mem_color.get(p, text=p_text)} = {mem_color.get(p, text=right_text)}"
 
             symbol = pwndbg.aglib.symbol.resolve_addr(p)

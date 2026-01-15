@@ -13,8 +13,8 @@ import importlib
 import subprocess
 import sys
 from typing import NamedTuple
+from typing import TypeAlias
 from typing import TypeVar
-from typing import Union
 
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
@@ -65,8 +65,8 @@ class ELFInfo(NamedTuple):
         return self.is_pic
 
 
-Ehdr = Union[pwndbg.lib.elftypes.Elf32_Ehdr, pwndbg.lib.elftypes.Elf64_Ehdr]
-Phdr = Union[pwndbg.lib.elftypes.Elf32_Phdr, pwndbg.lib.elftypes.Elf64_Phdr]
+Ehdr: TypeAlias = pwndbg.lib.elftypes.Elf32_Ehdr | pwndbg.lib.elftypes.Elf64_Ehdr
+Phdr: TypeAlias = pwndbg.lib.elftypes.Elf32_Phdr | pwndbg.lib.elftypes.Elf64_Phdr
 
 
 @pwndbg.dbg.event_handler(EventType.START)

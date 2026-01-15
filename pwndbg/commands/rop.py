@@ -148,7 +148,7 @@ def _rop(
 
         print(plain_out if plain else out)
 
-    print("\nUnique gadgets found: %d" % (len(c.gadgets())))
+    print(f"\nUnique gadgets found: {len(c.gadgets())}")
     return True
 
 

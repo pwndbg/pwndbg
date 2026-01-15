@@ -118,8 +118,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     no_params_help = "Not all chunks were shown, see `vis --help` for more information."
     assert result == expected + [no_params_help]
     await ctrl.execute(
-        "set default-visualize-chunk-number %d"
-        % pwndbg.config.default_visualize_chunk_number.default
+        f"set default-visualize-chunk-number {pwndbg.config.default_visualize_chunk_number.default}"
     )
 
     del result

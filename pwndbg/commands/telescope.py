@@ -183,7 +183,7 @@ def telescope(
 
         # Find all regs that point to somewhere in the current ptrsize step
         for width in range(1, pwndbg.aglib.arch.ptrsize):
-            values.extend("%s-%i" % (r, width) for r in reg_values[i + width])
+            values.extend(f"{r}-{width}" for r in reg_values[i + width])
 
         regs[i] = " ".join(values)
 
@@ -214,8 +214,7 @@ def telescope(
         if collapse_buffer and len(collapse_buffer) + 1 >= skip_repeating_values_minimum:
             result.append(
                 T.repeating_marker(
-                    "%s%s%i skipped"
-                    % (repeating_marker, " " * skipped_padding, len(collapse_buffer))
+                    f"{repeating_marker}{' ' * skipped_padding}{len(collapse_buffer)} skipped"
                 )
             )
         else:

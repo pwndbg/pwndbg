@@ -108,18 +108,12 @@ def dt(
                 extra_lines.append(35 * " " + line)
         extra = "\n".join(extra_lines)
 
-        bitpos_str = "" if not bitpos else (".%i" % bitpos)
+        bitpos_str = "" if not bitpos else (f".{bitpos}")
 
         if obj:
-            line = "    0x%016x +0x%04x%s %-20s : %s" % (
-                int(obj.address) + offset,
-                offset,
-                bitpos_str,
-                field_name,
-                extra,
-            )
+            line = f"    0x{int(obj.address) + offset:016x} +0x{offset:04x}{bitpos_str} {field_name:<20} : {extra}"
         else:
-            line = "    +0x%04x%s %-20s : %s" % (offset, bitpos_str, field_name, extra)
+            line = f"    +0x{offset:04x}{bitpos_str} {field_name:<20} : {extra}"
         rv.append(line)
 
     return "\n".join(rv)

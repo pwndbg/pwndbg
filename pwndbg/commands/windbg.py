@@ -301,7 +301,7 @@ def eX(size, address, data, hex=True) -> None:
         except pwndbg.dbg_mod.Error:
             print(f"Cannot access memory at address {address:#x}")
             if writes > 0:
-                print("(Made %d writes to memory; skipping further writes)" % writes)
+                print(f"(Made {writes} writes to memory; skipping further writes)")
             return
 
 
@@ -343,7 +343,7 @@ def ds(address, max) -> None:
     # because the truncated display is not that ideal/not the same as GDB's yet
     # (ours: "truncated ...", GDBs: "truncated "...)
     if max < 256:
-        print("Max str len of %d too low, changing to 256" % max)
+        print(f"Max str len of {max} too low, changing to 256")
         max = 256
 
     string = pwndbg.aglib.strings.get(address, max, maxread=4096)

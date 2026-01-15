@@ -72,7 +72,7 @@ class AUXV(dict[str, int | str]):
     AT_SYSINFO_EHDR: int | None
 
     def set(self, const: int, value: int) -> None:
-        name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
+        name = AT_CONSTANTS.get(const, f"AT_UNKNOWN{const}")
 
         if name in ["AT_EXECFN", "AT_PLATFORM", "AT_BASE_PLATFORM"]:
             try:

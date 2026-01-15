@@ -351,7 +351,7 @@ def nearpc(
         # determine the number of arguments.
         if show_args:
             result.extend(
-                "%8s%s" % ("", arg) for arg in pwndbg.arguments.format_args(instruction=instr)
+                f"{'':>8}{arg}" for arg in pwndbg.arguments.format_args(instruction=instr)
             )
 
         # If this instruction deserves a down arrow to indicate a taken branch

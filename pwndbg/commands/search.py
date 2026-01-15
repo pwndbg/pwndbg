@@ -306,7 +306,7 @@ def search(
                     print_search_hit(addr)
                 i += 1
 
-        print("Search found %d items" % i)
+        print(f"Search found {i} items")
         saved = new_saved
         return
 

@@ -119,7 +119,7 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
             )
         else:
             if count is not None:
-                line = (message.hint(size) + message.hint(" [%3d]" % count) + ": ").ljust(13)
+                line = (message.hint(size) + message.hint(f" [{count:3d}]") + ": ").ljust(13)
             else:
                 line = (message.hint(size) + ": ").ljust(13)
             line += formatted_chain
