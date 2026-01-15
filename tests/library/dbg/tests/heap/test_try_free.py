@@ -3,8 +3,6 @@ from __future__ import annotations
 import os
 import tempfile
 from pathlib import Path
-from typing import Dict
-from typing import Tuple
 
 import pytest
 
@@ -17,7 +15,7 @@ HEAP_CODE = get_binary("heap_bugs.x86-64.c")
 _, OUTPUT_FILE = tempfile.mkstemp()
 
 
-def binary_parse_breakpoints(binary_code: Path) -> Dict[int, Tuple[int, int]]:
+def binary_parse_breakpoints(binary_code: Path) -> dict[int, tuple[int, int]]:
     """
     Find comments with breakpoints in binary code
     and map them to function's cmd line ids
@@ -33,7 +31,7 @@ def binary_parse_breakpoints(binary_code: Path) -> Dict[int, Tuple[int, int]]:
 
     # map bug id to breakpoint line numbers
     with open(binary_code) as f:
-        breakpoints: dict[int, Tuple[int, int]] = {}
+        breakpoints: dict[int, tuple[int, int]] = {}
         lines = f.readlines()
         line_no = 0
 
@@ -64,7 +62,7 @@ def binary_parse_breakpoints(binary_code: Path) -> Dict[int, Tuple[int, int]]:
 breakpoints = binary_parse_breakpoints(HEAP_CODE)
 
 
-async def setup_heap(ctrl: Controller, bug_no: int) -> Dict[str, int]:
+async def setup_heap(ctrl: Controller, bug_no: int) -> dict[str, int]:
     """
     Start binary
     Pause after (valid) heap is set-up

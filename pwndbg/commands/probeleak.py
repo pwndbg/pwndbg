@@ -147,17 +147,10 @@ def probeleak(
                 mod_name = "[anon]"
 
             if p >= page.end:
-                right_text = "({}) {} + 0x{:x} + 0x{:x} (outside of the page)".format(
-                    page.permstr,
-                    mod_name,
-                    page.memsz,
-                    p - page.end,
-                )
+                right_text = f"({page.permstr}) {mod_name} + 0x{page.memsz:x} + 0x{p - page.end:x} (outside of the page)"
             elif p < page.start:
-                right_text = "({}) {} - 0x{:x} (outside of the page)".format(
-                    page.permstr,
-                    mod_name,
-                    page.start - p,
+                right_text = (
+                    f"({page.permstr}) {mod_name} - 0x{page.start - p:x} (outside of the page)"
                 )
             else:
                 right_text = f"({page.permstr}) {mod_name} + 0x{p - page.start:x}"

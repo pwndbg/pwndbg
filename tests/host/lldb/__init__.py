@@ -60,7 +60,7 @@ class LLDBTestHost(TestHost):
             cwd=self._pwndbg_root,
         )
 
-    def collect(self) -> List[str]:
+    def collect(self) -> list[str]:
         result = self._launch("COLLECT", None, True, False)
         names = _collection_from_pytest(result, self._pwndbg_root, self._pytest_root)
 

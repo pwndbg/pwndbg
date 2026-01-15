@@ -4,8 +4,6 @@ Prints structures in a manner similar to WinDbg's "dt" command.
 
 from __future__ import annotations
 
-from typing import List
-
 import pwndbg
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
@@ -37,7 +35,7 @@ def dt(
     """
     # Return value is a list of strings.of
     # We concatenate at the end.
-    rv: List[str] = []
+    rv: list[str] = []
 
     if obj and not name:
         t = obj.type
@@ -102,7 +100,7 @@ def dt(
         # Adjust trailing lines in 'extra' to line up
         # This is necessary when there are nested structures.
         # Ideally we'd expand recursively if the type is complex.
-        extra_lines: List[str] = []
+        extra_lines: list[str] = []
         for i, line in enumerate(str(extra).splitlines()):
             if i == 0:
                 extra_lines.append(line)

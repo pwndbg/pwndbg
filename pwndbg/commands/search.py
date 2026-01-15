@@ -5,7 +5,6 @@ import binascii
 import codecs
 import os
 import struct
-from typing import Set
 
 import pwndbg
 import pwndbg.aglib
@@ -22,7 +21,7 @@ from pwndbg.commands import CommandCategory
 if pwndbg.dbg.is_gdblib_available():
     import gdb
 
-saved: Set[int] = set()
+saved: set[int] = set()
 
 
 def print_search_hit(address: int) -> None:

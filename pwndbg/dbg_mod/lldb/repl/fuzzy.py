@@ -13,10 +13,10 @@ import shutil
 import sys
 import tempfile
 import threading
+from collections.abc import Callable
+from collections.abc import Iterator
 from subprocess import PIPE
 from subprocess import Popen
-from typing import Callable
-from typing import Iterator
 from typing import ParamSpec
 from typing import TypeVar
 

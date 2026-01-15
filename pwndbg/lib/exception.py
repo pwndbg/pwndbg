@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from types import TracebackType
-from typing import Optional
-from typing import Type
 
 import pwndbg.color as color
 
@@ -16,9 +14,9 @@ class IndentContextManager:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         self.indent -= 1
         assert self.indent >= 0

@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 import bisect
-from typing import List
-from typing import Set
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.memory
@@ -16,10 +13,10 @@ from pwndbg.dbg_mod import EventType
 
 # List of manually-explored pages which were discovered
 # by analyzing the stack or register context.
-explored_pages: List[pwndbg.lib.memory.Page] = []
+explored_pages: list[pwndbg.lib.memory.Page] = []
 
 # List of custom pages that can be managed manually by vmmap_* commands family
-custom_pages: List[pwndbg.lib.memory.Page] = []
+custom_pages: list[pwndbg.lib.memory.Page] = []
 
 auto_explore = pwndbg.config.add_param(
     "auto-explore-pages",
@@ -33,7 +30,7 @@ This command can cause errors.
 )
 
 
-_warn_cache: Set[int] = set()
+_warn_cache: set[int] = set()
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
@@ -41,12 +38,12 @@ def clear_warn_cache():
     _warn_cache.clear()
 
 
-def get_custom_pages() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def get_custom_pages() -> tuple[pwndbg.lib.memory.Page, ...]:
     """
     Returns a tuple of `Page` objects representing the memory mappings of the
     target, sorted by virtual address ascending.
     """
-    pages: List[pwndbg.lib.memory.Page] = [*explored_pages, *custom_pages]
+    pages: list[pwndbg.lib.memory.Page] = [*explored_pages, *custom_pages]
     pages.sort()
     return tuple(pages)
 

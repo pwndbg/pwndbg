@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from os import environ
 from typing import Any
-from typing import Tuple
 
 import gdb
 
@@ -26,7 +25,7 @@ show_tip = pwndbg.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"
 )
 
-cur: Tuple[gdb.Inferior, gdb.InferiorThread] | None = None
+cur: tuple[gdb.Inferior, gdb.InferiorThread] | None = None
 
 
 def initial_hook(*a: Any) -> None:

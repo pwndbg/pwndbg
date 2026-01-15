@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from typing import Optional
-from typing import Tuple
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
@@ -28,7 +26,7 @@ POSSIBLE_ZONE_NAMES = (
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def migratetype_names() -> Tuple[str, ...]:
+def migratetype_names() -> tuple[str, ...]:
     names = [
         "Unmovable",
         "Movable",
@@ -44,7 +42,7 @@ def migratetype_names() -> Tuple[str, ...]:
 
 
 # try getting value of a symbol as an unsigned integer
-def try_usymbol(name: str, size: Optional[int] = None) -> Optional[int]:
+def try_usymbol(name: str, size: int | None = None) -> int | None:
     if not pwndbg.aglib.kernel.has_debug_symbols():
         return None
     try:
@@ -109,7 +107,7 @@ def npcplist() -> int:
     return 0
 
 
-def kversion_cint(kversion: Tuple[int, int, int] | None = None) -> Optional[int]:
+def kversion_cint(kversion: tuple[int, int, int] | None = None) -> int | None:
     if kversion is None:
         kversion = pwndbg.aglib.kernel.krelease()
     if kversion is None or len(kversion) != 3:
@@ -291,14 +289,14 @@ class ArchSymbols:
         self.bpf_map_heuristic_func = "bpf_map_free_id"
         self.current_task_heuristic_func = "common_cpu_up"
 
-    def disass(self, name: str, lines=10) -> Optional[str]:
+    def disass(self, name: str, lines=10) -> str | None:
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
         if sym is None:
             return None
         disass = "\n".join(pwndbg.aglib.nearpc.nearpc(int(sym), lines=lines))
         return pwndbg.color.strip(disass)
 
-    def regex(self, s: str, pattern: str, nth: int) -> Optional[re.Match[Any]]:
+    def regex(self, s: str, pattern: str, nth: int) -> re.Match[Any] | None:
         pattern = re.compile(pattern)
         if nth == 0:
             return pattern.search(s)
@@ -385,28 +383,28 @@ class ArchSymbols:
             current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
 
-    def _node_data(self) -> Optional[int]:
+    def _node_data(self) -> int | None:
         raise NotImplementedError()
 
-    def _slab_caches(self) -> Optional[int]:
+    def _slab_caches(self) -> int | None:
         raise NotImplementedError()
 
-    def _per_cpu_offset(self) -> Optional[int]:
+    def _per_cpu_offset(self) -> int | None:
         raise NotImplementedError()
 
-    def _modules(self) -> Optional[int]:
+    def _modules(self) -> int | None:
         raise NotImplementedError()
 
-    def _db_list(self) -> Optional[int]:
+    def _db_list(self) -> int | None:
         raise NotImplementedError()
 
-    def _map_idr(self) -> Optional[int]:
+    def _map_idr(self) -> int | None:
         raise NotImplementedError()
 
-    def _prog_idr(self) -> Optional[int]:
+    def _prog_idr(self) -> int | None:
         raise NotImplementedError()
 
-    def _current_task(self) -> Optional[int]:
+    def _current_task(self) -> int | None:
         raise NotImplementedError()
 
 
@@ -416,7 +414,7 @@ class x86_64Symbols(ArchSymbols):
     # returns the first 0x... as an int if exists
     def qword_op_reg_memoff(
         self, disass: str, op: str, sign: str = "-", nth: int = 0
-    ) -> Optional[int]:
+    ) -> int | None:
         result = self.regex(disass, rf"{op}.*\[.*{re.escape(sign)}\s(0x[0-9a-f]+)\]", nth)
         if result is not None:
             if sign == "-":
@@ -426,19 +424,19 @@ class x86_64Symbols(ArchSymbols):
         return None
 
     # mov reg, <kernel address as a constant>
-    def qword_mov_reg_const(self, disass: str, nth: int = 0) -> Optional[int]:
+    def qword_mov_reg_const(self, disass: str, nth: int = 0) -> int | None:
         result = self.regex(disass, r"mov.*(0x[0-9a-f]{16})", nth)
         if result is not None:
             return int(result.group(1), 16)
         return None
 
-    def dword_mov_reg_const(self, disass: str, nth: int = 0) -> Optional[int]:
+    def dword_mov_reg_const(self, disass: str, nth: int = 0) -> int | None:
         result = self.regex(disass, r"mov.*(0x[0-9a-f]{1,8})\b(?!\])", nth)
         if result is not None:
             return int(result.group(1), 16)
         return None
 
-    def qword_mov_reg_ripoff(self, disass: str, nth: int = 0) -> Optional[int]:
+    def qword_mov_reg_ripoff(self, disass: str, nth: int = 0) -> int | None:
         result = self.regex(
             "".join(disass.splitlines()),
             r".*?\bmov.*\[rip\s\+\s(0x[0-9a-f]+)\].*?(0x[0-9a-f]{16})\s\<",
@@ -448,18 +446,18 @@ class x86_64Symbols(ArchSymbols):
             return int(result.group(1), 16) + int(result.group(2), 16)
         return None
 
-    def _node_data(self) -> Optional[int]:
+    def _node_data(self) -> int | None:
         disass = self.disass(self.node_data_heuristic_func)
         result = self.qword_op_reg_memoff(disass, op="mov", sign="-")
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
-    def _slab_caches(self) -> Optional[int]:
+    def _slab_caches(self) -> int | None:
         disass = self.disass(self.slab_caches_heuristic_func)
         return self.qword_mov_reg_const(disass)
 
-    def _per_cpu_offset(self) -> Optional[int]:
+    def _per_cpu_offset(self) -> int | None:
         disass = self.disass(self.per_cpu_offset_heuristic_func)
         result = self.qword_op_reg_memoff(disass, op="add", sign="-")
         if result is not None:
@@ -469,11 +467,11 @@ class x86_64Symbols(ArchSymbols):
             return result
         return self.qword_mov_reg_ripoff(disass)
 
-    def _modules(self) -> Optional[int]:
+    def _modules(self) -> int | None:
         disass = self.disass(self.modules_heuristic_func)
         return self.qword_mov_reg_ripoff(disass)
 
-    def _db_list(self) -> Optional[int]:
+    def _db_list(self) -> int | None:
         offset = 0x10  # offset of the lock
         disass = self.disass(self.db_list_heuristic_func)
         result = self.qword_mov_reg_const(disass)
@@ -481,21 +479,21 @@ class x86_64Symbols(ArchSymbols):
             return result - offset
         return None
 
-    def _map_idr(self) -> Optional[int]:
+    def _map_idr(self) -> int | None:
         disass = self.disass(self.bpf_map_heuristic_func, lines=50)
         result = self.qword_mov_reg_const(disass, nth=1)
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
-    def _prog_idr(self) -> Optional[int]:
+    def _prog_idr(self) -> int | None:
         disass = self.disass(self.bpf_prog_heuristic_func, lines=50)
         result = self.qword_mov_reg_const(disass, nth=1)
         if result is not None:
             return result
         return self.qword_mov_reg_const(disass)
 
-    def _current_task(self) -> Optional[int]:
+    def _current_task(self) -> int | None:
         disass = self.disass(self.current_task_heuristic_func)
         result = self.dword_mov_reg_const(disass)
         if result is not None:
@@ -507,7 +505,7 @@ class x86_64Symbols(ArchSymbols):
 class Aarch64Symbols(ArchSymbols):
     # adrp x?, <kernel address>
     # add x?, x?, #0x...
-    def qword_adrp_add_const(self, disass: str, nth: int = 0) -> Optional[int]:
+    def qword_adrp_add_const(self, disass: str, nth: int = 0) -> int | None:
         prev = ""
         for line in disass.splitlines():
             if "adrp" in prev and "add" in line:
@@ -523,11 +521,11 @@ class Aarch64Symbols(ArchSymbols):
             prev = line
         return None
 
-    def _node_data(self) -> Optional[int]:
+    def _node_data(self) -> int | None:
         disass = self.disass(self.node_data_heuristic_func)
         return self.qword_adrp_add_const(disass)
 
-    def _slab_caches(self) -> Optional[int]:
+    def _slab_caches(self) -> int | None:
         disass = self.disass(self.slab_caches_heuristic_func)
         result = self.qword_adrp_add_const(disass)
         if result:
@@ -548,11 +546,11 @@ class Aarch64Symbols(ArchSymbols):
             return None
         return sum(int(m.group(i), 16) for i in [2, 3, 4])
 
-    def _per_cpu_offset(self) -> Optional[int]:
+    def _per_cpu_offset(self) -> int | None:
         disass = self.disass(self.per_cpu_offset_heuristic_func)
         return self.qword_adrp_add_const(disass)
 
-    def _modules(self) -> Optional[int]:
+    def _modules(self) -> int | None:
         disass = self.disass(self.modules_heuristic_func)
         # adrp x<num>, 0x....
         # ...
@@ -570,7 +568,7 @@ class Aarch64Symbols(ArchSymbols):
             return None
         return sum(int(m.group(i), 16) for i in [2, 3, 4])
 
-    def _db_list(self) -> Optional[int]:
+    def _db_list(self) -> int | None:
         offset = 0x10  # offset of the lock
         disass = self.disass(self.db_list_heuristic_func)
         result = self.qword_adrp_add_const(disass)
@@ -578,14 +576,14 @@ class Aarch64Symbols(ArchSymbols):
             return result - offset
         return None
 
-    def _map_idr(self) -> Optional[int]:
+    def _map_idr(self) -> int | None:
         disass = self.disass(self.bpf_map_heuristic_func, lines=50)
         result = self.qword_adrp_add_const(disass, nth=1)
         if result is not None:
             return result
         return self.qword_adrp_add_const(disass)
 
-    def _prog_idr(self) -> Optional[int]:
+    def _prog_idr(self) -> int | None:
         disass = self.disass(self.bpf_prog_heuristic_func, lines=50)
         result = self.qword_adrp_add_const(disass, nth=1)
         if result is not None:

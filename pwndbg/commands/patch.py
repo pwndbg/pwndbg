@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import Dict
-from typing import Tuple
 
 import pwndbg.aglib.asm
 import pwndbg.aglib.memory
@@ -16,7 +14,7 @@ from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 # Keep old patches made so we can revert them
-patches: Dict[int, Tuple[bytes, bytes]] = {}
+patches: dict[int, tuple[bytes, bytes]] = {}
 
 
 parser = argparse.ArgumentParser(description="Patches given instruction with given code or bytes.")

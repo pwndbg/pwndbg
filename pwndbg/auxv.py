@@ -9,9 +9,6 @@ from __future__ import annotations
 
 import re
 import struct
-from typing import Dict
-from typing import Optional
-from typing import Union
 
 import pwndbg.aglib
 import pwndbg.aglib.file
@@ -63,16 +60,16 @@ example_info_auxv_linux = """
 """
 
 
-class AUXV(Dict[str, Union[int, str]]):
-    AT_PHDR: Optional[int]
-    AT_BASE: Optional[int]
-    AT_PLATFORM: Optional[str]
-    AT_BASE_PLATFORM: Optional[str]
-    AT_ENTRY: Optional[int]
-    AT_RANDOM: Optional[int]
-    AT_EXECFN: Optional[str]
-    AT_SYSINFO: Optional[int]
-    AT_SYSINFO_EHDR: Optional[int]
+class AUXV(dict[str, int | str]):
+    AT_PHDR: int | None
+    AT_BASE: int | None
+    AT_PLATFORM: str | None
+    AT_BASE_PLATFORM: str | None
+    AT_ENTRY: int | None
+    AT_RANDOM: int | None
+    AT_EXECFN: str | None
+    AT_SYSINFO: int | None
+    AT_SYSINFO_EHDR: int | None
 
     def set(self, const: int, value: int) -> None:
         name = AT_CONSTANTS.get(const, "AT_UNKNOWN%i" % const)
@@ -90,7 +87,7 @@ class AUXV(Dict[str, Union[int, str]]):
 
         self[name] = value
 
-    def __getattr__(self, attr: str) -> Optional[Union[int, str]]:
+    def __getattr__(self, attr: str) -> int | str | None:
         if attr in AT_CONSTANT_NAMES:
             return self.get(attr)
 
@@ -143,7 +140,7 @@ def procfs_auxv() -> AUXV | None:
     return auxv
 
 
-def use_info_auxv() -> Optional[AUXV]:
+def use_info_auxv() -> AUXV | None:
     lines = None
     if pwndbg.dbg.is_gdblib_available():
         lines = pwndbg.gdblib.info.auxv().splitlines()

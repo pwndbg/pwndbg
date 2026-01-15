@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from typing import Dict
 
 import pytest
 
@@ -16,7 +15,7 @@ HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 HEAP_MALLOC_CHUNK_DUMP = get_binary("heap_malloc_chunk_dump.native.out")
 
 
-def generate_expected_malloc_chunk_output(chunks: Dict[str, Any]) -> Dict[str, Any]:
+def generate_expected_malloc_chunk_output(chunks: dict[str, Any]) -> dict[str, Any]:
     import pwndbg.aglib.heap
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 

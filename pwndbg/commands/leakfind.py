@@ -6,8 +6,6 @@ from __future__ import annotations
 
 import argparse
 import queue
-from typing import Dict
-from typing import List
 
 import pwndbg
 import pwndbg.aglib.memory
@@ -151,7 +149,7 @@ def leakfind(
     # We need to store both so that we can nicely create our leak chain.
     visited_map = {}
     visited_set = {address}
-    address_queue: "queue.Queue[int]" = queue.Queue()
+    address_queue: queue.Queue[int] = queue.Queue()
     address_queue.put(address)
     depth = 0
     time_to_depth_increase = 0
@@ -184,7 +182,7 @@ def leakfind(
                 break
 
     # A map of length->list of lines. Used to let us print in a somewhat nice manner.
-    output_map: Dict[int, List[str]] = {}
+    output_map: dict[int, list[str]] = {}
     arrow_right = pwndbg.chain.c.arrow(" %s " % pwndbg.config.chain_arrow_right)
 
     for child in visited_map:

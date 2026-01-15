@@ -6,9 +6,6 @@ import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib
@@ -150,7 +147,7 @@ angr_plugin_path = pwndbg.config.add_param(
 
 
 def install_generic_plugin(
-    paths: List[Tuple[Path, Path]],
+    paths: list[tuple[Path, Path]],
     decomp_name: str,
     packaged_plugin_path: Path,
     config_var: pwndbg.lib.config.Parameter,
@@ -456,7 +453,7 @@ def check_alive(error_msg: str) -> bool:
         return False
 
 
-def jump(addr: Optional[int]) -> None:
+def jump(addr: int | None) -> None:
     if not pwndbg.integration.manager.is_connected():
         print(message.error("Not connected to a decompiler."))
         print(message.hint("Try `di connect`."))
@@ -537,16 +534,16 @@ def sync(fail_quietly: bool) -> None:
             print(message.error(f"Failed: {sym_err.value}."))
 
 
-def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> None:
-    func_vars: Optional[pwndbg.integration.RebasedFuncVariables] = (
+def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: int | None = None) -> None:
+    func_vars: pwndbg.integration.RebasedFuncVariables | None = (
         pwndbg.integration.manager.get_function_vars_rebased_from_frame(frame)
     )
 
     pc: int = frame.pc()
     sp: int = frame.sp()
-    start: Optional[int] = frame.start()
+    start: int | None = frame.start()
 
-    symbol: Optional[str] = pwndbg.aglib.symbol.resolve_addr(pc)
+    symbol: str | None = pwndbg.aglib.symbol.resolve_addr(pc)
     if symbol:
         symbol_text = color.blue(symbol)
     else:
@@ -582,7 +579,7 @@ def list_one_frame(frame: pwndbg.dbg_mod.Frame, idx: Optional[int] = None) -> No
             reg_text = reg_var.reg_name.ljust(4, " ")
             # FIXME: Should probably refactor this to use pwndbg.commands.context.get_regs (but then also
             # refactor that, to pull it out of pwndbg/commands, maybe separate out register name and value etc.)
-            reg_value_raw: Optional[pwndbg.dbg_mod.Value] = frame.regs().by_name(reg_var.reg_name)
+            reg_value_raw: pwndbg.dbg_mod.Value | None = frame.regs().by_name(reg_var.reg_name)
             try:
                 reg_value = (
                     color_mem.get(int(reg_value_raw))
@@ -644,7 +641,7 @@ def list_(list_all: bool) -> None:
     if list_all:
         list_all_frames()
     else:
-        frame: Optional[pwndbg.dbg_mod.Frame] = pwndbg.dbg.selected_frame()
+        frame: pwndbg.dbg_mod.Frame | None = pwndbg.dbg.selected_frame()
         if frame is None:
             print(message.error("Could not find current stack frame."))
             return
@@ -877,7 +874,7 @@ parser_set_path.add_argument(
 )
 def decompiler_integration(
     command: str,
-    jump_addr: Optional[int] = None,
+    jump_addr: int | None = None,
     install_sub: str = "",
     list_all: bool = False,
     binary_addr: int = -1,
@@ -999,7 +996,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.INTEGRATIONS)
 @pwndbg.commands.OnlyWhenRunning
-def decomp(addr: Optional[int], lines: int) -> None:
+def decomp(addr: int | None, lines: int) -> None:
     if addr is None:
         if pwndbg.aglib.regs.pc is None:
             print("Address not specified, and could not find PC.")

@@ -4,7 +4,6 @@ import os
 import struct
 from typing import Any
 from typing import NamedTuple
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib
@@ -178,7 +177,7 @@ _fields_x86 = (
 # fmt: on
 
 
-def _comm_fix_gaps(fields: Tuple[CommPageField, ...]) -> Tuple[CommPageField, ...]:
+def _comm_fix_gaps(fields: tuple[CommPageField, ...]) -> tuple[CommPageField, ...]:
     fixed_fields = []
     prev_endaddr = 0
     for comm in fields:
@@ -222,14 +221,14 @@ _comm_fields = {
 }
 
 
-def get_commpage_fields() -> Tuple[CommPageField, ...]:
+def get_commpage_fields() -> tuple[CommPageField, ...]:
     if pwndbg.aglib.arch.platform != Platform.DARWIN:
         return ()
     return _comm_fields.get(pwndbg.aglib.arch.name, ())
 
 
 @pwndbg.lib.cache.cache_until("start")
-def get_commpage_mappings() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def get_commpage_mappings() -> tuple[pwndbg.lib.memory.Page, ...]:
     if pwndbg.aglib.arch.platform != Platform.DARWIN:
         return ()
 

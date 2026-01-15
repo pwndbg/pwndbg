@@ -10,8 +10,7 @@ import errno
 import os
 import shutil
 import tempfile
-from typing import Iterator
-from typing import Tuple
+from collections.abc import Iterator
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
@@ -272,7 +271,7 @@ def gdb_memtox_inverse(data: bytes) -> bytes:
     return buffer
 
 
-def vfile_pread(fd: int, size: int, offset: int) -> Tuple[int, bytes]:
+def vfile_pread(fd: int, size: int, offset: int) -> tuple[int, bytes]:
     """
     Reads data from a file descriptor.
 

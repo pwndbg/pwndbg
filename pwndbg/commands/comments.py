@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import Dict
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
@@ -16,7 +15,7 @@ parser.add_argument(
 )
 parser.add_argument("comment", type=str, default=None, help="The text you want to comment")
 
-file_lists: Dict[str, Dict[str, str]] = {}  # This saves all comments.
+file_lists: dict[str, dict[str, str]] = {}  # This saves all comments.
 
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MISC)

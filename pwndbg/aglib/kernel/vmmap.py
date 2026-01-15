@@ -6,8 +6,6 @@ import string
 import subprocess
 import sys
 import tempfile
-from typing import List
-from typing import Tuple
 
 from pt.machine import Machine
 from pt.pt import PageTableDump
@@ -26,9 +24,9 @@ from pwndbg.lib.memory import Page
 
 
 class KernelVmmap:
-    def __init__(self, pages: Tuple[Page, ...]):
+    def __init__(self, pages: tuple[Page, ...]):
         self.pages = pages
-        self.sections: Tuple[Tuple[str, int], ...] = None
+        self.sections: tuple[tuple[str, int], ...] = None
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
         if self.pi:
             self.sections = self.pi.markers()
@@ -103,7 +101,7 @@ class QemuMachine(Machine):
             os.close(self.file)
 
     @staticmethod
-    def search_pids_for_file(pids: List[str], filename: str) -> str | None:
+    def search_pids_for_file(pids: list[str], filename: str) -> str | None:
         for pid in pids:
             fd_dir = f"/proc/{pid}/fd"
             try:
@@ -174,7 +172,7 @@ class QemuMachine(Machine):
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
+def kernel_vmmap_via_page_tables() -> tuple[Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -230,7 +228,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
     p = PageTableDump(machine_backend, arch_backend)
     pages = p.arch_backend.parse_tables(p.cache, p.parser.parse_args(""))
 
-    retpages: List[Page] = []
+    retpages: list[Page] = []
     for page in pages:
         start = page.va
         size = page.page_size
@@ -326,7 +324,7 @@ def _parser_mem_info_line_riscv64(line: str) -> Page | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
+def kernel_vmmap_via_monitor_info_mem() -> tuple[Page, ...]:
     """
     Returns Linux memory maps information by parsing `monitor info mem` output
     from QEMU kernel GDB stub.
@@ -366,7 +364,7 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
         )
         return ()
 
-    pages: List[Page] = []
+    pages: list[Page] = []
     for line in monitor_info_mem.splitlines():
         try:
             page = parser_func(line)
@@ -398,7 +396,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_pages() -> Tuple[Page, ...]:
+def kernel_vmmap_pages() -> tuple[Page, ...]:
     mode = kernel_vmmap_mode
     arch_name = pwndbg.aglib.arch.name
     if mode == "page-tables" and arch_name not in ("x86-64", "aarch64"):
@@ -424,7 +422,7 @@ def kernel_vmmap_pages() -> Tuple[Page, ...]:
     return ()
 
 
-def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 

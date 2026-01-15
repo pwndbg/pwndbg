@@ -205,11 +205,8 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     tcache_key = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[0]->key"))
 
     tcache_hexdump = await hexdump_16B("tcache->entries[0]")
-    freed_chunk = "{:#x}\t{:#018x}\t{:#018x}\t{}\t ".format(
-        heap_iter(-0x40),
-        tcache_next,
-        tcache_key,
-        tcache_hexdump,
+    freed_chunk = (
+        f"{heap_iter(-0x40):#x}\t{tcache_next:#018x}\t{tcache_key:#018x}\t{tcache_hexdump}\t "
     )
     freed_chunk += "<-- tcachebins[0x20][0/1]"
 

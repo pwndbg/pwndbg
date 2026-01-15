@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Tuple
+from collections.abc import Iterator
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
@@ -100,7 +97,7 @@ class BinderVisitor:
     # TODO: do this in a cleaner, object-oriented way
     def _format_field(
         self,
-        field: Optional[str] = None,
+        field: str | None = None,
         value: pwndbg.dbg_mod.Value | str = "",
         only_heading: bool = True,
     ) -> str:
@@ -167,7 +164,7 @@ class BinderVisitor:
 
         return self._format_indent(output)
 
-    def format_rb_tree(self, field: str, value: pwndbg.dbg_mod.Value) -> Tuple[str, int]:
+    def format_rb_tree(self, field: str, value: pwndbg.dbg_mod.Value) -> tuple[str, int]:
         res = []
 
         node_type = node_types[field]
@@ -191,7 +188,7 @@ class BinderVisitor:
 
     def format_list(
         self, field: str, value: pwndbg.dbg_mod.Value, typename: str
-    ) -> Tuple[str, int]:
+    ) -> tuple[str, int]:
         res = []
 
         node_type = node_types[field]
@@ -221,7 +218,7 @@ class BinderVisitor:
         return "\n" + "\n".join(res), len(res)
 
     def _format_fields(
-        self, obj: pwndbg.dbg_mod.Value, fields: List[str], only_heading: bool = True
+        self, obj: pwndbg.dbg_mod.Value, fields: list[str], only_heading: bool = True
     ) -> str:
         res = []
         for field in fields:

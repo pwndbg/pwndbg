@@ -49,9 +49,6 @@ that were not made explicit.
 
 from __future__ import annotations
 
-from typing import Dict
-from typing import List
-
 import gdb
 from sortedcontainers import SortedDict
 
@@ -203,7 +200,7 @@ class Chunk:
 
 # GDB doesn't like having its breakpoints deleted during stop handlers, so we
 # defer deletion until the next stop event.
-DEFERED_DELETE: List[gdb.Breakpoint] = []
+DEFERED_DELETE: list[gdb.Breakpoint] = []
 
 
 @pwndbg.dbg.event_handler(pwndbg.dbg_mod.EventType.STOP)
@@ -217,9 +214,9 @@ class Tracker:
     def __init__(self) -> None:
         self.free_chunks: SortedDict[int, Chunk] = SortedDict()
         self.alloc_chunks: SortedDict[int, Chunk] = SortedDict()
-        self.free_watchpoints: Dict[int, FreeChunkWatchpoint] = {}
-        self.memory_management_calls: Dict[int, bool] = {}
-        self.colorized_heap_ptrs: Dict[int, str] = {}
+        self.free_watchpoints: dict[int, FreeChunkWatchpoint] = {}
+        self.memory_management_calls: dict[int, bool] = {}
+        self.colorized_heap_ptrs: dict[int, str] = {}
 
     def is_performing_memory_management(self):
         thread = gdb.selected_thread().global_num

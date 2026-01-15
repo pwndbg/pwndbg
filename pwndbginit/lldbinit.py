@@ -4,14 +4,13 @@ import cProfile
 import os
 import sys
 import time
-from typing import Tuple
 
 import lldb
 
 from pwndbginit.common import verify_venv
 
 
-def main(debugger: lldb.SBDebugger, lldb_version: Tuple[int, ...], debug: bool = False) -> None:
+def main(debugger: lldb.SBDebugger, lldb_version: tuple[int, ...], debug: bool = False) -> None:
     if "pwndbg" in sys.modules:
         print("Detected double-loading of Pwndbg.")
         print("This should not happen. Please report this issue if you're not sure how to fix it.")

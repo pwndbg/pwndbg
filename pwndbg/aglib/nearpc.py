@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import List
-
 from capstone import *  # noqa: F403
 
 import pwndbg
@@ -92,7 +90,7 @@ def nearpc(
     repeat=False,
     use_cache=False,
     linear=False,
-) -> List[str]:
+) -> list[str]:
     """
     Disassemble near a specified address.
 
@@ -106,7 +104,7 @@ def nearpc(
         # that would require a larger refactor
         pc = nearpc.next_pc
 
-    result: List[str] = []
+    result: list[str] = []
 
     if pc is not None:
         pc = pwndbg.dbg.selected_inferior().create_value(pc).cast(pwndbg.aglib.typeinfo.pvoid)
@@ -160,7 +158,7 @@ def nearpc(
     # Gather all addresses and symbols for each instruction
     # Ex: <main+43>
     symbols = [pwndbg.aglib.symbol.resolve_addr(i.address) for i in instructions]
-    addresses: List[str] = ["%#x" % i.address for i in instructions]
+    addresses: list[str] = ["%#x" % i.address for i in instructions]
 
     nearpc.next_pc = instructions[-1].address + instructions[-1].size if instructions else 0
 

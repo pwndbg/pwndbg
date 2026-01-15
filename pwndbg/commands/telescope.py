@@ -9,9 +9,6 @@ from __future__ import annotations
 import argparse
 import collections
 import math
-from typing import DefaultDict
-from typing import Dict
-from typing import List
 
 import pwndbg
 import pwndbg.aglib
@@ -166,7 +163,7 @@ def telescope(
         count = max(math.ceil(count / ptrsize), 1)
 
     # Map of address to register string
-    reg_values: DefaultDict[int, List[str]] = collections.defaultdict(list)
+    reg_values: collections.defaultdict[int, list[str]] = collections.defaultdict(list)
     for reg in pwndbg.aglib.regs.common:
         reg_values[pwndbg.aglib.regs.read_reg(reg)].append(reg)
 
@@ -180,7 +177,7 @@ def telescope(
         step = -1 * ptrsize
 
     # Find all registers which show up in the trace, map address to regs
-    regs: Dict[int, str] = {}
+    regs: dict[int, str] = {}
     for i in range(start, stop, step):
         values = list(reg_values[i])
 
@@ -199,7 +196,7 @@ def telescope(
     # Print everything out
     result = []
     last = None
-    collapse_buffer: List[str] = []
+    collapse_buffer: list[str] = []
     skipped_padding = (
         2
         + len(offset_delimiter)
@@ -280,7 +277,7 @@ def telescope(
     return result
 
 
-def regs_or_frame_offset(addr: int, bp: int | None, regs: Dict[int, str], longest_regs: int) -> str:
+def regs_or_frame_offset(addr: int, bp: int | None, regs: dict[int, str], longest_regs: int) -> str:
     # bp only set if print_framepointer_offset=True
     if bp is None or regs[addr] or not -0xFFF <= addr - bp <= 0xFFF:
         # We do .rjust(3) because some arches have two-letter registers.

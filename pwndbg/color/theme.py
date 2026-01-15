@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+from collections.abc import Sequence
 from typing import Any
-from typing import Callable
-from typing import Sequence
 
 import pwndbg.color
 from pwndbg import config

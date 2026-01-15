@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import Union
 
 import pwndbg.aglib
 import pwndbg.aglib.shellcode
@@ -108,7 +107,7 @@ def flag_str_to_val(flagstr):
     return flag_int
 
 
-def parse_str_or_int(val: Union[str, int], parser):
+def parse_str_or_int(val: str | int, parser):
     """
     Try parsing a string with one of the parsers above or by converting it to
     an int, or passes the value through if it is already an integer.

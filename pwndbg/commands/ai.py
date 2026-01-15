@@ -11,7 +11,6 @@ import json
 import os
 import pprint
 import re
-from typing import List
 
 import gdb
 
@@ -75,8 +74,8 @@ pwndbg.config.add_param(
     "whether to show how many tokens are used with each OpenAI API call",
 )
 
-last_question: List[str] = []
-last_answer: List[str] = []
+last_question: list[str] = []
+last_answer: list[str] = []
 last_pc = None
 last_command = None
 dummy = False

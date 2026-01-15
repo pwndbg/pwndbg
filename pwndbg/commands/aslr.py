@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import Tuple
 
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
@@ -14,7 +13,7 @@ if pwndbg.dbg.is_gdblib_available():
     import gdb
 
 
-def check_aslr() -> Tuple[bool | None, str]:
+def check_aslr() -> tuple[bool | None, str]:
     """
     Detects the ASLR status. Returns True, False or None.
 

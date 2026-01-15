@@ -1,10 +1,6 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 from typing import Union
 
 from pycparser import CParser  # type: ignore # noqa: PGH003
@@ -24,9 +20,7 @@ CAstNode = Union[
 ]
 
 
-def extractTypeAndName(
-    n: CAstNode, defaultName: Optional[str] = None
-) -> Optional[Tuple[str, int, str]]:
+def extractTypeAndName(n: CAstNode, defaultName: str | None = None) -> tuple[str, int, str] | None:
     if isinstance(n, c_ast.EllipsisParam):
         return ("int", 0, "vararg")
 
@@ -70,7 +64,7 @@ def ExtractFuncDecl(node: CAstNode, verbose: bool = False) -> Function | None:
         print(node.show())
         return None
 
-    fargs: List[Argument] = []
+    fargs: list[Argument] = []
     for i, (argName, arg) in enumerate(node.args.children()):
         defname = "arg%i" % i
         argdata = extractTypeAndName(arg, defname)
@@ -87,7 +81,7 @@ def ExtractFuncDecl(node: CAstNode, verbose: bool = False) -> Function | None:
 
 
 def ExtractAllFuncDecls(ast: CAstNode, verbose: bool = False):
-    Functions: Dict[str, Function] = {}
+    Functions: dict[str, Function] = {}
 
     class FuncDefVisitor(c_ast.NodeVisitor):
         def visit_FuncDecl(self, node: CAstNode, *a: Any) -> None:

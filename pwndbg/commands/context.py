@@ -7,15 +7,10 @@ import logging
 import math
 import sys
 from collections import defaultdict
+from collections.abc import Callable
 from enum import Enum
 from typing import Any
-from typing import Callable
-from typing import DefaultDict
-from typing import Dict
-from typing import List
-from typing import Optional
 from typing import TextIO
-from typing import Tuple
 from typing import TypeVar
 
 import unicorn as U
@@ -183,8 +178,8 @@ config_max_threads_display = pwndbg.config.add_param(
 
 # Storing output configuration per section
 OutputType = str | Callable[[str], None]
-outputs: Dict[str, OutputType] = {}
-output_settings: DefaultDict[str, Dict[str, Any]] = defaultdict(dict)
+outputs: dict[str, OutputType] = {}
+output_settings: defaultdict[str, dict[str, Any]] = defaultdict(dict)
 
 
 @pwndbg.config.trigger(config_context_sections)
@@ -378,8 +373,8 @@ def resetcontextoutput(section: str) -> None:
 
 
 # Context history
-context_history: DefaultDict[str, List[List[str]]] = defaultdict(list)
-selected_history_index: Optional[int] = None
+context_history: defaultdict[str, list[list[str]]] = defaultdict(list)
+selected_history_index: int | None = None
 
 context_history_size = pwndbg.config.add_param(
     "context-history-size", 50, "number of context history entries to store"
@@ -395,9 +390,9 @@ def history_size_changed() -> None:
             context_history[section] = context_history[section][-int(context_history_size) :]
 
 
-def serve_context_history(function: Callable[P, List[str]]) -> Callable[P, List[str]]:
+def serve_context_history(function: Callable[P, list[str]]) -> Callable[P, list[str]]:
     @functools.wraps(function)
-    def _serve_context_history(*a: P.args, **kw: P.kwargs) -> List[str]:
+    def _serve_context_history(*a: P.args, **kw: P.kwargs) -> list[str]:
         global selected_history_index
         assert "context_" in function.__name__
         section_name = function.__name__.replace("context_", "")
@@ -537,7 +532,7 @@ def contextsearch(needle: str, section: str | None = None) -> None:
             return
         sections = [section]
 
-    matches: List[Tuple[str, int]] = []
+    matches: list[tuple[str, int]] = []
     for section in sections:
         for i, entry in enumerate(context_history[section]):
             if not any(m[1] == i for m in matches) and any(needle in line for line in entry):
@@ -637,7 +632,7 @@ def context_expressions(
     with_banner: bool = True,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     if not expressions:
         return []
     banner = [pwndbg.ui.banner("expressions", target=target, width=width)]
@@ -729,7 +724,7 @@ config context
 """,
 )
 def context(
-    subcontext: List[str] | None = None,
+    subcontext: list[str] | None = None,
     enabled: bool | None = None,
     all_sections: bool = False,
 ) -> None:
@@ -745,14 +740,14 @@ def context(
 
     if subcontext is None:
         subcontext = []
-    args: List[str] = subcontext
+    args: list[str] = subcontext
 
     if all_sections:
         args = [c.__name__.replace("context_", "") for c in context_sections.values()]
     elif len(args) == 0:
         args = config_context_sections.split()
 
-    sections: List[Tuple[str, Callable[..., List[str]] | None]] = []
+    sections: list[tuple[str, Callable[..., list[str]] | None]] = []
     if args:
         if selected_history_index is None:
             sections.append(("legend", lambda *args, **kwargs: [mem_color.legend()]))
@@ -765,8 +760,8 @@ def context(
 
     sections += [(arg, context_sections.get(arg[0], None)) for arg in args]
 
-    result: DefaultDict[OutputWrapper, List[str]] = defaultdict(list)
-    result_settings: DefaultDict[OutputWrapper, Dict[str, Any]] = defaultdict(dict)
+    result: defaultdict[OutputWrapper, list[str]] = defaultdict(list)
+    result_settings: defaultdict[OutputWrapper, dict[str, Any]] = defaultdict(dict)
     for section, func in sections:
         if func:
             target = output(section)
@@ -862,8 +857,8 @@ def calculate_padding_to_align(length: int, align: int) -> int:
 
 
 def compact_regs_hardcut(
-    regs: List[str], terminal_width: int, column_width: int, columns: int, separation: int
-) -> List[str]:
+    regs: list[str], terminal_width: int, column_width: int, columns: int, separation: int
+) -> list[str]:
     """
     If the string of any register overflows its column_width, it will be hard cut to the column_width.
 
@@ -875,7 +870,7 @@ def compact_regs_hardcut(
      RDI  1                               R12  0x7fffffffccb0 ◂— 1             RIP  0x7ffff7c90efa (__intern...
      RSI  0x7fffffffccb0 ◂— 1             R13  0                               EFLAGS 0x202 [ cf pf af zf sf...
     """
-    result: List[str] = []
+    result: list[str] = []
 
     cut_marker = pwndbg.color.white("...")
 
@@ -930,8 +925,8 @@ def compact_regs_hardcut(
 
 
 def compact_regs_normal(
-    regs: List[str], terminal_width: int, column_width: int, columns: int, separation: int
-) -> List[str]:
+    regs: list[str], terminal_width: int, column_width: int, columns: int, separation: int
+) -> list[str]:
     """
     Will try to group similar registers together, and may increase the number of rows (as opposed to compact_regs_very)
     in order to achieve this.
@@ -951,7 +946,7 @@ def compact_regs_normal(
     ↪ RIP  0x7ffff7c90efa (__internal_syscall_cancel+138) ◂— add rsp, 0x18
     ↪ EFLAGS 0x202 [ cf pf af zf sf IF df of ac ]
     """
-    result: List[str] = []
+    result: list[str] = []
 
     def extract_reg_name(one_reg: str) -> str:
         # We want the whitespace right after the name too. Also the change marker.
@@ -984,7 +979,7 @@ def compact_regs_normal(
     line_length: int = 0
     nregs: int = len(regs)
     nrows: int = math.ceil(nregs / columns)
-    pending: List[str] = []
+    pending: list[str] = []
     for row_idx in range(nrows):
         for column_idx in range(columns):
             # Pad the line from the last register.
@@ -1032,8 +1027,8 @@ def compact_regs_normal(
 
 
 def compact_regs_very(
-    regs: List[str], terminal_width: int, column_width: int, columns: int, separation: int
-) -> List[str]:
+    regs: list[str], terminal_width: int, column_width: int, columns: int, separation: int
+) -> list[str]:
     """
     Will try to group similar registers together, but will sacrifice the grouping if it can be more compact.
 
@@ -1051,7 +1046,7 @@ def compact_regs_very(
      RSI  0x7fffffffccb0 ◂— 1          R13  0
      EFLAGS 0x202 [ cf pf af zf sf IF df of ac ]
     """
-    result: List[str] = []
+    result: list[str] = []
 
     line: str = ""
     line_length: int = 0
@@ -1101,8 +1096,8 @@ def compact_regs_very(
 
 
 def compact_regs(
-    regs: List[str], width: int | None = None, target: OutputTarget = sys.stdout
-) -> List[str]:
+    regs: list[str], width: int | None = None, target: OutputTarget = sys.stdout
+) -> list[str]:
     columns = max(0, int(pwndbg.config.show_compact_regs_columns))
     min_width = max(1, int(pwndbg.config.show_compact_regs_min_width))
     separation = max(1, int(pwndbg.config.show_compact_regs_separation))
@@ -1140,7 +1135,7 @@ def context_regs(
     with_banner: bool = True,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     regs = get_regs()
     if pwndbg.config.show_compact_regs.value != CompactRegsOptions.NO.value:
         regs = compact_regs(regs, target=target, width=width)
@@ -1158,7 +1153,7 @@ def context_heap_tracker(
     with_banner: bool = True,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     if not pwndbg.gdblib.ptmalloc2_tracking.is_enabled():
         return []
 
@@ -1181,7 +1176,7 @@ parser.add_argument("regs", nargs="*", type=str, default=None, help="Registers t
 
 @pwndbg.commands.Command(parser, category=CommandCategory.CONTEXT)
 @pwndbg.commands.OnlyWhenRunning
-def regs(regs: List[str | VisitableRegister | None] | None = None) -> None:
+def regs(regs: list[str | VisitableRegister | None] | None = None) -> None:
     """Print out all registers and enhance the information."""
     print("\n".join(get_regs(regs)))
 
@@ -1191,7 +1186,7 @@ pwndbg.config.add_param("show-retaddr-reg", True, "whether to show return addres
 
 
 class RegisterContext(RegisterContextProtocol):
-    changed: List[str]
+    changed: list[str]
 
     def __init__(self):
         self.changed = pwndbg.aglib.regs.changed
@@ -1265,13 +1260,13 @@ class RegisterContext(RegisterContextProtocol):
         return f"{prefix} {desc}"
 
 
-def get_regs(in_regs: List[str | VisitableRegister | None] | None = None) -> List[str]:
+def get_regs(in_regs: list[str | VisitableRegister | None] | None = None) -> list[str]:
     # Python default parameters are instantiated once and shared across calls.
     # Instead of a default value of [], we need to do this check so we get a fresh list each time
     if in_regs is None:
         in_regs = []
-    regs: List[str | VisitableRegister | None] = in_regs
-    result: List[str] = []
+    regs: list[str | VisitableRegister | None] = in_regs
+    result: list[str] = []
     rc = RegisterContext()
 
     if len(regs) == 0:
@@ -1351,7 +1346,7 @@ def context_disasm(
     with_banner: bool = True,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     flavor = pwndbg.dbg.x86_disassembly_flavor()
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
@@ -1379,11 +1374,9 @@ def context_disasm(
     # and this call may disable it
     thumb_mode_str = get_thumb_mode_string()
     if thumb_mode_str is not None:
-        info = " / {} / {} mode / set emulate {}".format(
-            pwndbg.aglib.arch.name, thumb_mode_str, pwndbg.config.emulate
-        )
+        info = f" / {pwndbg.aglib.arch.name} / {thumb_mode_str} mode / set emulate {pwndbg.config.emulate}"
     else:
-        info = " / {} / set emulate {}".format(pwndbg.aglib.arch.name, pwndbg.config.emulate)
+        info = f" / {pwndbg.aglib.arch.name} / set emulate {pwndbg.config.emulate}"
     banner = [pwndbg.ui.banner("disasm", target=target, width=width, extra=info)]
 
     # If we didn't disassemble backward, try to make sure
@@ -1406,7 +1399,7 @@ theme.add_param("code-prefix", "►", "prefix marker for 'context code' command"
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_highlight_source(filename: str) -> Tuple[str, ...]:
+def get_highlight_source(filename: str) -> tuple[str, ...]:
     # Notice that the code is cached
     with open(filename, encoding="utf-8", errors="ignore") as f:
         source = f.read()
@@ -1419,7 +1412,7 @@ def get_highlight_source(filename: str) -> Tuple[str, ...]:
     return source_lines
 
 
-def get_filename_and_formatted_source(height: int | None = None) -> Tuple[str, List[str], int]:
+def get_filename_and_formatted_source(height: int | None = None) -> tuple[str, list[str], int]:
     """
     Returns formatted, lines limited and highlighted source as list
     or if it isn't there - an empty list
@@ -1464,7 +1457,7 @@ def context_code(
     with_banner: bool = True,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     filename, formatted_source, line = get_filename_and_formatted_source(height)
 
     # Try getting source from files
@@ -1477,7 +1470,7 @@ def context_code(
     if should_decompile and pwndbg.aglib.regs.pc is not None:
         nlines = max(int(source_disasm_lines), height or 0)
         # Will be None if we aren't connected or decompilation fails.
-        code: Optional[list[str]] = pwndbg.integration.manager.decompile_pretty(
+        code: list[str] | None = pwndbg.integration.manager.decompile_pretty(
             pwndbg.aglib.regs.pc, nlines
         )
         if code is None:
@@ -1499,7 +1492,7 @@ def context_stack(
     with_banner: bool = True,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     tui_stack_lines = max(int(stack_lines), height or 0)
     result = [pwndbg.ui.banner("stack", target=target, width=width)] if with_banner else []
     telescope = pwndbg.commands.telescope.telescope(
@@ -1524,7 +1517,7 @@ def context_backtrace(
     target: OutputTarget = sys.stdout,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     result = []
 
     if with_banner:
@@ -1578,7 +1571,7 @@ def context_args(
     target: OutputTarget = sys.stdout,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     args = pwndbg.arguments.format_args(pwndbg.aglib.disasm.disassembly.one())
 
     # early exit to skip section if no arg found
@@ -1591,7 +1584,7 @@ def context_args(
     return args
 
 
-last_signal: List[str] = []
+last_signal: list[str] = []
 
 thread_status_messages = {
     "running": pwndbg.color.light_green("running"),
@@ -1617,7 +1610,7 @@ def context_threads(
     target: OutputTarget = sys.stdout,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     try:
         original_thread = gdb.selected_thread()
     except SystemError:
@@ -1752,7 +1745,7 @@ def context_last_signal(
     target: OutputTarget = sys.stdout,
     width: int | None = None,
     height: int | None = None,
-) -> List[str]:
+) -> list[str]:
     if not last_signal:
         return []
 
@@ -1763,7 +1756,7 @@ def context_last_signal(
     return result
 
 
-context_sections: Dict[str, Callable[..., List[str]]] = {
+context_sections: dict[str, Callable[..., list[str]]] = {
     "a": context_args,
     "r": context_regs,
     "d": context_disasm,

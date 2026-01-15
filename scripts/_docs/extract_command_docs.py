@@ -24,7 +24,6 @@ import argparse
 import json
 import sys
 from dataclasses import dataclass
-from typing import Tuple
 
 import pwndbg.commands
 from pwndbg.commands import CommandObj
@@ -67,8 +66,8 @@ def extract_commands() -> list[CommandObj]:
 @dataclass
 class ExtractedParserData:
     usage: str
-    positionals: list[Tuple[str, str]]
-    optionals: list[Tuple[str, str, str]]
+    positionals: list[tuple[str, str]]
+    optionals: list[tuple[str, str, str]]
 
 
 def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
@@ -78,7 +77,7 @@ def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
 
     # positional arguments
     # [(argument name, argument help)]
-    positionals: list[Tuple[str, str]] = []
+    positionals: list[tuple[str, str]] = []
 
     if parser._positionals._group_actions:
         for action in parser._positionals._group_actions:
@@ -94,7 +93,7 @@ def distill_parser(parser: argparse.ArgumentParser) -> ExtractedParserData:
 
     # option arguments
     # [(short name, long name, argument help)]
-    optionals: list[Tuple[str, str, str]] = []
+    optionals: list[tuple[str, str, str]] = []
 
     if parser._option_string_actions:
         for k in parser._option_string_actions:

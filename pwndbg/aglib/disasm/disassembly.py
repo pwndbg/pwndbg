@@ -7,12 +7,7 @@ from __future__ import annotations
 
 import collections
 import re
-from typing import Callable
-from typing import DefaultDict
-from typing import Dict
-from typing import List
-from typing import Set
-from typing import Tuple
+from collections.abc import Callable
 
 from capstone import *  # noqa: F403
 
@@ -65,7 +60,7 @@ Enabling this may make disassembly slower.
 # emulated to the last time the process stopped. This allows use to skips a handful of instruction, but still retain the cache
 # Any larger changes of the program counter will cause the cache to reset.
 
-next_addresses_cache: Set[int] = set()
+next_addresses_cache: set[int] = set()
 
 
 # Register GDB event listeners for all stop events
@@ -91,21 +86,23 @@ def clear_on_reg_mem_change() -> None:
 
 # Dict of Address -> previous Address executed
 # Used to display instructions that led to current instruction
-backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
+backward_cache: collections.defaultdict[int, int] = collections.defaultdict(lambda: None)
 
 # Dict of Address -> previous instruction sequentially in memory
 # Some architectures don't have fixed-sized instructions, so this is used
 # to disassemble backwards linearly in memory for those cases
-linear_backward_cache: DefaultDict[int, int] = collections.defaultdict(lambda: None)
+linear_backward_cache: collections.defaultdict[int, int] = collections.defaultdict(lambda: None)
 
 # This allows use to retain the annotation strings from previous instructions
-computed_instruction_cache: DefaultDict[int, PwndbgInstruction] = collections.defaultdict(
-    lambda: None
+computed_instruction_cache: collections.defaultdict[int, PwndbgInstruction] = (
+    collections.defaultdict(lambda: None)
 )
 
 # Maps an address to integer 0/1, indicating the Thumb mode bit for the given address.
 # Value is None if Thumb bit is irrelevent or unknown.
-emulated_arm_mode_cache: DefaultDict[int, int | None] = collections.defaultdict(lambda: None)
+emulated_arm_mode_cache: collections.defaultdict[int, int | None] = collections.defaultdict(
+    lambda: None
+)
 
 
 def get_previous_instruction(
@@ -136,7 +133,7 @@ def get_previous_instruction(
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def get_disassembler(cs_info: Tuple[int, int]):
+def get_disassembler(cs_info: tuple[int, int]):
     arch, mode = cs_info
 
     mode |= pwndbg.aglib.arch.get_capstone_endianness()
@@ -256,14 +253,14 @@ def get(
     put_cache: bool = False,
     assistant: DisassemblyAssistant | None = None,
     padding: int = 6,
-) -> List[PwndbgInstruction]:
+) -> list[PwndbgInstruction]:
     address = int(address)
 
     # Dont disassemble if there's no memory
     if not pwndbg.aglib.memory.peek(address):
         return []
 
-    retval: List[PwndbgInstruction] = []
+    retval: list[PwndbgInstruction] = []
     for _ in range(instructions):
         i = get_one_instruction(
             address,
@@ -357,7 +354,7 @@ def near(
     show_prev_insns=True,
     use_cache=False,
     linear=False,
-) -> Tuple[List[PwndbgInstruction], int]:
+) -> tuple[list[PwndbgInstruction], int]:
     """
     Disassembles instructions near given `address`. Passing `emulate` makes use of
     unicorn engine to emulate instructions to predict branches that will be taken.
@@ -414,7 +411,7 @@ def near(
     if current is None:
         return ([], -1)
 
-    insns: List[PwndbgInstruction] = []
+    insns: list[PwndbgInstruction] = []
 
     # Get previously executed instructions from the cache.
     if DEBUG_ENHANCEMENT:
@@ -541,7 +538,7 @@ def near(
     return (insns, index_of_current_instruction)
 
 
-ALL_DISASSEMBLY_ASSISTANTS: Dict[
+ALL_DISASSEMBLY_ASSISTANTS: dict[
     PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Callable[[], DisassemblyAssistant]
 ] = {
     "aarch64": lambda: pwndbg.aglib.disasm.aarch64.AArch64DisassemblyAssistant("aarch64"),

@@ -7,9 +7,7 @@ from __future__ import annotations
 import functools
 import os
 import re
-from typing import Callable
-from typing import List
-from typing import Tuple
+from collections.abc import Callable
 from typing import TypeVar
 
 from elftools.elf.relocation import Relocation
@@ -55,7 +53,7 @@ def set_glibc_version() -> None:
 
 
 @pwndbg.aglib.proc.OnlyWhenRunning
-def get_version() -> Tuple[int, ...] | None:
+def get_version() -> tuple[int, ...] | None:
     if glibc_version:
         version_tuple = tuple(int(i) for i in glibc_version.value.split("."))
         return version_tuple
@@ -65,7 +63,7 @@ def get_version() -> Tuple[int, ...] | None:
 
 @pwndbg.aglib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def _get_version() -> Tuple[int, ...] | None:
+def _get_version() -> tuple[int, ...] | None:
     from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
@@ -96,7 +94,7 @@ def get_libc_filename_from_info_sharedlibrary() -> str | None:
     """
     Get the filename of the libc by parsing the output of `info sharedlibrary`.
     """
-    possible_libc_path: List[str] = []
+    possible_libc_path: list[str] = []
     i = pwndbg.dbg.selected_inferior()
 
     main_module_name = i.main_module_name()
@@ -131,7 +129,7 @@ def get_libc_filename_from_info_sharedlibrary() -> str | None:
 
 @pwndbg.aglib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_elf_data_section() -> Tuple[int, int, bytes] | None:
+def dump_elf_data_section() -> tuple[int, int, bytes] | None:
     """
     Dump .data section of libc ELF file
     """
@@ -144,7 +142,7 @@ def dump_elf_data_section() -> Tuple[int, int, bytes] | None:
 
 @pwndbg.aglib.proc.OnlyWhenRunning
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_relocations_by_section_name(section_name: str) -> Tuple[Relocation, ...] | None:
+def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...] | None:
     """
     Dump relocations of a section by section name of libc ELF file
     """

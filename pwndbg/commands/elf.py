@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import List
-from typing import Tuple
 
 from elftools.elf.elffile import ELFFile
 
@@ -159,7 +157,7 @@ def plt(all_symbols: bool = False) -> None:
         bin_base_addr = pwndbg.aglib.proc.binary_base_addr()
 
     # List of (Section name, start_addr, end_addr)
-    sections_found: List[Tuple[str, int, int]] = []
+    sections_found: list[tuple[str, int, int]] = []
 
     with open(local_path, "rb") as f:
         elffile = ELFFile(f)
@@ -194,7 +192,7 @@ def plt(all_symbols: bool = False) -> None:
         if not symbols:
             print(message.error(f"No symbols found in section {section_name}"))
 
-        stuff: List[Tuple[int, str]] = []
+        stuff: list[tuple[int, str]] = []
 
         for symbol, addr in symbols:
             stuff.append((addr, symbol))
@@ -247,8 +245,8 @@ def print_symbols_in_section(section_name, filter_text="") -> None:
         print(hex(int(addr)) + ": " + symbol)
 
 
-def get_symbols_in_region(start: int, end: int, filter_text="") -> List[Tuple[str, int]]:
-    symbols: List[Tuple[str, int]] = []
+def get_symbols_in_region(start: int, end: int, filter_text="") -> list[tuple[str, int]]:
+    symbols: list[tuple[str, int]] = []
     ptr_size = pwndbg.aglib.typeinfo.pvoid.sizeof
     addr = start
     while addr < end:

@@ -10,7 +10,7 @@ import contextlib
 import functools
 import os.path
 import sys
-from typing import Callable
+from collections.abc import Callable
 from typing import ParamSpec
 from typing import TypeVar
 

@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import argparse
-from typing import Dict
-from typing import Iterator
-from typing import List
-from typing import Union
+from collections.abc import Iterator
 
 import pwndbg.aglib
 import pwndbg.aglib.file
@@ -122,7 +119,7 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
 
     # The following code is inspired by the "got" command of https://github.com/bata24/gef/blob/dev/gef.py by @bata24, thank you!
     # TODO/FIXME: Maybe a -v option to show more information will be better
-    outputs: List[Dict[str, Union[str, int]]] = []
+    outputs: list[dict[str, str | int]] = []
     if path == pwndbg.aglib.proc.exe():
         bin_base_offset = pwndbg.aglib.proc.binary_base_addr() if "PIE enabled" in pie_status else 0
     else:

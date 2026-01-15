@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
+from collections.abc import Sequence
 from dataclasses import asdict
 from inspect import getdoc
 from inspect import signature
 from typing import Any
-from typing import Callable
 from typing import Protocol
-from typing import Sequence
 
 import pwndbg
 from scripts._docs.function_docs_common import ExtractedFunction

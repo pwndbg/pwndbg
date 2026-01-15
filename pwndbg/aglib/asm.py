@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pathlib
-from typing import List
 
 import pwnlib.context
 import pwnlib.data
@@ -10,7 +9,7 @@ import pwndbg.aglib
 import pwndbg.lib.zig
 
 
-def _get_pwntools_includes() -> List[pathlib.Path]:
+def _get_pwntools_includes() -> list[pathlib.Path]:
     include = (
         pathlib.Path(pwnlib.data.path)
         / "includes"
