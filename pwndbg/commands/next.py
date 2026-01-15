@@ -166,9 +166,26 @@ async def _stepsyscall(
     """
     Execution controller for the `stepsyscall` command.
     """
-    if await pwndbg.aglib.next.break_next_interrupt_filtered(
-        ec, syscall_num=syscall_num, condition=condition
-    ):
+    def predicate() -> bool:
+        # If syscall filter is provided, check current syscall number
+        if syscall_num is not None:
+            syscall_abi = pwndbg.aglib.arch.syscall_abi
+            if syscall_abi is None:
+                return False
+            syscall_reg = syscall_abi.syscall_register
+            current_syscall = pwndbg.aglib.regs.read_reg(syscall_reg)
+            if current_syscall != syscall_num:
+                return False
+        # If condition is provided, evaluate it
+        if condition is not None:
+            try:
+                if not condition():
+                    return False
+            except Exception:
+                return False
+        return True
+
+    if await pwndbg.aglib.next.break_next_interrupt_filtered(ec, predicate=predicate):
         pwndbg.commands.context.context()
 
 
@@ -213,13 +230,11 @@ def stepsyscall(syscall: str | None = None, condition: str | None = None) -> Non
 
     # Parse syscall argument
     if syscall is not None:
-        # Check if it's actually a condition (starts with $ or contains operator)
+        # Check if it's a condition (starts with $ or contains operators)
         if syscall.startswith("$") or any(op in syscall for op in ["==", "!=", ">", "<"]):
-            # It's a condition, not a syscall
-            cond_callable = parse_condition(syscall)
-            if cond_callable is None:
-                print(f"Invalid condition: {syscall}")
-                return
+            # It's a condition, not a syscall name/number
+            cond_str = syscall  
+            cond_callable = lambda cond=cond_str: int(pwndbg.dbg.selected_inferior().evaluate_expression(cond))
         else:
             num, name = get_syscall(syscall)
             if num is None:
@@ -228,12 +243,11 @@ def stepsyscall(syscall: str | None = None, condition: str | None = None) -> Non
             syscall_num = num
             print(f"Stepping until syscall {name} ({num})")
 
-    # Parse condition argument
+    # Parse condition argument (can be combined with syscall filter)
     if condition is not None:
-        cond_callable = parse_condition(condition)
-        if cond_callable is None:
-            print(f"Invalid condition: {condition}")
-            return
+        cond_str = condition  
+        # If we already have a condition from syscall arg, we need to combine them
+        cond_callable = lambda cond=cond_str: int(pwndbg.dbg.selected_inferior().evaluate_expression(cond))
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController) -> None:
         await _stepsyscall(ec, syscall_num=syscall_num, condition=cond_callable)

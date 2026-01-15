@@ -155,28 +155,18 @@ async def break_next_interrupt(
 
 async def break_next_interrupt_filtered(
     ec: pwndbg.dbg_mod.ExecutionController,
-    syscall_num: int | None = None,
-    condition: "Callable[[], bool] | None" = None,
+    predicate: "Callable[[], bool] | None" = None,
 ) -> PwndbgInstruction | None:
     """
-    Break at the next interrupt (syscall) that matches the given filter criteria.
+    Break at the next interrupt (syscall) when the predicate evaluates to True.
 
     Args:
         ec: Execution controller for stepping/continuing
-        syscall_num: If provided, only break when syscall number matches (read from syscall register)
-        condition: If provided, a callable that returns True when the condition is met
-                   (e.g., checking register values like $rdi==0)
+        predicate: Optional zero-argument callable returning True to stop, False to suppress
 
     Returns:
         The instruction we stopped at, or None if process died/signaled
     """
-    # Get the syscall register for the current architecture
-    syscall_reg = None
-    if syscall_num is not None:
-        syscall_abi = pwndbg.aglib.arch.syscall_abi
-        if syscall_abi is not None:
-            syscall_reg = syscall_abi.syscall_register
-
     while pwndbg.aglib.proc.alive():
         # Break on signal as it may be a segfault
         if pwndbg.aglib.proc.stopped_with_signal():
@@ -186,28 +176,18 @@ async def break_next_interrupt_filtered(
         ins = await break_next_interrupt(ec, honor_current_branch=True)
 
         if ins:
-            # We hit an interrupt instruction - check filters
-            matches = True
-
-            # Check syscall number filter
-            if syscall_num is not None and syscall_reg:
-                current_syscall = pwndbg.aglib.regs.read_reg(syscall_reg)
-                if current_syscall != syscall_num:
-                    matches = False
-
-            # Check condition filter
-            if matches and condition is not None:
+            # Evaluate predicate
+            if predicate is not None:
                 try:
-                    if not condition():
-                        matches = False
+                    if not predicate():
+                        # Didn't match - step past this syscall and continue searching
+                        await ec.single_step()
+                        continue
                 except Exception:
-                    matches = False
-
-            if matches:
-                return ins
-
-            # Didn't match - step past this syscall and continue searching
-            await ec.single_step()
+                    # Treat errors as non-match to keep stepping
+                    await ec.single_step()
+                    continue
+            return ins
         else:
             # No interrupt in current basic block - step to next branch and take it
             branch = next_branch(pwndbg.aglib.regs.pc, including_current=True)
