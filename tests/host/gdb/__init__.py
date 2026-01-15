@@ -5,7 +5,6 @@ import subprocess
 import time
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import List
 
 from ...host import TestHost
 from ...host import TestResult

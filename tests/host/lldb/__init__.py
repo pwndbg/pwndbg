@@ -5,7 +5,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import List
 
 from ...host import TestHost
 from ...host import TestResult

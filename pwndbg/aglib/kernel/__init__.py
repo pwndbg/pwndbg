@@ -5,8 +5,6 @@ import re
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
-from typing import List
-from typing import Tuple
 from typing import TypeVar
 
 from elftools.elf.elffile import ELFFile

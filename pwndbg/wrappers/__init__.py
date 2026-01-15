@@ -8,7 +8,6 @@ import functools
 import subprocess
 from collections.abc import Callable
 from subprocess import STDOUT
-from typing import List
 from typing import TypeVar
 
 from pwnlib.util.misc import which

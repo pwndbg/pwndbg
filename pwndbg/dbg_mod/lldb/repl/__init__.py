@@ -53,7 +53,6 @@ from io import BytesIO
 from io import TextIOWrapper
 from typing import Any
 from typing import BinaryIO
-from typing import List
 
 import lldb
 from typing_extensions import override

@@ -7,8 +7,6 @@ from __future__ import annotations
 import os
 import re
 from collections.abc import Callable
-from typing import Dict
-from typing import List
 from typing import NamedTuple
 
 import pwndbg

@@ -13,10 +13,7 @@ from collections.abc import Iterator
 from collections.abc import Sequence
 from enum import Enum
 from typing import Any
-from typing import List
 from typing import Literal
-from typing import Optional
-from typing import Tuple
 from typing import TypedDict
 from typing import TypeVar
 

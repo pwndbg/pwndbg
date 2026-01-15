@@ -21,8 +21,6 @@ import xmlrpc.client
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
-from typing import Optional
-from typing import Tuple
 from typing import cast
 
 import niche_elf

@@ -8,8 +8,6 @@ from enum import Enum
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Any
-from typing import Dict
-from typing import List
 
 
 def _collection_from_pytest(
