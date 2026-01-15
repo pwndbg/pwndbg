@@ -3,9 +3,7 @@ from __future__ import annotations
 import argparse
 import re
 import tempfile
-from typing import Iterator
-from typing import List
-from typing import Tuple
+from collections.abc import Iterator
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
@@ -22,7 +20,7 @@ from pwndbg.aglib.disasm.disassembly import get_disassembler
 from pwndbg.commands import CommandCategory
 
 
-class RawMemoryBinary(object):
+class RawMemoryBinary:
     def __init__(self, options, start_addr: int):
         self.start_addr = start_addr
         self.__fileName = options.binary
@@ -150,13 +148,13 @@ def _rop(
 
         print(plain_out if plain else out)
 
-    print("\nUnique gadgets found: %d" % (len(c.gadgets())))
+    print(f"\nUnique gadgets found: {len(c.gadgets())}")
     return True
 
 
 def split_range_to_chunks(
     range_start: int, range_end: int, chunk_size: int = 10 * 1024 * 1024
-) -> Iterator[Tuple[int, int, int, int]]:
+) -> Iterator[tuple[int, int, int, int]]:
     total_parts = ((range_end - range_start) + chunk_size - 1) // chunk_size
 
     for current_part, range_start_chunk in enumerate(range(range_start, range_end, chunk_size), 1):
@@ -194,7 +192,7 @@ def parse_size(size_str: str) -> int:
     return value * unit_multipliers[unit]
 
 
-def iterate_over_pages(mem_limit: int) -> Iterator[Tuple[str, pwndbg.lib.memory.Page | None]]:
+def iterate_over_pages(mem_limit: int) -> Iterator[tuple[str, pwndbg.lib.memory.Page | None]]:
     if not pwndbg.aglib.proc.alive():
         yield pwndbg.aglib.proc.exe(), None
         return
@@ -265,7 +263,7 @@ Unique gadgets found: 8514
     """,
 )
 @pwndbg.commands.OnlyWithFile
-def rop(grep: str | None, memlimit: str, symbols: bool, plain: bool, arguments: List[str]) -> None:
+def rop(grep: str | None, memlimit: str, symbols: bool, plain: bool, arguments: list[str]) -> None:
     memlimit = parse_size(memlimit)
 
     for file_path, page in iterate_over_pages(memlimit):

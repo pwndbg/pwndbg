@@ -12,7 +12,6 @@ import sys
 from subprocess import check_call
 from subprocess import check_output
 from tempfile import NamedTemporaryFile
-from typing import Optional
 from urllib.parse import quote
 
 import pwndbg
@@ -64,7 +63,7 @@ def all_versions():
         f"Pwnlib:   {module_version('pwnlib')}",
     )
 
-    integration_ver_text: Optional[str] = pwndbg.integration.manager.version_string()
+    integration_ver_text: str | None = pwndbg.integration.manager.version_string()
     if integration_ver_text is not None:
         return most + (integration_ver_text,)
     else:

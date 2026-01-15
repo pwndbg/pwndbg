@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import re
-from typing import Callable
-from typing import List
-from typing import Pattern
+from collections.abc import Callable
+from re import Pattern
 
 import gdb
 
@@ -28,10 +27,10 @@ like the "disasm" or "stack" windows.
 
 
 class ContextTUIWindow:
-    _tui_window: "gdb.TuiWindow"
+    _tui_window: gdb.TuiWindow
     _section: str
-    _lines: List[str]
-    _blank_line_lengths: List[int]
+    _lines: list[str]
+    _blank_line_lengths: list[int]
     _longest_line: int
     _before_prompt_listener: Callable[[None], object]
     _vscroll_start: int
@@ -42,9 +41,9 @@ class ContextTUIWindow:
     _enabled: bool
 
     _static_enabled: bool = True
-    _context_windows: List[ContextTUIWindow] = []
+    _context_windows: list[ContextTUIWindow] = []
 
-    def __init__(self, tui_window: "gdb.TuiWindow", section: str) -> None:
+    def __init__(self, tui_window: gdb.TuiWindow, section: str) -> None:
         self._tui_window = tui_window
         self._section = section
         self._tui_window.title = section

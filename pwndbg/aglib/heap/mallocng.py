@@ -6,10 +6,6 @@ https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from typing_extensions import override
 
@@ -35,7 +31,7 @@ IB: int = 4
 # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L12
 # Describes the possible sizes a slot can be. These are `/ UNIT`.
 # fmt: off
-size_classes: List[int] = [
+size_classes: list[int] = [
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 18, 20,
     25, 31, 36, 42, 50, 63, 72, 84, 102, 127, 146,
     170, 204, 255, 292, 340, 409, 511, 584, 682, 818,
@@ -550,11 +546,11 @@ class Slot:
     # constructors..
 
     @classmethod
-    def from_p(cls, p: int) -> "Slot":
+    def from_p(cls, p: int) -> Slot:
         return cls(p)
 
     @classmethod
-    def from_start(cls, start: int) -> "Slot":
+    def from_start(cls, start: int) -> Slot:
         # We need to check if we are cyclic or not.
         # See is_cyclic() and cyclic_offset() logic.
         sn3 = memory.u8(start - 3)
@@ -992,10 +988,10 @@ class MallocContext:
         self.meta_area_head: int = 0
         self.meta_area_tail: int = 0
         self.avail_meta_areas: int = 0
-        self.active: List[int] = []
-        self.usage_by_class: List[int] = []
-        self.unmap_seq: List[int] = []
-        self.bounces: List[int] = []
+        self.active: list[int] = []
+        self.usage_by_class: list[int] = []
+        self.unmap_seq: list[int] = []
+        self.bounces: list[int] = []
         self.seq: int = 0
         self.brk: int = 0
 
@@ -1123,7 +1119,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         self.finished_init: bool = False
 
         self.ctx_addr: int = 0
-        self.ctx: Optional[MallocContext] = None
+        self.ctx: MallocContext | None = None
         self.has_debug_syms: bool = False
 
     def init_if_needed(self) -> bool:
@@ -1194,7 +1190,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # (structures copying the secret). We want it either from the libc.so
         # mapping (if musl is dynamically linked) or the executable's
         # mapping (if musl is statically linked).
-        possible: List[Tuple[int, str]] = []
+        possible: list[tuple[int, str]] = []
         thread_stacks = pwndbg.aglib.stack.get().values()
 
         for sm in secret_matches:
@@ -1302,7 +1298,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
     def find_slot(
         self, address: int, metadata: bool = False, shallow: bool = False
-    ) -> Tuple[Optional[GroupedSlot], Optional[Slot]]:
+    ) -> tuple[GroupedSlot | None, Slot | None]:
         """
         Get the slot which contains this address.
 
@@ -1321,7 +1317,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         """
         metadata_offset = IB if metadata else 0
         # The group which contains a slot which contains `address`.
-        hit_group: Optional[Group] = None
+        hit_group: Group | None = None
 
         meta_area_addr = self.ctx.meta_area_head
         while meta_area_addr:
@@ -1374,9 +1370,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             return None, None
 
         # Need to read memory for the .contains_group() check.
-        hit_slot: Optional[Slot] = None
+        hit_slot: Slot | None = None
         # Contains extra information.
-        hit_grouped_slot: Optional[GroupedSlot] = None
+        hit_grouped_slot: GroupedSlot | None = None
 
         if shallow:
             backup_addr = hit_group.addr
@@ -1456,7 +1452,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         else:
             return found.start
 
-    def get_free_metas(self) -> Dict[int, Tuple[int, Meta]]:
+    def get_free_metas(self) -> dict[int, tuple[int, Meta]]:
         """
         Get all free metas by traversing the ctx.free_meta_head doubly
         linked list. Map them to their index in the list.
@@ -1478,7 +1474,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         # We could check for everything, but mallocng doesn't so lets not.
 
         start_meta = Meta(self.ctx.free_meta_head)
-        meta_dict: Dict[int, Tuple[int, Meta]] = {start_meta.addr: (0, start_meta)}
+        meta_dict: dict[int, tuple[int, Meta]] = {start_meta.addr: (0, start_meta)}
 
         idx = 1
         cur_meta = Meta(start_meta.next)

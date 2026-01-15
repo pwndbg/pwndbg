@@ -5,9 +5,7 @@ import datetime
 import os
 import stat
 import time
-from typing import List
 from typing import NamedTuple
-from typing import Union
 
 import gdb
 from tabulate import tabulate
@@ -83,7 +81,7 @@ parser.add_argument(
 import psutil
 
 
-def find_pids(target: str, user: str | None, exact: bool, all: bool) -> List[int]:
+def find_pids(target: str, user: str | None, exact: bool, all: bool) -> list[int]:
     # Note: we can't use `ps -C <target>` because this does not accept process names with spaces
     # so target='a b' would actually match process names 'a' and 'b' here
     # so instead, we will filter by process name or full cmdline later on
@@ -139,11 +137,11 @@ class ProcessInfo(NamedTuple):
 
 
 def resolve_target_process(
-    pids: List[int],
+    pids: list[int],
     method: str,
     no_truncate: bool,
 ) -> int | None:
-    proc_infos: List[ProcessInfo] = []
+    proc_infos: list[ProcessInfo] = []
 
     for pid in pids:
         try:
@@ -181,7 +179,7 @@ def resolve_target_process(
         )
 
         headers = ["pid", "user", "elapsed", "command"]
-        showindex: Union[bool, range] = False if method == _NONE else range(1, len(proc_infos) + 1)
+        showindex: bool | range = False if method == _NONE else range(1, len(proc_infos) + 1)
 
         # Cast proc_infos for printing
         table_proc_infos = [

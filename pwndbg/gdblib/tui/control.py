@@ -4,7 +4,7 @@ import gdb
 
 
 class ControlTUIWindow:
-    _tui_window: "gdb.TuiWindow"
+    _tui_window: gdb.TuiWindow
     _button_text: str = "[←]  [→]"
     # Map from command to the span of the button in the _button_text.
     # The span is represented as (start, end) where start is the index
@@ -12,7 +12,7 @@ class ControlTUIWindow:
     # last character of the button to react to on mouse click.
     _button_spans = {"contextprev": (0, 2), "contextnext": (5, 7)}
 
-    def __init__(self, tui_window: "gdb.TuiWindow") -> None:
+    def __init__(self, tui_window: gdb.TuiWindow) -> None:
         self._tui_window = tui_window
         self._tui_window.title = "history"
 

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
-from typing import List
 
 from capstone import *  # noqa: F403
 from capstone.mips import *  # noqa: F403
@@ -85,7 +83,7 @@ BRANCH_LIKELY_INSTRUCTIONS = {
     MIPS_INS_ALIAS_BEQZL,
 }
 
-CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
+CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
     MIPS_INS_BEQZ: lambda ops: ops[0] == 0,
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
@@ -185,7 +183,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOVE
             MIPS_INS_MOVE: self._common_move_annotator,
             MIPS_INS_ALIAS_MOVE: self._common_move_annotator,
@@ -253,7 +251,7 @@ class MipsDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             return InstructionCondition.UNDETERMINED
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
-        resolved_operands: List[int] = []
+        resolved_operands: list[int] = []
         for op in instruction.operands:
             resolved_operands.append(
                 super()._resolve_used_value(op.before_value, instruction, op, emu)

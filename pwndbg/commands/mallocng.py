@@ -6,8 +6,6 @@ from __future__ import annotations
 
 import argparse
 import string
-from typing import List
-from typing import Optional
 
 import pwndbg
 import pwndbg.aglib.heap.mallocng as mallocng
@@ -113,7 +111,7 @@ def dump_group(group: mallocng.Group) -> str:
     return output
 
 
-def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
+def dump_meta(meta: mallocng.Meta, focus_slot: int | None = None) -> str:
     """
     Arguments:
         meta: the meta to dump
@@ -337,7 +335,7 @@ def dump_slot(
 
 
 def smart_dump_slot(
-    slot: mallocng.Slot, all: bool, gslot: Optional[mallocng.GroupedSlot] = None
+    slot: mallocng.Slot, all: bool, gslot: mallocng.GroupedSlot | None = None
 ) -> str:
     try:
         slot.preload()
@@ -648,7 +646,7 @@ parser.add_argument(
     aliases=["ng-group"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_group(address: int, index: Optional[int] = None) -> None:
+def mallocng_group(address: int, index: int | None = None) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
         return
@@ -712,7 +710,7 @@ parser.add_argument(
     aliases=["ng-metaarea", "ng-ma"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:
+def mallocng_meta_area(address: int, index: int | None = None) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
         return
@@ -759,7 +757,7 @@ parser.add_argument(
     aliases=["ng-ctx"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_malloc_context(address: Optional[int] = None) -> None:
+def mallocng_malloc_context(address: int | None = None) -> None:
     if address is None:
         if not ng.init_if_needed():
             print(message.error("Couldn't find the allocator, aborting the command."))
@@ -1051,7 +1049,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
     )
     print(legend)
 
-    out: List[str] = []  # List of lines.
+    out: list[str] = []  # List of lines.
     last_color = "nothing"
 
     # Add the line before the start of the first slot, to include its start header.
@@ -1149,7 +1147,7 @@ Color legend: {color.colorize("allocated", state_alloc_color)}; """
     ),
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_dump(meta_area: Optional[int] = None) -> None:
+def mallocng_dump(meta_area: int | None = None) -> None:
     if not ng.init_if_needed():
         print(message.error("Couldn't find the allocator, aborting the command."))
         return

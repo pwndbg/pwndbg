@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 from pwndbg.aglib.kernel.macros import for_each_entry
@@ -47,7 +46,7 @@ def module_name_offset():
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def module_mem_offset() -> Tuple[int | None, int | None, int | None]:
+def module_mem_offset() -> tuple[int | None, int | None, int | None]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
         print(message.warn("Could not find modules"))
@@ -90,7 +89,7 @@ def module_mem_offset() -> Tuple[int | None, int | None, int | None]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def module_layout_offset() -> Tuple[int | None, int | None]:
+def module_layout_offset() -> tuple[int | None, int | None]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
         print(message.warn("Could not find modules"))
@@ -152,7 +151,7 @@ def module_kallsyms_offset():
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def module_list_with_typeinfo() -> Tuple[pwndbg.dbg_mod.Value, ...]:
+def module_list_with_typeinfo() -> tuple[pwndbg.dbg_mod.Value, ...]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
         print(message.warn("Could not find modules"))
@@ -166,7 +165,7 @@ def module_list_with_typeinfo() -> Tuple[pwndbg.dbg_mod.Value, ...]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def module_list() -> Tuple[int, ...]:
+def module_list() -> tuple[int, ...]:
     modules = pwndbg.aglib.kernel.modules()
     if modules is None:
         print(message.warn("Could not find modules"))
@@ -181,7 +180,7 @@ def module_list() -> Tuple[int, ...]:
     return tuple(result)
 
 
-def parse_module_kallsyms(kallsyms: int) -> List[Tuple[str, int, str]]:
+def parse_module_kallsyms(kallsyms: int) -> list[tuple[str, int, str]]:
     is_64bit = pwndbg.aglib.arch.ptrsize == 8
     sizeof_symtab_entry = 24 if is_64bit else 16
     result = []
@@ -211,7 +210,7 @@ def parse_module_kallsyms(kallsyms: int) -> List[Tuple[str, int, str]]:
     return result
 
 
-def all_modules_kallsyms() -> List[Tuple[str, int, str]]:
+def all_modules_kallsyms() -> list[tuple[str, int, str]]:
     result = []
     if pwndbg.aglib.typeinfo.load("struct module") is not None:
         for module in module_list_with_typeinfo():

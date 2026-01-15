@@ -6,8 +6,6 @@ import string
 import subprocess
 import sys
 import tempfile
-from typing import List
-from typing import Tuple
 
 from pt.machine import Machine
 from pt.pt import PageTableDump
@@ -26,15 +24,15 @@ from pwndbg.lib.memory import Page
 
 
 class KernelVmmap:
-    def __init__(self, pages: Tuple[Page, ...]):
+    def __init__(self, pages: tuple[Page, ...]):
         self.pages = pages
-        self.sections = None
+        self.sections: tuple[tuple[str, int], ...] = None
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
         if self.pi:
             self.sections = self.pi.markers()
         self.adjust()
 
-    def get_name(self, addr: int) -> str:
+    def get_name(self, addr: int) -> str | None:
         if addr is None or self.sections is None:
             return None
         for i in range(len(self.sections) - 1):
@@ -46,7 +44,7 @@ class KernelVmmap:
                 return name
         return None
 
-    def adjust(self):
+    def adjust(self) -> None:
         if self.pi is None or self.pages is None or len(self.pages) == 0:
             return
         for i, page in enumerate(self.pages):
@@ -57,7 +55,7 @@ class KernelVmmap:
         self.pi.handle_kernel_pages(self.pages)
         self.handle_offsets()
 
-    def handle_user_pages(self):
+    def handle_user_pages(self) -> None:
         base_offset = self.pages[0].start
         for i in range(len(self.pages)):
             page = self.pages[i]
@@ -76,7 +74,7 @@ class KernelVmmap:
                 # page.objfile += f"_{hex(i)[2:]}"
                 base_offset = page.start
 
-    def handle_offsets(self):
+    def handle_offsets(self) -> None:
         prev_objfile, base = "", 0
         for page in self.pages:
             # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
@@ -103,7 +101,7 @@ class QemuMachine(Machine):
             os.close(self.file)
 
     @staticmethod
-    def search_pids_for_file(pids: List[str], filename: str) -> str | None:
+    def search_pids_for_file(pids: list[str], filename: str) -> str | None:
         for pid in pids:
             fd_dir = f"/proc/{pid}/fd"
             try:
@@ -174,7 +172,7 @@ class QemuMachine(Machine):
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
+def kernel_vmmap_via_page_tables() -> tuple[Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 
@@ -230,7 +228,7 @@ def kernel_vmmap_via_page_tables() -> Tuple[Page, ...]:
     p = PageTableDump(machine_backend, arch_backend)
     pages = p.arch_backend.parse_tables(p.cache, p.parser.parse_args(""))
 
-    retpages: List[Page] = []
+    retpages: list[Page] = []
     for page in pages:
         start = page.va
         size = page.page_size
@@ -279,13 +277,10 @@ def _parser_mem_info_line_x86(line: str) -> Page | None:
     if end - start != size and monitor_info_mem_not_warned:
         print(
             message.warn(
-                (
-                    "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
-                    "that end-start==size failed. The values are:\n"
-                    "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
-                    "Note that this warning will not show up again in this Pwndbg/GDB session."
-                )
-                % (end, start, size, end - start)
+                "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                "that end-start==size failed. The values are:\n"
+                f"end={end:#x}; start={start:#x}; size={size:#x}; end-start={end - start:#x}\n"
+                "Note that this warning will not show up again in this Pwndbg/GDB session."
             )
         )
         monitor_info_mem_not_warned = False
@@ -326,7 +321,7 @@ def _parser_mem_info_line_riscv64(line: str) -> Page | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
+def kernel_vmmap_via_monitor_info_mem() -> tuple[Page, ...]:
     """
     Returns Linux memory maps information by parsing `monitor info mem` output
     from QEMU kernel GDB stub.
@@ -366,7 +361,7 @@ def kernel_vmmap_via_monitor_info_mem() -> Tuple[Page, ...]:
         )
         return ()
 
-    pages: List[Page] = []
+    pages: list[Page] = []
     for line in monitor_info_mem.splitlines():
         try:
             page = parser_func(line)
@@ -398,11 +393,16 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def kernel_vmmap_pages() -> Tuple[Page, ...]:
+def kernel_vmmap_pages() -> tuple[Page, ...]:
     mode = kernel_vmmap_mode
-    if mode == "page-tables" and pwndbg.aglib.arch.name in ("rv32", "rv64"):
+    arch_name = pwndbg.aglib.arch.name
+    if mode == "page-tables" and arch_name not in ("x86-64", "aarch64"):
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
-        print(message.warn("`page-tables` unsupported for riscv, defaulting to `monitor info mem`"))
+        print(
+            message.warn(
+                f"`kernel-vmmap = {mode}` unsupported for {arch_name}, defaulting to `monitor`"
+            )
+        )
         mode = "monitor"
     match mode:
         case "page-tables":
@@ -419,7 +419,7 @@ def kernel_vmmap_pages() -> Tuple[Page, ...]:
     return ()
 
 
-def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def kernel_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
     if not pwndbg.aglib.qemu.is_qemu_kernel():
         return ()
 

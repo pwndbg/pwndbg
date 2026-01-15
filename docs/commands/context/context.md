@@ -2,7 +2,7 @@
 # context
 
 ```text
-usage: context [-h] [--on] [--off] [subcontext ...]
+usage: context [-h] [--on] [--off] [-a] [subcontext ...]
 
 ```
 
@@ -27,6 +27,7 @@ and `up` commands).
 |-h|--help|show this help message and exit|
 ||--on|Show the section(s) in subsequent context commands again. The section(s) have to be in the 'context-sections' list.|
 ||--off|Do not show the section(s) in subsequent context commands even though they might be in the 'context-sections' list.|
+|-a|--all|Show all context sections.|
 
 ### Notes
 To see more commands related to context control run:

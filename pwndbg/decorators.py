@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import functools
 import traceback
-from typing import Callable
+from collections.abc import Callable
 from typing import TypeVar
 
 from typing_extensions import ParamSpec

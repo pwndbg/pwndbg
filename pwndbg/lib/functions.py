@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import List
 from typing import NamedTuple
 
 
@@ -9,7 +8,7 @@ class Function(NamedTuple):
     type: str
     derefcnt: int
     name: str
-    args: List[Argument]
+    args: list[Argument]
 
 
 class Argument(NamedTuple):
@@ -48,7 +47,7 @@ functions = LazyFunctions()
 
 def format_flags_argument(flags: tuple[Flag, ...], value: int):
     original_value: int = value
-    flag_names: List[str] = []
+    flag_names: list[str] = []
 
     # For some functions, some named flags are combinations
     # of other named flags. For example, the `mmap` flag

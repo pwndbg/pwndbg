@@ -19,7 +19,7 @@ def build_id() -> str:
 
         commit_id = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
-        return "build: %s" % commit_id.decode("utf-8").strip("\n")
+        return "build: {}".format(commit_id.decode("utf-8").strip("\n"))
 
     except (OSError, subprocess.CalledProcessError):
         # OSError -> no git in $PATH

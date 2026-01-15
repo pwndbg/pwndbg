@@ -19,7 +19,7 @@ class BreakOnConditionalBranch(pwndbg.gdblib.bpoint.Breakpoint):
     """
 
     def __init__(self, instruction: PwndbgInstruction, taken: bool) -> None:
-        super().__init__("*%#x" % instruction.address, type=gdb.BP_BREAKPOINT, internal=False)
+        super().__init__(f"*{instruction.address:#x}", type=gdb.BP_BREAKPOINT, internal=False)
         self.instruction = instruction
         self.taken = taken
 

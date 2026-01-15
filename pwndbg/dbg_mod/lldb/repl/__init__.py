@@ -43,21 +43,22 @@ import re
 import shutil
 import signal
 import sys
+import time
 from asyncio import CancelledError
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Coroutine
 from contextlib import contextmanager
 from io import BytesIO
 from io import TextIOWrapper
 from typing import Any
-from typing import Awaitable
 from typing import BinaryIO
-from typing import Callable
-from typing import Coroutine
-from typing import List
 
 import lldb
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod.lldb import LLDB
@@ -138,7 +139,7 @@ LLDB_EXCLUSIVE = [
 ]
 
 
-def lex_args(args: str) -> List[str]:
+def lex_args(args: str) -> list[str]:
     """
     Splits the arguments, respecting quotation marks.
     """
@@ -182,23 +183,26 @@ class EventRelay(EventHandler):
 
     @override
     def suspended(self, event: lldb.SBEvent) -> None:
-        # The event might have originated from a different source than the user
-        # currently has selected. Move focus to the where the event happened.
-        #
-        # state-changed events have no thread associated with them, and so
-        # SBThread::GetThreadFromEvent does not work. Interrogate each thread in
-        # the process and look for the most interesting one.
-        proc = lldb.SBProcess.GetProcessFromEvent(event)
-        for thread in proc.threads:
-            # Currently the one considered most interesting is simply the first
-            # that has any reason at all to be stopped.
-            if thread.stop_reason == lldb.eStopReasonNone:
-                continue
+        # Under some circumstances - like when debugging core files - the
+        # process driver may not actually know what the event is.
+        if event is not None:
+            # The event might have originated from a different source than the user
+            # currently has selected. Move focus to the where the event happened.
+            #
+            # state-changed events have no thread associated with them, and so
+            # SBThread::GetThreadFromEvent does not work. Interrogate each thread in
+            # the process and look for the most interesting one.
+            proc = lldb.SBProcess.GetProcessFromEvent(event)
+            for thread in proc.threads:
+                # Currently the one considered most interesting is simply the first
+                # that has any reason at all to be stopped.
+                if thread.stop_reason == lldb.eStopReasonNone:
+                    continue
 
-            if proc.GetSelectedThread().idx != thread.idx:
-                print(message.notice(f"[Switched to Thread {thread.id}]"))
-                assert proc.SetSelectedThread(thread)
-            break
+                if proc.GetSelectedThread().idx != thread.idx:
+                    print(message.notice(f"[Switched to Thread {thread.id}]"))
+                    assert proc.SetSelectedThread(thread)
+                break
 
         self.dbg._trigger_event(EventType.STOP)
 
@@ -226,16 +230,16 @@ def show_greeting() -> None:
     lifetime of the program, we know exactly when the greeting needs to be shown,
     so we don't bother with any of the lifetime checks.
     """
-    hint_lines = ("loaded %i pwndbg commands commands." % len(pwndbg.commands.commands),)
+    hint_lines = (f"loaded {len(pwndbg.commands.commands)} pwndbg commands commands.",)
 
     for line in hint_lines:
         print(message.prompt("pwndbg: ") + message.system(line))
 
     if show_tip:
-        colored_tip = color_tip(get_tip_of_the_day())
+        colored_tip = color_tip(get_tip_of_the_day(pwndbg.dbg_mod.DebuggerType.LLDB.value))
         print(
             message.prompt("------- tip of the day (some of these don't work in LLDB yet!)")
-            + message.system(" (disable with %s)" % message.notice("set show-tips off"))
+            + message.system(" (disable with {})".format(message.notice("set show-tips off")))
             + message.prompt(" -------")
         )
         print(colored_tip)
@@ -590,7 +594,7 @@ def _exec_repl_command(
     if bits[0].startswith("ta") and "target".startswith(bits[0]):
         if len(bits) > 1 and bits[1].startswith("c") and "create".startswith(bits[1]):
             # This is `target create`
-            target_create(bits[2:], dbg)
+            target_create(driver, bits[2:], dbg)
             return True
         if len(bits) > 1 and bits[1].startswith("de") and "delete".startswith(bits[1]):
             # This is `target delete`
@@ -602,7 +606,12 @@ def _exec_repl_command(
 
     if bits[0].startswith("r") and "run".startswith(bits[0]):
         # `run` is an alias for `process launch -X true --`
-        process_launch(driver, relay, ["-X", "true", "--"] + bits[1:], dbg)
+        process_launch(driver, relay, ["-X", "true", "--"] + bits[1:], dbg, restart=True)
+        return True
+
+    if bits[0].startswith("sta") and "starti".startswith(bits[0]):
+        # `starti` is like `run` but stops at the first instruction (stop-at-entry)
+        process_launch(driver, relay, ["-s", "-X", "true", "--"] + bits[1:], dbg, restart=True)
         return True
 
     if bits[0] == "c" or (bits[0].startswith("con") and "continue".startswith(bits[0])):
@@ -757,6 +766,10 @@ def _exec_repl_command(
         assert driver.has_process()
         assert driver.process.GetUniqueID() == process.process.GetUniqueID()
 
+        if driver.is_core_file():
+            print_warn("skipping coroutine: target is core file")
+            continue
+
         try:
             driver.run_coroutine(coroutine)
         except Exception:
@@ -790,9 +803,9 @@ def _bool_of_string(val: str) -> bool:
 
 
 def parse(
-    args: List[str],
+    args: list[str],
     parser: argparse.ArgumentParser,
-    unsupported: List[str],
+    unsupported: list[str],
     raw_marker: str | None = None,
 ) -> Any | None:
     """
@@ -918,7 +931,7 @@ target_create_ap = argparse.ArgumentParser(add_help=False, prog="target create")
 target_create_ap.add_argument("-S", "--sysroot")
 target_create_ap.add_argument("-a", "--arch")
 target_create_ap.add_argument("-b", "--build")
-target_create_ap.add_argument("-c", "--core")
+target_create_ap.add_argument("-c", "--core", action="store_true")
 target_create_ap.add_argument("-d", "--no-dependents")
 target_create_ap.add_argument("-p", "--platform")
 target_create_ap.add_argument("-r", "--remote-file")
@@ -927,7 +940,6 @@ target_create_ap.add_argument("-v", "--version")
 target_create_ap.add_argument("filename")
 target_create_unsupported = [
     "build",
-    "core",
     "no-dependents",
     "remote-file",
     "symfile",
@@ -951,7 +963,7 @@ def _get_target_triple(debugger: lldb.SBDebugger, filepath: str) -> str | None:
     return triple
 
 
-def target_create(args: List[str], dbg: LLDB) -> None:
+def target_create(driver: ProcessDriver, args: list[str], dbg: LLDB) -> None:
     """
     Creates a new target, registers it with the Pwndbg LLDB implementation, and
     sets up listeners for it.
@@ -960,6 +972,60 @@ def target_create(args: List[str], dbg: LLDB) -> None:
     if not args:
         return
 
+    if args.core:
+        target_create_core(driver, args, dbg)
+    else:
+        target_create_regular(args, dbg)
+
+
+def target_create_core(driver: ProcessDriver, args: Any, dbg: LLDB) -> None:
+    """
+    Starts core file debugging.
+
+    Despite the similar names and commands, this function is fundamentally
+    different from `target_create_regular`. This is so we can match the way the
+    regular LLDB CLI handles `target create --core`.
+
+    In the regular LLDB CLI, when one types in `target create --core <name>`,
+    a new special process is automatically launched, whose SBProcess object
+    behaves differently from those of regular processes.
+
+    In effect, in the LLDB CLI, creating a core file target both automatically
+    starts the process and puts the CLI into a special core file mode, in which
+    most lifetime-related user actions are forbidden.
+    """
+    if dbg.debugger.GetNumTargets() > 0:
+        print_error(
+            "Pwndbg does not support multiple targets. Please remove the current target with 'target delete' and try again."
+        )
+        return
+
+    # Create a no-target SBTarget that will hold our core file.
+    target = dbg.debugger.CreateTarget(None)
+    if target is None or not target.IsValid():
+        print_error("could not create target for core file debugging")
+        return
+    dbg.debugger.SetSelectedTarget(target)
+
+    result = driver.launch_core_file(target, args.filename)
+    match result:
+        case LaunchResultError(what):
+            print_error(f"could not launch core file: {what.description}")
+            return
+
+    split_triple = target.triple.split("-")
+    if len(split_triple) > 0:
+        arch = split_triple[0]
+    else:
+        arch = "unknown"
+
+    print(f"Core file '{args.filename}' ({arch}) was loaded.")
+
+
+def target_create_regular(args: Any, dbg: LLDB) -> None:
+    """
+    Creates a new regular target, and registers it with LLDB.
+    """
     if dbg.debugger.GetNumTargets() > 0:
         print_error(
             "Pwndbg does not support multiple targets. Please remove the current target with 'target delete' and try again."
@@ -1004,7 +1070,6 @@ def target_create(args: List[str], dbg: LLDB) -> None:
 
     dbg.debugger.SetSelectedTarget(target)
     print(f"Current executable set to '{args.filename}' ({target.triple.split('-')[0]})")
-    return
 
 
 process_launch_ap = argparse.ArgumentParser(add_help=False, prog="process launch")
@@ -1041,9 +1106,47 @@ process_launch_unsupported = [
 ]
 
 
-def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def kill_existing_process(driver: ProcessDriver, relay: EventRelay) -> bool:
+    """
+    Kills the existing process if one is running.
+    Returns True if successful or if no process was running.
+    """
+    if not driver.has_process():
+        return True
+
+    process = driver.process
+    error = process.Kill()
+    if not error.Success():
+        print_error(f"failed to kill existing process: {error}")
+        return False
+
+    # Wait for the process to actually exit
+    # LLDB will transition the process state to eStateExited
+    timeout = 5.0  # 5 second timeout
+    start = time.time()
+    while time.time() - start < timeout:
+        state = process.GetState()
+        if state == lldb.eStateExited or state == lldb.eStateDetached:
+            # Manually clean up since we're not in the event loop
+            driver.process = None
+            driver.listener = None
+            if driver.io is not None:
+                driver.io.close()
+                driver.io = None
+            relay.exited()
+            return True
+        time.sleep(0.1)
+
+    print_error("timed out waiting for process to exit")
+    return False
+
+
+def process_launch(
+    driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB, restart: bool = False
+) -> None:
     """
     Launches a process with the given arguments.
+    If restart is True, kills any existing process first.
     """
     result = parse(args, process_launch_ap, process_launch_unsupported, raw_marker="--")
     if result is None:
@@ -1062,8 +1165,12 @@ def process_launch(driver: ProcessDriver, relay: EventRelay, args: List[str], db
         return
 
     if driver.has_process():
-        print_error("a process is already being debugged")
-        return
+        if restart:
+            if not kill_existing_process(driver, relay):
+                return
+        else:
+            print_error("a process is already being debugged")
+            return
 
     target: lldb.SBTarget = dbg.debugger.GetTargetAtIndex(0)
 
@@ -1187,7 +1294,7 @@ def _attach_with_info(
         dbg._trigger_event(EventType.STOP)
 
 
-def process_attach(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def process_attach(driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB) -> None:
     """
     Attaches to a process with the given arguments.
     """
@@ -1214,7 +1321,7 @@ def process_attach(driver: ProcessDriver, relay: EventRelay, args: List[str], db
     _attach_with_info(driver, relay, dbg, info, cont=do_continue)
 
 
-def attach(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def attach(driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB) -> None:
     """
     Attaches to a process with the given name or pid based on regex match.
     Used for `_regexp-attach <pid|name>` (alias for `attach <pid|name>`)
@@ -1244,7 +1351,7 @@ process_connect_ap.add_argument("-p", "--plugin")
 process_connect_ap.add_argument("remoteurl")
 
 
-def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def process_connect(driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB) -> None:
     """
     Connects to the given remote process.
     """
@@ -1295,7 +1402,7 @@ gdb_remote_ap = argparse.ArgumentParser(add_help=False, prog="gdb-remote")
 gdb_remote_ap.add_argument("remoteurl")
 
 
-def gdb_remote(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def gdb_remote(driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB) -> None:
     """
     Like `process_connect`, but more lenient with the remote URL format.
     """
@@ -1333,7 +1440,7 @@ continue_ap.add_argument("-i", "--ignore-count")
 continue_unsupported = ["ignore-count"]
 
 
-def continue_process(driver: ProcessDriver, args: List[str], dbg: LLDB) -> None:
+def continue_process(driver: ProcessDriver, args: list[str], dbg: LLDB) -> None:
     """
     Continues the execution of a process.
     """
@@ -1343,6 +1450,10 @@ def continue_process(driver: ProcessDriver, args: List[str], dbg: LLDB) -> None:
 
     if not driver.has_process():
         print_error("no process")
+        return
+
+    if driver.is_core_file():
+        print_error("cannot continue: target is core file")
         return
 
     driver.cont()

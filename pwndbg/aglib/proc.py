@@ -7,10 +7,7 @@ related information.
 from __future__ import annotations
 
 import functools
-from typing import Callable
-from typing import List
-from typing import Optional
-from typing import Tuple
+from collections.abc import Callable
 from typing import TypeVar
 
 from elftools.elf.relocation import Relocation
@@ -76,14 +73,14 @@ def binary_base_addr() -> int:
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def binary_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def binary_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
     import pwndbg.aglib.vmmap
 
     return tuple(p for p in pwndbg.aglib.vmmap.get() if p.objfile == exe())
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_elf_data_section() -> Tuple[int, int, bytes] | None:
+def dump_elf_data_section() -> tuple[int, int, bytes] | None:
     """
     Dump .data section of current process's ELF file
     """
@@ -93,7 +90,7 @@ def dump_elf_data_section() -> Tuple[int, int, bytes] | None:
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_relocations_by_section_name(section_name: str) -> Tuple[Relocation, ...] | None:
+def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...] | None:
     """
     Dump relocations of a section by section name of current process's ELF file
     """
@@ -141,7 +138,7 @@ def OnlyWhenQemuKernel(func: Callable[P, T]) -> Callable[P, T | None]:
     return wrapper
 
 
-def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P, Optional[T]]]:
+def OnlyWithArch(arch_names: list[str]) -> Callable[[Callable[P, T]], Callable[P, T | None]]:
     """Decorates function to work only with the specified archictectures."""
     for arch in arch_names:
         if arch not in pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES:
@@ -149,9 +146,9 @@ def OnlyWithArch(arch_names: List[str]) -> Callable[[Callable[P, T]], Callable[P
                 f"OnlyWithArch used with unsupported arch={arch}. Must be one of {', '.join(arch_names)}"
             )
 
-    def decorator(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+    def decorator(function: Callable[P, T]) -> Callable[P, T | None]:
         @functools.wraps(function)
-        def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+        def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> T | None:
             if pwndbg.aglib.arch.name in arch_names:
                 return function(*a, **kw)
             else:

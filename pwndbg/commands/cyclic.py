@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import signal
 import string
-from typing import Optional
 
 from pwnlib.util.cyclic import cyclic
 from pwnlib.util.cyclic import cyclic_find
@@ -156,7 +155,7 @@ parser.add_argument(
     notes="If you want to write the cyclic pattern to memory, use the `spray` command!",
 )
 def cyclic_cmd(
-    alphabet, length: Optional[int], lookup, detect, count=100, filename="", timeout=2
+    alphabet, length: int | None, lookup, detect, count=100, filename="", timeout=2
 ) -> None:
     if length is None:
         length = pwndbg.aglib.arch.ptrsize

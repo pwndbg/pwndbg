@@ -88,25 +88,25 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
 
         for _ in range(int(nslotslines)):
             expected.append(
-                "%#x\t0x0007000700070007\t0x0007000700070007\t................" % heap_iter()
+                f"{heap_iter():#x}\t0x0007000700070007\t0x0007000700070007\t................"
             )
         if nslotslines - int(nslotslines) == 0.5:
             expected.append(
-                "%#x\t0x0007000700070007\t0x0000000000000000\t................" % heap_iter()
+                f"{heap_iter():#x}\t0x0007000700070007\t0x0000000000000000\t................"
             )
             nptrlines -= 1
         for _ in range(nptrlines - 1):
             expected.append(
-                "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
+                f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................"
             )
-        expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
+        expected.append(f"{heap_iter():#x}\t0x0000000000000000\t                  \t........")
 
     else:
         for _ in range(first_chunk_size // 16 - 1):
             expected.append(
-                "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter()
+                f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................"
             )
-        expected.append("%#x\t0x0000000000000000\t                  \t........" % heap_iter())
+        expected.append(f"{heap_iter():#x}\t0x0000000000000000\t                  \t........")
 
     assert result == expected
 
@@ -118,8 +118,7 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     no_params_help = "Not all chunks were shown, see `vis --help` for more information."
     assert result == expected + [no_params_help]
     await ctrl.execute(
-        "set default-visualize-chunk-number %d"
-        % pwndbg.config.default_visualize_chunk_number.default
+        f"set default-visualize-chunk-number {pwndbg.config.default_visualize_chunk_number.default}"
     )
 
     del result
@@ -130,9 +129,9 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     # Note: we copy expected here but we truncate last line as it is easier
     # to provide it in full here
     expected2 = expected[:-1] + [
-        "%#x\t0x0000000000000000\t0x0000000000000021\t........!......." % heap_iter(0),
-        "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter(),
-        "%#x\t0x0000000000000000\t                  \t........" % heap_iter(),
+        f"{heap_iter(0):#x}\t0x0000000000000000\t0x0000000000000021\t........!.......",
+        f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
+        f"{heap_iter():#x}\t0x0000000000000000\t                  \t........",
     ]
     assert result2 == expected2
 
@@ -145,8 +144,8 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     # Note: we copy expected here but we truncate last line as it is easier
     # to provide it in full here
     expected3 = expected2[:-1] + [
-        "%#x\t0x0000000000000000\t0x0000000000000021\t........!......." % heap_iter(0),
-        "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter(),
+        f"{heap_iter(0):#x}\t0x0000000000000000\t0x0000000000000021\t........!.......",
+        f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
         await vis_heap_line(suffix="\t <-- Top chunk"),
     ]
     assert result3 == expected3
@@ -176,9 +175,9 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     result4_b = (await ctrl.execute_and_capture("vis-heap-chunk 4")).splitlines()
 
     expected4_b = expected3[:-1] + [
-        "%#x\t0x0000000000000000\t0x0000000000000031\t........1......." % heap_iter(0),
-        "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter(),
-        "%#x\t0x0000000000000000\t0x0000000000000000\t................" % heap_iter(),
+        f"{heap_iter(0):#x}\t0x0000000000000000\t0x0000000000000031\t........1.......",
+        f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
+        f"{heap_iter():#x}\t0x0000000000000000\t0x0000000000000000\t................",
         await vis_heap_line(suffix="\t <-- Top chunk"),
     ]
 
@@ -205,11 +204,8 @@ async def test_vis_heap_chunk_command(ctrl: Controller) -> None:
     tcache_key = int(pwndbg.dbg.selected_frame().evaluate_expression("tcache->entries[0]->key"))
 
     tcache_hexdump = await hexdump_16B("tcache->entries[0]")
-    freed_chunk = "{:#x}\t{:#018x}\t{:#018x}\t{}\t ".format(
-        heap_iter(-0x40),
-        tcache_next,
-        tcache_key,
-        tcache_hexdump,
+    freed_chunk = (
+        f"{heap_iter(-0x40):#x}\t{tcache_next:#018x}\t{tcache_key:#018x}\t{tcache_hexdump}\t "
     )
     freed_chunk += "<-- tcachebins[0x20][0/1]"
 

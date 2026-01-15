@@ -1,9 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
-from typing import Tuple
 
 from capstone import *  # noqa: F403
 from capstone.x86 import *  # noqa: F403
@@ -53,7 +51,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             X86_INS_MOV: self.handle_mov,
             X86_INS_MOVABS: self.handle_mov,
@@ -398,7 +396,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         return InstructionCondition.TRUE if bool(conditional) else InstructionCondition.FALSE
 
     @override
-    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> Tuple[str, str]:
+    def _get_syscall_arch_info(self, instruction: PwndbgInstruction) -> tuple[str, str]:
         # Since this class handles both x86 and x86_64, we need to choose the correct
         # syscall arch depending on the instruction being executed.
 

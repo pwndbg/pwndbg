@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 import struct
-from typing import Dict
-from typing import List
 from typing import Literal
-from typing import Tuple
 
 import pwnlib
 import pwnlib.context
@@ -57,7 +54,7 @@ FMT_LITTLE_ENDIAN = {1: "B", 2: "<H", 4: "<I", 8: "<Q"}
 FMT_BIG_ENDIAN = {1: "B", 2: ">H", 4: ">I", 8: ">Q"}
 
 
-registered_architectures: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, PwndbgArchitecture] = {}
+registered_architectures: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, PwndbgArchitecture] = {}
 
 
 def register_arch(arch: PwndbgArchitecture):
@@ -71,7 +68,7 @@ def get_pwndbg_architecture(name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> Pwndbg
     return registered_architectures[name]
 
 
-CAPSTONE_ENDIAN_MAPPING: Dict[EndianType, int] = {
+CAPSTONE_ENDIAN_MAPPING: dict[EndianType, int] = {
     "little": CS_MODE_LITTLE_ENDIAN,
     "big": CS_MODE_BIG_ENDIAN,
 }
@@ -105,9 +102,9 @@ class PwndbgArchitecture(ArchDefinition):
     syscall_abi: SyscallABI | None
     sigreturn_abi: SyscallABI | None
     platform: Platform
-    attributes: List[ArchAttribute]
+    attributes: list[ArchAttribute]
 
-    fmts: Dict[int, str]
+    fmts: dict[int, str]
     fmt: str
 
     def __init__(self, name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> None:
@@ -146,7 +143,7 @@ class PwndbgArchitecture(ArchDefinition):
         self.syscall_abi = SYSCALL_ABIS.get(default_abi_identifer)
         self.sigreturn_abi = SIGRETURN_ABIS.get(default_abi_identifer)
 
-        self.fmts: Dict[int, str] = FMT_LITTLE_ENDIAN if self.endian == "little" else FMT_BIG_ENDIAN
+        self.fmts: dict[int, str] = FMT_LITTLE_ENDIAN if self.endian == "little" else FMT_BIG_ENDIAN
         self.fmt: str = self.fmts[self.ptrsize]
 
     def pack(self, integer: int) -> bytes:
@@ -161,7 +158,7 @@ class PwndbgArchitecture(ArchDefinition):
     def unpack_size(self, data: bytes | bytearray, size: int) -> int:
         return struct.unpack(self.fmts[size], data)[0]
 
-    def get_capstone_constants(self, address: int) -> Tuple[int, int] | None:
+    def get_capstone_constants(self, address: int) -> tuple[int, int] | None:
         """
         Return tuple of (CAPSTONE ARCH, CAPSTONE MODE) used to instantiate the Capstone disassembler for this architecture.
         """
@@ -187,7 +184,7 @@ class AMD64Arch(PwndbgArchitecture):
         super().__init__("x86-64")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_X86, CS_MODE_64)
 
 
@@ -203,7 +200,7 @@ class i386Arch(PwndbgArchitecture):
         super().__init__("i386")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_X86, CS_MODE_32)
 
 
@@ -219,7 +216,7 @@ class i8086Arch(PwndbgArchitecture):
         super().__init__("i8086")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_X86, CS_MODE_16)
 
 
@@ -231,7 +228,7 @@ class ArmArch(PwndbgArchitecture):
         super().__init__("arm")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         thumb_mode = pwndbg.aglib.disasm.disassembly.emulated_arm_mode_cache[address]
         if thumb_mode is None:
             thumb_mode = self.read_thumb_bit()
@@ -262,7 +259,7 @@ class ArmCortexArch(PwndbgArchitecture):
         super().__init__("armcm")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_ARM, CS_MODE_MCLASS | CS_MODE_THUMB)
 
     @override
@@ -284,7 +281,7 @@ class AArch64Arch(PwndbgArchitecture):
         super().__init__("aarch64")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_AARCH64, CS_MODE_ARM)
 
     @override
@@ -300,7 +297,7 @@ class PowerPCArch(PwndbgArchitecture):
         super().__init__("powerpc")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_PPC, CS_MODE_64)
 
 
@@ -312,7 +309,7 @@ class SparcArch(PwndbgArchitecture):
         super().__init__("sparc")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         mode = CS_MODE_V9 if self.ptrsize == 8 else 0
         return (CS_ARCH_SPARC, mode)
 
@@ -325,7 +322,7 @@ class RISCV32Arch(PwndbgArchitecture):
         super().__init__("rv32")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_RISCV, CS_MODE_RISCV32 | CS_MODE_RISCVC)
 
 
@@ -337,7 +334,7 @@ class RISCV64Arch(PwndbgArchitecture):
         super().__init__("rv64")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_RISCV, CS_MODE_RISCV64 | CS_MODE_RISCVC)
 
 
@@ -349,7 +346,7 @@ class MipsArch(PwndbgArchitecture):
         super().__init__("mips")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         extra = 0
         for attribute in self.attributes:
             if attribute.cs_mode is not None:
@@ -370,7 +367,7 @@ class Loongarch64Arch(PwndbgArchitecture):
         super().__init__("loongarch64")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_LOONGARCH, CS_MODE_LOONGARCH64)
 
 
@@ -382,7 +379,7 @@ class S390xArch(PwndbgArchitecture):
         super().__init__("s390x")
 
     @override
-    def get_capstone_constants(self, address: int) -> Tuple[int, int]:
+    def get_capstone_constants(self, address: int) -> tuple[int, int]:
         return (CS_ARCH_SYSTEMZ, 0)
 
 

@@ -33,7 +33,7 @@ def get_proc_maps():
 
     # Note: info proc mappings may not have permissions information,
     # so we get it here and fill from `perms`
-    with open("/proc/%d/maps" % pwndbg.aglib.proc.pid()) as f:
+    with open(f"/proc/{pwndbg.aglib.proc.pid()}/maps") as f:
         for line in f.read().splitlines():
             addrs, perms, offset, _inode, size, objfile = line.split(maxsplit=6)
             start, end = (int(v, 16) for v in addrs.split("-"))
@@ -158,8 +158,8 @@ def test_command_vmmap_on_coredump_on_crash_simple_binary(start_binary, unload_f
     # a bug with this popped out, so I am double checking it here
     gdb.execute("file")
 
-    vmmaps = gdb.execute("vmmap", to_string=True).splitlines()
-    vmmaps = [i.split() for i in vmmaps[2:]]
+    vmmaps1: list[str] = gdb.execute("vmmap", to_string=True).splitlines()
+    vmmaps = [i.split() for i in vmmaps1[2:]]
 
     assert_maps()
 

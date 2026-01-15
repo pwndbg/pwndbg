@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from pathlib import Path
-from typing import Dict
 
 import pwndbg
 import pwndbg.lib.config
@@ -26,12 +25,12 @@ from scripts._docs.configuration_docs_common import extracted_filename
 from scripts._docs.gen_docs_generic import get_debugger
 
 
-def extract_params() -> Dict[str, list[Parameter]]:
+def extract_params() -> dict[str, list[Parameter]]:
     """
     Returns a dictionary that maps a scope name to a list of Parameter's
     in that scope.
     """
-    scope_dict: Dict[str, list[Parameter]] = {}
+    scope_dict: dict[str, list[Parameter]] = {}
     parameters = pwndbg.config.params
 
     # Could use pwndbg.config.get_params() here but
@@ -54,8 +53,8 @@ def extract_params() -> Dict[str, list[Parameter]]:
     return scope_dict
 
 
-def distill_sources(scoped_params: Dict[str, list[Parameter]]) -> Dict[str, list[ExtractedParam]]:
-    result: Dict[str, list[ExtractedParam]] = {}
+def distill_sources(scoped_params: dict[str, list[Parameter]]) -> dict[str, list[ExtractedParam]]:
+    result: dict[str, list[ExtractedParam]] = {}
 
     for scope, params in scoped_params.items():
         result[scope] = []

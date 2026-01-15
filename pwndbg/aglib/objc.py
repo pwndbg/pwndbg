@@ -9,11 +9,9 @@ work on all versions of Darwin.
 
 from __future__ import annotations
 
-from typing import Callable
-from typing import Generator
+from collections.abc import Callable
+from collections.abc import Generator
 from typing import Generic
-from typing import List
-from typing import Tuple
 from typing import TypeVar
 
 from typing_extensions import override
@@ -772,9 +770,7 @@ class Method:
                 # To resolve selectors of small method pointers in the shared cache,
                 # we have to look up the identity of @selector(🤯).
                 rel = (
-                    pwndbg.aglib.macho.shared_cache()
-                    .objc_builtin_selectors()
-                    .lookup("🤯".encode("utf-8"))
+                    pwndbg.aglib.macho.shared_cache().objc_builtin_selectors().lookup("🤯".encode())
                 )
                 ptr = rel + pwndbg.aglib.memory.s32(base)
             else:
@@ -912,7 +908,7 @@ class _ClassPropertyList(_EntList[ClassProperty]):
         return ClassProperty(ptr)
 
 
-def _parse_method_type_array(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+def _parse_method_type_array(ty: bytes, depth: int) -> tuple[Type, int] | None:
     """
     Parses a typed array entry in an Objective-C method type string.
     """
@@ -927,7 +923,7 @@ def _parse_method_type_array(ty: bytes, depth: int) -> Tuple[Type, int] | None:
     return inner[0].pointer(), inner[1] + 2
 
 
-def _parse_method_type_pointer(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+def _parse_method_type_pointer(ty: bytes, depth: int) -> tuple[Type, int] | None:
     """
     Parses a typed pointer entry in an Objective-C method type string.
     """
@@ -939,7 +935,7 @@ def _parse_method_type_pointer(ty: bytes, depth: int) -> Tuple[Type, int] | None
     return inner[0].pointer(), inner[1] + 1
 
 
-def _parse_method_type_id_typed(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+def _parse_method_type_id_typed(ty: bytes, depth: int) -> tuple[Type, int] | None:
     """
     Parses a typed `id` entry in an Objective-C method type string.
     """
@@ -952,7 +948,7 @@ def _parse_method_type_id_typed(ty: bytes, depth: int) -> Tuple[Type, int] | Non
     return pwndbg.aglib.typeinfo.lookup_types("id"), end + 1
 
 
-def _parse_method_type(ty: bytes, depth: int) -> Tuple[Type, int] | None:
+def _parse_method_type(ty: bytes, depth: int) -> tuple[Type, int] | None:
     """
     Parses a single entry in an Objective-C method type string.
     """
@@ -1090,7 +1086,7 @@ def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functi
         clss = obj.cls
         while clss is not None:
             try:
-                method = next((method for method in clss.methods if method.sel.name == sel.name))
+                method = next(method for method in clss.methods if method.sel.name == sel.name)
                 break
             except StopIteration:
                 pass
@@ -1114,7 +1110,7 @@ def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functi
         # Because of that, we try to extract some information only on a best-
         # effort basis, since we don't know whether it will be truly useful, or
         # if the program is actively trying to confuse us.
-        sel_args: List[bytes] = [b"id", b"sel"]
+        sel_args: list[bytes] = [b"id", b"sel"]
         sel_last_args_idx = 0
         while len(sel_args) < max_method_argument_count.value:
             index = sel.name.find(b":", sel_last_args_idx)
@@ -1131,7 +1127,7 @@ def try_resolve_call_at_current_pc(insn: PwndbgInstruction) -> pwndbg.lib.functi
         fn_rettype = types[0] if len(types) > 0 else None
 
         # Build the function using the information we got.
-        fn_args: List[pwndbg.lib.functions.Argument] = []
+        fn_args: list[pwndbg.lib.functions.Argument] = []
         fn_args_unk_count = 0
         for arg_i in range(max(len(types) - 1, len(sel_args))):
             if arg_i < len(sel_args):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
-from typing import Sequence
 
 import pwndbg
 import pwndbg.aglib.heap.heap

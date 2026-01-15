@@ -33,9 +33,9 @@ dependencies = [
     "ziglang==0.14.1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
     # For installing the decompiler plugins (we don't actually use it as a python library).
     # If you bump this, also bump the pwndbg/commands/integration.py:d2d_required* variables.
-    "decomp2dbg==3.14.0",
-    # Optional? Used for getting symbols into the debugger with the decompiler synchronization
-    "lief>=0.17.1 ; (platform_system == 'Linux' and (platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'i686')) or platform_system != 'Linux'",
+    "decomp2dbg==3.14.1",
+    # Used for symbol syncing (e.g. klookup --apply and decompiler integration)
+    "niche-elf==0.3.6",
 ]
 
 [project.optional-dependencies]
@@ -43,7 +43,7 @@ lldb = [
     # The LLDB REPL requires readline.
     'gnureadline>=8.2.13,<9; sys_platform != "win32"',
     'pyreadline3>=3.5.4,<4; sys_platform == "win32"',
-    "lldb-for-pwndbg==21.1.6.post1",
+    "lldb-for-pwndbg==21.1.7.post1",
 ]
 gdb = [
     "gdb-for-pwndbg==17.1.0.post2",
@@ -66,7 +66,6 @@ lint = [
 tests = [
     # Newer versions of pytest break CI on GitHub
     "pytest==8.0.2",
-    "pytest-cov>=4.1.0,<5",
     "coverage[toml]>=7.5.0,<8",
 ]
 docs = [
@@ -126,6 +125,7 @@ select = [
     "RET506", # flake8-return: superfluous-else-raise
     "RET507", # flake8-return: superfluous-else-continue
     "RET508", # flake8-return: superfluous-else-break
+    "UP",      # pyugprade
     # We want to enable the below lints, but they currently return too many errors
     # "RET505", # flake8-return: superfluous-else-return
     # "SLF" # flake8-self
@@ -263,8 +263,8 @@ module = [
     "pt.*",
     "lldb.*",
     "gnureadline",
-    "lief",
-    "decomp2dbg.*"
+    "decomp2dbg.*",
+    "mdutils.*"
 ]
 ignore_missing_imports = true
 

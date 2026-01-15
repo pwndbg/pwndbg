@@ -1,9 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
-from typing import List
 
 from capstone import *  # noqa: F403
 from capstone.loongarch import *  # noqa: F403
@@ -18,7 +16,7 @@ from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 if TYPE_CHECKING:
     from pwndbg.emu.emulator import Emulator
 
-CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
+CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
     LOONGARCH_INS_BEQZ: lambda ops: ops[0] == 0,
     LOONGARCH_INS_BNEZ: lambda ops: ops[0] != 0,
     LOONGARCH_INS_BEQ: lambda ops: ops[0] == ops[1],
@@ -32,11 +30,11 @@ CONDITION_RESOLVERS: Dict[int, Callable[[List[int]], bool]] = {
 }
 
 
-LOONGARCH_LOAD_INSTRUCTIONS: Dict[int, int] = {}
+LOONGARCH_LOAD_INSTRUCTIONS: dict[int, int] = {}
 
-LOONGARCH_STORE_INSTRUCTIONS: Dict[int, int] = {}
+LOONGARCH_STORE_INSTRUCTIONS: dict[int, int] = {}
 
-LOONGARCH_BINARY_OPERATIONS: Dict[int, str] = {}
+LOONGARCH_BINARY_OPERATIONS: dict[int, str] = {}
 
 
 # This class enhances 64-bit Loongarch
@@ -44,7 +42,7 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
 
     @override
     def _condition(self, instruction: PwndbgInstruction, emu: Emulator) -> InstructionCondition:
@@ -52,7 +50,7 @@ class Loong64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
             return InstructionCondition.UNDETERMINED
 
         # Not using list comprehension because they run in a separate scope in which super() does not exist
-        resolved_operands: List[int] = []
+        resolved_operands: list[int] = []
         for op in instruction.operands:
             resolved_operands.append(
                 super()._resolve_used_value(op.before_value, instruction, op, emu)

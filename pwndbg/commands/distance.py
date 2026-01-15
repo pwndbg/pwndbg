@@ -24,17 +24,12 @@ def distance(a, b) -> None:
         page = pwndbg.aglib.vmmap.find(a)
 
         if not page:
-            print("%#x does not belong to a mapped page in memory" % (a))
+            print(f"{a:#x} does not belong to a mapped page in memory")
         else:
             # a is a gdb.Value, explicitely convert to int
             distance = int(a) - page.vaddr
 
-            display_text = "%#x->%#x is %#x bytes (%#x words)" % (
-                page.vaddr,
-                a,
-                distance,
-                distance // pwndbg.aglib.arch.ptrsize,
-            )
+            display_text = f"{page.vaddr:#x}->{a:#x} is {distance:#x} bytes ({distance // pwndbg.aglib.arch.ptrsize:#x} words)"
 
             print(mem_color.get(page.vaddr, text=display_text))
     else:
@@ -44,6 +39,5 @@ def distance(a, b) -> None:
         distance = b - a
 
         print(
-            "%#x->%#x is %#x bytes (%#x words)"
-            % (a, b, distance, distance // pwndbg.aglib.arch.ptrsize)
+            f"{a:#x}->{b:#x} is {distance:#x} bytes ({distance // pwndbg.aglib.arch.ptrsize:#x} words)"
         )
