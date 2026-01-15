@@ -40,6 +40,7 @@ glibc_version = pwndbg.config.add_param(
     "glibc", "", "glibc version for heap heuristics resolution (e.g. 2.31)", scope=Scope.heap
 )
 
+
 @pwndbg.config.trigger(glibc_version)
 def set_glibc_version() -> None:
     ret = re.search(r"^(\d+)\.(\d+)$", glibc_version.value)
@@ -57,9 +58,9 @@ def set_glibc_version() -> None:
 def has_symbols() -> bool:
     return True
 
+
 def has_debug_info() -> bool:
     return pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
-
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -72,11 +73,10 @@ def _get_version() -> tuple[int, ...]:
         ver = pwndbg.aglib.memory.string(addr)
         return tuple(int(_) for _ in ver.split(b"."))
 
-
     libc_filename = get_libc_filename_from_info_sharedlibrary()
     if not libc_filename:
         return None
-    result = pwndbg.aglib.elf.dump_section_by_name(libc_filename, ".rodata", try_local_path=True)
+    result = pwndbg.aglib.elf.section_by_name(libc_filename, ".rodata", try_local_path=True)
     if result is None:
         return None
     _, _, data = result
@@ -99,17 +99,13 @@ def get_version() -> tuple[int, ...]:
 def is_being_used() -> bool:
     return True
 
+
 def initialize() -> bool:
     return True
 
+
 def type() -> LibcType:
     return LibcType.GLIBC
-
-
-
-
-
-
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -160,7 +156,7 @@ def dump_elf_data_section() -> tuple[int, int, bytes] | None:
     if not libc_filename:
         # libc not loaded yet, or it's static linked
         return None
-    return pwndbg.aglib.elf.dump_section_by_name(libc_filename, ".data", try_local_path=True)
+    return pwndbg.aglib.elf.section_by_name(libc_filename, ".data", try_local_path=True)
 
 
 @pwndbg.aglib.proc.OnlyWhenRunning
@@ -173,7 +169,7 @@ def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...
     if not libc_filename:
         # libc not loaded yet, or it's static linked
         return None
-    return pwndbg.aglib.elf.dump_relocations_by_section_name(
+    return pwndbg.aglib.elf.relocations_by_section_name(
         libc_filename, section_name, try_local_path=True
     )
 

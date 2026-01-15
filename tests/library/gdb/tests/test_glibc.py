@@ -5,9 +5,8 @@ import shutil
 import tempfile
 
 import gdb
-import pytest
-
 import pwndbg.glibc
+import pytest
 
 from . import get_binary
 

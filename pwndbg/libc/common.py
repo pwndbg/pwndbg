@@ -14,7 +14,7 @@ def relocations_by_section_name(section_name: str, libc_filename: str) -> tuple[
     """
     assert pwndbg.aglib.proc.alive()
 
-    return pwndbg.aglib.elf.dump_relocations_by_section_name(
+    return pwndbg.aglib.elf.relocations_by_section_name(
         libc_filename, section_name, try_local_path=True
     )
 

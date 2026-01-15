@@ -3,9 +3,8 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import gdb
-import pytest
-
 import pwndbg.glibc
+import pytest
 
 from . import get_binary
 

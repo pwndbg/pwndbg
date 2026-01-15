@@ -18,11 +18,14 @@ def get_version() -> tuple[int, ...]:
 def type() -> LibcType:
     return LibcType.UNKNOWN
 
+
 def has_symbols() -> bool:
     return False
 
+
 def has_debug_info() -> bool:
     return False
+
 
 def source_url() -> str:
     return ""
