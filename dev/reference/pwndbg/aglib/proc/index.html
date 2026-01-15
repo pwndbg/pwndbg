@@ -23,7 +23,7 @@
 </span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    <span class=n>section_name</span><span class=p>:</span> <span class=n><span title=str>str</span></span><span class=p>,</span>
 </span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><span title=tuple>tuple</span></span><span class=p>[</span><span class=n><span title=elftools.elf.relocation.Relocation>Relocation</span></span><span class=p>,</span> <span class=o>...</span><span class=p>]</span> <span class=o>|</span> <span class=kc>None</span>
 </span></code></pre></div> <div class="doc doc-contents "> <p>Dump relocations of a section by section name of current process's ELF file</p> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.aglib.proc.get_section_address_by_name class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">get_section_address_by_name</span> <a href=#pwndbg.aglib.proc.get_section_address_by_name class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>get_section_address_by_name</span><span class=p>(</span><span class=n>section_name</span><span class=p>:</span> <span class=n><span title=str>str</span></span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><span title=int>int</span></span>
-</span></code></pre></div> <div class="doc doc-contents "> <p>Find section address of current process by section name</p> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.aglib.proc.OnlyWhenRunning class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenRunning</span> <a href=#pwndbg.aglib.proc.OnlyWhenRunning class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenRunning</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span></code></pre></div> <div class="doc doc-contents "> <p>Find section address of current process by section name</p> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.aglib.proc.OnlyWhenRunning class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenRunning</span> <a href=#pwndbg.aglib.proc.OnlyWhenRunning class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenRunning</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -33,7 +33,7 @@
 
   
       module-attribute
-   (pwndbg.aglib.proc.T)" href=#pwndbg.aglib.proc.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+   (pwndbg.aglib.proc.T)" href=#pwndbg.aglib.proc.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -44,7 +44,7 @@
   
       module-attribute
    (pwndbg.aglib.proc.T)" href=#pwndbg.aglib.proc.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.aglib.proc.OnlyWhenQemuKernel class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenQemuKernel</span> <a href=#pwndbg.aglib.proc.OnlyWhenQemuKernel class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenQemuKernel</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.aglib.proc.OnlyWhenQemuKernel class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenQemuKernel</span> <a href=#pwndbg.aglib.proc.OnlyWhenQemuKernel class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenQemuKernel</span><span class=p>(</span><span class=n>func</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -54,7 +54,7 @@
 
   
       module-attribute
-   (pwndbg.aglib.proc.T)" href=#pwndbg.aglib.proc.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+   (pwndbg.aglib.proc.T)" href=#pwndbg.aglib.proc.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -67,7 +67,7 @@
    (pwndbg.aglib.proc.T)" href=#pwndbg.aglib.proc.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.aglib.proc.OnlyWithArch class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithArch</span> <a href=#pwndbg.aglib.proc.OnlyWithArch class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithArch</span><span class=p>(</span>
 </span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    <span class=n>arch_names</span><span class=p>:</span> <span class=n><span title=list>list</span></span><span class=p>[</span><span class=n><span title=str>str</span></span><span class=p>],</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[[</span><span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[[</span><span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -77,7 +77,7 @@
 
   
       module-attribute
-   (pwndbg.aglib.proc.T)" href=#pwndbg.aglib.proc.T>T</a></span><span class=p>]],</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+   (pwndbg.aglib.proc.T)" href=#pwndbg.aglib.proc.T>T</a></span><span class=p>]],</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   

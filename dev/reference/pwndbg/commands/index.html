@@ -192,7 +192,7 @@
 
 positional arguments: (... etc)
 </code></pre></div> <details class=to open> <summary>To</summary> <p>First line description</p> <p>usage: command [-flags]</p> <p>positional arguments: (... etc)</p> </details> <p>We do this for GDB as it takes the first line of command help for its 'apropos <cmd>' command. See <a class="magiclink magiclink-github magiclink-issue" href=https://github.com/pwndbg/pwndbg/issues/3502 title="GitHub Issue: pwndbg/pwndbg #3502">#3502</a> for more information.</p> </div> </div> </div> </div> </div> <div class="doc doc-object doc-class"> <h2 id=pwndbg.commands.CommandObj class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-class"></code> <span class="doc doc-object-name doc-class-name">CommandObj</span> <a href=#pwndbg.commands.CommandObj class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>CommandObj</span><span class=p>(</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    <span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=n><span title=str>str</span></span> <span class=o>|</span> <span class=kc>None</span><span class=p>],</span>
+</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    <span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=n><span title=str>str</span></span> <span class=o>|</span> <span class=kc>None</span><span class=p>],</span>
 </span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>    <span class=n>parser</span><span class=p>:</span> <span class=n><span title=argparse.ArgumentParser>ArgumentParser</span></span><span class=p>,</span>
 </span><span id=__span-0-4><a id=__codelineno-0-4 name=__codelineno-0-4 href=#__codelineno-0-4></a>    <span class=n>command_name</span><span class=p>:</span> <span class=n><span title=str>str</span></span> <span class=o>|</span> <span class=kc>None</span><span class=p>,</span>
 </span><span id=__span-0-5><a id=__codelineno-0-5 name=__codelineno-0-5 href=#__codelineno-0-5></a>    <span class=n>category</span><span class=p>:</span> <span class=n><a class="autorefs autorefs-internal" title="            CommandCategory (pwndbg.commands.CommandCategory)" href=#pwndbg.commands.CommandCategory>CommandCategory</a></span><span class=p>,</span>
@@ -232,7 +232,7 @@ positional arguments: (... etc)
 
   
       instance-attribute
-   (pwndbg.commands.CommandObj.function)" href=#pwndbg.commands.CommandObj.function>function</a></code></b> (<code><span title=typing.Callable>Callable</span>[..., <span title=str>str</span> | None]</code>) – <div class=doc-md-description> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            command_name
+   (pwndbg.commands.CommandObj.function)" href=#pwndbg.commands.CommandObj.function>function</a></code></b> (<code><span title=collections.abc.Callable>Callable</span>[..., <span title=str>str</span> | None]</code>) – <div class=doc-md-description> </div> </li> <li class="doc-section-item field-body"> <b><code><a class="autorefs autorefs-internal" title="            command_name
 
 
   
@@ -292,7 +292,7 @@ positional arguments: (... etc)
 </span><span id=__span-0-8><a id=__codelineno-0-8 name=__codelineno-0-8 href=#__codelineno-0-8></a>    <span class=s2>&quot;ignore&quot;</span><span class=p>,</span>
 </span><span id=__span-0-9><a id=__codelineno-0-9 name=__codelineno-0-9 href=#__codelineno-0-9></a><span class=p>}</span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-attribute"> <h3 id=pwndbg.commands.CommandObj.history class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code> <span class="doc doc-object-name doc-attribute-name">history</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small> <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small> </span> <a href=#pwndbg.commands.CommandObj.history class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>history</span><span class=p>:</span> <span class=n><span title=dict>dict</span></span><span class=p>[</span><span class=n><span title=int>int</span></span><span class=p>,</span> <span class=n><span title=str>str</span></span><span class=p>]</span> <span class=o>=</span> <span class=p>{}</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-attribute"> <h3 id=pwndbg.commands.CommandObj.function class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code> <span class="doc doc-object-name doc-attribute-name">function</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small> </span> <a href=#pwndbg.commands.CommandObj.function class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=n><span title=str>str</span></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n><span title=pwndbg.commands.CommandObj(function)>function</span></span>
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-attribute"> <h3 id=pwndbg.commands.CommandObj.function class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code> <span class="doc doc-object-name doc-attribute-name">function</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small> </span> <a href=#pwndbg.commands.CommandObj.function class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=n><span title=str>str</span></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span> <span class=o>=</span> <span class=n><span title=pwndbg.commands.CommandObj(function)>function</span></span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-attribute"> <h3 id=pwndbg.commands.CommandObj.command_name class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code> <span class="doc doc-object-name doc-attribute-name">command_name</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small> </span> <a href=#pwndbg.commands.CommandObj.command_name class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>command_name</span><span class=p>:</span> <span class=n><span title=str>str</span></span> <span class=o>=</span> <span class=n><span title=pwndbg.commands.CommandObj(function).__name__.replace>replace</span></span><span class=p>(</span><span class=s1>&#39;_&#39;</span><span class=p>,</span> <span class=s1>&#39;-&#39;</span><span class=p>)</span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-attribute"> <h3 id=pwndbg.commands.CommandObj.category class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code> <span class="doc doc-object-name doc-attribute-name">category</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small> </span> <a href=#pwndbg.commands.CommandObj.category class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>category</span><span class=p>:</span> <span class=n><a class="autorefs autorefs-internal" title="            CommandCategory (pwndbg.commands.CommandCategory)" href=#pwndbg.commands.CommandCategory>CommandCategory</a></span> <span class=o>=</span> <span class=n><span title=pwndbg.commands.CommandObj(category)>category</span></span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-attribute"> <h3 id=pwndbg.commands.CommandObj.aliases class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code> <span class="doc doc-object-name doc-attribute-name">aliases</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small> </span> <a href=#pwndbg.commands.CommandObj.aliases class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>aliases</span><span class=p>:</span> <span class=n><span title=list>list</span></span><span class=p>[</span><span class=n><span title=str>str</span></span><span class=p>]</span> <span class=o>=</span> <span class=n><span title=pwndbg.commands.CommandObj(aliases)>aliases</span></span>
@@ -373,7 +373,7 @@ positional arguments: (... etc)
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-attribute"> <h3 id=pwndbg.commands.Command.notes class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code> <span class="doc doc-object-name doc-attribute-name">notes</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small> </span> <a href=#pwndbg.commands.Command.notes class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>notes</span> <span class=o>=</span> <span class=n><span title=pwndbg.commands.Command(notes)>notes</span></span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-attribute"> <h3 id=pwndbg.commands.Command.only_debuggers class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code> <span class="doc doc-object-name doc-attribute-name">only_debuggers</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small> </span> <a href=#pwndbg.commands.Command.only_debuggers class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>only_debuggers</span> <span class=o>=</span> <span class=n><span title=pwndbg.commands.Command(only_debuggers)>only_debuggers</span></span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-attribute"> <h3 id=pwndbg.commands.Command.exclude_debuggers class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code> <span class="doc doc-object-name doc-attribute-name">exclude_debuggers</span> <span class="doc doc-labels"> <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small> </span> <a href=#pwndbg.commands.Command.exclude_debuggers class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=n>exclude_debuggers</span> <span class=o>=</span> <span class=n><span title=pwndbg.commands.Command(exclude_debuggers)>exclude_debuggers</span></span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h3 id=pwndbg.commands.Command.__call__ class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code> <span class="doc doc-object-name doc-function-name">__call__</span> <a href=#pwndbg.commands.Command.__call__ class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>__call__</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=n><span title=typing.Any>Any</span></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><a class="autorefs autorefs-internal" title="            CommandObj (pwndbg.commands.CommandObj)" href=#pwndbg.commands.CommandObj>CommandObj</a></span>
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h3 id=pwndbg.commands.Command.__call__ class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code> <span class="doc doc-object-name doc-function-name">__call__</span> <a href=#pwndbg.commands.Command.__call__ class=headerlink title="Permanent link">¤</a></h3> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>__call__</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=o>...</span><span class=p>,</span> <span class=n><span title=typing.Any>Any</span></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><a class="autorefs autorefs-internal" title="            CommandObj (pwndbg.commands.CommandObj)" href=#pwndbg.commands.CommandObj>CommandObj</a></span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> </div> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.fix class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">fix</span> <a href=#pwndbg.commands.fix class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>fix</span><span class=p>(</span>
 </span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    <span class=n>arg</span><span class=p>:</span> <span class=n><span title=str>str</span></span> <span class=o>|</span> <span class=n><a class="autorefs autorefs-internal" title="            Value (pwndbg.dbg_mod.Value)" href=../dbg_mod/#pwndbg.dbg_mod.Value>Value</a></span><span class=p>,</span>
 </span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a>    <span class=n>sloppy</span><span class=p>:</span> <span class=n><span title=bool>bool</span></span> <span class=o>=</span> <span class=kc>False</span><span class=p>,</span>
@@ -385,7 +385,7 @@ positional arguments: (... etc)
 </span></code></pre></div> <div class="doc doc-contents "> <p>fix_reraise wrapper for evaluating command arguments</p> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.fix_int class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">fix_int</span> <a href=#pwndbg.commands.fix_int class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>fix_int</span><span class=p>(</span><span class=o>*</span><span class=n>a</span><span class=p>:</span> <span class=n><span title=typing.Any>Any</span></span><span class=p>,</span> <span class=o>**</span><span class=n>kw</span><span class=p>:</span> <span class=n><span title=typing.Any>Any</span></span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><span title=int>int</span></span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.fix_int_reraise class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">fix_int_reraise</span> <a href=#pwndbg.commands.fix_int_reraise class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>fix_int_reraise</span><span class=p>(</span><span class=o>*</span><span class=n>a</span><span class=p>:</span> <span class=n><span title=typing.Any>Any</span></span><span class=p>,</span> <span class=o>**</span><span class=n>kw</span><span class=p>:</span> <span class=n><span title=typing.Any>Any</span></span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><span title=int>int</span></span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.fix_int_reraise_arg class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">fix_int_reraise_arg</span> <a href=#pwndbg.commands.fix_int_reraise_arg class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>fix_int_reraise_arg</span><span class=p>(</span><span class=n>arg</span><span class=p>:</span> <span class=n><span title=typing.Any>Any</span></span><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><span title=int>int</span></span>
-</span></code></pre></div> <div class="doc doc-contents "> <p>fix_int_reraise wrapper for evaluating command arguments</p> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.func_name class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">func_name</span> <a href=#pwndbg.commands.func_name class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>func_name</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span></code></pre></div> <div class="doc doc-contents "> <p>fix_int_reraise wrapper for evaluating command arguments</p> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.func_name class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">func_name</span> <a href=#pwndbg.commands.func_name class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>func_name</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -396,7 +396,7 @@ positional arguments: (... etc)
   
       module-attribute
    (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=str>str</span></span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenLocal class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenLocal</span> <a href=#pwndbg.commands.OnlyWhenLocal class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenLocal</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenLocal class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenLocal</span> <a href=#pwndbg.commands.OnlyWhenLocal class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenLocal</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -406,28 +406,7 @@ positional arguments: (... etc)
 
   
       module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
-
-
-  
-      module-attribute
-   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
-
-
-  
-      module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithFile class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithFile</span> <a href=#pwndbg.commands.OnlyWithFile class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithFile</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
-
-
-  
-      module-attribute
-   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
-
-
-  
-      module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -438,7 +417,7 @@ positional arguments: (... etc)
   
       module-attribute
    (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenQemuKernel class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenQemuKernel</span> <a href=#pwndbg.commands.OnlyWhenQemuKernel class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenQemuKernel</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithFile class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithFile</span> <a href=#pwndbg.commands.OnlyWithFile class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithFile</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -448,28 +427,7 @@ positional arguments: (... etc)
 
   
       module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
-
-
-  
-      module-attribute
-   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
-
-
-  
-      module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenUserspace class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenUserspace</span> <a href=#pwndbg.commands.OnlyWhenUserspace class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenUserspace</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
-
-
-  
-      module-attribute
-   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
-
-
-  
-      module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -480,7 +438,7 @@ positional arguments: (... etc)
   
       module-attribute
    (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithKernelDebugInfo class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithKernelDebugInfo</span> <a href=#pwndbg.commands.OnlyWithKernelDebugInfo class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithKernelDebugInfo</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenQemuKernel class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenQemuKernel</span> <a href=#pwndbg.commands.OnlyWhenQemuKernel class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenQemuKernel</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -490,28 +448,7 @@ positional arguments: (... etc)
 
   
       module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
-
-
-  
-      module-attribute
-   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
-
-
-  
-      module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithKernelSymbols class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithKernelSymbols</span> <a href=#pwndbg.commands.OnlyWithKernelSymbols class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithKernelSymbols</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
-
-
-  
-      module-attribute
-   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
-
-
-  
-      module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -522,7 +459,7 @@ positional arguments: (... etc)
   
       module-attribute
    (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenPagingEnabled class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenPagingEnabled</span> <a href=#pwndbg.commands.OnlyWhenPagingEnabled class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenPagingEnabled</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenUserspace class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenUserspace</span> <a href=#pwndbg.commands.OnlyWhenUserspace class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenUserspace</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -532,28 +469,7 @@ positional arguments: (... etc)
 
   
       module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
-
-
-  
-      module-attribute
-   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
-
-
-  
-      module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenRunning class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenRunning</span> <a href=#pwndbg.commands.OnlyWhenRunning class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenRunning</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
-
-
-  
-      module-attribute
-   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
-
-
-  
-      module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -564,7 +480,7 @@ positional arguments: (... etc)
   
       module-attribute
    (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithTcache class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithTcache</span> <a href=#pwndbg.commands.OnlyWithTcache class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithTcache</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithKernelDebugInfo class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithKernelDebugInfo</span> <a href=#pwndbg.commands.OnlyWithKernelDebugInfo class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithKernelDebugInfo</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -574,7 +490,91 @@ positional arguments: (... etc)
 
   
       module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+
+
+  
+      module-attribute
+   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
+
+
+  
+      module-attribute
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithKernelSymbols class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithKernelSymbols</span> <a href=#pwndbg.commands.OnlyWithKernelSymbols class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithKernelSymbols</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+
+
+  
+      module-attribute
+   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
+
+
+  
+      module-attribute
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+
+
+  
+      module-attribute
+   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
+
+
+  
+      module-attribute
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenPagingEnabled class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenPagingEnabled</span> <a href=#pwndbg.commands.OnlyWhenPagingEnabled class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenPagingEnabled</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+
+
+  
+      module-attribute
+   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
+
+
+  
+      module-attribute
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+
+
+  
+      module-attribute
+   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
+
+
+  
+      module-attribute
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenRunning class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenRunning</span> <a href=#pwndbg.commands.OnlyWhenRunning class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenRunning</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+
+
+  
+      module-attribute
+   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
+
+
+  
+      module-attribute
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+
+
+  
+      module-attribute
+   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
+
+
+  
+      module-attribute
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithTcache class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithTcache</span> <a href=#pwndbg.commands.OnlyWithTcache class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithTcache</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+
+
+  
+      module-attribute
+   (pwndbg.commands.P)" href=#pwndbg.commands.P>P</a></span><span class=p>,</span> <span class=n><a class="autorefs autorefs-internal" title="            T
+
+
+  
+      module-attribute
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -586,7 +586,7 @@ positional arguments: (... etc)
       module-attribute
    (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
 </span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWhenHeapIsInitialized class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWhenHeapIsInitialized</span> <a href=#pwndbg.commands.OnlyWhenHeapIsInitialized class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWhenHeapIsInitialized</span><span class=p>(</span>
-</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    <span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span><span id=__span-0-2><a id=__codelineno-0-2 name=__codelineno-0-2 href=#__codelineno-0-2></a>    <span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -597,7 +597,7 @@ positional arguments: (... etc)
   
       module-attribute
    (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>],</span>
-</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span><span id=__span-0-3><a id=__codelineno-0-3 name=__codelineno-0-3 href=#__codelineno-0-3></a><span class=p>)</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -608,7 +608,7 @@ positional arguments: (... etc)
   
       module-attribute
    (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span> <span class=o>|</span> <span class=kc>None</span><span class=p>]</span>
-</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithResolvedHeapSyms class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithResolvedHeapSyms</span> <a href=#pwndbg.commands.OnlyWithResolvedHeapSyms class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithResolvedHeapSyms</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+</span></code></pre></div> <div class="doc doc-contents "> </div> </div> <div class="doc doc-object doc-function"> <h2 id=pwndbg.commands.OnlyWithResolvedHeapSyms class="doc doc-heading"> <code class="doc-symbol doc-symbol-heading doc-symbol-function"></code> <span class="doc doc-object-name doc-function-name">OnlyWithResolvedHeapSyms</span> <a href=#pwndbg.commands.OnlyWithResolvedHeapSyms class=headerlink title="Permanent link">¤</a></h2> <div class="language-python doc-signature highlight"><pre><span></span><code><span id=__span-0-1><a id=__codelineno-0-1 name=__codelineno-0-1 href=#__codelineno-0-1></a><span class=nf>OnlyWithResolvedHeapSyms</span><span class=p>(</span><span class=n>function</span><span class=p>:</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
@@ -618,7 +618,7 @@ positional arguments: (... etc)
 
   
       module-attribute
-   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=typing.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
+   (pwndbg.commands.T)" href=#pwndbg.commands.T>T</a></span><span class=p>])</span> <span class=o>-&gt;</span> <span class=n><span title=collections.abc.Callable>Callable</span></span><span class=p>[</span><span class=n><a class="autorefs autorefs-internal" title="            P
 
 
   
