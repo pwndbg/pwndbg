@@ -3,8 +3,9 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import gdb
-import pwndbg.glibc
 import pytest
+
+import pwndbg.libc
 
 from . import get_binary
 
@@ -163,7 +164,7 @@ def test_find_i386_onegadget(check_output, which):
     assert "0x172951" in output
 
     # Make 0x172951 satisfiable
-    glibc_got_plt = pwndbg.glibc.get_section_address_by_name(".got.plt")
+    glibc_got_plt = pwndbg.libc.get().section_address_by_name(".got.plt")
     gdb.execute(f"set $esi={glibc_got_plt}")
     gdb.execute("set $eax=0")
 

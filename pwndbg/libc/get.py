@@ -3,7 +3,7 @@ from __future__ import annotations
 from .api import Libc
 
 
-def get_libc() -> Libc:
+def get() -> Libc:
     from . import glibc
 
     if glibc.is_being_used():

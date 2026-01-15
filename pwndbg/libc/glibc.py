@@ -166,12 +166,16 @@ def loader_mapping() -> str:
     return ""
 
 
-def relocations_by_section_name(section_name: str) -> tuple[Relocation, ...]:
-    return common.relocations_by_section_name(section_name, filename())
+def section_by_name(section_name: str) -> tuple[int, int, bytes] | None:
+    return common.section_by_name(section_name, filename())
 
 
 def section_address_by_name(section_name: str) -> int:
     return common.section_address_by_name(section_name, filename())
+
+
+def relocations_by_section_name(section_name: str) -> tuple[Relocation, ...]:
+    return common.relocations_by_section_name(section_name, filename())
 
 
 def source_url() -> str:

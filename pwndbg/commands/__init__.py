@@ -28,6 +28,7 @@ import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.exception
 import pwndbg.integration
+import pwndbg.libc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
@@ -949,7 +950,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
                     "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
                 )
                 w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
-            elif pwndbg.glibc.get_version() is None:
+            elif pwndbg.libc.get().version() is None:
                 if static:
                     e("Can't resolve the heap since the GLIBC version is not set.")
                     w(

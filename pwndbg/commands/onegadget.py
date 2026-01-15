@@ -7,7 +7,7 @@ import pwndbg.aglib.onegadget
 import pwndbg.aglib.proc
 import pwndbg.color.message as message
 import pwndbg.commands
-import pwndbg.glibc
+import pwndbg.libc
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(
@@ -33,7 +33,7 @@ def onegadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool 
         )
         return
 
-    path = pwndbg.glibc.get_libc_filename_from_info_sharedlibrary()
+    path = pwndbg.libc.get().filename()
     if not path:
         print(message.error("Could not find libc. Please ensure it's loaded."))
         return
