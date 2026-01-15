@@ -327,36 +327,36 @@ def test_windbg_commands_x86(start_binary):
     esp = pwndbg.aglib.regs.read_reg("esp")
     assert db == [
         f"{esp:x}     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66",
-        "%x     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" % (esp + 16),
-        "%x     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f" % (esp + 32),
-        "%x     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a" % (esp + 48),
+        f"{esp + 16:x}     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+        f"{esp + 32:x}     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f",
+        f"{esp + 48:x}     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a",
     ]
 
     dw = gdb.execute("dw $esp", to_string=True).splitlines()
     esp = pwndbg.aglib.regs.read_reg("esp")
     assert dw == [
         f"{esp:x}     3231 3433 3635 3837 3039 6261 6463 6665",
-        "%x     0000 0000 0000 0000 0000 0000 0000 0000" % (esp + 16),
-        "%x     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e" % (esp + 32),
-        "%x     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a" % (esp + 48),
+        f"{esp + 16:x}     0000 0000 0000 0000 0000 0000 0000 0000",
+        f"{esp + 32:x}     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e",
+        f"{esp + 48:x}     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a",
     ]
 
     dd = gdb.execute("dd $esp", to_string=True).splitlines()
     esp = pwndbg.aglib.regs.read_reg("esp")
     assert dd == [
         f"{esp:x}     34333231 38373635 62613039 66656463",
-        "%x     00000000 00000000 00000000 00000000" % (esp + 16),
-        "%x     03020100 07060504 0b0a0908 0f0e0d0c" % (esp + 32),
-        "%x     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a" % (esp + 48),
+        f"{esp + 16:x}     00000000 00000000 00000000 00000000",
+        f"{esp + 32:x}     03020100 07060504 0b0a0908 0f0e0d0c",
+        f"{esp + 48:x}     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a",
     ]
 
     dq = gdb.execute("dq $esp", to_string=True).splitlines()
     esp = pwndbg.aglib.regs.read_reg("esp")
     assert dq == [
         f"{esp:x}     3837363534333231 6665646362613039",
-        "%x     0000000000000000 0000000000000000" % (esp + 16),
-        "%x     0706050403020100 0f0e0d0c0b0a0908" % (esp + 32),
-        "%x     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a" % (esp + 48),
+        f"{esp + 16:x}     0000000000000000 0000000000000000",
+        f"{esp + 32:x}     0706050403020100 0f0e0d0c0b0a0908",
+        f"{esp + 48:x}     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a",
     ]
 
     #################################################
