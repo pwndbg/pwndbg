@@ -302,6 +302,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             code_addr == -1 means code_addr_p == 0
             special_addr == -1 means special_addr_p == 0
         Note that artificial_depth == 0 means invalid.
+        Note that stack_addr is the start of the stack, not the value of the stack pointer.
         """
         # See gdb/frame-id.h and gdb/frame.c:frame_id::to_string().
         # This obviously isn't guaranteed to be stable, but looking at the blame
