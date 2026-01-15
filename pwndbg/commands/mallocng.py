@@ -17,6 +17,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.color as color
 import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
+import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.config
 from pwndbg import config
@@ -401,7 +402,7 @@ def smart_dump_slot(
         else:
             gslot, fslot = ng.find_slot(slot.p, False, False)
 
-        if gslot is None:
+        if gslot is None or fslot is None:
             output += "Not found.\n\n"
             output += dump_slot(slot, all, False, False)
             return output

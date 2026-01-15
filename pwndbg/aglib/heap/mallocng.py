@@ -1144,6 +1144,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # Whoever called init_if_needed() needs to use the Mallocng
             # class, which needs an up-to-date view of __malloc_context,
             # so we will update it here.
+            assert self.ctx is not None, "Init was finished but self.ctx is not initialized?"
             self.ctx.load()
             return True
 
@@ -1319,6 +1320,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         Returns (None, None) if nothing is found.
         """
+        if self.ctx is None:
+            raise AssertionError("You didn't initialize ng.")
+
         metadata_offset = IB if metadata else 0
         # The group which contains a slot which contains `address`.
         hit_group: Optional[Group] = None
@@ -1343,7 +1347,15 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     if not meta.mem:
                         # Skip unused metas.
                         continue
+                except pwndbg.dbg_mod.Error as e:
+                    print(
+                        message.error(
+                            f"Mallocng.containing: Could not read/parse meta.({e}), skipping it.."
+                        )
+                    )
+                    continue
 
+                try:
                     group = Group(meta.mem)
                     group.set_meta(meta)
 
@@ -1468,6 +1480,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         Returns:
             A dictionary that maps: meta address -> (meta index in list, Meta object).
         """
+        if self.ctx is None:
+            raise AssertionError("You didn't initialize ng.")
+
         if self.ctx.free_meta_head == 0:
             return {}
 
@@ -1494,6 +1509,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         """
         Checks whether a meta is available.
         """
+        if self.ctx is None:
+            raise AssertionError("You didn't initialize ng.")
+
         # It seems all available metas are contiguous.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L109
         return (
