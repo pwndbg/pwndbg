@@ -66,8 +66,12 @@ HEAP_MAX_SIZE: int = None
 
 NBINS = 128
 BINMAPSIZE = 4
-NFASTBINS = 10
 NSMALLBINS = 64
+
+
+def nfastbins():
+    glibc_version = pwndbg.glibc.get_version()
+    return 0 if glibc_version >= (2, 43) else 10
 
 
 # Note that we must inherit from `str` before `Enum`: https://stackoverflow.com/a/58608362/803801
@@ -680,7 +684,7 @@ class Arena:
         if self._fastbinsY is None:
             self._fastbinsY = []
             try:
-                for i in range(NFASTBINS):
+                for i in range(nfastbins()):
                     self._fastbinsY.append(int(self._gdbValue["fastbinsY"][i]))
             except pwndbg.dbg_mod.Error:
                 pass
@@ -777,7 +781,7 @@ class Arena:
         fd_offset = pwndbg.aglib.arch.ptrsize * 2
         safe_lnk = pwndbg.glibc.check_safe_linking()
         result = Bins(BinType.FAST)
-        for i in range(NFASTBINS):
+        for i in range(nfastbins()):
             size += pwndbg.aglib.arch.ptrsize * 2
             chain = pwndbg.chain.get(
                 int(self.fastbinsY[i]),
@@ -1565,11 +1569,8 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         The `struct malloc_chunk` comes from debugging symbols and it will not be there
         for statically linked binaries
         """
-        return (
-            pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
-            and pwndbg.aglib.symbol.lookup_symbol_addr("global_max_fast", prefer_static=True)
-            is not None
-        )
+        return pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
+        # pwndbg.aglib.symbol.lookup_symbol_addr("global_max_fast", prefer_static=True) is not None
 
 
 class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Value]):

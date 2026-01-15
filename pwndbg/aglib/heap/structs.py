@@ -47,7 +47,7 @@ BINMAPSIZE = 4
 TCACHE_SMALL_BINS = 64
 TCACHE_LARGE_BINS = 12
 TCACHE_MAX_BINS = TCACHE_SMALL_BINS + TCACHE_LARGE_BINS
-NFASTBINS = fastbin_index(request2size(MAX_FAST_SIZE)) + 1
+NFASTBINS = 0 if GLIBC_VERSION >= (2, 43) else fastbin_index(request2size(MAX_FAST_SIZE)) + 1
 
 if pwndbg.aglib.arch.ptrsize == 4:
     PTR = ctypes.c_uint32
@@ -61,7 +61,7 @@ DEFAULT_MMAP_MAX = 65536
 DEFAULT_MMAP_THRESHOLD = 128 * 1024
 DEFAULT_TRIM_THRESHOLD = 128 * 1024
 DEFAULT_PAGE_SIZE = 4096
-TCACHE_FILL_COUNT = 7
+TCACHE_FILL_COUNT = 16 if GLIBC_VERSION >= (2, 43) else 7
 MAX_TCACHE_SMALL_SIZE = (TCACHE_SMALL_BINS - 1) * MALLOC_ALIGN + MINSIZE - SIZE_SZ
 
 
@@ -511,7 +511,7 @@ class MallocState(CStruct2GDB):
 
     if glibc_version >= (2, 43):
         _c_struct = c_malloc_state_2_43
-    if glibc_version >= (2, 27):
+    elif glibc_version >= (2, 27):
         _c_struct = c_malloc_state_2_27
     elif glibc_version >= (2, 23):
         _c_struct = c_malloc_state_2_26
