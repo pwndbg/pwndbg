@@ -6,8 +6,8 @@ instruction of some type (call, branch, etc.)
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from itertools import chain
-from typing import Callable
 
 import capstone
 
@@ -155,7 +155,7 @@ async def break_next_interrupt(
 
 async def break_next_interrupt_filtered(
     ec: pwndbg.dbg_mod.ExecutionController,
-    predicate: "Callable[[], bool] | None" = None,
+    predicate: Callable[[], bool] | None = None,
 ) -> PwndbgInstruction | None:
     """
     Break at the next interrupt (syscall) when the predicate evaluates to True.
