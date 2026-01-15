@@ -158,30 +158,30 @@ class Slot:
         self.p: int = p
 
         # == The p header fields.
-        self._offset: int = None
+        self._offset: int | None = None
         # p[-3]. Stores lot's of different kinds of
         # information.
-        self._pn3: int = None
-        self._idx: int = None
-        self._reserved_hd: int = None
-        self._big_offset_check: int = None
+        self._pn3: int | None = None
+        self._idx: int | None = None
+        self._reserved_hd: int | None = None
+        self._big_offset_check: int | None = None
         # ==
 
         # == The footer fields.
-        self._reserved_ft: int = None
+        self._reserved_ft: int | None = None
         # ==
 
         # == The start header fields.
-        self._start: int = None
-        self._cyclic_offset: int = None
+        self._start: int | None = None
+        self._cyclic_offset: int | None = None
         # start[-3]. Stores whether we are cyclic.
-        self._startn3: int = None
+        self._startn3: int | None = None
         # ==
 
-        self._reserved: int = None
-        self._group: Group = None
-        self._meta: Meta = None
-        self._slot_state: SlotState = None
+        self._reserved: int | None = None
+        self._group: Group | None = None
+        self._meta: Meta | None = None
+        self._slot_state: SlotState | None = None
 
     def preload(self) -> None:
         """
