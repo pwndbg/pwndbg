@@ -494,7 +494,7 @@ class Slot:
             # the meta if the state is ALLOCATED.
             # We will do a heuristic check that should be good in most cases.
 
-            meta_says: SlotState = None
+            meta_says: SlotState | None = None
             try:
                 meta_says = self.meta.slotstate_at_index(self.idx)
             except pwndbg.dbg_mod.Error:
@@ -561,11 +561,11 @@ class Slot:
         if sn3 == 224:
             off = memory.u16(start - 2)
             obj = cls(start + off * UNIT)
-            obj._sn3 = sn3
+            obj._startn3 = sn3
         else:
             # freed / avail slots will also go into this branch.
             obj = cls(start)
-            obj._sn3 = obj._pn3 = sn3
+            obj._startn3 = obj._pn3 = sn3
 
         obj._start = start
 
