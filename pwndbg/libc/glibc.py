@@ -24,6 +24,7 @@ import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.lib.config import Scope
 
+from . import common
 from .api import LibcType
 
 P = ParamSpec("P")
@@ -55,14 +56,6 @@ def set_glibc_version() -> None:
     glibc_version.revert_default()
 
 
-def has_symbols() -> bool:
-    return True
-
-
-def has_debug_info() -> bool:
-    return pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
-
-
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def _get_version() -> tuple[int, ...]:
     if has_symbols():
@@ -86,26 +79,6 @@ def _get_version() -> tuple[int, ...]:
     banner = data[banner_start : data.find(b"\x00", banner_start)]
     ret = re.search(rb"release version (\d+)\.(\d+)", banner)
     return tuple(int(_) for _ in ret.groups()) if ret else None
-
-
-def get_version() -> tuple[int, ...]:
-    if glibc_version:
-        version_tuple = tuple(int(i) for i in glibc_version.value.split("."))
-        return version_tuple
-
-    return _get_version()
-
-
-def is_being_used() -> bool:
-    return True
-
-
-def initialize() -> bool:
-    return True
-
-
-def type() -> LibcType:
-    return LibcType.GLIBC
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -146,60 +119,74 @@ def get_libc_filename_from_info_sharedlibrary() -> str | None:
     return None
 
 
-@pwndbg.aglib.proc.OnlyWhenRunning
-@pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_elf_data_section() -> tuple[int, int, bytes] | None:
-    """
-    Dump .data section of libc ELF file
-    """
-    libc_filename = get_libc_filename_from_info_sharedlibrary()
-    if not libc_filename:
-        # libc not loaded yet, or it's static linked
-        return None
-    return pwndbg.aglib.elf.section_by_name(libc_filename, ".data", try_local_path=True)
+# ===== Libc Interaface Implementation =====
 
 
-@pwndbg.aglib.proc.OnlyWhenRunning
-@pwndbg.lib.cache.cache_until("start", "objfile")
-def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...] | None:
-    """
-    Dump relocations of a section by section name of libc ELF file
-    """
-    libc_filename = get_libc_filename_from_info_sharedlibrary()
-    if not libc_filename:
-        # libc not loaded yet, or it's static linked
-        return None
-    return pwndbg.aglib.elf.relocations_by_section_name(
-        libc_filename, section_name, try_local_path=True
-    )
+def type() -> LibcType:
+    return LibcType.GLIBC
 
 
-@pwndbg.aglib.proc.OnlyWhenRunning
-@pwndbg.lib.cache.cache_until("start", "objfile")
-def get_section_address_by_name(section_name: str) -> int:
-    """
-    Find section address of libc by section name
-    """
-    libc_filename = get_libc_filename_from_info_sharedlibrary()
-    if not libc_filename:
-        # libc not loaded yet, or it's static linked
-        return 0
-    # TODO: If we are debugging a remote process, this might not work if GDB cannot load the so file
-    for (
-        address,
-        size,
-        candidate_section_name,
-        module_name,
-    ) in pwndbg.dbg.selected_inferior().module_section_locations():
-        if section_name == candidate_section_name and module_name == libc_filename:
-            return address
-    return 0
+def is_being_used() -> bool:
+    return True
+
+
+def initialize() -> bool:
+    return True
+
+
+def version() -> tuple[int, ...]:
+    if glibc_version:
+        version_tuple = tuple(int(i) for i in glibc_version.value.split("."))
+        return version_tuple
+
+    return _get_version()
+
+
+def has_symbols() -> bool:
+    return True
+
+
+def has_debug_info() -> bool:
+    return pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
+
+
+def filename() -> str:
+    return ""
+
+
+def loader_filename() -> str:
+    return ""
+
+
+def mapping() -> str:
+    return ""
+
+
+def loader_mapping() -> str:
+    return ""
+
+
+def relocations_by_section_name(section_name: str) -> tuple[Relocation, ...]:
+    return common.relocations_by_section_name(section_name, filename())
+
+
+def section_address_by_name(section_name: str) -> int:
+    return common.section_address_by_name(section_name, filename())
+
+
+def source_url() -> str:
+    ver = version()
+    ver_str = ".".join(map(str, ver))
+    return f"https://elixir.bootlin.com/glibc/glibc-{ver_str}/source"
+
+
+# ===== End of Libc Interaface Implementation =====
 
 
 def OnlyWhenGlibcLoaded(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWhenGlibcLoaded(*a: P.args, **kw: P.kwargs) -> T | None:
-        if get_version() is not None:
+        if is_being_used():
             return function(*a, **kw)
 
         print(f"{function.__name__}: GLibc not loaded yet.")
@@ -215,4 +202,4 @@ def check_safe_linking() -> bool:
     - https://lanph3re.blogspot.com/2020/08/blog-post.html
     - https://research.checkpoint.com/2020/safe-linking-eliminating-a-20-year-old-malloc-exploit-primitive/
     """
-    return (get_version() >= (2, 32) or safe_lnk.value) and safe_lnk.value is not False
+    return (version() >= (2, 32) or safe_lnk.value) and safe_lnk.value is not False

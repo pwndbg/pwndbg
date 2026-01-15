@@ -20,14 +20,10 @@ def relocations_by_section_name(section_name: str, libc_filename: str) -> tuple[
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def section_address_by_name(section_name: str) -> int:
+def section_address_by_name(section_name: str, libc_filename: str) -> int:
     """
     Find section address of libc by section name
     """
-    libc_filename = get_libc_filename_from_info_sharedlibrary()
-    if not libc_filename:
-        # libc not loaded yet, or it's static linked
-        return 0
     # TODO: If we are debugging a remote process, this might not work if GDB cannot load the so file
     for (
         address,
