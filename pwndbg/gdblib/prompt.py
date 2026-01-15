@@ -33,7 +33,7 @@ def initial_hook(*a: Any) -> None:
         colored_tip = color_tip(get_tip_of_the_day(pwndbg.dbg_mod.DebuggerType.GDB.value))
         print(
             message.prompt("------- tip of the day")
-            + message.system(" (disable with %s)" % message.notice("set show-tips off"))
+            + message.system(" (disable with {})".format(message.notice("set show-tips off")))
             + message.prompt(" -------")
         )
         print(colored_tip)

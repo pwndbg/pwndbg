@@ -277,13 +277,10 @@ def _parser_mem_info_line_x86(line: str) -> Page | None:
     if end - start != size and monitor_info_mem_not_warned:
         print(
             message.warn(
-                (
-                    "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
-                    "that end-start==size failed. The values are:\n"
-                    "end=%#x; start=%#x; size=%#x; end-start=%#x\n"
-                    "Note that this warning will not show up again in this Pwndbg/GDB session."
-                )
-                % (end, start, size, end - start)
+                "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                "that end-start==size failed. The values are:\n"
+                f"end={end:#x}; start={start:#x}; size={size:#x}; end-start={end - start:#x}\n"
+                "Note that this warning will not show up again in this Pwndbg/GDB session."
             )
         )
         monitor_info_mem_not_warned = False

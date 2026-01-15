@@ -321,7 +321,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             parts.append(instruction.cs_insn.reg_name(op.mem.base))
 
         if op.mem.disp != 0:
-            parts.append("%#x" % op.mem.disp)
+            parts.append(f"{op.mem.disp:#x}")
 
         if op.mem.index != 0:
             index = pwndbg.aglib.regs.read_reg(instruction.cs_insn.reg_name(op.mem.index))

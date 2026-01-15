@@ -312,7 +312,7 @@ def get_prompt_session(dbg):
     bindings.add("c-r")(fzf_reverse_search)
     # key binding for fzf tab completion
     fifo_in, fifo_out = create_preview_fifos()
-    preview = "echo {n} > %s\ncat %s" % (fifo_in, fifo_out)
+    preview = f"echo {{n}} > {fifo_in}\ncat {fifo_out}"
     bindings.add("c-i")(
         functools.partial(
             fzf_tab_autocomplete,

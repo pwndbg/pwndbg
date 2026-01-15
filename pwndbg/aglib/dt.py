@@ -91,7 +91,7 @@ def dt(
                     and ftype.target() == pwndbg.aglib.typeinfo.uchar
                 ):
                     data = pwndbg.aglib.memory.read(int(obj_value.address), ftype.sizeof)
-                    extra = " ".join("%02x" % b for b in data)
+                    extra = " ".join(f"{b:02x}" for b in data)
                 else:
                     extra = obj_value.value_to_human_readable()
             except pwndbg.dbg_mod.Error as e:

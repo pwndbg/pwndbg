@@ -23,7 +23,7 @@ if pwndbg.dbg.is_gdblib_available():
 
 def enhex(size, value):
     value = value & ((1 << 8 * size) - 1)
-    x = "%x" % abs(value)
+    x = f"{abs(value):x}"
     x = x.rjust(size * 2, "0")
     return x
 
@@ -299,7 +299,7 @@ def eX(size, address, data, hex=True) -> None:
             pwndbg.aglib.memory.write(address + (i * size), data)
             writes += 1
         except pwndbg.dbg_mod.Error:
-            print("Cannot access memory at address %#x" % address)
+            print(f"Cannot access memory at address {address:#x}")
             if writes > 0:
                 print("(Made %d writes to memory; skipping further writes)" % writes)
             return
@@ -328,7 +328,7 @@ da_parser.add_argument("max", type=int, nargs="?", default=256, help="Maximum st
 @pwndbg.commands.Command(da_parser, category=CommandCategory.WINDBG)
 @pwndbg.commands.OnlyWhenRunning
 def da(address, max) -> None:
-    print("%x" % address, repr(pwndbg.aglib.strings.get(address, max)))
+    print(f"{address:x}", repr(pwndbg.aglib.strings.get(address, max)))
 
 
 ds_parser = argparse.ArgumentParser(description="Dump a string at the specified address.")

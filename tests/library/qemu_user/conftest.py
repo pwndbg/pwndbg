@@ -162,8 +162,7 @@ def qemu_assembly_run():
                 compiled_file,
             ],
             stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
         )
 

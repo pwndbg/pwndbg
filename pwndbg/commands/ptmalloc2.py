@@ -1169,7 +1169,7 @@ def vis_heap_chunks(
                 continue
 
             if printed % 2 == 0:
-                saved_line_addr = "0x%x" % cursor
+                saved_line_addr = f"0x{cursor:x}"
 
             data = pwndbg.aglib.memory.read(cursor, ptr_size)
             cell = pwndbg.aglib.arch.unpack(data)

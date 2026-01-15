@@ -855,7 +855,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     return
                 except OSError as e:
                     raise pwndbg.dbg_mod.Error(
-                        "Could not download remote file %r:\nError: %s" % (remote_path, str(e))
+                        f"Could not download remote file {remote_path!r}:\nError: {str(e)}"
                     )
         try:
             error = gdb.execute(f'remote get "{remote_path}" "{local_path}"', to_string=True)
@@ -874,7 +874,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             if len(real_error):
                 error = "\n".join(real_error)
                 raise pwndbg.dbg_mod.Error(
-                    "Could not download remote file %r:\nError: %s" % (remote_path, error)
+                    f"Could not download remote file {remote_path!r}:\nError: {error}"
                 )
 
     # Note that in GDB this method does not depend on the process at all!

@@ -91,7 +91,7 @@ class AUXV(dict[str, int | str]):
         if attr in AT_CONSTANT_NAMES:
             return self.get(attr)
 
-        raise AttributeError("%r object has no attribute %r" % (self.__class__.__name__, attr))
+        raise AttributeError(f"{self.__class__.__name__!r} object has no attribute {attr!r}")
 
     def __str__(self) -> str:
         return str({k: v for k, v in self.items() if v is not None})

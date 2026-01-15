@@ -55,14 +55,14 @@ def patch_revert(address: int) -> None:
     if address == -1:
         for addr, (old, _new) in patches.items():
             pwndbg.aglib.memory.write(addr, old)
-            print(message.notice("Reverted patch at %#x" % addr))
+            print(message.notice(f"Reverted patch at {addr:#x}"))
         patches.clear()
     elif address in patches:
         old, _new = patches.pop(address)
         pwndbg.aglib.memory.write(address, old)
-        print(message.notice("Reverted patch at %#x" % address))
+        print(message.notice(f"Reverted patch at {address:#x}"))
     else:
-        print(message.error("Address %#x not found in patch list" % address))
+        print(message.error(f"Address {address:#x} not found in patch list"))
 
     pwndbg.lib.cache.clear_caches()
 

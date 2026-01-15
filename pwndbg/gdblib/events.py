@@ -338,7 +338,7 @@ def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
 
     name = ofile.new_objfile.filename
 
-    print("objfile: %r" % name)
+    print(f"objfile: {name!r}")
     gdb.execute("info sharedlibrary")
     return None
 

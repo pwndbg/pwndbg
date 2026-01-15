@@ -59,7 +59,7 @@ class UnixSocket(inode):
     path = "(anonymous)"
 
     def __str__(self) -> str:
-        return "unix %r" % self.path
+        return f"unix {self.path!r}"
 
     def __repr__(self) -> str:
         return f"UnixSocket({self})"

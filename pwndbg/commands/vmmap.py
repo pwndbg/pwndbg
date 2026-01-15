@@ -378,7 +378,7 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
     page = pwndbg.lib.memory.Page(start, size, perm, offset, pwndbg.aglib.arch.ptrsize)
     pwndbg.aglib.vmmap_custom.add_custom_page(page)
 
-    print("%r added" % page)
+    print(f"{page!r} added")
 
 
 parser = argparse.ArgumentParser(description="Explore a page, trying to guess permissions.")
@@ -472,4 +472,4 @@ def vmmap_load(filename) -> None:
 
     for page in pages:
         pwndbg.aglib.vmmap_custom.add_custom_page(page)
-        print("%r added" % page)
+        print(f"{page!r} added")

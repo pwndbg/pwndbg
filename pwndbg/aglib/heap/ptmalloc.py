@@ -1899,7 +1899,7 @@ class HeuristicHeap(
     def prompt_for_brute_force_thread_arena_permission(self) -> bool:
         """Check if the user wants to brute force the thread_arena's value."""
         print(
-            message.notice("We cannot determine the %s\n" % message.hint("thread_arena"))
+            message.notice("We cannot determine the {}\n".format(message.hint("thread_arena")))
             + message.notice(
                 "Will you want to brute force it in the memory to determine the address? (y/N)\n"
             )
@@ -1912,7 +1912,7 @@ class HeuristicHeap(
     def prompt_for_brute_force_thread_cache_permission(self) -> bool:
         """Check if the user wants to brute force the tcache's value."""
         print(
-            message.notice("We cannot determine the %s\n" % message.hint("tcache"))
+            message.notice("We cannot determine the {}\n".format(message.hint("tcache")))
             + message.notice(
                 "Will you want to brute force it in the memory to determine the address instead of assuming it's at the beginning of the current thread's heap? (y/N)\n"
             )
@@ -2187,7 +2187,7 @@ class HeuristicHeap(
         default = (64 * self.size_sz // 4 + self.size_sz) & ~self.malloc_align_mask
         print(
             message.warn(
-                "global_max_fast symbol not found, using the default value: 0x%x" % default
+                f"global_max_fast symbol not found, using the default value: 0x{default:x}"
             )
         )
         print(

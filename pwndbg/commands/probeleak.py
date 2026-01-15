@@ -108,8 +108,7 @@ def probeleak(
     if count > address > 0x10000:  # in case someone puts in an end address and not a count (smh)
         print(
             message.warn(
-                "Warning: you gave an end address, not a count. Subtracting 0x%x from the count."
-                % (address)
+                f"Warning: you gave an end address, not a count. Subtracting 0x{address:x} from the count."
             )
         )
         count -= address

@@ -116,7 +116,7 @@ def nearpc(
 
     # Check whether we can even read this address
     if not pwndbg.aglib.memory.peek(pc):
-        result.append(message.error("Invalid address %#x" % pc))
+        result.append(message.error(f"Invalid address {pc:#x}"))
 
     if lines is None:
         lines = int(pwndbg.config.nearpc_lines)
@@ -149,7 +149,7 @@ def nearpc(
     )
 
     if pwndbg.aglib.memory.peek(pc) and not instructions:
-        result.append(message.error("Invalid instructions at %#x" % pc))
+        result.append(message.error(f"Invalid instructions at {pc:#x}"))
 
     # In case $pc is in a new map we don't know about,
     # this will trigger an exploratory search.
@@ -158,7 +158,7 @@ def nearpc(
     # Gather all addresses and symbols for each instruction
     # Ex: <main+43>
     symbols = [pwndbg.aglib.symbol.resolve_addr(i.address) for i in instructions]
-    addresses: list[str] = ["%#x" % i.address for i in instructions]
+    addresses: list[str] = [f"{i.address:#x}" for i in instructions]
 
     nearpc.next_pc = instructions[-1].address + instructions[-1].size if instructions else 0
 
@@ -361,7 +361,7 @@ def nearpc(
         # Otherwise if it's a branch and it *is* contiguous, just put an empty line.
         elif instr.split == SplitType.BRANCH_NOT_TAKEN:
             if nearpc_branch_marker_contiguous:
-                result.append("%s" % nearpc_branch_marker_contiguous)
+                result.append(f"{nearpc_branch_marker_contiguous}")
 
     return result
 

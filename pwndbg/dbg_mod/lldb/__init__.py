@@ -2496,7 +2496,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
     @override
     def addrsz(self, address: Any) -> str:
-        return "%#16x" % address
+        return f"{address:#16x}"
 
     @override
     def set_python_diagnostics(self, enabled: bool) -> None:

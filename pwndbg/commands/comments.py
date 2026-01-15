@@ -28,7 +28,7 @@ def comm(addr=None, comment=None) -> None:
             target = int(addr, 0)
 
             if not pwndbg.aglib.memory.peek(target):
-                print(message.error("Invalid Address %#x" % target))
+                print(message.error(f"Invalid Address {target:#x}"))
 
             else:
                 f.write(f"file:{pwndbg.aglib.proc.exe()}=")

@@ -33,8 +33,8 @@ def address_range_explicit(section: str) -> AddrRange:
         return AddrRange(int(begin, 0), int(end, 0))
     except Exception:
         parser.error(
-            '"%s" - Bad format of explicit address range!'
-            ' Expected format: "BEGIN_ADDRESS:END_ADDRESS"' % pwndbg.color.red(section)
+            f'"{pwndbg.color.red(section)}" - Bad format of explicit address range!'
+            ' Expected format: "BEGIN_ADDRESS:END_ADDRESS"'
         )
 
 

@@ -90,7 +90,7 @@ def format_flags(value: int | None, flags: BitFlags, last: int | None = None):
     if value is None:
         return "<unavailable>"
 
-    desc = flag_value("%#x" % value)
+    desc = flag_value(f"{value:#x}")
     if not flags:
         return desc
 

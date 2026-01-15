@@ -234,7 +234,7 @@ class BinderVisitor:
         res = []
         res.append(
             self._format_heading(
-                "binder_proc", "PID %s" % proc["pid"].value_to_human_readable(), int(proc)
+                "binder_proc", "PID {}".format(proc["pid"].value_to_human_readable()), int(proc)
             )
         )
 
@@ -261,7 +261,9 @@ class BinderVisitor:
         res = []
         res.append(
             self._format_heading(
-                "binder_thread", "PID %s" % thread["pid"].value_to_human_readable(), int(thread)
+                "binder_thread",
+                "PID {}".format(thread["pid"].value_to_human_readable()),
+                int(thread),
             )
         )
 
@@ -285,7 +287,7 @@ class BinderVisitor:
         res.append(
             self._format_heading(
                 "binder_transaction",
-                "ID %s" % transaction["debug_id"].value_to_human_readable(),
+                "ID {}".format(transaction["debug_id"].value_to_human_readable()),
                 int(transaction),
             )
         )
@@ -336,7 +338,9 @@ class BinderVisitor:
         res = []
         res.append(
             self._format_heading(
-                "binder_ref", "HANDLE %s" % ref["data"]["desc"].value_to_human_readable(), int(ref)
+                "binder_ref",
+                "HANDLE {}".format(ref["data"]["desc"].value_to_human_readable()),
+                int(ref),
             )
         )
 

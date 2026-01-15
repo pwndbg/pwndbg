@@ -190,8 +190,7 @@ def _asm(arch_mapping: str, data: str, includes: list[pathlib.Path] | None = Non
                 compiled_file,
             ],
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
         )
         if compile_process.returncode != 0:
@@ -209,8 +208,7 @@ def _asm(arch_mapping: str, data: str, includes: list[pathlib.Path] | None = Non
                 bytecode_file,
             ],
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
         )
         if objcopy_process.returncode != 0:

@@ -229,7 +229,7 @@ def telescope(
     for i, addr in enumerate(range(start, stop, step)):
         if not pwndbg.aglib.memory.peek(addr):
             collapse_repeating_values()
-            result.append("<Could not read memory at %#x>" % addr)
+            result.append(f"<Could not read memory at {addr:#x}>")
             break
         if inverse:
             line_offset = addr - (stop + ptrsize) + (telescope.offset * ptrsize)
@@ -237,15 +237,7 @@ def telescope(
         else:
             line_offset = addr - start + (telescope.offset * ptrsize)
             idx_offset = i + telescope.offset
-        line = T.offset(
-            "%02x%s%04x%s"
-            % (
-                idx_offset,
-                delimiter,
-                line_offset,
-                separator,
-            )
-        ) + " ".join(
+        line = T.offset(f"{idx_offset:02x}{delimiter}{line_offset:04x}{separator}") + " ".join(
             (
                 regs_or_frame_offset(addr, bp, regs, longest_regs),
                 pwndbg.chain.format(addr),

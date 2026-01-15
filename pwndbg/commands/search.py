@@ -148,8 +148,7 @@ parser.add_argument(
     "--save",
     action="store_true",
     default=None,
-    help="Save results for further searches with --next. Default comes from config %r"
-    % auto_save.name,
+    help=f"Save results for further searches with --next. Default comes from config {auto_save.name!r}",
 )
 parser.add_argument(
     "--no-save", action="store_false", default=None, dest="save", help="Invert --save"
@@ -271,7 +270,7 @@ def search(
         mappings = [m for m in mappings if mapping_name in m.objfile]
 
     if not mappings:
-        print(message.error("Could not find mapping %r" % mapping_name))
+        print(message.error(f"Could not find mapping {mapping_name!r}"))
         return
 
     # Output appropriate messages based on the detected search type for better clarity
@@ -331,7 +330,7 @@ def search(
         if asmbp:
             if pwndbg.dbg.is_gdblib_available():
                 # set breakpoint on the instruction
-                gdb.Breakpoint("*%#x" % address, temporary=False)
+                gdb.Breakpoint(f"*{address:#x}", temporary=False)
             else:
                 print(
                     f"Breakpoints are not supported outside of GDB yet, would be set at {address:#x}"

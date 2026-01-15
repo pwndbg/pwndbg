@@ -915,12 +915,12 @@ class Emulator:
             enum = self.get_reg_enum(reg)
 
             if not reg or enum is None:
-                print("# Could not dump register %r" % (reg,))
+                print(f"# Could not dump register {reg!r}")
                 continue
 
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             value = self.uc.reg_read(enum)
-            print("uc.reg_read(%s) ==> %x" % (name, value))
+            print(f"uc.reg_read({name}) ==> {value:x}")
 
     def trace_hook(self, _uc, address, instruction_size: int, _user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, instruction_size))
