@@ -886,19 +886,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def stopped_with_signal(self) -> bool:
-        if self.process.GetState() != lldb.eStateStopped:
-            return False
-
-        # SIGSTOP (19) is used for normal process stopping (e.g., launch with -s flag)
-        # and should not be considered as "stopped with signal" for stepping commands
-        SIGSTOP = 19
-
-        for thread in self.process.threads:
-            if thread.GetStopReason() == lldb.eStopReasonSignal:
-                signal_num = thread.GetStopReasonDataAtIndex(0)
-                if signal_num != SIGSTOP:
-                    return True
-        return False
+        return self.process.GetState() == lldb.eStateStopped and any(
+            thread.GetStopReason() == lldb.eStopReasonSignal for thread in self.process.threads
+        )
 
     @override
     def evaluate_expression(self, expression: str) -> pwndbg.dbg_mod.Value:

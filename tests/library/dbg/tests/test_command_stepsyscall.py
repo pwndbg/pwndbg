@@ -13,6 +13,8 @@ async def test_command_stepsyscall(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
 
     await ctrl.launch(STEPSYSCALL_X64_BINARY)
+    if not pwndbg.dbg.is_gdblib_available():
+        await ctrl.step_instruction()
 
     # Test that the logic correctly handles multiple consecutive jumps
     await ctrl.execute("stepsyscall")
@@ -34,6 +36,8 @@ async def test_command_nextsyscall(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
 
     await ctrl.launch(STEPSYSCALL_X64_BINARY)
+    if not pwndbg.dbg.is_gdblib_available():
+        await ctrl.step_instruction()
 
     await ctrl.execute("nextsyscall")
     address = pwndbg.aglib.symbol.lookup_symbol_addr("syscall_exit_label")
@@ -47,6 +51,8 @@ async def test_command_stepsyscall_by_name(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
 
     await ctrl.launch(STEPSYSCALL_X64_BINARY)
+    if not pwndbg.dbg.is_gdblib_available():
+        await ctrl.step_instruction()
 
     # Skip all write syscalls, stop at exit
     await ctrl.execute("stepsyscall SYS_exit")
@@ -61,6 +67,8 @@ async def test_command_stepsyscall_by_number(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
 
     await ctrl.launch(STEPSYSCALL_X64_BINARY)
+    if not pwndbg.dbg.is_gdblib_available():
+        await ctrl.step_instruction()
 
     # syscall 60 is exit on x86-64
     await ctrl.execute("stepsyscall 60")
@@ -75,6 +83,8 @@ async def test_command_stepsyscall_with_condition(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
 
     await ctrl.launch(STEPSYSCALL_X64_BINARY)
+    if not pwndbg.dbg.is_gdblib_available():
+        await ctrl.step_instruction()
 
     # Stop at write syscall where rdi==2 (stderr)
     await ctrl.execute("stepsyscall SYS_write $rdi==2")
@@ -89,6 +99,8 @@ async def test_command_stepsyscall_condition_only(ctrl: Controller) -> None:
     import pwndbg.aglib.symbol
 
     await ctrl.launch(STEPSYSCALL_X64_BINARY)
+    if not pwndbg.dbg.is_gdblib_available():
+        await ctrl.step_instruction()
 
     # Stop at any syscall where rdi==2
     await ctrl.execute("stepsyscall $rdi==2")
