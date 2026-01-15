@@ -626,17 +626,17 @@ class Meta:
     def __init__(self, addr: int) -> None:
         self.addr: int = addr
 
-        self._prev: int = None
-        self._next: int = None
-        self._mem: int = None
-        self._avail_mask: int = None
-        self._freed_mask: int = None
-        self._last_idx: int = None
-        self._freeable: int = None
-        self._sizeclass: int = None
-        self._maplen: int = None
+        self._prev: int | None = None
+        self._next: int | None = None
+        self._mem: int | None = None
+        self._avail_mask: int | None = None
+        self._freed_mask: int | None = None
+        self._last_idx: int | None = None
+        self._freeable: int | None = None
+        self._sizeclass: int | None = None
+        self._maplen: int | None = None
 
-        self._stride: int = None
+        self._stride: int | None = None
 
     def preload(self) -> None:
         """
@@ -1168,8 +1168,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         """
         uint64size = pwndbg.aglib.typeinfo.uint64.sizeof
 
-        self.ctx_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
-        if self.ctx_addr is not None:
+        ctx_addr_maybe: int | None = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
+        if ctx_addr_maybe is not None:
+            self.ctx_addr = ctx_addr_maybe
             self.has_debug_syms = True
             self.ctx = MallocContext(self.ctx_addr)
             return
@@ -1202,11 +1203,13 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             if any(sm in stack_page for stack_page in thread_stacks):
                 continue
 
-            mapping_name = pwndbg.aglib.vmmap.find(sm).objfile
-            if "[heap" in mapping_name:
+            mapping = pwndbg.aglib.vmmap.find(sm)
+            if mapping is None:
+                continue
+            if "[heap" in mapping.objfile:
                 continue
 
-            possible.append((sm, mapping_name))
+            possible.append((sm, mapping.objfile))
 
         if not possible:
             print(message.error("Couldn't find __malloc_context, even with heuristic."))
