@@ -238,7 +238,8 @@ def stepsyscall(syscall: str | None = None, condition: str | None = None) -> Non
                 pwndbg.dbg.selected_inferior().evaluate_expression(cond)
             )
         else:
-            num, name = get_syscall(syscall)
+            arch_name = pwndbg.aglib.arch.name if pwndbg.aglib.arch else None
+            num, name = get_syscall(syscall, arch_name)
             if num is None:
                 print(f"Unknown syscall: {syscall}")
                 return

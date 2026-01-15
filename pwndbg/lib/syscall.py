@@ -20,18 +20,16 @@ from pwnlib.constants.linux import sparc as linux_sparc
 from pwnlib.constants.linux import sparc64 as linux_sparc64
 from pwnlib.constants.linux import thumb as linux_thumb
 
-import pwndbg.aglib
 from pwndbg.lib.regs import reg_sets
 
 
-def get_arch_module() -> Any:
+def get_arch_module(arch_name: str | None) -> Any:
     """
     Gets the architecture module for the current architecture.
 
-    Returns None if no architecture is set (e.g., no process running).
+    Returns None if no architecture is set (e.g., no process running) or unsupported.
     """
-    # pwndbg.aglib.arch is None before a process starts
-    if pwndbg.aglib.arch is None:
+    if arch_name is None:
         return None
 
     arch_module = {
@@ -50,12 +48,12 @@ def get_arch_module() -> Any:
         "powerpc64": linux_powerpc64,
         "s390x": linux_s390x,
         # Note: loongarch64 not available in pwnlib
-    }.get(pwndbg.aglib.arch.name)
+    }.get(arch_name)
 
     return arch_module
 
 
-def get_syscall(name_or_num: str) -> Tuple[Optional[int], Optional[str]]:
+def get_syscall(name_or_num: str, arch_name: str | None) -> Tuple[Optional[int], Optional[str]]:
     """
     Resolve the syscall into (number, name).
 
@@ -72,7 +70,7 @@ def get_syscall(name_or_num: str) -> Tuple[Optional[int], Optional[str]]:
     if not name_or_num.strip():
         return (None, None)
 
-    arch_module = get_arch_module()
+    arch_module = get_arch_module(arch_name)
     if arch_module is None:
         return (None, None)
 
