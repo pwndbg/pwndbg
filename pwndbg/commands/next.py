@@ -14,7 +14,6 @@ import pwndbg.commands.context
 import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
 from pwndbg.lib.syscall import get_syscall
-from pwndbg.lib.syscall import parse_condition
 
 
 async def _nextjmp(ec: pwndbg.dbg_mod.ExecutionController):
@@ -161,11 +160,12 @@ def nextsyscall() -> None:
 async def _stepsyscall(
     ec: pwndbg.dbg_mod.ExecutionController,
     syscall_num: int | None = None,
-    condition: "Callable[[], bool] | None" = None,
+    condition: "Callable[[], int] | None" = None,
 ) -> None:
     """
     Execution controller for the `stepsyscall` command.
     """
+
     def predicate() -> bool:
         # If syscall filter is provided, check current syscall number
         if syscall_num is not None:
@@ -233,8 +233,10 @@ def stepsyscall(syscall: str | None = None, condition: str | None = None) -> Non
         # Check if it's a condition (starts with $ or contains operators)
         if syscall.startswith("$") or any(op in syscall for op in ["==", "!=", ">", "<"]):
             # It's a condition, not a syscall name/number
-            cond_str = syscall  
-            cond_callable = lambda cond=cond_str: int(pwndbg.dbg.selected_inferior().evaluate_expression(cond))
+            cond_str = syscall
+            cond_callable = lambda cond=cond_str: int(
+                pwndbg.dbg.selected_inferior().evaluate_expression(cond)
+            )
         else:
             num, name = get_syscall(syscall)
             if num is None:
@@ -245,9 +247,11 @@ def stepsyscall(syscall: str | None = None, condition: str | None = None) -> Non
 
     # Parse condition argument (can be combined with syscall filter)
     if condition is not None:
-        cond_str = condition  
+        cond_str = condition
         # If we already have a condition from syscall arg, we need to combine them
-        cond_callable = lambda cond=cond_str: int(pwndbg.dbg.selected_inferior().evaluate_expression(cond))
+        cond_callable = lambda cond=cond_str: int(
+            pwndbg.dbg.selected_inferior().evaluate_expression(cond)
+        )
 
     async def ctrl(ec: pwndbg.dbg_mod.ExecutionController) -> None:
         await _stepsyscall(ec, syscall_num=syscall_num, condition=cond_callable)
