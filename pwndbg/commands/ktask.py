@@ -26,7 +26,7 @@ indent = IndentContextManager()
 
 
 class Kthread:
-    def __init__(self, thread: pwndbg.dbg_mod.Value):
+    def __init__(self, thread: pwndbg.dbg_mod.Value) -> None:
         self.thread = thread
         self.name = thread["comm"].string()
         self.pid = int(thread["pid"])
@@ -38,11 +38,11 @@ class Kthread:
             self.cpu = int(thread["cpu"])
         else:
             self.cpu = int(thread["thread_info"]["cpu"])
-        self.uid = int(thread["real_cred"]["uid"]["val"])
-        self.gid = int(thread["real_cred"]["gid"]["val"])
+        self.uid = int(thread["cred"]["uid"]["val"])
+        self.gid = int(thread["cred"]["gid"]["val"])
 
     @pwndbg.lib.cache.cache_until("stop")
-    def files(self):
+    def files(self) -> Tuple[pwndbg.dbg_mod.Value]:
         fdt = self.thread["files"]["fdt"]
         fds = fdt["fd"]
         files = []
@@ -55,7 +55,7 @@ class Kthread:
         return tuple(files)
 
     @property
-    def mm(self):
+    def mm(self) -> pwndbg.dbg_mod.Value:
         mm = self.thread["mm"]
         if int(mm) != 0:
             return mm
@@ -65,7 +65,7 @@ class Kthread:
             return mm
         return None
 
-    def __str__(self):
+    def __str__(self) -> str:
         thread = color.blue(hex(int(self.thread)))
         prefix = f"[pid {self.pid}]"
         desc = " "
@@ -76,7 +76,7 @@ class Kthread:
 
 
 class Ktask:
-    def __init__(self, task: pwndbg.dbg_mod.Value):
+    def __init__(self, task: pwndbg.dbg_mod.Value) -> None:
         self.task = task
         threads = []
         signal = task["signal"]

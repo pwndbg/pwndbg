@@ -118,6 +118,30 @@ def kversion_cint(kversion: Tuple[int, int, int] | None = None) -> Optional[int]
     return ((x) * 65536) + ((y) * 256) + (z)
 
 
+def get_double_linked_list(
+    head: int, minlen: int = 0x5, maxlen: int = 0x1000
+) -> Optional[List[int]]:
+    # None is not a doubly linked list
+    if not pwndbg.aglib.memory.is_kernel(head):
+        return None
+    nxt = head
+    result = []
+    for _ in range(maxlen):
+        if not pwndbg.aglib.memory.is_kernel(nxt):
+            return False
+        result.append(nxt)
+        nxt = pwndbg.aglib.memory.read_pointer_width(nxt)
+        if nxt == result[0]:
+            break
+    if nxt != result[0]:
+        return None
+    for i, nxt in enumerate(result):
+        p = pwndbg.aglib.memory.read_pointer_width(nxt + pwndbg.aglib.arch.ptrsize)
+        if p != result[i - 1]:
+            return None
+    return result
+
+
 #########################################
 # common structurs
 #
@@ -137,6 +161,13 @@ typedef long long s64;
 #else
     typedef int32_t arch_word_t;
 #endif
+typedef struct {
+    unsigned int val;
+} kuid_t;
+typedef struct {
+    unsigned int val;
+} kgid_t;
+typedef int pid_t;
 typedef struct {
     int counter;
 } atomic_t;
