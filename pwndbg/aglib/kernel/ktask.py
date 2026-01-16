@@ -124,6 +124,7 @@ ROOT_COMM = "swapper/0"
 
 def get_pid_offset(tasks: List[int], mm_offset: int, comm_offset: int) -> int:
     maxpid = 0x400000 if pwndbg.aglib.arch.ptrsize == 8 else 0x8000
+    seen = set((0))
     for i in range(0x20):
         off = mm_offset + i * pwndbg.aglib.arch.ptrsize
         for task in tasks[1:]:
@@ -137,6 +138,7 @@ def get_pid_offset(tasks: List[int], mm_offset: int, comm_offset: int) -> int:
             tgid = pwndbg.aglib.memory.u32(task + off + 4)
             if not (0 < pid < maxpid and 0 < tgid < maxpid) or pid in seen:
                 break
+            seen.add(pid)
         else:
             return off
     raise AssertionError("cannot find the offset of task_struct->pid")
@@ -146,7 +148,7 @@ def get_thread_list_offset(pid_offset: int):
     # thread_group if <= 6.6 else thread_node
     off = pid_offset
     ptrsize = pwndbg.aglib.arch.ptrsize
-    off += 4 + 20 * ptrsize
+    off += 21 * ptrsize
     if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
         off += ptrsize
     return off
@@ -423,7 +425,7 @@ def load_ktask_typeinfo() -> None:
         char __pad2[{thread_list_offset - pid_offset} - sizeof(pid_t) * 2];
 #endif
 #if KVERSION <= KERNEL_VERSION(6, 6, 0)
-        struct list_head thread_group;
+        struct list_head thread_node;
         char _pad3[{cred_offset - (thread_list_offset + ptrsize * 2)}];
 #else
         struct list_head thread_group;
@@ -442,6 +444,5 @@ def load_ktask_typeinfo() -> None:
     }}
     """
 
-    print(result)
-    # header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    # pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "task_structs", True)
+    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
+    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "task_structs", True)

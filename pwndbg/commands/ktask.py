@@ -32,12 +32,17 @@ class Kthread:
         self.pid = int(thread["pid"])
         self.has_user_page = int(thread["mm"]) != 0
         krelease = pwndbg.aglib.kernel.krelease()
-        if krelease is None or "CONFIG_THREAD_INFO_IN_TASK" not in pwndbg.aglib.kernel.kconfig():
-            self.cpu = "-"
-        elif krelease < (5, 16):
-            self.cpu = int(thread["cpu"])
-        else:
-            self.cpu = int(thread["thread_info"]["cpu"])
+        self.cpu = "-"
+        try:
+            configs = ("CONFIG_THREAD_INFO_IN_TASK", "CONFIG_SMP")
+            if all(config in pwndbg.aglib.kernel.kconfig() for config in configs):
+                if krelease < (5, 16):
+                    self.cpu = int(thread["cpu"])
+                else:
+                    self.cpu = int(thread["thread_info"]["cpu"])
+        except Exception:
+            # getting cpu without typeinfo is too complicated, doesn't support it for now
+            pass
         self.uid = int(thread["cred"]["uid"]["val"])
         self.gid = int(thread["cred"]["gid"]["val"])
 
