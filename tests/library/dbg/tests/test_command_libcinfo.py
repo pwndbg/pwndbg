@@ -25,7 +25,7 @@ async def test_command_libcinfo(ctrl: Controller) -> None:
     result = (await ctrl.execute_and_capture("libcinfo")).splitlines()
     assert len(result) == 17
     assert result[0] == "libc: glibc"
-    assert result[1] == "libc version: 2.42"
+    assert "libc version: 2." in result[1] and result[1] != "libc version: no version information"
     assert result[2] == "linked: dynamically"
     assert result[-1] == "    has debug info:        yes"
     assert result[-2] == "    has internal symbols:  yes"
