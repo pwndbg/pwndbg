@@ -19,7 +19,7 @@ HEAP_MALLOC_CHUNK = get_binary("heap_malloc_chunk.native.out")
 @pytest.mark.parametrize(
     "have_debugging_information", [True, False], ids=["does-not-have-(*)", "have-(*)"]
 )
-def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_debugging_information):
+def test_finding_glibc_filepath(start_binary, have_debugging_information):
     # Check if we can find the libc if nothing special happens
     if not have_debugging_information:
         # Make sure the (*) in the output of `info sharedlibrary` won't affect the result

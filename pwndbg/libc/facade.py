@@ -169,20 +169,18 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
         )
 
         # Check for libc
-        if certain_libc_path is None:
-            if basename in exact_libc_basename_matches:
-                # This is exceedingly likely to be the correct module.
-                certain_libc_path = path
+        if certain_libc_path is None and basename in exact_libc_basename_matches:
+            # This is exceedingly likely to be the correct module.
+            certain_libc_path = path
         elif libc_regex.search(basename) is not None:
             # Maybe the user loaded the libc with LD_PRELOAD.
             # Some common libc names: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
             possible_libc_paths.append(path)
 
         # Check for ld
-        if certain_ld_path is None:
-            if basename in exact_ld_basename_matches:
-                # This is exceedingly likely to be the correct module.
-                certain_ld_path = path
+        if certain_ld_path is None and basename in exact_ld_basename_matches:
+            # This is exceedingly likely to be the correct module.
+            certain_ld_path = path
         elif ld_regex.search(basename) is not None:
             possible_ld_paths.append(path)
 
