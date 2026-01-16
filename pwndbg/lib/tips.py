@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import re
+from enum import Enum
 from random import choice
-from typing import List
 
 from pwndbg.color import message
 
 # GDB specific tips
-GDB_TIPS: List[str] = [
+GDB_TIPS: list[str] = [
     "GDB's `apropos <topic>` command displays all registered commands that are related to the given <topic>",
     "GDB's `follow-fork-mode` parameter can be used to set whether to trace parent or child after fork() calls. Pwndbg sets it to child by default",
     'Use GDB\'s `dprintf` command to print all calls to given function. E.g. `dprintf malloc, "malloc(%p)\\n", (void*)$rdi` will print all malloc calls',
@@ -20,7 +20,7 @@ GDB_TIPS: List[str] = [
 ]
 
 # Pwndbg specific tips
-PWNDBG_TIPS: List[str] = [
+PWNDBG_TIPS: list[str] = [
     "If you want Pwndbg to clear screen on each command (but still save previous output in history) use `set context-clear-screen on`",
     "The `set show-flags on` setting will display CPU flags register in the regs context panel",
     "GDB and Pwndbg parameters can be shown or set with `show <param>` and `set <param> <value>` GDB commands",
@@ -56,7 +56,7 @@ PWNDBG_TIPS: List[str] = [
 ]
 
 # LLDB specific tips
-LLDB_TIPS: List[str] = [
+LLDB_TIPS: list[str] = [
     "Use LLDB's `help <command>` to get detailed help on any command",
     "LLDB's `expr` command lets you evaluate expressions in the current frame context",
     "Use `frame variable` (or `fr v`) to show all variables in the current frame",
@@ -80,25 +80,37 @@ LLDB_TIPS: List[str] = [
 ]
 
 
-def get_tip_of_the_day() -> str:
+def get_tip_of_the_day(debugger_type: int) -> str:
     """
     Returns a random tip based on the current debugger type.
+
+    You should pass in pwndbg.dbg.name().value .
     """
-    return choice(get_all_tips())
+    return choice(get_all_tips(debugger_type))
 
 
-def get_all_tips() -> List[str]:
+def get_all_tips(debugger_type: int) -> list[str]:
     """
     Returns all tips applicable to the current debugger.
-    """
-    import pwndbg.dbg_mod
 
-    if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.GDB:
-        return GDB_TIPS + PWNDBG_TIPS
-    elif pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.LLDB:
-        return LLDB_TIPS + PWNDBG_TIPS
-    else:
-        return PWNDBG_TIPS
+    You should pass in pwndbg.dbg.name().value .
+    """
+
+    # Needs to mirror pwndbg/dbg_mod/__init__.py:DebuggerType
+    class DebuggerType(Enum):
+        GDB = 1
+        LLDB = 2
+
+    valid_values = [e.value for e in DebuggerType]
+    assert debugger_type in valid_values
+
+    match debugger_type:
+        case DebuggerType.GDB.value:
+            return GDB_TIPS + PWNDBG_TIPS
+        case DebuggerType.LLDB.value:
+            return LLDB_TIPS + PWNDBG_TIPS
+        case _:
+            return PWNDBG_TIPS
 
 
 def color_tip(tip: str) -> str:

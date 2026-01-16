@@ -20,7 +20,6 @@ import os
 import subprocess
 import sys
 import tempfile
-from typing import Dict
 from typing import TypeVar
 
 import gdb
@@ -46,7 +45,7 @@ cymbol_editor = pwndbg.config.add_param(
 )
 
 # Remeber loaded symbols. This would be useful for 'remove-symbol-file'.
-loaded_symbols: Dict[str, str] = {}
+loaded_symbols: dict[str, str] = {}
 
 # Where generated symbol source files are saved.
 pwndbg_cachedir = pwndbg.lib.tempfile.cachedir("custom-symbols")
@@ -160,13 +159,13 @@ def add_structure_from_header(
                 return
 
     try:
-        with open(header_file, "r") as src, open(pwndbg_custom_structure_path, "w") as f:
+        with open(header_file) as src, open(pwndbg_custom_structure_path, "w") as f:
             content = src.read().strip()
             if not content:
                 print(message.notice("Header file is empty, skipping..."))
                 return
             f.write(content)
-    except (IOError, OSError) as e:
+    except OSError as e:
         print(message.error(f"Failed to process header file: {e}"))
         return
 

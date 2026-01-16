@@ -30,7 +30,6 @@
 from __future__ import annotations
 
 import ctypes
-from typing import Dict
 
 import pwndbg.lib.ctypes
 
@@ -51,7 +50,7 @@ Elf64_Sxword = ctypes.c_int64
 
 
 # Copied from https://elixir.bootlin.com/glibc/glibc-2.40.9000/source/elf/elf.h#L1193
-AT_CONSTANTS: Dict[int, str] = {
+AT_CONSTANTS: dict[int, str] = {
     0: "AT_NULL",  # End of vector
     1: "AT_IGNORE",  # Entry should be ignored
     2: "AT_EXECFD",  # File descriptor of program

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pwndbg
 
 if hasattr(pwndbg.lib, 'memoize'):

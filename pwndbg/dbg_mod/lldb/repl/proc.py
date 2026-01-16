@@ -4,11 +4,10 @@ import contextlib
 import enum
 import sys
 from asyncio import CancelledError
+from collections.abc import Callable
+from collections.abc import Coroutine
 from typing import Any
 from typing import BinaryIO
-from typing import Callable
-from typing import Coroutine
-from typing import List
 
 import lldb
 
@@ -435,7 +434,7 @@ class ProcessDriver:
 
             result = None
             last_event = None
-            delay_until_io_stopped: List[Callable[[], None]] = []
+            delay_until_io_stopped: list[Callable[[], None]] = []
             while True:
                 event = lldb.SBEvent()
                 if not self.listener.WaitForEvent(timeout_time, event):
@@ -657,7 +656,7 @@ class ProcessDriver:
         assert self.has_process(), "called run_coroutine() on a driver with no process"
 
         self.debug_print("Coroutine: Starting")
-        exceptions: List[BaseException] = []
+        exceptions: list[BaseException] = []
 
         def queue_cancel():
             self.debug_print("Coroutine: Queueing up user cancellation exception")
@@ -853,8 +852,8 @@ class ProcessDriver:
 
     def _launch_remote(
         self,
-        env: List[str],
-        args: List[str],
+        env: list[str],
+        args: list[str],
         working_dir: str | None,
         extra_flags: int,
     ) -> lldb.SBError:
@@ -886,8 +885,8 @@ class ProcessDriver:
         self,
         target: lldb.SBTarget,
         io: IODriver,
-        env: List[str],
-        args: List[str],
+        env: list[str],
+        args: list[str],
         working_dir: str | None,
         extra_flags: int,
     ) -> lldb.SBError:
@@ -943,8 +942,8 @@ class ProcessDriver:
         self,
         target: lldb.SBTarget,
         io: IODriver,
-        env: List[str],
-        args: List[str],
+        env: list[str],
+        args: list[str],
         working_dir: str | None,
         disable_aslr: bool,
     ) -> LaunchResult:

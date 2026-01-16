@@ -4,8 +4,8 @@ Search the address space for byte patterns.
 
 from __future__ import annotations
 
-from typing import Collection
-from typing import Generator
+from collections.abc import Collection
+from collections.abc import Generator
 
 import pwndbg.aglib.vmmap
 import pwndbg.lib.memory

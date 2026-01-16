@@ -6,9 +6,8 @@ from __future__ import annotations
 
 import functools
 import subprocess
+from collections.abc import Callable
 from subprocess import STDOUT
-from typing import Callable
-from typing import List
 from typing import TypeVar
 
 from pwnlib.util.misc import which
@@ -21,10 +20,10 @@ T = TypeVar("T")
 
 
 class OnlyWithCommand:
-    def __init__(self, *commands: str | List[str]) -> None:
-        self.all_cmds: List[str] = [cmd[0] if isinstance(cmd, list) else cmd for cmd in commands]
+    def __init__(self, *commands: str | list[str]) -> None:
+        self.all_cmds: list[str] = [cmd[0] if isinstance(cmd, list) else cmd for cmd in commands]
         for command in commands:
-            self.cmd: List[str] = command if isinstance(command, list) else [command]
+            self.cmd: list[str] = command if isinstance(command, list) else [command]
             self.cmd_path: str | None = which(self.cmd[0])
             if self.cmd_path:
                 break

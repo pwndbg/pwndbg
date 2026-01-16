@@ -9,13 +9,9 @@ from __future__ import annotations
 import argparse
 import functools
 import logging
+from collections.abc import Callable
 from enum import Enum
 from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Set
 from typing import TypeVar
 
 from typing_extensions import ParamSpec
@@ -42,8 +38,8 @@ log = logging.getLogger(__name__)
 T = TypeVar("T")
 P = ParamSpec("P")
 
-commands: List[CommandObj] = []
-command_names: Set[str] = set()
+commands: list[CommandObj] = []
+command_names: set[str] = set()
 
 
 class CommandCategory(str, Enum):
@@ -161,7 +157,7 @@ class CommandObj:
     debugger.
     """
 
-    builtin_override_whitelist: Set[str] = {
+    builtin_override_whitelist: set[str] = {
         "up",
         "down",
         "search",
@@ -170,7 +166,7 @@ class CommandObj:
         "starti",
         "ignore",
     }
-    history: Dict[int, str] = {}
+    history: dict[int, str] = {}
 
     def __init__(
         self,
@@ -178,7 +174,7 @@ class CommandObj:
         parser: argparse.ArgumentParser,
         command_name: str | None,
         category: CommandCategory,
-        aliases: List[str],
+        aliases: list[str],
         examples: str,
         notes: str,
         /,  # All parameters must be passed in positionally
@@ -248,10 +244,8 @@ class CommandObj:
 
         # ...and all of its aliases.
         self.handles.extend(
-            (
-                pwndbg.dbg.add_command(alias, _handler, self.help_str, self.subcommand_names)
-                for alias in self.aliases
-            )
+            pwndbg.dbg.add_command(alias, _handler, self.help_str, self.subcommand_names)
+            for alias in self.aliases
         )
 
         command_names.add(self.command_name)
@@ -537,11 +531,11 @@ class Command:
         *,  # All further parameters are not positional
         category: CommandCategory,
         command_name: str | None = None,
-        aliases: List[str] = [],
+        aliases: list[str] = [],
         examples: str = "",
         notes: str = "",
-        only_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
-        exclude_debuggers: Set[pwndbg.dbg_mod.DebuggerType] = None,
+        only_debuggers: set[pwndbg.dbg_mod.DebuggerType] = None,
+        exclude_debuggers: set[pwndbg.dbg_mod.DebuggerType] = None,
     ) -> None:
         # Setup an ArgumentParser even if we were only passed a description.
         if isinstance(parser_or_desc, str):
@@ -718,9 +712,9 @@ def func_name(function: Callable[P, T]) -> str:
     return function.__name__.replace("_", "-")
 
 
-def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWhenLocal(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWhenLocal(*a: P.args, **kw: P.kwargs) -> T | None:
         if not pwndbg.aglib.remote.is_remote():
             return function(*a, **kw)
 
@@ -735,9 +729,9 @@ def OnlyWhenLocal(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWhenLocal
 
 
-def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWithFile(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.proc.exe():
             return function(*a, **kw)
         else:
@@ -750,9 +744,9 @@ def OnlyWithFile(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWithFile
 
 
-def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWhenQemuKernel(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWhenQemuKernel(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
@@ -764,9 +758,9 @@ def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWhenQemuKernel
 
 
-def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWhenUserspace(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWhenUserspace(*a: P.args, **kw: P.kwargs) -> T | None:
         if not pwndbg.aglib.qemu.is_qemu_kernel():
             return function(*a, **kw)
         else:
@@ -778,9 +772,9 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWhenUserspace
 
 
-def OnlyWithKernelDebugInfo(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWithKernelDebugInfo(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWithKernelDebugInfo(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWithKernelDebugInfo(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.kernel.has_debug_info():
             return function(*a, **kw)
         else:
@@ -792,9 +786,9 @@ def OnlyWithKernelDebugInfo(function: Callable[P, T]) -> Callable[P, Optional[T]
     return _OnlyWithKernelDebugInfo
 
 
-def OnlyWithKernelSymbols(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWithKernelSymbols(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWithKernelSymbols(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWithKernelSymbols(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.kernel.has_debug_symbols():
             return function(*a, **kw)
         else:
@@ -809,9 +803,9 @@ def OnlyWithKernelSymbols(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWithKernelSymbols
 
 
-def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWhenPagingEnabled(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWhenPagingEnabled(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.kernel.paging_enabled():
             return function(*a, **kw)
         else:
@@ -823,9 +817,9 @@ def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWhenPagingEnabled
 
 
-def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> T | None:
         # TODO: Properly support OnlyWhenRunning without `gdblib`.
         if pwndbg.aglib.proc.alive():
             return function(*a, **kw)
@@ -836,9 +830,9 @@ def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWhenRunning
 
 
-def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWithTcache(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWithTcache(*a: P.args, **kw: P.kwargs) -> T | None:
         assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
         if pwndbg.aglib.heap.current.has_tcache():
             return function(*a, **kw)
@@ -851,9 +845,9 @@ def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, Optional[T]]:
     return _OnlyWithTcache
 
 
-def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, Optional[T]]:
+def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
-    def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> Optional[T]:
+    def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
             return function(*a, **kw)
         else:

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import List
-from typing import Tuple
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
@@ -24,7 +22,7 @@ class AddrRange:
         return (self.begin, self.end).__repr__()
 
 
-def get_addrrange_any_named() -> List[AddrRange]:
+def get_addrrange_any_named() -> list[AddrRange]:
     return [AddrRange(page.start, page.end) for page in pwndbg.aglib.vmmap.get()]
 
 
@@ -35,12 +33,12 @@ def address_range_explicit(section: str) -> AddrRange:
         return AddrRange(int(begin, 0), int(end, 0))
     except Exception:
         parser.error(
-            '"%s" - Bad format of explicit address range!'
-            ' Expected format: "BEGIN_ADDRESS:END_ADDRESS"' % pwndbg.color.red(section)
+            f'"{pwndbg.color.red(section)}" - Bad format of explicit address range!'
+            ' Expected format: "BEGIN_ADDRESS:END_ADDRESS"'
         )
 
 
-def address_range(section: str) -> List[AddrRange] | Tuple[int, int] | None:
+def address_range(section: str) -> list[AddrRange] | tuple[int, int] | None:
     if section in ("*", "any"):
         return (0, pwndbg.aglib.arch.ptrmask)
 
@@ -66,7 +64,7 @@ Any chain length greater than 0 is valid. If only one mapping is given it just l
 parser.add_argument("mapping_names", type=address_range, nargs="+", help="Mapping name ")
 
 
-def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
+def maybe_points_to_ranges(ptr: int, rs: list[AddrRange]):
     try:
         pointee = pwndbg.aglib.memory.read_pointer_width(ptr)
     except Exception:
@@ -79,7 +77,7 @@ def maybe_points_to_ranges(ptr: int, rs: List[AddrRange]):
     return None
 
 
-def p2p_walk(addr: int, ranges: List[List[AddrRange]], current_level: int) -> int | None:
+def p2p_walk(addr: int, ranges: list[list[AddrRange]], current_level: int) -> int | None:
     levels = len(ranges)
 
     if current_level >= levels:
@@ -98,7 +96,7 @@ def p2p_walk(addr: int, ranges: List[List[AddrRange]], current_level: int) -> in
 
 @pwndbg.commands.Command(parser, category=CommandCategory.MEMORY)
 @pwndbg.commands.OnlyWhenRunning
-def p2p(mapping_names: List[List[AddrRange]] | None = None) -> None:
+def p2p(mapping_names: list[list[AddrRange]] | None = None) -> None:
     if not mapping_names:
         return
 

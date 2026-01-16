@@ -6,8 +6,6 @@ import os
 import sys
 import textwrap
 from typing import Any
-from typing import Dict
-from typing import Tuple
 from typing import cast
 
 from mdutils.mdutils import MdUtils
@@ -113,8 +111,8 @@ def get_markdown_body(
 
 
 def convert_all_to_markdown(
-    extracted: list[Tuple[str, Dict[str, ExtractedCommand]]],
-) -> Dict[str, str]:
+    extracted: list[tuple[str, dict[str, ExtractedCommand]]],
+) -> dict[str, str]:
     result = {}
 
     # Enumerate all the files we need to create.
@@ -129,7 +127,7 @@ def convert_all_to_markdown(
         # debuggers disagree on what some command should
         # display. We won't add debuggers that don't have the
         # command.
-        cmd_variants: list[Tuple[str, ExtractedCommand]] = []
+        cmd_variants: list[tuple[str, ExtractedCommand]] = []
 
         for debugger, data in extracted:
             if filename in data:
@@ -169,17 +167,17 @@ def convert_all_to_markdown(
 
 
 def generate_index(
-    extracted: list[Tuple[str, Dict[str, ExtractedCommand]]],
+    extracted: list[tuple[str, dict[str, ExtractedCommand]]],
 ) -> str:
     # Make a dict of all commands.
-    all_cmds: Dict[str, ExtractedCommand] = {}
+    all_cmds: dict[str, ExtractedCommand] = {}
     for _, data in extracted:
         for filename in data.keys():
             if filename not in all_cmds:
                 all_cmds[filename] = data[filename]
 
     # Make a map from categories to those commands.
-    category_to_filename: Dict[str, list[str]] = {}
+    category_to_filename: dict[str, list[str]] = {}
     for filename, cmd in all_cmds.items():
         if cmd.category not in category_to_filename:
             category_to_filename[cmd.category] = []
@@ -209,7 +207,7 @@ def generate_index(
     return index_autogen_warning + mdFile.get_md_text()
 
 
-def verify_files(filename_to_markdown: Dict[str, str]) -> str | None:
+def verify_files(filename_to_markdown: dict[str, str]) -> str | None:
     """
     Verify all the markdown files are up to date with the sources.
 
@@ -225,7 +223,7 @@ def verify_files(filename_to_markdown: Dict[str, str]) -> str | None:
             return f"File {filename} does not exist."
 
         file_data = ""
-        with open(filename, "r") as file:
+        with open(filename) as file:
             file_data = file.readlines()
 
         markdown = [x + "\n" for x in markdown.splitlines()]
@@ -249,7 +247,7 @@ def verify_files(filename_to_markdown: Dict[str, str]) -> str | None:
     return None
 
 
-def update_files(filename_to_markdown: Dict[str, str]):
+def update_files(filename_to_markdown: dict[str, str]):
     """
     Fix files so they are up to date with the sources. This also
     creates new files/directories if needed.
@@ -342,7 +340,7 @@ def dict_to_extracted(dictionary: dict[str, Any]) -> ExtractedCommand:
     return cmd
 
 
-def read_extracted() -> list[Tuple[str, Dict[str, ExtractedCommand]]]:
+def read_extracted() -> list[tuple[str, dict[str, ExtractedCommand]]]:
     """
     Read json files from disk.
 
@@ -350,17 +348,17 @@ def read_extracted() -> list[Tuple[str, Dict[str, ExtractedCommand]]]:
         A list of tuples of the form: (debugger name, filename-mapped
         extracted commands for that debugger).
     """
-    result: list[Tuple[str, Dict[str, ExtractedCommand]]] = []
+    result: list[tuple[str, dict[str, ExtractedCommand]]] = []
 
     for debugger in ALL_DEBUGGERS:
         filepath = extracted_filename(debugger)
         print(f"Consuming {filepath}..")
 
-        with open(filepath, "r") as file:
+        with open(filepath) as file:
             raw_data = json.loads(file.read())
 
         # Convert the dict objs to ExtractedCommands
-        data: Dict[str, ExtractedCommand] = {}
+        data: dict[str, ExtractedCommand] = {}
         for filename, cmd_dict in raw_data.items():
             data[filename] = dict_to_extracted(cmd_dict)
 

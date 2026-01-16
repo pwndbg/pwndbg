@@ -7,16 +7,13 @@ new library/objfile are loaded, etc.
 from __future__ import annotations
 
 from collections import UserDict
+from collections.abc import Callable
 from enum import IntFlag
 from functools import wraps
 from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
 from typing import Protocol
-from typing import Tuple
+from typing import TypeAlias
 from typing import TypeVar
-from typing import Union
 
 from typing_extensions import ParamSpec
 
@@ -39,7 +36,7 @@ class DebugCacheDict(UserDict):  # type: ignore[type-arg]
         self.func = func
         self.name = f"{func.__module__.split('.')[-1]}.{func.__name__}"
 
-    def __getitem__(self, key: Tuple[Any, ...]) -> Any:
+    def __getitem__(self, key: tuple[Any, ...]) -> Any:
         if debug & DEBUG_GET and (not debug_name or debug_name in self.name):
             print(f"GET {self.name}: {key}")
         try:
@@ -50,7 +47,7 @@ class DebugCacheDict(UserDict):  # type: ignore[type-arg]
             self.misses += 1
             raise
 
-    def __setitem__(self, key: Tuple[Any, ...], value: Any) -> None:
+    def __setitem__(self, key: tuple[Any, ...], value: Any) -> None:
         if debug & DEBUG_SET and (not debug_name or debug_name in self.name):
             print(f"SET {self.name}: {key}={value}")
         self.data[key] = value
@@ -63,7 +60,7 @@ class DebugCacheDict(UserDict):  # type: ignore[type-arg]
         self.misses = 0
 
 
-Cache = Union[Dict[Tuple[Any, ...], Any], DebugCacheDict]
+Cache: TypeAlias = dict[tuple[Any, ...], Any] | DebugCacheDict
 
 
 class CachedFunction(Protocol[T]):
@@ -74,9 +71,9 @@ class CachedFunction(Protocol[T]):
 
 class _CacheUntilEvent:
     def __init__(self) -> None:
-        self.caches: List[Cache] = []
+        self.caches: list[Cache] = []
 
-    def connect_event_hooks(self, event_hooks: Tuple[Any, ...]) -> None:
+    def connect_event_hooks(self, event_hooks: tuple[Any, ...]) -> None:
         """
         A given _CacheUntilEvent object may require multiple debugger events
         to be handled properly. E.g. our `stop` cache needs to be handled
@@ -116,10 +113,10 @@ class CacheUntilEvent(IntFlag):
 # fmt: on
 
 # OR (|) events together to make a set
-EventSet = int
+EventSet: TypeAlias = int
 
 
-_ALL_CACHE_UNTIL_EVENTS: Dict[CacheUntilEvent, _CacheUntilEvent] = {
+_ALL_CACHE_UNTIL_EVENTS: dict[CacheUntilEvent, _CacheUntilEvent] = {
     CacheUntilEvent.STOP: _CacheUntilEvent(),
     CacheUntilEvent.EXIT: _CacheUntilEvent(),
     CacheUntilEvent.OBJFILE: _CacheUntilEvent(),
@@ -129,7 +126,7 @@ _ALL_CACHE_UNTIL_EVENTS: Dict[CacheUntilEvent, _CacheUntilEvent] = {
     CacheUntilEvent.FOREVER: _CacheUntilEvent(),
 }
 
-_NAME_TO_EVENT: Dict[str, CacheUntilEvent] = {
+_NAME_TO_EVENT: dict[str, CacheUntilEvent] = {
     "stop": CacheUntilEvent.STOP,
     "exit": CacheUntilEvent.EXIT,
     "objfile": CacheUntilEvent.OBJFILE,
@@ -141,14 +138,14 @@ _NAME_TO_EVENT: Dict[str, CacheUntilEvent] = {
 _ALL_CACHE_EVENT_NAMES = tuple(_NAME_TO_EVENT.keys())
 
 
-def events_to_event_set(event_list: List[CacheUntilEvent]) -> EventSet:
+def events_to_event_set(event_list: list[CacheUntilEvent]) -> EventSet:
     res = 0
     for an_event in event_list:
         res |= an_event.value
     return res
 
 
-def connect_clear_caching_events(event_dicts: Dict[CacheUntilEvent, Tuple[Any, ...]]) -> None:
+def connect_clear_caching_events(event_dicts: dict[CacheUntilEvent, tuple[Any, ...]]) -> None:
     """
     Connect given debugger event hooks to corresponding _CacheUntilEvent instances
     """
@@ -187,7 +184,7 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
         )
 
     # We could require that CacheUntilEvent's be passed instead of strings as cache_until arguments.
-    event_list: List[CacheUntilEvent] = [_NAME_TO_EVENT[event_name] for event_name in event_names]
+    event_list: list[CacheUntilEvent] = [_NAME_TO_EVENT[event_name] for event_name in event_names]
     event_set: EventSet = events_to_event_set(event_list)
 
     def inner(func: Callable[P, T]) -> CachedFunction[T]:
@@ -202,7 +199,7 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
         @wraps(func)
         def decorator(*a: P.args, **kw: P.kwargs) -> T:
             if IS_CACHING and (event_set & IS_CACHING_DISABLED_FOR) == 0:
-                key: Tuple[Any, ...] = (a, _KWARGS_SEPARATOR, *kw.items())
+                key: tuple[Any, ...] = (a, _KWARGS_SEPARATOR, *kw.items())
 
                 # Check if the value is in the cache; if we have a cache miss,
                 # we return a special singleton object `_NOT_FOUND_IN_CACHE`. This way

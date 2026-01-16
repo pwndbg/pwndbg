@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import os
 import sys
+from collections.abc import Callable
+from collections.abc import Coroutine
 from pathlib import Path
 from typing import Any
-from typing import Callable
-from typing import Coroutine
-from typing import Dict
-from typing import List
 
 import coverage
 import gdb
@@ -18,7 +16,7 @@ from ... import host
 
 class _GDBController(host.Controller):
     async def launch(
-        self, binary_path: Path, args: List[str] = [], env: Dict[str, str] = {}
+        self, binary_path: Path, args: list[str] = [], env: dict[str, str] = {}
     ) -> None:
         """
         Launch the given binary.

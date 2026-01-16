@@ -17,7 +17,7 @@ async def test_pku(ctrl: Controller) -> None:
     import pwndbg
 
     try:
-        with open("/proc/cpuinfo", "r") as f:
+        with open("/proc/cpuinfo") as f:
             cpuinfo = f.read()
             if "pku" not in cpuinfo:
                 pytest.skip("PKU not supported on this CPU")

@@ -4,9 +4,7 @@ import functools
 import re
 from abc import ABC
 from abc import abstractmethod
-from typing import Callable
-from typing import List
-from typing import Tuple
+from collections.abc import Callable
 from typing import TypeVar
 
 from elftools.elf.elffile import ELFFile
@@ -199,7 +197,7 @@ def kversion() -> str | None:
 
 
 @pwndbg.lib.cache.cache_until("start")
-def krelease() -> Tuple[int, ...] | None:
+def krelease() -> tuple[int, ...] | None:
     _kversion = kversion()
     if _kversion is None:
         return None
@@ -209,7 +207,7 @@ def krelease() -> Tuple[int, ...] | None:
     raise Exception("Linux version tuple not found")
 
 
-def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
+def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.
     """
@@ -617,7 +615,7 @@ def kbase() -> int | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
+def pagewalk(addr, entry=None) -> tuple[PageTableLevel, ...]:
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry)
@@ -626,7 +624,7 @@ def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagetable_scan(entry=None) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def pagetable_scan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
     pi = arch_paginginfo()
     if pi:
         return tuple(pi.pagetable_scan(entry))

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from os import environ
 from typing import Any
-from typing import Tuple
 
 import gdb
 
@@ -10,6 +9,7 @@ import pwndbg
 import pwndbg.aglib.proc
 import pwndbg.commands
 import pwndbg.commands.context
+import pwndbg.dbg_mod
 import pwndbg.decorators
 import pwndbg.gdblib.events
 import pwndbg.gdblib.functions
@@ -25,15 +25,15 @@ show_tip = pwndbg.config.add_param(
     "show-tips", True, "whether to display the tip of the day on startup"
 )
 
-cur: Tuple[gdb.Inferior, gdb.InferiorThread] | None = None
+cur: tuple[gdb.Inferior, gdb.InferiorThread] | None = None
 
 
 def initial_hook(*a: Any) -> None:
     if show_tip and not pwndbg.decorators.first_prompt:
-        colored_tip = color_tip(get_tip_of_the_day())
+        colored_tip = color_tip(get_tip_of_the_day(pwndbg.dbg_mod.DebuggerType.GDB.value))
         print(
             message.prompt("------- tip of the day")
-            + message.system(" (disable with %s)" % message.notice("set show-tips off"))
+            + message.system(" (disable with {})".format(message.notice("set show-tips off")))
             + message.prompt(" -------")
         )
         print(colored_tip)

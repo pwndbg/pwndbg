@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import functools
 import os
+from collections.abc import Callable
+from collections.abc import Coroutine
 from inspect import signature
 from pathlib import Path
 from typing import Any
-from typing import Callable
 from typing import Concatenate
-from typing import Coroutine
 from typing import ParamSpec
 
 from .... import host

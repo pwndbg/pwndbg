@@ -28,10 +28,10 @@ def xuntil(target) -> None:
         addr = target
 
         if not pwndbg.aglib.memory.peek(addr):
-            print(message.error("Invalid address %#x" % addr))
+            print(message.error(f"Invalid address {addr:#x}"))
             return
 
-        spec = "*%#x" % (addr)
+        spec = f"*{addr:#x}"
     except (TypeError, ValueError):
         # The following gdb command will throw an error if the symbol is not defined.
         try:

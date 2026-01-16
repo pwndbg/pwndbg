@@ -4,8 +4,6 @@ import json
 import os
 import sys
 import textwrap
-from typing import Dict
-from typing import Tuple
 
 from mdutils.mdutils import MdUtils
 
@@ -19,7 +17,7 @@ from scripts._docs.gen_docs_generic import verify_existence
 from scripts._docs.gen_docs_generic import verify_files_simple
 
 
-def convert_to_markdown(scope: str, debugger_to_params: Dict[str, list[ExtractedParam]]) -> str:
+def convert_to_markdown(scope: str, debugger_to_params: dict[str, list[ExtractedParam]]) -> str:
     """
     Returns:
         The contents of the file corresponding to the passed scope.
@@ -37,7 +35,7 @@ def convert_to_markdown(scope: str, debugger_to_params: Dict[str, list[Extracted
         # debuggers disagree on what some parameter should
         # display. We won't add debuggers that don't have the
         # parameter.
-        param_variants: list[Tuple[str, ExtractedParam]] = []
+        param_variants: list[tuple[str, ExtractedParam]] = []
 
         for debugger, dparams in debugger_to_params.items():
             # Slow but whatever
@@ -93,8 +91,8 @@ def check_index(num_scopes: int):
 
 
 def convert_all_to_markdown(
-    extracted: list[Tuple[str, Dict[str, list[ExtractedParam]]]],
-) -> Dict[str, str]:
+    extracted: list[tuple[str, dict[str, list[ExtractedParam]]]],
+) -> dict[str, str]:
     result = {}
 
     # Enumerate all scopes we can see.
@@ -113,7 +111,7 @@ def convert_all_to_markdown(
         # will look like since a file corresponds to a scope.
         # The convert_to_markdown() function will check and forbid
         # per-paramater disagreements.
-        debugger_to_paramlist: Dict[str, list[ExtractedParam]] = {}
+        debugger_to_paramlist: dict[str, list[ExtractedParam]] = {}
         for debugger, data in extracted:
             if scope in data:
                 debugger_to_paramlist[debugger] = data[scope]
@@ -124,7 +122,7 @@ def convert_all_to_markdown(
     return result
 
 
-def read_extracted() -> list[Tuple[str, Dict[str, list[ExtractedParam]]]]:
+def read_extracted() -> list[tuple[str, dict[str, list[ExtractedParam]]]]:
     """
     Read json files from disk.
 
@@ -132,17 +130,17 @@ def read_extracted() -> list[Tuple[str, Dict[str, list[ExtractedParam]]]]:
         A list of tuples of the form: (debugger name, scope-mapped
         extracted parameters for that debugger).
     """
-    result: list[Tuple[str, Dict[str, list[ExtractedParam]]]] = []
+    result: list[tuple[str, dict[str, list[ExtractedParam]]]] = []
 
     for debugger in ALL_DEBUGGERS:
         filepath = extracted_filename(debugger)
         print(f"Consuming {filepath}..")
 
-        with open(filepath, "r") as file:
+        with open(filepath) as file:
             raw_data = json.loads(file.read())
 
         # Convert the dict objs to ExtractedParams
-        data: Dict[str, list[ExtractedParam]] = {}
+        data: dict[str, list[ExtractedParam]] = {}
         for scope, param_list in raw_data.items():
             data[scope] = [ExtractedParam(**param_dict) for param_dict in param_list]
 

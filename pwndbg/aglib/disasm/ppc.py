@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
-from typing import Dict
+from collections.abc import Callable
 
 from capstone import *  # noqa: F403
 from capstone.ppc_const import *  # noqa: F403
@@ -80,7 +79,7 @@ class PowerPCDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {}
 
     @override
     def _prepare(self, instruction: PwndbgInstruction, emu: Emulator) -> None:

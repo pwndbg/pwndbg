@@ -8,14 +8,11 @@ from __future__ import annotations
 import sys
 from types import TracebackType
 from typing import Any
-from typing import List
 from typing import TextIO
-from typing import Tuple
-from typing import Type
 
 
 class Stdio:
-    queue: List[Tuple[TextIO, TextIO, TextIO]] = []
+    queue: list[tuple[TextIO, TextIO, TextIO]] = []
 
     def __enter__(self, *a: Any, **kw: Any) -> None:
         self.queue.append((sys.stdin, sys.stdout, sys.stderr))
@@ -26,7 +23,7 @@ class Stdio:
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:

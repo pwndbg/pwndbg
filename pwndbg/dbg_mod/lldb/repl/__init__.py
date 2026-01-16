@@ -45,20 +45,20 @@ import signal
 import sys
 import time
 from asyncio import CancelledError
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Coroutine
 from contextlib import contextmanager
 from io import BytesIO
 from io import TextIOWrapper
 from typing import Any
-from typing import Awaitable
 from typing import BinaryIO
-from typing import Callable
-from typing import Coroutine
-from typing import List
 
 import lldb
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.dbg_mod
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod.lldb import LLDB
@@ -139,7 +139,7 @@ LLDB_EXCLUSIVE = [
 ]
 
 
-def lex_args(args: str) -> List[str]:
+def lex_args(args: str) -> list[str]:
     """
     Splits the arguments, respecting quotation marks.
     """
@@ -230,16 +230,16 @@ def show_greeting() -> None:
     lifetime of the program, we know exactly when the greeting needs to be shown,
     so we don't bother with any of the lifetime checks.
     """
-    hint_lines = ("loaded %i pwndbg commands commands." % len(pwndbg.commands.commands),)
+    hint_lines = (f"loaded {len(pwndbg.commands.commands)} pwndbg commands commands.",)
 
     for line in hint_lines:
         print(message.prompt("pwndbg: ") + message.system(line))
 
     if show_tip:
-        colored_tip = color_tip(get_tip_of_the_day())
+        colored_tip = color_tip(get_tip_of_the_day(pwndbg.dbg_mod.DebuggerType.LLDB.value))
         print(
             message.prompt("------- tip of the day (some of these don't work in LLDB yet!)")
-            + message.system(" (disable with %s)" % message.notice("set show-tips off"))
+            + message.system(" (disable with {})".format(message.notice("set show-tips off")))
             + message.prompt(" -------")
         )
         print(colored_tip)
@@ -803,9 +803,9 @@ def _bool_of_string(val: str) -> bool:
 
 
 def parse(
-    args: List[str],
+    args: list[str],
     parser: argparse.ArgumentParser,
-    unsupported: List[str],
+    unsupported: list[str],
     raw_marker: str | None = None,
 ) -> Any | None:
     """
@@ -963,7 +963,7 @@ def _get_target_triple(debugger: lldb.SBDebugger, filepath: str) -> str | None:
     return triple
 
 
-def target_create(driver: ProcessDriver, args: List[str], dbg: LLDB) -> None:
+def target_create(driver: ProcessDriver, args: list[str], dbg: LLDB) -> None:
     """
     Creates a new target, registers it with the Pwndbg LLDB implementation, and
     sets up listeners for it.
@@ -1142,7 +1142,7 @@ def kill_existing_process(driver: ProcessDriver, relay: EventRelay) -> bool:
 
 
 def process_launch(
-    driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB, restart: bool = False
+    driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB, restart: bool = False
 ) -> None:
     """
     Launches a process with the given arguments.
@@ -1294,7 +1294,7 @@ def _attach_with_info(
         dbg._trigger_event(EventType.STOP)
 
 
-def process_attach(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def process_attach(driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB) -> None:
     """
     Attaches to a process with the given arguments.
     """
@@ -1321,7 +1321,7 @@ def process_attach(driver: ProcessDriver, relay: EventRelay, args: List[str], db
     _attach_with_info(driver, relay, dbg, info, cont=do_continue)
 
 
-def attach(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def attach(driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB) -> None:
     """
     Attaches to a process with the given name or pid based on regex match.
     Used for `_regexp-attach <pid|name>` (alias for `attach <pid|name>`)
@@ -1351,7 +1351,7 @@ process_connect_ap.add_argument("-p", "--plugin")
 process_connect_ap.add_argument("remoteurl")
 
 
-def process_connect(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def process_connect(driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB) -> None:
     """
     Connects to the given remote process.
     """
@@ -1402,7 +1402,7 @@ gdb_remote_ap = argparse.ArgumentParser(add_help=False, prog="gdb-remote")
 gdb_remote_ap.add_argument("remoteurl")
 
 
-def gdb_remote(driver: ProcessDriver, relay: EventRelay, args: List[str], dbg: LLDB) -> None:
+def gdb_remote(driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB) -> None:
     """
     Like `process_connect`, but more lenient with the remote URL format.
     """
@@ -1440,7 +1440,7 @@ continue_ap.add_argument("-i", "--ignore-count")
 continue_unsupported = ["ignore-count"]
 
 
-def continue_process(driver: ProcessDriver, args: List[str], dbg: LLDB) -> None:
+def continue_process(driver: ProcessDriver, args: list[str], dbg: LLDB) -> None:
     """
     Continues the execution of a process.
     """

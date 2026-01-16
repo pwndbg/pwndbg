@@ -1,8 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
 
 from capstone import *  # noqa: F403
 from capstone.aarch64 import *  # noqa: F403
@@ -24,7 +23,7 @@ if TYPE_CHECKING:
 
 # Negative size indicates signed read
 # None indicates the read size depends on the target register
-AARCH64_SINGLE_LOAD_INSTRUCTIONS: Dict[int, int | None] = {
+AARCH64_SINGLE_LOAD_INSTRUCTIONS: dict[int, int | None] = {
     AARCH64_INS_LDRB: 1,
     AARCH64_INS_ALIAS_LDRB: 1,
     AARCH64_INS_LDURB: 1,
@@ -65,7 +64,7 @@ AARCH64_SINGLE_LOAD_INSTRUCTIONS: Dict[int, int | None] = {
 }
 
 # None indicates that the write size depends on the source register
-AARCH64_SINGLE_STORE_INSTRUCTIONS: Dict[int, int | None] = {
+AARCH64_SINGLE_STORE_INSTRUCTIONS: dict[int, int | None] = {
     AARCH64_INS_STRB: 1,
     AARCH64_INS_ALIAS_STRB: 1,
     AARCH64_INS_STURB: 1,
@@ -140,7 +139,7 @@ AARCH64_EMULATED_ANNOTATIONS = CONDITIONAL_SELECT_INSTRUCTIONS | {
 AARCH64_CONSTANT_SHIFTS = {AARCH64_SFT_LSL, AARCH64_SFT_LSR, AARCH64_SFT_ASR, AARCH64_SFT_ROR}
 
 # Parameters to each function: (value, shift_amt, bit_width)
-AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
+AARCH64_BIT_SHIFT_MAP: dict[int, Callable[[int, int, int], int]] = {
     AARCH64_SFT_LSL: bit_math.logical_shift_left,
     AARCH64_SFT_LSR: bit_math.logical_shift_right,
     AARCH64_SFT_ASR: bit_math.arithmetic_shift_right,
@@ -151,7 +150,7 @@ AARCH64_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
 # These are "Extend" operations - https://devblogs.microsoft.com/oldnewthing/20220728-00/?p=106912
 # They take in a number, extract a byte, halfword, or word,
 # and perform a zero- or sign-extend operation.
-AARCH64_EXTEND_MAP: Dict[int, Callable[[int], int]] = {
+AARCH64_EXTEND_MAP: dict[int, Callable[[int], int]] = {
     AARCH64_EXT_UXTB: lambda x: x & ((1 << 8) - 1),
     AARCH64_EXT_UXTH: lambda x: x & ((1 << 16) - 1),
     AARCH64_EXT_UXTW: lambda x: x & ((1 << 32) - 1),
@@ -242,7 +241,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
     def __init__(self, architecture) -> None:
         super().__init__(architecture)
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             AARCH64_INS_MOV: self._common_move_annotator,
             AARCH64_INS_ALIAS_MOV: self._common_move_annotator,

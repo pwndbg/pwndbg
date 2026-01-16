@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List
 
 import pytest
 
@@ -256,7 +255,7 @@ async def test_mallocng_group(ctrl: Controller, binary: Path):
     # We are going to fetch parent groups recursively until
     # we reach the outermost group which is either mmap()-ed in or
     # has donated by ld.
-    cur_group_out: List[str] = group1_out
+    cur_group_out: list[str] = group1_out
     cur_group_addr: int = group_addr
 
     while "another group" in cur_group_out[pgline_idx]:

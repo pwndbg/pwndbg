@@ -125,6 +125,7 @@ select = [
     "RET506", # flake8-return: superfluous-else-raise
     "RET507", # flake8-return: superfluous-else-continue
     "RET508", # flake8-return: superfluous-else-break
+    "UP",      # pyugprade
     # We want to enable the below lints, but they currently return too many errors
     # "RET505", # flake8-return: superfluous-else-return
     # "SLF" # flake8-self

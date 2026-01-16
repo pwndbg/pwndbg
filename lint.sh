@@ -50,6 +50,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+print_info() {
+    set +o xtrace
+    local MSG=$1
+    echo ""
+    echo "[info] ${MSG}"
+    echo ""
+    set -o xtrace
+}
+
 set -o xtrace
 
 LINT_FILES="pwndbg pwndbginit tests *.py scripts"
@@ -60,12 +69,15 @@ call_shfmt() {
         local SHFMT_FILES=$(find . -name "*.sh" -not -path "./.venv/*")
         # Indents are four spaces, binary ops can start a line, indent switch cases,
         # and allow spaces following a redirect
+        print_info "Running shfmt on .sh files..."
         $UV_RUN_LINT shfmt ${FLAGS} -i 4 -bn -ci -sr -d ${SHFMT_FILES}
     else
         echo "shfmt not installed, please install it"
         exit 2
     fi
 }
+
+print_info "Running ruff on python files..."
 
 if [[ $FIX_ONLY == 1 ]]; then
     $UV_RUN_LINT ruff format ${LINT_FILES}
@@ -83,7 +95,6 @@ elif [[ $FIX_AND_CHECK == 1 ]]; then
     $UV_RUN_LINT ruff format ${LINT_FILES}
     $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
     call_shfmt -w
-    $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 else
     if ! $UV_RUN_LINT ruff format --check --diff ${LINT_FILES}; then
         set +o xtrace
@@ -114,19 +125,23 @@ else
     fi
 
     $UV_RUN_LINT ruff check --output-format="${RUFF_OUTPUT_FORMAT}" ${LINT_FILES}
-    # Checking minimum python version
-    $UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
 fi
 
-# Check that pwndbg/lib does not import from pwndbg.aglib
-echo "Checking for aglib usage in pwndbg/lib..."
-if grep -rE "(import .*\.aglib|from .*\.aglib)" pwndbg/lib/; then
-    echo "Error: pwndbg/lib must not import from pwndbg.aglib"
-    echo "The 'lib' module is a low-level library and cannot depend on 'aglib'"
-    exit 1
-fi
+# Checking minimum python version
+print_info "Using vermin to check that the code is compatible with the lowest supported python version..."
+$UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
+
+# Check our custom rules.
+print_info "Checking custom Pwndbg lint rules..."
+$UV_RUN_LINT scripts/custom-lint.py
 
 # mypy is run in a separate step on GitHub Actions
 if [[ -z "$GITHUB_ACTIONS" ]]; then
+    print_info "Running mypy to check for type errors in python files..."
     $UV_RUN_MYPY mypy $LINT_FILES
 fi
+
+set +o xtrace
+echo ""
+echo "[success] Lint passed!"
+set -o xtrace

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import List
 
 import pwndbg
 import pwndbg.aglib.strings
@@ -31,7 +30,7 @@ parser.add_argument(
 
 @pwndbg.commands.Command(parser, category=CommandCategory.LINUX)
 @pwndbg.commands.OnlyWhenRunning
-def strings(n: int = 4, page_names: List[str] = [], save_as: str = None):
+def strings(n: int = 4, page_names: list[str] = [], save_as: str = None):
     # Get only readable pages and those that match the page_names filter
     pages = (
         p

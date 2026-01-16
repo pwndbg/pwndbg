@@ -12,12 +12,8 @@ that may have a somewhat obtuse beahvior, due to limitations in GDB. See
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Set
-from typing import Tuple
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
@@ -56,7 +52,7 @@ def is_dynamic() -> bool:
 
 # Reference to our hook in the link map update breakpoint, if it is installed.
 R_DEBUG_LINK_MAP_CHANGED_HOOK = None
-R_DEBUG_LINK_MAP_CHANGED_LISTENERS: Set[Callable[..., Any]] = set()
+R_DEBUG_LINK_MAP_CHANGED_LISTENERS: set[Callable[..., Any]] = set()
 
 
 def r_debug_link_map_changed_hook() -> Callable[[pwndbg.dbg_mod.StopPoint], bool]:
@@ -275,7 +271,7 @@ class DynamicSegment:
     symtab_addr = 0
     symtab_elem = None
 
-    entries_by_tag: Dict[Any, Any] = {}
+    entries_by_tag: dict[Any, Any] = {}
 
     has_jmprel = False
     has_rela = False
@@ -315,7 +311,7 @@ class DynamicSegment:
         # Map the tags we want to find to their respective entires. We don't
         # allow for repeats on most tags as they should only appear once in a
         # well-formed dynamic segment.
-        sections: Dict[Any, Any] = {}
+        sections: dict[Any, Any] = {}
         for i in range(self.entries):
             tag = self.dyn_array_read(i, "d_tag")
             if tag in sections:
@@ -625,9 +621,9 @@ class CStruct:
     enough for the structs in ld.so and in the ELF program images.
     """
 
-    types: Dict[str, pwndbg.dbg_mod.Type] = {}
-    offsets: Dict[str, int] = {}
-    converters: Dict[str, type] = {}
+    types: dict[str, pwndbg.dbg_mod.Type] = {}
+    offsets: dict[str, int] = {}
+    converters: dict[str, type] = {}
     size = 0
     align = 0
 
@@ -749,7 +745,7 @@ class CStruct:
             ]
         )
 
-    def __init__(self, fields: List[Tuple[str, pwndbg.dbg_mod.Type, type]]) -> None:
+    def __init__(self, fields: list[tuple[str, pwndbg.dbg_mod.Type, type]]) -> None:
         # Calculate the offset of all of the fields in the struct.
         current_offset = 0
         alignment = 1

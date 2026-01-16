@@ -1,11 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import TypeAlias
 
 from pycparser import CParser  # type: ignore # noqa: PGH003
 from pycparser import c_ast
@@ -13,20 +9,18 @@ from pycparser import c_ast
 from pwndbg.lib.functions import Argument
 from pwndbg.lib.functions import Function
 
-CAstNode = Union[
-    c_ast.EllipsisParam,
-    c_ast.PtrDecl,
-    c_ast.ArrayDecl,
-    c_ast.FuncDecl,
-    c_ast.Struct,
-    c_ast.Union,
-    c_ast.Enum,
-]
+CAstNode: TypeAlias = (
+    c_ast.EllipsisParam
+    | c_ast.PtrDecl
+    | c_ast.ArrayDecl
+    | c_ast.FuncDecl
+    | c_ast.Struct
+    | c_ast.Union
+    | c_ast.Enum
+)
 
 
-def extractTypeAndName(
-    n: CAstNode, defaultName: Optional[str] = None
-) -> Optional[Tuple[str, int, str]]:
+def extractTypeAndName(n: CAstNode, defaultName: str | None = None) -> tuple[str, int, str] | None:
     if isinstance(n, c_ast.EllipsisParam):
         return ("int", 0, "vararg")
 
@@ -70,9 +64,9 @@ def ExtractFuncDecl(node: CAstNode, verbose: bool = False) -> Function | None:
         print(node.show())
         return None
 
-    fargs: List[Argument] = []
+    fargs: list[Argument] = []
     for i, (argName, arg) in enumerate(node.args.children()):
-        defname = "arg%i" % i
+        defname = f"arg{i}"
         argdata = extractTypeAndName(arg, defname)
         if argdata is not None:
             a = Argument(*argdata)
@@ -87,7 +81,7 @@ def ExtractFuncDecl(node: CAstNode, verbose: bool = False) -> Function | None:
 
 
 def ExtractAllFuncDecls(ast: CAstNode, verbose: bool = False):
-    Functions: Dict[str, Function] = {}
+    Functions: dict[str, Function] = {}
 
     class FuncDefVisitor(c_ast.NodeVisitor):
         def visit_FuncDecl(self, node: CAstNode, *a: Any) -> None:

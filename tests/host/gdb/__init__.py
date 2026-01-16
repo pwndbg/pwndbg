@@ -5,7 +5,6 @@ import subprocess
 import time
 from pathlib import Path
 from subprocess import CompletedProcess
-from typing import List
 
 from ...host import TestHost
 from ...host import TestResult
@@ -29,7 +28,7 @@ class GDBTestHost(TestHost):
     def _run_gdb(
         self,
         target: str,
-        gdb_args_before: List[str] = [],
+        gdb_args_before: list[str] = [],
         env=None,
         capture_output=True,
     ) -> CompletedProcess[str]:
@@ -90,7 +89,7 @@ class GDBTestHost(TestHost):
 
         return _result_from_pytest(result, duration)
 
-    def collect(self) -> List[str]:
+    def collect(self) -> list[str]:
         # NOTE: We run tests under GDB sessions and because of some cleanup/tests dependencies problems
         # we decided to run each test in a separate GDB session
 

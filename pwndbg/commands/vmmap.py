@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import argparse
 import os.path
-from typing import Tuple
 
 from elftools.elf.constants import SH_FLAGS
 from elftools.elf.elffile import ELFFile
@@ -71,7 +70,7 @@ def print_vmmap_gaps_table_header() -> None:
     print(header)
 
 
-def calculate_total_memory(pages: Tuple[Page, ...]) -> None:
+def calculate_total_memory(pages: tuple[Page, ...]) -> None:
     total = 0
     for page in pages:
         total += page.memsz
@@ -112,7 +111,7 @@ def print_gap(current: Page, last_map: Page):
     )
 
 
-def print_vmmap_gaps(pages: Tuple[Page, ...]) -> None:
+def print_vmmap_gaps(pages: tuple[Page, ...]) -> None:
     """
     Indicates the size of adjacent memory regions and unmapped gaps between them in process memory
     """
@@ -379,7 +378,7 @@ def vmmap_add(start: int, size: int, flags: str, offset: int) -> None:
     page = pwndbg.lib.memory.Page(start, size, perm, offset, pwndbg.aglib.arch.ptrsize)
     pwndbg.aglib.vmmap_custom.add_custom_page(page)
 
-    print("%r added" % page)
+    print(f"{page!r} added")
 
 
 parser = argparse.ArgumentParser(description="Explore a page, trying to guess permissions.")
@@ -473,4 +472,4 @@ def vmmap_load(filename) -> None:
 
     for page in pages:
         pwndbg.aglib.vmmap_custom.add_custom_page(page)
-        print("%r added" % page)
+        print(f"{page!r} added")
