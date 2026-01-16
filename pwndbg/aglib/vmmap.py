@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import bisect
 import os
+from pathlib import Path
 
 import pwndbg
 import pwndbg.aglib
@@ -187,7 +188,10 @@ def named_region_start(mapping_name: str, exact_match: bool = True) -> int | Non
 
     if exact_match:
         for mapping in mappings:
-            if mapping.objfile == mapping_name:
+            # Resolve relative files and symlinks even for exact matches.
+            # FIXME: This is a workaround for #3641 . Don't use Path()
+            # after that is fixed.
+            if Path(mapping.objfile).resolve() == Path(mapping_name).resolve():
                 return mapping.start
 
         return None
