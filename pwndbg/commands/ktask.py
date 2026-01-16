@@ -33,7 +33,7 @@ class Kthread:
         self.pid = int(thread["pid"])
         self.has_user_page = int(thread["mm"]) != 0
         krelease = pwndbg.aglib.kernel.krelease()
-        self.cpu = "-"
+        self.cpu = "?"
         try:
             configs = ("CONFIG_THREAD_INFO_IN_TASK", "CONFIG_SMP")
             if all(config in pwndbg.aglib.kernel.kconfig() for config in configs):
@@ -41,9 +41,14 @@ class Kthread:
                     self.cpu = int(thread["cpu"])
                 else:
                     self.cpu = int(thread["thread_info"]["cpu"])
+            else:
+                raise NotImplementedError()
         except Exception:
             # getting cpu without typeinfo is too complicated, doesn't support it for now
-            pass
+            # unless we have only one cpu
+            # TODO: if smp, set to current cpu
+            if pwndbg.aglib.kernel.nproc() == 1:
+                self.cpu = 0
         self.uid = int(thread["cred"]["uid"]["val"])
         self.gid = int(thread["cred"]["gid"]["val"])
 
@@ -75,7 +80,8 @@ class Kthread:
         thread = color.blue(hex(int(self.thread)))
         prefix = f"[pid {self.pid}]"
         desc = " "
-        prefix = color.blue(f"{prefix:<9}") + f"task @ {thread}: {self.name:<16}"
+        namelen = pwndbg.aglib.kernel.ktask.TASK_COMM_LEN
+        prefix = color.blue(f"{prefix:<9}") + f"task @ {thread}: {self.name:<{namelen}}"
         user = ", has user pages" if self.has_user_page else ""
         desc = color.red(f"cpu #{self.cpu} (uid: {self.uid}, gid: {self.gid}{user})")
         return f"{prefix} {desc}"
@@ -86,12 +92,8 @@ class Ktask:
         self.task = task
         threads = []
         signal = task["signal"]
-        thread_list = "thread_node"
-        kversion = pwndbg.aglib.kernel.krelease()
-        if kversion and kversion <= (6, 6, 0):
-            thread_list = "thread_group"
         # Iterate through all threads in the task_struct's thread list.
-        for thread in for_each_entry(signal["thread_head"], "struct task_struct", thread_list):
+        for thread in for_each_entry(signal["thread_head"], "struct task_struct", "thread_node"):
             kthread = Kthread(thread)
             threads.append(kthread)
         self.threads = threads

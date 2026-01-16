@@ -54,8 +54,7 @@ def get_mm_struct_and_offset(task: int, tasks_offset: int) -> Tuple[str, int]:
         case "x86-64":
             reg = "cr3"
         case "aarch64":
-            # TODO: userland pc?
-            reg = "TTBR1_EL1"
+            reg = "TTBR0_EL1"
         case _:
             raise NotImplementedError()
     mask = pwndbg.aglib.kernel.arch_paginginfo().PAGE_ENTRY_MASK
@@ -115,7 +114,7 @@ def get_mm_struct_and_offset(task: int, tasks_offset: int) -> Tuple[str, int]:
     /* PID/PID hash table linkage. */
     struct pid			*thread_pid;
     struct hlist_node		pid_links[PIDTYPE_MAX]; // PIDTYPE_MAX == 4
-    struct list_head		thread_group; // <= 6.6
+    struct list_head		thread_group; // < 6.7
     struct list_head		thread_node;
 """
 
@@ -149,6 +148,8 @@ def get_thread_list_offset(pid_offset: int):
     off = pid_offset
     ptrsize = pwndbg.aglib.arch.ptrsize
     off += 21 * ptrsize
+    if pwndbg.aglib.kernel.krelease() < (6, 7, 0):
+        off += 2 * ptrsize
     if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
         off += ptrsize
     return off
@@ -212,6 +213,7 @@ def get_thread_list_offset(pid_offset: int):
 
 INIT_TASK = None
 
+
 def get_comm_offset(tasks: List[int]) -> Tuple[int, int]:
     for task in tasks:
         off = 0
@@ -241,31 +243,19 @@ def get_cred_struct_and_offset(tasks: List[int], comm_offset: int) -> Tuple[str,
                 cred_offset = off
                 break
             off -= ptrsize
+        if cred_offset is not None:
+            break
     assert cred_offset, "cannot find the offset of task_struct->cred"
-    kversion = pwndbg.aglib.kernel.krelease()
-    assert kversion, "kernel version needed to recover struct cred"
-    if kversion < (6, 1, 69):
-        off = 4
-    elif kversion < (6, 2):
-        off = ptrsize
-    elif kversion < (6, 6, 8):
-        off = 4
-        for i in range(6):
-            if pwndbg.aglib.memory.is_kernel(i * ptrsize + cred_offset):
-                off += 4 + ptrsize + 4
-    else:
-        off = ptrsize
+    cred = pwndbg.aglib.memory.read_pointer_width(INIT_TASK + cred_offset)
+    off = None
+    A = 0x30
+    # find cap_permitted from INIT_TASK, the distance between uid and cap_permitted is 0x30
+    for i in range(A // 4, A // 4 + 0x20):
+        val = pwndbg.aglib.memory.u64(cred + i * 4)  # sizeof(kernel_cap_t) == 8 even for 32 bits
+        if val == 0x000001FFFFFFFFFF:  # is this true for all 5.x and 6.x?
+            off = i * 4 - A
     struct = f"""
-    struct cred {{
-#if 0
-        atomic_t usage; // ~v6.1.69, v6.2~v6.6.7
-        atomic_long_t usage; // v6.1.69~v6.1.143, v6.6.8~
-    #ifdef CONFIG_DEBUG_CREDENTIALS // ~v6.6.7
-        atomic_t subscribers; // ~v6.6.7
-        void *put_addr; // ~v6.6.7
-        unsigned magic; // ~v6.6.7
-    #endif // ~v6.6.7
-#endif
+    struct cred{{
         char _pad1[{off}];
         kuid_t uid;
         kgid_t gid;
@@ -275,6 +265,12 @@ def get_cred_struct_and_offset(tasks: List[int], comm_offset: int) -> Tuple[str,
         kgid_t egid;
         kuid_t fsuid;
         kgid_t fsgid;
+#if 0
+        // TODO: `unsigned` might not be 32 bit?
+        unsigned	securebits;	/* SUID-less security management */
+        kernel_cap_t	cap_inheritable; /* caps our children can inherit */
+        kernel_cap_t	cap_permitted;	/* caps we're permitted */
+#endif
         /* don't care about the rest */
     }};
     """
@@ -329,6 +325,8 @@ def get_files_struct_and_offset(task: int, off: int) -> Tuple[str, int]:
         char _pad2[spinlock_t_size];
         unsigned int f_mode;
         void* f_op;
+        void *f_mapping;
+        void *private_data;
         /* don't care about the rest */
     };
     struct fdtable {
@@ -402,6 +400,7 @@ def load_ktask_typeinfo() -> None:
 
     ptrsize = pwndbg.aglib.arch.ptrsize
     result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
+    result += f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += mm_struct
     result += cred_struct
     result += files_structs
@@ -409,7 +408,6 @@ def load_ktask_typeinfo() -> None:
     result += get_signal_struct()
     if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_STACKPROTECTOR\n"
-    result += f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += f"""
     struct task_struct {{
         char _pad1[{tasks_offset}];
@@ -426,14 +424,8 @@ def load_ktask_typeinfo() -> None:
 #else
         char __pad2[{thread_list_offset - pid_offset} - sizeof(pid_t) * 2];
 #endif
-#if KVERSION < KERNEL_VERSION(6, 7, 0)
-        struct list_head thread_group;
-        struct list_head thread_node;
-        char _pad3[{cred_offset - (thread_list_offset + ptrsize * 4)}];
-#else
         struct list_head thread_node;
         char _pad3[{cred_offset - (thread_list_offset + ptrsize * 2)}];
-#endif
         struct cred *cred;
         char _pad4[{comm_offset - (cred_offset + ptrsize)}];
         char comm[{TASK_COMM_LEN}];
