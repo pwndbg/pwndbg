@@ -25,7 +25,6 @@ import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.lib.config import Scope
 
-from . import common
 from .dispatch import LibcType
 from .dispatch import LibcURLs
 

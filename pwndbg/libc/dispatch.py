@@ -49,6 +49,9 @@ class LibcWrangler(Protocol):
         This shouldn't be put behind the facade because you should
         only care about the libc version if you know which libc
         you are using.
+
+        It may not always be possible to implement this, in which case
+        this raises a NotImplementedError.
         """
         ...
 

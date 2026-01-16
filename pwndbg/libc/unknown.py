@@ -29,11 +29,11 @@ def has_debug_info() -> bool:
 
 
 def verify_libc_candidate(mapping_name: str) -> bool:
-    return True
+    return False
 
 
 def verify_ld_candidate(mapping_name: str) -> bool:
-    return True
+    return False
 
 
 def urls() -> LibcURLs:

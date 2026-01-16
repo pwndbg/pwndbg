@@ -18,36 +18,42 @@ from .dispatch import LibcType
 from .dispatch import LibcURLs
 from .dispatch import LibcWrangler
 
+# Order is important.
+_libc_implementations: tuple[LibcWrangler, ...] = (
+    glibc, musl, unknown
+)
 
 def get_libc() -> LibcWrangler:
-    if glibc._is_being_used():
-        return glibc
+    for impl in _libc_implementations:
+        if impl._is_being_used():
+            return impl
 
-    if musl._is_being_used():
-        return musl
-
-    assert unknown._is_being_used()
+    # This won't be reached because unknown will be returned in the loop
+    # but okay.
     return unknown
-
 
 def which() -> LibcType:
     libc: LibcWrangler = get_libc()
     return libc.type()
 
 
+class LibcNotFound(Exception):
+    pass
+
 libc_regex = re.compile(r"^libc6?[-_\.]")
+ld_regex = re.compile(r"ld.*\.so(?:\.[0-9]+)?")
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def _libc_and_ld_filepath() -> Path | None:
+def _libc_and_ld_filepath() -> tuple[Path | None, Path | None]:
     """
-    The filepath of the libc shared object.
+    The filepath of the libc and ld shared objects.
 
-    There may not be a backing file for this Path if we are remote debugging.
-    This may have the same value as loader_filepath() for some libc's.
+    There may not be a backing file for these Paths if we are remote debugging.
+    The two paths may have the same value for some libc's (e.g. musl).
     """
-    possible_libc_path: list[str] = []
     inf = pwndbg.dbg.selected_inferior()
+    assert inf.alive()
 
     seen: set[str] = set()
 
@@ -59,6 +65,26 @@ def _libc_and_ld_filepath() -> Path | None:
     all_sections: list[tuple[int, int, str, str]] = inf.module_section_locations()
     all_module_names: list[str] = [sec[3] for sec in all_sections]
 
+    exact_libc_basename_matches: list[str] = [
+        # glibc
+        "libc.so.6",
+        # musl and bionic (android)
+        "libc.so"
+    ]
+    exact_ld_basename_matches: list[str] = [
+        # x86_64 glibc
+        "ld-linux-x86-64.so.2",
+        # Common in CTF's
+        "ld-linux.so",
+        # x86_64 musl ld (shows up on fedora)
+        "ld-musl-x86_64.so.1",
+    ]
+
+    possible_libc_paths: list[str] = []
+    possible_ld_paths: list[str] = []
+    certain_libc_path: str | None = None
+    certain_ld_path: str | None = None
+
     for path in all_module_names:
         if path in seen:
             continue
@@ -69,61 +95,81 @@ def _libc_and_ld_filepath() -> Path | None:
             path[7:] if path.startswith("target:") else path
         )
 
-        # If we find an exact match on these, we return it without caring about anything else.
-        # glibc will be libc.so.6, musl and bionic are libc.so
-        if basename == "libc.so.6" or basename == "libc.so":
-            return Path(path)
+        # Check for libc
+        if certain_libc_path is not None:
+            if basename in exact_libc_basename_matches:
+                # This is exceedingly likely to be the correct module.
+                certain_libc_path = path
+            elif libc_regex.search(basename) is not None:
+                # Maybe the user loaded the libc with LD_PRELOAD.
+                # Some common libc names: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
+                possible_libc_paths.append(path)
 
-        if libc_regex.search(basename) is not None:
-            # Maybe the user loaded the libc with LD_PRELOAD.
-            # Some common libc names: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
-            possible_libc_path.append(path)
+        # Check for ld
+        if certain_ld_path is not None:
+            if basename in exact_ld_basename_matches:
+                # This is exceedingly likely to be the correct module.
+                certain_ld_path = path
+            elif ld_regex.search(basename) is not None:
+                possible_ld_paths.append(path)
 
-    for _, _, _, module_name in all_sections:
-        if module_name in seen:
-            continue
-        seen.add(module_name)
+    def verify_libc_path(path: str) -> tuple[bool, LibcType]:
+        for impl in _libc_implementations:
+            if impl.verify_libc_candidate(path):
+                # Someone claims that this makes sense!
+                return True, impl.type()
+        return False, LibcType.UNKNOWN
 
-        path = module_name
-        basename = os.path.basename(
-            # Strip "target:" prefix used for remote debugging
-            path[7:] if path.startswith("target:") else path
-        )
+    # Let's see if any libc implementation verifies any of the
+    # candidate paths we found.
+    verified_libc_path: str | None = None
+    verified_ld_path: str | None = None
 
-        if basename == "libc.so.6":
-            # The default filename of libc should be libc.so.6, so if we found it, we just return it directly.
-            return Path(path)
-        elif re.search(r"^libc6?[-_\.]", basename):
-            # Maybe user loaded the libc with LD_PRELOAD.
-            # Some common libc names: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
-            possible_libc_path.append(
-                path
-            )  # We don't return it, maybe there is a libc.so.6 and this match is just a false positive.
+    if certain_libc_path is not None:
+        ok, approver = verify_libc_path(certain_libc_path)
+        if ok:
+            verified_libc_path = certain_libc_path
+
+    if not verified_libc_path:
+        for cand in possible_libc_paths:
+            ok, approver = verify_libc_path(cand)
+            if ok:
+                verified_libc_path = cand
+                break
+
+    def verify_ld_path(path: str) -> tuple[bool, LibcType]:
+        for impl in _libc_implementations:
+            if impl.verify_ld_candidate(path):
+                # Someone claims that this makes sense!
+                return True, impl.type()
+        return False, LibcType.UNKNOWN
+
+    if certain_ld_path is not None:
+        ok, approver = verify_ld_path(certain_ld_path)
+        if ok:
+            verified_ld_path = certain_ld_path
+
+    if not verified_ld_path:
+        for cand in possible_ld_paths:
+            ok, approver = verify_ld_path(cand)
+            if ok:
+                verified_ld_path = cand
+                break
+
+    if verified_libc_path is not None and verified_ld_path is not None:
+        # We are happy.
+        return Path(verified_libc_path), Path(verified_ld_path)
+
+    # think about this more
+
     # TODO: This might fail if user use LD_PRELOAD to load libc with a weird name or there are multiple shared libraries match the pattern.
     # (But do we really need to support this case? Maybe we can wait until users really need it :P.)
-    if possible_libc_path:
-        return possible_libc_path[0]  # just return the first match for now :)
+    if possible_libc_paths:
+        return possible_libc_paths[0]  # just return the first match for now :)
     return None
 
 
 # ======== Public API =========
-
-
-def _is_being_used() -> bool:
-    """
-    Libc's need to implement this to identify whether they are
-    the ones the debugee is using.
-
-    If an implementation can't see any symbols and can't perform the check without
-    them, it should return False.
-
-    This is used to dispatch to the correct libc implementation, you shouldn't
-    use this.
-
-    If you want to check whether a specific libc implementation is active,
-    do this: pwndbg.libc.get().type() == pwndbg.libc.LibcType.GLIBC .
-    """
-    ...
 
 
 def has_symbols() -> bool:
