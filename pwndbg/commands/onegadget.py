@@ -33,7 +33,7 @@ def onegadget(show_unsat: bool = False, no_unknown: bool = False, verbose: bool 
         )
         return
 
-    path = pwndbg.libc.get().filename()
+    path = pwndbg.libc.get().filepath()
     if not path:
         print(message.error("Could not find libc. Please ensure it's loaded."))
         return

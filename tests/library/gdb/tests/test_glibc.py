@@ -34,7 +34,7 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
     libc = pwndbg.libc.get()
     assert libc.type() == pwndbg.libc.LibcType.GLIBC
 
-    libc_path = libc.filename()
+    libc_path = libc.filepath()
     assert libc_path is not None
 
     # Create 3 copies of the libc with the filenames: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
@@ -53,7 +53,7 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
                 assert "(*)" in gdb.execute("info sharedlibrary", to_string=True)
             libc = pwndbg.libc.get()
             assert libc.type() == pwndbg.libc.LibcType.GLIBC
-            assert libc.filename() == test_libc_path
+            assert libc.filepath() == test_libc_path
 
         # Unfortunatly, if we used LD_PRELOAD to load libc, we might cannot find the libc's filename
         # In this case, the function should return None instead of crashing
@@ -67,7 +67,7 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
         # FIXME: .filename() never returns None
         libc = pwndbg.libc.get()
         assert libc.type() == pwndbg.libc.LibcType.GLIBC
-        assert libc.filename() is None
+        assert libc.filepath() is None
         # assert pwndbg.glibc.get_libc_filename_from_info_sharedlibrary() is None
 
 

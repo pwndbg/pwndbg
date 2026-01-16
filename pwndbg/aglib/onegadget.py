@@ -274,7 +274,7 @@ def run_onegadget() -> str:
     """
     Run onegadget and return the output
     """
-    libc_path = pwndbg.aglib.file.get_file(pwndbg.libc.get().filename())
+    libc_path = pwndbg.aglib.file.get_file(pwndbg.libc.get().filepath())
     # We need cache because onegadget might be slow
     cache_file = os.path.join(ONEGADGET_CACHEDIR, compute_file_hash(libc_path))
     if os.path.exists(cache_file):

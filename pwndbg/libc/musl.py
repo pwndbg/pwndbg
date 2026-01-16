@@ -1,20 +1,19 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from elftools.elf.relocation import Relocation
 
 from . import common
 from .api import LibcType
+from .api import LibcURLs
 
 
 def type() -> LibcType:
     return LibcType.GLIBC
 
 
-def is_being_used() -> bool:
-    return True
-
-
-def initialize() -> bool:
+def _is_being_used() -> bool:
     return True
 
 
@@ -30,35 +29,40 @@ def has_debug_info() -> bool:
     return True
 
 
-def filename() -> str:
-    return ""
+def filepath() -> Path:
+    return Path("")
 
 
-def loader_filename() -> str:
-    return ""
+def loader_filepath() -> Path:
+    return Path("")
 
 
-def mapping() -> str:
-    return ""
+def addr() -> int:
+    return 0
 
 
-def loader_mapping() -> str:
-    return ""
+def loader_addr() -> int:
+    return 0
 
 
 def section_by_name(section_name: str) -> tuple[int, int, bytes] | None:
-    return common.section_by_name(section_name, filename())
+    return common.section_by_name(section_name, filepath())
 
 
 def section_address_by_name(section_name: str) -> int:
-    return common.section_address_by_name(section_name, filename())
+    return common.section_address_by_name(section_name, filepath())
 
 
 def relocations_by_section_name(section_name: str) -> tuple[Relocation, ...]:
-    return common.relocations_by_section_name(section_name, filename())
+    return common.relocations_by_section_name(section_name, filepath())
 
 
-def source_url() -> str:
+def urls() -> LibcURLs:
     ver = version()
     ver_str = ".".join(map(str, ver))
-    return f"https://elixir.bootlin.com/glibc/glibc-{ver_str}/source"
+    return LibcURLs(
+        versioned_readable_source=f"https://elixir.bootlin.com/glibc/glibc-{ver_str}/source",
+        versioned_compressed_source=f"https://ftp.gnu.org/gnu/libc/glibc-{ver_str}.tar.gz",
+        homepage="https://sourceware.org/glibc/",
+        git="https://sourceware.org/git/glibc.git",
+    )

@@ -8,6 +8,7 @@ import functools
 import os
 import re
 from collections.abc import Callable
+from pathlib import Path
 from typing import TypeVar
 
 from elftools.elf.relocation import Relocation
@@ -26,6 +27,7 @@ from pwndbg.lib.config import Scope
 
 from . import common
 from .api import LibcType
+from .api import LibcURLs
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -126,11 +128,8 @@ def type() -> LibcType:
     return LibcType.GLIBC
 
 
-def is_being_used() -> bool:
-    return True
-
-
-def initialize() -> bool:
+@pwndbg.lib.cache.cache_until("start", "objfile")
+def _is_being_used() -> bool:
     return True
 
 
@@ -143,45 +142,52 @@ def version() -> tuple[int, ...]:
 
 
 def has_symbols() -> bool:
-    return True
+    # __libc_version exists in all versions of glibc
+    # https://elixir.bootlin.com/glibc/glibc-1.90/source/version.c#L23
+    return pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version") is not None
 
 
 def has_debug_info() -> bool:
     return pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
 
 
-def filename() -> str:
-    return ""
+def filepath() -> Path:
+    return Path("")
 
 
-def loader_filename() -> str:
-    return ""
+def loader_filepath() -> Path:
+    return Path("")
 
 
-def mapping() -> str:
-    return ""
+def addr() -> int:
+    return 0
 
 
-def loader_mapping() -> str:
-    return ""
+def loader_addr() -> int:
+    return 0
 
 
 def section_by_name(section_name: str) -> tuple[int, int, bytes] | None:
-    return common.section_by_name(section_name, filename())
+    return common.section_by_name(section_name, filepath())
 
 
 def section_address_by_name(section_name: str) -> int:
-    return common.section_address_by_name(section_name, filename())
+    return common.section_address_by_name(section_name, filepath())
 
 
 def relocations_by_section_name(section_name: str) -> tuple[Relocation, ...]:
-    return common.relocations_by_section_name(section_name, filename())
+    return common.relocations_by_section_name(section_name, filepath())
 
 
-def source_url() -> str:
+def urls() -> LibcURLs:
     ver = version()
     ver_str = ".".join(map(str, ver))
-    return f"https://elixir.bootlin.com/glibc/glibc-{ver_str}/source"
+    return LibcURLs(
+        versioned_readable_source=f"https://elixir.bootlin.com/glibc/glibc-{ver_str}/source",
+        versioned_compressed_source=f"https://ftp.gnu.org/gnu/libc/glibc-{ver_str}.tar.gz",
+        homepage="https://sourceware.org/glibc/",
+        git="https://sourceware.org/git/glibc.git",
+    )
 
 
 # ===== End of Libc Interaface Implementation =====
@@ -190,7 +196,7 @@ def source_url() -> str:
 def OnlyWhenGlibcLoaded(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWhenGlibcLoaded(*a: P.args, **kw: P.kwargs) -> T | None:
-        if is_being_used():
+        if _is_being_used():
             return function(*a, **kw)
 
         print(f"{function.__name__}: GLibc not loaded yet.")

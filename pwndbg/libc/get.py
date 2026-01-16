@@ -6,18 +6,15 @@ from .api import Libc
 def get() -> Libc:
     from . import glibc
 
-    if glibc.is_being_used():
-        glibc.initialize()
+    if glibc._is_being_used():
         return glibc
 
     from . import musl
 
-    if musl.is_being_used():
-        musl.initialize()
+    if musl._is_being_used():
         return musl
 
     from . import unknown
 
-    assert unknown.is_being_used()
-    unknown.initialize()
+    assert unknown._is_being_used()
     return unknown
