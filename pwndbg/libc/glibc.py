@@ -122,20 +122,31 @@ def urls(ver: tuple[int, ...] | None) -> LibcURLs:
 
 
 def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
-    if not has_internal_symbols(mapping_name):
-        # __GI_exit is an internal symbol. If they aren't available we can't use it
-        # to check.
-        return UncertainDecision.DONTKNOW
-
-    # __GI_exit exists since at least version 2.3 (until at least 2.42)
-    # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L670
-    # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L642
-    # https://elixir.bootlin.com/glibc/glibc-2.3/source/stdlib/exit.c#L84
-    # and I don't see it in other libc's.
-    if pwndbg.aglib.symbol.lookup_symbol("__GI_exit", objfile_endswith=mapping_name) is not None:
-        return UncertainDecision.YES
+    if has_internal_symbols(mapping_name):
+        # __GI_exit exists since at least version 2.3 (until at least 2.42)
+        # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L670
+        # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L642
+        # https://elixir.bootlin.com/glibc/glibc-2.3/source/stdlib/exit.c#L84
+        # and I don't see it in other libc's.
+        if (
+            pwndbg.aglib.symbol.lookup_symbol("__GI_exit", objfile_endswith=mapping_name)
+            is not None
+        ):
+            return UncertainDecision.YES
+        else:
+            return UncertainDecision.NO
     else:
-        return UncertainDecision.NO
+        # We don't have internal symbols so we will use a more expensive (?) check:
+        rodata: tuple[int, int, bytes] | None = pwndbg.aglib.elf.section_by_name(
+            mapping_name, ".rodata", try_local_path=True
+        )
+        if rodata is None:
+            return UncertainDecision.NO
+        _, _, data = rodata
+        if b"GNU C Library" in data:
+            return UncertainDecision.YES
+        else:
+            return UncertainDecision.NO
 
 
 def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
