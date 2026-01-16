@@ -117,8 +117,8 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
         A tuple (libc mapping path, ld mapping path, libc implementation).
 
     Raises:
-        LibcNotFound - If the binary is dynamically linked and we couldn't find
-          any candidate mappings.
+        LibcNotFound: If the binary is dynamically linked and we couldn't find
+            any candidate mappings.
     """
     # This function works by finding likely libc and ld mappings based on their
     # path names, and quering the libc implementations on them to see if any
