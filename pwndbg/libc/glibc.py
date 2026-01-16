@@ -68,57 +68,21 @@ def _get_version() -> tuple[int, ...]:
         ver = pwndbg.aglib.memory.string(addr)
         return tuple(int(_) for _ in ver.split(b"."))
 
-    libc_filename = get_libc_filename_from_info_sharedlibrary()
-    if not libc_filename:
-        return None
-    result = pwndbg.aglib.elf.section_by_name(libc_filename, ".rodata", try_local_path=True)
-    if result is None:
-        return None
-    _, _, data = result
-    banner_start = data.find(b"GNU C Library")
-    if banner_start == -1:
-        return None
-    banner = data[banner_start : data.find(b"\x00", banner_start)]
-    ret = re.search(rb"release version (\d+)\.(\d+)", banner)
-    return tuple(int(_) for _ in ret.groups()) if ret else None
+    # libc_filename = get_libc_filename_from_info_sharedlibrary()
+    # if not libc_filename:
+    #     return None
+    # result = pwndbg.aglib.elf.section_by_name(libc_filename, ".rodata", try_local_path=True)
+    # if result is None:
+    #     return None
+    # _, _, data = result
+    # banner_start = data.find(b"GNU C Library")
+    # if banner_start == -1:
+    #     return None
+    # banner = data[banner_start : data.find(b"\x00", banner_start)]
+    # ret = re.search(rb"release version (\d+)\.(\d+)", banner)
+    # return tuple(int(_) for _ in ret.groups()) if ret else None
+    return ()
 
-
-@pwndbg.lib.cache.cache_until("start", "objfile")
-def get_libc_filename_from_info_sharedlibrary() -> str | None:
-    """
-    Get the filename of the libc by parsing the output of `info sharedlibrary`.
-    """
-    possible_libc_path: list[str] = []
-    i = pwndbg.dbg.selected_inferior()
-
-    main_module_name = i.main_module_name()
-    seen = set()
-    for address, size, sect_name, module_name in i.module_section_locations():
-        if module_name in seen:
-            continue
-        seen.add(module_name)
-
-        if module_name == main_module_name:
-            continue
-
-        path = module_name
-        basename = os.path.basename(
-            path[7:] if path.startswith("target:") else path
-        )  # "target:" prefix is for remote debugging
-        if basename == "libc.so.6":
-            # The default filename of libc should be libc.so.6, so if we found it, we just return it directly.
-            return path
-        elif re.search(r"^libc6?[-_\.]", basename):
-            # Maybe user loaded the libc with LD_PRELOAD.
-            # Some common libc names: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
-            possible_libc_path.append(
-                path
-            )  # We don't return it, maybe there is a libc.so.6 and this match is just a false positive.
-    # TODO: This might fail if user use LD_PRELOAD to load libc with a weird name or there are multiple shared libraries match the pattern.
-    # (But do we really need to support this case? Maybe we can wait until users really need it :P.)
-    if possible_libc_path:
-        return possible_libc_path[0]  # just return the first match for now :)
-    return None
 
 
 # ===== Libc Interaface Implementation =====
