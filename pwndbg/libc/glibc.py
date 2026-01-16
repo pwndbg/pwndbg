@@ -76,7 +76,7 @@ def _get_version(libc_filepath: str) -> tuple[int, ...]:
     return tuple(int(_) for _ in ret.groups())
 
 
-# ===== Libc Interaface Implementation =====
+# ===== Libc Interface Implementation =====
 
 
 def type() -> LibcType:
@@ -157,7 +157,7 @@ def libc_same_as_ld() -> bool:
     return False
 
 
-# ===== End of Libc Interaface Implementation =====
+# ===== End of Libc Interface Implementation =====
 
 
 def check_safe_linking(ver: tuple[int, ...]) -> bool:
