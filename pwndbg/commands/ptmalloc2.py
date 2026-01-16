@@ -64,6 +64,8 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
     result: list[str] = []
     bins_type = bins.bin_type
 
+    version = pwndbg.libc.version()
+
     for size in bins.bins:
         b = bins.bins[size]
         count: int | None = None
@@ -75,12 +77,12 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
         # fastbins consists of only single linked list
         if bins_type == BinType.FAST:
             chain_fd = b.fd_chain
-            safe_lnk = pwndbg.libc.glibc.check_safe_linking()
+            safe_lnk = pwndbg.libc.glibc.check_safe_linking(version)
         # tcachebins consists of single linked list and entries count
         elif bins_type == BinType.TCACHE:
             chain_fd = b.fd_chain
             count = b.count
-            safe_lnk = pwndbg.libc.glibc.check_safe_linking()
+            safe_lnk = pwndbg.libc.glibc.check_safe_linking(version)
         # normal bins consists of double linked list and may be corrupted (we can detect corruption)
         else:  # normal bin
             chain_fd = b.fd_chain

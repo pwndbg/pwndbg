@@ -772,7 +772,7 @@ class Arena:
     def fastbins(self) -> Bins:
         size = pwndbg.aglib.arch.ptrsize * 2
         fd_offset = pwndbg.aglib.arch.ptrsize * 2
-        safe_lnk = pwndbg.libc.glibc.check_safe_linking()
+        safe_lnk = pwndbg.libc.glibc.check_safe_linking(pwndbg.libc.version())
         result = Bins(BinType.FAST)
         for i in range(NFASTBINS):
             size += pwndbg.aglib.arch.ptrsize * 2
@@ -1283,7 +1283,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         entries = tcache["entries"]
 
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
-        safe_lnk = pwndbg.libc.glibc.check_safe_linking()
+        safe_lnk = pwndbg.libc.glibc.check_safe_linking(pwndbg.libc.version())
 
         def tidx2usize(idx: int):
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""

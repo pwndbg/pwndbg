@@ -148,11 +148,14 @@ def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
 # ===== End of Libc Interaface Implementation =====
 
 
-def check_safe_linking() -> bool:
+def check_safe_linking(ver: tuple[int, ...]) -> bool:
     """
+    Arguments:
+        ver: The version tuple. Pass pwndbg.libc.version() here.
+
     Safe-linking is a glibc 2.32 mitigation; see:
     - https://lanph3re.blogspot.com/2020/08/blog-post.html
     - https://research.checkpoint.com/2020/safe-linking-eliminating-a-20-year-old-malloc-exploit-primitive/
     """
     # FIXME: What if we are not being used?
-    return (version() >= (2, 32) or safe_lnk.value) and safe_lnk.value is not False
+    return (ver >= (2, 32) or safe_lnk.value) and safe_lnk.value is not False
