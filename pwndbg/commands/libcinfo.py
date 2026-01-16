@@ -20,7 +20,7 @@ def libcinfo():
     print(f"libc: {pwndbg.libc.which().value}")
     print(f"libc version: {version_str}")
     print(
-        "linked: ",
+        "linked:",
         "dynamically" if pwndbg.dbg.selected_inferior().is_dynamically_linked() else "statically",
     )
 
