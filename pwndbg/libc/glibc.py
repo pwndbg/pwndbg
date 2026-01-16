@@ -130,7 +130,16 @@ def type() -> LibcType:
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def _is_being_used() -> bool:
-    return True
+    if not has_symbols():
+        return False
+    # __GI_exit exists since at least version 2.3 (until at least 2.42)
+    # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L670
+    # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L642
+    # https://elixir.bootlin.com/glibc/glibc-2.3/source/stdlib/exit.c#L84
+    # and I don't see it in other libc's.
+    # TODO: I haven't checked if the __libc_version symbol exists in other libc's.
+    # If not, we can fully skip this symbol lookup.
+    return pwndbg.aglib.symbol.lookup_symbol_addr("__GI_exit") is not None
 
 
 def version() -> tuple[int, ...]:
@@ -141,12 +150,18 @@ def version() -> tuple[int, ...]:
     return _get_version()
 
 
+# NOTE: I am operating under the assumption that debuginfod and add-symbol-file
+# trigger the objfile event, making it safe to cache these functions like this.
+
+
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def has_symbols() -> bool:
     # __libc_version exists in all versions of glibc
     # https://elixir.bootlin.com/glibc/glibc-1.90/source/version.c#L23
     return pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version") is not None
 
 
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def has_debug_info() -> bool:
     return pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
 

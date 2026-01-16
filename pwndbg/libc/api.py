@@ -34,6 +34,9 @@ class Libc(Protocol):
         Libc's need to implement this to identify whether they are
         the ones the debugee is using.
 
+        If an implementation can't see any symbols and can't perform the check without
+        them, it should return False.
+
         This is used to dispatch to the correct libc implementation, you shouldn't
         use this.
 

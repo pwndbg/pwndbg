@@ -10,10 +10,14 @@ from .api import LibcURLs
 
 
 def type() -> LibcType:
-    return LibcType.GLIBC
+    return LibcType.MUSL
 
 
 def _is_being_used() -> bool:
+    # TODO
+    # Check if the string "/tmp/tmpnam_XXXX" is in the .rodata of the binary.
+    # Added in musl version v1.1.2 (is present until at least v1.2.5).
+    # https://elixir.bootlin.com/musl/v1.1.2/source/src/stdio/tmpnam.c#L15
     return True
 
 
@@ -58,11 +62,10 @@ def relocations_by_section_name(section_name: str) -> tuple[Relocation, ...]:
 
 
 def urls() -> LibcURLs:
-    ver = version()
-    ver_str = ".".join(map(str, ver))
+    # FIXME: Can we get the version somehow?
     return LibcURLs(
-        versioned_readable_source=f"https://elixir.bootlin.com/glibc/glibc-{ver_str}/source",
-        versioned_compressed_source=f"https://ftp.gnu.org/gnu/libc/glibc-{ver_str}.tar.gz",
-        homepage="https://sourceware.org/glibc/",
-        git="https://sourceware.org/git/glibc.git",
+        versioned_readable_source="https://elixir.bootlin.com/musl/latest/source",
+        versioned_compressed_source="https://musl.libc.org/releases/musl-1.2.5.tar.gz",
+        homepage="https://musl.libc.org/",
+        git="git://git.musl-libc.org/musl",
     )
