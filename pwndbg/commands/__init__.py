@@ -27,6 +27,7 @@ import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.exception
 import pwndbg.integration
+import pwndbg.libc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
@@ -897,6 +898,12 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
         e = log.error
         w = log.warning
+
+        # I am operating under the assumption that the pwndbg/libc/ code can figure out
+        # that we are using glibc with at least as good accuracy as the ptmalloc code.
+        if pwndbg.libc.which() != pwndbg.libc.LibcType.GLIBC:
+            e(f"The currently active libc isn't glibc. It's {pwndbg.libc.which().value}.")
+            return None
 
         if (
             isinstance(pwndbg.aglib.heap.current, HeuristicHeap)

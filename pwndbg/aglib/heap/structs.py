@@ -26,10 +26,10 @@ def fastbin_index(size: int) -> int:
         return (size >> 3) - 2
 
 
-# It is possible that we are using the "unknown" libc, but that the allocator knows
-# better about what we can actually pull off. So here we invoke the glibc version
-# resolver directly instead of going through pwndbg.libc.version() .
-GLIBC_VERSION = pwndbg.libc.glibc.version(str(pwndbg.libc.filepath()))
+# I am operating under the assumption that the pwndbg/libc/ code can figure out
+# that we are using glibc with at least as good accuracy as the ptmalloc code.
+assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
+GLIBC_VERSION = pwndbg.libc.version()
 # TODO: Move these heap constants and macros to elsewhere, because pwndbg/aglib/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.aglib.arch.ptrsize
 MINSIZE = pwndbg.aglib.arch.ptrsize * 4

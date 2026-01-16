@@ -1317,6 +1317,7 @@ try_free_parser.add_argument("addr", type=int, help="Address passed to free")
 
 @pwndbg.commands.Command(try_free_parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenHeapIsInitialized
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenUserspace
 def try_free(addr: str | int) -> None:
     addr = int(addr)
