@@ -34,6 +34,10 @@ Pwndbg is a GDB and LLDB plugin that enhances debugging for low-level software d
 ./scripts/generate-docs.sh    # Update auto-generated docs (requires GDB + LLDB)
 ./scripts/verify-docs.sh      # Check docs match source code
 ./scripts/docs-live.sh        # Preview docs at http://127.0.0.1:8000/pwndbg/
+
+# Run custom Python code wit Pwndbg+GDB
+./.venv/bin/gdb /bin/ls --ex 'entry' --ex 'source code.py'  # if Pwndbg is sourced in ~/.gdbinit
+./.venv/bin/pwndbg /bin/ls --ex 'entry' --ex 'source code.py'  # if Pwndbg is not sourced
 ```
 
 ### Running Single Tests
@@ -150,7 +154,9 @@ The parameters can be set inside of a debugger with `set <param> <value>` or sho
 
 **Read `docs/contributing/writing-tests.md` for full details.**
 
-### Dual-Debugger Tests (PREFERRED)
+### Dual-Debugger Tests
+
+Use this for new GDB/LLDB tests and for any architecture-agnostic things.
 
 ```python
 # tests/library/dbg/tests/test_my_feature.py
@@ -216,7 +222,7 @@ def test_gdb_only_feature(start_binary):
 ```python
 # NEVER do this since those objects are runtime-swapped
 from pwndbg.aglib import regs  # INSTEAD access regs via: pwndbg.aglib.regs.read_regs("<register>")
-from pwndbg.aglib import arch  # INSTEAD access current arch via: pwndbg.aglib.arch.current
+from pwndbg.aglib import arch  # INSTEAD access current arch via: pwndbg.aglib.arch
 
 # Getting register values
 sp = pwndbg.aglib.regs.read_reg("rsp")  # get arch specific register
