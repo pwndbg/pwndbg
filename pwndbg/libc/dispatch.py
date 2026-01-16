@@ -36,11 +36,8 @@ class LibcWrangler(Protocol):
         """
         Get the version of the libc implementation as a tuple.
 
-        It may not always be possible to implement this, in which case
-        this raises a NotImplementedError.
-
-        If it can only get the version information sometimes, it should
-        return (-1, -1) when it can't.
+        If the implementation cannot recover the version, it returns
+        (-1, -1).
         """
         ...
 

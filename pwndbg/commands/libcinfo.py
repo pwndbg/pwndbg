@@ -12,17 +12,17 @@ from pwndbg.commands import CommandCategory
 )
 @pwndbg.commands.OnlyWhenRunning
 def libcinfo():
-    try:
-        version = pwndbg.libc.facade.version()
-        version_str = ".".join(map(str, version))
-    except NotImplementedError:
-        version_str = "no version information"
-
+    version = pwndbg.libc.facade.version()
+    version_str = ".".join(map(str, version))
     if version_str == "-1.-1":
         version_str = "no version information"
 
     print(f"libc: {pwndbg.libc.which().value}")
     print(f"libc version: {version_str}")
+    print(
+        "linked: ",
+        "dynamically" if pwndbg.dbg.selected_inferior().is_dynamically_linked() else "statically",
+    )
 
     urls = pwndbg.libc.urls()
     print("URLs:")

@@ -1557,21 +1557,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     def is_statically_linked(self) -> bool:
         return not pwndbg.dbg.selected_inferior().is_dynamically_linked()
 
-    def libc_has_debug_syms(self) -> bool:
-        """
-        The `struct malloc_chunk` comes from debugging symbols and it will not be there
-        for statically linked binaries
-        """
-        return (
-            pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
-            and pwndbg.aglib.symbol.lookup_symbol_addr("global_max_fast", prefer_static=True)
-            is not None
-        )
-
 
 class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Value]):
     def can_be_resolved(self) -> bool:
-        if not self.libc_has_debug_syms():
+        if not pwndbg.libc.has_debug_info():
             return False
         # Check if thread_arena is needed and available, but if the binary is not multithreaded, then we don't care
         # Note: it's possible that we unstripped the libc but still don't have libthread_db.so
@@ -1770,7 +1759,11 @@ class HeuristicHeap(
 
     @property
     def struct_module(self) -> types.ModuleType | None:
-        if not self._structs_module and pwndbg.libc.version():
+        # Since this function is used to determine whether the heap is resolvable,
+        # it may be ran on a non-glibc libc. Especially on the "unknown" libc. So
+        # the version might not be valid.
+        ver = pwndbg.libc.version()
+        if not self._structs_module and ver != (-1, -1):
             try:
                 self._structs_module = importlib.reload(
                     importlib.import_module("pwndbg.aglib.heap.structs")

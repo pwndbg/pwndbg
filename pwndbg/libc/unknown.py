@@ -22,7 +22,7 @@ def _is_being_used() -> bool:
 
 
 def version(libc_filepath: str) -> tuple[int, ...]:
-    raise NotImplementedError
+    return (-1, -1)
 
 
 def has_internal_symbols(libc_filepath: str) -> bool:
