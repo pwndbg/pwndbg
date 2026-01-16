@@ -26,8 +26,8 @@ from pwndbg.color import message
 from pwndbg.lib.config import Scope
 
 from . import common
-from .api import LibcType
-from .api import LibcURLs
+from .dispatch import LibcType
+from .dispatch import LibcURLs
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -130,34 +130,6 @@ def has_debug_info() -> bool:
     return pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
 
 
-def filepath() -> Path:
-    return Path("")
-
-
-def loader_filepath() -> Path:
-    return Path("")
-
-
-def addr() -> int:
-    return 0
-
-
-def loader_addr() -> int:
-    return 0
-
-
-def section_by_name(section_name: str) -> tuple[int, int, bytes] | None:
-    return common.section_by_name(section_name, filepath())
-
-
-def section_address_by_name(section_name: str) -> int:
-    return common.section_address_by_name(section_name, filepath())
-
-
-def relocations_by_section_name(section_name: str) -> tuple[Relocation, ...]:
-    return common.relocations_by_section_name(section_name, filepath())
-
-
 def urls() -> LibcURLs:
     ver = version()
     ver_str = ".".join(map(str, ver))
@@ -167,6 +139,13 @@ def urls() -> LibcURLs:
         homepage="https://sourceware.org/glibc/",
         git="https://sourceware.org/git/glibc.git",
     )
+
+def verify_libc_candidate(mapping_name: str) -> bool:
+    ...
+
+
+def verify_ld_candidate(mapping_name: str) -> bool:
+    return True
 
 
 # ===== End of Libc Interaface Implementation =====

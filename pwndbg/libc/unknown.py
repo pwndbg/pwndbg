@@ -4,9 +4,8 @@ from pathlib import Path
 
 from elftools.elf.relocation import Relocation
 
-from . import common
-from .api import LibcType
-from .api import LibcURLs
+from .dispatch import LibcType
+from .dispatch import LibcURLs
 
 
 def type() -> LibcType:
@@ -18,7 +17,7 @@ def _is_being_used() -> bool:
 
 
 def version() -> tuple[int, ...]:
-    return (0, 0)
+    raise NotImplementedError
 
 
 def has_symbols() -> bool:
@@ -29,32 +28,12 @@ def has_debug_info() -> bool:
     return False
 
 
-def filepath() -> Path:
-    return Path("")
+def verify_libc_candidate(mapping_name: str) -> bool:
+    return True
 
 
-def loader_filepath() -> Path:
-    return Path("")
-
-
-def addr() -> int:
-    return 0
-
-
-def loader_addr() -> int:
-    return 0
-
-
-def section_by_name(section_name: str) -> tuple[int, int, bytes] | None:
-    return common.section_by_name(section_name, filepath())
-
-
-def section_address_by_name(section_name: str) -> int:
-    return common.section_address_by_name(section_name, filepath())
-
-
-def relocations_by_section_name(section_name: str) -> tuple[Relocation, ...]:
-    return common.relocations_by_section_name(section_name, filepath())
+def verify_ld_candidate(mapping_name: str) -> bool:
+    return True
 
 
 def urls() -> LibcURLs:
