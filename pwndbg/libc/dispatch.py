@@ -22,6 +22,13 @@ class LibcURLs:
 
 
 class LibcWrangler(Protocol):
+    """
+    Libc implementations must conform to this protocol in order to be properly used by the facade.
+
+    The following functions are not used by the facade but are rather useful to have only when the caller
+    knows the libc implementation (so we intentionally don't want to expose them to the facade): version.
+    """
+
     def type(self) -> LibcType:
         """
         Which libc implementation is currently active?
@@ -41,7 +48,7 @@ class LibcWrangler(Protocol):
         """
         ...
 
-    def has_symbols(self) -> bool:
+    def has_symbols(self, libc_mapping: str) -> bool:
         """
         Can we read out global variables and functions in the libc object file?
         """

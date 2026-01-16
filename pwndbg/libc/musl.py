@@ -18,16 +18,11 @@ def type() -> LibcType:
     return LibcType.MUSL
 
 
-# FIXME: you should be able to do:
-# libc.get()._version() and libc.glibc.version() but not libc.get().version()
-# it doesn't make sense to ask about the version of a generic libc, what are you doing?.
-
-
 def version() -> tuple[int, ...]:
     raise NotImplementedError
 
 
-def has_symbols() -> bool:
+def has_symbols(libc_mapping: str) -> bool:
     return True
 
 

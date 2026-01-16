@@ -92,10 +92,13 @@ def version() -> tuple[int, ...]:
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def has_symbols() -> bool:
+def has_symbols(libc_mapping: str) -> bool:
     # __libc_version exists in all versions of glibc
     # https://elixir.bootlin.com/glibc/glibc-1.90/source/version.c#L23
-    return pwndbg.aglib.symbol.lookup_symbol("__libc_version") is not None
+    return (
+        pwndbg.aglib.symbol.lookup_symbol("__libc_version", objfile_endswith=libc_mapping)
+        is not None
+    )
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")

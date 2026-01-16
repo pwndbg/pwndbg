@@ -25,7 +25,7 @@ def version() -> tuple[int, ...]:
     raise NotImplementedError
 
 
-def has_symbols() -> bool:
+def has_symbols(libc_mapping: str) -> bool:
     return False
 
 

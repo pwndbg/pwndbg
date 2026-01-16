@@ -259,8 +259,8 @@ def has_symbols() -> bool:
     """
     Can we read out global variables and functions in the libc object file?
     """
-    libc: LibcWrangler = get_libc()
-    return libc.has_symbols()
+    path, _, libc = __get_libc()
+    return libc.has_symbols(str(path))
 
 
 def has_debug_info() -> bool:
