@@ -15,8 +15,8 @@ on:
       - '.github/workflows/base-image.yml'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}${{ github.event_name == 'pull_request' && format('-{0}', github.run_id) || '' }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
