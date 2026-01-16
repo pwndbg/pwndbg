@@ -1,8 +1,13 @@
+"""
+Answers libc-specific questions in a non-commital way when
+we don't know which libc implementation we are actually using.
+
+This should never use .facade .
+"""
+
 from __future__ import annotations
 
-from pathlib import Path
-
-from elftools.elf.relocation import Relocation
+from pwndbg.lib.common import UncertainDecision
 
 from .dispatch import LibcType
 from .dispatch import LibcURLs
@@ -28,12 +33,14 @@ def has_debug_info() -> bool:
     return False
 
 
-def verify_libc_candidate(mapping_name: str) -> bool:
-    return False
+def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
+    # We cheat a bit and return UncertainDecision.DONTKNOW for both
+    # verify_libc_candidate and verify_ld_candidate.
+    return UncertainDecision.DONTKNOW
 
 
-def verify_ld_candidate(mapping_name: str) -> bool:
-    return False
+def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
+    return UncertainDecision.DONTKNOW
 
 
 def urls() -> LibcURLs:

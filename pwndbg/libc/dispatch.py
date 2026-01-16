@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
 
+from pwndbg.lib.common import UncertainDecision
+
 
 class LibcType(Enum):
     GLIBC = "glibc"
@@ -23,22 +25,6 @@ class LibcWrangler(Protocol):
     def type(self) -> LibcType:
         """
         Which libc implementation is currently active?
-        """
-        ...
-
-    def _is_being_used(self) -> bool:
-        """
-        Libc's need to implement this to identify whether they are
-        the ones the debugee is using.
-
-        If an implementation can't see any symbols and can't perform the check without
-        them, it should return False.
-
-        This is used to dispatch to the correct libc implementation, you shouldn't
-        use this.
-
-        If you want to check whether a specific libc implementation is active,
-        do this: pwndbg.libc.get().type() == pwndbg.libc.LibcType.GLIBC .
         """
         ...
 
@@ -73,17 +59,28 @@ class LibcWrangler(Protocol):
         """
         ...
 
-    def verify_libc_candidate(self, mapping_name: str) -> bool:
+    def verify_libc_candidate(self, mapping_name: str) -> UncertainDecision:
         """
         Verify whether the mapping with the provided name is implementing
         this specific libc.
+
+        This must be accurate enough that no other libc implementation will
+        provide a conflicting answer.
+
+        A libc implementation must implement at least one of verify_libc_candidate
+        and verify_ld_candidate. The other may simply return UncertainDecision.DONTKNOW.
         """
         ...
 
-    def verify_ld_candidate(self, mapping_name: str) -> bool:
+    def verify_ld_candidate(self, mapping_name: str) -> UncertainDecision:
         """
         Verify whether the mapping with the provided name is implementing
         this specific libc's loader.
+
+        This must be accurate enough that no other libc implementation will
+        provide a conflicting answer.
+
+        A libc implementation must implement at least one of verify_libc_candidate
+        and verify_ld_candidate. The other may simply return UncertainDecision.DONTKNOW.
         """
         ...
-

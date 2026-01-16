@@ -1,8 +1,13 @@
+"""
+Perform queries specific to the musl libc.
+
+This should never use .facade .
+"""
+
+
 from __future__ import annotations
 
-from pathlib import Path
-
-from elftools.elf.relocation import Relocation
+from pwndbg.lib.common import UncertainDecision
 
 from .dispatch import LibcType
 from .dispatch import LibcURLs
@@ -45,11 +50,11 @@ def has_symbols() -> bool:
 def has_debug_info() -> bool:
     return True
 
-def verify_libc_candidate(mapping_name: str) -> bool:
+def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
     ...
 
 
-def verify_ld_candidate(mapping_name: str) -> bool:
+def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
     return verify_libc_candidate(mapping_name)
 
 

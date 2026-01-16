@@ -1,28 +1,25 @@
 """
-Get information about the GLibc
+Perform queries specific to the GNU C Library.
+
+This should never use .facade .
 """
 
 from __future__ import annotations
 
 import functools
-import os
 import re
 from collections.abc import Callable
-from pathlib import Path
 from typing import TypeVar
 
-from elftools.elf.relocation import Relocation
 from typing_extensions import ParamSpec
 
-import pwndbg.aglib.elf
-import pwndbg.aglib.heap
 import pwndbg.aglib.memory
-import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.config
 from pwndbg.color import message
+from pwndbg.lib.common import UncertainDecision
 from pwndbg.lib.config import Scope
 
 from .dispatch import LibcType
@@ -139,12 +136,12 @@ def urls() -> LibcURLs:
         git="https://sourceware.org/git/glibc.git",
     )
 
-def verify_libc_candidate(mapping_name: str) -> bool:
-    ...
+def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
+    
 
 
-def verify_ld_candidate(mapping_name: str) -> bool:
-    return True
+def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
+    return UncertainDecision.DONTKNOW
 
 
 # ===== End of Libc Interaface Implementation =====

@@ -1,3 +1,7 @@
+"""
+Implements the libc API.
+"""
+
 from __future__ import annotations
 
 import os
@@ -10,6 +14,7 @@ import pwndbg.aglib.elf
 import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
+from pwndbg.lib.common import UncertainDecision
 
 from . import glibc
 from . import musl
@@ -19,39 +24,91 @@ from .dispatch import LibcURLs
 from .dispatch import LibcWrangler
 
 # Order is important.
-_libc_implementations: tuple[LibcWrangler, ...] = (
-    glibc, musl, unknown
-)
-
-def get_libc() -> LibcWrangler:
-    for impl in _libc_implementations:
-        if impl._is_being_used():
-            return impl
-
-    # This won't be reached because unknown will be returned in the loop
-    # but okay.
-    return unknown
-
-def which() -> LibcType:
-    libc: LibcWrangler = get_libc()
-    return libc.type()
+_libc_implementations: tuple[LibcWrangler, ...] = (glibc, musl, unknown)
 
 
 class LibcNotFound(Exception):
     pass
 
+
 libc_regex = re.compile(r"^libc6?[-_\.]")
 ld_regex = re.compile(r"ld.*\.so(?:\.[0-9]+)?")
 
+def __check_candidates(libc_candidates: list[str], ld_candidates: list[str]) -> tuple[str | None, str | None, LibcWrangler | None]:
+    """
+    Queries the libc implementations on if any of them claim any libc and ld mappings.
+
+    Returns:
+        A tuple (claimed libc mapping, claimed ld mapping, claiming implementation). If noone claimed anything,
+        "claiming implementation" will be None. It is possible that exactly one of "claimed libc mapping"
+        and "claimed ld mapping" is None.
+    """
+    def verify_libc_path(path: str) -> tuple[bool, LibcWrangler]:
+        for impl in _libc_implementations:
+            if impl.verify_libc_candidate(path) == UncertainDecision.YES:
+                # Someone claims that this makes sense!
+                return True, impl
+        return False, unknown
+
+    def verify_ld_path(path: str) -> tuple[bool, LibcWrangler]:
+        for impl in _libc_implementations:
+            if impl.verify_ld_candidate(path):
+                # Someone claims that this makes sense!
+                return True, impl
+        return False, unknown
+
+    verified_libc_path: str | None = None
+    verified_ld_path: str | None = None
+    verified_libc_impl: LibcWrangler | None = None
+
+    # See if any libc implementation claims one of the candidate libc mappings.
+    for cand in libc_candidates:
+        ok, approver = verify_libc_path(cand)
+        if ok:
+            verified_libc_path = cand
+            verified_libc_impl = approver
+            break
+
+    # See if any libc implementation claims one of the candidate ld mappings.
+    for cand in ld_candidates:
+        ok, approver = verify_ld_path(cand)
+        if ok:
+            # Is there a conflict with the libc verifier?
+            if verified_libc_impl is not None and verified_libc_impl.type() != approver.type():
+                assert verified_libc_path is not None
+                raise LibcNotFound(
+                    f"Conflict: {verified_libc_path} is a {verified_libc_impl.type().value} mapping"
+                    f" while {cand} is a {approver.type()} mapping."
+                )
+
+            verified_ld_path = cand
+            verified_libc_impl = approver
+            break
+
+    return verified_libc_path, verified_ld_path, verified_libc_impl
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def _libc_and_ld_filepath() -> tuple[Path | None, Path | None]:
+def __get_libc() -> tuple[Path, Path, LibcWrangler]:
     """
-    The filepath of the libc and ld shared objects.
+    Find the active libc implementation and the associated libc and ld mappings.
 
-    There may not be a backing file for these Paths if we are remote debugging.
-    The two paths may have the same value for some libc's (e.g. musl).
+    If the program is statically linked, will return the main executable module's
+    Path for the libc and ld path, and still try to infer the libc implementation.
+
+    Returns:
+        A tuple (libc mapping path, ld mapping path, libc implementation).
+
+    Raises:
+        LibcNotFound - If the binary is dynamically linked but we couldn't find
+          any candidate mappings. If we did find them but cannot infer the libc
+          implementation, the "unknown" implementation will be returned and no
+          exception will be raised.
     """
+    # This function works by finding likely libc and ld mappings based on their
+    # path names, and quering the libc implementations on them to see if any
+    # claim the mapping as theirs. If noone claims the mappings, we return the
+    # "unknown" libc implementation with the likely mappings.
+
     inf = pwndbg.dbg.selected_inferior()
     assert inf.alive()
 
@@ -69,7 +126,7 @@ def _libc_and_ld_filepath() -> tuple[Path | None, Path | None]:
         # glibc
         "libc.so.6",
         # musl and bionic (android)
-        "libc.so"
+        "libc.so",
     ]
     exact_ld_basename_matches: list[str] = [
         # x86_64 glibc
@@ -113,60 +170,60 @@ def _libc_and_ld_filepath() -> tuple[Path | None, Path | None]:
             elif ld_regex.search(basename) is not None:
                 possible_ld_paths.append(path)
 
-    def verify_libc_path(path: str) -> tuple[bool, LibcType]:
-        for impl in _libc_implementations:
-            if impl.verify_libc_candidate(path):
-                # Someone claims that this makes sense!
-                return True, impl.type()
-        return False, LibcType.UNKNOWN
+
+    # Put the likeliest paths in the front. But also check the other ones
+    # in case something else gets verified.
+    # Though this would be extremely weird. Maybe we shouldn't allow it?
+    if certain_libc_path:
+        possible_libc_paths = [certain_libc_path] + possible_libc_paths
+    if certain_ld_path:
+        possible_ld_paths = [certain_ld_path] + possible_ld_paths
 
     # Let's see if any libc implementation verifies any of the
     # candidate paths we found.
-    verified_libc_path: str | None = None
-    verified_ld_path: str | None = None
+    verified: tuple[str | None, str | None, LibcWrangler | None] = __check_candidates(possible_libc_paths, possible_ld_paths)
+    verified_libc_path, verified_ld_path, verified_libc_impl = verified
 
-    if certain_libc_path is not None:
-        ok, approver = verify_libc_path(certain_libc_path)
-        if ok:
-            verified_libc_path = certain_libc_path
+    if verified_libc_impl is not None:
+        # Someone approved something!
+        # NOTE: It is maybe contravesial that I return the libc path if only the ld path is found and vice versa.
+        # This is necessary for some libc's like musl where the libc and the ld are always the same mapping,
+        # but it strictly incorrect for other libc's like glibc. I guess we could ask the libc implementation
+        # what it wants us to do and raise an exception if we are in the "strictly incorrect" option.
+        # I'm choosing not to do that because I feel it simply might not actually be a problem for any users of
+        # this, and I'd rather not raise if at all possible to accomodate as many setups as possible.
+        # We can change it later if it ends up troublesome.
+        if verified_libc_path is not None and verified_ld_path is not None:
+            return (Path(verified_libc_path), Path(verified_ld_path), verified_libc_impl)
+        elif verified_libc_path is not None:
+            return (Path(verified_libc_path), Path(verified_libc_path), verified_libc_impl)
+        else:
+            assert verified_ld_path is not None
+            return (Path(verified_ld_path), Path(verified_ld_path), verified_libc_impl)
 
-    if not verified_libc_path:
-        for cand in possible_libc_paths:
-            ok, approver = verify_libc_path(cand)
-            if ok:
-                verified_libc_path = cand
-                break
+    # Noone approved anything. If we have any candidate paths return them, otherwise raise exception.
+    if possible_libc_paths and possible_ld_paths:
+        return (Path(possible_libc_paths[0]), Path(possible_ld_paths[0]), unknown)
+    elif possible_libc_paths:
+        return (Path(possible_libc_paths[0]), Path(possible_libc_paths[0]), unknown)
+    elif possible_ld_paths:
+        return (Path(possible_ld_paths[0]), Path(possible_ld_paths[0]), unknown)
+    else:
+        # NOTE: We could also try to verify all of the other mappings in the address space, which would
+        # sometimes yield us correct detection if the libc is very wierdly named, but it might be rare
+        # enough and slow enough that it's not worth it. Not sure.
+        raise LibcNotFound("No candidate libc or ld mappings found.")
 
-    def verify_ld_path(path: str) -> tuple[bool, LibcType]:
-        for impl in _libc_implementations:
-            if impl.verify_ld_candidate(path):
-                # Someone claims that this makes sense!
-                return True, impl.type()
-        return False, LibcType.UNKNOWN
 
-    if certain_ld_path is not None:
-        ok, approver = verify_ld_path(certain_ld_path)
-        if ok:
-            verified_ld_path = certain_ld_path
 
-    if not verified_ld_path:
-        for cand in possible_ld_paths:
-            ok, approver = verify_ld_path(cand)
-            if ok:
-                verified_ld_path = cand
-                break
+def get_libc() -> LibcWrangler:
+    _, _, libc = __get_libc()
+    return libc
 
-    if verified_libc_path is not None and verified_ld_path is not None:
-        # We are happy.
-        return Path(verified_libc_path), Path(verified_ld_path)
 
-    # think about this more
-
-    # TODO: This might fail if user use LD_PRELOAD to load libc with a weird name or there are multiple shared libraries match the pattern.
-    # (But do we really need to support this case? Maybe we can wait until users really need it :P.)
-    if possible_libc_paths:
-        return possible_libc_paths[0]  # just return the first match for now :)
-    return None
+def which() -> LibcType:
+    libc: LibcWrangler = get_libc()
+    return libc.type()
 
 
 # ======== Public API =========
@@ -195,7 +252,8 @@ def filepath() -> Path:
     There may not be a backing file for this Path if we are remote debugging.
     This may have the same value as loader_filepath() for some libc's.
     """
-    ...
+    path, _, _ = __get_libc()
+    return path
 
 
 def loader_filepath() -> Path:
@@ -205,7 +263,8 @@ def loader_filepath() -> Path:
     There may not be a backing file for this Path if we are remote debugging.
     This may have the same value as filepath() for some libc's.
     """
-    ...
+    _, path, _ = __get_libc()
+    return path
 
 
 def addr() -> int:
