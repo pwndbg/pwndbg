@@ -1761,8 +1761,12 @@ class HeuristicHeap(
     def struct_module(self) -> types.ModuleType | None:
         # Since this function is used to determine whether the heap is resolvable,
         # it may be ran on a non-glibc libc. Especially on the "unknown" libc. So
-        # the version might not be valid.
-        ver = pwndbg.libc.version()
+        # Futher, it could be that we are on "unknown" even though we are on an unsymbolicated glibc.
+        # The allocator is able to figure out if we are using glibc better than the pwndbg/libc/
+        # code. For now we work around it by invoking the glibc version retreival directly
+        # instead of going through pwndbg.libc.version(), but ideally we should a way
+        # to "try really hard" to figure out which libc is being used to the pwndbg/libc code.
+        ver = pwndbg.libc.glibc.version(str(pwndbg.libc.filepath()))
         if not self._structs_module and ver != (-1, -1):
             try:
                 self._structs_module = importlib.reload(

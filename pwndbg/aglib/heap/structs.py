@@ -9,6 +9,7 @@ import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.libc
+import pwndbg.libc.glibc
 from pwndbg.lib.ctypes import Structure
 
 
@@ -25,8 +26,10 @@ def fastbin_index(size: int) -> int:
         return (size >> 3) - 2
 
 
-assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
-GLIBC_VERSION = pwndbg.libc.version()
+# It is possible that we are using the "unknown" libc, but that the allocator knows
+# better about what we can actually pull off. So here we invoke the glibc version
+# resolver directly instead of going through pwndbg.libc.version() .
+GLIBC_VERSION = pwndbg.libc.glibc.version(str(pwndbg.libc.filepath()))
 # TODO: Move these heap constants and macros to elsewhere, because pwndbg/aglib/heap/ptmalloc.py also uses them, we are duplicating them here.
 SIZE_SZ = pwndbg.aglib.arch.ptrsize
 MINSIZE = pwndbg.aglib.arch.ptrsize * 4
