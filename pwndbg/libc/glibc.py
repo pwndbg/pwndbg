@@ -6,12 +6,7 @@ This should never use .facade .
 
 from __future__ import annotations
 
-import functools
 import re
-from collections.abc import Callable
-from typing import TypeVar
-
-from typing_extensions import ParamSpec
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
@@ -24,9 +19,6 @@ from pwndbg.lib.config import Scope
 
 from .dispatch import LibcType
 from .dispatch import LibcURLs
-
-P = ParamSpec("P")
-T = TypeVar("T")
 
 safe_lnk = pwndbg.config.add_param(
     "safe-linking",
@@ -80,26 +72,11 @@ def _get_version() -> tuple[int, ...]:
     return ()
 
 
-
 # ===== Libc Interaface Implementation =====
 
 
 def type() -> LibcType:
     return LibcType.GLIBC
-
-
-@pwndbg.lib.cache.cache_until("start", "objfile")
-def _is_being_used() -> bool:
-    if not has_symbols():
-        return False
-    # __GI_exit exists since at least version 2.3 (until at least 2.42)
-    # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L670
-    # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L642
-    # https://elixir.bootlin.com/glibc/glibc-2.3/source/stdlib/exit.c#L84
-    # and I don't see it in other libc's.
-    # TODO: I haven't checked if the __libc_version symbol exists in other libc's.
-    # If not, we can fully skip this symbol lookup.
-    return pwndbg.aglib.symbol.lookup_symbol_addr("__GI_exit") is not None
 
 
 def version() -> tuple[int, ...]:
@@ -118,7 +95,7 @@ def version() -> tuple[int, ...]:
 def has_symbols() -> bool:
     # __libc_version exists in all versions of glibc
     # https://elixir.bootlin.com/glibc/glibc-1.90/source/version.c#L23
-    return pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version") is not None
+    return pwndbg.aglib.symbol.lookup_symbol("__libc_version") is not None
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -136,8 +113,21 @@ def urls() -> LibcURLs:
         git="https://sourceware.org/git/glibc.git",
     )
 
+
 def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
-    
+    # __GI_exit exists since at least version 2.3 (until at least 2.42)
+    # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L670
+    # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L642
+    # https://elixir.bootlin.com/glibc/glibc-2.3/source/stdlib/exit.c#L84
+    # and I don't see it in other libc's.
+    if pwndbg.aglib.symbol.lookup_symbol("__GI_exit", objfile_endswith=mapping_name) is not None:
+        return UncertainDecision.YES
+    else:
+        # FIXME: Investigate: Is it that there are two levels to shared library symbolication?
+        # 1. stripped -> the exported symbols still need to be available
+        # 2. symbolicated -> the private symbols are also available
+        # If so we need to account for that.
+        return UncertainDecision.NO
 
 
 def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
@@ -147,23 +137,11 @@ def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
 # ===== End of Libc Interaface Implementation =====
 
 
-def OnlyWhenGlibcLoaded(function: Callable[P, T]) -> Callable[P, T | None]:
-    @functools.wraps(function)
-    def _OnlyWhenGlibcLoaded(*a: P.args, **kw: P.kwargs) -> T | None:
-        if _is_being_used():
-            return function(*a, **kw)
-
-        print(f"{function.__name__}: GLibc not loaded yet.")
-        return None
-
-    return _OnlyWhenGlibcLoaded
-
-
-@OnlyWhenGlibcLoaded
 def check_safe_linking() -> bool:
     """
     Safe-linking is a glibc 2.32 mitigation; see:
     - https://lanph3re.blogspot.com/2020/08/blog-post.html
     - https://research.checkpoint.com/2020/safe-linking-eliminating-a-20-year-old-malloc-exploit-primitive/
     """
+    # FIXME: What if we are not being used?
     return (version() >= (2, 32) or safe_lnk.value) and safe_lnk.value is not False

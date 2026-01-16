@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pwndbg.commands
 import pwndbg.libc
+import pwndbg.libc.facade
 from pwndbg.commands import CommandCategory
 
 
@@ -12,12 +13,11 @@ from pwndbg.commands import CommandCategory
 def libcinfo():
     # FIXME: What if some info isn't available?
 
-    libc = pwndbg.libc.get()
-    version = libc.version()
+    version = pwndbg.libc.facade._version()
     version_str = ".".join(map(str, version))
 
     print(f"libc version: {version_str}")
-    urls = libc.urls()
+    urls = pwndbg.libc.urls()
     print("URLs:")
     print("    project homepage:      ", urls.homepage)
     print("    read the source:       ", urls.versioned_readable_source)

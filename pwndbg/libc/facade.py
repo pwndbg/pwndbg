@@ -31,10 +31,9 @@ class LibcNotFound(Exception):
     pass
 
 
-libc_regex = re.compile(r"^libc6?[-_\.]")
-ld_regex = re.compile(r"ld.*\.so(?:\.[0-9]+)?")
-
-def __check_candidates(libc_candidates: list[str], ld_candidates: list[str]) -> tuple[str | None, str | None, LibcWrangler | None]:
+def __check_candidates(
+    libc_candidates: list[str], ld_candidates: list[str]
+) -> tuple[str | None, str | None, LibcWrangler | None]:
     """
     Queries the libc implementations on if any of them claim any libc and ld mappings.
 
@@ -43,6 +42,7 @@ def __check_candidates(libc_candidates: list[str], ld_candidates: list[str]) -> 
         "claiming implementation" will be None. It is possible that exactly one of "claimed libc mapping"
         and "claimed ld mapping" is None.
     """
+
     def verify_libc_path(path: str) -> tuple[bool, LibcWrangler]:
         for impl in _libc_implementations:
             if impl.verify_libc_candidate(path) == UncertainDecision.YES:
@@ -87,22 +87,37 @@ def __check_candidates(libc_candidates: list[str], ld_candidates: list[str]) -> 
 
     return verified_libc_path, verified_ld_path, verified_libc_impl
 
+
+libc_regex = re.compile(r"^libc6?[-_\.]")
+ld_regex = re.compile(r"ld.*\.so(?:\.[0-9]+)?")
+
+# TODO: A potentially significant performance optimization could be, if we have a LibcWrangler
+# which is not "unknown", we don't need to clear the cache on objfile events (but probably still
+# should on start events).
+
+
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def __get_libc() -> tuple[Path, Path, LibcWrangler]:
     """
     Find the active libc implementation and the associated libc and ld mappings.
 
+    The process must be alive when this is called.
+
     If the program is statically linked, will return the main executable module's
     Path for the libc and ld path, and still try to infer the libc implementation.
+
+    If a libc implementation approves only a libc mapping but not an ld mapping or
+    vice-versa, that mapping will be returned both as the libc and ld mapping.
+
+    If no libc verifies anything, but there is at least one libc OR ld candidate
+    mapping, it/they will be returned along with the "unknown" libc implementation.
 
     Returns:
         A tuple (libc mapping path, ld mapping path, libc implementation).
 
     Raises:
-        LibcNotFound - If the binary is dynamically linked but we couldn't find
-          any candidate mappings. If we did find them but cannot infer the libc
-          implementation, the "unknown" implementation will be returned and no
-          exception will be raised.
+        LibcNotFound - If the binary is dynamically linked and we couldn't find
+          any candidate mappings.
     """
     # This function works by finding likely libc and ld mappings based on their
     # path names, and quering the libc implementations on them to see if any
@@ -170,7 +185,6 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
             elif ld_regex.search(basename) is not None:
                 possible_ld_paths.append(path)
 
-
     # Put the likeliest paths in the front. But also check the other ones
     # in case something else gets verified.
     # Though this would be extremely weird. Maybe we shouldn't allow it?
@@ -179,9 +193,19 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
     if certain_ld_path:
         possible_ld_paths = [certain_ld_path] + possible_ld_paths
 
+    # If we are statically linked, pass in the main module as it will contain
+    # some libc stuff inside it (only the stuff that is actaully used).
+    if not pwndbg.dbg.selected_inferior().is_dynamically_linked():
+        # maybe_main_module should be non-None if the process is alive.
+        assert maybe_main_module is not None
+        possible_libc_paths = [maybe_main_module]
+        possible_ld_paths = [maybe_main_module]
+
     # Let's see if any libc implementation verifies any of the
     # candidate paths we found.
-    verified: tuple[str | None, str | None, LibcWrangler | None] = __check_candidates(possible_libc_paths, possible_ld_paths)
+    verified: tuple[str | None, str | None, LibcWrangler | None] = __check_candidates(
+        possible_libc_paths, possible_ld_paths
+    )
     verified_libc_path, verified_ld_path, verified_libc_impl = verified
 
     if verified_libc_impl is not None:
@@ -212,10 +236,12 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
         # NOTE: We could also try to verify all of the other mappings in the address space, which would
         # sometimes yield us correct detection if the libc is very wierdly named, but it might be rare
         # enough and slow enough that it's not worth it. Not sure.
+        # But if none of those get approved, we shouldn't return the first "candidate" match but really
+        # raise.
         raise LibcNotFound("No candidate libc or ld mappings found.")
 
 
-
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def get_libc() -> LibcWrangler:
     _, _, libc = __get_libc()
     return libc
@@ -340,3 +366,9 @@ def urls() -> LibcURLs:
 
 
 # ======== End of Public API =========
+
+
+def _version() -> tuple[int, ...]:
+    # Convenience, only for the libcinfo command.
+    libc: LibcWrangler = get_libc()
+    return libc.version()
