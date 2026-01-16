@@ -161,13 +161,13 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
         return explored_page.start
 
     # Look backwards from i to find all the mappings with the same name.
-    objname = mappings[i].objfile
-    while i > 0 and objname == mappings[i - 1].objfile:
-        i -= 1
+    objname = mappings[idx].objfile
+    while idx > 0 and objname == mappings[idx - 1].objfile:
+        idx -= 1
 
     # There might be other mappings with the name "objname" in the address space
     # but they are not contiguous with us, so we don't care.
-    return mappings[i].start
+    return mappings[idx].start
 
 
 def named_region_start(mapping_name: str, exact_match: bool = True) -> int | None:
