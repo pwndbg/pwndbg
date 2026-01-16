@@ -79,6 +79,44 @@ def get_mm_struct_and_offset(task: int, tasks_offset: int) -> Tuple[str, int]:
 """
     pid_t				pid;
     pid_t				tgid;
+
+#ifdef CONFIG_STACKPROTECTOR
+    /* Canary value for the -fstack-protector GCC feature: */
+    unsigned long			stack_canary;
+#endif
+    /*
+        * Pointers to the (original) parent process, youngest child, younger sibling,
+        * older sibling, respectively.  (p->father can be replaced with
+        * p->real_parent->pid)
+        */
+
+    /* Real parent process: */
+    struct task_struct __rcu	*real_parent;
+
+    /* Recipient of SIGCHLD, wait4() reports: */
+    struct task_struct __rcu	*parent;
+
+    /*
+        * Children/sibling form the list of natural children:
+        */
+    struct list_head		children;
+    struct list_head		sibling;
+    struct task_struct		*group_leader;
+
+    /*
+        * 'ptraced' is the list of tasks this task is using ptrace() on.
+        *
+        * This includes both natural children and PTRACE_ATTACH targets.
+        * 'ptrace_entry' is this task's link on the p->parent->ptraced list.
+        */
+    struct list_head		ptraced;
+    struct list_head		ptrace_entry;
+
+    /* PID/PID hash table linkage. */
+    struct pid			*thread_pid;
+    struct hlist_node		pid_links[PIDTYPE_MAX]; // PIDTYPE_MAX == 4
+    struct list_head		thread_group; // <= 6.6
+    struct list_head		thread_node;
 """
 
 ROOT_COMM = "swapper/0"
@@ -102,6 +140,16 @@ def get_pid_offset(tasks: List[int], mm_offset: int, comm_offset: int) -> int:
         else:
             return off
     raise AssertionError("cannot find the offset of task_struct->pid")
+
+
+def get_thread_list_offset(pid_offset: int):
+    # thread_group if <= 6.6 else thread_node
+    off = pid_offset
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    off += 4 + 20 * ptrsize
+    if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
+        off += ptrsize
+    return off
 
 
 """
@@ -189,8 +237,6 @@ def get_cred_struct_and_offset(tasks: List[int], comm_offset: int) -> Tuple[str,
                 break
             off -= ptrsize
     assert cred_offset, "cannot find the offset of task_struct->cred"
-    """
-    """
     kversion = pwndbg.aglib.kernel.krelease()
     assert kversion, "kernel version needed to recover struct cred"
     if kversion < (6, 1, 69):
@@ -345,6 +391,7 @@ def load_ktask_typeinfo() -> None:
     mm_struct, mm_offset = get_mm_struct_and_offset(task, tasks_offset)
     task, comm_offset = get_comm_offset(tasks)
     pid_offset = get_pid_offset(tasks, mm_offset, comm_offset)
+    thread_list_offset = get_thread_list_offset(pid_offset)
     cred_struct, cred_offset = get_cred_struct_and_offset(tasks, comm_offset)
     files_structs, files_offset = get_files_struct_and_offset(task, comm_offset)
     nsproxy_struct, nsproxy_offset = get_nsproxy_struct_and_offset(task, files_offset)
@@ -356,6 +403,9 @@ def load_ktask_typeinfo() -> None:
     result += files_structs
     result += nsproxy_struct
     result += get_signal_struct()
+    if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
+        result += "#define CONFIG_STACKPROTECTOR\n"
+    result += f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += f"""
     struct task_struct {{
         char _pad1[{tasks_offset}];
@@ -365,7 +415,21 @@ def load_ktask_typeinfo() -> None:
         struct mm_struct *active_mm;
         char __pad1[{pid_offset - (mm_offset + ptrsize * 2)}];
         pid_t pid;
-        char _pad3[{cred_offset - pid_offset} - sizeof(pid_t)];
+        pid_t tgid;
+#ifdef CONFIG_STACKPROTECTOR
+        unsigned long stack_canary;
+        char __pad2[{thread_list_offset - pid_offset} - sizeof(pid_t) * 2 - sizeof(unsigned long)];
+#else
+        char __pad2[{thread_list_offset - pid_offset} - sizeof(pid_t) * 2];
+#endif
+#if KVERSION <= KERNEL_VERSION(6, 6, 0)
+        struct list_head thread_group;
+        char _pad3[{cred_offset - (thread_list_offset + ptrsize * 2)}];
+#else
+        struct list_head thread_group;
+        struct list_head thread_node;
+        char _pad3[{cred_offset - (thread_list_offset + ptrsize * 4)}];
+#endif
         struct cred *cred;
         char _pad4[{comm_offset - (cred_offset + ptrsize)}];
         char comm[{TASK_COMM_LEN}];
@@ -378,5 +442,6 @@ def load_ktask_typeinfo() -> None:
     }}
     """
 
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "task_structs", True)
+    print(result)
+    # header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
+    # pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "task_structs", True)

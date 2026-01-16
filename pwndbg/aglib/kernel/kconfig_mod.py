@@ -68,6 +68,8 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             self.data["CONFIG_SECURITY"] = "y"
         if self.CONFIG_THREAD_INFO_IN_TASK:
             self.data["CONFIG_THREAD_INFO_IN_TASK"] = "y"
+        if self.CONFIG_STACKPROTECTOR:
+            self.data["CONFIG_STACKPROTECTOR"] = "y"
 
     def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
@@ -187,6 +189,10 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     @property
     def CONFIG_THREAD_INFO_IN_TASK(self) -> bool:
+        return pwndbg.aglib.symbol.lookup_symbol("put_task_stack") is not None
+
+    @property
+    def CONFIG_STACKPROTECTOR(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("put_task_stack") is not None
 
     def update_with_file(self, file_path):

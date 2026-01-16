@@ -80,8 +80,12 @@ class Ktask:
         self.task = task
         threads = []
         signal = task["signal"]
+        thread_list = "thread_node"
+        kversion = pwndbg.aglib.kernel.krelease()
+        if kversion and kversion <= (6, 6, 0):
+            thread_list = "thread_group"
         # Iterate through all threads in the task_struct's thread list.
-        for thread in for_each_entry(signal["thread_head"], "struct task_struct", "thread_node"):
+        for thread in for_each_entry(signal["thread_head"], "struct task_struct", thread_list):
             kthread = Kthread(thread)
             threads.append(kthread)
         self.threads = threads
