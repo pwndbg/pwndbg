@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 
+import pwndbg.aglib.elf
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
@@ -47,29 +48,31 @@ def set_glibc_version() -> None:
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def _get_version() -> tuple[int, ...]:
-    if has_symbols():
-        addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version")
-        if addr is None:
-            raise ValueError("Glibc has symbols but doesn't have the __libc_version symbol?")
-
+def _get_version(libc_filepath: str) -> tuple[int, ...]:
+    addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version", objfile_endswith=libc_filepath)
+    if addr is not None:
         ver = pwndbg.aglib.memory.string(addr)
         return tuple(int(_) for _ in ver.split(b"."))
 
-    # libc_filename = get_libc_filename_from_info_sharedlibrary()
-    # if not libc_filename:
-    #     return None
-    # result = pwndbg.aglib.elf.section_by_name(libc_filename, ".rodata", try_local_path=True)
-    # if result is None:
-    #     return None
-    # _, _, data = result
-    # banner_start = data.find(b"GNU C Library")
-    # if banner_start == -1:
-    #     return None
-    # banner = data[banner_start : data.find(b"\x00", banner_start)]
-    # ret = re.search(rb"release version (\d+)\.(\d+)", banner)
-    # return tuple(int(_) for _ in ret.groups()) if ret else None
-    return ()
+    result = pwndbg.aglib.elf.section_by_name(libc_filepath, ".rodata", try_local_path=True)
+    if result is None:
+        raise Exception(f"Could not retrieve .rodata section of glibc {libc_filepath}")
+
+    _, _, data = result
+    banner_start = data.find(b"GNU C Library")
+    if banner_start == -1:
+        raise Exception(
+            f"Could not find 'GNU C Library' in .rodata section of glibc {libc_filepath}"
+        )
+
+    banner = data[banner_start : data.find(b"\x00", banner_start)]
+    ret = re.search(rb"release version (\d+)\.(\d+)", banner)
+    if ret is None:
+        raise Exception(
+            f"Could not find 'release version' in .rodata section of glibc {libc_filepath}"
+        )
+
+    return tuple(int(_) for _ in ret.groups())
 
 
 # ===== Libc Interaface Implementation =====
@@ -93,6 +96,11 @@ def version() -> tuple[int, ...]:
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def has_symbols(libc_mapping: str) -> bool:
+    # FIXME: Investigate: Is it that there are two levels to shared library symbolication?
+    # 1. stripped -> the exported symbols still need to be available
+    # 2. symbolicated -> the private symbols are also available
+    # If so we need to account for that.
+
     # __libc_version exists in all versions of glibc
     # https://elixir.bootlin.com/glibc/glibc-1.90/source/version.c#L23
     return (

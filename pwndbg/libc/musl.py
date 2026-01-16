@@ -23,6 +23,7 @@ def version() -> tuple[int, ...]:
 
 
 def has_symbols(libc_mapping: str) -> bool:
+    # FIXME: Do me after investigating the thing mentioned in glibc/has_symbols
     return True
 
 
