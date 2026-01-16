@@ -13,6 +13,7 @@ from .facade import relocations_by_section_name
 from .facade import section_address_by_name
 from .facade import section_by_name
 from .facade import urls
+from .facade import version
 from .facade import which
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "section_address_by_name",
     "section_by_name",
     "urls",
+    "version",
 ]

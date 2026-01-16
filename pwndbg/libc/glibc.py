@@ -82,12 +82,12 @@ def type() -> LibcType:
     return LibcType.GLIBC
 
 
-def version() -> tuple[int, ...]:
+def version(libc_filepath: str) -> tuple[int, ...]:
     if glibc_version:
         version_tuple = tuple(int(i) for i in glibc_version.value.split("."))
         return version_tuple
 
-    return _get_version()
+    return _get_version(libc_filepath)
 
 
 # NOTE: I am operating under the assumption that debuginfod and add-symbol-file
@@ -95,7 +95,7 @@ def version() -> tuple[int, ...]:
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def has_symbols(libc_mapping: str) -> bool:
+def has_symbols(libc_filepath: str) -> bool:
     # FIXME: Investigate: Is it that there are two levels to shared library symbolication?
     # 1. stripped -> the exported symbols still need to be available
     # 2. symbolicated -> the private symbols are also available
@@ -104,7 +104,7 @@ def has_symbols(libc_mapping: str) -> bool:
     # __libc_version exists in all versions of glibc
     # https://elixir.bootlin.com/glibc/glibc-1.90/source/version.c#L23
     return (
-        pwndbg.aglib.symbol.lookup_symbol("__libc_version", objfile_endswith=libc_mapping)
+        pwndbg.aglib.symbol.lookup_symbol("__libc_version", objfile_endswith=libc_filepath)
         is not None
     )
 

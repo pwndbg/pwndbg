@@ -24,9 +24,6 @@ class LibcURLs:
 class LibcWrangler(Protocol):
     """
     Libc implementations must conform to this protocol in order to be properly used by the facade.
-
-    The following functions are not used by the facade but are rather useful to have only when the caller
-    knows the libc implementation (so we intentionally don't want to expose them to the facade): version.
     """
 
     def type(self) -> LibcType:
@@ -35,20 +32,16 @@ class LibcWrangler(Protocol):
         """
         ...
 
-    def version(self) -> tuple[int, ...]:
+    def version(self, libc_filepath: str) -> tuple[int, ...]:
         """
         Get the version of the libc implementation as a tuple.
-
-        This shouldn't be put behind the facade because you should
-        only care about the libc version if you know which libc
-        you are using.
 
         It may not always be possible to implement this, in which case
         this raises a NotImplementedError.
         """
         ...
 
-    def has_symbols(self, libc_mapping: str) -> bool:
+    def has_symbols(self, libc_filepath: str) -> bool:
         """
         Can we read out global variables and functions in the libc object file?
         """

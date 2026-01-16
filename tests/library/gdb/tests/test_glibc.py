@@ -80,8 +80,8 @@ def test_set_glibc_version(start_binary):
 
     err = gdb.execute("set glibc 2.31", to_string=True)
     assert err == ""
-    assert pwndbg.libc.glibc.version() == (2, 31)
+    assert pwndbg.libc.version() == (2, 31)
 
     err = gdb.execute("set glibc 2.34", to_string=True)
     assert err == ""
-    assert pwndbg.libc.glibc.version() == (2, 34)
+    assert pwndbg.libc.version() == (2, 34)

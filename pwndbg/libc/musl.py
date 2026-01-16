@@ -18,11 +18,11 @@ def type() -> LibcType:
     return LibcType.MUSL
 
 
-def version() -> tuple[int, ...]:
+def version(libc_filepath: str) -> tuple[int, ...]:
     raise NotImplementedError
 
 
-def has_symbols(libc_mapping: str) -> bool:
+def has_symbols(libc_filepath: str) -> bool:
     # FIXME: Do me after investigating the thing mentioned in glibc/has_symbols
     return True
 

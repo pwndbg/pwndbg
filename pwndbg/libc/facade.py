@@ -365,10 +365,16 @@ def urls() -> LibcURLs:
     return libc.urls()
 
 
+def version() -> tuple[int, ...]:
+    """
+    Get the version of the libc implementation as a tuple.
+
+    If you are calling this, you must know exactly which libc is being used.
+
+    Some libc's do not implement this and raise a NotImplementedError.
+    """
+    path, _, libc = __get_libc()
+    return libc.version(str(path))
+
+
 # ======== End of Public API =========
-
-
-def _version() -> tuple[int, ...]:
-    # Convenience, only for the libcinfo command.
-    libc: LibcWrangler = get_libc()
-    return libc.version()

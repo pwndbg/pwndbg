@@ -1122,7 +1122,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     @pwndbg.lib.cache.cache_until("objfile")
     def malloc_alignment(self) -> int:
         """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
-        if pwndbg.aglib.arch.name == "i386" and pwndbg.libc.glibc.version() >= (2, 26):
+        if pwndbg.aglib.arch.name == "i386" and pwndbg.libc.version() >= (2, 26):
             # i386 will override it to 16 when GLIBC version >= 2.26
             # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
             return 16
@@ -1263,7 +1263,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
         # this will break expected output during tests, so we skip it
         if (
-            pwndbg.libc.glibc.version() >= (2, 42)
+            pwndbg.libc.version() >= (2, 42)
             and not hasattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued")
             and os.environ.get("PWNDBG_IN_TEST") is None
         ):
@@ -1293,7 +1293,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         for i in range(num_tcachebins):
             size = self._request2size(tidx2usize(i))
             count = int(counts[i])
-            if pwndbg.libc.glibc.version() >= (2, 42):
+            if pwndbg.libc.version() >= (2, 42):
                 count = int(self.mp["tcache_count"]) - count
             chain = pwndbg.chain.get(
                 int(entries[i]),
@@ -1770,7 +1770,7 @@ class HeuristicHeap(
 
     @property
     def struct_module(self) -> types.ModuleType | None:
-        if not self._structs_module and pwndbg.libc.glibc.version():
+        if not self._structs_module and pwndbg.libc.version():
             try:
                 self._structs_module = importlib.reload(
                     importlib.import_module("pwndbg.aglib.heap.structs")
@@ -1895,7 +1895,7 @@ class HeuristicHeap(
         # TODO/FIXME: Can we determine the tcache_bins existence more reliable?
 
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
-        return self.is_initialized() and pwndbg.libc.glibc.version() >= (2, 26)
+        return self.is_initialized() and pwndbg.libc.version() >= (2, 26)
 
     def prompt_for_brute_force_thread_arena_permission(self) -> bool:
         """Check if the user wants to brute force the thread_arena's value."""

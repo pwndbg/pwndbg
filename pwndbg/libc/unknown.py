@@ -21,11 +21,11 @@ def _is_being_used() -> bool:
     return True
 
 
-def version() -> tuple[int, ...]:
+def version(libc_filepath: str) -> tuple[int, ...]:
     raise NotImplementedError
 
 
-def has_symbols(libc_mapping: str) -> bool:
+def has_symbols(libc_filepath: str) -> bool:
     return False
 
 

@@ -13,7 +13,7 @@ from pwndbg.commands import CommandCategory
 def libcinfo():
     # FIXME: What if some info isn't available?
 
-    version = pwndbg.libc.facade._version()
+    version = pwndbg.libc.facade.version()
     version_str = ".".join(map(str, version))
 
     print(f"libc version: {version_str}")
