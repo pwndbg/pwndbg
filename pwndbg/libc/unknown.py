@@ -45,8 +45,8 @@ def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
 
 def urls(ver: tuple[int, ...] | None) -> LibcURLs:
     return LibcURLs(
-        versioned_readable_source="",
-        versioned_compressed_source="",
-        homepage="",
-        git="",
+        versioned_readable_source="not available",
+        versioned_compressed_source="not available",
+        homepage="not available",
+        git="not available",
     )

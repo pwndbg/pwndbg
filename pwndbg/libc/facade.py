@@ -53,7 +53,7 @@ def __check_candidates(
 
     def verify_ld_path(path: str) -> tuple[bool, LibcWrangler]:
         for impl in _libc_implementations:
-            if impl.verify_ld_candidate(path):
+            if impl.verify_ld_candidate(path) == UncertainDecision.YES:
                 # Someone claims that this makes sense!
                 return True, impl
         return False, unknown
@@ -395,6 +395,9 @@ def version() -> tuple[int, ...]:
     If you are calling this, you must know exactly which libc is being used.
 
     Some libc's do not implement this and raise a NotImplementedError.
+
+    Some libc's implement this partially, and return (-1, -1) when they can't recover
+    version information.
     """
     path, _, libc = __get_libc()
     return libc.version(str(path))
