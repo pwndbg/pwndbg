@@ -17,6 +17,7 @@ from collections.abc import Generator
 from collections.abc import Iterator
 from collections.abc import Sequence
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 from typing import Literal
 from typing import TypeVar
@@ -1595,7 +1596,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         objfile: lldb.SBModule | None = None
         if objfile_endswith is not None:
             for m in self.target.module_iter():
-                if str(m.file.fullpath).endswith(objfile_endswith):
+                # FIXME: Path().resolve() is a workaround for #3641
+                if str(Path(m.file.fullpath).resolve()).endswith(objfile_endswith):
                     objfile = m
                     break
             if objfile is None:
