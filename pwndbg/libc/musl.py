@@ -7,28 +7,49 @@ This should never use .facade .
 from __future__ import annotations
 
 import pwndbg.aglib.elf
+import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
+import pwndbg.lib.cache
 from pwndbg.lib.common import UncertainDecision
 
 from .dispatch import LibcType
 from .dispatch import LibcURLs
+from .util import version_parse
 
 
 def type() -> LibcType:
     return LibcType.MUSL
 
 
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def version(libc_filepath: str) -> tuple[int, ...]:
-    raise NotImplementedError
+    # __libc_version is an internal symbol in musl, added in version v1.1.21
+    # https://elixir.bootlin.com/musl/v1.1.21/source/src/internal/version.c#L4
+    addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version", objfile_endswith=libc_filepath)
+    if addr is not None:
+        ver = pwndbg.aglib.memory.string(addr)
+        return version_parse(ver)
+
+    # The version string is simply not embedded into older versions of musl afaict.
+    return (-1, -1)
 
 
-def has_symbols(libc_filepath: str) -> bool:
-    # FIXME: Do me after investigating the thing mentioned in glibc/has_symbols
-    return True
+@pwndbg.lib.cache.cache_until("start", "objfile")
+def has_internal_symbols(libc_filepath: str) -> bool:
+    # The __polevll symbol is an internal symbol in musl. Doesn't exist in bionic nor glibc.
+    # It was added in version v0.8.7 (year 2012).
+    # https://elixir.bootlin.com/musl/v0.8.7/source/src/math/__polevll.c#L63
+    return (
+        pwndbg.aglib.symbol.lookup_symbol("__polevll", objfile_endswith=libc_filepath) is not None
+    )
 
 
+@pwndbg.lib.cache.cache_until("start", "objfile")
 def has_debug_info() -> bool:
-    return True
+    # Available since the first release (0.5.0). (elixir doesn't have it on hand)
+    # https://elixir.bootlin.com/musl/v0.5.9/source/include/bits/pthread.h#L1
+    return pwndbg.aglib.typeinfo.load("struct __ptcb") is not None
 
 
 def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
@@ -59,11 +80,19 @@ def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
 
 
 def urls(ver: tuple[int, ...] | None) -> LibcURLs:
-    assert ver is None
-    # FIXME: Can we get the version somehow?
-    return LibcURLs(
-        versioned_readable_source="https://elixir.bootlin.com/musl/latest/source",
-        versioned_compressed_source="https://musl.libc.org/releases/musl-1.2.5.tar.gz",
-        homepage="https://musl.libc.org/",
-        git="git://git.musl-libc.org/musl",
-    )
+    assert ver is not None
+    if ver[0] == -1:
+        return LibcURLs(
+            versioned_readable_source="https://elixir.bootlin.com/musl/latest/source",
+            versioned_compressed_source="https://musl.libc.org/releases/musl-<vmajor>.<vminor>.<vpath>.tar.gz",
+            homepage="https://musl.libc.org/",
+            git="git://git.musl-libc.org/musl",
+        )
+    else:
+        ver_str = ".".join(map(str, ver))
+        return LibcURLs(
+            versioned_readable_source=f"https://elixir.bootlin.com/musl/v{ver_str}/source",
+            versioned_compressed_source=f"https://musl.libc.org/releases/musl-{ver_str}.tar.gz",
+            homepage="https://musl.libc.org/",
+            git="git://git.musl-libc.org/musl",
+        )

@@ -12,6 +12,7 @@ from elftools.elf.relocation import Relocation
 
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
 from pwndbg.lib.common import UncertainDecision
@@ -255,12 +256,30 @@ def which() -> LibcType:
 # ======== Public API =========
 
 
-def has_symbols() -> bool:
+def has_exported_symbols() -> bool:
     """
-    Can we read out global variables and functions in the libc object file?
+    Do we have exported library symbols (e.g. fscanf, read, write)?
+
+    If the library is dynamically linked, they will always be there. If it is statically
+    linked and stripped, they may be missing.
+    """
+    return pwndbg.aglib.symbol.lookup_symbol("fscanf", objfile_endswith=str(filepath())) is not None
+
+
+def has_internal_symbols() -> bool:
+    """
+    Do we have internal library symbols?
+
+    If the library is dynamically linked, even if it is stripped it will retain its
+    exported symbols (e.g. fscanf) because they are required for dynamic linking.
+
+    This funcions checks if the non-exported symbols (like __GI_exit, __run_exit_handlers,
+    intitial) are also available.
+
+    Symbols are global variables and functions. Internal symbols also come with debug info.
     """
     path, _, libc = __get_libc()
-    return libc.has_symbols(str(path))
+    return libc.has_internal_symbols(str(path))
 
 
 def has_debug_info() -> bool:

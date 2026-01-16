@@ -25,7 +25,7 @@ def version(libc_filepath: str) -> tuple[int, ...]:
     raise NotImplementedError
 
 
-def has_symbols(libc_filepath: str) -> bool:
+def has_internal_symbols(libc_filepath: str) -> bool:
     return False
 
 

@@ -41,9 +41,17 @@ class LibcWrangler(Protocol):
         """
         ...
 
-    def has_symbols(self, libc_filepath: str) -> bool:
+    def has_internal_symbols(self, libc_filepath: str) -> bool:
         """
-        Can we read out global variables and functions in the libc object file?
+        Do we have internal library symbols?
+
+        If the library is dynamically linked, even if it is stripped it will retain its
+        exported symbols (e.g. fscanf) because they are required for dynamic linking.
+
+        This funcions checks if the non-exported symbols (like __GI_exit, __run_exit_handlers,
+        intitial) are also available.
+
+        Symbols are global variables and functions. Internal symbols also come with debug info.
         """
         ...
 

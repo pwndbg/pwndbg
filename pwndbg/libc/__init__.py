@@ -6,7 +6,8 @@ from .dispatch import LibcWrangler
 from .facade import addr
 from .facade import filepath
 from .facade import has_debug_info
-from .facade import has_symbols
+from .facade import has_exported_symbols
+from .facade import has_internal_symbols
 from .facade import loader_addr
 from .facade import loader_filepath
 from .facade import relocations_by_section_name
@@ -24,7 +25,8 @@ __all__ = [
     "addr",
     "filepath",
     "has_debug_info",
-    "has_symbols",
+    "has_exported_symbols",
+    "has_internal_symbols",
     "loader_addr",
     "loader_filepath",
     "relocations_by_section_name",

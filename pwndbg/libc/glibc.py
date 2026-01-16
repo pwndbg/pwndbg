@@ -20,6 +20,7 @@ from pwndbg.lib.config import Scope
 
 from .dispatch import LibcType
 from .dispatch import LibcURLs
+from .util import version_parse
 
 safe_lnk = pwndbg.config.add_param(
     "safe-linking",
@@ -52,7 +53,7 @@ def _get_version(libc_filepath: str) -> tuple[int, ...]:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version", objfile_endswith=libc_filepath)
     if addr is not None:
         ver = pwndbg.aglib.memory.string(addr)
-        return tuple(int(_) for _ in ver.split(b"."))
+        return version_parse(ver)
 
     result = pwndbg.aglib.elf.section_by_name(libc_filepath, ".rodata", try_local_path=True)
     if result is None:
@@ -95,13 +96,8 @@ def version(libc_filepath: str) -> tuple[int, ...]:
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def has_symbols(libc_filepath: str) -> bool:
-    # FIXME: Investigate: Is it that there are two levels to shared library symbolication?
-    # 1. stripped -> the exported symbols still need to be available
-    # 2. symbolicated -> the private symbols are also available
-    # If so we need to account for that.
-
-    # __libc_version exists in all versions of glibc
+def has_internal_symbols(libc_filepath: str) -> bool:
+    # __libc_version exists in all versions of glibc and is an internal symbol.
     # https://elixir.bootlin.com/glibc/glibc-1.90/source/version.c#L23
     return (
         pwndbg.aglib.symbol.lookup_symbol("__libc_version", objfile_endswith=libc_filepath)
@@ -126,6 +122,11 @@ def urls(ver: tuple[int, ...] | None) -> LibcURLs:
 
 
 def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
+    if not has_internal_symbols(mapping_name):
+        # __GI_exit is an internal symbol. If they aren't available we can't use it
+        # to check.
+        return UncertainDecision.DONTKNOW
+
     # __GI_exit exists since at least version 2.3 (until at least 2.42)
     # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L670
     # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L642
@@ -134,10 +135,6 @@ def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
     if pwndbg.aglib.symbol.lookup_symbol("__GI_exit", objfile_endswith=mapping_name) is not None:
         return UncertainDecision.YES
     else:
-        # FIXME: Investigate: Is it that there are two levels to shared library symbolication?
-        # 1. stripped -> the exported symbols still need to be available
-        # 2. symbolicated -> the private symbols are also available
-        # If so we need to account for that.
         return UncertainDecision.NO
 
 
