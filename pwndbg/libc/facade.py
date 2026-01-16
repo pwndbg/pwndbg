@@ -362,7 +362,11 @@ def urls() -> LibcURLs:
     Get useful URLs regarding this libc implementation.
     """
     libc: LibcWrangler = get_libc()
-    return libc.urls()
+    try:
+        ver = version()
+        return libc.urls(ver)
+    except NotImplementedError:
+        return libc.urls(None)
 
 
 def version() -> tuple[int, ...]:

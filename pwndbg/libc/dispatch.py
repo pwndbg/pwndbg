@@ -53,9 +53,12 @@ class LibcWrangler(Protocol):
         """
         ...
 
-    def urls(self) -> LibcURLs:
+    def urls(self, ver: tuple[int, ...] | None) -> LibcURLs:
         """
         Get useful URLs regarding this libc implementation.
+
+        `ver` is the version tuple. If a libc implements the version() function
+        it must `assert ver is not None`, otherwise it must `assert ver is None`.
         """
         ...
 

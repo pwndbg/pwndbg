@@ -114,8 +114,8 @@ def has_debug_info() -> bool:
     return pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
 
 
-def urls() -> LibcURLs:
-    ver = version()
+def urls(ver: tuple[int, ...] | None) -> LibcURLs:
+    assert ver is not None
     ver_str = ".".join(map(str, ver))
     return LibcURLs(
         versioned_readable_source=f"https://elixir.bootlin.com/glibc/glibc-{ver_str}/source",

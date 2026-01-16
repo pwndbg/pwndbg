@@ -58,7 +58,8 @@ def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
     return verify_libc_candidate(mapping_name)
 
 
-def urls() -> LibcURLs:
+def urls(ver: tuple[int, ...] | None) -> LibcURLs:
+    assert ver is None
     # FIXME: Can we get the version somehow?
     return LibcURLs(
         versioned_readable_source="https://elixir.bootlin.com/musl/latest/source",

@@ -43,7 +43,7 @@ def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
     return UncertainDecision.DONTKNOW
 
 
-def urls() -> LibcURLs:
+def urls(ver: tuple[int, ...] | None) -> LibcURLs:
     return LibcURLs(
         versioned_readable_source="",
         versioned_compressed_source="",
