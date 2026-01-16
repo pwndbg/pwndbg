@@ -72,6 +72,10 @@ def test_set_glibc_version(start_binary):
     # Needed for glibc.version() as it requires an alive process.
     start_binary(HEAP_MALLOC_CHUNK)
 
+    # Make sure glibc is loaded.
+    gdb.execute("break main")
+    gdb.execute("continue")
+
     assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
 
     errmsg = "Invalid GLIBC version:"
