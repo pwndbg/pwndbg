@@ -214,12 +214,13 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         # to read from the inferior. `sp` is resolved by GDB to the architecture-specific stack pointer.
         return int(self.regs().by_name("sp"))
 
+    @override
     def start(self) -> int | None:
         # How is it possible that this isn't in the API?
         # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
         import pwndbg.aglib
 
-        # We're gonna parse this:.
+        # We're gonna parse this:
         # e.g. `str(self.inner) == "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"`
         # See gdb/python/py-frame.c:frapy_str() and gdb/frame.c:frame_id::to_string()
         # They really could just expose .stack() as an API...
