@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
 import pwndbg.chain
 import pwndbg.color as color
@@ -29,8 +30,10 @@ parser.add_argument("--fd", nargs="?", type=int, help="")
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugInfo
+@pwndbg.commands.OnlyWithKernelSymbols
 def kfile(pid=None, fd=None):
+    if not pwndbg.aglib.kernel.has_debug_info():
+        pwndbg.aglib.kernel.ktask.load_ktask_typeinfo()
     if pid is None:
         if KCURRENT_PID is None:
             kcurrent(None, set_pid=True, verbose=False)
@@ -79,8 +82,10 @@ parser.add_argument(
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugInfo
+@pwndbg.commands.OnlyWithKernelSymbols
 def kcurrent(pid=None, set_pid=False, verbose=True):
+    if not pwndbg.aglib.kernel.has_debug_info():
+        pwndbg.aglib.kernel.ktask.load_ktask_typeinfo()
     global KCURRENT_PID, KCURRENT_PGD
     kthread = None
     if pid is None:

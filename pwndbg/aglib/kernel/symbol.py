@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from typing import List
 from typing import Optional
 from typing import Tuple
 
@@ -128,7 +129,7 @@ def get_double_linked_list(
     result = []
     for _ in range(maxlen):
         if not pwndbg.aglib.memory.is_kernel(nxt):
-            return False
+            return None
         result.append(nxt)
         nxt = pwndbg.aglib.memory.read_pointer_width(nxt)
         if nxt == result[0]:
@@ -171,6 +172,9 @@ typedef int pid_t;
 typedef struct {
     int counter;
 } atomic_t;
+typedef struct refcount_struct {
+	atomic_t refs;
+} refcount_t;
 
 struct list_head {
     struct list_head *next, *prev;
@@ -402,19 +406,22 @@ class ArchSymbols:
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
     def current_task(self) -> pwndbg.dbg_mod.Value:
-        current_task = pwndbg.aglib.symbol.lookup_symbol("current_task")
-        if current_task:
-            current_task = pwndbg.aglib.kernel.per_cpu(current_task)
-            return current_task.dereference()
+        # using symbols usually yield incorrect results
         if pwndbg.aglib.arch.name == "aarch64":
             current_task = self._current_task()
         elif pwndbg.aglib.kernel.has_debug_symbols(self.current_task_heuristic_func):
             current_task = self._current_task()
             if current_task is not None:
                 current_task = pwndbg.aglib.kernel.per_cpu(current_task)
-            # current_task is int but needed here to make the linter happy
-            current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
+                # current_task is int but needed here to make the linter happy
+                current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
+
+    def init_task(self) -> pwndbg.dbg_mod.Value:
+        init_task = pwndbg.aglib.symbol.lookup_symbol("init_task")
+        if not init_task:
+            init_task = pwndbg.aglib.kernel.ktask.INIT_TASK
+        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", init_task)
 
     def _node_data(self) -> Optional[int]:
         raise NotImplementedError()

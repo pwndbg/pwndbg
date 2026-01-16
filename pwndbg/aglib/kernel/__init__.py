@@ -380,7 +380,7 @@ class x86_64Ops(x86Ops):
 
         per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
 
-        offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
+        offset = pwndbg.aglib.memory.read_pointer_width(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
         if isinstance(addr, pwndbg.dbg_mod.Value):
             return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
@@ -727,4 +727,9 @@ def map_idr() -> pwndbg.dbg_mod.Value:
 def current_task() -> pwndbg.dbg_mod.Value:
     if (syms := arch_symbols()) is not None:
         return syms.current_task()
+    return None
+
+def init_task() -> pwndbg.dbg_mod.Value:
+    if (syms := arch_symbols()) is not None:
+        return syms.init_task()
     return None

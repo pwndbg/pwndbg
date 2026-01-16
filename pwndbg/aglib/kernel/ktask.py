@@ -70,7 +70,7 @@ def get_mm_struct_and_offset(task: int, tasks_offset: int) -> Tuple[str, int]:
         char _pad1[{pgd_offset}];
         void *pgd;
         /* don't care about the rest */
-    }}
+    }};
     """
 
     return struct, off
@@ -124,7 +124,7 @@ ROOT_COMM = "swapper/0"
 
 def get_pid_offset(tasks: List[int], mm_offset: int, comm_offset: int) -> int:
     maxpid = 0x400000 if pwndbg.aglib.arch.ptrsize == 8 else 0x8000
-    seen = set((0))
+    seen = set()
     for i in range(0x20):
         off = mm_offset + i * pwndbg.aglib.arch.ptrsize
         for task in tasks[1:]:
@@ -210,6 +210,7 @@ def get_thread_list_offset(pid_offset: int):
     sigset_t real_blocked;
 """
 
+INIT_TASK = None
 
 def get_comm_offset(tasks: List[int]) -> Tuple[int, int]:
     for task in tasks:
@@ -218,6 +219,8 @@ def get_comm_offset(tasks: List[int]) -> Tuple[int, int]:
             try:
                 s = pwndbg.aglib.memory.read(task + off, len(ROOT_COMM))
                 if s.decode() == ROOT_COMM:
+                    global INIT_TASK
+                    INIT_TASK = task
                     return task, off
             except Exception:
                 pass
@@ -307,7 +310,6 @@ def get_files_struct_and_offset(task: int, off: int) -> Tuple[str, int]:
     offset_fdt = None
     files = pwndbg.aglib.memory.read_pointer_width(task + files_offset)
     off = 0
-    print(hex(files))
     for _ in range(0x40):
         off += ptrsize
         fdt = pwndbg.aglib.memory.read_pointer_width(files + off)
@@ -328,18 +330,18 @@ def get_files_struct_and_offset(task: int, off: int) -> Tuple[str, int]:
         unsigned int f_mode;
         void* f_op;
         /* don't care about the rest */
-    }
+    };
     struct fdtable {
         unsigned int max_fds;
         struct file **fd;
         /* don't care about the rest */
-    }
+    };
     struct files_struct {
         atomic_t count;
         char _pad1[spinlock_t_size + PTR_SIZE * 2]; // spinlock + list_head
         struct fdtable *fdt;
         /* don't care about the rest */
-    }
+    };
     """
     return structs, files_offset
 
@@ -376,7 +378,7 @@ def get_signal_struct() -> str:
         int			quick_threads;
         struct list_head	thread_head;
         /* don't care about the rest */
-    }
+    };
     """
     return struct
 
@@ -412,7 +414,7 @@ def load_ktask_typeinfo() -> None:
     struct task_struct {{
         char _pad1[{tasks_offset}];
         struct list_head tasks;
-        char _pad2[{mm_offset - (tasks_offset + ptrsize * 2)}]
+        char _pad2[{mm_offset - (tasks_offset + ptrsize * 2)}];
         struct mm_struct *mm;
         struct mm_struct *active_mm;
         char __pad1[{pid_offset - (mm_offset + ptrsize * 2)}];
@@ -424,13 +426,13 @@ def load_ktask_typeinfo() -> None:
 #else
         char __pad2[{thread_list_offset - pid_offset} - sizeof(pid_t) * 2];
 #endif
-#if KVERSION <= KERNEL_VERSION(6, 6, 0)
-        struct list_head thread_node;
-        char _pad3[{cred_offset - (thread_list_offset + ptrsize * 2)}];
-#else
+#if KVERSION < KERNEL_VERSION(6, 7, 0)
         struct list_head thread_group;
         struct list_head thread_node;
         char _pad3[{cred_offset - (thread_list_offset + ptrsize * 4)}];
+#else
+        struct list_head thread_node;
+        char _pad3[{cred_offset - (thread_list_offset + ptrsize * 2)}];
 #endif
         struct cred *cred;
         char _pad4[{comm_offset - (cred_offset + ptrsize)}];
@@ -441,7 +443,7 @@ def load_ktask_typeinfo() -> None:
         struct nsproxy *nsproxy;
         struct signal_struct *signal;
         /* don't care about the rest */
-    }}
+    }};
     """
 
     header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)

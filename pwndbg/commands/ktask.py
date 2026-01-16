@@ -9,6 +9,7 @@ import argparse
 from typing import Tuple
 
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.symbol
 import pwndbg.color as color
 import pwndbg.color.message as message
@@ -47,7 +48,7 @@ class Kthread:
         self.gid = int(thread["cred"]["gid"]["val"])
 
     @pwndbg.lib.cache.cache_until("stop")
-    def files(self) -> Tuple[pwndbg.dbg_mod.Value]:
+    def files(self) -> Tuple[Tuple[int, pwndbg.dbg_mod.Value], ...]:
         fdt = self.thread["files"]["fdt"]
         fds = fdt["fd"]
         files = []
@@ -99,14 +100,8 @@ class Ktask:
 @pwndbg.lib.cache.cache_until("stop")
 def get_ktasks() -> Tuple[Ktask, ...]:
     tasks = []
-    # Look up the init_task symbol, which is the first task in the kernel's task list.
-    init_task = pwndbg.aglib.symbol.lookup_symbol("init_task")
-    if init_task is None:
-        print(
-            "The init_task symbol was not found. This may indicate that the symbol is not available in the current build."
-        )
-        return None
-
+    init_task = pwndbg.aglib.kernel.init_task()
+    init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
     try:
         tasks.append(Ktask(init_task))
         # The task list is implemented a circular doubly linked list, so we traverse starting from init_task.
@@ -115,15 +110,17 @@ def get_ktasks() -> Tuple[Ktask, ...]:
             tasks.append(ktask)
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"ERROR: {e}"))
-        return None
+        return ()
     return tuple(tasks)
 
 
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
-@pwndbg.commands.OnlyWithKernelDebugInfo
+@pwndbg.commands.OnlyWithKernelSymbols
 def ktask(task_name=None) -> None:
+    if not pwndbg.aglib.kernel.has_debug_info():
+        pwndbg.aglib.kernel.ktask.load_ktask_typeinfo()
     threads = []
     for task in get_ktasks():
         for thread in task.threads:
