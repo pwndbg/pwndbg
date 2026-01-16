@@ -23,12 +23,10 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.exception
 import pwndbg.integration
-import pwndbg.libc
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
@@ -899,6 +897,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWithResolvedHeapSyms(*a: P.args, **kw: P.kwargs) -> T | None:
         e = log.error
         w = log.warning
+
         if (
             isinstance(pwndbg.aglib.heap.current, HeuristicHeap)
             and pwndbg.config.resolve_heap_via_heuristic == "auto"
@@ -906,70 +905,55 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
         ):
             # In auto mode, we will try to use the debug symbols if possible
             pwndbg.aglib.heap.current = DebugSymsHeap()
+
         if (
             pwndbg.aglib.heap.current is not None
             and isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
             and pwndbg.aglib.heap.current.can_be_resolved()
         ):
             return _try2run_heap_command(function, *a, **kw)
-        else:
-            static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
-            if (
-                isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
-                and pwndbg.config.resolve_heap_via_heuristic == "auto"
-            ):
-                # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
-                heuristic_heap = HeuristicHeap()
-                if heuristic_heap.can_be_resolved():
-                    pwndbg.aglib.heap.current = heuristic_heap
-                    w(
-                        "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
-                        "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
-                    )
-                    return _try2run_heap_command(function, *a, **kw)
-                elif static:
-                    e(
-                        "Can't find GLIBC version required for this command to work since this is a statically linked binary"
-                    )
-                    w(
-                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
-                    )
-                else:
-                    e(
-                        "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
-                    )
-                    w(
-                        "If you believe the GLIBC is loaded or this is a statically linked binary. "
-                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
-                    )
-            elif (
-                isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
-                and pwndbg.config.resolve_heap_via_heuristic == "force"
-            ):
+
+        static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
+        if (
+            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
+            and pwndbg.config.resolve_heap_via_heuristic == "auto"
+        ):
+            # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
+            heuristic_heap = HeuristicHeap()
+            if heuristic_heap.can_be_resolved():
+                pwndbg.aglib.heap.current = heuristic_heap
+                w(
+                    "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
+                    "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
+                )
+                return _try2run_heap_command(function, *a, **kw)
+            elif static:
                 e(
-                    "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
+                    "Can't find GLIBC version required for this command to work since this is a statically linked binary"
                 )
-                w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
-            elif pwndbg.libc.get().version() is None:
-                if static:
-                    e("Can't resolve the heap since the GLIBC version is not set.")
-                    w(
-                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
-                    )
-                else:
-                    e(
-                        "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
-                    )
-                    w(
-                        "If you believe the GLIBC is loaded or this is a statically linked binary. "
-                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
-                    )
+                w(
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+                )
             else:
-                # Note: Should not see this error, but just in case
-                e("An unknown error occurred when resolved the heap.")
-                pwndbg.exception.inform_report_issue(
-                    "An unknown error occurred when resolved the heap"
+                e(
+                    "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
                 )
+                w(
+                    "If you believe the GLIBC is loaded or this is a statically linked binary. "
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
+                )
+        elif (
+            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
+            and pwndbg.config.resolve_heap_via_heuristic == "force"
+        ):
+            e(
+                "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
+            )
+            w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
+        else:
+            # Note: Should not see this error, but just in case
+            e("An unknown error occurred when resolved the heap.")
+            pwndbg.exception.inform_report_issue("An unknown error occurred when resolved the heap")
         return None
 
     return _OnlyWithResolvedHeapSyms

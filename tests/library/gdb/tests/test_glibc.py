@@ -8,6 +8,7 @@ import gdb
 import pytest
 
 import pwndbg.libc
+import pwndbg.libc.glibc
 
 from . import get_binary
 
@@ -31,10 +32,8 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
     if not have_debugging_information:
         assert "(*)" in gdb.execute("info sharedlibrary", to_string=True)
 
-    libc = pwndbg.libc.get()
-    assert libc.type() == pwndbg.libc.LibcType.GLIBC
-
-    libc_path = libc.filepath()
+    libc_path = pwndbg.libc.filepath()
+    assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
     assert libc_path is not None
 
     # Create 3 copies of the libc with the filenames: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
@@ -51,9 +50,8 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
             # Check if we can find the libc loaded by LD_PRELOAD
             if not have_debugging_information:
                 assert "(*)" in gdb.execute("info sharedlibrary", to_string=True)
-            libc = pwndbg.libc.get()
-            assert libc.type() == pwndbg.libc.LibcType.GLIBC
-            assert libc.filepath() == test_libc_path
+            assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
+            assert pwndbg.libc.filepath() == test_libc_path
 
         # Unfortunatly, if we used LD_PRELOAD to load libc, we might cannot find the libc's filename
         # In this case, the function should return None instead of crashing
@@ -65,18 +63,16 @@ def test_parsing_info_sharedlibrary_to_find_libc_filename(start_binary, have_deb
         gdb.execute("continue")
 
         # FIXME: .filename() never returns None
-        libc = pwndbg.libc.get()
-        assert libc.type() == pwndbg.libc.LibcType.GLIBC
-        assert libc.filepath() is None
+        assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
+        assert pwndbg.libc.filepath() is None
         # assert pwndbg.glibc.get_libc_filename_from_info_sharedlibrary() is None
 
 
 def test_set_glibc_version(start_binary):
-    # Needed for glibc.get_version() as it has @OnlyWhenRunning
+    # Needed for glibc.version() as it requires an alive process.
     start_binary(HEAP_MALLOC_CHUNK)
 
-    libc = pwndbg.libc.get()
-    assert libc.type() == pwndbg.libc.LibcType.GLIBC
+    assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
 
     errmsg = "Invalid GLIBC version:"
     err = gdb.execute("set glibc 2.31a", to_string=True)
@@ -84,8 +80,8 @@ def test_set_glibc_version(start_binary):
 
     err = gdb.execute("set glibc 2.31", to_string=True)
     assert err == ""
-    assert libc.version() == (2, 31)
+    assert pwndbg.libc.glibc.version() == (2, 31)
 
     err = gdb.execute("set glibc 2.34", to_string=True)
     assert err == ""
-    assert libc.version() == (2, 34)
+    assert pwndbg.libc.glibc.version() == (2, 34)

@@ -274,7 +274,7 @@ def run_onegadget() -> str:
     """
     Run onegadget and return the output
     """
-    libc_path = pwndbg.aglib.file.get_file(pwndbg.libc.get().filepath())
+    libc_path = pwndbg.aglib.file.get_file(str(pwndbg.libc.filepath()))
     # We need cache because onegadget might be slow
     cache_file = os.path.join(ONEGADGET_CACHEDIR, compute_file_hash(libc_path))
     if os.path.exists(cache_file):
@@ -540,7 +540,7 @@ def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
         expr = IS_GOT_ADDRESS_PATTERN.match(constraint).group(1)
         result, color_str, err = parse_expression(expr)
         if err is None:
-            got_plt_address = pwndbg.libc.get().section_address_by_name(".got.plt")
+            got_plt_address = pwndbg.libc.section_address_by_name(".got.plt")
             passed = result == got_plt_address
             output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_plt_address:#x}) of libc\n"
         else:

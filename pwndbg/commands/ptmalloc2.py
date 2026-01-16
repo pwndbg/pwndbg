@@ -56,6 +56,7 @@ def read_chunk(addr: int) -> dict[str, int]:
 
 def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> list[str]:
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+    assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
     allocator = pwndbg.aglib.heap.current
     if offset is None:
         offset = allocator.chunk_key_offset("fd")
