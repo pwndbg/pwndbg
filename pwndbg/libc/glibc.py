@@ -142,6 +142,10 @@ def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
     return UncertainDecision.DONTKNOW
 
 
+def libc_same_as_ld() -> bool:
+    return False
+
+
 # ===== End of Libc Interaface Implementation =====
 
 

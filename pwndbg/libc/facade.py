@@ -211,20 +211,27 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
 
     if verified_libc_impl is not None:
         # Someone approved something!
-        # NOTE: It is maybe contravesial that I return the libc path if only the ld path is found and vice versa.
-        # This is necessary for some libc's like musl where the libc and the ld are always the same mapping,
-        # but it strictly incorrect for other libc's like glibc. I guess we could ask the libc implementation
-        # what it wants us to do and raise an exception if we are in the "strictly incorrect" option.
-        # I'm choosing not to do that because I feel it simply might not actually be a problem for any users of
-        # this, and I'd rather not raise if at all possible to accomodate as many setups as possible.
-        # We can change it later if it ends up troublesome.
         if verified_libc_path is not None and verified_ld_path is not None:
             return (Path(verified_libc_path), Path(verified_ld_path), verified_libc_impl)
         elif verified_libc_path is not None:
-            return (Path(verified_libc_path), Path(verified_libc_path), verified_libc_impl)
+            # We didn't get an approved ld path.
+            # Lets ask the libc if it wants us to return the same path for the ld as for the libc,
+            # or try to get an ld candidate.
+            if not verified_libc_impl.libc_same_as_ld() and possible_ld_paths:
+                ld_ret = possible_ld_paths[0]
+            else:
+                ld_ret = verified_libc_path
+            return (Path(verified_libc_path), Path(ld_ret), verified_libc_impl)
         else:
             assert verified_ld_path is not None
-            return (Path(verified_ld_path), Path(verified_ld_path), verified_libc_impl)
+            # We didn't get an approved libc path.
+            # Lets ask the libc if it wants us to return the same path for the libc as for the ld,
+            # or try to get an libc candidate.
+            if not verified_libc_impl.libc_same_as_ld() and possible_libc_paths:
+                libc_ret = possible_libc_paths[0]
+            else:
+                libc_ret = verified_ld_path
+            return (Path(verified_ld_path), Path(libc_ret), verified_libc_impl)
 
     # Noone approved anything. If we have any candidate paths return them, otherwise raise exception.
     if possible_libc_paths and possible_ld_paths:

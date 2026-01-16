@@ -96,3 +96,7 @@ def urls(ver: tuple[int, ...] | None) -> LibcURLs:
             homepage="https://musl.libc.org/",
             git="git://git.musl-libc.org/musl",
         )
+
+
+def libc_same_as_ld() -> bool:
+    return True

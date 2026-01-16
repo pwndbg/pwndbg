@@ -50,3 +50,7 @@ def urls(ver: tuple[int, ...] | None) -> LibcURLs:
         homepage="not available",
         git="not available",
     )
+
+
+def libc_same_as_ld() -> bool:
+    return False

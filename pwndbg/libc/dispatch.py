@@ -98,3 +98,10 @@ class LibcWrangler(Protocol):
         and verify_ld_candidate. The other may simply return UncertainDecision.DONTKNOW.
         """
         ...
+
+    def libc_same_as_ld(self) -> bool:
+        """
+        Returns whether the libc and the ld are loaded as one object file for this libc
+        implementation.
+        """
+        ...
