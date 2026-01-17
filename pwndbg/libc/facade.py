@@ -106,14 +106,12 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
     If the program is statically linked, will return the main executable module's
     Path for the libc and ld path, and still try to infer the libc implementation.
 
-    If a libc implementation approves only a libc mapping but not an ld mapping or
-    vice-versa, that mapping will be returned both as the libc and ld mapping.
-
     If no libc verifies anything, but there is at least one libc OR ld candidate
     mapping, it/they will be returned along with the "unknown" libc implementation.
 
     Returns:
-        A tuple (libc mapping path, ld mapping path, libc implementation).
+        A tuple (libc mapping path, ld mapping path, libc implementation). Both of
+            the returned Path's are resolved (absolute, followed symlinks).
 
     Raises:
         LibcNotFound: If the binary is dynamically linked and we couldn't find
@@ -132,6 +130,7 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
     # Skip the executable
     maybe_main_module = inf.main_module_name()
     if maybe_main_module is not None:
+        maybe_main_module = util.clean_path(maybe_main_module)
         seen.add(maybe_main_module)
 
     all_sections: list[tuple[int, int, str, str]] = inf.module_section_locations()
@@ -166,6 +165,10 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
             # Strip "target:" prefix used for remote debugging
             path[7:] if path.startswith("target:") else path
         )
+
+        # Get absolute path and resolve symlinks if it seems plausible.
+        # See #3641.
+        path = util.clean_path(path)
 
         # Check for libc
         if certain_libc_path is None and basename in exact_libc_basename_matches:
@@ -299,6 +302,8 @@ def filepath() -> Path:
     The filepath of the libc shared object.
 
     There may not be a backing file for this Path if we are remote debugging.
+    If the program is statically linked this will return the path of the main
+    objfile.
     This may have the same value as loader_filepath() for some libc's.
     """
     path, _, _ = __get_libc()
@@ -310,6 +315,8 @@ def loader_filepath() -> Path:
     The filepath of the ld shared object.
 
     There may not be a backing file for this Path if we are remote debugging.
+    If the program is statically linked this will return the path of the main
+    objfile.
     This may have the same value as filepath() for some libc's.
     """
     _, path, _ = __get_libc()
@@ -320,6 +327,8 @@ def addr() -> int:
     """
     The start load address of the libc shared object file.
 
+    If the program is statically linked this will return the address of the main
+    objfile.
     May be the same as loader_addr() for some libc's.
     """
     yes = pwndbg.aglib.vmmap.named_region_start(str(filepath()))
@@ -333,6 +342,8 @@ def loader_addr() -> int:
     """
     The start load address of the ld shared object file.
 
+    If the program is statically linked this will return the address of the main
+    objfile.
     May be the same as addr() for some libc's.
     """
     yes = pwndbg.aglib.vmmap.named_region_start(str(loader_filepath()))
@@ -398,10 +409,7 @@ def version() -> tuple[int, ...]:
 
     If you are calling this, you must know exactly which libc is being used.
 
-    Some libc's do not implement this and raise a NotImplementedError.
-
-    Some libc's implement this partially, and return (-1, -1) when they can't recover
-    version information.
+    If the version couldn't be determined, (-1, -1) will be returned.
     """
     path, _, libc = __get_libc()
     return libc.version(str(path))
