@@ -424,6 +424,8 @@ class Slab:
 
 
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
+    if not pwndbg.aglib.kernel.has_debug_info():
+        load_slab_typeinfo()
     page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
     head_page = compound_head(page)
 

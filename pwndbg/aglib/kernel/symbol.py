@@ -538,8 +538,8 @@ class x86_64Symbols(ArchSymbols):
         result = self.dword_mov_reg_const(disass)
         if result is not None:
             return result
-        disass = self.disass(self.current_task_heuristic_func, lines=20)
-        return self.qword_op_reg_memoff(disass, op="mov", sign="+")
+        result = self.qword_mov_reg_const(disass)
+        return result
 
 
 class Aarch64Symbols(ArchSymbols):

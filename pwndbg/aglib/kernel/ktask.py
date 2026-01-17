@@ -280,7 +280,171 @@ def get_cred_struct_and_offset(tasks: List[int], comm_offset: int) -> Tuple[str,
 TASK_COMM_LEN = 0x10
 
 
-def get_files_struct_and_offset(task: int, off: int) -> Tuple[str, int]:
+def get_path_struct(mnt: int | None, dentry: int | None) -> str:
+    result = ""
+    result += """
+    struct vfsmount {
+        int a;
+    };
+    struct dentry {
+        int a;
+    };
+    struct path {
+        struct vfsmount *mnt;
+        struct dentry *dentry;
+    };
+    """
+    return result
+
+
+def get_inode_struct(inode: int | None) -> str:
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    kbase: int | None = pwndbg.aglib.kernel.kbase()
+    off = 0x20
+    if inode:
+        for i in range(0x10):
+            val = pwndbg.aglib.memory.read_pointer_width(inode + i * ptrsize)
+            if kbase and kbase < val:
+                off = i * ptrsize
+                break
+    return f"""
+    struct inode {{
+        char _pad[{off}];
+        unsigned long i_ino;
+    }};
+    """
+
+
+def get_file_struct(file: int | None) -> str:
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    result = ""
+    kversion: Tuple[int, ...] = pwndbg.aglib.kernel.krelease()
+    kbase: int | None = pwndbg.aglib.kernel.kbase()
+    if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig():
+        result += "#define CONFIG_SECURITY\n"
+    result += """
+    typedef unsigned int fmode_t;
+    """
+    mnt = dentry = inode = None
+    off: int
+    _result = ""
+    if not file or kversion >= (6, 12):
+        # find f_op
+        off = "spinlock_t_size"
+        if file:
+            for i in range(1, 0x20):
+                val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
+                if kbase and val > kbase:
+                    off = (i - 1) * ptrsize
+                    break
+        # this should work for the most recent versions
+        _result = f"""
+        struct file {{
+            char _pad2[{off}];
+            unsigned int f_mode;
+            void* f_op;
+            void *f_mapping;
+            void *private_data;
+            struct inode *f_inode;
+            unsigned int f_flags;
+            unsigned int f_iocb_flags;
+            const struct cred *f_cred;
+            /* --- cacheline 1 boundary (64 bytes) --- */
+            struct path f_path;
+            /* don't care about the rest */
+        }};
+        """
+        if isinstance(off, int):
+            off += 4
+            off = (off // ptrsize) * ptrsize + (ptrsize if off % ptrsize else 0)
+            mnt = pwndbg.aglib.memory.read_pointer_width(file + off + 4 * 2 + ptrsize * 5)
+            dentry = pwndbg.aglib.memory.read_pointer_width(file + off + 4 * 2 + ptrsize * 6)
+            inode = pwndbg.aglib.memory.read_pointer_width(file + off + ptrsize * 3)
+    elif kversion >= (6, 5):
+        # find the cache that contains the inode
+        off = 0
+        for i in range(2, 0x20):
+            val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
+            try:
+                cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+                if "inode" in cache.name:
+                    off = (i - 2) * ptrsize
+                    break
+            except Exception:
+                pass
+        _result = f"""
+        struct file {{
+            union {{
+                struct {{
+                    char _pad1[PTR_SIZE * 2 + spinlock_t_size];
+                    fmode_t f_mode;
+                }};
+                _pad2[{off}];
+            }};
+            struct path f_path;
+            struct inode *f_inode;
+            void *f_op;
+            u64 f_version;
+#ifdef CONFIG_SECURITY
+            void *f_security;
+#endif
+            void *private_data;
+            /* don't care about the rest */
+        }};
+        """
+        if off > 0:
+            mnt = pwndbg.aglib.memory.read_pointer_width(file + off)
+            dentry = pwndbg.aglib.memory.read_pointer_width(file + off + ptrsize)
+            inode = pwndbg.aglib.memory.read_pointer_width(file + off + ptrsize * 2)
+    else:
+        off = 0
+        for i in range(7, 0x20):
+            val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
+            try:
+                cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+                if "cred" in cache.name:
+                    off = i * ptrsize
+                    off += ptrsize + (0x10 + ptrsize * 2) + 8  # f_cred, f_ra, f_version
+                    break
+            except Exception:
+                pass
+        _result = f"""
+        struct file {{
+            union {{
+                struct {{
+                    char _pad1[PTR_SIZE * 2];
+                    struct path f_path;
+                    struct inode *f_inode;
+                    void *f_op;
+                    char _pad2[spinlock_t_size];
+#if KVERSION < KERNEL_VERSION(5, 18, 0)
+                    int f_write_hint;
+#endif
+                    long f_count;
+                    unsigned int f_flags;
+                    fmode_t f_mode;
+                }};
+                char _pad3[{off}];
+            }};
+#ifdef CONFIG_SECURITY
+            void *f_security;
+#endif
+            void *private_data;
+            /* don't care about the rest */
+        }};
+        """
+        mnt = pwndbg.aglib.memory.read_pointer_width(file + ptrsize * 2)
+        dentry = pwndbg.aglib.memory.read_pointer_width(file + ptrsize * 3)
+        inode = pwndbg.aglib.memory.read_pointer_width(file + ptrsize * 4)
+    result += get_path_struct(mnt, dentry)
+    result += get_inode_struct(inode)
+    result += _result
+    return result
+
+
+def get_files_struct_and_offset(
+    task: int, off: int, tasks: List[int], mm_offset: int
+) -> Tuple[str, int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
     off += TASK_COMM_LEN
     files_offset = None
@@ -303,7 +467,7 @@ def get_files_struct_and_offset(task: int, off: int) -> Tuple[str, int]:
         break
     assert files_offset, "cannot find the offset of task_struct->files"
 
-    offset_fdt = None
+    fdt_offset = None
     files = pwndbg.aglib.memory.read_pointer_width(task + files_offset)
     off = 0
     for _ in range(0x40):
@@ -312,34 +476,45 @@ def get_files_struct_and_offset(task: int, off: int) -> Tuple[str, int]:
         if not pwndbg.aglib.memory.is_kernel(fdt):
             continue
         if fdt == files + off + ptrsize:
-            offset_fdt = off
+            fdt_offset = off
             break
-    assert offset_fdt, "cannot find the offset of files_struct->fdt"
+    assert fdt_offset, "cannot find the offset of files_struct->fdt"
 
     structs = f"""
     #define PTR_SIZE {ptrsize}
-    #define spinlock_t_size {offset_fdt} - sizeof(atomic_t) - PTR_SIZE * 2
+    #define spinlock_t_size 8
     """
-    structs += """
-    struct file {
-        char _pad2[spinlock_t_size];
-        unsigned int f_mode;
-        void* f_op;
-        void *f_mapping;
-        void *private_data;
-        /* don't care about the rest */
-    };
-    struct fdtable {
+    # find a userland task and get a file* from it
+    file = None
+    for task in tasks:
+        mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset)
+        if pwndbg.aglib.memory.is_kernel(mm):
+            files = pwndbg.aglib.memory.read_pointer_width(task + files_offset)
+            fdt = pwndbg.aglib.memory.read_pointer_width(files + fdt_offset)
+            max_fds = pwndbg.aglib.memory.u32(fdt)
+            fd = pwndbg.aglib.memory.read_pointer_width(fdt + ptrsize)
+            for i in range(max_fds):
+                val = pwndbg.aglib.memory.read_pointer_width(fd + i * ptrsize)
+                if pwndbg.aglib.memory.is_kernel(val):
+                    file = val
+                    break
+            if file:
+                break
+    structs += get_file_struct(file)
+    structs += f"""
+    struct fdtable {{
         unsigned int max_fds;
         struct file **fd;
         /* don't care about the rest */
-    };
-    struct files_struct {
-        atomic_t count;
-        char _pad1[spinlock_t_size + PTR_SIZE * 2]; // spinlock + list_head
+    }};
+    struct files_struct {{
+        union {{
+            atomic_t count;
+            char _pad1[{fdt_offset}];
+        }};
         struct fdtable *fdt;
         /* don't care about the rest */
-    };
+    }};
     """
     return structs, files_offset
 
@@ -395,7 +570,7 @@ def load_ktask_typeinfo() -> None:
     pid_offset = get_pid_offset(tasks, mm_offset, comm_offset)
     thread_list_offset = get_thread_list_offset(pid_offset)
     cred_struct, cred_offset = get_cred_struct_and_offset(tasks, comm_offset)
-    files_structs, files_offset = get_files_struct_and_offset(task, comm_offset)
+    files_structs, files_offset = get_files_struct_and_offset(task, comm_offset, tasks, mm_offset)
     nsproxy_struct, nsproxy_offset = get_nsproxy_struct_and_offset(task, files_offset)
 
     ptrsize = pwndbg.aglib.arch.ptrsize

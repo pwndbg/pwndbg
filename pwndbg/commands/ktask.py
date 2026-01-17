@@ -81,7 +81,7 @@ class Kthread:
         prefix = f"[pid {self.pid}]"
         desc = " "
         namelen = pwndbg.aglib.kernel.ktask.TASK_COMM_LEN
-        prefix = color.blue(f"{prefix:<9}") + f"task @ {thread}: {self.name:<{namelen}}"
+        prefix = color.blue(f"{prefix:<11}") + f"task @ {thread}: {self.name:<{namelen}}"
         user = ", has user pages" if self.has_user_page else ""
         desc = color.red(f"cpu #{self.cpu} (uid: {self.uid}, gid: {self.gid}{user})")
         return f"{prefix} {desc}"
