@@ -2094,12 +2094,29 @@ class HeuristicHeap(
             # arena doesn't be allocated yet, so there's no tcache
             return None
 
+        tls_address = self.prompt_for_tls_address()
+        if pwndbg.glibc.get_version() >= (2, 43):
+            # NOTE: idk if this works for most/all cases
+            # a way that **should** work in most/all cases would be
+            # to scan throu tls variables, looking for either something on the heap
+            # or for `__tcache_dummy`, which is ~sizeof(tcache_perthread_struct)+ptrsize nullbytes
+            # in the ro (first) page of libc
+
+            _, main_arena_tls = self.brute_force_thread_local_variable_near_tls_base(
+                tls_address, lambda x: x == self.main_arena.address
+            )
+            self._thread_cache = tps(
+                pwndbg.aglib.memory.u64(main_arena_tls - 6 * pwndbg.aglib.arch.ptrsize)
+            )
+            self._thread_caches[pwndbg.dbg.selected_thread().index()] = self._thread_cache
+            return self._thread_cache
+
         if self.main_arena.next != self.main_arena.address or self.multithreaded:
             if self.prompt_for_brute_force_thread_cache_permission():
-                tls_address = self.prompt_for_tls_address()
                 if tls_address:
                     chunk_header_size = pwndbg.aglib.arch.ptrsize * 2
                     tcache_perthread_struct_size = self.tcache_perthread_struct.sizeof
+
                     lb, ub = arena.active_heap.start, arena.active_heap.end
 
                     def validator(guess: int) -> bool:
