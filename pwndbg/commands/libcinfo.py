@@ -11,7 +11,7 @@ from pwndbg.commands import CommandCategory
     "Show libc version and link to its sources", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWhenRunning
-def libcinfo():
+def libcinfo() -> None:
     version = pwndbg.libc.facade.version()
     version_str = ".".join(map(str, version))
     if version_str == "-1.-1":

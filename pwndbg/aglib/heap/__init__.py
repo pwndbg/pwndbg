@@ -11,6 +11,7 @@ import pwndbg.lib.config
 import pwndbg.libc
 from pwndbg.color import message
 from pwndbg.dbg_mod import EventType
+from pwndbg.lib.config import Parameter
 from pwndbg.lib.config import Scope
 
 current: pwndbg.aglib.heap.heap.MemoryAllocator | None = None
@@ -24,7 +25,7 @@ def add_heap_param(
     help_docstring: str = "",
     param_class: int | None = None,
     enum_sequence: Sequence[str] | None = None,
-):
+) -> Parameter:
     return pwndbg.config.add_param(
         name,
         default,
