@@ -12,9 +12,9 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 
+from . import util
 from .dispatch import LibcType
 from .dispatch import LibcURLs
-from .util import version_parse
 
 
 def type() -> LibcType:
@@ -28,7 +28,7 @@ def version(libc_filepath: str) -> tuple[int, ...]:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version", objfile_endswith=libc_filepath)
     if addr is not None:
         ver = pwndbg.aglib.memory.string(addr)
-        return version_parse(ver)
+        return util.version_parse(ver)
 
     # The version string is simply not embedded into older versions of musl afaict.
     return (-1, -1)
@@ -52,24 +52,29 @@ def has_debug_info() -> bool:
 
 
 def verify_libc_candidate(mapping_name: str) -> bool:
-    # First check __freadahead which is available in musl, and bionic but not in glibc
-    if pwndbg.aglib.symbol.lookup_symbol("__freadahead", objfile_endswith=mapping_name) is None:
+    # First check __freadahead which is an exported symbol in musl, and bionic but not in glibc
+    # It was introduced in v0.9.2 (year 2012)
+    # https://elixir.bootlin.com/musl/v0.9.2/source/src/stdio/ext2.c#L3
+    if (
+        util.has_exported_symbols(mapping_name)
+        and pwndbg.aglib.symbol.lookup_symbol("__freadahead", objfile_endswith=mapping_name) is None
+    ):
         return False
+
+    # Then do a consistent but more expensive (?) check:
+    # Check if the string "/tmp/tmpnam_XXXX" is in the .rodata of the binary.
+    # Added in musl version v1.1.2 (year 2014) (is present until at least v1.2.5).
+    # https://elixir.bootlin.com/musl/v1.1.2/source/src/stdio/tmpnam.c#L15
+    rodata: tuple[int, int, bytes] | None = pwndbg.aglib.elf.section_by_name(
+        mapping_name, ".rodata", try_local_path=True
+    )
+    if rodata is None:
+        return False
+    _, _, data = rodata
+    if b"/tmp/tmpnam_XXXX" in data:
+        return True
     else:
-        # Then do a consistent but more expensive (?) check:
-        # Check if the string "/tmp/tmpnam_XXXX" is in the .rodata of the binary.
-        # Added in musl version v1.1.2 (is present until at least v1.2.5).
-        # https://elixir.bootlin.com/musl/v1.1.2/source/src/stdio/tmpnam.c#L15
-        rodata: tuple[int, int, bytes] | None = pwndbg.aglib.elf.section_by_name(
-            mapping_name, ".rodata", try_local_path=True
-        )
-        if rodata is None:
-            return False
-        _, _, data = rodata
-        if b"/tmp/tmpnam_XXXX" in data:
-            return True
-        else:
-            return False
+        return False
 
 
 def verify_ld_candidate(mapping_name: str) -> bool:

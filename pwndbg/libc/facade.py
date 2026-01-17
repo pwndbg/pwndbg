@@ -12,13 +12,13 @@ from elftools.elf.relocation import Relocation
 
 import pwndbg.aglib.elf
 import pwndbg.aglib.proc
-import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
 
 from . import glibc
 from . import musl
 from . import unknown
+from . import util
 from .dispatch import LibcType
 from .dispatch import LibcURLs
 from .dispatch import LibcWrangler
@@ -267,7 +267,7 @@ def has_exported_symbols() -> bool:
     If the library is dynamically linked, they will always be there. If it is statically
     linked and stripped, they may be missing.
     """
-    return pwndbg.aglib.symbol.lookup_symbol("fscanf", objfile_endswith=str(filepath())) is not None
+    return util.has_exported_symbols(str(filepath()))
 
 
 def has_internal_symbols() -> bool:

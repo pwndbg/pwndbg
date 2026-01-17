@@ -17,9 +17,9 @@ import pwndbg.lib.config
 from pwndbg.color import message
 from pwndbg.lib.config import Scope
 
+from . import util
 from .dispatch import LibcType
 from .dispatch import LibcURLs
-from .util import version_parse
 
 safe_lnk = pwndbg.config.add_param(
     "safe-linking",
@@ -52,7 +52,7 @@ def _get_version(libc_filepath: str) -> tuple[int, ...]:
     addr = pwndbg.aglib.symbol.lookup_symbol_addr("__libc_version", objfile_endswith=libc_filepath)
     if addr is not None:
         ver = pwndbg.aglib.memory.string(addr)
-        return version_parse(ver)
+        return util.version_parse(ver)
 
     result = pwndbg.aglib.elf.section_by_name(libc_filepath, ".rodata", try_local_path=True)
     if result is None:
