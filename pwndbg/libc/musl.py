@@ -1,7 +1,5 @@
 """
 Perform queries specific to the musl libc.
-
-This should never use .facade .
 """
 
 from __future__ import annotations

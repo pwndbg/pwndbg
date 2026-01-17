@@ -1,8 +1,6 @@
 """
 Answers libc-specific questions in a non-commital way when
 we don't know which libc implementation we are actually using.
-
-This should never use .facade .
 """
 
 from __future__ import annotations

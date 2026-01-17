@@ -1,7 +1,5 @@
 """
 Perform queries specific to the GNU C Library.
-
-This should never use .facade .
 """
 
 from __future__ import annotations
