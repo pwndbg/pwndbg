@@ -26,6 +26,9 @@ def get_tasks_offset(task: int, mm_offset: int) -> Tuple[List[int], int]:
     if "CONFIG_SMP" in pwndbg.aglib.kernel.kconfig():
         tasks_offset -= ptrsize * 8
     tasks = pwndbg.aglib.kernel.symbol.get_double_linked_list(task + tasks_offset)
+    assert tasks, (
+        f"cannot find the tasks double linked list: (task: {hex(task)}, mm_offset: {hex(mm_offset)})"
+    )
     tasks = [task - tasks_offset for task in tasks]
     return tasks, tasks_offset
 
@@ -43,7 +46,9 @@ def get_mm_struct_and_offset(task: int) -> Tuple[str, int]:
                 break
         except Exception:
             pass
-    assert mm_offset, "cound not find the offset of task_struct->mm"
+    assert mm_offset, (
+        f"cound not find the offset of task_struct->mm: (task: {hex(task)}, mm_offset: {hex(mm_offset)})"
+    )
     try:
         cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(task + mm_offset + ptrsize)
         assert cache.name == "mm_struct"
@@ -66,7 +71,7 @@ def get_mm_struct_and_offset(task: int) -> Tuple[str, int]:
         if pwndbg.aglib.memory.read_pointer_width(active_mm + i * ptrsize) == pgd_virt:
             pgd_offset = i * ptrsize
             break
-    assert pgd_offset, "cannot find the offset of mm_struct->pgd"
+    assert pgd_offset, f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(active_mm)})"
     struct = f"""
     struct mm_struct {{
         char _pad1[{pgd_offset}];
@@ -564,10 +569,9 @@ def get_signal_struct() -> str:
     "struct task_struct", needs_kversion=True, needs_kbase=True, no_randstruct=True
 )
 def load_ktask_typeinfo() -> None:
-    task = pwndbg.aglib.kernel.arch_symbols().current_task()
-    assert task, "cannot find kernel task to start recovering typeinfo"
-    task = int(task)
+    task = int(pwndbg.aglib.kernel.current_task())
     mm_struct, mm_offset = get_mm_struct_and_offset(task)
+    task = int(pwndbg.aglib.kernel.current_task(0))
     tasks, tasks_offset = get_tasks_offset(task, mm_offset)
     task, comm_offset = get_comm_offset(tasks)
     pid_offset = get_pid_offset(tasks, mm_offset, comm_offset)

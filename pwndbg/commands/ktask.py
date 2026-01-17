@@ -27,12 +27,17 @@ indent = IndentContextManager()
 
 
 class Kthread:
-    def __init__(self, thread: pwndbg.dbg_mod.Value) -> None:
+    def __init__(self, thread: pwndbg.dbg_mod.Value, cpu: int | None = None) -> None:
         self.thread = thread
         self.name = thread["comm"].string()
         self.pid = int(thread["pid"])
         self.has_user_page = int(thread["mm"]) != 0
         krelease = pwndbg.aglib.kernel.krelease()
+        self.uid = int(thread["cred"]["uid"]["val"])
+        self.gid = int(thread["cred"]["gid"]["val"])
+        if cpu is not None:
+            self.cpu = cpu
+            return
         self.cpu = "?"
         try:
             configs = ("CONFIG_THREAD_INFO_IN_TASK", "CONFIG_SMP")
@@ -49,8 +54,6 @@ class Kthread:
             # TODO: if smp, set to current cpu
             if pwndbg.aglib.kernel.nproc() == 1:
                 self.cpu = 0
-        self.uid = int(thread["cred"]["uid"]["val"])
-        self.gid = int(thread["cred"]["gid"]["val"])
 
     @pwndbg.lib.cache.cache_until("stop")
     def files(self) -> Tuple[Tuple[int, pwndbg.dbg_mod.Value], ...]:
@@ -92,13 +95,13 @@ class Kthread:
 
 
 class Ktask:
-    def __init__(self, task: pwndbg.dbg_mod.Value) -> None:
+    def __init__(self, task: pwndbg.dbg_mod.Value, cpu: int | None = None) -> None:
         self.task = task
         threads = []
         signal = task["signal"]
         # Iterate through all threads in the task_struct's thread list.
         for thread in for_each_entry(signal["thread_head"], "struct task_struct", "thread_node"):
-            kthread = Kthread(thread)
+            kthread = Kthread(thread, cpu)
             threads.append(kthread)
         self.threads = threads
 
@@ -106,11 +109,13 @@ class Ktask:
 @pwndbg.lib.cache.cache_until("stop")
 def get_ktasks() -> Tuple[Ktask, ...]:
     tasks = []
-    init_task = pwndbg.aglib.kernel.init_task()
-    init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
     try:
-        tasks.append(Ktask(init_task))
-        # The task list is implemented a circular doubly linked list, so we traverse starting from init_task.
+        for i in range(0, pwndbg.aglib.kernel.nproc()):
+            task = pwndbg.aglib.kernel.current_task(i)
+            task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
+            tasks.append(Ktask(task, i))
+        init_task = pwndbg.aglib.kernel.init_task()
+        init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
         for task in for_each_entry(init_task["tasks"], "struct task_struct", "tasks"):
             ktask = Ktask(task)
             tasks.append(ktask)

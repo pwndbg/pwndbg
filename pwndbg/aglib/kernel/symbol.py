@@ -400,14 +400,14 @@ class ArchSymbols:
             prog_idr = self._prog_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
-    def current_task(self) -> pwndbg.dbg_mod.Value:
+    def current_task(self, cpu: int | None) -> pwndbg.dbg_mod.Value:
         # using symbols usually yield incorrect results
         if pwndbg.aglib.arch.name == "aarch64":
             current_task = self._current_task()
         elif pwndbg.aglib.kernel.has_debug_symbols(self.current_task_heuristic_func):
             current_task = self._current_task()
             if current_task is not None:
-                current_task = pwndbg.aglib.kernel.per_cpu(current_task)
+                current_task = pwndbg.aglib.kernel.per_cpu(current_task, cpu=cpu)
                 # current_task is int but needed here to make the linter happy
                 current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
