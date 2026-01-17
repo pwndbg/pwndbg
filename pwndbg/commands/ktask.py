@@ -23,7 +23,6 @@ from pwndbg.lib.exception import IndentContextManager
 parser = argparse.ArgumentParser(description="Displays information about kernel tasks.")
 parser.add_argument("task_name", nargs="?", type=str, help="A task name to search for")
 
-indent = IndentContextManager()
 
 
 class Kthread:
@@ -32,28 +31,9 @@ class Kthread:
         self.name = thread["comm"].string()
         self.pid = int(thread["pid"])
         self.has_user_page = int(thread["mm"]) != 0
-        krelease = pwndbg.aglib.kernel.krelease()
+        self.cpu = cpu
         self.uid = int(thread["cred"]["uid"]["val"])
         self.gid = int(thread["cred"]["gid"]["val"])
-        if cpu is not None:
-            self.cpu = cpu
-            return
-        self.cpu = "?"
-        try:
-            configs = ("CONFIG_THREAD_INFO_IN_TASK", "CONFIG_SMP")
-            if all(config in pwndbg.aglib.kernel.kconfig() for config in configs):
-                if krelease < (5, 16):
-                    self.cpu = int(thread["cpu"])
-                else:
-                    self.cpu = int(thread["thread_info"]["cpu"])
-            else:
-                raise NotImplementedError()
-        except Exception:
-            # getting cpu without typeinfo is too complicated, doesn't support it for now
-            # unless we have only one cpu
-            # TODO: if smp, set to current cpu
-            if pwndbg.aglib.kernel.nproc() == 1:
-                self.cpu = 0
 
     @pwndbg.lib.cache.cache_until("stop")
     def files(self) -> Tuple[Tuple[int, pwndbg.dbg_mod.Value], ...]:
@@ -84,13 +64,25 @@ class Kthread:
         return int(self.mm["pgd"])
 
     def __str__(self) -> str:
+        prefix = str(pwndbg.config.backtrace_prefix)
+        if int(pwndbg.aglib.kernel.current_task()) != int(self.thread):
+            prefix = " " * len(prefix)
+        prefix = color.blue(prefix)
         thread = color.blue(hex(int(self.thread)))
-        prefix = f"[pid {self.pid}]"
+        pid = f"[pid {self.pid}]"
+        pid = color.blue(f"{pid:<11}")
+        cpu = "[cpu: -]" # not scheduled on a cpu
+        if self.cpu is not None:
+            cpu = f"[cpu: {self.cpu}]"
+        cpulen = 7 + len(str(pwndbg.aglib.kernel.nproc() - 1))
+        cpu = color.red(f"{cpu:<{cpulen}}")
         desc = " "
         namelen = pwndbg.aglib.kernel.ktask.TASK_COMM_LEN
-        prefix = color.blue(f"{prefix:<11}") + f"task @ {thread}: {self.name:<{namelen}}"
-        user = ", has user pages" if self.has_user_page else ""
-        desc = color.red(f"cpu #{self.cpu} (uid: {self.uid}, gid: {self.gid}{user})")
+        prefix = f"{prefix} {pid} {cpu} task @ {thread}: {self.name:<{namelen}}"
+        user = "[user task]" if self.has_user_page else ""
+        uid = f"[uid: {self.uid}]"
+        gid = f"[gid: {self.gid}]"
+        desc = color.red(f"{uid:<11} {gid:<11} {user}")
         return f"{prefix} {desc}"
 
 
@@ -110,15 +102,25 @@ class Ktask:
 def get_ktasks() -> Tuple[Ktask, ...]:
     tasks = []
     try:
+        _tasks = []
+        seen = set()
         for i in range(0, pwndbg.aglib.kernel.nproc()):
             task = pwndbg.aglib.kernel.current_task(i)
+            seen.add(int(task))
             task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
             tasks.append(Ktask(task, i))
         init_task = pwndbg.aglib.kernel.init_task()
+        if int(init_task) not in seen:
+            _tasks.append(init_task)
+            seen.add(int(init_task))
         init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
         for task in for_each_entry(init_task["tasks"], "struct task_struct", "tasks"):
-            ktask = Ktask(task)
-            tasks.append(ktask)
+            if int(task) not in seen:
+                _tasks.append(task)
+                seen.add(int(task))
+        for task in _tasks:
+            task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
+            tasks.append(Ktask(task))
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"ERROR: {e}"))
         return ()
@@ -138,5 +140,6 @@ def ktask(task_name=None) -> None:
             if task_name is not None and task_name not in thread.name:
                 continue
             threads.append(thread)
+    indent = IndentContextManager()
     for thread in threads:
         indent.print(thread)

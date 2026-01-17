@@ -20,12 +20,17 @@ import pwndbg.aglib.typeinfo
 """
 
 
-def get_tasks_offset(task: int, mm_offset: int) -> Tuple[List[int], int]:
+def get_tasks_offset(mm_offset: int) -> Tuple[List[int], int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
     tasks_offset = mm_offset - ptrsize * 2
     if "CONFIG_SMP" in pwndbg.aglib.kernel.kconfig():
         tasks_offset -= ptrsize * 8
-    tasks = pwndbg.aglib.kernel.symbol.get_double_linked_list(task + tasks_offset)
+    tasks = None
+    for i in range(pwndbg.aglib.kernel.nproc()):
+        task = int(pwndbg.aglib.kernel.current_task(i))
+        tasks = pwndbg.aglib.kernel.symbol.get_double_linked_list(task + tasks_offset)
+        if tasks is not None:
+            break
     assert tasks, (
         f"cannot find the tasks double linked list: (task: {hex(task)}, mm_offset: {hex(mm_offset)})"
     )
@@ -575,7 +580,7 @@ def get_signal_struct() -> str:
 def load_ktask_typeinfo() -> None:
     task = int(pwndbg.aglib.kernel.current_task())
     mm_struct, mm_offset = get_mm_struct_and_offset(task)
-    tasks, tasks_offset = get_tasks_offset(task, mm_offset)
+    tasks, tasks_offset = get_tasks_offset(mm_offset)
     task, comm_offset = get_comm_offset(tasks)
     pid_offset = get_pid_offset(tasks, mm_offset, comm_offset)
     thread_list_offset = get_thread_list_offset(pid_offset)

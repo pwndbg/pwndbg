@@ -263,6 +263,10 @@ def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
     return entries
 
 
+def current_cpu() -> int:
+    return pwndbg.dbg.selected_thread().index() - 1
+
+
 class ArchOps(ABC):
     # More information on the physical memory model of the Linux kernel and
     # especially the mapping between pages and page frame numbers (pfn) can
@@ -392,7 +396,7 @@ class x86_64Ops(x86Ops):
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
     ) -> pwndbg.dbg_mod.Value:
         if cpu is None:
-            cpu = pwndbg.dbg.selected_thread().index() - 1
+            cpu = current_cpu()
 
         per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
 
@@ -427,7 +431,7 @@ class Aarch64Ops(ArchOps):
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
     ) -> pwndbg.dbg_mod.Value:
         if cpu is None:
-            cpu = pwndbg.dbg.selected_thread().index() - 1
+            cpu = current_cpu()
 
         per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
 

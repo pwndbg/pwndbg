@@ -66,8 +66,6 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             self.data["CONFIG_DEBUG_FS"] = "y"
         if self.CONFIG_SECURITY:
             self.data["CONFIG_SECURITY"] = "y"
-        if self.CONFIG_THREAD_INFO_IN_TASK:
-            self.data["CONFIG_THREAD_INFO_IN_TASK"] = "y"
         if self.CONFIG_STACKPROTECTOR:
             self.data["CONFIG_STACKPROTECTOR"] = "y"
         if self.CONFIG_RANDSTRUCT:
@@ -188,10 +186,6 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_SECURITY(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("security_inode_init_security") is not None
-
-    @property
-    def CONFIG_THREAD_INFO_IN_TASK(self) -> bool:
-        return pwndbg.aglib.symbol.lookup_symbol("put_task_stack") is not None
 
     @property
     def CONFIG_STACKPROTECTOR(self) -> bool:

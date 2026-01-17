@@ -58,6 +58,7 @@ def kfile(pid: int = None, fd: int = None) -> None:
                 private_data = int(file["private_data"])
                 with indent:
                     indent.print(f"private: {indent.addr_hex(private_data)}, fmode: {flags}")
+        break
 
 
 parser = argparse.ArgumentParser(
@@ -101,6 +102,13 @@ def kcurrent(pid: int = None, set_pid: bool = False, verbose: bool = True) -> No
     if kthread is None:
         print(message.warn("cannot find kernel task"))
         return
+    else:
+        for task in pwndbg.commands.ktask.get_ktasks():
+            for _kthread in task.threads:
+                if int(_kthread.thread) == int(kthread.thread):
+                    if verbose:
+                        indent.print(_kthread)
+                        return
     if verbose:
         indent.print(kthread)
     if set_pid:
