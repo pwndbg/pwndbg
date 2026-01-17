@@ -97,7 +97,7 @@ def lib_is_pure() -> None:
     )
 
 
-def libc_no_facade():
+def libc_no_facade() -> None:
     """
     Checks that none of the files in pwndbg/libc/ access facade.py except for __init__.py.
     """
