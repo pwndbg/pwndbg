@@ -7,8 +7,6 @@ This should never use .facade .
 
 from __future__ import annotations
 
-from pwndbg.lib.common import UncertainDecision
-
 from .dispatch import LibcType
 from .dispatch import LibcURLs
 
@@ -33,14 +31,14 @@ def has_debug_info() -> bool:
     return False
 
 
-def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
-    # We cheat a bit and return UncertainDecision.DONTKNOW for both
+def verify_libc_candidate(mapping_name: str) -> bool:
+    # We cheat a bit and return False for both
     # verify_libc_candidate and verify_ld_candidate.
-    return UncertainDecision.DONTKNOW
+    return False
 
 
-def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
-    return UncertainDecision.DONTKNOW
+def verify_ld_candidate(mapping_name: str) -> bool:
+    return False
 
 
 def urls(ver: tuple[int, ...] | None) -> LibcURLs:

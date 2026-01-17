@@ -11,7 +11,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
-from pwndbg.lib.common import UncertainDecision
 
 from .dispatch import LibcType
 from .dispatch import LibcURLs
@@ -52,10 +51,10 @@ def has_debug_info() -> bool:
     return pwndbg.aglib.typeinfo.load("struct __ptcb") is not None
 
 
-def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
+def verify_libc_candidate(mapping_name: str) -> bool:
     # First check __freadahead which is available in musl, and bionic but not in glibc
     if pwndbg.aglib.symbol.lookup_symbol("__freadahead", objfile_endswith=mapping_name) is None:
-        return UncertainDecision.NO
+        return False
     else:
         # Then do a consistent but more expensive (?) check:
         # Check if the string "/tmp/tmpnam_XXXX" is in the .rodata of the binary.
@@ -65,15 +64,15 @@ def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
             mapping_name, ".rodata", try_local_path=True
         )
         if rodata is None:
-            return UncertainDecision.NO
+            return False
         _, _, data = rodata
         if b"/tmp/tmpnam_XXXX" in data:
-            return UncertainDecision.YES
+            return True
         else:
-            return UncertainDecision.NO
+            return False
 
 
-def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
+def verify_ld_candidate(mapping_name: str) -> bool:
     # For musl, ld and libc are the same mapping.
     # On some distributions it is named libc, on some it's ld.
     return verify_libc_candidate(mapping_name)

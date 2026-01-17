@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
 
-from pwndbg.lib.common import UncertainDecision
-
 
 class LibcType(Enum):
     GLIBC = "glibc"
@@ -70,29 +68,31 @@ class LibcWrangler(Protocol):
         """
         ...
 
-    def verify_libc_candidate(self, mapping_name: str) -> UncertainDecision:
+    def verify_libc_candidate(self, mapping_name: str) -> bool:
         """
         Verify whether the mapping with the provided name is implementing
         this specific libc.
 
         This must be accurate enough that no other libc implementation will
-        provide a conflicting answer.
+        provide a conflicting answer. Returning False means both "reject" and
+        "i don't know".
 
         A libc implementation must implement at least one of verify_libc_candidate
-        and verify_ld_candidate. The other may simply return UncertainDecision.DONTKNOW.
+        and verify_ld_candidate. The other may simply return False.
         """
         ...
 
-    def verify_ld_candidate(self, mapping_name: str) -> UncertainDecision:
+    def verify_ld_candidate(self, mapping_name: str) -> bool:
         """
         Verify whether the mapping with the provided name is implementing
         this specific libc's loader.
 
         This must be accurate enough that no other libc implementation will
-        provide a conflicting answer.
+        provide a conflicting answer. Returning False means both "reject" and
+        "i don't know".
 
         A libc implementation must implement at least one of verify_libc_candidate
-        and verify_ld_candidate. The other may simply return UncertainDecision.DONTKNOW.
+        and verify_ld_candidate. The other may simply return False.
         """
         ...
 

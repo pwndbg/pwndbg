@@ -15,7 +15,6 @@ import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
 import pwndbg.lib.config
 from pwndbg.color import message
-from pwndbg.lib.common import UncertainDecision
 from pwndbg.lib.config import Scope
 
 from .dispatch import LibcType
@@ -121,7 +120,7 @@ def urls(ver: tuple[int, ...] | None) -> LibcURLs:
     )
 
 
-def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
+def verify_libc_candidate(mapping_name: str) -> bool:
     if has_internal_symbols(mapping_name):
         # __GI_exit exists since at least version 2.3 (until at least 2.42)
         # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L670
@@ -132,25 +131,25 @@ def verify_libc_candidate(mapping_name: str) -> UncertainDecision:
             pwndbg.aglib.symbol.lookup_symbol("__GI_exit", objfile_endswith=mapping_name)
             is not None
         ):
-            return UncertainDecision.YES
+            return True
         else:
-            return UncertainDecision.NO
+            return False
     else:
         # We don't have internal symbols so we will use a more expensive (?) check:
         rodata: tuple[int, int, bytes] | None = pwndbg.aglib.elf.section_by_name(
             mapping_name, ".rodata", try_local_path=True
         )
         if rodata is None:
-            return UncertainDecision.NO
+            return False
         _, _, data = rodata
         if b"GNU C Library" in data:
-            return UncertainDecision.YES
+            return True
         else:
-            return UncertainDecision.NO
+            return False
 
 
-def verify_ld_candidate(mapping_name: str) -> UncertainDecision:
-    return UncertainDecision.DONTKNOW
+def verify_ld_candidate(mapping_name: str) -> bool:
+    return False
 
 
 def libc_same_as_ld() -> bool:

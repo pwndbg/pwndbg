@@ -1,13 +1,5 @@
 from __future__ import annotations
 
-from enum import Enum
-
-
-class UncertainDecision(Enum):
-    YES = 0
-    NO = 1
-    DONTKNOW = 2
-
 
 # common functions
 def hex2ptr_common(arg: str) -> int:
