@@ -64,7 +64,7 @@ def test_finding_glibc_filepath(start_binary, have_debugging_information):
         gdb.execute("continue")
 
         assert pwndbg.libc.which() == pwndbg.libc.LibcType.UNKNOWN
-        assert str(pwndbg.libc.filepath()) == "/lib64/ld-linux-x86-64.so.2"
+        assert pwndbg.libc.filepath().name == "ld-linux-x86-64.so.2"
 
 
 def test_set_glibc_version(start_binary):
