@@ -332,10 +332,6 @@ class ArchOps(ABC):
         return arch_paginginfo().kbase
 
     @property
-    def ptr_size(self) -> int:
-        raise NotImplementedError()
-
-    @property
     def page_size(self) -> int:
         return 1 << self.page_shift
 
@@ -360,7 +356,7 @@ class ArchOps(ABC):
 
 class x86Ops(ArchOps):
     def phys_to_virt(self, phys: int) -> int:
-        return (phys + self.page_offset) % (1 << self.ptr_size)
+        return (phys + self.page_offset) % (1 << pwndbg.aglib.arch.ptrbits)
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
@@ -368,21 +364,12 @@ class x86Ops(ArchOps):
     def pfn_to_phys(self, pfn: int) -> int:
         return pfn << self.page_shift
 
-    @property
-    @abstractmethod
-    def ptr_size(self) -> int:
-        raise NotImplementedError()
-
     @staticmethod
     def paging_enabled() -> bool:
         return int(pwndbg.aglib.regs.read_reg("cr0")) & BIT(31) != 0
 
 
 class i386Ops(x86Ops):
-    @property
-    def ptr_size(self) -> int:
-        return 32
-
     def virt_to_phys(self, virt: int) -> int:
         return (virt - self.page_offset) % (1 << 32)
 
@@ -401,10 +388,6 @@ class i386Ops(x86Ops):
 class x86_64Ops(x86Ops):
     def __init__(self) -> None:
         self.phys_base = 0x1000000
-
-    @property
-    def ptr_size(self) -> int:
-        return 64
 
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
@@ -441,10 +424,6 @@ class x86_64Ops(x86Ops):
 
 
 class Aarch64Ops(ArchOps):
-    @property
-    def ptr_size(self):
-        return 64
-
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
@@ -520,14 +499,6 @@ def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols | None:
     elif pwndbg.aglib.arch.name == "x86-64":
         return pwndbg.aglib.kernel.symbol.x86_64Symbols()
     return None
-
-
-def ptr_size() -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.ptr_size
-    else:
-        raise NotImplementedError()
 
 
 def page_size() -> int:

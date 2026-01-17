@@ -281,6 +281,7 @@ TASK_COMM_LEN = 0x10
 
 
 def get_path_struct(mnt: int | None, dentry: int | None) -> str:
+    # TODO: actually do something with the dentry
     result = ""
     result += """
     struct vfsmount {
@@ -379,7 +380,7 @@ def get_file_struct(file: int | None) -> str:
                     char _pad1[PTR_SIZE * 2 + spinlock_t_size];
                     fmode_t f_mode;
                 }};
-                _pad2[{off}];
+                char _pad2[{off}];
             }};
             struct path f_path;
             struct inode *f_inode;

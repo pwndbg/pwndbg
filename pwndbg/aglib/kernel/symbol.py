@@ -57,7 +57,7 @@ def try_usymbol(name: str, size: Optional[int] = None) -> Optional[int]:
             return None
 
         if size is None:
-            size = pwndbg.aglib.kernel.ptr_size()
+            size = pwndbg.aglib.arch.ptrbits
 
         if size == 8:
             return pwndbg.aglib.memory.u(symbol)
@@ -156,6 +156,7 @@ typedef char s8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 typedef long long s64;
+typedef unsigned long u64;
 #define bool int
 #if UINTPTR_MAX == 0xffffffff
     typedef int16_t arch_word_t;
@@ -301,7 +302,7 @@ def load_common_structs_on_load_linux() -> None:
     # basically want to be sure that the symbol file is a vmlinux with symbols
     # has_debug_symbols without args checks for `commit_creds`
     # load_common_structs would check if typeinfo has already been added (so doesnt readd)
-    if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.kernel.has_debug_symbols():
+    if pwndbg.aglib.qemu.is_qemu_kernel():
         load_common_structs()
 
 
