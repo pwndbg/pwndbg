@@ -121,8 +121,8 @@ def get_ktasks() -> Tuple[Ktask, ...]:
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
 def ktask(task_name=None) -> None:
-    if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.ktask.load_ktask_typeinfo()
+    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
+        return
     threads = []
     for task in get_ktasks():
         for thread in task.threads:

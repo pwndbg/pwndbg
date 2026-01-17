@@ -205,11 +205,8 @@ enum pageflags {
 """
 
 
+@pwndbg.aglib.kernel.recover_typeinfo("struct page", needs_kversion=True)
 def load_common_structs() -> None:
-    if pwndbg.aglib.kernel.has_debug_info() or not kversion_cint():
-        return
-    if pwndbg.aglib.typeinfo.lookup_types("struct page") is not None:
-        return
     defs = []
     for config in (
         "CONFIG_MEMCG",
@@ -305,10 +302,7 @@ def load_common_structs_on_load_linux() -> None:
     # has_debug_symbols without args checks for `commit_creds`
     # load_common_structs would check if typeinfo has already been added (so doesnt readd)
     if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.kernel.has_debug_symbols():
-        try:
-            load_common_structs()
-        except Exception:
-            pass
+        load_common_structs()
 
 
 class ArchSymbols:

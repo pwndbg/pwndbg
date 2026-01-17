@@ -31,9 +31,9 @@ parser.add_argument("--fd", nargs="?", type=int, help="")
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
-def kfile(pid=None, fd=None):
-    if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.ktask.load_ktask_typeinfo()
+def kfile(pid: int = None, fd: int = None) -> None:
+    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
+        return
     if pid is None:
         if KCURRENT_PID is None:
             kcurrent(None, set_pid=True, verbose=False)
@@ -83,9 +83,9 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
-def kcurrent(pid=None, set_pid=False, verbose=True):
-    if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.ktask.load_ktask_typeinfo()
+def kcurrent(pid: int = None, set_pid: bool = False, verbose: bool = True) -> None:
+    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
+        return
     global KCURRENT_PID, KCURRENT_PGD
     kthread = None
     if pid is None:

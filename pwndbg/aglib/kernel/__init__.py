@@ -20,6 +20,7 @@ import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
+import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
@@ -93,6 +94,40 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
                 return default
 
             raise Exception(f"Function {f.__name__} requires .debug_info section")
+
+        return func
+
+    return decorator
+
+
+def recover_typeinfo(
+    name: str, needs_kversion: bool = False, needs_kbase: bool = False, no_randstruct: bool = False
+) -> Callable[[Callable[P, None]], Callable[P, bool]]:
+    def decorator(f: Callable[P, None]) -> Callable[P, bool]:
+        # returns true if the struct exists or has been successfully recovered
+        @functools.wraps(f)
+        def func(*args: P.args, **kwargs: P.kwargs) -> bool:
+            if has_debug_info():
+                return True
+            if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
+                return True
+            if needs_kversion and kversion() is None:
+                print(
+                    message.warn(f"recovering struct {name} failed because kversion is unavailable")
+                )
+                return False
+            if needs_kbase and kbase() is None:
+                print(message.warn(f"recovering struct {name} failed because kbase is unavailable"))
+                return False
+            if no_randstruct and "CONFIG_RANDSTRUCT" in kconfig():
+                print(message.warn(f"struct {name} cannot be recovered when CONFIG_RANDSTRUCT = y"))
+                return False
+            try:
+                f(*args, **kwargs)
+            except Exception as e:
+                print(message.warn(f"recovering struct {name} failed with error: {e}"))
+                return False
+            return True
 
         return func
 

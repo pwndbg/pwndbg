@@ -74,8 +74,8 @@ def slab(
     partial_only=False,
     active_only=False,
 ) -> None:
-    if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.slab.load_slab_typeinfo()
+    if not pwndbg.aglib.kernel.slab.load_slab_typeinfo():
+        return
     if command == "list":
         slab_list(filter_)
     elif command == "info":

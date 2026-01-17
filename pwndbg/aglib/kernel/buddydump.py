@@ -76,6 +76,7 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
     return pcp_off, name_off, freelist_off, pcp_pad, zone_sz
 
 
+@pwndbg.aglib.kernel.recover_typeinfo("struct pglist_data", needs_kversion=True)
 def load_buddydump_typeinfo():
     if pwndbg.aglib.typeinfo.lookup_types("struct pglist_data") is not None:
         return
@@ -85,7 +86,6 @@ def load_buddydump_typeinfo():
     nzones = pwndbg.aglib.kernel.symbol.nzones()
     nnodes = pwndbg.aglib.kernel.num_numa_nodes()
     npcplist = pwndbg.aglib.kernel.symbol.npcplist()
-    pwndbg.aglib.kernel.symbol.load_common_structs()
 
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += pwndbg.aglib.kernel.symbol.COMMON_TYPES

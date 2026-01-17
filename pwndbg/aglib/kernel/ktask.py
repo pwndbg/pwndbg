@@ -556,11 +556,10 @@ def get_signal_struct() -> str:
     return struct
 
 
+@pwndbg.aglib.kernel.recover_typeinfo(
+    "struct task_struct", needs_kversion=True, needs_kbase=True, no_randstruct=True
+)
 def load_ktask_typeinfo() -> None:
-    if pwndbg.aglib.typeinfo.lookup_types("struct task_struct") is not None:
-        return
-    if pwndbg.aglib.kernel.krelease() is None:
-        return
     task = pwndbg.aglib.kernel.arch_symbols().current_task()
     assert task, "cannot find kernel task to start recovering typeinfo"
     task = int(task)
