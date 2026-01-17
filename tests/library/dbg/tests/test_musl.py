@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import re
-from pathlib import Path
-
 import pytest
 
 from ....host import Controller
@@ -40,7 +37,12 @@ async def test_musl_dynamic_detection(ctrl: Controller) -> None:
 
 @pwndbg_test
 async def test_musl_static_detection(ctrl: Controller) -> None:
+    import pwndbg
+    import pwndbg.dbg_mod
     import pwndbg.libc
+
+    if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.LLDB:
+        pytest.skip("static program detection does not work on LLDB. fix when: #3643")
 
     ctrl.disable_debuginfod()
 
