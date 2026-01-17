@@ -8,6 +8,21 @@ import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 
+
+def get_stack_offset(tasks: List[int]) -> int:
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    for i in range(0x10):
+        for task in tasks:
+            a = pwndbg.aglib.memory.read_pointer_width(task + i * ptrsize)
+            b = pwndbg.aglib.memory.read_pointer_width(task + (i + 1) * ptrsize)
+            # for x64, the frist kernel pointer should be the task
+            # for aarch64, this might not be the case when CONFIG_SHADOW_CALL_STACK=y
+            # see the definitions of task_struct and thread_info
+            if pwndbg.aglib.memory.is_kernel(a) and not pwndbg.aglib.memory.is_kernel(b):
+                return i * ptrsize
+    return 0  # fine if stack not found, we can continue with the task_struct recovery
+
+
 """
     struct list_head tasks;
 #ifdef CONFIG_SMP
@@ -592,6 +607,7 @@ def load_ktask_typeinfo() -> None:
     mm_offset = get_mm_offset(task)
     tasks, tasks_offset = get_tasks_offset(mm_offset)
     mm_struct = get_mm_struct(tasks, mm_offset)
+    stack_offset = get_stack_offset(tasks)
     task, comm_offset = get_comm_offset(tasks)
     pid_offset = get_pid_offset(tasks, mm_offset, comm_offset)
     thread_list_offset = get_thread_list_offset(pid_offset)
@@ -609,9 +625,16 @@ def load_ktask_typeinfo() -> None:
     result += get_signal_struct()
     if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_STACKPROTECTOR\n"
+    result += f"#define stack_offset {stack_offset}\n"
     result += f"""
     struct task_struct {{
+#if stack_offset
+        char _pad0[{stack_offset}];
+        void *stack;
+        char _pad1[{tasks_offset - stack_offset - ptrsize}];
+#else
         char _pad1[{tasks_offset}];
+#endif
         struct list_head tasks;
         char _pad2[{mm_offset - (tasks_offset + ptrsize * 2)}];
         struct mm_struct *mm;

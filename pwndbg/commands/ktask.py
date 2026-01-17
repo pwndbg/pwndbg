@@ -25,7 +25,8 @@ parser.add_argument("task_name", nargs="?", type=str, help="A task name to searc
 
 
 class Kthread:
-    def __init__(self, thread: pwndbg.dbg_mod.Value, cpu: int | None = None) -> None:
+    def __init__(self, thread: pwndbg.dbg_mod.Value | int, cpu: int | None = None) -> None:
+        thread = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", thread)
         self.thread = thread
         self.name = thread["comm"].string()
         self.pid = int(thread["pid"])
@@ -62,6 +63,13 @@ class Kthread:
     def pgd(self) -> int:
         return int(self.mm["pgd"])
 
+    @property
+    def stack(self) -> int | None:
+        if self.thread.dereference().type.has_field("stack"):
+            return int(self.thread["stack"])
+        # the offset of stack was not recovered
+        return None
+
     def __str__(self) -> str:
         prefix = str(pwndbg.config.backtrace_prefix)
         if int(pwndbg.aglib.kernel.current_task()) != int(self.thread):
@@ -86,7 +94,8 @@ class Kthread:
 
 
 class Ktask:
-    def __init__(self, task: pwndbg.dbg_mod.Value, cpu: int | None = None) -> None:
+    def __init__(self, task: pwndbg.dbg_mod.Value | int, cpu: int | None = None) -> None:
+        task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
         self.task = task
         threads = []
         signal = task["signal"]
@@ -99,23 +108,24 @@ class Ktask:
 
 @pwndbg.lib.cache.cache_until("stop")
 def get_ktasks() -> Tuple[Ktask, ...]:
+    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
+        return ()
     tasks: list[Ktask] = []
     try:
         seen = set()
         for i in range(0, pwndbg.aglib.kernel.nproc()):
-            task = pwndbg.aglib.kernel.current_task(i)
-            seen.add(int(task))
-            task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
+            task = int(pwndbg.aglib.kernel.current_task(i))
+            seen.add(task)
             tasks.append(Ktask(task, i))
-        init_task_val = int(pwndbg.aglib.kernel.init_task())
-        init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task_val)
-        if init_task_val not in seen:
-            tasks.append(Ktask(init_task))
-            seen.add(init_task_val)
+        init_task = pwndbg.aglib.kernel.init_task()
+        task = int(init_task)
+        if task not in seen:
+            tasks.append(Ktask(task))
+            seen.add(task)
+        init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
         for task in for_each_entry(init_task["tasks"], "struct task_struct", "tasks"):
-            if int(task) not in seen:
-                seen.add(int(task))
-                task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
+            if (task := int(task)) and task not in seen:
+                seen.add(task)
                 tasks.append(Ktask(task))
     except pwndbg.dbg_mod.Error as e:
         print(message.error(f"ERROR (get_ktasks): {e}"))

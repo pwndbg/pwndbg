@@ -19,6 +19,35 @@ indent = IndentContextManager()
 fmode_flags = BitFlags([("R", 0), ("W", 1), ("X", 5)])
 KCURRENT = None
 
+
+def select_kthread_from_pid(
+    pid: int | None, verbose: bool = True
+) -> pwndbg.commands.ktask.Kthread | None:
+    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
+        return None
+    kthread = None
+    if pid is None:
+        global KCURRENT
+        if KCURRENT:
+            return KCURRENT
+        t = pwndbg.aglib.kernel.current_task()
+        cpu = pwndbg.aglib.kernel.current_cpu()
+        kthread = pwndbg.commands.ktask.Kthread(t, cpu)
+        if not kthread:
+            print(message.warn("current task not found"))
+    else:
+        for task in pwndbg.commands.ktask.get_ktasks():
+            for _kthread in task.threads:
+                if _kthread.pid == pid:
+                    kthread = _kthread
+                    break
+            if kthread:
+                break
+        if not kthread:
+            print(message.warn(f"ktask with pid {pid} not found"))
+    return kthread
+
+
 parser = argparse.ArgumentParser(
     description="Displays information about fds accessible by a kernel task."
 )
@@ -31,34 +60,24 @@ parser.add_argument("--fd", nargs="?", type=int, help="")
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
 def kfile(pid: int = None, fd: int = None) -> None:
-    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
+    thread = select_kthread_from_pid(pid)
+    if not thread:
         return
-    if pid is None:
-        if not KCURRENT:
-            kcurrent(None, set_pid=True, verbose=False)
-        pid = KCURRENT.pid
     indent = IndentContextManager()
-    threads = []
-    for task in pwndbg.commands.ktask.get_ktasks():
-        threads += task.threads
-    for thread in threads:
-        if thread.pid != pid:
-            continue
-        indent.print(thread)
-        with indent:
-            for i, file in thread.files():
-                if fd is not None and i != fd:
-                    continue
-                addr = int(file)
-                ops = int(file["f_op"])
-                prefix = indent.prefix(f"[fileno {i:03}]")
-                flags = ctx_color.format_flags(int(file["f_mode"]), fmode_flags)
-                desc = f"ops @ {color.red(pwndbg.chain.format(ops, limit=0))}"
-                indent.print(f"- {prefix} file @ {indent.addr_hex(addr)}: {desc}")
-                private_data = int(file["private_data"])
-                with indent:
-                    indent.print(f"private: {indent.addr_hex(private_data)}, fmode: {flags}")
-        break
+    indent.print(thread)
+    with indent:
+        for i, file in thread.files():
+            if fd is not None and i != fd:
+                continue
+            addr = int(file)
+            ops = int(file["f_op"])
+            prefix = indent.prefix(f"[fileno {i:03}]")
+            flags = ctx_color.format_flags(int(file["f_mode"]), fmode_flags)
+            desc = f"ops @ {color.red(pwndbg.chain.format(ops, limit=0))}"
+            indent.print(f"- {prefix} file @ {indent.addr_hex(addr)}: {desc}")
+            private_data = int(file["private_data"])
+            with indent:
+                indent.print(f"private: {indent.addr_hex(private_data)}, fmode: {flags}")
 
 
 parser = argparse.ArgumentParser(
@@ -81,35 +100,11 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
 def kcurrent(pid: int = None, set_pid: bool = False, verbose: bool = True) -> None:
-    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
-        return
     global KCURRENT
-    kthread = None
-    if pid is None:
-        kthread = KCURRENT
-    else:
-        for task in pwndbg.commands.ktask.get_ktasks():
-            for _kthread in task.threads:
-                if _kthread.pid == pid:
-                    kthread = _kthread
-                    break
-            if kthread:
-                break
-    if not kthread:
-        t = pwndbg.aglib.kernel.current_task()
-        t = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", t)
-        kthread = pwndbg.commands.ktask.Kthread(t)
-    if kthread is None:
-        print(message.warn("cannot find kernel task"))
-        return
-    else:
-        for task in pwndbg.commands.ktask.get_ktasks():
-            for _kthread in task.threads:
-                if int(_kthread.thread) == int(kthread.thread):
-                    if verbose:
-                        indent.print(_kthread)
-                        return
-    if verbose:
+    if not pid and KCURRENT:
+        pid = KCURRENT.pid
+    kthread = select_kthread_from_pid(pid, verbose)
+    if verbose and kthread:
         indent.print(kthread)
-    if set_pid:
+    if set_pid and kthread:
         KCURRENT = kthread

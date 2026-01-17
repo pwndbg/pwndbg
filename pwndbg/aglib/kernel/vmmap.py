@@ -26,7 +26,7 @@ from pwndbg.lib.memory import Page
 
 
 class KernelVmmap:
-    def __init__(self, pages: Tuple[Page, ...]):
+    def __init__(self, pages: Tuple[Page, ...]) -> None:
         self.pages = pages
         self.sections: Tuple[Tuple[str, int], ...] = None
         self.pi = pwndbg.aglib.kernel.arch_paginginfo()
@@ -86,6 +86,27 @@ class KernelVmmap:
             page.offset = page.start - base
             if len(hex(page.offset)) > 9:
                 page.offset = 0
+
+    @staticmethod
+    @pwndbg.lib.cache.cache_until("stop")
+    def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> pwndbg.dbg_mod.MemoryMap:
+        stacks = []
+        for task in pwndbg.commands.ktask.get_ktasks():
+            for thread in task.threads:
+                if thread.stack:
+                    stacks.append((thread.stack, thread.pid))
+        if not stacks:
+            # get_ktasks prob failed and returned ()
+            return pages
+        for page in pages.ranges():
+            if not pwndbg.aglib.memory.is_kernel(page.start):
+                continue
+            for stack, pid in stacks:
+                if stack in page:
+                    # not starting with [stack is intentional
+                    page.objfile += f" [pid {pid} stack]"
+                    break
+        return pages
 
 
 # Most of QemuMachine code was inherited from gdb-pt-dump thanks to Martin Radev (@martinradev)
