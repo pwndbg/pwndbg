@@ -76,6 +76,10 @@ class Kthread:
             return mm
         return None
 
+    @property
+    def pgd(self) -> int:
+        return int(self.mm["pgd"])
+
     def __str__(self) -> str:
         thread = color.blue(hex(int(self.thread)))
         prefix = f"[pid {self.pid}]"

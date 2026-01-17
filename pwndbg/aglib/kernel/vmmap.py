@@ -413,7 +413,9 @@ def kernel_vmmap_pages() -> Tuple[Page, ...]:
         case "page-tables":
             # has the user set the pgd with kcurrent?
             # None if not which gets properly handled
-            entry = pwndbg.commands.kcurrent.KCURRENT_PGD
+            entry = None
+            if pwndbg.commands.kcurrent.KCURRENT:
+                entry = pwndbg.commands.kcurrent.KCURRENT.pgd
             if entry and pwndbg.aglib.memory.is_kernel(entry):
                 entry = pwndbg.aglib.kernel.virt_to_phys(entry)
             return pwndbg.aglib.kernel.pagetable_scan(entry)

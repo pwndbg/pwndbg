@@ -112,20 +112,18 @@ def recover_typeinfo(
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return True
             if needs_kversion and kversion() is None:
-                print(
-                    message.warn(f"recovering struct {name} failed because kversion is unavailable")
-                )
+                print(message.warn(f"recovering {name} failed because kversion is unavailable"))
                 return False
             if needs_kbase and kbase() is None:
-                print(message.warn(f"recovering struct {name} failed because kbase is unavailable"))
+                print(message.warn(f"recovering {name} failed because kbase is unavailable"))
                 return False
             if no_randstruct and "CONFIG_RANDSTRUCT" in kconfig():
-                print(message.warn(f"struct {name} cannot be recovered when CONFIG_RANDSTRUCT = y"))
+                print(message.warn(f"{name} cannot be recovered when CONFIG_RANDSTRUCT = y"))
                 return False
             try:
                 f(*args, **kwargs)
             except Exception as e:
-                print(message.warn(f"recovering struct {name} failed with error: {e}"))
+                print(message.warn(f"recovering {name} failed with error: {e}"))
                 return False
             return True
 

@@ -17,8 +17,7 @@ from pwndbg.lib.regs import BitFlags
 indent = IndentContextManager()
 
 fmode_flags = BitFlags([("R", 0), ("W", 1), ("X", 5)])
-KCURRENT_PID = None
-KCURRENT_PGD = None
+KCURRENT = None
 
 parser = argparse.ArgumentParser(
     description="Displays information about fds accessible by a kernel task."
@@ -35,12 +34,9 @@ def kfile(pid: int = None, fd: int = None) -> None:
     if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
         return
     if pid is None:
-        if KCURRENT_PID is None:
+        if not KCURRENT:
             kcurrent(None, set_pid=True, verbose=False)
-        pid = KCURRENT_PID
-    if pid is None:
-        print(message.warn("no pid specified (either specify pid or set with kcurrent)"))
-        return
+        pid = KCURRENT.pid
     indent = IndentContextManager()
     threads = []
     for task in pwndbg.commands.ktask.get_ktasks():
@@ -86,27 +82,25 @@ parser.add_argument(
 def kcurrent(pid: int = None, set_pid: bool = False, verbose: bool = True) -> None:
     if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
         return
-    global KCURRENT_PID, KCURRENT_PGD
-    kthread = None
+    global KCURRENT
     if pid is None:
-        kcurrent = pwndbg.aglib.kernel.current_task()
-        kcurrent = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", kcurrent)
-        if kcurrent and pwndbg.aglib.memory.is_kernel(int(kcurrent)):
-            pid = int(kcurrent["pid"])
-    if pid is not None:
+        kthread = KCURRENT
+    else:
         for task in pwndbg.commands.ktask.get_ktasks():
             for _kthread in task.threads:
                 if _kthread.pid == pid:
                     kthread = _kthread
+                    break
+            if kthread:
+                break
+    if not kthread:
+        t = pwndbg.aglib.kernel.current_task()
+        t = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", t)
+        kthread = pwndbg.commands.ktask.Kthread(t)
     if kthread is None:
         print(message.warn("cannot find kernel task"))
         return
     if verbose:
         indent.print(kthread)
     if set_pid:
-        mm = kthread.mm
-        if not mm:
-            print(message.warn("mm not found, current kernel task not set."))
-            return
-        KCURRENT_PID = pid
-        KCURRENT_PGD = int(mm["pgd"])
+        KCURRENT = kthread

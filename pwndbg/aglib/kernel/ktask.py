@@ -20,35 +20,38 @@ import pwndbg.aglib.typeinfo
 """
 
 
-def get_tasks_offset(task: int) -> Tuple[List[int], int]:
-    for i in range(0x200):
-        off = i * pwndbg.aglib.arch.ptrsize
-        val = task + off
-        if not pwndbg.aglib.memory.is_kernel(val):
-            continue
-        head = pwndbg.aglib.memory.read_pointer_width(val)
-        tasks = pwndbg.aglib.kernel.symbol.get_double_linked_list(head)
-        if tasks and len(tasks) >= 10:
-            tasks = [task - off for task in tasks]
-            return tasks, off
-    raise AssertionError("could not find the offset of task_struct->tasks")
-
-
-def get_mm_struct_and_offset(task: int, tasks_offset: int) -> Tuple[str, int]:
+def get_tasks_offset(task: int, mm_offset: int) -> Tuple[List[int], int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
-    off = tasks_offset + 2 * ptrsize
-    val = pwndbg.aglib.memory.read_pointer_width(task + off)
-    adjust = None
-    if val == 0:
-        _val = pwndbg.aglib.memory.read_pointer_width(task + off + ptrsize)
-        if pwndbg.aglib.memory.is_kernel(_val):
-            adjust = 0
-    if adjust is None and not pwndbg.aglib.memory.is_kernel(val):
-        adjust = 8 * ptrsize
-    if adjust:
-        off += adjust
+    tasks_offset = mm_offset - ptrsize * 2
+    if "CONFIG_SMP" in pwndbg.aglib.kernel.kconfig():
+        tasks_offset -= ptrsize * 8
+    tasks = pwndbg.aglib.kernel.symbol.get_double_linked_list(task + tasks_offset)
+    tasks = [task - tasks_offset for task in tasks]
+    return tasks, tasks_offset
 
-    active_mm = pwndbg.aglib.memory.read_pointer_width(task + off + ptrsize)
+
+def get_mm_struct_and_offset(task: int) -> Tuple[str, int]:
+    mm_offset = None
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    for i in range(0x200):
+        off = i * ptrsize
+        try:
+            val = pwndbg.aglib.memory.read_pointer_width(task + off)
+            cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+            if "mm_struct" == cache.name:
+                mm_offset = off
+                break
+        except Exception:
+            pass
+    assert mm_offset, "cound not find the offset of task_struct->mm"
+    try:
+        cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(task + mm_offset + ptrsize)
+        assert cache.name == "mm_struct"
+    except Exception:
+        # we actually found active_mm instead
+        mm_offset -= ptrsize
+
+    active_mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
     pgd_offset = None
     match pwndbg.aglib.arch.name:
         case "x86-64":
@@ -72,7 +75,7 @@ def get_mm_struct_and_offset(task: int, tasks_offset: int) -> Tuple[str, int]:
     }};
     """
 
-    return struct, off
+    return struct, mm_offset
 
 
 """
@@ -564,8 +567,8 @@ def load_ktask_typeinfo() -> None:
     task = pwndbg.aglib.kernel.arch_symbols().current_task()
     assert task, "cannot find kernel task to start recovering typeinfo"
     task = int(task)
-    tasks, tasks_offset = get_tasks_offset(task)
-    mm_struct, mm_offset = get_mm_struct_and_offset(task, tasks_offset)
+    mm_struct, mm_offset = get_mm_struct_and_offset(task)
+    tasks, tasks_offset = get_tasks_offset(task, mm_offset)
     task, comm_offset = get_comm_offset(tasks)
     pid_offset = get_pid_offset(tasks, mm_offset, comm_offset)
     thread_list_offset = get_thread_list_offset(pid_offset)
