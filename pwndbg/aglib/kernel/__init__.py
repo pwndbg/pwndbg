@@ -101,7 +101,7 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 
 
 def recover_typeinfo(
-    name: str, needs_kversion: bool = False, needs_kbase: bool = False, no_randstruct: bool = False
+    name: str, needs_kversion: bool = False, needs_kbase: bool = False
 ) -> Callable[[Callable[P, None]], Callable[P, bool]]:
     def decorator(f: Callable[P, None]) -> Callable[P, bool]:
         # returns true if the struct exists or has been successfully recovered
@@ -117,13 +117,15 @@ def recover_typeinfo(
             if needs_kbase and kbase() is None:
                 print(message.warn(f"recovering {name} failed because kbase is unavailable"))
                 return False
-            if no_randstruct and "CONFIG_RANDSTRUCT" in kconfig():
-                print(message.warn(f"{name} cannot be recovered when CONFIG_RANDSTRUCT = y"))
-                return False
             try:
                 f(*args, **kwargs)
             except Exception as e:
                 print(message.warn(f"recovering {name} failed with error: {e}"))
+                print(
+                    message.warn(
+                        "please note that some structs may not be recoverable when CONFIG_RANSTRUCT=y"
+                    )
+                )
                 return False
             return True
 

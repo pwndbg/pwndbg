@@ -38,7 +38,7 @@ def get_tasks_offset(mm_offset: int) -> Tuple[List[int], int]:
     return tasks, tasks_offset
 
 
-def get_mm_struct_and_offset(task: int) -> Tuple[str, int]:
+def get_mm_offset(task: int) -> int:
     mm_offset = None
     ptrsize = pwndbg.aglib.arch.ptrsize
     for i in range(0x200):
@@ -60,7 +60,11 @@ def get_mm_struct_and_offset(task: int) -> Tuple[str, int]:
     except Exception:
         # we actually found active_mm instead
         mm_offset -= ptrsize
+    return mm_offset
 
+
+def get_mm_struct(tasks: List[int], mm_offset: int) -> str:
+    ptrsize = pwndbg.aglib.arch.ptrsize
     pgd_offset = None
     match pwndbg.aglib.arch.name:
         case "x86-64":
@@ -71,25 +75,33 @@ def get_mm_struct_and_offset(task: int) -> Tuple[str, int]:
             raise NotImplementedError()
     mask = pwndbg.aglib.kernel.arch_paginginfo().PAGE_ENTRY_MASK
     pgd_virt = pwndbg.aglib.kernel.phys_to_virt(pwndbg.aglib.regs.read_reg(reg) & mask)
-    for i in range(pwndbg.aglib.kernel.nproc()):
-        task = int(pwndbg.aglib.kernel.current_task(i))
+    current_tasks = [
+        int(pwndbg.aglib.kernel.current_task(i)) for i in range(pwndbg.aglib.kernel.nproc())
+    ]
+    for task in tasks + current_tasks:
+        mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset)
+        if pwndbg.aglib.memory.is_kernel(mm):
+            for i in range(0x100):
+                if pwndbg.aglib.memory.read_pointer_width(mm + i * ptrsize) == pgd_virt:
+                    pgd_offset = i * ptrsize
+                    break
         active_mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
-        for i in range(0x100):
-            if pwndbg.aglib.memory.read_pointer_width(active_mm + i * ptrsize) == pgd_virt:
-                pgd_offset = i * ptrsize
-                break
+        if pwndbg.aglib.memory.is_kernel(active_mm):
+            for i in range(0x100):
+                if pwndbg.aglib.memory.read_pointer_width(active_mm + i * ptrsize) == pgd_virt:
+                    pgd_offset = i * ptrsize
+                    break
         if pgd_offset:
             break
     assert pgd_offset, f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(active_mm)})"
-    struct = f"""
+
+    return f"""
     struct mm_struct {{
         char _pad1[{pgd_offset}];
         void *pgd;
         /* don't care about the rest */
     }};
     """
-
-    return struct, mm_offset
 
 
 """
@@ -574,13 +586,12 @@ def get_signal_struct() -> str:
     return struct
 
 
-@pwndbg.aglib.kernel.recover_typeinfo(
-    "struct task_struct", needs_kversion=True, needs_kbase=True, no_randstruct=True
-)
+@pwndbg.aglib.kernel.recover_typeinfo("struct task_struct", needs_kversion=True, needs_kbase=True)
 def load_ktask_typeinfo() -> None:
     task = int(pwndbg.aglib.kernel.current_task())
-    mm_struct, mm_offset = get_mm_struct_and_offset(task)
+    mm_offset = get_mm_offset(task)
     tasks, tasks_offset = get_tasks_offset(mm_offset)
+    mm_struct = get_mm_struct(tasks, mm_offset)
     task, comm_offset = get_comm_offset(tasks)
     pid_offset = get_pid_offset(tasks, mm_offset, comm_offset)
     thread_list_offset = get_thread_list_offset(pid_offset)
