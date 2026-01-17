@@ -2305,6 +2305,8 @@ class HeuristicHeap(
     def is_initialized(self) -> bool:
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.
         # try to use vmmap or main_arena.top to find the heap
-        return any("[heap]" == x.objfile for x in pwndbg.aglib.vmmap.get()) or (
+        if not any("[heap]" == x.objfile for x in pwndbg.aglib.vmmap.get()) or (
             self.can_be_resolved() and self.main_arena.top != 0
-        )
+        ):
+            return int(self.mp["sbrk_base"]) != 0
+        return False
