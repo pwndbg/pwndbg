@@ -24,7 +24,6 @@ parser = argparse.ArgumentParser(description="Displays information about kernel 
 parser.add_argument("task_name", nargs="?", type=str, help="A task name to search for")
 
 
-
 class Kthread:
     def __init__(self, thread: pwndbg.dbg_mod.Value, cpu: int | None = None) -> None:
         self.thread = thread
@@ -71,7 +70,7 @@ class Kthread:
         thread = color.blue(hex(int(self.thread)))
         pid = f"[pid {self.pid}]"
         pid = color.blue(f"{pid:<11}")
-        cpu = "[cpu: -]" # not scheduled on a cpu
+        cpu = "[cpu: -]"  # not scheduled on a cpu
         if self.cpu is not None:
             cpu = f"[cpu: {self.cpu}]"
         cpulen = 7 + len(str(pwndbg.aglib.kernel.nproc() - 1))
@@ -100,29 +99,26 @@ class Ktask:
 
 @pwndbg.lib.cache.cache_until("stop")
 def get_ktasks() -> Tuple[Ktask, ...]:
-    tasks = []
+    tasks: list[Ktask] = []
     try:
-        _tasks = []
         seen = set()
         for i in range(0, pwndbg.aglib.kernel.nproc()):
             task = pwndbg.aglib.kernel.current_task(i)
             seen.add(int(task))
             task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
             tasks.append(Ktask(task, i))
-        init_task = pwndbg.aglib.kernel.init_task()
-        if int(init_task) not in seen:
-            _tasks.append(init_task)
-            seen.add(int(init_task))
-        init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
+        init_task_val = int(pwndbg.aglib.kernel.init_task())
+        init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task_val)
+        if init_task_val not in seen:
+            tasks.append(Ktask(init_task))
+            seen.add(init_task_val)
         for task in for_each_entry(init_task["tasks"], "struct task_struct", "tasks"):
             if int(task) not in seen:
-                _tasks.append(task)
                 seen.add(int(task))
-        for task in _tasks:
-            task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
-            tasks.append(Ktask(task))
+                task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
+                tasks.append(Ktask(task))
     except pwndbg.dbg_mod.Error as e:
-        print(message.error(f"ERROR: {e}"))
+        print(message.error(f"ERROR (get_ktasks): {e}"))
         return ()
     return tuple(tasks)
 
@@ -140,6 +136,7 @@ def ktask(task_name=None) -> None:
             if task_name is not None and task_name not in thread.name:
                 continue
             threads.append(thread)
+    threads.sort(key=lambda thread: (thread.pid, thread.name))
     indent = IndentContextManager()
     for thread in threads:
         indent.print(thread)
