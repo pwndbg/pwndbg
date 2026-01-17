@@ -83,6 +83,7 @@ def kcurrent(pid: int = None, set_pid: bool = False, verbose: bool = True) -> No
     if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
         return
     global KCURRENT
+    kthread = None
     if pid is None:
         kthread = KCURRENT
     else:

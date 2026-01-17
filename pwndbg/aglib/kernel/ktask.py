@@ -56,7 +56,6 @@ def get_mm_struct_and_offset(task: int) -> Tuple[str, int]:
         # we actually found active_mm instead
         mm_offset -= ptrsize
 
-    active_mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
     pgd_offset = None
     match pwndbg.aglib.arch.name:
         case "x86-64":
@@ -67,9 +66,14 @@ def get_mm_struct_and_offset(task: int) -> Tuple[str, int]:
             raise NotImplementedError()
     mask = pwndbg.aglib.kernel.arch_paginginfo().PAGE_ENTRY_MASK
     pgd_virt = pwndbg.aglib.kernel.phys_to_virt(pwndbg.aglib.regs.read_reg(reg) & mask)
-    for i in range(0x100):
-        if pwndbg.aglib.memory.read_pointer_width(active_mm + i * ptrsize) == pgd_virt:
-            pgd_offset = i * ptrsize
+    for i in range(pwndbg.aglib.kernel.nproc()):
+        task = int(pwndbg.aglib.kernel.current_task(i))
+        active_mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
+        for i in range(0x100):
+            if pwndbg.aglib.memory.read_pointer_width(active_mm + i * ptrsize) == pgd_virt:
+                pgd_offset = i * ptrsize
+                break
+        if pgd_offset:
             break
     assert pgd_offset, f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(active_mm)})"
     struct = f"""
@@ -571,7 +575,6 @@ def get_signal_struct() -> str:
 def load_ktask_typeinfo() -> None:
     task = int(pwndbg.aglib.kernel.current_task())
     mm_struct, mm_offset = get_mm_struct_and_offset(task)
-    task = int(pwndbg.aglib.kernel.current_task(0))
     tasks, tasks_offset = get_tasks_offset(task, mm_offset)
     task, comm_offset = get_comm_offset(tasks)
     pid_offset = get_pid_offset(tasks, mm_offset, comm_offset)
