@@ -21,9 +21,6 @@ import pwndbg.lib.cache
 from pwndbg.aglib.kernel.macros import for_each_entry
 from pwndbg.lib.exception import IndentContextManager
 
-parser = argparse.ArgumentParser(description="Displays information about kernel tasks.")
-parser.add_argument("task_name", nargs="?", type=str, help="A task name to search for")
-
 
 class pt_regs_x86_64(ctypes.Structure):
     _fields_ = [
@@ -96,9 +93,8 @@ class pt_regs_aarch64(ctypes.Structure):
 
 
 class Kthread:
-    def __init__(self, thread: pwndbg.dbg_mod.Value | int, cpu: int | None = None) -> None:
+    def __init__(self, thread: pwndbg.dbg_mod.Value | int) -> None:
         self.thread = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", thread)
-        self.cpu = cpu
 
     @pwndbg.lib.cache.cache_until("stop")
     def files(self) -> Tuple[Tuple[int, pwndbg.dbg_mod.Value], ...]:
@@ -192,8 +188,9 @@ class Kthread:
         pid = f"[pid {self.pid}]"
         pid = color.blue(f"{pid:<11}")
         cpu = "[cpu: -]"  # not scheduled on a cpu
-        if self.cpu is not None:
-            cpu = f"[cpu: {self.cpu}]"
+        for i in range(pwndbg.aglib.kernel.nproc()):
+            if int(pwndbg.aglib.kernel.current_task(i)) == int(self.thread):
+                cpu = f"[cpu: {i}]"
         cpulen = 7 + len(str(pwndbg.aglib.kernel.nproc() - 1))
         cpu = color.red(f"{cpu:<{cpulen}}")
         desc = " "
@@ -207,14 +204,14 @@ class Kthread:
 
 
 class Ktask:
-    def __init__(self, task: pwndbg.dbg_mod.Value | int, cpu: int | None = None) -> None:
+    def __init__(self, task: pwndbg.dbg_mod.Value | int) -> None:
         task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", task)
         self.task = task
         threads = []
         signal = task["signal"]
         # Iterate through all threads in the task_struct's thread list.
         for thread in for_each_entry(signal["thread_head"], "struct task_struct", "thread_node"):
-            kthread = Kthread(thread, cpu)
+            kthread = Kthread(thread)
             threads.append(kthread)
         self.threads = threads
 
@@ -229,7 +226,7 @@ def get_ktasks() -> Tuple[Ktask, ...]:
         for i in range(0, pwndbg.aglib.kernel.nproc()):
             task = int(pwndbg.aglib.kernel.current_task(i))
             seen.add(task)
-            tasks.append(Ktask(task, i))
+            tasks.append(Ktask(task))
         init_task = pwndbg.aglib.kernel.init_task()
         task = int(init_task)
         if task not in seen:
@@ -246,17 +243,24 @@ def get_ktasks() -> Tuple[Ktask, ...]:
     return tuple(tasks)
 
 
+parser = argparse.ArgumentParser(description="Displays information about kernel tasks.")
+parser.add_argument("task_name", nargs="?", type=str, help="A task name to search for")
+parser.add_argument("--pid", nargs="?", type=int, help="A pid to search for")
+
+
 @pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
-def ktask(task_name=None) -> None:
+def ktask(task_name: str | None = None, pid: int | None = None) -> None:
     if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
         return
     threads = []
     for task in get_ktasks():
         for thread in task.threads:
             if task_name is not None and task_name not in thread.name:
+                continue
+            if pid is not None and pid != thread.pid:
                 continue
             threads.append(thread)
     threads.sort(key=lambda thread: (thread.pid, thread.name))

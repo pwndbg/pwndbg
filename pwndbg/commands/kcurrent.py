@@ -42,8 +42,7 @@ def select_kthread_from_pid(
         if (kthread := get_kcurrent()) is not None:
             return kthread
         t = pwndbg.aglib.kernel.current_task()
-        cpu = pwndbg.aglib.kernel.current_cpu()
-        kthread = pwndbg.commands.ktask.Kthread(t, cpu)
+        kthread = pwndbg.commands.ktask.Kthread(t)
         if not kthread:
             print(message.warn("current task not found"))
     else:
