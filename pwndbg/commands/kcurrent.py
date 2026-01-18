@@ -49,6 +49,36 @@ def select_kthread_from_pid(
 
 
 parser = argparse.ArgumentParser(
+    description="Displays information about the stack of a kernel task."
+)
+parser.add_argument("pid", nargs="?", type=int, help="")
+
+
+@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
+@pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWhenPagingEnabled
+@pwndbg.commands.OnlyWithKernelSymbols
+def kstack(pid: int = None) -> None:
+    task = select_kthread_from_pid(pid)
+    if not task:
+        return
+    indent.print(task)
+    if not task.stack:
+        indent.print(message.warn("task has no stack"))
+    with indent:
+        indent.print(color.yellow("stack") + " @ " + pwndbg.chain.format(task.stack))
+        canary = task.canary
+        if canary:
+            indent.print(color.red("canary") + f" = {canary:#x}")
+        regs = task.pt_regs()
+        if regs:
+            namelen = max(len(reg) for reg, _ in regs)
+            for reg, val in regs:
+                reg = f"{reg:<{namelen}}"
+                indent.print(color.red(reg) + " = " + pwndbg.chain.format(val))
+
+
+parser = argparse.ArgumentParser(
     description="Displays information about fds accessible by a kernel task."
 )
 parser.add_argument("pid", nargs="?", type=int, help="")
@@ -63,7 +93,6 @@ def kfile(pid: int = None, fd: int = None) -> None:
     thread = select_kthread_from_pid(pid)
     if not thread:
         return
-    indent = IndentContextManager()
     indent.print(thread)
     with indent:
         for i, file in thread.files():
