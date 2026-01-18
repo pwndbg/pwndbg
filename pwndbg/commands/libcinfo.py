@@ -8,14 +8,16 @@ from pwndbg.commands import CommandCategory
 
 
 @pwndbg.commands.Command(
-    "Show libc version and link to its sources", category=CommandCategory.LINUX
+    "Show various information about the currently used libc", category=CommandCategory.LINUX
 )
 @pwndbg.commands.OnlyWhenRunning
 def libcinfo() -> None:
     version = pwndbg.libc.facade.version()
     version_str = ".".join(map(str, version))
+    urls_heading = "URLs:"
     if version_str == "-1.-1":
         version_str = "no version information"
+        urls_heading = "URLs (unversioned):"
 
     print(f"libc: {pwndbg.libc.which().value}")
     print(f"libc version: {version_str}")
@@ -25,7 +27,7 @@ def libcinfo() -> None:
     )
 
     urls = pwndbg.libc.urls()
-    print("URLs:")
+    print(urls_heading)
     print("    project homepage:      ", urls.homepage)
     print("    read the source:       ", urls.versioned_readable_source)
     print("    download the archive:  ", urls.versioned_compressed_source)

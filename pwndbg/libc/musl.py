@@ -83,7 +83,7 @@ def urls(ver: tuple[int, ...] | None) -> LibcURLs:
     if ver[0] == -1:
         return LibcURLs(
             versioned_readable_source="https://elixir.bootlin.com/musl/latest/source",
-            versioned_compressed_source="https://musl.libc.org/releases/musl-<vmajor>.<vminor>.<vpath>.tar.gz",
+            versioned_compressed_source="https://musl.libc.org/releases/musl-<major>.<minor>.<patch>.tar.gz",
             homepage="https://musl.libc.org/",
             git="git://git.musl-libc.org/musl",
         )
