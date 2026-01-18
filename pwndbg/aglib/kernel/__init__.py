@@ -139,6 +139,7 @@ def typeinfo_recovery(
 
 
 @requires_debug_symbols("nr_cpu_ids", default=1)
+@pwndbg.lib.cache.cache_until("stop")
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
     val = pwndbg.aglib.kernel.symbol.try_usymbol("nr_cpu_ids", 32)

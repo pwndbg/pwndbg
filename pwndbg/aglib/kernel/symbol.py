@@ -345,6 +345,7 @@ class ArchSymbols:
             return matches[nth]
         return None
 
+    @pwndbg.lib.cache.cache_until("stop")
     def node_data(self) -> pwndbg.dbg_mod.Value:
         node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
         if pwndbg.aglib.kernel.has_debug_info():
@@ -355,6 +356,7 @@ class ArchSymbols:
             node_data = self._node_data()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", node_data)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def slab_caches(self) -> pwndbg.dbg_mod.Value:
         slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
         if slab_caches is None and pwndbg.aglib.kernel.has_debug_symbols(
@@ -363,6 +365,7 @@ class ArchSymbols:
             slab_caches = self._slab_caches()
         return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", slab_caches)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def per_cpu_offset(self) -> pwndbg.dbg_mod.Value:
         per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol("__per_cpu_offset")
         if per_cpu_offset is not None:
@@ -371,6 +374,7 @@ class ArchSymbols:
             per_cpu_offset = self._per_cpu_offset()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", per_cpu_offset)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def modules(self) -> pwndbg.dbg_mod.Value:
         modules = pwndbg.aglib.symbol.lookup_symbol("modules")
         if modules:
@@ -379,6 +383,7 @@ class ArchSymbols:
             modules = self._modules()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", modules)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def db_list(self) -> pwndbg.dbg_mod.Value:
         if pwndbg.aglib.kernel.krelease() >= (6, 10):
             debugfs_list = pwndbg.aglib.symbol.lookup_symbol("debugfs_list")
@@ -392,6 +397,7 @@ class ArchSymbols:
             db_list = self._db_list()
         return pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def map_idr(self) -> pwndbg.dbg_mod.Value:
         map_idr = pwndbg.aglib.symbol.lookup_symbol("map_idr")
         if map_idr:
@@ -400,6 +406,7 @@ class ArchSymbols:
             map_idr = self._map_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", map_idr)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def prog_idr(self) -> pwndbg.dbg_mod.Value:
         prog_idr = pwndbg.aglib.symbol.lookup_symbol("prog_idr")
         if prog_idr:
@@ -408,6 +415,7 @@ class ArchSymbols:
             prog_idr = self._prog_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def current_task(self, cpu: int | None) -> pwndbg.dbg_mod.Value:
         # using symbols usually yield incorrect results
         if pwndbg.aglib.arch.name == "aarch64":
@@ -420,6 +428,7 @@ class ArchSymbols:
                 current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def init_task(self) -> pwndbg.dbg_mod.Value:
         init_task = pwndbg.aglib.symbol.lookup_symbol("init_task")
         if not init_task:
