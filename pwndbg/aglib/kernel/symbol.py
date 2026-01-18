@@ -12,6 +12,7 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.commands
 import pwndbg.lib.cache
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.dbg_mod import EventType
 
 #########################################
@@ -325,8 +326,15 @@ class ArchSymbols:
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
         if sym is None:
             return None
-        disass = "\n".join(pwndbg.aglib.nearpc.nearpc(int(sym), lines=lines))
-        return pwndbg.color.strip(disass)
+        addr = int(sym)
+        disass = []
+        for _ in range(lines):
+            instr: PwndbgInstruction = pwndbg.aglib.disasm.disassembly.get_one_instruction(
+                addr, enhance=False
+            )
+            disass.append(instr.asm_string)
+            addr = instr.next
+        return "\n".join(disass)
 
     def regex(self, s: str, pattern: str, nth: int) -> Optional[re.Match[Any]]:
         pattern = re.compile(pattern)

@@ -17,7 +17,19 @@ from pwndbg.lib.regs import BitFlags
 indent = IndentContextManager()
 
 fmode_flags = BitFlags([("R", 0), ("W", 1), ("X", 5)])
-KCURRENT = None
+_KCURRENT = None
+
+
+def get_kcurrent() -> pwndbg.commands.ktask.Kthread | None:
+    global _KCURRENT
+    if _KCURRENT is None:
+        return None
+    for task in pwndbg.commands.ktask.get_ktasks():
+        for _kthread in task.threads:
+            if int(_kthread.thread) == int(_KCURRENT.thread):
+                return _KCURRENT
+    _KCURRENT = None  # the previously set KCURRENT doesn't exist anymore
+    return None
 
 
 def select_kthread_from_pid(
@@ -27,9 +39,8 @@ def select_kthread_from_pid(
         return None
     kthread = None
     if pid is None:
-        global KCURRENT
-        if KCURRENT:
-            return KCURRENT
+        if (kthread := get_kcurrent()) is not None:
+            return kthread
         t = pwndbg.aglib.kernel.current_task()
         cpu = pwndbg.aglib.kernel.current_cpu()
         kthread = pwndbg.commands.ktask.Kthread(t, cpu)
@@ -129,11 +140,11 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
 def kcurrent(pid: int = None, set_pid: bool = False, verbose: bool = True) -> None:
-    global KCURRENT
-    if not pid and KCURRENT:
-        pid = KCURRENT.pid
-    kthread = select_kthread_from_pid(pid, verbose)
+    kthread = get_kcurrent()
+    if pid or not kthread:
+        kthread = select_kthread_from_pid(pid, verbose)
     if verbose and kthread:
         indent.print(kthread)
     if set_pid and kthread:
-        KCURRENT = kthread
+        global _KCURRENT
+        _KCURRENT = kthread

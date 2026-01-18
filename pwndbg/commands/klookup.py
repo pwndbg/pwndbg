@@ -62,12 +62,7 @@ def klookup(symbol: str, apply: bool) -> None:
             # Until we implement add_symbol_file for LLDB.
             return
 
-        paging_info = pwndbg.aglib.kernel.arch_paginginfo()
-        if paging_info is None:
-            print(message.error(f"Unsupported architecture {pwndbg.aglib.arch.name}."))
-            return
-
-        base: int | None = paging_info.kbase
+        base: int | None = pwndbg.aglib.kernel.kbase()
 
         if base is None:
             # I would be suprised if this was actually possible, we managed to find kallsyms but not

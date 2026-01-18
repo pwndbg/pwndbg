@@ -36,10 +36,11 @@ def first_kernel_page_start() -> int:
 
 @dataclass
 class PageTableLevel:
-    name: str
-    entry: int
-    virt: int  # within physmap
-    idx: int
+    name: str | None = None
+    entry: int | None = None
+    virt: int | None = None  # within physmap
+    phys: int | None = None  # physcal address
+    idx: int | None = None
 
 
 class PageTableScan:
@@ -174,7 +175,7 @@ class PageTableScan:
 
     def walk(self, target: int, entry: int) -> List[PageTableLevel]:
         page_shift = self.page_shift
-        result = [PageTableLevel(None, None, None, None) for _ in range(self.paging_level + 1)]
+        result = [PageTableLevel() for _ in range(self.paging_level + 1)]
         resolved = offset_mask = None
         for i in range(self.paging_level, 0, -1):
             resolved = None
@@ -188,7 +189,7 @@ class PageTableScan:
             entry = self.entry_cache[addr][idx]
             if not entry:
                 break
-            result[i].virt = addr  # phys addr at this point
+            result[i].phys = addr
             result[i].idx = idx
             result[i].entry = entry
             offset_mask = (1 << shift) - 1
@@ -197,7 +198,7 @@ class PageTableScan:
                 break
         if resolved and offset_mask is not None:
             addr, offset_mask = resolved
-            result[0].virt = addr + (target & offset_mask)
+            result[0].phys = addr + (target & offset_mask)
             result[0].entry = entry
         return result
 
@@ -279,7 +280,9 @@ class ArchPagingInfo:
 
         return None
 
-    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...]:
+    def pagewalk(
+        self, target: int, entry: int | None, virt: bool = True
+    ) -> Tuple[PageTableLevel, ...]:
         raise NotImplementedError()
 
     def pagetable_scan(self, entry: int | None = None) -> List[Page]:
@@ -308,11 +311,8 @@ class ArchPagingInfo:
         success = pwndbg.dbg.selected_inferior().send_remote("qqemu.PhyMemMode") == b"1"
         return oldval, success
 
-    def pagewalk_helper(self, target: int, entry: int) -> Tuple[PageTableLevel, ...]:
-        base = self.physmap
-        if entry > base:
-            # user inputted a physmap address as pointer to pgd
-            entry -= base
+    def pagewalk_helper(self, target: int, entry: int, virt: bool) -> Tuple[PageTableLevel, ...]:
+        # assumes entry is a valid phys addr + flags
         scan = self.pagetablescan(entry)
         oldval, success = self.switch_to_phymem_mode()
         if not success:
@@ -320,9 +320,10 @@ class ArchPagingInfo:
         try:
             result = scan.walk(target, entry)
             for i, level in enumerate(result):
-                if level.virt is None:
+                if level.phys is None:
                     continue
-                level.virt = level.virt + base - self.phys_offset
+                if virt:
+                    level.virt = level.phys + self.physmap - self.phys_offset
                 level.name = self.pagetable_level_names[i]
             return tuple(result)
         finally:  # so that the PhyMemMode value is always restored
@@ -505,10 +506,12 @@ class x86_64PagingInfo(ArchPagingInfo):
             if pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack) in page:
                 page.objfile = "kernel [stack]"
 
-    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...]:
+    def pagewalk(
+        self, target: int, entry: int | None, virt: bool = True
+    ) -> Tuple[PageTableLevel, ...]:
         if entry is None:
             entry = pwndbg.aglib.regs.read_reg("cr3")
-        return self.pagewalk_helper(target, entry)
+        return self.pagewalk_helper(target, entry, virt)
 
     def pagetable_scan(self, entry: int | None = None) -> List[Page]:
         if entry is None:
@@ -828,14 +831,16 @@ class Aarch64PagingInfo(ArchPagingInfo):
             pass
         return 0x40000000  # default
 
-    def pagewalk(self, target: int, entry: int | None) -> Tuple[PageTableLevel, ...]:
+    def pagewalk(
+        self, target: int, entry: int | None, virt: bool = True
+    ) -> Tuple[PageTableLevel, ...]:
         if entry is None:
             if pwndbg.aglib.memory.is_kernel(target):
                 entry = pwndbg.aglib.regs.read_reg("TTBR1_EL1")
             else:
                 entry = pwndbg.aglib.regs.read_reg("TTBR0_EL1")
         entry |= 3  # marks the entry as a table
-        return self.pagewalk_helper(target, entry)
+        return self.pagewalk_helper(target, entry, virt)
 
     def pagetable_scan(self, entry: int | None = None) -> List[Page]:
         # assumes entry should be from `kcurrent --set` and should be TTBR0_EL1 for a task

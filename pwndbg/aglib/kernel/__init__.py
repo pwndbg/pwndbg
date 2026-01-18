@@ -627,10 +627,10 @@ def kbase() -> int | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
+def pagewalk(addr, entry: int = None, virt: bool = True) -> Tuple[PageTableLevel, ...]:
     pi = arch_paginginfo()
     if pi:
-        return pi.pagewalk(addr, entry)
+        return pi.pagewalk(addr, entry, virt)
     else:
         raise NotImplementedError()
 

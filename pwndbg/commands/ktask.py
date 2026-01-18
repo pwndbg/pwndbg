@@ -97,14 +97,8 @@ class pt_regs_aarch64(ctypes.Structure):
 
 class Kthread:
     def __init__(self, thread: pwndbg.dbg_mod.Value | int, cpu: int | None = None) -> None:
-        thread = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", thread)
-        self.thread = thread
-        self.name = thread["comm"].string()
-        self.pid = int(thread["pid"])
-        self.user_task = int(thread["mm"]) != 0
+        self.thread = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", thread)
         self.cpu = cpu
-        self.uid = int(thread["cred"]["uid"]["val"])
-        self.gid = int(thread["cred"]["gid"]["val"])
 
     @pwndbg.lib.cache.cache_until("stop")
     def files(self) -> Tuple[Tuple[int, pwndbg.dbg_mod.Value], ...]:
@@ -147,6 +141,26 @@ class Kthread:
             return int(self.thread["stack_canary"])
         # the offset of stack was not recovered
         return None
+
+    @property
+    def name(self) -> str:
+        return self.thread["comm"].string()
+
+    @property
+    def pid(self) -> int:
+        return int(self.thread["pid"])
+
+    @property
+    def user_task(self) -> bool:
+        return int(self.thread["mm"]) != 0
+
+    @property
+    def uid(self) -> int:
+        return int(self.thread["cred"]["uid"]["val"])
+
+    @property
+    def gid(self) -> int:
+        return int(self.thread["cred"]["gid"]["val"])
 
     def pt_regs(self) -> list[Tuple[str, int]] | None:
         if not self.stack or not self.user_task:
