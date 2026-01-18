@@ -70,7 +70,8 @@ def get_mm_offset(task: int) -> int:
         f"cound not find the offset of task_struct->mm: (task: {hex(task)}, mm_offset: {hex(mm_offset)})"
     )
     try:
-        cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(task + mm_offset + ptrsize)
+        mm_active = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
+        cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(mm_active)
         assert cache.name == "mm_struct"
     except Exception:
         # we actually found active_mm instead
@@ -162,7 +163,7 @@ def get_mm_struct(tasks: List[int], mm_offset: int) -> str:
     struct list_head		thread_node;
 """
 
-ROOT_COMM = "swapper/0"
+ROOT_COMM = "swapper/"
 
 
 def get_pid_offset(tasks: List[int], mm_offset: int, comm_offset: int) -> int:
@@ -602,6 +603,31 @@ def get_signal_struct() -> str:
     return struct
 
 
+def get_sp_offset(tasks: List[int], stack_offset: int, comm_offset: int) -> int:
+    # &task_struct - &task_struct->thread.sp
+    task = None
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    for _task in tasks:
+        stack = pwndbg.aglib.memory.read_pointer_width(_task + stack_offset)
+        try:
+            comm = pwndbg.aglib.memory.read(_task + comm_offset, len(ROOT_COMM)).decode()
+            if stack != 0 and ROOT_COMM != comm:
+                task = _task
+                break
+        except Exception:
+            pass
+    if not task:
+        return 0
+    for i in range(0x200):
+        val = pwndbg.aglib.memory.read_pointer_width(task + i * ptrsize)
+        if not pwndbg.aglib.memory.is_kernel(val):
+            continue
+        page = pwndbg.aglib.vmmap.find(stack)
+        if val in page and val != stack:
+            return i * ptrsize
+    return 0
+
+
 @pwndbg.aglib.kernel.typeinfo_recovery("struct task_struct", kversion=True, kbase=True)
 def load_ktask_typeinfo() -> None:
     task = int(pwndbg.aglib.kernel.current_task())
@@ -615,6 +641,7 @@ def load_ktask_typeinfo() -> None:
     cred_struct, cred_offset = get_cred_struct_and_offset(tasks, comm_offset)
     files_structs, files_offset = get_files_struct_and_offset(task, comm_offset, tasks, mm_offset)
     nsproxy_struct, nsproxy_offset = get_nsproxy_struct_and_offset(task, files_offset)
+    sp_offset = get_sp_offset(tasks, stack_offset, comm_offset)
 
     ptrsize = pwndbg.aglib.arch.ptrsize
     result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
@@ -627,6 +654,7 @@ def load_ktask_typeinfo() -> None:
     if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_STACKPROTECTOR\n"
     result += f"#define stack_offset {stack_offset}\n"
+    # TODO: use unions
     result += f"""
     struct task_struct {{
 #if stack_offset
@@ -659,7 +687,12 @@ def load_ktask_typeinfo() -> None:
         char _pad6[{nsproxy_offset - (files_offset + ptrsize)}];
         struct nsproxy *nsproxy;
         struct signal_struct *signal;
-        /* don't care about the rest */
+#if {sp_offset - nsproxy_offset - ptrsize * 2} > 0
+        struct {{
+            char _pad7[{sp_offset - nsproxy_offset - ptrsize * 2}];
+            void *sp;
+        }} thread;
+#endif
     }};
     """
 
