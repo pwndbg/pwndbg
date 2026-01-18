@@ -601,7 +601,7 @@ def get_signal_struct() -> str:
     return struct
 
 
-@pwndbg.aglib.kernel.recover_typeinfo("struct task_struct", needs_kversion=True, needs_kbase=True)
+@pwndbg.aglib.kernel.recover_typeinfo("struct task_struct", kversion=True, kbase=True)
 def load_ktask_typeinfo() -> None:
     task = int(pwndbg.aglib.kernel.current_task())
     mm_offset = get_mm_offset(task)

@@ -101,7 +101,7 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 
 
 def recover_typeinfo(
-    name: str, needs_kversion: bool = False, needs_kbase: bool = False
+    name: str, kversion: bool = False, kbase: bool = False
 ) -> Callable[[Callable[P, None]], Callable[P, bool]]:
     def decorator(f: Callable[P, None]) -> Callable[P, bool]:
         # returns true if the struct exists or has been successfully recovered
@@ -111,10 +111,10 @@ def recover_typeinfo(
                 return True
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return True
-            if needs_kversion and kversion() is None:
+            if kversion and kversion() is None:
                 print(message.warn(f"recovering {name} failed because kversion is unavailable"))
                 return False
-            if needs_kbase and kbase() is None:
+            if kbase and kbase() is None:
                 print(message.warn(f"recovering {name} failed because kbase is unavailable"))
                 return False
             try:
@@ -628,6 +628,8 @@ def kbase() -> int | None:
 
 @pwndbg.lib.cache.cache_until("stop")
 def pagewalk(addr, entry: int = None, virt: bool = True) -> Tuple[PageTableLevel, ...]:
+    # assumes entry is a valid phys addr + flags
+    # the strategy is to pagewalk any virt addr first
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry, virt)

@@ -207,7 +207,7 @@ enum pageflags {
 """
 
 
-@pwndbg.aglib.kernel.recover_typeinfo("struct page", needs_kversion=True)
+@pwndbg.aglib.kernel.recover_typeinfo("struct page", kversion=True)
 def load_common_structs() -> None:
     defs = []
     for config in (
