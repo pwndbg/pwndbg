@@ -376,18 +376,20 @@ def get_file_struct(file: int | None) -> str:
     _result = ""
     if not file or kversion >= (6, 12):
         # find f_op
-        off = "spinlock_t_size"
+        off = 0
         if file:
             for i in range(1, 0x20):
                 val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
                 if kbase and val > kbase:
-                    off = (i - 1) * ptrsize
+                    off = i * ptrsize - 4
+                    if not pwndbg.aglib.memory.u32(off - 4):
+                        off -= 4
                     break
         # this should work for the most recent versions
         _result = f"""
         struct file {{
             char _pad2[{off}];
-            unsigned int f_mode;
+            fmode_t f_mode;
             void* f_op;
             void *f_mapping;
             void *private_data;
@@ -400,7 +402,7 @@ def get_file_struct(file: int | None) -> str:
             /* don't care about the rest */
         }};
         """
-        if isinstance(off, int):
+        if off > 0:
             off += 4
             off = (off // ptrsize) * ptrsize + (ptrsize if off % ptrsize else 0)
             mnt = pwndbg.aglib.memory.read_pointer_width(file + off + 4 * 2 + ptrsize * 5)
@@ -408,24 +410,30 @@ def get_file_struct(file: int | None) -> str:
             inode = pwndbg.aglib.memory.read_pointer_width(file + off + ptrsize * 3)
     elif kversion >= (6, 5):
         # find the cache that contains the inode
-        off = 0
+        inode_offset = 0
+        fmode_offset = ptrsize * 2 + 8
         for i in range(2, 0x20):
             val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
             try:
                 cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
                 if "inode" in cache.name:
-                    off = (i - 2) * ptrsize
+                    inode_offset = (i - 2) * ptrsize
                     break
             except Exception:
                 pass
+        for i in range(2 * ptrsize, inode_offset, 4):
+            if pwndbg.aglib.memory.u32(file + i) == 0xE0003:  # usually the fmode of stdin/out/err
+                fmode_offset = i
+                break
+            # but if we didn't find it, that's fine as well
         _result = f"""
         struct file {{
             union {{
                 struct {{
-                    char _pad1[PTR_SIZE * 2 + spinlock_t_size];
+                    char _pad1[{fmode_offset}];
                     fmode_t f_mode;
                 }};
-                char _pad2[{off}];
+                char _pad2[{inode_offset}];
             }};
             struct path f_path;
             struct inode *f_inode;
@@ -438,10 +446,10 @@ def get_file_struct(file: int | None) -> str:
             /* don't care about the rest */
         }};
         """
-        if off > 0:
-            mnt = pwndbg.aglib.memory.read_pointer_width(file + off)
-            dentry = pwndbg.aglib.memory.read_pointer_width(file + off + ptrsize)
-            inode = pwndbg.aglib.memory.read_pointer_width(file + off + ptrsize * 2)
+        if inode_offset > 0:
+            mnt = pwndbg.aglib.memory.read_pointer_width(file + inode_offset)
+            dentry = pwndbg.aglib.memory.read_pointer_width(file + inode_offset + ptrsize)
+            inode = pwndbg.aglib.memory.read_pointer_width(file + inode_offset + ptrsize * 2)
     else:
         off = 0
         for i in range(7, 0x20):
@@ -454,20 +462,22 @@ def get_file_struct(file: int | None) -> str:
                     break
             except Exception:
                 pass
+        fmode_offset = 6 * ptrsize + 8 + ptrsize + 4
+        for i in range(6 * ptrsize, off, 4):
+            if pwndbg.aglib.memory.u32(file + i) == 0xE0003:  # usually the fmode of stdin/out/err
+                fmode_offset = i
+                break
         _result = f"""
         struct file {{
             union {{
                 struct {{
-                    char _pad1[PTR_SIZE * 2];
+                    char _pad1[{ptrsize * 2}];
                     struct path f_path;
                     struct inode *f_inode;
                     void *f_op;
-                    char _pad2[spinlock_t_size];
-#if KVERSION < KERNEL_VERSION(5, 18, 0)
-                    int f_write_hint;
-#endif
-                    long f_count;
-                    unsigned int f_flags;
+                }};
+                struct {{
+                    char _pad2[{fmode_offset}];
                     fmode_t f_mode;
                 }};
                 char _pad3[{off}];
@@ -526,11 +536,6 @@ def get_files_struct_and_offset(
             break
     assert fdt_offset, "cannot find the offset of files_struct->fdt"
 
-    # TODO: spinlock_t_size
-    structs = f"""
-    #define PTR_SIZE {ptrsize}
-    #define spinlock_t_size 8
-    """
     # find a userland task and get a file* from it
     file = None
     for task in tasks:
@@ -547,7 +552,7 @@ def get_files_struct_and_offset(
                     break
             if file:
                 break
-    structs += get_file_struct(file)
+    structs = get_file_struct(file)
     structs += f"""
     struct fdtable {{
         unsigned int max_fds;
