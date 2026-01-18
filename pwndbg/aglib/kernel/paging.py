@@ -811,21 +811,17 @@ class Aarch64PagingInfo(ArchPagingInfo):
             return
         for i in range(len(pages)):
             page = pages[i]
-            if page.start > self.kbase + self.ksize:
-                continue
             if self.module_start and self.module_start <= page.start < self.kbase:
                 page.objfile = self.KERNELDRIVER
-                continue
-            if page.start < self.kbase:
-                continue
-            page.objfile = self.KERNELLAND
-            if not page.execute:
-                if page.write:
-                    page.objfile = self.KERNELBSS
-                else:
-                    page.objfile = self.KERNELRO
+            elif page.start >= self.kbase:
+                page.objfile = self.KERNELLAND
+                if not page.execute:
+                    if page.write:
+                        page.objfile = self.KERNELBSS
+                    else:
+                        page.objfile = self.KERNELRO
             if pwndbg.aglib.regs.read_reg(pwndbg.aglib.regs.stack) in page:
-                page.objfile = "kernel [stack]"
+                page.objfile += " [stack]"
 
     @property
     @pwndbg.lib.cache.cache_until("start")

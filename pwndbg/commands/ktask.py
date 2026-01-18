@@ -178,7 +178,7 @@ class Kthread:
                 raise NotImplementedError()
         page = pwndbg.aglib.vmmap.find(self.stack)
         sz = ctypes.sizeof(pt_regs)
-        start = page.end - sz  # TODO: forward stack?
+        start = page.end - sz
         regs = pt_regs.from_buffer_copy(pwndbg.aglib.memory.read(start, sz))
         regs = [(name, int(getattr(regs, name))) for name, *_ in regs._fields_]
         return regs

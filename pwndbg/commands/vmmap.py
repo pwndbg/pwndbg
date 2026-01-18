@@ -227,6 +227,7 @@ def vmmap(
     # All displayed pages, including lines after and lines before
     vmmap = pwndbg.aglib.vmmap.get_memory_map()
     if pwndbg.aglib.qemu.is_qemu_kernel():
+        # called here so to not impact kernel_vmmap
         vmmap = pwndbg.aglib.kernel.vmmap.KernelVmmap.annotate(vmmap)
     total_pages = vmmap.ranges()
 

@@ -109,6 +109,9 @@ def typeinfo_recovery(
         def func(*args: P.args, **kwargs: P.kwargs) -> bool:
             if has_debug_info():
                 return True
+            if not has_debug_symbols():
+                # make sure the target is linux, should we specify symbols instead?
+                return False
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return True
             if kversion and pwndbg.aglib.kernel.kversion() is None:

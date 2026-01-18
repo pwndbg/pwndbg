@@ -605,6 +605,7 @@ def get_signal_struct() -> str:
 
 def get_sp_offset(tasks: List[int], stack_offset: int, comm_offset: int) -> int:
     # &task_struct - &task_struct->thread.sp
+    # only one other ptr in the task_struct that belongs to the same page chunk
     task = None
     ptrsize = pwndbg.aglib.arch.ptrsize
     for _task in tasks:
@@ -654,7 +655,6 @@ def load_ktask_typeinfo() -> None:
     if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_STACKPROTECTOR\n"
     result += f"#define stack_offset {stack_offset}\n"
-    # TODO: use unions
     result += f"""
     struct task_struct {{
 #if stack_offset
