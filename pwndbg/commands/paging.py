@@ -32,8 +32,8 @@ PAGETYPES = (
 )
 
 
-def print_pagetable_entry(ptl: PageTableLevel, level: int, is_last: bool):
-    pageflags = pwndbg.aglib.kernel.arch_paginginfo().pageentry_bitflags(is_last)
+def print_level(ptl: PageTableLevel):
+    pageflags = pwndbg.aglib.kernel.arch_paginginfo().pageentry_bitflags(ptl.level == 1)
     flags = ""
     arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
     name, entry, vaddr, idx = ptl.name, ptl.entry, ptl.virt, ptl.idx
@@ -100,21 +100,18 @@ def pagewalk(vaddr, entry=None):
         # safe because pagewalk fallbacks to control regs when entry==None
         entry = kcurrent.pgd
     if pwndbg.aglib.memory.is_kernel(entry):
-        entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False)[0].phys
+        entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False).phys
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    levels = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
-    for i in range(len(levels) - 1, 0, -1):
-        curr = levels[i]
-        next = levels[i - 1]
-        if curr.entry is None:
+    result = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
+    for level in result.levels[::-1]:
+        if level.entry is None:
             break
-        print_pagetable_entry(curr, i, next.entry is None or i == 1)
-    vaddr = levels[0].virt
+        print_level(level)
+    vaddr = result.virt
     if vaddr is None:
         print(message.warn("address is not mapped"))
         return
-    pi = pwndbg.aglib.kernel.arch_paginginfo()
-    phys = vaddr - pi.physmap + pi.phys_offset
+    phys = result.phys
     print(f"pagewalk result: {color.green(hex(vaddr))} [phys: {color.yellow(hex(phys))}]")
 
 
@@ -159,7 +156,7 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
 def v2p(vaddr):
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    level = pwndbg.aglib.kernel.pagewalk(vaddr)[0]  # more accurate
+    level = pwndbg.aglib.kernel.pagewalk(vaddr)  # more accurate
     entry, paddr = level.entry, level.virt
     if not entry:
         print(message.warn("virtual to physical address failed, unmapped virtual address?"))

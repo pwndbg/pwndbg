@@ -27,7 +27,7 @@ import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
-from pwndbg.aglib.kernel.paging import PageTableLevel
+from pwndbg.aglib.kernel.paging import PagewalkResult
 
 _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
@@ -100,32 +100,33 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
     return decorator
 
 
-def recover_typeinfo(
+def typeinfo_recovery(
     name: str, kversion: bool = False, kbase: bool = False
 ) -> Callable[[Callable[P, None]], Callable[P, bool]]:
     def decorator(f: Callable[P, None]) -> Callable[P, bool]:
-        # returns true if the struct exists or has been successfully recovered
+        # returns true if the type exists or has been successfully recovered
         @functools.wraps(f)
         def func(*args: P.args, **kwargs: P.kwargs) -> bool:
             if has_debug_info():
                 return True
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return True
-            if kversion and kversion() is None:
+            if kversion and pwndbg.aglib.kernel.kversion() is None:
                 print(message.warn(f"recovering {name} failed because kversion is unavailable"))
                 return False
-            if kbase and kbase() is None:
+            if kbase and pwndbg.aglib.kernel.kbase() is None:
                 print(message.warn(f"recovering {name} failed because kbase is unavailable"))
                 return False
             try:
                 f(*args, **kwargs)
             except Exception as e:
                 print(message.warn(f"recovering {name} failed with error: {e}"))
-                print(
-                    message.warn(
-                        "please note that some structs may not be recoverable when CONFIG_RANSTRUCT=y"
+                if "CONFIG_RANSTRUCT" in pwndbg.aglib.kernel.kconfig():
+                    print(
+                        message.warn(
+                            "please note that some structs may not be recoverable when CONFIG_RANSTRUCT=y"
+                        )
                     )
-                )
                 return False
             return True
 
@@ -411,7 +412,7 @@ class x86_64Ops(x86Ops):
     def virt_to_phys(self, virt: int) -> int:
         if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
             # if not within physmap range, first find the physmap address
-            virt = pagewalk(virt)[0].virt
+            virt = pagewalk(virt).virt
         if virt is None:
             return None
         return virt - self.page_offset
@@ -446,7 +447,7 @@ class Aarch64Ops(ArchOps):
     def virt_to_phys(self, virt: int) -> int:
         if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
             # if not within physmap range, first find the physmap address
-            virt = pagewalk(virt)[0].virt
+            virt = pagewalk(virt).virt
         if virt is None:
             return None
         return virt - self.page_offset + self.phys_offset
@@ -627,9 +628,9 @@ def kbase() -> int | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry: int = None, virt: bool = True) -> Tuple[PageTableLevel, ...]:
-    # assumes entry is a valid phys addr + flags
-    # the strategy is to pagewalk any virt addr first
+def pagewalk(addr, entry: int = None, virt: bool = True) -> PagewalkResult:
+    # assumes entry is a valid physaddr (+ flags)
+    # the strategy is to walk any virtual pgd first
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry, virt)
@@ -638,10 +639,10 @@ def pagewalk(addr, entry: int = None, virt: bool = True) -> Tuple[PageTableLevel
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagetable_scan(entry=None) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def pagescan(entry=None) -> Tuple[pwndbg.lib.memory.Page, ...]:
     pi = arch_paginginfo()
     if pi:
-        return tuple(pi.pagetable_scan(entry))
+        return tuple(pi.pagescan(entry))
     else:
         raise NotImplementedError()
 

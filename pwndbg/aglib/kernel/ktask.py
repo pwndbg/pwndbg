@@ -15,7 +15,7 @@ def get_stack_offset(tasks: List[int]) -> int:
         for task in tasks:
             a = pwndbg.aglib.memory.read_pointer_width(task + i * ptrsize)
             b = pwndbg.aglib.memory.read_pointer_width(task + (i + 1) * ptrsize)
-            # for x64, the frist kernel pointer should be the task
+            # for x64, the frist kernel pointer should be the stack
             # for aarch64, this might not be the case when CONFIG_SHADOW_CALL_STACK=y
             # see the definitions of task_struct and thread_info
             if pwndbg.aglib.memory.is_kernel(a) and not pwndbg.aglib.memory.is_kernel(b):
@@ -525,6 +525,7 @@ def get_files_struct_and_offset(
             break
     assert fdt_offset, "cannot find the offset of files_struct->fdt"
 
+    # TODO: spinlock_t_size
     structs = f"""
     #define PTR_SIZE {ptrsize}
     #define spinlock_t_size 8
@@ -601,7 +602,7 @@ def get_signal_struct() -> str:
     return struct
 
 
-@pwndbg.aglib.kernel.recover_typeinfo("struct task_struct", kversion=True, kbase=True)
+@pwndbg.aglib.kernel.typeinfo_recovery("struct task_struct", kversion=True, kbase=True)
 def load_ktask_typeinfo() -> None:
     task = int(pwndbg.aglib.kernel.current_task())
     mm_offset = get_mm_offset(task)

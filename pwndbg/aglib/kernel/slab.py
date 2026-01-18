@@ -624,7 +624,7 @@ def kmem_cache_structs(node_cache_pad):
     return result
 
 
-@pwndbg.aglib.kernel.recover_typeinfo("struct kmem_cache", kversion=True)
+@pwndbg.aglib.kernel.typeinfo_recovery("struct kmem_cache", kversion=True)
 def load_slab_typeinfo():
     kconfig = pwndbg.aglib.kernel.kconfig()
     defs = []

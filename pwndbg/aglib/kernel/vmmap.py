@@ -94,17 +94,17 @@ class KernelVmmap:
         for task in pwndbg.commands.ktask.get_ktasks():
             for thread in task.threads:
                 if thread.stack:
-                    stacks.append((thread.stack, thread.pid))
+                    stacks.append((thread.stack, thread.pid, thread.name))
         if not stacks:
             # get_ktasks prob failed and returned ()
             return pages
         for page in pages.ranges():
             if not pwndbg.aglib.memory.is_kernel(page.start):
                 continue
-            for stack, pid in stacks:
+            for stack, pid, name in stacks:
                 if stack in page:
                     # not starting with [stack is intentional
-                    page.objfile += f" [pid {pid} stack]"
+                    page.objfile += f" [pid {pid}: {name}]"
                     break
         return pages
 
@@ -438,8 +438,8 @@ def kernel_vmmap_pages() -> Tuple[Page, ...]:
             if (kcurrent := pwndbg.commands.kcurrent.get_kcurrent()) is not None:
                 entry = kcurrent.pgd
             if entry and pwndbg.aglib.memory.is_kernel(entry):
-                entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False)[0].phys
-            return pwndbg.aglib.kernel.pagetable_scan(entry)
+                entry = pwndbg.aglib.kernel.pagewalk(entry, virt=False).phys
+            return pwndbg.aglib.kernel.pagescan(entry)
         case "pt-dump":
             return kernel_vmmap_via_page_tables()
         case "monitor":
@@ -468,7 +468,7 @@ def kernel_vmmap() -> Tuple[pwndbg.lib.memory.Page, ...]:
         for page in pages:
             if page.objfile == kv.pi.ESPSTACK:
                 continue
-            entry = pwndbg.aglib.kernel.pagewalk(page.start)[0].entry
+            entry = pwndbg.aglib.kernel.pagewalk(page.start).entry
             if entry and entry >> 63 == 0:
                 page.flags |= 1
 

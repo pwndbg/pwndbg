@@ -69,6 +69,7 @@ parser.add_argument("pid", nargs="?", type=int, help="")
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
+@pwndbg.commands.WarnOnKernelConfigRandstruct
 def kstack(pid: int = None) -> None:
     task = select_kthread_from_pid(pid)
     if not task:
@@ -100,6 +101,7 @@ parser.add_argument("--fd", nargs="?", type=int, help="")
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
+@pwndbg.commands.WarnOnKernelConfigRandstruct
 def kfile(pid: int = None, fd: int = None) -> None:
     thread = select_kthread_from_pid(pid)
     if not thread:
@@ -139,6 +141,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
+@pwndbg.commands.WarnOnKernelConfigRandstruct
 def kcurrent(pid: int = None, set_pid: bool = False, verbose: bool = True) -> None:
     kthread = get_kcurrent()
     if pid or not kthread:

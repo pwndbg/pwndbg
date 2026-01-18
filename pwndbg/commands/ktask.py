@@ -130,6 +130,8 @@ class Kthread:
 
     @property
     def stack(self) -> int | None:
+        if self.thread.dereference().type.has_field("thread"):
+            return int(self.thread["thread"]["sp"])
         if self.thread.dereference().type.has_field("stack"):
             return int(self.thread["stack"])
         # the offset of stack was not recovered

@@ -68,6 +68,8 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             self.data["CONFIG_SECURITY"] = "y"
         if self.CONFIG_STACKPROTECTOR:
             self.data["CONFIG_STACKPROTECTOR"] = "y"
+        if self.CONFIG_RANDSTRUCT:
+            self.data["CONFIG_RANDSTRUCT"] = "y"
 
     def get_key(self, name: str) -> str | None:
         # First attempt to lookup the value assuming the user passed in a name
@@ -188,6 +190,14 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     @property
     def CONFIG_STACKPROTECTOR(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("put_task_stack") is not None
+
+    @property
+    def CONFIG_RANDSTRUCT(self) -> bool:
+        krelease = pwndbg.aglib.kernel.krelease()
+        if krelease is None or krelease < (5, 19):
+            return False
+        val = pwndbg.aglib.kernel.symbol.try_usymbol("tainted_mask")
+        return val is not None and val != 0
 
     def update_with_file(self, file_path):
         for line in open(file_path, "r").read().splitlines():
