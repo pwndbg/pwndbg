@@ -353,7 +353,7 @@ class ArchPagingInfo:
             pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
         return []
 
-    def pageentry_bitflags(self, level: int) -> BitFlags:
+    def bitflags(self, level: int) -> BitFlags:
         raise NotImplementedError()
 
     def should_stop_pagewalk(self, level: int) -> bool:
@@ -531,7 +531,7 @@ class x86_64PagingInfo(ArchPagingInfo):
             entry = pwndbg.aglib.regs.read_reg("cr3")
         return self._pagescan(entry)
 
-    def pageentry_bitflags(self, _: int) -> BitFlags:
+    def bitflags(self, _: int) -> BitFlags:
         return BitFlags([("NX", 63), ("PS", 7), ("A", 5), ("U", 2), ("W", 1), ("P", 0)])
 
     def should_stop_pagewalk(self, entry: int) -> bool:
@@ -858,7 +858,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             result += self._pagescan(pwndbg.aglib.regs.read_reg("TTBR1_EL1") | 3, is_kernel=True)
         return result
 
-    def pageentry_bitflags(self, level: int) -> BitFlags:
+    def bitflags(self, level: int) -> BitFlags:
         if level != 0:
             # block or page
             return BitFlags([("UNX", 54), ("PNX", 53), ("AP", (6, 7))])

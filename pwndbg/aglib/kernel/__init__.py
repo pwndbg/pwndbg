@@ -102,8 +102,8 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 
 def typeinfo_recovery(
     name: str, kversion: bool = False, kbase: bool = False
-) -> Callable[[Callable[P, None]], Callable[P, bool]]:
-    def decorator(f: Callable[P, None]) -> Callable[P, bool]:
+) -> Callable[[Callable[P, str]], Callable[P, bool]]:
+    def decorator(f: Callable[P, str]) -> Callable[P, bool]:
         # returns true if the type exists or has been successfully recovered
         @functools.wraps(f)
         def func(*args: P.args, **kwargs: P.kwargs) -> bool:
@@ -121,9 +121,12 @@ def typeinfo_recovery(
                 print(message.warn(f"recovering {name} failed because kbase is unavailable"))
                 return False
             try:
-                f(*args, **kwargs)
+                result = f(*args, **kwargs)
+                header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
+                fname = name.split()[-1] + "_structs"
+                pwndbg.commands.cymbol.add_structure_from_header(header_file_path, fname, True)
             except Exception as e:
-                print(message.warn(f"recovering {name} failed with error: {e}"))
+                print(message.warn(f"recovering {name} failed with error:\n{e}"))
                 if "CONFIG_RANSTRUCT" in pwndbg.aglib.kernel.kconfig():
                     print(
                         message.warn(
@@ -143,7 +146,7 @@ def typeinfo_recovery(
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
     val = pwndbg.aglib.kernel.symbol.try_usymbol("nr_cpu_ids", 32)
-    return val
+    return val or 1
 
 
 @pwndbg.lib.cache.cache_until("stop")

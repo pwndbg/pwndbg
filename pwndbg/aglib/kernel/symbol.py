@@ -208,7 +208,7 @@ enum pageflags {
 
 
 @pwndbg.aglib.kernel.typeinfo_recovery("struct page", kversion=True)
-def load_common_structs() -> None:
+def load_page_typeinfo() -> str:
     defs = []
     for config in (
         "CONFIG_MEMCG",
@@ -292,10 +292,7 @@ def load_common_structs() -> None:
 #endif
     };
     """
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(
-        header_file_path, "common_kernel_structs", True
-    )
+    return result
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
@@ -304,7 +301,7 @@ def load_common_structs_on_load_linux() -> None:
     # has_debug_symbols without args checks for `commit_creds`
     # load_common_structs would check if typeinfo has already been added (so doesnt readd)
     if pwndbg.aglib.qemu.is_qemu_kernel():
-        load_common_structs()
+        load_page_typeinfo()
 
 
 class ArchSymbols:

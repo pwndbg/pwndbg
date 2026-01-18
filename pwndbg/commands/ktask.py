@@ -86,9 +86,7 @@ class pt_regs_aarch64(ctypes.Structure):
         ("pstate", ctypes.c_uint64),
         ("orig_x0", ctypes.c_uint64),
         ("syscallno", ctypes.c_int32),
-        ("pmr", ctypes.c_uint32),
-        ("sdei_ttbr1", ctypes.c_uint64),
-        ("stackframe", ctypes.c_uint64),
+        ("unused", ctypes.c_int32),
     ]
 
 
@@ -162,21 +160,25 @@ class Kthread:
 
     def pt_regs(self) -> list[Tuple[str, int]] | None:
         if not self.stack or not self.user_task:
-            # pt_regs may not be saved at the end of the stack if not a syscall
+            # pt_regs may not be saved at the end of the stack if otherwise
             return None
         pt_regs = None
         match pwndbg.aglib.arch.name:
             case "x86-64":
                 pt_regs = pt_regs_x86_64
-            case "Aarch64":
+                sz = ctypes.sizeof(pt_regs)
+            case "aarch64":
                 pt_regs = pt_regs_aarch64
+                sz = ctypes.sizeof(pt_regs) + 0x20
+                kversion = pwndbg.aglib.kernel.krelease()
+                if kversion and (5, 10) <= kversion < (6, 18):
+                    sz += 0x10
             case _:
                 raise NotImplementedError()
         page = pwndbg.aglib.vmmap.find(self.stack)
-        sz = ctypes.sizeof(pt_regs)
         start = page.end - sz
         regs = pt_regs.from_buffer_copy(pwndbg.aglib.memory.read(start, sz))
-        regs = [(name, int(getattr(regs, name))) for name, *_ in regs._fields_]
+        regs = [(name, int(getattr(regs, name))) for name, *_ in regs._fields_[:-1]]
         return regs
 
     def __str__(self) -> str:

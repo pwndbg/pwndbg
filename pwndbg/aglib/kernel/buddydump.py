@@ -77,7 +77,7 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
 
 
 @pwndbg.aglib.kernel.typeinfo_recovery("struct pglist_data", kversion=True)
-def load_buddydump_typeinfo():
+def load_buddydump_typeinfo() -> str:
     nmtypes = pwndbg.aglib.kernel.symbol.nmtypes()
     nzones = pwndbg.aglib.kernel.symbol.nzones()
     nnodes = pwndbg.aglib.kernel.num_numa_nodes()
@@ -131,5 +131,4 @@ def load_buddydump_typeinfo():
         // ... the rest of the fields are not important
     }} pg_data_t;
     """
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "buddydump_structs", True)
+    return result

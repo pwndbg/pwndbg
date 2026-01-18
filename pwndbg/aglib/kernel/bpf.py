@@ -4,7 +4,6 @@ import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 
 
 def get_struct_bpf_prog():
@@ -218,20 +217,16 @@ def get_bpf_struct_offsets(prog_idr, map_idr) -> int:
 
 
 @pwndbg.aglib.kernel.typeinfo_recovery("struct bpf_map", kversion=True)
-def load_bpf_typeinfo():
+def load_bpf_typeinfo() -> str:
     prog_idr = pwndbg.aglib.kernel.prog_idr()
     map_idr = pwndbg.aglib.kernel.map_idr()
     if not prog_idr or not map_idr:
-        print(message.warn("cannot find either prog_idr or map_idr"))
-        return
+        raise AssertionError("cannot find either prog_idr or map_idr")
     xarray_pad_sz = get_bpf_struct_offsets(prog_idr, map_idr)
     if not xarray_pad_sz:
-        print(
-            message.warn(
-                "cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"
-            )
+        raise AssertionError(
+            "cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"
         )
-        return
     result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
     result += f"""
     struct xarray {{
@@ -262,5 +257,4 @@ def load_bpf_typeinfo():
     """
     result += get_struct_bpf_prog()
     result += get_struct_bpf_map()
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "bpf_structs", True)
+    return result

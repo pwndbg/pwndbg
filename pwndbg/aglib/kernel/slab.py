@@ -625,7 +625,7 @@ def kmem_cache_structs(node_cache_pad):
 
 
 @pwndbg.aglib.kernel.typeinfo_recovery("struct kmem_cache", kversion=True)
-def load_slab_typeinfo():
+def load_slab_typeinfo() -> str:
     kconfig = pwndbg.aglib.kernel.kconfig()
     defs = []
     configs = (
@@ -705,5 +705,4 @@ def load_slab_typeinfo():
         struct kmem_cache_node *node[{pwndbg.aglib.kernel.num_numa_nodes()}];
     }};
     """
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "slab_structs", True)
+    return result
