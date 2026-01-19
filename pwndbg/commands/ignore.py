@@ -39,9 +39,9 @@ def ignore(bpnum, count) -> None:
         bp = next((bp for bp in bps if bp.number == bpnum), None)
 
         if bp is None:
-            print(message.error("No breakpoint number %d." % bpnum))
+            print(message.error(f"No breakpoint number {bpnum}."))
             return
 
     count = max(0, int(count))
     bp.ignore_count = count
-    print("Will ignore next %d crossings of breakpoint %d." % (count, bp.number))
+    print(f"Will ignore next {count} crossings of breakpoint {bp.number}.")

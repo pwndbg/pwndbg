@@ -103,6 +103,8 @@ class Page:
         arch_ptrsize: int,
         objfile: str = "",
         in_darwin_shared_cache: bool = False,
+        protection_key: int | None = None,
+        vm_flags: list[str] | None = None,
     ) -> None:
         self.vaddr = start
         self.memsz = size
@@ -111,6 +113,8 @@ class Page:
         self.objfile = objfile
         self.in_darwin_shared_cache = in_darwin_shared_cache
         self.arch_ptrsize = arch_ptrsize
+        self.protection_key = protection_key
+        self.vm_flags = vm_flags
 
         # if self.rwx:
         # self.flags = self.flags ^ 1

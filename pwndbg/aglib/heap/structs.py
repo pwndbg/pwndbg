@@ -1,11 +1,8 @@
 from __future__ import annotations
 
+import builtins
 import ctypes
 from typing import Any
-from typing import Dict
-from typing import List
-from typing import Tuple
-from typing import Type
 from typing import cast
 
 import pwndbg.aglib
@@ -94,11 +91,11 @@ C2GDB_MAPPING = {
 
 # Use correct endian for the dictionary keys
 if pwndbg.aglib.arch.endian == "little":
-    C2GDB_MAPPING: Dict[Type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
+    C2GDB_MAPPING: dict[type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
         k.__ctype_le__: v for k, v in C2GDB_MAPPING.items()
     }
 else:
-    C2GDB_MAPPING: Dict[Type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
+    C2GDB_MAPPING: dict[type[ctypes.c_char], pwndbg.dbg_mod.Type] = {  # type: ignore[no-redef]
         k.__ctype_be__: v for k, v in C2GDB_MAPPING.items()
     }
 
@@ -133,7 +130,7 @@ class FakeGDBField:
 
 class CStruct2GDB:
     code = pwndbg.dbg_mod.TypeCode.STRUCT
-    _c_struct: Type[ctypes.Structure]
+    _c_struct: builtins.type[ctypes.Structure]
 
     def __init__(self, address: int) -> None:
         self.address = address
@@ -198,11 +195,11 @@ class CStruct2GDB:
         return cls
 
     @classmethod
-    def fields(cls) -> List[FakeGDBField]:
+    def fields(cls) -> list[FakeGDBField]:
         """
         Return fields of the struct to make it compatible with the `pwndbg.dbg_mod.Type` interface.
         """
-        fake_gdb_fields: List[FakeGDBField] = []
+        fake_gdb_fields: list[FakeGDBField] = []
         for f in cls._c_struct._fields_:
             field_name = f[0]
             field_type = f[1]
@@ -217,7 +214,7 @@ class CStruct2GDB:
         return fake_gdb_fields
 
     @classmethod
-    def keys(cls) -> List[str]:
+    def keys(cls) -> list[str]:
         """
         Return a list of the names of the fields in the struct to make it compatible with the `pwndbg.dbg_mod.Type` interface.
         """
@@ -236,7 +233,7 @@ class CStruct2GDB:
         """
         return getattr(cls._c_struct, field).offset
 
-    def items(self) -> Tuple[Tuple[Any, Any], ...]:
+    def items(self) -> tuple[tuple[Any, Any], ...]:
         """
         Returns a tuple of (field name, field value) pairs.
         """

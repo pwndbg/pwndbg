@@ -6,10 +6,9 @@ import shutil
 import subprocess
 import sys
 import sysconfig
-from typing import Tuple
 
 
-def get_gdb_version(path: str) -> Tuple[str, ...]:
+def get_gdb_version(path: str) -> tuple[str, ...]:
     result = subprocess.run(
         [
             path,

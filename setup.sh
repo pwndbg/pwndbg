@@ -215,7 +215,7 @@ pip install uv
 
 # Install dependencies
 echo "Installing dependencies.."
-uv sync --extra gdb --extra lldb --quiet
+uv sync --extra gdb --extra lldb
 
 if [ -z "$UPDATE_MODE" ]; then
     if grep -qs '^[^#]*source.*pwndbg/gdbinit.py' ~/.gdbinit; then

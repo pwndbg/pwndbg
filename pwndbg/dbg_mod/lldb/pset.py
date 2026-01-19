@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from typing import Any
-from typing import Optional
 
 import pwndbg
 import pwndbg.commands
 import pwndbg.lib.config as cfg
 
 
-def pget(name: str) -> Optional[pwndbg.lib.config.Parameter]:
+def pget(name: str) -> pwndbg.lib.config.Parameter | None:
     """
     Retrieves a parameter with a given name.
     """

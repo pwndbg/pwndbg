@@ -3,15 +3,14 @@ from __future__ import annotations
 import zlib
 from collections import UserDict
 from typing import Any
-from typing import Dict
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.symbol
 
 
-def parse_config(config_text: bytes) -> Dict[str, str]:
-    res: Dict[str, str] = {}
+def parse_config(config_text: bytes) -> dict[str, str]:
+    res: dict[str, str] = {}
 
     for line in config_text.split(b"\n"):
         if b"=" in line:
@@ -21,7 +20,7 @@ def parse_config(config_text: bytes) -> Dict[str, str]:
     return res
 
 
-def parse_compresed_config(compressed_config: bytes) -> Dict[str, str]:
+def parse_compresed_config(compressed_config: bytes) -> dict[str, str]:
     config_text = zlib.decompress(compressed_config, 16)
     return parse_config(config_text)
 
@@ -190,7 +189,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
         return pwndbg.aglib.symbol.lookup_symbol("put_task_stack") is not None
 
     def update_with_file(self, file_path):
-        for line in open(file_path, "r").read().splitlines():
+        for line in open(file_path).read().splitlines():
             split = line.split("=")
             if len(line) == 0 or line[0] == "#" or len(split) != 2:
                 continue

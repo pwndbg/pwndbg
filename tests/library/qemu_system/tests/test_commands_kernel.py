@@ -9,6 +9,9 @@ import pytest
 import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.slab
+import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
+import pwndbg.color
 
 
 def test_command_kchecksec():
@@ -320,6 +323,7 @@ def test_command_paging():
         assert physmap_addr == int(out.splitlines()[0].split()[-1], 16)
 
     pi = pwndbg.aglib.kernel.arch_paginginfo()
+    assert pi is not None
     # kbase, slab, buddy, vmemmap
     kbase = pwndbg.aglib.kernel.kbase()
     test_command_paging_helper("initialized", kbase)
@@ -332,10 +336,13 @@ def test_command_paging():
     if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"
         buddy = int(matches[-1], 16)
         test_command_paging_helper("buddy", buddy)
-    if pwndbg.aglib.kernel.krelease() >= (6, 10):
+
+    krelease = pwndbg.aglib.kernel.krelease()
+    assert krelease is not None
+    if krelease >= (6, 10):
         # the slab marker is only added after v6.10
         res = gdb.execute("slab info -v -p kmalloc-32", to_string=True)
-        matches = get_slab_freelist_elements(res)
+        matches = get_buddy_freelist_elements(res)
         if len(matches) > 0:
             slab = int(matches[-1].split()[-1], 16)
             test_command_paging_helper("slab", slab)

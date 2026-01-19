@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import bisect
 import os
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib
@@ -109,7 +108,7 @@ def get_memory_map() -> MemoryMap:
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def get() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def get() -> tuple[pwndbg.lib.memory.Page, ...]:
     return tuple(get_memory_map().ranges())
 
 

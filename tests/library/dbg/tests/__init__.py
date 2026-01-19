@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import functools
 import os
+from collections.abc import Callable
+from collections.abc import Coroutine
 from inspect import signature
 from pathlib import Path
 from typing import Any
-from typing import Callable
 from typing import Concatenate
-from typing import Coroutine
 from typing import ParamSpec
 
 from .... import host
@@ -32,7 +32,7 @@ def pwndbg_test(
     # Remove the controller from the signature, as seen by Pytest.
     sig = signature(inner_test)
     sig = sig.replace(parameters=tuple(sig.parameters.values())[1:])
-    inner_test.__signature__ = sig
+    inner_test.__signature__ = sig  # type: ignore[attr-defined]
 
     return inner_test
 
@@ -47,6 +47,7 @@ def break_at_sym(sym: str) -> None:
 
     inf = pwndbg.dbg.selected_inferior()
     addr = inf.lookup_symbol(sym)
+    assert addr is not None
     inf.break_at(BreakpointLocation(int(addr)))
 
 
@@ -59,6 +60,7 @@ async def launch_to(ctrl: Controller, target: Path, sym: str) -> None:
 
     inf = pwndbg.dbg.selected_inferior()
     addr = inf.lookup_symbol(sym)
+    assert addr is not None
     if pwndbg.aglib.regs.pc != int(addr):
         inf.break_at(BreakpointLocation(int(addr)))
         await ctrl.cont()

@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from dataclasses import field
 from enum import Enum
 from enum import auto
-from typing import List
 from typing import Literal
 
 from capstone import CS_MODE_MICRO
@@ -122,4 +121,4 @@ class ArchDefinition:
     """Pointer size in bytes"""
     endian: Literal["little", "big"]
     platform: Platform
-    attributes: List[ArchAttribute] = field(default_factory=list)
+    attributes: list[ArchAttribute] = field(default_factory=list)

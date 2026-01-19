@@ -292,7 +292,7 @@ Which context sections are displayed (controls order).
 
 
 
-**Default:** 'regs disasm code stack backtrace expressions threads heap_tracker'  
+**Default:** 'last_signal regs disasm code ghidra stack backtrace expressions threads heap_tracker'  
 
 ----------
 
@@ -304,6 +304,20 @@ Number of lines to print in the stack context.
 
 
 **Default:** 8  
+
+----------
+
+## **context-tui-adjust-height**
+<small style="color: lightgray;">(only in GDB)</small>
+
+
+Adjust height of context sections to fit the TUI.
+
+Adjust the height of context sections to fit the TUI window, ignoring section specific limits.
+This uses all vertical space available in the TUI windows if the context section supports it
+like the "disasm" or "stack" windows.
+
+**Default:** on  
 
 ----------
 

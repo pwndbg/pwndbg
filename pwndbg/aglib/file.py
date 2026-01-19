@@ -10,8 +10,7 @@ import errno
 import os
 import shutil
 import tempfile
-from typing import Iterator
-from typing import Tuple
+from collections.abc import Iterator
 
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
@@ -157,6 +156,13 @@ def is_vfile_qemu_user_bug() -> bool:
     if not pwndbg.aglib.qemu.is_qemu_usermode():
         return False
 
+    # The bug was fixed in QEMU version v10.0.0-rc0 but the qGDBServerVersion packet wasn't added until v10.1.0-rc0
+    # Therefore, check the simple case of whether the QEMU version >= v10.1.0
+    # and fallback to the old check method otherwise to handle the gap between v10.0.0 and v10.1.0
+    version = pwndbg.aglib.qemu.qemu_gdbserver_version()
+    if version is not None and version >= (10, 1, 0):
+        return False
+
     # On a bugged QEMU version, the response is `F-1,36`
     # On a fixed QEMU version, the response is `F-1,24`
     # This performs the syscall: `openat(0, "/\01*256", O_RDONLY|0x20) = -1 ENAMETOOLONG (File name too long)`
@@ -265,7 +271,7 @@ def gdb_memtox_inverse(data: bytes) -> bytes:
     return buffer
 
 
-def vfile_pread(fd: int, size: int, offset: int) -> Tuple[int, bytes]:
+def vfile_pread(fd: int, size: int, offset: int) -> tuple[int, bytes]:
     """
     Reads data from a file descriptor.
 

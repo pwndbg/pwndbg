@@ -7,9 +7,6 @@ binaries do things to remap the stack (e.g. pwnies' postit).
 
 from __future__ import annotations
 
-from typing import Dict
-from typing import List
-
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.elf
@@ -54,7 +51,7 @@ def find_upper_stack_boundary(stack_ptr: int, max_pages: int = 1024) -> int:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def get() -> Dict[int, pwndbg.lib.memory.Page]:
+def get() -> dict[int, pwndbg.lib.memory.Page]:
     """
     For each running thread, return the known address range for its stack
     Returns a dict which should never be modified (since its cached)
@@ -90,8 +87,8 @@ def is_executable() -> bool:
     return True
 
 
-def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
-    stacks: Dict[int, pwndbg.lib.memory.Page] = {}
+def _fetch_via_vmmap() -> dict[int, pwndbg.lib.memory.Page]:
+    stacks: dict[int, pwndbg.lib.memory.Page] = {}
 
     pages = pwndbg.aglib.vmmap.get()
 
@@ -114,7 +111,7 @@ def _fetch_via_vmmap() -> Dict[int, pwndbg.lib.memory.Page]:
     return stacks
 
 
-def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
+def _fetch_via_exploration() -> dict[int, pwndbg.lib.memory.Page]:
     """
     TODO/FIXME: This exploration is not great since it now hits on each stop
     (based on how this function is used). Ideally, explored stacks should be
@@ -157,7 +154,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     thread_sp.sort(key=lambda t: t[0])
 
     ptrsize: int = pwndbg.aglib.arch.ptrsize
-    stacks: Dict[int, pwndbg.lib.memory.Page] = {}
+    stacks: dict[int, pwndbg.lib.memory.Page] = {}
     for sp, thread_idx in thread_sp:
         start = pwndbg.lib.memory.page_align(sp) - pwndbg.lib.memory.PAGE_SIZE
 
@@ -182,7 +179,7 @@ def _fetch_via_exploration() -> Dict[int, pwndbg.lib.memory.Page]:
     return stacks
 
 
-def callstack() -> List[int]:
+def callstack() -> list[int]:
     """
     Return the address of the return address for the current frame.
     """

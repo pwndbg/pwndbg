@@ -4,9 +4,7 @@ import functools
 import re
 from abc import ABC
 from abc import abstractmethod
-from typing import Callable
-from typing import List
-from typing import Tuple
+from collections.abc import Callable
 from typing import TypeVar
 
 from elftools.elf.elffile import ELFFile
@@ -130,7 +128,8 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
             return mapping
     # optimization: observe that the first Linux kernel region is the kernel text so search it last
     # it now finds the first ro page almost instantly even for kernels that are partially initialized
-    for mapping in fallback_mappings[1:] + [fallback_mappings[0]]:
+    # should find it within the first few page chunks if debugging linux kernel (reason for [:10])
+    for mapping in fallback_mappings[1:10] + [fallback_mappings[0]]:
         # this loop handles when the kernel has not finished initialization
         # and the permission of the first ro page has not been properly set
         result = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
@@ -141,7 +140,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
     return None
 
 
-@pwndbg.lib.cache.cache_until("start")
+@pwndbg.lib.cache.cache_until("objfile")
 def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig | None:
     global _kconfig
     config_start, config_end = None, None
@@ -198,7 +197,7 @@ def kversion() -> str | None:
 
 
 @pwndbg.lib.cache.cache_until("start")
-def krelease() -> Tuple[int, ...] | None:
+def krelease() -> tuple[int, ...] | None:
     _kversion = kversion()
     if _kversion is None:
         return None
@@ -208,7 +207,7 @@ def krelease() -> Tuple[int, ...] | None:
     raise Exception("Linux version tuple not found")
 
 
-def get_idt_entries() -> List[pwndbg.lib.kernel.structs.IDTEntry]:
+def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
     """
     Retrieves the IDT entries from memory.
     """
@@ -616,7 +615,7 @@ def kbase() -> int | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
+def pagewalk(addr, entry=None) -> tuple[PageTableLevel, ...]:
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry)
@@ -625,7 +624,7 @@ def pagewalk(addr, entry=None) -> Tuple[PageTableLevel, ...]:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagetable_scan(entry=None) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def pagetable_scan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
     pi = arch_paginginfo()
     if pi:
         return tuple(pi.pagetable_scan(entry))

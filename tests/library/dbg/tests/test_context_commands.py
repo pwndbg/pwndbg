@@ -16,6 +16,7 @@ TABSTOP_BINARY = get_binary("tabstop.native.out")
 SYSCALLS_BINARY = get_binary("syscalls.x86-64.out")
 MANGLING_BINARY = get_binary("symbol_1600_and_752.native.out")
 STACK_VARS_BINARY = get_binary("stack_vars.native.out")
+CONTEXT_ARGS_BINARY = get_binary("context_args.native.out")
 
 
 @pwndbg_test
@@ -92,8 +93,10 @@ async def test_empty_context_sections(ctrl: Controller, sections: str) -> None:
 
     await ctrl.launch(USE_FDS_BINARY)
 
-    # Sanity check
-    default_ctx_sects = "regs disasm code stack backtrace expressions threads heap_tracker"
+    # Sanity checkdefault_ctx_sects
+    default_ctx_sects = (
+        "last_signal regs disasm code ghidra stack backtrace expressions threads heap_tracker"
+    )
     assert pwndbg.config.context_sections.value == default_ctx_sects
     assert (await ctrl.execute_and_capture("context")) != ""
 
@@ -351,7 +354,9 @@ async def test_context_disasm_proper_render_on_mem_change_issue_1818(
         await ctrl.execute("patch $rip+5 nop;nop;nop;nop;nop")
     else:
         # Do the same, but through write API
-        pwndbg.aglib.memory.write(pwndbg.aglib.regs.pc + 5, b"\x90" * 5)
+        pc = pwndbg.aglib.regs.pc
+        assert pc is not None
+        pwndbg.aglib.memory.write(pc + 5, b"\x90" * 5)
 
     # Actual test: we expect the read memory to be different now ;)
     # (and not e.g. returned incorrectly from a not cleared cache)
@@ -372,7 +377,7 @@ ONE_GADGET_BINARY = get_binary("onegadget.x86-64.out")
 
 
 @pwndbg_test
-async def test_context_disasm_fsbase_annotations(ctrl: Controller) -> none:
+async def test_context_disasm_fsbase_annotations(ctrl: Controller) -> None:
     """
     This test checks that fsbase support in annotations is working properly.
 
@@ -482,6 +487,61 @@ async def test_context_hide_sections(ctrl: Controller) -> None:
     out = await ctrl.execute_and_capture("context")
     assert "REGISTERS" in out
     assert "DISASM" in out
+
+
+def extract_context_sections(output: str) -> list[str]:
+    # Strip ANSI color codes
+    clean_output = re.sub(r"\x1b\[[0-9;]*m", "", output)
+
+    # Match section headers: ─[ SECTION_NAME ... ]─
+    # Capture everything inside the brackets
+    section_pattern = re.compile(r"─\[\s*([^\]]+?)\s*\]─")
+
+    matches = section_pattern.findall(clean_output)
+
+    section_names = []
+    for m in matches:
+        # Split by " / " to separate section name from config info
+        # e.g., "REGISTERS / show-flags off / show-compact-regs off" -> "REGISTERS"
+        parts = m.split(" / ")
+        section_name = parts[0].strip()
+        section_names.append(section_name)
+
+    return section_names
+
+
+@pwndbg_test
+async def test_context_all_sections_flag(ctrl: Controller) -> None:
+    """
+    Tests that context -a/--all shows all sections regardless of context-sections config
+    """
+    await launch_to(ctrl, CONTEXT_ARGS_BINARY, "main")
+
+    # First, set context-sections to only regs
+    await ctrl.execute("set context-sections regs")
+    default_out = await ctrl.execute_and_capture("context")
+    default_sections = extract_context_sections(default_out)
+    assert default_sections == ["REGISTERS"]
+
+    # Now use -a flag. It should capture all sections regardless of config
+    all_out = await ctrl.execute_and_capture("context -a")
+    expected_all = ["REGISTERS", "DISASM", "STACK", "BACKTRACE", "SOURCE (CODE)", "LAST SIGNAL"]
+    all_sections = extract_context_sections(all_out)
+    assert all_sections == expected_all
+
+    # Now proceed to next function call (i.e at func_with_args) for testing ARGUMENTS section
+    await ctrl.execute("nextcall")
+
+    # Now use -a flag - should include ARGUMENTS section when displaying all sections
+    all_out_after_nextcall = await ctrl.execute_and_capture("ctx -a")
+    expected_all.insert(0, "ARGUMENTS")
+
+    all_sections_after_nextcall = extract_context_sections(all_out_after_nextcall)
+    assert all_sections_after_nextcall == expected_all
+
+    # Verify --all alias works identically
+    alias_out = await ctrl.execute_and_capture("ctx --all")
+    assert alias_out == all_out_after_nextcall
 
 
 @pwndbg_test
@@ -604,9 +664,9 @@ async def test_context_output_redirection(ctrl: Controller) -> None:
 
     # Test CallOutput redirection
     def receive_output(output):
-        receive_output.context_output = output
+        receive_output.context_output = output  # type: ignore[attr-defined]
 
-    receive_output.context_output = ""
+    receive_output.context_output = ""  # type: ignore[attr-defined]
 
     pwndbg.commands.context.contextoutput(
         "regs",
@@ -619,8 +679,8 @@ async def test_context_output_redirection(ctrl: Controller) -> None:
     out = await ctrl.execute_and_capture("ctx")
     assert "REGISTERS" not in out
     assert "STACK" in out
-    assert "REGISTERS" in receive_output.context_output
-    assert "STACK" not in receive_output.context_output
+    assert "REGISTERS" in receive_output.context_output  # type: ignore[attr-defined]
+    assert "STACK" not in receive_output.context_output  # type: ignore[attr-defined]
 
     pwndbg.commands.context.resetcontextoutput("regs")
 
@@ -640,6 +700,7 @@ async def test_stack_variable_names_from_dwarf(ctrl: Controller) -> None:
     # Test direct API: pwndbg.aglib.stack.get_stack_var_name()
     # Get addresses of local variables
     frame = pwndbg.dbg.selected_frame()
+    assert frame is not None
     buffer_addr = int(frame.evaluate_expression("&buffer"))
     local_var_addr = int(frame.evaluate_expression("&local_var"))
 
@@ -678,9 +739,11 @@ async def test_regs_command_resolves_sp_pc_aliases(ctrl: Controller) -> None:
     regs_pc_output = await ctrl.execute_and_capture("regs pc")
 
     assert sp_name.upper() in regs_sp_output
+    assert real_sp_value is not None
     assert hex(real_sp_value) in regs_sp_output
 
     assert pc_name.upper() in regs_pc_output
+    assert real_pc_value is not None
     assert hex(real_pc_value) in regs_pc_output
 
 
@@ -711,7 +774,9 @@ async def test_cli_fixup_resolves_sp_pc_aliases(ctrl: Controller) -> None:
     regs_pc_output = await ctrl.execute_and_capture("telescope pc 1")
 
     assert sp_name in regs_sp_output
+    assert real_sp_value is not None
     assert hex(real_sp_value) in regs_sp_output
 
     assert pc_name in regs_pc_output
+    assert real_pc_value is not None
     assert hex(real_pc_value) in regs_pc_output

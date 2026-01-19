@@ -22,6 +22,19 @@ def test_command_help_strings(start_binary):
             ]
             gdb_out = [line.strip() for line in help_str.splitlines() if len(line.strip()) > 0]
 
+            assert "usage:" in help_str
+
             # We check both of these cases since for some commands GDB will
             # output the list of aliases as the first line.
             assert truth == gdb_out or truth == gdb_out[1:]
+
+
+def test_command_apropos():
+    """
+    Tests whether the `apropos <pwndbgcmd>` command from GDB shows command descriptions.
+    We had a bug previously that it showed usage instead of first command line (#3502).
+    """
+    out = gdb.execute("apropos elf", from_tty=False, to_string=True)
+
+    assert "usage:" not in out
+    assert "elfsections -- Prints the section mappings contained in the ELF header." in out

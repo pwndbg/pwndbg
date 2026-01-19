@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Iterator
-from typing import List
-from typing import Optional
+from collections.abc import Iterator
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
@@ -40,7 +38,7 @@ def catch_error(func):
     return wrapper
 
 
-class NftFields(object):
+class NftFields:
     @catch_error
     def __getattr__(self, name: str):
         t = self.__annotations__.get(name)
@@ -52,14 +50,14 @@ class NftFields(object):
         raise AttributeError(f"'{t}' this type hint is not supported on field '{name}'")
 
     @classmethod
-    def get_hook_list_dev_names(cls, hook_list: pwndbg.dbg_mod.Value) -> List[str]:
+    def get_hook_list_dev_names(cls, hook_list: pwndbg.dbg_mod.Value) -> list[str]:
         devs = []
         for hook in for_each_entry(hook_list, "struct nft_hook", "list"):
             dev_name = hook["ops"]["dev"]["name"].string()
             devs.append(dev_name)
         return devs
 
-    def print_fields(self, nested: int = 0, keys: List[str] = None):
+    def print_fields(self, nested: int = 0, keys: list[str] = None):
         pad = " " * ((nested + 1) * 2)
         if keys is None:
             keys = self.__annotations__.keys()
@@ -137,7 +135,7 @@ class Rule(NftFields):
     handle: int  # NFTA_RULE_HANDLE
     userdata: bytearray  # NFTA_RULE_USERDATA
 
-    def __init__(self, addr: pwndbg.dbg_mod.Value, chain: "Chain"):
+    def __init__(self, addr: pwndbg.dbg_mod.Value, chain: Chain):
         self._addr = addr  # struct nft_rule *
         self._chain = chain
 
@@ -161,8 +159,8 @@ class Rule(NftFields):
         table_family: int,
         chain_name: str,
         rule_id: int,
-        nsid: Optional[int] = None,
-    ) -> Iterator["Rule"]:
+        nsid: int | None = None,
+    ) -> Iterator[Rule]:
         for nft in Chain.find(
             table_name=table_name, table_family=table_family, chain_name=chain_name, nsid=nsid
         ):
@@ -197,9 +195,9 @@ class ChainHook(NftFields):
 
     # custom types
     dev: str  # NFTA_HOOK_DEV
-    devs: List[str]  # NFTA_HOOK_DEVS
+    devs: list[str]  # NFTA_HOOK_DEVS
 
-    def __init__(self, parent: "Chain"):
+    def __init__(self, parent: Chain):
         basechain = parent.basechain
         if basechain is None:
             self._addr = None
@@ -219,7 +217,7 @@ class ChainHook(NftFields):
 
     @property
     @catch_error
-    def devs(self) -> List[str]:
+    def devs(self) -> list[str]:
         return self.get_netdevs()
 
     def is_netdev(self) -> bool:
@@ -228,7 +226,7 @@ class ChainHook(NftFields):
         hooknum = self.hooknum
         return family == NFPROTO_NETDEV or (family == NFPROTO_INET and hooknum == NF_INET_INGRESS)
 
-    def get_netdevs(self) -> List[str]:
+    def get_netdevs(self) -> list[str]:
         basechain = self._parent.basechain
         if basechain is None:
             return []
@@ -253,7 +251,7 @@ class Chain(NftFields):
 
     # custom types
     hook: ChainHook  # NFTA_CHAIN_HOOK
-    table: "Table"  # NFTA_CHAIN_TABLE
+    table: Table  # NFTA_CHAIN_TABLE
     userdata: bytearray  # NFTA_CHAIN_USERDATA
     policy: int  # NFTA_CHAIN_POLICY
     type: str  # NFTA_CHAIN_TYPE
@@ -284,12 +282,12 @@ class Chain(NftFields):
 
     @property
     @catch_error
-    def table(self) -> "Table":
+    def table(self) -> Table:
         return Table(self._addr["table"])
 
     @property
     @catch_error
-    def basechain(self) -> Optional[pwndbg.dbg_mod.Value]:
+    def basechain(self) -> pwndbg.dbg_mod.Value | None:
         NFT_CHAIN_BINDING = 1 << 2
         if self.flags & NFT_CHAIN_BINDING:
             return None
@@ -299,11 +297,11 @@ class Chain(NftFields):
     @classmethod
     def find(
         cls,
-        table_family: Optional[int] = None,
-        table_name: Optional[str] = None,
-        chain_name: Optional[str] = None,
-        nsid: Optional[int] = None,
-    ) -> Iterator["Chain"]:
+        table_family: int | None = None,
+        table_name: str | None = None,
+        chain_name: str | None = None,
+        nsid: int | None = None,
+    ) -> Iterator[Chain]:
         for nft in Table.find(table_name=table_name, table_family=table_family, nsid=nsid):
             for chain in nft.iter_chains():
                 if chain_name is None or chain.name == chain_name:
@@ -345,7 +343,7 @@ class Set(NftFields):
 
     # custom fields
     nelems: int  # internal field
-    table: "Table"  # NFTA_SET_TABLE
+    table: Table  # NFTA_SET_TABLE
     userdata: bytearray  # NFTA_SET_USERDATA
     desc_size: int  # NFTA_SET_DESC_SIZE
     desc_concat: int  # NFTA_SET_DESC_CONCAT
@@ -367,7 +365,7 @@ class Set(NftFields):
 
     @property
     @catch_error
-    def desc_concat(self) -> List[int]:
+    def desc_concat(self) -> list[int]:
         field_count = self.field_count
         if not (field_count > 1):
             return []
@@ -380,7 +378,7 @@ class Set(NftFields):
 
     @property
     @catch_error
-    def table(self) -> "Table":
+    def table(self) -> Table:
         return Table(self._addr["table"])
 
     @property
@@ -424,7 +422,7 @@ class Object(NftFields):
     handle: int  # NFTA_OBJ_HANDLE
 
     # custom fields
-    table: "Table"  # NFTA_OBJ_TABLE
+    table: Table  # NFTA_OBJ_TABLE
     name: str  # NFTA_OBJ_NAME
     type: int  # NFTA_OBJ_TYPE
     userdata: bytearray  # NFTA_OBJ_USERDATA
@@ -445,7 +443,7 @@ class Object(NftFields):
 
     @property
     @catch_error
-    def table(self) -> "Table":
+    def table(self) -> Table:
         return Table(self._addr["key"]["table"])
 
     @property
@@ -471,9 +469,9 @@ class Object(NftFields):
 class FlowtableHook(NftFields):
     hooknum: int  # NFTA_FLOWTABLE_HOOK_NUM
     priority: int  # NFTA_FLOWTABLE_HOOK_PRIORITY
-    devs: List[str]  # NFTA_FLOWTABLE_HOOK_DEVS
+    devs: list[str]  # NFTA_FLOWTABLE_HOOK_DEVS
 
-    def __init__(self, parent: "Flowtable"):
+    def __init__(self, parent: Flowtable):
         self._addr = parent._addr
 
     @property
@@ -488,7 +486,7 @@ class FlowtableHook(NftFields):
 
     @property
     @catch_error
-    def devs(self) -> List[str]:
+    def devs(self) -> list[str]:
         return self.get_hook_list_dev_names(self._addr["hook_list"])
 
     def nested_print(self, nested: int = 0):
@@ -503,7 +501,7 @@ class Flowtable(NftFields):
     handle: int  # NFTA_FLOWTABLE_HANDLE
 
     # custom fields
-    table: "Table"  # NFTA_FLOWTABLE_TABLE
+    table: Table  # NFTA_FLOWTABLE_TABLE
     flags: int  # NFTA_FLOWTABLE_FLAGS
     hook: FlowtableHook  # NFTA_FLOWTABLE_HOOK
 
@@ -513,7 +511,7 @@ class Flowtable(NftFields):
 
     @property
     @catch_error
-    def table(self) -> "Table":
+    def table(self) -> Table:
         return Table(self._addr["table"])
 
     @property
@@ -544,10 +542,10 @@ class Table(NftFields):
     @classmethod
     def find(
         cls,
-        table_name: Optional[str] = None,
-        table_family: Optional[int] = None,
-        nsid: Optional[int] = None,
-    ) -> Iterator["Table"]:
+        table_name: str | None = None,
+        table_family: int | None = None,
+        nsid: int | None = None,
+    ) -> Iterator[Table]:
         nft = Nftables.find(nsid=nsid)
         if nft is None:
             return
@@ -592,7 +590,7 @@ class Nftables:
         self._addr = addr  # struct net *
 
     @classmethod
-    def find(cls, nsid: Optional[int] = None) -> Optional["Nftables"]:
+    def find(cls, nsid: int | None = None) -> Nftables | None:
         if nsid is None:
             addr = get_init_net_namespace()
         else:

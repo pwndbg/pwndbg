@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
+from collections.abc import Sequence
 from enum import Enum
 from functools import total_ordering
 from typing import Any
-from typing import Callable
-from typing import DefaultDict
-from typing import Dict
-from typing import List
-from typing import Sequence
 from typing import TypeVar
 
 T = TypeVar("T")
@@ -101,7 +98,7 @@ class Parameter:
 
         self.enum_sequence = enum_sequence
         self.scope = scope
-        self.update_listeners: List[Callable[[Any], None]] = []
+        self.update_listeners: list[Callable[[Any], None]] = []
 
     def add_update_listener(self, listener: Callable[[Any], None]) -> None:
         self.update_listeners.append(listener)
@@ -218,8 +215,8 @@ class Parameter:
 
 class Config:
     def __init__(self) -> None:
-        self.params: Dict[str, Parameter] = {}
-        self.triggers: DefaultDict[str, List[Callable[..., Any]]] = defaultdict(list)
+        self.params: dict[str, Parameter] = {}
+        self.triggers: defaultdict[str, list[Callable[..., Any]]] = defaultdict(list)
 
     def add_param(
         self,
@@ -291,7 +288,7 @@ class Config:
 
         return wrapper
 
-    def get_params(self, scope: Scope) -> List[Parameter]:
+    def get_params(self, scope: Scope) -> list[Parameter]:
         return sorted(filter(lambda p: p.scope == scope, self.params.values()))
 
     def __getattr__(self, name: str) -> Parameter:

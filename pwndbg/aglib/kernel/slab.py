@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import Generator
-from typing import List
-from typing import Set
-from typing import Tuple
+from collections.abc import Generator
 
 import pwndbg
 import pwndbg.aglib.kernel.symbol
@@ -76,7 +73,7 @@ _flags = {
 }
 
 
-def get_flags_list(flags: int) -> List[str]:
+def get_flags_list(flags: int) -> list[str]:
     return [flag_name for flag_name, mask in _flags.items() if flags & mask]
 
 
@@ -174,7 +171,7 @@ class SlabCache:
         return int(self._slab_cache["align"])
 
     @property
-    def flags(self) -> List[str]:
+    def flags(self) -> list[str]:
         return get_flags_list(int(self._slab_cache["flags"]))
 
     @property
@@ -296,7 +293,7 @@ class CpuCache:
         return Slab(_slab.dereference(), cpu_cache=self, is_active=True)
 
     @property
-    def partial_slabs(self) -> List[Slab]:
+    def partial_slabs(self) -> list[Slab]:
         partial_slabs = []
         if not self._cpu_cache.dereference().type.has_field("partial"):
             return []
@@ -321,7 +318,7 @@ class NodeCache:
         return int(self._node_cache)
 
     @property
-    def partial_slabs(self) -> List[Slab]:
+    def partial_slabs(self) -> list[Slab]:
         ret = []
         for slab in for_each_entry(
             self._node_cache["partial"], f"struct {slab_struct_type()}", "slab_list"
@@ -410,7 +407,7 @@ class Slab:
         return Freelist(int(self._slab["freelist"]), self)
 
     @property
-    def free_objects(self) -> Set[int]:
+    def free_objects(self) -> set[int]:
         result = set()
         for obj in self.freelist:
             result.add(obj)
@@ -455,7 +452,7 @@ def kmem_cache_node_pad_sz(val):
     return None
 
 
-def kmem_cache_pad_sz(kconfig) -> Tuple[int, int]:
+def kmem_cache_pad_sz(kconfig) -> tuple[int, int]:
     # find the distance between the first kmem_cache's name and its first node cache
     # the name for the first kmem_cache (most likely) has the name "kmem_cache"
     # and the global var is also named "kmem_cache"

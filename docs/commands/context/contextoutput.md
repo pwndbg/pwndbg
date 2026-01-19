@@ -2,7 +2,7 @@
 # contextoutput
 
 ```text
-usage: contextoutput [-h] section path clearing [banner] [width]
+usage: contextoutput [-h] section path clearing [banner] [width] [height]
 
 ```
 
@@ -18,6 +18,7 @@ Sets the output of a context section.
 |clearing|Indicates whether to clear the output|
 |banner|Where a banner should be placed: both, top , bottom, none (default: 'both')|
 |width|Sets a fixed width (used for banner). Set to None for auto|
+|height|Sets a fixed height (used for number of lines to display before cutoff). Only applies to sections where more data can be displayed like disasm, stack, and threads and overrides their section specific limits. Set to None for auto|
 
 ### Optional arguments
 

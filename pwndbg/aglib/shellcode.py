@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import contextlib
 from asyncio import CancelledError
-from typing import Iterator
+from collections.abc import Iterator
 
 import pwnlib.shellcraft
 

@@ -297,7 +297,7 @@ def test_windbg_eX_commands(start_binary):
     stack_last_qword_ea = stack_page.end - 8
 
     gdb_result = gdb.execute(
-        "eq %#x 0xCAFEBABEdeadbeef 0xABCD" % stack_last_qword_ea, to_string=True
+        f"eq {stack_last_qword_ea:#x} 0xCAFEBABEdeadbeef 0xABCD", to_string=True
     ).split("\n")
     assert "Cannot access memory at address" in gdb_result[0]
     assert gdb_result[1] == "(Made 1 writes to memory; skipping further writes)"
@@ -326,37 +326,37 @@ def test_windbg_commands_x86(start_binary):
     db = gdb.execute("db $esp", to_string=True).splitlines()
     esp = pwndbg.aglib.regs.read_reg("esp")
     assert db == [
-        "%x     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66" % esp,
-        "%x     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00" % (esp + 16),
-        "%x     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f" % (esp + 32),
-        "%x     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a" % (esp + 48),
+        f"{esp:x}     31 32 33 34 35 36 37 38 39 30 61 62 63 64 65 66",
+        f"{esp + 16:x}     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00",
+        f"{esp + 32:x}     00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f",
+        f"{esp + 48:x}     5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a 5a",
     ]
 
     dw = gdb.execute("dw $esp", to_string=True).splitlines()
     esp = pwndbg.aglib.regs.read_reg("esp")
     assert dw == [
-        "%x     3231 3433 3635 3837 3039 6261 6463 6665" % esp,
-        "%x     0000 0000 0000 0000 0000 0000 0000 0000" % (esp + 16),
-        "%x     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e" % (esp + 32),
-        "%x     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a" % (esp + 48),
+        f"{esp:x}     3231 3433 3635 3837 3039 6261 6463 6665",
+        f"{esp + 16:x}     0000 0000 0000 0000 0000 0000 0000 0000",
+        f"{esp + 32:x}     0100 0302 0504 0706 0908 0b0a 0d0c 0f0e",
+        f"{esp + 48:x}     5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a 5a5a",
     ]
 
     dd = gdb.execute("dd $esp", to_string=True).splitlines()
     esp = pwndbg.aglib.regs.read_reg("esp")
     assert dd == [
-        "%x     34333231 38373635 62613039 66656463" % esp,
-        "%x     00000000 00000000 00000000 00000000" % (esp + 16),
-        "%x     03020100 07060504 0b0a0908 0f0e0d0c" % (esp + 32),
-        "%x     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a" % (esp + 48),
+        f"{esp:x}     34333231 38373635 62613039 66656463",
+        f"{esp + 16:x}     00000000 00000000 00000000 00000000",
+        f"{esp + 32:x}     03020100 07060504 0b0a0908 0f0e0d0c",
+        f"{esp + 48:x}     5a5a5a5a 5a5a5a5a 5a5a5a5a 5a5a5a5a",
     ]
 
     dq = gdb.execute("dq $esp", to_string=True).splitlines()
     esp = pwndbg.aglib.regs.read_reg("esp")
     assert dq == [
-        "%x     3837363534333231 6665646362613039" % esp,
-        "%x     0000000000000000 0000000000000000" % (esp + 16),
-        "%x     0706050403020100 0f0e0d0c0b0a0908" % (esp + 32),
-        "%x     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a" % (esp + 48),
+        f"{esp:x}     3837363534333231 6665646362613039",
+        f"{esp + 16:x}     0000000000000000 0000000000000000",
+        f"{esp + 32:x}     0706050403020100 0f0e0d0c0b0a0908",
+        f"{esp + 48:x}     5a5a5a5a5a5a5a5a 5a5a5a5a5a5a5a5a",
     ]
 
     #################################################

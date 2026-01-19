@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import List
+from pathlib import Path
 
 import pytest
 
@@ -22,7 +22,7 @@ re_addr = r"0x[0-9a-fA-F]{1,12}"
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-async def test_mallocng_slot_user(ctrl: Controller, binary: str):
+async def test_mallocng_slot_user(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
     await launch_to(ctrl, binary, "break_here")
@@ -171,7 +171,7 @@ async def test_mallocng_slot_user(ctrl: Controller, binary: str):
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-async def test_mallocng_slot_start(ctrl: Controller, binary: str):
+async def test_mallocng_slot_start(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
     await launch_to(ctrl, binary, "break_here")
@@ -199,7 +199,7 @@ async def test_mallocng_slot_start(ctrl: Controller, binary: str):
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-async def test_mallocng_group(ctrl: Controller, binary: str):
+async def test_mallocng_group(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
     await launch_to(ctrl, binary, "break_here")
@@ -208,7 +208,9 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
     # Fetch the group where buffer1 is in.
 
     buffer1_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer1"))
-    group_addr = int(re.search(r"group:\s*(0x[0-9a-fA-F]+)", buffer1_out).group(1), 16)
+    searchres = re.search(r"group:\s*(0x[0-9a-fA-F]+)", buffer1_out)
+    assert searchres is not None
+    group_addr = int(searchres.group(1), 16)
 
     # == Check command output looks good.
 
@@ -253,13 +255,13 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
     # We are going to fetch parent groups recursively until
     # we reach the outermost group which is either mmap()-ed in or
     # has donated by ld.
-    cur_group_out: List[str] = group1_out
+    cur_group_out: list[str] = group1_out
     cur_group_addr: int = group_addr
 
     while "another group" in cur_group_out[pgline_idx]:
-        cur_group_addr = int(
-            re.search(r"group \((0x[0-9a-fA-F]+)\)", cur_group_out[pgline_idx]).group(1), 16
-        )
+        searchres = re.search(r"group \((0x[0-9a-fA-F]+)\)", cur_group_out[pgline_idx])
+        assert searchres is not None
+        cur_group_addr = int(searchres.group(1), 16)
         cur_group_out = color.strip(
             await ctrl.execute_and_capture(f"ng-group {cur_group_addr}")
         ).splitlines()
@@ -274,15 +276,19 @@ async def test_mallocng_group(ctrl: Controller, binary: str):
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-async def test_mallocng_meta(ctrl: Controller, binary: str):
+async def test_mallocng_meta(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
     buffer1_out = color.strip(await ctrl.execute_and_capture("ng-slotu buffer1"))
-    meta_addr = int(re.search(r"meta:\s*(0x[0-9a-fA-F]+)", buffer1_out).group(1), 16)
-    group_addr = int(re.search(r"group:\s*(0x[0-9a-fA-F]+)", buffer1_out).group(1), 16)
+    searchres = re.search(r"meta:\s*(0x[0-9a-fA-F]+)", buffer1_out)
+    assert searchres is not None
+    meta_addr = int(searchres.group(1), 16)
+    searchres = re.search(r"group:\s*(0x[0-9a-fA-F]+)", buffer1_out)
+    assert searchres is not None
+    group_addr = int(searchres.group(1), 16)
 
     # Check that the meta output is the same as the group output.
     # They both print the same group and meta objects.
@@ -296,7 +302,7 @@ async def test_mallocng_meta(ctrl: Controller, binary: str):
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
+async def test_mallocng_malloc_context(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
     # Make sure we are not working with symbols when we think we aren't
@@ -338,7 +344,7 @@ async def test_mallocng_malloc_context(ctrl: Controller, binary: str):
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-async def test_mallocng_find(ctrl: Controller, binary: str):
+async def test_mallocng_find(ctrl: Controller, binary: Path):
     import pwndbg
     import pwndbg.aglib
     import pwndbg.color as color
@@ -350,30 +356,32 @@ async def test_mallocng_find(ctrl: Controller, binary: str):
     find_out = color.strip(await ctrl.execute_and_capture("ng-find $pc"))
     assert "No slot found containing that address.\n" == find_out
 
-    buffer1_addr = int(pwndbg.dbg.selected_frame().evaluate_expression("buffer1"))
+    frame = pwndbg.dbg.selected_frame()
+    assert frame is not None
+    buffer1_addr = int(frame.evaluate_expression("buffer1"))
 
     # Check we find the slot in the simplest case of providing p.
     find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1"))
 
     assert "No slot found" not in find_out
-    start_addr = int(re.search(r"start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
-    user_addr = int(re.search(r"user start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
+    start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
+    user_addr = int(re.findall(r"user start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
     assert buffer1_addr == start_addr == user_addr
 
-    group_addr = int(re.search(r"group:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
+    group_addr = int(re.findall(r"group:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
 
     # Hit the buffer1 header metadata
     find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1-1"))
 
     # We should hit the slot that holds buffer1's group.
-    hit_start_addr = int(re.search(r"start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
+    hit_start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
     assert group_addr == hit_start_addr
 
     # Hit the buffer1 header metadata but with -m
     find_out = color.strip(await ctrl.execute_and_capture("ng-find buffer1-1 --metadata"))
 
     # We should hit the buffer1 slot
-    hit_start_addr = int(re.search(r"start:\s*(0x[0-9a-fA-F]+)", find_out).group(1), 16)
+    hit_start_addr = int(re.findall(r"start:\s*(0x[0-9a-fA-F]+)", find_out)[0], 16)
     assert buffer1_addr == hit_start_addr
 
     # Check that `--shallow` works. Note that `--all` prints the group allocation method.
@@ -386,15 +394,15 @@ async def test_mallocng_find(ctrl: Controller, binary: str):
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-async def test_mallocng_metaarea(ctrl: Controller, binary: str):
+async def test_mallocng_metaarea(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 
     context = color.strip(await ctrl.execute_and_capture("ng-ctx"))
-    secret = int(re.search(r"secret:\s*(0x[0-9a-fA-F]+)", context).group(1), 16)
-    meta_area_addr = int(re.search(r"meta_area_head:\s*(0x[0-9a-fA-F]+)", context).group(1), 16)
+    secret = int(re.findall(r"secret:\s*(0x[0-9a-fA-F]+)", context)[0], 16)
+    meta_area_addr = int(re.findall(r"meta_area_head:\s*(0x[0-9a-fA-F]+)", context)[0], 16)
 
     meta_area_out = color.strip(
         await ctrl.execute_and_capture(f"ng-metaarea {meta_area_addr:#x}")
@@ -419,7 +427,7 @@ async def test_mallocng_metaarea(ctrl: Controller, binary: str):
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-async def test_mallocng_vis(ctrl: Controller, binary: str):
+async def test_mallocng_vis(ctrl: Controller, binary: Path):
     import pwndbg.color as color
 
     await launch_to(ctrl, binary, "break_here")
@@ -493,7 +501,7 @@ async def test_mallocng_vis(ctrl: Controller, binary: str):
 @pytest.mark.parametrize(
     "binary", [HEAP_MALLOCNG_DYN, HEAP_MALLOCNG_STATIC], ids=["dynamic", "static"]
 )
-async def test_mallocng_dump(ctrl: Controller, binary: str):
+async def test_mallocng_dump(ctrl: Controller, binary: Path):
     await launch_to(ctrl, binary, "break_here")
     await ctrl.finish()
 

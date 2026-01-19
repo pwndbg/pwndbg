@@ -63,7 +63,7 @@ class UDPServerThread(threading.Thread):
             self.sock.settimeout(1)
             data, addr = self.sock.recvfrom(1024)
             self.received_data = data
-        except socket.timeout:
+        except TimeoutError:
             pass
         except OSError:
             pass
@@ -92,7 +92,7 @@ def test_hijack_fd_file_redirection(start_binary):
         gdb.execute('call write(1, "hello\\n", 6)')
 
         # Check the file content to verify the write went to our file
-        with open(temp_file_path, "r") as f:
+        with open(temp_file_path) as f:
             content = f.read()
             assert "hello" in content
 

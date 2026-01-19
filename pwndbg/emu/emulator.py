@@ -7,10 +7,7 @@ from __future__ import annotations
 import binascii
 import re
 import string
-from typing import Dict
-from typing import List
 from typing import NamedTuple
-from typing import Tuple
 
 import capstone as C
 import unicorn as U
@@ -39,14 +36,14 @@ if pwndbg.dbg.is_gdblib_available():
     import gdb
 
 
-def parse_consts(u_consts) -> Dict[str, int]:
+def parse_consts(u_consts) -> dict[str, int]:
     """
     Unicorn "consts" is a python module consisting of a variable definition
     for each known entity. We repack it here as a dict for performance.
 
     Maps "UC_*" -> integer value of the constant
     """
-    consts: Dict[str, int] = {}
+    consts: dict[str, int] = {}
     for name in dir(u_consts):
         if name.startswith("UC_"):
             consts[name] = getattr(u_consts, name)
@@ -55,14 +52,14 @@ def parse_consts(u_consts) -> Dict[str, int]:
 
 # Generate Map<Register name, unicorn constant>
 def create_reg_to_const_map(
-    base_consts: Dict[str, int], additional_mapping: Dict[str, int] = None
-) -> Dict[str, int]:
+    base_consts: dict[str, int], additional_mapping: dict[str, int] = None
+) -> dict[str, int]:
     # base_consts is Map<"UC_*_REG_", constant>
     # additional mapping is the manually additions that add to the returned dict
 
     # Create a map of "register_name" -> Capstone ID, for faster lookup
     # Example of one field in the mapping for x86: { "RAX": 35 }
-    reg_to_const: Dict[str, int] = {}
+    reg_to_const: dict[str, int] = {}
 
     r = re.compile(r"^UC_.*_REG_(.*)$")
     for k, v in base_consts.items():
@@ -81,7 +78,7 @@ def create_reg_to_const_map(
 
 
 # Map our internal architecture names onto Unicorn Engine's architecture types.
-arch_to_UC: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, int] = {
+arch_to_UC: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, int] = {
     "i386": U.UC_ARCH_X86,
     "x86-64": U.UC_ARCH_X86,
     "mips": U.UC_ARCH_MIPS,
@@ -96,7 +93,7 @@ arch_to_UC: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, int] = {
 }
 
 # Architecture specific maps: Map<"UC_*_REG_*",constant>
-arch_to_UC_consts: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[str, int]] = {
+arch_to_UC_consts: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]] = {
     "i386": parse_consts(U.x86_const),
     "x86-64": parse_consts(U.x86_const),
     "mips": parse_consts(U.mips_const),
@@ -111,7 +108,7 @@ arch_to_UC_consts: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[str, int]] = {
 }
 
 # Architecture specific maps: Map<reg_name, Unicorn constant>
-arch_to_reg_const_map: Dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, Dict[str, int]] = {
+arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]] = {
     "i386": create_reg_to_const_map(arch_to_UC_consts["i386"]),
     "x86-64": create_reg_to_const_map(
         arch_to_UC_consts["x86-64"],
@@ -388,7 +385,7 @@ class Emulator:
     # Recursively dereference memory, return list of addresses
     # read_size typically must be either 1, 2, 4, or 8. It dictates the size to read
     # Naturally, if it is less than the pointer size, then only one value would be telescoped
-    def telescope(self, address: int, limit: int, read_size: int = None) -> List[int]:
+    def telescope(self, address: int, limit: int, read_size: int = None) -> list[int]:
         read_size = read_size if read_size is not None else pwndbg.aglib.arch.ptrsize
 
         result = [address]
@@ -419,7 +416,7 @@ class Emulator:
         return self.format_telescope_list(address_list, limit)
 
     def format_telescope_list(
-        self, chain: List[int], limit: int, enhance_string_len: int = None
+        self, chain: list[int], limit: int, enhance_string_len: int = None
     ) -> str:
         # Code is near identical to pwndbg.chain.format, but takes into account reading from
         # the emulator's memory when necessary
@@ -547,7 +544,7 @@ class Emulator:
         else:
             return E.integer(pwndbg.enhance.int_str(intval0))
 
-        retval_final: Tuple[str] = tuple(filter(lambda x: x is not None, retval))
+        retval_final: tuple[str] = tuple(filter(lambda x: x is not None, retval))
 
         if len(retval_final) == 0:
             return E.unknown("???")
@@ -839,7 +836,7 @@ class Emulator:
         )
         self.until_syscall_address = address
 
-    def single_step(self, pc=None, instruction: PwndbgInstruction | None = None) -> Tuple[int, int]:
+    def single_step(self, pc=None, instruction: PwndbgInstruction | None = None) -> tuple[int, int]:
         """Steps one instruction.
 
         Yields:
@@ -918,12 +915,12 @@ class Emulator:
             enum = self.get_reg_enum(reg)
 
             if not reg or enum is None:
-                print("# Could not dump register %r" % (reg,))
+                print(f"# Could not dump register {reg!r}")
                 continue
 
             name = f"U.x86_const.UC_X86_REG_{reg.upper()}"
             value = self.uc.reg_read(enum)
-            print("uc.reg_read(%s) ==> %x" % (name, value))
+            print(f"uc.reg_read({name}) ==> {value:x}")
 
     def trace_hook(self, _uc, address, instruction_size: int, _user_data) -> None:
         data = binascii.hexlify(self.mem_read(address, instruction_size))

@@ -3,22 +3,24 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
+from collections.abc import Sequence
 from dataclasses import asdict
 from inspect import getdoc
 from inspect import signature
+from typing import Any
+from typing import Protocol
 
 import pwndbg
 from scripts._docs.function_docs_common import ExtractedFunction
 from scripts._docs.function_docs_common import extracted_filename
 from scripts._docs.gen_docs_generic import get_debugger
 
-if pwndbg.dbg.is_gdblib_available():
-    from pwndbg.gdblib.functions import GdbFunction as ConvFunction
-else:
-    # Convenience Function - dummy class for debuggers
-    # that don't support it.
-    class ConvFunction:
-        pass
+
+class ConvFunction(Protocol):
+    func: Callable[..., Any]
+    name: str
+    __doc__: str
 
 
 def sanitize_signature(func_name: str, sig: str) -> str:
@@ -55,12 +57,16 @@ def sanitize_signature(func_name: str, sig: str) -> str:
     return sig
 
 
-def extract_functions() -> list[ConvFunction]:
+def extract_functions() -> Sequence[ConvFunction]:
     """
     Returns a dictionary that mapes function names to
     the corresponding _GdbFunction objects.
     """
+    # https://github.com/astral-sh/ruff/issues/22467
+    global pwndbg
     if pwndbg.dbg.is_gdblib_available():
+        import pwndbg.gdblib.functions
+
         functions = pwndbg.gdblib.functions.functions
     else:
         functions = []
@@ -68,13 +74,14 @@ def extract_functions() -> list[ConvFunction]:
     return functions
 
 
-def distill_sources(funcs: list[ConvFunction]) -> list[ExtractedFunction]:
+def distill_sources(funcs: Sequence[ConvFunction]) -> list[ExtractedFunction]:
     result: list[ExtractedFunction] = []
 
     for func in funcs:
         name = func.name
         signa = sanitize_signature(name, str(signature(func.func)))
         docstr = getdoc(func)
+        assert docstr
 
         result.append(ExtractedFunction(name, signa, docstr))
 

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import itertools
 import struct
-from typing import Callable
-from typing import Generator
+from collections.abc import Callable
+from collections.abc import Generator
 from typing import Generic
-from typing import Tuple
 from typing import TypeVar
 
 import pwndbg
@@ -13,7 +12,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 
 
-def _uleb128(ptr: int) -> Tuple[int, int]:
+def _uleb128(ptr: int) -> tuple[int, int]:
     """
     Decode a ULEB128 value at the start of the given address, and return the
     decoded number, along with how many bytes the entire number takes.
@@ -47,7 +46,7 @@ class _RawTrie:
         acc: bytes,
         edgesel: Callable[[bytes, bytes], bool],
         nodesel: Callable[[bytes], bool],
-    ) -> Generator[Tuple[bytes, int, int]]:
+    ) -> Generator[tuple[bytes, int, int]]:
         """
         Walk the trie.
 
@@ -93,7 +92,7 @@ class _RawTrie:
 
             # The cursor is already at the next child.
 
-    def _get_raw(self, name: bytes) -> Tuple[bytes, int, int] | None:
+    def _get_raw(self, name: bytes) -> tuple[bytes, int, int] | None:
         """
         Get the data associated with the node of given name, if it exists.
         """
@@ -106,7 +105,7 @@ class _RawTrie:
 
         return next(self._walk(0, b"", edgesel, nodesel), None)
 
-    def _entries_raw(self) -> Generator[Tuple[bytes, int, int]]:
+    def _entries_raw(self) -> Generator[tuple[bytes, int, int]]:
         """
         List all the entries in the trie, along with their associated data.
         """
@@ -141,7 +140,7 @@ class Trie(_RawTrie, Generic[T]):
         _, ptr, size = self._get_raw(name)
         return self._ty(ptr, size)
 
-    def entries(self) -> Generator[Tuple[bytes, T]]:
+    def entries(self) -> Generator[tuple[bytes, T]]:
         """
         List all the entries in the trie, along with their associated data.
         """
@@ -566,7 +565,7 @@ class DyldSharedCache:
         )
 
     @property
-    def images(self) -> Generator[Tuple[bytes, int]]:
+    def images(self) -> Generator[tuple[bytes, int]]:
         # This is a little convoluted, but this function is quite hot and
         # calling the debugger can be quite slow, so pulling in the whole array
         # at once goes a really long way.
@@ -585,7 +584,7 @@ class DyldSharedCache:
             )
 
     @property
-    def images_sorted(self) -> Generator[Tuple[bytes, int]]:
+    def images_sorted(self) -> Generator[tuple[bytes, int]]:
         "Same as images, but guaranteed to be sorted by increasing base address"
         if self._images_sorted_by_address:
             # The images are naturally sorted by increasing base address.

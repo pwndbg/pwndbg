@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict
-
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
@@ -456,7 +454,7 @@ class Extent:
         return int(self._Value["e_bits"])
 
     @property
-    def bitfields(self) -> Dict[str, int]:
+    def bitfields(self) -> dict[str, int]:
         """
         Extract bitfields
 
