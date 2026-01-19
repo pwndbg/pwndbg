@@ -299,24 +299,22 @@ class Driver(Enum):
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run tests.")
+    # https://stackoverflow.com/questions/25626109/python-argparse-conditionally-required-arguments
+    has_clean = "--clean" in sys.argv
     parser.add_argument(
-        "--clean",
-        action="store_true",
-        help="clean (delete) all the test binaries",
+        "-g",
+        "--group",
+        choices=list(Group),
+        type=Group,
+        # We mustn't require it if --clean was passed.
+        required=not has_clean,
     )
-    # If `--clean` is passed we abort the processing of the other arguments, because
-    # we don't want to enforce `required=True`.
-    known_args, _ = parser.parse_known_args()
-    if known_args.clean:
-        return known_args
-
-    parser.add_argument("-g", "--group", choices=list(Group), type=Group, required=True)
     parser.add_argument(
         "-d",
         "--driver",
         choices=list(Driver),
         type=Driver,
-        required=True,
+        required=not has_clean,
     )
     parser.add_argument(
         "-p",
@@ -346,6 +344,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "test_name_filter", nargs="?", help="run only tests that match the regex", default=".*"
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        default=False,
+        help="clean (delete) all the test binaries",
     )
     return parser.parse_args()
 
