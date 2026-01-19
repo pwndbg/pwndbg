@@ -81,20 +81,21 @@ def verify_ld_candidate(mapping_name: str) -> bool:
 def urls(ver: tuple[int, ...] | None) -> LibcURLs:
     assert ver is not None
     if ver[0] == -1:
+        # Version not available, use dummy values.
         return LibcURLs(
             versioned_readable_source="https://elixir.bootlin.com/musl/latest/source",
             versioned_compressed_source="https://musl.libc.org/releases/musl-<major>.<minor>.<patch>.tar.gz",
             homepage="https://musl.libc.org/",
             git="git://git.musl-libc.org/musl",
         )
-    else:
-        ver_str = ".".join(map(str, ver))
-        return LibcURLs(
-            versioned_readable_source=f"https://elixir.bootlin.com/musl/v{ver_str}/source",
-            versioned_compressed_source=f"https://musl.libc.org/releases/musl-{ver_str}.tar.gz",
-            homepage="https://musl.libc.org/",
-            git="git://git.musl-libc.org/musl",
-        )
+
+    ver_str = ".".join(map(str, ver))
+    return LibcURLs(
+        versioned_readable_source=f"https://elixir.bootlin.com/musl/v{ver_str}/source",
+        versioned_compressed_source=f"https://musl.libc.org/releases/musl-{ver_str}.tar.gz",
+        homepage="https://musl.libc.org/",
+        git="git://git.musl-libc.org/musl",
+    )
 
 
 def libc_same_as_ld() -> bool:
