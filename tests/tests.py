@@ -395,11 +395,11 @@ def clean_binaries(pwndbg_root: Path, makefile_folder: Path) -> None:
 
 class TestStats:
     def __init__(self) -> None:
-        self.total_duration = 0
-        self.fail_tests = 0
-        self.pass_tests = 0
-        self.skip_tests = 0
-        self.fail_tests_names = []
+        self.total_duration: int = 0
+        self.fail_tests: int = 0
+        self.pass_tests: int = 0
+        self.skip_tests: int = 0
+        self.fail_tests_names: list[str] = []
 
     def handle_test_result(self, case: str, test_result: TestResult, verbose: bool) -> None:
         match test_result.status:
