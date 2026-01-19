@@ -21,8 +21,21 @@ from .host import TestResult
 from .host import TestStatus
 
 
-def main():
+def main() -> None:
     args = parse_args()
+
+    local_pwndbg_root = (Path(os.path.dirname(__file__)) / "../").resolve()
+    print(f"[*] Local Pwndbg root: {local_pwndbg_root}")
+
+    # Check `--clean` first since the other arguments aren't valid if `--clean` is set.
+    if args.clean:
+        # Run `make clean` for all our binaries.
+        binaries_path: Path = local_pwndbg_root / "tests/binaries/host"
+        qemu_binaries_path: Path = local_pwndbg_root / "tests/binaries/qemu_user"
+        clean_binaries(local_pwndbg_root, binaries_path)
+        clean_binaries(local_pwndbg_root, qemu_binaries_path)
+        sys.exit(0)
+
     coverage_out = None
     if args.cov:
         print("Will run codecov")
@@ -30,9 +43,6 @@ def main():
     if args.pdb:
         print("Will run tests in serial and with Python debugger")
         args.serial = True
-
-    local_pwndbg_root = (Path(os.path.dirname(__file__)) / "../").resolve()
-    print(f"[*] Local Pwndbg root: {local_pwndbg_root}")
 
     # Build the binaries for the test group.
     #
@@ -49,6 +59,7 @@ def main():
         sys.exit(1)
 
     force_serial = False
+    assert args.driver == Driver.GDB or args.driver == Driver.LLDB
     match args.driver:
         case Driver.GDB:
             host = get_gdb_host(args, local_pwndbg_root)
@@ -86,7 +97,7 @@ def run_tests_and_print_stats(
     serial: bool,
     verbose: bool,
     coverage_out: Path | None,
-):
+) -> None:
     """
     Runs all the tests made available by a given test host.
     """
@@ -255,7 +266,7 @@ class Driver(Enum):
     GDB = "gdb"
     LLDB = "lldb"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._value_
 
     def can_run(self, grp: Group) -> bool:
@@ -286,8 +297,19 @@ class Driver(Enum):
         raise AssertionError(f"unaccounted for combination of driver '{self}' and group '{grp}'")
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run tests.")
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="clean (delete) all the test binaries",
+    )
+    # If `--clean` is passed we abort the processing of the other arguments, because
+    # we don't want to enforce `required=True`.
+    known_args, _ = parser.parse_known_args()
+    if known_args.clean:
+        return known_args
+
     parser.add_argument("-g", "--group", choices=list(Group), type=Group, required=True)
     parser.add_argument(
         "-d",
@@ -328,7 +350,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def make_all(path: Path, jobs: int = multiprocessing.cpu_count()):
+def make_all(path: Path, jobs: int = multiprocessing.cpu_count()) -> None:
     """
     Build the binaries for a given test group.
     """
@@ -351,15 +373,32 @@ def make_all(path: Path, jobs: int = multiprocessing.cpu_count()):
         sys.exit(1)
 
 
+def clean_binaries(pwndbg_root: Path, makefile_folder: Path) -> None:
+    print(f"[+] make -C {makefile_folder} clean")
+    try:
+        subprocess.check_call(
+            [
+                "make",
+                "-C",
+                f"{makefile_folder}",
+                "clean",
+            ],
+            cwd=str(pwndbg_root),
+        )
+    except subprocess.CalledProcessError:
+        print("Clean failed.")
+        sys.exit(1)
+
+
 class TestStats:
-    def __init__(self):
+    def __init__(self) -> None:
         self.total_duration = 0
         self.fail_tests = 0
         self.pass_tests = 0
         self.skip_tests = 0
         self.fail_tests_names = []
 
-    def handle_test_result(self, case: str, test_result: TestResult, verbose: bool):
+    def handle_test_result(self, case: str, test_result: TestResult, verbose: bool) -> None:
         match test_result.status:
             case TestStatus.FAILED:
                 self.fail_tests += 1
