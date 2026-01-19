@@ -208,7 +208,7 @@ instead.\
                     m(
                         f"""\
 Trying to mmap with MAP_FIXED for an address range that collides with {len(collisions)}
-existing range{'s' if len(collisions) > 1 else ''}:\
+existing range{"s" if len(collisions) > 1 else ""}:\
 """
                     )
                 )

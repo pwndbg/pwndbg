@@ -240,3 +240,108 @@ def from_properties(
         text += "\n"
 
     return text
+
+
+def nlines_to_range(nlines: int, current: int, total: int) -> Tuple[int, int]:
+    """
+    When you want to get nlines of output around a certain interesting line, returns
+    the range to use.
+
+    `end - start` will not be `== nlines` only if `nlines > total`.
+
+    The `current` line may not necessarily be centered in the range, if decentering
+    it gets `end - start` closer to `nlines`.
+
+    Arguments:
+        nlines: The exact amount of lines you want.
+        current: The index of the interesting line (e.g. where PC is in the source context)
+        total: How many lines total you actually have.
+
+    Returns:
+        A tuple giving the range of indecies to use. The format is [start, end).
+    """
+    if nlines > total:
+        return (0, total)
+
+    # Note that in both calculations, ideal_end is exclusive (so we have +1)
+    if nlines % 2 == 1:
+        ideal_start: int = current - (nlines // 2)
+        ideal_end: int = current + (nlines // 2) + 1
+    else:
+        # Since it is impossible to center exactly due to parity, we will make
+        # `current` have the lower index because this is usually more visually pleasing.
+        ideal_start = current - (nlines // 2) + 1
+        ideal_end = current + (nlines // 2) + 1
+
+    # Now it may be that we are outside of the allowed range, but if we are, we
+    # are only outside on one side because we already checked `nlines > total`.
+    if ideal_start < 0:
+        # Now (-ideal_start) is the amount of lines we have to steal from the end
+        # of the range.
+        start = 0
+        # ideal_end + (-ideal_start) = ideal_end - ideal_start
+        end = ideal_end - ideal_start
+        # We don't need to do `end = min(end, total)` because that would imply
+        # that `nlines > total`.
+    elif ideal_end > total:
+        # Now (ideal_end - total) is the amount of lines we have to steal from the start
+        # of the range.
+        # ideal_start - (ideal_end - total) = ideal_start - ideal_end + total
+        start = ideal_start - ideal_end + total
+        end = total
+        # We don't need to do `start = max(start, 0)` because that would imply
+        # that `nlines > total`.
+    else:
+        start = ideal_start
+        end = ideal_end
+
+    return (start, end)
+
+
+def format_source(source: list[str], nlines: int, interesting_line: int) -> list[str]:
+    """
+    Format source code.
+
+    Use correct tab size, add the code prefix (►), add line numbers, align
+    properly.
+
+    Arguments:
+        source: Already highlighted source code. List of lines.
+        nlines: The amount of lines we want back.
+        interesting_line: The line around which to center the output.
+    """
+    start, end = nlines_to_range(nlines, interesting_line, len(source))
+    num_width = len(str(end))
+
+    # split the code
+    source = source[start:end]
+
+    # Compute the prefix_sign length
+    prefix_sign = pwndbg.color.context.prefix(str(pwndbg.config.code_prefix))
+    prefix_width = len(prefix_sign)
+
+    # Format the output
+    formatted_source = []
+    for line_number, code in enumerate(source, start=start + 1):
+        # Honor the tab-size setting.
+        if pwndbg.config.context_code_tabstop > 0:
+            code = code.replace("\t", " " * int(pwndbg.config.context_code_tabstop))
+
+        # Remove extra whitespace
+        code = code.rstrip()
+
+        fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
+
+        if pwndbg.config.highlight_source and line_number == interesting_line:
+            fmt = pwndbg.color.context.highlight(fmt)
+
+        line = fmt.format(
+            prefix_sign=prefix_sign if line_number == interesting_line else "",
+            prefix_width=prefix_width,
+            line_number=line_number,
+            num_width=num_width,
+            code=code,
+        )
+        formatted_source.append(line)
+
+    return formatted_source

@@ -80,6 +80,18 @@ let
     "pytest-cov"
     "mypy"
     "vermin"
+    # decomp2dbg deps
+    "decomp2dbg"
+    "ghidra-bridge"
+    "jfx-bridge"
+    "tqdm"
+    "toml"
+    "libbs"
+    "networkx"
+    "jpype1"
+    "pyhidra"
+    "ply"
+    # end of decomp2dbg deps
   ];
   pkgsNeedFlitcore = [
     "typing-extensions"
@@ -97,12 +109,16 @@ let
     "plumbum"
     "rpyc"
     "iniconfig"
+    # decomp2dbg deps
+    "decomp2dbg"
+    "filelock"
+    "platformdirs"
+    # end of decomp2dbg deps
   ];
   pkgsNeedPoetry = [
     "pt"
     "rich"
     "sortedcontainers-stubs"
-    "isort"
   ];
 
   genPkgsNeeded =
@@ -246,6 +262,39 @@ let
           ++ lib.optionals isCross [
             python3
           ];
+      })
+    ) { };
+
+    jfx-bridge = pkgs.callPackage (
+      { stdenv }:
+      prev.jfx-bridge.overrideAttrs (old: {
+        postPatch = ''
+          substituteInPlace ./setup.py \
+            --replace-fail 'git describe --tags' 'echo ${old.version}'
+        '';
+      })
+    ) { };
+
+    ghidra-bridge = pkgs.callPackage (
+      { }:
+      prev.ghidra-bridge.overrideAttrs (old: {
+        postPatch = ''
+          substituteInPlace ./setup.py \
+            --replace-fail 'git describe --tags' 'echo ${old.version}'
+        '';
+      })
+    ) { };
+
+    decomp2dbg = pkgs.callPackage (
+      { stdenv }:
+      prev.decomp2dbg.overrideAttrs (old: {
+        postPatch = lib.optionalString (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) ''
+          substituteInPlace ./setup.py \
+            --replace-fail "sys.argv.append(name.replace('.', '_').replace('-', '_'))" "sys.argv.append('macosx_11_0_arm64')"
+        '' + lib.optionalString (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) ''
+          substituteInPlace ./setup.py \
+            --replace-fail "sys.argv.append(name.replace('.', '_').replace('-', '_'))" "sys.argv.append('macosx_10_9_x86_64')"
+        '';
       })
     ) { };
 

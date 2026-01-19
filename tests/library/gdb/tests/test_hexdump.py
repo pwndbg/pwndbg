@@ -45,18 +45,18 @@ def test_hexdump(start_binary):
 
     expected = [
         f"""+0000 0x{stack_addr:x}  6161616261616161 6161616461616163 │aaaabaaa│caaadaaa│
-+0010 0x{stack_addr+0x10:x}  6161616661616165 6161616861616167 │eaaafaaa│gaaahaaa│
-+0020 0x{stack_addr+0x20:x}  6161616a61616169 6161616c6161616b │iaaajaaa│kaaalaaa│
-+0030 0x{stack_addr+0x30:x}  6161616e6161616d 616161706161616f │maaanaaa│oaaapaaa│\n""",
++0010 0x{stack_addr + 0x10:x}  6161616661616165 6161616861616167 │eaaafaaa│gaaahaaa│
++0020 0x{stack_addr + 0x20:x}  6161616a61616169 6161616c6161616b │iaaajaaa│kaaalaaa│
++0030 0x{stack_addr + 0x30:x}  6161616e6161616d 616161706161616f │maaanaaa│oaaapaaa│\n""",
         f"""+0000 0x{stack_addr:x}            616161                  │aaa     │        │\n""",
     ]
     run_tests(stack_addr, True, expected)
 
     expected = [
         f"""+0000 0x{stack_addr:x}  6161616162616161 6361616164616161 │aaaabaaa│caaadaaa│
-+0010 0x{stack_addr+0x10:x}  6561616166616161 6761616168616161 │eaaafaaa│gaaahaaa│
-+0020 0x{stack_addr+0x20:x}  696161616a616161 6b6161616c616161 │iaaajaaa│kaaalaaa│
-+0030 0x{stack_addr+0x30:x}  6d6161616e616161 6f61616170616161 │maaanaaa│oaaapaaa│\n""",
++0010 0x{stack_addr + 0x10:x}  6561616166616161 6761616168616161 │eaaafaaa│gaaahaaa│
++0020 0x{stack_addr + 0x20:x}  696161616a616161 6b6161616c616161 │iaaajaaa│kaaalaaa│
++0030 0x{stack_addr + 0x30:x}  6d6161616e616161 6f61616170616161 │maaanaaa│oaaapaaa│\n""",
         f"""+0000 0x{stack_addr:x}  616161                            │aaa     │        │\n""",
     ]
     run_tests(stack_addr, False, expected)
@@ -72,12 +72,12 @@ def test_hexdump_collapse_lines(start_binary):
         offset = (lines - 1) * 0x10  # last line offset
         skipped_lines = lines - 2
 
-        out = gdb.execute(f"hexdump $rsp {offset+16}", to_string=True)
+        out = gdb.execute(f"hexdump $rsp {offset + 16}", to_string=True)
 
         expected = (
             f"+0000 0x{sp:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
-            f"... ↓            skipped {skipped_lines} identical lines ({skipped_lines*16} bytes)\n"
-            f"+{offset:04x} 0x{sp+offset:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
+            f"... ↓            skipped {skipped_lines} identical lines ({skipped_lines * 16} bytes)\n"
+            f"+{offset:04x} 0x{sp + offset:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
         )
         assert out == expected
 
@@ -99,7 +99,7 @@ def test_hexdump_saved_address_and_offset(start_binary):
     out1 = gdb.execute(f"hexdump $rsp {SIZE}", to_string=True)
     out2 = (
         f"+0000 0x{sp:x}  61 62 63 64 65 66 67 68  01 02 03 04 05 06 07 08  │abcdefgh│........│\n"
-        f"+0010 0x{sp+0x10:x}  61 62 63 64 65                                    │abcde   │        │\n"
+        f"+0010 0x{sp + 0x10:x}  61 62 63 64 65                                    │abcde   │        │\n"
     )
 
     assert out1 == out2

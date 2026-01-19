@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import bisect
+import os
 from typing import Tuple
 
 import pwndbg
@@ -143,7 +144,7 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
     if address < 0:
         return None
 
-    mappings = sorted(pwndbg.aglib.vmmap.get(), key=lambda p: p.vaddr)
+    mappings = sorted(get(), key=lambda p: p.vaddr)
     idx = -1
     for i in range(len(mappings)):
         if mappings[i].start <= address < mappings[i].end:
@@ -168,3 +169,34 @@ def addr_region_start(address: int | pwndbg.dbg_mod.Value) -> int | None:
     # There might be other mappings with the name "objname" in the address space
     # but they are not contiguous with us, so we don't care.
     return mappings[i].start
+
+
+def named_region_start(mapping_name: str, exact_match: bool = True) -> int | None:
+    """
+    Returns the lowest address which is mapped with `mapping_name`.
+
+    This works both for object file names and stuff like "[heap]", but note that not
+    all mappings with the same name are necessarily contiguous (especially if they
+    aren't backed by an object file).
+
+    Will not invoke vmmap_explore.
+
+    If exact_match is True looks for exact path match, otherwise will match
+    the os.path.basename()s.
+    """
+    mappings = sorted(get(), key=lambda p: p.vaddr)
+
+    if exact_match:
+        for mapping in mappings:
+            if mapping.objfile == mapping_name:
+                return mapping.start
+
+        return None
+    else:
+        # Note that os.path.basename("[heap]") == "[heap]".
+        mapping_basename = os.path.basename(mapping_name)
+        for mapping in mappings:
+            if os.path.basename(mapping.objfile) == mapping_basename:
+                return mapping.start
+
+        return None

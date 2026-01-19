@@ -93,7 +93,7 @@ async def test_empty_context_sections(ctrl: Controller, sections: str) -> None:
     await ctrl.launch(USE_FDS_BINARY)
 
     # Sanity check
-    default_ctx_sects = "regs disasm code ghidra stack backtrace expressions threads heap_tracker"
+    default_ctx_sects = "regs disasm code stack backtrace expressions threads heap_tracker"
     assert pwndbg.config.context_sections.value == default_ctx_sects
     assert (await ctrl.execute_and_capture("context")) != ""
 

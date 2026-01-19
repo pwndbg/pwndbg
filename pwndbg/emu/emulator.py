@@ -480,10 +480,6 @@ class Emulator:
         if "[stack" in page.objfile or "[heap" in page.objfile:
             rwx = exe = False
 
-        # If integration doesn't think it's in a function, don't display it as code.
-        if not pwndbg.integration.provider.is_in_function(value):
-            rwx = exe = False
-
         if exe:
             pwndbg_instr = pwndbg.aglib.disasm.disassembly.one_raw(value)
             if pwndbg_instr:

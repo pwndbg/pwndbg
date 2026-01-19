@@ -29,14 +29,16 @@ def test_command_distance(start_binary):
     for sym1 in ("main", "&main"):
         for sym2 in ("break_here", "&break_here"):
             result = gdb.execute(f"distance {sym1} {sym2}", to_string=True)
-            assert result == f"{main:#x}->{break_here:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
+            assert (
+                result == f"{main:#x}->{break_here:#x} is {diff:#x} bytes ({diff // 8:#x} words)\n"
+            )
 
     # Test if it works with reg + symbol
     diff = break_here - rip
     result = gdb.execute("distance $rip &break_here", to_string=True)
-    assert result == f"{rip:#x}->{break_here:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
+    assert result == f"{rip:#x}->{break_here:#x} is {diff:#x} bytes ({diff // 8:#x} words)\n"
 
     # Test if it works with symbol + reg
     diff = rip - break_here
     result = gdb.execute("distance &break_here $rip", to_string=True)
-    assert result == f"{break_here:#x}->{rip:#x} is {diff:#x} bytes ({diff//8:#x} words)\n"
+    assert result == f"{break_here:#x}->{rip:#x} is {diff:#x} bytes ({diff // 8:#x} words)\n"

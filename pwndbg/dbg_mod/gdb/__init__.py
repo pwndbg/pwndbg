@@ -217,6 +217,28 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             # Not sure what sp will actually resolve to here...
             return int(self.regs().by_name("sp"))
 
+    def start(self) -> Optional[int]:
+        # How is it possible that this isn't in the API?
+        # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
+        import pwndbg.aglib
+
+        # It is possible that self.inner is not the frame selected in the debugger, so we will save
+        # the selected frame, move gdb to this frame, do `info frame`, and then restore the selected frame.
+        with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
+            try:
+                frame_txt: str = gdb.execute("info frame", to_string=True)
+                match = re.search(r"frame at (0x[0-9a-fA-F]+):", frame_txt)
+                if match:
+                    frame_addr = int(match.group(1), 16)
+                    # Happens often at the entry point
+                    if frame_addr == 0:
+                        return None
+                    # GDB for some reason returns one ptr past retaddr
+                    return frame_addr - pwndbg.aglib.arch.ptrsize
+                return None
+            except gdb.error as e:
+                raise pwndbg.dbg_mod.Error(e)
+
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
         try:
@@ -725,9 +747,9 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def send_remote(self, packet: str) -> bytes:
         conn = self.inner.connection
-        assert isinstance(
-            conn, gdb.RemoteTargetConnection
-        ), "Called send_remote() on a local process"
+        assert isinstance(conn, gdb.RemoteTargetConnection), (
+            "Called send_remote() on a local process"
+        )
         assert conn.is_valid(), "connection is invalid"
 
         # NOTE: `send_packet` don't handle reading multiple responses
@@ -1047,19 +1069,19 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 continue
 
             div0 = line.split(" is ", 1)
-            assert (
-                len(div0) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
+            assert len(div0) == 2, (
+                "Wrong string format assumption while parsing the output of `info files`"
+            )
 
             div1 = div0[1].split(" in ", 1)
-            assert (
-                len(div1) == 1 or len(div1) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
+            assert len(div1) == 1 or len(div1) == 2, (
+                "Wrong string format assumption while parsing the output of `info files`"
+            )
 
             div2 = div0[0].split(" - ", 1)
-            assert (
-                len(div2) == 2
-            ), "Wrong string format assumption while parsing the output of `info files`"
+            assert len(div2) == 2, (
+                "Wrong string format assumption while parsing the output of `info files`"
+            )
 
             beg = int(div2[0].strip(), 0)
             end = int(div2[1].strip(), 0)
@@ -1134,6 +1156,14 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             gdb.execute(f"add-symbol-file {path}", to_string=True)
             return
         gdb.execute(f"add-symbol-file {path} {base}")
+
+    @override
+    def remove_symbol_file(self, path: str) -> bool:
+        resp: str = gdb.execute(f"remove-symbol-file {path}", to_string=True)
+        if "No symbol file found" in resp:
+            return False
+        else:
+            return True
 
     @override
     def runcmd(self, cmd) -> str:
@@ -1489,9 +1519,9 @@ def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]
             # We should never run this function before it gets loaded, but, if this
             # ever changes by mistake, we want the mistake to be caught early, with
             # a clear error.
-            assert hasattr(
-                gdb.events, "start"
-            ), "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
+            assert hasattr(gdb.events, "start"), (
+                "gdb.events.start is missing. Did the Pwndbg GDB event code not get loaded?"
+            )
             return gdb.events.start
         case EventType.STOP:
             return gdb.events.stop
@@ -1502,9 +1532,9 @@ def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]
         case EventType.REGISTER_CHANGED:
             return gdb.events.register_changed
         case EventType.SUSPEND_ALL:
-            assert hasattr(
-                gdb.events, "suspend_all"
-            ), "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+            assert hasattr(gdb.events, "suspend_all"), (
+                "gdb.events.suspend_all is missing. Did the Pwndbg GDB event code not get loaded?"
+            )
             return gdb.events.suspend_all
         case _:
             raise NotImplementedError(f"unknown event type {ty}")
@@ -1945,3 +1975,18 @@ class GDB(pwndbg.dbg_mod.Debugger):
             command = "set python print-stack message"
 
         gdb.execute(command, from_tty=True, to_string=True)
+
+    @override
+    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
+
+        Read the docstring in pwndbg.dbg.set_convenience_var()!!
+
+        Surround this function with try/except.
+        """
+        if type is not None:
+            gdb.execute(f"set ${name} = (({type})({value}))")
+        else:
+            gdb.execute(f"set ${name} = ({value})")

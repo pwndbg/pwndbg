@@ -31,6 +31,9 @@ dependencies = [
     # Optional? 'ziglang' must be optional, as it is not available on every platform.
     # It is only used for the 'cymbol' command and some `asm` functionality.
     "ziglang==0.14.1 ; (platform_system == 'Linux' and platform_machine != 'loongarch64') or platform_system != 'Linux'",
+    # For installing the decompiler plugins (we don't actually use it as a python library).
+    # If you bump this, also bump the pwndbg/commands/integration.py:d2d_required* variables.
+    "decomp2dbg==3.14.0",
 ]
 
 [project.optional-dependencies]
@@ -55,8 +58,7 @@ dev = [
 ]
 lint = [
     "mypy>=1.18.2,<2",
-    "isort>=5.13.2,<6",
-    "ruff>=0.4.1,<0.15",
+    "ruff==0.14.10",
     "vermin>=1.6.0,<2",
 ]
 tests = [
@@ -114,6 +116,7 @@ select = [
     "F",      # pyflakes
     "W",      # pycodestyle
     "C4",     # flake8-comprehensions
+    "I",      # isort
     "ISC",    # flake8-implicit-str-concat
     "SLOT",   # flake8-slots
     "FLY",    # flynt
@@ -147,6 +150,17 @@ builtins-ignorelist = [
     "next",
     "type",
 ]
+
+[tool.ruff.lint.isort]
+force-single-line = true
+known-third-party = [
+    "capstone",
+    "unicorn",
+    "pycparser",
+    "gdb",
+    "lldb",
+]
+required-imports = ["from __future__ import annotations"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -248,6 +262,7 @@ module = [
     "lldb.*",
     "gnureadline",
     "lief",
+    "decomp2dbg.*"
 ]
 ignore_missing_imports = true
 
@@ -257,18 +272,6 @@ module = [
     "pwndbg.commands.got",
 ]
 disable_error_code = ["no-untyped-call"]
-
-[tool.isort]
-profile = "black"
-force_single_line = true
-known_third_party = [
-    "capstone",
-    "unicorn",
-    "pycparser",
-    "gdb",
-    "lldb",
-]
-add_imports = "from __future__ import annotations"
 
 [tool.coverage.run]
 branch = true

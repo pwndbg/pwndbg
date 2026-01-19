@@ -233,9 +233,9 @@ class Tracker:
 
         # We don't support re-entry.
         if thread in self.memory_management_calls:
-            assert not self.memory_management_calls[
-                thread
-            ], f"in {name}(): re-entrant calls are not supported"
+            assert not self.memory_management_calls[thread], (
+                f"in {name}(): re-entrant calls are not supported"
+            )
 
         self.memory_management_calls[thread] = True
 
@@ -244,9 +244,9 @@ class Tracker:
 
         # Make sure we're not doing anything wrong.
         if thread in self.memory_management_calls:
-            assert self.memory_management_calls[
-                thread
-            ], "exit_memory_management_calls assert failed"
+            assert self.memory_management_calls[thread], (
+                "exit_memory_management_calls assert failed"
+            )
 
         self.memory_management_calls[thread] = False
 
@@ -289,9 +289,9 @@ class Tracker:
 
                 lo_heap = pwndbg.aglib.heap.ptmalloc.Heap(lo_addr)
                 hi_heap = pwndbg.aglib.heap.ptmalloc.Heap(hi_addr - 1)
-                assert (
-                    lo_heap.arena is not None and hi_heap.arena is not None
-                ), "malloc assert failed"
+                assert lo_heap.arena is not None and hi_heap.arena is not None, (
+                    "malloc assert failed"
+                )
 
                 # TODO: Can this ever actually fail in real world use?
                 #
@@ -311,9 +311,9 @@ class Tracker:
                 # than to let it become a bug.
                 #
                 # [0]: https://sourceware.org/glibc/wiki/MallocInternals
-                assert (
-                    lo_heap.start == hi_heap.start and lo_heap.end == hi_heap.end
-                ), "malloc assert start failed"
+                assert lo_heap.start == hi_heap.start and lo_heap.end == hi_heap.end, (
+                    "malloc assert start failed"
+                )
 
                 # Remove all of our old handlers.
                 for i in reversed(range(lo_i, hi_i)):
@@ -327,9 +327,9 @@ class Tracker:
                 # the heap in the range of affected chunks, and add the ones that
                 # are free.
                 allocator = pwndbg.aglib.heap.current
-                assert isinstance(
-                    allocator, pwndbg.aglib.heap.ptmalloc.GlibcMemoryAllocator
-                ), "malloc allocator assert failed"
+                assert isinstance(allocator, pwndbg.aglib.heap.ptmalloc.GlibcMemoryAllocator), (
+                    "malloc allocator assert failed"
+                )
                 bins_list = [
                     allocator.fastbins(lo_heap.arena.address),
                     allocator.smallbins(lo_heap.arena.address),

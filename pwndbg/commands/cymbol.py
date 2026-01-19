@@ -28,23 +28,15 @@ from typing_extensions import ParamSpec
 from typing_extensions import Protocol
 
 import pwndbg
-import pwndbg.aglib
+import pwndbg.aglib.elf as elf
 import pwndbg.commands
 import pwndbg.lib.config
 import pwndbg.lib.tempfile
-import pwndbg.lib.zig
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 
 P = ParamSpec("P")
 T = TypeVar("T")
-
-gcc_compiler_path = pwndbg.config.add_param(
-    "gcc-compiler-path",
-    "",
-    "path to the gcc/g++ toolchain for generating imported symbols",
-    param_class=pwndbg.lib.config.PARAM_OPTIONAL_FILENAME,
-)
 
 cymbol_editor = pwndbg.config.add_param(
     "cymbol-editor",
@@ -92,34 +84,6 @@ def OnlyWhenStructFileExists(func: _OnlyWhenStructFileExists) -> _OnlyWhenStruct
     return wrapper
 
 
-def compile_with_flags(gcc_extra_flags):
-    if gcc_compiler_path != "":
-        compiler_flags = [gcc_compiler_path]
-    else:
-        try:
-            compiler_flags = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
-        except ValueError as exception:
-            print(message.error(exception))
-            return False
-
-    gcc_cmd = compiler_flags + gcc_extra_flags
-
-    try:
-        subprocess.run(gcc_cmd, check=True, text=True)
-        return True
-    except subprocess.CalledProcessError as exception:
-        print(message.error(exception))
-        print(
-            message.error(
-                f"Failed to compile {gcc_extra_flags[0]}. Please fix any compilation errors there may be."
-            )
-        )
-    except Exception as exception:
-        print(message.error(exception))
-        print(message.error("An error occured while generating the debug symbols."))
-    return False
-
-
 def generate_debug_symbols(
     custom_structure_path: str, pwndbg_debug_symbols_output_file: str | None = None
 ) -> str | None:
@@ -135,42 +99,10 @@ def generate_debug_symbols(
         "-o",
         pwndbg_debug_symbols_output_file,
     ]
-    if not compile_with_flags(gcc_extra_flags):
+    if not elf.compile_with_flags(gcc_extra_flags):
         return None
 
     return pwndbg_debug_symbols_output_file
-
-
-def create_blank_elf():
-    try:
-        import lief
-    except ImportError:
-        print(
-            message.error(
-                "lief python package is not installed (this will be auto-installed with next version of Pwndbg; for now, you can install it manually in the Pwndbg venv)."
-            )
-        )
-        return None
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".S")
-    tmp.write(b".global _start\n_start:\nnop")
-    tmp.flush()
-    _, output_path = tempfile.mkstemp(prefix="blank-", suffix=".dbg")
-
-    gcc_extra_flags = [
-        tmp.name,
-        "-nostdlib",
-        "--static",
-        "-o",
-        output_path,
-    ]
-    if not compile_with_flags(gcc_extra_flags):
-        return None
-
-    blank_elf = lief.ELF.parse(output_path)
-    for s in blank_elf.symbols:
-        blank_elf.remove_symtab_symbol(s)
-    blank_elf.write(output_path)
-    return output_path
 
 
 def add_custom_structure(custom_structure_name: str, force=False):

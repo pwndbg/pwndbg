@@ -8,7 +8,6 @@ Some of the code here was inspired from https://github.com/osandov/drgn
 from __future__ import annotations
 
 import argparse
-import sys
 
 from tabulate import tabulate
 
@@ -31,11 +30,7 @@ parser = argparse.ArgumentParser(
     description="Prints information about the linux kernel's slab allocator SLUB."
 )
 subparsers = parser.add_subparsers(dest="command")
-
-# The command will still work on 3.6 and earlier, but the help won't be shown
-# when no subcommand is provided
-if (sys.version_info.major, sys.version_info.minor) >= (3, 7):
-    subparsers.required = True
+subparsers.required = True
 
 
 parser_list = subparsers.add_parser("list", description="List SLUB caches filtered by name.")

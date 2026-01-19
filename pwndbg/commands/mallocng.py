@@ -1145,7 +1145,7 @@ the slot's index inside of its group (thus, these will always be sequential).
 Notice that the pointers in the output of this command aren't colored according
 to their mapping's color but rather according to the object's allocation status.
 Color legend: {color.colorize("allocated", state_alloc_color)}; """
-        f'{color.colorize("freed", state_freed_color)}; {color.colorize("available", state_avail_color)}.'
+        f"{color.colorize('freed', state_freed_color)}; {color.colorize('available', state_avail_color)}."
     ),
 )
 @pwndbg.commands.OnlyWhenRunning
@@ -1390,10 +1390,10 @@ def mallocng_explain() -> None:
 Unfortunately, musl doesn't provide a struct which describes the
 slot's in-band metadata. It does however use consistent variable
 names to describe the values saved in slots, so we will use those
-as well. Check the {color.bold('enframe()')} function in the source, it is very
+as well. Check the {color.bold("enframe()")} function in the source, it is very
 important.
 
-{color.bold('idx')} is the index of the slot within its group. The {color.bold("stride")} of
+{color.bold("idx")} is the index of the slot within its group. The {color.bold("stride")} of
 a group is (generally) determined by the sizeclass as
 {color.bold("UNIT * size_classes[meta.sizeclass]")}. {color.bold("start")} is the starting
 address of the slot (the slot0, slot1, ... in the above diagram).

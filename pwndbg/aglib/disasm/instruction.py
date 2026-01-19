@@ -9,12 +9,12 @@ from typing import Protocol
 from typing import Set
 
 import pwnlib
+from capstone import *  # noqa: F403
 
 # Reverse lookup tables for debug printing
 from capstone import CS_AC
 from capstone import CS_GRP
 from capstone import CS_OP
-from capstone import *  # noqa: F403
 from capstone.aarch64 import AARCH64_INS_BL
 from capstone.aarch64 import AARCH64_INS_BLR
 from capstone.aarch64 import AARCH64_INS_BR
@@ -536,11 +536,11 @@ class PwndbgInstructionImpl(PwndbgInstruction):
             for reg_id, reg_value in self.register_writes.items()
         }
 
-        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch,None)})
+        info = f"""{self.mnemonic} {self.op_str} at {self.address:#x} (size={self.size}) (arch: {CAPSTONE_ARCH_MAPPING_STRING.get(self.cs_insn._cs.arch, None)})
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
-        Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else 'None'}
-        Raw asm: {'%-06s %s' % (self.mnemonic, self.op_str)}
+        Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else "None"}
+        Raw asm: {"%-06s %s" % (self.mnemonic, self.op_str)}
         New asm: {self.asm_string}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}

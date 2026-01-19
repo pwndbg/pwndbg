@@ -76,9 +76,9 @@ def calculate_total_memory(pages: Tuple[Page, ...]) -> None:
     for page in pages:
         total += page.memsz
     if total > 1024 * 1024:
-        print(f"Total memory mapped: {total:#x} ({total//1024//1024} MB)")
+        print(f"Total memory mapped: {total:#x} ({total // 1024 // 1024} MB)")
     else:
-        print(f"Total memory mapped: {total:#x} ({total//1024} KB)")
+        print(f"Total memory mapped: {total:#x} ({total // 1024} KB)")
 
 
 def gap_text(page: Page) -> str:

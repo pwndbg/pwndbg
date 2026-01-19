@@ -59,14 +59,14 @@ parser.add_argument(
     parser,
     category=CommandCategory.LINUX,
     examples="""
-> got
+>got
     Print all writable GOT entries in the executable.
-> got -r puts
+>got -r puts
     Print all GOT entries that contain the string "puts".
-> got -p libc
+>got -p libc
     Print all writable GOT entries used by libc. (And any other loaded
     object files that contain the string "libc" in their path).
-> got -ra
+>got -ra
     Print all GOT entries in the address space.
 """,
 )
@@ -133,9 +133,9 @@ def _got(path: str, accept_readonly: bool, symbol_filter: str) -> None:
     # Parse the output of readelf line by line
     for category, entries in got_entry.items():
         for entry in entries:
-            offset: int = entry["offset"]
-            value: int = entry["value"]
-            name: str = entry["name"]
+            offset = entry["offset"]
+            value = entry["value"]
+            name = entry["name"]
 
             address = offset + bin_base_offset
             # TODO/FIXME: This check might not work correctly if we failed to get the correct vmmap result

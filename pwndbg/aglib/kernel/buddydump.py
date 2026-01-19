@@ -70,9 +70,9 @@ def find_zone_offsets() -> Tuple[int, int, int, int, int]:
             # we have found `zone_pgdat`
             zone_sz = ptr - pcp_off - node_data0
             break
-    assert (
-        zone_sz and zone_sz < 0x4000 and zone_sz & 0xF == 0
-    ), f"can't determine sizeof(struct zone) = {zone_sz}"  # just to make sure it is sane
+    assert zone_sz and zone_sz < 0x4000 and zone_sz & 0xF == 0, (
+        f"can't determine sizeof(struct zone) = {zone_sz}"
+    )  # just to make sure it is sane
     return pcp_off, name_off, freelist_off, pcp_pad, zone_sz
 
 

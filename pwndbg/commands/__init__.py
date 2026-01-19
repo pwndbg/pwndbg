@@ -26,8 +26,11 @@ import pwndbg.aglib.heap
 import pwndbg.aglib.kernel
 import pwndbg.aglib.proc
 import pwndbg.aglib.qemu
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.exception
+import pwndbg.integration
 from pwndbg.aglib.heap.ptmalloc import DebugSymsHeap
 from pwndbg.aglib.heap.ptmalloc import GlibcMemoryAllocator
 from pwndbg.aglib.heap.ptmalloc import HeuristicHeap
@@ -271,11 +274,12 @@ class CommandObj:
 
     @staticmethod
     def initialize_parser_recursively(
-        parser: argparse.ArgumentParser, parent_name: str, is_top_level: bool
+        parser: argparse.ArgumentParser, top_level_name: str, level: int
     ) -> None:
-        if is_top_level:
+        if level == 0:
+            # Top level command
             assert parser.prog[0] != " "
-            assert parent_name == ""
+            assert top_level_name == ""
         else:
             # Workaround until https://github.com/pwndbg/pwndbg/issues/3523
             # is fixed.
@@ -284,12 +288,23 @@ class CommandObj:
                 .replace("launch_guest.py", "")
                 .replace("python3 -m tests.host.lldb.launch_guest", "")
             )
-            assert (
-                parser.prog[0] == " "
-            ), "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
-            assert parent_name != ""
+            # A level one subcommand will have parser.prog == " install"
+            # while a level two subcommand will have parser.prog == "install ida".
+            # Except on lldb, where its " install ida" (after the replace).
+            # How does this make sense? So annoying..
+            assert top_level_name != ""
+            if level == 1:
+                assert parser.prog[0] == " ", (
+                    "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+                )
+            else:
+                parser.prog = parser.prog.strip()
+                assert parser.prog.count(" ") == level - 1, (
+                    "Pwndbg automatically sets the subparser's prog. Don't touch it, just set the name."
+                )
+                parser.prog = " " + parser.prog
 
-        parser.prog = parent_name + parser.prog
+        parser.prog = top_level_name + parser.prog
 
         # We want to run all integer and otherwise-unspecified arguments
         # through fix() so that GDB parses it.
@@ -336,12 +351,16 @@ class CommandObj:
         # Run recursively on subparsers (if any)
         for action in parser._actions:
             if isinstance(action, argparse._SubParsersAction):
+                if level == 0:
+                    top_level_name = parser.prog
                 last_prog = "<doesn't exist>"
                 for subparser in action.choices.values():
                     # Argparse creates duplicate objects for aliases, we don't need to
                     # reparse them (and shouldn't, as we will mess up the parser.prog).
                     if subparser.prog != last_prog:
-                        CommandObj.initialize_parser_recursively(subparser, parser.prog, False)
+                        CommandObj.initialize_parser_recursively(
+                            subparser, top_level_name, level + 1
+                        )
 
                     last_prog = subparser.prog
 
@@ -350,7 +369,7 @@ class CommandObj:
         self.parser.prog = self.command_name
 
         # Clean up and check subcommands as well
-        CommandObj.initialize_parser_recursively(self.parser, "", True)
+        CommandObj.initialize_parser_recursively(self.parser, "", 0)
 
         # Add non-alias subcommands to self.subcommand_names which will
         # register them for tab-completion in the debugger.
@@ -450,15 +469,15 @@ class CommandObj:
             pwndbg.exception.handle(self.function.__name__)
         except ConnectionRefusedError:
             print(message.error("Connection Refused Exception."))
-            print(message.hint("Did an integration provider die?"), end="")
-            # If yes, the resulting state can be really messy.
-            if pwndbg.integration.provider_name != "none":
-                print(
-                    message.hint(
-                        f" Automatically disabled {pwndbg.integration.provider_name} integration."
-                    )
-                )
-                pwndbg.integration.provider.disable()
+            print(message.hint("Did the decompiler integration connection die?"), end="")
+            # If yes, we need to throw the connection out and fix up the manager's
+            # state. The manager has not yet realized that the connection is doomed,
+            # so we can check like this if we *were* connected.
+            if pwndbg.integration.manager.is_connected():
+                decompiler_name = pwndbg.integration.manager.decompiler_name()
+                pwndbg.integration.manager.disconnect()
+                print(message.hint(f" Automatically disabled {decompiler_name} integration."))
+                print("Feel free to re-enable manually.")
             else:
                 print()
 
@@ -639,7 +658,15 @@ def fix_int_reraise(*a, **kw) -> int:
 def fix_int_reraise_arg(arg) -> int:
     """fix_int_reraise wrapper for evaluating command arguments"""
     try:
-        fixed = fix_reraise_arg(arg)
+        fixed: pwndbg.dbg_mod.Value = fix_reraise_arg(arg)
+        if fixed.type.code == pwndbg.dbg_mod.TypeCode.FUNC:
+            # Fixes issues with function ptrs (e.g. passing in `malloc`).
+            func_addr = fixed.address
+            if func_addr is None:
+                raise argparse.ArgumentTypeError(
+                    f"couldn't convert '{arg}' ({fixed.type.name_to_human_readable}) to int: Function is not addressable."
+                )
+            return int(func_addr)
         return int(fixed)
     except pwndbg.dbg_mod.Error as e:
         raise argparse.ArgumentTypeError(
@@ -969,26 +996,24 @@ def load_commands() -> None:
     if pwndbg.dbg.is_gdblib_available():
         import pwndbg.commands.ai
         import pwndbg.commands.attachp
-        import pwndbg.commands.binja_functions
         import pwndbg.commands.branch
         import pwndbg.commands.cymbol
         import pwndbg.commands.got_tracking
-        import pwndbg.commands.ptmalloc2_tracking
-        import pwndbg.commands.ida
         import pwndbg.commands.ignore
         import pwndbg.commands.ipython_interactive
         import pwndbg.commands.killthreads
         import pwndbg.commands.peda
+        import pwndbg.commands.ptmalloc2_tracking
         import pwndbg.commands.reload
         import pwndbg.commands.ropper
         import pwndbg.commands.segments
+        import pwndbg.commands.updown
 
     import pwndbg.commands.argv
     import pwndbg.commands.aslr
     import pwndbg.commands.asm
     import pwndbg.commands.auxv
     import pwndbg.commands.binder
-    import pwndbg.commands.binja
     import pwndbg.commands.buddydump
     import pwndbg.commands.canary
     import pwndbg.commands.checksec
@@ -1005,7 +1030,6 @@ def load_commands() -> None:
     import pwndbg.commands.elf
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
-    import pwndbg.commands.ghidra
     import pwndbg.commands.godbg
     import pwndbg.commands.got
     import pwndbg.commands.hex2ptr

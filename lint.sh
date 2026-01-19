@@ -48,12 +48,10 @@ call_shfmt() {
 }
 
 if [[ $FIX == 1 ]]; then
-    $UV_RUN_LINT isort ${LINT_FILES}
     $UV_RUN_LINT ruff format ${LINT_FILES}
     $UV_RUN_LINT ruff check --fix --output-format=full ${LINT_FILES}
     call_shfmt -w
 else
-    $UV_RUN_LINT isort --check-only --diff ${LINT_FILES}
     $UV_RUN_LINT ruff format --check --diff ${LINT_FILES}
     call_shfmt
 

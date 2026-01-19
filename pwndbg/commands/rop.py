@@ -8,11 +8,15 @@ from typing import List
 from typing import Tuple
 
 import pwndbg.aglib
+import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
+import pwndbg.color.disasm
+import pwndbg.color.memory
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.dbg_mod
+import pwndbg.integration
 import pwndbg.lib.memory
 from pwndbg.aglib.disasm.disassembly import get_disassembler
 from pwndbg.commands import CommandCategory
@@ -113,6 +117,11 @@ def _rop(
     # Find gadgets
     c.do_load(0, silent=True)
 
+    if symbols:
+        decomp_stack_vars: dict[int, str] = pwndbg.integration.manager.get_stack_var_dict_all()
+    else:
+        decomp_stack_vars = {}
+
     print("Gadgets information\n============================================================")
     for gadget in c.gadgets():
         insts = gadget.get("gadget", "")
@@ -125,11 +134,15 @@ def _rop(
         enhanced_insts = pwndbg.aglib.disasm.disassembly.get(
             vaddr, n_insts, enhance=not plain, padding=0
         )
-        func = pwndbg.color.memory.get_address_and_symbol if symbols else pwndbg.color.memory.get
-
         insts_str = " ; ".join(ins.asm_string for ins in enhanced_insts)
-        out = f"{func(vaddr)}: {insts_str}"
+
+        if symbols:
+            out = f"{pwndbg.color.memory.get_address_and_symbol(vaddr, decomp_stack_vars)}: {insts_str}"
+        else:
+            out = f"{pwndbg.color.memory.get(vaddr)}: {insts_str}"
+
         plain_out = pwndbg.color.strip(out)
+
         if grep:
             # grep search
             if not re.search(grep, insts) and not re.search(grep, plain_out):

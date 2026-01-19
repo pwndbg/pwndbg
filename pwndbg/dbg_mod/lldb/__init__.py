@@ -20,6 +20,7 @@ from typing import Generator
 from typing import Iterator
 from typing import List
 from typing import Literal
+from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import TypeVar
@@ -253,9 +254,9 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
                     # the thread in the way we do is enough to make LLDB write to the
                     # right register in all cases, so we check the value of the register
                     # against what we wrote, to be extra safe.
-                    assert (
-                        int(self.regs().by_name(name)) == val
-                    ), "wrote to a register, but read back different value. this is a bug"
+                    assert int(self.regs().by_name(name)) == val, (
+                        "wrote to a register, but read back different value. this is a bug"
+                    )
 
                     return True
 
@@ -266,6 +267,18 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
     @override
     def sp(self) -> int:
         return self.inner.GetSP()
+
+    @override
+    def start(self) -> Optional[int]:
+        import pwndbg.aglib
+
+        # https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.GetCFA
+        val = self.inner.GetCFA()
+        if val == lldb.LLDB_INVALID_ADDRESS:
+            return None
+        # For some reason returns +8 on top of retaddr, just like GDB.
+        # I guess the DWARF just looks like that?
+        return val - pwndbg.aglib.arch.ptrsize
 
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
@@ -898,9 +911,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         for i in range(regions.GetSize()):
             region = lldb.SBMemoryRegionInfo()
-            assert regions.GetMemoryRegionAtIndex(
-                i, region
-            ), "invalid region despite being in bounds"
+            assert regions.GetMemoryRegionAtIndex(i, region), (
+                "invalid region despite being in bounds"
+            )
 
             start = region.GetRegionBase()
             size = region.GetRegionEnd() - start
@@ -1099,9 +1112,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                 last_page = page
                 vmmap_size = page.memsz - (address - page.start)
             elif last_page:
-                assert (
-                    last_page.end <= page.start
-                ), "memory map regions should be sorted and not overlap at this point"
+                assert last_page.end <= page.start, (
+                    "memory map regions should be sorted and not overlap at this point"
+                )
 
                 if page.start == last_page.end:
                     last_page = page
@@ -1386,9 +1399,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             # matched. Act as if we found nothing.
             return None
 
-        assert (
-            sym_addr <= address
-        ), f"LLDB returned an out-of-range address {sym_addr:#x} for a requested symbol with address {address:#x}"
+        assert sym_addr <= address, (
+            f"LLDB returned an out-of-range address {sym_addr:#x} for a requested symbol with address {address:#x}"
+        )
 
         if sym_addr != address:
             # Print the symbol name along with an offset value if the address we
@@ -1693,9 +1706,9 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     return frame.regs().by_name("xpsr") is not None
 
             has_xpsr = [_has_xpsr(thread) for thread in self.threads()]
-            assert (
-                all(has_xpsr) or not any(has_xpsr)
-            ), "Either all threads are Cortex-M or none are, Pwndbg doesn't know how to handle other cases"
+            assert all(has_xpsr) or not any(has_xpsr), (
+                "Either all threads are Cortex-M or none are, Pwndbg doesn't know how to handle other cases"
+            )
 
             if any(has_xpsr):
                 arch_name = "armcm"
@@ -2000,12 +2013,12 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         import pwndbg
 
-        self.suspended_events = {a: False for a in pwndbg.dbg_mod.EventType}
+        self.suspended_events = dict.fromkeys(pwndbg.dbg_mod.EventType, False)
 
         debugger: lldb.SBDebugger = args[0]
-        assert (
-            debugger.__class__ is lldb.SBDebugger
-        ), "lldbinit.py should call setup() with an lldb.SBDebugger object"
+        assert debugger.__class__ is lldb.SBDebugger, (
+            "lldbinit.py should call setup() with an lldb.SBDebugger object"
+        )
 
         module = args[1]
         assert module.__class__ is str, "lldbinit.py should call setup() with __name__"
@@ -2021,6 +2034,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
 
         # Load all of our commands.
         import pwndbg.commands
+        import pwndbg.commands.comments
 
         pwndbg.commands.load_commands()
 
@@ -2081,9 +2095,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
                     debugger._exception_relay = e
                 finally:
                     debugger.lldb_python_state_callback(LLDBPythonState.PWNDBG)
-                    assert (
-                        debugger.exec_states.pop() == exe_context
-                    ), "Execution state mismatch on command handler"
+                    assert debugger.exec_states.pop() == exe_context, (
+                        "Execution state mismatch on command handler"
+                    )
 
         # LLDB is very particular with the object paths it will accept. It is at
         # its happiest when its pulling objects straight off the module that was
@@ -2183,9 +2197,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         t = self.exec_states[-1].thread
         if t.IsValid():
             inf_q = self.selected_inferior()
-            assert isinstance(
-                inf_q, LLDBProcess
-            ), "LLDB.selected_inferior() must be an instance of LLDBProcess"
+            assert isinstance(inf_q, LLDBProcess), (
+                "LLDB.selected_inferior() must be an instance of LLDBProcess"
+            )
             inf: LLDBProcess = inf_q
 
             return LLDBThread(t, inf)
@@ -2198,7 +2212,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         frame, if any is selected, and always picking the lowest frame on the
         stack otherwise.
         """
-        thread: LLDBThread = self.selected_thread()
+        thread: Optional[LLDBThread] = self.selected_thread()
         if thread is None:
             return None
 
@@ -2219,9 +2233,9 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         f = self.exec_states[-1].frame
         if f.IsValid():
             inf_q = self.selected_inferior()
-            assert isinstance(
-                inf_q, LLDBProcess
-            ), "LLDB.selected_inferior() must be an instance of LLDBProcess"
+            assert isinstance(inf_q, LLDBProcess), (
+                "LLDB.selected_inferior() must be an instance of LLDBProcess"
+            )
             inf: LLDBProcess = inf_q
 
             return LLDBFrame(f, inf)
@@ -2384,3 +2398,25 @@ class LLDB(pwndbg.dbg_mod.Debugger):
     @override
     def set_python_diagnostics(self, enabled: bool) -> None:
         pass
+
+    @override
+    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
+        """
+        Set a convenience variable which will be accessible with $name in the
+        debugger.
+
+        Read the docstring in pwndbg.dbg.set_convenience_var()!!
+
+        Surround this function with try/except.
+        """
+        # The `type` parameter is unused, we coerce void* in LLDB.
+        try:
+            # https://stackoverflow.com/questions/11192511/does-lldb-have-convenience-variables-var
+            self._execute_lldb_command(f"expr void* ${name} = ((void*)({value}))")
+        except pwndbg.dbg_mod.Error as e:
+            if "redefinition" in str(e).lower():
+                # The variable is already defined with a set type, we can try to set the value
+                # anyway and hope for the best. The brackets are important.
+                self._execute_lldb_command(f"expr ${name} = ((void*){value})")
+            else:
+                raise e

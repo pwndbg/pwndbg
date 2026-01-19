@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 from capstone import CS_GRP_INT
@@ -22,12 +23,12 @@ import pwndbg.aglib.symbol
 import pwndbg.chain
 import pwndbg.dbg_mod
 import pwndbg.enhance
-import pwndbg.integration
 import pwndbg.lib.abi
 import pwndbg.lib.functions
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.aglib.nearpc import c as N
 from pwndbg.lib.arch import Platform
+from pwndbg.lib.functions import Function
 from pwndbg.lib.functions import format_flags_argument
 
 
@@ -82,7 +83,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         name = name.replace("_chk", "")
         name = name.strip().lstrip("_")  # _malloc
 
-    func = None
+    func: Optional[Function] = None
     if pwndbg.aglib.arch.platform == Platform.DARWIN:
         # Try to resolve an Objective-C method call.
         #
@@ -96,9 +97,10 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         # function resolution flow.
         func = pwndbg.lib.functions.functions.get(name, None)
 
+    # FIXME(provider, integration): Add this feature back at some point
     # Try to grab the data out of IDA
-    if not func and target:
-        func = pwndbg.integration.provider.get_func_type(target)
+    # if not func and target:
+    #    func = pwndbg.integration.provider.get_func_type(target)
 
     if func:
         args = func.args

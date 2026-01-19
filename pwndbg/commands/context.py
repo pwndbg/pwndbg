@@ -5,7 +5,6 @@ import ast
 import functools
 import logging
 import math
-import os
 import sys
 from collections import defaultdict
 from enum import Enum
@@ -38,7 +37,9 @@ import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
 import pwndbg.integration
+import pwndbg.lib.cache
 import pwndbg.lib.config
+import pwndbg.lib.pretty_print as pretty_print
 import pwndbg.ui
 from pwndbg.aglib.arch_mod import get_thumb_mode_string
 from pwndbg.color import ColorConfig
@@ -55,7 +56,6 @@ if pwndbg.dbg.is_gdblib_available():
 
     import pwndbg.gdblib.ptmalloc2_tracking
     import pwndbg.gdblib.symbol
-    import pwndbg.ghidra
 
 log = logging.getLogger(__name__)
 
@@ -168,7 +168,7 @@ config_output = pwndbg.config.add_param(
 )
 config_context_sections = pwndbg.config.add_param(
     "context-sections",
-    "regs disasm code ghidra stack backtrace expressions threads heap_tracker",
+    "regs disasm code stack backtrace expressions threads heap_tracker",
     "which context sections are displayed (controls order)",
 )
 config_max_threads_display = pwndbg.config.add_param(
@@ -304,7 +304,7 @@ parser = argparse.ArgumentParser(description="Sets the output of a context secti
 parser.add_argument(
     "section",
     type=str,
-    help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')",
+    help="The section which is to be configured. ('regs', 'disasm', 'code', 'stack', 'backtrace', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal')",
 )
 parser.add_argument("path", type=str, help="The path to which the output is written")
 parser.add_argument("clearing", type=bool, help="Indicates whether to clear the output")
@@ -643,42 +643,6 @@ def context_expressions(target=sys.stdout, with_banner=True, width=None):
     return banner + output if with_banner else output
 
 
-config_context_ghidra = pwndbg.config.add_param(
-    "context-ghidra",
-    "never",
-    "when to try to decompile the current function with ghidra",
-    help_docstring="Doing this is slow and requires radare2/r2pipe or rizin/rzpipe.",
-    param_class=pwndbg.lib.config.PARAM_ENUM,
-    enum_sequence=["always", "never", "if-no-source"],
-)
-
-
-@serve_context_history
-def context_ghidra(target=sys.stdout, with_banner=True, width=None):
-    """
-    Print out the source of the current function decompiled by ghidra.
-
-    The context-ghidra config parameter is used to configure whether to always,
-    never or only show the context if no source is available.
-    """
-    banner = (
-        [pwndbg.ui.banner("ghidra decompile", target=target, width=width)] if with_banner else []
-    )
-
-    if config_context_ghidra == "never":
-        return []
-
-    if config_context_ghidra == "if-no-source":
-        source_filename = pwndbg.gdblib.symbol.selected_frame_source_absolute_filename()
-        if source_filename and os.path.exists(source_filename):
-            return []
-
-    try:
-        return banner + pwndbg.ghidra.decompile().split("\n")
-    except Exception as e:
-        return banner + [message.error(e)]
-
-
 parser = argparse.ArgumentParser(
     description="""
 Print out the currently enabled context sections.
@@ -694,7 +658,7 @@ parser.add_argument(
     nargs="*",
     type=str,
     default=None,
-    help="Submenu to display: 'regs', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'",
+    help="Submenu to display: 'regs', 'disasm', 'code', 'stack', 'backtrace', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'",
 )
 parser.add_argument(
     "--on",
@@ -731,7 +695,7 @@ def context(subcontext=None, enabled=None) -> None:
     """
     Print out the current register, instruction, and stack context.
 
-    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'ghidra', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
+    Accepts subcommands 'reg', 'disasm', 'code', 'stack', 'backtrace', 'args', 'threads', 'heap_tracker', 'expressions', and/or 'last_signal'.
     """
     # Allow to view history after the program has exited
     if not pwndbg.aglib.proc.alive() and (context_history_size <= 0 or not context_history):
@@ -970,7 +934,7 @@ def compact_regs_normal(
 
     will_wrap_char: str = pwndbg.color.light_gray("  ⏎")
     wrapping_char: str = pwndbg.color.gray("↪")
-    change_marker: str = str(C.config_register_changed_marker)
+    change_marker: str = str(ctx_color.config_register_changed_marker)
 
     line: str = ""
     line_length: int = 0
@@ -1369,12 +1333,13 @@ def context_disasm(target=sys.stdout, with_banner=True, width=None):
 
 theme.add_param("highlight-source", True, "whether to highlight the closest source line")
 source_disasm_lines = pwndbg.config.add_param(
-    "context-code-lines", 10, "number of source code lines to print by the context command"
+    "context-code-lines", 14, "number of source code lines to print by the context command"
 )
 pwndbg.config.add_param(
     "context-code-tabstop", 8, "number of spaces that a <tab> in the source code counts for"
 )
 theme.add_param("code-prefix", "►", "prefix marker for 'context code' command")
+# All of these are also used for the decompilation context^^
 
 
 @pwndbg.lib.cache.cache_until("start")
@@ -1396,7 +1361,11 @@ def get_filename_and_formatted_source():
     Returns formatted, lines limited and highlighted source as list
     or if it isn't there - an empty list
     """
-    sal = pwndbg.dbg.selected_frame().sal()
+    frame = pwndbg.dbg.selected_frame()
+    if not frame:
+        return "", [], 0
+
+    sal = frame.sal()
 
     # Check if source code is available
     if sal is None:
@@ -1413,37 +1382,9 @@ def get_filename_and_formatted_source():
     if not source:
         return "", [], closest_line
 
-    n = int(source_disasm_lines)
-
-    # Compute the line range
-    start = max(closest_line - 1 - n // 2, 0)
-    end = min(closest_line - 1 + n // 2 + 1, len(source))
-    num_width = len(str(end))
-
-    # split the code
-    source = source[start:end]
-
-    # Compute the prefix_sign length
-    prefix_sign = ctx_color.prefix(str(pwndbg.config.code_prefix))
-    prefix_width = len(prefix_sign)
-
-    # Format the output
-    formatted_source = []
-    for line_number, code in enumerate(source, start=start + 1):
-        if pwndbg.config.context_code_tabstop > 0:
-            code = code.replace("\t", " " * pwndbg.config.context_code_tabstop)
-        fmt = " {prefix_sign:{prefix_width}} {line_number:>{num_width}} {code}"
-        if pwndbg.config.highlight_source and line_number == closest_line:
-            fmt = ctx_color.highlight(fmt)
-
-        line = fmt.format(
-            prefix_sign=prefix_sign if line_number == closest_line else "",
-            prefix_width=prefix_width,
-            line_number=line_number,
-            num_width=num_width,
-            code=code,
-        )
-        formatted_source.append(line)
+    formatted_source = pretty_print.format_source(
+        list(source), int(source_disasm_lines), closest_line
+    )
 
     return filename, formatted_source, closest_line
 
@@ -1466,17 +1407,16 @@ def context_code(target=sys.stdout, with_banner=True, width=None):
         )
         return bannerline + [f"In file: {filename}:{line}"] + formatted_source
 
-    if should_decompile:
-        # Will be None if decompilation fails
-        code = pwndbg.integration.provider.decompile(pwndbg.aglib.regs.pc, int(source_disasm_lines))
-
-        if code:
-            bannerline = (
-                [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
-            )
-            return bannerline + code
-        else:
+    if should_decompile and pwndbg.aglib.regs.pc is not None:
+        # Will be None if we aren't connected or decompilation fails.
+        code: Optional[list[str]] = pwndbg.integration.manager.decompile_pretty(
+            pwndbg.aglib.regs.pc, int(source_disasm_lines)
+        )
+        if code is None:
             return []
+
+        bannerline = [pwndbg.ui.banner("Decomp", target=target, width=width)] if with_banner else []
+        return bannerline + code
 
 
 stack_lines = pwndbg.config.add_param(
@@ -1641,7 +1581,7 @@ def context_threads(with_banner=True, target=sys.stdout, width=None):
             f" {selected} {thread.global_num} "
             f"{' ' * global_num_padding}"
             f'"{pwndbg.color.cyan(name)}" '
-            f'{" " * name_padding}'
+            f"{' ' * name_padding}"
             f"{status}: "
         )
 
@@ -1737,7 +1677,6 @@ if pwndbg.dbg.is_gdblib_available():
     context_sections = {
         **context_sections,
         "e": context_expressions,
-        "g": context_ghidra,
         "h": context_heap_tracker,
         "t": context_threads,
         "l": context_last_signal,

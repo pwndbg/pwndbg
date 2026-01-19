@@ -173,62 +173,6 @@ Automatically pass --save to "search" command.
 
 ----------
 
-## **bn-autosync**
-
-
-Whether to automatically run bn-sync every step.
-
-
-
-**Default:** off  
-
-----------
-
-## **bn-il-level**
-
-
-The IL level to use when displaying Binary Ninja decompilation.
-
-
-
-**Default:** 'hlil'  
-**Valid values:** 'disasm', 'llil', 'mlil', 'hlil'
-
-----------
-
-## **bn-rpc-host**
-
-
-Binary Ninja XML-RPC server host.
-
-
-
-**Default:** '127.0.0.1'  
-
-----------
-
-## **bn-rpc-port**
-
-
-Binary Ninja XML-RPC server port.
-
-
-
-**Default:** 43717  
-
-----------
-
-## **bn-timeout**
-
-
-Time to wait for Binary Ninja XML-RPC, in seconds.
-
-
-
-**Default:** 2  
-
-----------
-
 ## **context-backtrace-lines**
 
 
@@ -258,7 +202,7 @@ Number of source code lines to print by the context command.
 
 
 
-**Default:** 10  
+**Default:** 14  
 
 ----------
 
@@ -281,18 +225,6 @@ Number of additional lines to print in the disasm context.
 
 
 **Default:** 10  
-
-----------
-
-## **context-ghidra**
-
-
-When to try to decompile the current function with ghidra.
-
-Doing this is slow and requires radare2/r2pipe or rizin/rzpipe.
-
-**Default:** 'never'  
-**Valid values:** 'always', 'never', 'if-no-source'
 
 ----------
 
@@ -360,7 +292,7 @@ Which context sections are displayed (controls order).
 
 
 
-**Default:** 'regs disasm code ghidra stack backtrace expressions threads heap_tracker'  
+**Default:** 'regs disasm code stack backtrace expressions threads heap_tracker'  
 
 ----------
 
@@ -387,15 +319,101 @@ Path to the editor for editing custom structures.
 
 ----------
 
-## **decompiler**
+## **decompiler-angr-plugin-path**
 
 
-Framework that your ghidra plugin installed.
+Where to install the angr integration plugin.
 
 
 
-**Default:** 'radare2'  
-**Valid values:** 'radare2', 'rizin'
+**Default:** '/home/user/.local/share/angr-management/plugins'  
+
+----------
+
+## **decompiler-autojump**
+
+
+Whether to jump the decompiler cursor on every stop.
+
+Depending on the decompiler, this may or may not be a good idea.
+Try it out and see.
+
+Check out the other decompiler-auto* configuration variables as well.
+
+**Default:** off  
+
+----------
+
+## **decompiler-autosync-syms**
+
+
+Whether to sync symbols with the decompiler on every stop.
+
+Depending on the decompiler, the number of symbols (functions + global variables)
+the binary you are decompiling has, and various other factors, this may or may not
+be a good idea. Try it out and see.
+
+Check out the other decompiler-auto* configuration variables as well.
+
+**Default:** off  
+
+----------
+
+## **decompiler-autosync-vars**
+
+
+Whether to sync function variables with the decompiler on every stop.
+
+This is generally lightweight, so it is enabled by default. Try disabling
+it if you have performance issues.
+
+Check out the other decompiler-auto* configuration variables as well.
+
+**Default:** on  
+
+----------
+
+## **decompiler-binja-plugin-path**
+
+
+Where to install the binary ninja integration plugin.
+
+
+
+**Default:** '/home/user/.binaryninja/plugins'  
+
+----------
+
+## **decompiler-host**
+
+
+The host where the decompiler is exposed.
+
+
+
+**Default:** 'localhost'  
+
+----------
+
+## **decompiler-ida-plugin-path**
+
+
+Where to install the ida integration plugin.
+
+
+
+**Default:** '/home/user/.idapro/plugins'  
+
+----------
+
+## **decompiler-port**
+
+
+The port on which the decompiler is exposed.
+
+
+
+**Default:** 3662  
 
 ----------
 
@@ -554,7 +572,6 @@ Print a full stacktrace for exceptions raised in Pwndbg commands.
 ----------
 
 ## **gcc-compiler-path**
-<small style="color: lightgray;">(only in GDB)</small>
 
 
 Path to the gcc/g++ toolchain for generating imported symbols.
@@ -663,87 +680,6 @@ Line width of hexdump command.
 
 ----------
 
-## **ida-rpc-host**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Ida xmlrpc server address.
-
-
-
-**Default:** '127.0.0.1'  
-
-----------
-
-## **ida-rpc-port**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Ida xmlrpc server port.
-
-
-
-**Default:** 43718  
-
-----------
-
-## **ida-timeout**
-<small style="color: lightgray;">(only in GDB)</small>
-
-
-Time to wait for ida xmlrpc in seconds.
-
-
-
-**Default:** 2  
-
-----------
-
-## **integration-function-lookup**
-
-
-Use integration to look up function type signatures.
-
-
-
-**Default:** on  
-
-----------
-
-## **integration-provider**
-
-
-Which provider to use for integration features.
-
-
-
-**Default:** 'none'  
-**Valid values:** 'none', 'binja', 'ida'
-
-----------
-
-## **integration-smart-enhance**
-
-
-Use integration to determine when to disassemble during enhancing.
-
-
-
-**Default:** on  
-
-----------
-
-## **integration-symbol-lookup**
-
-
-Whether to use integration to look up unknown symbols.
-
-
-
-**Default:** on  
-
-----------
-
 ## **kernel-vmmap**
 
 
@@ -811,17 +747,6 @@ Number of lines before the pc to print for the nearpc command.
 
 
 **Default:** 5  
-
-----------
-
-## **nearpc-integration-comments**
-
-
-Whether to show comments from integration provider.
-
-
-
-**Default:** on  
 
 ----------
 
