@@ -438,7 +438,7 @@ def get_file_struct(file: int | None) -> str:
                 val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
                 if kbase and val > kbase:
                     off = i * ptrsize - 4
-                    if not pwndbg.aglib.memory.u32(file + off - 4):
+                    if not pwndbg.aglib.memory.u32(file + off):
                         off -= 4
                     break
         # this should work for the most recent versions
@@ -765,6 +765,8 @@ def get_filepath(file: int | pwndbg.dbg_mod.Value) -> str:
     file = int(file)
     file: pwndbg.dbg_mod.Value = pwndbg.aglib.memory.get_typed_pointer("struct file", file)
     dentry = file["f_path"]["dentry"]
+    if not dentry.dereference().type.has_field("d_name"):
+        return "?"
     mount = pwndbg.aglib.memory.get_typed_pointer(
         "struct mount", int(file["f_path"]["mnt"]) - 4 * ptrsize
     )
