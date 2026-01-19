@@ -250,6 +250,10 @@ module = ["pwndbg.aglib.disasm.*"]
 disable_error_code = ["index", "name-defined", "attr-defined"]
 
 [[tool.mypy.overrides]]
+module = ["tests.*"]
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
 module = [
     "capstone.*",
     "unicorn.*",
