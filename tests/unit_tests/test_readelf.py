@@ -65,9 +65,9 @@ def test_get_got_entry() -> None:
     all_names = [str(item["name"]) for items in entries.values() for item in items]
 
     assert any("puts" in name for name in all_names), "Expected 'puts' symbol"
-    assert any(
-        "libc_start_main" in name for name in all_names
-    ), "Expected '__libc_start_main' symbol"
+    assert any("libc_start_main" in name for name in all_names), (
+        "Expected '__libc_start_main' symbol"
+    )
 
     # Verify symbol versions are included
     versioned_symbols = [name for name in all_names if "@GLIBC" in name]
