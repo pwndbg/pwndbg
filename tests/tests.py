@@ -27,7 +27,6 @@ def main() -> None:
     local_pwndbg_root = (Path(os.path.dirname(__file__)) / "../").resolve()
     print(f"[*] Local Pwndbg root: {local_pwndbg_root}")
 
-    # Check `--clean` first since the other arguments aren't valid if `--clean` is set.
     if args.clean:
         # Run `make clean` for all our binaries.
         binaries_path: Path = local_pwndbg_root / "tests/binaries/host"
@@ -229,7 +228,7 @@ class Group(Enum):
     DBG = "dbg"
     CROSS_ARCH_USER = "cross-arch-user"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._value_
 
     def library(self) -> Path:
