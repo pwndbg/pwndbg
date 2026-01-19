@@ -20,8 +20,8 @@ class MockDebugger(pwndbg.dbg_mod.Debugger):
         return MockInferior()
 
     @override
-    def name(self) -> str:
-        return "gdb"
+    def name(self) -> pwndbg.dbg_mod.DebuggerType:
+        return pwndbg.dbg_mod.DebuggerType.GDB
 
 
 dbg = MockDebugger()

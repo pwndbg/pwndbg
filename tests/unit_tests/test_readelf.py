@@ -17,11 +17,11 @@ def test_get_got_entry_direct() -> None:
     # Test that we can extract relocation entries
     found_symbols = []
     with open(binary_path, "rb") as f:
-        elf = ELFFile(f)  # type: ignore[no-untyped-call]
-        for section in elf.iter_sections():  # type: ignore[no-untyped-call]
+        elf = ELFFile(f)
+        for section in elf.iter_sections():
             if isinstance(section, RelocationSection):
-                for rel in section.iter_relocations():  # type: ignore[no-untyped-call]
-                    symbol_table = elf.get_section(section["sh_link"])  # type: ignore[no-untyped-call]
+                for rel in section.iter_relocations():
+                    symbol_table = elf.get_section(section["sh_link"])
                     symbol = symbol_table.get_symbol(rel["r_info_sym"])
                     if symbol.name:
                         found_symbols.append(symbol.name)

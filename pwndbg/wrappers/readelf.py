@@ -16,8 +16,8 @@ class RelocationType(Enum):
     IRELATIVE = 3  # e.g.: R_X86_64_IRELATIVE
 
 
-def get_got_entry(local_path: str) -> Dict[RelocationType, List[Dict[str, int | str]]]:
-    entries: Dict[RelocationType, List[Dict[str, int | str]]] = {
+def get_got_entry(local_path: str) -> dict[RelocationType, list[dict[str, int | str]]]:
+    entries: dict[RelocationType, list[dict[str, int | str]]] = {
         category: [] for category in RelocationType
     }
 
