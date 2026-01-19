@@ -69,10 +69,7 @@ def verify_libc_candidate(mapping_name: str) -> bool:
     if rodata is None:
         return False
     _, _, data = rodata
-    if b"/tmp/tmpnam_XXXX" in data:
-        return True
-    else:
-        return False
+    return b"/tmp/tmpnam_XXXX" in data
 
 
 def verify_ld_candidate(mapping_name: str) -> bool:
