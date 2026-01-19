@@ -181,6 +181,9 @@ typedef struct refcount_struct {
 struct list_head {
     struct list_head *next, *prev;
 };
+struct hlist_node {
+	struct hlist_node *next, **pprev;
+};
 struct kmem_cache;
 enum pageflags {
 	PG_locked,		/* Page is locked. Don't touch. */

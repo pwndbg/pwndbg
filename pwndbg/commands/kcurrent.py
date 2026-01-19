@@ -117,8 +117,11 @@ def kfile(pid: int = None, fd: int = None) -> None:
             desc = f"ops @ {color.red(pwndbg.chain.format(ops, limit=0))}"
             indent.print(f"- {prefix} file @ {indent.addr_hex(addr)}: {desc}")
             private_data = int(file["private_data"])
+            path = color.yellow(pwndbg.aglib.kernel.ktask.get_filepath(file))
             with indent:
-                indent.print(f"private: {indent.addr_hex(private_data)}, fmode: {flags}")
+                indent.print(
+                    f"private: {indent.addr_hex(private_data)}, fmode: {flags}, path: {path}"
+                )
 
 
 parser = argparse.ArgumentParser(

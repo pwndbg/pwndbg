@@ -120,6 +120,7 @@ def typeinfo_recovery(
             if kbase and pwndbg.aglib.kernel.kbase() is None:
                 print(message.warn(f"recovering {name} failed because kbase is unavailable"))
                 return False
+            # f(*args, **kwargs)
             try:
                 result = f(*args, **kwargs)
                 header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)

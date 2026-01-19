@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import List
 from typing import Tuple
 
@@ -326,14 +327,46 @@ TASK_COMM_LEN = 0x10
 
 
 def get_path_struct(mnt: int | None, dentry: int | None) -> str:
-    # TODO: actually do something with the dentry
+    ptrsize = pwndbg.aglib.arch.ptrsize
     result = ""
+    off = 0
+    for i in range(3, 0x20):
+        try:
+            ptr = pwndbg.aglib.memory.read_pointer_width(dentry + i * ptrsize)
+            if not pwndbg.aglib.memory.is_kernel(ptr):
+                continue
+            name = pwndbg.aglib.memory.string(ptr).decode()
+            if len(name) > 2:
+                off = (i - 1) * ptrsize - 8
+                break
+        except Exception:
+            pass
+    result += f"""
+    struct dentry {{
+#if {off}
+        char _pad[{off}];
+        struct dentry *d_parent;
+        u64 hash_len;
+        struct {{
+            const unsigned char *name;
+        }} d_name;
+#else
+        char a;
+#endif
+    }};
+    """
     result += """
     struct vfsmount {
-        int a;
+        struct dentry *mnt_root;	/* root of the mounted tree */
+        struct super_block *mnt_sb;	/* pointer to superblock */
+        int mnt_flags;
     };
-    struct dentry {
-        int a;
+    struct mount {
+        struct hlist_node mnt_hash;
+        struct mount *mnt_parent;
+        struct dentry *mnt_mountpoint;
+        struct vfsmount mnt; // path->mnt points here
+        /* ... */
     };
     struct path {
         struct vfsmount *mnt;
@@ -345,16 +378,39 @@ def get_path_struct(mnt: int | None, dentry: int | None) -> str:
 
 def get_inode_struct(inode: int | None) -> str:
     ptrsize = pwndbg.aglib.arch.ptrsize
-    kbase: int | None = pwndbg.aglib.kernel.kbase()
-    off = 0x20
+    off = 0x40
     if inode:
-        for i in range(0x10):
-            val = pwndbg.aglib.memory.read_pointer_width(inode + i * ptrsize)
-            if kbase and kbase < val:
-                off = i * ptrsize
-                break
+        for i in range(5, 0x10):
+            val = pwndbg.aglib.memory.u(inode + i * ptrsize)
+            if (
+                val == 0
+                or val == (-1 % (1 << pwndbg.aglib.arch.ptrbits))
+                or pwndbg.aglib.memory.is_kernel(val)
+            ):
+                continue
+            off = i * ptrsize
+            break
     return f"""
     struct inode {{
+#if 0
+	umode_t			i_mode;
+	unsigned short		i_opflags;
+	unsigned int		i_flags;
+#ifdef CONFIG_FS_POSIX_ACL
+	struct posix_acl	*i_acl;
+	struct posix_acl	*i_default_acl;
+#endif
+	kuid_t			i_uid;
+	kgid_t			i_gid;
+
+	const struct inode_operations	*i_op;
+	struct super_block	*i_sb;
+	struct address_space	*i_mapping;
+
+#ifdef CONFIG_SECURITY
+	void			*i_security;
+#endif
+#endif
         char _pad[{off}];
         unsigned long i_ino;
     }};
@@ -382,7 +438,7 @@ def get_file_struct(file: int | None) -> str:
                 val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
                 if kbase and val > kbase:
                     off = i * ptrsize - 4
-                    if not pwndbg.aglib.memory.u32(off - 4):
+                    if not pwndbg.aglib.memory.u32(file + off - 4):
                         off -= 4
                     break
         # this should work for the most recent versions
@@ -701,3 +757,39 @@ def load_ktask_typeinfo() -> str:
     }};
     """
     return result
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def get_filepath(file: int | pwndbg.dbg_mod.Value) -> str:
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    file = int(file)
+    file: pwndbg.dbg_mod.Value = pwndbg.aglib.memory.get_typed_pointer("struct file", file)
+    dentry = file["f_path"]["dentry"]
+    mount = pwndbg.aglib.memory.get_typed_pointer(
+        "struct mount", int(file["f_path"]["mnt"]) - 4 * ptrsize
+    )
+    path = []
+    while dentry:
+        try:
+            nxt = dentry["d_parent"]
+            if int(dentry) == int(nxt) or int(dentry) == int(mount["mnt"]["mnt_root"]):
+                mnt_parent = mount["mnt_parent"]
+                if int(mount) != int(mnt_parent):
+                    dentry = mount["mnt_mountpoint"]
+                    mount = mnt_parent
+                    continue
+                nxt = None
+            name = pwndbg.aglib.memory.string(int(dentry["d_name"]["name"])).decode()
+            path.append(name)
+            dentry = nxt
+        except Exception:
+            break
+    path = os.path.join(*path[::-1])
+    ino = int(file["f_inode"]["i_ino"])
+    if path in ["UNIX", "NETLINK", "TCP", "TCPv6", "UDP", "UDPv6", "PACKET"]:
+        path = f"[{path}] socket:[{ino}]"
+    elif path and not path.startswith("/"):
+        path = f"anon:[{path}]"
+    elif path == "":
+        path = f"pipe:[{ino}]"
+    return path
