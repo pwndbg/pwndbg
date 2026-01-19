@@ -17,7 +17,7 @@ git push
 ```
 Open the new PR against the `pwndbg/pwndbg` repository and the `dev` branch. You might be tempted to open it against your `my-cool-branch` branch, but then it won't be seen by the pwndbg maintainers in the Pull Requests tab. If you plan to stack a significant amount of PRs, it may be smarter to in fact open it against your own branch and fork, to not clutter the pwndbg Pull Requests; you can always open another one on the main `pwndbg/pwndbg` repository when you're ready. Up to you!
 
-The stacked PR you create should be a "Draft" PR, and it should contain the words "Requires #<PR-number-for-the-my-cool-branch-PR>". Unfortunately, the github "Files changed" diff will show all the changes from `my-cool-branch` as well, it is what it is.
+The stacked PR you create should be a "Draft" PR, and it should contain the words "Requires #<PR-number-for-the-my-cool-branch-PR\>". Unfortunately, the Github "Files changed" diff will show all the changes from `my-cool-branch` as well, it is what it is.
 
 After the `my-cool-branch` PR is reviewed and merged, it will create a squash commit on the `dev` branch. Now you should rebase your `my-even-cooler-branch` branch. First, you should take note of what the top commit of `my-cool-branch` is.
 ```{.bash .copy}
@@ -87,8 +87,8 @@ pick 6470550e7 # fix api users
 pick 3112a9d41 # fix version usages
 pick f82403327 # fix lookup logi
 ```
-Hopefully you got a "Successfully rebased and updated refs/heads/my-even-cooler-branch." And you will now need to force-push the changes.
+Hopefully you got a "Successfully rebased and updated refs/heads/my-even-cooler-branch." And you will now need to force push the changes.
 ```{.bash .copy}
 git push --force
 ```
-And finally, you remove the Draft status from your PR in the Github UI. Thats all. Yeah, it's a bit of a dance :p.
+And finally, you remove the Draft status from your PR in the Github UI (you should leave the "Requires" line in the PR description). Thats all. Yeah, it's a bit of a dance :p.
