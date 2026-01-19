@@ -2,26 +2,22 @@ from __future__ import annotations
 
 import re
 from asyncio import CancelledError
+from collections.abc import Callable
+from collections.abc import Coroutine
+from collections.abc import Generator
+from collections.abc import Iterator
+from collections.abc import Sequence
 from contextlib import contextmanager
 from contextlib import nullcontext
 from os import environ
 from pathlib import Path
 from random import randint
 from typing import Any
-from typing import Coroutine
-from typing import Generator
-from typing import Iterator
-from typing import List
 from typing import Literal
-from typing import Optional
-from typing import Sequence
-from typing import Tuple
 from typing import TypeVar
 
 import gdb
 import gdb.types
-from typing_extensions import Callable
-from typing_extensions import Set
 from typing_extensions import override
 
 import pwndbg
@@ -101,7 +97,7 @@ def parse_and_eval(expression: str, global_context: bool) -> gdb.Value:
         return gdb.parse_and_eval(expression)
 
 
-def _get_frame_stack_variables(frame: gdb.Frame) -> Tuple[Tuple[int, int, str], ...]:
+def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], ...]:
     try:
         block = frame.block()
     except (gdb.error, RuntimeError):
@@ -214,39 +210,30 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def sp(self) -> int:
-        # We're gonna use a little trick to prevent an expensive register read.
-        # e.g. `str(self.inner) == "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"`
-        # See gdb/python/py-frame.c:frapy_str() and gdb/frame.c:frame_id::to_string()
-        # They really could just expose .stack() as an API...
-        str_id = str(self.inner)
-        if "stack=0x" in str_id:
-            return int(str_id.partition("stack=")[2].partition(",")[0], 16)
-        else:
-            # We got "!stack", "stack=<unavailable>", "stack=<sentinel>" or "stack=<outer>".
-            # Not sure what sp will actually resolve to here...
-            return int(self.regs().by_name("sp"))
+        # I don't see this exposed anywhere in the API nor in `info frame`, so we will have
+        # to read from the inferior. `sp` is resolved by GDB to the architecture-specific stack pointer.
+        return int(self.regs().by_name("sp"))
 
-    def start(self) -> Optional[int]:
+    def start(self) -> int | None:
         # How is it possible that this isn't in the API?
         # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
         import pwndbg.aglib
 
-        # It is possible that self.inner is not the frame selected in the debugger, so we will save
-        # the selected frame, move gdb to this frame, do `info frame`, and then restore the selected frame.
-        with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
-            try:
-                frame_txt: str = gdb.execute("info frame", to_string=True)
-                match = re.search(r"frame at (0x[0-9a-fA-F]+):", frame_txt)
-                if match:
-                    frame_addr = int(match.group(1), 16)
-                    # Happens often at the entry point
-                    if frame_addr == 0:
-                        return None
-                    # GDB for some reason returns one ptr past retaddr
-                    return frame_addr - pwndbg.aglib.arch.ptrsize
-                return None
-            except gdb.error as e:
-                raise pwndbg.dbg_mod.Error(e)
+        # We're gonna parse this:.
+        # e.g. `str(self.inner) == "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"`
+        # See gdb/python/py-frame.c:frapy_str() and gdb/frame.c:frame_id::to_string()
+        # They really could just expose .stack() as an API...
+        # We could have also chosen to parse `gdb.execute("info frame")`.
+
+        str_id = str(self.inner)
+        if "stack=0x" in str_id:
+            # GDB for some reason returns one ptr past retaddr
+            return (
+                int(str_id.partition("stack=")[2].partition(",")[0], 16) - pwndbg.aglib.arch.ptrsize
+            )
+        else:
+            # We got "!stack", "stack=<unavailable>", "stack=<sentinel>" or "stack=<outer>".
+            return None
 
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
@@ -273,7 +260,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         return None
 
     @override
-    def sal(self) -> Tuple[str, int] | None:
+    def sal(self) -> tuple[str, int] | None:
         sal = self.inner.find_sal()  # gdb.Symtab_and_line
         if sal.symtab is None:
             return None
@@ -281,7 +268,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         return sal.symtab.fullname(), sal.line
 
     @override
-    def stack_variables(self) -> Tuple[Tuple[int, int, str], ...]:
+    def stack_variables(self) -> tuple[tuple[int, int, str], ...]:
         return _get_frame_stack_variables(self.inner)
 
     @override
@@ -311,6 +298,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             code_addr == -1 means code_addr_p == 0
             special_addr == -1 means special_addr_p == 0
         Note that artificial_depth == 0 means invalid.
+        Note that stack_addr is the start of the stack, not the value of the stack pointer.
         """
         # See gdb/frame-id.h and gdb/frame.c:frame_id::to_string().
         # This obviously isn't guaranteed to be stable, but looking at the blame
@@ -412,7 +400,7 @@ class GDBThread(pwndbg.dbg_mod.Thread):
         return self.inner.num
 
     @override
-    def siginfo(self) -> Optional[SigInfo]:
+    def siginfo(self) -> SigInfo | None:
         try:
             gdb_siginfo_expr = pwndbg.dbg.selected_inferior().evaluate_expression("$_siginfo")
             siginfo = SigInfo(
@@ -489,9 +477,9 @@ class GDBMemoryMap(pwndbg.dbg_mod.MemoryMap):
 # we can do them, and do some extra work on the Pwndbg side.
 #
 # [1]: https://sourceware.org/gdb/current/onlinedocs/gdb.html/Breakpoints-In-Python.html#Breakpoints-In-Python
-BPWP_DEFERRED_DELETE: Set[GDBStopPoint] = set()
-BPWP_DEFERRED_ENABLE: Set[GDBStopPoint] = set()
-BPWP_DEFERRED_DISABLE: Set[GDBStopPoint] = set()
+BPWP_DEFERRED_DELETE: set[GDBStopPoint] = set()
+BPWP_DEFERRED_ENABLE: set[GDBStopPoint] = set()
+BPWP_DEFERRED_DISABLE: set[GDBStopPoint] = set()
 # See pwndbg/dbg_mod/gdb/hooks.py !
 
 
@@ -597,7 +585,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         self.in_bpwp_stop_handler = False
 
     @override
-    def threads(self) -> List[pwndbg.dbg_mod.Thread]:
+    def threads(self) -> list[pwndbg.dbg_mod.Thread]:
         return [GDBThread(thread) for thread in gdb.selected_inferior().threads()]
 
     @override
@@ -647,7 +635,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         if proc_maps is not None:
             return GDBMemoryMap(qemu, proc_maps)
 
-        pages: List[pwndbg.lib.memory.Page] = []
+        pages: list[pwndbg.lib.memory.Page] = []
         pages.extend(kernel_vmmap())
         pages.extend(get_custom_pages())
         pages.sort()
@@ -855,7 +843,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                     return
                 except OSError as e:
                     raise pwndbg.dbg_mod.Error(
-                        "Could not download remote file %r:\nError: %s" % (remote_path, str(e))
+                        f"Could not download remote file {remote_path!r}:\nError: {str(e)}"
                     )
         try:
             error = gdb.execute(f'remote get "{remote_path}" "{local_path}"', to_string=True)
@@ -874,7 +862,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
             if len(real_error):
                 error = "\n".join(real_error)
                 raise pwndbg.dbg_mod.Error(
-                    "Could not download remote file %r:\nError: %s" % (remote_path, error)
+                    f"Could not download remote file {remote_path!r}:\nError: {error}"
                 )
 
     # Note that in GDB this method does not depend on the process at all!
@@ -1120,7 +1108,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return ins
 
     @override
-    def module_section_locations(self) -> List[Tuple[int, int, str, str]]:
+    def module_section_locations(self) -> list[tuple[int, int, str, str]]:
         import pwndbg.gdblib.info
 
         result = []
@@ -1187,7 +1175,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         if base is None:
             gdb.execute(f"add-symbol-file {path}", to_string=True)
             return
-        gdb.execute(f"add-symbol-file {path} {base}")
+        gdb.execute(f"add-symbol-file {path} {base}", to_string=True)
 
     @override
     def remove_symbol_file(self, path: str) -> bool:
@@ -1362,7 +1350,7 @@ class GDBType(pwndbg.dbg_mod.Type):
             return pwndbg.dbg_mod.TypeCode.INVALID
 
     @override
-    def func_arguments(self) -> List[pwndbg.dbg_mod.Type] | None:
+    def func_arguments(self) -> list[pwndbg.dbg_mod.Type] | None:
         if self.code != pwndbg.dbg_mod.TypeCode.FUNC:
             raise TypeError("only available for function type")
 
@@ -1372,13 +1360,13 @@ class GDBType(pwndbg.dbg_mod.Type):
         if is_missing_debug_info:
             return None
 
-        args: List[gdb.Field] = self.inner.fields()
+        args: list[gdb.Field] = self.inner.fields()
         if not args:
             return []
         return [GDBType(arg.type) for arg in args]
 
     @override
-    def fields(self) -> List[pwndbg.dbg_mod.TypeField]:
+    def fields(self) -> list[pwndbg.dbg_mod.TypeField]:
         return [
             pwndbg.dbg_mod.TypeField(
                 field.bitpos if hasattr(field, "bitpos") else 0,
@@ -1419,7 +1407,7 @@ class GDBType(pwndbg.dbg_mod.Type):
         return GDBType(self.inner.target())
 
     @override
-    def keys(self) -> List[str]:
+    def keys(self) -> list[str]:
         return list(self.inner.keys())
 
     @override
@@ -1573,7 +1561,7 @@ def _gdb_event_registry_from_event_type(ty: EventType) -> gdb.EventRegistry[Any]
 
 
 class GDB(pwndbg.dbg_mod.Debugger):
-    def _disable_gdbinit_loading(self) -> Tuple[bool, bool]:
+    def _disable_gdbinit_loading(self) -> tuple[bool, bool]:
         import os
 
         import psutil
@@ -1711,7 +1699,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return GDBCommandHandle(command)
 
     @override
-    def history(self, last: int = 10) -> List[Tuple[int, str]]:
+    def history(self, last: int = 10) -> list[tuple[int, str]]:
         # GDB displays commands in groups of 10. We might want more than that,
         # so we fetch multiple blocks of 10 and assemble them into the final
         # history in a second step.
@@ -1800,7 +1788,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         # Sort the elements in the block into the final history array.
         remaining = parsed_lines_max - parsed_lines_min + 1
-        plines: List[Tuple[int, str]] = [None] * remaining
+        plines: list[tuple[int, str]] = [None] * remaining
         while remaining > 0 and len(parsed_blocks) > 0:
             block = parsed_blocks.pop()
             for pline in block:
@@ -1816,7 +1804,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return plines[-last:]
 
     @override
-    def lex_args(self, command_line: str) -> List[str]:
+    def lex_args(self, command_line: str) -> list[str]:
         return gdb.string_to_argv(command_line)
 
     @override
@@ -1844,7 +1832,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
 
         gdb.execute("set pagination off")
         command_list = gdb.execute("help all", to_string=True).strip().split("\n")
-        existing_commands: Set[str] = set()
+        existing_commands: set[str] = set()
         for line in command_list:
             line = line.strip()
             # Skip non-command entries
@@ -1910,9 +1898,9 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return False
 
     @override
-    def breakpoint_locations(self) -> List[pwndbg.dbg_mod.BreakpointLocation]:
+    def breakpoint_locations(self) -> list[pwndbg.dbg_mod.BreakpointLocation]:
         bps = gdb.breakpoints()
-        locations: List[pwndbg.dbg_mod.BreakpointLocation] = []
+        locations: list[pwndbg.dbg_mod.BreakpointLocation] = []
         for bp in bps:
             if (
                 bp.is_valid()
@@ -1975,7 +1963,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         return f"%#{2 * pwndbg.aglib.arch.ptrsize}x" % address
 
     @override
-    def get_cmd_window_size(self) -> Tuple[Optional[int], Optional[int]]:
+    def get_cmd_window_size(self) -> tuple[int | None, int | None]:
         """Get the size of the command window.
 
         GDB keeps these parameters up to date with the actual window size
@@ -2009,7 +1997,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         gdb.execute(command, from_tty=True, to_string=True)
 
     @override
-    def set_convenience_var(self, name: str, value: str, type: Optional[str]) -> None:
+    def set_convenience_var(self, name: str, value: str, type: str | None) -> None:
         """
         Set a convenience variable which will be accessible with $name in the
         debugger.

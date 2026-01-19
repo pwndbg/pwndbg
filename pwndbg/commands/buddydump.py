@@ -3,8 +3,6 @@ from __future__ import annotations
 import argparse
 import logging
 from dataclasses import dataclass
-from typing import List
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.kernel.buddydump
@@ -43,7 +41,7 @@ class ParsedBuddyArgs:
 class CurrentBuddyParams:
     # stores the current properties of the freelist being/to be traversed
     # this is so that values can be cleanly passed around
-    sections: List[Tuple[str, str]]
+    sections: list[tuple[str, str]]
     indent: IndentContextManager
     node: int | None
     zone: pwndbg.dbg_mod.Value | None
@@ -114,7 +112,7 @@ parser.add_argument(
 )
 
 
-def static_str_arr(name: str) -> List[str]:
+def static_str_arr(name: str) -> list[str]:
     arr = pwndbg.aglib.symbol.lookup_symbol(name).dereference()
     return [arr[i].string() for i in range(arr.type.array_len)]
 
@@ -131,7 +129,7 @@ def check_find(counter: int, physmap_addr: int, pba: ParsedBuddyArgs, cbp: Curre
 
 def traverse_pglist(
     pba: ParsedBuddyArgs, cbp: CurrentBuddyParams
-) -> Tuple[List[Tuple[int, str]], int, List[str]]:
+) -> tuple[list[tuple[int, str]], int, list[str]]:
     freelist = cbp.freelist
     if freelist is None or int(freelist["next"]) == 0:
         return None, 0, None
@@ -170,7 +168,7 @@ def traverse_pglist(
     return results, counter, msgs
 
 
-def print_section(section: Tuple[str, str], indent: IndentContextManager):
+def print_section(section: tuple[str, str], indent: IndentContextManager):
     prefix, desc = section
     if prefix is not None:
         title = indent.prefix(prefix)

@@ -1,20 +1,18 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Coroutine
 from enum import Enum
 from pathlib import Path
 from subprocess import CompletedProcess
 from typing import Any
-from typing import Awaitable
-from typing import Callable
-from typing import Coroutine
-from typing import Dict
-from typing import List
 
 
 def _collection_from_pytest(
     result: CompletedProcess[str], pwndbg_root: Path, pytest_root: Path
-) -> List[str]:
+) -> list[str]:
     """
     Given the output of a completed Pytest collection, return a list of tests.
     """
@@ -147,7 +145,7 @@ class TestHost:
         """
         raise NotImplementedError()
 
-    def collect(self) -> List[str]:
+    def collect(self) -> list[str]:
         """
         Collect the names of all the tests available to this host.
         """
@@ -156,7 +154,7 @@ class TestHost:
 
 class Controller:
     def launch(
-        self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
+        self, binary: Path, args: list[str] = [], env: dict[str, str] = {}
     ) -> Awaitable[None]:
         """
         Launch the binary with the given path, relative to the binaries folder

@@ -12,11 +12,6 @@ injecting our own code into the program space to track this.
 
 from __future__ import annotations
 
-from typing import Dict
-from typing import List
-from typing import Set
-from typing import Tuple
-
 import gdb
 
 import pwndbg.aglib
@@ -134,10 +129,10 @@ class TrapAllocator:
         """
         Reset the internal state of the allocator.
         """
-        self.blocks: List[int] = []
+        self.blocks: list[int] = []
         self.current_block_occupancy = 0
-        self.vacant_slots: List[int] = []
-        self.occupied_slots: Set[int] = set()
+        self.vacant_slots: list[int] = []
+        self.occupied_slots: set[int] = set()
 
     def alloc(self):
         """
@@ -231,7 +226,7 @@ TRAP_ALLOCATOR = TrapAllocator()
 GOT_TRACKING = False
 
 # Map describing all of the currently installed analysis watchpoints.
-INSTALLED_WATCHPOINTS: Dict[int, Tuple[Tracker, Patcher]] = {}
+INSTALLED_WATCHPOINTS: dict[int, tuple[Tracker, Patcher]] = {}
 
 
 class Patcher(pwndbg.gdblib.bpoint.Breakpoint):
@@ -306,7 +301,7 @@ class Tracker(pwndbg.gdblib.bpoint.Breakpoint):
     function together.
     """
 
-    hits: Dict[Tuple[int, ...], int] = {}
+    hits: dict[tuple[int, ...], int] = {}
     total_hits = 0
     trapped_address = 0
 

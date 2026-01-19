@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import List
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly
@@ -30,7 +29,7 @@ def dumpargs(force: bool = False) -> None:
         )
 
 
-def call_args() -> List[str]:
+def call_args() -> list[str]:
     """
     Returns list of resolved call argument strings for display.
     Attempts to resolve the target and determine the number of arguments.
@@ -45,13 +44,13 @@ def call_args() -> List[str]:
     ]
 
 
-def all_args() -> List[str]:
+def all_args() -> list[str]:
     """
     Returns list of all argument strings for display.
     """
-    results: List[str] = []
+    results: list[str] = []
 
     for name, value in pwndbg.arguments.arguments():
-        results.append("%4s = %s" % (name, pwndbg.chain.format(value)))
+        results.append(f"{name:>4} = {pwndbg.chain.format(value)}")
 
     return results

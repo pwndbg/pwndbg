@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import threading
-from typing import Tuple
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
@@ -169,7 +168,7 @@ class KmemTracepoints:
         self.slab_tracepoints_enabled = True
         self.buddy_tracepoints_enabled = True
 
-    def resolve_names(self, names: Tuple[str, ...]) -> list[int]:
+    def resolve_names(self, names: tuple[str, ...]) -> list[int]:
         result = []
         for name in names:
             addr = pwndbg.aglib.symbol.lookup_symbol_addr(name)

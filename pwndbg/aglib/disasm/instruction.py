@@ -3,10 +3,7 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 from enum import Enum
-from typing import Dict
-from typing import List
 from typing import Protocol
-from typing import Set
 
 import pwnlib
 from capstone import *  # noqa: F403
@@ -65,7 +62,7 @@ from typing_extensions import override
 from pwndbg.dbg_mod import DisassembledInstruction
 
 # Architecture specific instructions that mutate the instruction pointer unconditionally
-UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
+UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
     CS_ARCH_X86: {X86_INS_CALL, X86_INS_RET, X86_INS_JMP},
     CS_ARCH_MIPS: {
         MIPS_INS_J,
@@ -113,7 +110,7 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: Dict[int, Set[int]] = {
 }
 
 # See: https://github.com/capstone-engine/capstone/issues/2448
-BRANCH_AND_LINK_INSTRUCTIONS: Dict[int, Set[int]] = defaultdict(set)
+BRANCH_AND_LINK_INSTRUCTIONS: dict[int, set[int]] = defaultdict(set)
 BRANCH_AND_LINK_INSTRUCTIONS[CS_ARCH_MIPS] = {
     MIPS_INS_BAL,
     MIPS_INS_BLTZAL,
@@ -171,9 +168,9 @@ class PwndbgInstruction(Protocol):
     size: int
     mnemonic: str
     op_str: str
-    groups: Set[int]
+    groups: set[int]
     id: int
-    operands: List[EnhancedOperand]
+    operands: list[EnhancedOperand]
     asm_string: str
     next: int
     target: int
@@ -189,7 +186,7 @@ class PwndbgInstruction(Protocol):
     causes_branch_delay: bool
     split: SplitType
     emulated: bool
-    register_writes: Dict[int, int]
+    register_writes: dict[int, int]
 
     @property
     def call_like(self) -> bool: ...
@@ -249,7 +246,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Ex: 'RAX, RDX'
         """
 
-        self.groups: Set[int] = set(cs_insn.groups)
+        self.groups: set[int] = set(cs_insn.groups)
         """
         Capstone instruction groups that we belong to.
         Groups that apply to all architectures: CS_GRP_INVALID | CS_GRP_JUMP | CS_GRP_CALL | CS_GRP_RET | CS_GRP_INT | CS_GRP_IRET | CS_GRP_PRIVILEGE | CS_GRP_BRANCH_RELATIVE
@@ -269,7 +266,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         if self.cs_insn._cs.arch == CS_ARCH_X86 and self.cs_insn._cs.syntax == CS_OPT_SYNTAX_ATT:
             self.cs_insn.operands.reverse()
 
-        self.operands: List[EnhancedOperand] = [EnhancedOperand(op) for op in self.cs_insn.operands]
+        self.operands: list[EnhancedOperand] = [EnhancedOperand(op) for op in self.cs_insn.operands]
 
         # ***********
         # The following member variables are set during instruction enhancement
@@ -540,7 +537,7 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         Bytes: {pwnlib.util.fiddling.enhex(self.bytes)}
         ID: {self.id}, {self.cs_insn.insn_name()}
         Capstone ID/Alias ID: {self.cs_insn.id} / {self.cs_insn.alias_id if self.cs_insn.is_alias else "None"}
-        Raw asm: {"%-06s %s" % (self.mnemonic, self.op_str)}
+        Raw asm: f"{self.mnemonic:-<6} {self.op_str}"
         New asm: {self.asm_string}
         Next: {self.next:#x}
         Target: {hex(self.target) if self.target is not None else None}, Target string={self.target_string or ""}, const={self.target_const}

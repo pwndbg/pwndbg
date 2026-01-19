@@ -8,7 +8,6 @@ from __future__ import annotations
 import os
 import sys
 import threading
-from typing import Tuple
 
 import lldb
 from typing_extensions import override
@@ -136,7 +135,7 @@ class OpportunisticTerminalControl:
 
 
 class IODriver:
-    def stdio(self) -> Tuple[str | None, str | None, str | None]:
+    def stdio(self) -> tuple[str | None, str | None, str | None]:
         """
         The names for the stdin, stdout and stderr files, respectively. These
         will get passed as arguments to `SBTarget.Launch`
@@ -234,7 +233,7 @@ class IODriverPlainText(IODriver):
         self.out_thr.start()
 
     @override
-    def stdio(self) -> Tuple[str | None, str | None, str | None]:
+    def stdio(self) -> tuple[str | None, str | None, str | None]:
         return None, None, None
 
     def _handle_input(self):
@@ -419,7 +418,7 @@ class IODriverPlainText(IODriver):
         self.out_thr.join()
 
 
-def make_pty() -> Tuple[str, int] | None:
+def make_pty() -> tuple[str, int] | None:
     """
     We need to make a pseudo-terminal ourselves if we want the process to handle
     naturally for the user. Returns a tuple with the path of the worker device
@@ -538,7 +537,7 @@ class IODriverPseudoTerminal(IODriver):
         self._stderr_nonblock_failed = False
 
     @override
-    def stdio(self) -> Tuple[str | None, str | None, str | None]:
+    def stdio(self) -> tuple[str | None, str | None, str | None]:
         return self.worker, self.worker, self.worker
 
     def _handle_io(self):
@@ -551,13 +550,13 @@ class IODriverPseudoTerminal(IODriver):
                     if len(data) == 0:
                         break
                     self.input_buffer += data
-            except IOError:
+            except OSError:
                 pass
 
             try:
                 written = os.write(self.manager, self.input_buffer)
                 self.input_buffer = self.input_buffer[written:]
-            except IOError:
+            except OSError:
                 pass
 
             try:
@@ -573,7 +572,7 @@ class IODriverPseudoTerminal(IODriver):
                         except BlockingIOError as e:
                             data = data[e.characters_written :]
 
-            except IOError:
+            except OSError:
                 pass
 
     @override

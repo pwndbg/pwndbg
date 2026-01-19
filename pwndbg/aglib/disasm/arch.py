@@ -1,10 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
-from typing import List
-from typing import Tuple
 
 from capstone import *  # noqa: F403
 from pwnlib.constants import linux
@@ -155,7 +152,7 @@ class DisassemblyAssistant:
             pwndbg.aglib.regs.current, pwndbg.aglib.arch.ptrsize
         )
 
-        self.op_handlers: Dict[
+        self.op_handlers: dict[
             int, Callable[[PwndbgInstruction, EnhancedOperand, Emulator], int | None]
         ] = {
             CS_OP_IMM: self._parse_immediate,  # Return immediate value
@@ -166,7 +163,7 @@ class DisassemblyAssistant:
 
         # Return a string corresponding to operand. Used to reduce code duplication while printing
         # REG type wil return register name, "RAX"
-        self.op_names: Dict[int, Callable[[PwndbgInstruction, EnhancedOperand], str | None]] = {
+        self.op_names: dict[int, Callable[[PwndbgInstruction, EnhancedOperand], str | None]] = {
             CS_OP_IMM: self._immediate_string,
             CS_OP_REG: self._register_string,
             CS_OP_MEM: self._memory_string,
@@ -510,7 +507,7 @@ class DisassemblyAssistant:
         instruction: PwndbgInstruction,
         emu: Emulator,
         read_size: int = None,
-    ) -> List[int]:
+    ) -> list[int]:
         """
         Dereference an address recursively - takes into account emulation.
 
@@ -577,7 +574,7 @@ class DisassemblyAssistant:
         return [address]
 
     # Dispatch to the appropriate format handler. Pass the list returned by `telescope()` to this function
-    def _telescope_format_list(self, addresses: List[int], limit: int, emu: Emulator) -> str:
+    def _telescope_format_list(self, addresses: list[int], limit: int, emu: Emulator) -> str:
         # It is assumed proper checks have been made BEFORE calling this function so that pwndbg.chain.format
         #  will return values accurate to the program state at the time of instruction executing.
 
@@ -642,10 +639,10 @@ class DisassemblyAssistant:
         if instruction.syscall is not None:
             instruction.syscall_name = (
                 DisassemblyAssistant._syscall_name(instruction.syscall, syscall_arch)
-                or "<unk_%d>" % instruction.syscall
+                or f"<unk_{instruction.syscall}>"
             )
 
-    def _get_syscall_arch_info(self, instruction) -> Tuple[str, str]:
+    def _get_syscall_arch_info(self, instruction) -> tuple[str, str]:
         """
         Return tuple of (name of syscall architecture, syscall register name)
 

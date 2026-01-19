@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import argparse
 import ctypes
-from typing import Tuple
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
@@ -95,7 +94,7 @@ class Kthread:
         self.thread = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", thread)
 
     @pwndbg.lib.cache.cache_until("stop")
-    def files(self) -> Tuple[Tuple[int, pwndbg.dbg_mod.Value], ...]:
+    def files(self) -> tuple[tuple[int, pwndbg.dbg_mod.Value], ...]:
         fdt = self.thread["files"]["fdt"]
         fds = fdt["fd"]
         files = []
@@ -158,7 +157,7 @@ class Kthread:
     def gid(self) -> int:
         return int(self.thread["cred"]["gid"]["val"])
 
-    def pt_regs(self) -> list[Tuple[str, int]] | None:
+    def pt_regs(self) -> list[tuple[str, int]] | None:
         if not self.stack or not self.user_task:
             # pt_regs may not be saved at the end of the stack if otherwise
             return None
@@ -219,7 +218,7 @@ class Ktask:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def get_ktasks() -> Tuple[Ktask, ...]:
+def get_ktasks() -> tuple[Ktask, ...]:
     if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
         return ()
     tasks: list[Ktask] = []

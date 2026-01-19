@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import Optional
 
 import pwndbg.aglib
 import pwndbg.aglib.memory
@@ -192,10 +191,10 @@ def plist(
     path: str,
     next: str,
     sentinel: int,
-    inner_name: Optional[str],
-    field_name: Optional[str],
+    inner_name: str | None,
+    field_name: str | None,
     offset: int,
-    count: Optional[int] = None,
+    count: int | None = None,
 ) -> None:
     # Have GDB parse the path for us and check if it's valid.
     try:

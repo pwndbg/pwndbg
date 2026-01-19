@@ -7,9 +7,8 @@ This file might be changed into a module in the future.
 from __future__ import annotations
 
 import functools
+from collections.abc import Callable
 from typing import Any
-from typing import Callable
-from typing import List
 
 import gdb
 
@@ -20,7 +19,7 @@ import pwndbg.aglib.vmmap
 import pwndbg.dbg_mod
 from pwndbg.lib.common import hex2ptr_common
 
-functions: List[_GdbFunction] = []
+functions: list[_GdbFunction] = []
 
 
 def GdbFunction(only_when_running: bool = False) -> Callable[..., Any]:

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import os
-from typing import List
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib.kernel.symbol
@@ -10,7 +8,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 
 
-def get_stack_offset(tasks: List[int]) -> int:
+def get_stack_offset(tasks: list[int]) -> int:
     ptrsize = pwndbg.aglib.arch.ptrsize
     for i in range(0x10):
         for task in tasks:
@@ -36,7 +34,7 @@ def get_stack_offset(tasks: List[int]) -> int:
 """
 
 
-def get_tasks_offset(mm_offset: int) -> Tuple[List[int], int]:
+def get_tasks_offset(mm_offset: int) -> tuple[list[int], int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
     tasks_offset = mm_offset - ptrsize * 2
     if "CONFIG_SMP" in pwndbg.aglib.kernel.kconfig():
@@ -80,7 +78,7 @@ def get_mm_offset(task: int) -> int:
     return mm_offset
 
 
-def get_mm_struct(tasks: List[int], mm_offset: int) -> str:
+def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
     ptrsize = pwndbg.aglib.arch.ptrsize
     pgd_offset = None
     match pwndbg.aglib.arch.name:
@@ -167,7 +165,7 @@ def get_mm_struct(tasks: List[int], mm_offset: int) -> str:
 ROOT_COMM = "swapper/"
 
 
-def get_pid_offset(tasks: List[int], mm_offset: int, comm_offset: int) -> int:
+def get_pid_offset(tasks: list[int], mm_offset: int, comm_offset: int) -> int:
     maxpid = 0x400000 if pwndbg.aglib.arch.ptrsize == 8 else 0x8000
     seen = set()
     for i in range(0x20):
@@ -260,7 +258,7 @@ def get_thread_list_offset(pid_offset: int):
 INIT_TASK = None
 
 
-def get_comm_offset(tasks: List[int]) -> Tuple[int, int]:
+def get_comm_offset(tasks: list[int]) -> tuple[int, int]:
     for task in tasks:
         off = 0
         for _ in range(0x300):
@@ -276,7 +274,7 @@ def get_comm_offset(tasks: List[int]) -> Tuple[int, int]:
     raise AssertionError("cannot find the offset of task_struct->comm")
 
 
-def get_cred_struct_and_offset(tasks: List[int], comm_offset: int) -> Tuple[str, int]:
+def get_cred_struct_and_offset(tasks: list[int], comm_offset: int) -> tuple[str, int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
     cred_offset = None
     for task in tasks:
@@ -420,7 +418,7 @@ def get_inode_struct(inode: int | None) -> str:
 def get_file_struct(file: int | None) -> str:
     ptrsize = pwndbg.aglib.arch.ptrsize
     result = ""
-    kversion: Tuple[int, ...] = pwndbg.aglib.kernel.krelease()
+    kversion: tuple[int, ...] = pwndbg.aglib.kernel.krelease()
     kbase: int | None = pwndbg.aglib.kernel.kbase()
     if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SECURITY\n"
@@ -555,8 +553,8 @@ def get_file_struct(file: int | None) -> str:
 
 
 def get_files_struct_and_offset(
-    task: int, off: int, tasks: List[int], mm_offset: int
-) -> Tuple[str, int]:
+    task: int, off: int, tasks: list[int], mm_offset: int
+) -> tuple[str, int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
     off += TASK_COMM_LEN
     files_offset = None
@@ -627,7 +625,7 @@ def get_files_struct_and_offset(
     return structs, files_offset
 
 
-def get_nsproxy_struct_and_offset(task: int, off: int) -> Tuple[str, int]:
+def get_nsproxy_struct_and_offset(task: int, off: int) -> tuple[str, int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
     off += ptrsize
     ptr = pwndbg.aglib.memory.read_pointer_width(task + off + ptrsize * 3)
@@ -664,7 +662,7 @@ def get_signal_struct() -> str:
     return struct
 
 
-def get_sp_offset(tasks: List[int], stack_offset: int, comm_offset: int) -> int:
+def get_sp_offset(tasks: list[int], stack_offset: int, comm_offset: int) -> int:
     # &task_struct - &task_struct->thread.sp
     # only one other ptr in the task_struct that belongs to the same page chunk
     task = None

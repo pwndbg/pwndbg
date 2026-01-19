@@ -111,7 +111,7 @@ class Process:
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def selinux(self) -> str:
-        path = "/proc/%i/task/%i/attr/current" % (self.pid, self.tid)
+        path = f"/proc/{self.pid}/task/{self.tid}/attr/current"
         try:
             raw = pwndbg.aglib.file.get(path)
             return raw.decode().rstrip("\x00").strip()
@@ -134,7 +134,7 @@ class Process:
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def status(self):
-        raw = pwndbg.aglib.file.get("/proc/%i/task/%i/status" % (self.pid, self.tid))
+        raw = pwndbg.aglib.file.get(f"/proc/{self.pid}/task/{self.pid}/status")
 
         status = {}
         for line in raw.splitlines():
@@ -192,7 +192,7 @@ class Process:
         fds = {}
 
         for i in range(self.fdsize):
-            link = pwndbg.aglib.file.readlink("/proc/%i/fd/%i" % (pwndbg.aglib.proc.pid(), i))
+            link = pwndbg.aglib.file.readlink(f"/proc/{pwndbg.aglib.proc.pid()}/fd/{i}")
 
             if link:
                 fds[i] = link
@@ -249,7 +249,7 @@ def procinfo() -> None:
             )
         )
     exe = pwndbg.auxv.get().AT_EXECFN
-    print("%-10s %r" % ("exe", exe))
+    print(f"{'exe':<10} {exe!r}")
 
     proc = Process()
 
@@ -257,32 +257,28 @@ def procinfo() -> None:
     if not proc.status:
         return
 
-    print("%-10s %s" % ("cmdline", proc.cmdline))
-
-    print("%-10s %s" % ("cwd", proc.cwd))
+    print(f"{'cmdline':<10} {proc.cmdline}")
+    print(f"{'cwd':<10} {proc.cwd}")
 
     files = dict(proc.open_files)
 
     for c in proc.connections:
         files[c.fd] = str(c)
 
-    print("%-10s %s" % ("pid", proc.pid))
-    print("%-10s %s" % ("tid", proc.tid))
+    print(f"{'pid':<10} {proc.pid}")
+    print(f"{'tid':<10} {proc.tid}")
 
-    # Indicate if the process is restricted by SELinux policies
-    if proc.selinux != "" and proc.selinux != "unconfined":
-        print("%-10s %s" % ("selinux", proc.selinux))
+    if proc.selinux and proc.selinux != "unconfined":
+        print(f"{'selinux':<10} {proc.selinux}")
 
-    print("%-10s %s" % ("ppid", proc.ppid))
-
-    print("%-10s %s" % ("uid", proc.uid))
-    print("%-10s %s" % ("gid", proc.gid))
-    print("%-10s %s" % ("groups", proc.groups))
+    print(f"{'ppid':<10} {proc.ppid}")
+    print(f"{'uid':<10} {proc.uid}")
+    print(f"{'gid':<10} {proc.gid}")
+    print(f"{'groups':<10} {proc.groups}")
 
     for fd, path in files.items():
         if not set(path) < set(string.printable):
             path = repr(path)
-
-        print("%-10s %s" % ("fd[%i]" % fd, path))
+        print(f"{f'fd[{fd}]':<10} {path}")
 
     return

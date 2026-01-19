@@ -8,7 +8,6 @@ from __future__ import annotations
 import binascii
 import socket
 import struct
-from typing import List
 
 # http://students.mimuw.edu.pl/lxr/source/include/net/tcp_states.h
 TCP_STATUSES = {
@@ -60,13 +59,13 @@ class UnixSocket(inode):
     path = "(anonymous)"
 
     def __str__(self) -> str:
-        return "unix %r" % self.path
+        return f"unix {self.path!r}"
 
     def __repr__(self) -> str:
         return f"UnixSocket({self})"
 
 
-def _tcp_parser(data: str, ip_family: socket.AddressFamily, endianness: str) -> List[Connection]:
+def _tcp_parser(data: str, ip_family: socket.AddressFamily, endianness: str) -> list[Connection]:
     # For reference, see:
     # https://www.kernel.org/doc/Documentation/networking/proc_net_tcp.txt
     """
@@ -77,7 +76,7 @@ def _tcp_parser(data: str, ip_family: socket.AddressFamily, endianness: str) -> 
     if not data:
         return []
 
-    result: List[Connection] = []
+    result: list[Connection] = []
     for line in data.splitlines()[1:]:
         fields = line.split()
         """
@@ -151,19 +150,19 @@ def _tcp_parser(data: str, ip_family: socket.AddressFamily, endianness: str) -> 
     return result
 
 
-def tcp(data: str, endianness: str) -> List[Connection]:
+def tcp(data: str, endianness: str) -> list[Connection]:
     return _tcp_parser(data, socket.AF_INET, endianness)
 
 
-def tcp6(data: str, endianness: str) -> List[Connection]:
+def tcp6(data: str, endianness: str) -> list[Connection]:
     return _tcp_parser(data, socket.AF_INET6, endianness)
 
 
-def unix(data: str) -> List[UnixSocket]:
+def unix(data: str) -> list[UnixSocket]:
     if not data:
         return []
 
-    result: List[UnixSocket] = []
+    result: list[UnixSocket] = []
     # Note: it is super important to split by "\n" instead of .splitlines() here
     # because there may be a line like this:
     # "0000000000000000: 00000002 00000000 00000000 0002 01 23302 @@@@\x9e\x05@@\x01=\r@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n"
@@ -221,11 +220,11 @@ class Netlink(inode):
         return f"Netlink({self})"
 
 
-def netlink(data: str) -> List[Netlink]:
+def netlink(data: str) -> list[Netlink]:
     if not data:
         return []
 
-    result: List[Netlink] = []
+    result: list[Netlink] = []
     for line in data.splitlines()[1:]:
         # sk       Eth Pid    Groups   Rmem     Wmem     Dump     Locks     Drops     Inode            [10/8747]
         fields = line.split()

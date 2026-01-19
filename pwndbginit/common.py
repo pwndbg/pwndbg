@@ -7,8 +7,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List
-from typing import Tuple
 
 
 def hash_file(file_path: str | Path) -> str:
@@ -24,13 +22,13 @@ def hash_file(file_path: str | Path) -> str:
 
 def run_uv_install(
     binary_path: os.PathLike[str], src_root: Path, venv_path: Path, dev: bool = False
-) -> Tuple[str, str, int]:
+) -> tuple[str, str, int]:
     # Check if the package was installed using: `uv tool install --editable .[lldb,gdb]`
     # Tools are located at: ${HOME}/.local/share/uv/tools/${TOOL_NAME}/uv-receipt.toml
     is_tool_install = (venv_path / "uv-receipt.toml").exists()
     if is_tool_install:
         tool_name = venv_path.name
-        command: List[str] = [str(binary_path), "tool", "upgrade", tool_name]
+        command: list[str] = [str(binary_path), "tool", "upgrade", tool_name]
     else:
         # We don't want to quietly uninstall dependencies by just specifying
         # `--extra gdb` so we will be conservative and pull all extras in.

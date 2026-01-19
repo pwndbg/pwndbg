@@ -3,13 +3,11 @@ from __future__ import annotations
 import os
 import shlex
 import sys
+from collections.abc import Callable
+from collections.abc import Coroutine
 from enum import Enum
 from pathlib import Path
 from typing import Any
-from typing import Callable
-from typing import Coroutine
-from typing import Dict
-from typing import List
 
 import pytest
 
@@ -30,7 +28,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             self.pc = pc
 
         async def launch(
-            self, binary: Path, args: List[str] = [], env: Dict[str, str] = {}
+            self, binary: Path, args: list[str] = [], env: dict[str, str] = {}
         ) -> None:
             if not os.path.exists(binary):
                 pytest.skip(f"{os.path.basename(binary)} does not exist. Platform not supported.")
@@ -74,7 +72,7 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
     await outer(_LLDBController(ctrl))
 
 
-def run(pytest_args: List[str], pytest_plugins: List[Any] | None) -> int:
+def run(pytest_args: list[str], pytest_plugins: list[Any] | None) -> int:
     # The import path is set up before this function is called.
     os.environ.setdefault("NO_COLOR", "1")
 

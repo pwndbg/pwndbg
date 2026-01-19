@@ -48,23 +48,23 @@ def load_color_scheme() -> None:
     # We want to colorize the hex characters and only print out
     # printable values on the right hand side.
     #
-    color_scheme = {i: H.normal("%02x" % i) for i in range(256)}
+    color_scheme = {i: H.normal(f"{i:02x}") for i in range(256)}
     printable = {i: H.normal(".") for i in range(256)}
 
     for c in bytearray(
         (string.ascii_letters + string.digits + string.punctuation).encode("utf-8", "ignore")
     ):
-        color_scheme[c] = H.printable("%02x" % c)
+        color_scheme[c] = H.printable(f"{c:02x}")
         printable[c] = (
             H.printable(f"{chr(c)}") if pwndbg.config.hexdump_colorize_ascii else f"{chr(c)}"
         )
 
     for c in bytearray(b"\x00"):
-        color_scheme[c] = H.zero("%02x" % c)
+        color_scheme[c] = H.zero(f"{c:02x}")
         printable[c] = H.zero(".") if pwndbg.config.hexdump_colorize_ascii else "."
 
     for c in bytearray(b"\xff\x7f\x80"):
-        color_scheme[c] = H.special("%02x" % c)
+        color_scheme[c] = H.special(f"{c:02x}")
         printable[c] = H.special(".") if pwndbg.config.hexdump_colorize_ascii else "."
 
     color_scheme[-1] = "  "

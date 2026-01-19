@@ -8,10 +8,7 @@ system has /proc/$$/maps, which backs 'info proc mapping'.
 
 from __future__ import annotations
 
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Tuple
+from collections.abc import Iterator
 
 import gdb
 
@@ -50,7 +47,7 @@ def is_corefile() -> bool:
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def get_known_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
+def get_known_maps() -> tuple[pwndbg.lib.memory.Page, ...] | None:
     """
     Similar to `vmmap.get()`, except only returns maps in cases where
     the mappings are known, like if it's a coredump, or if process
@@ -113,7 +110,7 @@ def iter_coredump_sections() -> Iterator[pwndbg.lib.memory.Page]:
         yield page
 
 
-def enhance_coredump_sections_pages_info(pages: List[pwndbg.lib.memory.Page]) -> None:
+def enhance_coredump_sections_pages_info(pages: list[pwndbg.lib.memory.Page]) -> None:
     for section in iter_coredump_sections():
         # Now, if the section is already in pages, just add its perms
         known_page = False
@@ -130,7 +127,7 @@ def enhance_coredump_sections_pages_info(pages: List[pwndbg.lib.memory.Page]) ->
         pages.append(section)
 
 
-def enhance_known_pages_info(pages: List[pwndbg.lib.memory.Page]) -> None:
+def enhance_known_pages_info(pages: list[pwndbg.lib.memory.Page]) -> None:
     if not pages:
         return
 
@@ -172,7 +169,7 @@ def enhance_known_pages_info(pages: List[pwndbg.lib.memory.Page]) -> None:
 
 
 @pwndbg.lib.cache.cache_until("objfile", "start")
-def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
+def coredump_maps() -> tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parses `info proc mappings` and `maintenance info sections`
     and tries to make sense out of the result :)
@@ -188,7 +185,7 @@ def coredump_maps() -> Tuple[pwndbg.lib.memory.Page, ...]:
 
 def parse_info_proc_mappings_line(
     line: str, perms_available: bool, parse_flags: bool
-) -> Optional[pwndbg.lib.memory.Page]:
+) -> pwndbg.lib.memory.Page | None:
     """
     Parse a line from `info proc mappings` and return a pwndbg.lib.memory.Page
     object if the line is valid.
@@ -241,7 +238,7 @@ def parse_info_proc_mappings_line(
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def info_proc_maps(parse_flags: bool = True) -> Tuple[pwndbg.lib.memory.Page, ...]:
+def info_proc_maps(parse_flags: bool = True) -> tuple[pwndbg.lib.memory.Page, ...]:
     """
     Parse the result of info proc mappings.
 
@@ -278,7 +275,7 @@ def info_proc_maps(parse_flags: bool = True) -> Tuple[pwndbg.lib.memory.Page, ..
     # See if "Perms" is in the header line
     perms_available = len(info_proc_mappings) >= 4 and "Perms" in info_proc_mappings[3]
 
-    pages: List[pwndbg.lib.memory.Page] = []
+    pages: list[pwndbg.lib.memory.Page] = []
     for line in info_proc_mappings:
         page = parse_info_proc_mappings_line(line, perms_available, parse_flags)
         if page is not None:
@@ -335,8 +332,8 @@ def parse_tid_maps_line(line: str) -> pwndbg.lib.memory.Page:
     return pwndbg.lib.memory.Page(start, size, flags, offset, ptrsize, objfile)
 
 
-def parse_tid_maps(data: str) -> List[pwndbg.lib.memory.Page]:
-    pages: List[pwndbg.lib.memory.Page] = []
+def parse_tid_maps(data: str) -> list[pwndbg.lib.memory.Page]:
+    pages: list[pwndbg.lib.memory.Page] = []
     for line in data.splitlines():
         page = parse_tid_maps_line(line)
         pages.append(page)
@@ -344,8 +341,8 @@ def parse_tid_maps(data: str) -> List[pwndbg.lib.memory.Page]:
     return pages
 
 
-def parse_tid_smaps_dict(data: List[str]) -> dict[str, List[str]]:
-    smaps_dict: dict[str, List[str]] = {}
+def parse_tid_smaps_dict(data: list[str]) -> dict[str, list[str]]:
+    smaps_dict: dict[str, list[str]] = {}
     for line in data:
         try:
             key, *value = line.strip().split()
@@ -357,7 +354,7 @@ def parse_tid_smaps_dict(data: List[str]) -> dict[str, List[str]]:
     return smaps_dict
 
 
-def group_tid_smaps_segments(data: str) -> List[List[str]]:
+def group_tid_smaps_segments(data: str) -> list[list[str]]:
     # Example segment of /proc/$tid/smaps
     # 7f0bd1c25000-7f0bd1c27000 rw-p 001e8000 00:22 1655096                    /usr/lib64/libc.so.6
     # Size:                  8 kB
@@ -385,11 +382,11 @@ def group_tid_smaps_segments(data: str) -> List[List[str]]:
     # THPeligible:           0
     # ProtectionKey:         0
     # VmFlags: rd wr mr mw me ac sd
-    segments: List[List[str]] = []
+    segments: list[list[str]] = []
     lines = data.splitlines()
 
     # Group lines into segments by detecting address range lines
-    current_segment: List[str] = []
+    current_segment: list[str] = []
 
     for line in lines:
         # Check if this line starts with an address range (e.g., "7f0bd1c25000-7f0bd1c27000")
@@ -426,8 +423,8 @@ def group_tid_smaps_segments(data: str) -> List[List[str]]:
     return segments
 
 
-def parse_tid_smaps(data: str) -> List[pwndbg.lib.memory.Page]:
-    pages: List[pwndbg.lib.memory.Page] = []
+def parse_tid_smaps(data: str) -> list[pwndbg.lib.memory.Page]:
+    pages: list[pwndbg.lib.memory.Page] = []
     segments = group_tid_smaps_segments(data)
     for segment in segments:
         page = parse_tid_maps_line(segment[0])
@@ -441,7 +438,7 @@ def parse_tid_smaps(data: str) -> List[pwndbg.lib.memory.Page]:
 
 
 @pwndbg.lib.cache.cache_until("start", "stop")
-def proc_tid_maps() -> Tuple[pwndbg.lib.memory.Page, ...] | None:
+def proc_tid_maps() -> tuple[pwndbg.lib.memory.Page, ...] | None:
     """
     Parse the contents of /proc/$TID/smaps on the server.
     Falls back to /proc/$TID/maps if smaps is not available.

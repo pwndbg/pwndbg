@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterator
+from collections.abc import Iterator
 
 import pwndbg
 import pwndbg.aglib.memory
@@ -35,7 +35,7 @@ def rb_first(root: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
     if root.type == rb_root_type:
         node = root.address.cast(rb_root_type.pointer())
     elif root.type != rb_root_type.pointer():
-        raise pwndbg.dbg_mod.Error("Must be struct rb_root not {}".format(root.type))
+        raise pwndbg.dbg_mod.Error(f"Must be struct rb_root not {root.type}")
 
     node = root["rb_node"]
     if int(node) == 0:
@@ -51,7 +51,7 @@ def rb_last(root: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
     if root.type == rb_root_type:
         node = root.address.cast(rb_root_type.pointer())
     elif root.type != rb_root_type.pointer():
-        raise pwndbg.dbg_mod.Error("Must be struct rb_root not {}".format(root.type))
+        raise pwndbg.dbg_mod.Error(f"Must be struct rb_root not {root.type}")
 
     node = root["rb_node"]
     if int(node) == 0:
@@ -76,7 +76,7 @@ def rb_next(node: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
     if node.type == rb_node_type:
         node = node.address.cast(rb_node_type.pointer())
     elif node.type != rb_node_type.pointer():
-        raise pwndbg.dbg_mod.Error("Must be struct rb_node not {}".format(node.type))
+        raise pwndbg.dbg_mod.Error(f"Must be struct rb_node not {node.type}")
 
     if rb_empty_node(node):
         return None
@@ -99,7 +99,7 @@ def rb_prev(node: pwndbg.dbg_mod.Value) -> pwndbg.dbg_mod.Value | None:
     if node.type == rb_node_type:
         node = node.address.cast(rb_node_type.pointer())
     elif node.type != rb_node_type.pointer():
-        raise pwndbg.dbg_mod.Error("Must be struct rb_node not {}".format(node.type))
+        raise pwndbg.dbg_mod.Error(f"Must be struct rb_node not {node.type}")
 
     if rb_empty_node(node):
         return None

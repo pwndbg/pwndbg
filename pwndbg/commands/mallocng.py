@@ -6,17 +6,17 @@ from __future__ import annotations
 
 import argparse
 import string
-from typing import List
-from typing import Optional
 
 import pwndbg
 import pwndbg.aglib.heap.mallocng as mallocng
 import pwndbg.aglib.memory as memory
+import pwndbg.aglib.typeinfo
 import pwndbg.aglib.typeinfo as typeinfo
 import pwndbg.aglib.vmmap
 import pwndbg.color as color
 import pwndbg.color.memory as mem_color
 import pwndbg.color.message as message
+import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.config
 from pwndbg import config
@@ -113,7 +113,7 @@ def dump_group(group: mallocng.Group) -> str:
     return output
 
 
-def dump_meta(meta: mallocng.Meta, focus_slot: Optional[int] = None) -> str:
+def dump_meta(meta: mallocng.Meta, focus_slot: int | None = None) -> str:
     """
     Arguments:
         meta: the meta to dump
@@ -337,7 +337,7 @@ def dump_slot(
 
 
 def smart_dump_slot(
-    slot: mallocng.Slot, all: bool, gslot: Optional[mallocng.GroupedSlot] = None
+    slot: mallocng.Slot, all: bool, gslot: mallocng.GroupedSlot | None = None
 ) -> str:
     try:
         slot.preload()
@@ -401,7 +401,7 @@ def smart_dump_slot(
         else:
             gslot, fslot = ng.find_slot(slot.p, False, False)
 
-        if gslot is None:
+        if gslot is None or fslot is None:
             output += "Not found.\n\n"
             output += dump_slot(slot, all, False, False)
             return output
@@ -648,7 +648,7 @@ parser.add_argument(
     aliases=["ng-group"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_group(address: int, index: Optional[int] = None) -> None:
+def mallocng_group(address: int, index: int | None = None) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
         return
@@ -712,7 +712,7 @@ parser.add_argument(
     aliases=["ng-metaarea", "ng-ma"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_meta_area(address: int, index: Optional[int] = None) -> None:
+def mallocng_meta_area(address: int, index: int | None = None) -> None:
     if not memory.is_readable_address(address):
         print(message.error(f"Address {address:#x} not readable."))
         return
@@ -759,12 +759,13 @@ parser.add_argument(
     aliases=["ng-ctx"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_malloc_context(address: Optional[int] = None) -> None:
+def mallocng_malloc_context(address: int | None = None) -> None:
     if address is None:
         if not ng.init_if_needed():
             print(message.error("Couldn't find the allocator, aborting the command."))
             return
 
+        assert ng.ctx, "Successful init but ctx is not set?"
         ctx = ng.ctx
     else:
         if not memory.is_readable_address(address):
@@ -976,7 +977,7 @@ parser.add_argument(
     aliases=["ng-vis"],
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_visualize_slots(address: int, count: int = default_vis_count):
+def mallocng_visualize_slots(address: int, count: int = int(default_vis_count)):
     ptrsize = pwndbg.aglib.typeinfo.ptrsize
 
     if ptrsize != 8:
@@ -993,7 +994,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
 
     first_grouped_slot, first_slot = ng.find_slot(address, False, False)
 
-    if first_slot is None:
+    if first_grouped_slot is None or first_slot is None:
         print(message.info("No slot found containing that address."))
         return
 
@@ -1051,12 +1052,12 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
     )
     print(legend)
 
-    out: List[str] = []  # List of lines.
+    out: list[str] = []  # List of lines.
     last_color = "nothing"
 
     # Add the line before the start of the first slot, to include its start header.
     shline_addr = group.at_index(first_idx) - 2 * ptrsize
-    shline_bytes = pwndbg.aglib.memory.read(shline_addr, ptrsize * 2)
+    shline_bytes = memory.read(shline_addr, ptrsize * 2)
     leftptr = pwndbg.aglib.arch.unpack(shline_bytes[:ptrsize])
     rightptr = pwndbg.aglib.arch.unpack(shline_bytes[ptrsize:])
     out.append(
@@ -1096,7 +1097,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
         # Make the output line by line (advance 0x10 bytes at a time).
         cur_address = start_address
         while cur_address < next_start_address:
-            line_bytes = pwndbg.aglib.memory.read(cur_address, ptrsize * 2)
+            line_bytes = memory.read(cur_address, ptrsize * 2)
             leftptr = pwndbg.aglib.arch.unpack(line_bytes[:ptrsize])
             rightptr = pwndbg.aglib.arch.unpack(line_bytes[ptrsize:])
 
@@ -1105,7 +1106,7 @@ def mallocng_visualize_slots(address: int, count: int = default_vis_count):
             line_out += "\t0x" + colorize_pointer(cur_address + ptrsize, rightptr, slot_state, slot)
             line_out += f"\t{bin_ascii(line_bytes)}"
 
-            line_out = pwndbg.color.colorize(line_out, cur_slot_color)
+            line_out = color.colorize(line_out, cur_slot_color)
             line_out += line_decoration(cur_address, slot_state, slot)
 
             out.append(line_out)
@@ -1149,11 +1150,12 @@ Color legend: {color.colorize("allocated", state_alloc_color)}; """
     ),
 )
 @pwndbg.commands.OnlyWhenRunning
-def mallocng_dump(meta_area: Optional[int] = None) -> None:
+def mallocng_dump(meta_area: int | None = None) -> None:
     if not ng.init_if_needed():
         print(message.error("Couldn't find the allocator, aborting the command."))
         return
 
+    assert ng.ctx, "Successful init but ctx is not set?"
     ctx: mallocng.MallocContext = ng.ctx
 
     try:

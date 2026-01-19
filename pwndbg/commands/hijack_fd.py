@@ -5,8 +5,6 @@ import contextlib
 import socket
 from typing import Literal
 from typing import NamedTuple
-from typing import Optional
-from typing import Tuple
 from urllib.parse import ParseResult
 from urllib.parse import urlparse
 
@@ -37,12 +35,10 @@ def get_shellcode_regs() -> ShellcodeRegs:
 
     # pickup free register what is not used for syscall abi
     newfd_reg = next(
-        (
-            reg_name
-            for reg_name in register_set.gpr
-            if reg_name not in syscall_abi.register_arguments
-            and reg_name != syscall_abi.syscall_register
-        )
+        reg_name
+        for reg_name in register_set.gpr
+        if reg_name not in syscall_abi.register_arguments
+        and reg_name != syscall_abi.syscall_register
     )
     assert newfd_reg is not None, (
         f"architecture {pwndbg.aglib.arch.name} don't have unused register..."
@@ -59,7 +55,7 @@ def stack_size_alignment(s: int) -> int:
     return s + (syscall_abi.arg_alignment - (s % syscall_abi.arg_alignment))
 
 
-def asm_replace_file(replace_fd: int, filename: str) -> Tuple[int, bytes]:
+def asm_replace_file(replace_fd: int, filename: str) -> tuple[int, bytes]:
     filename = filename.encode() + b"\x00"
 
     regs = get_shellcode_regs()
@@ -90,7 +86,7 @@ def asm_replace_file(replace_fd: int, filename: str) -> Tuple[int, bytes]:
     )
 
 
-def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> Tuple[int, bytes]:
+def asm_replace_socket(replace_fd: int, socket_data: ParsedSocket) -> tuple[int, bytes]:
     sockdata, addr_len, _ = sockaddr(socket_data.address, socket_data.port, socket_data.ip_version)
     socktype = {"tcp": "SOCK_STREAM", "udp": "SOCK_DGRAM"}[socket_data.protocol]
     family = {"ipv4": "AF_INET", "ipv6": "AF_INET6"}[socket_data.ip_version]
@@ -236,7 +232,7 @@ def parse_socket(url: str) -> ParsedSocket:
     return ParsedSocket(selected_protocol, found_ip_protocol, address_ipv4_or_ipv6, port)
 
 
-PARSED_FILE_ARG = Tuple[Optional[ParsedSocket], Optional[str]]
+PARSED_FILE_ARG = tuple[ParsedSocket | None, str | None]
 
 
 def parse_file_or_socket(s: str) -> PARSED_FILE_ARG:

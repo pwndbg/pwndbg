@@ -24,7 +24,7 @@ def main():
     README_PATH = "README.md"
     TARGET_PATH = "./docs/index.md"
 
-    with open(README_PATH, "r") as readmefile:
+    with open(README_PATH) as readmefile:
         readme = readmefile.read()
 
         assert (

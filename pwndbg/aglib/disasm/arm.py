@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 # Emulator currently requires GDB, and we only use it here for type checking.
 from typing import TYPE_CHECKING
-from typing import Callable
-from typing import Dict
 from typing import Literal
 
 from capstone import *  # noqa: F403
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from pwndbg.emu.emulator import Emulator
 
 # Note: this map does not contain all the Arm32 shift types, just the ones relevent to register and memory modifier operations
-ARM_BIT_SHIFT_MAP: Dict[int, Callable[[int, int, int], int]] = {
+ARM_BIT_SHIFT_MAP: dict[int, Callable[[int, int, int], int]] = {
     ARM_SFT_ASR: bit_math.arithmetic_shift_right,
     ARM_SFT_LSL: bit_math.logical_shift_left,
     ARM_SFT_LSR: bit_math.logical_shift_right,
@@ -153,7 +153,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         self.flags_reg = flags_reg
 
-        self.annotation_handlers: Dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
+        self.annotation_handlers: dict[int, Callable[[PwndbgInstruction, Emulator], None]] = {
             # MOV
             ARM_INS_MOV: self._common_move_annotator,
             ARM_INS_MOVW: self._common_move_annotator,
@@ -321,7 +321,7 @@ class ArmDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             parts.append(instruction.cs_insn.reg_name(op.mem.base))
 
         if op.mem.disp != 0:
-            parts.append("%#x" % op.mem.disp)
+            parts.append(f"{op.mem.disp:#x}")
 
         if op.mem.index != 0:
             index = pwndbg.aglib.regs.read_reg(instruction.cs_insn.reg_name(op.mem.index))

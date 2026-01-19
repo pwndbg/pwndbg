@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Tuple
-
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
@@ -14,7 +12,7 @@ import pwndbg.aglib.typeinfo
 MAX_ORDER = 11
 
 
-def find_zone_offsets() -> Tuple[int, int, int, int, int]:
+def find_zone_offsets() -> tuple[int, int, int, int, int]:
     pcp_off, name_off, freelist_off, pcp_pad, zone_sz = None, None, None, None, None
     node_data0 = pwndbg.aglib.kernel.node_data()
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():

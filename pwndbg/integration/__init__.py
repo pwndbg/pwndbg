@@ -21,8 +21,6 @@ import xmlrpc.client
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
-from typing import Optional
-from typing import Tuple
 from typing import cast
 
 import niche_elf
@@ -87,10 +85,10 @@ class StackVariable:
     # The decompiler plugin code regarding this is touchy, may not always be
     # valid.
     # The offset of the variable's address from the stack pointer. Positive number.
-    from_sp: Optional[int]
+    from_sp: int | None
     # The offset of the variable's address to the beginning of the stack frame
     # (which usually contains the saved return address). Positive number.
-    from_frame: Optional[int]
+    from_frame: int | None
 
 
 @dataclass
@@ -142,8 +140,19 @@ _api_name_to_id = {
     "angr": DecompilerID.ANGR,
 }
 
+
+class Error(Enum):
+    OK = "Ok."
+    NO_CONNECTION = "Not connected to a decompiler"
+    BINARY_NOT_LOADED = "Couldn't find binary in address space"
+    DEBUGGER_NOT_SUPPORTED = "The debugger does not support this operation"
+    NOT_ALIVE = "The process is not alive"
+    NO_FRAME = "No stack frame found."
+
+
 # If the user wants to override our automatic detection
 manual_binary_address: int = -1
+manual_binary_path: str = ""
 
 
 class DecompilerConnection:
@@ -163,8 +172,9 @@ class DecompilerConnection:
     """The XML RPC server that is connected to the decompiler."""
     server: xmlrpc.client.ServerProxy
 
-    """The (host filesystem) path of the binary loaded in the decompiler.
-    It can be both an executable and a shared library."""
+    """The (host filesystem) path of the binary loaded as reported by the decompiler.
+    It can be both an executable and a shared library.
+    May not be relevant if manual_binary_address or manual_binary_path are set."""
     binary_path: str
 
     """Version information about the decompiler we are connected to. See
@@ -189,6 +199,7 @@ class DecompilerConnection:
 
     def _find_binary_addr(self, print_failure: bool = False) -> None:
         if manual_binary_address != -1:
+            # The user hardcoded the binary base address via `di setbase`.
             self._binary_base_addr = manual_binary_address
             return
 
@@ -200,24 +211,30 @@ class DecompilerConnection:
         if not inf.alive():
             return
 
+        if manual_binary_path != "":
+            # The user overrode what the decompiler says via `di setpath`.
+            path: str = manual_binary_path
+        else:
+            path = self.binary_path
+
         # Try to find the binary in the address space.
-        start_addr: Optional[int] = pwndbg.aglib.vmmap.named_region_start(
-            self.binary_path, exact_match=True
-        )
+        start_addr: int | None = pwndbg.aglib.vmmap.named_region_start(path, exact_match=True)
 
         if start_addr is None:
             # Try harder! (likely we are remote debugging)
-            start_addr = pwndbg.aglib.vmmap.named_region_start(self.binary_path, exact_match=False)
+            start_addr = pwndbg.aglib.vmmap.named_region_start(path, exact_match=False)
 
             if start_addr is None:
                 if print_failure:
                     basename: str = os.path.basename(self.binary_path)
                     print(
                         message.notice(
-                            f"The decompiled program {basename} doesn't seem to be loaded."
+                            f'The decompiled program "{basename}" doesn\'t seem to be loaded.'
                             " We will keep an eye out for it.\n"
                         )
                         + "If you know that it is actually loaded, check out "
+                        + message.hint("`di setpath --help`")
+                        + " or "
                         + message.hint("`di setbase --help`")
                         + ".\n"
                     )
@@ -282,7 +299,7 @@ class DecompilerConnection:
         )
         self._binary_base_addr = -2
 
-    def decompile(self, mapped_addr: int) -> Optional[FuncDecompilationResult]:
+    def decompile(self, mapped_addr: int) -> FuncDecompilationResult | None:
         """
         See IntegrationManager.decompile() for the function description.
         """
@@ -308,7 +325,7 @@ class DecompilerConnection:
             func_name=answer["func_name"],
         )
 
-    def function_data(self, mapped_addr: int) -> Optional[FuncVariables]:
+    def function_data(self, mapped_addr: int) -> FuncVariables | None:
         """
         See IntegrationManager.function_data() for the function description.
         """
@@ -334,12 +351,10 @@ class DecompilerConnection:
             name = svar["name"]
             type_ = svar["type"]
             # .get() is needed because of ghidra
-            from_sp_str: Optional[str] = svar.get("from_sp")
-            from_frame_str: Optional[str] = svar.get("from_frame")
-            from_sp: Optional[int] = int(from_sp_str, 0) if from_sp_str is not None else None
-            from_frame: Optional[int] = (
-                int(from_frame_str, 0) if from_frame_str is not None else None
-            )
+            from_sp_str: str | None = svar.get("from_sp")
+            from_frame_str: str | None = svar.get("from_frame")
+            from_sp: int | None = int(from_sp_str, 0) if from_sp_str is not None else None
+            from_frame: int | None = int(from_frame_str, 0) if from_frame_str is not None else None
 
             stack_vars.append(
                 StackVariable(name=name, type=type_, from_sp=from_sp, from_frame=from_frame)
@@ -353,7 +368,7 @@ class DecompilerConnection:
 
         return FuncVariables(stack_vars=stack_vars, reg_vars=reg_vars)
 
-    def function_headers(self) -> Optional[FunctionHeaders]:
+    def function_headers(self) -> FunctionHeaders | None:
         """
         See IntegrationManager.function_headers() for the function description.
         """
@@ -373,7 +388,7 @@ class DecompilerConnection:
         functions = sorted(functions, key=lambda f: f.addr)
         return FunctionHeaders(funcs=functions)
 
-    def global_vars(self) -> Optional[GlobalVariables]:
+    def global_vars(self) -> GlobalVariables | None:
         """
         See IntegrationManager.global_vars() for the function description.
         """
@@ -402,7 +417,7 @@ class DecompilerConnection:
 
     # .binary_path and .versions are properties rather than functions
 
-    def focus_address(self, mapped_addr: int) -> Optional[bool]:
+    def focus_address(self, mapped_addr: int) -> bool | None:
         """
         See IntegrationManager.focus_address() for the function description.
         """
@@ -437,14 +452,14 @@ class IntegrationManager:
 
     def __init__(self) -> None:
         # Our connection to the decompiler.
-        self._connection: Optional[DecompilerConnection] = None
+        self._connection: DecompilerConnection | None = None
 
         # The local caches, invalidated on disconnect/reconnect or user request.
         # They MUST return None if self.connection is None.
-        self._function_headers: Optional[FunctionHeaders] = None
-        self._global_vars: Optional[GlobalVariables] = None
-        self._decompiler_id: Optional[DecompilerID] = None
-        self._function_data: dict[int, Optional[FuncVariables]] = {}
+        self._function_headers: FunctionHeaders | None = None
+        self._global_vars: GlobalVariables | None = None
+        self._decompiler_id: DecompilerID | None = None
+        self._function_data: dict[int, FuncVariables | None] = {}
 
         # FIXME: Should really be fixed on decompiler plugin side.
         # Need to maintain this, otherwise the Ghidra decompilation pane is
@@ -502,7 +517,7 @@ class IntegrationManager:
         # Failed to connect.
         return False
 
-    def remove_symbols(self, inf: Optional[pwndbg.dbg_mod.Process] = None) -> bool:
+    def remove_symbols(self, inf: pwndbg.dbg_mod.Process | None = None) -> bool:
         """
         Remove the decompiler symbols that we added latest.
 
@@ -541,44 +556,57 @@ class IntegrationManager:
 
     # ==== Setters ====
 
-    def update_symbols(self) -> int:
+    def update_symbols(self) -> tuple[int, Error]:
         """
         Update global variables and functions in the debugger.
 
         This always invalidates the cache for global variables and
         function headers, and requests them from the plugin.
 
-        Returns the amount of synced symbols.
+        Returns the amount of synced symbols and an error diagnostic.
+
+        Possible error values:
+            NO_CONNECTION
+            BINARY_NOT_LOADED
+            NOT_ALIVE
+            DEBUGGER_NOT_SUPPORTED
 
         FIXME: Currently they are all 8 bytes in size.
         """
         # We need to bail even if we are connected, but the binary is not loaded into
         # the address space yet.
-        if self._connection is None or self._connection.binary_base_addr == -1:
-            return 0
+        if self._connection is None:
+            return 0, Error.NO_CONNECTION
+
+        if self._connection.binary_base_addr == -1:
+            return 0, Error.BINARY_NOT_LOADED
 
         # Invalidate the two caches.
         self._function_headers = None
         self._global_vars = None
 
-        if pwndbg.dbg.name == pwndbg.dbg_mod.DebuggerType.LLDB:
-            print(message.error("Symbolication is not yet supported on LLDB."))
+        if pwndbg.dbg.name() == pwndbg.dbg_mod.DebuggerType.LLDB:
             # Until we implement add_symbol_file for LLDB.
-            return 0
+            return 0, Error.DEBUGGER_NOT_SUPPORTED
 
         try:
             inf: pwndbg.dbg_mod.Process = pwndbg.dbg.selected_inferior()
         except pwndbg.dbg_mod.NoInferior:
-            return 0
+            # Should never happen because we already know that binary_base_address is set.
+            return 0, Error.NOT_ALIVE
+
+        if not inf.alive():
+            # Should never happen because we already know that binary_base_address is set.
+            return 0, Error.NOT_ALIVE
 
         # Remove old symbol file.
         # If we don't do this, the symbols will stack (run `info func` in GDB).
         self.remove_symbols(inf)
 
-        global_vars: Optional[GlobalVariables] = self.global_vars()
-        func_headers: Optional[FunctionHeaders] = self.function_headers()
+        global_vars: GlobalVariables | None = self.global_vars()
+        func_headers: FunctionHeaders | None = self.function_headers()
         # (name, address)
-        syms_to_add: list[Tuple[str, int]] = []
+        syms_to_add: list[tuple[str, int]] = []
         # To get rid of duplicates
         sym_name_set: set[str] = set()
 
@@ -598,7 +626,7 @@ class IntegrationManager:
                 sym_name_set.add(clean_name)
 
         if not syms_to_add:
-            return 0
+            return 0, Error.OK
 
         _, elf_path = tempfile.mkstemp(prefix="symbols-", suffix=".elf")
         elf = niche_elf.ELFFile(self._connection.binary_base_addr)
@@ -611,7 +639,7 @@ class IntegrationManager:
         self._latest_symbol_file_path = elf_path
         # Delete the file after GDB closes the file descriptor.
         os.unlink(elf_path)
-        return len(syms_to_add)
+        return len(syms_to_add), Error.OK
 
     def _clean_type_str(self, type_str: str) -> str:
         # FIXME:
@@ -650,7 +678,7 @@ class IntegrationManager:
 
         return False
 
-    def update_function_variables(self) -> int:
+    def update_function_variables(self) -> tuple[int, Error]:
         """
         Update debugger convnience varibles based on the function variables in the currently
         selected frame.
@@ -660,20 +688,21 @@ class IntegrationManager:
 
         Returns:
             The number of variables we successfully updated in the debugger.
+            An error diagnostic (NO_CONNECTION or NO_FRAME).
 
         FIXME: Currently this kinda doesn't work if it runs while we are in the function
         prologue. We should ideally run it only when we enter new functions and are past
         their prologues.
         """
         if self._connection is None:
-            return 0
+            return 0, Error.NO_CONNECTION
 
         # We could do some updates without having a valid selected frame by using pwndbg.aglib.regs.sp ,
         # but this probably complicates the code uneccessarily (see some previous commits in the PR).
         # I'm simply not sure when exactly can selected_frame() actually return None.
-        frame: Optional[pwndbg.dbg_mod.Frame] = pwndbg.dbg.selected_frame()
+        frame: pwndbg.dbg_mod.Frame | None = pwndbg.dbg.selected_frame()
         if frame is None:
-            return 0
+            return 0, Error.NO_FRAME
 
         # Invalidate this whole cache.
         # We could invalidate just for frame.pc() for the purposes of this function, but we want to invalidate
@@ -681,11 +710,9 @@ class IntegrationManager:
         # place to do it.
         self._function_data.clear()
 
-        rebased_vars: Optional[RebasedFuncVariables] = self.get_function_vars_rebased_from_frame(
-            frame
-        )
+        rebased_vars: RebasedFuncVariables | None = self.get_function_vars_rebased_from_frame(frame)
         if rebased_vars is None:
-            return 0
+            return 0, Error.OK
 
         nupdated: int = 0
 
@@ -704,7 +731,7 @@ class IntegrationManager:
             )
             nupdated += 1 if ok else 0
 
-        return nupdated
+        return nupdated, Error.OK
 
     # ==== Getters ====
     # All getters are either cheap (no RPC) operations, or cached.
@@ -718,7 +745,7 @@ class IntegrationManager:
         """
         return self._connection is not None
 
-    def decompiler_id(self) -> Optional[DecompilerID]:
+    def decompiler_id(self) -> DecompilerID | None:
         """
         Which decompiler are we connected to?
         """
@@ -732,13 +759,13 @@ class IntegrationManager:
 
         If we are not connected, will return "???".
         """
-        decompilerid: Optional[DecompilerID] = self.decompiler_id()
+        decompilerid: DecompilerID | None = self.decompiler_id()
         if decompilerid is not None:
             return decompilerid.value
         else:
             return "???"
 
-    def version_string(self) -> Optional[str]:
+    def version_string(self) -> str | None:
         """
         Get a string with version information about the decompiler environment.
         """
@@ -761,7 +788,7 @@ class IntegrationManager:
 
     def get_function_vars_rebased_from_frame(
         self, frame: pwndbg.dbg_mod.Frame
-    ) -> Optional[RebasedFuncVariables]:
+    ) -> RebasedFuncVariables | None:
         """
         Get function variables for the passed frame. Stack variables will have valid addresses rather than offsets.
 
@@ -782,7 +809,7 @@ class IntegrationManager:
 
         addr = frame.pc()
 
-        raw_func_data: Optional[FuncVariables] = self.function_data(addr)
+        raw_func_data: FuncVariables | None = self.function_data(addr)
         if raw_func_data is None:
             return None
 
@@ -798,11 +825,11 @@ class IntegrationManager:
         new_stack_vars: list[RebasedStackVariable] = []
 
         frame_sp: int = frame.sp()
-        frame_start: Optional[int] = frame.start()
+        frame_start: int | None = frame.start()
 
         for stack_var in raw_func_data.stack_vars:
-            from_sp: Optional[int] = stack_var.from_sp
-            from_frame: Optional[int] = stack_var.from_frame
+            from_sp: int | None = stack_var.from_sp
+            from_frame: int | None = stack_var.from_frame
 
             # We do not account for a stack going upwards. If you have that you have bigger issues.
 
@@ -835,8 +862,8 @@ class IntegrationManager:
         """
 
         # The function will take care of connection checking etc.
-        rebased_func_data: Optional[RebasedFuncVariables] = (
-            self.get_function_vars_rebased_from_frame(frame)
+        rebased_func_data: RebasedFuncVariables | None = self.get_function_vars_rebased_from_frame(
+            frame
         )
         if not rebased_func_data:
             return {}
@@ -881,7 +908,7 @@ class IntegrationManager:
 
         return result
 
-    def decompile_pretty(self, mapped_addr: int, nlines: int) -> Optional[list[str]]:
+    def decompile_pretty(self, mapped_addr: int, nlines: int) -> list[str] | None:
         """
         Get the prettified decompilation of a function.
 
@@ -895,7 +922,7 @@ class IntegrationManager:
         if self._connection is None:
             return None
 
-        func_decomp: Optional[FuncDecompilationResult] = self.decompile_raw(mapped_addr)
+        func_decomp: FuncDecompilationResult | None = self.decompile_raw(mapped_addr)
 
         if func_decomp is None:
             return None
@@ -936,7 +963,7 @@ class IntegrationManager:
         return formatted_decomp
 
     @pwndbg.lib.cache.cache_until("stop")
-    def symbol_at_address(self, mapped_addr: int) -> Optional[str]:
+    def symbol_at_address(self, mapped_addr: int) -> str | None:
         """
         Returns name of a symbol (function or global variable) at given address,
         or None if there is nothing there.
@@ -947,8 +974,8 @@ class IntegrationManager:
         if self._connection is None:
             return None
 
-        global_vars: Optional[GlobalVariables] = self.global_vars()
-        func_headers: Optional[FunctionHeaders] = self.function_headers()
+        global_vars: GlobalVariables | None = self.global_vars()
+        func_headers: FunctionHeaders | None = self.function_headers()
 
         if func_headers:
             # Binary search since the array is guaranteed to be sorted.
@@ -970,7 +997,7 @@ class IntegrationManager:
 
     # == Direct passthrough to the connection ==
 
-    def decompile_raw(self, mapped_addr: int) -> Optional[FuncDecompilationResult]:
+    def decompile_raw(self, mapped_addr: int) -> FuncDecompilationResult | None:
         """
         Returns the decompilation of the function which contains address `mapped_addr`.
 
@@ -982,7 +1009,7 @@ class IntegrationManager:
             return self._connection.decompile(mapped_addr)
         return None
 
-    def function_data(self, mapped_addr: int) -> Optional[FuncVariables]:
+    def function_data(self, mapped_addr: int) -> FuncVariables | None:
         """
         Returns the variables of the function which contains address `mapped_addr`.
 
@@ -1007,7 +1034,7 @@ class IntegrationManager:
         # Using .get() for the case when there is no connection and the key is not in the cache.
         return self._function_data.get(mapped_addr, None)
 
-    def function_headers(self) -> Optional[FunctionHeaders]:
+    def function_headers(self) -> FunctionHeaders | None:
         """
         Returns the name, address and size off all functions in the binary, sorted
         by address.
@@ -1016,7 +1043,7 @@ class IntegrationManager:
             self._function_headers = self._connection.function_headers()
         return self._function_headers
 
-    def global_vars(self) -> Optional[GlobalVariables]:
+    def global_vars(self) -> GlobalVariables | None:
         """
         Returns the name and address of all global variables in the binary, sorted
         by address.

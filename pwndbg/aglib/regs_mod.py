@@ -7,13 +7,9 @@ from __future__ import annotations
 
 import ctypes
 import re
+from collections.abc import Generator
+from collections.abc import Iterator
 from typing import Any
-from typing import Dict
-from typing import Generator
-from typing import Iterator
-from typing import List
-from typing import Set
-from typing import Tuple
 
 import pwndbg
 import pwndbg.aglib
@@ -34,8 +30,8 @@ ARCH_GET_GS = 0x1004
 
 
 class RegisterManager:
-    previous: Dict[str, int | None] = {}
-    last: Dict[str, int | None] = {}
+    previous: dict[str, int | None] = {}
+    last: dict[str, int | None] = {}
 
     @pwndbg.lib.cache.cache_until("stop")
     def regs_in_frame(self, frame: pwndbg.dbg_mod.Frame) -> pwndbg.dbg_mod.Registers:
@@ -158,11 +154,11 @@ class RegisterManager:
 
     # TODO: All these should be able to do self.current
     @property
-    def gpr(self) -> Tuple[str, ...]:
+    def gpr(self) -> tuple[str, ...]:
         return reg_sets[pwndbg.aglib.arch.name].gpr
 
     @property
-    def common(self) -> List[str]:
+    def common(self) -> list[str]:
         return reg_sets[pwndbg.aglib.arch.name].common
 
     @property
@@ -170,7 +166,7 @@ class RegisterManager:
         return reg_sets[pwndbg.aglib.arch.name].frame
 
     @property
-    def retaddr(self) -> Tuple[str, ...]:
+    def retaddr(self) -> tuple[str, ...]:
         return reg_sets[pwndbg.aglib.arch.name].retaddr
 
     @property
@@ -178,11 +174,11 @@ class RegisterManager:
         return reg_sets[pwndbg.aglib.arch.name].kernel
 
     @property
-    def flags(self) -> Dict[str, BitFlags]:
+    def flags(self) -> dict[str, BitFlags]:
         return reg_sets[pwndbg.aglib.arch.name].flags
 
     @property
-    def extra_flags(self) -> Dict[str, BitFlags]:
+    def extra_flags(self) -> dict[str, BitFlags]:
         return reg_sets[pwndbg.aglib.arch.name].extra_flags
 
     @property
@@ -194,7 +190,7 @@ class RegisterManager:
         return reg_sets[pwndbg.aglib.arch.name].retval
 
     @property
-    def all(self) -> Set[str]:
+    def all(self) -> set[str]:
         return reg_sets[pwndbg.aglib.arch.name].all
 
     def fix(self, expression: str) -> str:
@@ -208,15 +204,15 @@ class RegisterManager:
             expression = re.sub(rf"\$?\b{regname}\b", r"$" + regname, expression)
         return expression
 
-    def items(self) -> Generator[Tuple[str, Any], None, None]:
+    def items(self) -> Generator[tuple[str, Any], None, None]:
         for regname in self.all:
             yield regname, self.read_reg(regname)
 
     reg_sets = reg_sets
 
     @property
-    def changed(self) -> List[str]:
-        delta: List[str] = []
+    def changed(self) -> list[str]:
+        delta: list[str] = []
         for reg, value in self.previous.items():
             if self.read_reg(reg) != value:
                 delta.append(reg)

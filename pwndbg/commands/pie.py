@@ -19,7 +19,7 @@ def translate_addr(offset, module):
     if not pages:
         print(
             "There are no memory pages in `vmmap` "
-            "for specified address=0x%x and module=%s" % (offset, module)
+            f"for specified address=0x{offset:x} and module={module}"
         )
         return
 
@@ -29,8 +29,8 @@ def translate_addr(offset, module):
 
     if not any(addr in p for p in pages):
         print(
-            "Offset 0x%x rebased to module %s as 0x%x is beyond module's "
-            "memory pages:" % (offset, module, addr)
+            f"Offset 0x{offset:x} rebased to module {module} as 0x{addr:x} is beyond module's "
+            "memory pages:"
         )
         for p in pages:
             print(p)
@@ -87,7 +87,7 @@ if pwndbg.dbg.is_gdblib_available():
         addr = translate_addr(offset, module)
 
         if addr is not None:
-            spec = "*%#x" % (addr)
+            spec = f"*{addr:#x}"
             gdb.Breakpoint(spec)
         else:
             print(message.error("Could not determine rebased breakpoint address on current target"))

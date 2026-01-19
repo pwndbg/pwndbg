@@ -10,13 +10,10 @@ import functools
 import sys
 from collections import defaultdict
 from collections import deque
+from collections.abc import Callable
 from functools import partial
 from functools import wraps
 from typing import Any
-from typing import Callable
-from typing import Deque
-from typing import Dict
-from typing import List
 from typing import TypeVar
 
 import gdb
@@ -68,7 +65,7 @@ T = TypeVar("T")
 # capture this so that we can fire off all of the 'start' events first.
 class StartEvent:
     def __init__(self) -> None:
-        self.registered: List[Callable[..., Any]] = []
+        self.registered: list[Callable[..., Any]] = []
         self.running = False
 
     def connect(self, function: Callable[..., Any]) -> None:
@@ -118,7 +115,7 @@ def _is_safe_event_thread():
     return True
 
 
-queued_events: Deque[Callable[..., Any]] = deque()
+queued_events: deque[Callable[..., Any]] = deque()
 executing_event = False
 workaround_thread_conn = None
 
@@ -258,7 +255,7 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
 
 # In order to support reloading, we must be able to re-fire
 # all 'objfile' and 'stop' events.
-registered: Dict[gdb.EventRegistry[Any], Dict[EventHandlerPriority, List[Callable[..., None]]]] = {
+registered: dict[gdb.EventRegistry[Any], dict[EventHandlerPriority, list[Callable[..., None]]]] = {
     gdb.events.exited: {},
     gdb.events.cont: {},
     gdb.events.new_objfile: {},
@@ -341,7 +338,7 @@ def log_objfiles(ofile: gdb.NewObjFileEvent | None = None) -> None:
 
     name = ofile.new_objfile.filename
 
-    print("objfile: %r" % name)
+    print(f"objfile: {name!r}")
     gdb.execute("info sharedlibrary")
     return None
 

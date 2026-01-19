@@ -2,10 +2,7 @@ from __future__ import annotations
 
 import argparse
 import logging
-from typing import Iterator
-from typing import List
-from typing import Optional
-from typing import Tuple
+from collections.abc import Iterator
 
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
@@ -100,7 +97,7 @@ class BinderVisitor:
     # TODO: do this in a cleaner, object-oriented way
     def _format_field(
         self,
-        field: Optional[str] = None,
+        field: str | None = None,
         value: pwndbg.dbg_mod.Value | str = "",
         only_heading: bool = True,
     ) -> str:
@@ -167,7 +164,7 @@ class BinderVisitor:
 
         return self._format_indent(output)
 
-    def format_rb_tree(self, field: str, value: pwndbg.dbg_mod.Value) -> Tuple[str, int]:
+    def format_rb_tree(self, field: str, value: pwndbg.dbg_mod.Value) -> tuple[str, int]:
         res = []
 
         node_type = node_types[field]
@@ -191,7 +188,7 @@ class BinderVisitor:
 
     def format_list(
         self, field: str, value: pwndbg.dbg_mod.Value, typename: str
-    ) -> Tuple[str, int]:
+    ) -> tuple[str, int]:
         res = []
 
         node_type = node_types[field]
@@ -221,7 +218,7 @@ class BinderVisitor:
         return "\n" + "\n".join(res), len(res)
 
     def _format_fields(
-        self, obj: pwndbg.dbg_mod.Value, fields: List[str], only_heading: bool = True
+        self, obj: pwndbg.dbg_mod.Value, fields: list[str], only_heading: bool = True
     ) -> str:
         res = []
         for field in fields:
@@ -237,7 +234,7 @@ class BinderVisitor:
         res = []
         res.append(
             self._format_heading(
-                "binder_proc", "PID %s" % proc["pid"].value_to_human_readable(), int(proc)
+                "binder_proc", "PID {}".format(proc["pid"].value_to_human_readable()), int(proc)
             )
         )
 
@@ -264,7 +261,9 @@ class BinderVisitor:
         res = []
         res.append(
             self._format_heading(
-                "binder_thread", "PID %s" % thread["pid"].value_to_human_readable(), int(thread)
+                "binder_thread",
+                "PID {}".format(thread["pid"].value_to_human_readable()),
+                int(thread),
             )
         )
 
@@ -288,7 +287,7 @@ class BinderVisitor:
         res.append(
             self._format_heading(
                 "binder_transaction",
-                "ID %s" % transaction["debug_id"].value_to_human_readable(),
+                "ID {}".format(transaction["debug_id"].value_to_human_readable()),
                 int(transaction),
             )
         )
@@ -339,7 +338,9 @@ class BinderVisitor:
         res = []
         res.append(
             self._format_heading(
-                "binder_ref", "HANDLE %s" % ref["data"]["desc"].value_to_human_readable(), int(ref)
+                "binder_ref",
+                "HANDLE {}".format(ref["data"]["desc"].value_to_human_readable()),
+                int(ref),
             )
         )
 

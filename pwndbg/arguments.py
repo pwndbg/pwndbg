@@ -8,9 +8,6 @@ registers and stack values.
 from __future__ import annotations
 
 import re
-from typing import List
-from typing import Optional
-from typing import Tuple
 
 from capstone import CS_GRP_INT
 
@@ -32,7 +29,7 @@ from pwndbg.lib.functions import Function
 from pwndbg.lib.functions import format_flags_argument
 
 
-def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argument, int]]:
+def get(instruction: PwndbgInstruction) -> list[tuple[pwndbg.lib.functions.Argument, int]]:
     """
     Returns an array containing the arguments to the current function,
     if $pc is a function call or syscall instruction.
@@ -83,7 +80,7 @@ def get(instruction: PwndbgInstruction) -> List[Tuple[pwndbg.lib.functions.Argum
         name = name.replace("_chk", "")
         name = name.strip().lstrip("_")  # _malloc
 
-    func: Optional[Function] = None
+    func: Function | None = None
     if pwndbg.aglib.arch.platform == Platform.DARWIN:
         # Try to resolve an Objective-C method call.
         #
@@ -143,7 +140,7 @@ def argname(n: int, abi: pwndbg.lib.abi.ABI) -> str:
     if n < len(regs):
         return regs[n]
 
-    return "arg[%i]" % n
+    return f"arg[{n}]"
 
 
 def argument(n: int, abi: pwndbg.lib.abi.ABI | None = None) -> int:
@@ -201,7 +198,7 @@ FILE_DESCRIPTOR_ARG_NAMES = {
 }
 
 
-def format_args(instruction: PwndbgInstruction) -> List[str]:
+def format_args(instruction: PwndbgInstruction) -> list[str]:
     result = []
     for arg, value in get(instruction):
         code = arg.type != "char"
@@ -216,9 +213,10 @@ def format_args(instruction: PwndbgInstruction) -> List[str]:
             # Cannot find PID of the QEMU program: perhaps it is in a different pid namespace or we have no permission to read the QEMU process' /proc/$pid/fd/$fd file.
             pid = pwndbg.aglib.proc.pid()
             if pid is not None:
-                path = pwndbg.aglib.file.readlink("/proc/%d/fd/%d" % (pid, value))
+                path = pwndbg.aglib.file.readlink(f"/proc/{pid}/fd/{value}")
                 if path:
                     pretty += f" ({path})"
 
-        result.append("%-10s %s" % (N.argument(arg.name) + ":", pretty))
+        result.append(f"{N.argument(arg.name) + ':':<10} {pretty}")
+
     return result

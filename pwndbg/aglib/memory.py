@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict
-from typing import Set
 from typing import Union
 
 import pwndbg.aglib
@@ -13,7 +11,7 @@ from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import TypeCode
 from pwndbg.lib.memory import PAGE_SIZE
 
-GdbDict = Dict[str, Union["GdbDict", int]]
+GdbDict = dict[str, Union["GdbDict", int]]
 
 
 MMAP_MIN_ADDR = 0x8000
@@ -368,8 +366,8 @@ def update_min_addr() -> None:
 def fetch_struct_as_dictionary(
     struct_name: str,
     struct_address: int | pwndbg.dbg_mod.Value,
-    include_only_fields: Set[str] | None = None,
-    exclude_fields: Set[str] | None = None,
+    include_only_fields: set[str] | None = None,
+    exclude_fields: set[str] | None = None,
 ) -> GdbDict:
     fetched_struct = get_typed_pointer_value("struct " + struct_name, struct_address)
     return pack_struct_into_dictionary(fetched_struct, include_only_fields, exclude_fields)
@@ -377,8 +375,8 @@ def fetch_struct_as_dictionary(
 
 def pack_struct_into_dictionary(
     fetched_struct: pwndbg.dbg_mod.Value,
-    include_only_fields: Set[str] | None = None,
-    exclude_fields: Set[str] | None = None,
+    include_only_fields: set[str] | None = None,
+    exclude_fields: set[str] | None = None,
 ) -> GdbDict:
     struct_as_dictionary = {}
 
@@ -416,7 +414,7 @@ def convert_pwndbg_value_to_python_value(dbg_value: pwndbg.dbg_mod.Value) -> int
     raise NotImplementedError
 
 
-def resolve_renamed_struct_field(struct_name: str, possible_field_names: Set[str]) -> str:
+def resolve_renamed_struct_field(struct_name: str, possible_field_names: set[str]) -> str:
     struct_types = pwndbg.dbg.selected_inferior().types_with_name(f"struct {struct_name}")
     if len(struct_types) == 0:
         raise pwndbg.dbg_mod.Error(f"could not find type 'struct {struct_name}'")

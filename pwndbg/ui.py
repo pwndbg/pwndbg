@@ -34,12 +34,7 @@ def banner(title, target=sys.stdout, width=None, extra=""):
     if width is None:
         _height, width = get_window_size(target)
     if title:
-        title = "{}{}{}{}".format(
-            config.banner_title_surrounding_left,
-            ctx_color.banner_title(title),
-            extra,
-            config.banner_title_surrounding_right,
-        )
+        title = f"{config.banner_title_surrounding_left}{ctx_color.banner_title(title)}{extra}{config.banner_title_surrounding_right}"
     if "left" == title_position:
         banner = ljust_colored(title, width, str(config.banner_separator))
     elif "right" == title_position:

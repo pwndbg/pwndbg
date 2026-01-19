@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from typing import Tuple
 
 import pwndbg.aglib.file
 import pwndbg.aglib.proc
@@ -14,7 +13,7 @@ if pwndbg.dbg.is_gdblib_available():
     import gdb
 
 
-def check_aslr() -> Tuple[bool | None, str]:
+def check_aslr() -> tuple[bool | None, str]:
     """
     Detects the ASLR status. Returns True, False or None.
 
@@ -35,7 +34,7 @@ def check_aslr() -> Tuple[bool | None, str]:
     # Check the personality of the process
     if pwndbg.aglib.proc.alive():
         try:
-            data = pwndbg.aglib.file.get("/proc/%i/personality" % pwndbg.aglib.proc.tid())
+            data = pwndbg.aglib.file.get(f"/proc/{pwndbg.aglib.proc.tid()}/personality")
             personality = int(data, 16)
             return (personality & 0x40000 == 0), "read status from process' personality"
         except Exception:

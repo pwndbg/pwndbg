@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import Tuple
-
 import pwndbg.aglib.kernel
 
 
-def find_dmabuf_offsets(dmabuf) -> Tuple[int, int, int]:
+def find_dmabuf_offsets(dmabuf) -> tuple[int, int, int]:
     MAX = 0x30
     sg_table_off, exp_name_off, list_node_off = None, None, None
     ptrsize = pwndbg.aglib.arch.ptrsize

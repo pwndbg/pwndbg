@@ -108,8 +108,7 @@ def probeleak(
     if count > address > 0x10000:  # in case someone puts in an end address and not a count (smh)
         print(
             message.warn(
-                "Warning: you gave an end address, not a count. Subtracting 0x%x from the count."
-                % (address)
+                f"Warning: you gave an end address, not a count. Subtracting 0x{address:x} from the count."
             )
         )
         count -= address
@@ -147,23 +146,16 @@ def probeleak(
                 mod_name = "[anon]"
 
             if p >= page.end:
-                right_text = "({}) {} + 0x{:x} + 0x{:x} (outside of the page)".format(
-                    page.permstr,
-                    mod_name,
-                    page.memsz,
-                    p - page.end,
-                )
+                right_text = f"({page.permstr}) {mod_name} + 0x{page.memsz:x} + 0x{p - page.end:x} (outside of the page)"
             elif p < page.start:
-                right_text = "({}) {} - 0x{:x} (outside of the page)".format(
-                    page.permstr,
-                    mod_name,
-                    page.start - p,
+                right_text = (
+                    f"({page.permstr}) {mod_name} - 0x{page.start - p:x} (outside of the page)"
                 )
             else:
                 right_text = f"({page.permstr}) {mod_name} + 0x{p - page.start:x}"
 
-            offset_text = "0x%0*x" % (off_zeros, i)
-            p_text = "0x%0*x" % (int(ptrsize * 2), p)
+            offset_text = f"0x{i:0{off_zeros}x}"
+            p_text = f"0x{p:0{int(ptrsize * 2)}x}"
             text = f"{offset_text}: {mem_color.get(p, text=p_text)} = {mem_color.get(p, text=right_text)}"
 
             symbol = pwndbg.aglib.symbol.resolve_addr(p)
