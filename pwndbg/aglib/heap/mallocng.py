@@ -154,30 +154,30 @@ class Slot:
         self.p: int = p
 
         # == The p header fields.
-        self._offset: int = None
+        self._offset: int | None = None
         # p[-3]. Stores lot's of different kinds of
         # information.
-        self._pn3: int = None
-        self._idx: int = None
-        self._reserved_hd: int = None
-        self._big_offset_check: int = None
+        self._pn3: int | None = None
+        self._idx: int | None = None
+        self._reserved_hd: int | None = None
+        self._big_offset_check: int | None = None
         # ==
 
         # == The footer fields.
-        self._reserved_ft: int = None
+        self._reserved_ft: int | None = None
         # ==
 
         # == The start header fields.
-        self._start: int = None
-        self._cyclic_offset: int = None
+        self._start: int | None = None
+        self._cyclic_offset: int | None = None
         # start[-3]. Stores whether we are cyclic.
-        self._startn3: int = None
+        self._startn3: int | None = None
         # ==
 
-        self._reserved: int = None
-        self._group: Group = None
-        self._meta: Meta = None
-        self._slot_state: SlotState = None
+        self._reserved: int | None = None
+        self._group: Group | None = None
+        self._meta: Meta | None = None
+        self._slot_state: SlotState | None = None
 
     def preload(self) -> None:
         """
@@ -490,7 +490,7 @@ class Slot:
             # the meta if the state is ALLOCATED.
             # We will do a heuristic check that should be good in most cases.
 
-            meta_says: SlotState = None
+            meta_says: SlotState | None = None
             try:
                 meta_says = self.meta.slotstate_at_index(self.idx)
             except pwndbg.dbg_mod.Error:
@@ -557,11 +557,11 @@ class Slot:
         if sn3 == 224:
             off = memory.u16(start - 2)
             obj = cls(start + off * UNIT)
-            obj._sn3 = sn3
+            obj._startn3 = sn3
         else:
             # freed / avail slots will also go into this branch.
             obj = cls(start)
-            obj._sn3 = obj._pn3 = sn3
+            obj._startn3 = obj._pn3 = sn3
 
         obj._start = start
 
@@ -622,17 +622,17 @@ class Meta:
     def __init__(self, addr: int) -> None:
         self.addr: int = addr
 
-        self._prev: int = None
-        self._next: int = None
-        self._mem: int = None
-        self._avail_mask: int = None
-        self._freed_mask: int = None
-        self._last_idx: int = None
-        self._freeable: int = None
-        self._sizeclass: int = None
-        self._maplen: int = None
+        self._prev: int | None = None
+        self._next: int | None = None
+        self._mem: int | None = None
+        self._avail_mask: int | None = None
+        self._freed_mask: int | None = None
+        self._last_idx: int | None = None
+        self._freeable: int | None = None
+        self._sizeclass: int | None = None
+        self._maplen: int | None = None
 
-        self._stride: int = None
+        self._stride: int | None = None
 
     def preload(self) -> None:
         """
@@ -1140,6 +1140,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             # Whoever called init_if_needed() needs to use the Mallocng
             # class, which needs an up-to-date view of __malloc_context,
             # so we will update it here.
+            assert self.ctx is not None, "Init was finished but self.ctx is not initialized?"
             self.ctx.load()
             return True
 
@@ -1163,8 +1164,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         """
         uint64size = pwndbg.aglib.typeinfo.uint64.sizeof
 
-        self.ctx_addr = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
-        if self.ctx_addr is not None:
+        ctx_addr_maybe: int | None = pwndbg.aglib.symbol.lookup_symbol_addr("__malloc_context")
+        if ctx_addr_maybe is not None:
+            self.ctx_addr = ctx_addr_maybe
             self.has_debug_syms = True
             self.ctx = MallocContext(self.ctx_addr)
             return
@@ -1197,11 +1199,13 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
             if any(sm in stack_page for stack_page in thread_stacks):
                 continue
 
-            mapping_name = pwndbg.aglib.vmmap.find(sm).objfile
-            if "[heap" in mapping_name:
+            mapping = pwndbg.aglib.vmmap.find(sm)
+            if mapping is None:
+                continue
+            if "[heap" in mapping.objfile:
                 continue
 
-            possible.append((sm, mapping_name))
+            possible.append((sm, mapping.objfile))
 
         if not possible:
             print(message.error("Couldn't find __malloc_context, even with heuristic."))
@@ -1315,6 +1319,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
 
         Returns (None, None) if nothing is found.
         """
+        if self.ctx is None:
+            raise AssertionError("You didn't initialize ng.")
+
         metadata_offset = IB if metadata else 0
         # The group which contains a slot which contains `address`.
         hit_group: Group | None = None
@@ -1339,7 +1346,15 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                     if not meta.mem:
                         # Skip unused metas.
                         continue
+                except pwndbg.dbg_mod.Error as e:
+                    print(
+                        message.error(
+                            f"Mallocng.containing: Could not read/parse meta.({e}), skipping it.."
+                        )
+                    )
+                    continue
 
+                try:
                     group = Group(meta.mem)
                     group.set_meta(meta)
 
@@ -1464,6 +1479,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         Returns:
             A dictionary that maps: meta address -> (meta index in list, Meta object).
         """
+        if self.ctx is None:
+            raise AssertionError("You didn't initialize ng.")
+
         if self.ctx.free_meta_head == 0:
             return {}
 
@@ -1490,6 +1508,9 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         """
         Checks whether a meta is available.
         """
+        if self.ctx is None:
+            raise AssertionError("You didn't initialize ng.")
+
         # It seems all available metas are contiguous.
         # https://elixir.bootlin.com/musl/v1.2.5/source/src/malloc/mallocng/malloc.c#L109
         return (

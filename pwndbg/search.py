@@ -12,7 +12,7 @@ import pwndbg.lib.memory
 
 
 def search(
-    searchfor: bytes,
+    searchfor: bytes | bytearray,
     mappings: Collection[pwndbg.lib.memory.Page] | None = None,
     start: int | None = None,
     end: int | None = None,

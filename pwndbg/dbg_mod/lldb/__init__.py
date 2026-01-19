@@ -279,6 +279,8 @@ class LLDBFrame(pwndbg.dbg_mod.Frame):
         import pwndbg.aglib
 
         # https://lldb.llvm.org/python_api/lldb.SBFrame.html#lldb.SBFrame.GetCFA
+        # FIXME: Sometimes returns the middle of the stack frame??
+        # https://github.com/pwndbg/pwndbg/issues/3634
         val = self.inner.GetCFA()
         if val == lldb.LLDB_INVALID_ADDRESS:
             return None

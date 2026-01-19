@@ -210,39 +210,30 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
 
     @override
     def sp(self) -> int:
-        # We're gonna use a little trick to prevent an expensive register read.
-        # e.g. `str(self.inner) == "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"`
-        # See gdb/python/py-frame.c:frapy_str() and gdb/frame.c:frame_id::to_string()
-        # They really could just expose .stack() as an API...
-        str_id = str(self.inner)
-        if "stack=0x" in str_id:
-            return int(str_id.partition("stack=")[2].partition(",")[0], 16)
-        else:
-            # We got "!stack", "stack=<unavailable>", "stack=<sentinel>" or "stack=<outer>".
-            # Not sure what sp will actually resolve to here...
-            return int(self.regs().by_name("sp"))
+        # I don't see this exposed anywhere in the API nor in `info frame`, so we will have
+        # to read from the inferior. `sp` is resolved by GDB to the architecture-specific stack pointer.
+        return int(self.regs().by_name("sp"))
 
     def start(self) -> int | None:
         # How is it possible that this isn't in the API?
         # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
         import pwndbg.aglib
 
-        # It is possible that self.inner is not the frame selected in the debugger, so we will save
-        # the selected frame, move gdb to this frame, do `info frame`, and then restore the selected frame.
-        with selection(self.inner, lambda: gdb.selected_frame(), lambda f: f.select()):
-            try:
-                frame_txt: str = gdb.execute("info frame", to_string=True)
-                match = re.search(r"frame at (0x[0-9a-fA-F]+):", frame_txt)
-                if match:
-                    frame_addr = int(match.group(1), 16)
-                    # Happens often at the entry point
-                    if frame_addr == 0:
-                        return None
-                    # GDB for some reason returns one ptr past retaddr
-                    return frame_addr - pwndbg.aglib.arch.ptrsize
-                return None
-            except gdb.error as e:
-                raise pwndbg.dbg_mod.Error(e)
+        # We're gonna parse this:.
+        # e.g. `str(self.inner) == "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"`
+        # See gdb/python/py-frame.c:frapy_str() and gdb/frame.c:frame_id::to_string()
+        # They really could just expose .stack() as an API...
+        # We could have also chosen to parse `gdb.execute("info frame")`.
+
+        str_id = str(self.inner)
+        if "stack=0x" in str_id:
+            # GDB for some reason returns one ptr past retaddr
+            return (
+                int(str_id.partition("stack=")[2].partition(",")[0], 16) - pwndbg.aglib.arch.ptrsize
+            )
+        else:
+            # We got "!stack", "stack=<unavailable>", "stack=<sentinel>" or "stack=<outer>".
+            return None
 
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
@@ -307,6 +298,7 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             code_addr == -1 means code_addr_p == 0
             special_addr == -1 means special_addr_p == 0
         Note that artificial_depth == 0 means invalid.
+        Note that stack_addr is the start of the stack, not the value of the stack pointer.
         """
         # See gdb/frame-id.h and gdb/frame.c:frame_id::to_string().
         # This obviously isn't guaranteed to be stable, but looking at the blame
