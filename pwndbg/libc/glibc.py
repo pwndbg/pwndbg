@@ -125,13 +125,10 @@ def verify_libc_candidate(mapping_name: str) -> bool:
         # https://elixir.bootlin.com/glibc/glibc-2.3/source/include/libc-symbols.h#L642
         # https://elixir.bootlin.com/glibc/glibc-2.3/source/stdlib/exit.c#L84
         # and I don't see it in other libc's.
-        if (
+        return (
             pwndbg.aglib.symbol.lookup_symbol("__GI_exit", objfile_endswith=mapping_name)
             is not None
-        ):
-            return True
-        else:
-            return False
+        )
     else:
         # We don't have internal symbols so we will use a more expensive (?) check:
         rodata: tuple[int, int, bytes] | None = pwndbg.aglib.elf.section_by_name(
