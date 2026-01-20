@@ -140,12 +140,10 @@ def typeinfo_recovery(
     return decorator
 
 
-@requires_debug_symbols("nr_cpu_ids", default=1)
 @pwndbg.lib.cache.cache_until("stop")
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
-    val = pwndbg.aglib.kernel.symbol.try_usymbol("nr_cpu_ids", 32)
-    return val or 1
+    return len(pwndbg.dbg.selected_inferior().send_monitor("info cpus").splitlines())
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -743,7 +741,7 @@ def map_idr() -> pwndbg.dbg_mod.Value:
     return None
 
 
-def current_task(cpu: int | None = None) -> pwndbg.dbg_mod.Value:
+def current_task(cpu: int | None = None) -> int:
     if (syms := arch_symbols()) is not None:
         return syms.current_task(cpu)
     return None

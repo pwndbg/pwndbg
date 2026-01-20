@@ -117,8 +117,9 @@ def kversion_cint(kversion: tuple[int, int, int] | None = None) -> int | None:
     return ((x) * 65536) + ((y) * 256) + (z)
 
 
-def get_double_linked_list(head: int, minlen: int = 0x5, maxlen: int = 0x1000) -> list[int] | None:
-    # None is not a doubly linked list
+def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -> list[int] | None:
+    # head is a pointer to the double linked list
+    # None if not a doubly linked list
     if not pwndbg.aglib.memory.is_kernel(head):
         return None
     nxt = head
@@ -411,7 +412,7 @@ class ArchSymbols:
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
     @pwndbg.lib.cache.cache_until("stop")
-    def current_task(self, cpu: int | None) -> pwndbg.dbg_mod.Value:
+    def current_task(self, cpu: int | None) -> int:
         # using symbols usually yield incorrect results
         if pwndbg.aglib.arch.name == "aarch64":
             current_task = self._current_task()
@@ -421,7 +422,7 @@ class ArchSymbols:
                 current_task = pwndbg.aglib.kernel.per_cpu(current_task, cpu=cpu)
                 # current_task is int but needed here to make the linter happy
                 current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
-        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
+        return current_task
 
     @pwndbg.lib.cache.cache_until("stop")
     def init_task(self) -> pwndbg.dbg_mod.Value:

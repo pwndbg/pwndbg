@@ -194,7 +194,7 @@ class Kthread:
 
     def __str__(self) -> str:
         prefix = str(pwndbg.config.backtrace_prefix)
-        if int(pwndbg.aglib.kernel.current_task()) != int(self.thread):
+        if pwndbg.aglib.kernel.current_task() != int(self.thread):
             prefix = " " * len(prefix)
         prefix = color.blue(prefix)
         thread = color.blue(hex(int(self.thread)))
@@ -202,7 +202,7 @@ class Kthread:
         pid = color.blue(f"{pid:<11}")
         cpu = "[cpu: -]"  # not scheduled on a cpu
         for i in range(pwndbg.aglib.kernel.nproc()):
-            if int(pwndbg.aglib.kernel.current_task(i)) == int(self.thread):
+            if pwndbg.aglib.kernel.current_task(i) == int(self.thread):
                 cpu = f"[cpu: {i}]"
         cpulen = 7 + len(str(pwndbg.aglib.kernel.nproc() - 1))
         cpu = color.red(f"{cpu:<{cpulen}}")
@@ -237,7 +237,7 @@ def get_ktasks() -> tuple[Ktask, ...]:
     try:
         seen = set()
         for i in range(0, pwndbg.aglib.kernel.nproc()):
-            task = int(pwndbg.aglib.kernel.current_task(i))
+            task = pwndbg.aglib.kernel.current_task(i)
             seen.add(task)
             tasks.append(Ktask(task))
         init_task = pwndbg.aglib.kernel.init_task()

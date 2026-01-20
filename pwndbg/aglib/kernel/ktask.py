@@ -41,13 +41,11 @@ def get_tasks_offset(mm_offset: int) -> tuple[list[int], int]:
         tasks_offset -= ptrsize * 8
     tasks = None
     for i in range(pwndbg.aglib.kernel.nproc()):
-        task = int(pwndbg.aglib.kernel.current_task(i))
-        tasks = pwndbg.aglib.kernel.symbol.get_double_linked_list(task + tasks_offset)
+        task = pwndbg.aglib.kernel.current_task(i)
+        tasks = pwndbg.aglib.kernel.symbol.get_double_linked_list(task + tasks_offset, minlen=5)
         if tasks is not None:
             break
-    assert tasks, (
-        f"cannot find the tasks double linked list: (task: {hex(task)}, mm_offset: {hex(mm_offset)})"
-    )
+    assert tasks, f"cannot find the tasks double linked list: mm_offset: {hex(mm_offset)})"
     tasks = [task - tasks_offset for task in tasks]
     return tasks, tasks_offset
 
@@ -76,6 +74,48 @@ def get_mm_offset(task: int) -> int:
         # we actually found active_mm instead
         mm_offset -= ptrsize
     return mm_offset
+
+
+def get_vma_and_maple_tree_struct(mm: int) -> tuple[int, str]:
+    return 0, ""
+
+
+def get_vm_area_struct(mm: int) -> str:
+    if mm == 0:
+        return ""
+    result = ""
+    maple_tree = ""
+    kversion = pwndbg.aglib.kernel.krelease()
+    vma: int
+    if not kversion or kversion >= (6, 1):
+        vma, maple_tree = get_vma_and_maple_tree_struct(mm)
+    else:
+        vma = pwndbg.aglib.memory.read_pointer_width(mm)
+    if maple_tree:
+        result += maple_tree
+    if not vma:
+        return ""
+    off = 0
+    if not off:
+        return ""
+    result += f"""
+    struct vm_area_struct {{
+        union {{
+            struct {{
+                unsigned long vm_start;
+                unsigned long vm_end;
+#if KVERSION >= KERNEL_VERSION(6, 1, 0)
+                struct vm_area_struct *vm_next, *vm_prev;
+#endif
+            }};
+            struct {{
+                char _pad[{off}];
+                struct file *vm_file;
+            }};
+        }};
+    }};
+    """
+    return result
 
 
 def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
@@ -110,13 +150,37 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
             break
     assert pgd_offset, f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(active_mm)})"
 
-    return f"""
+    result = ""
+    for task in tasks:
+        mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset)
+        if s := get_vm_area_struct(mm):
+            result += s
+            break
+        active_mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
+        if s := get_vm_area_struct(active_mm):
+            result += s
+            break
+
+    result += f"""
     struct mm_struct {{
-        char _pad1[{pgd_offset}];
-        void *pgd;
+        union {{
+#if 0
+#if KVERSION >= KERNEL_VERSION(6, 1, 0)
+            atomic_t mm_count;
+            struct maple_tree mm_mt;
+#else
+            struct vm_area_struct *mmap;
+#endif
+#endif
+            struct {{
+                char _pad1[{pgd_offset}];
+                void *pgd;
+            }};
+        }};
         /* don't care about the rest */
     }};
     """
+    return result
 
 
 """
@@ -167,8 +231,8 @@ ROOT_COMM = "swapper/"
 
 def get_pid_offset(tasks: list[int], mm_offset: int, comm_offset: int) -> int:
     maxpid = 0x400000 if pwndbg.aglib.arch.ptrsize == 8 else 0x8000
-    seen = set()
     for i in range(0x20):
+        seen = set()
         off = mm_offset + i * pwndbg.aglib.arch.ptrsize
         for task in tasks[1:]:
             try:
@@ -184,7 +248,9 @@ def get_pid_offset(tasks: list[int], mm_offset: int, comm_offset: int) -> int:
             seen.add(pid)
         else:
             return off
-    raise AssertionError("cannot find the offset of task_struct->pid")
+    raise AssertionError(
+        f"cannot find the offset of task_struct->pid (mm_offset = {hex(mm_offset)}, comm_offset = {hex(comm_offset)})"
+    )
 
 
 def get_thread_list_offset(pid_offset: int):
@@ -690,7 +756,7 @@ def get_sp_offset(tasks: list[int], stack_offset: int, comm_offset: int) -> int:
 
 @pwndbg.aglib.kernel.typeinfo_recovery("struct task_struct", kversion=True, kbase=True)
 def load_ktask_typeinfo() -> str:
-    task = int(pwndbg.aglib.kernel.current_task())
+    task = pwndbg.aglib.kernel.current_task()
     mm_offset = get_mm_offset(task)
     tasks, tasks_offset = get_tasks_offset(mm_offset)
     mm_struct = get_mm_struct(tasks, mm_offset)
