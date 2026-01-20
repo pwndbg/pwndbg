@@ -117,29 +117,6 @@ def kversion_cint(kversion: tuple[int, int, int] | None = None) -> int | None:
     return ((x) * 65536) + ((y) * 256) + (z)
 
 
-def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -> list[int] | None:
-    # head is a pointer to the double linked list
-    # None if not a doubly linked list
-    if not pwndbg.aglib.memory.is_kernel(head):
-        return None
-    nxt = head
-    result = []
-    for _ in range(maxlen):
-        if not pwndbg.aglib.memory.is_kernel(nxt):
-            return None
-        result.append(nxt)
-        nxt = pwndbg.aglib.memory.read_pointer_width(nxt)
-        if nxt == result[0]:
-            break
-    if nxt != result[0]:
-        return None
-    for i, nxt in enumerate(result):
-        p = pwndbg.aglib.memory.read_pointer_width(nxt + pwndbg.aglib.arch.ptrsize)
-        if p != result[i - 1]:
-            return None
-    return result
-
-
 #########################################
 # common structurs
 #

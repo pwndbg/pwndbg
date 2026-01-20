@@ -274,6 +274,41 @@ def current_cpu() -> int:
     return pwndbg.dbg.selected_thread().index() - 1
 
 
+def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -> list[int] | None:
+    # head is a pointer to the double linked list
+    # None if not a doubly linked list
+    if not pwndbg.aglib.memory.is_kernel(head):
+        return None
+    nxt = head
+    result = []
+    for _ in range(maxlen):
+        if not pwndbg.aglib.memory.is_kernel(nxt):
+            return None
+        result.append(nxt)
+        nxt = pwndbg.aglib.memory.read_pointer_width(nxt)
+        if nxt == result[0]:
+            break
+    if nxt != result[0]:
+        return None
+    for i, nxt in enumerate(result):
+        p = pwndbg.aglib.memory.read_pointer_width(nxt + pwndbg.aglib.arch.ptrsize)
+        if p != result[i - 1]:
+            return None
+    return result
+
+
+def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
+    # name is a substr of any of the target caches' names
+    try:
+        cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+        if strict:
+            return name == cache.name
+        return name in cache.name
+    except Exception:
+        pass
+    return False
+
+
 class ArchOps(ABC):
     # More information on the physical memory model of the Linux kernel and
     # especially the mapping between pages and page frame numbers (pfn) can

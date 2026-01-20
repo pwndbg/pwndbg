@@ -8,6 +8,11 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 
 
+class NextVmaFinder:
+    def __init__(self, mm: int) -> None:
+        self.mm = mm
+
+
 def get_stack_offset(tasks: list[int]) -> int:
     ptrsize = pwndbg.aglib.arch.ptrsize
     for i in range(0x10):
@@ -42,7 +47,7 @@ def get_tasks_offset(mm_offset: int) -> tuple[list[int], int]:
     tasks = None
     for i in range(pwndbg.aglib.kernel.nproc()):
         task = pwndbg.aglib.kernel.current_task(i)
-        tasks = pwndbg.aglib.kernel.symbol.get_double_linked_list(task + tasks_offset, minlen=5)
+        tasks = pwndbg.aglib.kernel.get_double_linked_list(task + tasks_offset, minlen=5)
         if tasks is not None:
             break
     assert tasks, f"cannot find the tasks double linked list: mm_offset: {hex(mm_offset)})"
@@ -55,22 +60,15 @@ def get_mm_offset(task: int) -> int:
     ptrsize = pwndbg.aglib.arch.ptrsize
     for i in range(0x200):
         off = i * ptrsize
-        try:
-            val = pwndbg.aglib.memory.read_pointer_width(task + off)
-            cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
-            if "mm_struct" == cache.name:
-                mm_offset = off
-                break
-        except Exception:
-            pass
+        val = pwndbg.aglib.memory.read_pointer_width(task + off)
+        if pwndbg.aglib.kernel.in_kmem_cache(val, "mm_struct"):
+            mm_offset = off
+            break
     assert mm_offset, (
         f"cound not find the offset of task_struct->mm: (task: {hex(task)}, mm_offset: {hex(mm_offset)})"
     )
-    try:
-        mm_active = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
-        cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(mm_active)
-        assert cache.name == "mm_struct"
-    except Exception:
+    mm_active = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
+    if not pwndbg.aglib.kernel.in_kmem_cache(mm_active, "mm_active"):
         # we actually found active_mm instead
         mm_offset -= ptrsize
     return mm_offset
@@ -81,22 +79,21 @@ def get_vma_and_maple_tree_struct(mm: int) -> tuple[int, str]:
 
 
 def get_vm_area_struct(mm: int) -> str:
+    ptrsize = pwndbg.aglib.arch.ptrsize
     if mm == 0:
         return ""
     result = ""
-    maple_tree = ""
-    kversion = pwndbg.aglib.kernel.krelease()
-    vma: int
-    if not kversion or kversion >= (6, 1):
-        vma, maple_tree = get_vma_and_maple_tree_struct(mm)
-    else:
-        vma = pwndbg.aglib.memory.read_pointer_width(mm)
-    if maple_tree:
-        result += maple_tree
-    if not vma:
-        return ""
-    off = 0
-    if not off:
+    off = None
+    vmafinder = [0]
+    for vma in vmafinder:
+        for i in range(6, 0x10):
+            val = pwndbg.aglib.memory.read_pointer_width(mm + i * ptrsize)
+            if pwndbg.aglib.kernel.in_kmem_cache(val, "filp"):
+                off = i * ptrsize
+                break
+        if off is not None:
+            break
+    if off is None:
         return ""
     result += f"""
     struct vm_area_struct {{
@@ -104,9 +101,6 @@ def get_vm_area_struct(mm: int) -> str:
             struct {{
                 unsigned long vm_start;
                 unsigned long vm_end;
-#if KVERSION >= KERNEL_VERSION(6, 1, 0)
-                struct vm_area_struct *vm_next, *vm_prev;
-#endif
             }};
             struct {{
                 char _pad[{off}];
@@ -153,29 +147,15 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
     result = ""
     for task in tasks:
         mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset)
-        if s := get_vm_area_struct(mm):
-            result += s
-            break
-        active_mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
-        if s := get_vm_area_struct(active_mm):
+        if s := get_vm_area_struct(mm):  # only check user task
             result += s
             break
 
     result += f"""
     struct mm_struct {{
-        union {{
-#if 0
-#if KVERSION >= KERNEL_VERSION(6, 1, 0)
-            atomic_t mm_count;
-            struct maple_tree mm_mt;
-#else
-            struct vm_area_struct *mmap;
-#endif
-#endif
-            struct {{
-                char _pad1[{pgd_offset}];
-                void *pgd;
-            }};
+        struct {{
+            char _pad1[{pgd_offset}];
+            void *pgd;
         }};
         /* don't care about the rest */
     }};
@@ -534,13 +514,9 @@ def get_file_struct(file: int | None) -> str:
         fmode_offset = ptrsize * 2 + 8
         for i in range(2, 0x20):
             val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
-            try:
-                cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
-                if "inode" in cache.name:
-                    inode_offset = (i - 2) * ptrsize
-                    break
-            except Exception:
-                pass
+            if pwndbg.aglib.kernel.in_kmem_cache(val, "inode", strict=False):
+                inode_offset = (i - 2) * ptrsize
+                break
         for i in range(2 * ptrsize, inode_offset, 4):
             if pwndbg.aglib.memory.u32(file + i) == 0xE0003:  # usually the fmode of stdin/out/err
                 fmode_offset = i
@@ -574,14 +550,10 @@ def get_file_struct(file: int | None) -> str:
         off = 0
         for i in range(7, 0x20):
             val = pwndbg.aglib.memory.read_pointer_width(file + i * ptrsize)
-            try:
-                cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
-                if "cred" in cache.name:
-                    off = i * ptrsize
-                    off += ptrsize + (0x10 + ptrsize * 2) + 8  # f_cred, f_ra, f_version
-                    break
-            except Exception:
-                pass
+            if pwndbg.aglib.kernel.in_kmem_cache(val, "cred_jar"):
+                off = i * ptrsize
+                off += ptrsize + (0x10 + ptrsize * 2) + 8  # f_cred, f_ra, f_version
+                break
         fmode_offset = 6 * ptrsize + 8 + ptrsize + 4
         for i in range(6 * ptrsize, off, 4):
             if pwndbg.aglib.memory.u32(file + i) == 0xE0003:  # usually the fmode of stdin/out/err
