@@ -90,7 +90,8 @@ jobs:
             ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0},mode=max', matrix.images) || '' }} \
             -f $DOCKERFILE \
             --build-arg image=$BASE_IMAGE \
-            -t ${{ matrix.images }}:latest \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.images }}-amd64 \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.images }} \
             .
       
       - name: Run GDB Tests on ${{ matrix.images }}
@@ -155,7 +156,8 @@ jobs:
             ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0}-arm64,mode=max', matrix.images) || '' }} \
             -f $DOCKERFILE \
             --build-arg image=$BASE_IMAGE \
-            -t ${{ matrix.images }}:latest \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.images }}-arm64 \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.images }} \
             .
       
       - name: Run Cross Tests on GDB on ${{ matrix.images }}
@@ -170,3 +172,45 @@ jobs:
       - name: Push full image to registry
         if: github.event_name == 'push'
         run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.images }}-arm64
+
+  create_manifest:
+    needs: [docker_x86-64, docker_aarch64]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Multi-arch images
+          - images: ubuntu24.04
+            arch_tags: "-amd64 -arm64"
+          - images: fedora41
+            arch_tags: "-amd64 -arm64"
+          - images: fedora42
+            arch_tags: "-amd64 -arm64"
+          - images: fedora43
+            arch_tags: "-amd64 -arm64"
+          # amd64-only images
+          - images: ubuntu22.04
+            arch_tags: "-amd64"
+          - images: debian12
+            arch_tags: "-amd64"
+          - images: archlinux
+            arch_tags: "-amd64"
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push manifest
+        run: |
+          IMAGES=""
+          for tag in ${{ matrix.arch_tags }}; do
+            IMAGES="$IMAGES ghcr.io/pwndbg/pwndbg:${{ matrix.images }}$tag"
+          done
+          docker buildx imagetools create -t ghcr.io/pwndbg/pwndbg:${{ matrix.images }} $IMAGES
