@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+import pwndbg
+import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
@@ -11,6 +13,7 @@ import pwndbg.color.context as ctx_color
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.ktask
+from pwndbg.aglib.disasm.arch import DisassemblyAssistant
 from pwndbg.lib.exception import IndentContextManager
 from pwndbg.lib.regs import BitFlags
 
@@ -76,17 +79,21 @@ def kstack(pid: int = None) -> None:
     indent.print(task)
     if not task.stack:
         indent.print(message.warn("task has no stack"))
+        return
     with indent:
         indent.print(color.yellow("stack") + " @ " + pwndbg.chain.format(task.stack))
         canary = task.canary
         if canary:
             indent.print(color.red("canary") + f" = {canary:#x}")
-        regs = task.pt_regs()
+        regs, syscall_reg = task.pt_regs()
         if regs:
             namelen = max(len(reg) for reg, _ in regs)
             for reg, val in regs:
+                _val = pwndbg.chain.format(val)
+                if reg == syscall_reg:
+                    _val += f" ({color.red(DisassemblyAssistant._syscall_name(val))})"
                 reg = f"{reg:<{namelen}}"
-                indent.print(color.red(reg) + " = " + pwndbg.chain.format(val))
+                indent.print(color.red(reg) + " = " + _val)
 
 
 parser = argparse.ArgumentParser(
@@ -120,7 +127,7 @@ def kfile(pid: int = None, fd: int = None) -> None:
             path = color.yellow(pwndbg.aglib.kernel.ktask.get_filepath(file))
             with indent:
                 indent.print(
-                    f"private: {indent.addr_hex(private_data)}, fmode: {flags}, path: {path}"
+                    f"private: {indent.addr_hex(private_data)}, flags: {flags}, path: {path}"
                 )
 
 

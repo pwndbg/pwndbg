@@ -234,6 +234,7 @@ def print_bpf_maps(verbose):
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
+@pwndbg.commands.WarnOnKernelConfigRandstruct
 def kbpf(verbose: int, print_progs: bool, print_maps: bool) -> None:
     if not pwndbg.aglib.kernel.bpf.load_bpf_typeinfo():
         return

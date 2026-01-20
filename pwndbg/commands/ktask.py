@@ -42,7 +42,7 @@ class pt_regs_x86_64(ctypes.Structure):
         ("rip", ctypes.c_ulong),
         ("cs", ctypes.c_uint64),
         ("flags", ctypes.c_ulong),
-        ("sp", ctypes.c_ulong),
+        ("rsp", ctypes.c_ulong),
         ("ss", ctypes.c_uint64),
     ]
 
@@ -84,8 +84,7 @@ class pt_regs_aarch64(ctypes.Structure):
         ("pc", ctypes.c_uint64),
         ("pstate", ctypes.c_uint64),
         ("orig_x0", ctypes.c_uint64),
-        ("syscallno", ctypes.c_int32),
-        ("unused", ctypes.c_int32),
+        ("syscallno", ctypes.c_int32),  # ends at offset 0x11c but the struct is 0x120 bytes
     ]
 
 
@@ -157,28 +156,31 @@ class Kthread:
     def gid(self) -> int:
         return int(self.thread["cred"]["gid"]["val"])
 
-    def pt_regs(self) -> list[tuple[str, int]] | None:
+    def pt_regs(self) -> tuple[list[tuple[str, int]] | None, str | None]:
         if not self.stack or not self.user_task:
             # pt_regs may not be saved at the end of the stack if otherwise
-            return None
-        pt_regs = None
+            return None, None
+        pt_regs = syscall_reg = None
         match pwndbg.aglib.arch.name:
             case "x86-64":
                 pt_regs = pt_regs_x86_64
                 sz = ctypes.sizeof(pt_regs)
+                # the name is differnet than the canonical name
+                syscall_reg = "orig_ax"
             case "aarch64":
                 pt_regs = pt_regs_aarch64
                 sz = ctypes.sizeof(pt_regs) + 0x20
                 kversion = pwndbg.aglib.kernel.krelease()
                 if kversion and (5, 10) <= kversion < (6, 18):
                     sz += 0x10
+                syscall_reg = "syscallno"
             case _:
                 raise NotImplementedError()
         page = pwndbg.aglib.vmmap.find(self.stack)
         start = page.end - sz
         regs = pt_regs.from_buffer_copy(pwndbg.aglib.memory.read(start, sz))
-        regs = [(name, int(getattr(regs, name))) for name, *_ in regs._fields_[:-1]]
-        return regs
+        regs = [(name, int(getattr(regs, name))) for name, *_ in regs._fields_]
+        return regs, syscall_reg
 
     def __str__(self) -> str:
         prefix = str(pwndbg.config.backtrace_prefix)

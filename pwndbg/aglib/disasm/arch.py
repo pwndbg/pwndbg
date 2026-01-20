@@ -594,11 +594,13 @@ class DisassemblyAssistant:
             )
 
     @staticmethod
-    def _syscall_name(number: int, arch: str) -> str | None:
+    def _syscall_name(number: int, arch: str | None = None) -> str | None:
         """
         Given a syscall number and architecture, returns the name of the syscall.
         E.g. execve == 59 on x86-64
         """
+        if arch is None:
+            arch = pwndbg.aglib.arch.name
         arch_module = {
             "arm": linux.arm,
             "armcm": linux.arm,

@@ -78,8 +78,6 @@ class PageTableScan:
         --> around 45-65% of the time is used to read qemu system memory depending on arch and kernel
             (the theoratical limit would be that all time consumed is used for reading memory)
         --> 2.35x speed up for x64 and more than 10x speed up for aarch64
-        one caveat is that it occasionally show unmapped (checked with pagewalk) vmalloc regions
-        but that happens for gdb-pt-dump as well
         """
         entry &= self.PAGE_ENTRY_MASK
         if (entry, self.paging_level) not in self.cache:
@@ -94,7 +92,8 @@ class PageTableScan:
             if is_kernel:
                 nbits = self.ptrsize * 8 - kernel_prefix_shift
                 offset += ((1 << nbits) - 1) << kernel_prefix_shift
-            if curr and offset in curr and flags == curr.flags:
+            if curr and offset == curr.end and flags == curr.flags:
+                # merge contiguous chunks
                 curr.memsz = max(curr.memsz, offset + size - curr.start)
             else:
                 if curr:
@@ -124,9 +123,8 @@ class PageTableScan:
         prev = 0 if self.arch == "x86-64" else None
         for i, entry in enumerate(entries):
             if prev and prev == entry:
-                offset += size
-                continue
-            if entry == 0:
+                pass
+            elif entry == 0:
                 if curr_off is not None:
                     append((curr_off, curr_sz, curr_flags))
                     curr_off = None
@@ -160,17 +158,29 @@ class PageTableScan:
                     # each time the level is decremented, garanteed to terminate
                     self._scan(addr, level - 1)
                 arr = self.cache[key]
+                # The following if-blocks are purely for optimization purposes
+                # coalesce as much as we can
                 left, n = 0, len(arr)
-                if n > 0:
-                    r = arr[0]
+                right = n - 1
+                if n > 0:  # merge the first page chunk range if needed
                     if curr_off is not None:
-                        if r[2] == curr_flags:
-                            curr_sz += r[1]
+                        roff, rsz, rflags = arr[0]
+                        # is the first non-zero entry actually the first (0 th) entry?
+                        if rflags == curr_flags and roff == 0:
+                            curr_sz += rsz
                             left += 1
+                if n > 1:  # (prepare to) merge the first page chunk range if needed
+                    # if n == 1, last == first which is handled by the previous if-block
+                    if curr_off is not None:
+                        # don't do this if n == 1 because we may want to coalesce further
                         append((curr_off, curr_sz, curr_flags))
-                    r = arr[n - 1]
-                    curr_off, curr_sz, curr_flags = offset + r[0], r[1], r[2]
-                for roff, rsz, rflags in arr[left : n - 1]:
+                        curr_off = None
+                    roff, rsz, rflags = arr[n - 1]
+                    # is the last non-zero entry actually the last (e.g. 511 th) entry?
+                    if roff + rsz == size:
+                        curr_off, curr_sz, curr_flags = offset + roff, rsz, rflags
+                        right -= 1
+                for roff, rsz, rflags in arr[left : right + 1]:
                     append((offset + roff, rsz, rflags))
             offset += size
             if prev is not None:
@@ -208,7 +218,7 @@ class PageTableScan:
             addr, offset_mask = resolved
             result.phys = addr + (target & offset_mask)
             result.entry = entry
-        result.levels = levels
+        result.levels = tuple(levels)
         return result
 
 
@@ -684,6 +694,8 @@ class Aarch64PagingInfo(ArchPagingInfo):
     @pwndbg.lib.cache.cache_until("stop")
     def ksize(self) -> int:
         start = pwndbg.aglib.symbol.lookup_symbol_addr("_text")
+        if start is None:
+            start = self.kbase
         end = pwndbg.aglib.symbol.lookup_symbol_addr("_end")
         if start is not None and end is not None:
             return end - start
@@ -810,7 +822,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             page = pages[i]
             if self.module_start and self.module_start <= page.start < self.kbase:
                 page.objfile = self.KERNELDRIVER
-            elif page.start >= self.kbase:
+            elif self.kbase <= page.start < self.kbase + self.ksize:
                 page.objfile = self.KERNELLAND
                 if not page.execute:
                     if page.write:
