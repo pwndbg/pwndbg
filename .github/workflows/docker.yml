@@ -102,6 +102,10 @@ jobs:
       - name: Run DBG Tests on LLDB on ${{ matrix.images }}
         run: docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
 
+      - name: Push full image to registry
+        if: github.event_name == 'push'
+        run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.images }}-arm64
+
   docker_aarch64:
     strategy:
       fail-fast: false
@@ -162,3 +166,7 @@ jobs:
       
       - name: Run DBG Tests on LLDB on ${{ matrix.images }}
         run: docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
+
+      - name: Push full image to registry
+        if: github.event_name == 'push'
+        run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.images }}-arm64
