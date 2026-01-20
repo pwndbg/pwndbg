@@ -15,8 +15,10 @@ on:
       - '.github/workflows/base-image.yml'
 
 concurrency:
+  # Pushes (dev): queue sequentially (prevent cache corruption)
+  # PRs: cancel old commits (only test latest)
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

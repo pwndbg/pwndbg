@@ -25,20 +25,21 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
+# Fix for BuildKit PAM error for fedora41 tests: https://github.com/docker/build-push-action/issues/1302
+RUN printf '#!/bin/sh\nexec "$@"' > /usr/local/bin/sudo && \
+    chmod +x /usr/local/bin/sudo
+
 # setup.sh needs scripts/common.sh
 COPY ./scripts/common.sh /pwndbg/scripts/
 
-COPY ./setup.sh /pwndbg/
 COPY ./uv.lock /pwndbg/
 COPY ./pyproject.toml /pwndbg/
 
 # pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 
-# fix for py3.14 because wheels aren't available so packages need to be built
-# RUN dnf install -y uv git python3-devel patch ncurses-devel gcc
 # RUN uv sync --all-groups --all-extras
-RUN dnf install -y uv git python3-devel patch ncurses-devel gcc g++
+COPY ./setup.sh /pwndbg/
 RUN ./setup.sh
 
 # Comment these lines if you won't run the tests.

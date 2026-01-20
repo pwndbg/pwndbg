@@ -1,11 +1,32 @@
 name: Test Docker
+
 on:
+  push:
+    branches:
+      - dev
+    paths:
+      - 'Dockerfile*'
+      - 'setup.sh'
+      - 'setup-dev.sh'
+      - 'uv.lock'
+      - 'pyproject.toml'
+      - '.github/workflows/docker.yml'
   pull_request:
     paths:
       - "**"
       - "!mkdocs.yml"
       - "!docs/**"
       - "!*.md"
+
+concurrency:
+  # Pushes (dev): queue sequentially (prevent cache corruption)
+  # PRs: cancel old commits (only test latest)
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   docker_x86-64:
@@ -18,21 +39,68 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-
-      - name: Docker Build ${{ matrix.images }}
-        run: docker compose build ${{ matrix.images }}
-
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Docker Buildx ${{ matrix.images }} (cache-enabled)
+        run: |
+          case "${{ matrix.images }}" in
+            ubuntu22.04)
+              DOCKERFILE="Dockerfile"
+              BASE_IMAGE="ubuntu:22.04"
+              ;;
+            ubuntu24.04)
+              DOCKERFILE="Dockerfile"
+              BASE_IMAGE="ubuntu:24.04"
+              ;;
+            debian12)
+              DOCKERFILE="Dockerfile"
+              BASE_IMAGE="debian:12"
+              ;;
+            archlinux)
+              DOCKERFILE="Dockerfile.arch"
+              BASE_IMAGE="archlinux:latest"
+              ;;
+            fedora41)
+              DOCKERFILE="Dockerfile.dnf"
+              BASE_IMAGE="fedora:41"
+              ;;
+            fedora42)
+              DOCKERFILE="Dockerfile.dnf"
+              BASE_IMAGE="fedora:42"
+              ;;
+            fedora43)
+              DOCKERFILE="Dockerfile.dnf"
+              BASE_IMAGE="fedora:43"
+              ;;
+          esac
+          
+          docker buildx build \
+            --load \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.images }} \
+            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0},mode=max', matrix.images) || '' }} \
+            -f $DOCKERFILE \
+            --build-arg image=$BASE_IMAGE \
+            -t ${{ matrix.images }}:latest \
+            .
+      
       - name: Run GDB Tests on ${{ matrix.images }}
-        run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g gdb
-
+        run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g gdb
+      
       - name: Run DBG Tests on GDB on ${{ matrix.images }}
-        run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
-
+        run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
+      
       - name: Run DBG Tests on LLDB on ${{ matrix.images }}
-        run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
+        run: docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
 
   docker_aarch64:
     strategy:
@@ -44,18 +112,53 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-
-      - name: Docker Build ${{ matrix.images }}
-        run: docker compose build ${{ matrix.images }}
-
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Docker Buildx ${{ matrix.images }} (cache-enabled)
+        run: |
+          case "${{ matrix.images }}" in
+            ubuntu24.04)
+              DOCKERFILE="Dockerfile"
+              BASE_IMAGE="ubuntu:24.04"
+              ;;
+            fedora41)
+              DOCKERFILE="Dockerfile.dnf"
+              BASE_IMAGE="fedora:41"
+              ;;
+            fedora42)
+              DOCKERFILE="Dockerfile.dnf"
+              BASE_IMAGE="fedora:42"
+              ;;
+            fedora43)
+              DOCKERFILE="Dockerfile.dnf"
+              BASE_IMAGE="fedora:43"
+              ;;
+          esac
+          
+          docker buildx build \
+            --load \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.images }}-arm64 \
+            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0}-arm64,mode=max', matrix.images) || '' }} \
+            -f $DOCKERFILE \
+            --build-arg image=$BASE_IMAGE \
+            -t ${{ matrix.images }}:latest \
+            .
+      
       - name: Run Cross Tests on GDB on ${{ matrix.images }}
-        run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g cross-arch-user
-
+        run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g cross-arch-user
+      
       - name: Run DBG Tests on GDB on ${{ matrix.images }}
-        run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
-
+        run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
+      
       - name: Run DBG Tests on LLDB on ${{ matrix.images }}
-        run: |
-          docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
+        run: docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg

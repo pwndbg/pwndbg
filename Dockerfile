@@ -27,13 +27,13 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # setup.sh needs scripts/common.sh
 COPY ./scripts/common.sh /pwndbg/scripts/
 
-COPY ./setup.sh /pwndbg/
 COPY ./uv.lock /pwndbg/
 COPY ./pyproject.toml /pwndbg/
 
 # pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
 
+COPY ./setup.sh /pwndbg/
 RUN DEBIAN_FRONTEND=noninteractive ./setup.sh
 
 # Comment these lines if you won't run the tests.
