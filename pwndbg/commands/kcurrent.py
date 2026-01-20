@@ -35,9 +35,7 @@ def get_kcurrent() -> pwndbg.commands.ktask.Kthread | None:
     return None
 
 
-def select_kthread_from_pid(
-    pid: int | None, verbose: bool = True
-) -> pwndbg.commands.ktask.Kthread | None:
+def select_kthread_from_pid(pid: int | None) -> pwndbg.commands.ktask.Kthread | None:
     if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
         return None
     kthread = None
@@ -132,6 +130,26 @@ def kfile(pid: int = None, fd: int = None) -> None:
 
 
 parser = argparse.ArgumentParser(
+    description="Displays information about the namespcae of a kernel task."
+)
+parser.add_argument("pid", nargs="?", type=int, help="")
+
+
+@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
+@pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWhenPagingEnabled
+@pwndbg.commands.OnlyWithKernelSymbols
+def knamespace(pid: int) -> None:
+    thread = select_kthread_from_pid(pid)
+    if not thread:
+        return
+    indent.print(thread)
+    with indent:
+        for name, val in thread.nsproxy:
+            indent.print(color.yellow(name) + " @ " + pwndbg.chain.format(val))
+
+
+parser = argparse.ArgumentParser(
     description="""
     Displays the current kernel task debugged by the debugger (gdb/lldb) if pid == None
     Displays the task with pid if pid != None.
@@ -142,7 +160,7 @@ parser.add_argument(
     "--set",
     dest="set_pid",
     action="store_true",
-    help="sets the kernel task used for supported pwndbg commands (kfile, pagewalk, vmmap), this option does not change internal mem (purely effects how certain commands behaves)",
+    help="sets the kernel task used for supported pwndbg commands (kfile, kstack, knamespace, pagewalk, vmmap), this option does not change internal mem (purely effects how certain commands behaves)",
 )
 
 
@@ -151,11 +169,9 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.WarnOnKernelConfigRandstruct
-def kcurrent(pid: int = None, set_pid: bool = False, verbose: bool = True) -> None:
-    kthread = get_kcurrent()
-    if pid or not kthread:
-        kthread = select_kthread_from_pid(pid, verbose)
-    if verbose and kthread:
+def kcurrent(pid: int = None, set_pid: bool = False) -> None:
+    kthread = select_kthread_from_pid(pid)
+    if kthread:
         indent.print(kthread)
     if set_pid and kthread:
         global _KCURRENT

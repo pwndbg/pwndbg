@@ -36,7 +36,7 @@ def print_level(level: PageTableLevel):
     pageflags = pwndbg.aglib.kernel.arch_paginginfo().bitflags(level)
     flags = ""
     arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
-    name, entry, vaddr, idx = ptl.name, ptl.entry, ptl.virt, ptl.idx
+    name, entry, vaddr, idx = level.name, level.entry, level.virt, level.idx
     if pwndbg.aglib.arch.name == "x86-64":
         name = name.ljust(3, " ")
     nbits = pwndbg.aglib.kernel.arch_ops().page_shift - math.ceil(

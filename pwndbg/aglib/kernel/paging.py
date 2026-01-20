@@ -119,7 +119,7 @@ class PageTableScan:
         offset = 0
         # TODO: prev is used to avoid clustering the vmmap output with espfix ranges (happens for x86-64)
         # consecutive identical pt entries will be clapsed into one. None means not x86-64
-        # I believe this is what gdb-pt-dump does as this gives identical output for espfix
+        # I believe this is what gdb-pt-dump does as this gives identical output
         prev = 0 if self.arch == "x86-64" else None
         for i, entry in enumerate(entries):
             if prev and prev == entry:

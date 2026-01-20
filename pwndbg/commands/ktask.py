@@ -156,6 +156,16 @@ class Kthread:
     def gid(self) -> int:
         return int(self.thread["cred"]["gid"]["val"])
 
+    @property
+    def nsproxy(self) -> list[tuple[str, int]]:
+        proxy = self.thread["nsproxy"]
+        result = []
+        for ns in proxy.dereference().type.fields()[1:]:
+            name = ns.name
+            val = int(proxy[name])
+            result.append((f"{name:<20}", val))
+        return result
+
     def pt_regs(self) -> tuple[list[tuple[str, int]] | None, str | None]:
         if not self.stack or not self.user_task:
             # pt_regs may not be saved at the end of the stack if otherwise
