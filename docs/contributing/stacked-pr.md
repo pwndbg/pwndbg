@@ -92,3 +92,10 @@ Hopefully you got a "Successfully rebased and updated refs/heads/my-even-cooler-
 git push --force
 ```
 And finally, you remove the Draft status from your PR in the Github UI (you should leave the "Requires" line in the PR description). Thats all. Yeah, it's a bit of a dance :p.
+
+!!! note
+    Naturally, while `my-cool-branch` is being reviewed you will be pushing changes to it. Don't forget to keep your `my-even-cooler-branch` branch up to date by rebasing often:
+    ```{.bash .copy}
+    git switch my-even-cooler-branch
+    git rebase my-cool-branch
+    ```
