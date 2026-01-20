@@ -1,7 +1,7 @@
 # This dockerfile was created for development & testing purposes, for APT-based distro.
 #
 # Build as:
-#   docker build -f Dockerfile -t pwndbg .
+#   DOCKER_BUILDKIT=1 docker build -f Dockerfile -t pwndbg .
 #
 # To run use (we mount the directory so the host changes are reflected into container):
 #   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $(pwd):/pwndbg pwndbg bash
@@ -20,9 +20,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        locales vim && \
-    localedef -i en_US -c -f UTF-8 en_US.UTF-8 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+        locales vim ccache && \
+    localedef -i en_US -c -f UTF-8 en_US.UTF-8
 
 # setup.sh needs scripts/common.sh
 COPY ./scripts/common.sh /pwndbg/scripts/
@@ -38,7 +37,10 @@ RUN DEBIAN_FRONTEND=noninteractive ./setup.sh
 
 # Comment these lines if you won't run the tests.
 COPY ./setup-dev.sh /pwndbg/
-RUN ./setup-dev.sh
+RUN --mount=type=cache,id=ccache,target=/root/.ccache,sharing=locked \
+    CCACHE_DIR=/root/.ccache \
+    CC="ccache gcc" \
+    ./setup-dev.sh
 
 # Cleanup dummy files
 RUN rm README.md && rm -rf pwndbg
