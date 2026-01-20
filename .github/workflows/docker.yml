@@ -177,25 +177,6 @@ jobs:
     needs: [docker_x86-64, docker_aarch64]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          # Multi-arch images
-          - images: ubuntu24.04
-            arch_tags: "-amd64 -arm64"
-          - images: fedora41
-            arch_tags: "-amd64 -arm64"
-          - images: fedora42
-            arch_tags: "-amd64 -arm64"
-          - images: fedora43
-            arch_tags: "-amd64 -arm64"
-          # amd64-only images
-          - images: ubuntu22.04
-            arch_tags: "-amd64"
-          - images: debian12
-            arch_tags: "-amd64"
-          - images: archlinux
-            arch_tags: "-amd64"
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -207,10 +188,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create and push manifest
+      - name: Create and push manifests
         run: |
-          IMAGES=""
-          for tag in ${{ matrix.arch_tags }}; do
-            IMAGES="$IMAGES ghcr.io/pwndbg/pwndbg:${{ matrix.images }}$tag"
+          # Multi-arch images (amd64 + arm64)
+          for image in ubuntu24.04 fedora41 fedora42 fedora43; do
+            docker buildx imagetools create -t ghcr.io/monthly-recurring-revenue/pwndbg:$image \
+              ghcr.io/monthly-recurring-revenue/pwndbg:$image-amd64 \
+              ghcr.io/monthly-recurring-revenue/pwndbg:$image-arm64
           done
-          docker buildx imagetools create -t ghcr.io/pwndbg/pwndbg:${{ matrix.images }} $IMAGES
+
+          # amd64-only images
+          for image in ubuntu22.04 debian12 archlinux; do
+            docker buildx imagetools create -t ghcr.io/monthly-recurring-revenue/pwndbg:$image \
+              ghcr.io/monthly-recurring-revenue/pwndbg:$image-amd64
+          done
