@@ -71,17 +71,19 @@ def test_command_ksyscalls():
 
 
 def test_command_ktask():
-    if not pwndbg.aglib.kernel.has_debug_info():
-        res = gdb.execute("ktask", to_string=True)
-        assert "may only be run when debugging a Linux kernel with debug" in res
-        return
     res = gdb.execute("ktask", to_string=True)
     assert "task @" in res
+    res = gdb.execute("kcurrent", to_string=True)
+    assert "task @" in res
+    res = gdb.execute("kstack", to_string=True)
+    assert "canary =" in res
+    res = gdb.execute("knamespace", to_string=True)
+    assert "_ns" in res
     res = gdb.execute("kcurrent --set 1", to_string=True)
     assert "task @" in res
     if "not found" not in res:
-        res2 = gdb.execute("kfile", to_string=True)
-        assert res in res2
+        res = gdb.execute("kfile", to_string=True)
+        assert "fileno 1" in res
 
 
 def test_command_kversion():
