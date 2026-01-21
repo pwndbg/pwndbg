@@ -360,7 +360,7 @@ def set_visual_split(set_ins: PwndbgInstruction, check_ins: PwndbgInstruction, l
 
     set_ins is the instruction that we are modifying
 
-    checks_ins is the one used to check if a split is necessary.
+    checks_ins is the one used to check what type of split is necessary.
     The same as set_ins unless it's a delay slot.
     """
     if not linear and (
@@ -550,10 +550,7 @@ def near(
             if not cached_ins.call_like and (
                 cached_ins.is_unconditional_jump or cached_ins.is_conditional_jump_taken
             ):
-                insn.next = cached_ins.next
-
-                # if not cached_ins.call_like:
-                target = insn.next
+                target = insn.next = cached_ins.next
 
             set_visual_split(insn, cached_ins, linear)
 
