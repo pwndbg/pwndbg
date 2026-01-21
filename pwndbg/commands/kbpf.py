@@ -234,9 +234,10 @@ def print_bpf_maps(verbose):
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
-def kbpf(verbose: int, print_progs: bool, print_maps: bool):
-    if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.bpf.load_bpf_typeinfo()
+@pwndbg.commands.WarnOnKernelConfigRandstruct
+def kbpf(verbose: int, print_progs: bool, print_maps: bool) -> None:
+    if not pwndbg.aglib.kernel.bpf.load_bpf_typeinfo():
+        return
     if pwndbg.aglib.typeinfo.load("struct idr") is None:
         return
     if not print_progs and not print_maps:

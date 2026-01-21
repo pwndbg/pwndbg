@@ -141,7 +141,7 @@ class Lambda:
                 #       |                       ^~~~~~~~~
                 #  while parsing (u64)xmm0 >> 64 for argv[1]
 
-                bits = pwndbg.aglib.arch.ptrsize * 8
+                bits = pwndbg.aglib.arch.ptrbits
                 if XMM_SHIFT in obj:
                     obj = obj.replace(XMM_SHIFT + str(bits), f".v{128 // bits}_int{bits}[1]")
                 else:

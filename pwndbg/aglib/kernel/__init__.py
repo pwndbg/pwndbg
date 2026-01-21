@@ -18,13 +18,14 @@ import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
+import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
-from pwndbg.aglib.kernel.paging import PageTableLevel
+from pwndbg.aglib.kernel.paging import PagewalkResult
 
 _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
@@ -97,11 +98,52 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
     return decorator
 
 
-@requires_debug_symbols("nr_cpu_ids", default=1)
+def typeinfo_recovery(
+    name: str, kversion: bool = False, kbase: bool = False
+) -> Callable[[Callable[P, str]], Callable[P, bool]]:
+    def decorator(f: Callable[P, str]) -> Callable[P, bool]:
+        # returns true if the type exists or has been successfully recovered
+        @functools.wraps(f)
+        def func(*args: P.args, **kwargs: P.kwargs) -> bool:
+            if has_debug_info():
+                return True
+            if not has_debug_symbols():
+                # make sure the target is linux, should we specify symbols instead?
+                return False
+            if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
+                return True
+            if kversion and pwndbg.aglib.kernel.kversion() is None:
+                print(message.warn(f"recovering {name} failed because kversion is unavailable"))
+                return False
+            if kbase and pwndbg.aglib.kernel.kbase() is None:
+                print(message.warn(f"recovering {name} failed because kbase is unavailable"))
+                return False
+            # f(*args, **kwargs)
+            try:
+                result = f(*args, **kwargs)
+                header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
+                fname = name.split()[-1] + "_structs"
+                pwndbg.commands.cymbol.add_structure_from_header(header_file_path, fname, True)
+            except Exception as e:
+                print(message.warn(f"recovering {name} failed with error:\n{e}"))
+                if "CONFIG_RANSTRUCT" in pwndbg.aglib.kernel.kconfig():
+                    print(
+                        message.warn(
+                            "please note that some structs may not be recoverable when CONFIG_RANSTRUCT=y"
+                        )
+                    )
+                return False
+            return True
+
+        return func
+
+    return decorator
+
+
+@pwndbg.lib.cache.cache_until("stop")
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
-    val = pwndbg.aglib.kernel.symbol.try_usymbol("nr_cpu_ids", 32)
-    return val
+    return len(pwndbg.dbg.selected_inferior().send_monitor("info cpus").splitlines())
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -228,6 +270,45 @@ def get_idt_entries() -> list[pwndbg.lib.kernel.structs.IDTEntry]:
     return entries
 
 
+def current_cpu() -> int:
+    return pwndbg.dbg.selected_thread().index() - 1
+
+
+def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -> list[int] | None:
+    # head is a pointer to the double linked list
+    # None if not a doubly linked list
+    if not pwndbg.aglib.memory.is_kernel(head):
+        return None
+    nxt = head
+    result = []
+    for _ in range(maxlen):
+        if not pwndbg.aglib.memory.is_kernel(nxt):
+            return None
+        result.append(nxt)
+        nxt = pwndbg.aglib.memory.read_pointer_width(nxt)
+        if nxt == result[0]:
+            break
+    if nxt != result[0]:
+        return None
+    for i, nxt in enumerate(result):
+        p = pwndbg.aglib.memory.read_pointer_width(nxt + pwndbg.aglib.arch.ptrsize)
+        if p != result[i - 1]:
+            return None
+    return result
+
+
+def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
+    # name is a substr of any of the target caches' names
+    try:
+        cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+        if strict:
+            return name == cache.name
+        return name in cache.name
+    except Exception:
+        pass
+    return False
+
+
 class ArchOps(ABC):
     # More information on the physical memory model of the Linux kernel and
     # especially the mapping between pages and page frame numbers (pfn) can
@@ -295,10 +376,6 @@ class ArchOps(ABC):
         return arch_paginginfo().kbase
 
     @property
-    def ptr_size(self) -> int:
-        raise NotImplementedError()
-
-    @property
     def page_size(self) -> int:
         return 1 << self.page_shift
 
@@ -323,7 +400,7 @@ class ArchOps(ABC):
 
 class x86Ops(ArchOps):
     def phys_to_virt(self, phys: int) -> int:
-        return (phys + self.page_offset) % (1 << self.ptr_size)
+        return (phys + self.page_offset) % (1 << pwndbg.aglib.arch.ptrbits)
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
@@ -331,21 +408,12 @@ class x86Ops(ArchOps):
     def pfn_to_phys(self, pfn: int) -> int:
         return pfn << self.page_shift
 
-    @property
-    @abstractmethod
-    def ptr_size(self) -> int:
-        raise NotImplementedError()
-
     @staticmethod
     def paging_enabled() -> bool:
         return int(pwndbg.aglib.regs.read_reg("cr0")) & BIT(31) != 0
 
 
 class i386Ops(x86Ops):
-    @property
-    def ptr_size(self) -> int:
-        return 32
-
     def virt_to_phys(self, virt: int) -> int:
         return (virt - self.page_offset) % (1 << 32)
 
@@ -365,20 +433,16 @@ class x86_64Ops(x86Ops):
     def __init__(self) -> None:
         self.phys_base = 0x1000000
 
-    @property
-    def ptr_size(self) -> int:
-        return 64
-
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
     ) -> pwndbg.dbg_mod.Value:
         if cpu is None:
-            cpu = pwndbg.dbg.selected_thread().index() - 1
+            cpu = current_cpu()
 
         per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
 
-        offset = pwndbg.aglib.memory.u(per_cpu_offset + (cpu * 8))
+        offset = pwndbg.aglib.memory.read_pointer_width(per_cpu_offset + (cpu * 8))
         per_cpu_addr = (int(addr) + offset) % 2**64
         if isinstance(addr, pwndbg.dbg_mod.Value):
             return pwndbg.dbg.selected_inferior().create_value(per_cpu_addr, addr.type)
@@ -387,7 +451,7 @@ class x86_64Ops(x86Ops):
     def virt_to_phys(self, virt: int) -> int:
         if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
             # if not within physmap range, first find the physmap address
-            virt = pagewalk(virt)[0].virt
+            virt = pagewalk(virt).virt
         if virt is None:
             return None
         return virt - self.page_offset
@@ -404,16 +468,12 @@ class x86_64Ops(x86Ops):
 
 
 class Aarch64Ops(ArchOps):
-    @property
-    def ptr_size(self):
-        return 64
-
     @requires_debug_symbols("__per_cpu_offset", "nr_iowait_cpu", checkall=False)
     def per_cpu(
         self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
     ) -> pwndbg.dbg_mod.Value:
         if cpu is None:
-            cpu = pwndbg.dbg.selected_thread().index() - 1
+            cpu = current_cpu()
 
         per_cpu_offset = int(pwndbg.aglib.kernel.per_cpu_offset())
 
@@ -426,7 +486,7 @@ class Aarch64Ops(ArchOps):
     def virt_to_phys(self, virt: int) -> int:
         if not (pwndbg.aglib.memory.is_kernel(virt) and virt < arch_paginginfo().vmalloc):
             # if not within physmap range, first find the physmap address
-            virt = pagewalk(virt)[0].virt
+            virt = pagewalk(virt).virt
         if virt is None:
             return None
         return virt - self.page_offset + self.phys_offset
@@ -483,14 +543,6 @@ def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols | None:
     elif pwndbg.aglib.arch.name == "x86-64":
         return pwndbg.aglib.kernel.symbol.x86_64Symbols()
     return None
-
-
-def ptr_size() -> int:
-    ops = arch_ops()
-    if ops:
-        return ops.ptr_size
-    else:
-        raise NotImplementedError()
 
 
 def page_size() -> int:
@@ -615,19 +667,21 @@ def kbase() -> int | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry=None) -> tuple[PageTableLevel, ...]:
+def pagewalk(addr, entry: int = None, virt: bool = True) -> PagewalkResult:
+    # assumes entry is a valid physaddr (+ flags)
+    # the strategy is to walk any virtual pgd first
     pi = arch_paginginfo()
     if pi:
-        return pi.pagewalk(addr, entry)
+        return pi.pagewalk(addr, entry, virt)
     else:
         raise NotImplementedError()
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagetable_scan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
+def pagescan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
     pi = arch_paginginfo()
     if pi:
-        return tuple(pi.pagetable_scan(entry))
+        return tuple(pi.pagescan(entry))
     else:
         raise NotImplementedError()
 
@@ -722,7 +776,13 @@ def map_idr() -> pwndbg.dbg_mod.Value:
     return None
 
 
-def current_task() -> pwndbg.dbg_mod.Value:
+def current_task(cpu: int | None = None) -> int:
     if (syms := arch_symbols()) is not None:
-        return syms.current_task()
+        return syms.current_task(cpu)
+    return None
+
+
+def init_task() -> pwndbg.dbg_mod.Value:
+    if (syms := arch_symbols()) is not None:
+        return syms.init_task()
     return None

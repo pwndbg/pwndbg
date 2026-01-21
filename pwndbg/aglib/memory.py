@@ -232,7 +232,7 @@ def u(addr: int, size: int | None = None) -> int:
     to the pointer width.
     """
     if size is None:
-        size = pwndbg.aglib.arch.ptrsize * 8
+        size = pwndbg.aglib.arch.ptrbits
     return {8: u8, 16: u16, 32: u32, 64: u64}[size](addr)
 
 

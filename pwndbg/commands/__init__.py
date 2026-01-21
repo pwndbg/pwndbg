@@ -817,6 +817,19 @@ def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, T | None]:
     return _OnlyWhenPagingEnabled
 
 
+def WarnOnKernelConfigRandstruct(function: Callable[P, T]) -> Callable[P, T | None]:
+    @functools.wraps(function)
+    def _WarnOnKernelConfigRandstruct(*a: P.args, **kw: P.kwargs) -> T | None:
+        if (
+            not pwndbg.aglib.kernel.has_debug_info()
+            and "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig()
+        ):
+            log.warning("command output may be inaccurate because CONFIG_RANDSTRUCT=y")
+        return function(*a, **kw)
+
+    return _WarnOnKernelConfigRandstruct
+
+
 def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, T | None]:
     @functools.wraps(function)
     def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> T | None:

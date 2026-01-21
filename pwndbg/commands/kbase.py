@@ -28,7 +28,7 @@ def kbase(rebase=False, verbose=False) -> None:
         print(message.error("kbase does not work when kernel-vmmap is set to none"))
         return
 
-    base = pwndbg.aglib.kernel.arch_paginginfo().kbase
+    base = pwndbg.aglib.kernel.kbase()
 
     if base is None:
         print(message.error("Unable to locate the kernel base"))

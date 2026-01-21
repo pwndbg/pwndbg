@@ -9,6 +9,7 @@ import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.commands
 import pwndbg.lib.cache
+from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.dbg_mod import EventType
 
 #########################################
@@ -54,7 +55,7 @@ def try_usymbol(name: str, size: int | None = None) -> int | None:
             return None
 
         if size is None:
-            size = pwndbg.aglib.kernel.ptr_size()
+            size = pwndbg.aglib.arch.ptrbits
 
         if size == 8:
             return pwndbg.aglib.memory.u(symbol)
@@ -129,6 +130,7 @@ typedef char s8;
 typedef unsigned short u16;
 typedef unsigned int u32;
 typedef long long s64;
+typedef unsigned long u64;
 #define bool int
 #if UINTPTR_MAX == 0xffffffff
     typedef int16_t arch_word_t;
@@ -136,11 +138,24 @@ typedef long long s64;
     typedef int32_t arch_word_t;
 #endif
 typedef struct {
+    unsigned int val;
+} kuid_t;
+typedef struct {
+    unsigned int val;
+} kgid_t;
+typedef int pid_t;
+typedef struct {
     int counter;
 } atomic_t;
+typedef struct refcount_struct {
+	atomic_t refs;
+} refcount_t;
 
 struct list_head {
     struct list_head *next, *prev;
+};
+struct hlist_node {
+	struct hlist_node *next, **pprev;
 };
 struct kmem_cache;
 enum pageflags {
@@ -168,11 +183,8 @@ enum pageflags {
 """
 
 
-def load_common_structs() -> None:
-    if pwndbg.aglib.kernel.has_debug_info() or not kversion_cint():
-        return
-    if pwndbg.aglib.typeinfo.lookup_types("struct page") is not None:
-        return
+@pwndbg.aglib.kernel.typeinfo_recovery("struct page", kversion=True)
+def load_page_typeinfo() -> str:
     defs = []
     for config in (
         "CONFIG_MEMCG",
@@ -256,10 +268,7 @@ def load_common_structs() -> None:
 #endif
     };
     """
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(
-        header_file_path, "common_kernel_structs", True
-    )
+    return result
 
 
 @pwndbg.dbg.event_handler(EventType.NEW_MODULE)
@@ -267,11 +276,8 @@ def load_common_structs_on_load_linux() -> None:
     # basically want to be sure that the symbol file is a vmlinux with symbols
     # has_debug_symbols without args checks for `commit_creds`
     # load_common_structs would check if typeinfo has already been added (so doesnt readd)
-    if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.aglib.kernel.has_debug_symbols():
-        try:
-            load_common_structs()
-        except Exception:
-            pass
+    if pwndbg.aglib.qemu.is_qemu_kernel():
+        load_page_typeinfo()
 
 
 class ArchSymbols:
@@ -293,8 +299,15 @@ class ArchSymbols:
         sym = pwndbg.aglib.symbol.lookup_symbol(name)
         if sym is None:
             return None
-        disass = "\n".join(pwndbg.aglib.nearpc.nearpc(int(sym), lines=lines))
-        return pwndbg.color.strip(disass)
+        addr = int(sym)
+        disass = []
+        for _ in range(lines):
+            instr: PwndbgInstruction = pwndbg.aglib.disasm.disassembly.get_one_instruction(
+                addr, enhance=False
+            )
+            disass.append(instr.asm_string)
+            addr = instr.next
+        return "\n".join(disass)
 
     def regex(self, s: str, pattern: str, nth: int) -> re.Match[Any] | None:
         pattern = re.compile(pattern)
@@ -305,6 +318,7 @@ class ArchSymbols:
             return matches[nth]
         return None
 
+    @pwndbg.lib.cache.cache_until("stop")
     def node_data(self) -> pwndbg.dbg_mod.Value:
         node_data = pwndbg.aglib.symbol.lookup_symbol("node_data")
         if pwndbg.aglib.kernel.has_debug_info():
@@ -315,6 +329,7 @@ class ArchSymbols:
             node_data = self._node_data()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", node_data)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def slab_caches(self) -> pwndbg.dbg_mod.Value:
         slab_caches = pwndbg.aglib.symbol.lookup_symbol("slab_caches")
         if slab_caches is None and pwndbg.aglib.kernel.has_debug_symbols(
@@ -323,6 +338,7 @@ class ArchSymbols:
             slab_caches = self._slab_caches()
         return pwndbg.aglib.memory.get_typed_pointer_value("struct list_head", slab_caches)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def per_cpu_offset(self) -> pwndbg.dbg_mod.Value:
         per_cpu_offset = pwndbg.aglib.symbol.lookup_symbol("__per_cpu_offset")
         if per_cpu_offset is not None:
@@ -331,6 +347,7 @@ class ArchSymbols:
             per_cpu_offset = self._per_cpu_offset()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", per_cpu_offset)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def modules(self) -> pwndbg.dbg_mod.Value:
         modules = pwndbg.aglib.symbol.lookup_symbol("modules")
         if modules:
@@ -339,6 +356,7 @@ class ArchSymbols:
             modules = self._modules()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", modules)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def db_list(self) -> pwndbg.dbg_mod.Value:
         if pwndbg.aglib.kernel.krelease() >= (6, 10):
             debugfs_list = pwndbg.aglib.symbol.lookup_symbol("debugfs_list")
@@ -352,6 +370,7 @@ class ArchSymbols:
             db_list = self._db_list()
         return pwndbg.aglib.memory.get_typed_pointer("struct list_head", db_list)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def map_idr(self) -> pwndbg.dbg_mod.Value:
         map_idr = pwndbg.aglib.symbol.lookup_symbol("map_idr")
         if map_idr:
@@ -360,6 +379,7 @@ class ArchSymbols:
             map_idr = self._map_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", map_idr)
 
+    @pwndbg.lib.cache.cache_until("stop")
     def prog_idr(self) -> pwndbg.dbg_mod.Value:
         prog_idr = pwndbg.aglib.symbol.lookup_symbol("prog_idr")
         if prog_idr:
@@ -368,20 +388,25 @@ class ArchSymbols:
             prog_idr = self._prog_idr()
         return pwndbg.aglib.memory.get_typed_pointer("unsigned long", prog_idr)
 
-    def current_task(self) -> pwndbg.dbg_mod.Value:
-        current_task = pwndbg.aglib.symbol.lookup_symbol("current_task")
-        if current_task:
-            current_task = pwndbg.aglib.kernel.per_cpu(current_task)
-            return current_task.dereference()
+    @pwndbg.lib.cache.cache_until("stop")
+    def current_task(self, cpu: int | None) -> int:
+        # using symbols usually yield incorrect results
         if pwndbg.aglib.arch.name == "aarch64":
             current_task = self._current_task()
         elif pwndbg.aglib.kernel.has_debug_symbols(self.current_task_heuristic_func):
             current_task = self._current_task()
             if current_task is not None:
-                current_task = pwndbg.aglib.kernel.per_cpu(current_task)
-            # current_task is int but needed here to make the linter happy
-            current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
-        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", current_task)
+                current_task = pwndbg.aglib.kernel.per_cpu(current_task, cpu=cpu)
+                # current_task is int but needed here to make the linter happy
+                current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
+        return current_task
+
+    @pwndbg.lib.cache.cache_until("stop")
+    def init_task(self) -> pwndbg.dbg_mod.Value:
+        init_task = pwndbg.aglib.symbol.lookup_symbol("init_task")
+        if not init_task:
+            init_task = pwndbg.aglib.kernel.ktask.INIT_TASK
+        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", init_task)
 
     def _node_data(self) -> int | None:
         raise NotImplementedError()
@@ -498,8 +523,8 @@ class x86_64Symbols(ArchSymbols):
         result = self.dword_mov_reg_const(disass)
         if result is not None:
             return result
-        disass = self.disass(self.current_task_heuristic_func, lines=20)
-        return self.qword_op_reg_memoff(disass, op="mov", sign="+")
+        result = self.qword_mov_reg_const(disass)
+        return result
 
 
 class Aarch64Symbols(ArchSymbols):
