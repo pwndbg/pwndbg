@@ -192,6 +192,17 @@ class Kthread:
         regs = [(name, int(getattr(regs, name))) for name, *_ in regs._fields_]
         return regs, syscall_reg
 
+    @property
+    def user_stack(self) -> int | None:
+        pt_regs, _ = self.pt_regs()
+        if not pt_regs:
+            return None
+        stack_reg = pwndbg.aglib.regs.stack
+        for reg, val in pt_regs:
+            if stack_reg and stack_reg == reg:
+                return val
+        return None
+
     def __str__(self) -> str:
         prefix = str(pwndbg.config.backtrace_prefix)
         if pwndbg.aglib.kernel.current_task() != int(self.thread):

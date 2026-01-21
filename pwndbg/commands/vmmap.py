@@ -227,7 +227,7 @@ def vmmap(
     vmmap = pwndbg.aglib.vmmap.get_memory_map()
     if pwndbg.aglib.qemu.is_qemu_kernel():
         # called here so to not impact kernel_vmmap
-        vmmap = pwndbg.aglib.kernel.vmmap.KernelVmmap.annotate(vmmap)
+        pwndbg.aglib.kernel.vmmap.annotate(vmmap)
     total_pages = vmmap.ranges()
 
     # Filtered memory pages, indicated by a backtrace arrow in results

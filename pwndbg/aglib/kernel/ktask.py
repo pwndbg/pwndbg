@@ -9,8 +9,106 @@ import pwndbg.aglib.typeinfo
 
 
 class NextVmaFinder:
-    def __init__(self, mm: int) -> None:
+    def __init__(self, mm: int | pwndbg.dbg_mod.Value) -> None:
         self.mm = mm
+
+    def __iter__(self):
+        kversion = pwndbg.aglib.kernel.krelease()
+        if kversion and kversion < (6, 1):
+            return self.vma_struct_parse()
+        return self.maple_tree_parse()
+
+    def vma_struct_parse(self):
+        ptrsize = pwndbg.aglib.arch.ptrsize
+        cur = pwndbg.aglib.memory.read_pointer_width(int(self.mm))
+        while cur:
+            break
+            yield cur
+            next = pwndbg.aglib.memory.read_pointer_width(cur + ptrsize * 2)
+            if next == self.vma:
+                break
+            cur = next
+
+    def maple_tree_parse(self):
+        ptrsize = pwndbg.aglib.arch.ptrsize
+
+        MT_FLAGS_HEIGHT_MASK = 0x7C
+        MT_FLAGS_HEIGHT_OFFSET = 0x02
+        MAPLE_NODE_TYPE_SHIFT = 0x03
+        MAPLE_NODE_TYPE_MASK = 0x0F
+        MAPLE_NODE_POINTER_MASK = 0xFF
+        MAPLE_DENSE = 0
+        MAPLE_LEAF_64 = 1
+        MAPLE_RANGE_64 = 2
+        MAPLE_ARANGE_64 = 3
+        MAPLE_NODE_SLOTS = 31
+        MAPLE_RANGE64_SLOTS = 16
+        MAPLE_ARANGE64_SLOTS = 10
+        MAPLE_ALLOC_SLOTS = MAPLE_NODE_SLOTS - 1
+        maple_range_64_offset_slot = ptrsize * MAPLE_RANGE64_SLOTS
+        maple_arange_64_offset_slot = ptrsize * MAPLE_ARANGE64_SLOTS
+        maple_alloc_offset_slot = ptrsize * 2
+
+        kversion = pwndbg.aglib.kernel.krelease()
+        mm = int(self.mm)
+        ma_flags = ma_root = None
+        for i in range(0x20):
+            off = i * ptrsize
+            val = pwndbg.aglib.memory.read_pointer_width(mm + off)
+            if pwndbg.aglib.memory.is_kernel(val) and val & 0xFF in (0x1E, 0x0E):
+                ma_root = pwndbg.aglib.memory.read_pointer_width(mm + off)
+                if kversion and kversion < (6, 6):
+                    ma_flags = pwndbg.aglib.memory.u32(mm + off + ptrsize)
+                else:
+                    ma_flags = pwndbg.aglib.memory.u32(mm + off - 4)
+                    if ma_flags == 0:
+                        ma_flags = pwndbg.aglib.memory.u32(mm + off - 12)
+                break
+        else:
+            return
+        max_depth = (ma_flags & MT_FLAGS_HEIGHT_MASK) >> MT_FLAGS_HEIGHT_OFFSET
+
+        seen = set()
+
+        def __parse_node(entry: int, depth: int):
+            if entry in seen:
+                return
+            if depth > max_depth:
+                return
+            seen.add(entry)
+
+            pointer = entry & ~(MAPLE_NODE_POINTER_MASK)
+            node_type = (entry >> MAPLE_NODE_TYPE_SHIFT) & MAPLE_NODE_TYPE_MASK
+            if node_type == MAPLE_DENSE:
+                slots = pointer + maple_alloc_offset_slot
+                for i in range(MAPLE_ALLOC_SLOTS):
+                    slot = pwndbg.aglib.memory.read_pointer_width(slots + i * ptrsize)
+                    if slot & ~MAPLE_ALLOC_SLOTS != 0:
+                        if pwndbg.aglib.memory.is_kernel(slot):
+                            yield slot
+            elif node_type == MAPLE_LEAF_64:
+                slots = pointer + maple_range_64_offset_slot
+                for i in range(MAPLE_RANGE64_SLOTS):
+                    slot = pwndbg.aglib.memory.read_pointer_width(slots + i * ptrsize)
+                    if slot & ~MAPLE_ALLOC_SLOTS != 0:
+                        if pwndbg.aglib.memory.is_kernel(slot):
+                            yield slot
+            elif node_type == MAPLE_RANGE_64:
+                slots = pointer + maple_range_64_offset_slot
+                for i in range(MAPLE_RANGE64_SLOTS):
+                    slot = pwndbg.aglib.memory.read_pointer_width(slots + i * ptrsize)
+                    if slot & ~MAPLE_ALLOC_SLOTS != 0:
+                        if pwndbg.aglib.memory.is_kernel(slot):
+                            yield from __parse_node(slot, depth + 1)
+            elif node_type == MAPLE_ARANGE_64:
+                slots = pointer + maple_arange_64_offset_slot
+                for i in range(MAPLE_ARANGE64_SLOTS):
+                    slot = pwndbg.aglib.memory.read_pointer_width(slots + i * ptrsize)
+                    if slot & ~MAPLE_ALLOC_SLOTS != 0:
+                        if pwndbg.aglib.memory.is_kernel(slot):
+                            yield from __parse_node(slot, depth + 1)
+
+        yield from __parse_node(ma_root, 1)
 
 
 def get_stack_offset(tasks: list[int]) -> int:
@@ -68,14 +166,10 @@ def get_mm_offset(task: int) -> int:
         f"cound not find the offset of task_struct->mm: (task: {hex(task)}, mm_offset: {hex(mm_offset)})"
     )
     mm_active = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
-    if not pwndbg.aglib.kernel.in_kmem_cache(mm_active, "mm_active"):
+    if not pwndbg.aglib.kernel.in_kmem_cache(mm_active, "mm_struct"):
         # we actually found active_mm instead
         mm_offset -= ptrsize
     return mm_offset
-
-
-def get_vma_and_maple_tree_struct(mm: int) -> tuple[int, str]:
-    return 0, ""
 
 
 def get_vm_area_struct(mm: int) -> str:
@@ -84,10 +178,10 @@ def get_vm_area_struct(mm: int) -> str:
         return ""
     result = ""
     off = None
-    vmafinder = [0]
+    vmafinder = NextVmaFinder(mm)
     for vma in vmafinder:
-        for i in range(6, 0x10):
-            val = pwndbg.aglib.memory.read_pointer_width(mm + i * ptrsize)
+        for i in range(6, 0x50):
+            val = pwndbg.aglib.memory.read_pointer_width(vma + i * ptrsize)
             if pwndbg.aglib.kernel.in_kmem_cache(val, "filp"):
                 off = i * ptrsize
                 break
@@ -146,8 +240,8 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
 
     result = ""
     for task in tasks:
-        mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset)
-        if s := get_vm_area_struct(mm):  # only check user task
+        mm_active = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
+        if s := get_vm_area_struct(mm_active):
             result += s
             break
 
@@ -800,6 +894,8 @@ def get_filepath(file: int | pwndbg.dbg_mod.Value) -> str:
     ptrsize = pwndbg.aglib.arch.ptrsize
     file = int(file)
     file: pwndbg.dbg_mod.Value = pwndbg.aglib.memory.get_typed_pointer("struct file", file)
+    if int(file) == 0:
+        return ""
     dentry = file["f_path"]["dentry"]
     if not dentry.dereference().type.has_field("d_name"):
         return "?"
@@ -831,3 +927,13 @@ def get_filepath(file: int | pwndbg.dbg_mod.Value) -> str:
     elif path == "":
         path = f"pipe:[{ino}]"
     return path
+
+
+def resolve_addr_if_file(mm: int | pwndbg.dbg_mod.Value, addr: int) -> str:
+    # TODO: optimize this
+    vmafinder = NextVmaFinder(mm)
+    for vma in vmafinder:
+        vma = pwndbg.aglib.memory.get_typed_pointer("struct vm_area_struct", vma)
+        if int(vma["vm_start"]) <= addr < int(vma["vm_end"]):
+            return get_filepath(vma["vm_file"])
+    return ""

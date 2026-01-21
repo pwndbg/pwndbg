@@ -23,88 +23,71 @@ import pwndbg.lib.memory
 from pwndbg.lib.memory import Page
 
 
-class KernelVmmap:
-    def __init__(self, pages: tuple[Page, ...]) -> None:
-        self.pages = pages
-        self.sections: tuple[tuple[str, int], ...] = None
-        self.pi = pwndbg.aglib.kernel.arch_paginginfo()
-        if self.pi:
-            self.sections = self.pi.markers()
-        self.adjust()
-
-    def get_name(self, addr: int) -> str | None:
-        if addr is None or self.sections is None:
-            return None
-        for i in range(len(self.sections) - 1):
-            name, cur = self.sections[i]
-            _, next = self.sections[i + 1]
-            if cur is None or next is None or name is None:
-                continue
-            if cur <= addr < next:
-                return name
+def get_name(sections: tuple[tuple[str, int], ...] | None, addr: int | None) -> str | None:
+    if addr is None or sections is None:
         return None
+    for i in range(len(sections) - 1):
+        name, cur = sections[i]
+        _, next = sections[i + 1]
+        if cur is None or next is None or name is None:
+            continue
+        if cur <= addr < next:
+            return name
+    return None
 
-    def adjust(self) -> None:
-        if self.pi is None or self.pages is None or len(self.pages) == 0:
-            return
-        for i, page in enumerate(self.pages):
-            name = self.get_name(page.start)
+
+def apply_address_markers(pages: tuple[Page, ...]) -> None:
+    pi = pwndbg.aglib.kernel.arch_paginginfo()
+    if pi and pages:
+        sections = pi.markers()
+        # this is needed for context annotations
+        for i, page in enumerate(pages):
+            name = get_name(sections, page.start)
             if name is not None:
                 page.objfile = name
-        self.handle_user_pages()
-        self.pi.handle_kernel_pages(self.pages)
-        self.handle_offsets()
+        pi.handle_kernel_pages(pages)
 
-    def handle_user_pages(self) -> None:
-        base_offset = self.pages[0].start
-        for i in range(len(self.pages)):
-            page = self.pages[i]
-            if page.objfile != self.pi.USERLAND:
+
+def handle_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
+    # only handle_offsets when invoked through vmmap command
+    KERNELRO = pwndbg.aglib.kernel.paging.ArchPagingInfo.KERNELRO
+    prev_objfile, base = "", 0
+    for page in pages.ranges():
+        # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
+        if page.objfile != KERNELRO and prev_objfile != page.objfile:
+            prev_objfile = page.objfile
+            base = page.start
+        page.offset = page.start - base
+        if len(hex(page.offset)) > 9:
+            page.offset = 0
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> None:
+    stacks = []
+    for task in pwndbg.commands.ktask.get_ktasks():
+        for thread in task.threads:
+            if thread.stack:
+                stacks.append((thread.stack, thread.pid, thread.name))
+    if not stacks:
+        # get_ktasks prob failed and returned ()
+        return
+    task = pwndbg.aglib.kernel.current_task()
+    task = pwndbg.commands.ktask.Kthread(task)
+    user_stack = task.user_stack
+    for page in pages.ranges():
+        if pwndbg.aglib.memory.is_kernel(page.start):
+            break
+        page.objfile = pwndbg.aglib.kernel.ktask.resolve_addr_if_file(task.mm, page.start)
+        if user_stack and user_stack in page:
+            page.objfile = "userland [stack]"
+    handle_offsets(pages)
+    for page in pages.ranges():
+        for stack, pid, name in stacks:
+            if stack in page:
+                # not starting with [stack is intentional
+                page.objfile += f" [pid {pid}: {name}]"
                 break
-            diff = page.start - base_offset
-            if diff > 0x100000:
-                if diff > 0x100000000000:
-                    if page.execute:
-                        page.objfile = "userland [library]"
-                    elif page.rw:
-                        page.objfile = "userland [stack]"
-                else:
-                    page.objfile = "userland [heap]"
-            else:
-                # page.objfile += f"_{hex(i)[2:]}"
-                base_offset = page.start
-
-    def handle_offsets(self) -> None:
-        prev_objfile, base = "", 0
-        for page in self.pages:
-            # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
-            if page.objfile != self.pi.KERNELRO and prev_objfile != page.objfile:
-                prev_objfile = page.objfile
-                base = page.start
-            page.offset = page.start - base
-            if len(hex(page.offset)) > 9:
-                page.offset = 0
-
-    @staticmethod
-    @pwndbg.lib.cache.cache_until("stop")
-    def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> pwndbg.dbg_mod.MemoryMap:
-        stacks = []
-        for task in pwndbg.commands.ktask.get_ktasks():
-            for thread in task.threads:
-                if thread.stack:
-                    stacks.append((thread.stack, thread.pid, thread.name))
-        if not stacks:
-            # get_ktasks prob failed and returned ()
-            return pages
-        for page in pages.ranges():
-            if not pwndbg.aglib.memory.is_kernel(page.start):
-                continue
-            for stack, pid, name in stacks:
-                if stack in page:
-                    # not starting with [stack is intentional
-                    page.objfile += f" [pid {pid}: {name}]"
-                    break
-        return pages
 
 
 # Most of QemuMachine code was inherited from gdb-pt-dump thanks to Martin Radev (@martinradev)
@@ -456,12 +439,12 @@ def kernel_vmmap() -> tuple[pwndbg.lib.memory.Page, ...]:
         return ()
 
     pages = kernel_vmmap_pages()
-    kv = KernelVmmap(pages)
+    apply_address_markers(pages)
     if kernel_vmmap_mode == "monitor" and pwndbg.aglib.arch.name == "x86-64":
         # TODO: check version here when QEMU displays the x bit for x64
         # see: https://github.com/pwndbg/pwndbg/pull/3020#issuecomment-2914573242
         for page in pages:
-            if page.objfile == kv.pi.ESPSTACK:
+            if page.objfile == pwndbg.aglib.kernel.paging.ArchPagingInfo.ESPSTACK:
                 continue
             entry = pwndbg.aglib.kernel.pagewalk(page.start).entry
             if entry and entry >> 63 == 0:
