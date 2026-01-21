@@ -227,8 +227,7 @@ class LinkMapEntry:
         ptr = self.link_map.read(self.link_map_address, "l_next")
         if ptr == 0:
             return None
-        else:
-            return LinkMapEntry(ptr)
+        return LinkMapEntry(ptr)
 
     def prev(self):
         """
@@ -237,8 +236,7 @@ class LinkMapEntry:
         ptr = self.link_map.read(self.link_map_address, "l_prev")
         if ptr == 0:
             return None
-        else:
-            return LinkMapEntry(ptr)
+        return LinkMapEntry(ptr)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} node={self.link_map_address:#x} name={self.name()} load_bias={self.load_bias():#x} dynamic={self.dynamic():#x}>"
@@ -793,8 +791,7 @@ class CStruct:
         )
         if self.converters[name] is not None:
             return self.converters[name](val)
-        else:
-            return val
+        return val
 
     def has_field(self, name) -> bool:
         """

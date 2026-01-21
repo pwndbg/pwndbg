@@ -409,7 +409,7 @@ class AArch64DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant)
             if (val := instruction.operands[-1].before_value) is not None:
                 return val & pwndbg.aglib.arch.ptrmask
             return None
-        elif instruction.id in (AARCH64_INS_RET, AARCH64_INS_ALIAS_RET):
+        if instruction.id in (AARCH64_INS_RET, AARCH64_INS_ALIAS_RET):
             # If this is a ret WITHOUT an operand, it means we should read from the LR/x30 register
             return super()._read_register_name(instruction, "lr", emu)
 

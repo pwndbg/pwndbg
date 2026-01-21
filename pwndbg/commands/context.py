@@ -298,10 +298,9 @@ def output(section: str) -> OutputWrapper:
     target = outputs.get(section, str(config_output))
     if not target or target == "stdout":
         return StdOutput()
-    elif callable(target):
+    if callable(target):
         return CallOutput(target)
-    else:
-        return FileOutput(target, "w")
+    return FileOutput(target, "w")
 
 
 parser = argparse.ArgumentParser(description="Sets the output of a context section.")
@@ -1596,12 +1595,11 @@ thread_status_messages = {
 def get_thread_status(thread: gdb.InferiorThread) -> str:
     if thread.is_running():
         return thread_status_messages["running"]
-    elif thread.is_stopped():
+    if thread.is_stopped():
         return thread_status_messages["stopped"]
-    elif thread.is_exited():
+    if thread.is_exited():
         return thread_status_messages["exited"]
-    else:
-        return "unknown"
+    return "unknown"
 
 
 @serve_context_history

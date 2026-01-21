@@ -460,7 +460,7 @@ class Aarch64Ops(ArchOps):
 def arch_paginginfo() -> ArchPagingInfo | None:
     if pwndbg.aglib.arch.name == "aarch64":
         return pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
-    elif pwndbg.aglib.arch.name == "x86-64":
+    if pwndbg.aglib.arch.name == "x86-64":
         return pwndbg.aglib.kernel.paging.x86_64PagingInfo()
     return None
 
@@ -469,9 +469,9 @@ def arch_paginginfo() -> ArchPagingInfo | None:
 def arch_ops() -> ArchOps | None:
     if pwndbg.aglib.arch.name == "aarch64":
         return Aarch64Ops()
-    elif pwndbg.aglib.arch.name == "x86-64":
+    if pwndbg.aglib.arch.name == "x86-64":
         return x86_64Ops()
-    elif pwndbg.aglib.arch.name == "i386":
+    if pwndbg.aglib.arch.name == "i386":
         return i386Ops()
     return None
 
@@ -480,7 +480,7 @@ def arch_ops() -> ArchOps | None:
 def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols | None:
     if pwndbg.aglib.arch.name == "aarch64":
         return pwndbg.aglib.kernel.symbol.Aarch64Symbols()
-    elif pwndbg.aglib.arch.name == "x86-64":
+    if pwndbg.aglib.arch.name == "x86-64":
         return pwndbg.aglib.kernel.symbol.x86_64Symbols()
     return None
 
@@ -489,120 +489,105 @@ def ptr_size() -> int:
     ops = arch_ops()
     if ops:
         return ops.ptr_size
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def page_size() -> int:
     ops = arch_ops()
     if ops:
         return ops.page_size
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def per_cpu(addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
     ops = arch_ops()
     if ops:
         return ops.per_cpu(addr, cpu)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def virt_to_phys(virt: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.virt_to_phys(virt)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def phys_to_virt(phys: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.phys_to_virt(phys)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def phys_to_pfn(phys: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.phys_to_pfn(phys)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def pfn_to_phys(pfn: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.pfn_to_phys(pfn)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def pfn_to_page(pfn: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.pfn_to_page(pfn)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def page_to_pfn(page: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.page_to_pfn(page)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def phys_to_page(phys: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.phys_to_page(phys)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def page_to_phys(page: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.page_to_phys(page)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def virt_to_page(virt: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.virt_to_page(virt)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def page_to_virt(page: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.page_to_virt(page)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def pfn_to_virt(pfn: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.pfn_to_virt(pfn)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def virt_to_pfn(virt: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.virt_to_pfn(virt)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -610,8 +595,7 @@ def kbase() -> int | None:
     ops = arch_ops()
     if ops:
         return ops.kbase
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -619,8 +603,7 @@ def pagewalk(addr, entry=None) -> tuple[PageTableLevel, ...]:
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -628,27 +611,25 @@ def pagetable_scan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
     pi = arch_paginginfo()
     if pi:
         return tuple(pi.pagetable_scan(entry))
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def paging_enabled() -> bool:
     arch_name = pwndbg.aglib.arch.name
     if arch_name == "i386":
         return i386Ops.paging_enabled()
-    elif arch_name == "x86-64":
+    if arch_name == "x86-64":
         return x86_64Ops.paging_enabled()
-    elif arch_name == "aarch64":
+    if arch_name == "aarch64":
         return Aarch64Ops.paging_enabled()
-    elif arch_name == "rv64":
+    if arch_name == "rv64":
         # https://starfivetech.com/uploads/u74_core_complex_manual_21G1.pdf
         # page 41, satp.MODE, bits: 60,61,62,63
         # "When satp.MODE=0x0, supervisor virtual addresses are equal to supervisor physical addresses"
         return (
             int(pwndbg.aglib.regs.read_reg("satp")) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
         )
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 @requires_debug_symbols("node_states", default=1)

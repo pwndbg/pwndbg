@@ -123,13 +123,10 @@ def get_previous_instruction(
                 linear=linear,
             )
         return result
-    else:
-        prev_address = backward_cache[address]
-        return (
-            one(prev_address, from_cache=use_cache, put_backward_cache=False)
-            if prev_address
-            else None
-        )
+    prev_address = backward_cache[address]
+    return (
+        one(prev_address, from_cache=use_cache, put_backward_cache=False) if prev_address else None
+    )
 
 
 @pwndbg.lib.cache.cache_until("objfile")
@@ -389,8 +386,7 @@ def near(
             match = re.search(r"Memory at address (\w+) unavailable\.", str(e))
             if match:
                 return ([], -1)
-            else:
-                raise
+            raise
 
     # By using the same assistant for all the instructions disassembled in this pass, we can track and share information across the instructions
     assistant = pwndbg.aglib.disasm.disassembly.get_disassembly_assistant_for_current_arch()

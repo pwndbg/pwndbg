@@ -44,8 +44,7 @@ def get_rec_addr_string(addr, visited_map):
             + mem_color.get(parent_base_addr, text=curText)
             + arrow_right
         )
-    else:
-        return ""
+    return ""
 
 
 # Useful for debugging. Prints a map of child -> (parent, parent_start)

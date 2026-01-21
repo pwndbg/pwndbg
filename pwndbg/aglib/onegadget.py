@@ -67,18 +67,16 @@ class CheckSatResult(Enum):
     def __and__(self, other: CheckSatResult) -> CheckSatResult:
         if self == CheckSatResult.UNSAT or other == CheckSatResult.UNSAT:
             return CheckSatResult.UNSAT
-        elif self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
+        if self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
             return CheckSatResult.UNKNOWN
-        else:
-            return CheckSatResult.SAT
+        return CheckSatResult.SAT
 
     def __or__(self, other: CheckSatResult) -> CheckSatResult:
         if self == CheckSatResult.SAT or other == CheckSatResult.SAT:
             return CheckSatResult.SAT
-        elif self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
+        if self == CheckSatResult.UNKNOWN or other == CheckSatResult.UNKNOWN:
             return CheckSatResult.UNKNOWN
-        else:
-            return CheckSatResult.UNSAT
+        return CheckSatResult.UNSAT
 
 
 SAT = CheckSatResult.SAT
@@ -355,8 +353,7 @@ def check_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
             if n > 1 and "-c" in exprs[n - 1]:
                 output_msg += f'argv[{n}] = {color_str} = NULL, {color_str} can\'t be NULL because argv[{n - 1}] = "-c"\n'
                 return UNSAT, output_msg
-            else:
-                output_msg += f"argv[{n}] = {color_str} = NULL\n"
+            output_msg += f"argv[{n}] = {color_str} = NULL\n"
             if n > 1:
                 return UNKNOWN, output_msg
             return SAT, output_msg
@@ -400,9 +397,8 @@ def check_non_stack_argv(expr: str) -> tuple[CheckSatResult, str]:
             if n > 1:
                 output_msg += f"argv[{n}] is NULL, {color_str} might be a valid argv\n"
                 return UNKNOWN, output_msg
-            else:
-                # {whatever_but_readable, NULL} is always a valid argv
-                output_msg += f"argv[{n}] is NULL, {color_str} is a valid argv\n"
+            # {whatever_but_readable, NULL} is always a valid argv
+            output_msg += f"argv[{n}] is NULL, {color_str} is a valid argv\n"
             return SAT, output_msg
         page = pwndbg.aglib.vmmap.find(argv_n)
         if page is None or not page.read:

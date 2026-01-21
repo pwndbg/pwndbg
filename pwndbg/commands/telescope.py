@@ -273,9 +273,8 @@ def regs_or_frame_offset(addr: int, bp: int | None, regs: dict[int, str], longes
     if bp is None or regs[addr] or not -0xFFF <= addr - bp <= 0xFFF:
         # We do .rjust(3) because some arches have two-letter registers.
         return " " + T.register(regs[addr].ljust(longest_regs).rjust(3))
-    else:
-        # If offset to frame pointer as hex fits in hex 3 digits, print it
-        return ("%+04x" % (addr - bp)).ljust(longest_regs + 1)
+    # If offset to frame pointer as hex fits in hex 3 digits, print it
+    return ("%+04x" % (addr - bp)).ljust(longest_regs + 1)
 
 
 parser = argparse.ArgumentParser(
