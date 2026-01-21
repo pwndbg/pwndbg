@@ -780,9 +780,3 @@ def current_task(cpu: int | None = None) -> int:
     if (syms := arch_symbols()) is not None:
         return syms.current_task(cpu)
     return None
-
-
-def init_task() -> pwndbg.dbg_mod.Value:
-    if (syms := arch_symbols()) is not None:
-        return syms.init_task()
-    return None
