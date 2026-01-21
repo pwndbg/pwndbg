@@ -401,13 +401,6 @@ class ArchSymbols:
                 current_task = pwndbg.aglib.memory.read_pointer_width(int(current_task))
         return current_task
 
-    @pwndbg.lib.cache.cache_until("stop")
-    def init_task(self) -> pwndbg.dbg_mod.Value:
-        init_task = pwndbg.aglib.symbol.lookup_symbol("init_task")
-        if not init_task:
-            init_task = pwndbg.aglib.kernel.ktask.INIT_TASK
-        return pwndbg.aglib.memory.get_typed_pointer("unsigned long", init_task)
-
     def _node_data(self) -> int | None:
         raise NotImplementedError()
 
