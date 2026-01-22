@@ -169,7 +169,7 @@ class PageTableScan:
                         if rflags == curr_flags and roff == 0:
                             curr_sz += rsz
                             left += 1
-                if n > 1:  # (prepare to) merge the first page chunk range if needed
+                if n > 1:  # (prepare to) merge the last page chunk range if needed
                     # if n == 1, last == first which is handled by the previous if-block
                     if curr_off is not None:
                         # don't do this if n == 1 because we may want to coalesce further

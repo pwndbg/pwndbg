@@ -32,7 +32,7 @@ PAGETYPES = (
 )
 
 
-def print_level(level: PageTableLevel):
+def print_level(level: PageTableLevel) -> None:
     pageflags = pwndbg.aglib.kernel.arch_paginginfo().bitflags(level)
     flags = ""
     arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
@@ -48,7 +48,7 @@ def print_level(level: PageTableLevel):
     print(f"{color.blue(name)} @ {color.yellow(hex(vaddr))}{flags}")
 
 
-def page_type(page):
+def page_type(page) -> str:
     names = PAGETYPES
     page_type_val = pwndbg.aglib.memory.s32(page + 0x30)
     if page_type_val == -1:
@@ -78,7 +78,7 @@ def page_type(page):
     return "unknown"
 
 
-def page_info(page):
+def page_info(page) -> None:
     try:
         refcount = pwndbg.aglib.memory.u32(page + 0x34)
         print(
@@ -92,7 +92,7 @@ def page_info(page):
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
-def pagewalk(vaddr, entry=None):
+def pagewalk(vaddr, entry=None) -> None:
     if entry is not None:
         entry = int(pwndbg.dbg.selected_frame().evaluate_expression(entry))
     if pwndbg.aglib.memory.is_kernel(entry):
@@ -128,7 +128,7 @@ p2v_parser.add_argument("paddr", type=str, help="")
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
-def p2v(paddr):
+def p2v(paddr) -> None:
     paddr = int(pwndbg.dbg.selected_frame().evaluate_expression(paddr))
     try:
         vaddr = pwndbg.aglib.kernel.phys_to_virt(paddr)
@@ -150,10 +150,10 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
-def v2p(vaddr):
+def v2p(vaddr) -> None:
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
-    level = pwndbg.aglib.kernel.pagewalk(vaddr)  # more accurate
-    entry, paddr = level.entry, level.virt
+    result = pwndbg.aglib.kernel.pagewalk(vaddr)  # more accurate
+    entry, paddr = result.entry, result.virt
     if not entry:
         print(message.warn("virtual to physical address failed, unmapped virtual address?"))
         return
@@ -174,7 +174,7 @@ page_parser.add_argument("page", type=str, help="")
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.aglib.proc.OnlyWithArch(["x86-64", "aarch64"])
-def pageinfo(page):
+def pageinfo(page) -> None:
     page = int(pwndbg.dbg.selected_frame().evaluate_expression(page))
     try:
         vaddr = pwndbg.aglib.kernel.page_to_virt(page)

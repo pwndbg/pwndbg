@@ -411,7 +411,7 @@ def kernel_vmmap_pages() -> tuple[Page, ...]:
             entry = pwndbg.commands.kcurrent.KCURRENT_PGD
             if entry and pwndbg.aglib.memory.is_kernel(entry):
                 entry = pwndbg.aglib.kernel.virt_to_phys(entry)
-            return pwndbg.aglib.kernel.pagetable_scan(entry)
+            return pwndbg.aglib.kernel.pagescan(entry)
         case "pt-dump":
             return kernel_vmmap_via_page_tables()
         case "monitor":

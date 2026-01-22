@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import os
 import re
 from abc import ABC
 from abc import abstractmethod
@@ -124,6 +125,7 @@ def typeinfo_recovery(
                 header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
                 fname = name.split()[-1] + "_structs"
                 pwndbg.commands.cymbol.add_structure_from_header(header_file_path, fname, True)
+                os.unlink(header_file_path)
             except Exception as e:
                 print(message.warn(f"recovering {name} failed with error:\n{e}"))
                 if "CONFIG_RANSTRUCT" in pwndbg.aglib.kernel.kconfig():
@@ -140,7 +142,7 @@ def typeinfo_recovery(
     return decorator
 
 
-@pwndbg.lib.cache.cache_until("stop")
+@pwndbg.lib.cache.cache_until("start")
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
     return len(pwndbg.dbg.selected_inferior().send_monitor("info cpus").splitlines())
@@ -289,6 +291,8 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
         if nxt == result[0]:
             break
     if nxt != result[0]:
+        return None
+    if len(result) < minlen:
         return None
     for i, nxt in enumerate(result):
         p = pwndbg.aglib.memory.read_pointer_width(nxt + pwndbg.aglib.arch.ptrsize)
