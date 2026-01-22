@@ -131,7 +131,7 @@ def typeinfo_recovery(
                 if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
                     print(
                         message.warn(
-                            "please note that some structs may not be recoverable when CONFIG_RANSTRUCT=y"
+                            "please note that some structs may not be recoverable when CONFIG_RANDSTRUCT=y"
                         )
                     )
                 return False
