@@ -82,7 +82,7 @@ arch_to_UC: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, int] = {
     "i386": U.UC_ARCH_X86,
     "x86-64": U.UC_ARCH_X86,
     "mips": U.UC_ARCH_MIPS,
-    "sparc": U.UC_ARCH_SPARC,
+    # "sparc": U.UC_ARCH_SPARC,
     "arm": U.UC_ARCH_ARM,
     "armcm": U.UC_ARCH_ARM,
     "aarch64": U.UC_ARCH_ARM64,
@@ -164,7 +164,11 @@ arch_to_reg_const_map: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[str, int]]
 }
 
 # Architectures for which we want to enable virtual TLB mode
-enable_virtual_tlb = {"s390x": True, "powerpc": True}
+enable_virtual_tlb: dict[PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, bool] = {
+    "s390x": True,
+    "powerpc": True,
+    "sparc": True,
+}
 
 # combine the flags with | operator. -1 for all
 (
@@ -633,6 +637,8 @@ class Emulator:
             and "isa32r6" in gdb.newest_frame().architecture().name()
         ):
             mode |= U.UC_MODE_MIPS32R6
+        elif arch == "sparc":
+            mode |= {4: U.UC_MODE_SPARC32, 8: U.UC_MODE_SPARC64}[pwndbg.aglib.arch.ptrsize]
         elif arch == "s390x":
             pass  # fails with invalid mode error otherwise
         else:
@@ -648,6 +654,8 @@ class Emulator:
     def map_page(self, page) -> bool:
         page = pwndbg.lib.memory.page_align(page)
         size = pwndbg.lib.memory.PAGE_SIZE
+
+        # TODO: for Sparc, page size must be 0x2000
 
         debug(DEBUG_MEM_MAP, "# Mapping %#x-%#x", (page, page + size))
 

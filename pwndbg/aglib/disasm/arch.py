@@ -445,7 +445,7 @@ class DisassemblyAssistant:
             if DEBUG_ENHANCEMENT:
                 print(f"Register in emulation returned {regname}={hex(value)}")
             return value
-        elif self.can_reason_about_process_state(instruction):
+        if self.can_reason_about_process_state(instruction):
             # When instruction address == pc, we can reason about all registers.
             # The values will just reflect values prior to executing the instruction, instead of after,
             # which is relevent if we are writing to this register.
@@ -453,11 +453,10 @@ class DisassemblyAssistant:
             if DEBUG_ENHANCEMENT:
                 print(f"Read value from process register: {pwndbg.aglib.regs.read_reg(regname)}")
             return pwndbg.aglib.regs.read_reg(regname)
-        elif (reg_value := self.manual_register_values.read_register(regname)) is not None:
+        if (reg_value := self.manual_register_values.read_register(regname)) is not None:
             # If we manually tracked the value of this register while disassembling, we can read from it.
             return reg_value
-        else:
-            return None
+        return None
 
     # Read memory of given size, taking into account emulation and being able to reason about the memory location
     def _read_memory(
@@ -493,7 +492,7 @@ class DisassemblyAssistant:
 
         if operand.type == CS_OP_REG or operand.type == CS_OP_IMM:
             return value
-        elif operand.type == CS_OP_MEM:
+        if operand.type == CS_OP_MEM:
             # Assume that we are reading ptrsize - subclasses should override this function
             # to provide a more specific value if needed
             self._read_memory(value, pwndbg.aglib.arch.ptrsize, instruction, emu)
@@ -520,7 +519,7 @@ class DisassemblyAssistant:
 
         if emu:
             return emu.telescope(address, limit, read_size=read_size)
-        elif can_read_process_state:
+        if can_read_process_state:
             # Can reason about memory in this case.
 
             if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
@@ -537,37 +536,33 @@ class DisassemblyAssistant:
 
                 return result
 
-            else:
-                return pwndbg.chain.get(address, limit=limit)
+            return pwndbg.chain.get(address, limit=limit)
+        # If the target address is in a non-writeable map, we can pretty safely telescope
+        # This is best-effort to give a better experience
+
+        address_list = [address]
+
+        if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
+            size_type = pwndbg.aglib.typeinfo.get_type(read_size)
         else:
-            # If the target address is in a non-writeable map, we can pretty safely telescope
-            # This is best-effort to give a better experience
+            size_type = pwndbg.aglib.typeinfo.ppvoid
 
-            address_list = [address]
+        for _ in range(limit):
+            if address_list.count(address) >= 2:
+                break
 
-            if read_size is not None and read_size < pwndbg.aglib.arch.ptrsize:
-                size_type = pwndbg.aglib.typeinfo.get_type(read_size)
+            page = pwndbg.aglib.vmmap.find(address)
+            if page and not page.write:
+                try:
+                    address = int(pwndbg.aglib.memory.get_typed_pointer_value(size_type, address))
+                    address &= pwndbg.aglib.arch.ptrmask
+                    address_list.append(address)
+                except pwndbg.dbg_mod.Error:
+                    break
             else:
-                size_type = pwndbg.aglib.typeinfo.ppvoid
+                break
 
-            for _ in range(limit):
-                if address_list.count(address) >= 2:
-                    break
-
-                page = pwndbg.aglib.vmmap.find(address)
-                if page and not page.write:
-                    try:
-                        address = int(
-                            pwndbg.aglib.memory.get_typed_pointer_value(size_type, address)
-                        )
-                        address &= pwndbg.aglib.arch.ptrmask
-                        address_list.append(address)
-                    except pwndbg.dbg_mod.Error:
-                        break
-                else:
-                    break
-
-            return address_list
+        return address_list
 
         # We cannot telescope, but we can still return the address.
         # Just without any further information
@@ -584,14 +579,13 @@ class DisassemblyAssistant:
             return emu.format_telescope_list(
                 addresses, limit, enhance_string_len=enhance_string_len
             )
-        else:
-            # We can format, but in some cases we may not be able to reason about memory, so don't allow
-            # it to dereference to last value in memory (we can't determine what value it is)
-            return pwndbg.chain.format(
-                addresses,
-                limit=limit,
-                enhance_string_len=enhance_string_len,
-            )
+        # We can format, but in some cases we may not be able to reason about memory, so don't allow
+        # it to dereference to last value in memory (we can't determine what value it is)
+        return pwndbg.chain.format(
+            addresses,
+            limit=limit,
+            enhance_string_len=enhance_string_len,
+        )
 
     @staticmethod
     def _syscall_name(number: int, arch: str) -> str | None:
@@ -840,8 +834,7 @@ class DisassemblyAssistant:
             and operand.before_value == operand.after_value
         ):
             return name
-        else:
-            return ctx_color.register_changed(name)
+        return ctx_color.register_changed(name)
 
     def _memory_string(self, instruction: PwndbgInstruction, operand: EnhancedOperand):
         """
@@ -849,8 +842,7 @@ class DisassemblyAssistant:
         """
         if operand.before_value is not None:
             return f"[{mem_color.get_address_or_symbol(operand.before_value, pwndbg.integration.manager.get_stack_var_dict_all())}]"
-        else:
-            return None
+        return None
 
     def _common_generic_register_destination(
         self, instruction: PwndbgInstruction, emu: Emulator

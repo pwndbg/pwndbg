@@ -153,8 +153,7 @@ def enhance(
             return pwndbg.color.memory.get_address_and_symbol(
                 intval0, pwndbg.integration.manager.get_stack_var_dict_all()
             )
-        else:
-            return E.integer(int_str(intval0))
+        return E.integer(int_str(intval0))
 
     retval = tuple(filter(lambda x: x is not None, retval))
 

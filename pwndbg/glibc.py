@@ -114,7 +114,7 @@ def get_libc_filename_from_info_sharedlibrary() -> str | None:
         if basename == "libc.so.6":
             # The default filename of libc should be libc.so.6, so if we found it, we just return it directly.
             return path
-        elif re.search(r"^libc6?[-_\.]", basename):
+        if re.search(r"^libc6?[-_\.]", basename):
             # Maybe user loaded the libc with LD_PRELOAD.
             # Some common libc names: libc-2.36.so, libc6_2.36-0ubuntu4_amd64.so, libc.so
             possible_libc_path.append(

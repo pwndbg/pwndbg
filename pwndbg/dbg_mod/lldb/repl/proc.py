@@ -962,9 +962,8 @@ class ProcessDriver:
             if isinstance(result, LaunchResultError):
                 result.disconnected = True
             return result
-        else:
-            self._prepare_listener_for(target)
-            return self._enter(self._launch_local, target, io, env, args, working_dir, extra_flags)
+        self._prepare_listener_for(target)
+        return self._enter(self._launch_local, target, io, env, args, working_dir, extra_flags)
 
     def launch_core_file(self, target: lldb.SBTarget, core: str) -> LaunchResult:
         """
@@ -1025,9 +1024,8 @@ class ProcessDriver:
             if isinstance(result, LaunchResultError):
                 result.disconnected = True
             return result
-        else:
-            self._prepare_listener_for(target)
-            return self._enter(self._attach_local, target, info)
+        self._prepare_listener_for(target)
+        return self._enter(self._attach_local, target, info)
 
     def connect(self, target: lldb.SBTarget, io: IODriver, url: str, plugin: str) -> LaunchResult:
         """

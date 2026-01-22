@@ -59,12 +59,11 @@ def attempt_colorized_symbol(
     symbol = pwndbg.aglib.symbol.resolve_addr(address)
     if symbol:
         return get(address, symbol)
-    else:
-        var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
-        if var is None:
-            var = decompiler_stack_variables.get(address)
-        if var is not None:
-            return get(address, f"{{{var}}}")
+    var: str | None = pwndbg.aglib.stack.get_stack_var_name(address)
+    if var is None:
+        var = decompiler_stack_variables.get(address)
+    if var is not None:
+        return get(address, f"{{{var}}}")
     return None
 
 

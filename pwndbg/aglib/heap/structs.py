@@ -21,8 +21,7 @@ def request2size(req: int) -> int:
 def fastbin_index(size: int) -> int:
     if pwndbg.aglib.arch.ptrsize == 8:
         return (size >> 4) - 2
-    else:
-        return (size >> 3) - 2
+    return (size >> 3) - 2
 
 
 GLIBC_VERSION = pwndbg.glibc.get_version()

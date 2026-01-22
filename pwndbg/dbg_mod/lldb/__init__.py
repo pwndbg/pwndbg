@@ -560,8 +560,7 @@ class LLDBType(pwndbg.dbg_mod.Type):
         # if we're in an older version, we just assume it's naturally aligned.
         if LLDB_VERSION[0] >= 20 or (LLDB_VERSION[0] == 19 and LLDB_VERSION[1] >= 1):
             return self.inner.GetByteAlign()
-        else:
-            return self.sizeof
+        return self.sizeof
 
     @property
     @override
@@ -1184,7 +1183,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         buffer = self.process.ReadMemory(address, size, e)
         if buffer:
             return bytearray(buffer)
-        elif not partial:
+        if not partial:
             raise pwndbg.dbg_mod.Error(f"could not read {size:#x} bytes: {e}")
 
         # At this point, we're in a bit of a pickle. LLDB doesn't give us enough
@@ -1237,8 +1236,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         size = self.find_largest_range_len(0, size, test)
         if size > 0:
             return bytearray(self.process.ReadMemory(address, size, e))
-        else:
-            return bytearray()
+        return bytearray()
 
     @override
     def write_memory(self, address: int, data: bytearray, partial: bool = False) -> int:
@@ -1472,8 +1470,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
 
         if type:
             return value.cast(type)
-        else:
-            return value
+        return value
 
     @override
     def symbol_name_at_address(self, address: int) -> str | None:

@@ -405,15 +405,14 @@ def smart_dump_slot(
             output += "Not found.\n\n"
             output += dump_slot(slot, all, False, False)
             return output
+        if fslot.p == slot.p:
+            output += "Found it.\n\n"
         else:
-            if fslot.p == slot.p:
-                output += "Found it.\n\n"
-            else:
-                output += "\nFound a slot with p @ " + mem_color.get(fslot.p) + "."
-                output += " The slot you are looking for\ndoesn't seem to exist. Maybe its group got freed?\n\n"
-                output += "Local memory:\n"
-                output += dump_slot(slot, all, False, False)
-                return output
+            output += "\nFound a slot with p @ " + mem_color.get(fslot.p) + "."
+            output += " The slot you are looking for\ndoesn't seem to exist. Maybe its group got freed?\n\n"
+            output += "Local memory:\n"
+            output += dump_slot(slot, all, False, False)
+            return output
 
     # Now we have a valid gslot.
 

@@ -82,12 +82,12 @@ class BinType(str, Enum):
     def valid_fields(self) -> list[str]:
         if self in [BinType.FAST, BinType.TCACHE]:
             return ["fd"]
-        elif self in [BinType.SMALL, BinType.UNSORTED]:
+        if self in [BinType.SMALL, BinType.UNSORTED]:
             return ["fd", "bk"]
-        elif self == BinType.LARGE:
+        if self == BinType.LARGE:
             return ["fd", "bk", "fd_nextsize", "bk_nextsize"]
-        else:  # BinType.NOT_IN_BIN
-            return []
+        # BinType.NOT_IN_BIN
+        return []
 
 
 class Bin:
@@ -136,9 +136,8 @@ class Bins:
             # Handle this case here, so we don't assign a str to an int-type variable
             if "all" in self.bins:
                 return self.bins["all"].contains_chunk(chunk)
-            else:
-                return False
-        elif self.bin_type == BinType.LARGE:
+            return False
+        if self.bin_type == BinType.LARGE:
             # All the other bins (other than unsorted) store chunks of the same
             # size in a bin, so we can use the size directly. But the largebin
             # stores a range of sizes, so we need to compute which bucket this
@@ -445,8 +444,7 @@ class Chunk:
         next = Chunk(self.address + self.real_size, arena=self.arena)
         if pwndbg.aglib.memory.is_readable_address(next.address):
             return next
-        else:
-            return None
+        return None
 
     def __contains__(self, addr: int) -> bool:
         """
@@ -1016,10 +1014,9 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         """Pick the appropriate largebin_reverse_lookup_ function for this architecture."""
         if pwndbg.aglib.arch.ptrsize == 8:
             return self.largebin_reverse_lookup_64[index]
-        elif self.malloc_alignment == 16:
+        if self.malloc_alignment == 16:
             return self.largebin_reverse_lookup_32_big[index]
-        else:
-            return self.largebin_reverse_lookup_32[index]
+        return self.largebin_reverse_lookup_32[index]
 
     def largebin_size_range_from_index(self, index: int):
         largest_largebin = self.largebin_index(pwndbg.aglib.arch.ptrmask) - 64
@@ -1105,7 +1102,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         mp = self.mp
         if "tcache_small_bins" in mp.type.keys():
             return int(mp["tcache_small_bins"])
-        elif "tcache_bins" in mp.type.keys():
+        if "tcache_bins" in mp.type.keys():
             return int(mp["tcache_bins"])
         return None
 
@@ -1163,7 +1160,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         if addr:
             return pwndbg.aglib.memory.u32(addr) > 0
         # glibc 2.42 replaced __libc_multiple_threads with __libc_single_threaded
-        elif addr := pwndbg.aglib.symbol.lookup_symbol_addr("__libc_single_threaded"):
+        if addr := pwndbg.aglib.symbol.lookup_symbol_addr("__libc_single_threaded"):
             return pwndbg.aglib.memory.u32(addr) == 0
         return len(pwndbg.dbg.selected_inferior().threads()) > 1
 
@@ -1224,22 +1221,20 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     def get_bins(self, bin_type: BinType, addr: int | None = None) -> Bins | None:
         if bin_type == BinType.TCACHE:
             return self.tcachebins(addr)
-        elif bin_type == BinType.FAST:
+        if bin_type == BinType.FAST:
             return self.fastbins(addr)
-        elif bin_type == BinType.UNSORTED:
+        if bin_type == BinType.UNSORTED:
             return self.unsortedbin(addr)
-        elif bin_type == BinType.SMALL:
+        if bin_type == BinType.SMALL:
             return self.smallbins(addr)
-        elif bin_type == BinType.LARGE:
+        if bin_type == BinType.LARGE:
             return self.largebins(addr)
-        else:
-            return None
+        return None
 
     def fastbin_index(self, size: int):
         if pwndbg.aglib.arch.ptrsize == 8:
             return (size >> 4) - 2
-        else:
-            return (size >> 3) - 2
+        return (size >> 3) - 2
 
     def fastbins(self, arena_addr: int | None = None) -> Bins | None:
         """Returns: chain or None"""
@@ -1319,21 +1314,20 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
             # If the chain lengths aren't equal, the chain is corrupted
             # The vast majority of corruptions will be caught here
             return True
-        elif len(chain_fd) < 2 or len(chain_bk) < 2:
+        if len(chain_fd) < 2 or len(chain_bk) < 2:
             # Chains containing less than two entries are corrupted, as the smallest
             # chain (an empty bin) would look something like `[main_arena+88, 0]`.
             return True
-        elif len(chain_fd) == len(chain_bk) == 2:
+        if len(chain_fd) == len(chain_bk) == 2:
             # Check if the bin points to itself (is empty)
 
             if chain_fd != chain_bk:
                 return True
-            elif chain_fd[-1] != 0:
+            if chain_fd[-1] != 0:
                 return True
-            else:
-                bin_chk = Chunk(chain_fd[0])
-                if not (bin_chk.fd == bin_chk.bk == chain_fd[0]):
-                    return True
+            bin_chk = Chunk(chain_fd[0])
+            if not (bin_chk.fd == bin_chk.bk == chain_fd[0]):
+                return True
 
         else:
             chain_sz = len(chain_fd) - (1 if chain_fd[-1] == 0 else 0)
@@ -1545,10 +1539,9 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         """Pick the appropriate largebin_index_ function for this architecture."""
         if pwndbg.aglib.arch.ptrsize == 8:
             return self.largebin_index_64(sz)
-        elif self.malloc_alignment == 16:
+        if self.malloc_alignment == 16:
             return self.largebin_index_32_big(sz)
-        else:
-            return self.largebin_index_32(sz)
+        return self.largebin_index_32(sz)
 
     def is_initialized(self):
         raise NotImplementedError()
@@ -1608,8 +1601,7 @@ class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Val
                 if thread_arena_value:
                     return Arena(pwndbg.aglib.memory.read_pointer_width(thread_arena_addr))
             return None
-        else:
-            return self.main_arena
+        return self.main_arena
 
     @property
     def thread_cache(self) -> pwndbg.dbg_mod.Value | None:
@@ -2072,7 +2064,7 @@ class HeuristicHeap(
         if thread_cache_via_config:
             self._thread_cache = tps(thread_cache_via_config)
             return self._thread_cache
-        elif thread_cache_via_symbol:
+        if thread_cache_via_symbol:
             thread_cache_struct_addr = pwndbg.aglib.memory.read_pointer_width(
                 thread_cache_via_symbol
             )
@@ -2292,10 +2284,8 @@ class HeuristicHeap(
                 sbrk_region.vaddr = sbrk_base
 
                 return sbrk_region
-            else:
-                raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
-        else:
-            raise SymbolUnresolvableError("mp_")
+            raise ValueError("mp_.sbrk_base is unmapped or points to unmapped memory.")
+        raise SymbolUnresolvableError("mp_")
 
     def is_initialized(self) -> bool:
         # TODO/FIXME: If main_arena['top'] is been modified to 0, this will not work.

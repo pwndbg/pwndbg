@@ -91,8 +91,7 @@ def npcplist() -> int:
     ):
         if pwndbg.aglib.kernel.krelease() < (5, 14):
             return 3
-        else:
-            return 12
+        return 12
     node_data0 = pwndbg.aglib.kernel.node_data()
     if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
         node_data0 = node_data0.dereference()
@@ -419,8 +418,7 @@ class x86_64Symbols(ArchSymbols):
         if result is not None:
             if sign == "-":
                 return (1 << 64) - int(result.group(1), 16)
-            else:
-                return int(result.group(1), 16)
+            return int(result.group(1), 16)
         return None
 
     # mov reg, <kernel address as a constant>

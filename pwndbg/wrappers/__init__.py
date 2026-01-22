@@ -36,8 +36,7 @@ class OnlyWithCommand:
         def _OnlyWithCommand(*a: P.args, **kw: P.kwargs) -> T | None:
             if self.cmd_path:
                 return function(*a, **kw)
-            else:
-                raise OSError(f"Could not find command(s) {', '.join(self.all_cmds)} in $PATH")
+            raise OSError(f"Could not find command(s) {', '.join(self.all_cmds)} in $PATH")
 
         return _OnlyWithCommand
 

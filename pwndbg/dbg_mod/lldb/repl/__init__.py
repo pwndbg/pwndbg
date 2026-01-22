@@ -796,10 +796,9 @@ def _bool_of_string(val: str) -> bool:
     """
     if val.lower() in ("true", "1", "yes"):
         return True
-    elif val.lower() in ("false", "0", "no"):
+    if val.lower() in ("false", "0", "no"):
         return False
-    else:
-        raise ValueError(f"{val} is not a recognized boolean value")
+    raise ValueError(f"{val} is not a recognized boolean value")
 
 
 def parse(
