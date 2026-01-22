@@ -85,7 +85,7 @@ class PageTableScan:
         result = []
         curr = None
         kernel_prefix_shift = self.paging_level * self.PAGE_INDEX_LEN + self.page_shift
-        # assumes self.cache[*] is sorted
+        # assumes the elements in self.cache[*] are sorted and non-overlapping
         for offset, size, flags in self.cache[(entry, self.paging_level)]:
             if self.arch == "x86-64":
                 is_kernel = offset >= (1 << 47)

@@ -100,7 +100,7 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 
 
 def typeinfo_recovery(
-    name: str, kversion: bool = False, kbase: bool = False
+    name: str, requires_kversion: bool = False, requires_kbase: bool = False
 ) -> Callable[[Callable[P, str]], Callable[P, bool]]:
     def decorator(f: Callable[P, str]) -> Callable[P, bool]:
         # returns true if the type exists or has been successfully recovered
@@ -113,10 +113,10 @@ def typeinfo_recovery(
                 return False
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return True
-            if kversion and pwndbg.aglib.kernel.kversion() is None:
+            if requires_kversion and kversion() is None:
                 print(message.warn(f"recovering {name} failed because kversion is unavailable"))
                 return False
-            if kbase and pwndbg.aglib.kernel.kbase() is None:
+            if requires_kbase and kbase() is None:
                 print(message.warn(f"recovering {name} failed because kbase is unavailable"))
                 return False
             # f(*args, **kwargs)
@@ -128,7 +128,7 @@ def typeinfo_recovery(
                 os.unlink(header_file_path)
             except Exception as e:
                 print(message.warn(f"recovering {name} failed with error:\n{e}"))
-                if "CONFIG_RANSTRUCT" in pwndbg.aglib.kernel.kconfig():
+                if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
                     print(
                         message.warn(
                             "please note that some structs may not be recoverable when CONFIG_RANSTRUCT=y"
@@ -303,14 +303,16 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
 
 def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
     # name is a substr of any of the target caches' names
+    cache = None
     try:
         cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
-        if strict:
-            return name == cache.name
-        return name in cache.name
     except Exception:
         pass
-    return False
+    if not cache:
+        return False
+    if strict:
+        return name == cache.name
+    return name in cache.name
 
 
 class ArchOps(ABC):
