@@ -969,7 +969,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
                 message.warn(
                     f"Warning: unable to detect the corrects MIPS variant from GDB architecture '{arch}'\n"
                     "Instruction disassembly may be inaccurate\n"
-                    "Please create a PR including the output of `pi gdb.newest_frame().architecture().name()`"
+                    "Please create a GitHub issue including the output of `pi gdb.newest_frame().architecture().name()`"
                 )
 
         # Below, we fix the fetched architecture
