@@ -50,11 +50,14 @@ def apply_address_markers(pages: tuple[Page, ...]) -> None:
 
 def handle_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
     # only handle_offsets when invoked through vmmap command
-    KERNELRO = pwndbg.aglib.kernel.paging.ArchPagingInfo.KERNELRO
+    kernelrw = (
+        pwndbg.aglib.kernel.paging.ArchPagingInfo.KERNELRO,
+        pwndbg.aglib.kernel.paging.ArchPagingInfo.KERNELBSS,
+    )
     prev_objfile, base = "", 0
     for page in pages.ranges():
-        # the check on KERNELRO is to make getting offsets for symbols such as `init_creds` more convinient
-        if page.objfile != KERNELRO and prev_objfile != page.objfile:
+        # the check on kernelrw is to make getting offsets for symbols such as `init_creds` more convinient
+        if page.objfile not in kernelrw and (not prev_objfile or prev_objfile != page.objfile):
             prev_objfile = page.objfile
             base = page.start
         page.offset = page.start - base
@@ -281,7 +284,7 @@ def _parser_mem_info_line_x86(line: str) -> Page | None:
     if end - start != size and monitor_info_mem_not_warned:
         print(
             message.warn(
-                f"The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
+                "The vmmap output may be incorrect as `monitor info mem` output assertion/assumption\n"
                 "that end-start==size failed. The values are:\n"
                 f"end={end:#x}; start={start:#x}; size={size:#x}; end-start={end - start:#x}\n"
                 "Note that this warning will not show up again in this Pwndbg/GDB session."
