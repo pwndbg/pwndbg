@@ -21,6 +21,7 @@ import gdb.types
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
@@ -964,6 +965,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
             if (attribute := gdb_mips_to_arch_attribute_map.get(isa)) is not None:
                 arch_attributes.append(attribute)
+            else:
+                message.warn(
+                    f"Warning: unable to detect the corrects MIPS variant from GDB architecture '{arch}'\n"
+                    "Instruction disassembly may be inaccurate\n"
+                    "Please create a PR including the output of `pi gdb.newest_frame().architecture().name()`"
+                )
 
         # Below, we fix the fetched architecture
         for match in gdb_architecture_name_fixup_list:
