@@ -223,7 +223,7 @@ def wrap_safe_event_handler(event_handler: Callable[P, T], event_type: Any) -> C
             # https://github.com/pwndbg/pwndbg/issues/2576
             gdb.post_event(_loop_until_thread_ok)
             return
-        elif event_type == gdb.events.stop:
+        if event_type == gdb.events.stop:
             # Workaround to issue with gdb `commands \n continue \n end` - Selected thread is running
             # https://github.com/pwndbg/pwndbg/issues/425
             if gdb_workaround_stop_event == ENABLED:

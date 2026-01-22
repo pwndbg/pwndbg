@@ -19,17 +19,16 @@ ENV UV_PROJECT_ENVIRONMENT=/venv
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     pacman -Syu --noconfirm && \
-    localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
+    localedef -i en_US -c -f UTF-8 en_US.UTF-8 && \
     pacman -S --noconfirm vim && \
     pacman -Scc --noconfirm
 
 # setup.sh needs scripts/common.sh
-RUN mkdir scripts
-ADD ./scripts/common.sh /pwndbg/scripts/
+COPY ./scripts/common.sh /pwndbg/scripts/
 
-ADD ./setup.sh /pwndbg/
-ADD ./uv.lock /pwndbg/
-ADD ./pyproject.toml /pwndbg/
+COPY ./setup.sh /pwndbg/
+COPY ./uv.lock /pwndbg/
+COPY ./pyproject.toml /pwndbg/
 
 # pyproject.toml requires these files, pip install would fail
 RUN touch README.md && mkdir pwndbg && touch pwndbg/empty.py
@@ -38,12 +37,12 @@ RUN sed -i 's/read -p "Do you want to do a full system update?/#read/' ./setup.s
     ./setup.sh
 
 # Comment these lines if you won't run the tests.
-ADD ./setup-dev.sh /pwndbg/
+COPY ./setup-dev.sh /pwndbg/
 RUN ./setup-dev.sh
 
 # Cleanup dummy files
 RUN rm README.md && rm -rf pwndbg
 
-ADD . /pwndbg/
+COPY . /pwndbg/
 
 ENV PATH="${PWNDBG_VENV_PATH}/bin:${PATH}"

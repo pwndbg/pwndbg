@@ -42,6 +42,7 @@ from capstone.riscv import RISCV_INS_C_JALR
 from capstone.riscv import RISCV_INS_C_JR
 from capstone.riscv import RISCV_INS_JAL
 from capstone.riscv import RISCV_INS_JALR
+from capstone.sparc import SPARC_INS_ALIAS_BA
 from capstone.sparc import SPARC_INS_ALIAS_CALL
 from capstone.sparc import SPARC_INS_CALL
 from capstone.sparc import SPARC_INS_JMPL
@@ -75,7 +76,12 @@ UNCONDITIONAL_JUMP_INSTRUCTIONS: dict[int, set[int]] = {
         MIPS_INS_B,
         MIPS_INS_ALIAS_B,
     },
-    CS_ARCH_SPARC: {SPARC_INS_CALL, SPARC_INS_ALIAS_CALL, SPARC_INS_JMPL},
+    CS_ARCH_SPARC: {
+        SPARC_INS_CALL,
+        SPARC_INS_ALIAS_CALL,
+        SPARC_INS_JMPL,
+        SPARC_INS_ALIAS_BA,
+    },
     CS_ARCH_ARM: {
         ARM_INS_TBB,
         ARM_INS_TBH,
@@ -570,6 +576,9 @@ class PwndbgInstructionImpl(PwndbgInstruction):
         if hasattr(self.cs_insn, "cc"):
             info += f"\n\tARM condition code: {self.cs_insn.cc}"
             info += f"\n\tThumb mode: {1 if self.cs_insn._cs._mode & CS_MODE_THUMB else 0}"
+
+        if hasattr(self.cs_insn, "cc_field"):
+            info += f"\n\tSPARC cc_field: {self.cs_insn.cc_field}"
 
         return info
 

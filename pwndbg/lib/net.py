@@ -28,8 +28,7 @@ TCP_STATUSES = {
 def format_host_port(ip, port):
     if ":" in ip and not ip.startswith("["):
         return f"[{ip}]:{port}"
-    else:
-        return f"{ip}:{port}"
+    return f"{ip}:{port}"
 
 
 class inode:

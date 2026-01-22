@@ -15,16 +15,21 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
     echo $TZ > /etc/timezone && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        locales vim && \
-    localedef -i en_US -c -f UTF-8 en_US.UTF-8
+        locales vim \
+        # pip/python dependencies
+        git python3 python3-dev python3-venv patch libncurses-dev libssl-dev libffi-dev pkg-config cmake build-essential curl \
+        # Pwndbg tests dependencies
+        make pkg-config gcc musl-tools golang libc6-dev libc6-dbg && \
+    localedef -i en_US -c -f UTF-8 en_US.UTF-8 && \
+    rm -rf /var/lib/apt/lists/*
 
-# pip/python dependencies
-RUN apt install -y git python3 python3-dev python3-venv patch libncurses-dev libssl-dev libffi-dev pkg-config cmake build-essential curl
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --profile=minimal -y && \
-    for bin in $HOME/.cargo/bin/*; do [ -x "$bin" ] && ln -sf "$bin" /usr/local/bin/$(basename "$bin"); done
+    for bin in "$HOME"/.cargo/bin/*; do \
+      [ -x "$bin" ] && ln -sf "$bin" "/usr/local/bin/$(basename "$bin")"; \
+    done
 
-# Pwndbg tests dependencies
-RUN apt install -y make pkg-config gcc musl-tools golang libc6-dev libc6-dbg
 # TODO: jemalloc build
 
 # Pwndbg runtime dependencies
@@ -36,7 +41,7 @@ RUN ARCH=$(uname -m) && \
         i686) ZIG_ARCH="x86";; \
         *) ZIG_ARCH="$ARCH";; \
     esac && \
-    curl -L https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz -o /tmp/zig.tar.xz && \
+    curl -L "https://ziglang.org/download/${ZIG_VERSION}/zig-${ZIG_ARCH}-linux-${ZIG_VERSION}.tar.xz" -o /tmp/zig.tar.xz && \
     tar -xf /tmp/zig.tar.xz -C /tmp && \
     rm /tmp/zig.tar.xz && \
     mkdir -p /opt/zig && \
