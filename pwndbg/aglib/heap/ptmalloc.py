@@ -1756,6 +1756,8 @@ class HeuristicHeap(
                 self._structs_module = importlib.reload(
                     importlib.import_module("pwndbg.aglib.heap.structs")
                 )
+            except AssertionError:
+                raise
             except Exception:
                 pass
         return self._structs_module

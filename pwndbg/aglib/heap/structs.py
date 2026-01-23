@@ -9,7 +9,6 @@ import pwndbg.aglib
 import pwndbg.aglib.memory
 import pwndbg.aglib.typeinfo
 import pwndbg.libc
-import pwndbg.libc.glibc
 from pwndbg.lib.ctypes import Structure
 
 
