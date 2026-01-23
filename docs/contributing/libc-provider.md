@@ -21,7 +21,7 @@ so this is really best effort.
 
 ## Glossary
 
-**exported symbol**
+### exported symbol
 
 Dynamic libraries have some set of functions that are a part of their API, i.e. that are callable from other object files. Even if you strip a dynamic library, these symbols will still be retained. We call these "**exported symbols**", they are also called "dynamic symbols". They are located in the `.dynsym` section, and their names in the `.dynstr` section of the binary. You can dump them with:
 ```{.bash .copy}
@@ -36,7 +36,7 @@ Symbols can be either functions or global variables.
 
 If a libc is dynamically linked, these should be always present. If a libc is statically linked, they usually aren't. We expect some exported symbols to be present in all dynamic libraries (e.g. `scanf`, `exit`, `printf`, ...) because they are part of the C standard, but some may be libc-specific (e.g. `__freadahead` is provided by musl and bionic but not by glibc).
 
-**debug info**
+### debug info
 
 I.e. debugging information. The stuff you get when you compile with `-g`: line numbers, structures, function-local variables...
 
@@ -49,7 +49,7 @@ If debugging information is present, I also expect exported symbols and internal
 
 A very convenient thing is that often, debug info can be automatically recovered with [debuginfod](https://sourceware.org/elfutils/Debuginfod.html) without recompiling the libc.
 
-**internal symbols**
+### internal symbols
 
 An internal symbol is a symbol which is not an exported (dynamic) symbol. You can see these by simply calling:
 ```{.bash .copy}
@@ -61,9 +61,11 @@ An example is `__libc_version` on glibc and musl.
 
 ## Implementing the LibcProvider functions
 
+Read the docstrings in `pwndbg.libc.dispatch` so we are on the same page.
+
 The functions `type`, `urls`, `libc_same_as_ld` are trivial to implement.
 
-## Treasure hunt
+### Treasure hunt
 
 In the libc's repo you will be using `git tag` a lot. You will be looking for symbols and patterns that fulfill certain criteria, and among other things, have been present in the codebase for a while. There are a bunch of programs out there compiled against ancient versions of various libc's, and we would like to support them.
 
@@ -124,3 +126,11 @@ To easily test that the symbol does not show up when the libc is stripped you ma
 cp libc.so libc.so.debug
 strip libc.so
 ```
+
+### verify_libc_candidate
+
+This should only return True when we are certain. I don't think there is a good tip for this other than to look at the existing implementations. Searching inside `.rodata` has been a successful strategy.
+
+### verify_ld_candidate 
+
+You don't need to implement this if you implemented `verify_libc_candidate`. Unless `libc_same_as_ld()` returns `True`, then `verify_ld_candidate` must call `verify_libc_candidate`.
