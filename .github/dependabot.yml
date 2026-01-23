@@ -47,6 +47,8 @@ updates:
       - dependency-name: "ropgadget"
       # Git dependency handled separately
       - dependency-name: "pt"
+      # Pinned for supporting gdb 12.1 for ubuntu 22.04
+      - dependency-name: "types-gdb"
 
     labels:
       - "dependencies"

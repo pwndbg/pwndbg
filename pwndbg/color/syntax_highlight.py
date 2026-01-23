@@ -79,9 +79,8 @@ def _pygments_get_lexer_for_filename(filename, code, **options):
                 matched_lexer = name
     if one_match:
         return pygments.lexers.get_lexer_by_name(matched_lexer, **options)
-    else:
-        # either we can't find it or there are multiple matches to choose from
-        return pygments.lexers.guess_lexer_for_filename(filename, code, **options)
+    # either we can't find it or there are multiple matches to choose from
+    return pygments.lexers.guess_lexer_for_filename(filename, code, **options)
 
 
 def syntax_highlight(code: str, filename: str = ".asm") -> str:

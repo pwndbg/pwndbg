@@ -930,7 +930,7 @@ class Type:
 
         if struct_type.code not in NESTED_TYPES:
             return None
-        elif struct_type in nested_cyclic_types:
+        if struct_type in nested_cyclic_types:
             return None
 
         # note: lldb.SBType and gdb.Type dont support Sets

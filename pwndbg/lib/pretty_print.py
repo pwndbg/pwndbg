@@ -39,12 +39,11 @@ def int_to_string(num: int) -> str:
     """
     if max_decimal_number == -1:
         return f"{num}"
-    elif max_decimal_number == 0:
+    if max_decimal_number == 0:
         return f"{num:#x}"
-    elif abs(num) > max_decimal_number:
+    if abs(num) > max_decimal_number:
         return f"{num:#x}"
-    else:
-        return f"{num}"
+    return f"{num}"
 
 
 def int_pair_to_string(num1: int, num2: int) -> tuple[str, str]:
@@ -58,12 +57,11 @@ def int_pair_to_string(num1: int, num2: int) -> tuple[str, str]:
     """
     if max_decimal_number == -1:
         return f"{num1}", f"{num2}"
-    elif max_decimal_number == 0:
+    if max_decimal_number == 0:
         return f"{num1:#x}", f"{num2:#x}"
-    elif abs(num1) > max_decimal_number or abs(num2) > max_decimal_number:
+    if abs(num1) > max_decimal_number or abs(num2) > max_decimal_number:
         return f"{num1:#x}", f"{num2:#x}"
-    else:
-        return f"{num1}", f"{num2}"
+    return f"{num1}", f"{num2}"
 
 
 config_property_name_color = theme.add_color_param(
