@@ -43,13 +43,17 @@ class LibcProvider(Protocol):
         """
         Do we have internal library symbols?
 
+        Symbols are global variables and functions.
+
         If the library is dynamically linked, even if it is stripped it will retain its
         exported symbols (e.g. fscanf) because they are required for dynamic linking.
 
         This funcions checks if the non-exported symbols (like __GI_exit, __run_exit_handlers,
-        intitial) are also available.
+        intitial) are also available. The check must not be based on a function, and must be
+        based on a variable so as not to trip ourselves over MiniDebugInfo.
+        (read: https://pwndbg.re/dev/contributing/libc-provider/#has_internal_symbols)
 
-        Symbols are global variables and functions. Internal symbols also come with debug info.
+        If we have debug info we should also have debug symbols.
         """
         ...
 
@@ -100,5 +104,7 @@ class LibcProvider(Protocol):
         """
         Returns whether the libc and the ld are loaded as one object file for this libc
         implementation.
+
+        If this returns True, verify_ld_candidate must directly call verify_libc_candidate.
         """
         ...
