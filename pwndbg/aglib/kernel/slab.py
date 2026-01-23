@@ -420,8 +420,7 @@ class Slab:
 
 
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
-    if not load_slab_typeinfo():
-        return None
+    recover_slab_typeinfo()
     page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
     head_page = compound_head(page)
 
@@ -621,7 +620,7 @@ def kmem_cache_structs(node_cache_pad):
 
 
 @pwndbg.aglib.kernel.typeinfo_recovery("struct kmem_cache", requires_kversion=True)
-def load_slab_typeinfo() -> str:
+def recover_slab_typeinfo() -> str:
     kconfig = pwndbg.aglib.kernel.kconfig()
     defs = []
     configs = (

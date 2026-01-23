@@ -13,7 +13,6 @@ import pwndbg.color.context as ctx_color
 import pwndbg.color.message as message
 import pwndbg.commands
 import pwndbg.commands.kcurrent
-from pwndbg.aglib.kernel.paging import PageTableLevel
 from pwndbg.commands import CommandCategory
 
 parser = argparse.ArgumentParser(description="Performs pagewalk.")
@@ -32,22 +31,6 @@ PAGETYPES = (
 )
 
 
-def print_level(level: PageTableLevel) -> None:
-    pageflags = pwndbg.aglib.kernel.arch_paginginfo().bitflags(level)
-    flags = ""
-    arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
-    name, entry, vaddr, idx = level.name, level.entry, level.virt, level.idx
-    if pwndbg.aglib.arch.name == "x86-64":
-        name = name.ljust(3, " ")
-    nbits = pwndbg.aglib.kernel.arch_ops().page_shift - math.ceil(
-        math.log2(pwndbg.aglib.arch.ptrsize)
-    )  # each idx has that many bits
-    idxlen = len(str((1 << nbits) - 1))
-    if entry is not None:
-        flags = f"[{idx:0{idxlen}}] {arrow_right} {name + 'e'}: {ctx_color.format_flags(entry, pageflags, entry)}"
-    print(f"{color.blue(name)} @ {color.yellow(hex(vaddr))}{flags}")
-
-
 def page_type(page) -> str:
     names = PAGETYPES
     page_type_val = pwndbg.aglib.memory.s32(page + 0x30)
@@ -56,21 +39,22 @@ def page_type(page) -> str:
     if page_type_val >= 0:
         return f"mapcount: {page_type_val}"
     page_type_val = pwndbg.aglib.memory.u32(page + 0x30)
-    if pwndbg.aglib.kernel.krelease() >= (6, 12):
+    krelease = pwndbg.aglib.kernel.krelease()
+    if not krelease or krelease >= (6, 12):
         idx = (page_type_val >> 24) - 0xF0
         if idx < len(names):
             return names[idx]
-    if pwndbg.aglib.kernel.krelease() >= (6, 11):
+    elif krelease >= (6, 11):
         names = names[:-1][::-1]
         for i in range(len(names)):
             if page_type_val & (1 << (i + 24)) == 0:
                 return names[i]
-    if pwndbg.aglib.kernel.krelease() >= (6, 10):
+    elif krelease >= (6, 10):
         names = names[:6]
         for i in range(len(names)):
             if page_type_val & (1 << (7 + i)) == 0:
                 return names[i]
-    if pwndbg.aglib.kernel.krelease() >= (5, 0):
+    elif krelease >= (5, 0):
         names = names[:5]
         for i in range(len(names)):
             if page_type_val & (1 << (7 + i)) == 0:
@@ -100,15 +84,29 @@ def pagewalk(vaddr, entry=None) -> None:
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     result = pwndbg.aglib.kernel.pagewalk(vaddr, entry)
     for level in result.levels[::-1]:
-        if level.entry is None:
+        name, entry, vaddr, idx = level.name, level.entry, level.virt, level.idx
+        if name is None or entry is None or vaddr is None or idx is None:
             break
-        print_level(level)
+        pageflags = pwndbg.aglib.kernel.bitflags(level)
+        flags = ""
+        arrow_right = pwndbg.chain.c.arrow(f"{pwndbg.chain.config_arrow_right}")
+        if pwndbg.aglib.arch.name == "x86-64":
+            name = name.ljust(3, " ")
+        nbits = pwndbg.aglib.kernel.page_shift() - math.ceil(
+            math.log2(pwndbg.aglib.arch.ptrsize)
+        )  # each idx has that many bits
+        idxlen = len(str((1 << nbits) - 1))
+        if entry is not None:
+            flags = f"[{idx:0{idxlen}}] {arrow_right} {name + 'e'}: {ctx_color.format_flags(entry, pageflags, entry)}"
+        print(f"{color.blue(name)} @ {color.yellow(hex(vaddr))}{flags}")
     vaddr = result.virt
     if vaddr is None:
         print(message.warn("address is not mapped"))
         return
     phys = result.phys
-    print(f"pagewalk result: {color.green(hex(vaddr))} [phys: {color.yellow(hex(phys))}]")
+    if phys:
+        phys = color.yellow(hex(phys))
+    print(f"pagewalk result: {color.green(hex(vaddr))} [phys: {phys}]")
 
 
 def paging_print_helper(name, addr):
@@ -153,13 +151,13 @@ v2p_parser.add_argument("vaddr", type=str, help="")
 def v2p(vaddr) -> None:
     vaddr = int(pwndbg.dbg.selected_frame().evaluate_expression(vaddr))
     result = pwndbg.aglib.kernel.pagewalk(vaddr)  # more accurate
-    entry, paddr = result.entry, result.virt
-    if not entry:
+    entry, paddr = result.entry, result.phys
+    if not entry or paddr is None:
         print(message.warn("virtual to physical address failed, unmapped virtual address?"))
         return
     paging_print_helper("Physmap address", paddr)
     # paddr is the physmap address which is a virtual address
-    page = pwndbg.aglib.kernel.virt_to_page(paddr)
+    page = pwndbg.aglib.kernel.phys_to_page(paddr)
     page_info(page)
 
 

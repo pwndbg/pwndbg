@@ -217,7 +217,7 @@ def get_bpf_struct_offsets(prog_idr, map_idr) -> int:
 
 
 @pwndbg.aglib.kernel.typeinfo_recovery("struct bpf_map", requires_kversion=True)
-def load_bpf_typeinfo() -> str:
+def recover_bpf_typeinfo() -> str:
     prog_idr = pwndbg.aglib.kernel.prog_idr()
     map_idr = pwndbg.aglib.kernel.map_idr()
     if not prog_idr or not map_idr:

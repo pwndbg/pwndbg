@@ -19,6 +19,7 @@ import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
@@ -27,12 +28,19 @@ import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
 from pwndbg.aglib.kernel.paging import PagewalkResult
+from pwndbg.lib.regs import BitFlags
 
 _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
 P = ParamSpec("P")
 D = TypeVar("D")
 T = TypeVar("T")
+
+
+class TypeNotRecovered(Exception):
+    def __init__(self, name: str, msg: str) -> None:
+        self.name = name
+        super().__init__(msg)
 
 
 def BIT(shift: int):
@@ -101,24 +109,26 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 
 def typeinfo_recovery(
     name: str, requires_kversion: bool = False, requires_kbase: bool = False
-) -> Callable[[Callable[P, str]], Callable[P, bool]]:
-    def decorator(f: Callable[P, str]) -> Callable[P, bool]:
+) -> Callable[[Callable[P, str]], Callable[P, None]]:
+    def decorator(f: Callable[P, str]) -> Callable[P, None]:
         # returns true if the type exists or has been successfully recovered
         @functools.wraps(f)
-        def func(*args: P.args, **kwargs: P.kwargs) -> bool:
-            if has_debug_info():
-                return True
-            if not has_debug_symbols():
+        def func(*args: P.args, **kwargs: P.kwargs) -> None:
+            if not pwndbg.dbg.selected_inferior().is_linux():
                 # make sure the target is linux, should we specify symbols instead?
-                return False
+                raise TypeNotRecovered(name, "target is not linux")
+            if has_debug_info():
+                return
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
-                return True
+                return
             if requires_kversion and kversion() is None:
-                print(message.warn(f"recovering {name} failed because kversion is unavailable"))
-                return False
+                raise TypeNotRecovered(
+                    name, message.warn(f"recovering {name} failed because kversion is unavailable")
+                )
             if requires_kbase and kbase() is None:
-                print(message.warn(f"recovering {name} failed because kbase is unavailable"))
-                return False
+                raise TypeNotRecovered(
+                    name, message.warn(f"recovering {name} failed because kbase is unavailable")
+                )
             # f(*args, **kwargs)
             try:
                 result = f(*args, **kwargs)
@@ -127,15 +137,8 @@ def typeinfo_recovery(
                 pwndbg.commands.cymbol.add_structure_from_header(header_file_path, fname, True)
                 os.unlink(header_file_path)
             except Exception as e:
-                print(message.warn(f"recovering {name} failed with error:\n{e}"))
-                if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
-                    print(
-                        message.warn(
-                            "please note that some structs may not be recoverable when CONFIG_RANDSTRUCT=y"
-                        )
-                    )
-                return False
-            return True
+                raise TypeNotRecovered(name, str(e))
+            return
 
         return func
 
@@ -201,7 +204,9 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig | None:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
     if (
-        not pwndbg.aglib.memory.is_kernel(config_start)
+        not config_start
+        or not config_end
+        or not pwndbg.aglib.memory.is_kernel(config_start)
         or not pwndbg.aglib.memory.is_kernel(config_end)
         or config_start >= config_end
     ):
@@ -237,6 +242,8 @@ def kversion() -> str | None:
     if mapping is None:
         return None
     version_addr = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
+    if version_addr is None:
+        return None
     return pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
 
 
@@ -324,7 +331,9 @@ class ArchOps(ABC):
     # in the page_to_pfn() and pfn_to_page() methods in the future.
 
     @abstractmethod
-    def per_cpu(self, addr: int | pwndbg.dbg_mod.Value, cpu=None) -> pwndbg.dbg_mod.Value:
+    def per_cpu(
+        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
+    ) -> pwndbg.dbg_mod.Value | None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -658,9 +667,19 @@ def kbase() -> int | None:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry: int = None, virt: bool = True) -> PagewalkResult:
-    # assumes entry is a valid physaddr (+ flags)
-    # the strategy is to walk any virtual pgd first
+def page_shift() -> int:
+    ops = arch_ops()
+    if ops:
+        return ops.page_shift
+    raise NotImplementedError()
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def pagewalk(addr, entry: int | None = None, virt: bool = True) -> PagewalkResult:
+    """
+    assumes entry is a valid physaddr (+ flags)
+    the strategy is to walk any virtual pgd first
+    """
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry, virt)
@@ -672,6 +691,14 @@ def pagescan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
     pi = arch_paginginfo()
     if pi:
         return tuple(pi.pagescan(entry))
+    raise NotImplementedError()
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.bitflags(level)
     raise NotImplementedError()
 
 
@@ -698,7 +725,7 @@ def num_numa_nodes() -> int:
     """Returns the number of NUMA nodes that are online on the system"""
     kc = kconfig()
 
-    if "CONFIG_NUMA" not in kc:
+    if not kc or "CONFIG_NUMA" not in kc:
         return 1
 
     if "CONFIG_NODES_SHIFT" not in kc:

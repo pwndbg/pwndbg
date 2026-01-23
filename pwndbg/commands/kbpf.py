@@ -10,6 +10,7 @@ import pwndbg
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.bpf
 import pwndbg.aglib.memory
+import pwndbg.aglib.typeinfo
 import pwndbg.color.message as message
 import pwndbg.commands
 from pwndbg.commands import CommandCategory
@@ -236,8 +237,7 @@ def print_bpf_maps(verbose):
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.WarnOnKernelConfigRandstruct
 def kbpf(verbose: int, print_progs: bool, print_maps: bool) -> None:
-    if not pwndbg.aglib.kernel.bpf.load_bpf_typeinfo():
-        return
+    pwndbg.aglib.kernel.bpf.recover_bpf_typeinfo()
     if pwndbg.aglib.typeinfo.load("struct idr") is None:
         return
     if not print_progs and not print_maps:

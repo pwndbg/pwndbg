@@ -512,6 +512,15 @@ class CommandObj:
                 print("Feel free to re-enable manually.")
             else:
                 print()
+        except pwndbg.aglib.kernel.TypeNotRecovered as e:
+            print(message.warn(f"recovering {e.name} failed with error:\n{e}"))
+            kconfig = pwndbg.aglib.kernel.kconfig()
+            if kconfig and "CONFIG_RANDSTRUCT" in kconfig:
+                print(
+                    message.warn(
+                        "please note that some structs may not be recoverable when CONFIG_RANDSTRUCT=y"
+                    )
+                )
 
         except Exception:
             pwndbg.exception.handle(self.function.__name__)
