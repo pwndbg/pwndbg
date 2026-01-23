@@ -99,9 +99,9 @@ Intuitively, these symbols will usually be prefixed with `_` or `__` so they sho
 There exists a thing called [MiniDebugInfo](https://www.sourceware.org/gdb/current/onlinedocs/gdb.html/MiniDebugInfo.html), which allows for shipping some minimal debugging information for the purposes of having symbolicated backtraces. Fedora for instance uses this to ship musl (and probably everything else?), which caused me a very fun [debugging](https://github.com/pwndbg/pwndbg/actions/runs/21156585707/job/60842550639?pr=3637) session.
 This debugging information is placed in the `.gnu_debugdata` section, encrypted with LZMA. You can extract the contained symbols like this:
 ```{.bash} {.copy}
-$ objcopy --dump-section .gnu_debugdata=minidebuginfo.xz libc.so
-$ xz -d minidebuginfo.xz
-$ readelf --syms minidebuginfo
+objcopy --dump-section .gnu_debugdata=minidebuginfo.xz libc.so
+xz -d minidebuginfo.xz
+readelf --syms minidebuginfo
 ```
 
 In practice, this thing can easily contain internal function symbols, but **not** internal global variables. This kinda sucks, as in these cases the `has_internal_symbols` function should return `False`, and in general having internal global variables can be really handy for us.
@@ -112,12 +112,12 @@ If there comes a need in the future, we could modify LibcProvider to contain `ha
 
 Anyway, for `has_internal_symbols` to be robust against MiniDebugInfo, you must find a non-exported global variable (that has existed for a long time and still exists). You can use these commands to help you out, compile the libc with debugging information and then:
 ```{.bash .copy}
-readelf --syms --wide libc.so | awk '{print substr($0, index($0, $2))}' | sort -u > all-syms.txt
-readelf --dyn-syms --wide libc.so | awk '{print substr($0, index($0, $2))}' | sort -u > dyn-syms.txt
+readelf --syms --wide libc.so | awk '{print $4, $5, $6, $7, $8}' | sort -u > all-syms.txt
+readelf --dyn-syms --wide libc.so | awk '{print $4, $5, $6, $7, $8}' | sort -u > dyn-syms.txt
 comm -23 all-syms.txt dyn-syms.txt > internal-syms.txt
-grep "OBJECT" internal-syms.txt
+grep "OBJECT" internal-syms.txt > internal-vars.txt
 ```
-Now pick a symbol which has existed for a long time. If possible, it should also be an obscure one that is unlikely to exist in some other object file in a program, though this is not crucial.
+Now look at `internal-vars.txt` and find a symbol which has existed for a long time. If possible, it should also be an obscure one that is unlikely to exist in some other object file in a program, though this is not crucial. They are usually the `static` global variables in the source.
 
 To easily test that the symbol does not show up when the libc is stripped you may:
 ```{.bash .copy}
