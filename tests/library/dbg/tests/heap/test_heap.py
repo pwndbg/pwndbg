@@ -329,23 +329,31 @@ async def test_malloc_chunk_dump_command(ctrl: Controller) -> None:
 
 
 class mock_for_heuristic:
-    def __init__(self, mock_symbols=[], mock_all=False):
+    def __init__(self, mock_symbols: list[str] | None = None, mock_all: bool = False) -> None:
+        """
+        Arguments:
+            mock_symbols: Every symbol's address in the list will be mocked to `None`
+            mock_all: All symbols will be mocked to `None`.
+
+        """
         import pwndbg
 
-        self.mock_symbols = (
-            mock_symbols  # every symbol's address in the list will be mocked to `None`
-        )
-        self.mock_all = mock_all  # all symbols will be mocked to `None`
+        if mock_all:
+            assert mock_symbols is None
+
+        self.mock_symbols: list[str] | None = mock_symbols
+        self.mock_all: bool = mock_all
         # Save `selected_inferior` before mocking
         self.saved_func = pwndbg.dbg.selected_inferior
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         import pwndbg
 
         def mock_lookup_symbol(original):
             def _mock(symbol, *args, **kwargs):
                 if self.mock_all:
                     return None
+                assert self.mock_symbols
                 for s in self.mock_symbols:
                     if s == symbol:
                         return None
@@ -364,7 +372,7 @@ class mock_for_heuristic:
         # Mock `symbol_address_from_name` from `selected_inferior`
         pwndbg.dbg.selected_inferior = mock_interior(pwndbg.dbg.selected_inferior)
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
         import pwndbg
 
         # Restore `selected_inferior`
