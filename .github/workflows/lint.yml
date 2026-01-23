@@ -6,7 +6,6 @@ on:
       - "!mkdocs.yml"
       - "!docs/**"
       - "!*.md"
-  workflow_dispatch:
 
 concurrency:
   # PRs: cancel in-progress runs (only test latest)
