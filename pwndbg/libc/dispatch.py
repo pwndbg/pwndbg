@@ -19,7 +19,7 @@ class LibcURLs:
     git: str
 
 
-class LibcWrangler(Protocol):
+class LibcProvider(Protocol):
     """
     Libc implementations must conform to this protocol in order to be properly used by the facade.
     """

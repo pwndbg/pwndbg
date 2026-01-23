@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from .dispatch import LibcProvider
 from .dispatch import LibcType
 from .dispatch import LibcURLs
-from .dispatch import LibcWrangler
 from .facade import addr
 from .facade import filepath
 from .facade import has_debug_info
@@ -18,7 +18,7 @@ from .facade import version
 from .facade import which
 
 __all__ = [
-    "LibcWrangler",
+    "LibcProvider",
     "LibcType",
     "LibcURLs",
     "which",

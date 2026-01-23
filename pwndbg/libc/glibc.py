@@ -88,7 +88,7 @@ def version(libc_filepath: str) -> tuple[int, ...]:
     return _get_version(libc_filepath)
 
 
-# NOTE: I am operating under the assumption that debuginfod and add-symbol-file
+# NOTE: Operating under the assumption that debuginfod and add-symbol-file
 # trigger the objfile event, making it safe to cache these functions like this.
 
 

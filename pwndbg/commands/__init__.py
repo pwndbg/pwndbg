@@ -888,7 +888,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
         e = log.error
         w = log.warning
 
-        # I am operating under the assumption that the pwndbg/libc/ code can figure out
+        # Operating under the assumption that the pwndbg/libc/ code can figure out
         # that we are using glibc with at least as good accuracy as the ptmalloc code.
         if pwndbg.libc.which() != pwndbg.libc.LibcType.GLIBC:
             e(f"The currently active libc isn't glibc. It's {pwndbg.libc.which().value}.")

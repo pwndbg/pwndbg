@@ -25,7 +25,7 @@ def fastbin_index(size: int) -> int:
     return (size >> 3) - 2
 
 
-# I am operating under the assumption that the pwndbg/libc/ code can figure out
+# Operating under the assumption that the pwndbg/libc/ code can figure out
 # that we are using glibc with at least as good accuracy as the ptmalloc code.
 assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
 GLIBC_VERSION = pwndbg.libc.version()

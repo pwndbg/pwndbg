@@ -20,12 +20,12 @@ from . import glibc
 from . import musl
 from . import unknown
 from . import util
+from .dispatch import LibcProvider
 from .dispatch import LibcType
 from .dispatch import LibcURLs
-from .dispatch import LibcWrangler
 
 # Order is important.
-_libc_implementations: tuple[LibcWrangler, ...] = (glibc, musl, unknown)
+_libc_implementations: tuple[LibcProvider, ...] = (glibc, musl, unknown)
 
 
 class LibcNotFound(Exception):
@@ -34,7 +34,7 @@ class LibcNotFound(Exception):
 
 def __check_candidates(
     libc_candidates: list[str], ld_candidates: list[str]
-) -> tuple[str | None, str | None, LibcWrangler | None]:
+) -> tuple[str | None, str | None, LibcProvider | None]:
     """
     Queries the libc implementations on if any of them claim any libc and ld mappings.
 
@@ -44,14 +44,14 @@ def __check_candidates(
         and "claimed ld mapping" is None.
     """
 
-    def verify_libc_path(path: str) -> tuple[bool, LibcWrangler]:
+    def verify_libc_path(path: str) -> tuple[bool, LibcProvider]:
         for impl in _libc_implementations:
             if impl.verify_libc_candidate(path):
                 # Someone claims that this makes sense!
                 return True, impl
         return False, unknown
 
-    def verify_ld_path(path: str) -> tuple[bool, LibcWrangler]:
+    def verify_ld_path(path: str) -> tuple[bool, LibcProvider]:
         for impl in _libc_implementations:
             if impl.verify_ld_candidate(path):
                 # Someone claims that this makes sense!
@@ -60,7 +60,7 @@ def __check_candidates(
 
     verified_libc_path: str | None = None
     verified_ld_path: str | None = None
-    verified_libc_impl: LibcWrangler | None = None
+    verified_libc_impl: LibcProvider | None = None
 
     # See if any libc implementation claims one of the candidate libc mappings.
     for cand in libc_candidates:
@@ -98,7 +98,7 @@ ld_regex = re.compile(r"ld.*\.so(?:\.[0-9]+)?")
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def __get_libc() -> tuple[Path, Path, LibcWrangler]:
+def __get_libc() -> tuple[Path, Path, LibcProvider]:
     """
     Find the active libc implementation and the associated libc and ld mappings.
 
@@ -205,7 +205,7 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
 
     # Let's see if any libc implementation verifies any of the
     # candidate paths we found.
-    verified: tuple[str | None, str | None, LibcWrangler | None] = __check_candidates(
+    verified: tuple[str | None, str | None, LibcProvider | None] = __check_candidates(
         possible_libc_paths, possible_ld_paths
     )
     verified_libc_path, verified_ld_path, verified_libc_impl = verified
@@ -249,13 +249,13 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
-def get_libc() -> LibcWrangler:
+def get_libc() -> LibcProvider:
     _, _, libc = __get_libc()
     return libc
 
 
 def which() -> LibcType:
-    libc: LibcWrangler = get_libc()
+    libc: LibcProvider = get_libc()
     return libc.type()
 
 
@@ -292,7 +292,7 @@ def has_debug_info() -> bool:
     """
     Do we have debugging information like structure types?
     """
-    libc: LibcWrangler = get_libc()
+    libc: LibcProvider = get_libc()
     return libc.has_debug_info()
 
 
@@ -394,7 +394,7 @@ def urls() -> LibcURLs:
     """
     Get useful URLs regarding this libc implementation.
     """
-    libc: LibcWrangler = get_libc()
+    libc: LibcProvider = get_libc()
     try:
         ver = version()
         return libc.urls(ver)
