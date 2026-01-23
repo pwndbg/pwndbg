@@ -13,7 +13,8 @@ import pwndbg.commands
 import pwndbg.commands.context
 import pwndbg.dbg_mod
 from pwndbg.commands import CommandCategory
-from pwndbg.lib.syscall import get_syscall
+from pwndbg.lib.syscall import syscall_name_to_number
+from pwndbg.lib.syscall import syscall_number_to_name
 
 
 async def _nextjmp(ec: pwndbg.dbg_mod.ExecutionController):
@@ -197,14 +198,14 @@ stepsyscall_parser.add_argument(
     type=str,
     nargs="?",
     default=None,
-    help="Syscall number (e.g., 1, 0x3c) or name (e.g., SYS_write, SYS_exit)",
+    help="Syscall number (e.g., 1, 0x3c) or name (e.g., write, exit)",
 )
 stepsyscall_parser.add_argument(
-    "condition",
+    "-c",
+    "--condition",
     type=str,
-    nargs="?",
     default=None,
-    help="Condition to match (e.g., $rdi==0, $rsi>100)",
+    help="Condition to match (e.g., '$rdi==0', '$rsi>100')",
 )
 
 
@@ -219,37 +220,41 @@ def stepsyscall(syscall: str | None = None, condition: str | None = None) -> Non
     Breaks at the next syscall by taking branches.
 
     Examples:
-        stepsyscall                  - Break at next syscall
-        stepsyscall SYS_write        - Break at next write syscall
-        stepsyscall 1                - Break at syscall number 1
-        stepsyscall SYS_write $rdi==1  - Break at write syscall when fd==1 (stdout)
-        stepsyscall $rax==60         - Break when syscall number is 60 (exit)
+        stepsyscall                    - Break at next syscall
+        stepsyscall write              - Break at next write syscall
+        stepsyscall 1                  - Break at syscall number 1
+        stepsyscall write -c '$rdi==1' - Break at write syscall when fd==1 (stdout)
+        stepsyscall -c '$rax==60'      - Break when syscall number is 60 (exit)
     """
     syscall_num = None
     cond_callable = None
 
     # Parse syscall argument
     if syscall is not None:
-        # Check if it's a condition (starts with $ or contains operators)
-        if syscall.startswith("$") or any(op in syscall for op in ["==", "!=", ">", "<"]):
-            # It's a condition, not a syscall name/number
-            cond_str = syscall
-            cond_callable = lambda cond=cond_str: int(
-                pwndbg.dbg.selected_inferior().evaluate_expression(cond)
-            )
-        else:
-            arch_name = pwndbg.aglib.arch.name if pwndbg.aglib.arch else None
-            num, name = get_syscall(syscall, arch_name)
+        arch_name = pwndbg.aglib.arch.name
+        if not arch_name:
+            print("Cannot determine architecture")
+            return
+
+        # Try parsing as number first
+        try:
+            num = int(syscall, 0)  # base 0 auto-detects hex/octal
+            name = syscall_number_to_name(num, arch_name)
+            if name is None:
+                print(f"Unknown syscall number: {syscall}")
+                return
+            syscall_num = num
+        except ValueError:
+            # Not a number, try as name
+            num = syscall_name_to_number(syscall, arch_name)
             if num is None:
                 print(f"Unknown syscall: {syscall}")
                 return
             syscall_num = num
-            print(f"Stepping until syscall {name} ({num})")
 
-    # Parse condition argument (can be combined with syscall filter)
+    # Parse condition argument
     if condition is not None:
         cond_str = condition
-        # If we already have a condition from syscall arg, we need to combine them
         cond_callable = lambda cond=cond_str: int(
             pwndbg.dbg.selected_inferior().evaluate_expression(cond)
         )

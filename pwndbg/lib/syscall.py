@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-import re
 from typing import Any
-from typing import Callable
-from typing import Optional
-from typing import Tuple
 
 from pwnlib.constants.constant import Constant
 from pwnlib.constants.linux import aarch64 as linux_aarch64
@@ -20,18 +16,15 @@ from pwnlib.constants.linux import sparc as linux_sparc
 from pwnlib.constants.linux import sparc64 as linux_sparc64
 from pwnlib.constants.linux import thumb as linux_thumb
 
-from pwndbg.lib.regs import reg_sets
+from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
 
 
-def get_arch_module(arch_name: str | None) -> Any:
+def _get_pwntools_arch_module(arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> Any:
     """
-    Gets the architecture module for the current architecture.
+    Gets the pwntools architecture module for the given architecture.
 
-    Returns None if no architecture is set (e.g., no process running) or unsupported.
+    Returns None if the architecture is unsupported.
     """
-    if arch_name is None:
-        return None
-
     arch_module = {
         "x86-64": linux_amd64,
         "i386": linux_i386,
@@ -43,64 +36,48 @@ def get_arch_module(arch_name: str | None) -> Any:
         "rv32": linux_riscv64,
         "rv64": linux_riscv64,
         "sparc": linux_sparc,
-        "sparc64": linux_sparc64,
         "powerpc": linux_powerpc,
-        "powerpc64": linux_powerpc64,
         "s390x": linux_s390x,
-        # Note: loongarch64 not available in pwnlib
+        # Note: loongarch64 and sparc64 not available in pwnlib
     }.get(arch_name)
 
     return arch_module
 
 
-def get_syscall(name_or_num: str, arch_name: str | None) -> Tuple[Optional[int], Optional[str]]:
+def syscall_number_to_name(num: int, arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> str | None:
     """
-    Resolve the syscall into (number, name).
+    Given a syscall number, return the syscall name (e.g., "write", "exit").
 
-    Accepts:
-        - Syscall number as string: "1", "60", "0x3c"
-        - Syscall name with SYS_ prefix: "SYS_write", "SYS_exit"
-
-    Returns (None, None) if the syscall is not found or input is invalid.
+    Returns None if the syscall number is not found or architecture is unsupported.
     """
-    if name_or_num is None or not isinstance(name_or_num, str):
-        return (None, None)
-
-    # Handle empty string
-    if not name_or_num.strip():
-        return (None, None)
-
-    arch_module = get_arch_module(arch_name)
+    arch_module = _get_pwntools_arch_module(arch_name)
     if arch_module is None:
-        return (None, None)
+        return None
 
-    try:
-        num = int(name_or_num, 0)  # base 0 auto-detects: 0x for hex, 0o for octal
-        SYS_BY_NUM = {
-            int(value): value
-            for attr_name, value in vars(arch_module).items()
-            if attr_name.startswith("__NR_") and isinstance(value, Constant)
-        }
-        name = SYS_BY_NUM.get(num)
-        if name is None:
-            return (None, None)
-        return (num, name)
-    except ValueError:
-        pass  # Not a number, try as name
+    for attr_name, value in vars(arch_module).items():
+        if attr_name.startswith("__NR_") and isinstance(value, Constant) and int(value) == num:
+            return attr_name[5:]  # "__NR_write" -> "write"
 
-    # Handle name lookup
-    if name_or_num.startswith("SYS_"):
-        syscall_name = name_or_num[4:]  # "SYS_write" -> "write"
-    else:
-        return (None, None)
+    return None
 
-    SYS_BY_NAME = {
-        attr_name[5:]: value  # "__NR_write" -> "write"
-        for attr_name, value in vars(arch_module).items()
-        if attr_name.startswith("__NR_") and isinstance(value, Constant)
-    }
 
-    num = SYS_BY_NAME.get(syscall_name)
-    if num is None:
-        return (None, None)
-    return (int(num), name_or_num)
+def syscall_name_to_number(name: str, arch_name: PWNDBG_SUPPORTED_ARCHITECTURES_TYPE) -> int | None:
+    """
+    Given a syscall name (e.g., "write" or "SYS_write"), return the syscall number.
+
+    Returns None if the syscall name is not found or architecture is unsupported.
+    """
+    arch_module = _get_pwntools_arch_module(arch_name)
+    if arch_module is None:
+        return None
+
+    # Strip SYS_ prefix if present
+    if name.startswith("SYS_"):
+        name = name[4:]
+
+    attr_name = f"__NR_{name}"
+    value = getattr(arch_module, attr_name, None)
+    if value is not None and isinstance(value, Constant):
+        return int(value)
+
+    return None
