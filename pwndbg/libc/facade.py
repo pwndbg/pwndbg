@@ -14,6 +14,7 @@ import pwndbg.aglib.elf
 import pwndbg.aglib.proc
 import pwndbg.aglib.vmmap
 import pwndbg.lib.cache
+import pwndbg.lib.path
 
 from . import glibc
 from . import musl
@@ -130,7 +131,7 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
     # Skip the executable
     maybe_main_module = inf.main_module_name()
     if maybe_main_module is not None:
-        maybe_main_module = util.clean_path(maybe_main_module)
+        maybe_main_module = pwndbg.lib.path.clean_path(maybe_main_module)
         seen.add(maybe_main_module)
 
     all_sections: list[tuple[int, int, str, str]] = inf.module_section_locations()
@@ -168,7 +169,7 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
 
         # Get absolute path and resolve symlinks if it seems plausible.
         # See #3641.
-        path = util.clean_path(path)
+        path = pwndbg.lib.path.clean_path(path)
 
         # Check for libc
         if certain_libc_path is None and basename in exact_libc_basename_matches:

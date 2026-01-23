@@ -2136,7 +2136,7 @@ class HeuristicHeap(
             else:
                 section = pwndbg.libc.section_by_name(".data")
                 section_address = pwndbg.libc.section_address_by_name(".data")
-            if section and section_address:
+            if section is not None and section_address:
                 _, _, data = section
 
                 # try to find the default mp_ struct in the .data section

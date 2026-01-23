@@ -26,6 +26,7 @@ import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.memory
+import pwndbg.lib.path
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import selection
@@ -1118,11 +1119,19 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def module_section_locations(self) -> list[tuple[int, int, str, str]]:
+        global pwndbg
         import pwndbg.gdblib.info
 
         result = []
         for section in pwndbg.gdblib.info.sections():
-            result.append((section.start, section.size, section.section, section.objfile))
+            result.append(
+                (
+                    section.start,
+                    section.size,
+                    section.section,
+                    pwndbg.lib.path.clean_path(section.objfile),
+                )
+            )
 
         return result
 
