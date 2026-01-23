@@ -38,7 +38,7 @@ def has_internal_symbols(libc_filepath: str) -> bool:
     # first release i.e. version v0.5.0 (2011). (elixir doesn't have 0.5.0 on hand)
     # https://elixir.bootlin.com/musl/v0.5.9/source/src/locale/langinfo.c#L24
     return (
-        pwndbg.aglib.symbol.lookup_symbol("__polevll", objfile_endswith=libc_filepath) is not None
+        pwndbg.aglib.symbol.lookup_symbol("c_messages", objfile_endswith=libc_filepath) is not None
     )
 
 
