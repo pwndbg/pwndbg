@@ -43,7 +43,7 @@ def next_int(address=None, honor_current_branch=False):
     while ins:
         if ins.jump_like:
             return None
-        elif ins.groups & interrupts:
+        if ins.groups & interrupts:
             return ins
         ins = pwndbg.aglib.disasm.disassembly.one(ins.next)
 
@@ -217,10 +217,9 @@ async def break_on_next_matching_instruction(
                 with proc.break_at(BreakpointLocation(ins.address), internal=True) as bp:
                     await ec.cont(bp)
                 return ins
-            else:
-                # We don't want to be spinning in place, nudge execution forward
-                # and try again.
-                pass
+            # We don't want to be spinning in place, nudge execution forward
+            # and try again.
+            pass
         else:
             # Move to the next branch instruction.
             nb = next_branch(pwndbg.aglib.regs.pc, including_current=True)

@@ -45,12 +45,10 @@ def address_or_module_name(s) -> int:
         pages = list(filter(lambda page: module_name in page.objfile, pwndbg.aglib.vmmap.get()))
         if pages:
             return pages[0].vaddr
-        else:
-            raise argparse.ArgumentTypeError(f"Could not find pages for module {module_name}")
-    elif isinstance(addr_or_str, int):
+        raise argparse.ArgumentTypeError(f"Could not find pages for module {module_name}")
+    if isinstance(addr_or_str, int):
         return addr_or_str
-    else:
-        raise argparse.ArgumentTypeError("Unknown hexdump argument type.")
+    raise argparse.ArgumentTypeError("Unknown hexdump argument type.")
 
 
 def format_c(data: bytes) -> str:

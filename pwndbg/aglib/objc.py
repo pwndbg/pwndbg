@@ -203,8 +203,7 @@ class _ClassRwPtr:
         ptr = pwndbg.aglib.memory.read_pointer_width(self._ptr + 8)
         if ptr & 1 == 1:
             return _ClassRwExtPtr(ptr & ~1)
-        else:
-            return _ClassRoPtr(ptr)
+        return _ClassRoPtr(ptr)
 
 
 class _ClassDataBitsPtr:
@@ -527,7 +526,7 @@ class Object:
         if isinstance(self._id, _IdRaw):
             isa = _IsaPtr(self._id.addr)
             return isa.get_class()
-        elif isinstance(self._id, _IdTagged):
+        if isinstance(self._id, _IdTagged):
             return self._id.lookup_class()
 
 
@@ -547,15 +546,14 @@ class Class(Object):
         data = self._data_bits().data()
         if isinstance(data, _ClassRoPtr):
             return data
-        elif isinstance(data, _ClassRwPtr):
+        if isinstance(data, _ClassRwPtr):
             ro_or_rw_ext = data.ro_or_rw_ext()
             if isinstance(ro_or_rw_ext, _ClassRwExtPtr):
                 return ro_or_rw_ext.ro()
-            elif isinstance(ro_or_rw_ext, _ClassRoPtr):
+            if isinstance(ro_or_rw_ext, _ClassRoPtr):
                 return ro_or_rw_ext
-            else:
-                # FIXME: Should be `typing.assert_never`, needs Python 3.11
-                assert False
+            # FIXME: Should be `typing.assert_never`, needs Python 3.11
+            assert False
         else:
             # FIXME: Should be `typing.assert_never`, needs Python 3.11
             assert False
@@ -564,15 +562,14 @@ class Class(Object):
         data = self._data_bits().data()
         if isinstance(data, _ClassRoPtr):
             return None
-        elif isinstance(data, _ClassRwPtr):
+        if isinstance(data, _ClassRwPtr):
             ro_or_rw_ext = data.ro_or_rw_ext()
             if isinstance(ro_or_rw_ext, _ClassRwExtPtr):
                 return ro_or_rw_ext
-            elif isinstance(ro_or_rw_ext, _ClassRoPtr):
+            if isinstance(ro_or_rw_ext, _ClassRoPtr):
                 return None
-            else:
-                # FIXME: Should be `typing.assert_never`, needs Python 3.11
-                assert False
+            # FIXME: Should be `typing.assert_never`, needs Python 3.11
+            assert False
         else:
             # FIXME: Should be `typing.assert_never`, needs Python 3.11
             assert False
@@ -781,8 +778,7 @@ class Method:
                 ptr = pwndbg.aglib.memory.read_pointer_width(ref)
 
             return Selector(ptr)
-        else:
-            return Selector(_ptrauth_strip(pwndbg.aglib.memory.read_pointer_width(base)))
+        return Selector(_ptrauth_strip(pwndbg.aglib.memory.read_pointer_width(base)))
 
     @property
     def types(self) -> bytes:
@@ -824,11 +820,10 @@ class Method:
             ptr = base + 8
             offset = pwndbg.aglib.memory.s32(ptr)
             return ptr + offset
-        else:
-            ptr = base + 16
-            return _ptrauth_strip(
-                pwndbg.aglib.memory.read_pointer_width(base + pwndbg.aglib.typeinfo.ptrsize)
-            )
+        ptr = base + 16
+        return _ptrauth_strip(
+            pwndbg.aglib.memory.read_pointer_width(base + pwndbg.aglib.typeinfo.ptrsize)
+        )
 
 
 class _MethodList(_EntList[Method]):
@@ -854,12 +849,11 @@ class _MethodList(_EntList[Method]):
         if self.flags() & self.SMALL_METHOD_LIST_FLAG != 0:
             # This is a small pointer list.
             return (ptr & ~3) | 1
-        elif self._ptr & self.BIG_SIGNED_METHOD_LIST_FLAG:
+        if self._ptr & self.BIG_SIGNED_METHOD_LIST_FLAG:
             # This is a big signed poitner list.
             return (ptr & ~3) | 2
-        else:
-            # No tag or flag. This is a big pointer list.
-            return ptr & ~3
+        # No tag or flag. This is a big pointer list.
+        return ptr & ~3
 
     @override
     def _addr_from_ptr(self, ptr: int) -> int:

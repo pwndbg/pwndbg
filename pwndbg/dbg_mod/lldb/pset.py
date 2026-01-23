@@ -38,7 +38,7 @@ def parse_value(param: pwndbg.lib.config.Parameter, expression: str) -> Any:
     if param_class == cfg.PARAM_BOOLEAN:
         if expression == "on":
             return True
-        elif expression == "off":
+        if expression == "off":
             return False
         raise InvalidParse("expected 'on' or 'off'")
 
@@ -80,9 +80,9 @@ def parse_value(param: pwndbg.lib.config.Parameter, expression: str) -> Any:
     elif param_class == cfg.PARAM_AUTO_BOOLEAN:
         if expression == "on":
             return True
-        elif expression == "off":
+        if expression == "off":
             return False
-        elif expression == "auto":
+        if expression == "auto":
             return None
         raise InvalidParse("expected 'on', 'off', or 'auto'")
     elif param_class == cfg.PARAM_INTEGER:

@@ -734,12 +734,11 @@ def OnlyWithFile(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.proc.exe():
             return function(*a, **kw)
+        if pwndbg.aglib.qemu.is_qemu():
+            log.error("Could not determine the target binary on QEMU.")
         else:
-            if pwndbg.aglib.qemu.is_qemu():
-                log.error("Could not determine the target binary on QEMU.")
-            else:
-                log.error(f"{func_name(function)}: There is no file loaded.")
-            return None
+            log.error(f"{func_name(function)}: There is no file loaded.")
+        return None
 
     return _OnlyWithFile
 
@@ -749,11 +748,10 @@ def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWhenQemuKernel(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.qemu.is_qemu_kernel():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when debugging the Linux kernel in QEMU."
-            )
-            return None
+        log.error(
+            f"{func_name(function)}: This command may only be run when debugging the Linux kernel in QEMU."
+        )
+        return None
 
     return _OnlyWhenQemuKernel
 
@@ -763,11 +761,10 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWhenUserspace(*a: P.args, **kw: P.kwargs) -> T | None:
         if not pwndbg.aglib.qemu.is_qemu_kernel():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when not debugging a QEMU kernel target."
-            )
-            return None
+        log.error(
+            f"{func_name(function)}: This command may only be run when not debugging a QEMU kernel target."
+        )
+        return None
 
     return _OnlyWhenUserspace
 
@@ -777,11 +774,10 @@ def OnlyWithKernelDebugInfo(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWithKernelDebugInfo(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.kernel.has_debug_info():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with debug info."
-            )
-            return None
+        log.error(
+            f"{func_name(function)}: This command may only be run when debugging a Linux kernel with debug info."
+        )
+        return None
 
     return _OnlyWithKernelDebugInfo
 
@@ -791,14 +787,13 @@ def OnlyWithKernelSymbols(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWithKernelSymbols(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.kernel.has_debug_symbols():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with symbols.\n"
-                + message.hint(
-                    "Check out vmlinux-to-elf to get them easily (https://github.com/marin-m/vmlinux-to-elf) or compile the kernel yourself."
-                )
+        log.error(
+            f"{func_name(function)}: This command may only be run when debugging a Linux kernel with symbols.\n"
+            + message.hint(
+                "Check out vmlinux-to-elf to get them easily (https://github.com/marin-m/vmlinux-to-elf) or compile the kernel yourself."
             )
-            return None
+        )
+        return None
 
     return _OnlyWithKernelSymbols
 
@@ -808,11 +803,8 @@ def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWhenPagingEnabled(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.kernel.paging_enabled():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when paging is enabled."
-            )
-            return None
+        log.error(f"{func_name(function)}: This command may only be run when paging is enabled.")
+        return None
 
     return _OnlyWhenPagingEnabled
 
@@ -823,9 +815,8 @@ def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, T | None]:
         # TODO: Properly support OnlyWhenRunning without `gdblib`.
         if pwndbg.aglib.proc.alive():
             return function(*a, **kw)
-        else:
-            log.error(f"{func_name(function)}: The program is not being run.")
-            return None
+        log.error(f"{func_name(function)}: The program is not being run.")
+        return None
 
     return _OnlyWhenRunning
 
@@ -836,11 +827,10 @@ def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
         assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
         if pwndbg.aglib.heap.current.has_tcache():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This version of GLIBC was not compiled with tcache support."
-            )
-            return None
+        log.error(
+            f"{func_name(function)}: This version of GLIBC was not compiled with tcache support."
+        )
+        return None
 
     return _OnlyWithTcache
 
@@ -850,9 +840,8 @@ def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, T | None]
     def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
             return function(*a, **kw)
-        else:
-            log.error(f"{func_name(function)}: Heap is not initialized yet.")
-            return None
+        log.error(f"{func_name(function)}: Heap is not initialized yet.")
+        return None
 
     return _OnlyWhenHeapIsInitialized
 
@@ -911,64 +900,61 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
             and pwndbg.aglib.heap.current.can_be_resolved()
         ):
             return _try2run_heap_command(function, *a, **kw)
-        else:
-            static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
-            if (
-                isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
-                and pwndbg.config.resolve_heap_via_heuristic == "auto"
-            ):
-                # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
-                heuristic_heap = HeuristicHeap()
-                if heuristic_heap.can_be_resolved():
-                    pwndbg.aglib.heap.current = heuristic_heap
-                    w(
-                        "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
-                        "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
-                    )
-                    return _try2run_heap_command(function, *a, **kw)
-                elif static:
-                    e(
-                        "Can't find GLIBC version required for this command to work since this is a statically linked binary"
-                    )
-                    w(
-                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
-                    )
-                else:
-                    e(
-                        "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
-                    )
-                    w(
-                        "If you believe the GLIBC is loaded or this is a statically linked binary. "
-                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
-                    )
-            elif (
-                isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
-                and pwndbg.config.resolve_heap_via_heuristic == "force"
-            ):
+        static = not pwndbg.dbg.selected_inferior().is_dynamically_linked()
+        if (
+            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
+            and pwndbg.config.resolve_heap_via_heuristic == "auto"
+        ):
+            # In auto mode, if the debug symbols are not enough, we will try to use the heuristic if possible
+            heuristic_heap = HeuristicHeap()
+            if heuristic_heap.can_be_resolved():
+                pwndbg.aglib.heap.current = heuristic_heap
+                w(
+                    "pwndbg will try to resolve the heap symbols via heuristic now since we cannot resolve the heap via the debug symbols.\n"
+                    "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
+                )
+                return _try2run_heap_command(function, *a, **kw)
+            if static:
                 e(
-                    "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
+                    "Can't find GLIBC version required for this command to work since this is a statically linked binary"
                 )
-                w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
-            elif pwndbg.glibc.get_version() is None:
-                if static:
-                    e("Can't resolve the heap since the GLIBC version is not set.")
-                    w(
-                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
-                    )
-                else:
-                    e(
-                        "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
-                    )
-                    w(
-                        "If you believe the GLIBC is loaded or this is a statically linked binary. "
-                        "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
-                    )
+                w(
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+                )
             else:
-                # Note: Should not see this error, but just in case
-                e("An unknown error occurred when resolved the heap.")
-                pwndbg.exception.inform_report_issue(
-                    "An unknown error occurred when resolved the heap"
+                e(
+                    "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
                 )
+                w(
+                    "If you believe the GLIBC is loaded or this is a statically linked binary. "
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
+                )
+        elif (
+            isinstance(pwndbg.aglib.heap.current, DebugSymsHeap)
+            and pwndbg.config.resolve_heap_via_heuristic == "force"
+        ):
+            e(
+                "You are forcing to resolve the heap symbols via heuristic, but we cannot resolve the heap via the debug symbols."
+            )
+            w("Use `set resolve-heap-via-heuristic auto` and re-run this command.")
+        elif pwndbg.glibc.get_version() is None:
+            if static:
+                e("Can't resolve the heap since the GLIBC version is not set.")
+                w(
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command."
+                )
+            else:
+                e(
+                    "Can't find GLIBC version required for this command to work, maybe is because GLIBC is not loaded yet."
+                )
+                w(
+                    "If you believe the GLIBC is loaded or this is a statically linked binary. "
+                    "Please set the GLIBC version you think the target binary was compiled (using `set glibc <version>` command; e.g. 2.32) and re-run this command"
+                )
+        else:
+            # Note: Should not see this error, but just in case
+            e("An unknown error occurred when resolved the heap.")
+            pwndbg.exception.inform_report_issue("An unknown error occurred when resolved the heap")
         return None
 
     return _OnlyWithResolvedHeapSyms

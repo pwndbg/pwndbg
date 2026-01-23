@@ -39,8 +39,7 @@ def get_venv_path(src_root: Path):
     venv_path_env = os.environ.get("PWNDBG_VENV_PATH")
     if venv_path_env:
         return Path(venv_path_env).expanduser().resolve()
-    else:
-        return src_root / ".venv"
+    return src_root / ".venv"
 
 
 def main() -> None:

@@ -97,7 +97,7 @@ def explore(address_maybe: int) -> pwndbg.lib.memory.Page | None:
                     )
                 )
         return None
-    elif auto_explore.value == "no":
+    if auto_explore.value == "no":
         return None
 
     address_maybe = pwndbg.lib.memory.page_align(address_maybe)

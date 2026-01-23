@@ -396,11 +396,10 @@ class Slab:
             return 0
         if self._slab.type.has_field("pobjects"):
             return int(self._slab["pobjects"])
-        else:
-            # calculate approx obj count in half-full slabs (as done in kernel)
-            # Note, this is a very bad approximation and could/should probably
-            # be replaced by a more accurate method
-            return (self.slabs * self.slab_cache.oo_objects) // 2
+        # calculate approx obj count in half-full slabs (as done in kernel)
+        # Note, this is a very bad approximation and could/should probably
+        # be replaced by a more accurate method
+        return (self.slabs * self.slab_cache.oo_objects) // 2
 
     @property
     def freelist(self) -> Freelist:
@@ -489,7 +488,7 @@ def kmem_cache_pad_sz(kconfig) -> tuple[int, int]:
             assert node_cache_pad, "can't find kmem_cache node"
             distance = 8 if "CONFIG_SLAB_FREELIST_RANDOM" in kconfig else 0
             return distance, node_cache_pad
-        elif "CONFIG_SLAB_FREELIST_RANDOM" in kconfig:
+        if "CONFIG_SLAB_FREELIST_RANDOM" in kconfig:
             for i in range(3, 0x20):
                 ptr = kmem_cache + name_off + i * 8
                 val = pwndbg.aglib.memory.u64(ptr)

@@ -103,8 +103,7 @@ def get_openai_api_key():
         print(message.warn("Setting OpenAI API key from OPENAI_API_KEY environment variable."))
         pwndbg.config.ai_openai_api_key.value = key
         return key
-    else:
-        return pwndbg.config.ai_openai_api_key.value
+    return pwndbg.config.ai_openai_api_key.value
 
 
 def get_anthropic_api_key():
@@ -117,8 +116,7 @@ def get_anthropic_api_key():
         )
         pwndbg.config.ai_anthropic_api_key.value = key
         return key
-    else:
-        return pwndbg.config.ai_anthropic_api_key.value
+    return pwndbg.config.ai_anthropic_api_key.value
 
 
 def get_ollama_endpoint():
@@ -129,8 +127,7 @@ def get_ollama_endpoint():
         print(message.warn("Setting Ollama Endpoint from OLLAMA_ENDPOINT environment variable."))
         pwndbg.config.ai_ollama_endpoint.value = endpoint
         return endpoint
-    else:
-        return pwndbg.config.ai_ollama_endpoint.value
+    return pwndbg.config.ai_ollama_endpoint.value
 
 
 def build_prompt(question, command=None):
@@ -368,18 +365,17 @@ def query(prompt, model="text-davinci-003", max_tokens=100, temperature=0.0):
         if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_ollama(prompt, model, max_tokens, temperature)
-    elif "turbo" in model or model.startswith("gpt-4"):
+    if "turbo" in model or model.startswith("gpt-4"):
         if isinstance(prompt, str):
             prompt = [{"role": "user", "content": prompt}]
         return query_openai_chat(prompt, model, max_tokens, temperature)
-    elif model.startswith("claude"):
+    if model.startswith("claude"):
         if isinstance(prompt, list):
             prompt = flatten_prompt(prompt)
         return query_anthropic(prompt, model, max_tokens, temperature)
-    else:
-        if isinstance(prompt, list):
-            prompt = flatten_prompt(prompt)
-        return query_openai_completions(prompt, model, max_tokens, temperature)
+    if isinstance(prompt, list):
+        prompt = flatten_prompt(prompt)
+    return query_openai_completions(prompt, model, max_tokens, temperature)
 
 
 def query_anthropic(prompt, model="claude-v1", max_tokens=100, temperature=0.0):

@@ -499,24 +499,23 @@ class DyldSharedCache:
             # Use `sharedRegionSize` (+0xe8) as the size of the entire shared
             # region.
             return pwndbg.aglib.memory.u64(self.addr + 0xE8)
-        else:
-            # Find the smallest region that covers all the mappings as the size.
-            start = None
-            end = None
-            for mapping in self.mappings():
-                if start is None or start > mapping.addr:
-                    start = mapping.addr
+        # Find the smallest region that covers all the mappings as the size.
+        start = None
+        end = None
+        for mapping in self.mappings():
+            if start is None or start > mapping.addr:
+                start = mapping.addr
 
-                this_end = start + mapping.size
-                if end is None or end < this_end:
-                    end = this_end
+            this_end = start + mapping.size
+            if end is None or end < this_end:
+                end = this_end
 
-            # Technically possible, but more likely indicates that we messed up
-            # somewhere along the line when interpreting mapping information.
-            assert start is not None and end is not None, "No dyld shared cache mappings?"
-            assert end >= start
+        # Technically possible, but more likely indicates that we messed up
+        # somewhere along the line when interpreting mapping information.
+        assert start is not None and end is not None, "No dyld shared cache mappings?"
+        assert end >= start
 
-            return end - start
+        return end - start
 
     def _slide(self) -> int:
         "The slide value of the DyLD Shared Cache, in bytes."

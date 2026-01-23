@@ -75,20 +75,20 @@ def find_address_with_register() -> int:
     """
     if pwndbg.aglib.arch.name == "x86-64":
         return int(pwndbg.aglib.regs.fsbase)
-    elif pwndbg.aglib.arch.name == "i386":
+    if pwndbg.aglib.arch.name == "i386":
         return int(pwndbg.aglib.regs.gsbase)
-    elif pwndbg.aglib.arch.name == "aarch64":
+    if pwndbg.aglib.arch.name == "aarch64":
         # FIXME: cleanup/remove `TPIDR_EL0` register, it was renamed to `tpidr` since GDB13+
         return int(
             pwndbg.aglib.regs.read_reg("tpidr") or pwndbg.aglib.regs.read_reg("TPIDR_EL0") or 0
         )
-    elif pwndbg.aglib.arch.name == "arm":
+    if pwndbg.aglib.arch.name == "arm":
         # TODO: linux ptrace for 64bit kernel?
         # In FreeBSD tls is under `tpidruro` register.
         # In Linux, the `tpidruro` register isn't available via ptrace in the 32-bit
         # kernel but it is available for an aarch32 program running under an arm64
         # kernel via the ptrace compat interface.
         return int(pwndbg.aglib.regs.read_reg("tpidruro") or 0)
-    elif pwndbg.aglib.arch.name == "loongarch64":
+    if pwndbg.aglib.arch.name == "loongarch64":
         return int(pwndbg.aglib.regs.read_reg("tp") or 0)
     return 0

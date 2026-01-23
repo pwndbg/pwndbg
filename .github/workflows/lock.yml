@@ -15,6 +15,11 @@ on:
       - "!docs/**"
       - "!*.md"
 
+concurrency:
+  # PRs: cancel in-progress runs (only test latest)
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check_release_build-gdb:
     strategy:
