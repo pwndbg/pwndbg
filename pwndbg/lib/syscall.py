@@ -9,11 +9,9 @@ from pwnlib.constants.linux import arm as linux_arm
 from pwnlib.constants.linux import i386 as linux_i386
 from pwnlib.constants.linux import mips as linux_mips
 from pwnlib.constants.linux import powerpc as linux_powerpc
-from pwnlib.constants.linux import powerpc64 as linux_powerpc64
 from pwnlib.constants.linux import riscv64 as linux_riscv64
 from pwnlib.constants.linux import s390x as linux_s390x
 from pwnlib.constants.linux import sparc as linux_sparc
-from pwnlib.constants.linux import sparc64 as linux_sparc64
 from pwnlib.constants.linux import thumb as linux_thumb
 
 from pwndbg.lib.arch import PWNDBG_SUPPORTED_ARCHITECTURES_TYPE
