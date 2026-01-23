@@ -34,9 +34,9 @@ def version(libc_filepath: str) -> tuple[int, ...]:
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def has_internal_symbols(libc_filepath: str) -> bool:
-    # The __polevll symbol is an internal symbol in musl. Doesn't exist in bionic nor glibc.
-    # It was added in version v0.8.7 (year 2012).
-    # https://elixir.bootlin.com/musl/v0.8.7/source/src/math/__polevll.c#L63
+    # c_messages is an internal global variable in musl. Has existed since the
+    # first release i.e. version v0.5.0 (2011). (elixir doesn't have 0.5.0 on hand)
+    # https://elixir.bootlin.com/musl/v0.5.9/source/src/locale/langinfo.c#L24
     return (
         pwndbg.aglib.symbol.lookup_symbol("__polevll", objfile_endswith=libc_filepath) is not None
     )
@@ -44,7 +44,7 @@ def has_internal_symbols(libc_filepath: str) -> bool:
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
 def has_debug_info() -> bool:
-    # Available since the first release (0.5.0). (elixir doesn't have it on hand)
+    # Available since the first release (0.5.0). (elixir doesn't have 0.5.0 on hand)
     # https://elixir.bootlin.com/musl/v0.5.9/source/include/bits/pthread.h#L1
     return pwndbg.aglib.typeinfo.load("struct __ptcb") is not None
 
