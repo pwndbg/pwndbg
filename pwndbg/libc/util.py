@@ -25,5 +25,4 @@ def clean_path(path: str) -> str:
     # FIXME: This is quite flaky and should be standardized in the codebase, see #3641 .
     if not (path.startswith("target:") or path.startswith("[")):
         return str(Path(path).resolve())
-    else:
-        return str(Path(path))
+    return str(Path(path))

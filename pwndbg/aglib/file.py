@@ -49,7 +49,7 @@ def get_proc_exe_file() -> str:
 def can_download_remote_file() -> bool:
     if not pwndbg.aglib.remote.is_remote():
         return False
-    elif pwndbg.aglib.qemu.is_qemu_kernel():
+    if pwndbg.aglib.qemu.is_qemu_kernel():
         return False
 
     # Some[1] gdb servers don't implement vFile packets.

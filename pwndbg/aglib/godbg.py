@@ -146,14 +146,12 @@ class FormatOpts:
     def fmt_int(self, val: int) -> str:
         if self.int_hex:
             return hex(val)
-        else:
-            return str(val)
+        return str(val)
 
     def fmt_float(self, val: float) -> str:
         if self.float_decimals is not None:
             return format(val, f".{self.float_decimals}f")
-        else:
-            return str(val)
+        return str(val)
 
     def fmt_str(self, val: str) -> str:
         return json.dumps(val)
@@ -167,8 +165,7 @@ class FormatOpts:
     def fmt_debug(self, val: str, default: str = "") -> str:
         if self.debug:
             return generateColorFunction(debug_color)(val)
-        else:
-            return default
+        return default
 
     def fmt_elems(self, elems: Iterable[str]) -> str:
         if not self.pretty:
@@ -247,10 +244,9 @@ def _cyclic_helper(val: Any, seen: set[int]) -> bool:
             return True
         seen.add(k)
         return any(_cyclic_helper(v, seen) for v in val.__dict__.values())
-    elif isinstance(val, (list, tuple)):
+    if isinstance(val, (list, tuple)):
         return any(_cyclic_helper(v, seen) for v in val)
-    else:
-        return False
+    return False
 
 
 def load_uint(data: bytes, endian: Literal["little", "big"] | None = None) -> int:
@@ -521,8 +517,7 @@ class BackrefType(Type):
     def get_typename(self) -> str:
         if self.meta:
             return f"runtime({self.meta.size}){self.meta.addr:#x}"
-        else:
-            return "..."
+        return "..."
 
 
 def decode_runtime_type(addr: int, keep_backrefs: bool = False) -> tuple[GoTypeMeta, Type | None]:
@@ -562,16 +557,15 @@ def _remove_backrefs(ty: Any, cache: dict[int, tuple[GoTypeMeta, Type | None]]) 
     """
     if isinstance(ty, BackrefType):
         return cache[ty.key][1]
-    elif isinstance(ty, Type):
+    if isinstance(ty, Type):
         d = ty.__dict__
         for k, v in d.items():
             d[k] = _remove_backrefs(v, cache)
         return ty
-    elif isinstance(ty, (list, tuple)):
+    if isinstance(ty, (list, tuple)):
         constructor = type(ty)
         return constructor(_remove_backrefs(x, cache) for x in ty)
-    else:
-        return ty
+    return ty
 
 
 def _inner_decode_runtime_type(
@@ -638,7 +632,7 @@ def _inner_decode_runtime_type(
     def compute() -> tuple[GoTypeMeta, Type | None]:
         if simple_name is not None:
             return (meta, BasicType(meta, simple_name))
-        elif kind == GoTypeKind.FUNC:
+        if kind == GoTypeKind.FUNC:
             in_count = load(offsets["$size"], 2)
             out_count = load(offsets["$size"] + 2, 2)
             vararg_bit = 1 << 15
@@ -671,43 +665,42 @@ def _inner_decode_runtime_type(
                     f"    Type addr: {ty_ptr:#x}",
                 ]
             return (meta, BasicType(meta, "funcptr", info))
-        elif kind == GoTypeKind.ARRAY:
+        if kind == GoTypeKind.ARRAY:
             elem_ty_ptr = load(offsets["$size"], word)
             arr_len = load(offsets["$size"] + word * 2, word)
             elem_meta, elem_ty = _inner_decode_runtime_type(elem_ty_ptr, cache)
             # reserialize name to fix inconsistencies
             meta.name = f"[{arr_len}]{elem_meta.name}"
             return (meta, elem_ty and ArrayType(meta, elem_ty, arr_len))
-        elif kind == GoTypeKind.INTERFACE:
+        if kind == GoTypeKind.INTERFACE:
             methods_count = load(offsets["$size"] + word * 2, word)
             if methods_count == 0:
                 return (meta, BasicType(meta, "any"))
-            elif type_start is None:
+            if type_start is None:
                 return (
                     meta,
                     BasicType(meta, "interface", [f"Method count: {methods_count}"]),
                 )
-            else:
-                info = []
-                methods_ptr = load(offsets["$size"] + word, word)
-                for i in range(methods_count):
-                    base = methods_ptr + i * 8
-                    meth_name_off = load_uint(pwndbg.aglib.memory.read(base, 4))
-                    inner_off = load_uint(pwndbg.aglib.memory.read(base + 4, 4))
-                    bmeth_name = read_type_name(type_start + meth_name_off)
-                    inner_ty_ptr = type_start + inner_off
-                    (inner_meta, _) = _inner_decode_runtime_type(inner_ty_ptr, cache)
-                    try:
-                        meth_name = bmeth_name.decode()
-                    except UnicodeDecodeError:
-                        meth_name = repr(bytes(bmeth_name))
-                    info += [
-                        f"Method {meth_name}:",
-                        f"    Type name: {inner_meta.name}",
-                        f"    Type addr: {inner_ty_ptr:#x}",
-                    ]
-                return (meta, BasicType(meta, "interface", info))
-        elif kind == GoTypeKind.MAP:
+            info = []
+            methods_ptr = load(offsets["$size"] + word, word)
+            for i in range(methods_count):
+                base = methods_ptr + i * 8
+                meth_name_off = load_uint(pwndbg.aglib.memory.read(base, 4))
+                inner_off = load_uint(pwndbg.aglib.memory.read(base + 4, 4))
+                bmeth_name = read_type_name(type_start + meth_name_off)
+                inner_ty_ptr = type_start + inner_off
+                (inner_meta, _) = _inner_decode_runtime_type(inner_ty_ptr, cache)
+                try:
+                    meth_name = bmeth_name.decode()
+                except UnicodeDecodeError:
+                    meth_name = repr(bytes(bmeth_name))
+                info += [
+                    f"Method {meth_name}:",
+                    f"    Type name: {inner_meta.name}",
+                    f"    Type addr: {inner_ty_ptr:#x}",
+                ]
+            return (meta, BasicType(meta, "interface", info))
+        if kind == GoTypeKind.MAP:
             key_ty_ptr = load(offsets["$size"], word)
             val_ty_ptr = load(offsets["$size"] + word, word)
             key_meta, key_ty = _inner_decode_runtime_type(key_ty_ptr, cache)
@@ -720,19 +713,19 @@ def _inner_decode_runtime_type(
             meta.name = f"map[{key_meta.name}]{val_meta.name}"
             # Go maps are actually pointers, but the map here is not
             return (meta, PointerType(meta, MapType(meta, key_ty, val_ty)))
-        elif kind == GoTypeKind.POINTER:
+        if kind == GoTypeKind.POINTER:
             elem_ty_ptr = load(offsets["$size"], word)
             elem_meta, elem_ty = _inner_decode_runtime_type(elem_ty_ptr, cache)
             # reserialize name to fix inconsistencies
             meta.name = f"*{elem_meta.name}"
             return (meta, elem_ty and PointerType(meta, elem_ty))
-        elif kind == GoTypeKind.SLICE:
+        if kind == GoTypeKind.SLICE:
             elem_ty_ptr = load(offsets["$size"], word)
             elem_meta, elem_ty = _inner_decode_runtime_type(elem_ty_ptr, cache)
             # reserialize name to fix inconsistencies
             meta.name = f"[]{elem_meta.name}"
             return (meta, elem_ty and SliceType(meta, elem_ty))
-        elif kind == GoTypeKind.STRUCT:
+        if kind == GoTypeKind.STRUCT:
             fields_ptr = load(offsets["$size"] + word, word)
             fields_count = load(offsets["$size"] + word * 2, word)
             fields: list[tuple[str, Type | str, int]] = []
@@ -761,9 +754,8 @@ def _inner_decode_runtime_type(
                 meta,
                 StructType(meta, fields, size, align, None if name.startswith("struct ") else name),
             )
-        else:
-            # currently channels and functions are unsupported
-            return (meta, None)
+        # currently channels and functions are unsupported
+        return (meta, None)
 
     ret = compute()
     if not isinstance(ret[1], BackrefType):
@@ -1139,8 +1131,7 @@ class MapType(Type):
     def field_offsets(cls) -> dict[str, int]:
         if cls.is_swiss():
             return cls.field_offsets_swiss()
-        else:
-            return cls.field_offsets_noswiss()
+        return cls.field_offsets_noswiss()
 
     @staticmethod
     def format_entries(
@@ -1243,8 +1234,7 @@ class MapType(Type):
     def dump(self, addr: int, fmt: FormatOpts = FormatOpts()) -> str:
         if self.is_swiss():
             return self.dump_swiss(addr, fmt)
-        else:
-            return self.dump_noswiss(addr, fmt)
+        return self.dump_noswiss(addr, fmt)
 
     def size(self) -> int:
         return self.field_offsets()["$size"]
@@ -1348,8 +1338,7 @@ class RuntimeType(Type):
         (meta, ty) = decode_runtime_type(self.addr)
         if ty is not None:
             return f"({meta.name}) {ty.dump(addr, fmt)}"
-        else:
-            return f"[error resolving type `{meta.name}` at {addr:#x}]"
+        return f"[error resolving type `{meta.name}` at {addr:#x}]"
 
     def size(self) -> int:
         return self.sz

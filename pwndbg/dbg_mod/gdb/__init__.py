@@ -21,6 +21,7 @@ import gdb.types
 from typing_extensions import override
 
 import pwndbg
+import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
@@ -78,6 +79,9 @@ gdb_mips_to_arch_attribute_map = {
     "isa32r6": ArchAttribute.MIPS_ISA_32R6,
     "isa64": ArchAttribute.MIPS_ISA_64,
     "isa64r2": ArchAttribute.MIPS_ISA_64R2,
+    "gs264e": ArchAttribute.MIPS_ISA_64R2,
+    "gs464": ArchAttribute.MIPS_ISA_64R2,
+    "gs464e": ArchAttribute.MIPS_ISA_64R2,
     "isa64r3": ArchAttribute.MIPS_ISA_64R3,
     "isa64r5": ArchAttribute.MIPS_ISA_64R5,
     "isa64r6": ArchAttribute.MIPS_ISA_64R6,
@@ -232,9 +236,8 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
             return (
                 int(str_id.partition("stack=")[2].partition(",")[0], 16) - pwndbg.aglib.arch.ptrsize
             )
-        else:
-            # We got "!stack", "stack=<unavailable>", "stack=<sentinel>" or "stack=<outer>".
-            return None
+        # We got "!stack", "stack=<unavailable>", "stack=<sentinel>" or "stack=<outer>".
+        return None
 
     @override
     def parent(self) -> pwndbg.dbg_mod.Frame | None:
@@ -524,8 +527,7 @@ class GDBStopPoint(pwndbg.dbg_mod.StopPoint):
         """
         if self not in BPWP_DEFERRED_DISABLE and self not in BPWP_DEFERRED_DELETE:
             return self.inner_stop()
-        else:
-            return False
+        return False
 
     def _clear(self):
         """
@@ -962,6 +964,12 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
             if (attribute := gdb_mips_to_arch_attribute_map.get(isa)) is not None:
                 arch_attributes.append(attribute)
+            else:
+                message.warn(
+                    f"Warning: unable to detect the corrects MIPS variant from GDB architecture '{arch}'\n"
+                    "Instruction disassembly may be inaccurate\n"
+                    "Please create a GitHub issue including the output of `pi gdb.newest_frame().architecture().name()`"
+                )
 
         # Below, we fix the fetched architecture
         for match in gdb_architecture_name_fixup_list:
@@ -1183,8 +1191,7 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         resp: str = gdb.execute(f"remove-symbol-file {path}", to_string=True)
         if "No symbol file found" in resp:
             return False
-        else:
-            return True
+        return True
 
     @override
     def runcmd(self, cmd: str) -> str:
@@ -1955,8 +1962,7 @@ class GDB(pwndbg.dbg_mod.Debugger):
         message = message.strip(".")
         if message == "unlimited":
             return 0
-        else:
-            return int(message)
+        return int(message)
 
     @override
     def addrsz(self, address: Any) -> str:

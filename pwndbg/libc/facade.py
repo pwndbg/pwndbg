@@ -213,7 +213,7 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
         # Someone approved something!
         if verified_libc_path is not None and verified_ld_path is not None:
             return (Path(verified_libc_path), Path(verified_ld_path), verified_libc_impl)
-        elif verified_libc_path is not None:
+        if verified_libc_path is not None:
             # We didn't get an approved ld path.
             # Lets ask the libc if it wants us to return the same path for the ld as for the libc,
             # or try to get an ld candidate.
@@ -222,31 +222,29 @@ def __get_libc() -> tuple[Path, Path, LibcWrangler]:
             else:
                 ld_ret = verified_libc_path
             return (Path(verified_libc_path), Path(ld_ret), verified_libc_impl)
+        assert verified_ld_path is not None
+        # We didn't get an approved libc path.
+        # Lets ask the libc if it wants us to return the same path for the libc as for the ld,
+        # or try to get an libc candidate.
+        if not verified_libc_impl.libc_same_as_ld() and possible_libc_paths:
+            libc_ret = possible_libc_paths[0]
         else:
-            assert verified_ld_path is not None
-            # We didn't get an approved libc path.
-            # Lets ask the libc if it wants us to return the same path for the libc as for the ld,
-            # or try to get an libc candidate.
-            if not verified_libc_impl.libc_same_as_ld() and possible_libc_paths:
-                libc_ret = possible_libc_paths[0]
-            else:
-                libc_ret = verified_ld_path
-            return (Path(verified_ld_path), Path(libc_ret), verified_libc_impl)
+            libc_ret = verified_ld_path
+        return (Path(verified_ld_path), Path(libc_ret), verified_libc_impl)
 
     # Noone approved anything. If we have any candidate paths return them, otherwise raise exception.
     if possible_libc_paths and possible_ld_paths:
         return (Path(possible_libc_paths[0]), Path(possible_ld_paths[0]), unknown)
-    elif possible_libc_paths:
+    if possible_libc_paths:
         return (Path(possible_libc_paths[0]), Path(possible_libc_paths[0]), unknown)
-    elif possible_ld_paths:
+    if possible_ld_paths:
         return (Path(possible_ld_paths[0]), Path(possible_ld_paths[0]), unknown)
-    else:
-        # NOTE: We could also try to verify all of the other mappings in the address space, which would
-        # sometimes yield us correct detection if the libc is very weirdly named, but it might be rare
-        # enough and slow enough that it's not worth it. Not sure.
-        # But if none of those get approved, we shouldn't return the first "candidate" match but really
-        # raise.
-        raise LibcNotFound("No candidate libc or ld mappings found.")
+    # NOTE: We could also try to verify all of the other mappings in the address space, which would
+    # sometimes yield us correct detection if the libc is very weirdly named, but it might be rare
+    # enough and slow enough that it's not worth it. Not sure.
+    # But if none of those get approved, we shouldn't return the first "candidate" match but really
+    # raise.
+    raise LibcNotFound("No candidate libc or ld mappings found.")
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")

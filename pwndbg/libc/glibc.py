@@ -129,16 +129,15 @@ def verify_libc_candidate(mapping_name: str) -> bool:
             pwndbg.aglib.symbol.lookup_symbol("__GI_exit", objfile_endswith=mapping_name)
             is not None
         )
-    else:
-        # We don't have internal symbols so we will use a more expensive (?) check:
-        rodata: tuple[int, int, bytes] | None = pwndbg.aglib.elf.section_by_name(
-            mapping_name, ".rodata", try_local_path=True
-        )
-        if rodata is None:
-            return False
-        _, _, data = rodata
+    # We don't have internal symbols so we will use a more expensive (?) check:
+    rodata: tuple[int, int, bytes] | None = pwndbg.aglib.elf.section_by_name(
+        mapping_name, ".rodata", try_local_path=True
+    )
+    if rodata is None:
+        return False
+    _, _, data = rodata
 
-        return b"GNU C Library" in data
+    return b"GNU C Library" in data
 
 
 def verify_ld_candidate(mapping_name: str) -> bool:

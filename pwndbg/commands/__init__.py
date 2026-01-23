@@ -734,12 +734,11 @@ def OnlyWithFile(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWithFile(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.proc.exe():
             return function(*a, **kw)
+        if pwndbg.aglib.qemu.is_qemu():
+            log.error("Could not determine the target binary on QEMU.")
         else:
-            if pwndbg.aglib.qemu.is_qemu():
-                log.error("Could not determine the target binary on QEMU.")
-            else:
-                log.error(f"{func_name(function)}: There is no file loaded.")
-            return None
+            log.error(f"{func_name(function)}: There is no file loaded.")
+        return None
 
     return _OnlyWithFile
 
@@ -749,11 +748,10 @@ def OnlyWhenQemuKernel(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWhenQemuKernel(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.qemu.is_qemu_kernel():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when debugging the Linux kernel in QEMU."
-            )
-            return None
+        log.error(
+            f"{func_name(function)}: This command may only be run when debugging the Linux kernel in QEMU."
+        )
+        return None
 
     return _OnlyWhenQemuKernel
 
@@ -763,11 +761,10 @@ def OnlyWhenUserspace(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWhenUserspace(*a: P.args, **kw: P.kwargs) -> T | None:
         if not pwndbg.aglib.qemu.is_qemu_kernel():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when not debugging a QEMU kernel target."
-            )
-            return None
+        log.error(
+            f"{func_name(function)}: This command may only be run when not debugging a QEMU kernel target."
+        )
+        return None
 
     return _OnlyWhenUserspace
 
@@ -777,11 +774,10 @@ def OnlyWithKernelDebugInfo(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWithKernelDebugInfo(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.kernel.has_debug_info():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with debug info."
-            )
-            return None
+        log.error(
+            f"{func_name(function)}: This command may only be run when debugging a Linux kernel with debug info."
+        )
+        return None
 
     return _OnlyWithKernelDebugInfo
 
@@ -791,14 +787,13 @@ def OnlyWithKernelSymbols(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWithKernelSymbols(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.kernel.has_debug_symbols():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when debugging a Linux kernel with symbols.\n"
-                + message.hint(
-                    "Check out vmlinux-to-elf to get them easily (https://github.com/marin-m/vmlinux-to-elf) or compile the kernel yourself."
-                )
+        log.error(
+            f"{func_name(function)}: This command may only be run when debugging a Linux kernel with symbols.\n"
+            + message.hint(
+                "Check out vmlinux-to-elf to get them easily (https://github.com/marin-m/vmlinux-to-elf) or compile the kernel yourself."
             )
-            return None
+        )
+        return None
 
     return _OnlyWithKernelSymbols
 
@@ -808,11 +803,8 @@ def OnlyWhenPagingEnabled(function: Callable[P, T]) -> Callable[P, T | None]:
     def _OnlyWhenPagingEnabled(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.kernel.paging_enabled():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This command may only be run when paging is enabled."
-            )
-            return None
+        log.error(f"{func_name(function)}: This command may only be run when paging is enabled.")
+        return None
 
     return _OnlyWhenPagingEnabled
 
@@ -823,9 +815,8 @@ def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, T | None]:
         # TODO: Properly support OnlyWhenRunning without `gdblib`.
         if pwndbg.aglib.proc.alive():
             return function(*a, **kw)
-        else:
-            log.error(f"{func_name(function)}: The program is not being run.")
-            return None
+        log.error(f"{func_name(function)}: The program is not being run.")
+        return None
 
     return _OnlyWhenRunning
 
@@ -836,11 +827,10 @@ def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
         assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
         if pwndbg.aglib.heap.current.has_tcache():
             return function(*a, **kw)
-        else:
-            log.error(
-                f"{func_name(function)}: This version of GLIBC was not compiled with tcache support."
-            )
-            return None
+        log.error(
+            f"{func_name(function)}: This version of GLIBC was not compiled with tcache support."
+        )
+        return None
 
     return _OnlyWithTcache
 
@@ -850,9 +840,8 @@ def OnlyWhenHeapIsInitialized(function: Callable[P, T]) -> Callable[P, T | None]
     def _OnlyWhenHeapIsInitialized(*a: P.args, **kw: P.kwargs) -> T | None:
         if pwndbg.aglib.heap.current is not None and pwndbg.aglib.heap.current.is_initialized():
             return function(*a, **kw)
-        else:
-            log.error(f"{func_name(function)}: Heap is not initialized yet.")
-            return None
+        log.error(f"{func_name(function)}: Heap is not initialized yet.")
+        return None
 
     return _OnlyWhenHeapIsInitialized
 
@@ -934,7 +923,7 @@ def OnlyWithResolvedHeapSyms(function: Callable[P, T]) -> Callable[P, T | None]:
                     "This might not work in all cases. Use `help set resolve-heap-via-heuristic` for more details.\n"
                 )
                 return _try2run_heap_command(function, *a, **kw)
-            elif static:
+            if static:
                 e(
                     "Can't find GLIBC version required for this command to work since this is a statically linked binary"
                 )
