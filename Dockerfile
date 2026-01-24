@@ -3,7 +3,7 @@
 #   ubuntu24.04 | ubuntu22.04 | debian12
 #
 # Run using prebuilt image (mount bind-mounts working dir into /pwndbg):
-#   docker compose run --rm ubuntu24.04
+#   docker compose run --rm -v $(pwd):/pwndbg ubuntu24.04
 #
 # Update your prebuilt image:
 #   docker compose pull ubuntu24.04
