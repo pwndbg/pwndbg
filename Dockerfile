@@ -1,10 +1,17 @@
-# This dockerfile was created for development & testing purposes, for APT-based distro.
+# This dockerfile was created for development & testing purposes, for APT-based distros.
+# images available:
+#   ubuntu24.04 | ubuntu22.04 | debian12
 #
-# Build as:
-#   DOCKER_BUILDKIT=1 docker build -f Dockerfile -t pwndbg .
+# Run using prebuilt image (mount bind-mounts working dir into /pwndbg):
+#   docker compose run --rm ubuntu24.04-mount
+#   docker compose run --rm ubuntu24.04
 #
-# To run use (we mount the directory so the host changes are reflected into container):
-#   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $(pwd):/pwndbg pwndbg bash
+# Update your prebuilt image:
+#   docker compose pull ubuntu24.04
+#
+# Build and run local Dockerfile (if you modified it, or installation): 
+#   docker compose run --rm --build ubuntu24.04-mount
+#   docker compose run --rm --build ubuntu24.04
 
 ARG image=mcr.microsoft.com/devcontainers/base:jammy
 FROM $image AS base

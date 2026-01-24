@@ -1,13 +1,18 @@
 # This dockerfile was created for development & testing purposes, for Pacman-based distro.
 #
-# Build as:
-#   DOCKER_BUILDKIT=1 docker build -f Dockerfile.arch -t pwndbg-arch .
+# Run using prebuilt image (mount bind-mounts working dir into /pwndbg):
+#   docker compose run --rm archlinux-mount
+#   docker compose run --rm archlinux
 #
-# To run use (we mount the directory so the host changes are reflected into container):
-#   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $(pwd):/pwndbg pwndbg-arch bash
+# Update your prebuilt image:
+#   docker compose pull archlinux
+#
+# Build and run local Dockerfile (if you modified it, or installation): 
+#   docker compose run --rm --build archlinux-mount
+#   docker compose run --rm --build archlinux
 
 ARG image=archlinux:latest
-FROM $image
+FROM $image AS base
 
 WORKDIR /pwndbg
 
@@ -44,6 +49,8 @@ RUN --mount=type=cache,id=ccache,target=/root/.ccache,sharing=locked \
 
 # Cleanup dummy files
 RUN rm README.md && rm -rf pwndbg
+
+FROM base AS full
 
 COPY . /pwndbg/
 

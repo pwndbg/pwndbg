@@ -1,13 +1,20 @@
 # This dockerfile was created for development & testing purposes, for DNF-based distro.
+# images available:
+#   fedora43 | fedora42 | fedora41
 #
-# Build as:
-#   DOCKER_BUILDKIT=1 docker build -f Dockerfile.dnf -t pwndbg-deb .
+# Run using prebuilt image (mount bind-mounts working dir into /pwndbg):
+#   docker compose run --rm fedora43-mount
+#   docker compose run --rm fedora43
 #
-# To run use (we mount the directory so the host changes are reflected into container):
-#   docker run -it --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v $(pwd):/pwndbg pwndbg-deb bash
+# Update your prebuilt image:
+#   docker compose pull fedora43
+#
+# Build and run local Dockerfile (if you modified it, or installation): 
+#   docker compose run --rm --build fedora43-mount
+#   docker compose run --rm --build fedora43
 
-ARG image=fedora:41
-FROM $image
+ARG image=fedora:43
+FROM $image AS base
 
 WORKDIR /pwndbg
 
@@ -50,6 +57,8 @@ RUN --mount=type=cache,id=ccache,target=/root/.ccache,sharing=locked \
 
 # Cleanup dummy files
 RUN rm README.md && rm -rf pwndbg
+
+FROM base AS full
 
 COPY . /pwndbg/
 
