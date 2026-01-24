@@ -20,7 +20,6 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
-import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
@@ -122,13 +121,9 @@ def typeinfo_recovery(
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
                 return
             if requires_kversion and kversion() is None:
-                raise TypeNotRecovered(
-                    name, message.warn(f"recovering {name} failed because kversion is unavailable")
-                )
+                raise TypeNotRecovered(name, "kernel version is unavailable")
             if requires_kbase and kbase() is None:
-                raise TypeNotRecovered(
-                    name, message.warn(f"recovering {name} failed because kbase is unavailable")
-                )
+                raise TypeNotRecovered(name, "kernel base not found")
             # f(*args, **kwargs)
             try:
                 result = f(*args, **kwargs)

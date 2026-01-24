@@ -104,8 +104,6 @@ def test_command_slab_info():
         res = gdb.execute("slab info kmalloc-512", to_string=True)
         assert "may only be run when debugging a Linux kernel with debug" in res
         return
-    if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.slab.recover_slab_typeinfo()
     for cache in pwndbg.aglib.kernel.slab.caches():
         cache_name = cache.name
         res = gdb.execute(f"slab info {cache_name}", to_string=True)

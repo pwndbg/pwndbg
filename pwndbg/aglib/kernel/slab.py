@@ -14,6 +14,7 @@ from pwndbg.aglib.kernel.macros import swab
 
 
 def caches() -> Generator[SlabCache, None, None]:
+    recover_slab_typeinfo()
     slab_caches = pwndbg.aglib.kernel.slab_caches()
     if slab_caches is None:
         # Symbol not found
