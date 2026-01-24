@@ -314,7 +314,7 @@ def slab_contains(address: str) -> None:
 
     try:
         slab_cache = find_containing_slab_cache(addr)
-        assert slab_cache
+        assert slab_cache, "cannot find the kmem_cache the slab belong to"
         print(f"{addr:#x} @", message.hint(f"{slab_cache.name}"))
         slab = slab_cache.find_containing_slab(addr)
         if slab is None:
