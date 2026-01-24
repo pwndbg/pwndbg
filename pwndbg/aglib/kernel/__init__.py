@@ -305,11 +305,7 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
 
 def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
     # name is a substr of any of the target caches' names
-    cache = None
-    try:
-        cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
-    except Exception:
-        pass
+    cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
     if not cache:
         return False
     if strict:

@@ -421,15 +421,17 @@ class Slab:
 
 
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
-    recover_slab_typeinfo()
-    page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
-    head_page = compound_head(page)
+    recover_slab_typeinfo()  # throws a separate exception
+    try:
+        page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
+        head_page = compound_head(page)
 
-    slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
-    assert slab_type is not None, "Symbol slab not found"
-
-    slab = head_page.cast(slab_type)
-    return SlabCache(slab["slab_cache"])
+        slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
+        slab = head_page.cast(slab_type)
+        return SlabCache(slab["slab_cache"])
+    except Exception:
+        pass
+    return None
 
 
 #########################################
