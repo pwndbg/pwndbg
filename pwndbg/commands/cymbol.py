@@ -60,7 +60,7 @@ def create_temp_header_file(content: str) -> str:
 def unload_loaded_symbol(custom_structure_name: str) -> None:
     custom_structure_symbols_file = loaded_symbols.get(custom_structure_name)
     if custom_structure_symbols_file is not None:
-        pwndbg.dbg.selected_inferior().remove_symbol_file("custom_structure_symbols_file")
+        pwndbg.dbg.selected_inferior().remove_symbol_file(custom_structure_symbols_file)
         loaded_symbols.pop(custom_structure_name)
 
 
