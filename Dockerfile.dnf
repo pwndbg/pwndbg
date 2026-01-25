@@ -2,19 +2,13 @@
 # images available:
 #   fedora43 | fedora42 | fedora41
 #
-# Run using prebuilt image (mount bind-mounts working dir into /pwndbg):
-#   docker compose run --rm fedora43-mount
-#   docker compose run --rm fedora43
+# Run using prebuilt image (pulls image and bind-mounts working dir into /pwndbg):
+#   docker compose run --rm -v $(pwd):/pwndbg fedora43
 #
 # Update your prebuilt image:
 #   docker compose pull fedora43
-#
-# Build and run local Dockerfile (if you modified it, or installation): 
-#   docker compose run --rm --build fedora43-mount
-#   docker compose run --rm --build fedora43
 
 ARG image=fedora:43
-FROM $image AS base
 
 WORKDIR /pwndbg
 
@@ -57,8 +51,6 @@ RUN --mount=type=cache,id=ccache,target=/root/.ccache,sharing=locked \
 
 # Cleanup dummy files
 RUN rm README.md && rm -rf pwndbg
-
-FROM base AS full
 
 COPY . /pwndbg/
 

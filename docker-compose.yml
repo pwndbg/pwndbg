@@ -20,19 +20,6 @@ services:
       args:
         image: ubuntu:22.04
 
-  ubuntu22.04-mount:
-    <<: *base-spec
-    image: ghcr.io/pwndbg/pwndbg:ubuntu22.04
-    pull_policy: missing
-    build:
-      context: .
-      target: base
-      dockerfile: Dockerfile
-      args:
-        image: ubuntu:22.04
-    volumes:
-      - .:/pwndbg
-
   ubuntu24.04:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:ubuntu24.04
@@ -66,19 +53,6 @@ services:
       args:
         image: debian:12
 
-  debian12-mount:
-    <<: *base-spec
-    image: ghcr.io/pwndbg/pwndbg:debian12
-    pull_policy: missing
-    build:
-      context: .
-      target: base
-      dockerfile: Dockerfile
-      args:
-        image: debian:12
-    volumes:
-      - .:/pwndbg
-
   archlinux:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:archlinux
@@ -88,19 +62,6 @@ services:
       dockerfile: Dockerfile.arch
       args:
         image: archlinux:latest
-
-  archlinux-mount:
-    <<: *base-spec
-    image: ghcr.io/pwndbg/pwndbg:archlinux
-    pull_policy: missing
-    build:
-      context: .
-      target: base
-      dockerfile: Dockerfile.arch
-      args:
-        image: archlinux:latest
-    volumes:
-      - .:/pwndbg
 
   fedora41:
     <<: *base-spec
@@ -112,19 +73,6 @@ services:
       args:
         image: fedora:41
 
-  fedora41-mount:
-    <<: *base-spec
-    image: ghcr.io/pwndbg/pwndbg:fedora41
-    pull_policy: missing
-    build:
-      context: .
-      target: base
-      dockerfile: Dockerfile.dnf
-      args:
-        image: fedora:41
-    volumes:
-      - .:/pwndbg
-
   fedora42:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:fedora42
@@ -135,19 +83,6 @@ services:
       args:
         image: fedora:42
 
-  fedora42-mount:
-    <<: *base-spec
-    image: ghcr.io/pwndbg/pwndbg:fedora42
-    pull_policy: missing
-    build:
-      context: .
-      target: base
-      dockerfile: Dockerfile.dnf
-      args:
-        image: fedora:42
-    volumes:
-      - .:/pwndbg
-
   fedora43:
     <<: *base-spec
     image: ghcr.io/pwndbg/pwndbg:fedora43
@@ -157,16 +92,3 @@ services:
       dockerfile: Dockerfile.dnf
       args:
         image: fedora:43
-
-  fedora43-mount:
-    <<: *base-spec
-    image: ghcr.io/pwndbg/pwndbg:fedora43
-    pull_policy: missing
-    build:
-      context: .
-      target: base
-      dockerfile: Dockerfile.dnf
-      args:
-        image: fedora:43
-    volumes:
-      - .:/pwndbg
