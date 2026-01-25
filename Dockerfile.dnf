@@ -9,6 +9,7 @@
 #   docker compose pull fedora43
 
 ARG image=fedora:43
+FROM $image
 
 WORKDIR /pwndbg
 

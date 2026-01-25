@@ -7,6 +7,7 @@
 #   docker compose pull archlinux
 
 ARG image=archlinux:latest
+FROM $image
 
 WORKDIR /pwndbg
 
