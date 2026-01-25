@@ -386,6 +386,13 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
     def siginfo(self) -> SigInfo | None:
         lldb_siginfo = self.inner.GetSiginfo()
 
+        if lldb_siginfo.error.Fail():
+            # It can happen that LLDB fails to retrieve the signal information
+            # e.g. on QEMU kernel debugging:
+            # lldb_siginfo.error.GetCString() == "qXfer:siginfo:read not supported"
+            # Also reproducable on MacOS on normal binaries.
+            return None
+
         int_cast: Callable[[str], int] = lambda x: int(x, 16) if x.startswith("0x") else int(x)
 
         si_signo = int_cast(lldb_siginfo.GetChildMemberWithName("si_signo").value)
