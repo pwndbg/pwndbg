@@ -17,6 +17,7 @@ from collections.abc import Generator
 from collections.abc import Iterator
 from collections.abc import Sequence
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 from typing import Literal
 from typing import TypeVar
@@ -29,6 +30,7 @@ import pwndbg
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
 import pwndbg.lib.memory
+import pwndbg.lib.path
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import selection
 from pwndbg.lib.arch import ArchDefinition
@@ -385,6 +387,13 @@ class LLDBThread(pwndbg.dbg_mod.Thread):
     @override
     def siginfo(self) -> SigInfo | None:
         lldb_siginfo = self.inner.GetSiginfo()
+
+        if lldb_siginfo.error.Fail():
+            # It can happen that LLDB fails to retrieve the signal information
+            # e.g. on QEMU kernel debugging:
+            # lldb_siginfo.error.GetCString() == "qXfer:siginfo:read not supported"
+            # Also reproducable on MacOS on normal binaries.
+            return None
 
         int_cast: Callable[[str], int] = lambda x: int(x, 16) if x.startswith("0x") else int(x)
 
@@ -1592,7 +1601,8 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         objfile: lldb.SBModule | None = None
         if objfile_endswith is not None:
             for m in self.target.module_iter():
-                if str(m.file.fullpath).endswith(objfile_endswith):
+                # FIXME: Path().resolve() is a workaround for #3641
+                if str(Path(m.file.fullpath).resolve()).endswith(objfile_endswith):
                     objfile = m
                     break
             if objfile is None:
@@ -1935,23 +1945,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # - 'ABIMacOSX_arm64'
         return self.target.GetABIName().lower().startswith("sysv")
 
-    def _resolve_fullpath(self, spec: lldb.SBFileSpec) -> str:
-        """
-        LLDB doesn't resolve symbolic links for us. Pwndbg expects this, so we
-        have to resolve these paths before we pass them forward.
-        """
-
-        # We should resolve symbolic links.
-        link = pwndbg.aglib.file.readlink(spec.fullpath)
-        if len(link) == 0:
-            return spec.fullpath
-
-        # Get the absolute path if it is not already absolute.
-        if not os.path.isabs(link):
-            link = os.path.normpath(f"{spec.dirname}/{link}")
-
-        return link
-
     @override
     def module_section_locations(self) -> list[tuple[int, int, str, str]]:
         result = []
@@ -1973,7 +1966,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
                     # This section is not loaded.
                     continue
 
-                fullpath = self._resolve_fullpath(module.GetFileSpec())
+                fullpath = pwndbg.lib.path.clean_path(str(module.GetFileSpec()))
 
                 result.append((load, section.GetByteSize(), section.GetName(), fullpath))
 
@@ -1990,7 +1983,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         if spec is None:
             return None
 
-        return self._resolve_fullpath(spec)
+        return pwndbg.lib.path.clean_path(str(spec))
 
     @override
     def main_module_entry(self) -> int | None:
@@ -2008,7 +2001,16 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # in the docstring for this method. We assume that targets that have no
         # known modules - as is the case by default for QEMU - are statically
         # linked, same as GDB 13.2.
-        return self.target.GetNumModules() > 1
+        nfile_backed = 0
+        for i in range(self.target.GetNumModules()):
+            module = self.target.GetModuleAtIndex(i)
+            # We must check this so we don't count modules like [vdso] (#3643)
+            if module.IsFileBacked():
+                nfile_backed += 1
+                if nfile_backed > 1:
+                    return True
+
+        return False
 
     @override
     def dispatch_execution_controller(

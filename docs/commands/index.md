@@ -115,7 +115,7 @@
 -  [errno](linux_libc_elf/errno.md) - Converts errno (or argument) to its string representation.
 -  [got](linux_libc_elf/got.md) - Show the state of the Global Offset Table.
 -  [gotplt](linux_libc_elf/gotplt.md) - Prints any symbols found in the .got.plt section if it exists.
--  [libcinfo](linux_libc_elf/libcinfo.md) - Show libc version and link to its sources
+-  [libcinfo](linux_libc_elf/libcinfo.md) - Show various information about the currently used libc
 -  [linkmap](linux_libc_elf/linkmap.md) - Show the state of the Link Map
 -  [onegadget](linux_libc_elf/onegadget.md) - Find gadgets which single-handedly give code execution.
 -  [parse-seccomp](linux_libc_elf/parse-seccomp.md) - Parse a struct sock_fprog from memory and dump its filter

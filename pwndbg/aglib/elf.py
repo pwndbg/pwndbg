@@ -30,6 +30,7 @@ import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.auxv
+import pwndbg.dbg_mod
 import pwndbg.lib
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -210,11 +211,11 @@ def get_vmlinux_unrand_base(elf_filepath: str):
     return None
 
 
-def dump_section_by_name(
+def section_by_name(
     filepath: str, section_name: str, try_local_path: bool = False
 ) -> tuple[int, int, bytes] | None:
     """
-    Dump the content of a section from an ELF file, return the start address, size and content.
+    Return the content of a section from an ELF file, as a (start address, size, content) tuple.
     """
     # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
@@ -225,11 +226,12 @@ def dump_section_by_name(
         return (section["sh_addr"], section["sh_size"], section.data()) if section else None
 
 
-def dump_relocations_by_section_name(
+def relocations_by_section_name(
     filepath: str, section_name: str, try_local_path: bool = False
-) -> tuple[Relocation, ...] | None:
+) -> tuple[Relocation, ...]:
     """
-    Dump the relocation entries of a section from an ELF file, return a generator of Relocation objects.
+    Return the relocation entries of a section from an ELF file as a (possibly empty)
+    tuple of Relocation objects.
     """
     # TODO: We should have some cache mechanism or something at `pndbg.aglib.file.get_file()` in the future to avoid downloading the same file multiple times when we are debugging a remote process
     local_path = pwndbg.aglib.file.get_file(filepath, try_local_path=try_local_path)
@@ -238,7 +240,7 @@ def dump_relocations_by_section_name(
         elffile = ELFFile(f)
         section = elffile.get_section_by_name(section_name)
         if section is None or not isinstance(section, RelocationSection):
-            return None
+            return ()
         return tuple(section.iter_relocations())
 
 

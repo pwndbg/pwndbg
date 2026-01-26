@@ -340,8 +340,8 @@ def buddydump(
     if not node_data:
         log.warning("WARNING: Symbol 'node_data' not found")
         return
+    pwndbg.aglib.kernel.buddydump.recover_buddydump_typeinfo()
     if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.buddydump.load_buddydump_typeinfo()
         node_data = pwndbg.aglib.memory.get_typed_pointer("node_data_t", node_data)
     pba = ParsedBuddyArgs(zone, order, mtype.lower() if mtype is not None else None, cpu, find)
     cbp = CurrentBuddyParams(
@@ -351,7 +351,8 @@ def buddydump(
         if node is not None and node_idx != node:
             continue
         zones = None
-        if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
+        kconfig = pwndbg.aglib.kernel.kconfig()
+        if kconfig and "CONFIG_NUMA" in kconfig:
             # only display one node per invocation is probably sufficient under most use cases
             zones = node_data.dereference()[node_idx]["node_zones"]
         else:

@@ -653,6 +653,10 @@ class Process:
         """
         Return a list of (address, size, section_name, module_name) tuples for
         the loaded sections in every module of this process.
+
+        The module name will have its full path resolved without following symlinks,
+        so it is not guaranteed to be the same string as in `/proc/<pid>/maps`
+        or vmmap.
         """
         raise NotImplementedError()
 

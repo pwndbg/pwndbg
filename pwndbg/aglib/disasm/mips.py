@@ -88,12 +88,12 @@ CONDITION_RESOLVERS: dict[int, Callable[[list[int]], bool]] = {
     MIPS_INS_BNEZ: lambda ops: ops[0] != 0,
     MIPS_INS_BEQ: lambda ops: ops[0] == ops[1],
     MIPS_INS_BNE: lambda ops: ops[0] != ops[1],
-    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) >= 0,
-    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) >= 0,
-    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) > 0,
-    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) <= 0,
-    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
-    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrsize * 8) < 0,
+    MIPS_INS_BGEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) >= 0,
+    MIPS_INS_BGEZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) >= 0,
+    MIPS_INS_BGTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) > 0,
+    MIPS_INS_BLEZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) <= 0,
+    MIPS_INS_BLTZAL: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) < 0,
+    MIPS_INS_BLTZ: lambda ops: bit_math.to_signed(ops[0], pwndbg.aglib.arch.ptrbits) < 0,
 }
 
 CONDITION_RESOLVERS[MIPS_INS_ALIAS_BEQZ] = CONDITION_RESOLVERS[MIPS_INS_BEQZ]

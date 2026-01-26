@@ -14,6 +14,7 @@ from pwndbg.aglib.kernel.macros import swab
 
 
 def caches() -> Generator[SlabCache, None, None]:
+    recover_slab_typeinfo()
     slab_caches = pwndbg.aglib.kernel.slab_caches()
     if slab_caches is None:
         # Symbol not found
@@ -420,14 +421,17 @@ class Slab:
 
 
 def find_containing_slab_cache(addr: int) -> SlabCache | None:
-    page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
-    head_page = compound_head(page)
+    recover_slab_typeinfo()  # throws a separate exception
+    try:
+        page = pwndbg.aglib.memory.get_typed_pointer_value("struct page", kernel.virt_to_page(addr))
+        head_page = compound_head(page)
 
-    slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
-    assert slab_type is not None, "Symbol slab not found"
-
-    slab = head_page.cast(slab_type)
-    return SlabCache(slab["slab_cache"])
+        slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
+        slab = head_page.cast(slab_type)
+        return SlabCache(slab["slab_cache"])
+    except Exception:
+        pass
+    return None
 
 
 #########################################
@@ -618,12 +622,8 @@ def kmem_cache_structs(node_cache_pad):
     return result
 
 
-def load_slab_typeinfo():
-    if pwndbg.aglib.typeinfo.lookup_types("struct kmem_cache") is not None:
-        return
-    if pwndbg.aglib.kernel.symbol.kversion_cint() is None:
-        return
-    pwndbg.aglib.kernel.symbol.load_common_structs()
+@pwndbg.aglib.kernel.typeinfo_recovery("struct kmem_cache", requires_kversion=True)
+def recover_slab_typeinfo() -> str:
     kconfig = pwndbg.aglib.kernel.kconfig()
     defs = []
     configs = (
@@ -703,5 +703,4 @@ def load_slab_typeinfo():
         struct kmem_cache_node *node[{pwndbg.aglib.kernel.num_numa_nodes()}];
     }};
     """
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, "slab_structs", True)
+    return result

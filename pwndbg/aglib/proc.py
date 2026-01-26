@@ -86,7 +86,7 @@ def dump_elf_data_section() -> tuple[int, int, bytes] | None:
     """
     import pwndbg.aglib.elf
 
-    return pwndbg.aglib.elf.dump_section_by_name(exe(), ".data", try_local_path=True)
+    return pwndbg.aglib.elf.section_by_name(exe(), ".data", try_local_path=True)
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")
@@ -96,9 +96,7 @@ def dump_relocations_by_section_name(section_name: str) -> tuple[Relocation, ...
     """
     import pwndbg.aglib.elf
 
-    return pwndbg.aglib.elf.dump_relocations_by_section_name(
-        exe(), section_name, try_local_path=True
-    )
+    return pwndbg.aglib.elf.relocations_by_section_name(exe(), section_name, try_local_path=True)
 
 
 @pwndbg.lib.cache.cache_until("start", "objfile")

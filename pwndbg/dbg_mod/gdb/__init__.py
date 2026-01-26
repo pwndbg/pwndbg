@@ -26,6 +26,7 @@ import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.memory
+import pwndbg.lib.path
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import selection
@@ -218,12 +219,13 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         # to read from the inferior. `sp` is resolved by GDB to the architecture-specific stack pointer.
         return int(self.regs().by_name("sp"))
 
+    @override
     def start(self) -> int | None:
         # How is it possible that this isn't in the API?
         # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
         import pwndbg.aglib
 
-        # We're gonna parse this:.
+        # We're gonna parse this:
         # e.g. `str(self.inner) == "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"`
         # See gdb/python/py-frame.c:frapy_str() and gdb/frame.c:frame_id::to_string()
         # They really could just expose .stack() as an API...
@@ -1117,11 +1119,19 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def module_section_locations(self) -> list[tuple[int, int, str, str]]:
+        global pwndbg
         import pwndbg.gdblib.info
 
         result = []
         for section in pwndbg.gdblib.info.sections():
-            result.append((section.start, section.size, section.section, section.objfile))
+            result.append(
+                (
+                    section.start,
+                    section.size,
+                    section.section,
+                    pwndbg.lib.path.clean_path(section.objfile),
+                )
+            )
 
         return result
 

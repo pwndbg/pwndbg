@@ -212,8 +212,8 @@ class RISCVDisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
         if src1_unsigned is None or src2_unsigned is None:
             return InstructionCondition.UNDETERMINED
 
-        src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.aglib.arch.ptrsize * 8)
-        src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.aglib.arch.ptrsize * 8)
+        src1_signed = bit_math.to_signed(src1_unsigned, pwndbg.aglib.arch.ptrbits)
+        src2_signed = bit_math.to_signed(src2_unsigned, pwndbg.aglib.arch.ptrbits)
 
         condition = {
             RISCV_INS_BEQ: src1_signed == src2_signed,

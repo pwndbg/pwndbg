@@ -6,6 +6,7 @@ vice-versa.
 from __future__ import annotations
 
 from enum import Enum
+from pathlib import Path
 
 import gdb
 
@@ -223,7 +224,8 @@ def lookup_symbol(
     objfile: gdb.Objfile | None = None
     if objfile_endswith is not None:
         for obj in gdb.selected_inferior().progspace.objfiles():
-            if obj.filename.endswith(objfile_endswith):
+            # FIXME: Workaround for #3641
+            if str(Path(obj.filename).resolve()).endswith(objfile_endswith):
                 objfile = obj
                 break
         if objfile is None:
