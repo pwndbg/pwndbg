@@ -434,6 +434,12 @@ class Process:
         """
         raise NotImplementedError()
 
+    def is_core_file(self) -> bool:
+        """
+        Returns whether this process is a coredump file.
+        """
+        raise NotImplementedError()
+
     def stopped_with_signal(self) -> bool:
         """
         Returns whether this process was stopped by a signal.

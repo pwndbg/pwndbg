@@ -983,6 +983,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         )
 
     @override
+    def is_core_file(self) -> bool:
+        return bool(self.process.GetCoreFile().IsValid())
+
+    @override
     def stopped_with_signal(self) -> bool:
         return self.process.GetState() == lldb.eStateStopped and any(
             thread.GetStopReason() == lldb.eStopReasonSignal for thread in self.process.threads

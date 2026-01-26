@@ -831,16 +831,24 @@ def WarnOnKernelConfigRandstruct(function: Callable[P, T]) -> Callable[P, T | No
     return _WarnOnKernelConfigRandstruct
 
 
-def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, T | None]:
-    @functools.wraps(function)
-    def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> T | None:
-        # TODO: Properly support OnlyWhenRunning without `gdblib`.
-        if pwndbg.aglib.proc.alive():
-            return function(*a, **kw)
-        log.error(f"{func_name(function)}: The program is not being run.")
-        return None
+def OnlyWhenRunning(
+    func_when_decorator_kwargs: Callable[P, T] | None = None, *, allow_core: bool = True
+) -> Callable[[Callable[P, T]], Callable[P, T | None]] | Callable[P, T | None]:
+    def decorator(func: Callable[P, T]) -> Callable[P, T | None]:
+        @functools.wraps(func)
+        def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> T | None:
+            if pwndbg.aglib.proc.alive() and not (
+                not allow_core and pwndbg.aglib.proc.is_core_file()
+            ):
+                return func(*a, **kw)
+            log.error(f"{func_name(func)}: The program is not being run.")
+            return None
 
-    return _OnlyWhenRunning
+        return _OnlyWhenRunning
+
+    if func_when_decorator_kwargs is None:
+        return decorator
+    return decorator(func_when_decorator_kwargs)
 
 
 def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
