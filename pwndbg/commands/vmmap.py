@@ -35,12 +35,11 @@ def pages_filter(gdbval_or_str):
         return lambda page: module_name in page.objfile
 
     # returns an address filter
-    elif isinstance(gdbval_or_str, integer_types):
+    if isinstance(gdbval_or_str, integer_types):
         addr = gdbval_or_str
         return lambda page: addr in page
 
-    else:
-        raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
+    raise argparse.ArgumentTypeError("Unknown vmmap argument type.")
 
 
 def print_vmmap_table_header(prefix: str = "") -> None:

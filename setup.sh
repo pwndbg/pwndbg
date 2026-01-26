@@ -28,7 +28,7 @@ install_apt() {
 
 install_dnf() {
     sudo dnf update || true
-    sudo dnf -y install git gdb gdb-gdbserver python3-devel
+    sudo dnf -y install git gdb gdb-gdbserver python3-devel gcc g++ make patch ncurses-devel
     sudo dnf -y debuginfo-install glibc
 }
 
@@ -74,7 +74,7 @@ install_pacman() {
     if [[ "$answer" == "y" ]]; then
         sudo pacman -Syu || true
     fi
-    sudo pacman -S --noconfirm --needed git gdb python which debuginfod curl
+    sudo pacman -S --noconfirm --needed git gdb python which debuginfod curl gcc make patch
     if [ -z "$UPDATE_MODE" ]; then
         if ! grep -qs "^set debuginfod enabled on" ~/.gdbinit; then
             echo "set debuginfod enabled on" >> ~/.gdbinit

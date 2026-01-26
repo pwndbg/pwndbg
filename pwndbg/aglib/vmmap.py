@@ -191,11 +191,10 @@ def named_region_start(mapping_name: str, exact_match: bool = True) -> int | Non
                 return mapping.start
 
         return None
-    else:
-        # Note that os.path.basename("[heap]") == "[heap]".
-        mapping_basename = os.path.basename(mapping_name)
-        for mapping in mappings:
-            if os.path.basename(mapping.objfile) == mapping_basename:
-                return mapping.start
+    # Note that os.path.basename("[heap]") == "[heap]".
+    mapping_basename = os.path.basename(mapping_name)
+    for mapping in mappings:
+        if os.path.basename(mapping.objfile) == mapping_basename:
+            return mapping.start
 
-        return None
+    return None

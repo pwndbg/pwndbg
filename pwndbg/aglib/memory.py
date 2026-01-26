@@ -408,7 +408,7 @@ def convert_pwndbg_value_to_python_value(dbg_value: pwndbg.dbg_mod.Value) -> int
 
     if ty.code == TypeCode.POINTER or ty.code == TypeCode.INT:
         return int(dbg_value)
-    elif ty.code == TypeCode.STRUCT:
+    if ty.code == TypeCode.STRUCT:
         return pack_struct_into_dictionary(dbg_value)
 
     raise NotImplementedError

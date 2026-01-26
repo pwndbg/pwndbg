@@ -132,19 +132,17 @@ class Parameter:
         """Convert a value this object could contain to its pretty string representation."""
         if self.param_class == PARAM_BOOLEAN:
             return "on" if val else "off"
-        elif self.param_class == PARAM_AUTO_BOOLEAN:
+        if self.param_class == PARAM_AUTO_BOOLEAN:
             if val is None:
                 return "auto"
-            else:
-                return "on" if val else "off"
-        elif (
+            return "on" if val else "off"
+        if (
             self.param_class == PARAM_STRING
             or self.param_class == PARAM_ENUM
             or self.param_class == PARAM_OPTIONAL_FILENAME
         ):
             return "'" + val + "'"
-        else:
-            return str(val)
+        return str(val)
 
     def pretty(self) -> str:
         return self.pretty_val(self.value)
@@ -294,8 +292,7 @@ class Config:
     def __getattr__(self, name: str) -> Parameter:
         if name in self.params:
             return self.params[name]
-        else:
-            raise AttributeError(f"'Config' object has no attribute '{name}'")
+        raise AttributeError(f"'Config' object has no attribute '{name}'")
 
     def __setattr__(self, attr, val):
         if attr in ("params", "triggers"):

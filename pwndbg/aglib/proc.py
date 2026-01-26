@@ -151,8 +151,7 @@ def OnlyWithArch(arch_names: list[str]) -> Callable[[Callable[P, T]], Callable[P
         def _OnlyWithArch(*a: P.args, **kw: P.kwargs) -> T | None:
             if pwndbg.aglib.arch.name in arch_names:
                 return function(*a, **kw)
-            else:
-                return None
+            return None
 
         return _OnlyWithArch
 

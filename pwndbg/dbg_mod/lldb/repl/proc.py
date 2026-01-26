@@ -185,6 +185,10 @@ class ProcessDriver:
     Drives the execution of a process, responding to its events and handling its
     I/O, and exposes a simple synchronous interface to the REPL interface.
 
+    # Signal Handler Safety
+    With few exceptions, no method in this class is safe to call during signal
+    handlers. Exceptions are always explicitly noted as such.
+
     # IODriver State Machine
     Because LLDB can make Python code from Pwndbg execute while an I/O driver is
     active, and having the I/O driver active while Pwndbg is running leads to
@@ -276,9 +280,35 @@ class ProcessDriver:
         """
         return self._is_core_file
 
+    def kill(self) -> lldb.SBError:
+        """
+        Kills the currently running process.
+        """
+        assert self.has_process(), "called kill() on a driver with no process"
+        with self._suspend_interrupts():
+            e = self.process.Kill()
+            if not e.success:
+                return e
+
+            # Callers expect the process to have already been dropped by the
+            # time this method returns, so we must drive the process to
+            # completion.
+            #
+            # By the time we start driving, there might be pending stop events
+            # that aren't necessarily the ones singnaling the termination of
+            # the inferior. We keep calling _run_until_next_stop until it sees
+            # that the process has been killed, which also clears driver state
+            # for us automatically.
+            while self.has_process():
+                self._run_until_next_stop()
+
+            return lldb.SBError()
+
     def interrupt(self, in_lldb_command_handler: bool = False) -> None:
         """
         Interrupts the currently running process or command.
+
+        This method may be called during a signal handler.
         """
         if not self.has_process():
             return
@@ -311,7 +341,7 @@ class ProcessDriver:
             raise UserCancelledError("user-requested cancellation")
 
     @contextlib.contextmanager
-    def suspend_interrupts(self, interrupt: Callable[[], None] | None = None):
+    def _suspend_interrupts(self, interrupt: Callable[[], None] | None = None):
         """
         Sometimes it's necessary to guard against interruption by
         self.interrupt, especially when being interrupted would lead to bad
@@ -562,7 +592,7 @@ class ProcessDriver:
         """
         assert self.has_process(), "called run_lldb_command() on a driver with no process"
 
-        with self.suspend_interrupts():
+        with self._suspend_interrupts():
             ret = lldb.SBCommandReturnObject()
             self.process.GetTarget().GetDebugger().GetCommandInterpreter().HandleCommand(
                 command, ret
@@ -685,7 +715,7 @@ class ProcessDriver:
 
             # Being interrupted here would be bad for keeping the state of the
             # process consistent.
-            with self.suspend_interrupts(interrupt=queue_cancel):
+            with self._suspend_interrupts(interrupt=queue_cancel):
                 if isinstance(step, YieldSingleStep):
                     self.debug_print("Coroutine: Performing ExecutionController.single_step()")
                     # Pick the currently selected thread and step it forward by one
@@ -962,9 +992,8 @@ class ProcessDriver:
             if isinstance(result, LaunchResultError):
                 result.disconnected = True
             return result
-        else:
-            self._prepare_listener_for(target)
-            return self._enter(self._launch_local, target, io, env, args, working_dir, extra_flags)
+        self._prepare_listener_for(target)
+        return self._enter(self._launch_local, target, io, env, args, working_dir, extra_flags)
 
     def launch_core_file(self, target: lldb.SBTarget, core: str) -> LaunchResult:
         """
@@ -1025,9 +1054,8 @@ class ProcessDriver:
             if isinstance(result, LaunchResultError):
                 result.disconnected = True
             return result
-        else:
-            self._prepare_listener_for(target)
-            return self._enter(self._attach_local, target, info)
+        self._prepare_listener_for(target)
+        return self._enter(self._attach_local, target, info)
 
     def connect(self, target: lldb.SBTarget, io: IODriver, url: str, plugin: str) -> LaunchResult:
         """

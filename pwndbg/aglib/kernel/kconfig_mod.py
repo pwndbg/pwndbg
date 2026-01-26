@@ -77,9 +77,9 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
         key = config_to_key(name)
         if key in self.data:
             return key
-        elif name.upper() in self.data:
+        if name.upper() in self.data:
             return name.upper()
-        elif name in self.data:
+        if name in self.data:
             return name
 
         return None

@@ -22,7 +22,6 @@ import sys
 import tempfile
 from typing import TypeVar
 
-import gdb
 from typing_extensions import ParamSpec
 from typing_extensions import Protocol
 
@@ -61,7 +60,7 @@ def create_temp_header_file(content: str) -> str:
 def unload_loaded_symbol(custom_structure_name: str) -> None:
     custom_structure_symbols_file = loaded_symbols.get(custom_structure_name)
     if custom_structure_symbols_file is not None:
-        gdb.execute(f"remove-symbol-file {custom_structure_symbols_file}")
+        pwndbg.dbg.selected_inferior().remove_symbol_file(custom_structure_symbols_file)
         loaded_symbols.pop(custom_structure_name)
 
 
@@ -221,6 +220,7 @@ def load_custom_structure(custom_structure_name: str, custom_structure_path: str
     pwndbg.dbg.selected_inferior().add_symbol_file(pwndbg_debug_symbols_output_file)
     loaded_symbols[custom_structure_name] = pwndbg_debug_symbols_output_file
     print(message.success(f"Loaded custom symbols! (from {custom_structure_path})"))
+    os.unlink(pwndbg_debug_symbols_output_file)
 
 
 @OnlyWhenStructFileExists
