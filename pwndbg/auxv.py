@@ -176,7 +176,7 @@ def explore_stack_auxv() -> AUXV | None:
             )
         )
         return None
-    elif auto_explore.value == "no":
+    if auto_explore.value == "no":
         return None
 
     return walk_stack2()

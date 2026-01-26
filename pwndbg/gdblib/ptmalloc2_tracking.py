@@ -222,8 +222,7 @@ class Tracker:
         thread = gdb.selected_thread().global_num
         if thread not in self.memory_management_calls:
             return False
-        else:
-            return self.memory_management_calls[thread]
+        return self.memory_management_calls[thread]
 
     def enter_memory_management(self, name: str) -> None:
         thread = gdb.selected_thread().global_num

@@ -875,10 +875,9 @@ class Meta:
         me = 1 << idx
         if self.freed_mask & me:
             return SlotState.FREED
-        elif self.avail_mask & me:
+        if self.avail_mask & me:
             return SlotState.AVAIL
-        else:
-            return SlotState.ALLOCATED
+        return SlotState.ALLOCATED
 
     @staticmethod
     def sizeof() -> int:
@@ -1228,8 +1227,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         self.ctx_addr = addr
                         self.ctx = maybe_ctx
                         return
-                    else:
-                        known_invalid.add(addr)
+                    known_invalid.add(addr)
 
             for addr, mapname in possible:
                 if addr in known_invalid:
@@ -1249,8 +1247,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
                         self.ctx_addr = addr
                         self.ctx = maybe_ctx
                         return
-                    else:
-                        known_invalid.add(addr)
+                    known_invalid.add(addr)
 
             print(
                 message.warn(
@@ -1464,8 +1461,7 @@ class Mallocng(pwndbg.aglib.heap.heap.MemoryAllocator):
         found, _ = self.find_slot(address, metadata, shallow)
         if found is None:
             return 0
-        else:
-            return found.start
+        return found.start
 
     def get_free_metas(self) -> dict[int, tuple[int, Meta]]:
         """

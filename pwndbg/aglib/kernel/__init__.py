@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import os
 import re
 from abc import ABC
 from abc import abstractmethod
@@ -18,7 +19,7 @@ import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
-import pwndbg.color.message as message
+import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
@@ -26,12 +27,19 @@ import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
 from pwndbg.aglib.kernel.paging import PagewalkResult
+from pwndbg.lib.regs import BitFlags
 
 _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
 P = ParamSpec("P")
 D = TypeVar("D")
 T = TypeVar("T")
+
+
+class TypeNotRecovered(Exception):
+    def __init__(self, name: str, msg: str) -> None:
+        self.name = name
+        super().__init__(msg)
 
 
 def BIT(shift: int):
@@ -99,48 +107,40 @@ def requires_debug_info(default: D = None) -> Callable[[Callable[P, T]], Callabl
 
 
 def typeinfo_recovery(
-    name: str, kversion: bool = False, kbase: bool = False
-) -> Callable[[Callable[P, str]], Callable[P, bool]]:
-    def decorator(f: Callable[P, str]) -> Callable[P, bool]:
+    name: str, requires_kversion: bool = False, requires_kbase: bool = False
+) -> Callable[[Callable[P, str]], Callable[P, None]]:
+    def decorator(f: Callable[P, str]) -> Callable[P, None]:
         # returns true if the type exists or has been successfully recovered
         @functools.wraps(f)
-        def func(*args: P.args, **kwargs: P.kwargs) -> bool:
-            if has_debug_info():
-                return True
-            if not has_debug_symbols():
+        def func(*args: P.args, **kwargs: P.kwargs) -> None:
+            if not pwndbg.dbg.selected_inferior().is_linux():
                 # make sure the target is linux, should we specify symbols instead?
-                return False
+                raise TypeNotRecovered(name, "target is not linux")
+            if has_debug_info():
+                return
             if pwndbg.aglib.typeinfo.lookup_types(name) is not None:
-                return True
-            if kversion and pwndbg.aglib.kernel.kversion() is None:
-                print(message.warn(f"recovering {name} failed because kversion is unavailable"))
-                return False
-            if kbase and pwndbg.aglib.kernel.kbase() is None:
-                print(message.warn(f"recovering {name} failed because kbase is unavailable"))
-                return False
+                return
+            if requires_kversion and kversion() is None:
+                raise TypeNotRecovered(name, "kernel version is unavailable")
+            if requires_kbase and kbase() is None:
+                raise TypeNotRecovered(name, "kernel base not found")
             # f(*args, **kwargs)
             try:
                 result = f(*args, **kwargs)
                 header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
                 fname = name.split()[-1] + "_structs"
                 pwndbg.commands.cymbol.add_structure_from_header(header_file_path, fname, True)
+                os.unlink(header_file_path)
             except Exception as e:
-                print(message.warn(f"recovering {name} failed with error:\n{e}"))
-                if "CONFIG_RANSTRUCT" in pwndbg.aglib.kernel.kconfig():
-                    print(
-                        message.warn(
-                            "please note that some structs may not be recoverable when CONFIG_RANSTRUCT=y"
-                        )
-                    )
-                return False
-            return True
+                raise TypeNotRecovered(name, str(e))
+            return
 
         return func
 
     return decorator
 
 
-@pwndbg.lib.cache.cache_until("stop")
+@pwndbg.lib.cache.cache_until("start")
 def nproc() -> int:
     """Returns the number of processing units available, similar to nproc(1)"""
     return len(pwndbg.dbg.selected_inferior().send_monitor("info cpus").splitlines())
@@ -199,7 +199,9 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig | None:
             config_start = result + len("IKCFG_ST")
             config_end = next(pwndbg.search.search(b"IKCFG_ED", start=config_start), None)
     if (
-        not pwndbg.aglib.memory.is_kernel(config_start)
+        not config_start
+        or not config_end
+        or not pwndbg.aglib.memory.is_kernel(config_start)
         or not pwndbg.aglib.memory.is_kernel(config_end)
         or config_start >= config_end
     ):
@@ -235,6 +237,8 @@ def kversion() -> str | None:
     if mapping is None:
         return None
     version_addr = next(pwndbg.search.search(b"Linux version", mappings=[mapping]), None)
+    if version_addr is None:
+        return None
     return pwndbg.aglib.memory.string(version_addr).decode("ascii").strip()
 
 
@@ -290,6 +294,8 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
             break
     if nxt != result[0]:
         return None
+    if len(result) < minlen:
+        return None
     for i, nxt in enumerate(result):
         p = pwndbg.aglib.memory.read_pointer_width(nxt + pwndbg.aglib.arch.ptrsize)
         if p != result[i - 1]:
@@ -299,14 +305,12 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
 
 def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
     # name is a substr of any of the target caches' names
-    try:
-        cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
-        if strict:
-            return name == cache.name
-        return name in cache.name
-    except Exception:
-        pass
-    return False
+    cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+    if not cache:
+        return False
+    if strict:
+        return name == cache.name
+    return name in cache.name
 
 
 class ArchOps(ABC):
@@ -318,7 +322,9 @@ class ArchOps(ABC):
     # in the page_to_pfn() and pfn_to_page() methods in the future.
 
     @abstractmethod
-    def per_cpu(self, addr: int | pwndbg.dbg_mod.Value, cpu=None) -> pwndbg.dbg_mod.Value:
+    def per_cpu(
+        self, addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None
+    ) -> pwndbg.dbg_mod.Value | None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -520,7 +526,7 @@ class Aarch64Ops(ArchOps):
 def arch_paginginfo() -> ArchPagingInfo | None:
     if pwndbg.aglib.arch.name == "aarch64":
         return pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
-    elif pwndbg.aglib.arch.name == "x86-64":
+    if pwndbg.aglib.arch.name == "x86-64":
         return pwndbg.aglib.kernel.paging.x86_64PagingInfo()
     return None
 
@@ -529,9 +535,9 @@ def arch_paginginfo() -> ArchPagingInfo | None:
 def arch_ops() -> ArchOps | None:
     if pwndbg.aglib.arch.name == "aarch64":
         return Aarch64Ops()
-    elif pwndbg.aglib.arch.name == "x86-64":
+    if pwndbg.aglib.arch.name == "x86-64":
         return x86_64Ops()
-    elif pwndbg.aglib.arch.name == "i386":
+    if pwndbg.aglib.arch.name == "i386":
         return i386Ops()
     return None
 
@@ -540,7 +546,7 @@ def arch_ops() -> ArchOps | None:
 def arch_symbols() -> pwndbg.aglib.kernel.symbol.ArchSymbols | None:
     if pwndbg.aglib.arch.name == "aarch64":
         return pwndbg.aglib.kernel.symbol.Aarch64Symbols()
-    elif pwndbg.aglib.arch.name == "x86-64":
+    if pwndbg.aglib.arch.name == "x86-64":
         return pwndbg.aglib.kernel.symbol.x86_64Symbols()
     return None
 
@@ -549,112 +555,98 @@ def page_size() -> int:
     ops = arch_ops()
     if ops:
         return ops.page_size
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def per_cpu(addr: int | pwndbg.dbg_mod.Value, cpu: int | None = None) -> pwndbg.dbg_mod.Value:
     ops = arch_ops()
     if ops:
         return ops.per_cpu(addr, cpu)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def virt_to_phys(virt: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.virt_to_phys(virt)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def phys_to_virt(phys: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.phys_to_virt(phys)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def phys_to_pfn(phys: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.phys_to_pfn(phys)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def pfn_to_phys(pfn: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.pfn_to_phys(pfn)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def pfn_to_page(pfn: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.pfn_to_page(pfn)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def page_to_pfn(page: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.page_to_pfn(page)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def phys_to_page(phys: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.phys_to_page(phys)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def page_to_phys(page: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.page_to_phys(page)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def virt_to_page(virt: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.virt_to_page(virt)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def page_to_virt(page: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.page_to_virt(page)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def pfn_to_virt(pfn: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.pfn_to_virt(pfn)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 def virt_to_pfn(virt: int) -> int:
     ops = arch_ops()
     if ops:
         return ops.virt_to_pfn(virt)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -662,19 +654,27 @@ def kbase() -> int | None:
     ops = arch_ops()
     if ops:
         return ops.kbase
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry: int = None, virt: bool = True) -> PagewalkResult:
-    # assumes entry is a valid physaddr (+ flags)
-    # the strategy is to walk any virtual pgd first
+def page_shift() -> int:
+    ops = arch_ops()
+    if ops:
+        return ops.page_shift
+    raise NotImplementedError()
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def pagewalk(addr, entry: int | None = None, virt: bool = True) -> PagewalkResult:
+    """
+    assumes entry is a valid physaddr (+ flags)
+    the strategy is to walk any virtual pgd first
+    """
     pi = arch_paginginfo()
     if pi:
         return pi.pagewalk(addr, entry, virt)
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 @pwndbg.lib.cache.cache_until("stop")
@@ -682,27 +682,33 @@ def pagescan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
     pi = arch_paginginfo()
     if pi:
         return tuple(pi.pagescan(entry))
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.bitflags(level)
+    raise NotImplementedError()
 
 
 def paging_enabled() -> bool:
     arch_name = pwndbg.aglib.arch.name
     if arch_name == "i386":
         return i386Ops.paging_enabled()
-    elif arch_name == "x86-64":
+    if arch_name == "x86-64":
         return x86_64Ops.paging_enabled()
-    elif arch_name == "aarch64":
+    if arch_name == "aarch64":
         return Aarch64Ops.paging_enabled()
-    elif arch_name == "rv64":
+    if arch_name == "rv64":
         # https://starfivetech.com/uploads/u74_core_complex_manual_21G1.pdf
         # page 41, satp.MODE, bits: 60,61,62,63
         # "When satp.MODE=0x0, supervisor virtual addresses are equal to supervisor physical addresses"
         return (
             int(pwndbg.aglib.regs.read_reg("satp")) & (BIT(60) | BIT(61) | BIT(62) | BIT(63)) != 0
         )
-    else:
-        raise NotImplementedError()
+    raise NotImplementedError()
 
 
 @requires_debug_symbols("node_states", default=1)
@@ -710,7 +716,7 @@ def num_numa_nodes() -> int:
     """Returns the number of NUMA nodes that are online on the system"""
     kc = kconfig()
 
-    if "CONFIG_NUMA" not in kc:
+    if not kc or "CONFIG_NUMA" not in kc:
         return 1
 
     if "CONFIG_NODES_SHIFT" not in kc:

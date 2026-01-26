@@ -55,8 +55,7 @@ class RegisterManager:
 
             if name.endswith("LIMIT"):
                 return limit
-            else:
-                return base
+            return base
 
         return None
 

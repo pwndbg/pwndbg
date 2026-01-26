@@ -14,6 +14,12 @@ on:
       - "!mkdocs.yml"
       - "!docs/**"
       - "!*.md"
+
+concurrency:
+  # PRs: cancel in-progress runs (only test latest)
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   tests-using-nix:
     strategy:

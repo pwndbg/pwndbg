@@ -270,8 +270,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
 
         if operand.type == CS_OP_MEM:
             return self._read_memory(value, operand.cs_op.size, instruction, emu)
-        else:
-            return super()._resolve_used_value(value, instruction, operand, emu)
+        return super()._resolve_used_value(value, instruction, operand, emu)
 
     @override
     def _read_register(self, instruction: PwndbgInstruction, operand_id: int, emu: Emulator):
@@ -281,8 +280,7 @@ class X86DisassemblyAssistant(pwndbg.aglib.disasm.arch.DisassemblyAssistant):
             # Ex: lea    rax, [rip + 0xd55]
             # We can reason RIP no matter the current pc
             return instruction.address + instruction.size
-        else:
-            return super()._read_register(instruction, operand_id, emu)
+        return super()._read_register(instruction, operand_id, emu)
 
     @override
     def _parse_memory(self, instruction: PwndbgInstruction, op: EnhancedOperand, emu: Emulator):

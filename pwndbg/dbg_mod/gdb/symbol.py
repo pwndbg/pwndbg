@@ -175,7 +175,7 @@ class Domain(Enum):
         if self == Domain.FUNCTION and gdb_version[0] < 15:
             return sym.is_function
 
-        elif self == Domain.VARIABLE:
+        if self == Domain.VARIABLE:
             # For 'VARIABLE' we need manually filter out
             # We have to check for `is_function`, because TLS variables will return False in `is_variable`
             if sym.is_function:

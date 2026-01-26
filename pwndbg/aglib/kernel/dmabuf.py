@@ -9,7 +9,7 @@ def find_dmabuf_offsets(dmabuf) -> tuple[int, int, int]:
     ptrsize = pwndbg.aglib.arch.ptrsize
     heap_buffer = pwndbg.aglib.memory.read_pointer_width(dmabuf + 2 * ptrsize)
     for i in range(1, MAX):
-        # see load_dmabuf_typeinfo (struct dma_buf) for an explanation
+        # see recover_dmabuf_typeinfo (struct dma_buf) for an explanation
         # this loop is searching the `size` field from `list_node`
         size = pwndbg.aglib.memory.read_pointer_width(dmabuf - (i + 5) * ptrsize)
         file = pwndbg.aglib.memory.read_pointer_width(dmabuf - (i + 4) * ptrsize)
@@ -55,7 +55,7 @@ def find_dmabuf_offsets(dmabuf) -> tuple[int, int, int]:
 
 
 @pwndbg.aglib.kernel.typeinfo_recovery("struct dma_buf")
-def load_dmabuf_typeinfo(first_dmabuf: int) -> str:
+def recover_dmabuf_typeinfo(first_dmabuf: int) -> str:
     # reaching here means priv exists
     sg_table_off, exp_name_off, list_node_off = find_dmabuf_offsets(first_dmabuf)
     result = pwndbg.aglib.kernel.symbol.COMMON_TYPES

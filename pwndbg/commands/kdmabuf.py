@@ -80,8 +80,7 @@ def kdmabuf() -> None:
         print(message.warn(f"{db_name} ({hex(int(db_list))}) is empty"))
         return
     indent = IndentContextManager()
-    if not pwndbg.aglib.kernel.dmabuf.load_dmabuf_typeinfo(int(db_list["next"])):
-        return
+    pwndbg.aglib.kernel.dmabuf.recover_dmabuf_typeinfo(int(db_list["next"]))
     for idx, e in enumerate(for_each_entry(db_list.dereference(), "struct dma_buf", "list_node")):
         print_dmabuf(e, idx, indent)
         priv = e["priv"]

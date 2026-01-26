@@ -135,7 +135,7 @@ def _fetch_via_exploration() -> dict[int, pwndbg.lib.memory.Page]:
             )
         )
         return {}
-    elif auto_explore.value == "no":
+    if auto_explore.value == "no":
         return {}
 
     thread_sp = []

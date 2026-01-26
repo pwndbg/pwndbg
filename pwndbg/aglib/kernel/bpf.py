@@ -216,17 +216,16 @@ def get_bpf_struct_offsets(prog_idr, map_idr) -> int:
     return xarray_pad_sz
 
 
-@pwndbg.aglib.kernel.typeinfo_recovery("struct bpf_map", kversion=True)
-def load_bpf_typeinfo() -> str:
+@pwndbg.aglib.kernel.typeinfo_recovery("struct bpf_map", requires_kversion=True)
+def recover_bpf_typeinfo() -> str:
     prog_idr = pwndbg.aglib.kernel.prog_idr()
     map_idr = pwndbg.aglib.kernel.map_idr()
     if not prog_idr or not map_idr:
         raise AssertionError("cannot find either prog_idr or map_idr")
     xarray_pad_sz = get_bpf_struct_offsets(prog_idr, map_idr)
-    if not xarray_pad_sz:
-        raise AssertionError(
-            "cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"
-        )
+    assert xarray_pad_sz, (
+        "cannot find xa_head -- might be uninitialized (add a bpf prog/map first!)"
+    )
     result = pwndbg.aglib.kernel.symbol.COMMON_TYPES
     result += f"""
     struct xarray {{
