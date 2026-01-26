@@ -820,7 +820,9 @@ def get_sp_offset(tasks: list[int], stack_offset: int, comm_offset: int) -> int:
     return 0
 
 
-@pwndbg.aglib.kernel.typeinfo_recovery("struct task_struct", kversion=True, kbase=True)
+@pwndbg.aglib.kernel.typeinfo_recovery(
+    "struct task_struct", requires_kversion=True, requires_kbase=True
+)
 def load_ktask_typeinfo() -> str:
     task = pwndbg.aglib.kernel.current_task()
     mm_offset = get_mm_offset(task)
