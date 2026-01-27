@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import List
 
 from capstone6pwndbg import *  # noqa: F403
 
@@ -190,7 +189,7 @@ def nearpc(
     )
 
     if branch_visualization:
-        jumps: List[JumpRange] = []
+        jumps: list[JumpRange] = []
 
         ## The following section contain setup for branch visualization logic
         # Map of address to pairs
