@@ -21,6 +21,7 @@ import pwndbg.color.message as message
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import Page
+import pwndbg.dbg_mod
 
 
 def get_name(sections: tuple[tuple[str, int], ...] | None, addr: int | None) -> str | None:
@@ -65,16 +66,12 @@ def handle_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
             page.offset = 0
 
 
-@pwndbg.lib.cache.cache_until("stop")
-def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> None:
+def handle_stacks_and_user_files(pages: pwndbg.dbg_mod.memoryMap) -> list[tuple[int, int, str]]:
     stacks = []
     for task in pwndbg.commands.ktask.get_ktasks():
         for thread in task.threads:
             if thread.stack:
                 stacks.append((thread.stack, thread.pid, thread.name))
-    if not stacks:
-        # get_ktasks prob failed and returned ()
-        return
     task = pwndbg.aglib.kernel.current_task()
     task = pwndbg.commands.ktask.Kthread(task)
     user_stack = task.user_stack
@@ -84,7 +81,19 @@ def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> None:
         page.objfile = pwndbg.aglib.kernel.ktask.resolve_addr_if_file(task.mm, page.start)
         if user_stack and user_stack in page:
             page.objfile = "userland [stack]"
+    return stacks
+
+
+@pwndbg.lib.cache.cache_until("stop")
+def annotate(pages: pwndbg.dbg_mod.MemoryMap) -> None:
+    stacks = None
+    try:
+        stacks = handle_stacks_and_user_files(pages)
+    except Exception:
+        pass
     handle_offsets(pages)
+    if not stacks:
+        return
     for page in pages.ranges():
         for stack, pid, name in stacks:
             if stack in page:
