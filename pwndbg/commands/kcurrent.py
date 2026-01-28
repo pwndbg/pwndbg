@@ -36,7 +36,7 @@ def get_kcurrent() -> pwndbg.commands.ktask.Kthread | None:
 
 
 def select_kthread_from_pid(pid: int | None) -> pwndbg.commands.ktask.Kthread | None:
-    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
+    if not pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo():
         return None
     kthread = None
     if pid is None:

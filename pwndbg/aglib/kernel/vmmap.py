@@ -18,10 +18,10 @@ import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.qemu
 import pwndbg.color.message as message
+import pwndbg.dbg_mod
 import pwndbg.lib.cache
 import pwndbg.lib.memory
 from pwndbg.lib.memory import Page
-import pwndbg.dbg_mod
 
 
 def get_name(sections: tuple[tuple[str, int], ...] | None, addr: int | None) -> str | None:
@@ -66,7 +66,7 @@ def handle_offsets(pages: pwndbg.dbg_mod.MemoryMap) -> None:
             page.offset = 0
 
 
-def handle_stacks_and_user_files(pages: pwndbg.dbg_mod.memoryMap) -> list[tuple[int, int, str]]:
+def handle_stacks_and_user_files(pages: pwndbg.dbg_mod.MemoryMap) -> list[tuple[int, int, str]]:
     stacks = []
     for task in pwndbg.commands.ktask.get_ktasks():
         for thread in task.threads:

@@ -242,8 +242,7 @@ class Ktask:
 
 @pwndbg.lib.cache.cache_until("stop")
 def get_ktasks() -> tuple[Ktask, ...]:
-    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
-        return ()
+    pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
     tasks: list[Ktask] = []
     try:
         seen = set()
@@ -277,8 +276,7 @@ parser.add_argument("--pid", nargs="?", type=int, help="A pid to search for")
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
 def ktask(task_name: str | None = None, pid: int | None = None) -> None:
-    if not pwndbg.aglib.kernel.ktask.load_ktask_typeinfo():
-        return
+    pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
     threads = []
     for task in get_ktasks():
         for thread in task.threads:
