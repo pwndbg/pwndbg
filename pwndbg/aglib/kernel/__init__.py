@@ -693,6 +693,13 @@ def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     raise NotImplementedError()
 
 
+def PAGE_ENTRY_MASK() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.PAGE_ENTRY_MASK
+    raise NotImplementedError()
+
+
 def paging_enabled() -> bool:
     arch_name = pwndbg.aglib.arch.name
     if arch_name == "i386":

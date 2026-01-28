@@ -5,7 +5,9 @@ import os
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
-import pwndbg.aglib.typeinfo
+import pwndbg.aglib.vmmap
+import pwndbg.dbg_mod
+import pwndbg.lib.cache
 
 
 class NextVmaFinder:
@@ -20,12 +22,11 @@ class NextVmaFinder:
 
     def vma_struct_parse(self):
         ptrsize = pwndbg.aglib.arch.ptrsize
-        cur = pwndbg.aglib.memory.read_pointer_width(int(self.mm))
+        start = cur = pwndbg.aglib.memory.read_pointer_width(int(self.mm))
         while cur:
-            break
             yield cur
             next = pwndbg.aglib.memory.read_pointer_width(cur + ptrsize * 2)
-            if next == self.vma:
+            if next == start:
                 break
             cur = next
 
@@ -163,7 +164,7 @@ def get_mm_offset(task: int) -> int:
             mm_offset = off
             break
     assert mm_offset, (
-        f"cound not find the offset of task_struct->mm: (task: {hex(task)}, mm_offset: {hex(mm_offset)})"
+        f"cound not find the offset of task_struct->mm: (task: {hex(task)}, mm_offset: {hex(mm_offset) if mm_offset else mm_offset})"
     )
     mm_active = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
     if not pwndbg.aglib.kernel.in_kmem_cache(mm_active, "mm_struct"):
@@ -216,8 +217,10 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
             reg = "TTBR0_EL1"
         case _:
             raise NotImplementedError()
-    mask = pwndbg.aglib.kernel.arch_paginginfo().PAGE_ENTRY_MASK
-    pgd_virt = pwndbg.aglib.kernel.phys_to_virt(pwndbg.aglib.regs.read_reg(reg) & mask)
+    regval = pwndbg.aglib.regs.read_reg(reg)
+    assert regval is not None, f"cannot resolve {reg} value"
+    mask = pwndbg.aglib.kernel.PAGE_ENTRY_MASK()
+    pgd_virt = pwndbg.aglib.kernel.phys_to_virt(regval & mask)
     current_tasks = [
         int(pwndbg.aglib.kernel.current_task(i)) for i in range(pwndbg.aglib.kernel.nproc())
     ]
@@ -236,7 +239,9 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
                     break
         if pgd_offset:
             break
-    assert pgd_offset, f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(active_mm)})"
+    assert pgd_offset, (
+        f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(mm_offset) if mm_offset else mm_offset})"
+    )
 
     result = ""
     for task in tasks:
@@ -332,7 +337,9 @@ def get_thread_list_offset(pid_offset: int):
     off = pid_offset
     ptrsize = pwndbg.aglib.arch.ptrsize
     off += 21 * ptrsize
-    if pwndbg.aglib.kernel.krelease() < (6, 7, 0):
+    krelease = pwndbg.aglib.kernel.krelease()
+    assert krelease, "cannot find kernel version (shouldn't happen)"
+    if krelease < (6, 7, 0):
         off += 2 * ptrsize
     if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
         off += ptrsize
@@ -430,6 +437,7 @@ def get_cred_struct_and_offset(tasks: list[int], comm_offset: int) -> tuple[str,
         if cred_offset is not None:
             break
     assert cred_offset, "cannot find the offset of task_struct->cred"
+    assert INIT_TASK, "init task not found by get_comm_offset"
     cred = pwndbg.aglib.memory.read_pointer_width(INIT_TASK + cred_offset)
     off = None
     A = 0x30
@@ -464,21 +472,22 @@ def get_cred_struct_and_offset(tasks: list[int], comm_offset: int) -> tuple[str,
 TASK_COMM_LEN = 0x10
 
 
-def get_path_struct(mnt: int | None, dentry: int | None) -> str:
+def get_path_struct(dentry: int | None) -> str:
     ptrsize = pwndbg.aglib.arch.ptrsize
     result = ""
     off = 0
-    for i in range(3, 0x20):
-        try:
-            ptr = pwndbg.aglib.memory.read_pointer_width(dentry + i * ptrsize)
-            if not pwndbg.aglib.memory.is_kernel(ptr):
-                continue
-            name = pwndbg.aglib.memory.string(ptr).decode()
-            if len(name) > 2:
-                off = (i - 1) * ptrsize - 8
-                break
-        except Exception:
-            pass
+    if dentry:
+        for i in range(3, 0x20):
+            try:
+                ptr = pwndbg.aglib.memory.read_pointer_width(dentry + i * ptrsize)
+                if not pwndbg.aglib.memory.is_kernel(ptr):
+                    continue
+                name = pwndbg.aglib.memory.string(ptr).decode()
+                if len(name) > 2:
+                    off = (i - 1) * ptrsize - 8
+                    break
+            except Exception:
+                pass
     result += f"""
     struct dentry {{
 #if {off}
@@ -558,17 +567,18 @@ def get_inode_struct(inode: int | None) -> str:
 def get_file_struct(file: int | None) -> str:
     ptrsize = pwndbg.aglib.arch.ptrsize
     result = ""
-    kversion: tuple[int, ...] = pwndbg.aglib.kernel.krelease()
+    krelease = pwndbg.aglib.kernel.krelease()
+    assert krelease, "cannot find kernel version (shouldn't happen)"
     kbase: int | None = pwndbg.aglib.kernel.kbase()
     if "CONFIG_SECURITY" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_SECURITY\n"
     result += """
     typedef unsigned int fmode_t;
     """
-    mnt = dentry = inode = None
+    dentry = inode = None
     off: int
     _result = ""
-    if not file or kversion >= (6, 12):
+    if not file or krelease >= (6, 12):
         # find f_op
         off = 0
         if file:
@@ -596,13 +606,12 @@ def get_file_struct(file: int | None) -> str:
             /* don't care about the rest */
         }};
         """
-        if off > 0:
+        if off > 0 and file is not None:
             off += 4
             off = (off // ptrsize) * ptrsize + (ptrsize if off % ptrsize else 0)
-            mnt = pwndbg.aglib.memory.read_pointer_width(file + off + 4 * 2 + ptrsize * 5)
             dentry = pwndbg.aglib.memory.read_pointer_width(file + off + 4 * 2 + ptrsize * 6)
             inode = pwndbg.aglib.memory.read_pointer_width(file + off + ptrsize * 3)
-    elif kversion >= (6, 5):
+    elif krelease >= (6, 5):
         # find the cache that contains the inode
         inode_offset = 0
         fmode_offset = ptrsize * 2 + 8
@@ -637,7 +646,6 @@ def get_file_struct(file: int | None) -> str:
         }};
         """
         if inode_offset > 0:
-            mnt = pwndbg.aglib.memory.read_pointer_width(file + inode_offset)
             dentry = pwndbg.aglib.memory.read_pointer_width(file + inode_offset + ptrsize)
             inode = pwndbg.aglib.memory.read_pointer_width(file + inode_offset + ptrsize * 2)
     else:
@@ -675,10 +683,9 @@ def get_file_struct(file: int | None) -> str:
             /* don't care about the rest */
         }};
         """
-        mnt = pwndbg.aglib.memory.read_pointer_width(file + ptrsize * 2)
         dentry = pwndbg.aglib.memory.read_pointer_width(file + ptrsize * 3)
         inode = pwndbg.aglib.memory.read_pointer_width(file + ptrsize * 4)
-    result += get_path_struct(mnt, dentry)
+    result += get_path_struct(dentry)
     result += get_inode_struct(inode)
     result += _result
     return result
@@ -797,7 +804,7 @@ def get_signal_struct() -> str:
 def get_sp_offset(tasks: list[int], stack_offset: int, comm_offset: int) -> int:
     # &task_struct - &task_struct->thread.sp
     # only one other ptr in the task_struct that belongs to the same page chunk
-    task = None
+    task = stack = None
     ptrsize = pwndbg.aglib.arch.ptrsize
     for _task in tasks:
         stack = pwndbg.aglib.memory.read_pointer_width(_task + stack_offset)
@@ -808,14 +815,14 @@ def get_sp_offset(tasks: list[int], stack_offset: int, comm_offset: int) -> int:
                 break
         except Exception:
             pass
-    if not task:
+    if not task or stack is None:
         return 0
     for i in range(0x200):
         val = pwndbg.aglib.memory.read_pointer_width(task + i * ptrsize)
         if not pwndbg.aglib.memory.is_kernel(val):
             continue
         page = pwndbg.aglib.vmmap.find(stack)
-        if val in page and val != stack:
+        if page and val in page and val != stack:
             return i * ptrsize
     return 0
 
@@ -894,8 +901,7 @@ def load_ktask_typeinfo() -> str:
 @pwndbg.lib.cache.cache_until("stop")
 def get_filepath(file: int | pwndbg.dbg_mod.Value) -> str:
     ptrsize = pwndbg.aglib.arch.ptrsize
-    file = int(file)
-    file: pwndbg.dbg_mod.Value = pwndbg.aglib.memory.get_typed_pointer("struct file", file)
+    file = pwndbg.aglib.memory.get_typed_pointer("struct file", file)
     if int(file) == 0:
         return ""
     dentry = file["f_path"]["dentry"]
