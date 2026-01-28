@@ -430,7 +430,7 @@ class x86_64PagingInfo(ArchPagingInfo):
     @pwndbg.lib.cache.cache_until("stop")
     def physmap(self) -> int:
         result: int | None = pwndbg.aglib.kernel.symbol.try_usymbol("page_offset_base")
-        if result is None:
+        if not result:
             result = first_kernel_page_start()
         return result
 
