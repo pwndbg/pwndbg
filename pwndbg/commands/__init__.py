@@ -831,7 +831,7 @@ def WarnOnKernelConfigRandstruct(function: Callable[P, T]) -> Callable[P, T | No
 
 
 def OnlyWhenRunning(
-    func_when_decorator_kwargs: Callable[P, T] | None = None, *, allow_core: bool = True
+    func_when_no_kwargs: Callable[P, T] | None = None, *, allow_core: bool = True
 ) -> Callable[[Callable[P, T]], Callable[P, T | None]] | Callable[P, T | None]:
     def decorator(func: Callable[P, T]) -> Callable[P, T | None]:
         @functools.wraps(func)
@@ -845,9 +845,9 @@ def OnlyWhenRunning(
 
         return _OnlyWhenRunning
 
-    if func_when_decorator_kwargs is None:
+    if func_when_no_kwargs is None:
         return decorator
-    return decorator(func_when_decorator_kwargs)
+    return decorator(func_when_no_kwargs)
 
 
 def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
