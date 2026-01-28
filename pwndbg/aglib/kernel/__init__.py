@@ -685,18 +685,10 @@ def pagescan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
     raise NotImplementedError()
 
 
-@pwndbg.lib.cache.cache_until("stop")
 def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     pi = arch_paginginfo()
     if pi:
         return pi.bitflags(level)
-    raise NotImplementedError()
-
-
-def PAGE_ENTRY_MASK() -> int:
-    pi = arch_paginginfo()
-    if pi:
-        return pi.PAGE_ENTRY_MASK
     raise NotImplementedError()
 
 
