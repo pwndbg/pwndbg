@@ -17,6 +17,13 @@ def test_command_help_strings(start_binary):
         if command.help_str is None:
             assert help_str.strip() == "This command is not documented."
         else:
+            if command.subcommand_names:
+                # `pwndbg`` adds subcommand list, so the output will also contain subcommand help info
+                # we test if the remaining part is correct
+                subcommand_header_line = f'List of "{command.command_name}" subcommands:'
+                assert subcommand_header_line in help_str
+                help_str = help_str[: help_str.index(subcommand_header_line) - 1]
+
             truth = [
                 line.strip() for line in command.help_str.splitlines() if len(line.strip()) > 0
             ]
