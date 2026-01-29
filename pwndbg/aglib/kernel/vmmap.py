@@ -16,6 +16,9 @@ from pt.pt_x86_64_parse import PT_x86_64_Backend
 import pwndbg
 import pwndbg.aglib
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.ktask
+import pwndbg.aglib.kernel.paging
+import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
@@ -24,7 +27,9 @@ import pwndbg.lib.memory
 from pwndbg.lib.memory import Page
 
 
-def get_name(sections: tuple[tuple[str, int], ...] | None, addr: int | None) -> str | None:
+def get_name(
+    sections: tuple[tuple[str | None, int | None], ...] | None, addr: int | None
+) -> str | None:
     if addr is None or sections is None:
         return None
     for i in range(len(sections) - 1):

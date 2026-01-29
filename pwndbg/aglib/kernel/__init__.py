@@ -6,6 +6,7 @@ import re
 from abc import ABC
 from abc import abstractmethod
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 from typing import TypeVar
 
 from elftools.elf.elffile import ELFFile
@@ -13,9 +14,6 @@ from typing_extensions import ParamSpec
 
 import pwndbg
 import pwndbg.aglib
-import pwndbg.aglib.kernel.kconfig_mod
-import pwndbg.aglib.kernel.paging
-import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
 import pwndbg.aglib.symbol
@@ -25,9 +23,12 @@ import pwndbg.lib.cache
 import pwndbg.lib.kernel.structs
 import pwndbg.lib.memory
 import pwndbg.search
-from pwndbg.aglib.kernel.paging import ArchPagingInfo
-from pwndbg.aglib.kernel.paging import PagewalkResult
 from pwndbg.lib.regs import BitFlags
+
+if TYPE_CHECKING:
+    import pwndbg.aglib.kernel.kconfig_mod
+    import pwndbg.aglib.kernel.paging
+    import pwndbg.aglib.kernel.vmmap
 
 _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 
@@ -523,7 +524,7 @@ class Aarch64Ops(ArchOps):
 
 
 @pwndbg.lib.cache.cache_until("start")
-def arch_paginginfo() -> ArchPagingInfo | None:
+def arch_paginginfo() -> pwndbg.aglib.kernel.ArchPagingInfo | None:
     if pwndbg.aglib.arch.name == "aarch64":
         return pwndbg.aglib.kernel.paging.Aarch64PagingInfo()
     if pwndbg.aglib.arch.name == "x86-64":
@@ -666,7 +667,9 @@ def page_shift() -> int:
 
 
 @pwndbg.lib.cache.cache_until("stop")
-def pagewalk(addr, entry: int | None = None, virt: bool = True) -> PagewalkResult:
+def pagewalk(
+    addr, entry: int | None = None, virt: bool = True
+) -> pwndbg.aglib.kernel.PagewalkResult:
     """
     assumes entry is a valid physaddr (+ flags)
     the strategy is to walk any virtual pgd first
