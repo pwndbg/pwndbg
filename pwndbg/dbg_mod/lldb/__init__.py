@@ -2176,6 +2176,7 @@ class LLDB(pwndbg.dbg_mod.Debugger):
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
         subcommand_names: list[str] | None = None,
+        is_prefix: bool = False,
     ) -> pwndbg.dbg_mod.CommandHandle:
         debugger = self
 
