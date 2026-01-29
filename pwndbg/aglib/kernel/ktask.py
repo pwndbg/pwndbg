@@ -5,6 +5,7 @@ import os
 import pwndbg
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.memory
+import pwndbg.aglib.symbol
 import pwndbg.aglib.vmmap
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
@@ -157,15 +158,14 @@ def get_tasks_offset(mm_offset: int) -> tuple[list[int], int]:
 def get_mm_offset(task: int) -> int:
     mm_offset = None
     ptrsize = pwndbg.aglib.arch.ptrsize
+    init_mm = pwndbg.aglib.symbol.lookup_symbol_addr("init_mm")
     for i in range(0x200):
         off = i * ptrsize
         val = pwndbg.aglib.memory.read_pointer_width(task + off)
-        if pwndbg.aglib.kernel.in_kmem_cache(val, "mm_struct"):
+        if pwndbg.aglib.kernel.in_kmem_cache(val, "mm_struct") or (init_mm and init_mm == val):
             mm_offset = off
             break
-    assert mm_offset, (
-        f"cound not find the offset of task_struct->mm: (task: {hex(task)}, mm_offset: {hex(mm_offset) if mm_offset else mm_offset})"
-    )
+    assert mm_offset, f"cound not find the offset of task_struct->mm: (task: {hex(task)}"
     mm_active = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
     if not pwndbg.aglib.kernel.in_kmem_cache(mm_active, "mm_struct"):
         # we actually found active_mm instead
@@ -208,6 +208,22 @@ def get_vm_area_struct(mm: int) -> str:
 
 
 def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
+    def helper(task: int, off: int, pgd: int) -> int | None:
+        mm = pwndbg.aglib.memory.read_pointer_width(task + off)
+        ptrsize = pwndbg.aglib.arch.ptrsize
+        pgd_virt = pwndbg.aglib.kernel.phys_to_virt(pgd)
+        if not pwndbg.aglib.memory.is_kernel(mm):
+            return None
+        for i in range(0x100):
+            val = pwndbg.aglib.memory.read_pointer_width(mm + i * ptrsize)
+            if val == pgd_virt:
+                return i * ptrsize
+            # walk the candidate virtual pgd to check if its equal to the expected phys
+            val = pwndbg.aglib.kernel.pagewalk(val).phys
+            if val and val == pgd:
+                return i * ptrsize
+        return None
+
     ptrsize = pwndbg.aglib.arch.ptrsize
     pgd_offset = None
     match pwndbg.aglib.arch.name:
@@ -220,28 +236,15 @@ def get_mm_struct(tasks: list[int], mm_offset: int) -> str:
     regval = pwndbg.aglib.regs.read_reg(reg)
     assert regval is not None, f"cannot resolve {reg} value"
     mask = pwndbg.aglib.kernel.PAGE_ENTRY_MASK()
-    pgd_virt = pwndbg.aglib.kernel.phys_to_virt(regval & mask)
+    pgd = regval & mask
     current_tasks = [
         int(pwndbg.aglib.kernel.current_task(i)) for i in range(pwndbg.aglib.kernel.nproc())
     ]
     for task in tasks + current_tasks:
-        mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset)
-        if pwndbg.aglib.memory.is_kernel(mm):
-            for i in range(0x100):
-                if pwndbg.aglib.memory.read_pointer_width(mm + i * ptrsize) == pgd_virt:
-                    pgd_offset = i * ptrsize
-                    break
-        active_mm = pwndbg.aglib.memory.read_pointer_width(task + mm_offset + ptrsize)
-        if pwndbg.aglib.memory.is_kernel(active_mm):
-            for i in range(0x100):
-                if pwndbg.aglib.memory.read_pointer_width(active_mm + i * ptrsize) == pgd_virt:
-                    pgd_offset = i * ptrsize
-                    break
+        pgd_offset = helper(task, mm_offset, pgd) or helper(task, mm_offset + ptrsize, pgd)
         if pgd_offset:
             break
-    assert pgd_offset, (
-        f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(mm_offset) if mm_offset else mm_offset})"
-    )
+    assert pgd_offset, f"cannot find the offset of mm_struct->pgd: (active_mm: {hex(mm_offset)})"
 
     result = ""
     for task in tasks:
@@ -890,7 +893,12 @@ def recover_ktask_typeinfo() -> str:
 #if {sp_offset - nsproxy_offset - ptrsize * 2} > 0
         struct {{
             char _pad7[{sp_offset - nsproxy_offset - ptrsize * 2}];
+#ifdef __x86_64__
             void *sp;
+#endif
+#ifdef __aarch64__
+            struct {{ void *sp; }} cpu_context;
+#endif
         }} thread;
 #endif
     }};

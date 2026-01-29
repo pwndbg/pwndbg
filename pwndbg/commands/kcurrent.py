@@ -36,14 +36,14 @@ def get_kcurrent() -> pwndbg.commands.ktask.Kthread | None:
 
 
 def select_kthread_from_pid(pid: int | None) -> pwndbg.commands.ktask.Kthread | None:
-    if not pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo():
-        return None
+    pwndbg.aglib.kernel.ktask.recover_ktask_typeinfo()
     kthread = None
     if pid is None:
         if (kthread := get_kcurrent()) is not None:
             return kthread
         t = pwndbg.aglib.kernel.current_task()
-        kthread = pwndbg.commands.ktask.Kthread(t)
+        if pwndbg.aglib.memory.is_kernel(t):
+            kthread = pwndbg.commands.ktask.Kthread(t)
         if not kthread:
             print(message.warn("current task not found"))
     else:
@@ -70,7 +70,7 @@ parser.add_argument("pid", nargs="?", type=int, help="")
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.WarnOnKernelConfigRandstruct
-def kstack(pid: int = None) -> None:
+def kstack(pid: int | None = None) -> None:
     task = select_kthread_from_pid(pid)
     if not task:
         return
@@ -88,8 +88,9 @@ def kstack(pid: int = None) -> None:
             namelen = max(len(reg) for reg, _ in regs)
             for reg, val in regs:
                 _val = pwndbg.chain.format(val)
-                if reg == syscall_reg:
-                    _val += f" ({color.red(DisassemblyAssistant._syscall_name(val))})"
+                desc = DisassemblyAssistant._syscall_name(val)
+                if reg == syscall_reg and desc:
+                    _val += f" ({color.red(desc)})"
                 reg = f"{reg:<{namelen}}"
                 indent.print(color.red(reg) + " = " + _val)
 
@@ -106,7 +107,7 @@ parser.add_argument("--fd", nargs="?", type=int, help="")
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.WarnOnKernelConfigRandstruct
-def kfile(pid: int = None, fd: int = None) -> None:
+def kfile(pid: int | None = None, fd: int | None = None) -> None:
     thread = select_kthread_from_pid(pid)
     if not thread:
         return
@@ -169,7 +170,7 @@ parser.add_argument(
 @pwndbg.commands.OnlyWhenPagingEnabled
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.WarnOnKernelConfigRandstruct
-def kcurrent(pid: int = None, set_pid: bool = False) -> None:
+def kcurrent(pid: int | None = None, set_pid: bool = False) -> None:
     kthread = select_kthread_from_pid(pid)
     if kthread:
         indent.print(kthread)

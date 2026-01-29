@@ -450,6 +450,19 @@ class x86_64Symbols(ArchSymbols):
             return int(result.group(1), 16)
         return None
 
+    # op [... +/- (0x...)] ...
+    # if negative, the `-0x...`` is a kernel address displayed as a negative number
+    # returns the first 0x... as an int if exists
+    def dword_op_memoff_reg(
+        self, disass: str, op: str, sign: str = "-", nth: int = 0
+    ) -> int | None:
+        result = self.regex(disass, rf"{op}.*\[.*{re.escape(sign)}\s(0x[0-9a-f]{{1,8}})\]", nth)
+        if result is not None:
+            if sign == "-":
+                return (1 << 64) - int(result.group(1), 16)
+            return int(result.group(1), 16)
+        return None
+
     # mov reg, <kernel address as a constant>
     def qword_mov_reg_const(self, disass: str, nth: int = 0) -> int | None:
         result = self.regex(disass, r"mov.*(0x[0-9a-f]{16})", nth)
@@ -535,13 +548,16 @@ class x86_64Symbols(ArchSymbols):
         return self.qword_mov_reg_const(disass)
 
     def _current_task(self) -> int | None:
-        disass = self.disass(self.current_task_heuristic_func)
+        disass = self.disass(self.current_task_heuristic_func, lines=20)
         if not disass:
             return None
         result = self.dword_mov_reg_const(disass)
         if result is not None:
             return result
         result = self.qword_mov_reg_const(disass)
+        if result is not None:
+            return result
+        result = self.dword_op_memoff_reg(disass, "mov", "+")
         return result
 
 

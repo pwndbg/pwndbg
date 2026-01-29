@@ -10,7 +10,8 @@ import ctypes
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
-import pwndbg.aglib.symbol
+import pwndbg.aglib.memory
+import pwndbg.aglib.vmmap
 import pwndbg.color as color
 import pwndbg.color.message as message
 import pwndbg.commands
@@ -123,7 +124,13 @@ class Kthread:
     @property
     def stack(self) -> int | None:
         if self.thread.dereference().type.has_field("thread"):
-            return int(self.thread["thread"]["sp"])
+            a = self.thread["thread"]
+            match pwndbg.aglib.arch.name:
+                case "x86-64":
+                    pass
+                case "aarch64":
+                    a = self.thread["thread"]["cpu_context"]
+            return int(a["sp"])
         if self.thread.dereference().type.has_field("stack"):
             return int(self.thread["stack"])
         # the offset of stack was not recovered
@@ -235,6 +242,8 @@ class Ktask:
         signal = task["signal"]
         # Iterate through all threads in the task_struct's thread list.
         for thread in for_each_entry(signal["thread_head"], "struct task_struct", "thread_node"):
+            if not pwndbg.aglib.memory.is_kernel(int(thread)):
+                continue
             kthread = Kthread(thread)
             threads.append(kthread)
         self.threads = threads
@@ -248,16 +257,18 @@ def get_ktasks() -> tuple[Ktask, ...]:
         seen = set()
         for i in range(0, pwndbg.aglib.kernel.nproc()):
             task = pwndbg.aglib.kernel.current_task(i)
+            if not pwndbg.aglib.memory.is_kernel(task):
+                continue
             seen.add(task)
             tasks.append(Ktask(task))
         init_task = pwndbg.aglib.kernel.init_task()
         task = int(init_task)
-        if task not in seen:
+        if task not in seen or not pwndbg.aglib.memory.is_kernel(task):
             tasks.append(Ktask(task))
             seen.add(task)
         init_task = pwndbg.aglib.memory.get_typed_pointer("struct task_struct", init_task)
         for task in for_each_entry(init_task["tasks"], "struct task_struct", "tasks"):
-            if (task := int(task)) and task not in seen:
+            if (task := int(task)) and task not in seen and pwndbg.aglib.memory.is_kernel(task):
                 seen.add(task)
                 tasks.append(Ktask(task))
     except pwndbg.dbg_mod.Error as e:
