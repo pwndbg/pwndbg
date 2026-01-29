@@ -38,9 +38,9 @@ def migratetype_names() -> tuple[str, ...]:
         "HighAtomic",
     ]
     kconfig = pwndbg.aglib.kernel.kconfig()
-    if kconfig and "CONFIG_CMA" in kconfig:
+    if "CONFIG_CMA" in kconfig:
         names.append("CMA")
-    if kconfig and "CONFIG_MEMORY_ISOLATION" in kconfig:
+    if "CONFIG_MEMORY_ISOLATION" in kconfig:
         names.append("Isolate")
     return tuple(names)
 
@@ -97,8 +97,7 @@ def npcplist() -> int:
             return 3
         return 12
     node_data0 = pwndbg.aglib.kernel.node_data()
-    kconfig = pwndbg.aglib.kernel.kconfig()
-    if kconfig and "CONFIG_NUMA" in kconfig:
+    if "CONFIG_NUMA" in pwndbg.aglib.kernel.kconfig():
         node_data0 = node_data0.dereference()
     zone = node_data0[0]["node_zones"][0]
     # index 0 should always exist
@@ -193,8 +192,7 @@ def recover_page_typeinfo() -> str:
         "CONFIG_MEMCG",
         "CONFIG_KASAN",
     ):
-        kconfig = pwndbg.aglib.kernel.kconfig()
-        if kconfig and config in kconfig:
+        if config in pwndbg.aglib.kernel.kconfig():
             defs.append(config)
     result = f"#define KVERSION {kversion_cint()}\n"
     result += "\n".join(f"#define {s}" for s in defs)

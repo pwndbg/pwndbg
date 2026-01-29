@@ -336,6 +336,7 @@ class ArchPagingInfo:
         oldval, success = self.switch_to_phymem_mode()
         if not success or not scan:
             return PagewalkResult()
+        result = PagewalkResult()
         try:
             result = scan.walk(target, entry)
             if not virt:
@@ -348,21 +349,25 @@ class ArchPagingInfo:
                 level.name = self.pagetable_level_names[level.level]
             if result.phys is not None:
                 result.virt = result.phys + self.physmap - self.phys_offset
-            return result
+        except Exception:
+            pass
         finally:  # so that the PhyMemMode value is always restored
             pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
-            return PagewalkResult()
+        return result
 
     def _pagescan(self, entry: int, is_kernel: bool = False) -> list[Page]:
         scan = self.pagetablescan(entry)
         oldval, success = self.switch_to_phymem_mode()
         if not success or not scan:
             return []
+        result = []
         try:
-            return scan.scan(entry, is_kernel)
+            result = scan.scan(entry, is_kernel)
+        except Exception:
+            pass
         finally:  # so that the PhyMemMode value is always restored
             pwndbg.dbg.selected_inferior().send_remote(f"Qqemu.PhyMemMode:{oldval}")
-        return []
+        return result
 
     def bitflags(self, level: PageTableLevel) -> BitFlags:
         raise NotImplementedError()
@@ -425,7 +430,7 @@ class x86_64PagingInfo(ArchPagingInfo):
     @pwndbg.lib.cache.cache_until("stop")
     def physmap(self) -> int:
         result: int | None = pwndbg.aglib.kernel.symbol.try_usymbol("page_offset_base")
-        if result is None:
+        if not result:
             result = first_kernel_page_start()
         return result
 

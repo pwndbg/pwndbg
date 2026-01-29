@@ -32,9 +32,10 @@ import pwndbg.aglib.vmmap
 import pwndbg.chain
 import pwndbg.color.memory as mem_color
 import pwndbg.dbg_mod
-import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.memory
+import pwndbg.libc
+import pwndbg.libc.glibc
 from pwndbg.color import message
 
 PREV_INUSE = 1
@@ -769,7 +770,7 @@ class Arena:
     def fastbins(self) -> Bins:
         size = pwndbg.aglib.arch.ptrsize * 2
         fd_offset = pwndbg.aglib.arch.ptrsize * 2
-        safe_lnk = pwndbg.glibc.check_safe_linking()
+        safe_lnk = pwndbg.libc.glibc.check_safe_linking(pwndbg.libc.version())
         result = Bins(BinType.FAST)
         for i in range(NFASTBINS):
             size += pwndbg.aglib.arch.ptrsize * 2
@@ -1118,7 +1119,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     @pwndbg.lib.cache.cache_until("objfile")
     def malloc_alignment(self) -> int:
         """Corresponds to MALLOC_ALIGNMENT in glibc malloc.c"""
-        if pwndbg.aglib.arch.name == "i386" and pwndbg.glibc.get_version() >= (2, 26):
+        if pwndbg.aglib.arch.name == "i386" and pwndbg.libc.version() >= (2, 26):
             # i386 will override it to 16 when GLIBC version >= 2.26
             # See https://elixir.bootlin.com/glibc/glibc-2.26/source/sysdeps/i386/malloc-alignment.h#L22
             return 16
@@ -1257,7 +1258,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
 
         # this will break expected output during tests, so we skip it
         if (
-            pwndbg.glibc.get_version() >= (2, 42)
+            pwndbg.libc.version() >= (2, 42)
             and not hasattr(GlibcMemoryAllocator.tcachebins, "tcache_2_42_warning_issued")
             and os.environ.get("PWNDBG_IN_TEST") is None
         ):
@@ -1277,7 +1278,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         entries = tcache["entries"]
 
         num_tcachebins = entries.type.sizeof // entries.type.target().sizeof
-        safe_lnk = pwndbg.glibc.check_safe_linking()
+        safe_lnk = pwndbg.libc.glibc.check_safe_linking(pwndbg.libc.version())
 
         def tidx2usize(idx: int):
             """Tcache bin index to chunk size, following tidx2usize macro in glibc malloc.c"""
@@ -1287,7 +1288,7 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
         for i in range(num_tcachebins):
             size = self._request2size(tidx2usize(i))
             count = int(counts[i])
-            if pwndbg.glibc.get_version() >= (2, 42):
+            if pwndbg.libc.version() >= (2, 42):
                 count = int(self.mp["tcache_count"]) - count
             chain = pwndbg.chain.get(
                 int(entries[i]),
@@ -1549,21 +1550,10 @@ class GlibcMemoryAllocator(pwndbg.aglib.heap.heap.MemoryAllocator, Generic[TheTy
     def is_statically_linked(self) -> bool:
         return not pwndbg.dbg.selected_inferior().is_dynamically_linked()
 
-    def libc_has_debug_syms(self) -> bool:
-        """
-        The `struct malloc_chunk` comes from debugging symbols and it will not be there
-        for statically linked binaries
-        """
-        return (
-            pwndbg.aglib.typeinfo.load("struct malloc_chunk") is not None
-            and pwndbg.aglib.symbol.lookup_symbol_addr("global_max_fast", prefer_static=True)
-            is not None
-        )
-
 
 class DebugSymsHeap(GlibcMemoryAllocator[pwndbg.dbg_mod.Type, pwndbg.dbg_mod.Value]):
     def can_be_resolved(self) -> bool:
-        if not self.libc_has_debug_syms():
+        if not pwndbg.libc.has_debug_info():
             return False
         # Check if thread_arena is needed and available, but if the binary is not multithreaded, then we don't care
         # Note: it's possible that we unstripped the libc but still don't have libthread_db.so
@@ -1761,11 +1751,13 @@ class HeuristicHeap(
 
     @property
     def struct_module(self) -> types.ModuleType | None:
-        if not self._structs_module and pwndbg.glibc.get_version():
+        if not self._structs_module and pwndbg.libc.version() != (-1, -1):
             try:
                 self._structs_module = importlib.reload(
                     importlib.import_module("pwndbg.aglib.heap.structs")
                 )
+            except AssertionError:
+                raise
             except Exception:
                 pass
         return self._structs_module
@@ -1787,8 +1779,8 @@ class HeuristicHeap(
                 data_section = pwndbg.aglib.proc.dump_elf_data_section()
                 data_section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
             else:
-                data_section = pwndbg.glibc.dump_elf_data_section()
-                data_section_address = pwndbg.glibc.get_section_address_by_name(".data")
+                data_section = pwndbg.libc.section_by_name(".data")
+                data_section_address = pwndbg.libc.section_address_by_name(".data")
             if data_section and data_section_address:
                 data_section_offset, size, data_section_data = data_section
                 # Try to find the default main_arena struct in the .data section
@@ -1815,7 +1807,7 @@ class HeuristicHeap(
                             section_name
                         )
                     else:
-                        relocations = pwndbg.glibc.dump_relocations_by_section_name(section_name)
+                        relocations = pwndbg.libc.relocations_by_section_name(section_name)
                     if not relocations:
                         continue
 
@@ -1886,7 +1878,7 @@ class HeuristicHeap(
         # TODO/FIXME: Can we determine the tcache_bins existence more reliable?
 
         # There is no debug symbols, we determine the tcache_bins existence by checking glibc version only
-        return self.is_initialized() and pwndbg.glibc.get_version() >= (2, 26)
+        return self.is_initialized() and pwndbg.libc.version() >= (2, 26)
 
     def prompt_for_brute_force_thread_arena_permission(self) -> bool:
         """Check if the user wants to brute force the thread_arena's value."""
@@ -1940,7 +1932,7 @@ class HeuristicHeap(
         if self.is_statically_linked():
             got_address = pwndbg.aglib.proc.get_section_address_by_name(".got")
         else:
-            got_address = pwndbg.glibc.get_section_address_by_name(".got")
+            got_address = pwndbg.libc.section_address_by_name(".got")
         if not got_address:
             print(message.warn("Cannot find the address of the .got section."))
             return None
@@ -2144,9 +2136,9 @@ class HeuristicHeap(
                 section = pwndbg.aglib.proc.dump_elf_data_section()
                 section_address = pwndbg.aglib.proc.get_section_address_by_name(".data")
             else:
-                section = pwndbg.glibc.dump_elf_data_section()
-                section_address = pwndbg.glibc.get_section_address_by_name(".data")
-            if section and section_address:
+                section = pwndbg.libc.section_by_name(".data")
+                section_address = pwndbg.libc.section_address_by_name(".data")
+            if section is not None and section_address:
                 _, _, data = section
 
                 # try to find the default mp_ struct in the .data section

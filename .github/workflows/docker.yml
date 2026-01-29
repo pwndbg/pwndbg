@@ -5,12 +5,10 @@ on:
     branches:
       - dev
     paths:
-      - 'Dockerfile*'
-      - 'setup.sh'
-      - 'setup-dev.sh'
-      - 'uv.lock'
-      - 'pyproject.toml'
-      - '.github/workflows/docker.yml'
+      - "**"
+      - "!mkdocs.yml"
+      - "!docs/**"
+      - "!*.md"
   pull_request:
     paths:
       - "**"
@@ -30,19 +28,27 @@ permissions:
 
 jobs:
   docker_x86-64:
+    name: docker_x86-64 (${{ matrix.image }})
     strategy:
       fail-fast: false
       matrix:
-        images: [ubuntu22.04, ubuntu24.04, debian12, archlinux, fedora41, fedora42, fedora43]
+        include:
+          - { image: ubuntu22.04, dockerfile: Dockerfile, base: ubuntu:22.04 }
+          - { image: ubuntu24.04, dockerfile: Dockerfile, base: ubuntu:24.04 }
+          - { image: debian12, dockerfile: Dockerfile, base: debian:12 }
+          - { image: archlinux, dockerfile: Dockerfile.arch, base: archlinux:latest }
+          - { image: fedora41, dockerfile: Dockerfile.dnf, base: fedora:41 }
+          - { image: fedora42, dockerfile: Dockerfile.dnf, base: fedora:42 }
+          - { image: fedora43, dockerfile: Dockerfile.dnf, base: fedora:43 }
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Login to GHCR
         if: github.event_name == 'push'
         uses: docker/login-action@v3
@@ -50,72 +56,51 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Docker Buildx ${{ matrix.images }} (cache-enabled)
+
+      - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
         run: |
-          case "${{ matrix.images }}" in
-            ubuntu22.04)
-              DOCKERFILE="Dockerfile"
-              BASE_IMAGE="ubuntu:22.04"
-              ;;
-            ubuntu24.04)
-              DOCKERFILE="Dockerfile"
-              BASE_IMAGE="ubuntu:24.04"
-              ;;
-            debian12)
-              DOCKERFILE="Dockerfile"
-              BASE_IMAGE="debian:12"
-              ;;
-            archlinux)
-              DOCKERFILE="Dockerfile.arch"
-              BASE_IMAGE="archlinux:latest"
-              ;;
-            fedora41)
-              DOCKERFILE="Dockerfile.dnf"
-              BASE_IMAGE="fedora:41"
-              ;;
-            fedora42)
-              DOCKERFILE="Dockerfile.dnf"
-              BASE_IMAGE="fedora:42"
-              ;;
-            fedora43)
-              DOCKERFILE="Dockerfile.dnf"
-              BASE_IMAGE="fedora:43"
-              ;;
-          esac
-          
           docker buildx build \
             --load \
-            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.images }} \
-            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0},mode=max', matrix.images) || '' }} \
-            -f $DOCKERFILE \
-            --build-arg image=$BASE_IMAGE \
-            -t ${{ matrix.images }}:latest \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.image }} \
+            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0},mode=max', matrix.image) || '' }} \
+            -f ${{ matrix.dockerfile }} \
+            --build-arg image=${{ matrix.base }} \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64 \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }} \
             .
       
-      - name: Run GDB Tests on ${{ matrix.images }}
-        run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g gdb
+      - name: Run GDB Tests on ${{ matrix.image }}
+        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g gdb
       
-      - name: Run DBG Tests on GDB on ${{ matrix.images }}
-        run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
+      - name: Run DBG Tests on GDB on ${{ matrix.image }}
+        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g dbg
       
-      - name: Run DBG Tests on LLDB on ${{ matrix.images }}
-        run: docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
+      - name: Run DBG Tests on LLDB on ${{ matrix.image }}
+        run: docker compose run ${{ matrix.image }} ./tests.sh -d lldb -g dbg
+
+      - name: Push full image to registry
+        if: github.event_name == 'push'
+        run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64
 
   docker_aarch64:
+    name: docker_aarch64 (${{ matrix.image }})
     strategy:
       fail-fast: false
       matrix:
-        images: [ubuntu24.04, fedora41, fedora42, fedora43]
+        include:
+          - { image: ubuntu24.04, dockerfile: Dockerfile, base: ubuntu:24.04 }
+          - { image: fedora41, dockerfile: Dockerfile.dnf, base: fedora:41 }
+          - { image: fedora42, dockerfile: Dockerfile.dnf, base: fedora:42 }
+          - { image: fedora43, dockerfile: Dockerfile.dnf, base: fedora:43 }
 
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Login to GHCR
         if: github.event_name == 'push'
         uses: docker/login-action@v3
@@ -123,42 +108,58 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Docker Buildx ${{ matrix.images }} (cache-enabled)
+
+      - name: Docker Buildx ${{ matrix.image }} (cache-enabled)
         run: |
-          case "${{ matrix.images }}" in
-            ubuntu24.04)
-              DOCKERFILE="Dockerfile"
-              BASE_IMAGE="ubuntu:24.04"
-              ;;
-            fedora41)
-              DOCKERFILE="Dockerfile.dnf"
-              BASE_IMAGE="fedora:41"
-              ;;
-            fedora42)
-              DOCKERFILE="Dockerfile.dnf"
-              BASE_IMAGE="fedora:42"
-              ;;
-            fedora43)
-              DOCKERFILE="Dockerfile.dnf"
-              BASE_IMAGE="fedora:43"
-              ;;
-          esac
-          
           docker buildx build \
             --load \
-            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.images }}-arm64 \
-            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0}-arm64,mode=max', matrix.images) || '' }} \
-            -f $DOCKERFILE \
-            --build-arg image=$BASE_IMAGE \
-            -t ${{ matrix.images }}:latest \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.image }}-arm64 \
+            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0}-arm64,mode=max', matrix.image) || '' }} \
+            -f ${{ matrix.dockerfile }} \
+            --build-arg image=${{ matrix.base }} \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-arm64 \
+            -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }} \
             .
       
-      - name: Run Cross Tests on GDB on ${{ matrix.images }}
-        run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g cross-arch-user
+      - name: Run Cross Tests on GDB on ${{ matrix.image }}
+        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g cross-arch-user
       
-      - name: Run DBG Tests on GDB on ${{ matrix.images }}
-        run: docker compose run ${{ matrix.images }} ./tests.sh -d gdb -g dbg
+      - name: Run DBG Tests on GDB on ${{ matrix.image }}
+        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g dbg
       
-      - name: Run DBG Tests on LLDB on ${{ matrix.images }}
-        run: docker compose run ${{ matrix.images }} ./tests.sh -d lldb -g dbg
+      - name: Run DBG Tests on LLDB on ${{ matrix.image }}
+        run: docker compose run ${{ matrix.image }} ./tests.sh -d lldb -g dbg
+
+      - name: Push full image to registry
+        if: github.event_name == 'push'
+        run: docker push ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-arm64
+
+  create_manifest:
+    needs: [docker_x86-64, docker_aarch64]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push manifests
+        run: |
+          # Multi-arch images (amd64 + arm64)
+          for image in ubuntu24.04 fedora41 fedora42 fedora43; do
+            docker buildx imagetools create -t ghcr.io/pwndbg/pwndbg:$image \
+              ghcr.io/pwndbg/pwndbg:$image-amd64 \
+              ghcr.io/pwndbg/pwndbg:$image-arm64
+          done
+
+          # amd64-only images
+          for image in ubuntu22.04 debian12 archlinux; do
+            docker buildx imagetools create -t ghcr.io/pwndbg/pwndbg:$image \
+              ghcr.io/pwndbg/pwndbg:$image-amd64
+          done

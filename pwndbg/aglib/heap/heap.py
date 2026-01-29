@@ -22,11 +22,3 @@ class MemoryAllocator:
             A boolean.
         """
         raise NotImplementedError()
-
-    def libc_has_debug_syms(self) -> bool:
-        """Returns whether the libc has debug symbols or not.
-
-        Returns:
-            A boolean.
-        """
-        raise NotImplementedError()

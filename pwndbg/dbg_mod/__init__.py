@@ -434,6 +434,12 @@ class Process:
         """
         raise NotImplementedError()
 
+    def is_core_file(self) -> bool:
+        """
+        Returns whether this process is a coredump file.
+        """
+        raise NotImplementedError()
+
     def stopped_with_signal(self) -> bool:
         """
         Returns whether this process was stopped by a signal.
@@ -653,6 +659,10 @@ class Process:
         """
         Return a list of (address, size, section_name, module_name) tuples for
         the loaded sections in every module of this process.
+
+        The module name will have its full path resolved without following symlinks,
+        so it is not guaranteed to be the same string as in `/proc/<pid>/maps`
+        or vmmap.
         """
         raise NotImplementedError()
 

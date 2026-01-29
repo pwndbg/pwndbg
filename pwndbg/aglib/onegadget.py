@@ -16,9 +16,9 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
-import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.tempfile
+import pwndbg.libc
 from pwndbg.color import colorize
 from pwndbg.color import generateColorFunction
 
@@ -272,7 +272,7 @@ def run_onegadget() -> str:
     """
     Run onegadget and return the output
     """
-    libc_path = pwndbg.aglib.file.get_file(pwndbg.glibc.get_libc_filename_from_info_sharedlibrary())
+    libc_path = pwndbg.aglib.file.get_file(str(pwndbg.libc.filepath()))
     # We need cache because onegadget might be slow
     cache_file = os.path.join(ONEGADGET_CACHEDIR, compute_file_hash(libc_path))
     if os.path.exists(cache_file):
@@ -536,7 +536,7 @@ def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
         expr = IS_GOT_ADDRESS_PATTERN.match(constraint).group(1)
         result, color_str, err = parse_expression(expr)
         if err is None:
-            got_plt_address = pwndbg.glibc.get_section_address_by_name(".got.plt")
+            got_plt_address = pwndbg.libc.section_address_by_name(".got.plt")
             passed = result == got_plt_address
             output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_plt_address:#x}) of libc\n"
         else:
