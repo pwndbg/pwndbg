@@ -1254,6 +1254,7 @@ class Debugger:
         handler: Callable[[Debugger, str, bool], None],
         doc: str | None,
         subcommand_names: list[str] | None = None,
+        is_prefix: bool = False,
     ) -> CommandHandle:
         """
         Adds a command with the given name to the debugger, that invokes the

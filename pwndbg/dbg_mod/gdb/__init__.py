@@ -1272,16 +1272,17 @@ class GDBCommand(gdb.Command):
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
         subcommand_names: list[str] | None,
+        is_prefix: bool = False,
     ):
         # We can't do `list[str] = []` in the signature because python..
         self.debugger = debugger
         self.handler = handler
         self.__doc__ = doc
         if subcommand_names is None:
-            super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION)
+            super().__init__(name, gdb.COMMAND_USER, gdb.COMPLETE_EXPRESSION, prefix=is_prefix)
         else:
             self.subcommand_names: list[str] = subcommand_names
-            super().__init__(name, gdb.COMMAND_USER)
+            super().__init__(name, gdb.COMMAND_USER, prefix=is_prefix)
 
     def invoke(self, args: str, from_tty: bool) -> None:
         self.handler(self.debugger, args, from_tty)
@@ -1720,8 +1721,9 @@ class GDB(pwndbg.dbg_mod.Debugger):
         handler: Callable[[pwndbg.dbg_mod.Debugger, str, bool], None],
         doc: str | None,
         subcommand_names: list[str] | None = None,
+        is_prefix: bool = False,
     ) -> pwndbg.dbg_mod.CommandHandle:
-        command = GDBCommand(self, name, handler, doc, subcommand_names)
+        command = GDBCommand(self, name, handler, doc, subcommand_names, is_prefix)
         return GDBCommandHandle(command)
 
     @override

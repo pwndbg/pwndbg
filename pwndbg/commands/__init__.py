@@ -233,20 +233,53 @@ class CommandObj:
         ) -> None:
             self.invoke(arguments, is_interactive)
 
-        # Keep a handle to the command and its aliases so we can
-        # easily remove them if necessary (not supported with GDB).
+        is_gdb = pwndbg.dbg.is_gdblib_available()
+        is_prefix = bool(self.subcommand_names)
+
         self.handles = [
-            # Tell the debugger about the command...
             pwndbg.dbg.add_command(
-                self.command_name, _handler, self.help_str, self.subcommand_names
+                self.command_name,
+                _handler,
+                self.help_str,
+                self.subcommand_names,
+                is_prefix=is_prefix,
             )
         ]
 
-        # ...and all of its aliases.
-        self.handles.extend(
-            pwndbg.dbg.add_command(alias, _handler, self.help_str, self.subcommand_names)
-            for alias in self.aliases
-        )
+        if is_gdb and is_prefix and self.subcommand_names is not None:
+            import gdb
+
+            subcmd_help = {}
+            for action in self.parser._actions:
+                if isinstance(action, argparse._SubParsersAction):
+                    for name, subparser in action.choices.items():
+                        subcmd_help[name] = subparser.format_help()
+
+            for subcmd in self.subcommand_names:
+                doc = subcmd_help.get(subcmd, f"See help for {self.command_name} {subcmd}")
+
+                def _proxy_handler(
+                    _debugger: pwndbg.dbg_mod.Debugger,
+                    arguments: str,
+                    is_interactive: bool,
+                    sc: str = subcmd,
+                ) -> None:
+                    full_args = f"{sc} {arguments}" if arguments else sc
+                    self.invoke(full_args, is_interactive)
+
+                self.handles.append(
+                    pwndbg.dbg.add_command(
+                        f"{self.command_name} {subcmd}", _proxy_handler, doc, None, is_prefix=False
+                    )
+                )
+
+            for alias in self.aliases:
+                gdb.execute(f"alias {alias} = {self.command_name}")
+        else:
+            self.handles.extend(
+                pwndbg.dbg.add_command(alias, _handler, self.help_str, self.subcommand_names)
+                for alias in self.aliases
+            )
 
         command_names.add(self.command_name)
         commands.append(self)
