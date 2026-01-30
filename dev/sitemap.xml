@@ -1061,6 +1061,10 @@
          <lastmod>2026-01-30</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/errno/</loc>
+         <lastmod>2026-01-30</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/file/</loc>
          <lastmod>2026-01-30</lastmod>
     </url>
@@ -1381,6 +1385,10 @@
          <lastmod>2026-01-30</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/errno/</loc>
+         <lastmod>2026-01-30</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/flags/</loc>
          <lastmod>2026-01-30</lastmod>
     </url>
@@ -1513,10 +1521,6 @@
          <lastmod>2026-01-30</lastmod>
     </url>
     <url>
-         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/misc/</loc>
-         <lastmod>2026-01-30</lastmod>
-    </url>
-    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/mmap/</loc>
          <lastmod>2026-01-30</lastmod>
     </url>
@@ -1586,6 +1590,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/commands/ptmalloc2_tracking/</loc>
+         <lastmod>2026-01-30</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/commands/pwndbg_/</loc>
          <lastmod>2026-01-30</lastmod>
     </url>
     <url>
