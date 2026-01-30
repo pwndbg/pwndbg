@@ -18,6 +18,31 @@ def get() -> tuple[int, str]:
     """
     # errno is a thread local variable provided by the libc, so we ask the libc where it is.
     # We intentionally avoid expression evaluation because it is not available in corefiles (see #3672).
+
+    # The definition of errno in glibc is like this:
+    # # define errno (*__errno_location ())
+    # https://elixir.bootlin.com/glibc/glibc-2.41/source/stdlib/errno.h#L38
+    # int *
+    # __errno_location (void)
+    # {
+    #     return &errno;
+    # }
+    # https://elixir.bootlin.com/glibc/glibc-2.41/source/csu/errno-loc.c#L24
+    # #   define errno __libc_errno
+    # https://elixir.bootlin.com/glibc/glibc-2.41/source/include/errno.h#L27
+    # extern __thread int __libc_errno __attribute__ ((alias ("errno")))
+    # https://elixir.bootlin.com/glibc/glibc-2.41/source/csu/errno.c#L32
+
+    # The definition of errno in musl is like this:
+    # #define errno (*__errno_location())
+    # https://elixir.bootlin.com/musl/v1.2.5/source/include/errno.h#L16
+    # int *__errno_location(void)
+    # {
+    # 	return &__pthread_self()->errno_val;
+    # }
+    # https://elixir.bootlin.com/musl/v1.2.5/source/src/errno/__errno_location.c#L4
+
+
     try:
         maybe_errno: int | None = pwndbg.aglib.symbol.lookup_symbol_value(
             "errno", objfile_endswith=str(pwndbg.libc.filepath())
