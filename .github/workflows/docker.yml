@@ -61,22 +61,29 @@ jobs:
         run: |
           docker buildx build \
             --load \
-            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.image }} \
-            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0},mode=max', matrix.image) || '' }} \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.image }}-amd64 \
+            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0}-amd64,mode=max', matrix.image) || '' }} \
             -f ${{ matrix.dockerfile }} \
             --build-arg image=${{ matrix.base }} \
             -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64 \
             -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }} \
             .
-      
+
       - name: Run GDB Tests on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g gdb
-      
-      - name: Run DBG Tests on GDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g dbg
-      
-      - name: Run DBG Tests on LLDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d lldb -g dbg
+        run: docker compose run --rm ${{ matrix.image }} ./tests.sh -d gdb -g gdb
+
+      - name: Run DBG Tests (DBG-GDB & DBG-LLDB in parallel) on ${{ matrix.image }}
+        run: |
+          docker compose run --rm ${{ matrix.image }} bash -c '
+            set -euo pipefail
+            make -C /pwndbg/tests/binaries/host -j4 all
+            set +e
+            ( ./tests.sh -d gdb -g dbg 2>&1 | sed -u "s/^/[DBG-GDB] /" ) & gdbpid=$!
+            ( ./tests.sh -d lldb -g dbg 2>&1 | sed -u "s/^/[DBG-LLDB] /" ) & lldbpid=$!
+            wait $gdbpid; gdbexitcode=$?;
+            wait $lldbpid; lldbexitcode=$?;
+            exit $((gdbexitcode|lldbexitcode))
+          '
 
       - name: Push full image to registry
         if: github.event_name == 'push'
@@ -120,15 +127,22 @@ jobs:
             -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-arm64 \
             -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }} \
             .
-      
+
       - name: Run Cross Tests on GDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g cross-arch-user
-      
-      - name: Run DBG Tests on GDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g dbg
-      
-      - name: Run DBG Tests on LLDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d lldb -g dbg
+        run: docker compose run --rm ${{ matrix.image }} ./tests.sh -d gdb -g cross-arch-user
+
+      - name: Run DBG Tests (DBG-GDB & DBG-LLDB in parallel) on ${{ matrix.image }}
+        run: |
+          docker compose run --rm ${{ matrix.image }} bash -c '
+            set -euo pipefail
+            make -C /pwndbg/tests/binaries/host -j4 all
+            set +e
+            ( ./tests.sh -d gdb -g dbg 2>&1 | sed -u "s/^/[DBG-GDB] /" ) & gdbpid=$!
+            ( ./tests.sh -d lldb -g dbg 2>&1 | sed -u "s/^/[DBG-LLDB] /" ) & lldbpid=$!
+            wait $gdbpid; gdbexitcode=$?;
+            wait $lldbpid; lldbexitcode=$?;
+            exit $((gdbexitcode|lldbexitcode))
+          '
 
       - name: Push full image to registry
         if: github.event_name == 'push'
