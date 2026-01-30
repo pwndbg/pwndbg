@@ -115,10 +115,12 @@ X86_64_NUM_TO_SIGNAL_MAPPING: dict[int, SIGNALS] = {
     31: "SIGSYS",
 }
 
+# https://man7.org/linux/man-pages/man7/signal.7.html
 PER_ARCH_SIGNAL_MAPPINGS: dict[
     pwndbg.lib.arch.PWNDBG_SUPPORTED_ARCHITECTURES_TYPE, dict[int, SIGNALS]
 ] = {
     "x86-64": X86_64_NUM_TO_SIGNAL_MAPPING,
+    "aarch64": X86_64_NUM_TO_SIGNAL_MAPPING,
 }
 
 

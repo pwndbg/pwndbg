@@ -806,6 +806,66 @@ def get_signal_struct() -> str:
     return struct
 
 
+def get_sighand_struct(task: int, nsproxy_offset: int) -> str:
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    sighand = pwndbg.aglib.memory.read_pointer_width(task + nsproxy_offset + ptrsize * 2)
+    off = ptrsize
+    kversion = pwndbg.aglib.kernel.krelease()
+    if not kversion or kversion >= (5, 3):
+        for i in range(0x20):
+            if pwndbg.aglib.kernel.get_double_linked_list(sighand + i * ptrsize):
+                off = (i + 2) * ptrsize
+                break
+        else:
+            return """
+            struct sighand_struct { char _a; };
+            """
+    result = f"""
+#define _NSIG		64
+#define _NSIG_BPW	{pwndbg.aglib.arch.ptrbits}
+#define _NSIG_WORDS	(_NSIG / _NSIG_BPW)
+    """
+    if pwndbg.aglib.arch.name in ("x86-64", "aarch64"):
+        result += "#define __ARCH_HAS_SA_RESTORER\n"
+    result += """
+    #define _NSIG 64
+    typedef void __signalfn_t(int);
+    typedef __signalfn_t *__sighandler_t;
+    typedef void __restorefn_t(void);
+    typedef __restorefn_t *__sigrestore_t;
+    typedef struct {
+        unsigned long sig[_NSIG_WORDS];
+    } sigset_t;
+    struct sigaction {
+#ifndef __ARCH_HAS_IRIX_SIGACTION
+        __sighandler_t	sa_handler;
+        unsigned long	sa_flags;
+#else
+        unsigned int	sa_flags;
+        __sighandler_t	sa_handler;
+#endif
+#ifdef __ARCH_HAS_SA_RESTORER
+        __sigrestore_t sa_restorer;
+#endif
+        sigset_t	sa_mask;	/* mask last for extensibility */
+    };
+
+    struct k_sigaction {
+        struct sigaction sa;
+#ifdef __ARCH_HAS_KA_RESTORER
+        __sigrestore_t ka_restorer;
+#endif
+    };
+    """
+    result += f"""
+    struct sighand_struct {{
+        char _pad[{off}];
+        struct k_sigaction	action[_NSIG];
+    }};
+    """
+    return result
+
+
 def get_sp_offset(tasks: list[int], stack_offset: int, comm_offset: int) -> int:
     # &task_struct - &task_struct->thread.sp
     # only one other ptr in the task_struct that belongs to the same page chunk
@@ -847,6 +907,7 @@ def recover_ktask_typeinfo() -> str:
     cred_struct, cred_offset = get_cred_struct_and_offset(tasks, comm_offset)
     files_structs, files_offset = get_files_struct_and_offset(task, comm_offset, tasks, mm_offset)
     nsproxy_struct, nsproxy_offset = get_nsproxy_struct_and_offset(task, files_offset)
+    sighand_struct = get_sighand_struct(task, nsproxy_offset)
     sp_offset = get_sp_offset(tasks, stack_offset, comm_offset)
 
     ptrsize = pwndbg.aglib.arch.ptrsize
@@ -856,6 +917,7 @@ def recover_ktask_typeinfo() -> str:
     result += cred_struct
     result += files_structs
     result += nsproxy_struct
+    result += sighand_struct
     result += get_signal_struct()
     if "CONFIG_STACKPROTECTOR" in pwndbg.aglib.kernel.kconfig():
         result += "#define CONFIG_STACKPROTECTOR\n"
@@ -892,9 +954,10 @@ def recover_ktask_typeinfo() -> str:
         char _pad6[{nsproxy_offset - (files_offset + ptrsize)}];
         struct nsproxy *nsproxy;
         struct signal_struct *signal;
-#if {sp_offset - nsproxy_offset - ptrsize * 2} > 0
+        struct sighand_struct *sighand;
+#if {sp_offset - nsproxy_offset - ptrsize * 3} > 0
         struct {{
-            char _pad7[{sp_offset - nsproxy_offset - ptrsize * 2}];
+            char _pad7[{sp_offset - nsproxy_offset - ptrsize * 3}];
 #ifdef __x86_64__
             void *sp;
 #endif

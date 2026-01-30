@@ -85,7 +85,7 @@
 -  [klookup](kernel/klookup.md) - Lookup kernel symbols
 -  [kmem-trace](kernel/kmem-trace.md) - Trace kernel memory (SLUB and buddy) allocations and frees.
 -  [kmod](kernel/kmod.md) - Displays the loaded Linux kernel modules.
--  [knamespace](kernel/knamespace.md) - Displays information about the namespcae of a kernel task.
+-  [knamespace](kernel/knamespace.md) - Displays information about the namespcae of a task.
 -  [knft-dump](kernel/knft-dump.md) - Dump all nftables: tables, chains, rules, expressions
 -  [knft-list-chains](kernel/knft-list-chains.md) - Dump netfilter chains form a specific table
 -  [knft-list-exprs](kernel/knft-list-exprs.md) - Dump only expressions from specific rule
@@ -94,7 +94,8 @@
 -  [knft-list-rules](kernel/knft-list-rules.md) - Dump netfilter rules form a specific chain
 -  [knft-list-sets](kernel/knft-list-sets.md) - Dump netfilter sets from a specific table
 -  [knft-list-tables](kernel/knft-list-tables.md) - Dump netfliter tables from a specific network namespace
--  [kstack](kernel/kstack.md) - Displays information about the stack of a kernel task.
+-  [ksighand](kernel/ksighand.md) - Displays information about the signal handlers of a user task.
+-  [kstack](kernel/kstack.md) - Displays information about the stack of a task.
 -  [ksyscalls](kernel/ksyscalls.md) - Displays Linux syscall table, including names and addresses of syscalls.
 -  [ktask](kernel/ktask.md) - Displays information about kernel tasks.
 -  [kversion](kernel/kversion.md) - Outputs the kernel version (/proc/version).

@@ -6,7 +6,7 @@ usage: knamespace [-h] [pid]
 
 ```
 
-Displays information about the namespcae of a kernel task.
+Displays information about the namespcae of a task.
 ### Positional arguments
 
 |Positional Argument|Help|

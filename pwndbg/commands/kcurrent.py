@@ -7,6 +7,7 @@ import pwndbg.aglib
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
 import pwndbg.aglib.memory
+import pwndbg.aglib.signal
 import pwndbg.chain
 import pwndbg.color as color
 import pwndbg.color.context as ctx_color
@@ -59,9 +60,7 @@ def select_kthread_from_pid(pid: int | None) -> pwndbg.commands.ktask.Kthread | 
     return kthread
 
 
-parser = argparse.ArgumentParser(
-    description="Displays information about the stack of a kernel task."
-)
+parser = argparse.ArgumentParser(description="Displays information about the stack of a task.")
 parser.add_argument("pid", nargs="?", type=int, help="")
 
 
@@ -130,9 +129,7 @@ def kfile(pid: int | None = None, fd: int | None = None) -> None:
                 )
 
 
-parser = argparse.ArgumentParser(
-    description="Displays information about the namespcae of a kernel task."
-)
+parser = argparse.ArgumentParser(description="Displays information about the namespcae of a task.")
 parser.add_argument("pid", nargs="?", type=int, help="")
 
 
@@ -148,6 +145,38 @@ def knamespace(pid: int) -> None:
     with indent:
         for name, val in thread.nsproxy:
             indent.print(color.yellow(name) + " @ " + pwndbg.chain.format(val))
+
+
+parser = argparse.ArgumentParser(
+    description="Displays information about the signal handlers of a user task."
+)
+parser.add_argument("pid", nargs="?", type=int, help="")
+
+
+@pwndbg.commands.Command(parser, category=pwndbg.commands.CommandCategory.KERNEL)
+@pwndbg.commands.OnlyWhenQemuKernel
+@pwndbg.commands.OnlyWhenPagingEnabled
+@pwndbg.commands.OnlyWithKernelSymbols
+def ksighand(pid: int) -> None:
+    thread = select_kthread_from_pid(pid)
+    if not thread:
+        return
+    indent.print(thread)
+    with indent:
+        for i, (handler, flags) in enumerate(thread.sighand):
+            m = pwndbg.aglib.signal.PER_ARCH_SIGNAL_MAPPINGS[pwndbg.aglib.arch.name]
+            if i not in m:
+                continue
+            name = color.blue(f"{m[i]:<10}")
+            match handler:
+                case 0:
+                    handler = color.red("SIG_DFL")
+                case 1:
+                    handler = color.red("SIG_IGN")
+                case _:
+                    handler = pwndbg.chain.format(handler)
+            flags = color.yellow(f"0x{flags:016x}")
+            indent.print(name, flags, handler)
 
 
 parser = argparse.ArgumentParser(

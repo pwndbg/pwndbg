@@ -6,7 +6,7 @@ usage: kstack [-h] [pid]
 
 ```
 
-Displays information about the stack of a kernel task.
+Displays information about the stack of a task.
 ### Positional arguments
 
 |Positional Argument|Help|

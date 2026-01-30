@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+from collections.abc import Generator
 
 import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.ktask
@@ -107,7 +108,7 @@ class Kthread:
         return tuple(files)
 
     @property
-    def mm(self) -> pwndbg.dbg_mod.Value:
+    def mm(self) -> pwndbg.dbg_mod.Value | None:
         mm = self.thread["mm"]
         if int(mm) != 0:
             return mm
@@ -118,7 +119,9 @@ class Kthread:
         return None
 
     @property
-    def pgd(self) -> int:
+    def pgd(self) -> int | None:
+        if not self.mm:
+            return None
         return int(self.mm["pgd"])
 
     @property
@@ -173,8 +176,18 @@ class Kthread:
             result.append((f"{name:<20}", val))
         return result
 
+    @property
+    def sighand(self) -> Generator[tuple[int, int], None, None]:
+        if not self.thread["sighand"].type.has_field("action"):
+            return
+        sighand = self.thread["sighand"]["action"]
+        for i in range(sighand.type.array_len):
+            action = sighand[i]["sa"]
+            yield (int(action["sa_handler"]), int(action["sa_flags"]))
+
     def pt_regs(self) -> tuple[list[tuple[str, int]] | None, str | None]:
-        if not self.stack or not self.user_task:
+        page = pwndbg.aglib.vmmap.find(self.stack)
+        if not self.stack or not self.user_task or not page:
             # pt_regs may not be saved at the end of the stack if otherwise
             return None, None
         pt_regs = syscall_reg = None
@@ -193,7 +206,6 @@ class Kthread:
                 syscall_reg = "syscallno"
             case _:
                 raise NotImplementedError()
-        page = pwndbg.aglib.vmmap.find(self.stack)
         start = page.end - sz
         regs = pt_regs.from_buffer_copy(pwndbg.aglib.memory.read(start, sz))
         regs = [(name, int(getattr(regs, name))) for name, *_ in regs._fields_]
@@ -212,7 +224,8 @@ class Kthread:
 
     def __str__(self) -> str:
         prefix = str(pwndbg.config.backtrace_prefix)
-        if pwndbg.aglib.kernel.current_task() != int(self.thread):
+        kcurrent = pwndbg.commands.kcurrent.select_kthread_from_pid(None)
+        if kcurrent and int(kcurrent.thread) != int(self.thread):
             prefix = " " * len(prefix)
         prefix = color.blue(prefix)
         thread = color.blue(hex(int(self.thread)))
