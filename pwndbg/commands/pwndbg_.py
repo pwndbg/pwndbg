@@ -64,7 +64,11 @@ def pwndbg_(filter_pattern, category_, list_categories) -> None:
     print(message.info("Also check out convenience functions with `help function`!"))
 
 
-def list_and_filter_commands(filter_str):
+def list_and_filter_commands(filter_str: str) -> list[tuple[str, list[str], CommandCategory, str]]:
+    """
+    Returns:
+        A list of (name, aliases, category, description) tuples.
+    """
     sorted_commands = sorted(pwndbg.commands.commands, key=lambda c: c.command_name)
 
     if filter_str:
