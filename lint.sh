@@ -129,7 +129,9 @@ fi
 
 # Checking minimum python version
 print_info "Using vermin to check that the code is compatible with the lowest supported python version..."
-$UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --violations ${LINT_FILES}
+# We have to use `--backport typing_extensions` because we use `override`, and the modern way to do it is
+# `from typing import override`, but that only became available in 3.12 .
+$UV_RUN_LINT vermin -vvv --no-tips -t=3.10- --eval-annotations --backport typing_extensions --violations ${LINT_FILES}
 
 # Check our custom rules.
 print_info "Checking custom Pwndbg lint rules..."
