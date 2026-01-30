@@ -1547,8 +1547,10 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # for it in LLDB :(
         #
         # [1]: https://github.com/llvm/llvm-project/blob/86cf67ffc1ee62c65bef313bf58ae70f74afb7c1/lldb/source/Plugins/ObjectFile/ELF/ObjectFileELF.cpp#L2140
+        import pwndbg.aglib.tls
+        import pwndbg.libc
 
-        if not self.is_linux():
+        if not (self.is_linux() and pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC):
             print(
                 f"warning: symbol '{sym.GetName()}' might be a TLS symbol, but Pwndbg only knows how to resolve those in x86-64 GNU/Linux"
             )
@@ -1578,7 +1580,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         offset = sym.GetValue()
         import pwndbg.aglib.memory
 
-        tls_base_typed = pwndbg.aglib.memory.get_typed_pointer("typedef tcbhead_t", tls_base)
+        try:
+            tls_base_typed = pwndbg.aglib.memory.get_typed_pointer("typedef tcbhead_t", tls_base)
+        except ValueError:
+            # We get a ValueError here if glibc does not have debug info.
+            return None
 
         for module_id in range(self.target.GetNumModules() + 1):
             # This is the same as `tls_base->dtv[module_id].pointer.val + offset`.
