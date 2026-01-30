@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Generator
 
 import pwndbg
 import pwndbg.aglib.kernel.symbol
@@ -15,13 +16,13 @@ class NextVmaFinder:
     def __init__(self, mm: int | pwndbg.dbg_mod.Value) -> None:
         self.mm = mm
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[int, None, None]:
         kversion = pwndbg.aglib.kernel.krelease()
         if kversion and kversion < (6, 1):
             return self.vma_struct_parse()
         return self.maple_tree_parse()
 
-    def vma_struct_parse(self):
+    def vma_struct_parse(self) -> Generator[int, None, None]:
         ptrsize = pwndbg.aglib.arch.ptrsize
         start = cur = pwndbg.aglib.memory.read_pointer_width(int(self.mm))
         while cur:
@@ -31,7 +32,8 @@ class NextVmaFinder:
                 break
             cur = next
 
-    def maple_tree_parse(self):
+    def maple_tree_parse(self) -> Generator[int, None, None]:
+        # taken from bata24
         ptrsize = pwndbg.aglib.arch.ptrsize
 
         MT_FLAGS_HEIGHT_MASK = 0x7C
@@ -948,8 +950,8 @@ def get_filepath(file: int | pwndbg.dbg_mod.Value) -> str:
 def resolve_addr_if_file(mm: int | pwndbg.dbg_mod.Value, addr: int) -> str:
     # TODO: optimize this
     vmafinder = NextVmaFinder(mm)
-    for vma in vmafinder:
-        vma = pwndbg.aglib.memory.get_typed_pointer("struct vm_area_struct", vma)
+    for _vma in vmafinder:
+        vma = pwndbg.aglib.memory.get_typed_pointer("struct vm_area_struct", _vma)
         if int(vma["vm_start"]) <= addr < int(vma["vm_end"]):
             return get_filepath(vma["vm_file"])
     return ""
