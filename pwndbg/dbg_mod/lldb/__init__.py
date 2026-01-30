@@ -1557,8 +1557,6 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
             )
             return None
 
-        import pwndbg.aglib.tls
-
         tls_base = (
             pwndbg.aglib.tls.find_address_with_register()
             or pwndbg.aglib.tls.find_address_with_pthread_self()
