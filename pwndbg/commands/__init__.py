@@ -1074,6 +1074,7 @@ def load_commands() -> None:
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
+    import pwndbg.commands.errno
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
     import pwndbg.commands.godbg
@@ -1103,7 +1104,6 @@ def load_commands() -> None:
     import pwndbg.commands.linkmap
     import pwndbg.commands.mallocng
     import pwndbg.commands.memoize
-    import pwndbg.commands.misc
     import pwndbg.commands.mmap
     import pwndbg.commands.mprotect
     import pwndbg.commands.msr
@@ -1120,6 +1120,7 @@ def load_commands() -> None:
     import pwndbg.commands.procinfo
     import pwndbg.commands.profiler
     import pwndbg.commands.ptmalloc2
+    import pwndbg.commands.pwndbg_
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
     import pwndbg.commands.rizin
