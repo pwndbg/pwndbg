@@ -44,6 +44,13 @@ def alive() -> bool:
     return pwndbg.dbg.selected_inferior().alive()
 
 
+def is_core_file() -> bool:
+    """
+    Returns whether the loaded program is a corefile
+    """
+    return pwndbg.dbg.selected_inferior().is_core_file()
+
+
 def stopped_with_signal() -> bool:
     """
     Returns whether the program has stopped with a signal

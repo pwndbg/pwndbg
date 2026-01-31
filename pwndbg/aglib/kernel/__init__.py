@@ -183,7 +183,7 @@ def first_kernel_ro_page() -> pwndbg.lib.memory.Page | None:
 
 
 @pwndbg.lib.cache.cache_until("objfile")
-def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig | None:
+def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig:
     global _kconfig
     config_start, config_end = None, None
     if has_debug_symbols():
@@ -191,9 +191,9 @@ def kconfig() -> pwndbg.aglib.kernel.kconfig_mod.Kconfig | None:
         config_end = pwndbg.aglib.symbol.lookup_symbol_addr("kernel_config_data_end")
     else:
         mapping = first_kernel_ro_page()
-        if mapping is None:
-            return None
-        result = next(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]), None)
+        result = None
+        if mapping is not None:
+            result = next(pwndbg.search.search(b"IKCFG_ST", mappings=[mapping]), None)
 
         if result is not None:
             config_start = result + len("IKCFG_ST")
@@ -685,7 +685,6 @@ def pagescan(entry=None) -> tuple[pwndbg.lib.memory.Page, ...]:
     raise NotImplementedError()
 
 
-@pwndbg.lib.cache.cache_until("stop")
 def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     pi = arch_paginginfo()
     if pi:
@@ -716,7 +715,7 @@ def num_numa_nodes() -> int:
     """Returns the number of NUMA nodes that are online on the system"""
     kc = kconfig()
 
-    if not kc or "CONFIG_NUMA" not in kc:
+    if "CONFIG_NUMA" not in kc:
         return 1
 
     if "CONFIG_NODES_SHIFT" not in kc:

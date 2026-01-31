@@ -215,6 +215,15 @@ class Controller:
         """
         raise NotImplementedError()
 
+    async def generate_core_file(self, path: Path) -> None:
+        """
+        Generate a core file at `path` and switch the debugger
+        to debugging that core file.
+
+        After this returns `pwndbg.dbg.selected_inferior().is_core_file()` must be True
+        """
+        raise NotImplementedError()
+
 
 def start(controller: Callable[[Controller], Coroutine[Any, Any, None]]) -> None:
     """

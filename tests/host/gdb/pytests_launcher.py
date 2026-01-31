@@ -64,6 +64,10 @@ class _GDBController(host.Controller):
         gdb.execute("set debug-file-directory")
         gdb.execute("set debuginfod enabled off")
 
+    async def generate_core_file(self, path: Path) -> None:
+        gdb.execute(f"generate-core-file {path}")
+        gdb.execute(f"core-file {path}")
+
 
 def _start(outer: Callable[[host.Controller], Coroutine[Any, Any, None]]) -> None:
     # The GDB controller is entirely synchronous, so keep advancing the
