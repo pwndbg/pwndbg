@@ -127,7 +127,7 @@ class Freelist:
             next ^= self.random ^ swab(addr + self.offset)
         return next
 
-    def is_valid_obj(self, addr) -> bool:
+    def is_valid_obj(self, addr: int) -> bool:
         if not self.slab:
             return False
         diff = addr - self.slab.virt_address
@@ -438,7 +438,7 @@ def find_containing_slab_cache(addr: int) -> tuple[int | None, SlabCache | None]
             slab = head_page.cast(slab_type)
         else:
             _slab = kernel.virt_to_slab(addr)
-            base = kernel.page_to_virt(_slab)
+            base = kernel.slab_to_virt(_slab)
             # mitigations are recent enough that the struct is expected to exist
             slab = pwndbg.aglib.memory.get_typed_pointer_value("struct slab", _slab)
         result = SlabCache(slab["slab_cache"])

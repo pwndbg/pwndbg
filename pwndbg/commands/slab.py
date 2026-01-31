@@ -316,8 +316,7 @@ def slab_contains(address: str) -> None:
     try:
         base, slab_cache = find_containing_slab_cache(addr)
         assert base and slab_cache, "cannot find the kmem_cache the address belongs to."
-        sz = slab_cache.object_size
-        addr = base + ((addr - base) // sz) * sz
+        addr = base + ((addr - base) // slab_cache.size) * slab_cache.size
         indent.print(f"{addr:#x} @", message.hint(f"{slab_cache.name}"))
         desc = "[inactive]"
         inuse = f"[something went wrong: {hex(addr)}]"
