@@ -159,6 +159,8 @@ def test_command_slab_contains():
     res = gdb.execute(f"slab contains {addr}", to_string=True)
     assert f"{addr} @ {slab_cache}" in res
     assert "cpu" in res or "node" in res
+    res2 = gdb.execute(f"slab contains {addr + 1}", to_string=True)
+    assert res == res2, "unaligned object address test failed"
 
 
 @KernelTest
