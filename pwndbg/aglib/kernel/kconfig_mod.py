@@ -6,6 +6,8 @@ from typing import Any
 
 import pwndbg.aglib
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.symbol
+import pwndbg.aglib.nearpc
 import pwndbg.aglib.symbol
 
 
@@ -88,7 +90,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
         return None
 
-    def __getitem__(self, name: str):
+    def __getitem__(self, name: str) -> str:
         key = self.get_key(name)
         if key:
             return self.data[key]
@@ -100,7 +102,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
             return False
         return self.get_key(name) is not None
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> object:
         return self.get(name)
 
     @property
@@ -128,7 +130,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
 
     @property
     def CONFIG_SLAB_FREELIST_HARDENED(self) -> bool:
-        def __helper(name):
+        def __helper(name) -> bool:
             addr = pwndbg.aglib.symbol.lookup_symbol_addr(name)
             if addr is not None:
                 for instr in pwndbg.aglib.nearpc.nearpc(addr, 40):
@@ -210,7 +212,7 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     def CONFIG_LOCKDEP(self) -> bool:
         return pwndbg.aglib.symbol.lookup_symbol("fs_reclaim_acquire") is not None
 
-    def update_with_file(self, file_path):
+    def update_with_file(self, file_path) -> None:
         for line in open(file_path).read().splitlines():
             split = line.split("=")
             if len(line) == 0 or line[0] == "#" or len(split) != 2:

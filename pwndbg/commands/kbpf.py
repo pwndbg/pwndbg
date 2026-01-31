@@ -112,7 +112,6 @@ def parse_xa_node(xa_node):
         if shift:
             result += parse_xa_node(slot)
         else:
-            print(hex(slot))
             result.append(slot)
         count -= 1
         if count == 0:

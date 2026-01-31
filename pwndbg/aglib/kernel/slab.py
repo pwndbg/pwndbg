@@ -674,7 +674,7 @@ def recover_slab_typeinfo() -> str:
 #if !defined(CONFIG_SLUB_TINY) || KVERSION < KERNEL_VERSION(6, 2, 0)
         struct kmem_cache_cpu *cpu_slab;
 #endif
-#if KVERSION >= KERNEL_VERSION(6, 18):
+#if KVERSION >= KERNEL_VERSION(6, 18, 0)
 #if !defined(CONFIG_SLUB_TINY)
         char lock_key[POINTER_SIZE * 2]; // sizeof(hash_entry)
 #endif
