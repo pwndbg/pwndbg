@@ -370,8 +370,7 @@ def test_command_paging() -> None:
     res = gdb.execute("buddydump", to_string=True)
     matches = get_buddy_freelist_elements(res)
     if len(matches) > 0 and "free_area" in res:  # only pages in free_area is marked "buddy"
-        buddy = int(matches[-1], 16)
-        test_command_paging_helper("buddy", buddy)
+        test_command_paging_helper("buddy", matches[-1][0])
 
     krelease = pwndbg.aglib.kernel.krelease()
     assert krelease is not None
@@ -380,6 +379,5 @@ def test_command_paging() -> None:
         res = gdb.execute("slab info -v -p kmalloc-32", to_string=True)
         matches = get_buddy_freelist_elements(res)
         if len(matches) > 0:
-            slab = int(matches[-1].split()[-1], 16)
-            test_command_paging_helper("slab", slab)
+            test_command_paging_helper("slab", matches[-1][0])
         res = gdb.execute(f"pagewalk {kbase}")
