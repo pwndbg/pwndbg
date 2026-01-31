@@ -8,6 +8,8 @@ from dataclasses import dataclass
 import pwndbg
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.aglib.kernel
+import pwndbg.aglib.kernel.symbol
+import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
@@ -15,7 +17,6 @@ import pwndbg.lib.cache
 import pwndbg.lib.regs
 import pwndbg.search
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
-from pwndbg.aglib.kernel.vmmap import kernel_vmmap_pages
 from pwndbg.lib.memory import Page
 from pwndbg.lib.regs import BitFlags
 
@@ -26,7 +27,7 @@ INVALID_ADDR = 1 << 64
 
 @pwndbg.lib.cache.cache_until("stop")
 def first_kernel_page_start() -> int:
-    for page in kernel_vmmap_pages():
+    for page in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages():
         if page.start and pwndbg.aglib.memory.is_kernel(page.start):
             return page.start
     return INVALID_ADDR
@@ -289,7 +290,7 @@ class ArchPagingInfo:
     def _kbase(self, address: int | None) -> int | None:
         if address is None:
             return None
-        for mapping in kernel_vmmap_pages():
+        for mapping in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages():
             # should be page aligned -- either from pt-dump or info mem
 
             # only search in kernel mappings:
@@ -630,7 +631,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         if self.kbase is None:
             return None
         res = None
-        for page in kernel_vmmap_pages()[::-1]:
+        for page in pwndbg.aglib.kernel.vmmap.kernel_vmmap_pages()[::-1]:
             if page.start >= self.kbase:
                 continue
             if page.start < self.vmalloc:

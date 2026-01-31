@@ -394,7 +394,7 @@ Note that the page-tables method will require the QEMU kernel process to be on t
 
 @pwndbg.lib.cache.cache_until("stop")
 def kernel_vmmap_pages() -> tuple[Page, ...]:
-    mode = kernel_vmmap_mode
+    mode = str(kernel_vmmap_mode)
     arch_name = pwndbg.aglib.arch.name
     if mode == "page-tables" and arch_name not in ("x86-64", "aarch64"):
         # TODO: remove this by implementing `RiscvPagingInfo`, `RiscvOps`, etc
@@ -409,7 +409,7 @@ def kernel_vmmap_pages() -> tuple[Page, ...]:
             # has the user set the pgd with kcurrent?
             # None if not which gets properly handled
             entry = pwndbg.commands.kcurrent.KCURRENT_PGD
-            if entry and pwndbg.aglib.memory.is_kernel(entry):
+            if pwndbg.aglib.memory.is_kernel(entry):
                 entry = pwndbg.aglib.kernel.virt_to_phys(entry)
             return pwndbg.aglib.kernel.pagescan(entry)
         case "pt-dump":

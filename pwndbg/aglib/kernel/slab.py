@@ -428,7 +428,9 @@ def find_containing_slab_cache(addr: int) -> SlabCache | None:
 
         slab_type = pwndbg.aglib.typeinfo.load(f"struct {slab_struct_type()}")
         slab = head_page.cast(slab_type)
-        return SlabCache(slab["slab_cache"])
+        result = SlabCache(slab["slab_cache"])
+        assert result.name
+        return result
     except Exception:
         pass
     return None
