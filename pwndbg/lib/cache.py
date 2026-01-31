@@ -11,7 +11,6 @@ from collections.abc import Callable
 from enum import IntFlag
 from functools import wraps
 from typing import Any
-from typing import Protocol
 from typing import TypeAlias
 from typing import TypeVar
 
@@ -61,12 +60,6 @@ class DebugCacheDict(UserDict):  # type: ignore[type-arg]
 
 
 Cache: TypeAlias = dict[tuple[Any, ...], Any] | DebugCacheDict
-
-
-class CachedFunction(Protocol[T]):
-    cache: Cache
-
-    def __call__(self, *args: Any, **kwargs: Any) -> T: ...
 
 
 class _CacheUntilEvent:
@@ -171,7 +164,7 @@ IS_CACHING = True
 IS_CACHING_DISABLED_FOR: EventSet = 0
 
 
-def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[T]]:
+def cache_until(*event_names: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     All possible values of the function arguments must be hashable
     (so e.g. `var: MyUnhashableType | None = None` is not allowed, but may fail rarely).
@@ -187,7 +180,7 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
     event_list: list[CacheUntilEvent] = [_NAME_TO_EVENT[event_name] for event_name in event_names]
     event_set: EventSet = events_to_event_set(event_list)
 
-    def inner(func: Callable[P, T]) -> CachedFunction[T]:
+    def inner(func: Callable[P, T]) -> Callable[P, T]:
         if hasattr(func, "cache"):
             raise ValueError(
                 f"Cannot cache the {func.__name__} function twice! "
@@ -234,13 +227,12 @@ def cache_until(*event_names: str) -> Callable[[Callable[P, T]], CachedFunction[
         # Set the cache on the function so it can be cleared on demand
         # this may be useful for tests
         decorator.cache = cache  # type: ignore[attr-defined]
-        # ^ now the decorator is a CachedFunction
 
         # Register the cache for the given event so it can be cleared
         for an_event in event_list:
             _ALL_CACHE_UNTIL_EVENTS[an_event].add_cache(cache)
 
-        return decorator  # type: ignore[return-value]
+        return decorator
 
     return inner
 
@@ -254,3 +246,12 @@ def clear_cache(cache_event: CacheUntilEvent) -> None:
     # I could imagine this being a hot path, so I don't want to do the
     # `str -> CacheUntilEvent` conversion here.
     _ALL_CACHE_UNTIL_EVENTS[cache_event].clear()
+
+
+def clear_function_cache(func: Callable[..., T]) -> None:
+    """
+    Call this on a cached function/method to clear its cache. For methods,
+    clears the cache for all object instances.
+    """
+    assert hasattr(func, "cache")
+    getattr(func, "cache").clear()

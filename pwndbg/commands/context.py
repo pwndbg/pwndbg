@@ -33,6 +33,7 @@ import pwndbg.color.memory as mem_color
 import pwndbg.color.syntax_highlight as H
 import pwndbg.commands
 import pwndbg.commands.telescope
+import pwndbg.dbg_mod
 import pwndbg.integration
 import pwndbg.lib.cache
 import pwndbg.lib.config
@@ -1350,7 +1351,9 @@ def context_disasm(
     syntax = pwndbg.aglib.disasm.disassembly.CapstoneSyntax[flavor]
 
     # Get the Capstone object to set disassembly syntax
-    cs = next(iter(pwndbg.aglib.disasm.disassembly.get_disassembler.cache.values()), None)
+    cs = next(
+        iter(getattr(pwndbg.aglib.disasm.disassembly.get_disassembler, "cache").values()), None
+    )
 
     # The `None` case happens when the cache was not filled yet (see e.g. #881)
     if cs is not None and cs.syntax != syntax:
@@ -1696,9 +1699,8 @@ def context_threads(
     return out
 
 
-@pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
-@pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
-@pwndbg.dbg.event_handler(EventType.CONTINUE, EventHandlerPriority.UPDATE_ARCH_AND_TYPEINFO)
+@pwndbg.dbg.event_handler(EventType.STOP, EventHandlerPriority.SAVE_SIGNAL)
+@pwndbg.dbg.event_handler(EventType.EXIT, EventHandlerPriority.SAVE_SIGNAL)
 def save_signal() -> None:
     global last_signal
     last_signal = result = []

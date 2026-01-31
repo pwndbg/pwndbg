@@ -155,7 +155,7 @@ def v2p(vaddr) -> None:
     if not entry or paddr is None:
         print(message.warn("virtual to physical address failed, unmapped virtual address?"))
         return
-    paging_print_helper("Physmap address", paddr)
+    paging_print_helper("Physical address", paddr)
     # paddr is the physmap address which is a virtual address
     page = pwndbg.aglib.kernel.phys_to_page(paddr)
     page_info(page)

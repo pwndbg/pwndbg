@@ -514,8 +514,7 @@ class CommandObj:
                 print()
         except pwndbg.aglib.kernel.TypeNotRecovered as e:
             print(message.warn(f"recovering {e.name} failed with error:\n{e}"))
-            kconfig = pwndbg.aglib.kernel.kconfig()
-            if kconfig and "CONFIG_RANDSTRUCT" in kconfig:
+            if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
                 print(
                     message.warn(
                         "please note that some structs may not be recoverable when CONFIG_RANDSTRUCT=y"
@@ -832,7 +831,7 @@ def WarnOnKernelConfigRandstruct(function: Callable[P, T]) -> Callable[P, T | No
 
 
 def OnlyWhenRunning(
-    func_when_decorator_kwargs: Callable[P, T] | None = None, *, allow_core: bool = True
+    func_when_no_kwargs: Callable[P, T] | None = None, *, allow_core: bool = True
 ) -> Callable[[Callable[P, T]], Callable[P, T | None]] | Callable[P, T | None]:
     def decorator(func: Callable[P, T]) -> Callable[P, T | None]:
         @functools.wraps(func)
@@ -846,9 +845,9 @@ def OnlyWhenRunning(
 
         return _OnlyWhenRunning
 
-    if func_when_decorator_kwargs is None:
+    if func_when_no_kwargs is None:
         return decorator
-    return decorator(func_when_decorator_kwargs)
+    return decorator(func_when_no_kwargs)
 
 
 def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
@@ -1075,6 +1074,7 @@ def load_commands() -> None:
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
+    import pwndbg.commands.errno
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
     import pwndbg.commands.godbg
@@ -1104,7 +1104,6 @@ def load_commands() -> None:
     import pwndbg.commands.linkmap
     import pwndbg.commands.mallocng
     import pwndbg.commands.memoize
-    import pwndbg.commands.misc
     import pwndbg.commands.mmap
     import pwndbg.commands.mprotect
     import pwndbg.commands.msr
@@ -1121,6 +1120,7 @@ def load_commands() -> None:
     import pwndbg.commands.procinfo
     import pwndbg.commands.profiler
     import pwndbg.commands.ptmalloc2
+    import pwndbg.commands.pwndbg_
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
     import pwndbg.commands.rizin

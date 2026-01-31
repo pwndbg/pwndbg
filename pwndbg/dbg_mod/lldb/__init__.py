@@ -1526,7 +1526,7 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         """
         # Please read book: https://akkadia.org/drepper/tls.pdf
         #
-        # LLDB doesn't handle symbols marked with STT_TLS at all[1], which
+        # LLDB doesn't handle symbols marked with STT_TLS at all[1][2], which
         # means that not only will they not have a type, they will also
         # give completely wrong results for GetStartAddress(), meaning we
         # can't use any of the mechanisms in LLDB to figure out where a TLS
@@ -1547,14 +1547,15 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         # for it in LLDB :(
         #
         # [1]: https://github.com/llvm/llvm-project/blob/86cf67ffc1ee62c65bef313bf58ae70f74afb7c1/lldb/source/Plugins/ObjectFile/ELF/ObjectFileELF.cpp#L2140
+        # [2]: https://github.com/llvm/llvm-project/issues/178953
+        import pwndbg.aglib.tls
+        import pwndbg.libc
 
-        if not self.is_linux():
+        if not (self.is_linux() and pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC):
             print(
                 f"warning: symbol '{sym.GetName()}' might be a TLS symbol, but Pwndbg only knows how to resolve those in x86-64 GNU/Linux"
             )
             return None
-
-        import pwndbg.aglib.tls
 
         tls_base = (
             pwndbg.aglib.tls.find_address_with_register()
@@ -1578,7 +1579,11 @@ class LLDBProcess(pwndbg.dbg_mod.Process):
         offset = sym.GetValue()
         import pwndbg.aglib.memory
 
-        tls_base_typed = pwndbg.aglib.memory.get_typed_pointer("typedef tcbhead_t", tls_base)
+        try:
+            tls_base_typed = pwndbg.aglib.memory.get_typed_pointer("typedef tcbhead_t", tls_base)
+        except ValueError:
+            # We get a ValueError here if glibc does not have debug info.
+            return None
 
         for module_id in range(self.target.GetNumModules() + 1):
             # This is the same as `tls_base->dtv[module_id].pointer.val + offset`.

@@ -63,7 +63,7 @@ def test_symbol_duplicated_symbols_issue_1610():
     # Make sure to clear cache!
     # TODO: clear cache
     # from pwndbg.aglib.symbol import lookup_symbol_value
-    # lookup_symbol_value.cache.clear()
+    # pwndbg.lib.cache.clear_function_cache(lookup_symbol_value)
 
     # Real test assert - this should not crash!
     assert pwndbg.dbg.selected_inferior().symbol_name_at_address(main_addr) == "main"
