@@ -11,7 +11,6 @@ from collections.abc import Callable
 from enum import IntFlag
 from functools import wraps
 from typing import Any
-from typing import Protocol
 from typing import TypeAlias
 from typing import TypeVar
 
