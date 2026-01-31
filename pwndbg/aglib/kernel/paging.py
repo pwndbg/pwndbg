@@ -14,6 +14,7 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.lib.cache
+import pwndbg.lib.memory
 import pwndbg.lib.regs
 import pwndbg.search
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
@@ -61,7 +62,7 @@ class PageTableScan:
         self.page_shift = pi.page_shift
         self.should_stop_pagewalk = pi.should_stop_pagewalk
         # for scanning
-        self.pagesz = 1 << self.page_shift
+        self.pagesz = pi.page_size
         self.ptrsize = pwndbg.aglib.arch.ptrsize
         self.inf = pwndbg.dbg.selected_inferior()
         self.fmt = "<" + ("Q" if self.ptrsize == 8 else "I") * (self.pagesz // self.ptrsize)
@@ -264,6 +265,16 @@ class ArchPagingInfo:
     def vmemmap(self) -> int:
         raise NotImplementedError()
 
+    def slab_to_virt(self, slab: int) -> int:
+        raise NotImplementedError()
+
+    def virt_to_slab(self, virt: int) -> int:
+        raise NotImplementedError()
+
+    @property
+    def slab_virtual(self) -> int:
+        raise NotImplementedError()
+
     @property
     def kbase(self) -> int | None:
         raise NotImplementedError()
@@ -271,6 +282,10 @@ class ArchPagingInfo:
     @property
     def page_shift(self) -> int:
         raise NotImplementedError()
+
+    @property
+    def page_size(self) -> int:
+        return 1 << self.page_shift
 
     @property
     def paging_level(self) -> int:
@@ -311,7 +326,7 @@ class ArchPagingInfo:
 
     @property
     def PAGE_ENTRY_MASK(self) -> int:
-        return ~((1 << self.page_shift) - 1) & ((1 << self.va_bits) - 1)
+        return ~(self.page_size - 1) & ((1 << self.va_bits) - 1)
 
     @property
     def PAGE_INDEX_LEN(self) -> int:
@@ -390,6 +405,9 @@ class ArchPagingInfo:
 
 
 class x86_64PagingInfo(ArchPagingInfo):
+    def __init__(self) -> None:
+        self.P4D_SHIFT = 39
+
     @property
     @pwndbg.lib.cache.cache_until("stop")
     def pagetable_level_names(self) -> tuple[str, ...]:
@@ -473,6 +491,33 @@ class x86_64PagingInfo(ArchPagingInfo):
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
+    def slab_virtual(self) -> int:
+        return pwndbg.aglib.arch.unsigned(-3, self.P4D_SHIFT)
+
+    @property
+    def SLAB_DATA_BASE_ADDR(self):
+        STRUCT_SLAB_SIZE = 32 * pwndbg.aglib.arch.ptrsize
+        SLAB_VPAGES = (1 << self.P4D_SHIFT) // self.page_size
+        SLAB_META_SIZE = pwndbg.lib.memory.round_up(STRUCT_SLAB_SIZE * SLAB_VPAGES, self.page_size)
+        return self.slab_virtual + SLAB_META_SIZE
+
+    def slab_to_virt(self, slab: int) -> int:
+        a = pwndbg.aglib.typeinfo.load("struct slab")
+        # default is true for mitigation-6.12
+        slab_size = (14 * pwndbg.aglib.arch.ptrsize) if not a else a.sizeof
+        idx = (slab - self.slab_virtual) // slab_size
+        return self.SLAB_DATA_BASE_ADDR + self.page_size * idx
+
+    def virt_to_slab(self, virt: int) -> int:
+        a = pwndbg.aglib.typeinfo.load("struct slab")
+        # default is true for mitigation-6.12
+        slab_size = (14 * pwndbg.aglib.arch.ptrsize) if not a else a.sizeof
+        slab = self.slab_virtual + (virt - self.SLAB_DATA_BASE_ADDR) // self.page_size * slab_size
+        slab = pwndbg.aglib.memory.get_typed_pointer("struct slab", slab)
+        return int(slab["compound_slab_head"])
+
+    @property
+    @pwndbg.lib.cache.cache_until("stop")
     def paging_level(self) -> int:
         cr4 = pwndbg.aglib.regs.read_reg("cr4")
         return 4 if cr4 is None or (cr4 & (1 << 12)) == 0 else 5
@@ -488,6 +533,8 @@ class x86_64PagingInfo(ArchPagingInfo):
             (self.VMALLOC, self.vmalloc),
             (self.VMEMMAP, self.vmemmap),
             ("cpu entry", 0xFFFFFE0000000000),
+            ("slab virtual", self.slab_virtual),
+            (None, self.slab_virtual + (1 << self.P4D_SHIFT)),
             (self.ESPSTACK, 0xFFFFFF0000000000),
             ("EFI", 0xFFFFFFEF00000000),
             (self.KERNELLAND, self.kbase),
@@ -642,10 +689,10 @@ class Aarch64PagingInfo(ArchPagingInfo):
         return res
 
     def _PAGE_OFFSET(self, va: int) -> int:  # aka PAGE_START
-        return (-(1 << va)) & 0xFFFFFFFFFFFFFFFF
+        return pwndbg.aglib.arch.unsigned(-(1 << va))
 
     def _PAGE_END(self, va: int) -> int:
-        return (-(1 << (va - 1))) & 0xFFFFFFFFFFFFFFFF
+        return pwndbg.aglib.arch.unsigned(-(1 << (va - 1)))
 
     @property
     @pwndbg.lib.cache.cache_until("stop")
@@ -662,7 +709,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             self.VMEMMAP_SIZE = (
                 self._PAGE_END(self.va_bits_min) - self.PAGE_OFFSET
             ) >> vmemmap_shift
-            self.VMEMMAP_START = (-self.VMEMMAP_SIZE - 0x00200000) & 0xFFFFFFFFFFFFFFFF
+            self.VMEMMAP_START = pwndbg.aglib.arch.unsigned(-self.VMEMMAP_SIZE - 0x00200000)
         elif self.kversion < (6, 9):
             self.VMEMMAP_SIZE = (
                 self._PAGE_END(self.va_bits_min) - self.PAGE_OFFSET
@@ -671,7 +718,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         else:
             VMEMMAP_RANGE = self._PAGE_END(self.va_bits_min) - self.PAGE_OFFSET
             self.VMEMMAP_SIZE = (VMEMMAP_RANGE >> self.page_shift) * self.STRUCT_PAGE_SIZE
-            self.VMEMMAP_START = (-0x40000000 - self.VMEMMAP_SIZE) & 0xFFFFFFFFFFFFFFFF
+            self.VMEMMAP_START = pwndbg.aglib.arch.unsigned(-0x40000000 - self.VMEMMAP_SIZE)
 
         # obtained through debugging -- kaslr offset of physmap determines the offset of vmemmap
         vmemmap_kaslr = (self.physmap - self.PAGE_OFFSET - self.phys_offset) >> vmemmap_shift
@@ -703,7 +750,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
         elif self.VMEMMAP_START and self.kversion < (6, 9):
             FIXADDR_TOP = self.VMEMMAP_START - 0x02000000  # 32M
         else:
-            FIXADDR_TOP = (-0x00800000) & 0xFFFFFFFFFFFFFFFF
+            FIXADDR_TOP = pwndbg.aglib.arch.unsigned(-0x00800000)
         # https://elixir.bootlin.com/linux/v6.16.5/source/arch/arm64/include/asm/fixmap.h#L102
         # 0x1000 is an upper estimate
         FIXADDR_SIZE = 0x1000 << self.page_shift
@@ -797,7 +844,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
                     name = self.adjust(name)
                 if value > 0:
                     sections.append((name, value))
-                if value == 0xFFFFFFFFFFFFFFFF:
+                if value == pwndbg.aglib.arch.unsigned(-1):
                     break
             return tuple(sections)
         vmalloc_end = None
@@ -817,7 +864,7 @@ class Aarch64PagingInfo(ArchPagingInfo):
             ("pci", self.pci),
             (None, self.pci_end),
             ("fixmap", self.fixmap),
-            (None, 0xFFFFFFFFFFFFFFFF),
+            (None, pwndbg.aglib.arch.unsigned(-1)),
         )
 
     def adjust(self, name: str) -> str:

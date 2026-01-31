@@ -99,7 +99,7 @@ def bpf_map_array_offset(bpf_array, t, max_entries, value_size):
 
 def parse_xa_node(xa_node):
     xa_node = int(xa_node) & ~3
-    if xa_node == 0 or not pwndbg.aglib.memory.is_kernel(xa_node):
+    if not pwndbg.aglib.memory.is_kernel(xa_node):
         return []
     xa_node = pwndbg.aglib.memory.get_typed_pointer("struct xa_node", xa_node)
     result = []
@@ -112,6 +112,7 @@ def parse_xa_node(xa_node):
         if shift:
             result += parse_xa_node(slot)
         else:
+            print(hex(slot))
             result.append(slot)
         count -= 1
         if count == 0:

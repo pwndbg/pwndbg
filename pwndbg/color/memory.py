@@ -99,7 +99,9 @@ def get(
         color = c.code
     elif not page.write:
         color = c.rodata
-    elif any(keyword in page.objfile for keyword in ("[heap", "physmap", "vmalloc")):
+    elif any(
+        keyword in page.objfile for keyword in ("[heap", "physmap", "vmalloc", "slab virtual")
+    ):
         color = c.heap
     elif page.rw:
         color = c.data

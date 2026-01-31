@@ -310,7 +310,7 @@ def get_double_linked_list(head: int, minlen: int = 0x1, maxlen: int = 0x1000) -
 
 def in_kmem_cache(val: int, name: str, strict: bool = True) -> bool:
     # name is a substr of any of the target caches' names
-    cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
+    _, cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(val)
     if not cache:
         return False
     if strict:
@@ -398,7 +398,7 @@ class ArchOps(ABC):
 
     @property
     def page_size(self) -> int:
-        return 1 << self.page_shift
+        return self._paginginfo().page_size
 
     def virt_to_pfn(self, virt: int) -> int:
         return phys_to_pfn(virt_to_phys(virt))
@@ -421,7 +421,7 @@ class ArchOps(ABC):
 
 class x86Ops(ArchOps):
     def phys_to_virt(self, phys: int) -> int:
-        return (phys + self.page_offset) % (1 << pwndbg.aglib.arch.ptrbits)
+        return pwndbg.aglib.arch.unsigned(phys + self.page_offset)
 
     def phys_to_pfn(self, phys: int) -> int:
         return phys >> self.page_shift
@@ -708,6 +708,27 @@ def bitflags(level: pwndbg.aglib.kernel.paging.PageTableLevel) -> BitFlags:
     pi = arch_paginginfo()
     if pi:
         return pi.bitflags(level)
+    raise NotImplementedError()
+
+
+def slab_to_virt(slab: int) -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.slab_to_virt(slab)
+    raise NotImplementedError()
+
+
+def virt_to_slab(slab: int) -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.virt_to_slab(slab)
+    raise NotImplementedError()
+
+
+def slab_virtual() -> int:
+    pi = arch_paginginfo()
+    if pi:
+        return pi.slab_virtual
     raise NotImplementedError()
 
 

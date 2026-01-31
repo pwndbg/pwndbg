@@ -182,6 +182,7 @@ enum pageflags {
 	PG_unevictable,		/* Page is "unevictable"  */
 	PG_dropbehind,		/* drop pages on IO completion */
 };
+#define POINTER_SIZE (sizeof(void *))
 """
 
 

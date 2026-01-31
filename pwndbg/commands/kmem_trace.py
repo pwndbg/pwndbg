@@ -94,7 +94,7 @@ class KmemTracepointsData:
         else:
             prefix = "[SLAB ALLOC]"
         try:
-            cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
+            _, cache = pwndbg.aglib.kernel.slab.find_containing_slab_cache(objaddr)
             name = cache.name
         except Exception:
             self.add_result(message.warn(f"{prefix} invalid SLUB object @ {objaddr:#x}"))
