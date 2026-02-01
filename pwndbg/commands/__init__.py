@@ -514,8 +514,7 @@ class CommandObj:
                 print()
         except pwndbg.aglib.kernel.TypeNotRecovered as e:
             print(message.warn(f"recovering {e.name} failed with error:\n{e}"))
-            kconfig = pwndbg.aglib.kernel.kconfig()
-            if kconfig and "CONFIG_RANDSTRUCT" in kconfig:
+            if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
                 print(
                     message.warn(
                         "please note that some structs may not be recoverable when CONFIG_RANDSTRUCT=y"
@@ -831,16 +830,24 @@ def WarnOnKernelConfigRandstruct(function: Callable[P, T]) -> Callable[P, T | No
     return _WarnOnKernelConfigRandstruct
 
 
-def OnlyWhenRunning(function: Callable[P, T]) -> Callable[P, T | None]:
-    @functools.wraps(function)
-    def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> T | None:
-        # TODO: Properly support OnlyWhenRunning without `gdblib`.
-        if pwndbg.aglib.proc.alive():
-            return function(*a, **kw)
-        log.error(f"{func_name(function)}: The program is not being run.")
-        return None
+def OnlyWhenRunning(
+    func_when_no_kwargs: Callable[P, T] | None = None, *, allow_core: bool = True
+) -> Callable[[Callable[P, T]], Callable[P, T | None]] | Callable[P, T | None]:
+    def decorator(func: Callable[P, T]) -> Callable[P, T | None]:
+        @functools.wraps(func)
+        def _OnlyWhenRunning(*a: P.args, **kw: P.kwargs) -> T | None:
+            if pwndbg.aglib.proc.alive() and not (
+                not allow_core and pwndbg.aglib.proc.is_core_file()
+            ):
+                return func(*a, **kw)
+            log.error(f"{func_name(func)}: The program is not being run.")
+            return None
 
-    return _OnlyWhenRunning
+        return _OnlyWhenRunning
+
+    if func_when_no_kwargs is None:
+        return decorator
+    return decorator(func_when_no_kwargs)
 
 
 def OnlyWithTcache(function: Callable[P, T]) -> Callable[P, T | None]:
@@ -1067,6 +1074,7 @@ def load_commands() -> None:
     import pwndbg.commands.dt
     import pwndbg.commands.dumpargs
     import pwndbg.commands.elf
+    import pwndbg.commands.errno
     import pwndbg.commands.flags
     import pwndbg.commands.gdt
     import pwndbg.commands.godbg
@@ -1096,7 +1104,6 @@ def load_commands() -> None:
     import pwndbg.commands.linkmap
     import pwndbg.commands.mallocng
     import pwndbg.commands.memoize
-    import pwndbg.commands.misc
     import pwndbg.commands.mmap
     import pwndbg.commands.mprotect
     import pwndbg.commands.msr
@@ -1113,6 +1120,7 @@ def load_commands() -> None:
     import pwndbg.commands.procinfo
     import pwndbg.commands.profiler
     import pwndbg.commands.ptmalloc2
+    import pwndbg.commands.pwndbg_
     import pwndbg.commands.radare2
     import pwndbg.commands.retaddr
     import pwndbg.commands.rizin

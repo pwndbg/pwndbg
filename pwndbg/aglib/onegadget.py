@@ -461,9 +461,9 @@ def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
     if CONSTRAINT_SEPARATOR in constraint:
         final_result = UNSAT
         for sub_constraint in constraint.split(CONSTRAINT_SEPARATOR):
-            result, msg = check_constraint(sub_constraint)
+            result1, msg = check_constraint(sub_constraint)
             output_msg += msg
-            final_result = final_result | result
+            final_result = final_result | result1
             if final_result == SAT:
                 return SAT, output_msg
         return final_result, output_msg

@@ -604,6 +604,15 @@ class GDBProcess(pwndbg.dbg_mod.Process):
         return gdb.selected_thread() is not None
 
     @override
+    def is_core_file(self) -> bool:
+        inferior = gdb.selected_inferior()
+        return (
+            hasattr(inferior, "connection")
+            and inferior.connection is not None
+            and inferior.connection.type == "core"
+        )
+
+    @override
     def stopped_with_signal(self) -> bool:
         return "It stopped with signal " in gdb.execute("info program", to_string=True)
 

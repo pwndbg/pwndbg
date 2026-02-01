@@ -434,6 +434,12 @@ class Process:
         """
         raise NotImplementedError()
 
+    def is_core_file(self) -> bool:
+        """
+        Returns whether this process is a coredump file.
+        """
+        raise NotImplementedError()
+
     def stopped_with_signal(self) -> bool:
         """
         Returns whether this process was stopped by a signal.
@@ -1143,7 +1149,10 @@ class EventType(Enum):
 
     CONTINUE = 5
     """This event is fired after the user has requested for process execution to continue
-    after it had been previously suspended."""
+    after it had been previously suspended.
+
+    Be careful about using this event since the debugger may not allow many operations as
+    it may consider the program as 'running' when this event is dispatched (e.g. #3683)."""
 
     NEW_MODULE = 6
     """This event is fired when a new application module has been encountered by the
@@ -1169,6 +1178,8 @@ class EventHandlerPriority(Enum):
     UPDATE_ARCH_AND_TYPEINFO = 10
     """We need to initialize the architecture and type information before doing anything
     else substantial."""
+    SAVE_SIGNAL = 20
+    """Save siginfo information for displaying in the context."""
     STANDARD = 100
     """The default value."""
 
