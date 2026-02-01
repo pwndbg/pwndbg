@@ -134,3 +134,105 @@ This should only return True when we are certain. I don't think there is a good 
 ### verify_ld_candidate 
 
 You don't need to implement this if you implemented `verify_libc_candidate`. Unless `libc_same_as_ld()` returns `True`, then `verify_ld_candidate` must call `verify_libc_candidate`.
+
+## Compiling the libc
+
+Compiling a libc, and compiling a program *with* a libc, can have its quirks. Whenever you add support for a new libc in Pwndbg, write here the compilation instructions so future contributors can easily reference them.
+
+If you are using [`clangd`](https://github.com/clangd/clangd) as your C/C++ Language Server Protocol (LSP) implementation, and are not using a full IDE, you likely want to generate a `compile_commands.json` file which will allow `clangd` to properly implement Go-To-Definition actions etc. You usually do this via [`bear`](https://github.com/rizsotto/Bear) i.e. you would run `bear -- make` instead of just `make`, which will create a `compile_commands.json` file in the current folder which `clangd` will consume automatically. An alternative to `bear` is [`compiledb`](https://github.com/nickdiego/compiledb). Sometimes one works better, sometimes the other, it's a bit of a gamble. Anyway, these tools are not necessary for a successful compilation, so if you see `compiledb whatever_actual_command` below, that means you can just as well run `whatever_actual_command`.
+
+### glibc
+
+Mostly taken from this stackoverflow answer: https://stackoverflow.com/questions/10412684/how-to-compile-my-own-glibc-c-standard-library-from-source-and-use-it . Official instructions: https://sourceware.org/glibc/wiki/Testing/Builds .
+
+```bash
+git clone git://sourceware.org/git/glibc.git
+cd glibc
+mkdir -p build/install
+cd build
+export GLIBC_INSTALL="$(pwd)/install" && echo $GLIBC_INSTALL
+../configure --prefix $GLIBC_INSTALL
+# hmm I can't get bear nor compiledb working atm.
+make -j $(nproc)
+make install
+# cp compile_commands.json ../.
+```
+The libc and ld are in `$GLIBC_INSTALL/lib/`.
+
+#### dynamically compiling with glibc
+
+Make sure that GLIBC_INSTALL is set in this shell session. 
+```bash
+[ -n "$GLIBC_INSTALL" ] && gcc \
+  -L "$GLIBC_INSTALL/lib" \
+  -I "$GLIBC_INSTALL/include" \
+  -Wl,--rpath="$GLIBC_INSTALL/lib" \
+  -Wl,--dynamic-linker="$GLIBC_INSTALL/lib/ld-linux-x86-64.so.2" \
+  -o main \
+  main.c
+```
+You can check that everything is fine with `ldd main`. Also by opening the binary in Pwndbg and running `start`, `vmmap` and optionally `libcinfo`.
+
+#### statically compiling with glibc
+
+Not officially supported but it kinda works:
+```bash
+[ -n "$GLIBC_INSTALL" ] && gcc \
+  -L "$GLIBC_INSTALL/lib" \
+  -I "$GLIBC_INSTALL/include" \
+  -Wl,--rpath="$GLIBC_INSTALL/lib" \
+  -Wl,--dynamic-linker="$GLIBC_INSTALL/lib/ld-linux-x86-64.so.2" \
+  -static \
+  -o main \
+  main.c
+```
+
+#### cleaning the compilation
+```bash
+rm -rf build
+```
+
+### musl
+
+Official instructions: https://git.musl-libc.org/cgit/musl/tree/INSTALL .
+
+```bash
+git clone git://git.musl-libc.org/musl
+cd musl
+mkdir -p build/lib
+export MUSL_INSTALL=$(pwd)/build && echo $MUSL_INSTALL
+./configure --enable-debug --prefix=$MUSL_INSTALL --syslibdir=$MUSL_INSTALL/lib
+compiledb make -j $(nproc)
+make install
+```
+The libc and ld are in `$MUSL_INSTALL/lib/`.
+
+#### dynamically compiling with musl
+```bash
+[ -n "$MUSL_INSTALL" ] && $MUSL_INSTALL/bin/musl-gcc \
+  -L $MUSL_INSTALL/lib \
+  -Wl,-rpath=$MUSL_INSTALL/lib \
+  -o main \
+  main.c
+```
+Some older musl versions also require passing `--no-pie`.
+
+#### statically compiling with musl
+```bash
+[ -n "$MUSL_INSTALL" ] && $MUSL_INSTALL/bin/musl-gcc \
+  -L $MUSL_INSTALL/lib \
+  -static \
+  -o main \
+  main.c 
+```
+
+#### cleaning the compilation
+```bash
+make clean
+make distclean
+mv .gitignore ../nya1234
+git clean --force
+mv ../nya1234 .gitignore
+rm -rf build
+```
+
