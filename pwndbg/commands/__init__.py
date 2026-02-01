@@ -233,6 +233,13 @@ class CommandObj:
         ) -> None:
             self.invoke(arguments, is_interactive)
 
+        if self.subcommand_names is not None and len(self.subcommand_names) > 0:
+            # In order to add `help <main> <sub>` support, the main
+            # command needs to be registered as a prefix command in
+            # GDB. Since this causes help info duplication, for now
+            # we simply show a hint to use `--help`
+            self.help_str += f"\nHint: Use `{self.command_name} <subcmd> --help` if you want to see subcommand information"
+
         # Keep a handle to the command and its aliases so we can
         # easily remove them if necessary (not supported with GDB).
         self.handles = [
