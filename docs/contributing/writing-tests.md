@@ -13,21 +13,21 @@ categories, they should go here. We run the same tests under both GDB and LLDB, 
 perform stuff like "set a breakpoint" or "continue execution". They are located in the [`./tests/library/dbg`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/dbg) directory and can be run with `./tests.sh --driver gdb --group dbg` and `./tests.sh -d lldb -g dbg`.
 
 These tests are also run on an aarch64 host in the Pwndbg CI, and most of them should be architecture agnostic. There are also
-gdb tests which you can run by `./tests.sh --driver gdb --group gdb`, located in the [`./tests/library/gdb`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb) folder. These are mostly tests which have simply not yet been ported over to the new `./tests/library/dbg` system. We would
+gdb tests which you can run with `./tests.sh --driver gdb --group gdb`, located in the [`./tests/library/gdb`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/gdb) folder. These are mostly tests which have simply not yet been ported over to the new `./tests/library/dbg` system. We would
 ideally like to reduce the `gdb/` tests to only a minimal set which test truly gdb-only features. If you encounter a function which
 is implemented equivalently in both `gdb/` and `dbg/`, you should remove it from the `gdb/` file, there is no need to run the same
 test twice (duplicates were left during the porting process, to ensure it goes smoothly).
 
 The cross-architecture tests are run using qemu-user emulation. They test architecture-specific logic and
-are located in the [`./tests/library/qemu-user`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-user)
+are located in the [`./tests/library/qemu_user`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_user)
 directory. They can be run with `./tests.sh -d gdb -g cross-arch-user`.
 
 The linux kernel tests are run using qemu-system emulation. They are located in the
-[`./tests/library/qemu_system`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu-system)
+[`./tests/library/qemu_system`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_system)
 directory and run for a variety kernel configurations and architectures.
 
 The unit tests are not run from within a debugger, but rather directly with pytest. They are located
-in the [`./tests/unit_tests/`](https://github.com/pwndbg/pwndbg/tree/dev/tests/unit-tests)
+in the [`./tests/unit_tests/`](https://github.com/pwndbg/pwndbg/tree/dev/tests/unit_tests)
 directory.
 
 Here are the options supported by `./tests.sh` which you can get by running `./tests.sh --help`.
@@ -139,4 +139,4 @@ int main () {
 
 ## QEMU Tests
 
-To test architecture specific features, like disassembly annotations, we use emulate the appropriate architecure with qemu-user and attach to its debug port. These tests are located in [`tests/library/qemu-user/tests`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_user/tests). They are currently `gdb-only` and thus follow the same format as the `gdb/` tests. They require a Python function with a Pytest fixture name as the parameter (it matches based on the name). You call the argument/fixture to start debugging a binary. The `qemu_assembly_run` fixture takes in a Python string of assembly code, compiles it in the appropriate architecture, and runs it - no need to create an external file or edit a Makefile.
+To test architecture specific features, like disassembly annotations, we use emulate the appropriate architecure with qemu-user and attach to its debug port. These tests are located in [`tests/library/qemu_user/tests`](https://github.com/pwndbg/pwndbg/tree/dev/tests/library/qemu_user/tests). They are currently `gdb-only` and thus follow the same format as the `gdb/` tests. They require a Python function with a Pytest fixture name as the parameter (it matches based on the name). You call the argument/fixture to start debugging a binary. The `qemu_assembly_run` fixture takes in a Python string of assembly code, compiles it in the appropriate architecture, and runs it - no need to create an external file or edit a Makefile.
