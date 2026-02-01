@@ -238,7 +238,8 @@ class CommandObj:
             # command needs to be registered as a prefix command in
             # GDB. Since this causes help info duplication, for now
             # we simply show a hint to use `--help`
-            self.help_str += f"\nHint: Use `{self.command_name} <subcmd> --help` if you want to see subcommand information"
+            potential_newline: str = "" if self.aliases else "\n"
+            self.help_str += f"{potential_newline}Hint: Use `{self.command_name} <subcmd> --help` if you want to see subcommand information."
 
         # Keep a handle to the command and its aliases so we can
         # easily remove them if necessary (not supported with GDB).
