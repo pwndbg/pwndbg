@@ -42,20 +42,6 @@ cymbol_editor = pwndbg.config.add_param(
 )
 
 
-def OnlyWhenStructFileExists(func: Callable[[str, Path], Status]) -> Callable[[str], Status]:
-    """
-    Takes a structure name, and if it exists, passes the name with the path to the wrapped function.
-
-    If it doesn't, returns a Status with the error message and the NO_STRUCTURE_FILE error code.
-    """
-
-    @functools.wraps(func)
-    def wrapper(custom_structure_name: str) -> Status:
-        return func(custom_structure_name, pwndbg_custom_structure_path)
-
-    return wrapper
-
-
 def add(name: str, force: bool) -> None:
     struct_path = pwndbg.aglib.structures.get_struct_path(name)
     if struct_path.exists() and not force:
@@ -214,6 +200,7 @@ whichever target architecture you are currently debugging.
 )
 
 subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
+subparsers.required = True
 
 add_parser = subparsers.add_parser(
     "add", help="Add a custom structure", description="Add a custom structure."
