@@ -20,6 +20,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from pathlib import Path
 from typing import TypeVar
 
 from typing_extensions import ParamSpec
@@ -48,7 +49,7 @@ cymbol_editor = pwndbg.config.add_param(
 loaded_symbols: dict[str, str] = {}
 
 # Where generated symbol source files are saved.
-pwndbg_cachedir = pwndbg.lib.tempfile.cachedir("custom-symbols")
+pwndbg_cachedir: Path = pwndbg.lib.tempfile.cachedir("custom-symbols")
 
 
 def create_temp_header_file(content: str) -> str:
@@ -72,10 +73,12 @@ class _OnlyWhenStructFileExists(Protocol):
 def OnlyWhenStructFileExists(func: _OnlyWhenStructFileExists) -> _OnlyWhenStructFileExists:
     @functools.wraps(func)
     def wrapper(custom_structure_name: str, custom_structure_path: str = "") -> T | None:
-        pwndbg_custom_structure_path = (
-            custom_structure_path or os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
-        )
-        if not os.path.exists(pwndbg_custom_structure_path):
+        if custom_structure_path == "":
+            pwndbg_custom_structure_path: Path = pwndbg_cachedir / f"{custom_structure_name}.c"
+        else:
+            pwndbg_custom_structure_path = Path(custom_structure_path)
+
+        if not pwndbg_custom_structure_path.exists():
             print(message.error("No custom structure was found with the given name!"))
             return None
         return func(custom_structure_name, pwndbg_custom_structure_path)
