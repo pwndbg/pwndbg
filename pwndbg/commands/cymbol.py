@@ -20,6 +20,7 @@ import os
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 from typing import TypeVar
 
@@ -66,21 +67,19 @@ def unload_loaded_symbol(custom_structure_name: str) -> None:
         loaded_symbols.pop(custom_structure_name)
 
 
-class _OnlyWhenStructFileExists(Protocol):
-    def __call__(self, custom_structure_name: str, custom_structure_path: str = "") -> T | None: ...
+def OnlyWhenStructFileExists(func: Callable[[str, Path], Status]) -> Callable[[str], Status]:
+    """
+    Takes a structure name, and if it exists, passes the name with the path to the wrapped function.
 
-
-def OnlyWhenStructFileExists(func: _OnlyWhenStructFileExists) -> _OnlyWhenStructFileExists:
+    If it doesn't, returns a Status with the error message and the NO_STRUCTURE_FILE error code.
+    """
     @functools.wraps(func)
-    def wrapper(custom_structure_name: str, custom_structure_path: str = "") -> T | None:
-        if custom_structure_path == "":
-            pwndbg_custom_structure_path: Path = pwndbg_cachedir / f"{custom_structure_name}.c"
-        else:
-            pwndbg_custom_structure_path = Path(custom_structure_path)
+    def wrapper(custom_structure_name: str) -> Status:
+        pwndbg_custom_structure_path: Path = pwndbg_cachedir / f"{custom_structure_name}.c"
 
         if not pwndbg_custom_structure_path.exists():
-            print(message.error("No custom structure was found with the given name!"))
-            return None
+            return Status.fail("No custom structure was found with the given name!")
+
         return func(custom_structure_name, pwndbg_custom_structure_path)
 
     return wrapper
@@ -211,7 +210,7 @@ def edit_custom_structure(custom_structure_name: str, custom_structure_path: str
 
 
 @OnlyWhenStructFileExists
-def remove_custom_structure(custom_structure_name: str, custom_structure_path: str = "") -> None:
+def remove_custom_structure(custom_structure_name: str, custom_structure_path: Path) -> Status:
     unload_loaded_symbol(custom_structure_name)
     os.remove(custom_structure_path)
     print(message.success("Symbols are removed!"))
