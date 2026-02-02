@@ -112,7 +112,7 @@ def test_cymbol_header_file(start_binary):
     # Test adding structures from the header file
     struct_name = "example_t"
 
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, struct_name)
+    pwndbg.commands.cymbol.add_from_header(header_file_path, struct_name)
     # Verify each structure has been loaded correctly
     assert pwndbg.commands.cymbol.loaded_symbols.get(struct_name) is not None
 

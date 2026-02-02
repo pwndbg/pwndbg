@@ -1,11 +1,8 @@
 """
-Add, load, show, edit, or delete symbols for custom structures.
+Add, load, show, edit, or delete custom structures.
 
-For the generation of the symbols g++/gcc is being used under the hood.
-
-In case of remote debugging a binary which is not native to your architecture it
-is advised to configure the 'gcc-config-path' config parameter to your own cross-platform
-gnu gcc compiled toolchain for your target architecture.
+For the compilation of the structures zig is being used under the hood, unless
+`gcc-config-path` is specified.
 
 You are advised to configure the 'cymbol-editor' config parameter to the path of your
 favorite text editor. Otherwise cymbol expands $EDITOR and $VISUAL environment variables
@@ -59,16 +56,16 @@ def OnlyWhenStructFileExists(func: Callable[[str, Path], Status]) -> Callable[[s
     return wrapper
 
 
-def add_custom_structure(custom_structure_name: str, force: bool = False):
-    pwndbg_custom_structure_path = pwndbg_cachedir / f"{custom_structure_name}.c"
-
-    if pwndbg_custom_structure_path.exists() and not force:
+def add(name: str, force: bool) -> None:
+    struct_path = pwndbg.aglib.structures.get_struct_path(name)
+    if struct_path.exists() and not force:
         option = input(
             message.notice(
                 "A custom structure was found with the given name, would you like to overwrite it? [y/N] "
             )
         )
-        if option != "y":
+        if option.lower() != "y":
+            print(message.notice("Aborted by user."))
             return
 
     print(
@@ -80,55 +77,58 @@ def add_custom_structure(custom_structure_name: str, force: bool = False):
         print(message.notice("An empty structure is entered, skipping ..."))
         return
 
-    with open(pwndbg_custom_structure_path, "w") as f:
+    with open(struct_path, "w") as f:
         f.write(custom_structures_source)
+        print(message.success("Saved"), end="")
 
-    # Avoid checking for file existance. Call the decorator wrapper directly.
-    load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
+    err: Status = pwndbg.aglib.structures.load_with_path(name, struct_path)
+    if err.is_success():
+        print(message.success(" and loaded!"))
+    else:
+        print(message.error(" but failed loading."))
+        print(message.error(err.message))
 
 
-def add_structure_from_header(
-    header_file: str, custom_structure_name: str | None = None, force: bool = False
-) -> None:
-    custom_structure_name = (
-        custom_structure_name.strip()
-        if custom_structure_name
-        else os.path.splitext(os.path.basename(header_file))[0]
-    )
+def add_from_header(header_file: str, name: str | None, force: bool, quiet: bool) -> None:
+    if name is None:
+        name = os.path.splitext(os.path.basename(header_file))[0]
+    name = name.strip()
 
-    if not custom_structure_name:
+    if name == "":
         print(message.error("Invalid structure name provided or generated."))
         return
 
-    pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
-
-    if os.path.exists(pwndbg_custom_structure_path):
+    struct_path: Path = pwndbg.aglib.structures.get_struct_path(name)
+    if struct_path.exists():
         if not force:
-            option = input(
-                message.notice(
-                    f"Structure '{custom_structure_name}' already exists. Overwrite? [y/N] "
-                )
-            )
+            option = input(message.notice(f"Structure '{name}' already exists. Overwrite? [y/N] "))
             if option.lower() != "y":
                 print(message.notice("Aborted by user."))
                 return
 
     try:
-        with open(header_file) as src, open(pwndbg_custom_structure_path, "w") as f:
+        with open(header_file) as src, open(struct_path, "w") as f:
             content = src.read().strip()
             if not content:
                 print(message.notice("Header file is empty, skipping..."))
                 return
             f.write(content)
+            if not quiet:
+                print(message.success("Saved"), end="")
     except OSError as e:
         print(message.error(f"Failed to process header file: {e}"))
         return
 
-    load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
+    err: Status = pwndbg.aglib.structures.load_with_path(name, struct_path)
+    if err.is_success():
+        if not quiet:
+            print(message.success(" and loaded!"))
+    else:
+        print(".\n" + err.message)
 
 
 def load(name: str) -> None:
-    struct_path: Path | None = pwndbg.aglib.structures.get_struct_path_if_exist(name)
+    struct_path: Path | None = pwndbg.aglib.structures.get_struct_path_if_exists(name)
     if struct_path is None:
         print(message.error("No custom structure was found with the given name!"))
         return
@@ -137,23 +137,24 @@ def load(name: str) -> None:
     if err.is_failure():
         print(message.error(err.message))
     else:
-        print(message.success(f"Loaded custom symbols! (from {struct_path})"))
+        print(message.success(f"Loaded custom structs! (from {struct_path})"))
 
 
 def edit(name: str) -> None:
-    struct_path: Path | None = pwndbg.aglib.structures.get_struct_path_if_exist(name)
+    struct_path: Path | None = pwndbg.aglib.structures.get_struct_path_if_exists(name)
     if struct_path is None:
         print(message.error("No custom structure was found with the given name!"))
         return
 
-    # Lookup an editor to use for editing the custom structure.
-    editor_preference = os.getenv("EDITOR")
-    if not editor_preference:
-        editor_preference = os.getenv("VISUAL")
-    if not editor_preference:
-        editor_preference = "vi"
-
-    if cymbol_editor != "":
+    if str(cymbol_editor) == "":
+        # Lookup an editor to use for editing the custom structure.
+        editor_preference: str | None = os.getenv("EDITOR")
+        if editor_preference is None:
+            editor_preference = os.getenv("VISUAL")
+        if editor_preference is None:
+            editor_preference = "vi"
+    else:
+        # Use the specified editor.
         editor_preference = str(cymbol_editor)
 
     try:
@@ -166,7 +167,7 @@ def edit(name: str) -> None:
         print(message.error(f"Path to the custom structure: {struct_path}"))
         print(message.error("Please try to manually edit the structure."))
         print(
-            message.error(
+            message.hint(
                 '\nTry to set a path to an editor with:\n\tset "cymbol-editor" /usr/bin/nano'
             )
         )
@@ -180,22 +181,27 @@ def edit(name: str) -> None:
 def remove(name: str) -> None:
     err: Status = pwndbg.aglib.structures.remove(name)
     if err.is_success():
-        print(message.success("Symbols are removed!"))
+        print(message.success("Structs are removed!"))
     else:
         print(message.error(err.message))
 
 
-def show_custom_structure(name: str) -> None:
-    struct_path: Path | None = pwndbg.aglib.structures.get_struct_path_if_exist(name)
+def show(name: str) -> None:
+    struct_path: Path | None = pwndbg.aglib.structures.get_struct_path_if_exists(name)
     if struct_path is None:
         print(message.error("No custom structure was found with the given name!"))
         return
 
     # Call non-caching version of the function
-    highlighted_source = pwndbg.commands.context.get_highlight_source_uncached(
-        str(struct_path)
-    )
+    highlighted_source = pwndbg.commands.context.get_highlight_source_uncached(str(struct_path))
     print("\n".join(highlighted_source))
+
+
+def show_all() -> None:
+    print(message.notice("Available custom structure names:\n"))
+    names: list[str] = pwndbg.aglib.structures.saved_names()
+    for name in names:
+        print(f"  - {name}")
 
 
 parser = argparse.ArgumentParser(
@@ -245,6 +251,9 @@ file_parser = subparsers.add_parser(
 file_parser.add_argument("path", help="Path to header file", type=str)
 file_parser.add_argument("--name", help="Optional structure name", type=str)
 file_parser.add_argument("--force", action="store_true", help="Overwrite if exists")
+file_parser.add_argument(
+    "--quiet", action="store_true", help="Do not output any message on success"
+)
 
 show_all_parser = subparsers.add_parser(
     "show-all", help="Show all stored structures", description="Show all stored structures."
@@ -260,40 +269,30 @@ original type or behave unexpectedly. It’s recommended to use unique struct na
 type conflicts.
 """,
     examples="""
-> cymbol file --force ./structs.h
+> cymbol file --force --quiet ./structs.h
 Having something like this in your folder-local `.gdbinit` can be handy.
 """,
 )
 def cymbol(
-    subcommand: str | None = None,
-    name: str | None = None,
-    path: str | None = None,
-    force=False,
-):
+    subcommand: str,
+    name: str = "",
+    path: str = "",
+    force: bool = False,
+    quiet: bool = False,
+) -> None:
     match subcommand:
         case "add":
-            assert name is not None
-            add_custom_structure(name, force=force)
+            add(name, force)
         case "remove":
-            assert name is not None
             remove(name)
         case "edit":
-            assert name is not None
             edit(name)
         case "load":
-            assert name is not None
             load(name)
         case "file":
-            assert path is not None
-            add_structure_from_header(path, name, force=force)
+            add_from_header(path, name, force, quiet)
         case "show":
             assert name is not None
-            show_custom_structure(name)
+            show(name)
         case "show-all":
-            print(message.notice("Available custom structure names:\n"))
-            for file in os.listdir(pwndbg_cachedir):
-                if file.endswith(".c"):
-                    name = os.path.splitext(file)[0]
-                    print(f"  - {name}")
-        case _:
-            parser.print_help()
+            show_all()

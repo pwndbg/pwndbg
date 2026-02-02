@@ -1,3 +1,10 @@
+"""
+Add, load, show, edit, or delete custom structures.
+
+For the compilation of the structures zig is being used under the hood, unless
+`gcc-config-path` is specified.
+"""
+
 from __future__ import annotations
 
 import os
@@ -38,10 +45,14 @@ def generate_debug_symbols(
     return pwndbg_debug_symbols_output_file, Status()
 
 
-def get_struct_path_if_exist(name: str) -> Path | None:
-    pwndbg_custom_structure_path: Path = pwndbg_cachedir / f"{name}.c"
-    if pwndbg_custom_structure_path.exists():
-        return pwndbg_custom_structure_path
+def get_struct_path(name: str) -> Path:
+    return pwndbg_cachedir / f"{name}.c"
+
+
+def get_struct_path_if_exists(name: str) -> Path | None:
+    path: Path = get_struct_path(name)
+    if path.exists():
+        return path
     return None
 
 
@@ -53,14 +64,14 @@ def create_temp_header_file(content: str) -> str:
 
 
 def unload(name: str) -> None:
-    custom_structure_symbols_file = loaded_structures.get(name)
-    if custom_structure_symbols_file is not None:
-        pwndbg.dbg.selected_inferior().remove_symbol_file(custom_structure_symbols_file)
+    struct_file = loaded_structures.get(name)
+    if struct_file is not None:
+        pwndbg.dbg.selected_inferior().remove_symbol_file(struct_file)
         loaded_structures.pop(name)
 
 
 def remove(name: str) -> Status:
-    struct_path: Path | None = get_struct_path_if_exist(name)
+    struct_path: Path | None = get_struct_path_if_exists(name)
     if struct_path is None:
         return Status.fail("No custom structure was found with the given name!")
 
@@ -83,8 +94,18 @@ def load_with_path(name: str, struct_path: Path) -> Status:
 
 
 def load(name: str) -> Status:
-    struct_path: Path | None = get_struct_path_if_exist(name)
+    struct_path: Path | None = get_struct_path_if_exists(name)
     if struct_path is None:
         return Status.fail("No custom structure was found with the given name!")
 
     return load_with_path(name, struct_path)
+
+
+def saved_names() -> list[str]:
+    res: list[str] = []
+    for file in os.listdir(pwndbg_cachedir):
+        if file.endswith(".c"):
+            # Remove the ".c".
+            name = os.path.splitext(file)[0]
+            res.append(name)
+    return res
