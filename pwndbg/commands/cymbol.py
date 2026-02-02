@@ -32,6 +32,7 @@ import pwndbg.lib.config
 import pwndbg.lib.tempfile
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
+from pwndbg.lib import Status
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -89,7 +90,7 @@ def generate_debug_symbols(
         _, pwndbg_debug_symbols_output_file = tempfile.mkstemp(prefix="custom-", suffix=".dbg")
 
     # -fno-eliminate-unused-debug-types is a handy gcc flag that lets us extract debug symbols from non-used defined structures.
-    gcc_extra_flags = [
+    compiler_extra_flags = [
         custom_structure_path,
         "-c",
         "-g",
@@ -97,7 +98,9 @@ def generate_debug_symbols(
         "-o",
         pwndbg_debug_symbols_output_file,
     ]
-    if not elf.compile_with_flags(gcc_extra_flags):
+    err: Status = elf.compile_with_flags(compiler_extra_flags)
+    if err.is_failure():
+        print(message.error(err.message))
         return None
 
     return pwndbg_debug_symbols_output_file
