@@ -109,10 +109,10 @@ def generate_debug_symbols(
     return pwndbg_debug_symbols_output_file
 
 
-def add_custom_structure(custom_structure_name: str, force=False):
-    pwndbg_custom_structure_path = os.path.join(pwndbg_cachedir, custom_structure_name) + ".c"
+def add_custom_structure(custom_structure_name: str, force: bool = False):
+    pwndbg_custom_structure_path = pwndbg_cachedir /  f"{custom_structure_name}.c"
 
-    if os.path.exists(pwndbg_custom_structure_path) and not force:
+    if pwndbg_custom_structure_path.exists() and not force:
         option = input(
             message.notice(
                 "A custom structure was found with the given name, would you like to overwrite it? [y/N] "
@@ -138,7 +138,7 @@ def add_custom_structure(custom_structure_name: str, force=False):
 
 
 def add_structure_from_header(
-    header_file: str, custom_structure_name: str = None, force: bool = False
+    header_file: str, custom_structure_name: str | None = None, force: bool = False
 ) -> None:
     custom_structure_name = (
         custom_structure_name.strip()
@@ -239,7 +239,12 @@ def show_custom_structure(custom_structure_name: str, custom_structure_path: str
 
 
 parser = argparse.ArgumentParser(
-    description="Manage custom C structures in pwndbg. Supports project-specific auto-loading from .gdbinit."
+    description="""
+Add custom C structures to the debugger.
+
+Unless you specify `gcc-compiler-path`, zig is used under to hood to compile the C files to
+whichever target architecture you are currently debugging.
+"""
 )
 
 subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommands")
@@ -290,26 +295,14 @@ show_all_parser = subparsers.add_parser(
     parser,
     category=CommandCategory.MISC,
     notes="""
-
-The `cymbol` command loads custom C structs and symbols into the debugger using GCC under the hood.
-
- Usage Example:
-    `cymbol file --force ./structs.h`
-
- --force:
-    Use this flag to force symbol reloading, even if symbols with the same name already exist.
-
- Warning:
-    If a loaded structure defines a symbol that already exists, the debugger may prefer the original
-    symbol or behave unexpectedly. It’s recommended to use unique struct names to avoid
-    symbol conflicts.
-
-
- Tip:
-    You can add this command to your `.gdbinit` file for automatic loading:
-        `cymbol file --force ./path/to/structs.h`
-
+If a loaded structure defines a symbol that already exists, the debugger may prefer the
+original type or behave unexpectedly. It’s recommended to use unique struct names to avoid
+type conflicts.
 """,
+examples="""
+> cymbol file --force ./structs.h
+Having something like this in your folder-local `.gdbinit` can be handy.
+"""
 )
 def cymbol(
     subcommand: str = None,
