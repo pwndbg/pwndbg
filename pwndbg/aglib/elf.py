@@ -525,19 +525,19 @@ def compile_with_flags(compiler_flags: list[str]) -> Status:
         try:
             compiler_cmdline = pwndbg.lib.zig.flags(pwndbg.aglib.arch)
         except ValueError as exception:
-            return Status.failure(str(exception))
+            return Status.fail(str(exception))
 
     gcc_cmd: list[str] = compiler_cmdline + compiler_flags
 
     try:
         subprocess.run(gcc_cmd, check=True, text=True)
-        return Status.success()
+        return Status()
     except subprocess.CalledProcessError as exception:
-        return Status.failure(
+        return Status.fail(
             str(exception)
             + f"\nFailed to compile {compiler_flags[0]}. Please fix any compilation errors there may be."
         )
     except Exception as exception:
-        return Status.failure(
+        return Status.fail(
             str(exception) + "\nAn error occurred while generating the debug symbols."
         )
