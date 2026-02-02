@@ -1400,9 +1400,7 @@ theme.add_param("code-prefix", "►", "prefix marker for 'context code' command"
 # All of these are also used for the decompilation context^^
 
 
-@pwndbg.lib.cache.cache_until("objfile")
-def get_highlight_source(filename: str) -> tuple[str, ...]:
-    # Notice that the code is cached
+def get_highlight_source_uncached(filename: str) -> tuple[str, ...]:
     with open(filename, encoding="utf-8", errors="ignore") as f:
         source = f.read()
 
@@ -1412,6 +1410,12 @@ def get_highlight_source(filename: str) -> tuple[str, ...]:
     source_lines = source.split("\n")
     source_lines = tuple(line.rstrip() for line in source_lines)
     return source_lines
+
+
+@pwndbg.lib.cache.cache_until("objfile")
+def get_highlight_source(filename: str) -> tuple[str, ...]:
+    # Notice that the code is cached
+    return get_highlight_source_uncached(filename)
 
 
 def get_filename_and_formatted_source(height: int | None = None) -> tuple[str, list[str], int]:

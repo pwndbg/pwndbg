@@ -19,19 +19,17 @@ import functools
 import os
 import subprocess
 import sys
-import tempfile
 from collections.abc import Callable
 from pathlib import Path
 from typing import TypeVar
 
 from typing_extensions import ParamSpec
-from typing_extensions import Protocol
 
 import pwndbg
-import pwndbg.aglib.elf as elf
+import pwndbg.aglib.structures
 import pwndbg.commands
+import pwndbg.commands.context
 import pwndbg.lib.config
-import pwndbg.lib.tempfile
 from pwndbg.color import message
 from pwndbg.commands import CommandCategory
 from pwndbg.lib import Status
@@ -46,26 +44,6 @@ cymbol_editor = pwndbg.config.add_param(
     param_class=pwndbg.lib.config.PARAM_OPTIONAL_FILENAME,
 )
 
-# Remeber loaded symbols. This would be useful for 'remove-symbol-file'.
-loaded_symbols: dict[str, str] = {}
-
-# Where generated symbol source files are saved.
-pwndbg_cachedir: Path = pwndbg.lib.tempfile.cachedir("custom-symbols")
-
-
-def create_temp_header_file(content: str) -> str:
-    """Create a temporary header file with the given content."""
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".h") as tmp_file:
-        tmp_file.write(content.encode())
-        return tmp_file.name
-
-
-def unload_loaded_symbol(custom_structure_name: str) -> None:
-    custom_structure_symbols_file = loaded_symbols.get(custom_structure_name)
-    if custom_structure_symbols_file is not None:
-        pwndbg.dbg.selected_inferior().remove_symbol_file(custom_structure_symbols_file)
-        loaded_symbols.pop(custom_structure_name)
-
 
 def OnlyWhenStructFileExists(func: Callable[[str, Path], Status]) -> Callable[[str], Status]:
     """
@@ -73,43 +51,16 @@ def OnlyWhenStructFileExists(func: Callable[[str, Path], Status]) -> Callable[[s
 
     If it doesn't, returns a Status with the error message and the NO_STRUCTURE_FILE error code.
     """
+
     @functools.wraps(func)
     def wrapper(custom_structure_name: str) -> Status:
-        pwndbg_custom_structure_path: Path = pwndbg_cachedir / f"{custom_structure_name}.c"
-
-        if not pwndbg_custom_structure_path.exists():
-            return Status.fail("No custom structure was found with the given name!")
-
         return func(custom_structure_name, pwndbg_custom_structure_path)
 
     return wrapper
 
 
-def generate_debug_symbols(
-    custom_structure_path: str, pwndbg_debug_symbols_output_file: str | None = None
-) -> str | None:
-    if not pwndbg_debug_symbols_output_file:
-        _, pwndbg_debug_symbols_output_file = tempfile.mkstemp(prefix="custom-", suffix=".dbg")
-
-    # -fno-eliminate-unused-debug-types is a handy gcc flag that lets us extract debug symbols from non-used defined structures.
-    compiler_extra_flags = [
-        custom_structure_path,
-        "-c",
-        "-g",
-        "-fno-eliminate-unused-debug-types",
-        "-o",
-        pwndbg_debug_symbols_output_file,
-    ]
-    err: Status = elf.compile_with_flags(compiler_extra_flags)
-    if err.is_failure():
-        print(message.error(err.message))
-        return None
-
-    return pwndbg_debug_symbols_output_file
-
-
 def add_custom_structure(custom_structure_name: str, force: bool = False):
-    pwndbg_custom_structure_path = pwndbg_cachedir /  f"{custom_structure_name}.c"
+    pwndbg_custom_structure_path = pwndbg_cachedir / f"{custom_structure_name}.c"
 
     if pwndbg_custom_structure_path.exists() and not force:
         option = input(
@@ -176,8 +127,25 @@ def add_structure_from_header(
     load_custom_structure.__wrapped__(custom_structure_name, pwndbg_custom_structure_path)
 
 
-@OnlyWhenStructFileExists
-def edit_custom_structure(custom_structure_name: str, custom_structure_path: str = "") -> None:
+def load(name: str) -> None:
+    struct_path: Path | None = pwndbg.aglib.structures.get_struct_path_if_exist(name)
+    if struct_path is None:
+        print(message.error("No custom structure was found with the given name!"))
+        return
+
+    err = pwndbg.aglib.structures.load_with_path(name, struct_path)
+    if err.is_failure():
+        print(message.error(err.message))
+    else:
+        print(message.success(f"Loaded custom symbols! (from {struct_path})"))
+
+
+def edit(name: str) -> None:
+    struct_path: Path | None = pwndbg.aglib.structures.get_struct_path_if_exist(name)
+    if struct_path is None:
+        print(message.error("No custom structure was found with the given name!"))
+        return
+
     # Lookup an editor to use for editing the custom structure.
     editor_preference = os.getenv("EDITOR")
     if not editor_preference:
@@ -186,16 +154,16 @@ def edit_custom_structure(custom_structure_name: str, custom_structure_path: str
         editor_preference = "vi"
 
     if cymbol_editor != "":
-        editor_preference = cymbol_editor
+        editor_preference = str(cymbol_editor)
 
     try:
         subprocess.run(
-            [editor_preference, custom_structure_path],
+            [editor_preference, struct_path],
             check=True,
         )
     except Exception:
         print(message.error("An error occurred during opening the source file."))
-        print(message.error(f"Path to the custom structure: {custom_structure_path}"))
+        print(message.error(f"Path to the custom structure: {struct_path}"))
         print(message.error("Please try to manually edit the structure."))
         print(
             message.error(
@@ -206,33 +174,26 @@ def edit_custom_structure(custom_structure_name: str, custom_structure_path: str
 
     input(message.notice("Press enter when finished editing."))
 
-    load_custom_structure(custom_structure_name)
+    load(name)
 
 
-@OnlyWhenStructFileExists
-def remove_custom_structure(custom_structure_name: str, custom_structure_path: Path) -> Status:
-    unload_loaded_symbol(custom_structure_name)
-    os.remove(custom_structure_path)
-    print(message.success("Symbols are removed!"))
+def remove(name: str) -> None:
+    err: Status = pwndbg.aglib.structures.remove(name)
+    if err.is_success():
+        print(message.success("Symbols are removed!"))
+    else:
+        print(message.error(err.message))
 
 
-@OnlyWhenStructFileExists
-def load_custom_structure(custom_structure_name: str, custom_structure_path: str = "") -> None:
-    unload_loaded_symbol(custom_structure_name)
-    pwndbg_debug_symbols_output_file = generate_debug_symbols(custom_structure_path)
-    if not pwndbg_debug_symbols_output_file:
-        return  # generate_debug_symbols prints on failures
-    pwndbg.dbg.selected_inferior().add_symbol_file(pwndbg_debug_symbols_output_file)
-    loaded_symbols[custom_structure_name] = pwndbg_debug_symbols_output_file
-    print(message.success(f"Loaded custom symbols! (from {custom_structure_path})"))
-    os.unlink(pwndbg_debug_symbols_output_file)
+def show_custom_structure(name: str) -> None:
+    struct_path: Path | None = pwndbg.aglib.structures.get_struct_path_if_exist(name)
+    if struct_path is None:
+        print(message.error("No custom structure was found with the given name!"))
+        return
 
-
-@OnlyWhenStructFileExists
-def show_custom_structure(custom_structure_name: str, custom_structure_path: str = "") -> None:
-    # Call non-caching version of the function (thus .__wrapped__)
-    highlighted_source = pwndbg.pwndbg.commands.context.get_highlight_source.__wrapped__(
-        custom_structure_path
+    # Call non-caching version of the function
+    highlighted_source = pwndbg.commands.context.get_highlight_source_uncached(
+        str(struct_path)
     )
     print("\n".join(highlighted_source))
 
@@ -298,29 +259,35 @@ If a loaded structure defines a symbol that already exists, the debugger may pre
 original type or behave unexpectedly. It’s recommended to use unique struct names to avoid
 type conflicts.
 """,
-examples="""
+    examples="""
 > cymbol file --force ./structs.h
 Having something like this in your folder-local `.gdbinit` can be handy.
-"""
+""",
 )
 def cymbol(
-    subcommand: str = None,
-    name: str = None,
-    path: str = None,
+    subcommand: str | None = None,
+    name: str | None = None,
+    path: str | None = None,
     force=False,
 ):
     match subcommand:
         case "add":
+            assert name is not None
             add_custom_structure(name, force=force)
         case "remove":
-            remove_custom_structure(name)
+            assert name is not None
+            remove(name)
         case "edit":
-            edit_custom_structure(name)
+            assert name is not None
+            edit(name)
         case "load":
-            load_custom_structure(name)
+            assert name is not None
+            load(name)
         case "file":
+            assert path is not None
             add_structure_from_header(path, name, force=force)
         case "show":
+            assert name is not None
             show_custom_structure(name)
         case "show-all":
             print(message.notice("Available custom structure names:\n"))
