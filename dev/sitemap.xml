@@ -1221,6 +1221,10 @@
          <lastmod>2026-02-03</lastmod>
     </url>
     <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/structures/</loc>
+         <lastmod>2026-02-03</lastmod>
+    </url>
+    <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/aglib/symbol/</loc>
          <lastmod>2026-02-03</lastmod>
     </url>
@@ -1886,6 +1890,10 @@
     </url>
     <url>
          <loc>https://pwndbg.re/stable/reference/pwndbg/lib/elftypes/</loc>
+         <lastmod>2026-02-03</lastmod>
+    </url>
+    <url>
+         <loc>https://pwndbg.re/stable/reference/pwndbg/lib/err/</loc>
          <lastmod>2026-02-03</lastmod>
     </url>
     <url>
