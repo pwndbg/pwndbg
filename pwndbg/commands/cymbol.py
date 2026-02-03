@@ -81,7 +81,7 @@ def _edit_and_load(name: str, struct_path: Path, preamble: str = "") -> None:
     # Check that the user actually input something.
     with open(struct_path) as f:
         data: str = f.read().strip()
-        if data.strip() == preamble or data == "":
+        if data == preamble.strip() or data == "":
             print(message.warn("Empty file, skipping..."))
             return
 
