@@ -40,6 +40,61 @@ cymbol_editor = pwndbg.config.add_param(
 )
 
 
+def get_editor() -> str:
+    if str(cymbol_editor) == "":
+        # Lookup an editor to use for editing the a structure.
+        editor: str | None = os.getenv("EDITOR")
+        if editor is None:
+            editor = os.getenv("VISUAL")
+        if editor is None:
+            editor = "vi"
+    else:
+        # Use the specified editor.
+        editor = str(cymbol_editor)
+    return editor
+
+
+def run_editor_on_file(filepath: Path) -> bool:
+    try:
+        subprocess.run(
+            [get_editor(), str(filepath)],
+            check=True,
+        )
+    except Exception:
+        print(message.error("An error occurred during opening the source file."))
+        print(message.error(f"Path to the structure: {filepath}"))
+        print(message.error("Please try to manually edit the structure."))
+        print(
+            message.hint(
+                '\nTry to set a path to an editor with:\n\tset "cymbol-editor" /usr/bin/nano'
+            )
+        )
+        return False
+
+    input(message.notice("Press enter when finished."))
+    return True
+
+def _edit_and_load(name: str, struct_path: Path, preamble: str = "") -> None:
+    if not run_editor_on_file(struct_path):
+        return
+
+    # Check that the user actually input something.
+    with open(struct_path) as f:
+        data: str = f.read().strip()
+        if data.strip() == preamble or data == "":
+            print(message.warn("Empty file, skipping..."))
+            return
+
+    print(message.success("Saved"), end="")
+
+    err: Status = pwndbg.aglib.structures.load_with_path(name, struct_path)
+    if err.is_success():
+        print(message.success(" and loaded!"))
+    else:
+        print(message.error(" but failed loading."))
+        print(message.error(err.message))
+
+
 def add(name: str, force: bool) -> None:
     struct_path = pwndbg.aglib.structures.get_struct_path(name)
     if struct_path.exists() and not force:
@@ -52,25 +107,13 @@ def add(name: str, force: bool) -> None:
             print(message.notice("Aborted by user."))
             return
 
-    print(
-        message.notice("Enter your custom structure in a C header style, press Ctrl+D to save:\n")
-    )
-
-    custom_structures_source = sys.stdin.read().strip()
-    if custom_structures_source == "":
-        print(message.notice("An empty structure is entered, skipping ..."))
-        return
+    preamble = "// Enter your structure in a C header style.\n"
+    preamble += f"// Refer to this structure file as '{name}'.\n"
 
     with open(struct_path, "w") as f:
-        f.write(custom_structures_source)
-        print(message.success("Saved"), end="")
+        f.write(preamble)
 
-    err: Status = pwndbg.aglib.structures.load_with_path(name, struct_path)
-    if err.is_success():
-        print(message.success(" and loaded!"))
-    else:
-        print(message.error(" but failed loading."))
-        print(message.error(err.message))
+    _edit_and_load(name, struct_path, preamble)
 
 
 def add_from_header(header_file: str, name: str | None, force: bool, quiet: bool) -> None:
@@ -130,36 +173,7 @@ def edit(name: str) -> None:
         print(message.error("No custom structure was found with the given name!"))
         return
 
-    if str(cymbol_editor) == "":
-        # Lookup an editor to use for editing the custom structure.
-        editor_preference: str | None = os.getenv("EDITOR")
-        if editor_preference is None:
-            editor_preference = os.getenv("VISUAL")
-        if editor_preference is None:
-            editor_preference = "vi"
-    else:
-        # Use the specified editor.
-        editor_preference = str(cymbol_editor)
-
-    try:
-        subprocess.run(
-            [editor_preference, struct_path],
-            check=True,
-        )
-    except Exception:
-        print(message.error("An error occurred during opening the source file."))
-        print(message.error(f"Path to the custom structure: {struct_path}"))
-        print(message.error("Please try to manually edit the structure."))
-        print(
-            message.hint(
-                '\nTry to set a path to an editor with:\n\tset "cymbol-editor" /usr/bin/nano'
-            )
-        )
-        return
-
-    input(message.notice("Press enter when finished editing."))
-
-    load(name)
+    _edit_and_load(name, struct_path)
 
 
 def remove(name: str) -> None:
