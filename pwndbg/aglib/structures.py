@@ -79,10 +79,9 @@ def unload(name: str) -> None:
     """
     Unload structures from the debugger by set name.
     """
-    struct_file = loaded_structures.get(name)
+    struct_file: str | None = loaded_structures.pop(name, None)
     if struct_file is not None:
         pwndbg.dbg.selected_inferior().remove_symbol_file(struct_file)
-        loaded_structures.pop(name)
 
 
 def remove(name: str) -> Status:
