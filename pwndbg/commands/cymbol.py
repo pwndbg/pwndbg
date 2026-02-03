@@ -199,7 +199,12 @@ def show_all() -> None:
     print(message.notice("Available custom structure names:\n"))
     names: list[str] = pwndbg.aglib.structures.saved_names()
     for name in names:
-        print(f"  - {name}")
+        if not name.startswith("_internal_"):
+            print(f"  - {name}")
+    for name in names:
+        if name.startswith("_internal_"):
+            print(f"  - {name}")
+
 
 
 parser = argparse.ArgumentParser(
