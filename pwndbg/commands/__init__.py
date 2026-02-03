@@ -522,7 +522,8 @@ class CommandObj:
             else:
                 print()
         except TypeNotRecovered as e:
-            print(message.warn(f"recovering {e.name} failed with error:\n{e}"))
+            print(message.error(f"recovering {e.name} failed with error:"))
+            print(e)
             if "CONFIG_RANDSTRUCT" in pwndbg.aglib.kernel.kconfig():
                 print(
                     message.warn(

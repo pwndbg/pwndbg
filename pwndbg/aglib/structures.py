@@ -146,8 +146,9 @@ def create_temp_header_file(content: str) -> Path:
     """
     Creates a temporary file with content `content` and returns the Path to it.
     """
-    """Create a temporary header file with the given content."""
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".h") as tmp_file:
+    # We need to use `.c` rather than `.h` because `.h` causes zig/ld.lld to fail compilation:
+    # "ld.lld: error: /home/user/.cache/zig/o/81a692b354ebabc64d08698dff966d67/page_structs.o: unknown file type"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".c") as tmp_file:
         tmp_file.write(content.encode())
         return Path(tmp_file.name)
 

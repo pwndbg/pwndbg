@@ -530,14 +530,17 @@ def compile_with_flags(compiler_flags: list[str]) -> Status:
     gcc_cmd: list[str] = compiler_cmdline + compiler_flags
 
     try:
-        subprocess.run(gcc_cmd, check=True, text=True)
+        # capture_output=True makes it so the compilation errors are not instantly
+        # dumped to the user, but are in the CalledProcessError object.
+        # https://docs.python.org/3/library/subprocess.html#subprocess.run:~:text=stdout%20and%20stderr%20if%20they%20were%20captured
+        subprocess.run(gcc_cmd, check=True, text=True, capture_output=True)
         return Status()
     except subprocess.CalledProcessError as exception:
         return Status.fail(
             str(exception)
+            + f"\nStdout: {exception.stdout}"
+            + f"\nStderr: {exception.stderr}"
             + f"\nFailed to compile {compiler_flags[0]}. Please fix any compilation errors there may be."
         )
     except Exception as exception:
-        return Status.fail(
-            str(exception) + "\nAn error occurred while generating the debug symbols."
-        )
+        return Status.fail(str(exception) + "\nAn error occurred while compiling.")

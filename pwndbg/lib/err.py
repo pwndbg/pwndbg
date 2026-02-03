@@ -3,6 +3,7 @@ The error handling logic.
 
 Contains error and exception definitions.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -28,6 +29,7 @@ class Status:
     """
     An error handling object.
     """
+
     # Inspired by the LLVM Status object:
     # https://github.com/llvm/llvm-project/blob/5a4754d2ced8792be2c21eedfde1ed826f7ef64a/lldb/include/lldb/Utility/Status.h#L118
 
@@ -74,6 +76,13 @@ class TypeNotRecovered(Exception):
     We tried to recover (i.e. look up in the debugger and craft ourselves) the
     type `name` but failed because of `msg`.
     """
+
     def __init__(self, name: str, msg: str) -> None:
         self.name = name
         super().__init__(msg)
+
+
+class TypeNotFound(Exception):
+    """
+    The type is not in the debugger.
+    """
