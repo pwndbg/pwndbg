@@ -206,7 +206,6 @@ def show_all() -> None:
             print(f"  - {name}")
 
 
-
 parser = argparse.ArgumentParser(
     description="""
 Add custom C structures to the debugger.
