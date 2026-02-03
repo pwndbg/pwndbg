@@ -1,3 +1,8 @@
+"""
+The error handling logic.
+
+Contains error and exception definitions.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -62,3 +67,13 @@ class Status:
     def coded_fail(code: ErrorCode, message: str = "") -> Status:
         """Create a Status object that represents a failure."""
         return Status(code, message)
+
+
+class TypeNotRecovered(Exception):
+    """
+    We tried to recover (i.e. look up in the debugger and craft ourselves) the
+    type `name` but failed because of `msg`.
+    """
+    def __init__(self, name: str, msg: str) -> None:
+        self.name = name
+        super().__init__(msg)

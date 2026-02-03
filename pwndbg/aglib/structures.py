@@ -56,13 +56,6 @@ def get_struct_path_if_exists(name: str) -> Path | None:
     return None
 
 
-def create_temp_header_file(content: str) -> str:
-    """Create a temporary header file with the given content."""
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".h") as tmp_file:
-        tmp_file.write(content.encode())
-        return tmp_file.name
-
-
 def unload(name: str) -> None:
     struct_file = loaded_structures.get(name)
     if struct_file is not None:
@@ -109,3 +102,18 @@ def saved_names() -> list[str]:
             name = os.path.splitext(file)[0]
             res.append(name)
     return res
+
+
+def create_temp_header_file(content: str) -> Path:
+    """Create a temporary header file with the given content."""
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".h") as tmp_file:
+        tmp_file.write(content.encode())
+        return Path(tmp_file.name)
+
+
+def add(name: str, content: str, unlink_now: bool) -> Status:
+    struct_path = create_temp_header_file(content)
+    err = load_with_path(name, struct_path)
+    if unlink_now:
+        os.unlink(struct_path)
+    return err

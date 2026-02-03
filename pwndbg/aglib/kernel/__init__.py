@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import functools
-import os
 import re
 from abc import ABC
 from abc import abstractmethod
@@ -18,6 +17,7 @@ import pwndbg.aglib.kernel.paging
 import pwndbg.aglib.kernel.vmmap
 import pwndbg.aglib.memory
 import pwndbg.aglib.proc
+import pwndbg.aglib.structures
 import pwndbg.aglib.symbol
 import pwndbg.aglib.typeinfo
 import pwndbg.dbg_mod
@@ -27,6 +27,8 @@ import pwndbg.lib.memory
 import pwndbg.search
 from pwndbg.aglib.kernel.paging import ArchPagingInfo
 from pwndbg.aglib.kernel.paging import PagewalkResult
+from pwndbg.lib import Status
+from pwndbg.lib import TypeNotRecovered
 from pwndbg.lib.regs import BitFlags
 
 _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
@@ -34,12 +36,6 @@ _kconfig: pwndbg.aglib.kernel.kconfig_mod.Kconfig | None = None
 P = ParamSpec("P")
 D = TypeVar("D")
 T = TypeVar("T")
-
-
-class TypeNotRecovered(Exception):
-    def __init__(self, name: str, msg: str) -> None:
-        self.name = name
-        super().__init__(msg)
 
 
 def BIT(shift: int):
@@ -124,15 +120,12 @@ def typeinfo_recovery(
                 raise TypeNotRecovered(name, "kernel version is unavailable")
             if requires_kbase and kbase() is None:
                 raise TypeNotRecovered(name, "kernel base not found")
-            # f(*args, **kwargs)
-            try:
-                result = f(*args, **kwargs)
-                header_file_path = pwndbg.commands.cymbol.create_temp_header_file(result)
-                fname = name.split()[-1] + "_structs"
-                pwndbg.commands.cymbol.add_structure_from_header(header_file_path, fname, True)
-                os.unlink(header_file_path)
-            except Exception as e:
-                raise TypeNotRecovered(name, str(e))
+
+            result = f(*args, **kwargs)
+            fname = name.split()[-1] + "_structs"
+            err: Status = pwndbg.aglib.structures.add(fname, result, True)
+            if err.is_failure():
+                raise TypeNotRecovered(name, err.message)
             return
 
         return func

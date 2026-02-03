@@ -12,11 +12,9 @@ to find the path to the default text editor.
 from __future__ import annotations
 
 import argparse
-import functools
 import os
 import subprocess
 import sys
-from collections.abc import Callable
 from pathlib import Path
 from typing import TypeVar
 
