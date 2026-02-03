@@ -19,13 +19,11 @@ from pwndbg.lib import Status
 # Remeber loaded structures. This would be useful for 'remove-symbol-file'.
 loaded_structures: dict[str, str] = {}
 
-# Where generated symbol source files are saved.
-pwndbg_cachedir: Path = pwndbg.lib.tempfile.cachedir("custom-structures")
+# Where generated structure source files are saved.
+storage_location: Path = pwndbg.lib.tempfile.cachedir("custom-structures")
 
 
-def compile_structure(
-    struct_path: Path, compiled_path: str | None = None
-) -> tuple[str, Status]:
+def compile_structure(struct_path: Path, compiled_path: str | None = None) -> tuple[str, Status]:
     """
     Compile a C file that contains custom struct definitions.
 
@@ -43,7 +41,7 @@ def compile_structure(
     if compiled_path is None:
         _, compiled_path = tempfile.mkstemp(prefix="custom-", suffix=".dbg")
 
-    # -fno-eliminate-unused-debug-types is a handy gcc flag that lets us extract debug symbols from non-used defined structures.
+    # -fno-eliminate-unused-debug-types is a handy gcc flag that lets us extract debug info from non-used defined structures.
     compiler_extra_flags = [
         str(struct_path),
         "-c",
@@ -63,7 +61,7 @@ def get_struct_path(name: str) -> Path:
     """
     Get a Path for a name (usually in ~/.cache/pwndbg/custom-structures/).
     """
-    return pwndbg_cachedir / f"{name}.c"
+    return storage_location / f"{name}.c"
 
 
 def get_struct_path_if_exists(name: str) -> Path | None:
@@ -108,13 +106,13 @@ def load_with_path(name: str, struct_path: Path) -> Status:
     """
     unload(name)
 
-    pwndbg_debug_symbols_output_file, err = compile_structure(struct_path)
+    outfile, err = compile_structure(struct_path)
     if err.is_failure():
         return err
 
-    pwndbg.dbg.selected_inferior().add_symbol_file(pwndbg_debug_symbols_output_file)
-    loaded_structures[name] = pwndbg_debug_symbols_output_file
-    os.unlink(pwndbg_debug_symbols_output_file)
+    pwndbg.dbg.selected_inferior().add_symbol_file(outfile)
+    loaded_structures[name] = outfile
+    os.unlink(outfile)
     return Status()
 
 
@@ -136,7 +134,7 @@ def saved_names() -> list[str]:
     Returns all set names.
     """
     res: list[str] = []
-    for file in os.listdir(pwndbg_cachedir):
+    for file in os.listdir(storage_location):
         if file.endswith(".c"):
             # Remove the ".c".
             name = os.path.splitext(file)[0]

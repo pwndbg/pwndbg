@@ -201,7 +201,9 @@ subparsers = parser.add_subparsers(dest="subcommand", help="Available subcommand
 subparsers.required = True
 
 add_parser = subparsers.add_parser(
-    "add", help="Add a custom structure", description="Add a custom structure."
+    "add",
+    help="Add a custom structure and load it into the debugger",
+    description="Add a custom structure and load it into the debugger.",
 )
 add_parser.add_argument("name", help="Name of custom structure", type=str)
 add_parser.add_argument(
@@ -209,29 +211,35 @@ add_parser.add_argument(
 )
 
 remove_parser = subparsers.add_parser(
-    "remove", help="Remove a custom structure", description="Remove a custom structure."
+    "remove",
+    help="Remove a custom structure and unload it from the debugger",
+    description="Remove a custom structure and unload it from the debugger.",
 )
 remove_parser.add_argument("name", help="Name of custom structure", type=str)
 
 edit_parser = subparsers.add_parser(
-    "edit", help="Edit a custom structure", description="Edit a custom structure."
+    "edit",
+    help="Edit a custom structure and reload it",
+    description="Edit a custom structure and reload it.",
 )
 edit_parser.add_argument("name", help="Name of custom structure", type=str)
 
 load_parser = subparsers.add_parser(
-    "load", help="Load a custom structure", description="Load a custom structure."
+    "load",
+    help="Load a previously added structure into the debugger",
+    description="Load a previously added custom structure into the debugger.",
 )
 load_parser.add_argument("name", help="Name of custom structure", type=str)
 
 show_parser = subparsers.add_parser(
-    "show", help="Show a custom structure", description="Show a custom structure."
+    "show", help="Show a structure's definition", description="Show a structure's definition."
 )
 show_parser.add_argument("name", help="Name of custom structure", type=str)
 
 file_parser = subparsers.add_parser(
     "file",
-    help="Add a structure from a header file",
-    description="Add a structure from a header file.",
+    help="Add and load a structure from a header file",
+    description="Add and load a structure from a header file.",
 )
 file_parser.add_argument("path", help="Path to header file", type=str)
 file_parser.add_argument("--name", help="Optional structure name", type=str)
@@ -241,17 +249,21 @@ file_parser.add_argument(
 )
 
 show_all_parser = subparsers.add_parser(
-    "show-all", help="Show all stored structures", description="Show all stored structures."
+    "show-all",
+    help="Show the names of all stored structures",
+    description="Show the names of all stored (i.e. previusly added) structures.",
 )
 
 
 @pwndbg.commands.Command(
     parser,
     category=CommandCategory.MISC,
-    notes="""
-If a loaded structure defines a symbol that already exists, the debugger may prefer the
+    notes=f"""
+If a loaded structure defines a type that already exists, the debugger may prefer the
 original type or behave unexpectedly. It’s recommended to use unique struct names to avoid
 type conflicts.
+
+Added structures are saved in {pwndbg.aglib.structures.storage_location}/.
 """,
     examples="""
 > cymbol file --force --quiet ./structs.h

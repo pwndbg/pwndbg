@@ -8,7 +8,6 @@ import gdb
 import pwndbg
 import pwndbg.aglib.dt
 import pwndbg.aglib.structures
-import pwndbg.commands.cymbol
 
 from . import get_binary
 
@@ -104,7 +103,7 @@ def test_cymbol_header_file(start_binary) -> None:
     """
 
     # Create a temporary header file
-    header_file_path: str = pwndbg.aglib.structures.create_temp_header_file(header_content)
+    header_file_path: Path = pwndbg.aglib.structures.create_temp_header_file(header_content)
 
     # Test adding structures from the header file
     struct_name: str = "example_t"
