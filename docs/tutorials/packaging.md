@@ -15,7 +15,7 @@ As of version 2025.10.10, you don't need to worry about those problems anymore. 
 
 ## Using system GDB and LLDB
 
-We package our own builds of [GDB](https://pypi.org/project/gdb-for-pwndbg/) and [LLDB](https://pypi.org/project/lldb-for-pwndbg/) as python packages. When you use our installer script to install Pwndbg, you will be using these builds. This ensures you have the newest versions of the debuggers, which is important for distibutions like Ubuntu and Debian which can be quite behind. You also enjoy our patches for those debuggers which guarantee better integration with Pwndbg.
+We package our own builds of [GDB](https://pypi.org/project/gdb-for-pwndbg/) and [LLDB](https://pypi.org/project/lldb-for-pwndbg/) as python packages. When you use our installer script to install Pwndbg, you will be using these builds. This ensures you have the newest versions of the debuggers, which is important for distributions like Ubuntu and Debian which can be quite behind. You also enjoy our patches for those debuggers which guarantee better integration with Pwndbg.
 
 Nevertheless, we will continue to support users using their own system GDB and LLDB indefinitely. As long as they are above the supported version threshold, which is currently >= 12.1 for GDB and >= 19 for LLDB. The reasons for that are:
 
