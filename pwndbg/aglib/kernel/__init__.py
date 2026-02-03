@@ -140,7 +140,7 @@ def typeinfo_recovery(
                 raise TypeNotRecovered(name, str(e))
 
             fname = name.split()[-1] + "_structs"
-            err: Status = pwndbg.aglib.structures.add(fname, result, True)
+            err: Status = pwndbg.aglib.structures.add(fname, result)
             if err.is_failure():
                 raise TypeNotRecovered(name, err.message)
             return

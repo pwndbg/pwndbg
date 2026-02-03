@@ -153,16 +153,18 @@ def create_temp_header_file(content: str) -> Path:
         return Path(tmp_file.name)
 
 
-def add(name: str, content: str, unlink_now: bool) -> Status:
+def add(name: str, content: str) -> Status:
     """
     Add structures defined in `content` (C code) by reference structure set name `name` and load
     them into the debugger.
 
-    If `unlink_now` is True, the backing file will be removed and the structures will
-    stay loaded in the debugger until exit.
+    If a `name` structure set file already exists, it will be overwritten.
+
+    The name will be prefixed with `_internal_` to separate from user-defined structures.
     """
-    struct_path = create_temp_header_file(content)
+    struct_path: Path = get_struct_path("_internal_" + name)
+    # We don't care if it existed before.
+    with open(struct_path, "w") as f:
+        f.write(content)
     err = load_with_path(name, struct_path)
-    if unlink_now:
-        os.unlink(struct_path)
     return err
