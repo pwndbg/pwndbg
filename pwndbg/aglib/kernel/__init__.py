@@ -138,6 +138,10 @@ def typeinfo_recovery(
                 if page_typeinfo_recovery_failure is not None:
                     raise page_typeinfo_recovery_failure
                 raise TypeNotRecovered(name, str(e))
+            except AssertionError as e:
+                # FIXME: Some type recovery functions `assert` under the assumption that the assert
+                # will be caught here.
+                raise TypeNotRecovered(name, str(e))
 
             fname = name.split()[-1] + "_structs"
             err: Status = pwndbg.aglib.structures.add(fname, result)
