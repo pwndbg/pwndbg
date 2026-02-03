@@ -49,7 +49,7 @@ def test_cymbol(start_binary) -> None:
     assert pwndbg.aglib.structures.get_struct_path_if_exists("example") is not None
 
     # Test whether generate_debug_symbols() works properly.
-    assert pwndbg.aglib.structures.generate_debug_symbols(example_struct)[1].is_success()
+    assert pwndbg.aglib.structures.compile_structure(example_struct)[1].is_success()
 
     # Test whether load_custom_structure() works properly
     gdb.execute("cymbol load example")

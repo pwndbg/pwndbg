@@ -20,36 +20,57 @@ from pwndbg.lib import Status
 loaded_structures: dict[str, str] = {}
 
 # Where generated symbol source files are saved.
-pwndbg_cachedir: Path = pwndbg.lib.tempfile.cachedir("custom-symbols")
+pwndbg_cachedir: Path = pwndbg.lib.tempfile.cachedir("custom-structures")
 
 
-def generate_debug_symbols(
-    custom_structure_path: Path, pwndbg_debug_symbols_output_file: str | None = None
+def compile_structure(
+    struct_path: Path, compiled_path: str | None = None
 ) -> tuple[str, Status]:
-    if not pwndbg_debug_symbols_output_file:
-        _, pwndbg_debug_symbols_output_file = tempfile.mkstemp(prefix="custom-", suffix=".dbg")
+    """
+    Compile a C file that contains custom struct definitions.
+
+    Zig is being used unless `gcc-config-path` is specified. Naturally
+    the compiled output file will have debug info.
+
+    Arguments:
+        struct_path: Path to the .c / .h file to compile.
+        compiled_path: The path of the output file. If not specified, it will be
+            an automatically generated filename in /tmp/.
+
+    Returns:
+        A (compiled_path, err) tuple.
+    """
+    if compiled_path is None:
+        _, compiled_path = tempfile.mkstemp(prefix="custom-", suffix=".dbg")
 
     # -fno-eliminate-unused-debug-types is a handy gcc flag that lets us extract debug symbols from non-used defined structures.
     compiler_extra_flags = [
-        str(custom_structure_path),
+        str(struct_path),
         "-c",
         "-g",
         "-fno-eliminate-unused-debug-types",
         "-o",
-        pwndbg_debug_symbols_output_file,
+        compiled_path,
     ]
     err: Status = elf.compile_with_flags(compiler_extra_flags)
     if err.is_failure():
         return "", err
 
-    return pwndbg_debug_symbols_output_file, Status()
+    return compiled_path, Status()
 
 
 def get_struct_path(name: str) -> Path:
+    """
+    Get a Path for a name (usually in ~/.cache/pwndbg/custom-structures/).
+    """
     return pwndbg_cachedir / f"{name}.c"
 
 
 def get_struct_path_if_exists(name: str) -> Path | None:
+    """
+    Get a Path for a name (usually in ~/.cache/pwndbg/custom-structures/) if the
+    file exists, otherwise return None.
+    """
     path: Path = get_struct_path(name)
     if path.exists():
         return path
@@ -57,6 +78,9 @@ def get_struct_path_if_exists(name: str) -> Path | None:
 
 
 def unload(name: str) -> None:
+    """
+    Unload structures from the debugger by set name.
+    """
     struct_file = loaded_structures.get(name)
     if struct_file is not None:
         pwndbg.dbg.selected_inferior().remove_symbol_file(struct_file)
@@ -64,6 +88,9 @@ def unload(name: str) -> None:
 
 
 def remove(name: str) -> Status:
+    """
+    Unload structures from the debugger and delete the backing file by set name.
+    """
     struct_path: Path | None = get_struct_path_if_exists(name)
     if struct_path is None:
         return Status.fail("No custom structure was found with the given name!")
@@ -74,9 +101,14 @@ def remove(name: str) -> Status:
 
 
 def load_with_path(name: str, struct_path: Path) -> Status:
+    """
+    Load structures from set name `name`, located at `struct_path` into the debbuger.
+
+    Requires the set to have already been added.
+    """
     unload(name)
 
-    pwndbg_debug_symbols_output_file, err = generate_debug_symbols(struct_path)
+    pwndbg_debug_symbols_output_file, err = compile_structure(struct_path)
     if err.is_failure():
         return err
 
@@ -87,6 +119,11 @@ def load_with_path(name: str, struct_path: Path) -> Status:
 
 
 def load(name: str) -> Status:
+    """
+    Load structures from set name `name`.
+
+    Requires the set to have already been added.
+    """
     struct_path: Path | None = get_struct_path_if_exists(name)
     if struct_path is None:
         return Status.fail("No custom structure was found with the given name!")
@@ -95,6 +132,9 @@ def load(name: str) -> Status:
 
 
 def saved_names() -> list[str]:
+    """
+    Returns all set names.
+    """
     res: list[str] = []
     for file in os.listdir(pwndbg_cachedir):
         if file.endswith(".c"):
@@ -105,6 +145,9 @@ def saved_names() -> list[str]:
 
 
 def create_temp_header_file(content: str) -> Path:
+    """
+    Creates a temporary file with content `content` and returns the Path to it.
+    """
     """Create a temporary header file with the given content."""
     with tempfile.NamedTemporaryFile(delete=False, suffix=".h") as tmp_file:
         tmp_file.write(content.encode())
@@ -112,6 +155,13 @@ def create_temp_header_file(content: str) -> Path:
 
 
 def add(name: str, content: str, unlink_now: bool) -> Status:
+    """
+    Add structures defined in `content` (C code) by reference structure set name `name` and load
+    them into the debugger.
+
+    If `unlink_now` is True, the backing file will be removed and the structures will
+    stay loaded in the debugger until exit.
+    """
     struct_path = create_temp_header_file(content)
     err = load_with_path(name, struct_path)
     if unlink_now:
