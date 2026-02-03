@@ -14,7 +14,6 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
-import sys
 from pathlib import Path
 from typing import TypeVar
 
@@ -73,6 +72,7 @@ def run_editor_on_file(filepath: Path) -> bool:
 
     input(message.notice("Press enter when finished."))
     return True
+
 
 def _edit_and_load(name: str, struct_path: Path, preamble: str = "") -> None:
     if not run_editor_on_file(struct_path):
