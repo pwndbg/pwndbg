@@ -61,22 +61,49 @@ jobs:
         run: |
           docker buildx build \
             --load \
-            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.image }} \
-            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0},mode=max', matrix.image) || '' }} \
+            --cache-from type=registry,ref=ghcr.io/pwndbg/cache:${{ matrix.image }}-amd64 \
+            ${{ github.event_name == 'push' && format('--cache-to type=registry,ref=ghcr.io/pwndbg/cache:{0}-amd64,mode=max', matrix.image) || '' }} \
             -f ${{ matrix.dockerfile }} \
             --build-arg image=${{ matrix.base }} \
             -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-amd64 \
             -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }} \
             .
-      
-      - name: Run GDB Tests on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g gdb
-      
-      - name: Run DBG Tests on GDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g dbg
-      
-      - name: Run DBG Tests on LLDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d lldb -g dbg
+
+      - name: Run Tests (GDB, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
+        run: |
+          docker compose run -T --rm ${{ matrix.image }} bash -c '
+            set -euo pipefail
+            # Needed to prevent race conditions - prebuild binaries and create libpython symlink
+            make -C /pwndbg/tests/binaries/host -j4 all
+            gdb --batch
+
+            set +e
+            echo "Running generic tests on gdb, generic tests on lldb, and gdb-only tests on gdb at the same time. This should take ~6-9 minutes, results outputted at the end..."
+            ./tests.sh -d gdb -g gdb > /tmp/gdb.log 2>&1 & gdb_pid=$!
+            ./tests.sh -d gdb -g dbg > /tmp/dbg-gdb.log 2>&1 & dbg_gdb_pid=$!
+            ./tests.sh -d lldb -g dbg > /tmp/dbg-lldb.log 2>&1 & dbg_lldb_pid=$!
+            wait $gdb_pid; gdb_exit=$?
+            wait $dbg_gdb_pid; dbg_gdb_exit=$?
+            wait $dbg_lldb_pid; dbg_lldb_exit=$?
+            set -e
+
+            sed "s/^/[GDB] /" /tmp/gdb.log
+            sed "s/^/[DBG-GDB] /" /tmp/dbg-gdb.log
+            sed "s/^/[DBG-LLDB] /" /tmp/dbg-lldb.log
+
+            echo ""
+            echo "========================================"
+            echo "       COMBINED TEST SUMMARY"
+            echo "========================================"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/gdb.log | sed "s/^/[GDB] /"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/dbg-gdb.log | sed "s/^/[DBG-GDB] /"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/dbg-lldb.log | sed "s/^/[DBG-LLDB] /"
+
+            exit $((gdb_exit | dbg_gdb_exit | dbg_lldb_exit))
+          '
 
       - name: Push full image to registry
         if: github.event_name == 'push'
@@ -120,15 +147,41 @@ jobs:
             -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }}-arm64 \
             -t ghcr.io/pwndbg/pwndbg:${{ matrix.image }} \
             .
-      
-      - name: Run Cross Tests on GDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g cross-arch-user
-      
-      - name: Run DBG Tests on GDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d gdb -g dbg
-      
-      - name: Run DBG Tests on LLDB on ${{ matrix.image }}
-        run: docker compose run ${{ matrix.image }} ./tests.sh -d lldb -g dbg
+
+      - name: Run Tests (Cross, DBG-GDB, DBG-LLDB in parallel) on ${{ matrix.image }}
+        run: |
+          docker compose run -T --rm ${{ matrix.image }} bash -c '
+            set -euo pipefail
+            # Needed to prevent race conditions - prebuild binaries
+            make -C /pwndbg/tests/binaries/host -j4 all
+
+            set +e
+            echo "Running generic tests on gdb, generic tests on lldb, and cross-arch tests at the same time. This should take ~6-9 minutes, results outputted at the end..."
+            ./tests.sh -d gdb -g cross-arch-user > /tmp/cross.log 2>&1 & cross_pid=$!
+            ./tests.sh -d gdb -g dbg > /tmp/dbg-gdb.log 2>&1 & dbg_gdb_pid=$!
+            ./tests.sh -d lldb -g dbg > /tmp/dbg-lldb.log 2>&1 & dbg_lldb_pid=$!
+            wait $cross_pid; cross_exit=$?
+            wait $dbg_gdb_pid; dbg_gdb_exit=$?
+            wait $dbg_lldb_pid; dbg_lldb_exit=$?
+            set -e
+
+            sed "s/^/[CROSS] /" /tmp/cross.log
+            sed "s/^/[DBG-GDB] /" /tmp/dbg-gdb.log
+            sed "s/^/[DBG-LLDB] /" /tmp/dbg-lldb.log
+
+            echo ""
+            echo "========================================"
+            echo "       COMBINED TEST SUMMARY"
+            echo "========================================"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/cross.log | sed "s/^/[CROSS] /"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/dbg-gdb.log | sed "s/^/[DBG-GDB] /"
+            echo ""
+            sed -n "/^\*\*\*/,\$p" /tmp/dbg-lldb.log | sed "s/^/[DBG-LLDB] /"
+
+            exit $((cross_exit | dbg_gdb_exit | dbg_lldb_exit))
+          '
 
       - name: Push full image to registry
         if: github.event_name == 'push'

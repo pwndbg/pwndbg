@@ -425,6 +425,7 @@ def run(
                                     action._command, output, dbg, driver, relay
                                 )
                                 last_result = output.buffer.getvalue()
+                                print(last_result.decode("utf-8", errors="surrogateescape"))
                         else:
                             should_continue = exec_repl_command(
                                 action._command, sys.stdout, dbg, driver, relay

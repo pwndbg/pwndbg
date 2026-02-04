@@ -41,7 +41,7 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
       - name: configure cache
         if: github.ref == 'refs/heads/dev'
-        uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+        uses: cachix/cachix-action@3ba601ff5bbb07c7220846facfa2cd81eeee15a1 # v16
         with:
           name: pwndbg
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
@@ -76,7 +76,7 @@ jobs:
           nix_path: nixpkgs=channel:nixos-unstable
       - name: configure cache
         if: github.ref == 'refs/heads/dev'
-        uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+        uses: cachix/cachix-action@3ba601ff5bbb07c7220846facfa2cd81eeee15a1 # v16
         with:
           name: pwndbg
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"

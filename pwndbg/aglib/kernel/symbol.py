@@ -8,12 +8,11 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.memory
 import pwndbg.aglib.qemu
 import pwndbg.aglib.symbol
-import pwndbg.aglib.typeinfo
-import pwndbg.commands
 import pwndbg.dbg_mod
 import pwndbg.lib.cache
 from pwndbg.aglib.disasm.instruction import PwndbgInstruction
 from pwndbg.dbg_mod import EventType
+from pwndbg.lib import TypeNotRecovered
 
 #########################################
 # helpers
@@ -278,8 +277,13 @@ def load_common_structs_on_load_linux() -> None:
     if pwndbg.aglib.qemu.is_qemu_kernel() and pwndbg.dbg.selected_inferior().is_linux():
         try:
             recover_page_typeinfo()
-        except Exception as _:
-            pass
+        except TypeNotRecovered as e:
+            # We are not going to print anything here, because the user may not
+            # even end up using the type-dependant commands.
+            # Other commands and typeinfo recoveries depend on this succeeding,
+            # so we save the actual failure reason to have something meaningful to
+            # show to the user.
+            pwndbg.aglib.kernel.page_typeinfo_recovery_failure = e
 
 
 class ArchSymbols:

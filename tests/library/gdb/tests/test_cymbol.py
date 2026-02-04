@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
+
+import gdb
 
 import pwndbg
 import pwndbg.aglib.dt
-
-if pwndbg.dbg.is_gdblib_available():
-    import pwndbg.commands.cymbol
+import pwndbg.aglib.structures
 
 from . import get_binary
 
@@ -14,27 +15,25 @@ REFERENCE_BINARY = get_binary("reference-binary.native.out")
 
 
 # Might be useful for future expansion of the test case
-def create_symbol_file(symbol, source):
-    custom_structure_example_path = (
-        os.path.join(pwndbg.commands.cymbol.pwndbg_cachedir, symbol) + ".c"
-    )
-    with open(custom_structure_example_path, "w") as f:
+def create_struct_file(name: str, source: str) -> Path:
+    path = pwndbg.aglib.structures.get_struct_path(name)
+    with open(path, "w") as f:
         f.write(source)
-    return custom_structure_example_path
+    return path
 
 
-def check_symbol_existance(symbol_type):
+def check_type_doesnt_exist(name: str) -> None:
     try:
-        pwndbg.aglib.dt.dt(symbol_type)
+        pwndbg.aglib.dt.dt(name)
     except Exception as exception:
         # In case it is an AttributeError symbol_type doesn't exists.
         assert isinstance(exception, AttributeError)
 
 
-def test_cymbol(start_binary):
+def test_cymbol(start_binary) -> None:
     start_binary(REFERENCE_BINARY)
 
-    custom_structure_example = """
+    example_struct_body = """
         typedef struct example_struct {
             int a;
             char b[16];
@@ -42,22 +41,19 @@ def test_cymbol(start_binary):
             void* d;
         } example_t;
     """
-    custom_structure_example_path = create_symbol_file("example", custom_structure_example)
+    example_struct: Path = create_struct_file("example", example_struct_body)
 
-    # Test whether OnlyWhenStructFileExists decorator works properly
-    def dummyf(custom_structure_name: str, custom_structure_path: str = "") -> bool:
-        return True
-
-    assert pwndbg.commands.cymbol.OnlyWhenStructFileExists(dummyf)("dummy") is None  # type: ignore[arg-type]
-    assert pwndbg.commands.cymbol.OnlyWhenStructFileExists(dummyf)("example") is True  # type: ignore[arg-type]
+    # Test whether get_struct_path_if_exists works properly decorator works properly
+    assert pwndbg.aglib.structures.get_struct_path_if_exists("dummy") is None
+    assert pwndbg.aglib.structures.get_struct_path_if_exists("example") is not None
 
     # Test whether generate_debug_symbols() works properly.
-    assert pwndbg.commands.cymbol.generate_debug_symbols(custom_structure_example_path) is not None
+    assert pwndbg.aglib.structures.compile_structure(example_struct)[1].is_success()
 
     # Test whether load_custom_structure() works properly
-    pwndbg.commands.cymbol.load_custom_structure("example")
+    gdb.execute("cymbol load example")
     # Test whether the symbol is loaded on the lookup loaded_symbols dict.
-    assert pwndbg.commands.cymbol.loaded_symbols.get("example") is not None
+    assert pwndbg.aglib.structures.loaded_structures.get("example") is not None
     # Test whether the returned type is what we expect (on x86-64).
     assert (
         "example_t\n"
@@ -67,26 +63,26 @@ def test_cymbol(start_binary):
         "    +0x0020 d                    : void *"
     ) == pwndbg.aglib.dt.dt("example_t").strip()
 
-    # Test whether unload_loaded_symbol() works properly.
-    pwndbg.commands.cymbol.unload_loaded_symbol("example")
-    # Ensure the symbol is removed from the lookup loaded_symbols dict.
-    assert pwndbg.commands.cymbol.loaded_symbols.get("example") is None
-    # Ensure the symbol is no longer present in gdb.
-    check_symbol_existance("example_t")
+    # Test whether unload() works properly.
+    pwndbg.aglib.structures.unload("example")
+    # Ensure the structure is removed from the lookup loaded_structures dict.
+    assert pwndbg.aglib.structures.loaded_structures.get("example") is None
+    # Ensure the type is no longer present in gdb.
+    check_type_doesnt_exist("example_t")
 
-    # Load the symbol again for the next test case.
-    pwndbg.commands.cymbol.load_custom_structure("example")
+    # Load the type again for the next test case.
+    gdb.execute("cymbol load example")
 
     # Test whether remove_custom_structure() works properly.
-    pwndbg.commands.cymbol.remove_custom_structure("example")
-    check_symbol_existance("example_t")
+    gdb.execute("cymbol remove example")
+    check_type_doesnt_exist("example_t")
 
 
-def test_cymbol_header_file(start_binary):
+def test_cymbol_header_file(start_binary) -> None:
     start_binary(REFERENCE_BINARY)
 
     # Define the content of the header file
-    header_content = """
+    header_content: str = """
     #include <stdint.h>
     typedef struct example_struct_a {
         int a;
@@ -107,14 +103,14 @@ def test_cymbol_header_file(start_binary):
     """
 
     # Create a temporary header file
-    header_file_path = pwndbg.commands.cymbol.create_temp_header_file(header_content)
+    header_file_path: Path = pwndbg.aglib.structures.create_temp_header_file(header_content)
 
     # Test adding structures from the header file
-    struct_name = "example_t"
+    struct_name: str = "example_t"
 
-    pwndbg.commands.cymbol.add_structure_from_header(header_file_path, struct_name)
+    gdb.execute(f"cymbol file {header_file_path} --name {struct_name}")
     # Verify each structure has been loaded correctly
-    assert pwndbg.commands.cymbol.loaded_symbols.get(struct_name) is not None
+    assert pwndbg.aglib.structures.loaded_structures.get(struct_name) is not None
 
     # Check if the structure types match what we expect (on x86-64)
     expected_outputs = {
@@ -138,18 +134,18 @@ def test_cymbol_header_file(start_binary):
     for struct_name, expected_output in expected_outputs.items():
         assert expected_output == pwndbg.aglib.dt.dt(struct_name).strip()
 
-    # Test whether unload_loaded_symbol() works properly.
-    pwndbg.commands.cymbol.unload_loaded_symbol("example_t")
-    # Ensure the symbol is removed from the lookup loaded_symbols dict.
-    assert pwndbg.commands.cymbol.loaded_symbols.get("example_t") is None
+    # Test whether unload() works properly.
+    pwndbg.aglib.structures.unload(struct_name)
+    # Ensure the type is removed from the lookup loaded_symbols dict.
+    assert pwndbg.aglib.structures.loaded_structures.get(struct_name) is None
     # Ensure the symbol is no longer present in gdb.
-    check_symbol_existance("example_t")
+    check_type_doesnt_exist(struct_name)
 
     # Load the symbol again for the next test case.
-    pwndbg.commands.cymbol.load_custom_structure("example_t")
+    gdb.execute(f"cymbol load {struct_name}")
 
     # Test whether remove_custom_structure() works properly.
-    pwndbg.commands.cymbol.remove_custom_structure("example_t")
-    check_symbol_existance("example_t")
+    gdb.execute(f"cymbol remove {struct_name}")
+    check_type_doesnt_exist("example_t")
     # Clean up temp files
     os.remove(header_file_path)
