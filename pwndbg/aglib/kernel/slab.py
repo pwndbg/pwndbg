@@ -675,7 +675,7 @@ def recover_slab_typeinfo() -> str:
         struct kmem_cache_cpu *cpu_slab;
 #endif
 #if KVERSION >= KERNEL_VERSION(6, 18, 0)
-#if !defined(CONFIG_SLUB_TINY)
+#if !defined(CONFIG_SLUB_TINY) && defined(CONFIG_LOCKDEP)
         char lock_key[POINTER_SIZE * 2]; // sizeof(hash_entry)
 #endif
         void *cpu_sheaves;
@@ -696,6 +696,9 @@ def recover_slab_typeinfo() -> str:
         /* Number of per cpu partial slabs to keep around */
         unsigned int cpu_partial_{slab_struct_type()}s;
 #endif
+#endif
+#if KVERSION >= KERNEL_VERSION(6, 18, 0)
+        unsigned int sheaf_capacity;
 #endif
         struct kmem_cache_order_objects oo;
         /* Allocation and freeing of slabs */
