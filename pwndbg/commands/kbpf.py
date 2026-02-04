@@ -4,7 +4,7 @@ import argparse
 import math
 import re
 
-import capstone
+import capstone6pwndbg
 
 import pwndbg
 import pwndbg.aglib.kernel

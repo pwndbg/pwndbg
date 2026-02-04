@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from itertools import chain
 
-import capstone
+import capstone6pwndbg
 
 import pwndbg.aglib
 import pwndbg.aglib.disasm.disassembly

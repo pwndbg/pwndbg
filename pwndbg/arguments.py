@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 
-from capstone import CS_GRP_INT
+from capstone6pwndbg import CS_GRP_INT
 
 import pwndbg.aglib
 import pwndbg.aglib.file
