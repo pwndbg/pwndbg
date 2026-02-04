@@ -43,7 +43,6 @@ import re
 import shutil
 import signal
 import sys
-import time
 from asyncio import CancelledError
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -426,6 +425,7 @@ def run(
                                     action._command, output, dbg, driver, relay
                                 )
                                 last_result = output.buffer.getvalue()
+                                print(last_result.decode("utf-8", errors="surrogateescape"))
                         else:
                             should_continue = exec_repl_command(
                                 action._command, sys.stdout, dbg, driver, relay
@@ -1105,41 +1105,6 @@ process_launch_unsupported = [
 ]
 
 
-def kill_existing_process(driver: ProcessDriver, relay: EventRelay) -> bool:
-    """
-    Kills the existing process if one is running.
-    Returns True if successful or if no process was running.
-    """
-    if not driver.has_process():
-        return True
-
-    process = driver.process
-    error = process.Kill()
-    if not error.Success():
-        print_error(f"failed to kill existing process: {error}")
-        return False
-
-    # Wait for the process to actually exit
-    # LLDB will transition the process state to eStateExited
-    timeout = 5.0  # 5 second timeout
-    start = time.time()
-    while time.time() - start < timeout:
-        state = process.GetState()
-        if state == lldb.eStateExited or state == lldb.eStateDetached:
-            # Manually clean up since we're not in the event loop
-            driver.process = None
-            driver.listener = None
-            if driver.io is not None:
-                driver.io.close()
-                driver.io = None
-            relay.exited()
-            return True
-        time.sleep(0.1)
-
-    print_error("timed out waiting for process to exit")
-    return False
-
-
 def process_launch(
     driver: ProcessDriver, relay: EventRelay, args: list[str], dbg: LLDB, restart: bool = False
 ) -> None:
@@ -1165,7 +1130,10 @@ def process_launch(
 
     if driver.has_process():
         if restart:
-            if not kill_existing_process(driver, relay):
+            print_info("killing running process and starting a fresh one")
+            what = driver.kill()
+            if not what.success:
+                print_error(f"could not kill existing process: {result.description}")
                 return
         else:
             print_error("a process is already being debugged")

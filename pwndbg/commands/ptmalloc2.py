@@ -18,7 +18,8 @@ import pwndbg.color.memory as mem_color
 import pwndbg.commands
 import pwndbg.commands.hexdump
 import pwndbg.dbg_mod
-import pwndbg.glibc
+import pwndbg.libc
+import pwndbg.libc.glibc
 from pwndbg.aglib.heap import heap_chain_limit
 from pwndbg.aglib.heap.ptmalloc import Arena
 from pwndbg.aglib.heap.ptmalloc import Bins
@@ -55,12 +56,15 @@ def read_chunk(addr: int) -> dict[str, int]:
 
 def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> list[str]:
     assert isinstance(pwndbg.aglib.heap.current, GlibcMemoryAllocator)
+    assert pwndbg.libc.which() == pwndbg.libc.LibcType.GLIBC
     allocator = pwndbg.aglib.heap.current
     if offset is None:
         offset = allocator.chunk_key_offset("fd")
 
     result: list[str] = []
     bins_type = bins.bin_type
+
+    version = pwndbg.libc.version()
 
     for size in bins.bins:
         b = bins.bins[size]
@@ -73,12 +77,12 @@ def format_bin(bins: Bins, verbose: bool = False, offset: int | None = None) -> 
         # fastbins consists of only single linked list
         if bins_type == BinType.FAST:
             chain_fd = b.fd_chain
-            safe_lnk = pwndbg.glibc.check_safe_linking()
+            safe_lnk = pwndbg.libc.glibc.check_safe_linking(version)
         # tcachebins consists of single linked list and entries count
         elif bins_type == BinType.TCACHE:
             chain_fd = b.fd_chain
             count = b.count
-            safe_lnk = pwndbg.glibc.check_safe_linking()
+            safe_lnk = pwndbg.libc.glibc.check_safe_linking(version)
         # normal bins consists of double linked list and may be corrupted (we can detect corruption)
         else:  # normal bin
             chain_fd = b.fd_chain
@@ -1313,6 +1317,7 @@ try_free_parser.add_argument("addr", type=int, help="Address passed to free")
 
 @pwndbg.commands.Command(try_free_parser, category=CommandCategory.PTMALLOC2)
 @pwndbg.commands.OnlyWhenHeapIsInitialized
+@pwndbg.commands.OnlyWithResolvedHeapSyms
 @pwndbg.commands.OnlyWhenUserspace
 def try_free(addr: str | int) -> None:
     addr = int(addr)

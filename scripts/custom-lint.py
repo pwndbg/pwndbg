@@ -11,6 +11,14 @@ from pathlib import Path
 
 PWNDBG_ROOT: Path = Path(__file__).parent.parent
 pwndbg_lib_py_files: list[Path] = list((PWNDBG_ROOT / "pwndbg/lib/").rglob("*.py"))
+pwndbg_libc_no_init_py_files: list[Path] = [
+    # Ideally I would like to catch only pwndbg/libc/__init__.py, but okay should be good
+    # enough.
+    f
+    for f in (PWNDBG_ROOT / "pwndbg/libc/").rglob("*.py")
+    if f.name != "__init__.py"
+]
+
 
 RED = "\x1b[31m"
 NORMAL = "\x1b[0m"
@@ -89,8 +97,29 @@ def lib_is_pure() -> None:
     )
 
 
+def libc_no_facade() -> None:
+    """
+    Checks that none of the files in pwndbg/libc/ access facade.py except for __init__.py.
+    """
+    forbidden: list[str] = ["facade"]
+    exceptions: dict[Path, list[str]] = {
+        # In docstring.
+        (PWNDBG_ROOT / "pwndbg/libc/dispatch.py"): [
+            "    Libc implementations must conform to this protocol in order to be properly used by the facade."
+        ]
+    }
+    check_forbiden_in_lines(
+        pwndbg_libc_no_init_py_files,
+        forbidden,
+        "[libc_no_facade] facade.py is the frontend of the pwndbg/libc/ API. It can access everything\n"
+        "else, and so noone else (except __init__.py) should acccess it.",
+        exceptions,
+    )
+
+
 def main() -> None:
     lib_is_pure()
+    libc_no_facade()
 
     if LINT_FAILED:
         print(red("Fatal: Custom lint check failed. See the violations above^."))

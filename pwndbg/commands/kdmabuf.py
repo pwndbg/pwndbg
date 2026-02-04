@@ -65,7 +65,7 @@ def print_sgl(sgl, indent):
 @pwndbg.commands.OnlyWhenQemuKernel
 @pwndbg.commands.OnlyWithKernelSymbols
 @pwndbg.commands.OnlyWhenPagingEnabled
-def kdmabuf():
+def kdmabuf() -> None:
     db_name = "db_list"
     if pwndbg.aglib.kernel.krelease() >= (6, 10):
         db_name = "debugfs_list"
@@ -80,8 +80,7 @@ def kdmabuf():
         print(message.warn(f"{db_name} ({hex(int(db_list))}) is empty"))
         return
     indent = IndentContextManager()
-    if not pwndbg.aglib.kernel.has_debug_info():
-        pwndbg.aglib.kernel.dmabuf.load_dmabuf_typeinfo(int(db_list["next"]))
+    pwndbg.aglib.kernel.dmabuf.recover_dmabuf_typeinfo(int(db_list["next"]))
     for idx, e in enumerate(for_each_entry(db_list.dereference(), "struct dma_buf", "list_node")):
         print_dmabuf(e, idx, indent)
         priv = e["priv"]

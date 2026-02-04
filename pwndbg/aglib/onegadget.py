@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import ctypes
 import hashlib
-import os
 import re
 import subprocess
 from enum import Enum
+from pathlib import Path
 from typing import Any
 
 from tabulate import tabulate
@@ -16,9 +16,9 @@ import pwndbg.aglib.memory
 import pwndbg.aglib.vmmap
 import pwndbg.color.message as message
 import pwndbg.dbg_mod
-import pwndbg.glibc
 import pwndbg.lib.cache
 import pwndbg.lib.tempfile
+import pwndbg.libc
 from pwndbg.color import colorize
 from pwndbg.color import generateColorFunction
 
@@ -53,7 +53,7 @@ ONEGADGET_COLOR = {
     "light_green": lambda x: colorize(x, "\x1b[38;5;82m"),
     "light_purple": lambda x: colorize(x, "\x1b[38;5;153m"),
 }
-ONEGADGET_CACHEDIR = pwndbg.lib.tempfile.cachedir("onegadget")
+ONEGADGET_CACHEDIR: Path = pwndbg.lib.tempfile.cachedir("onegadget")
 
 
 class CheckSatResult(Enum):
@@ -139,7 +139,7 @@ class Lambda:
                 #       |                       ^~~~~~~~~
                 #  while parsing (u64)xmm0 >> 64 for argv[1]
 
-                bits = pwndbg.aglib.arch.ptrsize * 8
+                bits = pwndbg.aglib.arch.ptrbits
                 if XMM_SHIFT in obj:
                     obj = obj.replace(XMM_SHIFT + str(bits), f".v{128 // bits}_int{bits}[1]")
                 else:
@@ -272,10 +272,10 @@ def run_onegadget() -> str:
     """
     Run onegadget and return the output
     """
-    libc_path = pwndbg.aglib.file.get_file(pwndbg.glibc.get_libc_filename_from_info_sharedlibrary())
+    libc_path = pwndbg.aglib.file.get_file(str(pwndbg.libc.filepath()))
     # We need cache because onegadget might be slow
-    cache_file = os.path.join(ONEGADGET_CACHEDIR, compute_file_hash(libc_path))
-    if os.path.exists(cache_file):
+    cache_file: Path = ONEGADGET_CACHEDIR / compute_file_hash(libc_path)
+    if cache_file.exists():
         # Cache hit
         with open(cache_file) as f:
             return f.read()
@@ -461,9 +461,9 @@ def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
     if CONSTRAINT_SEPARATOR in constraint:
         final_result = UNSAT
         for sub_constraint in constraint.split(CONSTRAINT_SEPARATOR):
-            result, msg = check_constraint(sub_constraint)
+            result1, msg = check_constraint(sub_constraint)
             output_msg += msg
-            final_result = final_result | result
+            final_result = final_result | result1
             if final_result == SAT:
                 return SAT, output_msg
         return final_result, output_msg
@@ -536,7 +536,7 @@ def check_constraint(constraint: str) -> tuple[CheckSatResult, str]:
         expr = IS_GOT_ADDRESS_PATTERN.match(constraint).group(1)
         result, color_str, err = parse_expression(expr)
         if err is None:
-            got_plt_address = pwndbg.glibc.get_section_address_by_name(".got.plt")
+            got_plt_address = pwndbg.libc.section_address_by_name(".got.plt")
             passed = result == got_plt_address
             output_msg += f"{color_str} = {result:#x}, {color_str} is {'' if passed else 'not '}the GOT address ({got_plt_address:#x}) of libc\n"
         else:
