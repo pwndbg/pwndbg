@@ -155,14 +155,15 @@ async def break_next_interrupt(
 
 async def break_next_interrupt_filtered(
     ec: pwndbg.dbg_mod.ExecutionController,
-    predicate: Callable[[], bool],
+    predicate: Callable[[], bool] | None = None,
 ) -> PwndbgInstruction | None:
     """
-    Break at the next interrupt (syscall) when the predicate evaluates to True.
+    Break at the next interrupt (syscall), optionally filtering by a predicate.
 
     Args:
         ec: Execution controller for stepping/continuing
-        predicate: Zero-argument callable returning True to stop, False to continue
+        predicate: Optional zero-argument callable returning True to stop, False to continue.
+                   If None, stops at any interrupt.
 
     Returns:
         The instruction we stopped at, or None if process died/signaled
@@ -176,16 +177,17 @@ async def break_next_interrupt_filtered(
         ins = await break_next_interrupt(ec, honor_current_branch=True)
 
         if ins:
-            # Evaluate predicate
-            try:
-                if not predicate():
-                    # Didn't match - step past this syscall and continue searching
+            # Evaluate predicate if provided
+            if predicate is not None:
+                try:
+                    if not predicate():
+                        # Didn't match - step past this syscall and continue searching
+                        await ec.single_step()
+                        continue
+                except Exception:
+                    # Treat errors as non-match to keep stepping
                     await ec.single_step()
                     continue
-            except Exception:
-                # Treat errors as non-match to keep stepping
-                await ec.single_step()
-                continue
             return ins
         # No interrupt in current basic block - step to next branch and take it
         branch = next_branch(pwndbg.aglib.regs.pc, including_current=True)

@@ -166,25 +166,42 @@ async def _stepsyscall(
     """
     Execution controller for the `stepsyscall` command.
     """
+    # Build predicate once based on what filters are provided
+    predicate: Callable[[], bool] | None = None
 
-    def predicate() -> bool:
-        # If syscall filter is provided, check current syscall number
-        if syscall_num is not None:
-            syscall_abi = pwndbg.aglib.arch.syscall_abi
-            if syscall_abi is None:
-                return False
-            syscall_reg = syscall_abi.syscall_register
-            current_syscall = pwndbg.aglib.regs.read_reg(syscall_reg)
-            if current_syscall != syscall_num:
-                return False
-        # If condition is provided, evaluate it
+    if syscall_num is not None:
+        syscall_abi = pwndbg.aglib.arch.syscall_abi
+        if syscall_abi is None:
+            print("Cannot determine syscall ABI for current architecture")
+            return
+        syscall_reg = syscall_abi.syscall_register
+
+        def check_syscall() -> bool:
+            return pwndbg.aglib.regs.read_reg(syscall_reg) == syscall_num
+
         if condition is not None:
-            try:
-                if not condition():
+
+            def check_syscall_and_condition() -> bool:
+                if pwndbg.aglib.regs.read_reg(syscall_reg) != syscall_num:
                     return False
+                try:
+                    return bool(condition())
+                except Exception:
+                    return False
+
+            predicate = check_syscall_and_condition
+        else:
+            predicate = check_syscall
+    elif condition is not None:
+
+        def check_condition() -> bool:
+            try:
+                return bool(condition())
             except Exception:
                 return False
-        return True
+
+        predicate = check_condition
+    # else: predicate remains None (no filtering)
 
     if await pwndbg.aglib.next.break_next_interrupt_filtered(ec, predicate=predicate):
         pwndbg.commands.context.context()
