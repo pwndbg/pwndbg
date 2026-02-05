@@ -1658,7 +1658,11 @@ class GDB(pwndbg.dbg_mod.Debugger):
                 and not (is_home_loaded and home_file.samefile(local_file))
             )
         except PermissionError:
-            print(f"Skipped loading {local_file} because you don't have the correct permissions.")
+            print(
+                message.warn(
+                    f"WARNING: Skipped loading {local_file} because you don't have the correct permissions."
+                )
+            )
             should_load_local = False
 
         if should_load_local:
