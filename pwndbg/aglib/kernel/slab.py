@@ -163,7 +163,7 @@ class SlabCache:
 
     @property
     def slab_size(self) -> int:
-        return 0x1000 << self.oo_order
+        return kernel.page_size() << self.oo_order
 
     @property
     def object_size(self) -> int:
@@ -456,18 +456,25 @@ def find_containing_slab_cache(addr: int) -> tuple[int | None, SlabCache | None]
 
 
 def kmem_cache_node_pad_sz(val: int) -> int | None:
+    ptrsize = pwndbg.aglib.arch.ptrsize
     for j in range(8):
         nr_partial = pwndbg.aglib.memory.u32(val)
-        next = pwndbg.aglib.memory.u64(val + 0x8)
-        prev = pwndbg.aglib.memory.u64(val + 0x10)
-        val += 0x8
+        next = pwndbg.aglib.memory.read_pointer_width(val + ptrsize)
+        prev = pwndbg.aglib.memory.read_pointer_width(val + ptrsize * 2)
+        val += ptrsize
         if (
             nr_partial < 0x20
             and pwndbg.aglib.memory.is_kernel(next)
             and pwndbg.aglib.memory.is_kernel(prev)
         ):
-            return j * 8
+            return j * ptrsize
     return None
+
+
+def get_kmem_cache():
+    slab_caches = kernel.slab_caches()
+    assert slab_caches, "can't find slab_caches"
+    return int(slab_caches["prev"]) & ~0xFF
 
 
 def kmem_cache_pad_sz() -> tuple[int, int]:
@@ -477,13 +484,12 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
     kconfig = kernel.kconfig()
     name = "kmem_cache"
     name_off = None
-    slab_caches = kernel.slab_caches()
-    assert slab_caches, "can't find slab_caches"
-    kmem_cache = int(slab_caches["prev"]) & ~0xFF
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    kmem_cache = get_kmem_cache()
     for i in range(0x20):
-        val = pwndbg.aglib.memory.u64(kmem_cache + i * 8)
+        val = pwndbg.aglib.memory.read_pointer_width(kmem_cache + i * ptrsize)
         if pwndbg.aglib.memory.string(val) == name.encode():
-            name_off = i * 8
+            name_off = i * ptrsize
             break
     assert name_off, "can't determine kmem_cache name offset"
     distance, node_cache_pad = None, None
@@ -499,20 +505,20 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
             for config in ("CONFIG_SYSFS", "CONFIG_SLAB_FREELIST_HARDENED", "CONFIG_NUMA")
         ):
             node_cache_pad = kmem_cache_node_pad_sz(
-                kmem_cache + name_off + 0x8 * 3
+                kmem_cache + name_off + ptrsize * 3
             )  # name ptr + 2 list ptrs
             assert node_cache_pad, "can't find kmem_cache node"
-            distance = 8 if "CONFIG_SLAB_FREELIST_RANDOM" in kconfig else 0
+            distance = ptrsize if "CONFIG_SLAB_FREELIST_RANDOM" in kconfig else 0
             return distance, node_cache_pad
         if "CONFIG_SLAB_FREELIST_RANDOM" in kconfig:
             for i in range(3, 0x20):
-                ptr = kmem_cache + name_off + i * 8
-                val = pwndbg.aglib.memory.u64(ptr)
+                ptr = kmem_cache + name_off + i * ptrsize
+                val = pwndbg.aglib.memory.read_pointer_width(ptr)
                 if pwndbg.aglib.memory.is_kernel(val) and all(
-                    pwndbg.aglib.memory.u32(val + i * 4) < 0x10000 for i in range(10)
-                ):
-                    _distance = (i + 1) * 8
-                    val = pwndbg.aglib.memory.u64(kmem_cache + name_off + _distance)
+                    pwndbg.aglib.memory.uint(val + i * 4) < 0x10000 for i in range(10)
+                ):  # checks the random_seq ptr for kmem_cache cache
+                    _distance = (i + 1) * ptrsize
+                    val = pwndbg.aglib.memory.read_pointer_width(kmem_cache + name_off + _distance)
                     node_cache_pad = kmem_cache_node_pad_sz(val)
                     if node_cache_pad is not None:
                         distance = _distance
@@ -520,27 +526,67 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
             assert distance, "can't find kmem_cache node"
     if distance is None:
         for i in range(3, 0x20):
-            ptr = kmem_cache + name_off + i * 8
-            val = pwndbg.aglib.memory.u64(ptr - 8)
+            ptr = kmem_cache + name_off + i * ptrsize
+            val = pwndbg.aglib.memory.read_pointer_width(ptr - ptrsize)
             if pwndbg.aglib.memory.peek(val) is not None:
                 continue
-            val = pwndbg.aglib.memory.u64(ptr)
+            val = pwndbg.aglib.memory.read_pointer_width(ptr)
             if pwndbg.aglib.memory.peek(val) is None:
                 continue
             node_cache_pad = kmem_cache_node_pad_sz(val)
             if node_cache_pad is not None:
-                distance = i * 8
+                distance = i * ptrsize
                 break
     assert distance is not None and node_cache_pad is not None, "can't find kmem_cache node"
-    distance -= 0x18  # the name ptr + list_head
+    distance -= ptrsize * 3  # the name ptr + list_head
     for config in ("CONFIG_SLAB_FREELIST_HARDENED", "CONFIG_NUMA", "CONFIG_SLAB_FREELIST_RANDOM"):
         if config in kconfig:
-            distance -= 8
-    distance -= 8 if kasan_config_name in kconfig else 0
+            distance -= ptrsize
+    if kasan_config_name in kconfig and krelease:  # kasan
+        if krelease >= (6, 3) or krelease < (6, 1) or "CONFIG_KASAN_GENERIC" in kernel.kconfig():
+            distance -= 4 * 2  # two ints
+        if (5, 12) <= krelease and krelease < (6, 3):
+            distance -= ptrsize
     if "CONFIG_HARDENED_USERCOPY" in kconfig or (krelease and krelease < (6, 2)):
-        distance -= 8
+        distance -= 4 * 2  # two ints
     assert distance < 0x1000, "cannot find kmem_cache padding size"
     return distance, node_cache_pad
+
+
+def get_kmem_cache_padding_sz() -> int:
+    ptrsize = pwndbg.aglib.arch.ptrsize
+    off = ptrsize  # __page_flags
+    if "CONFIG_SLAB_VIRTUAL" in kernel.kconfig():
+        off = None
+        # per cpu cache always exists because CONFIG_SLAB_VIRTUAL -> !CONFIG_SLUB_TINY
+        kmem_cache_cpu = pwndbg.aglib.memory.read_pointer_width(get_kmem_cache())
+        slabs = []
+        for i in range(pwndbg.aglib.kernel.nproc()):
+            _cache_cpu = int(pwndbg.aglib.kernel.per_cpu(kmem_cache_cpu, i))
+            ptr = pwndbg.aglib.memory.read_pointer_width(
+                _cache_cpu + ptrsize * 2
+            )  # struct slab *slab
+            if pwndbg.aglib.memory.is_kernel(ptr):
+                slabs.append(ptr)
+            if "CONFIG_SLUB_CPU_PARTIAL" in kernel.kconfig():
+                ptr = pwndbg.aglib.memory.read_pointer_width(_cache_cpu + ptrsize * 3)  # partial
+                if pwndbg.aglib.memory.is_kernel(ptr):
+                    slabs.append(ptr)
+        for slab in slabs:
+            for i in range(0, 0x10):
+                # find *slab_cache which should be in slab virtual range
+                addr = slab + i * ptrsize
+                if not pwndbg.aglib.memory.is_kernel(addr):
+                    continue
+                val = pwndbg.aglib.memory.read_pointer_width(addr)
+                if kernel.slab_virtual() < val and pwndbg.aglib.memory.is_kernel(val):
+                    off = ptrsize * i
+                    break
+            if off is not None:
+                break
+        if off is None:
+            off = 0x38  # default value for mitigation-6.12
+    return off
 
 
 def kmem_cache_structs(node_cache_pad: int) -> str:
@@ -556,24 +602,7 @@ def kmem_cache_structs(node_cache_pad: int) -> str:
         struct list_head partial;
     }};
     """
-    ptrsize = pwndbg.aglib.arch.ptrsize
-    off = ptrsize  # __page_flags
-    if "CONFIG_SLAB_VIRTUAL" in pwndbg.aglib.kernel.kconfig():
-        result += "#define CONFIG_SLAB_VIRTUAL\n"
-        off = 0x38  # default value for mitigation-6.12
-        # TODO: uncomment this when there is a suitable slab to start searching
-        """
-        for i in range(0, 0x10):
-            # find *slab_cache which should be in slab virtual range
-            addr = slab + i * ptrsize
-            if not pwndbg.aglib.memory.is_kernel(addr):
-                continue
-            val = pwndbg.aglib.memory.read_pointer_width(addr)
-            if kernel.slab_virtual() < val and pwndbg.aglib.memory.is_kernel(val):
-                off = ptrsize * i
-                break
-        """
-    result += f"#define PADDING {off}\n"
+    result += f"#define PADDING {get_kmem_cache_padding_sz()}\n"
     result += """
     struct kasan_cache {
 #if !((KERNEL_VERSION(6, 1, 0) <= KVERSION && KVERSION < KERNEL_VERSION(6, 3, 0)))
@@ -660,6 +689,7 @@ def recover_slab_typeinfo() -> str:
         "CONFIG_HARDENED_USERCOPY",
         "CONFIG_KASAN",
         "CONFIG_LOCKDEP",
+        "CONFIG_SLAB_VIRTUAL",
     )
     for config in configs:
         if config in kconfig:

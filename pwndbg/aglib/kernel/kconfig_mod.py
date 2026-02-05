@@ -9,6 +9,7 @@ import pwndbg.aglib.kernel
 import pwndbg.aglib.kernel.symbol
 import pwndbg.aglib.nearpc
 import pwndbg.aglib.symbol
+from pwndbg.color import message
 
 
 def parse_config(config_text: bytes) -> dict[str, str]:
@@ -37,8 +38,15 @@ class Kconfig(UserDict):  # type: ignore[type-arg]
     ) -> None:
         super().__init__(*args, **kwargs)
         if compressed_config is not None:
-            self.data = parse_compresed_config(compressed_config)
-            return
+            try:
+                self.data = parse_compresed_config(compressed_config)
+                return
+            except Exception as e:
+                print(
+                    message.error(
+                        f"decompression of kconfig failed with error {str(e)}, please report."
+                    )
+                )
         if self.CONFIG_SLUB_TINY:
             self.data["CONFIG_SLUB_TINY"] = "y"
         if self.CONFIG_SLUB_CPU_PARTIAL:
