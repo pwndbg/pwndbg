@@ -544,11 +544,11 @@ def kmem_cache_pad_sz() -> tuple[int, int]:
             distance -= ptrsize
     if kasan_config_name in kconfig and krelease:  # kasan
         if krelease >= (6, 3) or krelease < (6, 1) or "CONFIG_KASAN_GENERIC" in kernel.kconfig():
-            distance -= 4 * 2  # two ints
+            distance -= pwndbg.aglib.typeinfo.uint.sizeof * 2
         if (5, 12) <= krelease and krelease < (6, 3):
             distance -= ptrsize
     if "CONFIG_HARDENED_USERCOPY" in kconfig or (krelease and krelease < (6, 2)):
-        distance -= 4 * 2  # two ints
+        distance -= pwndbg.aglib.typeinfo.uint.sizeof * 2
     assert distance < 0x1000, "cannot find kmem_cache padding size"
     return distance, node_cache_pad
 
