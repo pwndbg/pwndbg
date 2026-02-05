@@ -3,17 +3,7 @@ on:
   push:
     branches:
       - dev
-    paths:
-      - "**"
-      - "!mkdocs.yml"
-      - "!docs/**"
-      - "!*.md"
   pull_request:
-    paths:
-      - "**"
-      - "!mkdocs.yml"
-      - "!docs/**"
-      - "!*.md"
 
 concurrency:
   # PRs: cancel in-progress runs (only test latest)
@@ -21,7 +11,27 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Use dorny/paths-filter instead of on.paths so that skipped jobs report
+  # as passed to branch protection, allowing docs-only PRs to merge.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - '**'
+              - '!mkdocs.yml'
+              - '!docs/**'
+              - '!*.md'
+
   check_release_build-gdb:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -57,6 +67,8 @@ jobs:
         run: nix develop --accept-flake-config
 
   check_release_build-lldb:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -92,6 +104,8 @@ jobs:
         run: nix develop --accept-flake-config
 
   lock_flake:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
@@ -104,6 +118,8 @@ jobs:
         run: nix flake lock --no-update-lock-file
 
   lock_uv:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     steps:
