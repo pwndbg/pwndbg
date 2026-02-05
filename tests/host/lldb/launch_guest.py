@@ -69,6 +69,11 @@ async def _run(ctrl: Any, outer: Callable[..., Coroutine[Any, Any, None]]) -> No
             # Could also consider disabling `symbols.enable-external-lookup`
             await self.pc.execute("settings set plugin.symbol-locator.debuginfod.server-urls {}")
 
+        async def generate_core_file(self, path: Path) -> None:
+            await self.pc.execute(f"process save-core {path}")
+            await self.pc.execute("target delete")
+            await self.pc.execute(f"target create --core {path}")
+
     await outer(_LLDBController(ctrl))
 
 

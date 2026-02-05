@@ -26,6 +26,7 @@ import pwndbg.dbg_mod
 import pwndbg.gdblib
 import pwndbg.gdblib.events
 import pwndbg.lib.memory
+import pwndbg.lib.path
 from pwndbg.dbg_mod import EventHandlerPriority
 from pwndbg.dbg_mod import EventType
 from pwndbg.dbg_mod import selection
@@ -115,16 +116,33 @@ def _get_frame_stack_variables(frame: gdb.Frame) -> tuple[tuple[int, int, str], 
 
     variables = []
     while block:
+        # Workaround for GDB bug:
+        # https://sourceware.org/bugzilla/show_bug.cgi?id=33861
+        # https://github.com/pwndbg/pwndbg/issues/3693
+        # This constant is the size of .text on a lightweight kernel build
+        # with debug info. It is okay if we accidentally break here even though we
+        # shouldn't. The borked block has `block.end - block.start == 0x224f58a`
+        # on my repro.
+        if block.end - block.start > 0x127E000:
+            break
+
         for sym in block:
             if not (sym.is_variable or sym.is_argument):
                 continue
 
             try:
                 value = sym.value(frame)
+                # value.address can be None
+                # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Values-From-Inferior.html#Values-From-Inferior:~:text=Variable%3A%20Value%2Eaddress
+                # https://sourceware.org/bugzilla/show_bug.cgi?id=33860
+                if value.address is None:
+                    continue
+
                 addr = int(value.address)
                 size = value.type.sizeof
                 variables.append((addr, addr + size, sym.name))
-            except (gdb.error, AttributeError, TypeError):
+            except (gdb.error, AttributeError):
+                # FIXME: We should get rid of this try-except in favour of checking the necessary conditions beforehand.
                 continue
 
         block = block.superblock
@@ -218,12 +236,13 @@ class GDBFrame(pwndbg.dbg_mod.Frame):
         # to read from the inferior. `sp` is resolved by GDB to the architecture-specific stack pointer.
         return int(self.regs().by_name("sp"))
 
+    @override
     def start(self) -> int | None:
         # How is it possible that this isn't in the API?
         # https://sourceware.org/gdb/current/onlinedocs/gdb.html/Frames-In-Python.html#Frames-In-Python
         import pwndbg.aglib
 
-        # We're gonna parse this:.
+        # We're gonna parse this:
         # e.g. `str(self.inner) == "{stack=0x7fffffffe030,code=0x00007ffff7fe0880,!special}"`
         # See gdb/python/py-frame.c:frapy_str() and gdb/frame.c:frame_id::to_string()
         # They really could just expose .stack() as an API...
@@ -600,6 +619,15 @@ class GDBProcess(pwndbg.dbg_mod.Process):
     @override
     def alive(self) -> bool:
         return gdb.selected_thread() is not None
+
+    @override
+    def is_core_file(self) -> bool:
+        inferior = gdb.selected_inferior()
+        return (
+            hasattr(inferior, "connection")
+            and inferior.connection is not None
+            and inferior.connection.type == "core"
+        )
 
     @override
     def stopped_with_signal(self) -> bool:
@@ -1117,11 +1145,19 @@ class GDBProcess(pwndbg.dbg_mod.Process):
 
     @override
     def module_section_locations(self) -> list[tuple[int, int, str, str]]:
+        global pwndbg
         import pwndbg.gdblib.info
 
         result = []
         for section in pwndbg.gdblib.info.sections():
-            result.append((section.start, section.size, section.section, section.objfile))
+            result.append(
+                (
+                    section.start,
+                    section.size,
+                    section.section,
+                    pwndbg.lib.path.clean_path(section.objfile),
+                )
+            )
 
         return result
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from capstone.sparc import *  # noqa: F403
+from capstone6pwndbg.sparc import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib.disasm.arch

@@ -25,7 +25,7 @@ def dumpargs(force: bool = False) -> None:
     else:
         print("Couldn't resolve call arguments from registers.")
         print(
-            f"Detected ABI: {pwndbg.aglib.arch.name} ({pwndbg.aglib.arch.ptrsize * 8} bit) either doesn't pass arguments through registers or is not implemented. Maybe they are passed on the stack?"
+            f"Detected ABI: {pwndbg.aglib.arch.name} ({pwndbg.aglib.arch.ptrbits} bit) either doesn't pass arguments through registers or is not implemented. Maybe they are passed on the stack?"
         )
 
 

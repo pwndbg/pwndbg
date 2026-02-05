@@ -20,7 +20,7 @@ def parse_config(config_text: bytes) -> dict[str, str]:
     return res
 
 
-def parse_compresed_config(compressed_config: bytes) -> dict[str, str]:
+def parse_compresed_config(compressed_config: bytes | bytearray) -> dict[str, str]:
     config_text = zlib.decompress(compressed_config, 16)
     return parse_config(config_text)
 
@@ -30,7 +30,9 @@ def config_to_key(name: str) -> str:
 
 
 class Kconfig(UserDict):  # type: ignore[type-arg]
-    def __init__(self, compressed_config: bytes | None, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self, compressed_config: bytes | bytearray | None, *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         if compressed_config is not None:
             self.data = parse_compresed_config(compressed_config)
