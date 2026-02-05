@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from capstone import *  # noqa: F403
-from capstone.riscv import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.riscv import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib

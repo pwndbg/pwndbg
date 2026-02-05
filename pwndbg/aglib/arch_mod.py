@@ -5,30 +5,30 @@ from typing import Literal
 
 import pwnlib
 import pwnlib.context
-from capstone import CS_ARCH_AARCH64
-from capstone import CS_ARCH_ARM
-from capstone import CS_ARCH_LOONGARCH
-from capstone import CS_ARCH_MIPS
-from capstone import CS_ARCH_PPC
-from capstone import CS_ARCH_RISCV
-from capstone import CS_ARCH_SPARC
-from capstone import CS_ARCH_SYSTEMZ
-from capstone import CS_ARCH_X86
-from capstone import CS_MODE_16
-from capstone import CS_MODE_32
-from capstone import CS_MODE_64
-from capstone import CS_MODE_ARM
-from capstone import CS_MODE_BIG_ENDIAN
-from capstone import CS_MODE_LITTLE_ENDIAN
-from capstone import CS_MODE_LOONGARCH64
-from capstone import CS_MODE_MCLASS
-from capstone import CS_MODE_MIPS32
-from capstone import CS_MODE_MIPS64
-from capstone import CS_MODE_RISCV32
-from capstone import CS_MODE_RISCV64
-from capstone import CS_MODE_RISCVC
-from capstone import CS_MODE_THUMB
-from capstone import CS_MODE_V9
+from capstone6pwndbg import CS_ARCH_AARCH64
+from capstone6pwndbg import CS_ARCH_ARM
+from capstone6pwndbg import CS_ARCH_LOONGARCH
+from capstone6pwndbg import CS_ARCH_MIPS
+from capstone6pwndbg import CS_ARCH_PPC
+from capstone6pwndbg import CS_ARCH_RISCV
+from capstone6pwndbg import CS_ARCH_SPARC
+from capstone6pwndbg import CS_ARCH_SYSTEMZ
+from capstone6pwndbg import CS_ARCH_X86
+from capstone6pwndbg import CS_MODE_16
+from capstone6pwndbg import CS_MODE_32
+from capstone6pwndbg import CS_MODE_64
+from capstone6pwndbg import CS_MODE_ARM
+from capstone6pwndbg import CS_MODE_BIG_ENDIAN
+from capstone6pwndbg import CS_MODE_LITTLE_ENDIAN
+from capstone6pwndbg import CS_MODE_LOONGARCH64
+from capstone6pwndbg import CS_MODE_MCLASS
+from capstone6pwndbg import CS_MODE_MIPS32
+from capstone6pwndbg import CS_MODE_MIPS64
+from capstone6pwndbg import CS_MODE_RISCV32
+from capstone6pwndbg import CS_MODE_RISCV64
+from capstone6pwndbg import CS_MODE_RISCVC
+from capstone6pwndbg import CS_MODE_THUMB
+from capstone6pwndbg import CS_MODE_V9
 from typing_extensions import override
 
 import pwndbg

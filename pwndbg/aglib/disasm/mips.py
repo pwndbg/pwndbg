@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from capstone import *  # noqa: F403
-from capstone.mips import *  # noqa: F403
+from capstone6pwndbg import *  # noqa: F403
+from capstone6pwndbg.mips import *  # noqa: F403
 from typing_extensions import override
 
 import pwndbg.aglib.disasm.arch

@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 
 import gdb
-from capstone import CS_GRP_JUMP
+from capstone6pwndbg import CS_GRP_JUMP
 
 import pwndbg.aglib.disasm.disassembly
 import pwndbg.color.message as message
