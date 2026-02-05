@@ -470,13 +470,14 @@ def kmem_cache_node_pad_sz(val: int) -> int | None:
     return None
 
 
-def kmem_cache_pad_sz(kconfig) -> tuple[int, int]:
+def kmem_cache_pad_sz() -> tuple[int, int]:
     # find the distance between the first kmem_cache's name and its first node cache
     # the name for the first kmem_cache (most likely) has the name "kmem_cache"
     # and the global var is also named "kmem_cache"
+    kconfig = kernel.kconfig()
     name = "kmem_cache"
     name_off = None
-    slab_caches = pwndbg.aglib.kernel.slab_caches()
+    slab_caches = kernel.slab_caches()
     assert slab_caches, "can't find slab_caches"
     kmem_cache = int(slab_caches["prev"]) & ~0xFF
     for i in range(0x20):
@@ -486,7 +487,7 @@ def kmem_cache_pad_sz(kconfig) -> tuple[int, int]:
             break
     assert name_off, "can't determine kmem_cache name offset"
     distance, node_cache_pad = None, None
-    krelease = pwndbg.aglib.kernel.krelease()
+    krelease = kernel.krelease()
     kasan_config_name = (
         "CONFIG_KASAN_GENERIC" if not krelease or krelease >= (6, 3) else "CONFIG_KASAN"
     )
@@ -542,7 +543,7 @@ def kmem_cache_pad_sz(kconfig) -> tuple[int, int]:
     return distance, node_cache_pad
 
 
-def kmem_cache_structs(node_cache_pad) -> str:
+def kmem_cache_structs(node_cache_pad: int) -> str:
     if pwndbg.aglib.kernel.symbol.kversion_cint() is None:
         return ""
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
@@ -663,7 +664,7 @@ def recover_slab_typeinfo() -> str:
     for config in configs:
         if config in kconfig:
             defs.append(config)
-    sz, node_cache_pad = kmem_cache_pad_sz(kconfig)
+    sz, node_cache_pad = kmem_cache_pad_sz()
     result = f"#define KVERSION {pwndbg.aglib.kernel.symbol.kversion_cint()}\n"
     result += "\n".join(f"#define {s}" for s in defs)
     result += pwndbg.aglib.kernel.symbol.COMMON_TYPES
@@ -733,7 +734,7 @@ def recover_slab_typeinfo() -> str:
         unsigned int usersize;		/* Usercopy region size */
 #endif
         // ensure it has at least num_numa_nodes, sufficient for us
-        struct kmem_cache_node *node[{pwndbg.aglib.kernel.num_numa_nodes()}];
+        struct kmem_cache_node *node[{kernel.num_numa_nodes()}];
     }};
     """
     return result

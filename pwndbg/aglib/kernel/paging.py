@@ -127,6 +127,7 @@ class PageTableScan:
         prev = 0 if self.arch == "x86-64" else None
         for entry in entries:
             if prev and prev == entry:
+                # be aware to not use continue
                 pass
             elif entry == 0:
                 if curr_off is not None:
@@ -173,12 +174,10 @@ class PageTableScan:
                         if rflags == curr_flags and roff == 0:
                             curr_sz += rsz
                             left += 1
+                if curr_off is not None and (n > 1 or (n == 1 and left == 0)):
+                    append((curr_off, curr_sz, curr_flags))
+                    curr_off = None
                 if n > 1:  # (prepare to) merge the last page chunk range if needed
-                    # if n == 1, last == first which is handled by the previous if-block
-                    if curr_off is not None:
-                        # don't do this if n == 1 because we may want to coalesce further
-                        append((curr_off, curr_sz, curr_flags))
-                        curr_off = None
                     roff, rsz, rflags = arr[n - 1]
                     # is the last non-zero entry actually the last (e.g. 511 th) entry?
                     if roff + rsz == size:
